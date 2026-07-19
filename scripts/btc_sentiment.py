@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """BTC crowd-sentiment & price-target tracker.
 
-Fetches free public sources (StockTwits BTC.X self-labeled posts, the
-alternative.me Fear & Greed index, BTC spot price), extracts explicit price
-targets from post text, classifies unlabeled posts (Claude if
-ANTHROPIC_API_KEY is set, keyword rules otherwise), and appends an aggregate
-snapshot to data/history.json + writes data/latest.json.
+Sources per snapshot (each optional — any failure degrades gracefully):
+  - Twitter/X via twitterapi.io   (needs TWITTERAPI_KEY; ~$0.15/1k tweets)
+  - StockTwits BTC.X              (free; posters self-label Bullish/Bearish)
+  - alternative.me Fear & Greed   (free)
+  - BTC spot                      (CoinGecko -> Coinbase -> blockchain.info)
+  - Polymarket BTC price markets  (free; real-money probabilities)
+  - Deribit options skew proxy    (free; put IV - call IV at ~±10%, ~30d out)
 
-Designed to run in GitHub Actions on a cron. stdlib-only unless the optional
-`anthropic` package + API key are present.
+Explicit price targets ($40k, 45,000, ...) are regex-extracted from post text.
+Posts without a self-label are classified bullish/bearish/neutral by Claude
+(if ANTHROPIC_API_KEY is set) or a keyword lexicon. Sentiment shares are
+engagement-weighted (log of likes) so loud accounts count more.
+
+Appends a snapshot to data/history.json and writes data/latest.json.
+stdlib-only unless the optional `anthropic` package + API key are present.
 """
 
 import json
@@ -18,6 +25,7 @@ import re
 import statistics
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -31,20 +39,35 @@ MIN_TARGET, MAX_TARGET = 10_000, 500_000
 HISTORY_CAP = 4000
 Z_MIN_SNAPSHOTS = 8
 Z_WINDOW_DAYS = 30
+MAX_TWEETS = 400          # per run; ~4 runs/day => ~48k tweets/mo ≈ $7/mo
+TWEET_QUERY = '(bitcoin OR btc OR $BTC) lang:en -filter:retweets min_faves:5'
 
 
-def fetch_json(url, timeout=25):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+def fetch_json(url, headers=None, timeout=25):
+    hdrs = {"User-Agent": UA, "Accept": "application/json"}
+    if headers:
+        hdrs.update(headers)
+    req = urllib.request.Request(url, headers=hdrs)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def try_fetch(url, label):
+def try_fetch(url, label, headers=None):
     try:
-        return fetch_json(url)
+        return fetch_json(url, headers=headers)
     except Exception as e:  # noqa: BLE001 - any source may be flaky; never abort the run
         print(f"[warn] {label} failed: {e}", file=sys.stderr)
         return None
+
+
+def first_num(d, *keys):
+    for k in keys:
+        v = d.get(k)
+        if isinstance(v, (int, float)):
+            return v
+        if isinstance(v, str) and v.replace(".", "", 1).isdigit():
+            return float(v)
+    return 0
 
 
 # ---------------------------------------------------------------- sources
@@ -74,6 +97,38 @@ def get_fear_greed():
     return None, None
 
 
+def get_tweets(max_tweets=MAX_TWEETS):
+    """Recent BTC tweets via twitterapi.io advanced search (X-API-Key auth)."""
+    key = os.environ.get("TWITTERAPI_KEY")
+    if not key:
+        return []
+    posts, cursor = [], None
+    base = ("https://api.twitterapi.io/twitter/tweet/advanced_search"
+            "?queryType=Latest&query=" + urllib.parse.quote(TWEET_QUERY))
+    for _ in range(40):  # hard cap on requests
+        url = base + (f"&cursor={urllib.parse.quote(cursor)}" if cursor else "")
+        d = try_fetch(url, "twitterapi", headers={"X-API-Key": key})
+        if not d:
+            break
+        tweets = d.get("tweets") or d.get("data") or []
+        if not tweets:
+            break
+        for t in tweets:
+            likes = first_num(t, "likeCount", "favorite_count", "favoriteCount")
+            posts.append({
+                "text": (t.get("text") or "")[:500],
+                "label": None,
+                "source": "twitter",
+                "weight": 1 + math.log10(1 + likes),
+            })
+        if len(posts) >= max_tweets or not d.get("has_next_page"):
+            break
+        cursor = d.get("next_cursor")
+        if not cursor:
+            break
+    return posts[:max_tweets]
+
+
 def get_stocktwits(max_pages=5):
     """StockTwits BTC.X stream: users self-label posts Bullish/Bearish."""
     posts, max_id = [], None
@@ -93,16 +148,88 @@ def get_stocktwits(max_pages=5):
                     sent = "bull"
                 elif basic == "Bearish":
                     sent = "bear"
+            likes = first_num(m.get("likes") or {}, "total")
             posts.append({
                 "text": (m.get("body") or "")[:500],
                 "label": sent,  # None => needs classification
                 "source": "stocktwits",
+                "weight": 1 + math.log10(1 + likes),
             })
         cursor = d.get("cursor") or {}
         if not cursor.get("more"):
             break
         max_id = cursor.get("max")
     return posts
+
+
+def get_polymarket(limit=10):
+    """Open Polymarket BTC price markets with real-money YES probabilities."""
+    d = try_fetch("https://gamma-api.polymarket.com/events"
+                  "?tag_slug=bitcoin&closed=false&limit=60", "polymarket")
+    if not isinstance(d, list):
+        return []
+    out = []
+    for ev in d:
+        for m in ev.get("markets") or []:
+            q = m.get("question") or ev.get("title") or ""
+            if not re.search(r"\b(bitcoin|btc)\b", q, re.I):
+                continue
+            if not re.search(r"\$\s?\d|\d+\s*[kK]\b", q):
+                continue  # only price-level markets
+            try:
+                prices = m.get("outcomePrices")
+                if isinstance(prices, str):
+                    prices = json.loads(prices)
+                yes = round(100 * float(prices[0]), 1)
+            except Exception:  # noqa: BLE001
+                continue
+            vol = first_num(m, "volumeNum", "volume")
+            out.append({"q": q.strip()[:120], "yes": yes, "vol": round(vol)})
+    out.sort(key=lambda x: -x["vol"])
+    return out[:limit]
+
+
+def get_deribit_skew(spot):
+    """Downside-fear proxy: put IV minus call IV at ~±10% strikes, ~30d expiry.
+
+    Positive = traders pay more for crash protection than for upside.
+    """
+    if not spot:
+        return None
+    d = try_fetch("https://www.deribit.com/api/v2/public/"
+                  "get_book_summary_by_currency?currency=BTC&kind=option", "deribit")
+    if not d or "result" not in d:
+        return None
+    now = datetime.now(timezone.utc)
+    by_expiry = {}
+    for o in d["result"]:
+        try:
+            _, exp_s, strike_s, cp = o["instrument_name"].split("-")
+            exp = datetime.strptime(exp_s, "%d%b%y").replace(tzinfo=timezone.utc)
+            iv = o.get("mark_iv")
+            if iv is None:
+                continue
+            by_expiry.setdefault(exp, []).append((float(strike_s), cp, float(iv)))
+        except Exception:  # noqa: BLE001 - skip malformed instruments
+            continue
+    candidates = [e for e in by_expiry if 20 <= (e - now).days <= 45]
+    if not candidates:
+        return None
+    exp = min(candidates, key=lambda e: abs((e - now).days - 30))
+    opts = by_expiry[exp]
+    puts = [(abs(k - spot * 0.9), iv) for k, cp, iv in opts if cp == "P"]
+    calls = [(abs(k - spot * 1.1), iv) for k, cp, iv in opts if cp == "C"]
+    if not puts or not calls:
+        return None
+    put_iv = min(puts)[1]
+    call_iv = min(calls)[1]
+    return {
+        "skew": round(put_iv - call_iv, 1),
+        "put_iv": round(put_iv, 1),
+        "call_iv": round(call_iv, 1),
+        "expiry": exp.date().isoformat(),
+        "dte": (exp - now).days,
+    }
 
 
 # ------------------------------------------------------- target extraction
@@ -245,8 +372,14 @@ def main():
     now = datetime.now(timezone.utc).replace(microsecond=0)
     spot, spot_chg = get_spot()
     fng, fng_label = get_fear_greed()
-    posts = get_stocktwits()
-    print(f"spot={spot} fng={fng} posts={len(posts)}")
+    posts = get_tweets() + get_stocktwits()
+    polymarket = get_polymarket()
+    skew = get_deribit_skew(spot)
+    sources = {}
+    for p in posts:
+        sources[p["source"]] = sources.get(p["source"], 0) + 1
+    print(f"spot={spot} fng={fng} posts={sources} "
+          f"polymarket={len(polymarket)} skew={skew and skew['skew']}")
 
     method = "none"
     if posts:
@@ -269,12 +402,13 @@ def main():
         targets.extend(tv)
 
     n = len(posts)
-    counts = {"bull": 0, "bear": 0, "neutral": 0}
+    wsum = {"bull": 0.0, "bear": 0.0, "neutral": 0.0}
     for p in posts:
-        counts[p["label"]] += 1
-    bull_pct = round(100 * counts["bull"] / n, 1) if n else None
-    bear_pct = round(100 * counts["bear"] / n, 1) if n else None
-    neutral_pct = max(0.0, round(100 - bull_pct - bear_pct, 1)) if n else None
+        wsum[p["label"]] += p.get("weight", 1)
+    total_w = sum(wsum.values())
+    bull_pct = round(100 * wsum["bull"] / total_w, 1) if total_w else None
+    bear_pct = round(100 * wsum["bear"] / total_w, 1) if total_w else None
+    neutral_pct = max(0.0, round(100 - bull_pct - bear_pct, 1)) if total_w else None
 
     target_median = round(statistics.median(targets)) if targets else None
     below_spot_pct = (round(100 * sum(1 for t in targets if t < spot) / len(targets), 1)
@@ -303,6 +437,7 @@ def main():
         "target_median": target_median,
         "targets_below_spot_pct": below_spot_pct,
         "anchored_below": anchored_below,
+        "skew": skew["skew"] if skew else None,
         "bear_z": z,
         "signal": signal,
         "method": method,
@@ -313,6 +448,9 @@ def main():
 
     latest = dict(snapshot)
     latest["targets"] = sorted(targets)[:300]
+    latest["sources"] = sources
+    latest["skew_detail"] = skew
+    latest["polymarket"] = polymarket
     (DATA_DIR / "latest.json").write_text(json.dumps(latest, indent=1) + "\n")
     print(f"snapshot written: signal={signal} bull={bull_pct}% bear={bear_pct}% "
           f"targets={len(targets)} median={target_median}")

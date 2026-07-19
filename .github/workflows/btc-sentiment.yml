@@ -26,10 +26,14 @@ jobs:
       - name: Install Anthropic SDK
         run: pip install --quiet anthropic
 
+      - name: Refresh backtest (weekly, self-skips when fresh)
+        run: python scripts/btc_backtest.py
+
       - name: Fetch, classify, aggregate
         run: python scripts/btc_sentiment.py
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
 
       - name: Commit snapshot
         run: |

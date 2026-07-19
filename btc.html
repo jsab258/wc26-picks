@@ -57,7 +57,7 @@
 </head>
 <body>
 <h1>₿ BTC — Crowd Sentiment</h1>
-<div class="sub">StockTwits crowd · Fear &amp; Greed · price-target consensus · contrarian meter</div>
+<div class="sub">𝕏 + StockTwits crowd · Fear &amp; Greed · target consensus · options skew · Polymarket · backtest</div>
 <div id="out"><div class="status">Loading…</div></div>
 <div id="tip"></div>
 
@@ -197,6 +197,91 @@ function sentimentBar(s){
     </div>`;
 }
 
+function polymarketRows(list){
+  if (!list || !list.length) return `<div class="note">No open BTC price markets found on Polymarket right now.</div>`;
+  return list.map(m => `
+    <div style="margin:7px 0">
+      <div style="display:flex; justify-content:space-between; gap:10px; font-size:13px">
+        <span>${esc(m.q)}</span><b style="white-space:nowrap">${m.yes}%</b>
+      </div>
+      <div style="height:5px; background:#0f1115; border-radius:3px; margin-top:3px">
+        <div style="height:5px; width:${Math.min(100,m.yes)}%; background:${C.neu}; border-radius:3px"></div>
+      </div>
+    </div>`).join('');
+}
+
+function fmtPct(v){ return v==null ? '—' : (v>0?'+':'')+v+'%'; }
+function pctCls(v){ return v==null ? '' : v>0 ? 'up' : v<0 ? 'down' : ''; }
+
+const BUCKET_NAMES = {
+  'fng<=10':'Extreme fear ≤10', 'fng<=20':'Extreme fear ≤20', 'fng<=25':'Fear ≤25',
+  'fng>=75':'Greed ≥75', 'fng>=85':'Extreme greed ≥85',
+};
+
+function backtestTable(bt){
+  const row = (label, n, fwd, bold) => `<tr${bold?' style="font-weight:700"':''}>
+    <td>${label}</td><td>${n}</td>
+    ${['30','90','180'].map(w=>{
+      const f = fwd[w];
+      return `<td class="${pctCls(f&&f.median)}">${f?fmtPct(f.median):'—'}</td>`;
+    }).join('')}
+    <td>${fwd['90']?fwd['90'].win+'%':'—'}</td></tr>`;
+  return `<div class="tblwrap"><table>
+    <thead><tr><th>Condition</th><th>Days</th><th>30d</th><th>90d</th><th>180d</th><th>90d win</th></tr></thead>
+    <tbody>
+      ${row('All days (baseline)', bt.n_days, bt.baseline, true)}
+      ${bt.buckets.map(b=>row(BUCKET_NAMES[b.label]||b.label, b.n_days, b.fwd, false)).join('')}
+    </tbody></table></div>
+    <div class="note">Median forward BTC return after days in each Fear &amp; Greed bucket,
+    ${bt.start} → ${bt.end}. Overlapping windows — treat as directional evidence, not a track record.</div>`;
+}
+
+function backtestChart(bt){
+  const s = bt.series;
+  if (!s || s.dates.length < 10) return '';
+  const W=536, H=180, L=44, R=8, T=12, B=22, n=s.dates.length;
+  const lg = Math.log10;
+  const loL = lg(Math.min(...s.close))-0.03, hiL = lg(Math.max(...s.close))+0.03;
+  const X = i => L + i/(n-1)*(W-L-R);
+  const Y = v => T + (1-(lg(v)-loL)/(hiL-loL))*(H-T-B);
+  const path = s.close.map((c,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(c).toFixed(1)}`).join('');
+  const fearDots = s.close.map((c,i)=> s.fng[i]<=20
+    ? `<circle cx="${X(i).toFixed(1)}" cy="${Y(c).toFixed(1)}" r="3" fill="${C.bear}" opacity="0.85"/>` : '').join('');
+  const greedDots = s.close.map((c,i)=> s.fng[i]>=85
+    ? `<circle cx="${X(i).toFixed(1)}" cy="${Y(c).toFixed(1)}" r="3" fill="${C.bull}" opacity="0.85"/>` : '').join('');
+  const tickVals = [0.25,0.6,0.92].map(f=>Math.pow(10, loL+(hiL-loL)*f));
+  const ticks = tickVals.map(v=>`<text class="axis" x="${L-5}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${fmtK(v)}</text>
+     <line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#2a2f3a" stroke-width="1"/>`).join('');
+  const y0 = s.dates[0].slice(0,4), y1 = s.dates[n-1].slice(0,4);
+  const id = 'bt' + Math.random().toString(36).slice(2,8);
+  queueMicrotask(()=>{
+    const el = document.getElementById(id); if(!el) return;
+    const hover = el.querySelector('.hover'), cross = el.querySelector('.cross');
+    hover.addEventListener('mousemove', evt => {
+      const r = el.getBoundingClientRect();
+      const sx = (evt.clientX - r.left)/r.width*W;
+      const i = Math.max(0, Math.min(n-1, Math.round((sx-L)/(W-L-R)*(n-1))));
+      cross.setAttribute('x1',X(i)); cross.setAttribute('x2',X(i)); cross.setAttribute('opacity',1);
+      showTip(`${s.dates[i]} — <b>${fmtUsd(s.close[i])}</b> · F&amp;G ${s.fng[i]}`, evt.clientX, evt.clientY);
+    });
+    hover.addEventListener('mouseleave', ()=>{ cross.setAttribute('opacity',0); hideTip(); });
+  });
+  return `<svg id="${id}" viewBox="0 0 ${W} ${H}">
+    ${ticks}
+    <path d="${path}" fill="none" stroke="${C.neu}" stroke-width="1.6" stroke-linejoin="round"/>
+    ${fearDots}${greedDots}
+    <line class="cross" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="#9aa0aa" stroke-width="1" opacity="0"/>
+    <text class="axis" x="${L}" y="${H-6}">${y0}</text>
+    <text class="axis" x="${W-R}" y="${H-6}" text-anchor="end">${y1}</text>
+    <rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" class="hover"/>
+  </svg>
+  <div class="legend">
+    <span><span class="chip" style="background:${C.bear}"></span>Extreme fear (≤20)</span>
+    <span><span class="chip" style="background:${C.bull}"></span>Extreme greed (≥85)</span>
+    <span><span class="chip" style="background:${C.neu}"></span>BTC (log scale, weekly)</span>
+  </div>`;
+}
+
 function historyTable(rows){
   if (!rows.length) return '';
   const r = rows.slice(-40).reverse();
@@ -212,12 +297,14 @@ function historyTable(rows){
 
 async function load(){
   const out = document.getElementById('out');
-  let latest, history;
+  let latest, history, backtest = null;
   try {
     [latest, history] = await Promise.all([
       fetch('data/latest.json', {cache:'no-store'}).then(r=>r.json()),
       fetch('data/history.json', {cache:'no-store'}).then(r=>r.json()),
     ]);
+    backtest = await fetch('data/backtest.json', {cache:'no-store'})
+      .then(r=>r.ok?r.json():null).catch(()=>null);
   } catch(e) {
     out.innerHTML = `<div class="status err">Could not load data files (${esc(e.message)}). If you opened this file directly, serve it over HTTP.</div>`;
     return;
@@ -238,7 +325,7 @@ async function load(){
       <div class="tile"><div class="k">Fear &amp; Greed</div><div class="v">${latest.fng??'—'}</div>
         <div class="s">${latest.fng_label??''}</div></div>
       <div class="tile"><div class="k">Sample</div><div class="v">${latest.n_posts??'—'}</div>
-        <div class="s">posts · ${latest.method==='llm'?'Claude-classified':latest.method==='rules'?'rule-classified':'—'}</div></div>
+        <div class="s">${latest.sources?Object.entries(latest.sources).map(([k,v])=>`${k==='twitter'?'𝕏':'ST'} ${v}`).join(' · '):'posts'} · ${latest.method==='llm'?'Claude':latest.method==='rules'?'rules':'—'}</div></div>
       <div class="tile"><div class="k">Median target</div><div class="v">${fmtK(latest.target_median)}</div>
         <div class="s">${latest.n_targets??0} targets · ${latest.targets_below_spot_pct!=null?latest.targets_below_spot_pct+'% below spot':''}</div></div>
     </div>
@@ -260,6 +347,22 @@ async function load(){
     <h2>Fear &amp; Greed index</h2>
     <div class="card">${lineChart(history,'fng',{color:C.bull, fmt:v=>v.toFixed(0), yMin:0, yMax:100})}
       <div class="note">&le;25 = extreme fear, &ge;75 = extreme greed.</div></div>
+
+    <h2>Market-implied expectations</h2>
+    <div class="card">
+      <div style="font-size:13px; margin-bottom:4px">Deribit options skew (~30d, ±10% strikes):
+        <b class="${latest.skew!=null ? (latest.skew>0?'down':'up') : ''}">${latest.skew!=null?(latest.skew>0?'+':'')+latest.skew+' pts':'n/a'}</b></div>
+      <div class="note" style="margin-top:0">${latest.skew_detail
+        ? `Put IV ${latest.skew_detail.put_iv}% vs call IV ${latest.skew_detail.call_iv}% (exp ${latest.skew_detail.expiry}). Positive = traders paying up for crash protection; deeply positive alongside crowd bearishness supports the capitulation read.`
+        : 'Options data unavailable this run.'}</div>
+      <div style="border-top:1px solid var(--line); margin:10px 0 6px"></div>
+      <div class="note" style="margin:0 0 4px">Polymarket BTC price markets (real-money YES odds):</div>
+      ${polymarketRows(latest.polymarket)}
+    </div>
+
+    <h2>Backtest — does fading extremes work?</h2>
+    <div class="card">${backtest ? backtestChart(backtest) + backtestTable(backtest)
+      : '<div class="note">Backtest not generated yet — it is produced by the first GitHub Action run.</div>'}</div>
 
     ${historyTable(history)}
     <div class="status">${updated?`Updated ${updated.toUTCString()}`:''} · auto-refreshed every 6h by GitHub Actions</div>`;

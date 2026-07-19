@@ -13,13 +13,27 @@ now vs. its own recent baseline, and (b) what price is the crowd anchored on
 
 **How it works**
 
-- `.github/workflows/btc-sentiment.yml` runs `scripts/btc_sentiment.py` every
-  6 hours (plus on-demand via *Actions → BTC sentiment tracker → Run
-  workflow*).
-- The script pulls free sources: **StockTwits BTC.X** (posters self-label
-  Bullish/Bearish), the **alternative.me Fear & Greed index**, and BTC spot
-  (CoinGecko, with Coinbase/blockchain.info fallbacks). Every source failure
-  degrades gracefully — a snapshot is always written.
+- `.github/workflows/btc-sentiment.yml` runs every 6 hours (plus on-demand via
+  *Actions → BTC sentiment tracker → Run workflow*). It refreshes the weekly
+  backtest (`scripts/btc_backtest.py`), then takes a live snapshot
+  (`scripts/btc_sentiment.py`).
+- Live sources (every failure degrades gracefully — a snapshot is always
+  written):
+  - **Twitter/X** via [twitterapi.io](https://twitterapi.io) — needs a
+    `TWITTERAPI_KEY` repo secret. ~400 recent BTC tweets per run
+    (`min_faves:5`, no retweets), engagement-weighted by log-likes so loud
+    accounts count more. ≈$7/mo at 4 runs/day. Without the secret the tracker
+    runs StockTwits-only.
+  - **StockTwits BTC.X** (free; posters self-label Bullish/Bearish).
+  - **alternative.me Fear & Greed index** (free).
+  - BTC spot (CoinGecko → Coinbase → blockchain.info).
+  - **Polymarket** BTC price markets — real-money YES probabilities.
+  - **Deribit options skew** — put IV minus call IV at ~±10% strikes ~30 days
+    out; positive = traders paying up for crash protection.
+- `scripts/btc_backtest.py` (weekly): full Fear & Greed history since 2018 +
+  Coinbase daily candles → median forward BTC returns 30/90/180 days after
+  extreme-fear/greed days vs. baseline, shown on the dashboard so the
+  contrarian premise is checkable against history.
 - Explicit price targets (`$40k`, `45,000`, `$38000`…) are regex-extracted
   from post text and bucketed into a histogram vs. spot.
 - Unlabeled posts are classified bullish/bearish/neutral:
