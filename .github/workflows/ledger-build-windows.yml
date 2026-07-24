@@ -1,0 +1,41 @@
+name: LEDGER Windows build
+
+# Manual trigger for now — requires the Unity license secrets to be configured:
+#   UNITY_LICENSE  (contents of the .ulf personal license file)
+#   UNITY_EMAIL    (Unity account email)
+#   UNITY_PASSWORD (Unity account password)
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: ledger/Library
+          key: Library-ledger-StandaloneWindows64
+          restore-keys: Library-ledger-
+
+      - name: Build (Unity)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ledger
+          targetPlatform: StandaloneWindows64
+          buildName: LEDGER
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEDGER-Windows
+          path: build/StandaloneWindows64
+          retention-days: 14
