@@ -1,41 +1,44 @@
 name: LEDGER Windows build
 
-# Manual trigger for now — requires the Unity license secrets to be configured:
-#   UNITY_LICENSE  (contents of the .ulf personal license file)
+# Manual trigger. Requires two secrets only:
 #   UNITY_EMAIL    (Unity account email)
 #   UNITY_PASSWORD (Unity account password)
+# License is activated at build time (Unity Personal, no .ulf file needed).
 on:
   workflow_dispatch:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
-      - name: Cache Unity Library
-        uses: actions/cache@v4
+      - name: Install Unity
+        uses: buildalon/unity-setup@v2
         with:
-          path: ledger/Library
-          key: Library-ledger-StandaloneWindows64
-          restore-keys: Library-ledger-
+          version-file: ledger/ProjectSettings/ProjectVersion.txt
+          build-targets: StandaloneWindows64
 
-      - name: Build (Unity)
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      - name: Activate Unity license
+        uses: buildalon/activate-unity-license@v2
         with:
-          projectPath: ledger
-          targetPlatform: StandaloneWindows64
-          buildName: LEDGER
+          license: Personal
+          username: ${{ secrets.UNITY_EMAIL }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Build player
+        shell: pwsh
+        run: |
+          & "$env:UNITY_EDITOR_PATH" -quit -batchmode -nographics `
+            -projectPath ledger `
+            -buildTarget Win64 `
+            -executeMethod Ledger.EditorTools.CiBuild.BuildWindows `
+            -logFile - | Out-Host
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: LEDGER-Windows
-          path: build/StandaloneWindows64
+          path: ledger/build/LEDGER
           retention-days: 14
