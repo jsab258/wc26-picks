@@ -32,6 +32,7 @@
 | 2026-07-24 | Architecture | Content-as-data separability so the project can later be forked into variant editions without touching sim/engine code |
 | 2026-07-24 | Next milestone | M0 tech spike (see `m0-plan.md`) |
 | 2026-07-24 | Playtest hardware | Mid-range gaming PC (~2025 build) → perf target 60 fps @ 1080–1440p, HDRP medium-high |
+| 2026-07-24 | Build pipeline | GitHub Actions on windows-latest: buildalon unity-setup + license-file-free Personal activation (UNITY_EMAIL/UNITY_PASSWORD secrets only) + headless CiBuild. Unity pinned 6000.0.58f1 (44b8bf3a3225). Verified green end to end; special-character password works; no Unity Hub / .ulf needed |
 
 ## Documents
 
