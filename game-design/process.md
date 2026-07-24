@@ -37,6 +37,7 @@
 | 2026-07-24 | Voice direction | ElevenLabs cloud for development (implementation at a later milestone); shipping economics revisited later |
 | 2026-07-24 | Protagonist | Fixed authored character (name TBD with Jafar); NPCs get pre-seeded history about the family |
 | 2026-07-24 | Roadmap order | Visual upgrade BEFORE M1 gossip (player decision — overrides earlier M1-first plan). Needs an asset-budget decision (~$50–200) at kickoff |
+| 2026-07-24 | Asset budget | Tier 1 approved: ~$40–60 one-time realistic city/environment pack now; character system (Character Creator 365, ~$99/yr) deferred to the vertical slice. Free CC0 materials (Poly Haven/ambientCG) + Mixamo animations used throughout |
 | 2026-07-24 | Self-testing | Two-layer harness: SimHarness AI playtest (LLM player + LLM judge vs Lena's brain; fake mode in CI always, live mode via ANTHROPIC_API_KEY secret) + in-engine SimDirector (-simdays N: accelerated days, waypoint player, error capture, screenshots, sim-report.json) run on every Windows build |
 
 ## Documents
