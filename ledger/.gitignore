@@ -9,13 +9,15 @@
 [Mm]emoryCaptures/
 [Rr]ecordings/
 
-# IDE
+# IDE (Unity regenerates these at the project root)
 .idea/
 .vs/
 .vscode/
 *.csproj
 *.sln
 *.user
+# ...but the hand-written test project is real code
+!CoreTests/CoreTests.csproj
 
 # OS
 .DS_Store
