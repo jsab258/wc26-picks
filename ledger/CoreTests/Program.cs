@@ -225,10 +225,20 @@ namespace Ledger.CoreTests
             Check(llm.LastRequest.Messages.Count <= ConversationEngine.MaxTranscriptTurns + 1, "transcript bounded");
             Check(llm.LastRequest.Messages[0].Role == "user", "transcript starts with user turn");
 
-            // Output validation.
-            Check(ConversationEngine.ValidateReply("<thinking>hm</thinking> \"Fine.\"") == "hm Fine.".Replace("hm ", "hm ").Trim() ||
-                  ConversationEngine.ValidateReply("<thinking>hm</thinking> \"Fine.\"").Contains("Fine"), "tags stripped from reply");
+            // Output validation — exact expected outputs, no tautologies.
+            Check(ConversationEngine.ValidateReply("<thinking>hm</thinking> \"Fine.\"") == "Fine.",
+                "reasoning block removed content-and-all, quotes stripped");
+            Check(ConversationEngine.ValidateReply("<thinking>secret plan to lie</thinking>Hello there.") == "Hello there.",
+                "leaked reasoning content never reaches the player");
+            Check(!ConversationEngine.ValidateReply("<thinking>burn the ledger</thinking>Sit down.").Contains("burn"),
+                "reasoning keywords do not leak");
+            Check(ConversationEngine.ValidateReply("I need 3 < 5 crates, not more.") == "I need 3 < 5 crates, not more.",
+                "lone '<' in dialogue is preserved");
+            Check(ConversationEngine.ValidateReply("<b>Bold</b> claim.") == "Bold claim.",
+                "stray tags stripped but inner prose kept");
             Check(ConversationEngine.ValidateReply("") == "...", "empty reply becomes ellipsis");
+            Check(ConversationEngine.ValidateReply("<thinking>only reasoning</thinking>") == "...",
+                "reply that is nothing but reasoning becomes ellipsis, not leaked reasoning");
             Check(ConversationEngine.ValidateReply(new string('x', 2000)).Length <= ConversationEngine.MaxReplyChars, "long reply capped");
         }
 

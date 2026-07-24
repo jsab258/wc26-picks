@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -182,20 +183,27 @@ namespace Ledger.Core
             }
         }
 
+        // Reasoning/scratchpad blocks must be removed CONTENT AND ALL — leaking the
+        // model's private reasoning to the player is the exact failure the guardrail
+        // exists to prevent. Matched non-greedily, case-insensitively, across newlines.
+        static readonly Regex ReasoningBlock = new Regex(
+            @"<\s*(thinking|reasoning|scratchpad|internal|analysis)\b[^>]*>.*?<\s*/\s*\1\s*>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Any remaining well-formed tag (opening or closing). Requires a letter right
+        // after the optional '/', so a lone '<' in dialogue ("I need 3 < 5 crates")
+        // is left untouched — only real tags are stripped.
+        static readonly Regex StrayTag = new Regex(@"<\s*/?\s*[a-zA-Z][a-zA-Z0-9]*\b[^>]*>");
+
         internal static string ValidateReply(string raw)
         {
             var text = (raw ?? "").Trim();
 
-            // Strip any XML/bracketed tags the model leaked, keep inner text.
-            var sb = new StringBuilder(text.Length);
-            bool inTag = false;
-            foreach (var c in text)
-            {
-                if (c == '<') { inTag = true; continue; }
-                if (c == '>') { inTag = false; continue; }
-                if (!inTag) sb.Append(c);
-            }
-            text = sb.ToString().Trim();
+            // Remove leaked reasoning blocks entirely, then any stray tags, keeping
+            // legitimate inner prose. Collapse the whitespace the removals leave behind.
+            text = ReasoningBlock.Replace(text, " ");
+            text = StrayTag.Replace(text, "");
+            text = Regex.Replace(text, @"[ \t]{2,}", " ").Trim();
 
             // A reply wrapped entirely in quotes reads oddly in a dialogue UI.
             if (text.Length > 1 && text[0] == '"' && text[text.Length - 1] == '"')
