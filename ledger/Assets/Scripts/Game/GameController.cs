@@ -95,7 +95,14 @@ namespace Ledger.Game
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
             _sun.intensity = Mathf.Lerp(0.02f, 1.15f, daylight);
             _sun.color = Color.Lerp(new Color(1f, 0.55f, 0.35f), Color.white, daylight);
-            RenderSettings.ambientLight = Color.Lerp(new Color(0.06f, 0.07f, 0.12f), new Color(0.55f, 0.57f, 0.62f), daylight);
+
+            // Gradient ambient (sky/equator/ground) + fog, lerped night→day. Richer than
+            // a single flat ambient colour: surfaces pick up sky tint from above and a
+            // warm bounce from the ground.
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.05f, 0.06f, 0.10f), new Color(0.55f, 0.62f, 0.78f), daylight);
+            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.05f, 0.05f, 0.07f), new Color(0.45f, 0.46f, 0.48f), daylight);
+            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.02f, 0.02f, 0.03f), new Color(0.22f, 0.20f, 0.18f), daylight);
+            RenderSettings.fogColor = Color.Lerp(new Color(0.04f, 0.05f, 0.08f), new Color(0.62f, 0.66f, 0.72f), daylight);
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
         }
     }

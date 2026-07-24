@@ -39,6 +39,8 @@
 | 2026-07-24 | Roadmap order | Visual upgrade BEFORE M1 gossip (player decision — overrides earlier M1-first plan). Needs an asset-budget decision (~$50–200) at kickoff |
 | 2026-07-24 | Asset budget | Tier 1 approved: ~$40–60 one-time realistic city/environment pack now; character system (Character Creator 365, ~$99/yr) deferred to the vertical slice. Free CC0 materials (Poly Haven/ambientCG) + Mixamo animations used throughout |
 | 2026-07-24 | Self-testing | Two-layer harness: SimHarness AI playtest (LLM player + LLM judge vs Lena's brain; fake mode in CI always, live mode via ANTHROPIC_API_KEY secret) + in-engine SimDirector (-simdays N: accelerated days, waypoint player, error capture, screenshots, sim-report.json) run on every Windows build |
+| 2026-07-24 | Asset pipeline | `AssetLibrary.cs`: world requests surfaces/props by logical name; resolves from a drop-in pack at `StreamingAssets/CityPack/` (textures/*.png, materials/*.json, props.bundle) first, else procedurally-generated tiling textures (brick/asphalt/slab/plank/plaster), else flat tint. A purchased Asset Store pack drops in with **no code change**; CI (no pack) still gets textured materials |
+| 2026-07-24 | Render pipeline | Staying on Unity **built-in** RP for now (HDRP was trimmed from the manifest for headless build speed/reliability). Push lighting/materials as far as built-in allows (gradient ambient, fog, PBR smoothness/metallic, procedural albedo). HDRP swap is a **deliberate later step** at the vertical-slice stage — it needs in-editor RenderPipelineAsset config + HDRP/Lit shader remap and must not be attempted from a headless build with no editor to verify |
 
 ## Documents
 
