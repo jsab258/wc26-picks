@@ -16,10 +16,7 @@ jobs:
       - name: Install Unity
         uses: buildalon/unity-setup@v2
         with:
-          # Latest stable Unity 6; the hand-written ProjectVersion.txt lacks the
-          # revision hash the version-file parser requires. Pin the exact version
-          # once the first successful run reports what it installed.
-          unity-version: "6000"
+          version-file: ledger/ProjectSettings/ProjectVersion.txt
           build-targets: StandaloneWindows64
 
       - name: Activate Unity license
