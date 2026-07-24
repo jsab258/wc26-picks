@@ -33,6 +33,11 @@
 | 2026-07-24 | Next milestone | M0 tech spike (see `m0-plan.md`) |
 | 2026-07-24 | Playtest hardware | Mid-range gaming PC (~2025 build) → perf target 60 fps @ 1080–1440p, HDRP medium-high |
 | 2026-07-24 | Build pipeline | GitHub Actions on windows-latest: buildalon unity-setup + license-file-free Personal activation (UNITY_EMAIL/UNITY_PASSWORD secrets only) + headless CiBuild. Unity pinned 6000.0.58f1 (44b8bf3a3225). Verified green end to end; special-character password works; no Unity Hub / .ulf needed |
+| 2026-07-24 | Lena's card | Keep the draft: dry 31-year bookkeeper, loyal to Marek, guards the real ledger until trust is earned |
+| 2026-07-24 | Voice direction | ElevenLabs cloud for development (implementation at a later milestone); shipping economics revisited later |
+| 2026-07-24 | Protagonist | Fixed authored character (name TBD with Jafar); NPCs get pre-seeded history about the family |
+| 2026-07-24 | Roadmap order | Visual upgrade BEFORE M1 gossip (player decision — overrides earlier M1-first plan). Needs an asset-budget decision (~$50–200) at kickoff |
+| 2026-07-24 | Self-testing | Two-layer harness: SimHarness AI playtest (LLM player + LLM judge vs Lena's brain; fake mode in CI always, live mode via ANTHROPIC_API_KEY secret) + in-engine SimDirector (-simdays N: accelerated days, waypoint player, error capture, screenshots, sim-report.json) run on every Windows build |
 
 ## Documents
 

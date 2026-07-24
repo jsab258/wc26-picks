@@ -1,0 +1,44 @@
+name: LEDGER AI playtest
+
+# Exercises Lena's full brain without Unity. Fake mode always runs (free,
+# deterministic). Live mode runs when the ANTHROPIC_API_KEY secret exists:
+# an LLM plays the player, another judges her memory/suspicion/guardrails.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ledger/Assets/Scripts/Core/**"
+      - "ledger/Assets/Scripts/Game/LenaSetup.cs"
+      - "ledger/SimHarness/**"
+
+jobs:
+  ai-playtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Playtest (fake mode)
+        working-directory: ledger/SimHarness
+        run: dotnet run -c Release
+
+      - name: Playtest (live mode, if key configured)
+        working-directory: ledger/SimHarness
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ANTHROPIC_API_KEY secret not set — skipping live playtest."
+          else
+            dotnet run -c Release -- --live
+          fi
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-playtest-report
+          path: ledger/SimHarness/sim-report.md
+          retention-days: 14

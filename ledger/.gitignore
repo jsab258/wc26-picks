@@ -16,8 +16,12 @@
 *.csproj
 *.sln
 *.user
-# ...but the hand-written test project is real code
+# ...but the hand-written test projects are real code
 !CoreTests/CoreTests.csproj
+!SimHarness/SimHarness.csproj
+
+# Generated playtest report
+SimHarness/sim-report.md
 
 # OS
 .DS_Store

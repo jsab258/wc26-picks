@@ -103,8 +103,13 @@ namespace Ledger.Game
             Lamps.Add(light);
         }
 
+        /// Counts state changes so the simulation can verify the day/night cycle ran.
+        public static int LampToggleCount;
+        static bool _lampsOn;
+
         public static void SetLampsEnabled(bool on)
         {
+            if (on != _lampsOn) { _lampsOn = on; LampToggleCount++; }
             foreach (var lamp in Lamps)
                 if (lamp != null && lamp.enabled != on) lamp.enabled = on;
         }

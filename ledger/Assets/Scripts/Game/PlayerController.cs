@@ -11,6 +11,7 @@ namespace Ledger.Game
         public const float RunSpeed = 7f;
 
         public bool InputLocked; // dialogue UI sets this while typing
+        public Vector3? AutoMoveTarget; // sim mode drives the player via waypoints
 
         CharacterController _cc;
         Camera _camera;
@@ -48,13 +49,24 @@ namespace Ledger.Game
 
             if (!InputLocked)
             {
-                _yaw += Input.GetAxis("Mouse X") * 2.5f;
-                _pitch = Mathf.Clamp(_pitch - Input.GetAxis("Mouse Y") * 2f, -10f, 60f);
+                Vector3 move;
+                if (AutoMoveTarget.HasValue)
+                {
+                    move = AutoMoveTarget.Value - transform.position;
+                    move.y = 0;
+                    if (move.sqrMagnitude > 1f) move.Normalize();
+                    _yaw += 20f * Time.deltaTime; // slow camera sweep for varied screenshots
+                }
+                else
+                {
+                    _yaw += Input.GetAxis("Mouse X") * 2.5f;
+                    _pitch = Mathf.Clamp(_pitch - Input.GetAxis("Mouse Y") * 2f, -10f, 60f);
 
-                var forward = Quaternion.Euler(0, _yaw, 0) * Vector3.forward;
-                var right = Quaternion.Euler(0, _yaw, 0) * Vector3.right;
-                var move = forward * Input.GetAxisRaw("Vertical") + right * Input.GetAxisRaw("Horizontal");
-                if (move.sqrMagnitude > 1f) move.Normalize();
+                    var forward = Quaternion.Euler(0, _yaw, 0) * Vector3.forward;
+                    var right = Quaternion.Euler(0, _yaw, 0) * Vector3.right;
+                    move = forward * Input.GetAxisRaw("Vertical") + right * Input.GetAxisRaw("Horizontal");
+                    if (move.sqrMagnitude > 1f) move.Normalize();
+                }
 
                 float speed = Input.GetKey(KeyCode.LeftShift) ? RunSpeed : WalkSpeed;
                 if (move.sqrMagnitude > 0.001f)

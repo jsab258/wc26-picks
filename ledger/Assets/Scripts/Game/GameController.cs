@@ -9,7 +9,7 @@ namespace Ledger.Game
     /// Lena (the full conversational character).
     public class GameController : MonoBehaviour
     {
-        public const float GameMinutesPerRealSecond = 2f; // 1 game day = 12 real minutes
+        public float MinutesPerRealSecond = 2f; // 1 game day = 12 real minutes (sim mode overrides)
 
         public GameTime Now { get; private set; } = new GameTime(1, 9, 0);
         public CostTracker Cost { get; } = new CostTracker();
@@ -57,11 +57,14 @@ namespace Ledger.Game
             _lena.Initialize(this, LenaSetup.CardMarkdown, LenaSetup.SeedKnowledge, LenaSetup.SeedMemories);
 
             DialogueUI.Create(this, player, _lena);
+
+            if (SimMode.Days > 0)
+                gameObject.AddComponent<SimDirector>().Begin(this, player);
         }
 
         void Update()
         {
-            _minuteAccumulator += Time.deltaTime * GameMinutesPerRealSecond;
+            _minuteAccumulator += Time.deltaTime * MinutesPerRealSecond;
             while (_minuteAccumulator >= 1f)
             {
                 _minuteAccumulator -= 1f;
