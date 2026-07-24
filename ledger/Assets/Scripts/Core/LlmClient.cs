@@ -63,10 +63,13 @@ namespace Ledger.Core
         public int MaxRetries = 3;
         public Func<int, TimeSpan> RetryDelay = attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)); // 2s,4s,8s
 
-        public AnthropicClient(string apiKey, TimeSpan? timeout = null)
+        public AnthropicClient(string apiKey, TimeSpan? timeout = null, HttpMessageHandler handler = null)
         {
             _apiKey = apiKey;
-            _http = new HttpClient { Timeout = timeout ?? TimeSpan.FromSeconds(60) };
+            // handler is a test seam: pass a fake to exercise the retry/error paths
+            // deterministically. In production it is null and HttpClient uses its default.
+            _http = handler != null ? new HttpClient(handler) : new HttpClient();
+            _http.Timeout = timeout ?? TimeSpan.FromSeconds(60);
         }
 
         public async Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken ct = default)
@@ -92,21 +95,26 @@ namespace Ledger.Core
                 msg.Headers.Add("anthropic-version", "2023-06-01");
                 msg.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                HttpResponseMessage resp;
+                string text;
+                int status;
                 try
                 {
-                    resp = await _http.SendAsync(msg, ct).ConfigureAwait(false);
+                    // Send AND read-body are both inside the try: a network drop mid-body
+                    // is a retryable HttpRequestException, and the using-scope disposes the
+                    // response on every path (previously a mid-body failure leaked it).
+                    using var resp = await _http.SendAsync(msg, ct).ConfigureAwait(false);
+                    status = (int)resp.StatusCode;
+                    text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                 }
-                catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+                catch (Exception ex) when (ex is HttpRequestException ||
+                                           (ex is TaskCanceledException && !ct.IsCancellationRequested))
                 {
-                    if (attempt >= MaxRetries || ct.IsCancellationRequested) throw;
+                    // TaskCanceledException with the token NOT cancelled == HttpClient
+                    // timeout (retryable); with it cancelled it falls through and throws.
+                    if (attempt >= MaxRetries) throw;
                     await Task.Delay(RetryDelay(attempt + 1), ct).ConfigureAwait(false);
                     continue;
                 }
-
-                var text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                int status = (int)resp.StatusCode;
-                resp.Dispose();
 
                 if (status == 429 || status >= 500)
                 {

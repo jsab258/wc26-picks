@@ -33,8 +33,13 @@ namespace Ledger.Core
             if (!GameTime.TryParse(t.Substring(3, closeBracket - 3), out var time)) return null;
 
             int openParen = t.IndexOf('(', closeBracket);
-            int closeParen = t.IndexOf(')', closeBracket);
-            if (openParen < 0 || closeParen < 0) return null;
+            if (openParen < 0) return null;
+            // Search for the closing paren AFTER the opening one. A ')' that appears
+            // earlier (e.g. a hand-edited ":)" before the metadata) must not be picked
+            // up, or the Substring length goes negative and throws — aborting the whole
+            // memory load over one malformed line. Return null instead: skip the line.
+            int closeParen = t.IndexOf(')', openParen);
+            if (closeParen < 0) return null;
             var meta = t.Substring(openParen + 1, closeParen - openParen - 1).Split('|');
             if (meta.Length != 2) return null;
             if (!double.TryParse(meta[0], System.Globalization.NumberStyles.Float,

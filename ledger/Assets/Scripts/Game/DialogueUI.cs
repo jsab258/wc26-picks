@@ -69,7 +69,9 @@ namespace Ledger.Game
             BuildKeyPanel(canvasGo.transform);
             BuildDebugPanel(canvasGo.transform);
 
-            if (Secrets.LoadAnthropicKey() == null) _keyPanel.SetActive(true);
+            // In self-test (sim) mode, never auto-open the key panel: it would lock
+            // input and freeze the sim-driven player. The sim runs without a live key.
+            if (Secrets.LoadAnthropicKey() == null && SimMode.Days == 0) _keyPanel.SetActive(true);
         }
 
         void BuildDialoguePanel(Transform parent)

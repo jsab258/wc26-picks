@@ -63,6 +63,9 @@ jobs:
           retention-days: 14
 
       - name: Upload build artifact
+        # always(): a failing self-test simulation must not discard the built player —
+        # the binary is still the thing we want to download and inspect when a run is red.
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: LEDGER-Windows

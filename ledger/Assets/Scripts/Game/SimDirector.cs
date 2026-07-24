@@ -39,6 +39,7 @@ namespace Ledger.Game
         readonly Dictionary<string, Vector3> _startPositions = new Dictionary<string, Vector3>();
 
         int _endDay;
+        bool _finished;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
         int _shotDay = -1;
@@ -200,6 +201,12 @@ namespace Ledger.Game
 
         void Finish()
         {
+            // Application.Quit is asynchronous (and a no-op in the Editor), so Update()
+            // keeps calling Finish() every frame after _endDay. Guard so the report is
+            // written and the process exit is requested exactly once.
+            if (_finished) return;
+            _finished = true;
+
             Application.logMessageReceived -= OnLog;
 
             bool npcsMoved = false;

@@ -97,14 +97,20 @@ namespace Ledger.Core
             };
             request.Messages.AddRange(_transcript);
 
+            // NOTE: no ConfigureAwait(false) here. The mutations after this await
+            // (cost, memory, transcript) share state with main-thread readers in the
+            // game (DebugReport / F1 panel). Capturing the caller's context makes the
+            // continuation resume where it started — Unity's main thread in the game,
+            // the same single thread in the harness — so those mutations never race a
+            // reader. The network hop's own ConfigureAwait(false) stays inside the client.
             LlmResponse response;
             try
             {
-                response = await _llm.CompleteAsync(request, ct).ConfigureAwait(false);
+                response = await _llm.CompleteAsync(request, ct);
             }
-            catch (LlmApiException)
-            {
-                _transcript.RemoveAt(_transcript.Count - 1); // keep transcript consistent
+            catch (Exception) // ANY failure (LlmApiException, cancellation, network) must
+            {                 // roll back the user turn we just appended, or it leaks.
+                if (_transcript.Count > 0) _transcript.RemoveAt(_transcript.Count - 1);
                 throw;
             }
 
@@ -160,12 +166,14 @@ namespace Ledger.Core
             sb.AppendLine("Today:");
             foreach (var e in events) sb.AppendLine($"- {e.Text}");
 
+            // No ConfigureAwait(false): resume on the caller's thread so the belief
+            // mutation below doesn't race main-thread memory readers (see SayToAsync).
             var response = await _llm.CompleteAsync(new LlmRequest
             {
                 Model = Model,
                 MaxTokens = 400,
                 Messages = { new LlmMessage("user", sb.ToString()) },
-            }, ct).ConfigureAwait(false);
+            }, ct);
 
             _cost?.Record(Model, response.InputTokens, response.OutputTokens);
 
@@ -235,6 +243,7 @@ namespace Ledger.Core
                 _transcript.RemoveAt(0);
         }
 
-        static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
+        static string Truncate(string s, int max) =>
+            string.IsNullOrEmpty(s) ? "" : (s.Length <= max ? s : s.Substring(0, max) + "…");
     }
 }

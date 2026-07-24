@@ -204,6 +204,17 @@ namespace Ledger.SimHarness
             }
             Check("beliefs exist after reflection", lena.Memory.Beliefs.Count > 0 && lena.Memory.Beliefs.Count <= 7);
             Check("beliefs updated from seed", string.Join("|", lena.Memory.Beliefs) != beliefsBefore);
+
+            // "Beliefs changed" is a weak check — reflection could have produced garbage.
+            // In live mode, judge whether the distilled beliefs actually absorbed the two
+            // things she was told across the two days. That is the reflection quality bar.
+            if (_live)
+            {
+                var beliefText = string.Join(" ", lena.Memory.Beliefs);
+                Check("reflected beliefs incorporate the days' events (judge)",
+                    await Judge("Over two days a bar owner told the bookkeeper two things: (1) he paid off the brewery debt in full, and (2) Rocco now drinks free on Sundays. " +
+                        $"Do these distilled beliefs reflect at least one of those developments? Beliefs: \"{beliefText}\""), beliefText);
+            }
         }
 
         static void ScenarioBudget()

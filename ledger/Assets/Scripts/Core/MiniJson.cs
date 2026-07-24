@@ -79,23 +79,30 @@ namespace Ledger.Core
             }
         }
 
+        // Hostile or corrupt input can nest objects/arrays arbitrarily deep. Since the
+        // parser recurses, that means a StackOverflowException — which .NET cannot catch,
+        // so it takes the whole process down (a crash from a single bad API frame). Cap
+        // the depth and throw a normal, catchable FormatException instead.
+        const int MaxDepth = 200;
+
         public static object Deserialize(string json)
         {
             int pos = 0;
-            var result = ParseValue(json, ref pos);
+            var result = ParseValue(json, ref pos, 0);
             SkipWhitespace(json, ref pos);
             return result;
         }
 
-        static object ParseValue(string s, ref int pos)
+        static object ParseValue(string s, ref int pos, int depth)
         {
+            if (depth > MaxDepth) throw new FormatException($"JSON nested too deeply (>{MaxDepth}) at {pos}");
             SkipWhitespace(s, ref pos);
             if (pos >= s.Length) throw new FormatException("Unexpected end of JSON");
             char c = s[pos];
             switch (c)
             {
-                case '{': return ParseObject(s, ref pos);
-                case '[': return ParseArray(s, ref pos);
+                case '{': return ParseObject(s, ref pos, depth);
+                case '[': return ParseArray(s, ref pos, depth);
                 case '"': return ParseString(s, ref pos);
                 case 't': Expect(s, ref pos, "true"); return true;
                 case 'f': Expect(s, ref pos, "false"); return false;
@@ -104,7 +111,7 @@ namespace Ledger.Core
             }
         }
 
-        static Dictionary<string, object> ParseObject(string s, ref int pos)
+        static Dictionary<string, object> ParseObject(string s, ref int pos, int depth)
         {
             var dict = new Dictionary<string, object>();
             pos++; // '{'
@@ -117,7 +124,7 @@ namespace Ledger.Core
                 SkipWhitespace(s, ref pos);
                 if (pos >= s.Length || s[pos] != ':') throw new FormatException($"Expected ':' at {pos}");
                 pos++;
-                dict[key] = ParseValue(s, ref pos);
+                dict[key] = ParseValue(s, ref pos, depth + 1);
                 SkipWhitespace(s, ref pos);
                 if (pos >= s.Length) throw new FormatException("Unterminated object");
                 if (s[pos] == ',') { pos++; continue; }
@@ -126,7 +133,7 @@ namespace Ledger.Core
             }
         }
 
-        static List<object> ParseArray(string s, ref int pos)
+        static List<object> ParseArray(string s, ref int pos, int depth)
         {
             var list = new List<object>();
             pos++; // '['
@@ -134,7 +141,7 @@ namespace Ledger.Core
             if (pos < s.Length && s[pos] == ']') { pos++; return list; }
             while (true)
             {
-                list.Add(ParseValue(s, ref pos));
+                list.Add(ParseValue(s, ref pos, depth + 1));
                 SkipWhitespace(s, ref pos);
                 if (pos >= s.Length) throw new FormatException("Unterminated array");
                 if (s[pos] == ',') { pos++; continue; }

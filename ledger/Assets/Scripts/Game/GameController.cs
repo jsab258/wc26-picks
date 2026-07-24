@@ -74,8 +74,10 @@ namespace Ledger.Game
             UpdateSun();
             foreach (var npc in _npcs) npc.Tick(Now);
 
-            // Nightly reflection: distill the day's memories into beliefs once, at 23:00.
-            if (Now.Hour == 23 && Now.Day > _lastReflectedDay && _lena != null && _lena.Ready)
+            // Nightly reflection: distill the day's memories into beliefs once, from 23:00.
+            // Use >= 23, not == 23: under the accelerated sim clock a single frame can
+            // step across the exact hour, and the per-day guard already limits it to once.
+            if (Now.Hour >= 23 && Now.Day > _lastReflectedDay && _lena != null && _lena.Ready)
             {
                 _lastReflectedDay = Now.Day;
                 _ = _lena.RunReflectionAsync(Now);

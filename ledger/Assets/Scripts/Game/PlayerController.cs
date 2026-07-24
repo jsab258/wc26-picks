@@ -47,7 +47,11 @@ namespace Ledger.Game
         {
             if (_camera == null || _cc == null) return;
 
-            if (!InputLocked)
+            // InputLocked exists only to suppress manual WASD/mouse while a UI panel
+            // is focused. Sim mode drives the player through AutoMoveTarget and is the
+            // authority — it must move even when a panel (e.g. the API-key prompt) is
+            // up, or the self-test player freezes and exercises nothing.
+            if (!InputLocked || AutoMoveTarget.HasValue)
             {
                 Vector3 move;
                 if (AutoMoveTarget.HasValue)

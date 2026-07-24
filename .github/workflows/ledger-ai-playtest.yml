@@ -10,6 +10,7 @@ on:
       - "ledger/Assets/Scripts/Core/**"
       - "ledger/Assets/Scripts/Game/LenaSetup.cs"
       - "ledger/SimHarness/**"
+      - ".github/workflows/ledger-ai-playtest.yml"
 
 jobs:
   ai-playtest:

@@ -52,6 +52,7 @@ namespace Ledger.Game
 
         void Connect(string apiKey, KnowledgeBase kb)
         {
+            _client?.Dispose(); // Reconnect (F2 re-key) must not leak the previous HttpClient.
             _client = new AnthropicClient(apiKey);
             _engine = new ConversationEngine(_client, Card, Memory, kb, Suspicion, _game.Cost);
         }
