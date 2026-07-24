@@ -74,7 +74,11 @@ questions. Acts advance when the authored spine's pressure points fire (see §8)
 ### Session hooks
 "One more day" comes from: (a) an unresolved thread every evening (the sim guarantees one —
 a rumor in flight, a recruit wavering, a date promised), (b) end-of-day ledger dangling
-tomorrow's opportunity, (c) act deadlines (a rival's ultimatum expires Friday).
+tomorrow's opportunity, (c) rising stakes — the bigger both lives grow, the more each day
+can win or lose.
+**Design rule — no hard timers** (player decision, 2026-07): nothing in the game expires on
+a countdown. Pressure comes from escalation and consequence — rivals react to what you do,
+not to a clock. The player sets the pace; the world raises the stakes.
 No dark patterns: no dailies, no timers, no FOMO. Retention through curiosity and stakes.
 
 ## 5. The cast — three tiers (the Watch Dogs Legion lesson)
@@ -139,9 +143,13 @@ believing the unbelievable; NPCs can't be talked out of what they remember seein
   against the Nemesis patent (US10926179B2, active to 2036) — no promotion-by-defeating-
   the-player structures. Rival advancement is driven by their internal politics, not by
   encounters with the player.
-- **No combat system in v1.** Violence exists as a *choice with consequences* (resolved
-  through the sim: witnesses, bodies, heat, trauma in your crew), not as a gameplay verb to
-  master. This is a deliberate scope cut and a tone statement; revisit only post-slice.
+- **Combat — melee-first, guns rare** (player decision, 2026-07). Physical, readable
+  third-person brawling in the Sleeping Dogs lineage: fists, grapples, improvised objects;
+  skill is positioning, timing, and reading opponents. Firearms exist and change everything:
+  drawing one escalates a scene, firing one is a city-level event (witnesses, heat spike,
+  blood feuds). Presentation is hard-hitting but not gory — impact over blood. Violence
+  stays consequence-heavy in the sim: injuries persist, crew members carry trauma, and
+  every fight happened in front of somebody who remembers it.
 
 ### 6.6 The honest life
 A day job (chosen from a few tracks — bar, courier, office) that provides cover, income,
@@ -238,7 +246,8 @@ system personified). ~14 total; full cards to be written next.
 - **M1 — The living block**: one district, ~30 schedule-simulated NPCs, gossip propagation
   demonstrably working (plant a fact, watch it travel), Ledger UI v0.
 - **M2 — The double life MVP**: day job + one racket + calendar/time slots + clean/dirty
-  money + suspicion with confrontations. First "one more day" playtest.
+  money + suspicion with confrontations + first-pass melee combat (graybox arena, feel
+  before fidelity). First "one more day" playtest.
 - **M3 — Vertical slice**: The Hook district polished, 5 Tier-1 characters (Rocco, Lena,
   Sam, one love interest, Ossei), 7 in-game days of Act I, voice throughout. The
   is-this-fun gate and the demo artifact.
