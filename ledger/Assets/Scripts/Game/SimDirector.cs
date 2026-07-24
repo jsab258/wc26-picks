@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Ledger.Core;
 using UnityEngine;
 
@@ -127,9 +128,16 @@ namespace Ledger.Game
 
                 System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
                 var info = new System.IO.FileInfo(path);
+
+                // Emit a coarse ASCII luminance thumbnail + mean colour to the log.
+                // The PNG artifact lives on a host our review environment can't reach,
+                // but the job LOG is readable — so this is how the render gets "seen"
+                // for blind iteration on visuals.
+                var fp = Fingerprint(tex, name);
                 _screenshots.Add(new Dictionary<string, object>
                 {
                     { "path", path }, { "bytes", info.Exists ? info.Length : 0 },
+                    { "meanLuma", fp.luma }, { "meanRgb", fp.rgb },
                 });
             }
             catch (Exception e)
@@ -143,6 +151,51 @@ namespace Ledger.Game
                 if (tex != null) Destroy(tex);
                 if (rt != null) { rt.Release(); Destroy(rt); }
             }
+        }
+
+        /// Downsample a captured frame to a small ASCII art thumbnail (logged so it
+        /// is visible in CI, where the PNG artifact host is unreachable) plus mean
+        /// luminance and RGB for the JSON report.
+        static (string luma, string rgb) Fingerprint(Texture2D tex, string name)
+        {
+            const int cols = 64, rows = 24;
+            const string ramp = " .:-=+*#%@"; // dark -> bright
+            var px = tex.GetPixels32();
+            int w = tex.width, h = tex.height;
+            long tr = 0, tg = 0, tb = 0;
+            var art = new StringBuilder(cols * rows + rows + 64);
+            art.Append($"\n--- render[{name}] {cols}x{rows} ascii-luma ---\n");
+            for (int ry = 0; ry < rows; ry++)
+            {
+                // ascii row 0 = top of image; GetPixels32 is bottom-up, so flip.
+                int yHi = h - 1 - (ry * h) / rows;
+                int yLo = h - 1 - ((ry + 1) * h) / rows;
+                for (int rx = 0; rx < cols; rx++)
+                {
+                    int xLo = (rx * w) / cols, xHi = ((rx + 1) * w) / cols;
+                    long r = 0, g = 0, b = 0; int n = 0;
+                    for (int y = yLo + 1; y <= yHi; y++)
+                        for (int x = xLo; x < xHi; x++)
+                        {
+                            var c = px[y * w + x];
+                            r += c.r; g += c.g; b += c.b; n++;
+                        }
+                    if (n == 0) n = 1;
+                    int ar = (int)(r / n), ag = (int)(g / n), ab = (int)(b / n);
+                    tr += ar; tg += ag; tb += ab;
+                    double lum = (0.299 * ar + 0.587 * ag + 0.114 * ab) / 255.0;
+                    int idx = Mathf.Clamp((int)(lum * (ramp.Length - 1) + 0.5), 0, ramp.Length - 1);
+                    art.Append(ramp[idx]);
+                }
+                art.Append('\n');
+            }
+            int cells = cols * rows;
+            double mr = tr / (double)cells, mg = tg / (double)cells, mb = tb / (double)cells;
+            double luma = (0.299 * mr + 0.587 * mg + 0.114 * mb) / 255.0;
+            Debug.Log(art.ToString());
+            return (
+                luma.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+                $"{(int)mr},{(int)mg},{(int)mb}");
         }
 
         void Finish()
