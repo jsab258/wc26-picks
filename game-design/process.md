@@ -31,6 +31,7 @@
 | 2026-07-24 | Timers | No hard countdowns/deadlines anywhere; pressure via escalation only |
 | 2026-07-24 | Architecture | Content-as-data separability so the project can later be forked into variant editions without touching sim/engine code |
 | 2026-07-24 | Next milestone | M0 tech spike (see `m0-plan.md`) |
+| 2026-07-24 | Playtest hardware | Mid-range gaming PC (~2025 build) → perf target 60 fps @ 1080–1440p, HDRP medium-high |
 
 ## Documents
 

@@ -67,9 +67,9 @@ Inside the bar is **Lena** — the outfit's old bookkeeper and our first real ch
 Batched, with exact instructions when we get there:
 1. A **Unity account** (free Personal license) — needed for the automated build system.
 2. An **LLM API key** (I'll bring provider/cost options as a decision) and a **TTS key**.
-3. **Playtesting**: M0 is a Windows build — you'll need occasional access to a PC to walk
-   around it. (Open question: what hardware do you have access to? This also calibrates
-   the performance target.)
+3. **Playtesting**: M0 is a Windows build — you'll walk around it on your PC.
+   Hardware confirmed (2026-07): mid-range gaming PC, built ~early 2025. Performance
+   target set accordingly: 60 fps at 1080p–1440p, HDRP medium-high settings.
 
 ## Explicitly NOT in M0
 
