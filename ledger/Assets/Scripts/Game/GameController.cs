@@ -231,7 +231,49 @@ namespace Ledger.Game
                 CheckLoyalWarnings();
                 CheckOssei();
                 CheckConfrontations();
+                CheckBarks();
             }
+        }
+
+        // RDR2's lesson, run on real memory: the city greets what it remembers.
+        // Barks only fire when the relationship state SAYS something — neutral
+        // strangers stay silent, so every bark is information.
+        readonly Dictionary<string, int> _barkDay = new Dictionary<string, int>();
+
+        void CheckBarks()
+        {
+            if (_gossip == null || _gossip.Mill == null || _player == null || _ui == null) return;
+            foreach (var npc in _npcs)
+            {
+                if (npc == null) continue;
+                var name = npc.DisplayName;
+                if (_barkDay.TryGetValue(name, out var d) && d == Now.Day) continue;
+                if (_lastWarnDay.TryGetValue(name, out var wd) && wd == Now.Day) continue; // warnings outrank barks
+                if (Vector3.Distance(npc.transform.position, _player.transform.position) > 5f) continue;
+                var line = BarkFor(name);
+                if (line == null) continue;
+                _barkDay[name] = Now.Day;
+                _ui.Toast(line, 5f);
+                break; // one voice per pass
+            }
+        }
+
+        string BarkFor(string name)
+        {
+            if (name == "Ossei")
+                return OsseiSpawned ? "Ossei watches you pass. She doesn't pretend otherwise." : null;
+            var g = _gossip.Mill.Get(name);
+            if (g == null) return null;
+            if (g.Leashed) return $"{name} finds somewhere else to look as you pass.";
+            if (g.Suspicion.Level == SuspicionLevel.Confronting) return $"{name} stares at you, arms folded. No greeting.";
+            if (g.Suspicion.Level == SuspicionLevel.Suspicious) return $"{name} watches you a beat too long before nodding.";
+            bool carries = false;
+            foreach (var l in _gossip.Mill.Leads("player"))
+                if (l.HolderId == name) { carries = true; break; }
+            if (carries && g.Suspicion.Level == SuspicionLevel.Uneasy)
+                return $"{name} gives you a thin nod. Something's behind it.";
+            if (g.Loyalty >= 0.7) return $"{name} raises a hand as you pass. \"Boss.\"";
+            return null;
         }
 
         void CheckOssei()
@@ -482,7 +524,11 @@ namespace Ledger.Game
                 {
                     if (lead.HolderId != name || Knowledge.Knows(lead.HolderId, lead.TopicKey)) continue;
                     Knowledge.Learn(lead, $"{name} warned you", Now);
-                    _ui.Toast($"{name} pulls you aside: \"People are saying {lead.Summary}. Thought you should hear it from me.\"");
+                    // Closer friends deliver it closer — the same channel, warmer voice.
+                    var intro = g.Loyalty >= 0.75
+                        ? $"{name} grips your arm, voice low:"
+                        : $"{name} pulls you aside:";
+                    _ui.Toast($"{intro} \"People are saying {lead.Summary}. Thought you should hear it from me.\"");
                     _lastWarnDay[name] = Now.Day;
                     break; // one warning per encounter
                 }

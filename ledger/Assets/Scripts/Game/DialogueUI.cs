@@ -202,6 +202,13 @@ namespace Ledger.Game
             sb.AppendLine(talkCount == 0
                 ? "As far as you know, nobody is carrying talk about you."
                 : $"Talk you know about and haven't dealt with: <b>{talkCount}</b> — press L for your ledger.");
+            // The street's own words — the strongest story the player KNOWS about
+            // (belief, never ground truth), quoted verbatim from the mill.
+            KnownLead word = null;
+            foreach (var k in _game.Knowledge.Entries)
+                if (!k.Handled && (word == null || k.ConfidenceWhenLearned > word.ConfidenceWhenLearned)) word = k;
+            if (word != null)
+                sb.AppendLine($"<i>Word on the street, as you heard it: \"{word.Summary}\" — and {word.HolderName} is telling it.</i>");
             _summaryText.text = sb.ToString();
             _summaryPanel.SetActive(true);
             _summaryUntil = Time.unscaledTime + 9f;
