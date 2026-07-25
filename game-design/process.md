@@ -43,6 +43,7 @@
 | 2026-07-24 | Render pipeline | Staying on Unity **built-in** RP for now (HDRP was trimmed from the manifest for headless build speed/reliability). Push lighting/materials as far as built-in allows (gradient ambient, fog, PBR smoothness/metallic, procedural albedo). HDRP swap is a **deliberate later step** at the vertical-slice stage — it needs in-editor RenderPipelineAsset config + HDRP/Lit shader remap and must not be attempted from a headless build with no editor to verify |
 | 2026-07-25 | M1 direction | Gossip/double-life novelty built first (player decision): rumor network with day/night circles, confidence decay, contradiction-driven exposure — then the player's side (leads awareness + bribe/intimidate/discredit/lie-low with backfires) |
 | 2026-07-25 | Damage-control UI | **In-conversation options** (player decision): verb buttons appear under the chat box only while talking to an NPC who is carrying a rumor about you (live-priced payoff, lean on, plant doubt); free-typed talk remains. Rejected: dedicated "word on the street" management screen; hybrid see-remotely/act-in-person (may revisit hybrid when more NPCs are conversational) |
+| 2026-07-25 | Cast cards | **Approved as drafted** (player decision): Rocco the 20-year doorman (night circle, bribable/cowable), Ada the retired schoolteacher (day circle, both bribe and threat backfire), Sam the go-between (both circles, folds to anything, spreads fastest). Cards live in CastSetup.cs and stay hand-editable |
 
 ## Documents
 
