@@ -382,6 +382,7 @@ namespace Ledger.Game
                 { "confrontations", _game.TotalConfrontations },
                 { "checksRun", _game.Gossip != null ? _game.Gossip.ChecksRun : 0 },
                 { "overheard", _game.Gossip != null ? _game.Gossip.Overheard : 0 },
+                { "osseiInterviews", _game.OsseiInterviews.Count },
                 { "saveLoadOk", saveLoadOk },
                 { "beats", beatStates },
                 { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },

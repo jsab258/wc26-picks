@@ -81,6 +81,13 @@ namespace Ledger.Game
         public bool OsseiSpawned { get; private set; }
         public double ObservedPeakHeat { get; private set; }
         ConversationHost _ossei;
+        NpcWalker _osseiWalker;
+
+        // §6.5: heat is what witnesses actually saw AND TOLD. When a first-hand
+        // witness crosses Ossei's path, she interviews them — unless their silence
+        // was bought or leashed first. The race the whole game is about.
+        public List<string> OsseiInterviews { get; } = new List<string>();
+        readonly HashSet<string> _interviewed = new HashSet<string>();
 
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
         // demand answers — once per day each. Leashed NPCs never escalate (§6.3).
@@ -235,6 +242,7 @@ namespace Ledger.Game
                 CheckOssei();
                 CheckConfrontations();
                 CheckBarks();
+                CheckOsseiInterviews();
             }
         }
 
@@ -258,6 +266,29 @@ namespace Ledger.Game
                 _barkDay[name] = Now.Day;
                 _ui.Toast(line, 5f);
                 break; // one voice per pass
+            }
+        }
+
+        void CheckOsseiInterviews()
+        {
+            if (!OsseiSpawned || _osseiWalker == null || _gossip == null || _gossip.Mill == null) return;
+            foreach (var npc in _npcs)
+            {
+                if (npc == null || npc == _osseiWalker) continue;
+                var g = _gossip.Mill.Get(npc.DisplayName);
+                if (g == null || g.Leashed) continue; // a leashed witness gives her nothing
+                if (Vector3.Distance(npc.transform.position, _osseiWalker.transform.position) > 6f) continue;
+                foreach (var r in g.Rumors)
+                {
+                    if (r.Hops != 0 || r.Content.Subject != "player") continue;
+                    if (g.Suppressed.Contains(r.TopicKey)) continue; // bought silence holds, even against her
+                    if (!_interviewed.Add(npc.DisplayName + "|" + r.TopicKey)) continue;
+                    OsseiInterviews.Add($"{npc.DisplayName} told you: {r.Summary}");
+                    g.Memory.Append(new MemoryEvent(Now, "conversation", 0.8,
+                        $"The detective asked me straight. I told her what I saw: {r.Summary}"));
+                    if (_ossei != null) _ossei.Memory.Append(new MemoryEvent(Now, "conversation", 0.85,
+                        $"Interviewed {npc.DisplayName}. Statement: {r.Summary}"));
+                }
             }
         }
 
@@ -301,6 +332,7 @@ namespace Ledger.Game
                 (new GameTime(0, 22, 0), new Vector3(4, 0, -4)),    // a corner with a view, at night
             });
             _npcs.Add(walker); // she walks and talks; she is NOT added to the gossip mill
+            _osseiWalker = walker;
             _ossei = walker.gameObject.AddComponent<ConversationHost>();
             _ossei.Initialize(this, OsseiSetup.CardMarkdown, null, null);
             _ossei.SceneContext = "On Hook Street, unhurried, notebook in hand, talking with the new bar owner.";
@@ -311,6 +343,12 @@ namespace Ledger.Game
                 // She has been interviewing the street: she knows what the loudest
                 // stories ARE (not whether they're true) and probes around them.
                 var leads = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Leads("player") : null;
+                if (OsseiInterviews.Count > 0)
+                {
+                    sb.Append("Witness statements you hold: ");
+                    for (int i = System.Math.Max(0, OsseiInterviews.Count - 2); i < OsseiInterviews.Count; i++)
+                        sb.Append( \"{OsseiInterviews[i]}\" ");
+                }
                 if (leads != null && leads.Count > 0)
                 {
                     sb.Append("From your interviews you know what people are saying: ");
