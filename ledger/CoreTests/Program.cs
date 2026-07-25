@@ -38,6 +38,7 @@ namespace Ledger.CoreTests
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
+                TestWallet();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -358,6 +359,26 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestWallet()
+        {
+            Console.WriteLine("Wallet:");
+            var w = new Wallet(100);
+            w.EarnDirty(200);
+            Check(w.Clean == 100 && w.Dirty == 200 && w.Total == 300, "clean and dirty are separate accounts");
+
+            Check(!w.Spend(150, dirtyOk: false), "the day world does not take dirty money");
+            Check(w.Spend(150, dirtyOk: true), "a bribe happily takes the mix");
+            Check(w.Clean == 0 && w.Dirty == 150, "clean spends first, dirty covers the rest");
+
+            int washed = w.Launder();
+            Check(washed == 120 && w.Clean == 120 && w.Dirty == 30, "the till washes only what it can absorb per day");
+            Check(w.Launder() == 30 && w.Dirty == 0, "the remainder washes the next day");
+            Check(w.TotalWashed == 150, "the wash total accumulates");
+
+            Check(!w.Spend(9999, dirtyOk: true), "insufficient funds refuse cleanly");
+            Check(w.Total == 150, "a refused spend moves nothing");
         }
 
         static void TestPlayerKnowledge()

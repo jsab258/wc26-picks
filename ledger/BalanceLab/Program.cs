@@ -70,7 +70,8 @@ namespace Ledger.BalanceLab
         {
             var camp = new Campaign();
             var mill = BuildStreet();
-            int cash = 250, dcSpend = 0;
+            var wallet = new Wallet(250);
+            int dcSpend = 0;
             double peakHeat = 0;
 
             // The founding secret, same as in-game: Rocco saw something.
@@ -97,7 +98,8 @@ namespace Ledger.BalanceLab
                 if (now.Hour >= 8 && now.Day > lastClosedDay)
                 {
                     lastClosedDay = now.Day;
-                    cash += camp.CloseDay(heat);
+                    wallet.EarnClean(camp.CloseDay(heat));
+                    wallet.Launder();
                     actedToday = false;
                 }
 
@@ -109,7 +111,7 @@ namespace Ledger.BalanceLab
                     {
                         lastActDay = now.Day;
                         actedToday = true;
-                        dcSpend += Act(policy.Dc, mill, lead, ref cash, now);
+                        dcSpend += Act(policy.Dc, mill, lead, wallet, now);
                     }
                 }
 
@@ -122,7 +124,7 @@ namespace Ledger.BalanceLab
                     else
                     {
                         camp.JobDone();
-                        cash += camp.JobPay;
+                        wallet.EarnDirty(camp.JobPay);
                         if (rng.NextDouble() < WitnessChance)
                         {
                             string who = rng.NextDouble() < 0.6 ? "Rocco" : "Sam";
@@ -132,11 +134,11 @@ namespace Ledger.BalanceLab
                     }
                 }
             }
-            return (camp.Verdict, cash, peakHeat, dcSpend);
+            return (camp.Verdict, wallet.Total, peakHeat, dcSpend);
         }
 
         /// One damage-control move against the strongest lead. Returns dollars spent.
-        static int Act(DcStyle style, GossipMill mill, Lead lead, ref int cash, GameTime now)
+        static int Act(DcStyle style, GossipMill mill, Lead lead, Wallet wallet, GameTime now)
         {
             var g = mill.Get(lead.HolderId);
             if (style == DcStyle.Smart)
@@ -148,9 +150,9 @@ namespace Ledger.BalanceLab
             {
                 case DcStyle.Bribe:
                     int price = (int)Math.Ceiling(mill.BribePrice(lead.HolderId, lead.TopicKey));
-                    if (cash < price) { mill.Discredit(lead.TopicKey, null, now); return 0; }
+                    if (wallet.Total < price) { mill.Discredit(lead.TopicKey, null, now); return 0; }
                     var r = mill.Bribe(lead.HolderId, lead.TopicKey, price, now);
-                    if (r.Outcome == DcOutcome.Contained) { cash -= price; return price; }
+                    if (r.Outcome == DcOutcome.Contained) { wallet.Spend(price, true); return price; }
                     return 0;
                 case DcStyle.Intimidate:
                     mill.Intimidate(lead.HolderId, lead.TopicKey, now);

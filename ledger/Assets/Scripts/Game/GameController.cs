@@ -14,9 +14,11 @@ namespace Ledger.Game
         public GameTime Now { get; private set; } = new GameTime(1, 9, 0);
         public CostTracker Cost { get; } = new CostTracker();
 
-        // The player's walking-around money. Starts modest so an early payoff hurts;
-        // it grows through bar takings (taxed by street heat) and night work.
-        public int PlayerCash = 250;
+        // Two currencies that resist mixing (design-doc §6.7): the bar pays clean,
+        // the outfit pays dirty, and dirty only becomes clean by washing through
+        // the till. PlayerCash stays as the "what I can hand over right now" total.
+        public Wallet Wallet { get; } = new Wallet(250);
+        public int PlayerCash => Wallet.Total;
 
         public Campaign Campaign { get; } = new Campaign();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
@@ -183,12 +185,24 @@ namespace Ledger.Game
                 _lastClosedDay = Now.Day;
                 double heat = CurrentHeat;
                 int takings = Campaign.CloseDay(heat);
-                PlayerCash += takings;
+                Wallet.EarnClean(takings);
                 TotalTakings += takings;
                 LastTakings = takings;
-                _ui?.Toast(takings >= Campaign.BarBaseTakings
+                int washed = Wallet.Launder();
+                var line = takings >= Campaign.BarBaseTakings
                     ? $"Bar takings: +${takings}."
-                    : $"Bar takings: +${takings}. The talk on the street is costing you.");
+                    : $"Bar takings: +${takings}. The talk on the street is costing you.";
+                if (washed > 0) line += $" ${washed} of night money washed through the till.";
+                _ui?.Toast(line);
+
+                // The bookkeeper sees a hoard the till can't explain. Diegetic
+                // "unexplained money" pressure (design-doc §6.7) — small, daily.
+                if (Wallet.Dirty > Wallet.LaunderPerDay && _lena != null)
+                {
+                    _lena.Suspicion.Raise(0.04, "cash keeps appearing that the books cannot explain");
+                    _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
+                        "Counted the till again. There is money moving through this bar that no tap sold."));
+                }
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
             }
 
@@ -220,7 +234,7 @@ namespace Ledger.Game
                     Destroy(_jobMarker);
                     _jobMarker = null;
                     Campaign.JobDone();
-                    PlayerCash += Campaign.JobPay;
+                    Wallet.EarnDirty(Campaign.JobPay);
                     var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now)
                         : new List<string>();
                     NightWitnesses += seen.Count;
@@ -230,8 +244,8 @@ namespace Ledger.Game
                             if (lead.HolderId == w && lead.TopicKey == $"player.night_job_d{Now.Day}")
                                 Knowledge.Learn(lead, $"you saw {w} watching", Now);
                     _ui?.Toast(seen.Count > 0
-                        ? $"Drop made. +${Campaign.JobPay}. {string.Join(" and ", seen)} saw you."
-                        : $"Drop made. +${Campaign.JobPay}.");
+                        ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you."
+                        : $"Drop made. +${Campaign.JobPay} dirty.");
                 }
             }
         }

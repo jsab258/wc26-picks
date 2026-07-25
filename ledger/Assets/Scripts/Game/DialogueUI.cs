@@ -183,7 +183,10 @@ namespace Ledger.Game
         void Update()
         {
             var now = _game.Now;
-            _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  ${_game.PlayerCash}";
+            var money = _game.Wallet.Dirty > 0
+                ? $"${_game.Wallet.Clean} <color=#c96>+ ${_game.Wallet.Dirty} dirty</color>"
+                : $"${_game.Wallet.Clean}";
+            _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  {money}";
 
             // Campaign readout: the week, the street's mood, the outfit's patience —
             // in words, not meters. Cheap enough to refresh on a coarse cadence.
@@ -288,7 +291,8 @@ namespace Ledger.Game
             MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(950, 90), 22, TextAnchor.UpperCenter)
                 .text = camp.VerdictReason;
             MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -250), new Vector2(950, 60), 18, TextAnchor.UpperCenter)
-                .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   bar takings banked: ${_game.TotalTakings}   ·   cash: ${_game.PlayerCash}";
+                .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   takings banked: ${_game.TotalTakings}   ·   " +
+                        $"washed: ${_game.Wallet.TotalWashed}   ·   cash: ${_game.Wallet.Clean} clean, ${_game.Wallet.Dirty} dirty";
             MakeText(_endPanel.transform, "EndHint", new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(950, 40), 20, TextAnchor.LowerCenter)
                 .text = "Press R to start the week over";
         }
@@ -404,6 +408,7 @@ namespace Ledger.Game
             if (known == null) return;
             var mill = _game.Gossip.Mill;
             int price = BribePriceFor(known);
+            // Bribes are the one place dirty money spends like clean — criminals take it.
             if (_game.PlayerCash < price)
             {
                 Narrate($"You'd need ${price}. You have ${_game.PlayerCash}.");
@@ -414,7 +419,7 @@ namespace Ledger.Game
             // Money only changes hands if they actually take it.
             if (result.Outcome == DcOutcome.Contained)
             {
-                _game.PlayerCash -= price;
+                _game.Wallet.Spend(price, dirtyOk: true);
                 _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
             }
             Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-${price})" : ""));
