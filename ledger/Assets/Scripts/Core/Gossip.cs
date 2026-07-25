@@ -238,6 +238,64 @@ namespace Ledger.Core
             return events;
         }
 
+        /// Suspicion-driven escalation (design-doc §6.4): a suspicious NPC doesn't
+        /// wait for chance encounters — they seek someone out and ASK. A directed,
+        /// deterministic exchange: the partner tells the checker everything they're
+        /// willing to share about the player (suppression and leashes respected;
+        /// leashed checkers don't check — the hook's protection). Same consequence
+        /// rules as organic gossip: contradictions with the player's claims and
+        /// cross-circle leaks move the checker's suspicion further.
+        public List<GossipEvent> CompareNotes(string checkerId, string partnerId, GameTime now)
+        {
+            var events = new List<GossipEvent>();
+            var checker = Get(checkerId);
+            var partner = Get(partnerId);
+            if (checker == null || partner == null || checker.Leashed) return events;
+
+            checker.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
+                $"I asked {partner.DisplayName} straight out what they knew about the new owner."));
+
+            double tie = System.Math.Max(_graph.Tie(checkerId, partnerId), 0.5); // asking directly beats a weak tie
+            foreach (var r in partner.Rumors.ToList())
+            {
+                if (r.Content.Subject != "player") continue;
+                if (r.Confidence < MinConfidenceToShare) continue;
+                if (partner.Suppressed.Contains(r.TopicKey)) continue;
+                if (partner.Leashed) break;
+
+                double passed = r.Confidence * tie * HopDecay;
+                if (passed < MinConfidenceToShare) continue;
+                var existing = checker.Best(r.TopicKey);
+                if (existing != null && existing.Content.Value == r.Content.Value && existing.Confidence >= passed)
+                    continue;
+
+                var heard = new Rumor
+                {
+                    Content = r.Content, OriginId = r.OriginId, Summary = r.Summary,
+                    Confidence = passed, Hops = r.Hops + 1, Sensitive = r.Sensitive,
+                };
+                checker.Rumors.Add(heard);
+                checker.Memory.Append(new MemoryEvent(now, "heard",
+                    System.Math.Clamp(passed * 0.8, 0.2, 0.85),
+                    $"{partner.DisplayName} told me, when I asked: {r.Summary}"));
+
+                var ev = new GossipEvent { FromId = partnerId, ToId = checkerId, Rumor = heard };
+                if (checker.Knowledge.CheckClaim(r.Content) == ClaimResult.Contradiction)
+                {
+                    checker.Suspicion.Raise(ContradictionSuspicion * passed,
+                        $"what {partner.DisplayName} told me contradicts what the new owner said to my face");
+                    ev.Contradiction = true;
+                }
+                else if (r.Sensitive && checker.Circle == "day")
+                {
+                    checker.Suspicion.Raise(LeakSuspicion * passed, "I went asking, and I did not like the answer");
+                    ev.Exposure = true;
+                }
+                events.Add(ev);
+            }
+            return events;
+        }
+
         /// Does this NPC now carry a sensitive (night-life) rumor about the player? The
         /// player-facing signal that a secret has reached someone it shouldn't have.
         public bool KnowsSecret(string npcId) =>

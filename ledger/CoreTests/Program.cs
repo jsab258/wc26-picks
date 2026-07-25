@@ -41,6 +41,7 @@ namespace Ledger.CoreTests
                 TestWallet();
                 TestBeats();
                 TestHooks();
+                TestCompareNotes();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -372,6 +373,38 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestCompareNotes()
+        {
+            Console.WriteLine("CompareNotes:");
+            var now = new GameTime(4, 15, 0);
+
+            // Lena, grown suspicious, asks the witness directly — no dice, no waiting.
+            var (mill, rocco, lena) = FreshMill();
+            mill.PlayerClaims("lena", new Fact("player", "location_d2_evening", "home"), now);
+            var evs = mill.CompareNotes("lena", "rocco", now);
+            Check(lena.Holds("player.location_d2_evening", "warehouse"), "asking directly gets the story");
+            Check(evs.Any(e => e.Contradiction), "the answer collides with the player's lie");
+            Check(lena.Suspicion.Value > 0, "checking that pays off raises suspicion further");
+            Check(lena.Memory.Events.Any(e => e.Text.Contains("I asked Rocco straight out")), "the asking is remembered");
+            Check(rocco.Memory.Events.Count(e => e.Text.Contains("told me, when I asked")) == 0, "the flow is one-way");
+
+            // A suppressed (bribed) topic stays bought even under direct questioning.
+            var (mill2, rocco2, lena2) = FreshMill();
+            mill2.Bribe("rocco", "player.location_d2_evening", 9999, now);
+            mill2.CompareNotes("lena", "rocco", now);
+            Check(!lena2.Holds("player.location_d2_evening", "warehouse"), "a paid-for silence survives direct questions");
+
+            // A leashed partner gives nothing; a leashed checker never asks.
+            var (mill3, rocco3, lena3) = FreshMill(greed: 0.1, nerve: 0.9);
+            var s = new Secret { Id = "s", OwnerId = "rocco", Kind = SecretKind.Criminal, Summary = "the skim." };
+            s.Learn("Lena", now);
+            mill3.UseHook("rocco", s, now);
+            mill3.CompareNotes("lena", "rocco", now);
+            Check(!lena3.Holds("player.location_d2_evening", "warehouse"), "a leashed partner shares nothing about the player");
+            lena3.Leashed = true;
+            Check(mill3.CompareNotes("lena", "rocco", now).Count == 0, "a leashed checker does not go asking");
         }
 
         static void TestHooks()
