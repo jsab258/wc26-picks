@@ -51,6 +51,7 @@ namespace Ledger.SimHarness
                 await ScenarioLieAndSuspicion();
                 await ScenarioJailbreaks();
                 await ScenarioReflection();
+                await ScenarioGossip();
                 ScenarioBudget();
             }
             catch (Exception ex)
@@ -245,6 +246,43 @@ namespace Ledger.SimHarness
                     await Judge("Over two days a bar owner told the bookkeeper two things: (1) he paid off the brewery debt in full, and (2) Rocco now drinks free on Sundays. " +
                         $"Do these distilled beliefs reflect at least one of those developments? Beliefs: \"{beliefText}\""), beliefText);
             }
+        }
+
+        static async Task ScenarioGossip()
+        {
+            Section("7. Gossip reaches the bar (double-life exposure)");
+            var (lena, _) = FreshLena("s7");
+            var now = new GameTime(2, 21, 0);
+
+            // Lena is a day-circle NPC sharing her real conversation brain with the mill.
+            // Rocco (night) witnessed the player at the warehouse; the player told Lena
+            // to her face that they were home.
+            var lenaG = new Gossiper("lena", "Lena", lena.Memory, lena.Knowledge, lena.Suspicion, "day");
+            var rocco = new Gossiper("rocco", "Rocco",
+                new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night");
+            var graph = new SocialGraph();
+            graph.Link("rocco", "lena", 0.85);
+            var mill = new GossipMill(graph);
+            mill.Add(rocco); mill.Add(lenaG);
+
+            mill.PlayerClaims("lena", new Fact("player", "location_d2_evening", "home"), now);
+            mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "the new owner was at the old warehouse the night of the fire", true, now);
+
+            double before = lena.Suspicion.Value;
+            mill.Tick(now.AddMinutes(30)); // Rocco tells Lena over the counter
+
+            Check("the rumor reached Lena", lenaG.Holds("player.location_d2_evening", "warehouse"));
+            Check("Lena's suspicion rose from the contradicting rumor", lena.Suspicion.Value > before);
+            Check("Lena remembers hearing it from Rocco",
+                lena.Memory.Events.Exists(e => e.Text.Contains("heard from Rocco") && e.Text.Contains("warehouse")));
+
+            // The player now walks in and repeats the lie to her face.
+            var reply = await Say(lena, "Evening, Lena. Quiet one — I was home all last night. Nothing to report.", now.AddMinutes(60));
+            if (_live)
+                CheckLive("Lena doubts the alibi / references what she heard (judge)",
+                    await Judge("Lena heard from Rocco that this person was at the old warehouse the night of the fire, but they just told her to her face they were home all night. " +
+                        $"Does her reply show suspicion, doubt, or a reference to what she heard, rather than simply accepting the claim? Reply: \"{reply}\""), reply);
         }
 
         static void ScenarioBudget()
