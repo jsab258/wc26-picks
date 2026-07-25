@@ -6,30 +6,24 @@ Answered items move to the decision log in `process.md`.
 
 ## Open now
 
-1. **Cast drift vs. design doc** (flagged 2026-07-25, roadmap.md). Doc §8: Sam =
-   first friend/coworker, Ada = landlady. Approved cards: Sam = street go-between,
-   Ada = retired teacher. **Recommend:** keep approved cards; re-home "first
-   friend" in a future coworker when the day job exists; revise doc §8 at the
-   vertical slice.
-2. **Melee combat** (doc §6.5 vs. risk #1). **Recommend:** stay combat-free
-   through the vertical slice; revisit as its own milestone only if the slice
-   feels like it needs it.
-3. **Drop-window feel vs. no-hard-timers rule** (§4). The 22:00–02:00 job window
-   is a scheduled obligation, not a countdown — but only playtesting can say if
-   it *feels* that way. **Judge during your PC playtest.** If it feels like a
-   timer: the outfit waits, but patience decays per hour late.
+*(empty — batch cleared 2026-07-25: cast drift, combat deferral, love interest
+= Noor, drop-window judged at playtest. See process.md.)*
 
 ## Will need you at the vertical slice (M5)
 
-4. **Asset budget release** (~$40–60 city pack approved in principle 2026-07-24;
+1. **Asset budget release** (~$40–60 city pack approved in principle 2026-07-24;
    actual purchase + drop-in is manual). Also Character Creator (~$99/yr) go/no-go.
-5. **HDRP swap session** — needs a human in the Unity editor (RenderPipelineAsset
+2. **HDRP swap session** — needs a human in the Unity editor (RenderPipelineAsset
    + shader remap); I prepare the branch and instructions, you click.
-6. **ElevenLabs voice** — account, key, and per-character voice casting choices.
-7. **Love interest pick** — doc offers Noor (journalist, dangerous) or Elias
-   (teacher, innocence at stake); the slice builds one first.
-8. **The is-this-fun gate** — your playtest verdict on the M2-M4 loop decides
+3. **ElevenLabs voice** — account, key, and per-character voice casting choices.
+4. **Noor's card approval** — decided as the slice's love interest (2026-07-25);
+   I draft her Tier-1 card during M4 downtime, you approve the text before she
+   enters the game.
+5. **The is-this-fun gate** — your playtest verdict on the M2–M4 loop decides
    whether M5 polishes this design or we iterate the core first.
+6. **Drop-window feel check** — during the PC playtest: does the 22:00–02:00 job
+   window feel like a scheduled obligation (fine) or a countdown (soften to
+   lateness-decay)?
 
 ## Standing rules honored meanwhile
 
