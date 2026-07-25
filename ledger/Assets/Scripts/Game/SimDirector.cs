@@ -302,6 +302,17 @@ namespace Ledger.Game
                         if (r.Hops == 0 && r.TopicKey.StartsWith("player.night_job") && r.Confidence > maxNightConf)
                             maxNightConf = r.Confidence;
             bool disguiseWorks = _game.NightWitnesses == 0 || maxNightConf <= GameController.CoatWitnessConfidence + 0.01;
+
+            // Authored beats must resolve — the sim bot prioritizes drops, so passed
+            // windows should read Skipped (with the loyalty cost applied), never
+            // linger Pending. A beat still in the future may legitimately be Pending.
+            bool beatsResolved = true;
+            var beatStates = new List<object>();
+            foreach (var b in _game.Beats.All)
+            {
+                beatStates.Add($"{b.Id}:{b.State}");
+                if (b.WindowPassed(_game.Now) && b.State == BeatState.Pending) beatsResolved = false;
+            }
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -329,6 +340,7 @@ namespace Ledger.Game
                 { "dirtyCash", _game.Wallet.Dirty },
                 { "washed", _game.Wallet.TotalWashed },
                 { "maxNightWitnessConf", maxNightConf },
+                { "beats", beatStates },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -341,7 +353,7 @@ namespace Ledger.Game
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks;
+                        && disguiseWorks && beatsResolved;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -349,7 +361,8 @@ namespace Ledger.Game
                       $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
                       $"witnesses={_game.NightWitnesses} knownLeads={_game.Knowledge.Count} " +
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
-                      $"coatConf={maxNightConf:0.00} verdict={camp.Verdict} pass={pass}");
+                      $"coatConf={maxNightConf:0.00} beats=[{string.Join(",", beatStates)}] " +
+                      $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }

@@ -45,6 +45,15 @@ namespace Ledger.Game
         public static string OutfitWord(double p) =>
             p > 0.66 ? "satisfied" : p > 0.33 ? "impatient" : "furious";
 
+        // Authored week beats (design-doc §4): the day life asks for the same evening
+        // hours the outfit does. Windows overlap the drop window on purpose — thread
+        // both if you're quick, or choose whose memory of you matters more tonight.
+        public BeatBook Beats { get; } = new BeatBook();
+        readonly Dictionary<string, Vector3> _beatSpots = new Dictionary<string, Vector3>();
+        readonly HashSet<string> _beatInvited = new HashSet<string>();
+        GameObject _beatMarker;
+        string _beatMarkerId;
+
         /// The street's mood about the player, in words — shared by the HUD and by
         /// conversation context so everyone describes the same weather.
         public static string StreetWord(double heat) =>
@@ -138,7 +147,8 @@ namespace Ledger.Game
                 var walkerName = npc.DisplayName;
                 host.ExtraContext = () =>
                     $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
-                    $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.{HostRevealText(walkerName)}";
+                    $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}." +
+                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}";
                 _hosts.Add(host);
             }
 
@@ -146,6 +156,21 @@ namespace Ledger.Game
 
             _gossip = gameObject.AddComponent<GossipDirector>();
             _gossip.Begin(this, _npcs, _hosts);
+
+            // The week's two dilemma evenings: both windows sit inside the outfit's
+            // drop window. Ada tests the day face; Rocco tests the family face.
+            Beats.Add(new Beat
+            {
+                Id = "tea", HostId = "Ada", Title = "Tea with Ada", Day = 3, StartHour = 22, EndHour = 24,
+                InviteText = "Ada catches you by the market: \"Come for tea tonight. After you close — twenty-two o'clock. I'll wait up.\"",
+            });
+            _beatSpots["tea"] = new Vector3(-14, 0, 12); // her apartment steps
+            Beats.Add(new Beat
+            {
+                Id = "toast", HostId = "Rocco", Title = "A drink for Marek", Day = 5, StartHour = 22, EndHour = 24,
+                InviteText = "Rocco, quiet at the door: \"Five years since Marek and me buried his brother. Tonight I drink to him. Sit with me, boss. Ten o'clock.\"",
+            });
+            _beatSpots["toast"] = WorldBuilder.BarDoor + new Vector3(1, 0, -1);
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
@@ -181,7 +206,47 @@ namespace Ledger.Game
             }
 
             UpdateCampaign();
+            UpdateBeats();
             if (Time.frameCount % 30 == 0) CheckLoyalWarnings();
+        }
+
+        void UpdateBeats()
+        {
+            if (_gossip == null || _gossip.Mill == null) return;
+
+            // Morning invitation, once, on the beat's day.
+            var today = Beats.For(Now.Day);
+            if (today != null && today.State == BeatState.Pending && Now.Hour >= 9 && _beatInvited.Add(today.Id))
+                _ui?.Toast(today.InviteText, 10f);
+
+            // Lapsed windows resolve to skipped — people remember.
+            foreach (var missed in Beats.ResolveLapsed(id => _gossip.Mill.Get(id), Now))
+                _ui?.Toast($"You never went. {missed.HostId} will remember that.");
+
+            var open = Beats.Open(Now);
+            if (open == null)
+            {
+                if (_beatMarker != null) { Destroy(_beatMarker); _beatMarker = null; _beatMarkerId = null; }
+                return;
+            }
+            if (_beatMarker == null && _beatSpots.TryGetValue(open.Id, out var spot))
+            {
+                // A warm porch-light glow, distinct from the drop's hot orange.
+                _beatMarker = SpawnGlowMarker(spot, new Color(0.7f, 0.85f, 1f), $"Beat_{open.Id}");
+                _beatMarkerId = open.Id;
+            }
+            if (_beatMarker != null && _player != null)
+            {
+                var p = _player.transform.position;
+                var m = _beatMarker.transform.position;
+                if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
+                {
+                    open.Attend(_gossip.Mill.Get(open.HostId), Now);
+                    Destroy(_beatMarker);
+                    _beatMarker = null;
+                    _ui?.Toast($"{open.Title}. You stayed a while. {open.HostId} will remember this.", 8f);
+                }
+            }
         }
 
         void UpdateCampaign()
@@ -319,6 +384,23 @@ namespace Ledger.Game
                     Knowledge.Learn(lead, $"{walkerName} admitted it", Now);
         }
 
+        /// Context line for an authored beat involving this NPC — pending tonight,
+        /// honored, or stood up. Injected so the character brings it up themselves.
+        public string BeatContext(string walkerName)
+        {
+            foreach (var b in Beats.All)
+            {
+                if (b.HostId != walkerName) continue;
+                if (b.State == BeatState.Pending && b.Day == Now.Day)
+                    return $" You have invited the new owner to {b.Title.ToLowerInvariant()} tonight at {b.StartHour}:00 and you hope they come.";
+                if (b.State == BeatState.Attended)
+                    return $" The new owner came to {b.Title.ToLowerInvariant()} — it meant a lot to you.";
+                if (b.State == BeatState.Skipped)
+                    return $" You invited the new owner to {b.Title.ToLowerInvariant()} and they never showed. It stung; you don't hide it well.";
+            }
+            return "";
+        }
+
         /// Context line so a loyal carrier actually SAYS what they've heard.
         public string HostRevealText(string walkerName)
         {
@@ -338,25 +420,29 @@ namespace Ledger.Game
             _ui?.ShowEnd(Campaign);
         }
 
-        void SpawnJobMarker(Vector3 pos)
-        {
-            _jobMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            _jobMarker.name = "JobDrop";
-            _jobMarker.transform.position = new Vector3(pos.x, 0.3f, pos.z);
-            _jobMarker.transform.localScale = new Vector3(0.9f, 0.6f, 0.9f);
-            var mat = _jobMarker.GetComponent<Renderer>().material;
-            mat.color = new Color(1f, 0.55f, 0.15f);
-            mat.EnableKeyword("_EMISSION");
-            mat.SetColor("_EmissionColor", new Color(1f, 0.45f, 0.1f) * 2.5f);
+        void SpawnJobMarker(Vector3 pos) =>
+            _jobMarker = SpawnGlowMarker(pos, new Color(1f, 0.55f, 0.15f), "JobDrop");
 
-            var glow = new GameObject("JobGlow");
-            glow.transform.SetParent(_jobMarker.transform, false);
+        GameObject SpawnGlowMarker(Vector3 pos, Color color, string name)
+        {
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            marker.name = name;
+            marker.transform.position = new Vector3(pos.x, 0.3f, pos.z);
+            marker.transform.localScale = new Vector3(0.9f, 0.6f, 0.9f);
+            var mat = marker.GetComponent<Renderer>().material;
+            mat.color = color;
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", color * 2.2f);
+
+            var glow = new GameObject("Glow");
+            glow.transform.SetParent(marker.transform, false);
             glow.transform.localPosition = Vector3.up * 1.5f;
             var l = glow.AddComponent<Light>();
             l.type = LightType.Point;
             l.range = 7f;
             l.intensity = 2.2f;
-            l.color = new Color(1f, 0.6f, 0.25f);
+            l.color = color;
+            return marker;
         }
 
         void UpdateSun()

@@ -39,6 +39,7 @@ namespace Ledger.CoreTests
                 TestCampaign();
                 TestPlayerKnowledge();
                 TestWallet();
+                TestBeats();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -370,6 +371,40 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestBeats()
+        {
+            Console.WriteLine("Beats:");
+            var book = new BeatBook();
+            var ada = new Gossiper("Ada", "Ada", new MemoryStore("ada"), new KnowledgeBase(), new SuspicionTracker(), "day", 0.15, 0.8, 0.4);
+            ada.Suspicion.Raise(0.3, "seed");
+            book.Add(new Beat { Id = "tea", HostId = "Ada", Title = "Tea with Ada", Day = 3, StartHour = 22, EndHour = 24 });
+
+            Check(book.For(3) != null && book.For(4) == null, "beats are found by campaign day");
+            Check(book.Open(new GameTime(3, 21, 0)) == null, "window not open before start");
+            var open = book.Open(new GameTime(3, 22, 30));
+            Check(open != null, "window open during the evening");
+
+            double loyaltyBefore = ada.Loyalty, suspicionBefore = ada.Suspicion.Value;
+            open.Attend(ada, new GameTime(3, 22, 30));
+            Check(open.State == BeatState.Attended, "attending marks the beat");
+            Check(ada.Loyalty > loyaltyBefore, "attending builds loyalty");
+            Check(ada.Suspicion.Value < suspicionBefore, "attending eases suspicion");
+            Check(book.ResolveLapsed(_ => ada, new GameTime(4, 8, 0)).Count == 0, "an attended beat never lapses");
+            open.Attend(ada, new GameTime(3, 23, 0));
+            Check(Math.Abs(ada.Loyalty - (loyaltyBefore + open.LoyaltyGain)) < 1e-9, "attending twice applies once");
+
+            var book2 = new BeatBook();
+            var rocco = new Gossiper("Rocco", "Rocco", new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night", 0.6, 0.5, 0.6);
+            book2.Add(new Beat { Id = "toast", HostId = "Rocco", Title = "A drink for Marek", Day = 5, StartHour = 22, EndHour = 24 });
+            Check(book2.ResolveLapsed(_ => rocco, new GameTime(5, 23, 0)).Count == 0, "no lapse while the window is still open");
+            double rBefore = rocco.Loyalty;
+            var lapsed = book2.ResolveLapsed(_ => rocco, new GameTime(6, 0, 0));
+            Check(lapsed.Count == 1 && lapsed[0].State == BeatState.Skipped, "a passed window lapses to skipped");
+            Check(rocco.Loyalty < rBefore, "being stood up costs loyalty");
+            Check(book2.ResolveLapsed(_ => rocco, new GameTime(6, 8, 0)).Count == 0, "a skip resolves exactly once");
+            Check(rocco.Memory.Events.Any(e => e.Text.Contains("never showed")), "the host remembers being stood up");
         }
 
         static void TestWallet()
