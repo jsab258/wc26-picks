@@ -230,16 +230,27 @@ namespace Ledger.Core
         public bool KnowsSecret(string npcId) =>
             Get(npcId)?.Rumors.Any(r => r.Sensitive && r.Confidence >= MinConfidenceToShare) ?? false;
 
-        /// A 0..1 "heat" reading: the strongest sensitive rumor anywhere in the day
-        /// circle. Rises as secrets spread — the escalation the player feels instead of
-        /// a countdown.
+        /// A 0..1 "heat" reading: how convinced the most-convinced day-circle NPC is
+        /// that the player leads a hidden life. DISTINCT stories corroborate — the
+        /// noisy-or of an agent's best rumor per topic — so three half-believed
+        /// sightings expose you where one never would, while retellings of the SAME
+        /// story never stack. This is what makes carelessness (new witnesses every
+        /// night) lethal and damage control (kill or discredit a story) meaningful.
         public double DayCircleHeat()
         {
             double max = 0;
             foreach (var a in _agents.Values)
-                if (a.Circle == "day")
-                    foreach (var r in a.Rumors)
-                        if (r.Sensitive && r.Confidence > max) max = r.Confidence;
+            {
+                if (a.Circle != "day") continue;
+                var bestPerTopic = new Dictionary<string, double>();
+                foreach (var r in a.Rumors)
+                    if (r.Sensitive && (!bestPerTopic.TryGetValue(r.TopicKey, out var b) || r.Confidence > b))
+                        bestPerTopic[r.TopicKey] = r.Confidence;
+                double doubt = 1.0;
+                foreach (var c in bestPerTopic.Values) doubt *= 1.0 - c;
+                double combined = 1.0 - doubt;
+                if (combined > max) max = combined;
+            }
             return max;
         }
 
@@ -266,7 +277,9 @@ namespace Ledger.Core
 
         public double BribeBase = 50, BribePerConfidence = 150, BribeGreedFloor = 0.3;
         public double IntimidateNerveCeiling = 0.6;
-        public double DiscreditFactor = 0.5;
+        // Doubt cools a story without erasing it — buying or scaring the holder is
+        // the only way to fully kill a telling, which is what keeps money relevant.
+        public double DiscreditFactor = 0.65;
 
         /// What it would cost, right now, to buy this NPC's silence on a topic (more
         /// entrenched talk costs more). 0 = they're not carrying it.
@@ -321,10 +334,15 @@ namespace Ledger.Core
         }
 
         /// Plant doubt about a specific story, cutting the confidence of every version of
-        /// it across the network. Doesn't erase it, but a discredited rumor spreads and
-        /// stings less.
+        /// it across the network. Doesn't erase it, and the street only buys a denial
+        /// ONCE per story — repeat denials are already priced in. That cap is what
+        /// stops "deny everything daily" from being a complete defense: at some point
+        /// a story must be killed at its holder, with money or muscle.
         public DcResult Discredit(string topicKey, string value, GameTime now)
         {
+            if (!_discredited.Add(topicKey))
+                return new DcResult { Outcome = DcOutcome.AlreadyDenied, Affected = 0,
+                    Message = "The street has already heard your denials about that; repeating them changes nothing." };
             var v = value?.ToLowerInvariant();
             int affected = 0;
             foreach (var a in _agents.Values)
@@ -335,6 +353,7 @@ namespace Ledger.Core
             return new DcResult { Outcome = affected > 0 ? DcOutcome.Contained : DcOutcome.NoSuchRumor, Affected = affected,
                 Message = affected > 0 ? $"Doubt spreads; {affected} telling(s) of it lose weight." : "No such story to discredit." };
         }
+        readonly HashSet<string> _discredited = new HashSet<string>();
 
         /// Rumors fade if nobody keeps them alive — the "lie low and let it cool" option.
         /// Call once per in-game hour; confidence decays on a multi-day half-life and
@@ -357,7 +376,7 @@ namespace Ledger.Core
             _lastAge = now;
             _aged = true;
         }
-        public double RumorHalfLifeHours = 72;
+        public double RumorHalfLifeHours = 96;
         GameTime _lastAge;
         bool _aged;
 
@@ -387,7 +406,7 @@ namespace Ledger.Core
         static DcResult Dc(DcOutcome o, string msg) => new DcResult { Outcome = o, Message = msg };
     }
 
-    public enum DcOutcome { NoSuchRumor, CantAfford, Contained, Backfired }
+    public enum DcOutcome { NoSuchRumor, CantAfford, Contained, Backfired, AlreadyDenied }
 
     /// The result of a damage-control move: what happened, a line to show the player,
     /// any new rumor the move created (a backfire), and how many rumors it touched.

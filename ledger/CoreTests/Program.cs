@@ -286,6 +286,24 @@ namespace Ledger.CoreTests
             mill2.Tick(now);
             Check(day2.Suspicion.Value > 0, "a night-life secret reaching the day circle unsettles even without a prior lie");
             Check(mill2.Get("mara").Rumors.Any(rr => rr.Sensitive), "the leak is recorded as a sensitive rumor");
+
+            // Corroboration: DISTINCT sensitive stories held by one day NPC combine
+            // (noisy-or), so several half-heard sightings can expose what one cannot.
+            var g3 = new SocialGraph(); g3.Link("w3", "day3", 0.9);
+            var mill3 = new GossipMill(g3);
+            var w3 = Agent("w3", "Witness", "night");
+            var d3 = Agent("day3", "Neighbor", "day");
+            mill3.Add(w3); mill3.Add(d3);
+            mill3.Witness("day3", new Fact("player", "night_job_d1", "seen"), "seen out at night once", true, now);
+            mill3.Witness("day3", new Fact("player", "night_job_d2", "seen"), "seen out at night twice", true, now);
+            // First-hand stories are 1.0 each; age them down so the combination is visible.
+            foreach (var rr in d3.Rumors) rr.Confidence = 0.5;
+            double combined = mill3.DayCircleHeat();
+            Check(Math.Abs(combined - 0.75) < 1e-9, "two half-believed stories corroborate to 0.75, not 0.5");
+            Check(combined <= 1.0, "corroborated heat stays within 0..1");
+            var dup = new Rumor { Content = new Fact("player", "night_job_d2", "seen"), OriginId = "w3", Summary = "same story again", Confidence = 0.3, Sensitive = true, Hops = 1 };
+            d3.Rumors.Add(dup);
+            Check(Math.Abs(mill3.DayCircleHeat() - 0.75) < 1e-9, "a weaker retelling of the SAME story does not stack");
         }
 
         // A witness (Rocco, night) tied to a day acquaintance (Lena), with Rocco
@@ -312,8 +330,8 @@ namespace Ledger.CoreTests
             Check(!Campaign.InJobWindow(new GameTime(1, 12, 0)), "campaign: noon is not");
 
             var c = new Campaign();
-            Check(c.CloseDay(0) == 120, "campaign: a quiet day banks full takings");
-            Check(c.CloseDay(0.5) == 69, "campaign: street heat taxes the takings");
+            Check(c.CloseDay(0) == c.BarBaseTakings, "campaign: a quiet day banks full takings");
+            Check(c.CloseDay(0.5) < c.BarBaseTakings * 0.6, "campaign: street heat taxes the takings");
             for (int i = 0; i < 4; i++) c.CloseDay(0);
             Check(c.Verdict == Verdict.Ongoing, "campaign: six closes, still ongoing");
             c.CloseDay(0);
@@ -387,6 +405,11 @@ namespace Ledger.CoreTests
             Check(before > 0, "the rumor reached Lena");
             Check(mill6.Discredit(topic, "warehouse", now).Affected >= 1, "discredit touches the circulating tellings");
             Check((day6.Best(topic)?.Confidence ?? 0) < before, "discredit lowers the rumor's confidence");
+            // The street only buys a denial once per story.
+            double afterFirst = day6.Best(topic)?.Confidence ?? 0;
+            var again = mill6.Discredit(topic, "warehouse", now);
+            Check(again.Outcome == DcOutcome.AlreadyDenied, "a second denial of the same story is refused");
+            Check(Math.Abs((day6.Best(topic)?.Confidence ?? 0) - afterFirst) < 1e-9, "the refused denial changes nothing");
 
             // Lie low: with nobody reinforcing it, the rumor fades below the secret line.
             var (mill7, _, _) = FreshMill();

@@ -13,12 +13,17 @@ namespace Ledger.Core
     {
         // Playtest knobs.
         public int SurviveDays = 7;
-        public double ExposureThreshold = 0.85;
+        // 0.70 is where the HUD starts calling the street "hostile" — the lose rule
+        // reads as: two mornings in a row of a hostile street and you're done.
+        public double ExposureThreshold = 0.70;
         public int ExposureFuseDays = 2;          // consecutive hot daily closes to lose
         public double PatienceLossPerMiss = 0.34; // three missed jobs and you're out
         public double PatienceGainPerJob = 0.10;
-        public int JobPay = 150;
-        public int BarBaseTakings = 120;
+        // The bar is the livelihood; the night job is an obligation with a stipend.
+        // That ratio is what makes the heat tax (and therefore bribes) worth money:
+        // a hot street costs real income, not pocket change next to the night pay.
+        public int JobPay = 90;
+        public int BarBaseTakings = 220;
         public double HeatTakingsPenalty = 0.85;  // fraction of takings lost at heat 1.0
 
         public double OutfitPatience { get; private set; } = 1.0;
