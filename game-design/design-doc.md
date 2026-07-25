@@ -2,7 +2,9 @@
 
 Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
 Genre: open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
-Engine: Unity 6, C#. Status: founding doc v1 (2026-07). Companion file: `research-mechanics.md`.
+Engine: Unity 6, C#. Status: founding doc v1.1 (2026-07-25; §8 cast note and §11 revised
+against built reality). Companions: `research-mechanics.md`, `roadmap.md` (live milestone
+plan), `process.md` (decision log).
 
 ---
 
@@ -205,6 +207,13 @@ teacher, innocence at stake), June (uncle's estranged daughter, moral mirror), F
 (knows the uncle's real history), and the Fixer (broker between all three rivals, gossip
 system personified). ~14 total; full cards to be written next.
 
+> **Status note (2026-07-25).** The prototype's approved cast cards drift from this
+> sketch: Sam is currently a street go-between (both circles) and Ada a retired
+> schoolteacher across from the bar — both fit the one-street scale better than
+> "coworker" and "landlady" while the day job doesn't exist yet. Open decision: either
+> this sketch is revised to match, or the doc roles are re-homed in new characters when
+> the day-job world arrives (see `roadmap.md`, open items).
+
 ## 9. AI architecture (runtime)
 
 - **Dialogue LLM, tiered**: cheap/fast model (Haiku-class) for Tier-2/ambient; stronger
@@ -238,24 +247,38 @@ system personified). ~14 total; full cards to be written next.
 - **Writing**: authored spine and Tier-1 cards are human+AI collaborative; everything else
   generated-then-curated.
 
-## 11. Milestones
+## 11. Milestones (revised 2026-07-25 — live plan lives in `roadmap.md`)
 
-- **M0 — Tech spike (the proof)**: one Unity city block, day/night cycle, player controller,
-  3 NPCs with schedules; one full LLM character with card, memory file, reflection, voice,
-  and a suspicion value the player can move. *Proves every risky pillar at once.*
-- **M1 — The living block**: one district, ~30 schedule-simulated NPCs, gossip propagation
-  demonstrably working (plant a fact, watch it travel), Ledger UI v0.
-- **M2 — The double life MVP**: day job + one racket + calendar/time slots + clean/dirty
-  money + suspicion with confrontations + first-pass melee combat (graybox arena, feel
-  before fidelity). First "one more day" playtest.
-- **M3 — Vertical slice**: The Hook district polished, 5 Tier-1 characters (Rocco, Lena,
-  Sam, one love interest, Ossei), 7 in-game days of Act I, voice throughout. The
-  is-this-fun gate and the demo artifact.
-- **M4+**: expand districts/cast/acts; combat-adjacent systems decision; performance
-  hardening; Steam page.
+This section originally sketched M0–M4; the built milestones diverged from it by player
+decision (gossip before scale, the week campaign before the day job). What follows is the
+as-built record; `roadmap.md` carries the forward plan and supersedes this section's
+numbering.
 
-Scope honesty: M0–M2 are heavily AI-buildable (code, cards, pipelines). M3 is where taste,
-iteration, and playtesting (the human's real job) dominate.
+**Built and CI-validated (2026-07):**
+- **M0 — Tech spike**: one code-built city block, day/night, 4 scheduled NPCs, Lena as a
+  full LLM character (card, markdown memory, retrieval, reflection, suspicion), automated
+  Windows builds with an in-engine self-test sim. *(Voice deferred to the vertical slice
+  by decision.)*
+- **M1 — The gossip engine** (was "living block", re-scoped): person-to-person rumor
+  propagation through physical co-location, confidence decay, contradiction-driven
+  suspicion, day/night circles; the player's damage-control verbs (pay off / lean on /
+  plant doubt / lie low) with trait-decided outcomes; the whole cast conversational.
+- **M2 — The week** (was "double-life MVP", re-scoped): nightly outfit drops that create
+  witnesses, bar takings taxed by street heat, outfit patience, exposure fuse, win/lose
+  the week, restart. Balance lab (Monte-Carlo bot weeks) tuned heat corroboration, money,
+  and the once-per-story denial cap. Full 7-day campaign plays in CI on every build.
+- **M3.1 — The Ledger**: PlayerKnowledge belief-state + Ledger UI v0 ("what you believe
+  the city knows — never ground truth"), learned only through play; loyal-NPC warnings.
+
+**Forward plan — see `roadmap.md`:** M3 (clean/dirty money + laundering, disguise,
+end-of-day summary, conflict beats), M4 (secrets-as-loot hooks, suspicion-threshold
+confrontations, Det. Ossei, save/load), M5 vertical slice (the original M3: The Hook
+polished, 5 Tier-1 characters, 7 days of Act I, voice throughout — the is-this-fun gate),
+M6+ expansion. Not-yet-scheduled from the original sketch: day job, rackets, calendar
+slots UI, melee combat (deliberately deferred; see roadmap open items).
+
+Scope honesty: systems milestones are heavily AI-buildable (code, cards, pipelines). The
+vertical slice is where taste, iteration, and playtesting (the human's real job) dominate.
 
 ## 12. Risks
 
