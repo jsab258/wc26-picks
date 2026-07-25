@@ -139,6 +139,7 @@ namespace Ledger.Game
                 {
                     { "path", path }, { "bytes", info.Exists ? info.Length : 0 },
                     { "meanLuma", fp.luma }, { "meanRgb", fp.rgb },
+                    { "maxLuma", fp.maxLuma }, { "brightPct", fp.brightPct },
                 });
             }
             catch (Exception e)
@@ -157,13 +158,27 @@ namespace Ledger.Game
         /// Downsample a captured frame to a small ASCII art thumbnail (logged so it
         /// is visible in CI, where the PNG artifact host is unreachable) plus mean
         /// luminance and RGB for the JSON report.
-        static (string luma, string rgb) Fingerprint(Texture2D tex, string name)
+        static (string luma, string rgb, string maxLuma, string brightPct) Fingerprint(Texture2D tex, string name)
         {
             const int cols = 64, rows = 24;
             const string ramp = " .:-=+*#%@"; // dark -> bright
             var px = tex.GetPixels32();
             int w = tex.width, h = tex.height;
             long tr = 0, tg = 0, tb = 0;
+
+            // Full-resolution brightness scan. Small, bright features (glowing windows,
+            // a lamp pool) get averaged away in the 64x24 ASCII, so track the peak luma
+            // and the fraction of genuinely bright pixels — these survive downsampling and
+            // are how emissive/lighting work is verified blind from the CI log.
+            double maxLuma = 0; long brightCount = 0;
+            for (int i = 0; i < px.Length; i++)
+            {
+                var c = px[i];
+                double l = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255.0;
+                if (l > maxLuma) maxLuma = l;
+                if (l > 0.60) brightCount++;
+            }
+            double brightPct = 100.0 * brightCount / px.Length;
             var art = new StringBuilder(cols * rows + rows + 64);
             art.Append($"\n--- render[{name}] {cols}x{rows} ascii-luma ---\n");
             for (int ry = 0; ry < rows; ry++)
@@ -193,10 +208,14 @@ namespace Ledger.Game
             int cells = cols * rows;
             double mr = tr / (double)cells, mg = tg / (double)cells, mb = tb / (double)cells;
             double luma = (0.299 * mr + 0.587 * mg + 0.114 * mb) / 255.0;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            art.Append($"render[{name}] meanLuma={luma:0.000} maxLuma={maxLuma:0.000} bright(>0.6)%={brightPct:0.00}\n");
             Debug.Log(art.ToString());
             return (
-                luma.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
-                $"{(int)mr},{(int)mg},{(int)mb}");
+                luma.ToString("0.000", inv),
+                $"{(int)mr},{(int)mg},{(int)mb}",
+                maxLuma.ToString("0.000", inv),
+                brightPct.ToString("0.00", inv));
         }
 
         void Finish()

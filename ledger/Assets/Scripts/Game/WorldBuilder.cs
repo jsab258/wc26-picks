@@ -15,7 +15,7 @@ namespace Ledger.Game
 
         static readonly List<Light> Lamps = new List<Light>();
         static readonly List<Renderer> Windows = new List<Renderer>();
-        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 1.6f; // warm interior glow
+        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f; // warm interior glow (HDR emission)
         static readonly Color WindowDark = new Color(0.02f, 0.02f, 0.02f);
         static bool _windowsLit;
 
