@@ -37,6 +37,19 @@ namespace Ledger.Core
         /// The outfit's drop window: late night, spilling past midnight.
         public static bool InJobWindow(GameTime t) => t.Hour >= 22 || t.Hour < 2;
 
+        /// Save-load overlay: state only, rules unchanged.
+        public void Restore(double patience, int exposedStreak, int jobsDone, int jobsMissed,
+            int daysClosed, Verdict verdict, string reason)
+        {
+            OutfitPatience = patience;
+            ExposedStreak = exposedStreak;
+            JobsDone = jobsDone;
+            JobsMissed = jobsMissed;
+            DaysClosed = daysClosed;
+            Verdict = verdict;
+            VerdictReason = reason ?? "";
+        }
+
         public void JobDone()
         {
             if (Verdict != Verdict.Ongoing) return;

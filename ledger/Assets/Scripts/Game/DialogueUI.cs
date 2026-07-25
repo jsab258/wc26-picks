@@ -380,6 +380,8 @@ namespace Ledger.Game
 
         void Restart()
         {
+            // Restarting the week means renouncing its history: the save goes too.
+            _game.DeleteSave();
             // The world is fully code-built, so a clean restart is: drop the
             // controller and UI, reload the scene, and let Bootstrap stand it back up.
             Destroy(_game.gameObject);

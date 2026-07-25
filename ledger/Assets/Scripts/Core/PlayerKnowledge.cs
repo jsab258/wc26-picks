@@ -57,6 +57,12 @@ namespace Ledger.Core
             return true;
         }
 
+        /// Save-load overlay: re-insert a persisted entry verbatim.
+        public void Restore(KnownLead k)
+        {
+            if (k != null) _known[Key(k.HolderId, k.TopicKey)] = k;
+        }
+
         public void MarkHandled(string holderId, string topicKey)
         {
             if (_known.TryGetValue(Key(holderId, topicKey), out var k)) k.Handled = true;

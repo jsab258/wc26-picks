@@ -437,6 +437,14 @@ namespace Ledger.Core
         }
         readonly HashSet<string> _discredited = new HashSet<string>();
 
+        /// Save-load surface for the once-per-story denial cap.
+        public IEnumerable<string> DiscreditedTopics => _discredited;
+        public void RestoreDiscredited(IEnumerable<string> topics)
+        {
+            _discredited.Clear();
+            if (topics != null) foreach (var t in topics) _discredited.Add(t);
+        }
+
         /// Use a hook (design-doc §6.3): knowledge beats traits. A STRONG hook
         /// (criminal secret) leashes the target for good — nothing about the player
         /// leaves their lips again, and no backfire is possible; they know what you

@@ -190,6 +190,8 @@ namespace Ledger.Game
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
+
+            TryLoad();
         }
 
         void Update()
@@ -223,6 +225,7 @@ namespace Ledger.Game
 
             UpdateCampaign();
             UpdateBeats();
+            if (Input.GetKeyDown(KeyCode.F5)) SaveNow();
             if (Time.frameCount % 30 == 0)
             {
                 CheckLoyalWarnings();
@@ -236,6 +239,12 @@ namespace Ledger.Game
             double heat = CurrentHeat;
             if (heat > ObservedPeakHeat) ObservedPeakHeat = heat;
             if (OsseiSpawned || heat < OsseiSetup.SpawnHeatThreshold) return;
+            SpawnOssei();
+        }
+
+        void SpawnOssei()
+        {
+            if (OsseiSpawned) return;
             OsseiSpawned = true;
 
             var walker = NpcWalker.Spawn("Ossei", OsseiSetup.Color, new[]
@@ -378,6 +387,7 @@ namespace Ledger.Game
                         "Counted the till again. There is money moving through this bar that no tap sold."));
                 }
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
+                SaveNow(quiet: true); // the morning close is the autosave point
             }
 
             // Night job lifecycle: posted at 22:00, open until 02:00, done by
@@ -577,6 +587,74 @@ namespace Ledger.Game
             return held.Count == 0 ? ""
                 : $" You have heard talk about the new owner ({string.Join("; ", held)}) and, out of loyalty, you admit what you've heard if it comes up.";
         }
+
+        // ---- save/load (P5: the city's state is the save file) ----
+
+        public string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "ledger-save.json");
+
+        Dictionary<string, object> ExtraFlags() => new Dictionary<string, object>
+        {
+            { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
+            { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
+            { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
+            { "maxCoatedWitnessConf", MaxCoatedWitnessConf }, { "totalConfrontations", TotalConfrontations },
+            { "jobPostedDay", _jobPostedDay }, { "lastClosedDay", _lastClosedDay },
+            { "lastReflectedDay", _lastReflectedDay }, { "observedPeakHeat", ObservedPeakHeat },
+        };
+
+        public string CaptureSave() =>
+            SaveCodec.Capture(Now, Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, ExtraFlags());
+
+        public void SaveNow(bool quiet = false)
+        {
+            if (_gossip == null || _gossip.Mill == null) return;
+            try
+            {
+                System.IO.File.WriteAllText(SavePath, CaptureSave());
+                if (!quiet) _ui?.Toast("The ledger is written. (Saved.)", 3f);
+            }
+            catch (System.Exception e) { Debug.LogError($"Save failed: {e.Message}"); }
+        }
+
+        public void DeleteSave()
+        {
+            try { if (System.IO.File.Exists(SavePath)) System.IO.File.Delete(SavePath); }
+            catch (System.Exception e) { Debug.LogError($"Delete save failed: {e.Message}"); }
+        }
+
+        /// Overlay a saved city onto the freshly-authored one. Runs at the end of
+        /// Start, after every authored system exists. NPC memories load themselves
+        /// (markdown per character).
+        void TryLoad()
+        {
+            try
+            {
+                if (SimMode.Days > 0) return; // the self-test always plays a fresh week
+                if (!System.IO.File.Exists(SavePath)) return;
+                var now = SaveCodec.Restore(System.IO.File.ReadAllText(SavePath),
+                    Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, out var extra);
+                Now = now;
+                WearingCoat = FlagB(extra, "wearingCoat");
+                TotalTakings = FlagI(extra, "totalTakings");
+                LastTakings = FlagI(extra, "lastTakings");
+                NightWitnesses = FlagI(extra, "nightWitnesses");
+                AnyCoatedWitnessed = FlagB(extra, "anyCoatedWitnessed");
+                MaxCoatedWitnessConf = FlagD(extra, "maxCoatedWitnessConf");
+                TotalConfrontations = FlagI(extra, "totalConfrontations");
+                _jobPostedDay = FlagI(extra, "jobPostedDay");
+                _lastClosedDay = FlagI(extra, "lastClosedDay");
+                _lastReflectedDay = FlagI(extra, "lastReflectedDay");
+                ObservedPeakHeat = FlagD(extra, "observedPeakHeat");
+                if (FlagB(extra, "osseiSpawned")) SpawnOssei();
+                _ui?.Toast($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}. The street remembers where you left it.", 6f);
+                if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
+            }
+            catch (System.Exception e) { Debug.LogError($"Load failed: {e.Message}"); }
+        }
+
+        static bool FlagB(Dictionary<string, object> d, string k) => d.TryGetValue(k, out var v) && v is bool b && b;
+        static int FlagI(Dictionary<string, object> d, string k) => d.TryGetValue(k, out var v) && v != null ? System.Convert.ToInt32(v) : 0;
+        static double FlagD(Dictionary<string, object> d, string k) => d.TryGetValue(k, out var v) && v != null ? System.Convert.ToDouble(v) : 0.0;
 
         void EndCampaign()
         {

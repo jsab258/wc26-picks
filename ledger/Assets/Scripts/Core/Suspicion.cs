@@ -62,6 +62,13 @@ namespace Ledger.Core
             Value < 0.80 ? SuspicionLevel.Suspicious :
                            SuspicionLevel.Confronting;
 
+        /// Save-load overlay: value only; the reasons trail restarts.
+        public void Restore(double value)
+        {
+            Value = Math.Clamp(value, 0.0, 1.0);
+            Reasons.Add("(restored from save)");
+        }
+
         public void Raise(double amount, string reason)
         {
             Value = Math.Clamp(Value + amount, 0.0, 1.0);

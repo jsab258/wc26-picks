@@ -42,6 +42,7 @@ namespace Ledger.CoreTests
                 TestBeats();
                 TestHooks();
                 TestCompareNotes();
+                TestSaveRoundTrip();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -373,6 +374,70 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestSaveRoundTrip()
+        {
+            Console.WriteLine("SaveCodec:");
+            var now = new GameTime(4, 21, 30);
+
+            // A lived-in world: money moved, rumors spread, a bribe, a leash, a beat.
+            (GossipMill mill, Gossiper rocco, Gossiper lena) Build()
+            {
+                var (m, r, l) = FreshMill();
+                m.Tick(now); // rumor hops to Lena
+                return (m, r, l);
+            }
+            var (mill1, rocco1, lena1) = Build();
+            var wallet1 = new Wallet(300); wallet1.EarnDirty(180); wallet1.Launder();
+            var camp1 = new Campaign(); camp1.JobDone(); camp1.JobMissed(); camp1.CloseDay(0.4); camp1.CloseDay(0.75);
+            var pk1 = new PlayerKnowledge();
+            pk1.Learn(new Lead { HolderId = "rocco", HolderName = "Rocco", TopicKey = "player.location_d2_evening",
+                Summary = "was at the warehouse", Confidence = 0.8, Sensitive = true }, "you saw him watching", now);
+            pk1.MarkHandled("rocco", "player.location_d2_evening");
+            var secrets1 = new SecretsBook();
+            var s1 = new Secret { Id = "rocco_skim", OwnerId = "rocco", Kind = SecretKind.Criminal, Summary = "the skim." };
+            secrets1.Add(s1); s1.Learn("Lena", now);
+            mill1.UseHook("rocco", s1, now);
+            mill1.Discredit("player.location_d2_evening", null, now);
+            var beats1 = new BeatBook();
+            var b1 = new Beat { Id = "tea", HostId = "Ada", Title = "Tea", Day = 3, StartHour = 22, EndHour = 24 };
+            beats1.Add(b1); b1.Restore(BeatState.Attended);
+            var extra1 = new Dictionary<string, object> { { "wearingCoat", true }, { "osseiSpawned", true } };
+
+            var json = SaveCodec.Capture(now, wallet1, camp1, pk1, secrets1, beats1, mill1, extra1);
+            Check(json.Length > 100, "a save serializes to real JSON");
+
+            // Fresh authored world, overlay the save.
+            var (mill2, rocco2, lena2) = FreshMill();
+            var wallet2 = new Wallet(300);
+            var camp2 = new Campaign();
+            var pk2 = new PlayerKnowledge();
+            var secrets2 = new SecretsBook();
+            secrets2.Add(new Secret { Id = "rocco_skim", OwnerId = "rocco", Kind = SecretKind.Criminal, Summary = "the skim." });
+            var beats2 = new BeatBook();
+            beats2.Add(new Beat { Id = "tea", HostId = "Ada", Title = "Tea", Day = 3, StartHour = 22, EndHour = 24 });
+
+            var restored = SaveCodec.Restore(json, wallet2, camp2, pk2, secrets2, beats2, mill2, out var extra2);
+            Check(restored.TotalMinutes == now.TotalMinutes, "the clock round-trips");
+            Check(wallet2.Clean == wallet1.Clean && wallet2.Dirty == wallet1.Dirty && wallet2.TotalWashed == wallet1.TotalWashed,
+                "the wallet round-trips");
+            Check(Math.Abs(camp2.OutfitPatience - camp1.OutfitPatience) < 1e-9 && camp2.ExposedStreak == camp1.ExposedStreak
+                && camp2.DaysClosed == camp1.DaysClosed && camp2.Verdict == camp1.Verdict, "the campaign round-trips");
+            var k2 = pk2.StrongestFor("rocco");
+            Check(pk2.Count == 1 && k2 == null, "knowledge round-trips including handled state");
+            Check(secrets2.ById("rocco_skim").KnownToPlayer, "secrets round-trip");
+            Check(mill2.Get("rocco").Leashed, "a leash survives the save");
+            Check(Math.Abs(mill2.Get("lena").Best("player.location_d2_evening").Confidence
+                - mill1.Get("lena").Best("player.location_d2_evening").Confidence) < 1e-9,
+                "rumor confidence round-trips exactly");
+            Check(mill2.Discredit("player.location_d2_evening", null, now).Outcome == DcOutcome.AlreadyDenied,
+                "the denial cap survives the save");
+            Check(beats2.All.First(b => b.Id == "tea").State == BeatState.Attended, "beat states round-trip");
+            Check(extra2.ContainsKey("wearingCoat") && (bool)extra2["wearingCoat"], "game-layer flags round-trip");
+            Check(Math.Abs(mill2.Get("rocco").Loyalty - mill1.Get("rocco").Loyalty) < 1e-9, "loyalty round-trips");
+            Check(Math.Abs(mill2.Get("lena").Suspicion.Value - mill1.Get("lena").Suspicion.Value) < 1e-9,
+                "suspicion round-trips");
         }
 
         static void TestCompareNotes()

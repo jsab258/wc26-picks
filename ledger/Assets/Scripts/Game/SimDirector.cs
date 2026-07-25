@@ -304,6 +304,42 @@ namespace Ledger.Game
             // cadence as the spawn check, so the comparison cannot race).
             bool osseiOk = _game.OsseiSpawned == (_game.ObservedPeakHeat >= OsseiSetup.SpawnHeatThreshold);
 
+            // P5 in-engine proof: capture the lived week, overlay it onto fresh
+            // authored objects, and the city must match — plus the real file writes.
+            bool saveLoadOk = true;
+            try
+            {
+                var json = _game.CaptureSave();
+                var w2 = new Wallet(0);
+                var c2 = new Campaign();
+                var pk2 = new PlayerKnowledge();
+                var sec2 = SecretsSetup.Build();
+                var bb2 = new BeatBook();
+                foreach (var b in _game.Beats.All)
+                    bb2.Add(new Beat { Id = b.Id, HostId = b.HostId, Title = b.Title, Day = b.Day, StartHour = b.StartHour, EndHour = b.EndHour });
+                var m2 = new GossipMill(new SocialGraph());
+                if (mill != null)
+                    foreach (var a in mill.Agents)
+                        m2.Add(new Gossiper(a.Id, a.DisplayName, new MemoryStore(a.Id.ToLowerInvariant()),
+                            new KnowledgeBase(), new SuspicionTracker(), a.Circle));
+                var t2 = SaveCodec.Restore(json, w2, c2, pk2, sec2, bb2, m2, out _);
+                saveLoadOk = t2.TotalMinutes == _game.Now.TotalMinutes
+                    && w2.Clean == _game.Wallet.Clean && w2.Dirty == _game.Wallet.Dirty
+                    && System.Math.Abs(c2.OutfitPatience - camp.OutfitPatience) < 1e-9
+                    && c2.Verdict == camp.Verdict
+                    && pk2.Count == _game.Knowledge.Count;
+                if (mill != null)
+                    foreach (var a in mill.Agents)
+                    {
+                        var twin = m2.Get(a.Id);
+                        if (twin == null || twin.Rumors.Count != a.Rumors.Count || twin.Leashed != a.Leashed)
+                            saveLoadOk = false;
+                    }
+                _game.SaveNow(quiet: true);
+                if (!System.IO.File.Exists(_game.SavePath)) saveLoadOk = false;
+            }
+            catch (Exception e) { _errors.Add("saveLoad: " + e.Message); saveLoadOk = false; }
+
             // Authored beats must resolve — the sim bot prioritizes drops, so passed
             // windows should read Skipped (with the loyalty cost applied), never
             // linger Pending. A beat still in the future may legitimately be Pending.
@@ -345,6 +381,7 @@ namespace Ledger.Game
                 { "peakHeat", _game.ObservedPeakHeat },
                 { "confrontations", _game.TotalConfrontations },
                 { "checksRun", _game.Gossip != null ? _game.Gossip.ChecksRun : 0 },
+                { "saveLoadOk", saveLoadOk },
                 { "beats", beatStates },
                 { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },
                 { "llmCalls", _game.Cost.TotalCalls },
@@ -359,7 +396,7 @@ namespace Ledger.Game
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks && beatsResolved && osseiOk;
+                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -369,6 +406,7 @@ namespace Ledger.Game
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
                       $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.OsseiSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
+                      $"saveLoad={saveLoadOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

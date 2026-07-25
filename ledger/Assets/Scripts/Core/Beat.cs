@@ -30,6 +30,9 @@ namespace Ledger.Core
         public bool InWindow(GameTime t) => t.Day == Day && t.Hour >= StartHour && t.Hour < EndHour;
         public bool WindowPassed(GameTime t) => t.Day > Day || (t.Day == Day && t.Hour >= EndHour);
 
+        /// Save-load overlay.
+        public void Restore(BeatState state) => State = state;
+
         /// The player showed up. Time spent is the maintenance the double life
         /// steals (design-doc §6.4): loyalty up, suspicion eased, a warm memory.
         public void Attend(Gossiper host, GameTime now)

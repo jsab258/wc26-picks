@@ -37,6 +37,12 @@ namespace Ledger.Core
             LearnedAt = now;
         }
 
+        /// Save-load overlay.
+        public void Restore(bool known, bool spent, string from, GameTime at)
+        {
+            KnownToPlayer = known; HookSpent = spent; LearnedFrom = from; LearnedAt = at;
+        }
+
         public void SpendWeak() { HookSpent = true; }
     }
 

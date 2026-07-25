@@ -35,6 +35,12 @@ namespace Ledger.Core
             return true;
         }
 
+        /// Save-load overlay: state only, invariants unchanged.
+        public void Restore(int clean, int dirty, int washed)
+        {
+            Clean = clean; Dirty = dirty; TotalWashed = washed;
+        }
+
         /// Daily close: wash what the till can absorb. Returns the amount washed.
         public int Launder()
         {
