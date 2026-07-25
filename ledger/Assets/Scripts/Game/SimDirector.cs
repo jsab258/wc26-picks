@@ -74,9 +74,10 @@ namespace Ledger.Game
             if (_game == null) return;
             var now = _game.Now;
 
-            // The sim bot dresses for the work: coat on through the night shift, off
-            // for the day — exercising the disguise path on every drop.
-            _game.WearingCoat = now.Hour >= 21 || now.Hour < 3;
+            // The sim bot is careless early (bare-faced drops, so heat climbs and
+            // Ossei's spawn path gets exercised) and careful from day 3 (coated, so
+            // the disguise path is exercised too). Both halves get CI coverage.
+            _game.WearingCoat = now.Day >= 3 && (now.Hour >= 21 || now.Hour < 3);
 
             // Drive the player around the block to exercise movement and camera —
             // except when the outfit's drop is open: then head straight for it, so the
@@ -293,15 +294,15 @@ namespace Ledger.Game
             // Dirty night pay must actually cycle through the till into clean money.
             bool launderWorks = camp.JobsDone == 0 || _game.Wallet.TotalWashed > 0;
 
-            // Every drop ran coated, so every first-hand night-job sighting must carry
-            // the disguise's doubt (<= CoatWitnessConfidence) rather than certainty.
-            double maxNightConf = 0;
-            if (mill != null)
-                foreach (var a in mill.Agents)
-                    foreach (var r in a.Rumors)
-                        if (r.Hops == 0 && r.TopicKey.StartsWith("player.night_job") && r.Confidence > maxNightConf)
-                            maxNightConf = r.Confidence;
-            bool disguiseWorks = _game.NightWitnesses == 0 || maxNightConf <= GameController.CoatWitnessConfidence + 0.01;
+            // Any coated drop that was witnessed must have seeded its rumors at the
+            // coat's reduced confidence — read back from the mill at creation time
+            // by GameController (end-to-end proof the doubt landed).
+            bool disguiseWorks = !_game.AnyCoatedWitnessed ||
+                _game.MaxCoatedWitnessConf <= GameController.CoatWitnessConfidence + 0.01;
+
+            // Ossei must appear iff the street ever ran hot enough (same sampling
+            // cadence as the spawn check, so the comparison cannot race).
+            bool osseiOk = _game.OsseiSpawned == (_game.ObservedPeakHeat >= OsseiSetup.SpawnHeatThreshold);
 
             // Authored beats must resolve — the sim bot prioritizes drops, so passed
             // windows should read Skipped (with the loyalty cost applied), never
@@ -339,7 +340,11 @@ namespace Ledger.Game
                 { "cleanCash", _game.Wallet.Clean },
                 { "dirtyCash", _game.Wallet.Dirty },
                 { "washed", _game.Wallet.TotalWashed },
-                { "maxNightWitnessConf", maxNightConf },
+                { "maxCoatedWitnessConf", _game.MaxCoatedWitnessConf },
+                { "osseiSpawned", _game.OsseiSpawned },
+                { "peakHeat", _game.ObservedPeakHeat },
+                { "confrontations", _game.TotalConfrontations },
+                { "checksRun", _game.Gossip != null ? _game.Gossip.ChecksRun : 0 },
                 { "beats", beatStates },
                 { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },
                 { "llmCalls", _game.Cost.TotalCalls },
@@ -354,7 +359,7 @@ namespace Ledger.Game
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks && beatsResolved;
+                        && disguiseWorks && beatsResolved && osseiOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -362,7 +367,9 @@ namespace Ledger.Game
                       $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
                       $"witnesses={_game.NightWitnesses} knownLeads={_game.Knowledge.Count} " +
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
-                      $"coatConf={maxNightConf:0.00} beats=[{string.Join(",", beatStates)}] " +
+                      $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.OsseiSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
+                      $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
+                      $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }

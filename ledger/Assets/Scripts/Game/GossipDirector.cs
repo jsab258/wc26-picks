@@ -67,7 +67,35 @@ namespace Ledger.Game
             if (_timer < TickInterval) return;
             _timer = 0f;
             _mill.Tick(_game.Now, Together);
+            RunChecking();
         }
+
+        // §6.4 middle rung: a Suspicious NPC doesn't wait for chance — once a day,
+        // the first time they're near someone they know, they ASK (a directed
+        // CompareNotes). Leashed NPCs never check; CompareNotes enforces it too.
+        readonly Dictionary<string, int> _checkedDay = new Dictionary<string, int>();
+
+        void RunChecking()
+        {
+            foreach (var checker in _mill.Agents)
+            {
+                var lvl = checker.Suspicion.Level;
+                if (lvl != SuspicionLevel.Suspicious && lvl != SuspicionLevel.Confronting) continue;
+                if (checker.Leashed) continue;
+                if (_checkedDay.TryGetValue(checker.Id, out var d) && d == _game.Now.Day) continue;
+                foreach (var partnerId in _walkers.Keys)
+                {
+                    if (partnerId == checker.Id || _mill.Get(partnerId) == null) continue;
+                    if (!Together(checker.Id, partnerId)) continue;
+                    _mill.CompareNotes(checker.Id, partnerId, _game.Now);
+                    _checkedDay[checker.Id] = _game.Now.Day;
+                    ChecksRun++;
+                    break;
+                }
+            }
+        }
+
+        public int ChecksRun { get; private set; }
 
         bool Together(string a, string b)
         {

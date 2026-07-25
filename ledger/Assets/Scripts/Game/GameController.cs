@@ -41,6 +41,9 @@ namespace Ledger.Game
         // day world can see you in daylight, it is itself something to talk about.
         public bool WearingCoat;
         public const double CoatWitnessConfidence = 0.6;
+        public bool AnyCoatedWitnessed { get; private set; }
+        public double MaxCoatedWitnessConf { get; private set; }
+        public int TotalConfrontations { get; private set; }
         readonly Dictionary<string, int> _coatSeenDay = new Dictionary<string, int>();
 
         public static string OutfitWord(double p) =>
@@ -72,6 +75,16 @@ namespace Ledger.Game
         PlayerController _player;
         int _lastReflectedDay;
         int _lastAgedHour = -1;
+
+        // Detective Ossei (design-doc §8): spawns once the street's talk gets loud
+        // enough to reach a precinct desk; while she works it, rumors refuse to die.
+        public bool OsseiSpawned { get; private set; }
+        public double ObservedPeakHeat { get; private set; }
+        ConversationHost _ossei;
+
+        // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
+        // demand answers — once per day each. Leashed NPCs never escalate (§6.3).
+        readonly Dictionary<string, int> _confrontedDay = new Dictionary<string, int>();
 
         // Night job state. The drop point rotates by day; the marker exists only
         // while the job is open (22:00–02:00).
@@ -128,11 +141,11 @@ namespace Ledger.Game
             _lena.ExtraContext = () =>
             {
                 var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
-                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}{SecretContext("Lena")}";
+                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
                 return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
-                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}";
+                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
             };
             _hosts.Add(_lena);
 
@@ -149,7 +162,7 @@ namespace Ledger.Game
                 host.ExtraContext = () =>
                     $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
                     $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}." +
-                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}{SecretContext(walkerName)}";
+                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}{SecretContext(walkerName)}{SuspicionBehaviorText(walkerName)}";
                 _hosts.Add(host);
             }
 
@@ -210,7 +223,80 @@ namespace Ledger.Game
 
             UpdateCampaign();
             UpdateBeats();
-            if (Time.frameCount % 30 == 0) CheckLoyalWarnings();
+            if (Time.frameCount % 30 == 0)
+            {
+                CheckLoyalWarnings();
+                CheckOssei();
+                CheckConfrontations();
+            }
+        }
+
+        void CheckOssei()
+        {
+            double heat = CurrentHeat;
+            if (heat > ObservedPeakHeat) ObservedPeakHeat = heat;
+            if (OsseiSpawned || heat < OsseiSetup.SpawnHeatThreshold) return;
+            OsseiSpawned = true;
+
+            var walker = NpcWalker.Spawn("Ossei", OsseiSetup.Color, new[]
+            {
+                (new GameTime(0, 9, 0), new Vector3(10, 0, -14)),   // market corner, listening
+                (new GameTime(0, 12, 0), WorldBuilder.BarDoor + new Vector3(3, 0, 2)),
+                (new GameTime(0, 15, 0), new Vector3(18, 0, 14)),   // the docks
+                (new GameTime(0, 19, 0), new Vector3(-14, 0, 10)),  // apartment row
+                (new GameTime(0, 22, 0), new Vector3(4, 0, -4)),    // a corner with a view, at night
+            });
+            _npcs.Add(walker); // she walks and talks; she is NOT added to the gossip mill
+            _ossei = walker.gameObject.AddComponent<ConversationHost>();
+            _ossei.Initialize(this, OsseiSetup.CardMarkdown, null, null);
+            _ossei.SceneContext = "On Hook Street, unhurried, notebook in hand, talking with the new bar owner.";
+            _ossei.ExtraContext = () =>
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. ");
+                // She has been interviewing the street: she knows what the loudest
+                // stories ARE (not whether they're true) and probes around them.
+                var leads = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Leads("player") : null;
+                if (leads != null && leads.Count > 0)
+                {
+                    sb.Append("From your interviews you know what people are saying: ");
+                    for (int i = 0; i < leads.Count && i < 2; i++)
+                        sb.Append($"\"{leads[i].Summary}\"{(i == 0 && leads.Count > 1 ? "; " : ". ")}");
+                    sb.Append("You ask small, precise questions around these stories and remember every answer.");
+                }
+                return sb.ToString();
+            };
+            _hosts.Add(_ossei);
+
+            // Her presence keeps stories alive: people retell what officials keep asking about.
+            if (_gossip != null && _gossip.Mill != null)
+                _gossip.Mill.RumorHalfLifeHours = OsseiSetup.PresenceRumorHalfLifeHours;
+
+            _ui?.Toast("A stranger is working Hook Street. Tan coat, level voice, takes her time. Asks about you.", 10f);
+        }
+
+        /// §6.4 top rung: an NPC at Confronting suspicion blocks the player's path
+        /// and demands answers — the conversation opens itself.
+        void CheckConfrontations()
+        {
+            if (_gossip == null || _gossip.Mill == null || _player == null || _ui == null) return;
+            foreach (var npc in _npcs)
+            {
+                if (npc == null || npc.DisplayName == "Ossei") continue;
+                var g = _gossip.Mill.Get(npc.DisplayName);
+                if (g == null || g.Leashed) continue;
+                if (g.Suspicion.Level != SuspicionLevel.Confronting) continue;
+                if (_confrontedDay.TryGetValue(npc.DisplayName, out var d) && d == Now.Day) continue;
+                if (Vector3.Distance(npc.transform.position, _player.transform.position) > WarnRange) continue;
+
+                _confrontedDay[npc.DisplayName] = Now.Day;
+                TotalConfrontations++;
+                var host = npc.GetComponent<ConversationHost>();
+                if (host == null) continue;
+                _ui.Toast($"{npc.DisplayName} steps into your path. This isn't a chat.", 6f);
+                _ui.ForceDialogue(host);
+                break; // one ambush at a time
+            }
         }
 
         void UpdateBeats()
@@ -327,6 +413,19 @@ namespace Ledger.Game
                     var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now, conf)
                         : new List<string>();
                     NightWitnesses += seen.Count;
+                    if (WearingCoat && seen.Count > 0)
+                    {
+                        AnyCoatedWitnessed = true;
+                        // End-to-end check: read the created rumors back out of the
+                        // mill, so the sim can prove the doubt actually landed.
+                        foreach (var w in seen)
+                        {
+                            var g = _gossip.Mill.Get(w);
+                            if (g == null) continue;
+                            var r = g.Best($"player.night_job_d{Now.Day}");
+                            if (r != null && r.Confidence > MaxCoatedWitnessConf) MaxCoatedWitnessConf = r.Confidence;
+                        }
+                    }
                     // You saw them see you: each witness becomes a known lead.
                     foreach (var w in seen)
                         foreach (var lead in _gossip.Mill.Leads("player"))
@@ -420,6 +519,25 @@ namespace Ledger.Game
                     return $" You invited the new owner to {b.Title.ToLowerInvariant()} and they never showed. It stung; you don't hide it well.";
             }
             return "";
+        }
+
+        /// §6.4 escalation, voiced: how suspicious this NPC currently is shapes how
+        /// they handle the conversation. Leashed NPCs never escalate.
+        public string SuspicionBehaviorText(string walkerName)
+        {
+            var g = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Get(walkerName) : null;
+            if (g == null || g.Leashed) return "";
+            switch (g.Suspicion.Level)
+            {
+                case SuspicionLevel.Uneasy:
+                    return " Something about the new owner doesn't sit right; you probe with small, casual questions without letting on what you've heard.";
+                case SuspicionLevel.Suspicious:
+                    return " You have been comparing notes with others about the new owner; you test their story against what you've gathered and watch for the seams.";
+                case SuspicionLevel.Confronting:
+                    return " Enough. You confront the new owner directly and demand straight answers about what people are saying. You will not be brushed off this time.";
+                default:
+                    return "";
+            }
         }
 
         /// Context for the secrets economy: what this NPC has confided or shared,

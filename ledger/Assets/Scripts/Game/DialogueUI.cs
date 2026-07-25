@@ -388,6 +388,14 @@ namespace Ledger.Game
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
+        /// A confrontation opens itself — the NPC demands the conversation. Never
+        /// interrupts an existing dialogue, the key prompt, or the end screen.
+        public void ForceDialogue(ConversationHost host)
+        {
+            if (_dialoguePanel.activeSelf || _keyPanel.activeSelf || _endPanel != null) return;
+            OpenDialogue(host);
+        }
+
         void OpenDialogue(ConversationHost host)
         {
             _current = host;
