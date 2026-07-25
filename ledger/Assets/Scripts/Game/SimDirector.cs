@@ -73,10 +73,14 @@ namespace Ledger.Game
             if (_game == null) return;
             var now = _game.Now;
 
-            // Drive the player around the block to exercise movement and camera.
-            var target = Waypoints[_waypointIndex];
+            // Drive the player around the block to exercise movement and camera —
+            // except when the outfit's drop is open: then head straight for it, so the
+            // night-job completion path (pay, witnesses, patience) runs in-engine.
+            var job = _game.ActiveJobPos;
+            var target = job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
             _player.AutoMoveTarget = target;
-            if (Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
+            if (!job.HasValue &&
+                Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
                 _waypointIndex = (_waypointIndex + 1) % Waypoints.Length;
 
             // Hourly NPC sample.
@@ -248,6 +252,14 @@ namespace Ledger.Game
                 discreditWorks = mill.DayCircleHeat() < gossipHeat;
             }
 
+            // Campaign self-test: over 2 sim days the player must have completed at
+            // least one night drop, banked at least one morning's takings, and still
+            // be standing (no verdict yet — losing takes 3 misses or 2 hot closes).
+            var camp = _game.Campaign;
+            bool jobRan = camp.JobsDone >= 1;
+            bool takingsBanked = _game.TotalTakings > 0;
+            bool stillOngoing = camp.Verdict == Verdict.Ongoing;
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -259,6 +271,13 @@ namespace Ledger.Game
                 { "gossipHeat", gossipHeat },
                 { "secretReachedDay", secretReachedDay },
                 { "discreditWorks", discreditWorks },
+                { "jobsDone", camp.JobsDone },
+                { "jobsMissed", camp.JobsMissed },
+                { "outfitPatience", camp.OutfitPatience },
+                { "totalTakings", _game.TotalTakings },
+                { "nightWitnesses", _game.NightWitnesses },
+                { "verdict", camp.Verdict.ToString() },
+                { "playerCash", _game.PlayerCash },
                 { "hourlySamples", _samples.Count },
                 { "samples", _samples },
                 { "screenshotCount", _screenshots.Count },
@@ -267,11 +286,14 @@ namespace Ledger.Game
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
-                        && _screenshots.Count > 0 && secretReachedDay && discreditWorks;
+                        && _screenshots.Count > 0 && secretReachedDay && discreditWorks
+                        && jobRan && takingsBanked && stillOngoing;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
-                      $"discreditWorks={discreditWorks} pass={pass}");
+                      $"discreditWorks={discreditWorks} jobsDone={camp.JobsDone} jobsMissed={camp.JobsMissed} " +
+                      $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
+                      $"witnesses={_game.NightWitnesses} cash={_game.PlayerCash} verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }

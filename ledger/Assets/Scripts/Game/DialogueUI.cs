@@ -17,7 +17,12 @@ namespace Ledger.Game
         ConversationHost _nearest;  // who is in talk range right now
 
         Font _font;
+        Transform _canvas;
         Text _clockText;
+        Text _statusText;
+        Text _toastText;
+        float _toastUntil;
+        GameObject _endPanel;
         Text _promptText;
 
         GameObject _dialoguePanel;
@@ -72,7 +77,10 @@ namespace Ledger.Game
                 es.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
             }
 
+            _canvas = canvasGo.transform;
             _clockText = MakeText(canvasGo.transform, "Clock", new Vector2(1, 1), new Vector2(-20, -20), new Vector2(360, 40), 26, TextAnchor.UpperRight);
+            _statusText = MakeText(canvasGo.transform, "Status", new Vector2(1, 1), new Vector2(-20, -54), new Vector2(640, 30), 18, TextAnchor.UpperRight);
+            _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(1000, 36), 21, TextAnchor.MiddleCenter);
             _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
             MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft)
                 .text = "WASD move · Shift run · E talk · F1 ledger · F2 API key · Esc close";
@@ -145,6 +153,24 @@ namespace Ledger.Game
             var now = _game.Now;
             _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  ${_game.PlayerCash}";
 
+            // Campaign readout: the week, the street's mood, the outfit's patience —
+            // in words, not meters. Cheap enough to refresh on a coarse cadence.
+            if (Time.frameCount % 30 == 0 || _statusText.text.Length == 0)
+            {
+                var camp = _game.Campaign;
+                double heat = _game.Gossip != null && _game.Gossip.Mill != null ? _game.Gossip.Mill.DayCircleHeat() : 0.0;
+                _statusText.text = $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}" +
+                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: {PatienceWord(camp.OutfitPatience)}";
+            }
+
+            if (_toastUntil > 0f && Time.unscaledTime > _toastUntil) { _toastText.text = ""; _toastUntil = 0f; }
+
+            if (_endPanel != null)
+            {
+                if (Input.GetKeyDown(KeyCode.R)) Restart();
+                return; // the week is settled; only the end screen listens now
+            }
+
             _nearest = NearestHostInRange();
             bool dialogueOpen = _dialoguePanel.activeSelf;
             _promptText.text = !dialogueOpen && _nearest != null
@@ -188,6 +214,54 @@ namespace Ledger.Game
             else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
 
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
+        }
+
+        static string HeatWord(double h) =>
+            h < 0.2 ? "quiet" : h < 0.45 ? "murmuring" : h < 0.7 ? "uneasy" : "hostile";
+
+        static string PatienceWord(double p) =>
+            p > 0.66 ? "satisfied" : p > 0.33 ? "impatient" : "furious";
+
+        /// A short transient line at the top of the screen — takings banked, a job
+        /// posted, a drop made. The campaign's voice outside of dialogue.
+        public void Toast(string line, float seconds = 7f)
+        {
+            _toastText.text = line;
+            _toastUntil = Time.unscaledTime + seconds;
+        }
+
+        /// The week is over, one way or another. Freezes play input and offers restart.
+        public void ShowEnd(Campaign camp)
+        {
+            if (_endPanel != null) return;
+            CloseDialogue();
+            _player.InputLocked = true;
+            _promptText.text = "";
+            _dcRow.SetActive(false);
+
+            _endPanel = MakePanel(_canvas, "EndPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, 420));
+            _endPanel.GetComponent<Image>().color = new Color(0.03f, 0.03f, 0.05f, 0.96f);
+            bool won = camp.Verdict == Verdict.WonWeek;
+            var title = MakeText(_endPanel.transform, "EndTitle", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(1000, 70), 44, TextAnchor.UpperCenter);
+            title.text = won ? "YOU LASTED THE WEEK"
+                : camp.Verdict == Verdict.LostExposed ? "EXPOSED" : "CAST OUT";
+            title.color = won ? new Color(0.75f, 0.9f, 0.7f) : new Color(0.9f, 0.55f, 0.45f);
+            MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(950, 90), 22, TextAnchor.UpperCenter)
+                .text = camp.VerdictReason;
+            MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -250), new Vector2(950, 60), 18, TextAnchor.UpperCenter)
+                .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   bar takings banked: ${_game.TotalTakings}   ·   cash: ${_game.PlayerCash}";
+            MakeText(_endPanel.transform, "EndHint", new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(950, 40), 20, TextAnchor.LowerCenter)
+                .text = "Press R to start the week over";
+        }
+
+        void Restart()
+        {
+            // The world is fully code-built, so a clean restart is: drop the
+            // controller and UI, reload the scene, and let Bootstrap stand it back up.
+            Destroy(_game.gameObject);
+            Destroy(gameObject);
+            UnityEngine.SceneManagement.SceneManager.LoadScene(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
         void OpenDialogue(ConversationHost host)

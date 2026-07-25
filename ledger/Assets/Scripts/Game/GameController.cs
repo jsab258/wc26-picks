@@ -15,8 +15,12 @@ namespace Ledger.Game
         public CostTracker Cost { get; } = new CostTracker();
 
         // The player's walking-around money. Starts modest so an early payoff hurts;
-        // income sources (bar takings, night work) arrive with the economy pass.
+        // it grows through bar takings (taxed by street heat) and night work.
         public int PlayerCash = 250;
+
+        public Campaign Campaign { get; } = new Campaign();
+        public int TotalTakings { get; private set; }
+        public int NightWitnesses { get; private set; }
 
         float _minuteAccumulator;
         Light _sun;
@@ -24,10 +28,23 @@ namespace Ledger.Game
         readonly List<ConversationHost> _hosts = new List<ConversationHost>();
         ConversationHost _lena;
         GossipDirector _gossip;
+        DialogueUI _ui;
+        PlayerController _player;
         int _lastReflectedDay;
         int _lastAgedHour = -1;
 
+        // Night job state. The drop point rotates by day; the marker exists only
+        // while the job is open (22:00–02:00).
+        GameObject _jobMarker;
+        int _jobPostedDay = -1;
+        int _lastClosedDay = 1; // day 1's morning is already underway at start
+        static readonly Vector3[] DropPoints =
+        {
+            new Vector3(14, 0, -12), new Vector3(-16, 0, -11), new Vector3(12, 0, 10),
+        };
+
         public GossipDirector Gossip => _gossip;
+        public Vector3? ActiveJobPos => _jobMarker != null ? (Vector3?)_jobMarker.transform.position : null;
 
         void Start()
         {
@@ -35,6 +52,7 @@ namespace Ledger.Game
             _sun = WorldBuilder.BuildSun();
 
             var player = PlayerController.Spawn(new Vector3(0, 1.2f, -8));
+            _player = player;
 
             _npcs.Add(NpcWalker.Spawn("Rocco", new Color(0.75f, 0.3f, 0.25f), new[]
             {
@@ -79,7 +97,7 @@ namespace Ledger.Game
                 _hosts.Add(host);
             }
 
-            DialogueUI.Create(this, player, _hosts);
+            _ui = DialogueUI.Create(this, player, _hosts);
 
             _gossip = gameObject.AddComponent<GossipDirector>();
             _gossip.Begin(this, _npcs, _hosts);
@@ -116,6 +134,92 @@ namespace Ledger.Game
                 _lastReflectedDay = Now.Day;
                 _ = _lena.RunReflectionAsync(Now);
             }
+
+            UpdateCampaign();
+        }
+
+        void UpdateCampaign()
+        {
+            if (Campaign.Verdict != Verdict.Ongoing) return; // world keeps turning; stakes are settled
+
+            // Daily close at the bar's morning open: bank takings taxed by the
+            // street's current heat, and advance the exposure fuse.
+            if (Now.Hour >= 8 && Now.Day > _lastClosedDay)
+            {
+                _lastClosedDay = Now.Day;
+                double heat = _gossip != null && _gossip.Mill != null ? _gossip.Mill.DayCircleHeat() : 0.0;
+                int takings = Campaign.CloseDay(heat);
+                PlayerCash += takings;
+                TotalTakings += takings;
+                _ui?.Toast(takings >= Campaign.BarBaseTakings
+                    ? $"Bar takings: +${takings}."
+                    : $"Bar takings: +${takings}. The talk on the street is costing you.");
+                if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
+            }
+
+            // Night job lifecycle: posted at 22:00, open until 02:00, done by
+            // standing at the glowing drop, missed if the window closes first.
+            bool inWindow = Campaign.InJobWindow(Now);
+            if (inWindow && Now.Hour >= 22 && _jobPostedDay != Now.Day)
+            {
+                _jobPostedDay = Now.Day;
+                SpawnJobMarker(DropPoints[Now.Day % DropPoints.Length]);
+                _ui?.Toast("The outfit wants a drop made tonight. Find the glow on the street before 02:00.");
+            }
+            if (_jobMarker == null) return;
+
+            if (!inWindow)
+            {
+                Destroy(_jobMarker);
+                _jobMarker = null;
+                Campaign.JobMissed();
+                _ui?.Toast("You missed the outfit's drop. They won't forget.");
+                if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
+            }
+            else if (_player != null)
+            {
+                var p = _player.transform.position;
+                var m = _jobMarker.transform.position;
+                if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
+                {
+                    Destroy(_jobMarker);
+                    _jobMarker = null;
+                    Campaign.JobDone();
+                    PlayerCash += Campaign.JobPay;
+                    int seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now) : 0;
+                    NightWitnesses += seen;
+                    _ui?.Toast(seen > 0
+                        ? $"Drop made. +${Campaign.JobPay}. You weren't alone out there."
+                        : $"Drop made. +${Campaign.JobPay}.");
+                }
+            }
+        }
+
+        void EndCampaign()
+        {
+            if (_jobMarker != null) { Destroy(_jobMarker); _jobMarker = null; }
+            _ui?.ShowEnd(Campaign);
+        }
+
+        void SpawnJobMarker(Vector3 pos)
+        {
+            _jobMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            _jobMarker.name = "JobDrop";
+            _jobMarker.transform.position = new Vector3(pos.x, 0.3f, pos.z);
+            _jobMarker.transform.localScale = new Vector3(0.9f, 0.6f, 0.9f);
+            var mat = _jobMarker.GetComponent<Renderer>().material;
+            mat.color = new Color(1f, 0.55f, 0.15f);
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", new Color(1f, 0.45f, 0.1f) * 2.5f);
+
+            var glow = new GameObject("JobGlow");
+            glow.transform.SetParent(_jobMarker.transform, false);
+            glow.transform.localPosition = Vector3.up * 1.5f;
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.range = 7f;
+            l.intensity = 2.2f;
+            l.color = new Color(1f, 0.6f, 0.25f);
         }
 
         void UpdateSun()

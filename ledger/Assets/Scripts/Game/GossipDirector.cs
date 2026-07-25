@@ -76,6 +76,27 @@ namespace Ledger.Game
             return Vector3.Distance(wa.transform.position, wb.transform.position) <= TalkRange;
         }
 
+        const float WitnessRange = 10f;
+
+        /// A night drop was just made at `dropPos`. Any NPC close enough saw it
+        /// first-hand, and a fresh sensitive rumor enters the network — the night
+        /// side of the double life generating tomorrow's problem. Returns how many saw.
+        public int WitnessNightJob(Vector3 dropPos, int day, GameTime now)
+        {
+            if (_mill == null) return 0;
+            int count = 0;
+            foreach (var kv in _walkers)
+            {
+                if (kv.Value == null) continue;
+                if (Vector3.Distance(kv.Value.transform.position, dropPos) > WitnessRange) continue;
+                _mill.Witness(kv.Key,
+                    new Fact("player", $"night_job_d{day}", "seen"),
+                    "the new owner was handling a package in the street past midnight", true, now);
+                count++;
+            }
+            return count;
+        }
+
         /// Developer-facing (F1) readout of how far the secret has spread. Deliberately
         /// not shown to the player as a meter — they feel it through Lena's words.
         public string StatusLine()

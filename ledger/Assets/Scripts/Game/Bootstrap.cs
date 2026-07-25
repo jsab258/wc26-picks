@@ -9,6 +9,14 @@ namespace Ledger.Game
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Init()
         {
+            // This attribute hook fires once per process; scene RE-loads (the end
+            // screen's restart) come through sceneLoaded instead.
+            StandUp();
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += (_, __) => StandUp();
+        }
+
+        static void StandUp()
+        {
             if (Object.FindFirstObjectByType<GameController>() != null) return;
 
             // Clear whatever placeholder content the boot scene carried.
@@ -17,7 +25,6 @@ namespace Ledger.Game
 
             var go = new GameObject("GameController");
             go.AddComponent<GameController>();
-            Object.DontDestroyOnLoad(go);
         }
     }
 }

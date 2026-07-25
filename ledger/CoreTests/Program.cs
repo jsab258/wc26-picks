@@ -36,6 +36,7 @@ namespace Ledger.CoreTests
                 TestSuspicion();
                 TestGossip();
                 TestDamageControl();
+                TestCampaign();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -301,6 +302,43 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestCampaign()
+        {
+            Console.WriteLine("Campaign:");
+            Check(Campaign.InJobWindow(new GameTime(1, 23, 0)), "campaign: 23:00 is inside the job window");
+            Check(Campaign.InJobWindow(new GameTime(2, 1, 30)), "campaign: 01:30 is inside the job window");
+            Check(!Campaign.InJobWindow(new GameTime(1, 12, 0)), "campaign: noon is not");
+
+            var c = new Campaign();
+            Check(c.CloseDay(0) == 120, "campaign: a quiet day banks full takings");
+            Check(c.CloseDay(0.5) == 69, "campaign: street heat taxes the takings");
+            for (int i = 0; i < 4; i++) c.CloseDay(0);
+            Check(c.Verdict == Verdict.Ongoing, "campaign: six closes, still ongoing");
+            c.CloseDay(0);
+            Check(c.Verdict == Verdict.WonWeek, "campaign: seventh close wins the week");
+            Check(c.CloseDay(0) == 0, "campaign: closes after the verdict are no-ops");
+
+            var c2 = new Campaign();
+            c2.JobDone();
+            Check(Math.Abs(c2.OutfitPatience - 1.0) < 1e-9, "campaign: patience caps at 1");
+            c2.JobMissed(); c2.JobMissed();
+            Check(c2.Verdict == Verdict.Ongoing, "campaign: two missed jobs are survivable");
+            c2.JobMissed();
+            Check(c2.Verdict == Verdict.LostCastOut, "campaign: the third miss casts you out");
+            int doneBefore = c2.JobsDone;
+            c2.JobDone();
+            Check(c2.JobsDone == doneBefore, "campaign: jobs after the verdict are no-ops");
+
+            var c3 = new Campaign();
+            c3.CloseDay(0.9);
+            Check(c3.Verdict == Verdict.Ongoing && c3.ExposedStreak == 1, "campaign: one hot close only lights the fuse");
+            c3.CloseDay(0.3);
+            Check(c3.ExposedStreak == 0, "campaign: cooling off resets the fuse");
+            c3.CloseDay(0.9);
+            c3.CloseDay(0.95);
+            Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
         }
 
         static void TestDamageControl()
