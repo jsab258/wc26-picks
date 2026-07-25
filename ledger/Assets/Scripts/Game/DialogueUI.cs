@@ -12,16 +12,20 @@ namespace Ledger.Game
     {
         GameController _game;
         PlayerController _player;
-        ConversationHost _lena;
+        List<ConversationHost> _hosts;
+        ConversationHost _current;  // who the open dialogue is with
+        ConversationHost _nearest;  // who is in talk range right now
 
         Font _font;
         Text _clockText;
         Text _promptText;
 
         GameObject _dialoguePanel;
+        Text _titleText;
         Text _historyText;
         InputField _input;
-        readonly List<string> _history = new List<string>();
+        // Each character keeps their own visible conversation log.
+        readonly Dictionary<ConversationHost, List<string>> _histories = new Dictionary<ConversationHost, List<string>>();
         bool _waiting;
 
         GameObject _keyPanel;
@@ -37,13 +41,13 @@ namespace Ledger.Game
         GameObject _debugPanel;
         Text _debugText;
 
-        public static DialogueUI Create(GameController game, PlayerController player, ConversationHost lena)
+        public static DialogueUI Create(GameController game, PlayerController player, List<ConversationHost> hosts)
         {
             var go = new GameObject("UI");
             var ui = go.AddComponent<DialogueUI>();
             ui._game = game;
             ui._player = player;
-            ui._lena = lena;
+            ui._hosts = hosts;
             ui.Build();
             return ui;
         }
@@ -85,8 +89,7 @@ namespace Ledger.Game
         void BuildDialoguePanel(Transform parent)
         {
             _dialoguePanel = MakePanel(parent, "Dialogue", new Vector2(0.5f, 0), new Vector2(0, 120), new Vector2(900, 420));
-            MakeText(_dialoguePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(860, 30), 22, TextAnchor.UpperCenter)
-                .text = "Lena Moreau";
+            _titleText = MakeText(_dialoguePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(860, 30), 22, TextAnchor.UpperCenter);
             _historyText = MakeText(_dialoguePanel.transform, "History", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(860, 280), 18, TextAnchor.LowerLeft);
 
             _input = MakeInput(_dialoguePanel.transform, "Say something...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
@@ -124,7 +127,7 @@ namespace Ledger.Game
                 var key = _keyInput.text.Trim();
                 if (key.Length < 8) return;
                 Secrets.SaveAnthropicKey(key);
-                _lena.Reconnect(key);
+                foreach (var h in _hosts) h.Reconnect(key);
                 _keyPanel.SetActive(false);
             });
             _keyPanel.SetActive(false);
@@ -142,12 +145,13 @@ namespace Ledger.Game
             var now = _game.Now;
             _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  ${_game.PlayerCash}";
 
-            bool inRange = _lena != null && _lena.PlayerInRange(_player.transform);
+            _nearest = NearestHostInRange();
             bool dialogueOpen = _dialoguePanel.activeSelf;
-            _promptText.text = !dialogueOpen && inRange ? "Press E to talk to Lena" : "";
+            _promptText.text = !dialogueOpen && _nearest != null
+                ? $"Press E to talk to {_nearest.Card.Name}" : "";
 
-            if (Input.GetKeyDown(KeyCode.E) && inRange && !dialogueOpen && !_keyPanel.activeSelf)
-                OpenDialogue();
+            if (Input.GetKeyDown(KeyCode.E) && _nearest != null && !dialogueOpen && !_keyPanel.activeSelf)
+                OpenDialogue(_nearest);
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 if (dialogueOpen) CloseDialogue();
@@ -157,15 +161,17 @@ namespace Ledger.Game
             if (Input.GetKeyDown(KeyCode.F1)) _debugPanel.SetActive(!_debugPanel.activeSelf);
             if (Input.GetKeyDown(KeyCode.F2)) _keyPanel.SetActive(!_keyPanel.activeSelf);
 
-            if (_debugPanel.activeSelf && _lena != null && Time.frameCount % 30 == 0)
-                _debugText.text = _lena.DebugReport() +
+            // F1 shows the brain of whoever you're talking to (or standing near).
+            var debugHost = _current ?? _nearest ?? (_hosts.Count > 0 ? _hosts[0] : null);
+            if (_debugPanel.activeSelf && debugHost != null && Time.frameCount % 30 == 0)
+                _debugText.text = debugHost.DebugReport() +
                     (_game.Gossip != null ? "\n\n" + _game.Gossip.StatusLine() : "");
 
             if (dialogueOpen && _input.isFocused && Input.GetKeyDown(KeyCode.Return))
                 Submit();
 
-            // Offer damage control only when Lena is actually carrying talk about the
-            // player; refresh the payoff price as the rumor entrenches.
+            // Offer damage control only when the person you're talking to is actually
+            // carrying talk about the player; refresh the payoff price as it entrenches.
             if (dialogueOpen && Time.frameCount % 30 == 0)
             {
                 var lead = CurrentLead();
@@ -175,7 +181,7 @@ namespace Ledger.Game
                     int price = BribePriceFor(lead);
                     _payLabel.text = _game.PlayerCash >= price ? $"Pay off (${price})" : $"Pay off (${price} — short)";
                     _payBtn.interactable = _game.PlayerCash >= price;
-                    _leanLabel.text = "Lean on her";
+                    _leanLabel.text = "Lean on them";
                     _doubtLabel.text = "Plant doubt";
                 }
             }
@@ -184,47 +190,77 @@ namespace Ledger.Game
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
         }
 
-        void OpenDialogue()
+        void OpenDialogue(ConversationHost host)
         {
+            _current = host;
+            _titleText.text = host.Card.Name;
             _dialoguePanel.SetActive(true);
             _input.text = "";
             _input.ActivateInputField();
             RenderHistory();
         }
 
-        void CloseDialogue() => _dialoguePanel.SetActive(false);
+        void CloseDialogue()
+        {
+            _dialoguePanel.SetActive(false);
+            _current = null;
+        }
+
+        ConversationHost NearestHostInRange()
+        {
+            ConversationHost best = null;
+            float bestDist = float.MaxValue;
+            foreach (var h in _hosts)
+            {
+                if (h == null || !h.PlayerInRange(_player.transform)) continue;
+                float d = Vector3.Distance(_player.transform.position, h.transform.position);
+                if (d < bestDist) { bestDist = d; best = h; }
+            }
+            return best;
+        }
+
+        List<string> HistoryOf(ConversationHost host)
+        {
+            if (!_histories.TryGetValue(host, out var list)) { list = new List<string>(); _histories[host] = list; }
+            return list;
+        }
 
         async void Submit()
         {
+            var host = _current;
+            if (host == null) return;
             var text = _input.text.Trim();
             if (text.Length == 0 || _waiting) return;
             _input.text = "";
             _input.ActivateInputField();
 
-            _history.Add($"<b>You:</b> {text}");
-            _history.Add("<i>Lena is thinking...</i>");
+            var history = HistoryOf(host);
+            var name = host.Card.Name;
+            history.Add($"<b>You:</b> {text}");
+            history.Add($"<i>{name} is thinking...</i>");
             RenderHistory();
 
             _waiting = true;
-            var reply = await _lena.SayAsync(text); // Unity's context resumes this on the main thread
+            var reply = await host.SayAsync(text); // Unity's context resumes this on the main thread
             _waiting = false;
 
-            _history.RemoveAt(_history.Count - 1);
-            _history.Add($"<b>Lena:</b> {reply}");
+            history.RemoveAt(history.Count - 1);
+            history.Add($"<b>{name}:</b> {reply}");
             RenderHistory();
         }
 
         // ---- damage control ----
 
-        /// The strongest still-spreading rumor about the player that Lena holds, or
-        /// null. (Lena is the only conversational NPC in M0/M1; this generalizes to
-        /// "the NPC this dialogue is with" once more of the cast can talk.)
+        /// The strongest still-spreading rumor about the player held by the NPC this
+        /// dialogue is with, or null.
         Lead CurrentLead()
         {
             var mill = _game.Gossip != null ? _game.Gossip.Mill : null;
-            if (mill == null) return null;
+            if (mill == null || _current == null) return null;
+            var walker = _current.GetComponent<NpcWalker>();
+            var id = walker != null ? walker.DisplayName : _current.Card.Name;
             foreach (var l in mill.Leads("player"))
-                if (l.HolderId == "Lena") return l;
+                if (l.HolderId == id) return l;
             return null;
         }
 
@@ -264,15 +300,18 @@ namespace Ledger.Game
 
         void Narrate(string line)
         {
-            _history.Add($"<i>{line}</i>");
+            if (_current == null) return;
+            HistoryOf(_current).Add($"<i>{line}</i>");
             RenderHistory();
         }
 
         void RenderHistory()
         {
-            int start = Mathf.Max(0, _history.Count - 10);
+            if (_current == null) { _historyText.text = ""; return; }
+            var history = HistoryOf(_current);
+            int start = Mathf.Max(0, history.Count - 10);
             var sb = new System.Text.StringBuilder();
-            for (int i = start; i < _history.Count; i++) sb.AppendLine(_history[i]);
+            for (int i = start; i < history.Count; i++) sb.AppendLine(history[i]);
             _historyText.text = sb.ToString();
         }
 

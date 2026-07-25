@@ -22,7 +22,7 @@ namespace Ledger.Game
 
         public GossipMill Mill => _mill;
 
-        public void Begin(GameController game, List<NpcWalker> npcs, ConversationHost lena)
+        public void Begin(GameController game, List<NpcWalker> npcs, List<ConversationHost> hosts)
         {
             _game = game;
             foreach (var n in npcs) _walkers[n.DisplayName] = n;
@@ -37,12 +37,21 @@ namespace Ledger.Game
             graph.Link("Ada", "Sam", 0.5);
             _mill = new GossipMill(graph);
 
-            // Lena shares her conversation memory + suspicion with the mill, so a rumor
-            // that reaches her is felt the next time the player talks to her.
-            _mill.Add(new Gossiper("Lena", "Lena", lena.Memory, null, lena.Suspicion, "day"));
-            _mill.Add(NewBrain("Ada", "day"));
-            _mill.Add(NewBrain("Sam", "both"));
-            _mill.Add(NewBrain("Rocco", "night"));
+            // Every gossiper shares its conversation host's real memory, knowledge and
+            // suspicion, so a rumor reaching an NPC is felt the next time the player
+            // talks to THAT NPC — and a lie told to any of them can be contradicted.
+            foreach (var host in hosts)
+            {
+                var walkerName = host.GetComponent<NpcWalker>() != null
+                    ? host.GetComponent<NpcWalker>().DisplayName : host.Card.Name;
+                var m = CastSetup.Get(walkerName);
+                _mill.Add(m != null
+                    ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
+                        m.Circle, m.Greed, m.Nerve, m.Loyalty)
+                    // Lena: the guarded bookkeeper — near-unbuyable, hard to rattle.
+                    : new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
+                        "day", 0.25, 0.75, 0.5));
+            }
 
             // The seed: the doorman saw the player somewhere the daytime world must not
             // find out about. It will leak toward the day circle as the NPCs mingle.
@@ -50,9 +59,6 @@ namespace Ledger.Game
                 new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the old warehouse the night of the fire", true, _game.Now);
         }
-
-        static Gossiper NewBrain(string name, string circle) => new Gossiper(
-            name, name, new MemoryStore(name.ToLowerInvariant()), new KnowledgeBase(), new SuspicionTracker(), circle);
 
         void Update()
         {

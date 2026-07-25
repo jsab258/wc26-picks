@@ -21,6 +21,7 @@ namespace Ledger.Game
         float _minuteAccumulator;
         Light _sun;
         readonly List<NpcWalker> _npcs = new List<NpcWalker>();
+        readonly List<ConversationHost> _hosts = new List<ConversationHost>();
         ConversationHost _lena;
         GossipDirector _gossip;
         int _lastReflectedDay;
@@ -63,11 +64,25 @@ namespace Ledger.Game
             _npcs.Add(lenaWalker);
             _lena = lenaWalker.gameObject.AddComponent<ConversationHost>();
             _lena.Initialize(this, LenaSetup.CardMarkdown, LenaSetup.SeedKnowledge, LenaSetup.SeedMemories);
+            _lena.SceneContext = "Behind the counter of the Hook Street bar, talking with the new owner.";
+            _hosts.Add(_lena);
 
-            DialogueUI.Create(this, player, _lena);
+            // The rest of the cast gets conversation brains too — you can find the
+            // witness and handle him directly instead of only hearing about it from Lena.
+            foreach (var npc in _npcs)
+            {
+                var member = CastSetup.Get(npc.DisplayName);
+                if (member == null) continue;
+                var host = npc.gameObject.AddComponent<ConversationHost>();
+                host.Initialize(this, member.Card, null, null);
+                host.SceneContext = member.Scene;
+                _hosts.Add(host);
+            }
+
+            DialogueUI.Create(this, player, _hosts);
 
             _gossip = gameObject.AddComponent<GossipDirector>();
-            _gossip.Begin(this, _npcs, _lena);
+            _gossip.Begin(this, _npcs, _hosts);
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
