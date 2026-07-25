@@ -66,8 +66,42 @@ namespace Ledger.Game
             _timer += Time.deltaTime;
             if (_timer < TickInterval) return;
             _timer = 0f;
-            _mill.Tick(_game.Now, Together);
+            ReportOverheard(_mill.Tick(_game.Now, Together));
             RunChecking();
+        }
+
+        // The audit's #1 pick: overheard chatter IS the gossip mill. If a real
+        // exchange about the player happens within earshot, the player hears the
+        // words and gains the lead — the fourth knowledge channel, and unlike
+        // GTA's canned barks, every scrap is a true event in the simulation.
+        public int Overheard { get; private set; }
+        const float EarshotRange = 6f;
+
+        void ReportOverheard(List<GossipEvent> events)
+        {
+            var player = _game.Player;
+            if (player == null || events == null) return;
+            foreach (var ev in events)
+            {
+                if (ev.Rumor == null || ev.Rumor.Content.Subject != "player") continue;
+                if (!_walkers.TryGetValue(ev.FromId, out var wa) || wa == null) continue;
+                if (!_walkers.TryGetValue(ev.ToId, out var wb) || wb == null) continue;
+                var p = player.transform.position;
+                if (Vector3.Distance(p, wa.transform.position) > EarshotRange) continue;
+                if (Vector3.Distance(p, wb.transform.position) > EarshotRange) continue;
+
+                _game.Knowledge.Learn(new Lead
+                {
+                    HolderId = ev.ToId,
+                    HolderName = _mill.Get(ev.ToId) != null ? _mill.Get(ev.ToId).DisplayName : ev.ToId,
+                    SourceId = ev.Rumor.OriginId, TopicKey = ev.Rumor.TopicKey,
+                    Summary = ev.Rumor.Summary, Confidence = ev.Rumor.Confidence,
+                    Sensitive = ev.Rumor.Sensitive,
+                }, "overheard", _game.Now);
+                Overheard++;
+                _game.ToastLine($"You catch a scrap of talk — {ev.FromId}, low, to {ev.ToId}: \"…{ev.Rumor.Summary}…\"", 7f);
+                break; // one scrap per round; the street doesn't monologue
+            }
         }
 
         // §6.4 middle rung: a Suspicious NPC doesn't wait for chance — once a day,
@@ -87,7 +121,8 @@ namespace Ledger.Game
                 {
                     if (partnerId == checker.Id || _mill.Get(partnerId) == null) continue;
                     if (!Together(checker.Id, partnerId)) continue;
-                    _mill.CompareNotes(checker.Id, partnerId, _game.Now);
+                    // Directed asking is also audible if you happen to be standing there.
+                    ReportOverheard(_mill.CompareNotes(checker.Id, partnerId, _game.Now));
                     _checkedDay[checker.Id] = _game.Now.Day;
                     ChecksRun++;
                     break;

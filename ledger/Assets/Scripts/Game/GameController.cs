@@ -97,7 +97,10 @@ namespace Ledger.Game
         };
 
         public GossipDirector Gossip => _gossip;
+        public PlayerController Player => _player;
         public Vector3? ActiveJobPos => _jobMarker != null ? (Vector3?)_jobMarker.transform.position : null;
+
+        public void ToastLine(string line, float seconds = 6f) => _ui?.Toast(line, seconds);
 
         void Start()
         {
