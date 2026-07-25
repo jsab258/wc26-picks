@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -33,6 +34,7 @@ namespace Ledger.CoreTests
                 TestMemoryRobustness();
                 TestRetrieval();
                 TestSuspicion();
+                TestGossip();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -210,6 +212,78 @@ namespace Ledger.CoreTests
             Check(s.Level == SuspicionLevel.Confronting, "0.9 is confronting");
             s.Lower(2.0, "test");
             Check(s.Value == 0.0 && s.Level == SuspicionLevel.Trusting, "clamped at zero");
+        }
+
+        static Gossiper Agent(string id, string name, string circle) =>
+            new Gossiper(id, name, new MemoryStore(id), new KnowledgeBase(), new SuspicionTracker(), circle);
+
+        static void TestGossip()
+        {
+            Console.WriteLine("Gossip network:");
+            var now = new GameTime(3, 20, 0);
+
+            // Topology: a night witness and a day acquaintance are NOT directly linked;
+            // a mutual friend bridges them. The player lied to the day acquaintance.
+            var night = Agent("rocco", "Rocco", "night");
+            var mid = Agent("sam", "Sam", "both");
+            var day = Agent("ada", "Ada", "day");
+
+            var graph = new SocialGraph();
+            graph.Link("rocco", "sam", 0.8);
+            graph.Link("sam", "ada", 0.7);
+
+            var mill = new GossipMill(graph);
+            mill.Add(night); mill.Add(mid); mill.Add(day);
+
+            var wasAtWarehouse = new Fact("player", "location_d2_evening", "warehouse");
+            mill.Witness("rocco", wasAtWarehouse, "the new owner was at the old warehouse the night of the fire", true, now);
+            // The player told Ada they were home that evening.
+            mill.PlayerClaims("ada", new Fact("player", "location_d2_evening", "home"), now);
+
+            Check(night.Best("player.location_d2_evening").Confidence == 1.0, "witness holds a first-hand rumor at full confidence");
+            Check(!mill.KnowsSecret("ada"), "the secret has not reached the day circle yet");
+
+            // Round 1: it can only reach the bridge, not Ada (no direct tie).
+            var r1 = mill.Tick(now);
+            Check(mid.Holds("player.location_d2_evening", "warehouse"), "rumor reached the mutual friend in one hop");
+            Check(!day.Holds("player.location_d2_evening", "warehouse"), "rumor has not yet reached the day acquaintance");
+            Check(mid.Best("player.location_d2_evening").Confidence < 1.0, "confidence decayed on the first hop");
+            Check(r1.Count >= 1, "round one propagated at least one rumor");
+
+            // Round 2: the bridge passes it to Ada — who was lied to.
+            double before = day.Suspicion.Value;
+            var r2 = mill.Tick(now.AddMinutes(30));
+            Check(day.Holds("player.location_d2_evening", "warehouse"), "rumor reached the day acquaintance in two hops");
+            Check(day.Best("player.location_d2_evening").Confidence < mid.Best("player.location_d2_evening").Confidence,
+                "third-hand confidence is lower than second-hand");
+            Check(day.Suspicion.Value > before, "the contradiction with the player's lie raised suspicion");
+            Check(r2.Any(e => e.ToId == "ada" && e.Contradiction), "the exposure is reported as a contradiction");
+            bool adaHeard = day.Memory.Events.Any(e => e.Text.Contains("heard from Sam") && e.Text.Contains("warehouse"));
+            Check(adaHeard, "the day acquaintance now carries a 'heard from Sam' memory of the warehouse");
+            Check(mill.KnowsSecret("ada"), "the secret has now leaked into the day circle");
+            Check(mill.DayCircleHeat() > 0, "day-circle heat rises as the secret spreads");
+
+            // Round 3: re-telling must not amplify a rumor already held as strongly.
+            double heatAfter2 = mill.DayCircleHeat();
+            double suspAfter2 = day.Suspicion.Value;
+            int adaRumorCount = day.Rumors.Count(rr => rr.TopicKey == "player.location_d2_evening");
+            mill.Tick(now.AddMinutes(60));
+            Check(day.Rumors.Count(rr => rr.TopicKey == "player.location_d2_evening") == adaRumorCount,
+                "re-telling the same rumor does not stack duplicates");
+            Check(Math.Abs(mill.DayCircleHeat() - heatAfter2) < 1e-9, "heat does not amplify from bouncing");
+            Check(Math.Abs(day.Suspicion.Value - suspAfter2) < 1e-9, "suspicion does not re-trigger on an already-known rumor");
+
+            // A rumor with no supporting lie still unsettles a day-circle NPC (leak, not
+            // contradiction): fresh graph, Ada makes no claim this time.
+            var day2 = Agent("mara", "Mara", "day");
+            var g2 = new SocialGraph(); g2.Link("rocco2", "mara", 0.9);
+            var mill2 = new GossipMill(g2);
+            var w2 = Agent("rocco2", "Rocco", "night");
+            mill2.Add(w2); mill2.Add(day2);
+            mill2.Witness("rocco2", new Fact("player", "secret_job", "runs_the_docks"), "the new owner is quietly running the dock rackets", true, now);
+            mill2.Tick(now);
+            Check(day2.Suspicion.Value > 0, "a night-life secret reaching the day circle unsettles even without a prior lie");
+            Check(mill2.Get("mara").Rumors.Any(rr => rr.Sensitive), "the leak is recorded as a sensitive rumor");
         }
 
         class FakeLlm : ILlmClient
