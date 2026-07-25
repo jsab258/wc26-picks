@@ -168,9 +168,11 @@ namespace Ledger.Game
             Beats.Add(new Beat
             {
                 Id = "toast", HostId = "Rocco", Title = "A drink for Marek", Day = 5, StartHour = 22, EndHour = 24,
-                InviteText = "Rocco, quiet at the door: \"Five years since Marek and me buried his brother. Tonight I drink to him. Sit with me, boss. Ten o'clock.\"",
+                InviteText = "Rocco, quiet at the door: \"I never drank to Marek proper. Not once since we buried him. Tonight I do. Sit with me, boss — ten o'clock, my front step.\"",
             });
-            _beatSpots["toast"] = WorldBuilder.BarDoor + new Vector3(1, 0, -1);
+            // His home stoop, not the bar door: attendance must be a deliberate trip,
+            // never a side effect of walking out of your own bar.
+            _beatSpots["toast"] = new Vector3(-16.5f, 0, -12.5f);
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
@@ -224,10 +226,14 @@ namespace Ledger.Game
                 _ui?.Toast($"You never went. {missed.HostId} will remember that.");
 
             var open = Beats.Open(Now);
-            if (open == null)
+            if (open == null || _beatMarkerId != open.Id)
             {
-                if (_beatMarker != null) { Destroy(_beatMarker); _beatMarker = null; _beatMarkerId = null; }
-                return;
+                // Marker must always belong to the currently open beat — destroy on
+                // close AND on any beat change, so a stale marker can never attend
+                // a different beat than the one it stands for.
+                if (_beatMarker != null) { Destroy(_beatMarker); _beatMarker = null; }
+                _beatMarkerId = null;
+                if (open == null) return;
             }
             if (_beatMarker == null && _beatSpots.TryGetValue(open.Id, out var spot))
             {
@@ -244,6 +250,7 @@ namespace Ledger.Game
                     open.Attend(_gossip.Mill.Get(open.HostId), Now);
                     Destroy(_beatMarker);
                     _beatMarker = null;
+                    _beatMarkerId = null;
                     _ui?.Toast($"{open.Title}. You stayed a while. {open.HostId} will remember this.", 8f);
                 }
             }
@@ -391,7 +398,7 @@ namespace Ledger.Game
             foreach (var b in Beats.All)
             {
                 if (b.HostId != walkerName) continue;
-                if (b.State == BeatState.Pending && b.Day == Now.Day)
+                if (b.State == BeatState.Pending && b.Day == Now.Day && _beatInvited.Contains(b.Id))
                     return $" You have invited the new owner to {b.Title.ToLowerInvariant()} tonight at {b.StartHour}:00 and you hope they come.";
                 if (b.State == BeatState.Attended)
                     return $" The new owner came to {b.Title.ToLowerInvariant()} — it meant a lot to you.";
