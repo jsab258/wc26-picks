@@ -269,13 +269,16 @@ namespace Ledger.Game
                 }
             }
 
-            // Campaign self-test: over 2 sim days the player must have completed at
-            // least one night drop, banked at least one morning's takings, and still
-            // be standing (no verdict yet — losing takes 3 misses or 2 hot closes).
+            // Campaign self-test. The sim bot does every drop and NO damage control,
+            // so over a full week any verdict except cast-out is legitimate play —
+            // per the balance lab, a careless week gets exposed about a third of the
+            // time. Cast-out, though, would mean the job pipeline itself broke.
             var camp = _game.Campaign;
             bool jobRan = camp.JobsDone >= 1;
             bool takingsBanked = _game.TotalTakings > 0;
-            bool stillOngoing = camp.Verdict == Verdict.Ongoing;
+            bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
+                // While the campaign is live, most nights must actually post a job.
+                (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
 
             var report = new Dictionary<string, object>
             {
@@ -304,7 +307,7 @@ namespace Ledger.Game
 
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
-                        && jobRan && takingsBanked && stillOngoing;
+                        && jobRan && takingsBanked && verdictSane;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +

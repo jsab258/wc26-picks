@@ -62,12 +62,17 @@ namespace Ledger.Game
         /// Where this character usually is when spoken to; set per character at spawn.
         public string SceneContext = "On Hook Street, talking with the new owner.";
 
+        /// Live campaign flavor appended to the scene each turn (street mood, and for
+        /// those who'd know it, the state of the bar's takings). Set by GameController.
+        public Func<string> ExtraContext;
+
         public async Task<string> SayAsync(string playerInput)
         {
             if (_engine == null) return "(no API key configured)";
             try
             {
-                return await _engine.SayToAsync(playerInput, _game.Now, SceneContext);
+                var scene = ExtraContext != null ? $"{SceneContext} {ExtraContext()}" : SceneContext;
+                return await _engine.SayToAsync(playerInput, _game.Now, scene);
             }
             catch (LlmApiException e)
             {

@@ -20,7 +20,15 @@ namespace Ledger.Game
 
         public Campaign Campaign { get; } = new Campaign();
         public int TotalTakings { get; private set; }
+        public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
+
+        /// The street's mood about the player, in words — shared by the HUD and by
+        /// conversation context so everyone describes the same weather.
+        public static string StreetWord(double heat) =>
+            heat < 0.2 ? "quiet" : heat < 0.45 ? "murmuring" : heat < 0.7 ? "uneasy" : "hostile";
+
+        public double CurrentHeat => _gossip != null && _gossip.Mill != null ? _gossip.Mill.DayCircleHeat() : 0.0;
 
         float _minuteAccumulator;
         Light _sun;
@@ -83,6 +91,17 @@ namespace Ledger.Game
             _lena = lenaWalker.gameObject.AddComponent<ConversationHost>();
             _lena.Initialize(this, LenaSetup.CardMarkdown, LenaSetup.SeedKnowledge, LenaSetup.SeedMemories);
             _lena.SceneContext = "Behind the counter of the Hook Street bar, talking with the new owner.";
+            // Lena keeps the books: she knows exactly what the till took and whether
+            // the street's talk is what's thinning it.
+            _lena.ExtraContext = () =>
+            {
+                var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
+                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}";
+                var thin = LastTakings < Campaign.BarBaseTakings * 0.7
+                    ? " You know the takings are thin because of what people are saying about the owner." : "";
+                return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
+                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}";
+            };
             _hosts.Add(_lena);
 
             // The rest of the cast gets conversation brains too — you can find the
@@ -94,6 +113,9 @@ namespace Ledger.Game
                 var host = npc.gameObject.AddComponent<ConversationHost>();
                 host.Initialize(this, member.Card, null, null);
                 host.SceneContext = member.Scene;
+                host.ExtraContext = () =>
+                    $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
+                    $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
                 _hosts.Add(host);
             }
 
@@ -147,10 +169,11 @@ namespace Ledger.Game
             if (Now.Hour >= 8 && Now.Day > _lastClosedDay)
             {
                 _lastClosedDay = Now.Day;
-                double heat = _gossip != null && _gossip.Mill != null ? _gossip.Mill.DayCircleHeat() : 0.0;
+                double heat = CurrentHeat;
                 int takings = Campaign.CloseDay(heat);
                 PlayerCash += takings;
                 TotalTakings += takings;
+                LastTakings = takings;
                 _ui?.Toast(takings >= Campaign.BarBaseTakings
                     ? $"Bar takings: +${takings}."
                     : $"Bar takings: +${takings}. The talk on the street is costing you.");

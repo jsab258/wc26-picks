@@ -216,8 +216,7 @@ namespace Ledger.Game
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
         }
 
-        static string HeatWord(double h) =>
-            h < 0.2 ? "quiet" : h < 0.45 ? "murmuring" : h < 0.7 ? "uneasy" : "hostile";
+        static string HeatWord(double h) => GameController.StreetWord(h);
 
         static string PatienceWord(double p) =>
             p > 0.66 ? "satisfied" : p > 0.33 ? "impatient" : "furious";

@@ -199,14 +199,43 @@ namespace Ledger.Game
                 MakeBox("Crate_2", new Vector3(4.9f, 0.4f, 9.6f), Vector3.one * 0.8f, AssetLibrary.Wood);
                 MakeBox("Crate_3", new Vector3(4.5f, 1.2f, 9.3f), Vector3.one * 0.8f, AssetLibrary.Wood);
             }
+
+            // Street furniture along the arms so the walks read lived-in, not empty.
+            Bench(new Vector3(10f, 0, 4.7f));        // market corner
+            Bench(new Vector3(-4.7f, 0, 12f), true); // across from the bar
+            Bench(new Vector3(4.7f, 0, -12f), true);
+            // A dumpster in the alley mouth near the docks corner.
+            MakeBox("Dumpster", new Vector3(16f, 0.65f, 4.8f), new Vector3(2.2f, 1.3f, 1.1f), AssetLibrary.Metal);
+            MakeBox("Dumpster_Lid", new Vector3(16f, 1.34f, 4.8f), new Vector3(2.3f, 0.08f, 1.2f), AssetLibrary.Metal);
+
+            // A canopy over the bar's open front — marks the door from down the street.
+            MakeBox("Bar_Canopy", new Vector3(-6.6f, 3.35f, 5.6f), new Vector3(3.4f, 0.12f, 1.6f), AssetLibrary.Roof);
+        }
+
+        static void Bench(Vector3 pos, bool alongZ = false)
+        {
+            var seat = alongZ ? new Vector3(0.45f, 0.08f, 1.6f) : new Vector3(1.6f, 0.08f, 0.45f);
+            var leg = new Vector3(alongZ ? 0.4f : 0.12f, 0.42f, alongZ ? 0.12f : 0.4f);
+            int n = Lamps.Count * 31 + (int)(pos.x * 7 + pos.z * 3);
+            MakeBox($"BenchSeat_{n}", pos + new Vector3(0, 0.46f, 0), seat, AssetLibrary.Wood);
+            const float off = 0.6f;
+            MakeBox($"BenchLegA_{n}", pos + new Vector3(alongZ ? 0 : -off, 0.21f, alongZ ? -off : 0), leg, AssetLibrary.Metal);
+            MakeBox($"BenchLegB_{n}", pos + new Vector3(alongZ ? 0 : off, 0.21f, alongZ ? off : 0), leg, AssetLibrary.Metal);
         }
 
         static void BuildLamps()
         {
+            // The crossing…
             MakeLamp(new Vector3(4, 0, 4));
             MakeLamp(new Vector3(-4, 0, 4));
             MakeLamp(new Vector3(4, 0, -4));
             MakeLamp(new Vector3(-4, 0, -4));
+            // …and staggered pools down each arm, so night walks (and the way to the
+            // outfit's drop points) are strung with light instead of pitch black.
+            MakeLamp(new Vector3(4, 0, 14));
+            MakeLamp(new Vector3(-4, 0, -14));
+            MakeLamp(new Vector3(14, 0, -4));
+            MakeLamp(new Vector3(-14, 0, 4));
         }
 
         public static Light BuildSun()
