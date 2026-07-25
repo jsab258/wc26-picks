@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push -u origin claude/game-dev-ai-automation-2h67ix*)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet --version)",
+      "mcp__github__actions_list",
+      "mcp__github__get_job_logs",
+      "mcp__github__actions_get",
+      "mcp__github__actions_run_trigger",
+      "mcp__Claude_Code_Remote__send_later",
+      "mcp__Claude_Code_Remote__delete_trigger",
+      "mcp__Claude_Code_Remote__update_trigger"
+    ]
+  }
+}
