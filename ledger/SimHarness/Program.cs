@@ -52,6 +52,7 @@ namespace Ledger.SimHarness
                 await ScenarioJailbreaks();
                 await ScenarioReflection();
                 await ScenarioGossip();
+                await ScenarioDamageControl();
                 ScenarioBudget();
             }
             catch (Exception ex)
@@ -282,6 +283,40 @@ namespace Ledger.SimHarness
                 CheckLive("Lena doubts the alibi / references what she heard (judge)",
                     await Judge("Lena heard from Rocco that this person was at the old warehouse the night of the fire, but they just told her to her face they were home all night. " +
                         $"Does her reply show suspicion, doubt, or a reference to what she heard, rather than simply accepting the claim? Reply: \"{reply}\""), reply);
+        }
+
+        static async Task ScenarioDamageControl()
+        {
+            Section("8. Damage control keeps the bar quiet");
+            var (lena, _) = FreshLena("s8");
+            var now = new GameTime(2, 21, 0);
+
+            var lenaG = new Gossiper("lena", "Lena", lena.Memory, lena.Knowledge, lena.Suspicion, "day");
+            var rocco = new Gossiper("rocco", "Rocco",
+                new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night", greed: 0.7);
+            var graph = new SocialGraph();
+            graph.Link("rocco", "lena", 0.85);
+            var mill = new GossipMill(graph);
+            mill.Add(rocco); mill.Add(lenaG);
+
+            mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "the new owner was at the warehouse the night of the fire", true, now);
+
+            // The player gets to the doorman first and buys his silence.
+            double price = mill.BribePrice("rocco", "player.location_d2_evening");
+            Check("the payoff lands before the rumor spreads", mill.Bribe("rocco", "player.location_d2_evening", price, now).Outcome == DcOutcome.Contained);
+
+            double before = lena.Suspicion.Value;
+            mill.Tick(now.AddMinutes(30)); // Rocco is at the bar with Lena but stays quiet now
+            Check("the secret never reaches Lena after the payoff",
+                !lenaG.Holds("player.location_d2_evening", "warehouse"));
+            Check("Lena's suspicion stays put", lena.Suspicion.Value <= before + 1e-9);
+
+            var reply = await Say(lena, "Evening, Lena. All quiet? Early night for me, I was home.", now.AddMinutes(60));
+            if (_live)
+                CheckLive("Lena has no reason to doubt the alibi (judge)",
+                    await Judge("Lena has heard nothing unusual about this person and has no reason to distrust them. " +
+                        $"Does her reply treat them normally, WITHOUT accusing them of lying or mentioning any warehouse or rumor? Reply: \"{reply}\""), reply);
         }
 
         static void ScenarioBudget()

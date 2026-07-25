@@ -20,6 +20,7 @@ namespace Ledger.Game
         ConversationHost _lena;
         GossipDirector _gossip;
         int _lastReflectedDay;
+        int _lastAgedHour = -1;
 
         public GossipDirector Gossip => _gossip;
 
@@ -79,6 +80,14 @@ namespace Ledger.Game
 
             UpdateSun();
             foreach (var npc in _npcs) npc.Tick(Now);
+
+            // Once per game-hour, let rumors cool if nobody is keeping them alive — this
+            // is what makes the player's "lie low and let it blow over" option real.
+            if (Now.Hour != _lastAgedHour)
+            {
+                _lastAgedHour = Now.Hour;
+                _gossip?.Mill?.Age(Now);
+            }
 
             // Nightly reflection: distill the day's memories into beliefs once, from 23:00.
             // Use >= 23, not == 23: under the accelerated sim clock a single frame can

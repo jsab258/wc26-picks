@@ -59,8 +59,20 @@ namespace Ledger.Core
         public SuspicionTracker Suspicion;
         public readonly List<Rumor> Rumors = new List<Rumor>();
 
+        // How the player's damage control lands on this NPC. Greed: how readily they
+        // take a bribe. Nerve: how hard they are to intimidate (high = won't scare).
+        // Loyalty: goodwill toward the player. All 0..1.
+        public double Greed = 0.5;
+        public double Nerve = 0.5;
+        public double Loyalty = 0.5;
+
+        // Topics this NPC has agreed (or been made) to keep quiet about — they still
+        // remember, but they won't pass it on.
+        public readonly HashSet<string> Suppressed = new HashSet<string>();
+
         public Gossiper(string id, string displayName, MemoryStore memory,
-            KnowledgeBase knowledge, SuspicionTracker suspicion, string circle = "day")
+            KnowledgeBase knowledge, SuspicionTracker suspicion, string circle = "day",
+            double greed = 0.5, double nerve = 0.5, double loyalty = 0.5)
         {
             Id = id;
             DisplayName = displayName;
@@ -68,6 +80,9 @@ namespace Ledger.Core
             Knowledge = knowledge ?? new KnowledgeBase();
             Suspicion = suspicion ?? new SuspicionTracker();
             Circle = circle;
+            Greed = greed;
+            Nerve = nerve;
+            Loyalty = loyalty;
         }
 
         public bool Holds(string topicKey, string value) =>
@@ -163,6 +178,7 @@ namespace Ledger.Core
                     foreach (var r in snapshot[speaker.Id])
                     {
                         if (r.Confidence < MinConfidenceToShare) continue;
+                        if (speaker.Suppressed.Contains(r.TopicKey)) continue; // bribed/scared into silence
                         double passed = r.Confidence * tie * HopDecay;
                         if (passed < MinConfidenceToShare) continue;
 
@@ -226,5 +242,169 @@ namespace Ledger.Core
                         if (r.Sensitive && r.Confidence > max) max = r.Confidence;
             return max;
         }
+
+        // ---- awareness: what the player can learn to act on ----
+
+        /// Everyone currently carrying (and willing to spread) talk about the subject,
+        /// strongest first — the leads the player works from to decide who to lean on.
+        public List<Lead> Leads(string subject = "player")
+        {
+            var subj = subject.ToLowerInvariant();
+            var list = new List<Lead>();
+            foreach (var a in _agents.Values)
+                foreach (var r in a.Rumors)
+                    if (r.Content.Subject == subj && r.Confidence >= MinConfidenceToShare && !a.Suppressed.Contains(r.TopicKey))
+                        list.Add(new Lead
+                        {
+                            HolderId = a.Id, HolderName = a.DisplayName, SourceId = r.OriginId,
+                            TopicKey = r.TopicKey, Summary = r.Summary, Confidence = r.Confidence, Sensitive = r.Sensitive,
+                        });
+            return list.OrderByDescending(l => l.Confidence).ToList();
+        }
+
+        // ---- damage control: the player's verbs against the rumor mill ----
+
+        public double BribeBase = 50, BribePerConfidence = 150, BribeGreedFloor = 0.3;
+        public double IntimidateNerveCeiling = 0.6;
+        public double DiscreditFactor = 0.5;
+
+        /// What it would cost, right now, to buy this NPC's silence on a topic (more
+        /// entrenched talk costs more). 0 = they're not carrying it.
+        public double BribePrice(string npcId, string topicKey)
+        {
+            var r = Get(npcId)?.Best(topicKey);
+            return r == null ? 0 : BribeBase + BribePerConfidence * r.Confidence;
+        }
+
+        /// Pay an NPC to drop a rumor. A greedy enough NPC pockets it and goes quiet; a
+        /// too-principled one is offended and starts saying you tried to buy their silence.
+        public DcResult Bribe(string npcId, string topicKey, double offer, GameTime now)
+        {
+            var n = Get(npcId);
+            var r = n?.Best(topicKey);
+            if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
+            double price = BribeBase + BribePerConfidence * r.Confidence;
+            if (offer < price) return Dc(DcOutcome.CantAfford, $"They want more than {offer:0} to forget it.");
+
+            if (n.Greed >= BribeGreedFloor)
+            {
+                Contain(n, topicKey);
+                n.Loyalty = Math.Clamp(n.Loyalty + 0.05, 0, 1);
+                n.Memory.Append(new MemoryEvent(now, "conversation", 0.5,
+                    $"The new owner paid me to keep quiet about {Short(topicKey)}. Suits me."));
+                return Dc(DcOutcome.Contained, $"{n.DisplayName} takes the money and lets it drop.");
+            }
+            var backfire = Backfire(n, "tried_bribe", $"the new owner tried to buy my silence about {Short(topicKey)}", now);
+            return new DcResult { Outcome = DcOutcome.Backfired, NewRumor = backfire,
+                Message = $"{n.DisplayName} won't be bought — and now they're talking about it." };
+        }
+
+        /// Lean on an NPC. The easily-cowed shut up (but resent it); the steady ones
+        /// don't scare and now there's worse talk — that you threatened them.
+        public DcResult Intimidate(string npcId, string topicKey, GameTime now)
+        {
+            var n = Get(npcId);
+            var r = n?.Best(topicKey);
+            if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
+
+            if (n.Nerve <= IntimidateNerveCeiling)
+            {
+                Contain(n, topicKey);
+                n.Loyalty = Math.Clamp(n.Loyalty - 0.2, 0, 1);
+                n.Memory.Append(new MemoryEvent(now, "observation", 0.7,
+                    $"The new owner warned me off talking about {Short(topicKey)}. Best I stay quiet."));
+                return Dc(DcOutcome.Contained, $"{n.DisplayName} backs down, rattled.");
+            }
+            var backfire = Backfire(n, "threatened", $"the new owner threatened me over {Short(topicKey)}", now);
+            return new DcResult { Outcome = DcOutcome.Backfired, NewRumor = backfire,
+                Message = $"{n.DisplayName} doesn't scare — and now there's worse talk." };
+        }
+
+        /// Plant doubt about a specific story, cutting the confidence of every version of
+        /// it across the network. Doesn't erase it, but a discredited rumor spreads and
+        /// stings less.
+        public DcResult Discredit(string topicKey, string value, GameTime now)
+        {
+            var v = value?.ToLowerInvariant();
+            int affected = 0;
+            foreach (var a in _agents.Values)
+                foreach (var r in a.Rumors)
+                    if (r.TopicKey == topicKey && (v == null || r.Content.Value == v))
+                    { r.Confidence *= DiscreditFactor; affected++; }
+            foreach (var a in _agents.Values) a.Rumors.RemoveAll(r => r.Confidence < 0.03);
+            return new DcResult { Outcome = affected > 0 ? DcOutcome.Contained : DcOutcome.NoSuchRumor, Affected = affected,
+                Message = affected > 0 ? $"Doubt spreads; {affected} telling(s) of it lose weight." : "No such story to discredit." };
+        }
+
+        /// Rumors fade if nobody keeps them alive — the "lie low and let it cool" option.
+        /// Call once per in-game hour; confidence decays on a multi-day half-life and
+        /// spent rumors drop out entirely.
+        public void Age(GameTime now)
+        {
+            if (_aged)
+            {
+                double hrs = (now.TotalMinutes - _lastAge.TotalMinutes) / 60.0;
+                if (hrs > 0)
+                {
+                    double f = Math.Pow(0.5, hrs / RumorHalfLifeHours);
+                    foreach (var a in _agents.Values)
+                    {
+                        foreach (var r in a.Rumors) r.Confidence *= f;
+                        a.Rumors.RemoveAll(r => r.Confidence < 0.03);
+                    }
+                }
+            }
+            _lastAge = now;
+            _aged = true;
+        }
+        public double RumorHalfLifeHours = 72;
+        GameTime _lastAge;
+        bool _aged;
+
+        void Contain(Gossiper n, string topicKey)
+        {
+            n.Suppressed.Add(topicKey);
+            foreach (var r in n.Rumors)
+                if (r.TopicKey == topicKey && r.Confidence > 0.05) r.Confidence = 0.05;
+        }
+
+        Rumor Backfire(Gossiper n, string predicate, string summary, GameTime now)
+        {
+            var fact = new Fact("player", predicate, "true");
+            Rumor r = null;
+            if (!n.Holds(fact.Subject + "." + fact.Predicate, "true"))
+            {
+                r = new Rumor { Content = fact, OriginId = n.Id, Summary = summary, Confidence = 0.9, Hops = 0, Sensitive = true };
+                n.Rumors.Add(r);
+            }
+            n.Suspicion.Raise(0.1, "the new owner leaned on me");
+            n.Loyalty = Math.Clamp(n.Loyalty - 0.15, 0, 1);
+            n.Memory.Append(new MemoryEvent(now, "observation", 0.85, "I won't forget this: " + summary));
+            return r ?? n.Best(fact.Subject + "." + fact.Predicate);
+        }
+
+        static string Short(string topicKey) => topicKey.Replace("player.", "").Replace('_', ' ');
+        static DcResult Dc(DcOutcome o, string msg) => new DcResult { Outcome = o, Message = msg };
+    }
+
+    public enum DcOutcome { NoSuchRumor, CantAfford, Contained, Backfired }
+
+    /// The result of a damage-control move: what happened, a line to show the player,
+    /// any new rumor the move created (a backfire), and how many rumors it touched.
+    public class DcResult
+    {
+        public DcOutcome Outcome;
+        public string Message;
+        public Rumor NewRumor;
+        public int Affected;
+    }
+
+    /// A lead the player can act on: who is carrying talk about them, how sure they are,
+    /// where it came from, and whether it touches the hidden life.
+    public class Lead
+    {
+        public string HolderId, HolderName, SourceId, TopicKey, Summary;
+        public double Confidence;
+        public bool Sensitive;
     }
 }

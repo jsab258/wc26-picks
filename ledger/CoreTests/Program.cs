@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestRetrieval();
                 TestSuspicion();
                 TestGossip();
+                TestDamageControl();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -284,6 +285,86 @@ namespace Ledger.CoreTests
             mill2.Tick(now);
             Check(day2.Suspicion.Value > 0, "a night-life secret reaching the day circle unsettles even without a prior lie");
             Check(mill2.Get("mara").Rumors.Any(rr => rr.Sensitive), "the leak is recorded as a sensitive rumor");
+        }
+
+        // A witness (Rocco, night) tied to a day acquaintance (Lena), with Rocco
+        // already carrying a sensitive first-hand sighting. Traits parameterize how
+        // damage control lands on him.
+        static (GossipMill mill, Gossiper witness, Gossiper day) FreshMill(double greed = 0.6, double nerve = 0.4)
+        {
+            var g = new SocialGraph();
+            g.Link("rocco", "lena", 0.85);
+            var mill = new GossipMill(g);
+            var witness = new Gossiper("rocco", "Rocco", new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night", greed, nerve, 0.5);
+            var day = new Gossiper("lena", "Lena", new MemoryStore("lena"), new KnowledgeBase(), new SuspicionTracker(), "day");
+            mill.Add(witness); mill.Add(day);
+            mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
+            return (mill, witness, day);
+        }
+
+        static void TestDamageControl()
+        {
+            Console.WriteLine("Damage control:");
+            var now = new GameTime(3, 21, 0);
+            const string topic = "player.location_d2_evening";
+
+            // Bribe a greedy source before it spreads → contained.
+            var (mill, _, day) = FreshMill(greed: 0.6);
+            double price = mill.BribePrice("rocco", topic);
+            Check(price > 0, "a bribe is priced by how entrenched the rumor is");
+            Check(mill.Bribe("rocco", topic, price, now).Outcome == DcOutcome.Contained, "a greedy source takes the bribe");
+            mill.Tick(now.AddMinutes(10));
+            Check(!day.Holds(topic, "warehouse"), "a bribed source does not pass the rumor on");
+            Check(!mill.KnowsSecret("lena"), "the secret stays contained after a successful bribe");
+
+            // Too small an offer is refused and changes nothing.
+            var (mill2, w2, _) = FreshMill();
+            Check(mill2.Bribe("rocco", topic, 5, now).Outcome == DcOutcome.CantAfford, "too small an offer is refused");
+            Check(!w2.Suppressed.Contains(topic), "a refused offer suppresses nothing");
+
+            // A principled (low-greed) source can't be bought — and starts talking about it.
+            var (mill3, w3, _) = FreshMill(greed: 0.1);
+            var b3 = mill3.Bribe("rocco", topic, 1000, now);
+            Check(b3.Outcome == DcOutcome.Backfired, "a principled source will not be bought");
+            Check(b3.NewRumor != null && w3.Holds("player.tried_bribe", "true"), "the bribe attempt becomes its own rumor");
+
+            // Intimidate a nervous source → cowed, at the cost of loyalty.
+            var (mill4, w4, day4) = FreshMill(nerve: 0.3);
+            double loy = w4.Loyalty;
+            Check(mill4.Intimidate("rocco", topic, now).Outcome == DcOutcome.Contained, "a nervous source is cowed into silence");
+            Check(w4.Loyalty < loy, "intimidation costs loyalty");
+            mill4.Tick(now.AddMinutes(10));
+            Check(!day4.Holds(topic, "warehouse"), "an intimidated source stays quiet");
+
+            // Intimidate a steady source → backfire, worse talk.
+            var (mill5, w5, _) = FreshMill(nerve: 0.9);
+            Check(mill5.Intimidate("rocco", topic, now).Outcome == DcOutcome.Backfired, "a steady source does not scare");
+            Check(w5.Holds("player.threatened", "true"), "the threat becomes its own rumor");
+
+            // Discredit lowers a circulating rumor's confidence.
+            var (mill6, _, day6) = FreshMill();
+            mill6.Tick(now);
+            double before = day6.Best(topic)?.Confidence ?? 0;
+            Check(before > 0, "the rumor reached Lena");
+            Check(mill6.Discredit(topic, "warehouse", now).Affected >= 1, "discredit touches the circulating tellings");
+            Check((day6.Best(topic)?.Confidence ?? 0) < before, "discredit lowers the rumor's confidence");
+
+            // Lie low: with nobody reinforcing it, the rumor fades below the secret line.
+            var (mill7, _, _) = FreshMill();
+            mill7.Tick(now);
+            Check(mill7.KnowsSecret("lena"), "Lena knows the secret before lying low");
+            mill7.Age(now);                                 // baseline
+            mill7.Age(now.AddMinutes(60 * 24 * 10));        // ten quiet days later
+            Check(!mill7.KnowsSecret("lena"), "lying low lets the rumor fade below the secret threshold");
+
+            // Awareness: leads list who is carrying talk, strongest first.
+            var (mill8, _, _) = FreshMill();
+            mill8.Tick(now);
+            var leads = mill8.Leads("player");
+            Check(leads.Count >= 2, "leads surface everyone carrying talk about the player");
+            Check(leads[0].Confidence >= leads[leads.Count - 1].Confidence, "leads are ordered by confidence");
+            Check(leads.Any(l => l.HolderId == "lena" && l.Sensitive), "a lead names the day-circle holder of the sensitive rumor");
         }
 
         class FakeLlm : ILlmClient

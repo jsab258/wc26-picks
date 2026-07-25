@@ -75,8 +75,21 @@ namespace Ledger.Game
         public string StatusLine()
         {
             if (_mill == null) return "";
-            return $"-- gossip --\nday-circle heat: {_mill.DayCircleHeat():0.00}\n" +
-                   $"Lena has heard the secret: {_mill.KnowsSecret("Lena")}";
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"-- gossip --\nday-circle heat: {_mill.DayCircleHeat():0.00}\n");
+            sb.Append($"Lena has heard the secret: {_mill.KnowsSecret("Lena")}\n");
+            var leads = _mill.Leads("player");
+            if (leads.Count == 0) sb.Append("no talk about you right now");
+            else
+            {
+                sb.Append("talk about you:");
+                for (int i = 0; i < leads.Count && i < 4; i++)
+                {
+                    var l = leads[i];
+                    sb.Append($"\n  {l.HolderName} ({l.Confidence:0.00}{(l.Sensitive ? ", sensitive" : "")}) — {l.Summary}");
+                }
+            }
+            return sb.ToString();
         }
     }
 }
