@@ -50,6 +50,8 @@ namespace Ledger.Game
         GameObject _dcRow;
         Button _payBtn, _leanBtn, _doubtBtn;
         Text _payLabel, _leanLabel, _doubtLabel;
+        Button _hookBtn;
+        Text _hookLabel;
 
         GameObject _debugPanel;
         Text _debugText;
@@ -130,6 +132,14 @@ namespace Ledger.Game
             _doubtBtn.onClick.AddListener(PlantDoubt);
             _dcRow.SetActive(false);
 
+            // The hook (design-doc §6.3): shown whenever the player holds usable
+            // leverage on this person — independent of whether they carry any talk,
+            // because a leash prevents FUTURE talk too.
+            _hookBtn = MakeButton(_dialoguePanel.transform, "Use what you know", new Vector2(0.5f, 0), new Vector2(0, 112), new Vector2(320, 36));
+            _hookLabel = _hookBtn.GetComponentInChildren<Text>();
+            _hookBtn.onClick.AddListener(UseHook);
+            _hookBtn.gameObject.SetActive(false);
+
             _dialoguePanel.SetActive(false);
         }
 
@@ -208,9 +218,25 @@ namespace Ledger.Game
                 sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"");
                 sb.AppendLine($"   <color=#999>learned day {k.LearnedAt.Day} ({k.Source})</color>{status}");
             }
-            _ledgerText.text = shown == 0
-                ? "Nothing yet. As far as you know, nobody is talking about you.\n\nYou learn what's out there by seeing who watches you, by loyal friends' warnings, and by what people admit to your face."
+            var text = shown == 0
+                ? "Nothing yet. As far as you know, nobody is talking about you.\n\nYou learn what's out there by seeing who watches you, by loyal friends' warnings, and by what people admit to your face.\n"
                 : sb.ToString();
+
+            // The other side of the ledger: what you hold on THEM (§6.3).
+            var held = new System.Text.StringBuilder();
+            foreach (var s in _game.HooksBook.Known)
+            {
+                bool leashed = _game.Gossip != null && _game.Gossip.Mill != null &&
+                               (_game.Gossip.Mill.Get(s.OwnerId)?.Leashed ?? false);
+                var state = s.Strong
+                    ? (leashed ? "<color=#c66>· held over them</color>" : "<color=#9c9>· standing</color>")
+                    : (s.HookSpent ? "<color=#888>· favor spent</color>" : "<color=#9c9>· one favor owed</color>");
+                held.AppendLine($"<b>{s.OwnerId}</b> — {s.Summary} {state}");
+                held.AppendLine($"   <color=#999>learned day {s.LearnedAt.Day} (from {s.LearnedFrom})</color>");
+            }
+            _ledgerText.text = text + (held.Length > 0
+                ? "\n<b>WHAT YOU HOLD</b>\n" + held
+                : "");
         }
 
         void Update()
@@ -303,6 +329,15 @@ namespace Ledger.Game
                 }
             }
             else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
+
+            if (dialogueOpen && Time.frameCount % 30 == 0)
+            {
+                var hook = CurrentHostHook();
+                _hookBtn.gameObject.SetActive(hook != null);
+                if (hook != null)
+                    _hookLabel.text = hook.Strong ? "Use what you know (they're yours)" : "Call in what you know (once)";
+            }
+            else if (!dialogueOpen && _hookBtn.gameObject.activeSelf) _hookBtn.gameObject.SetActive(false);
 
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
         }
@@ -478,6 +513,32 @@ namespace Ledger.Game
             var result = _game.Gossip.Mill.Intimidate(known.HolderId, known.TopicKey, _game.Now);
             if (ResolveStale(known, result)) return;
             if (result.Outcome == DcOutcome.Contained) _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+            Narrate(result.Message);
+        }
+
+        string CurrentHostId()
+        {
+            if (_current == null) return null;
+            var walker = _current.GetComponent<NpcWalker>();
+            return walker != null ? walker.DisplayName : _current.Card.Name;
+        }
+
+        Secret CurrentHostHook()
+        {
+            var id = CurrentHostId();
+            if (id == null) return null;
+            var hook = _game.HooksBook.UsableHook(id);
+            // A leash already applied needs no button — it's standing.
+            if (hook != null && hook.Strong && (_game.Gossip.Mill.Get(id)?.Leashed ?? false)) return null;
+            return hook;
+        }
+
+        void UseHook()
+        {
+            var id = CurrentHostId();
+            var hook = CurrentHostHook();
+            if (id == null || hook == null) return;
+            var result = _game.Gossip.Mill.UseHook(id, hook, _game.Now);
             Narrate(result.Message);
         }
 

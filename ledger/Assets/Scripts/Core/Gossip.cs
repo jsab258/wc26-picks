@@ -70,6 +70,11 @@ namespace Ledger.Core
         // remember, but they won't pass it on.
         public readonly HashSet<string> Suppressed = new HashSet<string>();
 
+        // Standing coercion (design-doc §6.3 strong hook): the player holds
+        // something over them, and NOTHING about the player leaves their lips —
+        // current topics and future ones alike. They remember everything.
+        public bool Leashed;
+
         public Gossiper(string id, string displayName, MemoryStore memory,
             KnowledgeBase knowledge, SuspicionTracker suspicion, string circle = "day",
             double greed = 0.5, double nerve = 0.5, double loyalty = 0.5)
@@ -186,6 +191,7 @@ namespace Ledger.Core
                     {
                         if (r.Confidence < MinConfidenceToShare) continue;
                         if (speaker.Suppressed.Contains(r.TopicKey)) continue; // bribed/scared into silence
+                        if (speaker.Leashed && r.Content.Subject == "player") continue; // held by a hook
                         double passed = r.Confidence * tie * HopDecay;
                         if (passed < MinConfidenceToShare) continue;
 
@@ -361,6 +367,43 @@ namespace Ledger.Core
                 Message = affected > 0 ? $"Doubt spreads; {affected} telling(s) of it lose weight." : "No such story to discredit." };
         }
         readonly HashSet<string> _discredited = new HashSet<string>();
+
+        /// Use a hook (design-doc §6.3): knowledge beats traits. A STRONG hook
+        /// (criminal secret) leashes the target for good — nothing about the player
+        /// leaves their lips again, and no backfire is possible; they know what you
+        /// know. A WEAK hook (shameful secret) is one big favor: their strongest
+        /// current story about you goes quiet, and the hook is spent. Either way
+        /// they comply — and hate you a little for it.
+        public DcResult UseHook(string npcId, Secret secret, GameTime now)
+        {
+            var n = Get(npcId);
+            if (n == null || secret == null || secret.OwnerId != npcId || !secret.KnownToPlayer)
+                return Dc(DcOutcome.NoSuchRumor, "You hold nothing on them.");
+
+            if (secret.Strong)
+            {
+                if (n.Leashed) return Dc(DcOutcome.AlreadyDenied, "They already know what you know. They haven't forgotten.");
+                n.Leashed = true;
+                n.Loyalty = System.Math.Clamp(n.Loyalty - 0.3, 0, 1);
+                n.Suspicion.Raise(0.1, "the new owner holds it over me");
+                n.Memory.Append(new MemoryEvent(now, "observation", 0.95,
+                    $"The new owner knows. Said it to my face: {secret.Summary} I keep my mouth shut now — about them, about everything."));
+                return Dc(DcOutcome.Contained, $"{n.DisplayName} goes very still. Nothing about you will leave their lips again.");
+            }
+
+            if (secret.HookSpent)
+                return Dc(DcOutcome.AlreadyDenied, "You already called that favor in. It doesn't work twice.");
+            var strongest = n.Rumors.Where(r => r.Content.Subject == "player" && !n.Suppressed.Contains(r.TopicKey))
+                .OrderByDescending(r => r.Confidence).FirstOrDefault();
+            if (strongest == null)
+                return Dc(DcOutcome.NoSuchRumor, "They're not carrying anything worth spending it on. Keep it.");
+            secret.SpendWeak();
+            Contain(n, strongest.TopicKey);
+            n.Loyalty = System.Math.Clamp(n.Loyalty - 0.2, 0, 1);
+            n.Memory.Append(new MemoryEvent(now, "observation", 0.85,
+                $"The new owner reminded me about {secret.Summary} So I let the talk drop. Once. We're even now."));
+            return Dc(DcOutcome.Contained, $"{n.DisplayName}'s face changes. That story dies with them — and you're even now.");
+        }
 
         /// Rumors fade if nobody keeps them alive — the "lie low and let it cool" option.
         /// Call once per in-game hour; confidence decays on a multi-day half-life and

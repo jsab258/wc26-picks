@@ -341,6 +341,7 @@ namespace Ledger.Game
                 { "washed", _game.Wallet.TotalWashed },
                 { "maxNightWitnessConf", maxNightConf },
                 { "beats", beatStates },
+                { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },

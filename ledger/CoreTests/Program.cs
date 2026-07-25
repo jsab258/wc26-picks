@@ -40,6 +40,7 @@ namespace Ledger.CoreTests
                 TestPlayerKnowledge();
                 TestWallet();
                 TestBeats();
+                TestHooks();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -371,6 +372,58 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestHooks()
+        {
+            Console.WriteLine("Hooks:");
+            var now = new GameTime(4, 14, 0);
+            var book = new SecretsBook();
+            var skim = new Secret { Id = "rocco_skim", OwnerId = "rocco", Kind = SecretKind.Criminal,
+                Summary = "he has skimmed the door take for twenty years." };
+            skim.KnownBy.Add("lena");
+            var dismissal = new Secret { Id = "ada_dismissal", OwnerId = "ada", Kind = SecretKind.Shameful,
+                Summary = "her teaching career ended in a quiet dismissal." };
+            book.Add(skim); book.Add(dismissal);
+
+            Check(book.UsableHook("rocco") == null, "an unlearned secret is no hook");
+            Check(book.TellableBy("lena", 0.5, 0.75, 0.6).Count == 0, "a merely-friendly knower keeps others' secrets");
+            Check(book.TellableBy("lena", 0.65, 0.75, 0.6).Count == 1, "a loyal knower shares what they know about others");
+            Check(book.TellableBy("ada", 0.65, 0.75, 0.6).Count == 0, "confessing your own takes deeper trust");
+            Check(book.TellableBy("ada", 0.8, 0.75, 0.6).Count == 1, "deep trust brings confession");
+
+            // Strong hook: leash. The unbribable doorman goes quiet about the player.
+            var (mill, rocco, lena) = FreshMill(greed: 0.1, nerve: 0.9); // untouchable by money or muscle
+            skim.Learn("Lena", now);
+            var r1 = mill.UseHook("rocco", skim, now);
+            Check(r1.Outcome == DcOutcome.Contained && rocco.Leashed, "a criminal secret leashes its owner");
+            double loyaltyAfter = rocco.Loyalty;
+            mill.Tick(now.AddMinutes(30));
+            Check(!lena.Holds("player.location_d2_evening", "warehouse"), "a leashed witness spreads nothing about the player");
+            Check(loyaltyAfter < 0.5, "being leashed is not forgiven");
+            Check(mill.UseHook("rocco", skim, now).Outcome == DcOutcome.AlreadyDenied, "a leash needs no second telling");
+            Check(rocco.Memory.Events.Any(e => e.Text.Contains("The new owner knows")), "the leashed remember the moment");
+
+            // Leash silences only player talk — other subjects still travel.
+            mill.Witness("rocco", new Fact("marek", "debt", "unpaid"), "Marek died owing the docks", false, now);
+            mill.Tick(now.AddMinutes(60));
+            Check(lena.Holds("marek.debt", "unpaid"), "a leash does not silence talk about other people");
+
+            // Weak hook: one favor, then even.
+            var (mill2, rocco2, _) = FreshMill();
+            var weak = new Secret { Id = "w", OwnerId = "rocco", Kind = SecretKind.Shameful, Summary = "a small shame." };
+            weak.Learn("Sam", now);
+            var r2 = mill2.UseHook("rocco", weak, now);
+            Check(r2.Outcome == DcOutcome.Contained && weak.HookSpent, "a shameful secret buys one silence");
+            Check(rocco2.Suppressed.Count == 1 && !rocco2.Leashed, "the favor contains a story, not the person");
+            Check(mill2.UseHook("rocco", weak, now).Outcome == DcOutcome.AlreadyDenied, "a spent favor does not work twice");
+
+            // A weak hook with nothing to silence is kept, not wasted.
+            var (mill3, _, _) = FreshMill();
+            var weak2 = new Secret { Id = "w2", OwnerId = "lena", Kind = SecretKind.Shameful, Summary = "a lena shame." };
+            weak2.Learn("Rocco", now);
+            Check(mill3.UseHook("lena", weak2, now).Outcome == DcOutcome.NoSuchRumor && !weak2.HookSpent,
+                "an idle favor is kept for later");
         }
 
         static void TestBeats()

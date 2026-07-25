@@ -22,6 +22,7 @@ namespace Ledger.Game
 
         public Campaign Campaign { get; } = new Campaign();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
+        public SecretsBook HooksBook { get; } = SecretsSetup.Build();
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
@@ -127,11 +128,11 @@ namespace Ledger.Game
             _lena.ExtraContext = () =>
             {
                 var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
-                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}";
+                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}{SecretContext("Lena")}";
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
                 return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
-                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}";
+                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}";
             };
             _hosts.Add(_lena);
 
@@ -148,7 +149,7 @@ namespace Ledger.Game
                 host.ExtraContext = () =>
                     $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
                     $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}." +
-                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}";
+                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}{SecretContext(walkerName)}";
                 _hosts.Add(host);
             }
 
@@ -380,15 +381,28 @@ namespace Ledger.Game
         }
 
         /// A carrier loyal enough admits what they hold when you open a conversation;
-        /// the admissions become known leads. Called once per dialogue open.
+        /// the admissions become known leads. Secrets travel the same channel:
+        /// deep-trust confession of their own, looser sharing of someone else's
+        /// (design-doc §6.3 — knowledge as loot, earned through relationships).
+        /// Called once per dialogue open.
         public void LearnFromHost(string walkerName)
         {
             if (_gossip == null || _gossip.Mill == null) return;
             var g = _gossip.Mill.Get(walkerName);
-            if (g == null || g.Loyalty < RevealLoyaltyFloor) return;
-            foreach (var lead in _gossip.Mill.Leads("player"))
-                if (lead.HolderId == walkerName)
-                    Knowledge.Learn(lead, $"{walkerName} admitted it", Now);
+            if (g == null) return;
+            if (g.Loyalty >= RevealLoyaltyFloor)
+                foreach (var lead in _gossip.Mill.Leads("player"))
+                    if (lead.HolderId == walkerName)
+                        Knowledge.Learn(lead, $"{walkerName} admitted it", Now);
+
+            foreach (var s in HooksBook.TellableBy(walkerName, g.Loyalty,
+                SecretsSetup.ConfessLoyaltyFloor, SecretsSetup.ShareLoyaltyFloor))
+            {
+                s.Learn(walkerName, Now);
+                _ui?.Toast(s.OwnerId == walkerName
+                    ? $"{walkerName} trusts you with something heavy. It's in your ledger now."
+                    : $"{walkerName} tells you something about {s.OwnerId}. It's in your ledger now.", 8f);
+            }
         }
 
         /// Context line for an authored beat involving this NPC — pending tonight,
@@ -406,6 +420,31 @@ namespace Ledger.Game
                     return $" You invited the new owner to {b.Title.ToLowerInvariant()} and they never showed. It stung; you don't hide it well.";
             }
             return "";
+        }
+
+        /// Context for the secrets economy: what this NPC has confided or shared,
+        /// and — if the player has used a hook on them — how that sits.
+        public string SecretContext(string walkerName)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var s in HooksBook.All)
+            {
+                if (!s.KnownToPlayer) continue;
+                if (s.OwnerId == walkerName)
+                {
+                    var g = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Get(walkerName) : null;
+                    if (g != null && g.Leashed)
+                        sb.Append($" The new owner knows your secret ({s.Summary}) and has made clear they will use it. You are cold, careful, compliant — and you say nothing about them to anyone.");
+                    else if (s.HookSpent)
+                        sb.Append($" The new owner knows your secret ({s.Summary}) and once called in a favor over it. You call it even, but it sits between you.");
+                    else if (s.LearnedFrom == walkerName)
+                        sb.Append($" You confided your secret to the new owner yourself ({s.Summary}). Saying it aloud relieved and terrified you.");
+                    // Learned from a third party and never used: they don't know you know.
+                }
+                else if (s.LearnedFrom == walkerName)
+                    sb.Append($" You told the new owner what you know about {s.OwnerId}: {s.Summary}");
+            }
+            return sb.ToString();
         }
 
         /// Context line so a loyal carrier actually SAYS what they've heard.
