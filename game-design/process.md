@@ -45,6 +45,7 @@
 | 2026-07-25 | Damage-control UI | **In-conversation options** (player decision): verb buttons appear under the chat box only while talking to an NPC who is carrying a rumor about you (live-priced payoff, lean on, plant doubt); free-typed talk remains. Rejected: dedicated "word on the street" management screen; hybrid see-remotely/act-in-person (may revisit hybrid when more NPCs are conversational) |
 | 2026-07-25 | Cast cards | **Approved as drafted** (player decision): Rocco the 20-year doorman (night circle, bribable/cowable), Ada the retired schoolteacher (day circle, both bribe and threat backfire), Sam the go-between (both circles, folds to anything, spreads fastest). Cards live in CastSetup.cs and stay hand-editable |
 | 2026-07-25 | M2 scope | **All three pillars at once** (player decision): (1) stakes — street-heat meter from day-circle rumor entrenchment, exposure lose state + survive-the-week win state; (2) economy — bar income tied to street reputation, so bribes spend money the rumor itself is shrinking; (3) night side — a nightly outfit job that is the SOURCE of new witnesses/rumors, with outfit patience as the second lose axis. Playtest tuning folds in when the player reaches a PC |
+| 2026-07-25 | M2 shipped | CI-validated end-to-end (run 17, commit 3e65f72): 2-day sim completed 2 night drops with 2 NPC witnesses, banked heat-taxed takings ($74 at heat 0.44), patience 1.00, verdict Ongoing, 0 errors, targeted discredit verified. 140 core checks green. Next: player PC playtest of the LEDGER-Windows artifact, then tuning |
 
 ## Documents
 
