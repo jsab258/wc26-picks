@@ -367,9 +367,9 @@ namespace Ledger.Game
 
         // ---- damage control ----
 
-        /// The strongest still-spreading rumor about the player held by the NPC this
-        /// dialogue is with, or null.
-        Lead CurrentLead()
+        /// The strongest lead the player BELIEVES the NPC this dialogue is with is
+        /// carrying, or null. A belief snapshot — possibly stale, never ground truth.
+        KnownLead CurrentLead()
         {
             // Belief, not ground truth (design-doc §6.2): the verbs key off what the
             // player has LEARNED this NPC is carrying, not the live network state.
