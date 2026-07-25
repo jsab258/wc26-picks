@@ -276,6 +276,9 @@ namespace Ledger.Game
             var camp = _game.Campaign;
             bool jobRan = camp.JobsDone >= 1;
             bool takingsBanked = _game.TotalTakings > 0;
+            // Belief-state channel: every witnessed drop is also SEEN by the player,
+            // so witnesses must have produced known leads (design-doc §6.2 ledger).
+            bool knowledgeWorks = _game.NightWitnesses == 0 || _game.Knowledge.Count >= 1;
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -296,8 +299,11 @@ namespace Ledger.Game
                 { "outfitPatience", camp.OutfitPatience },
                 { "totalTakings", _game.TotalTakings },
                 { "nightWitnesses", _game.NightWitnesses },
+                { "knownLeads", _game.Knowledge.Count },
                 { "verdict", camp.Verdict.ToString() },
                 { "playerCash", _game.PlayerCash },
+                { "llmCalls", _game.Cost.TotalCalls },
+                { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
                 { "samples", _samples },
                 { "screenshotCount", _screenshots.Count },
@@ -307,13 +313,14 @@ namespace Ledger.Game
 
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
-                        && jobRan && takingsBanked && verdictSane;
+                        && jobRan && takingsBanked && verdictSane && knowledgeWorks;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
                       $"discreditWorks={discreditWorks} jobsDone={camp.JobsDone} jobsMissed={camp.JobsMissed} " +
                       $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
-                      $"witnesses={_game.NightWitnesses} cash={_game.PlayerCash} verdict={camp.Verdict} pass={pass}");
+                      $"witnesses={_game.NightWitnesses} knownLeads={_game.Knowledge.Count} " +
+                      $"cash={_game.PlayerCash} verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }

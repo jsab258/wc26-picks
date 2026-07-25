@@ -19,9 +19,19 @@ namespace Ledger.Game
         public int PlayerCash = 250;
 
         public Campaign Campaign { get; } = new Campaign();
+        public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
+
+        // A loyal-enough NPC pulls the player aside when they're carrying talk about
+        // them (once a day each); a carrier this loyal also admits what they hold
+        // when you talk to them. Both feed PlayerKnowledge — the only window the
+        // player ever gets into the rumor network.
+        public const double WarnLoyaltyFloor = 0.6;
+        public const double RevealLoyaltyFloor = 0.45;
+        const float WarnRange = 4f;
+        readonly Dictionary<string, int> _lastWarnDay = new Dictionary<string, int>();
 
         /// The street's mood about the player, in words — shared by the HUD and by
         /// conversation context so everyone describes the same weather.
@@ -96,11 +106,11 @@ namespace Ledger.Game
             _lena.ExtraContext = () =>
             {
                 var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
-                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}";
+                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}";
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
                 return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
-                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}";
+                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}";
             };
             _hosts.Add(_lena);
 
@@ -113,9 +123,10 @@ namespace Ledger.Game
                 var host = npc.gameObject.AddComponent<ConversationHost>();
                 host.Initialize(this, member.Card, null, null);
                 host.SceneContext = member.Scene;
+                var walkerName = npc.DisplayName;
                 host.ExtraContext = () =>
                     $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
-                    $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
+                    $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.{HostRevealText(walkerName)}";
                 _hosts.Add(host);
             }
 
@@ -158,6 +169,7 @@ namespace Ledger.Game
             }
 
             UpdateCampaign();
+            if (Time.frameCount % 30 == 0) CheckLoyalWarnings();
         }
 
         void UpdateCampaign()
@@ -209,13 +221,68 @@ namespace Ledger.Game
                     _jobMarker = null;
                     Campaign.JobDone();
                     PlayerCash += Campaign.JobPay;
-                    int seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now) : 0;
-                    NightWitnesses += seen;
-                    _ui?.Toast(seen > 0
-                        ? $"Drop made. +${Campaign.JobPay}. You weren't alone out there."
+                    var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now)
+                        : new List<string>();
+                    NightWitnesses += seen.Count;
+                    // You saw them see you: each witness becomes a known lead.
+                    foreach (var w in seen)
+                        foreach (var lead in _gossip.Mill.Leads("player"))
+                            if (lead.HolderId == w && lead.TopicKey == $"player.night_job_d{Now.Day}")
+                                Knowledge.Learn(lead, $"you saw {w} watching", Now);
+                    _ui?.Toast(seen.Count > 0
+                        ? $"Drop made. +${Campaign.JobPay}. {string.Join(" and ", seen)} saw you."
                         : $"Drop made. +${Campaign.JobPay}.");
                 }
             }
+        }
+
+        /// Loyal NPCs pull the player aside (once a day each) when carrying fresh
+        /// talk about them — the ambient channel into PlayerKnowledge.
+        void CheckLoyalWarnings()
+        {
+            if (_gossip == null || _gossip.Mill == null || _player == null || _ui == null) return;
+            foreach (var npc in _npcs)
+            {
+                if (npc == null) continue;
+                var name = npc.DisplayName;
+                var g = _gossip.Mill.Get(name);
+                if (g == null || g.Loyalty < WarnLoyaltyFloor) continue;
+                if (_lastWarnDay.TryGetValue(name, out var d) && d == Now.Day) continue;
+                if (Vector3.Distance(npc.transform.position, _player.transform.position) > WarnRange) continue;
+                foreach (var lead in _gossip.Mill.Leads("player"))
+                {
+                    if (lead.HolderId != name || Knowledge.Knows(lead.HolderId, lead.TopicKey)) continue;
+                    Knowledge.Learn(lead, $"{name} warned you", Now);
+                    _ui.Toast($"{name} pulls you aside: \"People are saying {lead.Summary}. Thought you should hear it from me.\"");
+                    _lastWarnDay[name] = Now.Day;
+                    break; // one warning per encounter
+                }
+            }
+        }
+
+        /// A carrier loyal enough admits what they hold when you open a conversation;
+        /// the admissions become known leads. Called once per dialogue open.
+        public void LearnFromHost(string walkerName)
+        {
+            if (_gossip == null || _gossip.Mill == null) return;
+            var g = _gossip.Mill.Get(walkerName);
+            if (g == null || g.Loyalty < RevealLoyaltyFloor) return;
+            foreach (var lead in _gossip.Mill.Leads("player"))
+                if (lead.HolderId == walkerName)
+                    Knowledge.Learn(lead, $"{walkerName} admitted it", Now);
+        }
+
+        /// Context line so a loyal carrier actually SAYS what they've heard.
+        public string HostRevealText(string walkerName)
+        {
+            if (_gossip == null || _gossip.Mill == null) return "";
+            var g = _gossip.Mill.Get(walkerName);
+            if (g == null || g.Loyalty < RevealLoyaltyFloor) return "";
+            var held = new List<string>();
+            foreach (var lead in _gossip.Mill.Leads("player"))
+                if (lead.HolderId == walkerName) held.Add(lead.Summary);
+            return held.Count == 0 ? ""
+                : $" You have heard talk about the new owner ({string.Join("; ", held)}) and, out of loyalty, you admit what you've heard if it comes up.";
         }
 
         void EndCampaign()

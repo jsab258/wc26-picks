@@ -25,6 +25,9 @@ namespace Ledger.Game
         GameObject _endPanel;
         Text _promptText;
 
+        GameObject _ledgerPanel;
+        Text _ledgerText;
+
         GameObject _dialoguePanel;
         Text _titleText;
         Text _historyText;
@@ -83,11 +86,12 @@ namespace Ledger.Game
             _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(1000, 36), 21, TextAnchor.MiddleCenter);
             _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
             MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft)
-                .text = "WASD move · Shift run · E talk · F1 ledger · F2 API key · Esc close";
+                .text = "WASD move · Shift run · E talk · L your ledger · F1 debug · F2 API key · Esc close";
 
             BuildDialoguePanel(canvasGo.transform);
             BuildKeyPanel(canvasGo.transform);
             BuildDebugPanel(canvasGo.transform);
+            BuildLedgerPanel(canvasGo.transform);
 
             // In self-test (sim) mode, never auto-open the key panel: it would lock
             // input and freeze the sim-driven player. The sim runs without a live key.
@@ -148,6 +152,34 @@ namespace Ledger.Game
             _debugPanel.SetActive(false);
         }
 
+        /// The player-facing Ledger (design-doc §6.2): what YOU believe the city
+        /// knows about you — learned through play, snapshots that go stale, never
+        /// the live network.
+        void BuildLedgerPanel(Transform parent)
+        {
+            _ledgerPanel = MakePanel(parent, "LedgerPanel", new Vector2(1, 0.5f), new Vector2(-20, 0), new Vector2(560, 620));
+            MakeText(_ledgerPanel.transform, "LedgerTitle", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(520, 30), 22, TextAnchor.UpperCenter)
+                .text = "YOUR LEDGER — what you believe is out there";
+            _ledgerText = MakeText(_ledgerPanel.transform, "LedgerText", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(520, 556), 16, TextAnchor.UpperLeft);
+            _ledgerPanel.SetActive(false);
+        }
+
+        void RefreshLedger()
+        {
+            var sb = new System.Text.StringBuilder();
+            int shown = 0;
+            foreach (var k in _game.Knowledge.Entries)
+            {
+                if (shown++ >= 14) { sb.AppendLine("…"); break; }
+                var status = k.Handled ? " <color=#8a8>· handled</color>" : "";
+                sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"");
+                sb.AppendLine($"   <color=#999>learned day {k.LearnedAt.Day} ({k.Source})</color>{status}");
+            }
+            _ledgerText.text = shown == 0
+                ? "Nothing yet. As far as you know, nobody is talking about you.\n\nYou learn what's out there by seeing who watches you, by loyal friends' warnings, and by what people admit to your face."
+                : sb.ToString();
+        }
+
         void Update()
         {
             var now = _game.Now;
@@ -186,6 +218,14 @@ namespace Ledger.Game
             }
             if (Input.GetKeyDown(KeyCode.F1)) _debugPanel.SetActive(!_debugPanel.activeSelf);
             if (Input.GetKeyDown(KeyCode.F2)) _keyPanel.SetActive(!_keyPanel.activeSelf);
+            // The Ledger — only while not typing into the dialogue box.
+            if (Input.GetKeyDown(KeyCode.L) && !dialogueOpen && !_keyPanel.activeSelf)
+            {
+                _ledgerPanel.SetActive(!_ledgerPanel.activeSelf);
+                if (_ledgerPanel.activeSelf) RefreshLedger();
+            }
+            if (_ledgerPanel.activeSelf && Time.frameCount % 30 == 0) RefreshLedger();
+            if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
 
             // F1 shows the brain of whoever you're talking to (or standing near).
             var debugHost = _current ?? _nearest ?? (_hosts.Count > 0 ? _hosts[0] : null);
@@ -266,6 +306,9 @@ namespace Ledger.Game
         void OpenDialogue(ConversationHost host)
         {
             _current = host;
+            // A loyal-enough carrier admits what they hold the moment you sit down.
+            var walker = host.GetComponent<NpcWalker>();
+            _game.LearnFromHost(walker != null ? walker.DisplayName : host.Card.Name);
             _titleText.text = host.Card.Name;
             _dialoguePanel.SetActive(true);
             _input.text = "";
@@ -328,47 +371,73 @@ namespace Ledger.Game
         /// dialogue is with, or null.
         Lead CurrentLead()
         {
-            var mill = _game.Gossip != null ? _game.Gossip.Mill : null;
-            if (mill == null || _current == null) return null;
+            // Belief, not ground truth (design-doc §6.2): the verbs key off what the
+            // player has LEARNED this NPC is carrying, not the live network state.
+            if (_current == null) return null;
             var walker = _current.GetComponent<NpcWalker>();
             var id = walker != null ? walker.DisplayName : _current.Card.Name;
-            foreach (var l in mill.Leads("player"))
-                if (l.HolderId == id) return l;
-            return null;
+            return _game.Knowledge.StrongestFor(id);
         }
 
-        int BribePriceFor(Lead lead) =>
-            Mathf.CeilToInt((float)_game.Gossip.Mill.BribePrice(lead.HolderId, lead.TopicKey));
+        int BribePriceFor(KnownLead known)
+        {
+            // The carrier quotes their real price when asked — that's not omniscience,
+            // it's a negotiation. A dead rumor prices from the stale snapshot instead.
+            double live = _game.Gossip.Mill.BribePrice(known.HolderId, known.TopicKey);
+            if (live > 0) return Mathf.CeilToInt((float)live);
+            var mill = _game.Gossip.Mill;
+            return Mathf.CeilToInt((float)(mill.BribeBase + mill.BribePerConfidence * known.ConfidenceWhenLearned));
+        }
+
+        /// The belief was stale — whatever they were carrying has already died down.
+        bool ResolveStale(KnownLead known, DcResult result)
+        {
+            if (result.Outcome != DcOutcome.NoSuchRumor) return false;
+            _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+            Narrate("Whatever they were saying, it seems to have died down on its own.");
+            return true;
+        }
 
         void PayOff()
         {
-            var lead = CurrentLead();
-            if (lead == null) return;
+            var known = CurrentLead();
+            if (known == null) return;
             var mill = _game.Gossip.Mill;
-            int price = BribePriceFor(lead);
+            int price = BribePriceFor(known);
             if (_game.PlayerCash < price)
             {
                 Narrate($"You'd need ${price}. You have ${_game.PlayerCash}.");
                 return;
             }
-            var result = mill.Bribe(lead.HolderId, lead.TopicKey, price, _game.Now);
+            var result = mill.Bribe(known.HolderId, known.TopicKey, price, _game.Now);
+            if (ResolveStale(known, result)) return;
             // Money only changes hands if they actually take it.
-            if (result.Outcome == DcOutcome.Contained) _game.PlayerCash -= price;
+            if (result.Outcome == DcOutcome.Contained)
+            {
+                _game.PlayerCash -= price;
+                _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+            }
             Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-${price})" : ""));
         }
 
         void LeanOn()
         {
-            var lead = CurrentLead();
-            if (lead == null) return;
-            Narrate(_game.Gossip.Mill.Intimidate(lead.HolderId, lead.TopicKey, _game.Now).Message);
+            var known = CurrentLead();
+            if (known == null) return;
+            var result = _game.Gossip.Mill.Intimidate(known.HolderId, known.TopicKey, _game.Now);
+            if (ResolveStale(known, result)) return;
+            if (result.Outcome == DcOutcome.Contained) _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+            Narrate(result.Message);
         }
 
         void PlantDoubt()
         {
-            var lead = CurrentLead();
-            if (lead == null) return;
-            Narrate(_game.Gossip.Mill.Discredit(lead.TopicKey, null, _game.Now).Message);
+            var known = CurrentLead();
+            if (known == null) return;
+            var result = _game.Gossip.Mill.Discredit(known.TopicKey, null, _game.Now);
+            if (result.Outcome == DcOutcome.Contained || result.Outcome == DcOutcome.AlreadyDenied)
+                _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+            Narrate(result.Message);
         }
 
         void Narrate(string line)

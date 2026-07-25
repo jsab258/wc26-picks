@@ -37,6 +37,7 @@ namespace Ledger.CoreTests
                 TestGossip();
                 TestDamageControl();
                 TestCampaign();
+                TestPlayerKnowledge();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -357,6 +358,33 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestPlayerKnowledge()
+        {
+            Console.WriteLine("PlayerKnowledge:");
+            var now = new GameTime(2, 10, 0);
+            var pk = new PlayerKnowledge();
+            var lead = new Lead { HolderId = "rocco", HolderName = "Rocco", TopicKey = "player.night_job_d1",
+                Summary = "seen handling a package", Confidence = 0.8, Sensitive = true };
+
+            Check(pk.Count == 0 && !pk.Knows("rocco", "player.night_job_d1"), "knowledge starts empty");
+            Check(pk.Learn(lead, "you saw him watching", now), "learning a new lead is news");
+            Check(pk.Knows("rocco", "player.night_job_d1"), "the lead is now known");
+            pk.MarkHandled("rocco", "player.night_job_d1");
+            Check(pk.StrongestFor("rocco") == null, "a handled lead stops driving the verbs");
+
+            lead.Confidence = 0.4;
+            Check(!pk.Learn(lead, "Lena warned you", now.AddMinutes(120)), "re-learning is a refresh, not news");
+            var k = pk.StrongestFor("rocco");
+            Check(k != null && !k.Handled, "hearing about it again un-handles it");
+            Check(Math.Abs(k.ConfidenceWhenLearned - 0.4) < 1e-9, "the snapshot updates to the newest sighting");
+
+            var weaker = new Lead { HolderId = "rocco", HolderName = "Rocco", TopicKey = "player.location_d2_evening",
+                Summary = "was at the warehouse", Confidence = 0.2, Sensitive = true };
+            pk.Learn(weaker, "he admitted it", now.AddMinutes(180));
+            Check(pk.Count == 2, "distinct topics are separate entries");
+            Check(pk.StrongestFor("rocco").TopicKey == "player.night_job_d1", "strongest unhandled lead wins");
         }
 
         static void TestDamageControl()
