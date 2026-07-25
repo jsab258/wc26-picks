@@ -43,6 +43,7 @@ namespace Ledger.CoreTests
                 TestHooks();
                 TestCompareNotes();
                 TestSaveRoundTrip();
+                TestDebts();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -374,6 +375,49 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestDebts()
+        {
+            Console.WriteLine("Debts:");
+            var now = new GameTime(2, 13, 0);
+            var w = new Wallet(0);
+
+            // Loyal enough pays; collection still costs a little warmth.
+            var (mill, rocco, _) = FreshMill();
+            rocco.Loyalty = 0.6;
+            var d = new Debtor { Id = "rocco", Name = "Rocco", Amount = 60, Note = "the door take, '19" };
+            Check(d.Collect(rocco, w, mill, now) == CollectOutcome.Paid, "a loyal debtor pays");
+            Check(w.Clean == 60 && !d.Outstanding, "the debt lands clean and closes");
+            Check(rocco.Loyalty < 0.6, "being collected on is remembered coolly");
+            Check(d.Collect(rocco, w, mill, now) == CollectOutcome.Nothing, "a closed page is closed");
+
+            // The nervous beg a day; asking again same day does nothing.
+            var (mill2, r2, _) = FreshMill(greed: 0.5, nerve: 0.3);
+            r2.Loyalty = 0.3;
+            var d2 = new Debtor { Id = "rocco", Name = "Rocco", Amount = 100 };
+            Check(d2.Collect(r2, w, mill2, now) == CollectOutcome.Begged, "the nervous beg for time");
+            Check(d2.Collect(r2, w, mill2, now) == CollectOutcome.Nothing, "one ask per day");
+            Check(d2.Collect(r2, w, mill2, now.AddMinutes(60 * 24)) == CollectOutcome.Begged, "tomorrow they can be asked again");
+
+            // The defiant refuse — and the street hears you came squeezing.
+            var (mill3, r3, _) = FreshMill(greed: 0.5, nerve: 0.9);
+            r3.Loyalty = 0.3;
+            var d3 = new Debtor { Id = "rocco", Name = "Rocco", Amount = 80 };
+            Check(d3.Collect(r3, w, mill3, now) == CollectOutcome.Refused, "the steady refuse");
+            Check(r3.Holds("player.debt_collecting", "true"), "refusal becomes talk about the collector");
+
+            // Forgiveness closes the page and buys loyalty.
+            var (mill4, r4, _) = FreshMill();
+            var d4 = new Debtor { Id = "rocco", Name = "Rocco", Amount = 120 };
+            double before = r4.Loyalty;
+            Check(d4.Forgive(r4, now) && !d4.Outstanding, "a torn page closes the debt");
+            Check(r4.Loyalty > before, "forgiveness is not forgotten");
+
+            // Restore overlay.
+            var d5 = new Debtor { Id = "sam", Name = "Sam", Amount = 120 };
+            d5.Restore(false, true, 3);
+            Check(!d5.Outstanding && d5.LastAskedDay == 3, "debt state round-trips via Restore");
         }
 
         static void TestSaveRoundTrip()
