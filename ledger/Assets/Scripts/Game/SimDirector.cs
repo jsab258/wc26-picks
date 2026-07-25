@@ -243,13 +243,30 @@ namespace Ledger.Game
             bool secretReachedDay = mill != null && mill.KnowsSecret("Lena");
             double gossipHeat = mill != null ? mill.DayCircleHeat() : 0.0;
 
-            // Exercise the damage-control path the dialogue buttons use, in-engine:
-            // once the secret is circulating, planting doubt must reduce the heat.
+            // Exercise the damage-control path the dialogue buttons use, in-engine.
+            // Discredit whichever sensitive story is currently strongest in the day
+            // circle and verify THAT story loses confidence — the night jobs the sim
+            // completes seed fresh witnessed rumors, so the original warehouse story
+            // is not necessarily the one dominating the heat reading anymore.
             bool discreditWorks = true;
             if (mill != null && secretReachedDay)
             {
-                mill.Discredit("player.location_d2_evening", "warehouse", _game.Now);
-                discreditWorks = mill.DayCircleHeat() < gossipHeat;
+                string topic = null; string value = null; double before = 0;
+                foreach (var a in mill.Agents)
+                    if (a.Circle == "day")
+                        foreach (var r in a.Rumors)
+                            if (r.Sensitive && r.Confidence > before)
+                            { before = r.Confidence; topic = r.TopicKey; value = r.Content.Value; }
+                if (topic != null)
+                {
+                    mill.Discredit(topic, value, _game.Now);
+                    double after = 0;
+                    foreach (var a in mill.Agents)
+                        if (a.Circle == "day")
+                            foreach (var r in a.Rumors)
+                                if (r.TopicKey == topic && r.Confidence > after) after = r.Confidence;
+                    discreditWorks = after < before;
+                }
             }
 
             // Campaign self-test: over 2 sim days the player must have completed at
