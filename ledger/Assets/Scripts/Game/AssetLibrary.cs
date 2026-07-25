@@ -36,6 +36,7 @@ namespace Ledger.Game
         public const string Roof     = "roof";
         public const string Metal    = "metal";
         public const string Glass    = "glass";
+        public const string Window   = "window"; // emissive-capable; lit at night via MPB
 
         static bool _initialized;
         static string _packRoot;
@@ -194,6 +195,11 @@ namespace Ledger.Game
                 case AssetLibrary.Metal:    s = Make(new Color(0.30f,0.31f,0.33f), 0.55f, 0.9f, new Vector2(1,1),"flat");  break;
                 case AssetLibrary.Glass:    s = Make(new Color(0.20f,0.28f,0.32f), 0.90f, 0.2f, new Vector2(1,1),"flat");
                                             s.Emission = new Color(0.05f,0.06f,0.08f); break;
+                case AssetLibrary.Window:   s = Make(new Color(0.09f,0.10f,0.13f), 0.85f, 0.1f, new Vector2(1,1),"flat");
+                                            // Non-black emission so the _EMISSION keyword is
+                                            // enabled on the shared material; the per-window
+                                            // glow is then driven by a MaterialPropertyBlock.
+                                            s.Emission = new Color(0.02f,0.02f,0.02f); break;
                 default:                    s = Make(new Color(0.5f,0.5f,0.5f), 0.1f, 0f, new Vector2(2,2), "noise"); break;
             }
             return s;

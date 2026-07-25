@@ -14,10 +14,16 @@ namespace Ledger.Game
         public static readonly Vector3 BarCounter = new Vector3(-8.5f, 0, 8.5f);
 
         static readonly List<Light> Lamps = new List<Light>();
+        static readonly List<Renderer> Windows = new List<Renderer>();
+        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 1.6f; // warm interior glow
+        static readonly Color WindowDark = new Color(0.02f, 0.02f, 0.02f);
+        static bool _windowsLit;
 
         public static void BuildBlock()
         {
             Lamps.Clear();
+            Windows.Clear();
+            _windowsLit = false;
             AssetLibrary.Initialize();
             ConfigureEnvironment();
 
@@ -91,14 +97,51 @@ namespace Ledger.Game
             int i = 0;
             foreach (var (pos, size) in specs)
             {
-                var body = MakeBox($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facades[i % facades.Length]);
+                var facade = facades[i % facades.Length];
+                var body = MakeBox($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
                 // Tile the façade at roughly one texture repeat per 3.5m so brick keeps a
                 // consistent scale across differently-sized buildings.
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
-                // Slightly-oversized roof cap for a parapet lip.
                 MakeBox($"Roof_{i}", pos + new Vector3(0, size.y + 0.15f, 0), new Vector3(size.x + 0.4f, 0.3f, size.z + 0.4f), AssetLibrary.Roof);
+
+                AddWindows($"Bldg{i}", pos, size);
+
+                // Taller buildings get a stepped setback tier — breaks the flat-box
+                // silhouette into something that reads as a real building profile.
+                if (size.y >= 9f)
+                {
+                    var upper = new Vector3(size.x * 0.62f, 3.2f, size.z * 0.62f);
+                    var upBase = size.y + 0.3f;
+                    var upBody = MakeBox($"Building_{i}_up", pos + new Vector3(0, upBase + upper.y / 2f, 0), upper, facade);
+                    SetTiling(upBody, Mathf.Max(1, Mathf.RoundToInt(upper.x / 3.5f)), 1);
+                    MakeBox($"Roof_{i}_up", pos + new Vector3(0, upBase + upper.y + 0.1f, 0), new Vector3(upper.x + 0.3f, 0.2f, upper.z + 0.3f), AssetLibrary.Roof);
+                    // A rooftop water tank / AC box for texture-of-life on the skyline.
+                    MakeBox($"Roof_{i}_tank", pos + new Vector3(size.x * 0.2f, size.y + 0.9f, size.z * 0.15f), new Vector3(1.2f, 1.2f, 1.2f), AssetLibrary.Metal);
+                }
                 i++;
             }
+        }
+
+        /// Horizontal window bands per floor on all four faces, sitting slightly proud of
+        /// the façade. Collected so SetWindowsLit can make them glow after dusk.
+        static void AddWindows(string tag, Vector3 pos, Vector3 size)
+        {
+            const float floorH = 3.0f, bandH = 1.3f, proud = 0.04f;
+            float wx = size.x * 0.82f, wz = size.z * 0.82f;
+            int floor = 0;
+            for (float y = 2.0f; y < size.y - 1.0f; y += floorH, floor++)
+            {
+                Windows.Add(WinBox($"{tag}_win_xP_{floor}", new Vector3(pos.x + size.x / 2f + proud, y, pos.z), new Vector3(0.08f, bandH, wz)));
+                Windows.Add(WinBox($"{tag}_win_xN_{floor}", new Vector3(pos.x - size.x / 2f - proud, y, pos.z), new Vector3(0.08f, bandH, wz)));
+                Windows.Add(WinBox($"{tag}_win_zP_{floor}", new Vector3(pos.x, y, pos.z + size.z / 2f + proud), new Vector3(wx, bandH, 0.08f)));
+                Windows.Add(WinBox($"{tag}_win_zN_{floor}", new Vector3(pos.x, y, pos.z - size.z / 2f - proud), new Vector3(wx, bandH, 0.08f)));
+            }
+        }
+
+        static Renderer WinBox(string name, Vector3 center, Vector3 size)
+        {
+            var go = MakeBox(name, center, size, AssetLibrary.Window);
+            return go.GetComponent<Renderer>();
         }
 
         /// The uncle's bar: an open-fronted room in the NW building's corner.
@@ -110,6 +153,33 @@ namespace Ledger.Game
             MakeBox("Bar_WallE", new Vector3(-5f, 1.75f, 10.25f), new Vector3(0.3f, 3.5f, 3.5f), AssetLibrary.Plaster);
             MakeBox("Bar_Roof", new Vector3(-8.5f, 3.6f, 8.5f), new Vector3(7.4f, 0.2f, 7.4f), AssetLibrary.Roof);
             MakeBox("Bar_Counter", new Vector3(-8.5f, 0.55f, 7.2f), new Vector3(4.5f, 1.1f, 0.7f), AssetLibrary.Wood);
+            MakeBox("Bar_CounterTop", new Vector3(-8.5f, 1.13f, 7.2f), new Vector3(4.7f, 0.08f, 0.9f), AssetLibrary.Metal);
+
+            // Back-bar shelves against the north wall, with a row of bottles on each.
+            for (int shelf = 0; shelf < 2; shelf++)
+            {
+                float sy = 1.5f + shelf * 0.75f;
+                MakeBox($"Bar_Shelf{shelf}", new Vector3(-8.5f, sy, 11.6f), new Vector3(5f, 0.08f, 0.5f), AssetLibrary.Wood);
+                for (int b = 0; b < 12; b++)
+                {
+                    int hsh = (shelf * 31 + b * 17) & 7;
+                    float h = 0.28f + hsh * 0.03f;
+                    float bx = -10.7f + b * 0.4f;
+                    MakeBox($"Bar_Bottle{shelf}_{b}", new Vector3(bx, sy + 0.04f + h / 2f, 11.6f), new Vector3(0.12f, h, 0.12f), AssetLibrary.Glass);
+                }
+            }
+
+            // Stools along the customer side of the counter.
+            for (int s = 0; s < 3; s++)
+            {
+                float sx = -9.7f + s * 1.2f;
+                MakeBox($"Bar_StoolLeg{s}", new Vector3(sx, 0.28f, 6.5f), new Vector3(0.1f, 0.56f, 0.1f), AssetLibrary.Metal);
+                MakeBox($"Bar_StoolSeat{s}", new Vector3(sx, 0.6f, 6.5f), new Vector3(0.42f, 0.1f, 0.42f), AssetLibrary.Wood);
+            }
+
+            // Hanging sign by the door — an emissive panel that lights up at night.
+            MakeBox("Bar_SignBracket", new Vector3(-6f, 2.9f, 5.4f), new Vector3(0.08f, 0.5f, 0.5f), AssetLibrary.Metal);
+            Windows.Add(WinBox("Bar_Sign", new Vector3(-6f, 2.6f, 5.1f), new Vector3(0.1f, 0.7f, 1.6f)));
 
             var barLightGo = new GameObject("Bar_Light");
             barLightGo.transform.position = new Vector3(-8.5f, 3.0f, 8.5f);
@@ -173,6 +243,24 @@ namespace Ledger.Game
             if (on != _lampsOn) { _lampsOn = on; LampToggleCount++; }
             foreach (var lamp in Lamps)
                 if (lamp != null && lamp.enabled != on) lamp.enabled = on;
+        }
+
+        /// Make the building windows glow (after dusk) or go dark (daytime). Emission is
+        /// driven per-renderer via a property block so all windows keep sharing one
+        /// material and one draw-call batch.
+        public static void SetWindowsLit(bool lit)
+        {
+            if (lit == _windowsLit && Windows.Count > 0) return; // no-op once settled
+            _windowsLit = lit;
+            var color = lit ? WindowLit : WindowDark;
+            var mpb = new MaterialPropertyBlock();
+            foreach (var win in Windows)
+            {
+                if (win == null) continue;
+                win.GetPropertyBlock(mpb);
+                mpb.SetColor("_EmissionColor", color);
+                win.SetPropertyBlock(mpb);
+            }
         }
 
         // ---- primitive helpers ----

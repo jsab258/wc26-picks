@@ -104,6 +104,7 @@ namespace Ledger.Game
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.02f, 0.02f, 0.03f), new Color(0.22f, 0.20f, 0.18f), daylight);
             RenderSettings.fogColor = Color.Lerp(new Color(0.04f, 0.05f, 0.08f), new Color(0.62f, 0.66f, 0.72f), daylight);
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
+            WorldBuilder.SetWindowsLit(daylight < 0.35f); // windows warm up a touch before the street lamps
         }
     }
 }
