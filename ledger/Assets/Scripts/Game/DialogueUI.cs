@@ -28,6 +28,11 @@ namespace Ledger.Game
         GameObject _ledgerPanel;
         Text _ledgerText;
 
+        GameObject _summaryPanel;
+        Text _summaryTitle;
+        Text _summaryText;
+        float _summaryUntil;
+
         GameObject _dialoguePanel;
         Text _titleText;
         Text _historyText;
@@ -86,12 +91,13 @@ namespace Ledger.Game
             _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(1000, 36), 21, TextAnchor.MiddleCenter);
             _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
             MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft)
-                .text = "WASD move · Shift run · E talk · L your ledger · F1 debug · F2 API key · Esc close";
+                .text = "WASD move · Shift run · E talk · C coat · L your ledger · F1 debug · F2 API key · Esc close";
 
             BuildDialoguePanel(canvasGo.transform);
             BuildKeyPanel(canvasGo.transform);
             BuildDebugPanel(canvasGo.transform);
             BuildLedgerPanel(canvasGo.transform);
+            BuildSummaryPanel(canvasGo.transform);
 
             // In self-test (sim) mode, never auto-open the key panel: it would lock
             // input and freeze the sim-driven player. The sim runs without a live key.
@@ -164,6 +170,33 @@ namespace Ledger.Game
             _ledgerPanel.SetActive(false);
         }
 
+        void BuildSummaryPanel(Transform parent)
+        {
+            _summaryPanel = MakePanel(parent, "DaySummary", new Vector2(0.5f, 1), new Vector2(0, -120), new Vector2(640, 250));
+            _summaryPanel.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.09f, 0.95f);
+            _summaryTitle = MakeText(_summaryPanel.transform, "SummaryTitle", new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(600, 32), 24, TextAnchor.UpperCenter);
+            _summaryText = MakeText(_summaryPanel.transform, "SummaryText", new Vector2(0.5f, 1), new Vector2(0, -54), new Vector2(580, 180), 18, TextAnchor.UpperLeft);
+            _summaryPanel.SetActive(false);
+        }
+
+        /// The Persona-style day anchor: each morning, the night's books in one card.
+        public void ShowDaySummary(int dayClosed, int takings, int washed, int talkCount,
+            string streetWord, string outfitWord, int clean, int dirty)
+        {
+            if (SimMode.Days > 0) return; // never block the self-test
+            _summaryTitle.text = $"— END OF DAY {dayClosed} —";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Bar takings: <b>+${takings}</b>" + (washed > 0 ? $"   ·   washed through the till: <b>${washed}</b>" : ""));
+            sb.AppendLine($"Cash: <b>${clean}</b> clean" + (dirty > 0 ? $" + <b>${dirty}</b> dirty in your coat" : ""));
+            sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{outfitWord}</b>.");
+            sb.AppendLine(talkCount == 0
+                ? "As far as you know, nobody is carrying talk about you."
+                : $"Talk you know about and haven't dealt with: <b>{talkCount}</b> — press L for your ledger.");
+            _summaryText.text = sb.ToString();
+            _summaryPanel.SetActive(true);
+            _summaryUntil = Time.unscaledTime + 9f;
+        }
+
         void RefreshLedger()
         {
             var sb = new System.Text.StringBuilder();
@@ -195,7 +228,8 @@ namespace Ledger.Game
                 var camp = _game.Campaign;
                 double heat = _game.Gossip != null && _game.Gossip.Mill != null ? _game.Gossip.Mill.DayCircleHeat() : 0.0;
                 _statusText.text = $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}" +
-                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: {PatienceWord(camp.OutfitPatience)}";
+                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: {PatienceWord(camp.OutfitPatience)}" +
+                    (_game.WearingCoat ? "  ·  <color=#c96>in the coat</color>" : "");
             }
 
             if (_toastUntil > 0f && Time.unscaledTime > _toastUntil) { _toastText.text = ""; _toastUntil = 0f; }
@@ -230,6 +264,20 @@ namespace Ledger.Game
             if (_ledgerPanel.activeSelf && Time.frameCount % 30 == 0) RefreshLedger();
             if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
 
+            // The runner's coat — day face or night face, one key, never while typing.
+            if (Input.GetKeyDown(KeyCode.C) && !dialogueOpen && !_keyPanel.activeSelf)
+            {
+                _game.WearingCoat = !_game.WearingCoat;
+                Toast(_game.WearingCoat
+                    ? "You pull on the runner's coat. Harder to name in the dark; harder to explain in daylight."
+                    : "You shrug off the coat. Just the bar owner again.", 5f);
+            }
+
+            // Morning summary card: auto-fades, or Esc/click-through dismisses.
+            if (_summaryPanel.activeSelf &&
+                (Time.unscaledTime > _summaryUntil || Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Return)))
+                _summaryPanel.SetActive(false);
+
             // F1 shows the brain of whoever you're talking to (or standing near).
             var debugHost = _current ?? _nearest ?? (_hosts.Count > 0 ? _hosts[0] : null);
             if (_debugPanel.activeSelf && debugHost != null && Time.frameCount % 30 == 0)
@@ -260,9 +308,7 @@ namespace Ledger.Game
         }
 
         static string HeatWord(double h) => GameController.StreetWord(h);
-
-        static string PatienceWord(double p) =>
-            p > 0.66 ? "satisfied" : p > 0.33 ? "impatient" : "furious";
+        static string PatienceWord(double p) => GameController.OutfitWord(p);
 
         /// A short transient line at the top of the screen — takings banked, a job
         /// posted, a drop made. The campaign's voice outside of dialogue.

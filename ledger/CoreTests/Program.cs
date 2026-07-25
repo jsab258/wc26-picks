@@ -306,6 +306,17 @@ namespace Ledger.CoreTests
             var dup = new Rumor { Content = new Fact("player", "night_job_d2", "seen"), OriginId = "w3", Summary = "same story again", Confidence = 0.3, Sensitive = true, Hops = 1 };
             d3.Rumors.Add(dup);
             Check(Math.Abs(mill3.DayCircleHeat() - 0.75) < 1e-9, "a weaker retelling of the SAME story does not stack");
+
+            // A disguised sighting enters at reduced confidence and does not become
+            // hard knowledge — the witness can't swear to who they saw.
+            var g5 = new SocialGraph(); g5.Link("w5", "d5", 0.9);
+            var mill5b = new GossipMill(g5);
+            var w5b = Agent("w5", "Witness", "night");
+            mill5b.Add(w5b); mill5b.Add(Agent("d5", "Neighbor", "day"));
+            mill5b.Witness("w5", new Fact("player", "night_job_d3", "seen"), "a figure in a coat at the drop", true, now, 0.6);
+            Check(Math.Abs(w5b.Best("player.night_job_d3").Confidence - 0.6) < 1e-9, "a coated sighting enters at reduced confidence");
+            Check(w5b.Knowledge.CheckClaim(new Fact("player", "night_job_d3", "elsewhere")) != ClaimResult.Contradiction,
+                "an unsure witness holds no hard fact to contradict with");
         }
 
         // A witness (Rocco, night) tied to a day acquaintance (Lena), with Rocco

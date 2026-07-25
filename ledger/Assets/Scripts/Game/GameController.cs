@@ -35,6 +35,16 @@ namespace Ledger.Game
         const float WarnRange = 4f;
         readonly Dictionary<string, int> _lastWarnDay = new Dictionary<string, int>();
 
+        // Disguise v0 (design-doc §6.4 cover): the runner's coat. Worn at a drop,
+        // witnesses can't swear it was you (reduced rumor confidence); worn where the
+        // day world can see you in daylight, it is itself something to talk about.
+        public bool WearingCoat;
+        public const double CoatWitnessConfidence = 0.6;
+        readonly Dictionary<string, int> _coatSeenDay = new Dictionary<string, int>();
+
+        public static string OutfitWord(double p) =>
+            p > 0.66 ? "satisfied" : p > 0.33 ? "impatient" : "furious";
+
         /// The street's mood about the player, in words — shared by the HUD and by
         /// conversation context so everyone describes the same weather.
         public static string StreetWord(double heat) =>
@@ -195,6 +205,11 @@ namespace Ledger.Game
                 if (washed > 0) line += $" ${washed} of night money washed through the till.";
                 _ui?.Toast(line);
 
+                int talk = 0;
+                foreach (var k in Knowledge.Entries) if (!k.Handled) talk++;
+                _ui?.ShowDaySummary(Now.Day - 1, takings, washed, talk,
+                    StreetWord(heat), OutfitWord(Campaign.OutfitPatience), Wallet.Clean, Wallet.Dirty);
+
                 // The bookkeeper sees a hoard the till can't explain. Diegetic
                 // "unexplained money" pressure (design-doc §6.7) — small, daily.
                 if (Wallet.Dirty > Wallet.LaunderPerDay && _lena != null)
@@ -235,7 +250,8 @@ namespace Ledger.Game
                     _jobMarker = null;
                     Campaign.JobDone();
                     Wallet.EarnDirty(Campaign.JobPay);
-                    var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now)
+                    double conf = WearingCoat ? CoatWitnessConfidence : 1.0;
+                    var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now, conf)
                         : new List<string>();
                     NightWitnesses += seen.Count;
                     // You saw them see you: each witness becomes a known lead.
@@ -244,7 +260,9 @@ namespace Ledger.Game
                             if (lead.HolderId == w && lead.TopicKey == $"player.night_job_d{Now.Day}")
                                 Knowledge.Learn(lead, $"you saw {w} watching", Now);
                     _ui?.Toast(seen.Count > 0
-                        ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you."
+                        ? WearingCoat
+                            ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw a figure in a coat."
+                            : $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you — and your face."
                         : $"Drop made. +${Campaign.JobPay} dirty.");
                 }
             }
@@ -255,12 +273,27 @@ namespace Ledger.Game
         void CheckLoyalWarnings()
         {
             if (_gossip == null || _gossip.Mill == null || _player == null || _ui == null) return;
+            bool daylight = Now.Hour >= 8 && Now.Hour < 20;
             foreach (var npc in _npcs)
             {
                 if (npc == null) continue;
                 var name = npc.DisplayName;
                 var g = _gossip.Mill.Get(name);
-                if (g == null || g.Loyalty < WarnLoyaltyFloor) continue;
+                if (g == null) continue;
+
+                // The coat in broad daylight: a day-circle face clocking you in your
+                // night clothes is quietly filed away — the disguise's price.
+                if (WearingCoat && daylight && g.Circle == "day"
+                    && (!_coatSeenDay.TryGetValue(name, out var cd) || cd != Now.Day)
+                    && Vector3.Distance(npc.transform.position, _player.transform.position) <= 6f)
+                {
+                    _coatSeenDay[name] = Now.Day;
+                    g.Suspicion.Raise(0.05, "saw the new owner in that runner's coat in broad daylight");
+                    g.Memory.Append(new MemoryEvent(Now, "observation", 0.5,
+                        "Saw the new owner out in that heavy runner's coat, midday. Who dresses like that for bar work?"));
+                }
+
+                if (g.Loyalty < WarnLoyaltyFloor) continue;
                 if (_lastWarnDay.TryGetValue(name, out var d) && d == Now.Day) continue;
                 if (Vector3.Distance(npc.transform.position, _player.transform.position) > WarnRange) continue;
                 foreach (var lead in _gossip.Mill.Leads("player"))

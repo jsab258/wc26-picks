@@ -124,21 +124,28 @@ namespace Ledger.Core
         public Gossiper Get(string id) => _agents.TryGetValue(id, out var g) ? g : null;
         public IEnumerable<Gossiper> Agents => _agents.Values;
 
-        /// A first-hand sighting enters the network at full confidence.
-        public void Witness(string witnessId, Fact content, string summary, bool sensitive, GameTime now)
+        /// A first-hand sighting enters the network. Confidence defaults to certain;
+        /// a disguise (or distance, or darkness) passes less than 1.0 — the witness
+        /// saw SOMETHING but can't swear to who, and everything downstream (spread,
+        /// heat, bribe prices) inherits that doubt.
+        public void Witness(string witnessId, Fact content, string summary, bool sensitive, GameTime now,
+            double confidence = 1.0)
         {
             var w = Get(witnessId);
             if (w == null) return;
-            w.Knowledge.Learn(content); // they know it for certain
+            confidence = Math.Clamp(confidence, 0.0, 1.0);
+            if (confidence >= 0.95) w.Knowledge.Learn(content); // only certainty becomes hard knowledge
             if (!w.Holds(content.Subject + "." + content.Predicate, content.Value))
             {
                 w.Rumors.Add(new Rumor
                 {
                     Content = content, OriginId = witnessId, Summary = summary,
-                    Confidence = 1.0, Hops = 0, Sensitive = sensitive,
+                    Confidence = confidence, Hops = 0, Sensitive = sensitive,
                 });
             }
-            w.Memory.Append(new MemoryEvent(now, "observation", sensitive ? 0.9 : 0.6, $"I saw it myself: {summary}"));
+            w.Memory.Append(new MemoryEvent(now, "observation", sensitive ? 0.9 : 0.6,
+                confidence >= 0.95 ? $"I saw it myself: {summary}"
+                    : $"I think I saw it — couldn't swear to it: {summary}"));
         }
 
         /// The player tells one NPC something checkable. Recorded so a later rumor can

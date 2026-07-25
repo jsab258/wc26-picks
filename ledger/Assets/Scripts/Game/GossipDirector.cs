@@ -83,17 +83,18 @@ namespace Ledger.Game
         /// side of the double life generating tomorrow's problem. Returns who saw:
         /// at that range the player saw them too, so each witness becomes a known
         /// lead rather than an invisible tick in the simulation.
-        public List<string> WitnessNightJob(Vector3 dropPos, int day, GameTime now)
+        public List<string> WitnessNightJob(Vector3 dropPos, int day, GameTime now, double confidence = 1.0)
         {
             var seen = new List<string>();
             if (_mill == null) return seen;
+            var summary = confidence >= 0.95
+                ? "the new owner was handling a package in the street past midnight"
+                : "someone in a runner's coat — maybe the new owner — was handling a package past midnight";
             foreach (var kv in _walkers)
             {
                 if (kv.Value == null) continue;
                 if (Vector3.Distance(kv.Value.transform.position, dropPos) > WitnessRange) continue;
-                _mill.Witness(kv.Key,
-                    new Fact("player", $"night_job_d{day}", "seen"),
-                    "the new owner was handling a package in the street past midnight", true, now);
+                _mill.Witness(kv.Key, new Fact("player", $"night_job_d{day}", "seen"), summary, true, now, confidence);
                 seen.Add(kv.Key);
             }
             return seen;

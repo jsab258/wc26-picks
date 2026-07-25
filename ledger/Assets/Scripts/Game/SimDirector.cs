@@ -73,6 +73,10 @@ namespace Ledger.Game
             if (_game == null) return;
             var now = _game.Now;
 
+            // The sim bot dresses for the work: coat on through the night shift, off
+            // for the day — exercising the disguise path on every drop.
+            _game.WearingCoat = now.Hour >= 21 || now.Hour < 3;
+
             // Drive the player around the block to exercise movement and camera —
             // except when the outfit's drop is open: then head straight for it, so the
             // night-job completion path (pay, witnesses, patience) runs in-engine.
@@ -281,6 +285,16 @@ namespace Ledger.Game
             bool knowledgeWorks = _game.NightWitnesses == 0 || _game.Knowledge.Count >= 1;
             // Dirty night pay must actually cycle through the till into clean money.
             bool launderWorks = camp.JobsDone == 0 || _game.Wallet.TotalWashed > 0;
+
+            // Every drop ran coated, so every first-hand night-job sighting must carry
+            // the disguise's doubt (<= CoatWitnessConfidence) rather than certainty.
+            double maxNightConf = 0;
+            if (mill != null)
+                foreach (var a in mill.Agents)
+                    foreach (var r in a.Rumors)
+                        if (r.Hops == 0 && r.TopicKey.StartsWith("player.night_job") && r.Confidence > maxNightConf)
+                            maxNightConf = r.Confidence;
+            bool disguiseWorks = _game.NightWitnesses == 0 || maxNightConf <= GameController.CoatWitnessConfidence + 0.01;
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -307,6 +321,7 @@ namespace Ledger.Game
                 { "cleanCash", _game.Wallet.Clean },
                 { "dirtyCash", _game.Wallet.Dirty },
                 { "washed", _game.Wallet.TotalWashed },
+                { "maxNightWitnessConf", maxNightConf },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -318,7 +333,8 @@ namespace Ledger.Game
 
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
-                        && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks;
+                        && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
+                        && disguiseWorks;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -326,7 +342,7 @@ namespace Ledger.Game
                       $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
                       $"witnesses={_game.NightWitnesses} knownLeads={_game.Knowledge.Count} " +
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
-                      $"verdict={camp.Verdict} pass={pass}");
+                      $"coatConf={maxNightConf:0.00} verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }
