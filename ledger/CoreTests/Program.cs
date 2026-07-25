@@ -404,6 +404,14 @@ namespace Ledger.CoreTests
             Check(mill.UseHook("rocco", skim, now).Outcome == DcOutcome.AlreadyDenied, "a leash needs no second telling");
             Check(rocco.Memory.Events.Any(e => e.Text.Contains("The new owner knows")), "the leashed remember the moment");
 
+            // The strong hook's protection guarantee: no verb can backfire on the leashed.
+            Check(mill.Intimidate("rocco", "player.location_d2_evening", now).Outcome == DcOutcome.AlreadyDenied,
+                "threatening the leashed is refused, not backfired");
+            Check(!rocco.Holds("player.threatened", "true"), "no threat rumor forms against a leash");
+            Check(mill.Bribe("rocco", "player.location_d2_evening", 9999, now).Outcome == DcOutcome.AlreadyDenied,
+                "bribing the leashed is refused — they already comply");
+            Check(mill.Leads("player").All(l => l.HolderId != "rocco"), "a leashed holder is no longer a lead");
+
             // Leash silences only player talk — other subjects still travel.
             mill.Witness("rocco", new Fact("marek", "debt", "unpaid"), "Marek died owing the docks", false, now);
             mill.Tick(now.AddMinutes(60));
@@ -415,6 +423,7 @@ namespace Ledger.CoreTests
             weak.Learn("Sam", now);
             var r2 = mill2.UseHook("rocco", weak, now);
             Check(r2.Outcome == DcOutcome.Contained && weak.HookSpent, "a shameful secret buys one silence");
+            Check(r2.ContainedTopic == "player.location_d2_evening", "the favor reports which story it silenced");
             Check(rocco2.Suppressed.Count == 1 && !rocco2.Leashed, "the favor contains a story, not the person");
             Check(mill2.UseHook("rocco", weak, now).Outcome == DcOutcome.AlreadyDenied, "a spent favor does not work twice");
 

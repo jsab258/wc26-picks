@@ -276,6 +276,8 @@ namespace Ledger.Core
             var subj = subject.ToLowerInvariant();
             var list = new List<Lead>();
             foreach (var a in _agents.Values)
+            {
+                if (a.Leashed && subj == "player") continue; // held: carrying, but never spreading
                 foreach (var r in a.Rumors)
                     if (r.Content.Subject == subj && r.Confidence >= MinConfidenceToShare && !a.Suppressed.Contains(r.TopicKey))
                         list.Add(new Lead
@@ -283,6 +285,7 @@ namespace Ledger.Core
                             HolderId = a.Id, HolderName = a.DisplayName, SourceId = r.OriginId,
                             TopicKey = r.TopicKey, Summary = r.Summary, Confidence = r.Confidence, Sensitive = r.Sensitive,
                         });
+            }
             return list.OrderByDescending(l => l.Confidence).ToList();
         }
 
@@ -307,6 +310,10 @@ namespace Ledger.Core
         public DcResult Bribe(string npcId, string topicKey, double offer, GameTime now)
         {
             var n = Get(npcId);
+            // A leashed NPC already complies — no money needed, no backfire possible
+            // (the strong hook's protection guarantee).
+            if (n != null && n.Leashed)
+                return Dc(DcOutcome.AlreadyDenied, $"{n.DisplayName} is already yours. Save your money.");
             var r = n?.Best(topicKey);
             if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
             double price = BribeBase + BribePerConfidence * r.Confidence;
@@ -330,6 +337,10 @@ namespace Ledger.Core
         public DcResult Intimidate(string npcId, string topicKey, GameTime now)
         {
             var n = Get(npcId);
+            // The leash outranks the threat — nothing left to scare out of them,
+            // and no backfire possible.
+            if (n != null && n.Leashed)
+                return Dc(DcOutcome.AlreadyDenied, $"{n.DisplayName} already knows what you know. There is nothing left to threaten.");
             var r = n?.Best(topicKey);
             if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
 
@@ -402,8 +413,15 @@ namespace Ledger.Core
             n.Loyalty = System.Math.Clamp(n.Loyalty - 0.2, 0, 1);
             n.Memory.Append(new MemoryEvent(now, "observation", 0.85,
                 $"The new owner reminded me about {secret.Summary} So I let the talk drop. Once. We're even now."));
-            return Dc(DcOutcome.Contained, $"{n.DisplayName}'s face changes. That story dies with them — and you're even now.");
+            var done = Dc(DcOutcome.Contained, $"{n.DisplayName}'s face changes. That story dies with them — and you're even now.");
+            done.ContainedTopic = strongest.TopicKey;
+            return done;
         }
+        // NOTE (§6.3 deferral): the strong hook's "protection from hostile acts" is
+        // enforced for everything NPCs can currently do (spreading, backfires — see
+        // the Leashed guards in Tick/Bribe/Intimidate). When M4.2 adds suspicion-
+        // driven probe/verify/confront behaviors, leashed NPCs must be barred from
+        // those escalations too.
 
         /// Rumors fade if nobody keeps them alive — the "lie low and let it cool" option.
         /// Call once per in-game hour; confidence decays on a multi-day half-life and
@@ -466,6 +484,9 @@ namespace Ledger.Core
         public string Message;
         public Rumor NewRumor;
         public int Affected;
+        /// The topic a hook favor silenced — the mill picks its LIVE strongest,
+        /// which may differ from what the player believed; callers sync belief off this.
+        public string ContainedTopic;
     }
 
     /// A lead the player can act on: who is carrying talk about them, how sure they are,

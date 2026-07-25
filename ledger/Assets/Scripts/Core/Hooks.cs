@@ -3,6 +3,10 @@ using System.Linq;
 
 namespace Ledger.Core
 {
+    /// Taxonomy note: "Criminal" really means EXPOSURE-LETHAL — the design doc's
+    /// wording (§6.3) says criminal, but the working rule as secrets get authored
+    /// is severity of exposure, not legality (Sam's informing is legal and still
+    /// street-lethal). Shameful = survivable embarrassment = weak hook.
     public enum SecretKind { Shameful, Criminal }
 
     /// Design-doc §6.3: what you know about people is loot. A learned shameful

@@ -10,7 +10,10 @@ namespace Ledger.Game
     public static class SecretsSetup
     {
         public const double ConfessLoyaltyFloor = 0.75;
-        public const double ShareLoyaltyFloor = 0.6;
+        // Above every cast member's STARTING loyalty (Rocco sits at exactly 0.6):
+        // no secret is a day-one freebie; each must be earned through play — a beat
+        // honored, a favor done — before anyone opens up.
+        public const double ShareLoyaltyFloor = 0.65;
 
         public static SecretsBook Build()
         {
@@ -39,12 +42,16 @@ namespace Ledger.Game
             };
             book.Add(informant); // nobody else knows; only Sam himself can let it slip
 
+            // Note her card openly admits the real ledger EXISTS — her authored arc
+            // gates where it is. The stealable secret is therefore the hiding place:
+            // earn her trust and she shows you willingly; learn it from Rocco and you
+            // could simply take it. (Player decision, 2026-07-25.)
             var ledger = new Secret
             {
                 Id = "lena_ledger", OwnerId = "Lena", Kind = SecretKind.Criminal,
-                Summary = "Marek kept two sets of books, and Lena still has the real one hidden.",
+                Summary = "where she hides Marek's real ledger — under the third cellar step, behind the loose brick.",
             };
-            ledger.KnownBy.Add("Rocco"); // twenty years at the door; he carried the box once
+            ledger.KnownBy.Add("Rocco"); // he carried the strongbox down those stairs once
             book.Add(ledger);
 
             return book;

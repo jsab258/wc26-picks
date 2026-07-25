@@ -539,6 +539,16 @@ namespace Ledger.Game
             var hook = CurrentHostHook();
             if (id == null || hook == null) return;
             var result = _game.Gossip.Mill.UseHook(id, hook, _game.Now);
+            // Keep the player's ledger honest: a favor silences one story (the mill
+            // says which); a leash silences the person — everything they hold is dealt with.
+            if (result.Outcome == DcOutcome.Contained)
+            {
+                if (hook.Strong)
+                    foreach (var k in _game.Knowledge.Entries)
+                    { if (k.HolderId == id) _game.Knowledge.MarkHandled(k.HolderId, k.TopicKey); }
+                else if (result.ContainedTopic != null)
+                    _game.Knowledge.MarkHandled(id, result.ContainedTopic);
+            }
             Narrate(result.Message);
         }
 
