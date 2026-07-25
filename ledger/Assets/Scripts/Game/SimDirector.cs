@@ -239,6 +239,15 @@ namespace Ledger.Game
             bool secretReachedDay = mill != null && mill.KnowsSecret("Lena");
             double gossipHeat = mill != null ? mill.DayCircleHeat() : 0.0;
 
+            // Exercise the damage-control path the dialogue buttons use, in-engine:
+            // once the secret is circulating, planting doubt must reduce the heat.
+            bool discreditWorks = true;
+            if (mill != null && secretReachedDay)
+            {
+                mill.Discredit("player.location_d2_evening", "warehouse", _game.Now);
+                discreditWorks = mill.DayCircleHeat() < gossipHeat;
+            }
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -249,6 +258,7 @@ namespace Ledger.Game
                 { "lampToggles", WorldBuilder.LampToggleCount },
                 { "gossipHeat", gossipHeat },
                 { "secretReachedDay", secretReachedDay },
+                { "discreditWorks", discreditWorks },
                 { "hourlySamples", _samples.Count },
                 { "samples", _samples },
                 { "screenshotCount", _screenshots.Count },
@@ -257,10 +267,11 @@ namespace Ledger.Game
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
-                        && _screenshots.Count > 0 && secretReachedDay;
+                        && _screenshots.Count > 0 && secretReachedDay && discreditWorks;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
-                      $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} pass={pass}");
+                      $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
+                      $"discreditWorks={discreditWorks} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }

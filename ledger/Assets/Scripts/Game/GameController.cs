@@ -14,6 +14,10 @@ namespace Ledger.Game
         public GameTime Now { get; private set; } = new GameTime(1, 9, 0);
         public CostTracker Cost { get; } = new CostTracker();
 
+        // The player's walking-around money. Starts modest so an early payoff hurts;
+        // income sources (bar takings, night work) arrive with the economy pass.
+        public int PlayerCash = 250;
+
         float _minuteAccumulator;
         Light _sun;
         readonly List<NpcWalker> _npcs = new List<NpcWalker>();

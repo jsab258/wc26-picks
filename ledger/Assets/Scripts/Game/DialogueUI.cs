@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ledger.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,6 +26,13 @@ namespace Ledger.Game
 
         GameObject _keyPanel;
         InputField _keyInput;
+
+        // Damage-control row: shown only while talking to someone who is carrying a
+        // rumor about the player. Backed entirely by the GossipMill's game-state
+        // verbs — the LLM just voices the aftermath.
+        GameObject _dcRow;
+        Button _payBtn, _leanBtn, _doubtBtn;
+        Text _payLabel, _leanLabel, _doubtLabel;
 
         GameObject _debugPanel;
         Text _debugText;
@@ -84,6 +92,23 @@ namespace Ledger.Game
             _input = MakeInput(_dialoguePanel.transform, "Say something...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
             var sendBtn = MakeButton(_dialoguePanel.transform, "Send", new Vector2(1, 0), new Vector2(-16, 18), new Vector2(110, 44));
             sendBtn.onClick.AddListener(Submit);
+
+            // Damage-control verbs sit just above the text input, out of the way of
+            // normal talk. Only visible when this NPC is actually carrying something.
+            _dcRow = new GameObject("DamageControl");
+            _dcRow.transform.SetParent(_dialoguePanel.transform, false);
+            Place(_dcRow, new Vector2(0.5f, 0), new Vector2(0, 70), new Vector2(860, 40));
+            _payBtn = MakeButton(_dcRow.transform, "Pay off", new Vector2(0, 0.5f), new Vector2(0, 0), new Vector2(230, 38));
+            _leanBtn = MakeButton(_dcRow.transform, "Lean on them", new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(230, 38));
+            _doubtBtn = MakeButton(_dcRow.transform, "Plant doubt", new Vector2(1, 0.5f), new Vector2(0, 0), new Vector2(230, 38));
+            _payLabel = _payBtn.GetComponentInChildren<Text>();
+            _leanLabel = _leanBtn.GetComponentInChildren<Text>();
+            _doubtLabel = _doubtBtn.GetComponentInChildren<Text>();
+            _payBtn.onClick.AddListener(PayOff);
+            _leanBtn.onClick.AddListener(LeanOn);
+            _doubtBtn.onClick.AddListener(PlantDoubt);
+            _dcRow.SetActive(false);
+
             _dialoguePanel.SetActive(false);
         }
 
@@ -115,7 +140,7 @@ namespace Ledger.Game
         void Update()
         {
             var now = _game.Now;
-            _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})";
+            _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  ${_game.PlayerCash}";
 
             bool inRange = _lena != null && _lena.PlayerInRange(_player.transform);
             bool dialogueOpen = _dialoguePanel.activeSelf;
@@ -138,6 +163,23 @@ namespace Ledger.Game
 
             if (dialogueOpen && _input.isFocused && Input.GetKeyDown(KeyCode.Return))
                 Submit();
+
+            // Offer damage control only when Lena is actually carrying talk about the
+            // player; refresh the payoff price as the rumor entrenches.
+            if (dialogueOpen && Time.frameCount % 30 == 0)
+            {
+                var lead = CurrentLead();
+                _dcRow.SetActive(lead != null);
+                if (lead != null)
+                {
+                    int price = BribePriceFor(lead);
+                    _payLabel.text = _game.PlayerCash >= price ? $"Pay off (${price})" : $"Pay off (${price} — short)";
+                    _payBtn.interactable = _game.PlayerCash >= price;
+                    _leanLabel.text = "Lean on her";
+                    _doubtLabel.text = "Plant doubt";
+                }
+            }
+            else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
 
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
         }
@@ -169,6 +211,60 @@ namespace Ledger.Game
 
             _history.RemoveAt(_history.Count - 1);
             _history.Add($"<b>Lena:</b> {reply}");
+            RenderHistory();
+        }
+
+        // ---- damage control ----
+
+        /// The strongest still-spreading rumor about the player that Lena holds, or
+        /// null. (Lena is the only conversational NPC in M0/M1; this generalizes to
+        /// "the NPC this dialogue is with" once more of the cast can talk.)
+        Lead CurrentLead()
+        {
+            var mill = _game.Gossip != null ? _game.Gossip.Mill : null;
+            if (mill == null) return null;
+            foreach (var l in mill.Leads("player"))
+                if (l.HolderId == "Lena") return l;
+            return null;
+        }
+
+        int BribePriceFor(Lead lead) =>
+            Mathf.CeilToInt((float)_game.Gossip.Mill.BribePrice(lead.HolderId, lead.TopicKey));
+
+        void PayOff()
+        {
+            var lead = CurrentLead();
+            if (lead == null) return;
+            var mill = _game.Gossip.Mill;
+            int price = BribePriceFor(lead);
+            if (_game.PlayerCash < price)
+            {
+                Narrate($"You'd need ${price}. You have ${_game.PlayerCash}.");
+                return;
+            }
+            var result = mill.Bribe(lead.HolderId, lead.TopicKey, price, _game.Now);
+            // Money only changes hands if they actually take it.
+            if (result.Outcome == DcOutcome.Contained) _game.PlayerCash -= price;
+            Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-${price})" : ""));
+        }
+
+        void LeanOn()
+        {
+            var lead = CurrentLead();
+            if (lead == null) return;
+            Narrate(_game.Gossip.Mill.Intimidate(lead.HolderId, lead.TopicKey, _game.Now).Message);
+        }
+
+        void PlantDoubt()
+        {
+            var lead = CurrentLead();
+            if (lead == null) return;
+            Narrate(_game.Gossip.Mill.Discredit(lead.TopicKey, null, _game.Now).Message);
+        }
+
+        void Narrate(string line)
+        {
+            _history.Add($"<i>{line}</i>");
             RenderHistory();
         }
 
