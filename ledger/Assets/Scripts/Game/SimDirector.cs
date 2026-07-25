@@ -233,6 +233,12 @@ namespace Ledger.Game
                 if (Vector3.Distance(npc.transform.position, _startPositions[npc.DisplayName]) > 2f)
                     npcsMoved = true;
 
+            // Gossip self-test: over the simulated days, the doorman's night-life
+            // sighting should physically travel to Lena (day circle) as they cross paths.
+            var mill = _game.Gossip != null ? _game.Gossip.Mill : null;
+            bool secretReachedDay = mill != null && mill.KnowsSecret("Lena");
+            double gossipHeat = mill != null ? mill.DayCircleHeat() : 0.0;
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -241,6 +247,8 @@ namespace Ledger.Game
                 { "errors", new List<object>(_errors.ToArray()) },
                 { "npcsMoved", npcsMoved },
                 { "lampToggles", WorldBuilder.LampToggleCount },
+                { "gossipHeat", gossipHeat },
+                { "secretReachedDay", secretReachedDay },
                 { "hourlySamples", _samples.Count },
                 { "samples", _samples },
                 { "screenshotCount", _screenshots.Count },
@@ -248,9 +256,11 @@ namespace Ledger.Game
             };
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
-            bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2 && _screenshots.Count > 0;
+            bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
+                        && _screenshots.Count > 0 && secretReachedDay;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
-                      $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} pass={pass}");
+                      $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
+                      $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} pass={pass}");
             Application.Quit(pass ? 0 : 1);
         }
     }

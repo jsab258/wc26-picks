@@ -133,7 +133,8 @@ namespace Ledger.Game
             if (Input.GetKeyDown(KeyCode.F2)) _keyPanel.SetActive(!_keyPanel.activeSelf);
 
             if (_debugPanel.activeSelf && _lena != null && Time.frameCount % 30 == 0)
-                _debugText.text = _lena.DebugReport();
+                _debugText.text = _lena.DebugReport() +
+                    (_game.Gossip != null ? "\n\n" + _game.Gossip.StatusLine() : "");
 
             if (dialogueOpen && _input.isFocused && Input.GetKeyDown(KeyCode.Return))
                 Submit();

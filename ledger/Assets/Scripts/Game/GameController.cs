@@ -18,7 +18,10 @@ namespace Ledger.Game
         Light _sun;
         readonly List<NpcWalker> _npcs = new List<NpcWalker>();
         ConversationHost _lena;
+        GossipDirector _gossip;
         int _lastReflectedDay;
+
+        public GossipDirector Gossip => _gossip;
 
         void Start()
         {
@@ -57,6 +60,9 @@ namespace Ledger.Game
             _lena.Initialize(this, LenaSetup.CardMarkdown, LenaSetup.SeedKnowledge, LenaSetup.SeedMemories);
 
             DialogueUI.Create(this, player, _lena);
+
+            _gossip = gameObject.AddComponent<GossipDirector>();
+            _gossip.Begin(this, _npcs, _lena);
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
