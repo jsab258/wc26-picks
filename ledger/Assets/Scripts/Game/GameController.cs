@@ -210,6 +210,34 @@ namespace Ledger.Game
                 (new GameTime(0, 19, 0), new Vector3(-18, 0, 20)),  // home in the north tenements
             }));
 
+            // Tier-1 batch 2 (approved 2026-07-26): the people the story needs
+            // standing somewhere. The three organization heads are NOT here —
+            // they arrive only when their arm's attention earns the meeting.
+            _npcs.Add(NpcWalker.Spawn("June", CastTier1.JuneColor, new[]
+            {
+                (new GameTime(0, 15, 0), new Vector3(-2, 0, 1)),    // across from the bar, coat still on
+                (new GameTime(0, 17, 0), new Vector3(-34, 0, 10)),  // the chapel, for a while
+                (new GameTime(0, 20, 0), new Vector3(30, 0, 18)),   // the ferry, back across town to her shift
+            }));
+            _npcs.Add(NpcWalker.Spawn("Emil", CastTier1.EmilColor, new[]
+            {
+                (new GameTime(0, 7, 0), new Vector3(-34, 0, 10)),   // the chapel
+                (new GameTime(0, 13, 0), new Vector3(10, 0, -14)),  // the market, walking among people
+                (new GameTime(0, 16, 0), new Vector3(-34, 0, 10)),
+            }));
+            _npcs.Add(NpcWalker.Spawn("Zlata", CastTier1.ZlataColor, new[]
+            {
+                (new GameTime(0, 7, 30), DispatchBoard),            // the board, before anyone else
+                (new GameTime(0, 14, 0), new Vector3(18, 0, 14)),   // chasing a late courier at the docks
+                (new GameTime(0, 17, 0), DispatchBoard),
+                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(4, 0, 2)), // one drink, loudly
+            }));
+            _npcs.Add(NpcWalker.Spawn("Halvard", CastTier1.HalvardColor, new[]
+            {
+                (new GameTime(0, 10, 0), new Vector3(31, 0, 21)),   // the coin shop that sells no coins
+                (new GameTime(0, 19, 0), new Vector3(31, 0, 21)),
+            }));
+
             // The generated district population (open-city-spec §3): the batch
             // walks. Brains arrive via the generic host loop below; secrets join
             // the book so the leverage economy scales with the street.
@@ -274,7 +302,8 @@ namespace Ledger.Game
             // witness and handle him directly instead of only hearing about it from Lena.
             foreach (var npc in _npcs)
             {
-                var member = CastSetup.Get(npc.DisplayName) ?? Tier2Setup.Get(npc.DisplayName) ?? Tier2Batch.Get(npc.DisplayName);
+                var member = CastSetup.Get(npc.DisplayName) ?? Tier2Setup.Get(npc.DisplayName)
+                    ?? CastTier1.Get(npc.DisplayName) ?? Tier2Batch.Get(npc.DisplayName);
                 if (member == null) continue;
                 var host = npc.gameObject.AddComponent<ConversationHost>();
                 host.Initialize(this, member.Card, null, null);
@@ -450,7 +479,7 @@ namespace Ledger.Game
                     if (_dispatchToastDay != Now.Day)
                     {
                         _dispatchToastDay = Now.Day;
-                        ToastLine("Meridian Parcel's board is up by the docks: a morning route, $40 clean, honest as bread.", 8f);
+                        ToastLine("Zlata's board is up by the docks, chalk still wet. \"Routes! Before I give them to someone who turns up on time!\"", 8f);
                     }
                 }
             }
@@ -465,7 +494,7 @@ namespace Ledger.Game
                 _dispatchMarker = null;
                 _shiftStop = 0;
                 _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
-                ToastLine("The dispatcher hands you a satchel without ceremony. First stop: the market corner. Delivered by evening.", 9f);
+                ToastLine("Zlata drops the satchel into your arms mid-sentence. \"Market corner first, and don't let Mirela feed you, you'll never leave. Back before dark.\"", 10f);
             }
 
             if (_shiftMarker != null)
@@ -474,7 +503,7 @@ namespace Ledger.Game
                 {
                     Destroy(_shiftMarker);
                     _shiftMarker = null;
-                    ToastLine("Evening. The parcels go back on the shelf, unsigned. The board remembers who finishes.", 8f);
+                    ToastLine("Evening, and the parcels go back on Zlata's shelf unsigned. She doesn't say anything. She writes something.", 8f);
                     return;
                 }
                 var m = _shiftMarker.transform.position;
@@ -485,7 +514,7 @@ namespace Ledger.Game
                     if (Job.Advance(ShiftStops.Length))
                     {
                         int pay = Job.Complete(Wallet, Now);
-                        ToastLine($"Route done. +${pay} clean, and the dispatcher initials your sheet without looking up. Honest work shows.", 9f);
+                        ToastLine($"Zlata initials your sheet without looking up. \"+${pay}. You're not bad at this. Worrying, for a man with a bar.\"", 9f);
                     }
                     else
                     {
@@ -870,6 +899,19 @@ namespace Ledger.Game
                     _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
                         "Counted the till again. There is money moving through this bar that no tap sold."));
                 }
+                // June, the moral mirror (her approved card): her regard tracks
+                // inversely to the empire and directly to the honest life. She
+                // is not judging the money; she watched this exact shape eat
+                // her father, and she is counting the same things twice.
+                var juneG = _gossip?.Mill?.Get("June");
+                if (juneG != null && Campaign.OpenMode)
+                {
+                    int holdings = Empire.Businesses.FindAll(b => b.Owned).Count
+                        + Empire.Rackets.FindAll(r => r.Established).Count;
+                    if (holdings > 0) juneG.Loyalty = System.Math.Clamp(juneG.Loyalty - 0.02 * holdings, 0, 1);
+                    if (Job.WorkedYesterday(Now)) juneG.Loyalty = System.Math.Clamp(juneG.Loyalty + 0.03, 0, 1);
+                }
+
                 // The cover of honest work (§6.6): a day walked in company
                 // uniform lets the day circle breathe out a little.
                 if (Job.WorkedYesterday(Now) && _gossip != null && _gossip.Mill != null)

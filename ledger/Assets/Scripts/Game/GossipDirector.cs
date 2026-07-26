@@ -59,6 +59,17 @@ namespace Ledger.Game
             graph.Link("Vesna", "Ada", 0.5);
             graph.Link("Vesna", "Mirela", 0.4);
             graph.Link("Tibor", "Josip", 0.4);
+            // Tier-1 batch 2: the chapel hears everything, dispatch hears the
+            // rest, and the broker keeps deliberately thin ties to everyone.
+            graph.Link("June", "Lena", 0.5);
+            graph.Link("June", "Emil", 0.45);
+            graph.Link("Emil", "Vesna", 0.7);   // she keeps his house and reads his letters
+            graph.Link("Emil", "Ada", 0.6);
+            graph.Link("Zlata", "Josip", 0.5);
+            graph.Link("Zlata", "Ferko", 0.45);
+            graph.Link("Zlata", "Sam", 0.4);
+            graph.Link("Halvard", "Sam", 0.3);
+            graph.Link("Halvard", "Ruta", 0.3);
             // The generated batch's connections — links to residents who aren't
             // walking yet simply stay dormant until they do.
             foreach (var (a, b, w) in Tier2Batch.GraphLinks()) graph.Link(a, b, w);
@@ -71,7 +82,8 @@ namespace Ledger.Game
             {
                 var walkerName = host.GetComponent<NpcWalker>() != null
                     ? host.GetComponent<NpcWalker>().DisplayName : host.Card.Name;
-                var m = CastSetup.Get(walkerName) ?? Tier2Setup.Get(walkerName) ?? Tier2Batch.Get(walkerName);
+                var m = CastSetup.Get(walkerName) ?? Tier2Setup.Get(walkerName)
+                    ?? CastTier1.Get(walkerName) ?? Tier2Batch.Get(walkerName);
                 _mill.Add(m != null
                     ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
                         m.Circle, m.Greed, m.Nerve, m.Loyalty)
