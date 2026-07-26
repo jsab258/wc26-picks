@@ -522,6 +522,40 @@ namespace Ledger.Game
             bool opsOk = _game.Targets.Count >= 3
                 && (!_game.CanPlan || SimMode.Days < 9 || _planRan);
 
+            // Traffic (roadmap M12). CoreTests already proves the rules; what
+            // this proves is that the rules are still true after nine game-days
+            // of the ENGINE driving them, with the player and thirty walkers
+            // wandering into the road. The failure that would actually ruin an
+            // evening is not a crash, it is a grid wedged solid.
+            var traffic = _game.Traffic;
+            bool trafficOk = traffic != null && traffic.Vehicles.Count >= 10;
+            double tightest = traffic != null ? traffic.TightestGap() : 0;
+            int offRoad = 0, kindsSeen = 0;
+            if (traffic != null)
+            {
+                var kinds = new HashSet<string>();
+                foreach (var v in traffic.Vehicles)
+                {
+                    kinds.Add(v.Kind.Id);
+                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5)) offRoad++;
+                }
+                kindsSeen = kinds.Count;
+                trafficOk = trafficOk
+                    && tightest >= 0                     // nobody inside anybody
+                    && offRoad == 0                      // nobody on the pavement
+                    && kindsSeen >= 3                    // it is traffic, not a fleet of one car
+                    && traffic.TotalDistance > 500;      // and it went somewhere
+            }
+
+            // Frame cost, measured rather than assumed. Traffic is the first
+            // system here that does work every frame for every visible object,
+            // so its budget is a gate: if the per-frame cost of driving the whole
+            // district ever crosses a few milliseconds, that is a regression
+            // worth failing a build over, and it should be found in CI rather
+            // than in a stutter on the player's machine.
+            var trafficCost = Perf.Get("traffic");
+            bool perfOk = trafficCost == null || trafficCost.MeanMs < 4.0;
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -656,6 +690,17 @@ namespace Ledger.Game
                 { "shiftsWorked", _game.Job.ShiftsWorked },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
+                { "vehicles", traffic != null ? traffic.Vehicles.Count : 0 },
+                { "vehicleKinds", kindsSeen },
+                { "trafficMetres", traffic != null ? System.Math.Round(traffic.TotalDistance, 0) : 0 },
+                { "tightestGap", System.Math.Round(tightest, 2) },
+                { "vehiclesOffRoad", offRoad },
+                { "trafficYields", traffic != null ? traffic.YieldsToPeople : 0 },
+                { "frames", Perf.FrameCount },
+                { "meanFrameMs", System.Math.Round(Perf.MeanFrameMs, 3) },
+                { "p95FrameMs", System.Math.Round(Perf.FramePercentileMs(0.95), 3) },
+                { "worstFrameMs", System.Math.Round(Perf.WorstFrameMs, 1) },
+                { "perf", Perf.Report() },
                 { "hourlySamples", _samples.Count },
                 { "samples", _samples },
                 { "screenshotCount", _screenshots.Count },
@@ -668,7 +713,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -690,6 +735,10 @@ namespace Ledger.Game
                       $"pop={(_game.Populace != null ? _game.Populace.Residents.Count : 0)} " +
                       $"gates={_game.Gates.Count} accessOk={accessOk} " +
                       $"targets={_game.Targets.Count} planRan={_planRan} opsOk={opsOk} " +
+                      $"vehicles={(traffic != null ? traffic.Vehicles.Count : 0)} kinds={kindsSeen} " +
+                      $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} gap={tightest:0.00} " +
+                      $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
+                      $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +

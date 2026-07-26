@@ -373,6 +373,12 @@ namespace Ledger.Game
             BuildPopulation();
             _gossip.ExtraPosition = CrowdPositionOf;
 
+            // Traffic (roadmap M12). Built after the population because it takes
+            // the same city seed: the same street should have the same bus on it
+            // every time you load the same save.
+            BuildTraffic();
+            BuildSignalHeads();
+
             // The week's two dilemma evenings: both windows sit inside the outfit's
             // drop window. Ada tests the day face; Rocco tests the family face.
             Beats.Add(new Beat
@@ -431,6 +437,8 @@ namespace Ledger.Game
                 Now = Now.AddMinutes(1);
             }
 
+            Perf.Frame(SimMode.Days > 0 ? step : Time.unscaledDeltaTime);
+
             UpdateSun();
             // Level of detail before ticking, so a walker spawned this frame
             // starts from the right place rather than the origin.
@@ -458,6 +466,14 @@ namespace Ledger.Game
                 _lastReflectedDay = Now.Day;
                 _ = _lena.RunReflectionAsync(Now);
             }
+
+            // Traffic runs on the REAL clock, not the accelerated one. Twenty
+            // game-minutes per second is a fine rate for a day to pass at and a
+            // nonsense rate for a bus to travel at — at that scale a car would
+            // cross the district between two frames. The city's day speeds up;
+            // its traffic does not.
+            TickTraffic(SimMode.Days > 0 ? step : Time.deltaTime);
+            TickSignals();
 
             UpdateCampaign();
             if (Campaign.FallPending) RunTheFall();

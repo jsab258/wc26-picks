@@ -312,6 +312,14 @@ namespace Ledger.Game
             }
         }
 
+        /// Anything else that should glow after dusk — a vehicle's headlamps,
+        /// for instance. Registered rather than found, so the night pass stays a
+        /// single list walk instead of a scene search.
+        public static void RegisterNightLight(Renderer r)
+        {
+            if (r != null) Windows.Add(r);
+        }
+
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
         {
             var go = MakeBox(name, center, size, AssetLibrary.Window);
