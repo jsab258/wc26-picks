@@ -23,6 +23,8 @@ namespace Ledger.Game
         public Campaign Campaign { get; } = new Campaign();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
+        // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
+        public DebtBook Debts { get; } = new DebtBook();
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
@@ -200,6 +202,9 @@ namespace Ledger.Game
 
             if (SimMode.Days > 0)
                 gameObject.AddComponent<SimDirector>().Begin(this, player);
+
+            Debts.Add(new Debtor { Id = "Sam", Name = "Sam", Amount = 120, Note = "stock money, never repaid" });
+            Debts.Add(new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "the door take, '19" });
 
             TryLoad();
         }
@@ -690,7 +695,7 @@ namespace Ledger.Game
         };
 
         public string CaptureSave() =>
-            SaveCodec.Capture(Now, Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, ExtraFlags());
+            SaveCodec.Capture(Now, Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, ExtraFlags());
 
         public void SaveNow(bool quiet = false)
         {
@@ -719,7 +724,7 @@ namespace Ledger.Game
                 if (SimMode.Days > 0) return; // the self-test always plays a fresh week
                 if (!System.IO.File.Exists(SavePath)) return;
                 var now = SaveCodec.Restore(System.IO.File.ReadAllText(SavePath),
-                    Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, out var extra);
+                    Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, out var extra);
                 Now = now;
                 WearingCoat = FlagB(extra, "wearingCoat");
                 TotalTakings = FlagI(extra, "totalTakings");

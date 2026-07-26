@@ -449,7 +449,10 @@ namespace Ledger.CoreTests
             beats1.Add(b1); b1.Restore(BeatState.Attended);
             var extra1 = new Dictionary<string, object> { { "wearingCoat", true }, { "osseiSpawned", true } };
 
-            var json = SaveCodec.Capture(now, wallet1, camp1, pk1, secrets1, beats1, mill1, extra1);
+            var debts1 = new DebtBook();
+            var dbt = new Debtor { Id = "sam", Name = "Sam", Amount = 120, Note = "stock" };
+            debts1.Add(dbt); dbt.Restore(false, true, 2);
+            var json = SaveCodec.Capture(now, wallet1, camp1, pk1, secrets1, beats1, mill1, debts1, extra1);
             Check(json.Length > 100, "a save serializes to real JSON");
 
             // Fresh authored world, overlay the save.
@@ -462,7 +465,9 @@ namespace Ledger.CoreTests
             var beats2 = new BeatBook();
             beats2.Add(new Beat { Id = "tea", HostId = "Ada", Title = "Tea", Day = 3, StartHour = 22, EndHour = 24 });
 
-            var restored = SaveCodec.Restore(json, wallet2, camp2, pk2, secrets2, beats2, mill2, out var extra2);
+            var debts2 = new DebtBook();
+            debts2.Add(new Debtor { Id = "sam", Name = "Sam", Amount = 120, Note = "stock" });
+            var restored = SaveCodec.Restore(json, wallet2, camp2, pk2, secrets2, beats2, mill2, debts2, out var extra2);
             Check(restored.TotalMinutes == now.TotalMinutes, "the clock round-trips");
             Check(wallet2.Clean == wallet1.Clean && wallet2.Dirty == wallet1.Dirty && wallet2.TotalWashed == wallet1.TotalWashed,
                 "the wallet round-trips");
@@ -482,6 +487,8 @@ namespace Ledger.CoreTests
             Check(Math.Abs(mill2.Get("rocco").Loyalty - mill1.Get("rocco").Loyalty) < 1e-9, "loyalty round-trips");
             Check(Math.Abs(mill2.Get("lena").Suspicion.Value - mill1.Get("lena").Suspicion.Value) < 1e-9,
                 "suspicion round-trips");
+            var sam2 = debts2.ById("sam");
+            Check(!sam2.Outstanding && sam2.Forgiven && sam2.LastAskedDay == 2, "debt states round-trip through the codec");
         }
 
         static void TestCompareNotes()

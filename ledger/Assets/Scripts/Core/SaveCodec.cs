@@ -14,7 +14,7 @@ namespace Ledger.Core
 
         public static string Capture(GameTime now, Wallet wallet, Campaign camp,
             PlayerKnowledge knowledge, SecretsBook secrets, BeatBook beats,
-            GossipMill mill, Dictionary<string, object> extra)
+            GossipMill mill, DebtBook debts, Dictionary<string, object> extra)
         {
             var root = new Dictionary<string, object>
             {
@@ -47,6 +47,13 @@ namespace Ledger.Core
                 { "id", b.Id }, { "state", b.State.ToString() },
             }).ToList();
 
+            root["debts"] = (debts != null ? debts.All : Enumerable.Empty<Debtor>())
+                .Select(d => (object)new Dictionary<string, object>
+                {
+                    { "id", d.Id }, { "collected", d.Collected }, { "forgiven", d.Forgiven },
+                    { "lastAskedDay", d.LastAskedDay },
+                }).ToList();
+
             root["discredited"] = mill.DiscreditedTopics.Cast<object>().ToList();
             root["agents"] = mill.Agents.Select(a => (object)new Dictionary<string, object>
             {
@@ -72,7 +79,7 @@ namespace Ledger.Core
         /// unknown ids in the save are skipped (authored content may have changed).
         public static GameTime Restore(string json, Wallet wallet, Campaign camp,
             PlayerKnowledge knowledge, SecretsBook secrets, BeatBook beats,
-            GossipMill mill, out Dictionary<string, object> extra)
+            GossipMill mill, DebtBook debts, out Dictionary<string, object> extra)
         {
             var root = MiniJson.AsObject(MiniJson.Deserialize(json));
             if (root == null) throw new Exception("save file unreadable");
@@ -116,6 +123,14 @@ namespace Ledger.Core
                 var beat = beats.All.FirstOrDefault(x => x.Id == MiniJson.GetString(b, "id"));
                 if (beat != null && Enum.TryParse(MiniJson.GetString(b, "state"), out BeatState bs))
                     beat.Restore(bs);
+            }
+
+            foreach (var o in MiniJson.GetList(root, "debts") ?? new List<object>())
+            {
+                var dd = MiniJson.AsObject(o);
+                var debtor = dd != null && debts != null ? debts.ById(MiniJson.GetString(dd, "id")) : null;
+                if (debtor != null)
+                    debtor.Restore(Flag(dd, "collected"), Flag(dd, "forgiven"), MiniJson.GetInt(dd, "lastAskedDay"));
             }
 
             mill.RestoreDiscredited((MiniJson.GetList(root, "discredited") ?? new List<object>()).OfType<string>());

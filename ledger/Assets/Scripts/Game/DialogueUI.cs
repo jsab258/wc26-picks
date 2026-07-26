@@ -52,6 +52,7 @@ namespace Ledger.Game
         Text _payLabel, _leanLabel, _doubtLabel;
         Button _hookBtn;
         Text _hookLabel;
+        Button _collectBtn, _forgiveBtn;
 
         GameObject _debugPanel;
         Text _debugText;
@@ -139,6 +140,14 @@ namespace Ledger.Game
             _hookLabel = _hookBtn.GetComponentInChildren<Text>();
             _hookBtn.onClick.AddListener(UseHook);
             _hookBtn.gameObject.SetActive(false);
+
+            // Marek's book: collection is a conversation, not a fight.
+            _collectBtn = MakeButton(_dialoguePanel.transform, "Collect the debt", new Vector2(0.5f, 0), new Vector2(-250, 112), new Vector2(220, 36));
+            _forgiveBtn = MakeButton(_dialoguePanel.transform, "Tear out the page", new Vector2(0.5f, 0), new Vector2(250, 112), new Vector2(220, 36));
+            _collectBtn.onClick.AddListener(CollectDebt);
+            _forgiveBtn.onClick.AddListener(ForgiveDebt);
+            _collectBtn.gameObject.SetActive(false);
+            _forgiveBtn.gameObject.SetActive(false);
 
             _dialoguePanel.SetActive(false);
         }
@@ -241,9 +250,13 @@ namespace Ledger.Game
                 held.AppendLine($"<b>{s.OwnerId}</b> — {s.Summary} {state}");
                 held.AppendLine($"   <color=#999>learned day {s.LearnedAt.Day} (from {s.LearnedFrom})</color>");
             }
-            _ledgerText.text = text + (held.Length > 0
-                ? "\n<b>WHAT YOU HOLD</b>\n" + held
-                : "");
+            var owed = new System.Text.StringBuilder();
+            foreach (var d in _game.Debts.All)
+                if (d.Outstanding)
+                    owed.AppendLine($"<b>{d.Name}</b> owes <b>${d.Amount}</b> — <color=#999>\"{d.Note}\", in Marek's hand</color>");
+            _ledgerText.text = text
+                + (held.Length > 0 ? "\n<b>WHAT YOU HOLD</b>\n" + held : "")
+                + (owed.Length > 0 ? "\n<b>WHAT YOU'RE OWED</b>\n" + owed : "");
         }
 
         void Update()
@@ -343,8 +356,18 @@ namespace Ledger.Game
                 _hookBtn.gameObject.SetActive(hook != null);
                 if (hook != null)
                     _hookLabel.text = hook.Strong ? "Use what you know (they're yours)" : "Call in what you know (once)";
+
+                var debtor = _game.Debts.Of(CurrentHostId() ?? "");
+                bool owes = debtor != null;
+                _collectBtn.gameObject.SetActive(owes);
+                _forgiveBtn.gameObject.SetActive(owes);
             }
-            else if (!dialogueOpen && _hookBtn.gameObject.activeSelf) _hookBtn.gameObject.SetActive(false);
+            else if (!dialogueOpen && _hookBtn.gameObject.activeSelf)
+            {
+                _hookBtn.gameObject.SetActive(false);
+                _collectBtn.gameObject.SetActive(false);
+                _forgiveBtn.gameObject.SetActive(false);
+            }
 
             _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
         }
@@ -567,6 +590,34 @@ namespace Ledger.Game
                     _game.Knowledge.MarkHandled(id, result.ContainedTopic);
             }
             Narrate(result.Message);
+        }
+
+        void CollectDebt()
+        {
+            var id = CurrentHostId();
+            var debtor = id != null ? _game.Debts.Of(id) : null;
+            if (debtor == null) return;
+            var outcome = debtor.Collect(_game.Gossip.Mill.Get(id), _game.Wallet, _game.Gossip.Mill, _game.Now);
+            switch (outcome)
+            {
+                case CollectOutcome.Paid:
+                    Narrate($"They count it out slowly. +${debtor.Amount} clean. The page closes; something else closes with it."); break;
+                case CollectOutcome.Begged:
+                    Narrate("They don't have it. They ask for a day — and mean it. Come back tomorrow."); break;
+                case CollectOutcome.Refused:
+                    Narrate("They tell you where to put Marek's old paper. By tonight, the street will hear you came squeezing."); break;
+                default:
+                    Narrate("Not today. You already asked."); break;
+            }
+        }
+
+        void ForgiveDebt()
+        {
+            var id = CurrentHostId();
+            var debtor = id != null ? _game.Debts.Of(id) : null;
+            if (debtor == null) return;
+            if (debtor.Forgive(_game.Gossip.Mill.Get(id), _game.Now))
+                Narrate($"You tear the page out where they can see it. ${debtor.Amount}, gone. They won't forget this.");
         }
 
         void PlantDoubt()

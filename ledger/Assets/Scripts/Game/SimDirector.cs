@@ -322,7 +322,9 @@ namespace Ledger.Game
                     foreach (var a in mill.Agents)
                         m2.Add(new Gossiper(a.Id, a.DisplayName, new MemoryStore(a.Id.ToLowerInvariant()),
                             new KnowledgeBase(), new SuspicionTracker(), a.Circle));
-                var t2 = SaveCodec.Restore(json, w2, c2, pk2, sec2, bb2, m2, out _);
+                var db2 = new DebtBook();
+                foreach (var d in _game.Debts.All) db2.Add(new Debtor { Id = d.Id, Name = d.Name, Amount = d.Amount, Note = d.Note });
+                var t2 = SaveCodec.Restore(json, w2, c2, pk2, sec2, bb2, m2, db2, out _);
                 saveLoadOk = t2.TotalMinutes == _game.Now.TotalMinutes
                     && w2.Clean == _game.Wallet.Clean && w2.Dirty == _game.Wallet.Dirty
                     && System.Math.Abs(c2.OutfitPatience - camp.OutfitPatience) < 1e-9
@@ -383,6 +385,7 @@ namespace Ledger.Game
                 { "checksRun", _game.Gossip != null ? _game.Gossip.ChecksRun : 0 },
                 { "overheard", _game.Gossip != null ? _game.Gossip.Overheard : 0 },
                 { "osseiInterviews", _game.OsseiInterviews.Count },
+                { "debtsOutstanding", System.Linq.Enumerable.Count(System.Linq.Enumerable.Where(_game.Debts.All, d => d.Outstanding)) },
                 { "saveLoadOk", saveLoadOk },
                 { "beats", beatStates },
                 { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },
