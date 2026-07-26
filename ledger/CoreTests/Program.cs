@@ -720,6 +720,27 @@ namespace Ledger.CoreTests
             Check(wC.Dirty >= 45 + 75 && josipC.Loyalty < loyC, "empire: skimming their pay earns more and burns loyalty");
             Check(josipC.Memory.Events.Exists(ev => ev.Text.Contains("envelope")), "empire: the shorted envelope is in their book");
 
+            // Rot completes: a skimmed need-route crew member past the breaking
+            // point quits — no income that day, the round dies, hook-crew can't.
+            var (eQ, mQ, _q, josipQ) = Build(0.5, 0.4);
+            josipQ.Loyalty = 0.5;
+            eQ.RecruitByNeed(josipQ, "Josip", 50, new Wallet(100), now);
+            var rkQ = eQ.RacketOf("collection");
+            eQ.Establish(rkQ, eQ.CrewOf("josip"), now);
+            eQ.SetCut(eQ.CrewOf("josip"), "skim", mQ, now);
+            josipQ.Loyalty = 0.15;
+            var wQ = new Wallet(0);
+            eQ.DailyTick(new GameTime(9, 8, 0), wQ, mQ);
+            Check(eQ.CrewOf("josip") == null && !rkQ.Established && wQ.Dirty == 0,
+                "empire: a skimmed volunteer quits and the round dies with them");
+            Check(josipQ.Memory.Events.Exists(ev => ev.Text.Contains("I quit")),
+                "empire: the quitting is in their book");
+            var snapQ = MiniJson.Serialize(eQ.Capture());
+            var (eQ2, _mq2, _q2, __q2) = Build(0.5, 0.4);
+            eQ2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snapQ)));
+            Check(eQ2.Crew.Exists(c => c.Id == "josip" && c.Departed && c.Cut == "skim"),
+                "empire: departure and cut policy survive the codec");
+
             // A racket that needs a front stays closed until the front is yours.
             var (e10, m10, ruta10, josip10) = Build(0.5, 0.4);
             e10.Rackets.Add(new Racket { Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4, RequiresBusinessId = "pawnshop" });

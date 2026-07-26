@@ -15,9 +15,20 @@ mandates. Non-blocking items for whenever you surface:)*
    play nets only +11% cash for 10x the Falls. Fine as "position over
    profit" design, or should rackets pay more? RECOMMEND: leave until you
    feel it in play; knobs documented.
-2. **Playtest when ready**: the latest green LEDGER-Windows artifact now
-   contains the whole arc — Act I week, posture, the city opening, empire
-   verbs, 22 residents. This supersedes every earlier build.
+2. **Playtest when ready** — the latest green LEDGER-Windows artifact is
+   the whole game now. A suggested first session (~45 min):
+   - Play the week straight: talk to Lena day 1 (the cellar line), meet
+     Noor day 2 (she'll bring up the fire), honor Ada's tea (day 3) and
+     Rocco's toast (day 5), make your drops in the coat.
+   - Day 7: answer Lena's question over the true books. Then press SPACE.
+   - In the open city: talk to Sam (sort what he needs, put him on the
+     collection round), find Viktor (buy his marker with dirty cash, then
+     turn the key), then talk to Ruta once the shop is yours — her line is
+     the best money on the street. Press L: THE TWO BOOKS.
+   - Watch what the Dockside arm does about it. Try skimming someone's
+     envelope for a few days and read their memory file (F1) after.
+   - Things to judge: does the week feel like a tutorial or a slog? Does
+     day 8 feel like an opening? Is the empire's pace right? Chips useful?
 
 ## Will need you at the vertical slice (M5) — ALL DEFERRED as long as possible (player, 2026-07-26)
 

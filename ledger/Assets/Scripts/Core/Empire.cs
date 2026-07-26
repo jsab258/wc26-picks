@@ -299,6 +299,23 @@ namespace Ledger.Core
                                 $"Light again. The {r.Name} pays the same every day; my envelope doesn't. I keep my own book on this."));
                     }
                 }
+                // Rot completes (§6.5): a need-route crew member skimmed past
+                // the breaking point doesn't wait to be poached — they quit,
+                // loudly enough to hear, and the round dies with them. Hook-crew
+                // can't leave; that is the hook route's whole brittle bargain.
+                if (runner.Cut == "skim" && runner.Route == "need" && runnerG != null && runnerG.Loyalty < 0.2)
+                {
+                    runner.Departed = true;
+                    runner.Assignment = null;
+                    r.Established = false;
+                    r.RunnerId = null;
+                    runnerG.Memory.Append(new MemoryEvent(now, "observation", 0.95,
+                        "I quit. I joined because they helped me once; I left because of the envelopes. Let them run their own rounds."));
+                    events.Add(new EmpireEvent { Kind = "crew", ActorId = runner.Id,
+                        Text = $"{runner.Name} leaves the take on the counter and walks. \"Count it yourself from now on.\"" });
+                    continue;
+                }
+
                 // Rot is visible early: hook-crew whose loyalty has sunk skim the take.
                 if (runner.Route == "hook" && runnerG != null && runnerG.Loyalty < 0.3)
                 {
