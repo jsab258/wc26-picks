@@ -403,18 +403,35 @@ namespace Ledger.Game
             _summaryPanel.SetActive(false);
         }
 
-        /// The Persona-style day anchor: each morning, the night's books in one card.
+        /// The Persona-style day anchor: each morning, the night's books in one
+        /// card. In the open city it becomes the two-books report: the fronts'
+        /// take, the rounds' take, and how hard the Dockside arm is leaning.
         public void ShowDaySummary(int dayClosed, int takings, int washed, int talkCount,
-            string streetWord, string outfitWord, int clean, int dirty)
+            string streetWord, string outfitWord, int clean, int dirty, int racketToday = 0)
         {
             if (SimMode.Days > 0) return; // never block the self-test
-            _summaryTitle.text = $"CLOSING THE BOOKS · DAY {dayClosed}";
+            bool open = _game.Campaign.OpenMode;
+            _summaryTitle.text = open ? $"THE TWO BOOKS · DAY {dayClosed}" : $"CLOSING THE BOOKS · DAY {dayClosed}";
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Bar takings <color={UiTheme.HexCredit}><b>+${takings}</b></color>" +
-                (washed > 0 ? $"   ·   washed through the till <color={UiTheme.HexCredit}>+${washed}</color>" : ""));
+            sb.AppendLine($"{(open ? "The fronts" : "Bar takings")} <color={UiTheme.HexCredit}><b>+${takings}</b></color>" +
+                (racketToday > 0 ? $"   ·   the rounds <color={UiTheme.HexAmber}><b>+${racketToday} dirty</b></color>" : "") +
+                (washed > 0 ? $"   ·   washed <color={UiTheme.HexCredit}>+${washed}</color>" : ""));
             sb.AppendLine($"Cash <b>${clean}</b> clean" +
                 (dirty > 0 ? $"   <color={UiTheme.HexDebit}><b>− ${dirty} unwashed</b></color>" : ""));
-            sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{outfitWord}</b>.");
+            if (open)
+            {
+                var r = _game.Empire.Rival;
+                var rivalWord = r.Stage switch
+                {
+                    0 => "hasn't looked your way",
+                    1 => "has noticed you",
+                    2 => $"takes ${r.ProtectionTaxPerDay}/day off the top",
+                    3 => "is reaching for your people",
+                    _ => "is at your door",
+                };
+                sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{(_game.Campaign.OutfitCutOff ? "silent" : outfitWord)}</b>. Dockside {rivalWord}.");
+            }
+            else sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{outfitWord}</b>.");
             sb.AppendLine(talkCount == 0
                 ? $"<color={UiTheme.HexDim}>No open liabilities you know of.</color>"
                 : $"Open liabilities you haven't dealt with: <color={UiTheme.HexDebit}><b>{talkCount}</b></color> — press L for the books.");

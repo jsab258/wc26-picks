@@ -40,10 +40,11 @@ namespace Ledger.Core
 
     public class Racket
     {
-        public string Id;             // collection | protection
+        public string Id;             // collection | protection | fencing
         public string Name;
         public int IncomePerDay;      // dirty
         public double BaseRisk;       // chance/day a witness sees the runner work
+        public string RequiresBusinessId; // some rackets need a front (fencing needs the pawnshop)
         public bool Established;
         public string RunnerId;
         public int EstablishedDay;
@@ -237,6 +238,8 @@ namespace Ledger.Core
         {
             if (r == null || r.Established || runner == null || runner.Departed) return false;
             if (runner.Assignment != null) return false;
+            // Some rackets need a front: no fencing line without a shop to move it through.
+            if (r.RequiresBusinessId != null && !(BusinessOf(r.RequiresBusinessId)?.Owned ?? false)) return false;
             r.Established = true;
             r.RunnerId = runner.Id;
             r.EstablishedDay = now.Day;

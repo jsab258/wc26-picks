@@ -70,6 +70,36 @@ namespace Ledger.Game
             scale.KnownBy.Add("Sam"); // Sam has watched her thumb for years
             book.Add(scale);
 
+            // The promoted ring (district build-out): each secret is the door
+            // to something — Ruta's is the fencing line itself.
+            var cab = new Secret
+            {
+                Id = "ferko_flat", OwnerId = "Ferko", Kind = SecretKind.Shameful,
+                Summary = "he sleeps in the cab — the flat went to a card table two winters ago.",
+            };
+            cab.KnownBy.Add("Josip");
+            book.Add(cab);
+
+            book.Add(new Secret
+            {
+                Id = "ruta_fence", OwnerId = "Ruta", Kind = SecretKind.Criminal,
+                Summary = "she fences dock pilferage through the pawnshop's back room, crate by crate.",
+            }); // nobody else knows — she is that careful
+
+            book.Add(new Secret
+            {
+                Id = "vesna_letters", OwnerId = "Vesna", Kind = SecretKind.Shameful,
+                Summary = "she reads Father Emil's letters before he does, and has for years.",
+            });
+
+            var count = new Secret
+            {
+                Id = "tibor_count", OwnerId = "Tibor", Kind = SecretKind.Shameful,
+                Summary = "he waves friends' cargo through without tickets and doctors the count after.",
+            };
+            count.KnownBy.Add("Ruta"); // of course she knows
+            book.Add(count);
+
             return book;
         }
     }

@@ -19,6 +19,9 @@ namespace Ledger.Game
         {
             "petra", "tomas", "magda", "bruno", "sanja", "goran", "katarina",
             "stipe", "drago", "hana", "zora", "franjo", "danica", "luka",
+            // Second wave (round 2): filling the district's daily texture.
+            "dusan", "iva", "fabjan", "ines", "dario", "selma", "filip", "tanja",
+            "marta", "jelena",
         };
 
         // Ring cards and reserved Tier-1 names outrank batch ids.

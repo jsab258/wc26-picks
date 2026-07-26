@@ -702,6 +702,16 @@ namespace Ledger.CoreTests
             Check(e8.CrewOf("josip") != null && josip8.Loyalty > 0.7,
                 "empire: a loyal crew member reports the poach instead");
 
+            // A racket that needs a front stays closed until the front is yours.
+            var (e10, m10, ruta10, josip10) = Build(0.5, 0.4);
+            e10.Rackets.Add(new Racket { Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4, RequiresBusinessId = "pawnshop" });
+            josip10.Loyalty = 0.5;
+            e10.RecruitByNeed(josip10, "Josip", 50, new Wallet(100), now);
+            var fence = e10.RacketOf("fencing");
+            Check(!e10.Establish(fence, e10.CrewOf("josip"), now), "empire: no fencing line without the shop");
+            e10.BuyClean(e10.BusinessOf("pawnshop"), new Wallet(1000), ruta10, now);
+            Check(e10.Establish(fence, e10.CrewOf("josip"), now), "empire: the front opens the line");
+
             // Persistence: the whole book round-trips through plain data.
             var snap = e7.Capture();
             var (e9, m9, _9, __9) = Build(0.5, 0.4);

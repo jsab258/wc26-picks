@@ -17,6 +17,10 @@ namespace Ledger.Game
                 case "Mirela": return Mirela;
                 case "Josip": return Josip;
                 case "Viktor": return Viktor;
+                case "Ferko": return Ferko;
+                case "Ruta": return Ruta;
+                case "Vesna": return Vesna;
+                case "Tibor": return Tibor;
                 default: return null;
             }
         }
@@ -107,14 +111,111 @@ He talks in numbers and counteroffers, rarely finishing a sentence without namin
 ",
         };
 
-        /// The four not yet walking: data for the district build-out, template-complete.
-        /// (name, circle, greed/nerve/loyalty, secretKind, secretLine, knownBy, need)
-        public static readonly List<string[]> Pending = new List<string[]>
+        // The rest of the ring, promoted with the district build-out. Their
+        // secrets live in SecretsSetup; their needs in EmpireSetup.
+
+        // secret: shameful — sleeps in his cab, lost the flat to cards (knownBy: Josip)
+        // need: a big fare he can brag about
+        static readonly CastMember Ferko = new CastMember
         {
-            new[] { "Ferko", "night", "0.6/0.5/0.3", "shameful", "sleeps in his cab because he lost the flat to cards", "Josip", "a big fare he can brag about" },
-            new[] { "Ruta", "both", "0.8/0.6/0.25", "criminal", "fences dock pilferage through the pawnshop back room", "", "someone to scare off the New crew kid shaking her down" },
-            new[] { "Vesna", "day", "0.2/0.7/0.5", "shameful", "reads Father Emil's letters before he does", "", "her nephew needs bar work, no questions" },
-            new[] { "Tibor", "day", "0.4/0.4/0.45", "shameful", "waves through friends without tickets and doctors the count", "Ruta", "cover for the audit week" },
+            Circle = "night", Greed = 0.6, Nerve = 0.5, Loyalty = 0.3,
+            Scene = "At the cab rank or leaning on the cab he lives out of, talking with the new bar owner.",
+            Card = @"# Ferko
+id: ferko
+tier: ambient
+
+## Summary
+Drives the Hook's only night cab, a diesel relic he keeps running on spite. Knows which doors open after midnight and who came out of them.
+
+## Personality
+Big talk, small luck. Friendly to anyone who might be a fare, bitter about everyone who ever won money off him.
+
+## Speech Style
+Racetrack patter — odds, sure things, almosts. Calls every destination 'two minutes away'.
+
+## Hard Facts
+- I drive the only night cab in the Hook; the rank is mine.
+- I see who moves around this district after dark, and where they get out.
+- Josip and I go back; we talk when the docks let him go.
+",
+        };
+
+        // secret: criminal — fences dock pilferage through the pawnshop back room (knownBy: nobody)
+        // need: someone to scare off the New crew kid shaking her down
+        static readonly CastMember Ruta = new CastMember
+        {
+            Circle = "both", Greed = 0.8, Nerve = 0.6, Loyalty = 0.25,
+            Scene = "In and out of the pawnshop's back door with a canvas bag, talking with the new bar owner.",
+            Card = @"# Ruta
+id: ruta
+tier: ambient
+
+## Summary
+Moves goods nobody reports missing between the docks and the pawnshop's back room. Sharp-eyed, quick-handed, owes nobody an explanation.
+
+## Personality
+All business, allergic to sentiment. Prices everything, including favors and people, and pays her debts to the penny — which is why she hates owing anything.
+
+## Speech Style
+Short. Numbers where words would do. Ends conversations by walking away mid-sentence.
+
+## Hard Facts
+- I do business between the docks and Viktor's pawnshop; ask no further.
+- Some Strip kid has been taxing my rounds lately, and it is becoming a problem.
+- I know what moves through this district and what it's worth, to the crown.
+",
+        };
+
+        // secret: shameful — reads Father Emil's letters before he does (knownBy: nobody)
+        // need: her nephew needs bar work, no questions
+        static readonly CastMember Vesna = new CastMember
+        {
+            Circle = "day", Greed = 0.2, Nerve = 0.7, Loyalty = 0.5,
+            Scene = "Sweeping the chapel steps or at the market for the Father's table, talking with the new bar owner.",
+            Card = @"# Vesna
+id: vesna
+tier: ambient
+
+## Summary
+Keeps house for Father Emil at the chapel — the floors, the ledgers, the letters, the confidences that leak through old doors. The district's quietest well of information.
+
+## Personality
+Patient, devout on the surface, ferociously protective of her family. Judges silently and forgets nothing.
+
+## Speech Style
+Soft, unhurried, full of blessings that carry edges. Asks after your mother even if she's never met her.
+
+## Hard Facts
+- I keep house for Father Emil at the chapel; I have for eleven years.
+- People tell the chapel things they tell no one else.
+- My nephew is a good boy who needs steady work, whatever anyone says.
+",
+        };
+
+        // secret: shameful — waves through friends without tickets and doctors the count (knownBy: Ruta)
+        // need: cover for the audit week
+        static readonly CastMember Tibor = new CastMember
+        {
+            Circle = "day", Greed = 0.4, Nerve = 0.4, Loyalty = 0.45,
+            Scene = "At the customs shed window stamping what needs stamping, talking with the new bar owner.",
+            Card = @"# Tibor
+id: tibor
+tier: ambient
+
+## Summary
+Assistant at the customs shed, twenty years of stamps and counts. Nervous, meticulous in public, flexible in private — the crack in the port's paperwork.
+
+## Personality
+Anxious, eager to please the wrong people, convinced everyone is about to notice him. Loyal to whoever last made him feel safe.
+
+## Speech Style
+Over-explains. Starts answers with 'strictly speaking'. Laughs at things that aren't jokes.
+
+## Hard Facts
+- I work the customs shed; my stamp moves cargo, strictly speaking.
+- There is an audit coming, there is always an audit coming.
+- Ruta and I understand each other; I won't say more than that.
+",
         };
     }
 }

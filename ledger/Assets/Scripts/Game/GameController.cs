@@ -166,6 +166,33 @@ namespace Ledger.Game
                 (new GameTime(0, 22, 0), new Vector3(-16, 0, -12)), // home on the west row
             }));
 
+            // The promoted ring: the district's own operators, on their beats.
+            _npcs.Add(NpcWalker.Spawn("Ferko", new Color(0.45f, 0.4f, 0.25f), new[]
+            {
+                (new GameTime(0, 11, 0), new Vector3(24, 0, -10)),  // the cab rank
+                (new GameTime(0, 18, 0), new Vector3(0, 0, -8)),    // trawling the crossing for fares
+                (new GameTime(0, 23, 0), new Vector3(24, 0, -10)),  // sleeps in the cab
+            }));
+            _npcs.Add(NpcWalker.Spawn("Ruta", new Color(0.5f, 0.35f, 0.45f), new[]
+            {
+                (new GameTime(0, 10, 0), new Vector3(-28, 0, -6)),  // the pawnshop back room
+                (new GameTime(0, 15, 0), new Vector3(18, 0, 14)),   // the docks, collecting
+                (new GameTime(0, 20, 0), new Vector3(-20, 0, -16)), // home in the south tenements
+            }));
+            _npcs.Add(NpcWalker.Spawn("Vesna", new Color(0.35f, 0.42f, 0.6f), new[]
+            {
+                (new GameTime(0, 7, 0), new Vector3(-34, 0, 10)),   // the chapel
+                (new GameTime(0, 12, 0), new Vector3(10, 0, -14)),  // the market for the Father's table
+                (new GameTime(0, 16, 0), new Vector3(-34, 0, 10)),
+                (new GameTime(0, 21, 0), new Vector3(-30, 0, 2)),   // the boarding house
+            }));
+            _npcs.Add(NpcWalker.Spawn("Tibor", new Color(0.55f, 0.55f, 0.4f), new[]
+            {
+                (new GameTime(0, 8, 0), new Vector3(36, 0, 12)),    // the customs shed
+                (new GameTime(0, 13, 0), new Vector3(34, 0, 6)),    // the harbormaster's office
+                (new GameTime(0, 19, 0), new Vector3(-18, 0, 20)),  // home in the north tenements
+            }));
+
             // The generated district population (open-city-spec §3): the batch
             // walks. Brains arrive via the generic host loop below; secrets join
             // the book so the leverage economy scales with the street.
@@ -500,6 +527,14 @@ namespace Ledger.Game
             // The talk is over — it's public record now; the old liabilities settle.
             foreach (var k in Knowledge.Entries) Knowledge.MarkHandled(k.HolderId, k.TopicKey);
 
+            // Ossei got her arrest. For a few days the pressure eases; rumors
+            // (there are none about you left anyway) age at street speed.
+            if (OsseiSpawned)
+            {
+                _osseiCalmUntilDay = Now.Day + 4;
+                _gossip.Mill.RumorHalfLifeHours = 96;
+            }
+
             _ui?.Toast(seized > 0
                 ? $"THE FALL. Three days inside. They kept the ${seized} they found — the money the books couldn't explain. The street knows now. Start from there."
                 : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.", 14f);
@@ -550,12 +585,23 @@ namespace Ledger.Game
             return null;
         }
 
+        // After a Fall she has her arrest: the tan coat eases off for a few
+        // days, and rumors breathe again — until the heat says she's needed.
+        int _osseiCalmUntilDay;
+
         void CheckOssei()
         {
             double heat = CurrentHeat;
             if (heat > ObservedPeakHeat) ObservedPeakHeat = heat;
-            if (OsseiSpawned || heat < OsseiSetup.SpawnHeatThreshold) return;
-            SpawnOssei();
+            if (!OsseiSpawned && heat >= OsseiSetup.SpawnHeatThreshold) { SpawnOssei(); return; }
+            if (OsseiSpawned && _osseiCalmUntilDay > 0 && Now.Day > _osseiCalmUntilDay
+                && heat >= OsseiSetup.SpawnHeatThreshold)
+            {
+                _osseiCalmUntilDay = 0;
+                if (_gossip != null && _gossip.Mill != null)
+                    _gossip.Mill.RumorHalfLifeHours = OsseiSetup.PresenceRumorHalfLifeHours;
+                _ui?.Toast("The tan coat is back at the market corner, unhurried as ever. The street's stories stop dying young again.", 9f);
+            }
         }
 
         void SpawnOssei()
@@ -696,16 +742,28 @@ namespace Ledger.Game
                 LastTakings = takings;
                 Wallet.LaunderPerDay = 120 + Empire.OwnedLaunderCapacity;
                 int washed = Wallet.Launder();
+                // The empire's day settles with the books (open mode only): racket
+                // takes, witnesses into the mill, the rival's daily read.
+                int racketToday = 0;
+                string streetLine = null;
+                if (Campaign.OpenMode && _gossip != null && _gossip.Mill != null)
+                    foreach (var ev in Empire.DailyTick(Now, Wallet, _gossip.Mill))
+                    {
+                        if (ev.Kind == "income") racketToday += ev.Amount;
+                        else streetLine = ev.Text; // rival/crew/witness — the last one speaks
+                    }
+
                 var line = takings >= Campaign.BarBaseTakings
                     ? $"Bar takings: +${takings}."
                     : $"Bar takings: +${takings}. The talk on the street is costing you.";
                 if (washed > 0) line += $" ${washed} of night money washed through the till.";
                 _ui?.Toast(line);
+                if (streetLine != null) _ui?.Toast(streetLine, 11f);
 
                 int talk = 0;
                 foreach (var k in Knowledge.Entries) if (!k.Handled) talk++;
                 _ui?.ShowDaySummary(Now.Day - 1, takings, washed, talk,
-                    StreetWord(heat), OutfitWord(Campaign.OutfitPatience), Wallet.Clean, Wallet.Dirty);
+                    StreetWord(heat), OutfitWord(Campaign.OutfitPatience), Wallet.Clean, Wallet.Dirty, racketToday);
 
                 // The bookkeeper sees a hoard the till can't explain. Diegetic
                 // "unexplained money" pressure (design-doc §6.7) — small, daily.
@@ -715,22 +773,6 @@ namespace Ledger.Game
                     _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
                         "Counted the till again. There is money moving through this bar that no tap sold."));
                 }
-                // The empire's day settles with the books (open mode only): racket
-                // takes, witnesses into the mill, the rival's daily read. Income
-                // folds into one line; the street's own moves get their own voice.
-                if (Campaign.OpenMode && _gossip != null && _gossip.Mill != null)
-                {
-                    int racketTotal = 0;
-                    string streetLine = null;
-                    foreach (var ev in Empire.DailyTick(Now, Wallet, _gossip.Mill))
-                    {
-                        if (ev.Kind == "income") racketTotal += ev.Amount;
-                        else streetLine = ev.Text; // rival/crew/witness — the last one speaks
-                    }
-                    if (racketTotal > 0) _ui?.Toast($"The street's rounds bring in ${racketTotal} dirty.", 7f);
-                    if (streetLine != null) _ui?.Toast(streetLine, 11f);
-                }
-
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
                 SaveNow(quiet: true); // the morning close is the autosave point
             }
@@ -759,7 +801,15 @@ namespace Ledger.Game
                 Destroy(_jobMarker);
                 _jobMarker = null;
                 Campaign.JobMissed();
-                _ui?.Toast(Campaign.OutfitCutOff
+                // The independence path is systemic: skipping drops IS the break.
+                // When the street already pays you, the silence reads as intent —
+                // to you, and to the Dockside arm, who now call it competition.
+                if (Campaign.OutfitCutOff && Empire.TotalRacketIncome > 0)
+                {
+                    Empire.Rival.Attention = System.Math.Clamp(Empire.Rival.Attention + 0.25, 0, 1);
+                    _ui?.Toast("You let the silence speak. The outfit stops calling — and the Dockside arm starts calling you what you are now: competition.", 12f);
+                }
+                else _ui?.Toast(Campaign.OutfitCutOff
                     ? "The outfit stops calling. No runner, no pay, no protection. The street will notice the silence."
                     : "You missed the outfit's drop. They won't forget.");
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
@@ -960,6 +1010,7 @@ namespace Ledger.Game
             { "maxCoatedWitnessConf", MaxCoatedWitnessConf }, { "totalConfrontations", TotalConfrontations },
             { "jobPostedDay", _jobPostedDay }, { "lastClosedDay", _lastClosedDay },
             { "lastReflectedDay", _lastReflectedDay }, { "observedPeakHeat", ObservedPeakHeat },
+            { "osseiCalmUntil", _osseiCalmUntilDay },
             { "pp1", ActOne.Pp1Fired }, { "pp2", ActOne.Pp2Fired }, { "pp4", ActOne.Pp4Fired },
             { "posture", ActOne.Posture ?? "" },
             { "noorDrawers", ActOne.NoorDrawersEngaged }, { "noorBroken", ActOne.NoorDrawersBroken },
@@ -1008,6 +1059,7 @@ namespace Ledger.Game
                 _lastClosedDay = FlagI(extra, "lastClosedDay");
                 _lastReflectedDay = FlagI(extra, "lastReflectedDay");
                 ObservedPeakHeat = FlagD(extra, "observedPeakHeat");
+                _osseiCalmUntilDay = FlagI(extra, "osseiCalmUntil");
                 ActOne.Pp1Fired = FlagB(extra, "pp1");
                 ActOne.Pp2Fired = FlagB(extra, "pp2");
                 ActOne.Pp4Fired = FlagB(extra, "pp4");

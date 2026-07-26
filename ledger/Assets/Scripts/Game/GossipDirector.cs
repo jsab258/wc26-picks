@@ -50,6 +50,15 @@ namespace Ledger.Game
             // Viktor (batch promotion): the pawnbroker's ties from his card.
             graph.Link("Viktor", "Lena", 0.4);
             graph.Link("Viktor", "Sam", 0.5);
+            // The promoted ring's ties: the district's working relationships.
+            graph.Link("Ferko", "Josip", 0.5);
+            graph.Link("Ferko", "Sam", 0.4);
+            graph.Link("Ruta", "Viktor", 0.6);  // the back room
+            graph.Link("Ruta", "Josip", 0.4);
+            graph.Link("Ruta", "Tibor", 0.4);
+            graph.Link("Vesna", "Ada", 0.5);
+            graph.Link("Vesna", "Mirela", 0.4);
+            graph.Link("Tibor", "Josip", 0.4);
             // The generated batch's connections — links to residents who aren't
             // walking yet simply stay dormant until they do.
             foreach (var (a, b, w) in Tier2Batch.GraphLinks()) graph.Link(a, b, w);
