@@ -389,7 +389,7 @@ namespace Ledger.Game
                 {
                     sb.Append("Witness statements you hold: ");
                     for (int i = System.Math.Max(0, OsseiInterviews.Count - 2); i < OsseiInterviews.Count; i++)
-                        sb.Append( \"{OsseiInterviews[i]}\" ");
+                        sb.Append($"\"{OsseiInterviews[i]}\" ");
                 }
                 if (leads != null && leads.Count > 0)
                 {
