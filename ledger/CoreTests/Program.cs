@@ -2190,6 +2190,44 @@ namespace Ledger.CoreTests
             Check(sane, "a thirty-second freeze advances traffic by a second, not by a minute");
             Check(stall.TightestGap() >= 0, "and does not pile anybody into anybody");
 
+            // The street empties overnight. A city with literally no traffic at
+            // 4am reads as broken rather than as late, so it thins rather than
+            // stops — and the same cars are out at the same hours, because it is
+            // by index and not by a roll.
+            var hours = new TrafficSim(seed: 13);
+            hours.Populate(14);
+            Check(TrafficSim.BusynessAt(8) > TrafficSim.BusynessAt(14),
+                "the morning is busier than the middle of the day");
+            Check(TrafficSim.BusynessAt(18) > TrafficSim.BusynessAt(1),
+                "and the evening is busier than the small hours");
+            Check(TrafficSim.BusynessAt(4) > 0, "but the small hours are never empty");
+            hours.SetHour(8);
+            int rush = hours.AwakeCount();
+            hours.SetHour(4);
+            int night = hours.AwakeCount();
+            Check(night < rush && night >= 2, "fewer cars are out at four in the morning",
+                $"{night} vs {rush}");
+            hours.SetHour(8);
+            Check(hours.AwakeCount() == rush, "and the street refills at the same hour every day");
+            hours.SetHour(3);
+            var parkedIds = new List<int>();
+            foreach (var v in hours.Vehicles) if (v.Dormant) parkedIds.Add(v.Id);
+            hours.SetHour(8); hours.SetHour(3);
+            var again = new List<int>();
+            foreach (var v in hours.Vehicles) if (v.Dormant) again.Add(v.Id);
+            Check(string.Join(",", parkedIds) == string.Join(",", again),
+                "the same cars are parked up at the same hour, so the street has a character");
+
+            // A parked car must not block anybody, and the thinned street must
+            // obey every rule the full one does.
+            hours.SetHour(3);
+            for (int i = 0; i < 200; i++) hours.Step(0.5);
+            Check(hours.TightestGap() >= 0, "a thinned street still has nobody inside anybody");
+            Check(hours.TotalDistance > 100, "and the few cars still out are still driving",
+                hours.TotalDistance.ToString("0"));
+            foreach (var v in hours.Vehicles)
+                if (v.Dormant) Check(v.Speed == 0, $"parked vehicle {v.Id} is not creeping");
+
             // Zero deltas and empty streets are not crashes.
             var empty = new TrafficSim(seed: 1);
             empty.Step(0.5); empty.Step(0);

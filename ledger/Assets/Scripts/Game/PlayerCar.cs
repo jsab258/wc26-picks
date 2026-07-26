@@ -150,6 +150,17 @@ namespace Ledger.Game
             else
                 Speed = 0f;
 
+            // The player IS where the car is. Their body is switched off while
+            // they are sitting in it, but every proximity check in the game —
+            // barks, gates, the night drop, the crowd's level of detail — reads
+            // their transform, and a driver whose position is frozen at the kerb
+            // where they got in would be able to drive across the district while
+            // the world quietly believed they had not moved. It also makes the
+            // interesting thing possible: driving TO a job, and being seen
+            // arriving in a car.
+            if (_driver != null)
+                _driver.transform.position = new Vector3(transform.position.x, 0.9f, transform.position.z);
+
             var pivot = transform.position + Vector3.up * 1.6f;
             var offset = Quaternion.Euler(12f, _yaw, 0) * new Vector3(0, 0, -8.5f);
             _camera.transform.position = pivot + offset;

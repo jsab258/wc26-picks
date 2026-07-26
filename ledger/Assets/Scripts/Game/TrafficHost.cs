@@ -38,6 +38,7 @@ namespace Ledger.Game
         struct SignalHead { public Renderer Lamp; public StreetNode Node; public bool NorthSouth; }
         readonly List<SignalHead> _signalHeads = new List<SignalHead>();
         MaterialPropertyBlock _mpb;
+        int _trafficHour = -1;
 
         void BuildTraffic()
         {
@@ -65,6 +66,11 @@ namespace Ledger.Game
             if (Traffic == null) return;
             using (Perf.Time("traffic"))
             {
+                if (Now.Hour != _trafficHour)
+                {
+                    _trafficHour = Now.Hour;
+                    Traffic.SetHour(_trafficHour);
+                }
                 GatherHazards();
                 Traffic.Step(step);
                 foreach (var v in Traffic.Vehicles) PlaceBody(v);
@@ -84,6 +90,7 @@ namespace Ledger.Game
             float best = 0f, pitch = 1f;
             foreach (var v in Traffic.Vehicles)
             {
+                if (v.Dormant) continue;
                 if (v.Kind.EngineNote == "none") continue;      // a bicycle is silent
                 float dx = (float)v.X - at.x, dz = (float)v.Z - at.z;
                 float d = Mathf.Sqrt(dx * dx + dz * dz);
@@ -258,6 +265,13 @@ namespace Ledger.Game
         void PlaceBody(Vehicle v)
         {
             if (!_vehicleBodies.TryGetValue(v.Id, out var t) || t == null) return;
+            // A dormant vehicle is parked up for the night — it is not stepped,
+            // is not an obstacle, and is not drawn. Hiding it rather than moving
+            // it means the street empties after midnight and refills at seven,
+            // which is what a street does.
+            bool shown = t.gameObject.activeSelf;
+            if (shown == v.Dormant) t.gameObject.SetActive(!v.Dormant);
+            if (v.Dormant) return;
             t.position = new Vector3((float)v.X, 0.05f, (float)v.Z);
             t.rotation = Quaternion.Euler(0, (float)v.Heading, 0);
         }

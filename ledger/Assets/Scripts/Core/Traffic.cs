@@ -172,6 +172,10 @@ namespace Ledger.Core
 
         public readonly List<string> Route = new List<string>();
         public double DwellUntil;         // bus at a stop, taxi on a rank
+        /// Parked up for the night. A dormant vehicle is not stepped, is not an
+        /// obstacle, and is not drawn — the street empties after midnight the
+        /// way a street does, rather than the same dozen cars circling at 3am.
+        public bool Dormant;
         public string StoppedAt;          // stop sign honoured at this junction
         public string InJunction;         // junction currently occupied, or null
         public string CameFrom;           // the node the InJunction was entered from
@@ -346,11 +350,13 @@ namespace Ledger.Core
             // Two passes so the outcome never depends on list order: everyone
             // decides against the same world, then everyone moves.
             var targets = new double[Vehicles.Count];
-            for (int i = 0; i < Vehicles.Count; i++) targets[i] = Decide(Vehicles[i]);
+            for (int i = 0; i < Vehicles.Count; i++)
+                targets[i] = Vehicles[i].Dormant ? 0 : Decide(Vehicles[i]);
 
             for (int i = 0; i < Vehicles.Count; i++)
             {
                 var v = Vehicles[i];
+                if (v.Dormant) { v.Speed = 0; continue; }
                 double target = targets[i];
                 double was = v.Speed;
                 double rate = target < was ? v.Kind.Brake : v.Kind.Accel;
@@ -399,6 +405,7 @@ namespace Ledger.Core
             {
                 var lead = _order[i - 1];
                 var v = _order[i];
+                if (v.Dormant || lead.Dormant) continue;
                 if (v.FromId != lead.FromId || v.ToId != lead.ToId) continue;
                 double limit = lead.S - lead.Kind.Length;
                 if (limit < 0) limit = 0;
@@ -449,7 +456,7 @@ namespace Ledger.Core
             // 1. The vehicle in front, on this stretch.
             foreach (var o in Vehicles)
             {
-                if (o == v || o.FromId != v.FromId || o.ToId != v.ToId) continue;
+                if (o == v || o.Dormant || o.FromId != v.FromId || o.ToId != v.ToId) continue;
                 if (o.S <= v.S) continue;
                 double gap = o.S - o.Kind.Length - v.S;
                 if (gap < best) { best = gap; why = "car"; }
@@ -541,7 +548,7 @@ namespace Ledger.Core
             // Somebody is in the box, arriving from somewhere else.
             foreach (var o in Vehicles)
             {
-                if (o == v || o.InJunction != node.Id) continue;
+                if (o == v || o.Dormant || o.InJunction != node.Id) continue;
                 if (o.CameFrom == v.FromId) continue;   // same approach: car-following covers it
                 why = "junction";
                 return false;
@@ -553,7 +560,7 @@ namespace Ledger.Core
             // player behind traffic that never moves again.
             foreach (var o in Vehicles)
             {
-                if (o == v || o.ToId != node.Id || o.FromId == v.FromId) continue;
+                if (o == v || o.Dormant || o.ToId != node.Id || o.FromId == v.FromId) continue;
                 if (o.Edge == null || o.Id > v.Id) continue;
                 if (Clock < o.DwellUntil) continue;                       // they are parked, not waiting
                 if (o.Edge.Length - o.S >= JunctionRadius + 1.0) continue; // not here yet
@@ -573,7 +580,7 @@ namespace Ledger.Core
                     // junction and gridlocking the grid.
                     foreach (var o in Vehicles)
                     {
-                        if (o == v || o.FromId != node.Id || o.ToId != next) continue;
+                        if (o == v || o.Dormant || o.FromId != node.Id || o.ToId != next) continue;
                         if (o.S - o.Kind.Length < v.Kind.Length + v.Kind.Gap)
                         {
                             why = "junction";
@@ -705,7 +712,7 @@ namespace Ledger.Core
         {
             foreach (var o in Vehicles)
             {
-                if (o.FromId != from || o.ToId != to) continue;
+                if (o.Dormant || o.FromId != from || o.ToId != to) continue;
                 if (o.S - o.Kind.Length < needed) return false;
             }
             return true;
@@ -771,6 +778,46 @@ namespace Ledger.Core
             v.Heading = Math.Atan2(dx, dz) * 180.0 / Math.PI;
         }
 
+        /// How busy the streets are at this hour, 0..1. Rush twice a day, quiet
+        /// through the small hours, never quite nothing — a city with literally
+        /// no traffic at 4am reads as broken rather than as late.
+        public static double BusynessAt(int hour)
+        {
+            if (hour >= 7 && hour < 10) return 1.0;      // morning
+            if (hour >= 10 && hour < 17) return 0.8;
+            if (hour >= 17 && hour < 20) return 1.0;     // evening
+            if (hour >= 20 && hour < 23) return 0.6;
+            if (hour >= 23 || hour < 2) return 0.35;
+            return 0.2;                                  // the small hours
+        }
+
+        /// Park up or wake up so the number of vehicles actually running matches
+        /// the hour. Deterministic by index rather than by a roll, so the same
+        /// cars are out at the same times and the street has a character.
+        public void SetHour(int hour)
+        {
+            double busy = BusynessAt(hour);
+            int want = (int)Math.Round(Vehicles.Count * busy);
+            if (want < 2) want = Math.Min(2, Vehicles.Count);
+            for (int i = 0; i < Vehicles.Count; i++)
+            {
+                // The bus runs all day and stops overnight; everything else
+                // thins from the back of the list.
+                bool awake = i < want;
+                var v = Vehicles[i];
+                if (v.Dormant == !awake) continue;
+                v.Dormant = !awake;
+                if (!v.Dormant) { v.StoppedAt = null; v.InJunction = null; v.ClearedDistance = 999; }
+            }
+        }
+
+        public int AwakeCount()
+        {
+            int n = 0;
+            foreach (var v in Vehicles) if (!v.Dormant) n++;
+            return n;
+        }
+
         /// The nearest vehicle to a point, within a radius — how a witness comes
         /// to say "somebody came in a car" instead of "somebody was about".
         public Vehicle NearestTo(double x, double z, double within = 14.0)
@@ -779,6 +826,7 @@ namespace Ledger.Core
             double bestD = within * within;
             foreach (var v in Vehicles)
             {
+                if (v.Dormant) continue;
                 double d = (v.X - x) * (v.X - x) + (v.Z - z) * (v.Z - z);
                 if (d < bestD) { bestD = d; best = v; }
             }
@@ -798,7 +846,8 @@ namespace Ledger.Core
             foreach (var v in Vehicles)
                 foreach (var o in Vehicles)
                 {
-                    if (o == v || o.FromId != v.FromId || o.ToId != v.ToId) continue;
+                    if (o == v || o.Dormant || v.Dormant) continue;
+                    if (o.FromId != v.FromId || o.ToId != v.ToId) continue;
                     if (o.S <= v.S) continue;
                     double gap = o.S - o.Kind.Length - v.S;
                     if (gap < best) best = gap;
