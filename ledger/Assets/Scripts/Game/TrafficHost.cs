@@ -45,6 +45,11 @@ namespace Ledger.Game
             Traffic.Populate(VehicleCount);
             _mpb = new MaterialPropertyBlock();
             foreach (var v in Traffic.Vehicles) EnsureBody(v);
+
+            // Your car, parked on Hook Street outside the bar. One car, always
+            // in the same place, because a vehicle you have to go and find is a
+            // errand rather than a convenience.
+            PlayerCar.Spawn(new Vector3(-2.6f, 0.05f, 4f), 0f);
             Debug.Log($"Traffic: {Traffic.Vehicles.Count} vehicles on {StreetMap.Edges.Count} streets");
         }
 
@@ -69,6 +74,15 @@ namespace Ledger.Game
             Vector3 focus = _player != null ? _player.transform.position : Vector3.zero;
             if (_player != null)
                 list.Add(new TrafficSim.Hazard { X = focus.x, Z = focus.z, R = 0.6 });
+
+            // Your car is an obstacle to everybody else's, whether you are in it
+            // or you left it in the road.
+            var mine = PlayerCar.Instance;
+            if (mine != null)
+            {
+                var mp = mine.transform.position;
+                list.Add(new TrafficSim.Hazard { X = mp.x, Z = mp.z, R = 2.2 });
+            }
 
             float range2 = HazardRange * HazardRange;
             for (int i = 0; i < _npcs.Count; i++)
@@ -255,15 +269,36 @@ namespace Ledger.Game
 
         // ---- what a witness saw ----
 
-        /// The phrase for whatever vehicle was closest to a place, or null if the
-        /// answer is "nothing, they were on foot". This is how a witness comes to
-        /// say "somebody came in a car" instead of "somebody was about" — and the
-        /// coat does not hide a vehicle.
+        /// The phrase for the vehicle the PLAYER arrived in, or null if they
+        /// walked. Deliberately not "whatever vehicle happened to be nearby" —
+        /// a lorry passing on the avenue is not something the player did, and a
+        /// witness who reports it is lying to the player through the game.
+        ///
+        /// This is the consequence half of the car (spec §4): driving somewhere
+        /// is faster and more memorable than walking there, and the coat does
+        /// not hide a vehicle.
         public string VehicleSeenAt(Vector3 where, float within = 12f)
         {
-            if (Traffic == null) return null;
-            var v = Traffic.NearestTo(where.x, where.z, within);
-            return v?.Kind.Witness;
+            var car = PlayerCar.Instance;
+            if (car == null) return null;
+            var p = car.transform.position;
+            float dx = p.x - where.x, dz = p.z - where.z;
+            return dx * dx + dz * dz <= within * within ? PlayerCar.Kind.Witness : null;
+        }
+
+        /// Get in, or get out. The car has to be in reach, and you cannot climb
+        /// into one mid-conversation.
+        void CheckDriving()
+        {
+            var car = PlayerCar.Instance;
+            if (car == null || _player == null) return;
+            if (!Input.GetKeyDown(GameSettings.Current.Key("Drive"))) return;
+
+            if (car.Occupied) { car.GetOut(); _ui?.Toast("You get out and pocket the key."); return; }
+            if (_player.InputLocked) return;
+            if (!car.WithinReach(_player.transform.position)) return;
+            car.GetIn(_player, _player.Eye);
+            _ui?.Toast($"You get in. {GameSettings.Current.Key("Drive")} to get out again.");
         }
     }
 }

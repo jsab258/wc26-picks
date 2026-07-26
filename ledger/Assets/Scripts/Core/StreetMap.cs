@@ -351,6 +351,69 @@ namespace Ledger.Core
             return false;
         }
 
+        // ---- names ----
+
+        /// Streets have names. This is not decoration: an address is the unit
+        /// people give directions in and gossip in, and "they were seen on
+        /// Copper Row" is a different sentence from "they were seen at
+        /// (-26, 14)". The plates at the junctions and the witness lines read
+        /// from the same table, so the city can never tell the player one name
+        /// and a character another.
+        static readonly string[] NamesNorthSouth =
+        {
+            "Tannery Row", "Copper Row", "Hook Street", "Anchor Walk", "Customs Way",
+        };
+        static readonly string[] NamesEastWest =
+        {
+            "Ironside Road", "Bakers Cross", "Quay Street", "Chapel Street", "Harbour Road",
+        };
+
+        /// The name of the avenue running along this coordinate, or null if no
+        /// avenue runs there.
+        public static string NameOf(double coord, bool northSouth)
+        {
+            var line = northSouth ? AvenuesX : AvenuesZ;
+            var names = northSouth ? NamesNorthSouth : NamesEastWest;
+            for (int i = 0; i < line.Length && i < names.Length; i++)
+                if (Math.Abs(line[i] - coord) < 0.001) return names[i];
+            return null;
+        }
+
+        /// What a person standing here would call where they are. Junctions read
+        /// as a corner of two streets; anywhere else takes the nearest.
+        public static string AddressOf(double x, double z)
+        {
+            Ensure();
+            string ns = NameOf(x, true), ew = NameOf(z, false);
+            if (ns != null && ew != null) return $"{ns} at {ew}";
+            if (ns != null) return ns;
+            if (ew != null) return ew;
+
+            double bestD = double.MaxValue;
+            string best = null;
+            for (int i = 0; i < AvenuesX.Length; i++)
+            {
+                double d = Math.Abs(AvenuesX[i] - x);
+                if (d < bestD) { bestD = d; best = NameOf(AvenuesX[i], true); }
+            }
+            for (int j = 0; j < AvenuesZ.Length; j++)
+            {
+                double d = Math.Abs(AvenuesZ[j] - z);
+                if (d < bestD) { bestD = d; best = NameOf(AvenuesZ[j], false); }
+            }
+            return best;
+        }
+
+        /// The two streets that meet at a junction, for the plates on its posts.
+        public static bool NamesAt(StreetNode n, out string northSouth, out string eastWest)
+        {
+            northSouth = eastWest = null;
+            if (n == null || !n.IsJunction) return false;
+            northSouth = NameOf(n.X, true);
+            eastWest = NameOf(n.Z, false);
+            return northSouth != null && eastWest != null;
+        }
+
         /// Every junction reachable from every other, ignoring lanes. If this is
         /// ever false the city has an island in it and a driver will get stuck.
         public static bool FullyConnected()

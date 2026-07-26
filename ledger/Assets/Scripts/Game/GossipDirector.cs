@@ -215,18 +215,34 @@ namespace Ledger.Game
         /// side of the double life generating tomorrow's problem. Returns who saw:
         /// at that range the player saw them too, so each witness becomes a known
         /// lead rather than an invisible tick in the simulation.
-        public List<string> WitnessNightJob(Vector3 dropPos, int day, GameTime now, double confidence = 1.0)
+        /// `vehicle` is the phrase for whatever the player ARRIVED IN, or null
+        /// if they walked. It is appended to the description and — this is the
+        /// point — it is appended whether or not they were wearing the coat.
+        /// The disguise buys doubt about the face; it buys none about the car
+        /// standing in the street. "Someone in a coat, and a car" is a narrower
+        /// description than "someone in a coat", and a narrower description is
+        /// what an investigator works from.
+        public List<string> WitnessNightJob(Vector3 dropPos, int day, GameTime now,
+            double confidence = 1.0, string vehicle = null, string address = null)
         {
             var seen = new List<string>();
             if (_mill == null) return seen;
             var summary = confidence >= 0.95
                 ? "the new owner was handling a package in the street past midnight"
                 : "someone in a runner's coat — maybe the new owner — was handling a package past midnight";
+            if (!string.IsNullOrEmpty(address)) summary += $", on {address}";
+            if (!string.IsNullOrEmpty(vehicle)) summary += $", and {vehicle} was standing there with them";
             foreach (var kv in _walkers)
             {
                 if (kv.Value == null) continue;
                 if (Vector3.Distance(kv.Value.transform.position, dropPos) > WitnessRange) continue;
                 _mill.Witness(kv.Key, new Fact("player", $"night_job_d{day}", "seen"), summary, true, now, confidence);
+                // The vehicle is filed as its own hard fact, not just as words in
+                // a sentence: a description the investigation can actually check
+                // against, and one the coat never softens.
+                if (!string.IsNullOrEmpty(vehicle))
+                    _mill.Witness(kv.Key, new Fact("player", $"vehicle_d{day}", vehicle),
+                        $"there was {vehicle} outside when it happened", false, now, 0.9);
                 seen.Add(kv.Key);
             }
             return seen;

@@ -1958,6 +1958,27 @@ namespace Ledger.CoreTests
             StreetMap.Rebuild();
             Check(StreetMap.Edges.Count == before, "rebuilding produces the same city");
 
+            // Streets have names, and the plates and the gossip read the same
+            // table — the city must never tell the player one name and a
+            // character another.
+            Check(StreetMap.NameOf(0, northSouth: true) == "Hook Street",
+                "the founding street is Hook Street, where the bar is");
+            Check(StreetMap.NameOf(7, northSouth: true) == null, "and nothing runs where no avenue runs");
+            var namesSeen = new HashSet<string>();
+            foreach (var x in StreetMap.AvenuesX) namesSeen.Add(StreetMap.NameOf(x, true));
+            foreach (var z in StreetMap.AvenuesZ) namesSeen.Add(StreetMap.NameOf(z, false));
+            Check(namesSeen.Count == 10 && !namesSeen.Contains(null),
+                "every street in the grid has its own name", namesSeen.Count.ToString());
+            Check(StreetMap.NamesAt(StreetMap.Node("j2_2"), out var nsName, out var ewName)
+                && nsName == "Hook Street" && ewName == "Quay Street",
+                "a junction is the corner of two named streets", $"{nsName} / {ewName}");
+            Check(!StreetMap.NamesAt(StreetMap.Node("stop_bar_door"), out _, out _),
+                "and a doorway is not a corner");
+            Check(StreetMap.AddressOf(0, 0) == "Hook Street at Quay Street",
+                "standing on the crossing, you are on a corner", StreetMap.AddressOf(0, 0));
+            Check(StreetMap.AddressOf(-6, 6) != null, "and anywhere else has a nearest street",
+                StreetMap.AddressOf(-6, 6));
+
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
         }

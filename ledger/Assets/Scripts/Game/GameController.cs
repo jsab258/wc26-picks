@@ -474,6 +474,7 @@ namespace Ledger.Game
             // its traffic does not.
             TickTraffic(SimMode.Days > 0 ? step : Time.deltaTime);
             TickSignals();
+            if (SimMode.Days == 0) CheckDriving();
 
             UpdateCampaign();
             if (Campaign.FallPending) RunTheFall();
@@ -1389,7 +1390,12 @@ namespace Ledger.Game
                     Wallet.EarnDirty(Campaign.JobPay);
                     Audio.Ui("coin");
                     double conf = WearingCoat ? CoatWitnessConfidence : 1.0;
-                    var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now, conf)
+                    // What they arrived in, and where. The coat lowers confidence
+                    // in the face; it does nothing at all to the car.
+                    string sawVehicle = VehicleSeenAt(p);
+                    string where = Ledger.Core.StreetMap.AddressOf(p.x, p.z);
+                    var seen = _gossip != null
+                        ? _gossip.WitnessNightJob(p, Now.Day, Now, conf, sawVehicle, where)
                         : new List<string>();
                     NightWitnesses += seen.Count;
                     if (WearingCoat && seen.Count > 0)
@@ -1410,10 +1416,11 @@ namespace Ledger.Game
                         foreach (var lead in _gossip.Mill.Leads("player"))
                             if (lead.HolderId == w && lead.TopicKey == $"player.night_job_d{Now.Day}")
                                 Knowledge.Learn(lead, $"you saw {w} watching", Now);
+                    string carNote = sawVehicle == null ? "" : $" And {sawVehicle} they can describe.";
                     _ui?.Toast(seen.Count > 0
                         ? WearingCoat
-                            ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw a figure in a coat."
-                            : $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you — and your face."
+                            ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw a figure in a coat.{carNote}"
+                            : $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you — and your face.{carNote}"
                         : $"Drop made. +${Campaign.JobPay} dirty.");
                 }
             }

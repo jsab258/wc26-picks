@@ -42,6 +42,9 @@ namespace Ledger.Game
             BuildProps();
             BuildLamps();
             BuildDistrict();
+            // Signs last: they read the finished network, and a rule the city
+            // obeys without telling you is indistinguishable from a bug.
+            StreetFurniture.Build();
         }
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame

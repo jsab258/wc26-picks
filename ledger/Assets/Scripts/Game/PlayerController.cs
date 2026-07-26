@@ -20,6 +20,11 @@ namespace Ledger.Game
 
         CharacterController _cc;
         Camera _camera;
+
+        /// The camera this controller drives. Exposed so the car can take it
+        /// over while the player is sitting in one — there is exactly one camera
+        /// in this game and two things that want to move it.
+        public Camera Eye => _camera;
         float _yaw = 0f;
         float _pitch = 18f;
         float _verticalVelocity;
