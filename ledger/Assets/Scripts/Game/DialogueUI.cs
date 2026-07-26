@@ -70,7 +70,7 @@ namespace Ledger.Game
 
         void Build()
         {
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = UiTheme.LoadFont();
 
             var canvasGo = new GameObject("Canvas");
             canvasGo.transform.SetParent(transform, false);
@@ -89,12 +89,17 @@ namespace Ledger.Game
             }
 
             _canvas = canvasGo.transform;
+            // The street layer: sodium amber on the world HUD, cold ink in the books.
             _clockText = MakeText(canvasGo.transform, "Clock", new Vector2(1, 1), new Vector2(-20, -20), new Vector2(360, 40), 26, TextAnchor.UpperRight);
             _statusText = MakeText(canvasGo.transform, "Status", new Vector2(1, 1), new Vector2(-20, -54), new Vector2(640, 30), 18, TextAnchor.UpperRight);
+            _statusText.color = UiTheme.Dim;
             _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(1000, 36), 21, TextAnchor.MiddleCenter);
+            _toastText.color = UiTheme.AmberSoft;
             _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
-            MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft)
-                .text = "WASD move · Shift run · E talk · C coat · L your ledger · F1 debug · F2 API key · Esc close";
+            _promptText.color = UiTheme.Amber;
+            var help = MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft);
+            help.text = "WASD move · Shift run · E talk · C coat · L your ledger · F1 debug · F2 API key · Esc close";
+            help.color = UiTheme.Dim;
 
             BuildDialoguePanel(canvasGo.transform);
             BuildKeyPanel(canvasGo.transform);
@@ -111,6 +116,7 @@ namespace Ledger.Game
         {
             _dialoguePanel = MakePanel(parent, "Dialogue", new Vector2(0.5f, 0), new Vector2(0, 120), new Vector2(900, 420));
             _titleText = MakeText(_dialoguePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(860, 30), 22, TextAnchor.UpperCenter);
+            _titleText.color = UiTheme.Amber; // a person, not a page — street warmth
             _historyText = MakeText(_dialoguePanel.transform, "History", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(860, 280), 18, TextAnchor.LowerLeft);
 
             _input = MakeInput(_dialoguePanel.transform, "Say something...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
@@ -183,8 +189,9 @@ namespace Ledger.Game
         void BuildLedgerPanel(Transform parent)
         {
             _ledgerPanel = MakePanel(parent, "LedgerPanel", new Vector2(1, 0.5f), new Vector2(-20, 0), new Vector2(560, 620));
-            MakeText(_ledgerPanel.transform, "LedgerTitle", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(520, 30), 22, TextAnchor.UpperCenter)
-                .text = "YOUR LEDGER — what you believe is out there";
+            var lt = MakeText(_ledgerPanel.transform, "LedgerTitle", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(520, 30), 20, TextAnchor.UpperCenter);
+            lt.text = "T H E   B O O K S";
+            lt.color = UiTheme.Dim;
             _ledgerText = MakeText(_ledgerPanel.transform, "LedgerText", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(520, 556), 16, TextAnchor.UpperLeft);
             _ledgerPanel.SetActive(false);
         }
@@ -192,8 +199,8 @@ namespace Ledger.Game
         void BuildSummaryPanel(Transform parent)
         {
             _summaryPanel = MakePanel(parent, "DaySummary", new Vector2(0.5f, 1), new Vector2(0, -120), new Vector2(640, 250));
-            _summaryPanel.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.09f, 0.95f);
-            _summaryTitle = MakeText(_summaryPanel.transform, "SummaryTitle", new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(600, 32), 24, TextAnchor.UpperCenter);
+            _summaryTitle = MakeText(_summaryPanel.transform, "SummaryTitle", new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(600, 32), 22, TextAnchor.UpperCenter);
+            _summaryTitle.color = UiTheme.Dim;
             _summaryText = MakeText(_summaryPanel.transform, "SummaryText", new Vector2(0.5f, 1), new Vector2(0, -54), new Vector2(580, 180), 18, TextAnchor.UpperLeft);
             _summaryPanel.SetActive(false);
         }
@@ -203,21 +210,23 @@ namespace Ledger.Game
             string streetWord, string outfitWord, int clean, int dirty)
         {
             if (SimMode.Days > 0) return; // never block the self-test
-            _summaryTitle.text = $"— END OF DAY {dayClosed} —";
+            _summaryTitle.text = $"CLOSING THE BOOKS · DAY {dayClosed}";
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Bar takings: <b>+${takings}</b>" + (washed > 0 ? $"   ·   washed through the till: <b>${washed}</b>" : ""));
-            sb.AppendLine($"Cash: <b>${clean}</b> clean" + (dirty > 0 ? $" + <b>${dirty}</b> dirty in your coat" : ""));
+            sb.AppendLine($"Bar takings <color={UiTheme.HexCredit}><b>+${takings}</b></color>" +
+                (washed > 0 ? $"   ·   washed through the till <color={UiTheme.HexCredit}>+${washed}</color>" : ""));
+            sb.AppendLine($"Cash <b>${clean}</b> clean" +
+                (dirty > 0 ? $"   <color={UiTheme.HexDebit}><b>− ${dirty} unwashed</b></color>" : ""));
             sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{outfitWord}</b>.");
             sb.AppendLine(talkCount == 0
-                ? "As far as you know, nobody is carrying talk about you."
-                : $"Talk you know about and haven't dealt with: <b>{talkCount}</b> — press L for your ledger.");
+                ? $"<color={UiTheme.HexDim}>No open liabilities you know of.</color>"
+                : $"Open liabilities you haven't dealt with: <color={UiTheme.HexDebit}><b>{talkCount}</b></color> — press L for the books.");
             // The street's own words — the strongest story the player KNOWS about
             // (belief, never ground truth), quoted verbatim from the mill.
             KnownLead word = null;
             foreach (var k in _game.Knowledge.Entries)
                 if (!k.Handled && (word == null || k.ConfidenceWhenLearned > word.ConfidenceWhenLearned)) word = k;
             if (word != null)
-                sb.AppendLine($"<i>Word on the street, as you heard it: \"{word.Summary}\" — and {word.HolderName} is telling it.</i>");
+                sb.AppendLine($"<color={UiTheme.HexDim}><i>Word on the street, as you heard it: \"{word.Summary}\" — and {word.HolderName} is telling it.</i></color>");
             _summaryText.text = sb.ToString();
             _summaryPanel.SetActive(true);
             _summaryUntil = Time.unscaledTime + 9f;
@@ -225,45 +234,58 @@ namespace Ledger.Game
 
         void RefreshLedger()
         {
+            // The position line: the two kinds of money, credit against debit.
             var sb = new System.Text.StringBuilder();
+            sb.Append($"<size=26><b>${_game.Wallet.Clean}</b></size> clean");
+            if (_game.Wallet.Dirty > 0)
+                sb.Append($"   <color={UiTheme.HexDebit}><b>− ${_game.Wallet.Dirty} unwashed</b></color>");
+            sb.AppendLine();
+            sb.AppendLine();
+
+            // Liabilities: what the street holds on you — belief, never ground truth.
+            sb.AppendLine($"<color={UiTheme.HexDim}><b>LIABILITIES — what the street holds</b></color>");
             int shown = 0;
             foreach (var k in _game.Knowledge.Entries)
             {
-                if (shown++ >= 14) { sb.AppendLine("…"); break; }
-                var status = k.Handled ? " <color=#8a8>· handled</color>" : "";
-                sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"");
-                sb.AppendLine($"   <color=#999>learned day {k.LearnedAt.Day} ({k.Source})</color>{status}");
+                if (shown++ >= 12) { sb.AppendLine("…"); break; }
+                var figure = k.Handled
+                    ? $"<color={UiTheme.HexHeld}>settled</color>"
+                    : $"<color={UiTheme.HexDebit}><b>−{k.ConfidenceWhenLearned:0.00}</b></color>";
+                sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"  {figure}");
+                sb.AppendLine($"   <color={UiTheme.HexDim}>posted day {k.LearnedAt.Day} · {k.Source}</color>");
             }
-            var text = shown == 0
-                ? "Nothing yet. As far as you know, nobody is talking about you.\n\nYou learn what's out there by seeing who watches you, by loyal friends' warnings, and by what people admit to your face.\n"
-                : sb.ToString();
+            if (shown == 0)
+                sb.AppendLine($"<color={UiTheme.HexDim}>No entries. As far as you know, nobody is talking.\nThe street posts here when you see a witness, a loyal\nfriend warns you, or someone admits it to your face.</color>");
 
-            // The other side of the ledger: what you hold on THEM (§6.3).
+            // Assets: what you hold on them (§6.3).
             var held = new System.Text.StringBuilder();
             foreach (var s in _game.HooksBook.Known)
             {
                 bool leashed = _game.Gossip != null && _game.Gossip.Mill != null &&
                                (_game.Gossip.Mill.Get(s.OwnerId)?.Leashed ?? false);
                 var state = s.Strong
-                    ? (leashed ? "<color=#c66>· held over them</color>" : "<color=#9c9>· standing</color>")
-                    : (s.HookSpent ? "<color=#888>· favor spent</color>" : "<color=#9c9>· one favor owed</color>");
-                held.AppendLine($"<b>{s.OwnerId}</b> — {s.Summary} {state}");
-                held.AppendLine($"   <color=#999>learned day {s.LearnedAt.Day} (from {s.LearnedFrom})</color>");
+                    ? (leashed ? $"<color={UiTheme.HexCredit}><b>+held</b></color>" : $"<color={UiTheme.HexCredit}>+standing</color>")
+                    : (s.HookSpent ? $"<color={UiTheme.HexHeld}>spent</color>" : $"<color={UiTheme.HexCredit}>+one favor</color>");
+                held.AppendLine($"<b>{s.OwnerId}</b> — {s.Summary}  {state}");
+                held.AppendLine($"   <color={UiTheme.HexDim}>posted day {s.LearnedAt.Day} · from {s.LearnedFrom}</color>");
             }
             var owed = new System.Text.StringBuilder();
             foreach (var d in _game.Debts.All)
                 if (d.Outstanding)
-                    owed.AppendLine($"<b>{d.Name}</b> owes <b>${d.Amount}</b> — <color=#999>\"{d.Note}\", in Marek's hand</color>");
-            _ledgerText.text = text
-                + (held.Length > 0 ? "\n<b>WHAT YOU HOLD</b>\n" + held : "")
-                + (owed.Length > 0 ? "\n<b>WHAT YOU'RE OWED</b>\n" + owed : "");
+                    owed.AppendLine($"<b>{d.Name}</b> — \"{d.Note}\"  <color={UiTheme.HexCredit}><b>+${d.Amount}</b></color>" +
+                        $"\n   <color={UiTheme.HexDim}>in Marek's hand</color>");
+            if (held.Length > 0)
+                sb.Append($"\n<color={UiTheme.HexDim}><b>ASSETS — what you hold</b></color>\n").Append(held);
+            if (owed.Length > 0)
+                sb.Append($"\n<color={UiTheme.HexDim}><b>RECEIVABLES — Marek's book</b></color>\n").Append(owed);
+            _ledgerText.text = sb.ToString();
         }
 
         void Update()
         {
             var now = _game.Now;
             var money = _game.Wallet.Dirty > 0
-                ? $"${_game.Wallet.Clean} <color=#c96>+ ${_game.Wallet.Dirty} dirty</color>"
+                ? $"${_game.Wallet.Clean} <color={UiTheme.HexAmber}>+ ${_game.Wallet.Dirty} dirty</color>"
                 : $"${_game.Wallet.Clean}";
             _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  {money}";
 
@@ -275,7 +297,7 @@ namespace Ledger.Game
                 double heat = _game.Gossip != null && _game.Gossip.Mill != null ? _game.Gossip.Mill.DayCircleHeat() : 0.0;
                 _statusText.text = $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}" +
                     $"  ·  the street: {HeatWord(heat)}  ·  the outfit: {PatienceWord(camp.OutfitPatience)}" +
-                    (_game.WearingCoat ? "  ·  <color=#c96>in the coat</color>" : "");
+                    (_game.WearingCoat ? $"  ·  <color={UiTheme.HexAmber}>in the coat</color>" : "");
             }
 
             if (_toastUntil > 0f && Time.unscaledTime > _toastUntil) { _toastText.text = ""; _toastUntil = 0f; }
@@ -393,12 +415,11 @@ namespace Ledger.Game
             _dcRow.SetActive(false);
 
             _endPanel = MakePanel(_canvas, "EndPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, 420));
-            _endPanel.GetComponent<Image>().color = new Color(0.03f, 0.03f, 0.05f, 0.96f);
             bool won = camp.Verdict == Verdict.WonWeek;
             var title = MakeText(_endPanel.transform, "EndTitle", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(1000, 70), 44, TextAnchor.UpperCenter);
             title.text = won ? "YOU LASTED THE WEEK"
                 : camp.Verdict == Verdict.LostExposed ? "EXPOSED" : "CAST OUT";
-            title.color = won ? new Color(0.75f, 0.9f, 0.7f) : new Color(0.9f, 0.55f, 0.45f);
+            title.color = won ? UiTheme.Credit : UiTheme.Debit;
             MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(950, 90), 22, TextAnchor.UpperCenter)
                 .text = camp.VerdictReason;
             MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -250), new Vector2(950, 60), 18, TextAnchor.UpperCenter)
@@ -649,13 +670,22 @@ namespace Ledger.Game
 
         // ---- code-built uGUI helpers ----
 
+        /// Two Books panel: a hairline edge with the dark fill inset one pixel —
+        /// the whole visual system is edges and figures, not boxes and chrome.
         GameObject MakePanel(Transform parent, string name, Vector2 anchor, Vector2 offset, Vector2 size)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>();
-            img.color = new Color(0.08f, 0.08f, 0.1f, 0.92f);
+            img.color = UiTheme.Hairline;
             Place(go, anchor, offset, size);
+
+            var fill = new GameObject("Fill");
+            fill.transform.SetParent(go.transform, false);
+            fill.AddComponent<Image>().color = UiTheme.PanelBg;
+            var r = fill.GetComponent<RectTransform>();
+            r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one;
+            r.offsetMin = new Vector2(1, 1); r.offsetMax = new Vector2(-1, -1);
             return go;
         }
 
@@ -667,7 +697,7 @@ namespace Ledger.Game
             text.font = _font;
             text.fontSize = fontSize;
             text.alignment = align;
-            text.color = Color.white;
+            text.color = UiTheme.Ink;
             text.supportRichText = true;
             Place(go, anchor, offset, size);
             return text;
@@ -678,13 +708,13 @@ namespace Ledger.Game
             var go = new GameObject("Input");
             go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>();
-            img.color = new Color(0.16f, 0.16f, 0.2f, 1f);
+            img.color = UiTheme.Field;
             Place(go, anchor, offset, size);
 
             var textComp = MakeText(go.transform, "Text", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 18, TextAnchor.MiddleLeft);
             var placeholderComp = MakeText(go.transform, "Placeholder", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 18, TextAnchor.MiddleLeft);
             placeholderComp.text = placeholder;
-            placeholderComp.color = new Color(1, 1, 1, 0.35f);
+            placeholderComp.color = UiTheme.Dim;
             placeholderComp.fontStyle = FontStyle.Italic;
 
             var input = go.AddComponent<InputField>();
@@ -698,7 +728,7 @@ namespace Ledger.Game
             var go = new GameObject($"Button_{label}");
             go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>();
-            img.color = new Color(0.25f, 0.35f, 0.5f, 1f);
+            img.color = UiTheme.ButtonBg;
             Place(go, anchor, offset, size);
             var text = MakeText(go.transform, "Label", new Vector2(0.5f, 0.5f), Vector2.zero, size, 18, TextAnchor.MiddleCenter);
             text.text = label;
