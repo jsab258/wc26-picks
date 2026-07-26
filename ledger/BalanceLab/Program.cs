@@ -28,6 +28,9 @@ namespace Ledger.BalanceLab
                 ("intimidator",  new Policy { Dc = DcStyle.Intimidate }),
                 ("discrediter",  new Policy { Dc = DcStyle.Discredit }),
                 ("smart",        new Policy { Dc = DcStyle.Smart }), // pick the verb per target
+                ("beat-keeper",  new Policy { Dc = DcStyle.Smart, KeepBeats = true }),
+                ("hook-user",    new Policy { UseHooks = true }),
+                ("collector",    new Policy { CollectDebts = true }),
             };
 
             Console.WriteLine($"weeks/policy={weeks}  talk/h={TalkChancePerHourSameCircle}  witness={WitnessChance}");
@@ -45,6 +48,9 @@ namespace Ledger.BalanceLab
         {
             public bool SkipJobs;
             public DcStyle Dc = DcStyle.None;
+            public bool KeepBeats;     // honor Ada d3 / Rocco d5 evenings, missing those drops
+            public bool UseHooks;      // leash Rocco with his secret on day 2
+            public bool CollectDebts;  // work Marek's book on day 2
         }
 
         static (double winPct, double exposedPct, double castoutPct, double avgCash, double avgPeakHeat, double avgDcSpend)
@@ -80,8 +86,13 @@ namespace Ledger.BalanceLab
 
             var now = new GameTime(1, 9, 0);
             int lastClosedDay = 1, jobPostedDay = -1;
-            bool jobOpen = false, actedToday = false;
+            bool jobOpen = false, actedToday = false, specialDone = false;
             int lastActDay = 0;
+            var debts = new List<Debtor>
+            {
+                new Debtor { Id = "Sam", Name = "Sam", Amount = 120, Note = "stock" },
+                new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "door" },
+            };
 
             while (camp.Verdict == Verdict.Ongoing && !(now.Day > 8))
             {
@@ -115,12 +126,37 @@ namespace Ledger.BalanceLab
                     }
                 }
 
+                // Day-2 noon one-shots: leverage and the debt book.
+                if (!specialDone && now.Day == 2 && now.Hour >= 12)
+                {
+                    specialDone = true;
+                    if (policy.UseHooks)
+                    {
+                        var s = new Secret { Id = "skim", OwnerId = "Rocco", Kind = SecretKind.Criminal, Summary = "the skim." };
+                        s.Learn("Lena", now);
+                        mill.UseHook("Rocco", s, now);
+                    }
+                    if (policy.CollectDebts)
+                        foreach (var d in debts) { d.Collect(mill.Get(d.Id), wallet, mill, now); dcSpend -= 0; }
+                }
+
                 // Night job window.
                 if (now.Hour >= 22 && jobPostedDay != now.Day) { jobPostedDay = now.Day; jobOpen = true; }
                 if (jobOpen && now.Hour >= 23) // resolve an hour into the window
                 {
                     jobOpen = false;
-                    if (policy.SkipJobs) camp.JobMissed();
+                    bool beatNight = policy.KeepBeats && (now.Day == 3 || now.Day == 5);
+                    if (beatNight)
+                    {
+                        camp.JobMissed(); // the evening went to a person instead
+                        var host = mill.Get(now.Day == 3 ? "Ada" : "Rocco");
+                        if (host != null)
+                        {
+                            host.Loyalty = Math.Clamp(host.Loyalty + 0.2, 0, 1);
+                            host.Suspicion.Lower(0.1, "the new owner made time");
+                        }
+                    }
+                    else if (policy.SkipJobs) camp.JobMissed();
                     else
                     {
                         camp.JobDone();
