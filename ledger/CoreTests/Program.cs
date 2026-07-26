@@ -59,6 +59,7 @@ namespace Ledger.CoreTests
                 TestAdjudicator();
                 TestEconomy();
                 TestStreets();
+                TestTraffic();
                 TestAccess();
                 TestOperations();
                 TestPopulation();
@@ -1959,6 +1960,219 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // Traffic (roadmap M12)
+        // ---------------------------------------------------------------
+
+        static void TestTraffic()
+        {
+            Console.WriteLine("Traffic — the streets get used:");
+            StreetMap.Rebuild();
+
+            // The catalogue. Six kinds, and the differences between them have to
+            // be real differences, or "vehicle variety" is six colours of car.
+            Check(VehicleKinds.All.Length == 6, "six kinds of vehicle",
+                VehicleKinds.All.Length.ToString());
+            foreach (var k in VehicleKinds.All)
+            {
+                Check(k.Length > 0 && k.Width > 0 && k.TopSpeed > 0, $"{k.Id} has a size and a speed");
+                Check(!string.IsNullOrEmpty(k.Witness), $"{k.Id} is something a witness can name");
+                Check(k.Brake > k.Accel, $"{k.Id} stops faster than it starts, like every real vehicle");
+            }
+            Check(VehicleKinds.Truck.Length > VehicleKinds.Car.Length
+                && VehicleKinds.Bus.Length > VehicleKinds.Truck.Length
+                && VehicleKinds.Bike.Length < VehicleKinds.Car.Length,
+                "a bus is longer than a lorry is longer than a car is longer than a bicycle");
+            Check(VehicleKinds.Bike.TopSpeed < VehicleKinds.Car.TopSpeed, "and a bicycle is slower than a car");
+            Check(VehicleKinds.Bus.StopsAtStops && VehicleKinds.Taxi.WaitsAtRanks && VehicleKinds.Bike.UsesLanes,
+                "buses stop, cabs wait, bicycles use the lanes");
+            Check(VehicleKinds.ById("truck") == VehicleKinds.Truck && VehicleKinds.ById("nope") == null,
+                "kinds look up by id, and an unknown id is null rather than a guess");
+
+            // Lights. A pure function of the clock, so a light cannot drift out
+            // of step with its own render or need saving.
+            var centre = StreetMap.Node("j2_2");        // the founding cross
+            var lit = StreetMap.Node("j1_1");           // avenue meets avenue
+            var edge = StreetMap.Node("j0_0");          // the outer ring
+            Check(Signals.HasLights(lit), "the big crossings have lights");
+            Check(!Signals.HasLights(centre), "the founding cross keeps its old give-way");
+            Check(!Signals.HasLights(edge), "and the edge of town gets a stop sign, not a light");
+            Check(!Signals.HasLights(StreetMap.Node("stop_bar_door")), "a doorway is not a junction");
+            Check(!Signals.HasLights(null), "and asking about nothing is safe");
+
+            // Over one cycle, both axes get a green and the two greens never
+            // overlap. This is the property that means the lights are safe.
+            bool sawNs = false, sawEw = false, everBoth = false;
+            for (double t = 0; t < Signals.Cycle; t += 0.25)
+            {
+                bool ns = Signals.MayEnter(lit, t, northSouth: true);
+                bool ew = Signals.MayEnter(lit, t, northSouth: false);
+                sawNs |= ns; sawEw |= ew; everBoth |= ns && ew;
+            }
+            Check(sawNs && sawEw, "both directions get a turn");
+            Check(!everBoth, "and never at the same moment");
+            Check(Signals.Phase(lit, 0) == Signals.Phase(lit, Signals.Cycle),
+                "the cycle actually cycles");
+            bool offsets = Signals.Offset(StreetMap.Node("j1_1")) != Signals.Offset(StreetMap.Node("j3_3"));
+            Check(offsets, "junctions do not all change together, which is what makes a grid feel mechanical");
+
+            // A populated city.
+            var sim = new TrafficSim(seed: 11);
+            sim.Populate(14);
+            Check(sim.Vehicles.Count >= 10, "the streets have traffic on them", sim.Vehicles.Count.ToString());
+            Check(sim.Vehicles.Exists(v => v.Kind.StopsAtStops), "including a bus");
+            Check(sim.BusLoop.Count >= 8 && sim.IsBusStop(sim.BusLoop[0]),
+                "which has a circuit with stops on it", sim.BusLoop.Count.ToString());
+            foreach (var v in sim.Vehicles)
+                Check(v.Edge != null && v.Edge.Driveable || v.Kind.UsesLanes,
+                    $"vehicle {v.Id} starts on a road it is allowed to use", v.Edge?.Kind);
+
+            // Three minutes of traffic, checked every step for the things that
+            // must NEVER be true. A screenshot cannot tell you any of this.
+            double worstGap = 999;
+            int redRunners = 0, offRoad = 0, litCrossings = 0;
+            var heading = new Dictionary<int, (string from, string to)>();
+            for (int i = 0; i < 360; i++)
+            {
+                heading.Clear();
+                foreach (var v in sim.Vehicles) heading[v.Id] = (v.FromId, v.ToId);
+                double before = sim.Clock;
+                sim.Step(0.5);
+                double gap = sim.TightestGap();
+                if (gap < worstGap) worstGap = gap;
+                foreach (var v in sim.Vehicles)
+                {
+                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.0)) offRoad++;
+
+                    // A vehicle whose road changed has just passed through the
+                    // junction between them. That is the exact instant "entering
+                    // on red" means — being NEAR a red light is not an offence,
+                    // and asking the question any earlier tests the approach
+                    // rather than the crossing.
+                    var prior = heading[v.Id];
+                    if (prior.to == v.FromId && prior.from != v.FromId)
+                    {
+                        var crossed = StreetMap.Node(prior.to);
+                        if (!Signals.HasLights(crossed)) continue;
+                        litCrossings++;
+                        var a = StreetMap.Node(prior.from);
+                        bool ns = Math.Abs(crossed.Z - a.Z) >= Math.Abs(crossed.X - a.X);
+                        bool greenSomewhereInStep = false;
+                        for (double t = before; t <= sim.Clock + 1e-9; t += TrafficSim.SubStep)
+                            greenSomewhereInStep |= Signals.MayEnter(crossed, t, ns);
+                        if (!greenSomewhereInStep) redRunners++;
+                    }
+                }
+            }
+            Check(litCrossings > 0, "traffic does pass through the lit junctions", litCrossings.ToString());
+            Check(worstGap >= 0, "no two vehicles ever occupy the same piece of road", worstGap.ToString("0.00"));
+            Check(offRoad == 0, "and nobody ever leaves the tarmac", offRoad.ToString());
+            Check(redRunners == 0, "nobody crosses a stop line on red", redRunners.ToString());
+
+            // Liveness. The failure that would actually ruin an evening is not a
+            // crash — it is a grid wedged solid, with the player stuck behind a
+            // queue that will never move again.
+            Check(sim.TotalDistance > 1000, "the traffic actually goes somewhere", sim.TotalDistance.ToString("0"));
+            int moving = sim.Vehicles.FindAll(v => v.Speed > 0.5).Count;
+            Check(moving >= sim.Vehicles.Count / 3, "and most of it is moving at any moment", moving.ToString());
+            int stuck = 0;
+            var mark = new Dictionary<int, double>();
+            foreach (var v in sim.Vehicles) mark[v.Id] = sim.TotalDistance;
+            var was = new Dictionary<int, (string from, string to, double s)>();
+            foreach (var v in sim.Vehicles) was[v.Id] = (v.FromId, v.ToId, v.S);
+            for (int i = 0; i < 120; i++) sim.Step(0.5);
+            foreach (var v in sim.Vehicles)
+            {
+                var w = was[v.Id];
+                bool movedOn = w.from != v.FromId || w.to != v.ToId || Math.Abs(v.S - w.s) > 2.0;
+                if (!movedOn) stuck++;
+            }
+            Check(stuck == 0, "in a minute of traffic, nobody is permanently wedged", stuck.ToString());
+
+            // Determinism: the same seed drives the same city. The CI sim and the
+            // player's machine must not merely look similar.
+            var a1 = new TrafficSim(seed: 3); a1.Populate(12);
+            var a2 = new TrafficSim(seed: 3); a2.Populate(12);
+            for (int i = 0; i < 200; i++) { a1.Step(0.25); a2.Step(0.25); }
+            bool identical = a1.Vehicles.Count == a2.Vehicles.Count;
+            for (int i = 0; identical && i < a1.Vehicles.Count; i++)
+                identical = Math.Abs(a1.Vehicles[i].X - a2.Vehicles[i].X) < 1e-9
+                         && Math.Abs(a1.Vehicles[i].Z - a2.Vehicles[i].Z) < 1e-9;
+            Check(identical, "the same seed produces the same traffic, step for step");
+
+            // Frame rate independence: a machine running at 60fps and one
+            // stuttering at 10fps must produce the same city, or the CI sim
+            // proves nothing about the player's build.
+            var fast = new TrafficSim(seed: 5); fast.Populate(12);
+            var slow = new TrafficSim(seed: 5); slow.Populate(12);
+            for (int i = 0; i < 600; i++) fast.Step(1.0 / 60.0);
+            for (int i = 0; i < 100; i++) slow.Step(0.1);
+            double drift = 0;
+            for (int i = 0; i < fast.Vehicles.Count; i++)
+                drift = Math.Max(drift, Math.Abs(fast.Vehicles[i].S - slow.Vehicles[i].S));
+            Check(drift < 2.5, "a stuttering machine gets the same traffic as a smooth one", drift.ToString("0.00"));
+
+            // THE DESIGN DECISION, held as a test. A car brakes for a person and
+            // never, ever drives through one. Running people over is not in this
+            // game — see streets-and-cars-spec.md §5.
+            var yield = new TrafficSim(seed: 21);
+            yield.Populate(6);
+            var driver = yield.Vehicles[0];
+            for (int i = 0; i < 40; i++) yield.Step(0.25);   // get them rolling
+            driver = yield.Vehicles[0];
+            var fa = StreetMap.Node(driver.FromId);
+            var fb = StreetMap.Node(driver.ToId);
+            double ux = fb.X - fa.X, uz = fb.Z - fa.Z;
+            double ulen = Math.Sqrt(ux * ux + uz * uz); ux /= ulen; uz /= ulen;
+            // Stand a person eight metres in front of them and do not move.
+            double px = driver.X + ux * 8.0, pz = driver.Z + uz * 8.0;
+            yield.Hazards.Add(new TrafficSim.Hazard { X = px, Z = pz, R = 0.6 });
+            double closest = 999;
+            for (int i = 0; i < 100; i++)
+            {
+                yield.Step(0.1);
+                var d = yield.Vehicles[0];
+                double gap = Math.Sqrt((d.X - px) * (d.X - px) + (d.Z - pz) * (d.Z - pz));
+                if (gap < closest) closest = gap;
+            }
+            Check(closest > 0.9, "a car stops for somebody in the road rather than driving through them",
+                closest.ToString("0.00"));
+            Check(yield.Vehicles[0].Speed < 0.5, "and waits there while they stand in it",
+                yield.Vehicles[0].Speed.ToString("0.00"));
+            Check(yield.YieldsToPeople > 0, "and the sim reports that it yielded");
+            yield.Hazards.Clear();
+            for (int i = 0; i < 60; i++) yield.Step(0.1);
+            Check(yield.Vehicles[0].Speed > 0.5, "and drives on once the road is clear",
+                yield.Vehicles[0].Speed.ToString("0.00"));
+
+            // Speed limits by road class: nobody does forty down a lane.
+            foreach (var v in sim.Vehicles)
+                Check(v.Speed <= Math.Min(v.Kind.TopSpeed, TrafficSim.LimitOf(v.Edge)) + 0.5,
+                    $"vehicle {v.Id} keeps to the limit for the road it is on",
+                    $"{v.Speed:0.0} on a {v.Edge.Kind}");
+
+            // Witnesses (spec §4): what somebody saw arrive.
+            var near = sim.NearestTo(sim.Vehicles[0].X, sim.Vehicles[0].Z, within: 3.0);
+            Check(near == sim.Vehicles[0], "you can ask what vehicle was nearest a place");
+            Check(sim.NearestTo(9999, 9999) == null, "and nothing was near the far side of nowhere");
+
+            // A stall must not teleport traffic across the city.
+            var stall = new TrafficSim(seed: 9); stall.Populate(8);
+            for (int i = 0; i < 40; i++) stall.Step(0.25);
+            var beforeStall = stall.Vehicles[0].S;
+            var edgeBefore = stall.Vehicles[0].Edge;
+            stall.Step(30.0);
+            bool sane = stall.Vehicles[0].Edge != edgeBefore
+                || Math.Abs(stall.Vehicles[0].S - beforeStall) < TrafficSim.SpeedLimitAvenue * 1.5;
+            Check(sane, "a thirty-second freeze advances traffic by a second, not by a minute");
+            Check(stall.TightestGap() >= 0, "and does not pile anybody into anybody");
+
+            // Zero deltas and empty streets are not crashes.
+            var empty = new TrafficSim(seed: 1);
+            empty.Step(0.5); empty.Step(0);
+            Check(empty.Vehicles.Count == 0 && empty.TotalDistance == 0, "an empty city ticks quietly");
         }
 
         // ---------------------------------------------------------------
