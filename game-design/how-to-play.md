@@ -11,6 +11,18 @@ Your two lives stay apart only as long as the street can't compare notes.
 |---|---|
 | WASD / Shift | move / run |
 | E | talk to whoever you're near (type anything; chips above the box are optional openers) |
+
+**You can say what you want to do, not just click it.** Every button in a
+conversation can also be typed in plain words — "how much to forget you heard
+that", "spring was a long time ago and you know what you owe", "I'll take the
+pawnshop off him with what I know". If the words match something you could
+actually do right now, the game does it. If they're something the buttons never
+anticipated but the world can still price — buying the room a round, putting a
+word in the wrong ear — it gets weighed against your money, your standing, your
+crew, the hour, and how much of the street is watching, and it either lands or
+you're told plainly why it didn't. Anything else is just talking, which is most
+of what you'll say and always the safe default.
+
 | L | **the ledger** — what you believe the street knows, what you hold, THE STREET (open city) |
 | C | the runner's coat — harder to name at night, harder to explain in daylight |
 | F1 | debug: the brain of whoever you're near (memory file, suspicion, beliefs) |

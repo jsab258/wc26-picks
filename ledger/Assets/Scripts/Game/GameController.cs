@@ -14,6 +14,34 @@ namespace Ledger.Game
         public GameTime Now { get; private set; } = new GameTime(1, 9, 0);
         public CostTracker Cost { get; } = new CostTracker();
 
+        // One shared client for world-level LLM work that belongs to nobody in
+        // particular — today the intent router (roadmap M6.5), tomorrow the
+        // Director. Characters keep their own clients; this is the game's.
+        // Null without a key, and every consumer must degrade rather than fail.
+        AnthropicClient _worldLlm;
+        bool _worldLlmTried;
+        public ILlmClient Llm
+        {
+            get
+            {
+                if (_worldLlm == null && !_worldLlmTried)
+                {
+                    _worldLlmTried = true;
+                    var key = Secrets.LoadAnthropicKey();
+                    if (!string.IsNullOrEmpty(key)) _worldLlm = new AnthropicClient(key);
+                }
+                return _worldLlm;
+            }
+        }
+
+        /// F2 re-key: drop the world client so the next use picks up the new key.
+        public void ResetLlm()
+        {
+            _worldLlm?.Dispose();
+            _worldLlm = null;
+            _worldLlmTried = false;
+        }
+
         // Two currencies that resist mixing (design-doc §6.7): the bar pays clean,
         // the outfit pays dirty, and dirty only becomes clean by washing through
         // the till. PlayerCash stays as the "what I can hand over right now" total.

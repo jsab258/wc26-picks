@@ -62,8 +62,15 @@ If a feature serves none of these, it is cut.
   into rumor, and can be bought, planted, or silenced.
 - **P3 — People, not units.** Every recruit, rival, lover, and witness is an individual whose
   relationship to you is personal history, not a meter.
-- **P4 — Authored spine, systemic flesh, LLM skin.** The main plot is authored; the world's
-  reactions are systemic; the words are generated. Each layer is protected from the others.
+- **P4 — Authored anchors, simulated bones, LLM director and interface.** *(revised
+  2026-07-26 — see §17.)* The original wording was "authored spine, systemic flesh, LLM
+  skin", and it under-used the model on both ends. The model is not only the skin: it is
+  also the **interface** (the player says anything and it is routed into real mechanics)
+  and the **director** (nightly world-level authoring read off the actual state). What
+  stays authored shrinks to *anchors* — the acts' hard turns, the Tier-1 cast, the rules
+  of the world. What stays simulated is the *bones* — money, time, information, standing;
+  every outcome the player feels is still decided in deterministic C#. Each layer is
+  still protected from the others: the model classifies and performs, it never adjudicates.
 - **P5 — Consequences persist.** No quest resets, no memory wipes. The city's state is the
   save file.
 
@@ -365,11 +372,22 @@ following, none of which is optional, and each of which is now on the roadmap:
 
 Three problems specific to this design, each of which can sink it:
 
-1. **Inference economics.** Target < $0.05 per played hour ambient. Options: bundled
-   inference (studio pays per player-hour forever), player-supplied API key (kills most of
-   the audience), or local models (quality drop, hardware floor). Undecided, and it
-   determines the business model. First real measurement comes from the first human
-   playtest.
+1. **Inference economics.** Target < $0.05 per played hour ambient. **Deferred by the
+   player, 2026-07-26** — explicitly not a build-time blocker; revisited only if we decide
+   to publish. The four pricing models on the table then:
+   - **subscription** — recurring fee, studio pays inference, margin scales with retention;
+   - **pay-as-you-go** — player buys credits, cost tracks usage honestly, worst first-run
+     feel;
+   - **cheap purchase + local LLM** — one-time price, inference on the player's machine,
+     quality drop and a hardware floor, but zero marginal cost and it works offline;
+   - **dedicated server** — hosted inference the studio operates, best control over
+     quality/safety, highest fixed cost.
+   Nothing in the architecture picks one for us, and that is deliberate: `ILlmClient` is a
+   one-method interface, so a local model is a new implementation, not a rewrite. Cost is
+   measured from day one (`CostTracker`) so the decision is made against real numbers.
+   The router (§17) makes this sharper, not worse: it adds one cheap classification call
+   per typed line, on the ambient tier, and it can fall back to the lexical path entirely
+   with no LLM at all.
 2. **Content safety.** Generated characters will eventually say something indefensible.
    We have a response validator; shipping needs guardrails, moderation, red-teaming, and a
    documented policy.
@@ -380,6 +398,81 @@ Three problems specific to this design, each of which can sink it:
 than person, the entire pitch collapses and nothing else in this document matters. That
 means relentless card and prompt iteration, a model strong enough to hold character, and
 latency low enough that talking feels alive.
+
+## 17. The first-principles pass (added 2026-07-26)
+
+The player asked the right question: *if we were building the best possible game with the
+tools we actually have — an agent that writes code and a model that can be part of the
+running game — is this what we would end up with?* Honest answer: no, not quite. Three
+places where the design was still built like a game made by a team of forty people who do
+not have a language model, rather than one that does.
+
+### Gap 1 — the verb space is hand-enumerated
+
+Today the player's mechanical vocabulary is a set of context-sensitive buttons: pay off,
+lean on, plant doubt, use what you know, collect, forgive, buy, squeeze, recruit, pledge.
+Every one had to be authored, named, and given a button. That is the correct way to build
+a game *without* a model in the loop, and it is why open-world games have a small verb set
+and enormous content around it.
+
+With a model, the verb *space* can be open while the verb *implementation* stays closed:
+
+> **The intent router.** The player types anything. A fast model classifies that text
+> against the verbs that are genuinely available in this exact moment, and returns one of
+> three things: (a) an existing mechanical verb with arguments, (b) a novel action the game
+> adjudicates against a state check, or (c) pure narrative that goes to the conversation
+> engine as it does today.
+
+The critical property is that this is **classification, not adjudication**. The router
+picks from a closed set assembled from live game state; anything it returns that is not in
+that set is rejected and downgraded to speech. Outcomes are still computed by the same
+deterministic C# the buttons called. This preserves "game state decides, LLM performs"
+exactly — the model has been moved from the *skin* to the *interface*, not to the referee's
+chair.
+
+The novel-action path is the interesting half. A player who says *"I'll tell Sera's dockers
+that Vane's been shorting them"* is not doing anything the buttons offer, but the game
+knows what the words touch: standing with two arms, a fact in the mill, a place and an
+hour. So the router names a **requirement** from a closed vocabulary (cash / dirty cash /
+standing / a hook on a person / crew / hour of day / heat) and the game evaluates it,
+applying one **effect** from a closed vocabulary with clamped magnitude. Novel actions can
+therefore be *small and real* rather than large and fake.
+
+It degrades cleanly: a lexical fast path handles unambiguous phrasings for free and
+instantly, and is also the complete fallback when there is no model available.
+
+### Gap 2 — the story is hand-authored where it should be directed
+
+Act I's pressure points and Act II's Squeeze are authored beats that fire on state
+conditions. That is a real improvement over dated beats, but it still means the pressure a
+player feels on day 30 was written by us on day 1, and there are a finite number of them.
+
+> **The Director.** A nightly world-level pass — not a character-level one — that reads the
+> actual state (who is angry, who is exposed, what the player has been ignoring, which
+> relationships are load-bearing) and *authors the next pressure from it*.
+
+Same guardrail shape as the router: the Director does not invent outcomes or bypass systems.
+It proposes a pressure built from existing primitives — a fact injected into the mill, an
+NPC's schedule changed, a demand made, a meeting arranged — and the simulation runs it. Its
+output is validated against what the primitives permit. Authored anchors still exist and
+still fire; the Director fills the enormous space between them, which today is empty.
+
+### Gap 3 — the population is 36
+
+We already proved density is purchasable: Tier-2 generation produced 60 validator-passed
+cards in 19 calls for about 92k tokens. The population number is therefore not a
+constraint, it is a decision we never revisited. Thousands is reachable with generation
+plus a level-of-detail scheme where only the people near the player's attention are
+simulated at full fidelity, exactly as KCD2 does it.
+
+### What this changes in the plan
+
+Pillar P4 is rewritten (see §3). The roadmap is re-sequenced: the router first (it is
+purely additive — every existing verb keeps working, and typed text that routes to nothing
+falls through to conversation exactly as today), then the economy substrate, then the
+Director, then population scale. The economy is still worth building; it is simply the
+*conservative* kind of depth, and it is better built underneath a game whose interface has
+already stopped being a list of buttons.
 
 ## 12. Risks
 

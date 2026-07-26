@@ -153,6 +153,83 @@ violence beyond the consequence layer (wants art), vehicles.
   breadth), companionship, home-that-reacts, legacy/succession into Act
   III, notoriety, family, vice.
 
+## RE-SEQUENCED — the first-principles pass (player, 2026-07-26)
+
+The player asked whether this is the game we would build from first
+principles given the tools we actually have. Three gaps came out of that
+(full argument in design doc §17); the player's instruction was **"router
+first, economy after — close the gaps you found by planning/reordering
+properly and then building."** This section supersedes the M7–M10 ordering
+directly above it. Pillar P4 is rewritten in the design doc to match:
+*authored anchors, simulated bones, LLM director and interface.*
+
+The gaps, in the order they are now being closed:
+
+1. **The verb space is hand-enumerated.** Every mechanical action the
+   player can take had to be authored *and given a button*. That is how a
+   game is built when there is no model in the loop. With one, the verb
+   space can be open while the verb implementation stays closed.
+2. **The story is hand-authored where it should be directed.** Authored
+   beats fire on state, which is good, but they are finite and were all
+   written before the player's city existed.
+3. **The population is 36.** Not a constraint — a decision we never
+   revisited after proving generation works (60 cards, 19 calls, ~92k
+   tokens).
+
+### The new order
+
+- **M6.5 — The intent router — SHIPPED 2026-07-26.** `IntentRouter` +
+  `Adjudicator` in Core, `IntentBridge` in the game layer, 55 new
+  CoreTests (394 total) and an 11-check SimHarness scenario (57 total)
+  with a live-mode half that asks a real model to route real phrasings.
+  The catalogue is read off the ACTUAL BUTTONS — a verb is offered to the
+  router if and only if its button is on screen and clickable — so drift
+  between what a player can click and what they can say is structurally
+  impossible, and typing a verb runs the identical handler clicking it
+  does. Spec as designed and built:
+  The player types anything; a fast model classifies it against the verbs
+  genuinely available in that exact moment and returns a mechanical verb
+  with arguments, a novel action adjudicated by a state check, or pure
+  narrative that falls through to the conversation engine as today.
+  **Classification, not adjudication** — the returned verb must be a member
+  of a closed set built from live state, anything else is rejected and
+  downgraded to speech, and outcomes are still computed by the same
+  deterministic C# the buttons call. Chosen first because it is *purely
+  additive*: every existing button keeps working unchanged, and text that
+  routes to nothing behaves exactly as it does today. A lexical fast path
+  handles unambiguous phrasings for free and is the full fallback when no
+  model is available. Novel actions get a closed requirement vocabulary
+  (cash / dirty cash / standing / hook / crew / hour / heat) and a closed
+  effect vocabulary with clamped magnitudes, so they are small and real
+  instead of large and fake.
+- **M7 — The living economy** *(was M8; now next after the router)*.
+  Unchanged in content — the player raised economy to full district
+  simulation and that stands. It is the *conservative* kind of depth, and
+  it is better built underneath an interface that has stopped being a list
+  of buttons.
+- **M7.5 — Operation planning + access** (was M7). Still high value, still
+  cheap; the router makes planning *say-able* rather than menu-only, so it
+  benefits from being built after it.
+- **M8 — The Director.** A nightly world-level LLM pass that reads actual
+  state and authors the next pressure from it, built from existing
+  primitives only (inject a fact, change a schedule, make a demand,
+  arrange a meeting) and validated against what those primitives permit.
+  Authored anchors still fire; the Director fills the space between them,
+  which today is empty.
+- **M9 — Population scale.** Thousands, via generation plus level-of-detail
+  simulation (full fidelity near the player's attention, statistical
+  elsewhere — the KCD2 approach, and the same work as production item P5).
+- **M10 — Phones + the distance layer** (was M9). Unchanged.
+- **M11 — Violence, staged** (was M10). Unchanged.
+- **M12 — Vehicles.** Approved for the late roadmap; unchanged.
+
+**LLM cost:** deferred by the player, explicitly not a build-time blocker.
+If we publish, the pricing models to weigh are subscription, pay-as-you-go,
+cheap purchase plus a local model, or a dedicated server. `ILlmClient` is a
+one-method interface precisely so none of these is a rewrite, and
+`CostTracker` keeps the decision anchored to real measured numbers. See
+design doc §16.1.
+
 ### PRODUCTION TRACK — added 2026-07-26 (player: "these all need to go on
 ### the roadmap and be built too"). Target: high-quality indie.
 

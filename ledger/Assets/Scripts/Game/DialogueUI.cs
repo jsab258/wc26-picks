@@ -8,7 +8,7 @@ namespace Ledger.Game
     /// All UI for M0, constructed from code: HUD clock, talk prompt, the
     /// conversation window, first-run API key entry (F2), and the debug
     /// "Ledger" panel (F1) showing memory/suspicion/cost live.
-    public class DialogueUI : MonoBehaviour
+    public partial class DialogueUI : MonoBehaviour
     {
         GameController _game;
         PlayerController _player;
@@ -181,7 +181,10 @@ namespace Ledger.Game
             _titleText.color = UiTheme.Amber; // a person, not a page — street warmth
             _historyText = MakeText(_dialoguePanel.transform, "History", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(860, 280), 18, TextAnchor.LowerLeft);
 
-            _input = MakeInput(_dialoguePanel.transform, "Say something...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
+            // The placeholder is the only onboarding the router gets: a player who
+            // never learns they can say the thing instead of hunting for its button
+            // is playing a smaller game than the one we built.
+            _input = MakeInput(_dialoguePanel.transform, "Say something — or say what you want to do...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
             var sendBtn = MakeButton(_dialoguePanel.transform, "Send", new Vector2(1, 0), new Vector2(-16, 18), new Vector2(110, 44));
             sendBtn.onClick.AddListener(Submit);
 
@@ -255,6 +258,7 @@ namespace Ledger.Game
         void RefreshEmpireButtons()
         {
             var id = CurrentHostId();
+            _empireSayA = _empireSayB = null;   // the router reads these; never stale
             if (id == null || !_game.Campaign.OpenMode)
             {
                 _empireBtnA.gameObject.SetActive(false);
@@ -272,6 +276,8 @@ namespace Ledger.Game
                 labelA = $"Buy a read (${ActTwoState.ReadPrice})";
                 enabledA = _game.Wallet.Total >= ActTwoState.ReadPrice;
                 labelB = act2.TruceSpent ? "A truce, again (he declines)" : $"Broker a truce (${ActTwoState.TrucePrice})";
+                _empireSayA = "pay him to tell you where you stand with the three arms";
+                _empireSayB = "pay him to buy you peace with whoever is worst";
                 _empireBtnA.gameObject.SetActive(true);
                 _empireLabelA.text = labelA;
                 _empireBtnA.interactable = enabledA;
@@ -292,6 +298,8 @@ namespace Ledger.Game
                 bool canCounter = _game.Empire.ArmOf(act2.TableArmId).Standing >= 0.5;
                 _empireLabelB.text = canCounter ? "Name your own number" : "Refuse them";
                 _empireBtnB.interactable = true;
+                _empireSayA = "accept the terms they are putting to you";
+                _empireSayB = canCounter ? "counter their terms with your own number" : "refuse their terms outright";
                 return;
             }
 
@@ -299,11 +307,11 @@ namespace Ledger.Game
             var hook = _game.HooksBook.UsableHook(id);
             if (biz != null)
             {
-                if (biz.DebtHeld) labelA = "Turn the key (you hold the paper)";
-                else if (_game.Wallet.Clean >= biz.AskPrice) labelA = $"Buy the {biz.Name} (${biz.AskPrice} clean)";
-                else if (biz.DebtPrice > 0) labelA = $"Buy their marker (${biz.DebtPrice})";
+                if (biz.DebtHeld) { labelA = "Turn the key (you hold the paper)"; _empireSayA = $"call in the paper you hold and take the {biz.Name}"; }
+                else if (_game.Wallet.Clean >= biz.AskPrice) { labelA = $"Buy the {biz.Name} (${biz.AskPrice} clean)"; _empireSayA = $"buy the {biz.Name} outright with clean money"; }
+                else if (biz.DebtPrice > 0) { labelA = $"Buy their marker (${biz.DebtPrice})"; _empireSayA = $"buy up the debt the {biz.Name} owes elsewhere"; }
                 else { labelA = $"Buy the {biz.Name} (${biz.AskPrice} — short)"; enabledA = false; }
-                if (hook != null) labelB = $"Take the {biz.Name} (what you know)";
+                if (hook != null) { labelB = $"Take the {biz.Name} (what you know)"; _empireSayB = $"use what you know on them to take the {biz.Name}"; }
             }
             else
             {
@@ -312,7 +320,7 @@ namespace Ledger.Game
                 {
                     var open = e.Rackets.Find(r => !r.Established &&
                         (r.RequiresBusinessId == null || (e.BusinessOf(r.RequiresBusinessId)?.Owned ?? false)));
-                    if (open != null) labelA = $"Put them on the {open.Name}";
+                    if (open != null) { labelA = $"Put them on the {open.Name}"; _empireSayA = $"put them to work running the {open.Name}"; }
                 }
                 else if (crew != null && crew.Assignment != null)
                 {
@@ -320,12 +328,14 @@ namespace Ledger.Game
                     labelA = crew.Cut == "fair" ? "Their cut: fair (change)"
                         : crew.Cut == "generous" ? "Their cut: generous (change)"
                         : "Their cut: skimmed (change)";
+                    _empireSayA = "change how much of the take they keep";
                 }
                 else if (crew == null && _game.TryNeedOf(id, out var cost, out _))
                 {
                     labelA = $"Sort what they need (${cost})";
                     enabledA = _game.Wallet.Total >= cost;
-                    if (hook != null) labelB = "Bring them in (what you know)";
+                    _empireSayA = "pay for the thing they need, so they owe you and come to work for you";
+                    if (hook != null) { labelB = "Bring them in (what you know)"; _empireSayB = "use what you know on them so they come to work for you"; }
                 }
             }
 
@@ -498,6 +508,9 @@ namespace Ledger.Game
                 if (key.Length < 8) return;
                 Secrets.SaveAnthropicKey(key);
                 foreach (var h in _hosts) h.Reconnect(key);
+                // The router shares the key; drop it so it reconnects too.
+                _game.ResetLlm();
+                _router = null;
                 _keyPanel.SetActive(false);
             });
             _keyPanel.SetActive(false);
@@ -762,16 +775,7 @@ namespace Ledger.Game
             // carrying talk about the player; refresh the payoff price as it entrenches.
             if (dialogueOpen && Time.frameCount % 30 == 0)
             {
-                var lead = CurrentLead();
-                _dcRow.SetActive(lead != null);
-                if (lead != null)
-                {
-                    int price = BribePriceFor(lead);
-                    _payLabel.text = _game.PlayerCash >= price ? $"Pay off (${price})" : $"Pay off (${price} — short)";
-                    _payBtn.interactable = _game.PlayerCash >= price;
-                    _leanLabel.text = "Lean on them";
-                    _doubtLabel.text = "Plant doubt";
-                }
+                RefreshDamageControlRow();
                 RefreshChips();
                 RefreshEmpireButtons();
             }
@@ -785,15 +789,7 @@ namespace Ledger.Game
 
             if (dialogueOpen && Time.frameCount % 30 == 0)
             {
-                var hook = CurrentHostHook();
-                _hookBtn.gameObject.SetActive(hook != null);
-                if (hook != null)
-                    _hookLabel.text = hook.Strong ? "Use what you know (they're yours)" : "Call in what you know (once)";
-
-                var debtor = _game.Debts.Of(CurrentHostId() ?? "");
-                bool owes = debtor != null;
-                _collectBtn.gameObject.SetActive(owes);
-                _forgiveBtn.gameObject.SetActive(owes);
+                RefreshHookAndDebtButtons();
             }
             else if (!dialogueOpen && _hookBtn.gameObject.activeSelf)
             {
@@ -970,12 +966,118 @@ namespace Ledger.Game
             RenderHistory();
 
             _waiting = true;
+            // The intent router (roadmap M6.5) sits between typing and speaking.
+            // Most lines are speech and fall straight through, exactly as before
+            // this existed — the router is additive, not a gate.
+            var handled = await TryRouteAsync(text, host);
+            if (handled)
+            {
+                _waiting = false;
+                RefreshActionRows();
+                return;
+            }
+
             var reply = await host.SayAsync(text); // Unity's context resumes this on the main thread
             _waiting = false;
 
             history.RemoveAt(history.Count - 1);
             history.Add($"<b>{name}:</b> {reply}");
             RenderHistory();
+        }
+
+        /// Routes one typed line. Returns true if the line WAS an action and has
+        /// been carried out (and narrated); false if it was speech, which is the
+        /// common case and leaves the caller's behaviour untouched.
+        async System.Threading.Tasks.Task<bool> TryRouteAsync(string text, ConversationHost host)
+        {
+            IntentContext ctx;
+            try
+            {
+                // The catalogue must describe THIS instant, not the last 30-frame
+                // tick, or the router can be offered a verb that has just expired.
+                RefreshActionRows();
+                ctx = BuildIntentContext();
+            }
+            catch (System.Exception) { return false; }   // routing must never break talking
+
+            Intent intent;
+            try { intent = await Router.RouteAsync(text, ctx, _game.Now); }
+            catch (System.Exception) { return false; }
+
+            // The player may have walked off, or the world moved, while we waited.
+            if (_current != host) return false;
+            if (intent.Kind == IntentKind.Narrative) return false;
+
+            try { RefreshActionRows(); } catch (System.Exception) { return false; }
+
+            if (intent.Kind == IntentKind.Mechanical)
+            {
+                // Re-checked against the state we just refreshed: a verb that went
+                // stale while the router thought is not fired, it becomes speech.
+                if (!Live(ButtonFor(intent.VerbId))) return false;
+                DropThinking(host);
+                if (!ExecuteVerb(intent.VerbId)) return false;
+                Audio.Ui("tick");
+                return true;
+            }
+
+            var verdict = Adjudicator.Resolve(intent, NovelState(intent));
+            DropThinking(host);
+            if (verdict.Passed) ApplyNovel(intent, verdict);
+            Narrate(NovelLine(intent, verdict));
+            Audio.Ui(verdict.Passed ? "tick" : "page");
+            return true;
+        }
+
+        /// Removes the "…is thinking" placeholder before an action narrates over
+        /// it. Nobody is thinking: the player did something.
+        void DropThinking(ConversationHost host)
+        {
+            var history = HistoryOf(host);
+            if (history.Count > 0 && history[history.Count - 1].EndsWith("is thinking...</i>"))
+                history.RemoveAt(history.Count - 1);
+            RenderHistory();
+        }
+
+        /// Offer damage control only when the person you're talking to is actually
+        /// carrying talk about the player; the payoff price moves as it entrenches.
+        void RefreshDamageControlRow()
+        {
+            var lead = CurrentLead();
+            _dcRow.SetActive(lead != null);
+            if (lead == null) return;
+            int price = BribePriceFor(lead);
+            _payLabel.text = _game.PlayerCash >= price ? $"Pay off (${price})" : $"Pay off (${price} — short)";
+            _payBtn.interactable = _game.PlayerCash >= price;
+            _leanLabel.text = "Lean on them";
+            _doubtLabel.text = "Plant doubt";
+        }
+
+        void RefreshHookAndDebtButtons()
+        {
+            var hook = CurrentHostHook();
+            _hookBtn.gameObject.SetActive(hook != null);
+            if (hook != null)
+                _hookLabel.text = hook.Strong ? "Use what you know (they're yours)" : "Call in what you know (once)";
+
+            var debtor = _game.Debts.Of(CurrentHostId() ?? "");
+            bool owes = debtor != null;
+            _collectBtn.gameObject.SetActive(owes);
+            _forgiveBtn.gameObject.SetActive(owes);
+        }
+
+        /// Everything that decides which buttons are live. The per-frame pass runs
+        /// this in pieces on a 30-frame cadence; the router runs the whole thing
+        /// before and after it acts, so the catalogue it is offered — and the
+        /// staleness check when it executes — are both against current state
+        /// rather than up to half a second old.
+        void RefreshActionRows()
+        {
+            if (_current == null) return;
+            RefreshDamageControlRow();
+            RefreshHookAndDebtButtons();
+            RefreshEmpireButtons();
+            RefreshChips();
         }
 
         // ---- damage control ----
