@@ -33,3 +33,7 @@ sysinfo.txt
 
 # Secrets — API keys live in local untracked config, never in git
 Assets/StreamingAssets/secrets.json
+
+# .NET tool build output
+Tier2Gen/bin/
+Tier2Gen/obj/
