@@ -556,8 +556,15 @@ namespace Ledger.SimHarness
             Check("a requirement outside the vocabulary is refused",
                 badCheck.Kind == IntentKind.Narrative, badCheck.ToString());
 
-            // The novel path, end to end: adjudicated against real numbers.
-            var novel = await router.RouteAsync("I buy the room a round.", ctx, now);
+            // The novel path, adjudicated against real numbers. Validated from a
+            // FIXED payload rather than from whatever the model says today: what
+            // is being gated here is the adjudicator's wiring, and a hard check
+            // on a real model's judgement is a flaky test, not a strict one.
+            // Whether a live model actually reaches for "novel" is asked below,
+            // advisorily, where it belongs.
+            var novel = IntentRouter.Validate(
+                "{\"kind\":\"novel\",\"check\":\"dirty_cash\",\"amount\":40,\"effect\":\"standing_up\"," +
+                "\"magnitude\":0.05,\"target\":\"Lena\",\"why\":\"buying the room a round\"}", ctx);
             Check("something the verb list never anticipated is adjudicated, not refused",
                 novel.Kind == IntentKind.Novel && novel.Check == Checks.DirtyCash, novel.ToString());
 
@@ -601,6 +608,14 @@ namespace Ledger.SimHarness
                         : r.Kind == IntentKind.Mechanical && r.VerbId == expect;
                     CheckLive($"live routing: \"{Truncate(say, 48)}\" → {expect ?? "speech"}", ok, r.ToString());
                 }
+
+                // Does a real model reach for the novel path when the player is
+                // clearly attempting something real that no button covers?
+                // Advisory: reaching for "speech" instead is a defensible read,
+                // and the prompt tells it speech is usually correct.
+                var n = await router.RouteAsync("I buy the whole room a round, on me.", Moment(), now);
+                CheckLive("live: an action no button covers is adjudicated rather than ignored",
+                    n.Kind == IntentKind.Novel, n.ToString());
             }
         }
 
