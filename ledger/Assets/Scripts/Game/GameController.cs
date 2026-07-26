@@ -399,9 +399,32 @@ namespace Ledger.Game
             TryLoad();
         }
 
+        // Sim mode drives the clock from real elapsed time rather than
+        // Time.deltaTime. Unity clamps deltaTime to Time.maximumDeltaTime
+        // (1/3 s by default), so on a machine rendering at 1 fps the game clock
+        // advances at a THIRD of real speed — and a nine-day self-test that
+        // should take eleven minutes takes thirty-three. That is exactly what
+        // happened on run 30217466971, on a CI runner that had evidently fallen
+        // back to software rasterisation. A self-test whose duration depends on
+        // the runner's graphics driver is not a self-test you can put a timeout
+        // on, so in sim mode the clock ignores the frame rate entirely.
+        float _lastRealtime = -1f;
+
         void Update()
         {
-            _minuteAccumulator += Time.deltaTime * MinutesPerRealSecond;
+            float step;
+            if (SimMode.Days > 0)
+            {
+                float nowReal = Time.realtimeSinceStartup;
+                if (_lastRealtime < 0) _lastRealtime = nowReal;
+                // Capped so a long hitch (a level load, a stalled frame) advances
+                // the world by a plausible jump instead of teleporting a day.
+                step = Mathf.Min(nowReal - _lastRealtime, 2f);
+                _lastRealtime = nowReal;
+            }
+            else step = Time.deltaTime;
+
+            _minuteAccumulator += step * MinutesPerRealSecond;
             while (_minuteAccumulator >= 1f)
             {
                 _minuteAccumulator -= 1f;
