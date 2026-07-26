@@ -9,7 +9,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Assets/Scripts/Core/**/*.cs" />
-    <!-- LenaSetup is engine-independent by design: same card here and in-game -->
+    <!-- Engine-independent by design: the same cards and roster here and in-game -->
     <Compile Include="../Assets/Scripts/Game/LenaSetup.cs" />
+    <Compile Include="../Assets/Scripts/Game/CastSetup.cs" />
+    <Compile Include="../Assets/Scripts/Game/Tier2Setup.cs" />
+    <Compile Include="../Assets/Scripts/Game/EmpireSetup.cs" />
   </ItemGroup>
 </Project>
