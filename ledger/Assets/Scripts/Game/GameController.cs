@@ -384,7 +384,7 @@ namespace Ledger.Game
             UpdateCampaign();
             if (Campaign.FallPending) RunTheFall();
             UpdateBeats();
-            if (Input.GetKeyDown(KeyCode.F5)) SaveNow();
+            if (Input.GetKeyDown(GameSettings.Current.Key("Save"))) SaveNow();
             if (Time.frameCount % 30 == 0)
             {
                 CheckLoyalWarnings();
@@ -1480,6 +1480,8 @@ namespace Ledger.Game
         void UpdateSun()
         {
             if (_sun == null) return;
+            // The room changes with the light: day tone, night tone.
+            if (Audio.Ready) Audio.SetNight(Now.Hour >= 20 || Now.Hour < 6);
             // 06:00 sunrise, 18:00 sunset mapped across a full rotation.
             float dayFraction = (Now.Hour * 60 + Now.Minute) / 1440f;
             float sunAngle = dayFraction * 360f - 90f;

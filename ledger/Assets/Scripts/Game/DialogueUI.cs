@@ -64,6 +64,52 @@ namespace Ledger.Game
         // PP7: the posture question, asked over the won week (act1-draft.md).
         GameObject _posturePanel;
 
+        // The pause menu (production track P1): the game used to have no way
+        // out of itself.
+        GameObject _pausePanel;
+        bool _paused;
+
+        void TogglePause()
+        {
+            if (SimMode.Days > 0) return;
+            _paused = !_paused;
+            if (_pausePanel == null) BuildPausePanel();
+            _pausePanel.SetActive(_paused);
+            Time.timeScale = _paused ? 0f : 1f;
+            _player.InputLocked = _paused;
+            Audio.Ui("page");
+        }
+
+        void BuildPausePanel()
+        {
+            _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 420));
+            var t = MakeText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(460, 36), 24, TextAnchor.UpperCenter);
+            t.text = "P A U S E D";
+            t.color = UiTheme.Dim;
+
+            var resume = MakeButton(_pausePanel.transform, "Resume", new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(320, 48));
+            resume.onClick.AddListener(TogglePause);
+
+            var save = MakeButton(_pausePanel.transform, "Save now", new Vector2(0.5f, 1), new Vector2(0, -158), new Vector2(320, 48));
+            save.onClick.AddListener(() => { _game.SaveNow(); Audio.Ui("coin"); });
+
+            var menu = MakeButton(_pausePanel.transform, "Save and quit to menu", new Vector2(0.5f, 1), new Vector2(0, -216), new Vector2(320, 48));
+            menu.onClick.AddListener(() =>
+            {
+                _game.SaveNow(quiet: true);
+                Time.timeScale = 1f;
+                Destroy(_game.gameObject);
+                Destroy(gameObject);
+                MainMenu.Create();
+            });
+
+            var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -274), new Vector2(320, 48));
+            quit.onClick.AddListener(() => { _game.SaveNow(quiet: true); MainMenu.Quit(); });
+
+            MakeText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(460, 30), 15, TextAnchor.LowerCenter)
+                .text = "The city keeps its state. Everything you did is in the save.";
+        }
+
         // Empire v1: two context-sensitive verbs — the money route and the
         // leverage route — living above the hook/debt row while talking to
         // someone the other ledger has business with.
@@ -663,27 +709,34 @@ namespace Ledger.Game
             _promptText.text = !dialogueOpen && _nearest != null
                 ? $"Press E to talk to {_nearest.Card.Name}" : "";
 
-            if (Input.GetKeyDown(KeyCode.E) && _nearest != null && !dialogueOpen && !_keyPanel.activeSelf)
+            var keys = GameSettings.Current;
+            if (Input.GetKeyDown(keys.Key("Talk")) && _nearest != null && !dialogueOpen && !_keyPanel.activeSelf)
                 OpenDialogue(_nearest);
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Input.GetKeyDown(keys.Key("Pause")))
             {
+                // Escape closes whatever is open; with nothing open, it pauses.
                 if (dialogueOpen) CloseDialogue();
+                else if (_ledgerPanel.activeSelf) _ledgerPanel.SetActive(false);
+                else if (_keyPanel.activeSelf) _keyPanel.SetActive(false);
+                else if (_debugPanel.activeSelf) _debugPanel.SetActive(false);
+                else TogglePause();
                 _keyPanel.SetActive(false);
                 _debugPanel.SetActive(false);
             }
-            if (Input.GetKeyDown(KeyCode.F1)) _debugPanel.SetActive(!_debugPanel.activeSelf);
+            if (_paused) { _player.InputLocked = true; return; }
+            if (Input.GetKeyDown(keys.Key("Debug"))) _debugPanel.SetActive(!_debugPanel.activeSelf);
             if (Input.GetKeyDown(KeyCode.F2)) _keyPanel.SetActive(!_keyPanel.activeSelf);
             // The Ledger — only while not typing into the dialogue box.
-            if (Input.GetKeyDown(KeyCode.L) && !dialogueOpen && !_keyPanel.activeSelf)
+            if (Input.GetKeyDown(keys.Key("Ledger")) && !dialogueOpen && !_keyPanel.activeSelf)
             {
                 _ledgerPanel.SetActive(!_ledgerPanel.activeSelf);
-                if (_ledgerPanel.activeSelf) RefreshLedger();
+                if (_ledgerPanel.activeSelf) { RefreshLedger(); Audio.Ui("page"); }
             }
             if (_ledgerPanel.activeSelf && Time.frameCount % 30 == 0) RefreshLedger();
             if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
 
             // The runner's coat — day face or night face, one key, never while typing.
-            if (Input.GetKeyDown(KeyCode.C) && !dialogueOpen && !_keyPanel.activeSelf)
+            if (Input.GetKeyDown(keys.Key("Coat")) && !dialogueOpen && !_keyPanel.activeSelf)
             {
                 _game.WearingCoat = !_game.WearingCoat;
                 Toast(_game.WearingCoat

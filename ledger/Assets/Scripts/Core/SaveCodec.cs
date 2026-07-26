@@ -8,9 +8,51 @@ namespace Ledger.Core
     /// overlays state onto freshly-authored objects (cards, beats, secrets and
     /// gossipers are rebuilt by the bootstrap; the save carries only what play
     /// changed). NPC memories persist separately as markdown and are not here.
+    /// Why a save can't be read: the reason the front end shows the player.
+    public enum SaveFault { None, Unreadable, FromTheFuture }
+
+    public class SaveIncompatibleException : Exception
+    {
+        public SaveFault Fault { get; }
+        public SaveIncompatibleException(SaveFault fault, string message) : base(message) => Fault = fault;
+    }
+
     public static class SaveCodec
     {
-        public const int Version = 1;
+        /// Bump when a change would make an OLD save restore WRONGLY rather
+        /// than merely incompletely. Additive fields never need a bump: the
+        /// codec skips unknown ids and defaults missing keys, so v1 saves load
+        /// into v2 worlds unharmed. Migrate() carries the rest forward.
+        public const int Version = 2;
+
+        /// The oldest save this build can still read.
+        public const int MinReadableVersion = 1;
+
+        /// A save's version without committing to loading it — the front end
+        /// uses this to decide whether "Continue" is offered at all.
+        public static int PeekVersion(string json)
+        {
+            try
+            {
+                var root = MiniJson.AsObject(MiniJson.Deserialize(json));
+                return root == null ? 0 : MiniJson.GetInt(root, "version");
+            }
+            catch (Exception) { return 0; }
+        }
+
+        /// Bring an older save's shape forward. Each step is small and named,
+        /// so a v1 file from the first playtest still opens in a v9 build.
+        static void Migrate(Dictionary<string, object> root, int from)
+        {
+            if (from < 2)
+            {
+                // v1 -> v2: the open city, the empire, the day job and Act II
+                // arrived as additive keys. A v1 save is a week-mode save by
+                // definition; make that explicit rather than leaving it implied.
+                if (!root.ContainsKey("openMode")) root["openMode"] = false;
+                if (!root.ContainsKey("falls")) root["falls"] = 0;
+            }
+        }
 
         public static string Capture(GameTime now, Wallet wallet, Campaign camp,
             PlayerKnowledge knowledge, SecretsBook secrets, BeatBook beats,
@@ -83,8 +125,20 @@ namespace Ledger.Core
             PlayerKnowledge knowledge, SecretsBook secrets, BeatBook beats,
             GossipMill mill, DebtBook debts, out Dictionary<string, object> extra)
         {
-            var root = MiniJson.AsObject(MiniJson.Deserialize(json));
-            if (root == null) throw new Exception("save file unreadable");
+            Dictionary<string, object> root;
+            try { root = MiniJson.AsObject(MiniJson.Deserialize(json)); }
+            catch (Exception e) { throw new SaveIncompatibleException(SaveFault.Unreadable, e.Message); }
+            if (root == null) throw new SaveIncompatibleException(SaveFault.Unreadable, "save file unreadable");
+
+            int saved = MiniJson.GetInt(root, "version");
+            if (saved > Version)
+                throw new SaveIncompatibleException(SaveFault.FromTheFuture,
+                    $"this save was written by a newer build (v{saved}; this build reads v{Version})");
+            if (saved < MinReadableVersion)
+                throw new SaveIncompatibleException(SaveFault.Unreadable,
+                    $"save version v{saved} is older than this build can read (v{MinReadableVersion})");
+            if (saved < Version) Migrate(root, saved);
+
             extra = MiniJson.GetObject(root, "extra") ?? new Dictionary<string, object>();
 
             var now = new GameTime(MiniJson.GetInt(root, "day"), MiniJson.GetInt(root, "hour"), MiniJson.GetInt(root, "minute"));

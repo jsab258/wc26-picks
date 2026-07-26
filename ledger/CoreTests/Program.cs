@@ -579,6 +579,39 @@ namespace Ledger.CoreTests
             Check(campO2.OpenMode && campO2.Falls == 1 && !campO2.FallPending && campO2.Verdict == Verdict.Ongoing,
                 "open-mode state round-trips");
             Check(!camp2.OpenMode && camp2.Falls == 0, "a week-mode save restores with the city closed");
+
+            // Versioning: old saves migrate forward, future saves are refused
+            // by name rather than by crashing halfway through a restore.
+            Check(SaveCodec.PeekVersion(json) == SaveCodec.Version, "the version is legible without loading");
+            Check(SaveCodec.PeekVersion("{ not json") == 0, "an unreadable file peeks as version zero");
+
+            var v1 = json.Replace($"\"version\":{SaveCodec.Version}", "\"version\":1");
+            var campV1 = new Campaign();
+            SaveCodec.Restore(v1, new Wallet(0), campV1, new PlayerKnowledge(), new SecretsBook(),
+                new BeatBook(), new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            Check(!campV1.OpenMode, "a v1 save migrates forward as a week-mode city");
+
+            var future = json.Replace($"\"version\":{SaveCodec.Version}", "\"version\":99");
+            bool refused = false;
+            try
+            {
+                SaveCodec.Restore(future, new Wallet(0), new Campaign(), new PlayerKnowledge(),
+                    new SecretsBook(), new BeatBook(), new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            }
+            catch (SaveIncompatibleException ex)
+            {
+                refused = ex.Fault == SaveFault.FromTheFuture;
+            }
+            Check(refused, "a save from a newer build is refused, and says so");
+
+            bool junkRefused = false;
+            try
+            {
+                SaveCodec.Restore("{ this is not a save", new Wallet(0), new Campaign(), new PlayerKnowledge(),
+                    new SecretsBook(), new BeatBook(), new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            }
+            catch (SaveIncompatibleException ex) { junkRefused = ex.Fault == SaveFault.Unreadable; }
+            Check(junkRefused, "a corrupt file fails as unreadable, not as a mystery");
         }
 
         static void TestEmpire()

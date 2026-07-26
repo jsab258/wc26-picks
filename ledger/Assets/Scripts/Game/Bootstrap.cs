@@ -18,13 +18,24 @@ namespace Ledger.Game
         static void StandUp()
         {
             if (Object.FindFirstObjectByType<GameController>() != null) return;
+            if (Object.FindFirstObjectByType<MainMenu>() != null) return;
 
             // Clear whatever placeholder content the boot scene carried.
             foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                 Object.Destroy(root);
 
-            var go = new GameObject("GameController");
-            go.AddComponent<GameController>();
+            // Settings and sound come up before anything else; the self-test
+            // skips the front end entirely and drops straight into the city.
+            UiTheme.SetColourblind(GameSettings.Current.ColourblindSafe);
+            Audio.Initialize();
+
+            if (SimMode.Days > 0)
+            {
+                var go = new GameObject("GameController");
+                go.AddComponent<GameController>();
+                return;
+            }
+            MainMenu.Create();
         }
     }
 }
