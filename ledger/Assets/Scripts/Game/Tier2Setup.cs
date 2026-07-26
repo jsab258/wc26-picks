@@ -16,6 +16,7 @@ namespace Ledger.Game
             {
                 case "Mirela": return Mirela;
                 case "Josip": return Josip;
+                case "Viktor": return Viktor;
                 default: return null;
             }
         }
@@ -71,6 +72,38 @@ Few words, half of them about tides or overtime. Laughs like a winch.
 - Marek, who owned the bar, died three weeks ago.
 - I work the docks; Rocco and I go back twenty years.
 - My daughter is smarter than this street and I mean to get her off it.
+",
+        };
+
+        // Promoted from tier2-batch-1 (generated, validator-passed) because
+        // Empire v1 needs his shop: the pawnbroker with the false-panel ledger.
+        // secret: shameful — he skims appraisals to cover a gambling debt (knownBy: nobody)
+        // need: a steady, quiet supplier of goods he doesn't have to ask about
+        // connections: Lena 0.4, Sam 0.5
+        // Schedule walks the built street until the district build-out gives
+        // the pawnshop geometry; his shop exists in the books either way.
+        static readonly CastMember Viktor = new CastMember
+        {
+            Circle = "day", Greed = 0.7, Nerve = 0.4, Loyalty = 0.4,
+            Scene = "On his rounds between the market corner and the bar, always mid-calculation, talking with the new bar owner.",
+            Card = @"# Viktor
+id: viktor
+tier: ambient
+
+## Summary
+Viktor has run the pawnshop on the corner for twenty-two years and can name the story behind half the jewelry in the Hook. He keeps a ledger of every deal, official and otherwise, tucked behind a false panel in his counter.
+
+## Personality
+He is shrewd and endlessly transactional, treating every conversation like a negotiation he intends to win. Underneath the haggling he's anxious, always doing sums in his head.
+
+## Speech Style
+He talks in numbers and counteroffers, rarely finishing a sentence without naming a price.
+
+## Hard Facts
+- I've owned the pawnshop for twenty-two years.
+- I keep a ledger of every transaction, going back a decade.
+- I have a back room where I store goods people don't want seen.
+- I know the jewelers and dealers from here to the harbor office.
 ",
         };
 

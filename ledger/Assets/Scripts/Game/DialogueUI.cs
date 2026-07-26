@@ -64,6 +64,12 @@ namespace Ledger.Game
         // PP7: the posture question, asked over the won week (act1-draft.md).
         GameObject _posturePanel;
 
+        // Empire v1: two context-sensitive verbs — the money route and the
+        // leverage route — living above the hook/debt row while talking to
+        // someone the other ledger has business with.
+        Button _empireBtnA, _empireBtnB;
+        Text _empireLabelA, _empireLabelB;
+
         GameObject _debugPanel;
         Text _debugText;
 
@@ -165,6 +171,17 @@ namespace Ledger.Game
             _collectBtn.gameObject.SetActive(false);
             _forgiveBtn.gameObject.SetActive(false);
 
+            _empireBtnA = MakeButton(_dialoguePanel.transform, "", new Vector2(0.5f, 0), new Vector2(-250, 152), new Vector2(300, 36));
+            _empireBtnB = MakeButton(_dialoguePanel.transform, "", new Vector2(0.5f, 0), new Vector2(250, 152), new Vector2(300, 36));
+            _empireLabelA = _empireBtnA.GetComponentInChildren<Text>();
+            _empireLabelB = _empireBtnB.GetComponentInChildren<Text>();
+            _empireLabelA.fontSize = 16;
+            _empireLabelB.fontSize = 16;
+            _empireBtnA.onClick.AddListener(() => EmpireAct(false));
+            _empireBtnB.onClick.AddListener(() => EmpireAct(true));
+            _empireBtnA.gameObject.SetActive(false);
+            _empireBtnB.gameObject.SetActive(false);
+
             // Chips float just above the panel, out of the history's way.
             _chipRow = new GameObject("Chips");
             _chipRow.transform.SetParent(_dialoguePanel.transform, false);
@@ -183,6 +200,120 @@ namespace Ledger.Game
             _chipRow.SetActive(false);
 
             _dialoguePanel.SetActive(false);
+        }
+
+        /// The other ledger's verbs for whoever you're talking to. A = the money
+        /// route (buy clean / buy the marker / turn the key / sort their need /
+        /// put them on a round), B = the leverage route (a usable secret spent
+        /// on a shop or a recruitment). Empire opens with the city (day 8).
+        void RefreshEmpireButtons()
+        {
+            var id = CurrentHostId();
+            if (id == null || !_game.Campaign.OpenMode)
+            {
+                _empireBtnA.gameObject.SetActive(false);
+                _empireBtnB.gameObject.SetActive(false);
+                return;
+            }
+            var e = _game.Empire;
+            string labelA = null, labelB = null;
+            bool enabledA = true;
+
+            var biz = FindBusinessOf(id);
+            var hook = _game.HooksBook.UsableHook(id);
+            if (biz != null)
+            {
+                if (biz.DebtHeld) labelA = "Turn the key (you hold the paper)";
+                else if (_game.Wallet.Clean >= biz.AskPrice) labelA = $"Buy the {biz.Name} (${biz.AskPrice} clean)";
+                else if (biz.DebtPrice > 0) labelA = $"Buy their marker (${biz.DebtPrice})";
+                else { labelA = $"Buy the {biz.Name} (${biz.AskPrice} — short)"; enabledA = false; }
+                if (hook != null) labelB = $"Take the {biz.Name} (what you know)";
+            }
+            else
+            {
+                var crew = e.CrewOf(id);
+                if (crew != null && crew.Assignment == null)
+                {
+                    var open = e.Rackets.Find(r => !r.Established);
+                    if (open != null) labelA = $"Put them on the {open.Name}";
+                }
+                else if (crew == null && EmpireSetup.TryNeed(id, out var cost, out _))
+                {
+                    labelA = $"Sort what they need (${cost})";
+                    enabledA = _game.Wallet.Total >= cost;
+                    if (hook != null) labelB = "Bring them in (what you know)";
+                }
+            }
+
+            _empireBtnA.gameObject.SetActive(labelA != null);
+            if (labelA != null) { _empireLabelA.text = labelA; _empireBtnA.interactable = enabledA; }
+            _empireBtnB.gameObject.SetActive(labelB != null);
+            if (labelB != null) _empireLabelB.text = labelB;
+        }
+
+        Business FindBusinessOf(string ownerId)
+        {
+            foreach (var b in _game.Empire.Businesses)
+                if (b.OwnerId == ownerId && !b.Owned) return b;
+            return null;
+        }
+
+        void EmpireAct(bool leverage)
+        {
+            var id = CurrentHostId();
+            if (id == null) return;
+            var e = _game.Empire;
+            var g = _game.Gossip.Mill.Get(id);
+            var biz = FindBusinessOf(id);
+            var hook = _game.HooksBook.UsableHook(id);
+
+            if (biz != null)
+            {
+                if (leverage && hook != null)
+                {
+                    Narrate(e.AcquireViaHook(biz, hook, g, _game.Now).Message);
+                }
+                else if (biz.DebtHeld)
+                {
+                    Narrate(e.Squeeze(biz, g, _game.Gossip.Mill, _game.Now).Message);
+                }
+                else if (_game.Wallet.Clean >= biz.AskPrice)
+                {
+                    Narrate(e.BuyClean(biz, _game.Wallet, g, _game.Now)
+                        ? $"Papers, a handshake, ${biz.AskPrice} clean. The {biz.Name} is yours, and {id} still runs the counter."
+                        : "The clean route needs clean money. All of it.");
+                }
+                else if (biz.DebtPrice > 0)
+                {
+                    Narrate(e.BuyDebt(biz, _game.Wallet)
+                        ? $"You buy {id}'s paper for ${biz.DebtPrice}. What you do with it is tomorrow's question."
+                        : "You can't cover the marker.");
+                }
+                return;
+            }
+
+            var crew = e.CrewOf(id);
+            if (crew != null && crew.Assignment == null)
+            {
+                var open = e.Rackets.Find(r => !r.Established);
+                if (open != null && e.Establish(open, crew, _game.Now))
+                    Narrate($"{id} nods once. The {open.Name} is theirs from tonight.");
+                return;
+            }
+            if (leverage && hook != null && g != null)
+            {
+                Narrate(e.RecruitByHook(g, hook, _game.Now)
+                    ? $"{id} goes quiet, then nods. They work for you now — because they must."
+                    : "That lever doesn't move them.");
+                return;
+            }
+            if (EmpireSetup.TryNeed(id, out var cost, out var line) && g != null)
+            {
+                bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now);
+                Narrate($"{line} (-${cost})" + (joined
+                    ? $" {id} is with you now — by choice."
+                    : $" {id} owes you, and knows it. Not a yes. Yet."));
+            }
         }
 
         void SayChip(int i)
@@ -345,6 +476,37 @@ namespace Ledger.Game
                 sb.Append($"\n<color={UiTheme.HexDim}><b>ASSETS — what you hold</b></color>\n").Append(held);
             if (owed.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>RECEIVABLES — Marek's book</b></color>\n").Append(owed);
+
+            // The other ledger (open mode): what the street is becoming yours.
+            var e = _game.Empire;
+            bool anyEmpire = _game.Campaign.OpenMode &&
+                (e.Businesses.Exists(b => b.Owned || b.DebtHeld) || e.Crew.Count > 0 || e.Rival.Stage > 0);
+            if (anyEmpire)
+            {
+                sb.Append($"\n<color={UiTheme.HexDim}><b>THE STREET — the other book</b></color>\n");
+                foreach (var b in e.Businesses)
+                {
+                    if (b.Owned)
+                        sb.AppendLine($"<b>the {b.Name}</b> — yours ({b.AcquiredVia})  <color={UiTheme.HexCredit}>+${b.CleanIncomePerDay}/day · washes ${b.LaunderPerDay}</color>");
+                    else if (b.DebtHeld)
+                        sb.AppendLine($"<b>the {b.Name}</b> — you hold {b.OwnerId}'s paper  <color={UiTheme.HexHeld}>unturned</color>");
+                }
+                foreach (var c in e.Crew)
+                    sb.AppendLine(c.Departed
+                        ? $"<b>{c.Name}</b> — <color={UiTheme.HexDebit}>gone to the docks</color>"
+                        : $"<b>{c.Name}</b> — crew ({c.Route}){(c.Assignment != null ? $" · runs the {e.RacketOf(c.Assignment)?.Name}" : "")}");
+                var rivalWord = e.Rival.Stage switch
+                {
+                    0 => "hasn't looked your way",
+                    1 => "has noticed you",
+                    2 => $"taxes you ${e.Rival.ProtectionTaxPerDay}/day",
+                    3 => "is reaching for your people",
+                    _ => "is at your door",
+                };
+                sb.AppendLine($"<color={UiTheme.HexDim}>The Dockside arm {rivalWord}.</color>");
+                if (e.TotalRacketIncome > 0)
+                    sb.AppendLine($"<color={UiTheme.HexDim}>Rounds to date: ${e.TotalRacketIncome} dirty.</color>");
+            }
             _ledgerText.text = sb.ToString();
         }
 
@@ -452,9 +614,15 @@ namespace Ledger.Game
                     _doubtLabel.text = "Plant doubt";
                 }
                 RefreshChips();
+                RefreshEmpireButtons();
             }
             else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
             if (!dialogueOpen && _chipRow.activeSelf) _chipRow.SetActive(false);
+            if (!dialogueOpen && _empireBtnA.gameObject.activeSelf)
+            {
+                _empireBtnA.gameObject.SetActive(false);
+                _empireBtnB.gameObject.SetActive(false);
+            }
 
             if (dialogueOpen && Time.frameCount % 30 == 0)
             {

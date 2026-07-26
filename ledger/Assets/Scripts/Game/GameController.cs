@@ -25,6 +25,10 @@ namespace Ledger.Game
         // Act I's authored spine state (act1-draft.md): pressure-point flags,
         // the posture answer, Noor's two drawers.
         public ActOneState ActOne { get; } = new ActOneState();
+
+        // Empire v1 (open-city-spec §2): the other ledger. Businesses, crew,
+        // rackets, and the Dockside street arm watching it all grow.
+        public EmpireBook Empire { get; } = EmpireSetup.Build();
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
         // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
         public DebtBook Debts { get; } = new DebtBook();
@@ -153,6 +157,13 @@ namespace Ledger.Game
                 (new GameTime(0, 6, 0), new Vector3(18, 0, 14)),   // docks
                 (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(3, 0, -1)),
                 (new GameTime(0, 23, 0), new Vector3(16, 0, 12)),  // home by the water
+            }));
+            _npcs.Add(NpcWalker.Spawn("Viktor", new Color(0.6f, 0.5f, 0.3f), new[]
+            {
+                (new GameTime(0, 9, 0), new Vector3(10, 0, -14)),  // errands at the market corner
+                (new GameTime(0, 13, 0), new Vector3(0, 0, -8)),   // the crossing, watching trade
+                (new GameTime(0, 18, 0), WorldBuilder.BarDoor + new Vector3(2, 0, 3)),
+                (new GameTime(0, 22, 0), new Vector3(-16, 0, -12)), // home on the west row
             }));
 
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
@@ -664,9 +675,15 @@ namespace Ledger.Game
                 _lastClosedDay = Now.Day;
                 double heat = CurrentHeat;
                 int takings = Campaign.CloseDay(heat);
+                // Owned fronts pay clean and get heat-taxed exactly like the bar
+                // — a front is a front. Their washing capacity joins the till's.
+                foreach (var b in Empire.Businesses)
+                    if (b.Owned && b.CleanIncomePerDay > 0)
+                        takings += (int)System.Math.Round(b.CleanIncomePerDay * System.Math.Max(0.0, 1.0 - 0.85 * heat));
                 Wallet.EarnClean(takings);
                 TotalTakings += takings;
                 LastTakings = takings;
+                Wallet.LaunderPerDay = 120 + Empire.OwnedLaunderCapacity;
                 int washed = Wallet.Launder();
                 var line = takings >= Campaign.BarBaseTakings
                     ? $"Bar takings: +${takings}."
@@ -687,6 +704,22 @@ namespace Ledger.Game
                     _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
                         "Counted the till again. There is money moving through this bar that no tap sold."));
                 }
+                // The empire's day settles with the books (open mode only): racket
+                // takes, witnesses into the mill, the rival's daily read. Income
+                // folds into one line; the street's own moves get their own voice.
+                if (Campaign.OpenMode && _gossip != null && _gossip.Mill != null)
+                {
+                    int racketTotal = 0;
+                    string streetLine = null;
+                    foreach (var ev in Empire.DailyTick(Now, Wallet, _gossip.Mill))
+                    {
+                        if (ev.Kind == "income") racketTotal += ev.Amount;
+                        else streetLine = ev.Text; // rival/crew/witness — the last one speaks
+                    }
+                    if (racketTotal > 0) _ui?.Toast($"The street's rounds bring in ${racketTotal} dirty.", 7f);
+                    if (streetLine != null) _ui?.Toast(streetLine, 11f);
+                }
+
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
                 SaveNow(quiet: true); // the morning close is the autosave point
             }
@@ -909,6 +942,7 @@ namespace Ledger.Game
 
         Dictionary<string, object> ExtraFlags() => new Dictionary<string, object>
         {
+            { "empire", Empire.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
             { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
             { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
@@ -970,6 +1004,7 @@ namespace Ledger.Game
                 ActOne.Posture = string.IsNullOrEmpty(posture) ? null : posture;
                 ActOne.NoorDrawersEngaged = FlagB(extra, "noorDrawers");
                 ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
+                if (extra.TryGetValue("empire", out var em)) Empire.Restore(MiniJson.AsObject(em));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
                 {
                     // Drawer contents ride the mill's suppression sets; rebuild the

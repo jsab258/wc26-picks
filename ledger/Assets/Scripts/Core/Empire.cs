@@ -66,6 +66,7 @@ namespace Ledger.Core
         public string Kind;           // income | witness | rival | crew
         public string Text;
         public string ActorId;
+        public int Amount;            // income events: the dirty take
     }
 
     public class EmpireBook
@@ -89,6 +90,10 @@ namespace Ledger.Core
         public Racket RacketOf(string id) => Rackets.FirstOrDefault(r => r.Id == id);
 
         public int OwnedLaunderCapacity => Businesses.Where(b => b.Owned).Sum(b => b.LaunderPerDay);
+
+        /// Lifetime dirty income off the rackets — the self-test's proof that
+        /// the inverted drop machinery actually pays.
+        public int TotalRacketIncome { get; private set; }
 
         // ---- businesses: three ways in (open-city-spec §2.1) ----
 
@@ -267,7 +272,8 @@ namespace Ledger.Core
                         Text = $"The {r.Name} take feels light again. {runner.Name} counts it out without meeting your eye." });
                 }
                 wallet.EarnDirty(income);
-                events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id,
+                TotalRacketIncome += income;
+                events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
                     Text = $"{runner.Name} brings in ${income} off the {r.Name}." });
 
                 // Witnesses: competence shades both the odds and how sure the story is.
@@ -394,6 +400,7 @@ namespace Ledger.Core
                 }).ToList() },
             { "rivalAttention", Rival.Attention }, { "rivalStage", Rival.Stage },
             { "rivalLastAct", Rival.LastActDay }, { "rivalTax", Rival.ProtectionTaxPerDay },
+            { "racketIncome", TotalRacketIncome },
         };
 
         public void Restore(Dictionary<string, object> data)
@@ -440,6 +447,7 @@ namespace Ledger.Core
             Rival.Stage = MiniJson.GetInt(data, "rivalStage");
             Rival.LastActDay = data.TryGetValue("rivalLastAct", out var la) ? Convert.ToInt32(la) : -1;
             Rival.ProtectionTaxPerDay = MiniJson.GetInt(data, "rivalTax");
+            TotalRacketIncome = MiniJson.GetInt(data, "racketIncome");
         }
 
         static bool Is(Dictionary<string, object> d, string key) =>

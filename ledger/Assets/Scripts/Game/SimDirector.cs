@@ -42,6 +42,7 @@ namespace Ledger.Game
         bool _finished;
         bool _forcedLedgerLearn;
         bool _forcedFall;
+        bool _empireScripted;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -89,6 +90,31 @@ namespace Ledger.Game
                 _forcedLedgerLearn = true;
                 var s = _game.HooksBook.ById("lena_ledger");
                 if (s != null && !s.KnownToPlayer) s.Learn("Rocco", now);
+            }
+
+            // Empire v1 in CI: the moment the city opens, the bot plays one
+            // beat of empire — recruit Sam by need (loyalty staged past the
+            // floor), put him on the collection round, buy Viktor's marker and
+            // turn the key (nerve 0.4 folds). Day 9's close then pays the
+            // racket, seeds witnesses, and wakes the rival — all on real paths.
+            if (!_empireScripted && _game.Campaign.OpenMode && now.Hour >= 9)
+            {
+                _empireScripted = true;
+                var m = _game.Gossip != null ? _game.Gossip.Mill : null;
+                if (m != null)
+                {
+                    var sam = m.Get("Sam");
+                    if (sam != null)
+                    {
+                        sam.Loyalty = 0.5; // the week's favors, staged
+                        _game.Empire.RecruitByNeed(sam, "Sam", 120, _game.Wallet, now);
+                        _game.Empire.Establish(_game.Empire.RacketOf("collection"), _game.Empire.CrewOf("Sam"), now);
+                    }
+                    var shop = _game.Empire.BusinessOf("pawnshop");
+                    _game.Wallet.EarnDirty(300); // the bot funds the marker
+                    _game.Empire.BuyDebt(shop, _game.Wallet);
+                    _game.Empire.Squeeze(shop, m.Get("Viktor"), m, now);
+                }
             }
 
             // Open-mode Fall in CI: if week two arrived without the fuse ever
@@ -410,6 +436,24 @@ namespace Ledger.Game
                     && adaG.Knowledge.CheckClaim(new Fact("player", "did_time", "true")) == ClaimResult.Consistent;
             }
 
+            // Empire v1 (open-city-spec §2): the scripted day-8 beat must leave a
+            // squeezed shop, a crewed racket that has actually paid, an awake
+            // rival — and the whole book must survive its own codec.
+            bool empireOk = true;
+            if (_game.Campaign.OpenMode && SimMode.Days >= 9)
+            {
+                var shop = _game.Empire.BusinessOf("pawnshop");
+                var snap = MiniJson.Serialize(_game.Empire.Capture());
+                var twin = EmpireSetup.Build();
+                twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+                empireOk = shop != null && shop.Owned && shop.AcquiredVia == "debt"
+                    && _game.Empire.CrewOf("Sam") != null
+                    && (_game.Empire.RacketOf("collection")?.Established ?? false)
+                    && _game.Empire.TotalRacketIncome > 0
+                    && _game.Empire.Rival.Stage >= 1
+                    && MiniJson.Serialize(twin.Capture()) == snap;
+            }
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -449,6 +493,9 @@ namespace Ledger.Game
                 { "posture", _game.ActOne.Posture ?? "" }, { "postureFactPlanted", postureFact },
                 { "openMode", _game.Campaign.OpenMode }, { "outfitCutOff", _game.Campaign.OutfitCutOff },
                 { "falls", _game.Campaign.Falls }, { "daysClosed", _game.Campaign.DaysClosed },
+                { "empireOwned", _game.Empire.Businesses.FindAll(b => b.Owned).Count },
+                { "empireCrew", _game.Empire.Crew.Count }, { "racketIncome", _game.Empire.TotalRacketIncome },
+                { "rivalStage", _game.Empire.Rival.Stage },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -462,7 +509,7 @@ namespace Ledger.Game
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk;
+                        && openModeOk && fallOk && empireOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -475,6 +522,7 @@ namespace Ledger.Game
                       $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
+                      $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

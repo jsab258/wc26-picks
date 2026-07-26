@@ -47,6 +47,9 @@ namespace Ledger.Game
             graph.Link("Noor", "Lena", 0.5);
             graph.Link("Noor", "Rocco", 0.5);
             graph.Link("Noor", "Mirela", 0.4);
+            // Viktor (batch promotion): the pawnbroker's ties from his card.
+            graph.Link("Viktor", "Lena", 0.4);
+            graph.Link("Viktor", "Sam", 0.5);
             _mill = new GossipMill(graph);
 
             // Every gossiper shares its conversation host's real memory, knowledge and
