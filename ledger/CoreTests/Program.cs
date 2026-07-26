@@ -59,6 +59,7 @@ namespace Ledger.CoreTests
                 TestAdjudicator();
                 TestEconomy();
                 TestAccess();
+                TestOperations();
                 TestPopulation();
                 TestDirector();
                 await TestDirectorAsync();
@@ -1962,6 +1963,159 @@ namespace Ledger.CoreTests
                     "a refusal is always somebody talking", r.Line);
                 Check(r.Hint.Length > 0, "and always teaches you something", r.Hint);
             }
+        }
+
+        // ---------------------------------------------------------------
+        // Operation planning (roadmap M7.5)
+        // ---------------------------------------------------------------
+
+        static OperationTarget Warehouse() => new OperationTarget
+        {
+            Id = "ironside_shed", Name = "the Ironside shed", PlaceId = "ironside",
+            Difficulty = 0.5, Payout = 300, Exposure = 0.5,
+        };
+
+        static OperationState Steady()
+        {
+            var s = new OperationState { Heat = 0.2, Nerve = 0.5, Coated = true };
+            s.Competence["Sam"] = 0.6;  s.Loyalty["Sam"] = 0.8;
+            s.Competence["Josip"] = 0.7; s.Loyalty["Josip"] = 0.7;
+            s.Competence["Ada"] = 0.15;  s.Loyalty["Ada"] = 0.9;
+            return s;
+        }
+
+        /// A fixed sequence, so a test asserts the RULES rather than a lucky roll.
+        static Func<double> Rolls(params double[] values)
+        {
+            int i = 0;
+            return () => values[Math.Min(i++, values.Length - 1)];
+        }
+
+        static void TestOperations()
+        {
+            Console.WriteLine("Operations — deciding beforehand, and living with it:");
+
+            var state = Steady();
+
+            // Every one of the four decisions must move the read, or it is not a
+            // decision. Checked against the internal number the player never sees.
+            double baseline = Operations.Read(new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 },
+                Warehouse(), state).Risk;
+
+            double forced = Operations.Read(new OperationPlan("x") { Approach = Approach.Forced, Hour = 23 },
+                Warehouse(), state).Risk;
+            Check(forced < baseline, "forcing it is more likely to work than doing it quietly");
+
+            double withHands = Operations.Read(
+                new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 }.Bringing("Josip"),
+                Warehouse(), state).Risk;
+            Check(withHands < baseline, "bringing a competent man helps");
+
+            double withAda = Operations.Read(
+                new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 }.Bringing("Ada"),
+                Warehouse(), state).Risk;
+            Check(withAda > baseline, "bringing somebody who has never done this is worse than going alone");
+
+            double withTools = Operations.Read(new OperationPlan("x") { Tools = true, Hour = 23 },
+                Warehouse(), state).Risk;
+            Check(withTools < baseline, "tools help");
+
+            // The trade that makes it a decision rather than an optimum: forcing
+            // it is likelier to work AND likelier to be seen.
+            var quietRead = Operations.Read(new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 }, Warehouse(), state);
+            var forcedRead = Operations.Read(new OperationPlan("x") { Approach = Approach.Forced, Hour = 23 }, Warehouse(), state);
+            Check(forcedRead.Visibility > quietRead.Visibility,
+                "and forcing it is much more likely to be seen — the whole trade");
+
+            // The hour is a real choice in both directions.
+            Check(Operations.HourDensity(3) < Operations.HourDensity(20),
+                "three in the morning is emptier than eight at night");
+            Check(Operations.HourDensity(12) > Operations.HourDensity(23),
+                "and the middle of the day is the worst time to be anywhere");
+            var noon = Operations.Read(new OperationPlan("x") { Hour = 12 }, Warehouse(), state);
+            var night = Operations.Read(new OperationPlan("x") { Hour = 23 }, Warehouse(), state);
+            Check(noon.Visibility > night.Visibility, "so going at noon is seen more than going at eleven");
+
+            // Talking your way in is free until the street knows your name.
+            var quietStreet = new OperationState { Heat = 0.05, Nerve = 0.5 };
+            var loudStreet = new OperationState { Heat = 0.9, Nerve = 0.5 };
+            Check(Operations.Read(new OperationPlan("x") { Approach = Approach.Social }, Warehouse(), quietStreet).Risk
+                < Operations.Read(new OperationPlan("x") { Approach = Approach.Social }, Warehouse(), loudStreet).Risk,
+                "talking your way in stops working once people have heard of you");
+
+            // The coat is worth something here too.
+            var bare = Steady(); bare.Coated = false;
+            Check(Operations.Read(new OperationPlan("x") { Hour = 23 }, Warehouse(), bare).Visibility
+                > Operations.Read(new OperationPlan("x") { Hour = 23 }, Warehouse(), Steady()).Visibility,
+                "the coat is worth something on a job, not only afterwards");
+
+            // THE APPROVED DECISION: qualitative odds, never a percentage.
+            for (double r = 0; r <= 1.0001; r += 0.05)
+            {
+                var word = Operations.RiskWord(r);
+                Check(!word.Contains("%") && !word.Any(char.IsDigit),
+                    "a plan is read in words and never in numbers", word);
+            }
+            Check(Operations.RiskWord(0.1) != Operations.RiskWord(0.9),
+                "and the words actually distinguish a good plan from a bad one");
+
+            // The read must teach: name the decision most worth changing.
+            var talky = Operations.Read(new OperationPlan("x") { Approach = Approach.Social }, Warehouse(),
+                new OperationState { Heat = 0.8, Nerve = 0.5 });
+            Check(talky.Worry.Contains("heard of you"), "a bad approach is named as the problem", talky.Worry);
+            var daylight = Operations.Read(new OperationPlan("x") { Approach = Approach.Forced, Hour = 12 }, Warehouse(), bare);
+            Check(daylight.Worry.Contains("daylight"), "so is a bad hour", daylight.Worry);
+            var crowded = Operations.Read(
+                new OperationPlan("x") { Hour = 3 }.Bringing("Sam", "Josip", "Ada", "Sam"), Warehouse(), Steady());
+            Check(crowded.Worry.Length > 0, "and a plan with too many people in it says so", crowded.Worry);
+
+            // Running it. Three bands, and the partial is the interesting one.
+            var win = Operations.Run(new OperationPlan("x") { Approach = Approach.Forced, Hour = 3 },
+                Warehouse(), Steady(), Rolls(0.99, 0.0, 0.0, 0.0));
+            Check(win.Success && win.Take == 300, "a good roll on a good plan pays out in full");
+
+            var target = Warehouse();
+            var messy = Operations.Run(new OperationPlan("x") { Hour = 3 }, target, Steady(), Rolls(0.5, 0.0, 0.0));
+            Check(messy.Partial && messy.Take > 0 && messy.Take < 300,
+                "and the middle band gets you most of the way, which is the interesting outcome",
+                messy.Take.ToString());
+            Check(target.Done, "a job you half-did is still done — there is no second attempt at the same shed");
+
+            var flop = Warehouse();
+            double before = flop.Difficulty;
+            var lost = Operations.Run(new OperationPlan("x") { Hour = 3 }, flop, Steady(), Rolls(0.0, 0.0, 0.0));
+            Check(!lost.Success && !lost.Partial && lost.Take == 0, "a bad roll gets you nothing");
+            Check(!flop.Done, "a failure leaves the job there");
+            Check(flop.Difficulty > before, "harder than it was, which is a consequence and not a punishment");
+
+            // Failing is loud: more people see a botched job than a clean one.
+            var seenWin = Operations.Run(new OperationPlan("x") { Approach = Approach.Forced, Hour = 12 },
+                Warehouse(), bare, Rolls(0.99, 0.99, 0.0, 0.0));
+            var seenLoss = Operations.Run(new OperationPlan("x") { Approach = Approach.Forced, Hour = 12 },
+                Warehouse(), bare, Rolls(0.0, 0.99, 0.0, 0.0));
+            Check(seenLoss.Witnesses >= seenWin.Witnesses, "a botched job is seen by more people than a clean one",
+                $"{seenLoss.Witnesses} vs {seenWin.Witnesses}");
+
+            // Your own people talk, and loyalty is what decides whether they do.
+            var disloyal = Steady();
+            disloyal.Loyalty["Sam"] = 0.0;
+            var talked = Operations.Run(new OperationPlan("x").Bringing("Sam"), Warehouse(), disloyal,
+                Rolls(0.0, 0.0, 0.1));
+            Check(talked.Talkers.Contains("Sam"), "a frightened man with no reason to protect you talks afterwards");
+            var loyal = Steady();
+            loyal.Loyalty["Sam"] = 1.0;
+            var quiet = Operations.Run(new OperationPlan("x").Bringing("Sam"), Warehouse(), loyal,
+                Rolls(0.99, 0.0, 0.9));
+            Check(quiet.Talkers.Count == 0, "and a loyal one on a clean job does not");
+
+            // Degenerate inputs, since this runs off player choices.
+            Check(Operations.Read(null, null, null).Risk >= 1, "an empty plan is not a plan");
+            Check(!Operations.Run(null, null, null, null).Success, "and cannot be run");
+            var done = Warehouse(); done.Done = true;
+            Check(Operations.Read(new OperationPlan("x"), done, Steady()).Line.Contains("already"),
+                "a finished job says so rather than offering itself again");
+            Check(!Operations.Run(new OperationPlan("x"), done, Steady(), Rolls(0.99)).Success,
+                "and cannot be done twice");
         }
 
         // ---------------------------------------------------------------
