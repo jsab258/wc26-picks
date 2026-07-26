@@ -112,11 +112,23 @@ space there is nothing. That is the ceiling we are trying to break.
    rise (the 2026-07-25 no-grindable-stats rule stands).
 6. **Access as soft keys (65)** — Hitman's lesson: places and people cost
    standing, notoriety, dress, an introduction, or a brokered appointment.
-7. **Visible odds (50)** — the player should know when something is
-   likely to go badly. Style undecided: exact percentages vs. qualitative
-   read vs. reveal-after.
-8. **Interiority (30)** — approved despite the initial recommendation
-   against; shape to be designed for an authored protagonist.
+7. **Visible odds (50)** — DECIDED: *qualitative read*, never percentages.
+   Characters estimate ("this will probably go badly"); the game never
+   becomes a spreadsheet.
+8. **Interiority (30)** — DECIDED: *pressure, not personality*. The
+   protagonist's own nerve, guilt and appetite surface as intrusive lines
+   in the moment ("you can still walk out of this room"). Never stats,
+   never a Disco-style cast of inner voices.
+
+**Competence (40) — DECIDED**: tracked per domain (collections,
+conversations, night work), unlocking *approaches* rather than raising
+numbers, surfaced as the character noticing what they couldn't before.
+
+**Setting era — DECIDED: late-analog.** Landlines, payphones, answering
+machines, messages left with people. Information gains a second channel
+without travelling at internet speed, which preserves the mill's core
+constraint and makes wiretaps, missed calls and being unreachable into
+real play. Cards and generation prompts inherit this.
 
 **Vehicles / driving (40): approved for LATE roadmap** (player, same
 session) — no longer refused outright, but sequenced after the systems
