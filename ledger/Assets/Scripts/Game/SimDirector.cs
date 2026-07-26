@@ -84,6 +84,18 @@ namespace Ledger.Game
             // the disguise path is exercised too). Both halves get CI coverage.
             _game.WearingCoat = now.Day >= 3 && (now.Hour >= 21 || now.Hour < 3);
 
+            // The car in CI (roadmap M12 step 7). The bot cannot press a key, so
+            // from day 5 it simply keeps the car with it — the same world state
+            // as having driven there. What this exercises is the part that
+            // matters: a night drop made with a vehicle standing in the street
+            // must leave a vehicle FACT in a witness's head, and must leave it
+            // whether or not the bot was wearing the coat.
+            if (now.Day >= 5 && PlayerCar.Instance != null && _player != null)
+            {
+                var pp = _player.transform.position;
+                PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
+            }
+
             // Act I PP4 in CI: the trust path needs live conversation, so on day 6
             // the bot learns the hiding place the other way a player can — from
             // Rocco — and the authored moment must fire off the real transition.
@@ -556,6 +568,16 @@ namespace Ledger.Game
             var trafficCost = Perf.Get("traffic");
             bool perfOk = trafficCost == null || trafficCost.MeanMs < 4.0;
 
+            // The vehicle description (spec §4). Only meaningful if the bot was
+            // seen at all; when it was, somebody must be able to describe the car.
+            bool vehicleFactSeen = false;
+            var millV = _game.Gossip != null ? _game.Gossip.Mill : null;
+            if (millV != null)
+                foreach (var lead in millV.Leads("player"))
+                    if (lead.TopicKey != null && lead.TopicKey.StartsWith("player.vehicle_d"))
+                        vehicleFactSeen = true;
+            bool witnessCarOk = _game.NightWitnesses == 0 || SimMode.Days < 6 || vehicleFactSeen;
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -690,6 +712,8 @@ namespace Ledger.Game
                 { "shiftsWorked", _game.Job.ShiftsWorked },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
+                { "vehicleFactSeen", vehicleFactSeen },
+                { "signsBuilt", StreetFurniture.SignCount },
                 { "vehicles", traffic != null ? traffic.Vehicles.Count : 0 },
                 { "vehicleKinds", kindsSeen },
                 { "trafficMetres", traffic != null ? System.Math.Round(traffic.TotalDistance, 0) : 0 },
@@ -713,7 +737,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -738,6 +762,7 @@ namespace Ledger.Game
                       $"vehicles={(traffic != null ? traffic.Vehicles.Count : 0)} kinds={kindsSeen} " +
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} gap={tightest:0.00} " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
+                      $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +

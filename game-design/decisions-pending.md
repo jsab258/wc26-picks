@@ -73,6 +73,32 @@ being possible:
 5. **API-key batch session** for Tier-2 district generation (Open City
    decision 3: generation ships WITH Empire v1/M6). Blocks: M6 kickoff.
 
+## Traffic: can you run people over? (raised 2026-07-27, M12)
+
+**Currently: no.** Cars brake for anybody in the road and wait there while
+they stand in it. That is enforced in Core and held as a test, so it is a
+design position rather than something that merely has not been built.
+
+I built it that way and flagged it rather than deciding it, because it is a
+real fork and it is yours:
+
+- **Keep it (recommended).** Vehicular death would eat the gossip and
+  investigation systems whole — every witness in the district would have
+  exactly one thing to talk about for the rest of the campaign, and the
+  careful machinery around disguise, confidence decay and hard facts would be
+  drowned out by the loudest possible event. It also makes the streets safe
+  to walk, which is what makes the crowd usable as ambience.
+- **Add it as a consequence system.** Doable, but it is not "turn off the
+  brake": it needs manslaughter as a state the world reacts to — a body, a
+  crowd, an investigation with a different shape from the ones we have, and
+  a rival/police response. That is a milestone, not a flag.
+- **Middle option.** Collisions that hurt but do not kill: knocked down,
+  gets up, is furious, remembers your car. This sits inside the systems we
+  already have — it is a hard fact with a vehicle attached — and costs a
+  fraction of the second option.
+
+No action needed before you play. The city works either way.
+
 ## Standing rules honored meanwhile
 
 - Design/story/character decisions → this queue, with a recommendation,

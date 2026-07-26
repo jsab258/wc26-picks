@@ -388,6 +388,48 @@ The gaps, in the order they are now being closed:
   customisation, police pursuit, damage, fuel, parking. Those are a different
   game's Tuesday.
 
+  **STATUS, 2026-07-27 — BUILT.** The player extended the scope in a second
+  message (*"traffic lights/signs, collisions, different kinds of vehicles
+  (trucks, cars, vuses, taxis, bikes), etx etc?"*) and approved a seven-item
+  order. All seven landed:
+
+  1. **Walkers on pavements.** `NpcWalker.Steer` followed "the nearest point
+     on the founding cross", which was a fair description of the city when it
+     had two roads. It now uses the real network and offsets to the pavement,
+     so the crowd walks down streets instead of cutting across blocks.
+  2. **Traffic**, as a deterministic fixed-substep model in Core. Four
+     properties are held as tests because none of them can be judged from a
+     screenshot: nobody overlaps, nobody crosses a stop line on red, nobody
+     drives through a person, and the grid never wedges solid. Three of the
+     four failed the first time they were asked — including a genuine
+     three-way deadlock at one junction.
+  3. **Vehicle variety** — car, van, lorry, bus, cab, bicycle as a data table
+     rather than six subclasses, differing in length, speed, braking and three
+     behaviour flags. Buses run a circuit and dwell at stops, cabs idle at the
+     ferry stop and the cab rank, bicycles thread the lanes and ride near the
+     kerb.
+  4. **Signs** — stop signs on every approach that exists, no-entry discs
+     where the lanes leave a junction, and street-name plates. Ten named
+     streets, with `StreetMap.AddressOf` shared by the plates and the gossip,
+     so the city can never tell the player one name and a character another.
+  5. **Traffic lights** at the four junctions where two avenues cross in the
+     interior. A pure function of the clock rather than a state machine, so a
+     light cannot drift out of step with its own render and needs no saving.
+  6. **The driveable car** — get in, drive, get out. Kinematic, not a
+     rigidbody: Core steps the AI traffic against its own rules and a physics
+     body dropped into that is two systems arguing over the same metre of road.
+  7. **Witnesses describe the vehicle**, and describe it whether or not the
+     player wore the coat. The disguise buys doubt about the face and none at
+     all about the car in the street.
+
+  Frame cost went in BEFORE the traffic rather than after: `Perf` reports mean
+  frame, p95 and worst frame in the sim report, and a traffic tick averaging
+  over 4ms fails the build.
+
+  Still not in scope, and now a decision the player should make rather than
+  one taken quietly: **running people over remains impossible** — cars brake
+  and wait. See `decisions-pending.md`.
+
 - **M11 — Violence, staged — MELEE DEFERRED** (player, same message). The
   consequence layer (injuries that persist, crew trauma, feuds) is unaffected
   and stays near. Playable brawling waits for the art pass: the spec is
