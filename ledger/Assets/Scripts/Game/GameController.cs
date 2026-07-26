@@ -463,6 +463,9 @@ namespace Ledger.Game
             if (Campaign.FallPending) RunTheFall();
             UpdateBeats();
             if (Input.GetKeyDown(GameSettings.Current.Key("Save"))) SaveNow();
+            // Every frame, not on the 30-frame cadence: a door you hear half a
+            // second after you walk through it is worse than no door at all.
+            CheckBarDoor();
             if (Time.frameCount % 30 == 0)
             {
                 CheckLoyalWarnings();
@@ -712,6 +715,7 @@ namespace Ledger.Game
             s.Unpaid = 0;
             s.LastPaidDay = Now.Day;
             s.Standing = System.Math.Min(1.0, s.Standing + 0.2);
+            Audio.Ui("coin");
             line = $"You count out ${owed}. {s.Name} puts it away without looking at it, which is how you know it mattered.";
             return true;
         }
@@ -924,6 +928,7 @@ namespace Ledger.Game
         {
             if (!Campaign.FallPending || _gossip == null || _gossip.Mill == null) return;
             Campaign.ConsumeFall();
+            Audio.Ui("dread");   // the heaviest thing that happens to you
             if (_jobMarker != null) { Destroy(_jobMarker); _jobMarker = null; }
 
             int seized = Wallet.Seize();
@@ -1084,6 +1089,23 @@ namespace Ledger.Game
             _ui?.Toast("A stranger is working Hook Street. Tan coat, level voice, takes her time. Asks about you.", 10f);
         }
 
+        // The bar door. There is no interior in the graybox, so "going inside"
+        // is proximity with hysteresis: you hear the door when you arrive, and
+        // you have to actually leave before you can hear it again. Without the
+        // gap it would rattle every time you shifted your weight on the step.
+        const float DoorNear = 2.0f, DoorFar = 3.5f;
+        bool _atTheDoor;
+
+        void CheckBarDoor()
+        {
+            if (_player == null || SimMode.Days > 0) return;
+            float d = Vector3.Distance(
+                new Vector3(_player.transform.position.x, 0, _player.transform.position.z),
+                new Vector3(WorldBuilder.BarDoor.x, 0, WorldBuilder.BarDoor.z));
+            if (!_atTheDoor && d <= DoorNear) { _atTheDoor = true; Audio.Ui("door"); }
+            else if (_atTheDoor && d >= DoorFar) _atTheDoor = false;
+        }
+
         /// §6.4 top rung: an NPC at Confronting suspicion blocks the player's path
         /// and demands answers — the conversation opens itself.
         void CheckConfrontations()
@@ -1102,6 +1124,7 @@ namespace Ledger.Game
                 TotalConfrontations++;
                 var host = npc.GetComponent<ConversationHost>();
                 if (host == null) continue;
+                Audio.Ui("dread");
                 _ui.Toast($"{npc.DisplayName} steps into your path. This isn't a chat.", 6f);
                 _ui.ForceDialogue(host);
                 break; // one ambush at a time
@@ -1216,6 +1239,7 @@ namespace Ledger.Game
                         takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor
                             * Economy.FactorFor(b.Id) * System.Math.Max(0.0, 1.0 - 0.85 * heat));
                 Wallet.EarnClean(takings);
+                if (takings > 0) Audio.Ui("coin");
                 TotalTakings += takings;
                 LastTakings = takings;
                 Wallet.LaunderPerDay = 120 + Empire.OwnedLaunderCapacity;
@@ -1346,6 +1370,7 @@ namespace Ledger.Game
                     _jobMarker = null;
                     Campaign.JobDone();
                     Wallet.EarnDirty(Campaign.JobPay);
+                    Audio.Ui("coin");
                     double conf = WearingCoat ? CoatWitnessConfidence : 1.0;
                     var seen = _gossip != null ? _gossip.WitnessNightJob(p, Now.Day, Now, conf)
                         : new List<string>();

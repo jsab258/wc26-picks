@@ -1185,6 +1185,7 @@ namespace Ledger.Game
             {
                 _game.Wallet.Spend(price, dirtyOk: true);
                 _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
+                Audio.Ui("coin");   // it only sounds like money if money moved
             }
             Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-${price})" : ""));
         }

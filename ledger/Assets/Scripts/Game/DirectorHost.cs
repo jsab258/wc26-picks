@@ -342,6 +342,7 @@ namespace Ledger.Game
                 g.Memory.Append(new MemoryEvent(Now, "observation", 0.8,
                     $"I asked for ${d.Amount} and it was there when I asked. That is not nothing."));
             }
+            Audio.Ui("coin");
             line = $"${d.Amount}, counted out where {who} can see it. Nobody says thank you, and it still counts.";
             return true;
         }

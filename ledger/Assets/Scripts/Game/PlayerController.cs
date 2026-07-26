@@ -13,6 +13,11 @@ namespace Ledger.Game
         public bool InputLocked; // dialogue UI sets this while typing
         public Vector3? AutoMoveTarget; // sim mode drives the player via waypoints
 
+        /// Metres between footfalls. Roughly a real stride, so the cadence reads
+        /// as a person walking rather than as a metronome under the camera.
+        const float StrideMetres = 1.6f;
+        float _sinceStep;
+
         CharacterController _cc;
         Camera _camera;
         float _yaw = 0f;
@@ -79,6 +84,17 @@ namespace Ledger.Game
 
                 _verticalVelocity = _cc.isGrounded ? -1f : _verticalVelocity - 18f * Time.deltaTime;
                 _cc.Move((move * speed + Vector3.up * _verticalVelocity) * Time.deltaTime);
+
+                // Footsteps at your own pace: the step cadence comes from the
+                // distance actually covered, so running is faster steps rather
+                // than the same steps played faster. Silent in sim mode, where
+                // nobody is listening and a step per frame is just noise.
+                if (SimMode.Days == 0 && _cc.isGrounded && move.sqrMagnitude > 0.001f)
+                {
+                    _sinceStep += speed * Time.deltaTime;
+                    if (_sinceStep >= StrideMetres) { _sinceStep = 0f; Audio.Footstep(); }
+                }
+                else _sinceStep = StrideMetres * 0.6f;  // land the first step promptly on moving off
             }
 
             // Camera follows behind and above, looking at the head.
