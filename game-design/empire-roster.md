@@ -72,3 +72,35 @@ play, dormant under none (balance-findings-open.md).
   happened (clean purchase vs squeeze vs leverage); Noor picks up the
   Dockside-tax story at rival stage 2; Ossei stands down 4 days post-Fall.
 - Live population: ~36 walking (7 cast + Viktor + ring 4 + 24 batch).
+
+## Round 4-5 additions (2026-07-26)
+
+- **The quit** (§6.5 complete): a need-route crew member skimmed below
+  loyalty 0.2 walks — leaves the take on the counter, the round dies with
+  them, the reason sits in their memory file. Hook-crew cannot leave; that
+  is the hook route's brittle bargain in both directions. Winning a
+  quitter back revives their line rather than duplicating it.
+- **The day job** (§6.6): Meridian Parcel courier rounds, $40 clean a
+  morning, and the cover of steady work (day-circle suspicion decays after
+  a worked day). Zlata is the dispatcher now that her card is approved.
+
+## Faction agency (commit 0fc5b9d) — the arms are people
+
+| Arm | Head | Members on the street |
+|---|---|---|
+| Dockside syndicate | Sera Kest | Josip (dock hand), Ferko (night cab) |
+| The machine | Aldous Vane | Tibor (the customs stamp) |
+| The New crew | Danny Ro | Ruta (the back-room fence) |
+
+Recruiting any of them IS poaching — the same need/hook verbs, aimed at
+someone who already had an employer. Their arm loses the roster line,
+loses 0.35 standing, gains 0.2 attention; the person's memory records who
+they used to answer to. Allegiance: `PledgeTo` (standing ≥ 0.2 required)
+flies an arm's colors — their attention decays, their protection is real,
+$50/day tribute, the other two read it as a side taken. `BreakWith` always
+ends below zero standing and spikes their attention; their people
+remember the day.
+
+Still unbuilt (see `agency-model.md` targets): arm-vs-arm relations,
+absorbing a broken arm, the heads' authored Table scenes, Halvard's
+brokerage verbs.

@@ -40,6 +40,13 @@ Nobody counts days anymore. Nothing ends — things scar. Get exposed and
 you do three days inside: they keep the cash you couldn't explain, and the
 street stops guessing and starts *knowing*. Then you start again from there.
 
+**The honest morning.** Meridian Parcel's board goes up by the docks each
+morning until noon. Take the satchel, walk the route, deliver before
+evening: $40 clean, and something money can't buy — a day in company
+colors reads honest, and the whole day circle relaxes a little about you.
+One round a day. The morning you spend on parcels is a morning you don't
+spend on the other ledger; that's the point.
+
 The empire verbs appear in conversation:
 - **Businesses** — buy a front clean (full price, seller stays friendly),
   buy their debt and turn the key (cheaper; they fold or tell the street),
@@ -54,5 +61,13 @@ The empire verbs appear in conversation:
   beer at your bar, then the street's rent, then your least-loyal crew get
   offers. What they take was always a function of what you built and who
   you underpaid.
+- **Two more organizations** are watching different things. The machine
+  reads the deed registry — every shop you take wakes it, and it answers
+  with inspectors and letters that cost clean money. The New crew watches
+  how loud your street is, and answers with noise you didn't make but will
+  be blamed for.
+- **Whose people are whose.** Josip and Ferko answer to the Dockside;
+  Tibor's customs stamp belongs to the machine; the New crew counts Ruta
+  as theirs. Recruiting any of them is poaching, and it is noticed.
 
 Press L. Two books. Keep them both, or choose which one survives.
