@@ -362,8 +362,13 @@ namespace Ledger.Game
             {
                 var camp = _game.Campaign;
                 double heat = _game.Gossip != null && _game.Gossip.Mill != null ? _game.Gossip.Mill.DayCircleHeat() : 0.0;
-                _statusText.text = $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}" +
-                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: {PatienceWord(camp.OutfitPatience)}" +
+                // Open mode drops the countdown framing: nobody is counting days.
+                _statusText.text = (camp.OpenMode
+                        ? $"The open city — day {now.Day}"
+                        : $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}") +
+                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: " +
+                    (camp.OutfitCutOff ? "silent" : PatienceWord(camp.OutfitPatience)) +
+                    (camp.Falls > 0 ? $"  ·  falls: {camp.Falls}" : "") +
                     (_game.WearingCoat ? $"  ·  <color={UiTheme.HexAmber}>in the coat</color>" : "");
             }
 
@@ -372,6 +377,15 @@ namespace Ledger.Game
             if (_endPanel != null)
             {
                 if (Input.GetKeyDown(KeyCode.R)) Restart();
+                // The won week continues into the open city (open-city-spec.md).
+                if (Input.GetKeyDown(KeyCode.Space) && _endCamp != null
+                    && _endCamp.Verdict == Verdict.WonWeek && _game.ActOne.Posture != null)
+                {
+                    Destroy(_endPanel);
+                    _endPanel = null;
+                    _endCamp = null;
+                    _game.ContinueToOpenMode();
+                }
                 return; // the week is settled; only the end screen listens now
             }
             if (_posturePanel != null) return; // the question holds the room
@@ -489,9 +503,16 @@ namespace Ledger.Game
 
             if (camp.Verdict == Verdict.WonWeek && _game.ActOne.Posture == null)
             {
-                // The sim bot answers so the fact-propagation path runs in CI.
-                if (SimMode.Days > 0) _game.AnswerPosture("takeover");
-                else { ShowPostureScene(camp); return; }
+                // The sim bot answers and walks straight into the open city, so
+                // week two runs in CI without a screen in the way.
+                if (SimMode.Days > 0)
+                {
+                    _game.AnswerPosture("takeover");
+                    _game.ContinueToOpenMode();
+                    return;
+                }
+                ShowPostureScene(camp);
+                return;
             }
             ShowEndPanel(camp);
         }
@@ -521,9 +542,12 @@ namespace Ledger.Game
             });
         }
 
+        Campaign _endCamp;
+
         void ShowEndPanel(Campaign camp)
         {
             if (_endPanel != null) return;
+            _endCamp = camp;
             bool won = camp.Verdict == Verdict.WonWeek;
             _endPanel = MakePanel(_canvas, "EndPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, won ? 640 : 420));
             var title = MakeText(_endPanel.transform, "EndTitle", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(1000, 70), 44, TextAnchor.UpperCenter);
@@ -539,7 +563,9 @@ namespace Ledger.Game
                 MakeText(_endPanel.transform, "Teaser", new Vector2(0.5f, 1), new Vector2(0, -245), new Vector2(920, 330), 17, TextAnchor.UpperLeft)
                     .text = ActOneState.TeaserText;
             MakeText(_endPanel.transform, "EndHint", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(950, 36), 20, TextAnchor.LowerCenter)
-                .text = "Press R to play the week again";
+                .text = won
+                    ? "SPACE — keep the keys: day 8, the city opens   ·   R — replay the week"
+                    : "Press R to start the week over";
         }
 
         void Restart()

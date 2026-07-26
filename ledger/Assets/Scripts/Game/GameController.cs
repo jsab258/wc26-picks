@@ -286,6 +286,7 @@ namespace Ledger.Game
             }
 
             UpdateCampaign();
+            if (Campaign.FallPending) RunTheFall();
             UpdateBeats();
             if (Input.GetKeyDown(KeyCode.F5)) SaveNow();
             if (Time.frameCount % 30 == 0)
@@ -440,6 +441,52 @@ namespace Ledger.Game
                 }
                 return; // one lie lands once per batch
             }
+        }
+
+        /// Day 8 (open-city-spec.md): the won week and the spoken posture open the
+        /// city. The verdict machinery stands down; the two ledgers are the game.
+        public void ContinueToOpenMode()
+        {
+            if (Campaign.Verdict != Verdict.WonWeek || ActOne.Posture == null) return;
+            Campaign.EnterOpenMode();
+            if (_player != null) _player.InputLocked = false;
+            SaveNow(quiet: true);
+            ToastLine("Day 8. Nobody is counting the days anymore. Two books, no ceiling.", 10f);
+        }
+
+        /// The Fall (open-city-spec.md, decision 4): exposure in the open city is
+        /// survivable but scarring. Three days inside; the unwashed cash is
+        /// seized; the street stops guessing and starts KNOWING — rumors collapse
+        /// into hard fact, suspicion has nothing left to feed on, and everyone
+        /// thinks a little less of you. The city remembers. Play resumes.
+        void RunTheFall()
+        {
+            if (!Campaign.FallPending || _gossip == null || _gossip.Mill == null) return;
+            Campaign.ConsumeFall();
+            if (_jobMarker != null) { Destroy(_jobMarker); _jobMarker = null; }
+
+            int seized = Wallet.Seize();
+            Now = new GameTime(Now.Day + 3, 8, 0);
+            _lastClosedDay = Now.Day;   // the skipped mornings never close
+            _jobPostedDay = Now.Day;    // no ghost job from the lost nights
+
+            var didTime = new Fact("player", "did_time", "true");
+            foreach (var a in _gossip.Mill.Agents)
+            {
+                a.Rumors.RemoveAll(r => r.Content.Subject == "player");
+                a.Knowledge.Learn(didTime);
+                a.Loyalty = System.Math.Clamp(a.Loyalty - 0.15, 0, 1);
+                a.Suspicion.Restore(0.2); // nothing left to suspect — they know
+                a.Memory.Append(new MemoryEvent(Now, "heard", 0.9,
+                    "They took the new owner in. Three days inside. Nobody on this street is guessing anymore."));
+            }
+            // The talk is over — it's public record now; the old liabilities settle.
+            foreach (var k in Knowledge.Entries) Knowledge.MarkHandled(k.HolderId, k.TopicKey);
+
+            _ui?.Toast(seized > 0
+                ? $"THE FALL. Three days inside. They kept the ${seized} they found — the money the books couldn't explain. The street knows now. Start from there."
+                : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.", 14f);
+            SaveNow(quiet: true);
         }
 
         /// PP7: the player says out loud which life they're choosing. Dialogue +
@@ -646,7 +693,8 @@ namespace Ledger.Game
 
             // Night job lifecycle: posted at 22:00, open until 02:00, done by
             // standing at the glowing drop, missed if the window closes first.
-            bool inWindow = Campaign.InJobWindow(Now);
+            // A cut-off outfit posts nothing — the silence is the consequence.
+            bool inWindow = Campaign.InJobWindow(Now) && !Campaign.OutfitCutOff;
             if (inWindow && Now.Hour >= 22 && _jobPostedDay != Now.Day)
             {
                 _jobPostedDay = Now.Day;
@@ -667,7 +715,9 @@ namespace Ledger.Game
                 Destroy(_jobMarker);
                 _jobMarker = null;
                 Campaign.JobMissed();
-                _ui?.Toast("You missed the outfit's drop. They won't forget.");
+                _ui?.Toast(Campaign.OutfitCutOff
+                    ? "The outfit stops calling. No runner, no pay, no protection. The street will notice the silence."
+                    : "You missed the outfit's drop. They won't forget.");
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
             }
             else if (_player != null)

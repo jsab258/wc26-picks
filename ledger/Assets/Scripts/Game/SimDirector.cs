@@ -41,6 +41,7 @@ namespace Ledger.Game
         int _endDay;
         bool _finished;
         bool _forcedLedgerLearn;
+        bool _forcedFall;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -88,6 +89,16 @@ namespace Ledger.Game
                 _forcedLedgerLearn = true;
                 var s = _game.HooksBook.ById("lena_ledger");
                 if (s != null && !s.KnownToPlayer) s.Learn("Rocco", now);
+            }
+
+            // Open-mode Fall in CI: if week two arrived without the fuse ever
+            // blowing organically, stage one on day 9 so the whole Fall path
+            // (seizure, time skip, the street knowing) runs in-engine every build.
+            if (!_forcedFall && now.Day >= 9 && _game.Campaign.OpenMode
+                && _game.Campaign.Falls == 0 && !_game.Campaign.FallPending)
+            {
+                _forcedFall = true;
+                _game.Campaign.ForcePendingFall();
             }
 
             // Drive the player around the block to exercise movement and camera —
@@ -340,6 +351,7 @@ namespace Ledger.Game
                     && w2.Clean == _game.Wallet.Clean && w2.Dirty == _game.Wallet.Dirty
                     && System.Math.Abs(c2.OutfitPatience - camp.OutfitPatience) < 1e-9
                     && c2.Verdict == camp.Verdict
+                    && c2.OpenMode == camp.OpenMode && c2.Falls == camp.Falls
                     && pk2.Count == _game.Knowledge.Count;
                 if (mill != null)
                     foreach (var a in mill.Agents)
@@ -382,6 +394,19 @@ namespace Ledger.Game
                 && (mill == null || mill.Get("Noor") != null)
                 && postureFact;
 
+            // Open mode (open-city-spec.md): if the bot won the week, the city must
+            // have opened and kept closing days past seven; and one Fall (organic
+            // or the day-9 staged one) must have run — proven by the street holding
+            // player.did_time as hard fact, an invariant later play can't erase.
+            bool openModeOk = !_game.Campaign.OpenMode || _game.Campaign.DaysClosed >= 8;
+            bool fallOk = true;
+            if (_game.Campaign.OpenMode && SimMode.Days >= 9)
+            {
+                var adaG = mill != null ? mill.Get("Ada") : null;
+                fallOk = _game.Campaign.Falls >= 1 && adaG != null
+                    && adaG.Knowledge.CheckClaim(new Fact("player", "did_time", "true")) == ClaimResult.Consistent;
+            }
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -419,6 +444,8 @@ namespace Ledger.Game
                 { "pp4", _game.ActOne.Pp4Fired }, { "ledgerSecretKnown", ledgerKnown },
                 { "noorInMill", mill != null && mill.Get("Noor") != null },
                 { "posture", _game.ActOne.Posture ?? "" }, { "postureFactPlanted", postureFact },
+                { "openMode", _game.Campaign.OpenMode }, { "outfitCutOff", _game.Campaign.OutfitCutOff },
+                { "falls", _game.Campaign.Falls }, { "daysClosed", _game.Campaign.DaysClosed },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -431,7 +458,8 @@ namespace Ledger.Game
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk;
+                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
+                        && openModeOk && fallOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -442,6 +470,7 @@ namespace Ledger.Game
                       $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.OsseiSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
                       $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
+                      $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

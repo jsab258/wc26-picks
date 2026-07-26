@@ -34,6 +34,51 @@ namespace Ledger.Core
         public Verdict Verdict { get; private set; } = Verdict.Ongoing;
         public string VerdictReason { get; private set; } = "";
 
+        // Open mode (open-city-spec.md, approved 2026-07-26): from day 8 the
+        // campaign stops being survivable and starts being ownable. No win state;
+        // losing is still possible but scarring, never terminal — the fuse
+        // triggers a Fall (arrest, prison days, the city updates) instead of an
+        // ending, and outfit patience running out cuts you off instead of
+        // casting you out.
+        public bool OpenMode { get; private set; }
+        public bool OutfitCutOff { get; private set; }
+        public bool FallPending { get; private set; }
+        public int Falls { get; private set; }
+
+        /// Day 8: the week is won, the posture is spoken, the counting stops.
+        public void EnterOpenMode()
+        {
+            if (Verdict != Verdict.WonWeek) return;
+            OpenMode = true;
+            Verdict = Verdict.Ongoing;
+            VerdictReason = "";
+            ExposedStreak = 0;
+        }
+
+        /// The world has staged the Fall the fuse demanded; the books reopen.
+        public void ConsumeFall()
+        {
+            if (!FallPending) return;
+            FallPending = false;
+            Falls++;
+            ExposedStreak = 0;
+        }
+
+        /// Self-test hook: stage a Fall without waiting for two hot closes.
+        public void ForcePendingFall()
+        {
+            if (OpenMode && Verdict == Verdict.Ongoing) FallPending = true;
+        }
+
+        /// Save-load overlay for the open-mode fields (additive; old saves default off).
+        public void RestoreOpen(bool openMode, bool outfitCutOff, bool fallPending, int falls)
+        {
+            OpenMode = openMode;
+            OutfitCutOff = outfitCutOff;
+            FallPending = fallPending;
+            Falls = falls;
+        }
+
         /// The outfit's drop window: late night, spilling past midnight.
         public static bool InJobWindow(GameTime t) => t.Hour >= 22 || t.Hour < 2;
 
@@ -59,13 +104,20 @@ namespace Ledger.Core
 
         public void JobMissed()
         {
-            if (Verdict != Verdict.Ongoing) return;
+            if (Verdict != Verdict.Ongoing || OutfitCutOff) return;
             JobsMissed++;
             OutfitPatience = Math.Max(0.0, OutfitPatience - PatienceLossPerMiss);
             if (OutfitPatience <= 0.0)
             {
-                Verdict = Verdict.LostCastOut;
-                VerdictReason = "The outfit stopped calling. Then they sent someone.";
+                // In the week, exhausted patience ends you. In the open city it
+                // ends the arrangement: no more drops, no more pay — and, later,
+                // an outfit with reasons of its own (Empire v1's rival).
+                if (OpenMode) OutfitCutOff = true;
+                else
+                {
+                    Verdict = Verdict.LostCastOut;
+                    VerdictReason = "The outfit stopped calling. Then they sent someone.";
+                }
             }
         }
 
@@ -84,14 +136,21 @@ namespace Ledger.Core
                 ExposedStreak++;
                 if (ExposedStreak >= ExposureFuseDays)
                 {
-                    Verdict = Verdict.LostExposed;
-                    VerdictReason = "The street stopped guessing and started knowing. The day world closed its doors.";
-                    return takings;
+                    // Open mode: the same fuse stages a Fall — arrest, days lost,
+                    // the city updated — never an ending (P5: the city's state is
+                    // the save file, and an ending screen contradicts an open game).
+                    if (OpenMode) FallPending = true;
+                    else
+                    {
+                        Verdict = Verdict.LostExposed;
+                        VerdictReason = "The street stopped guessing and started knowing. The day world closed its doors.";
+                        return takings;
+                    }
                 }
             }
             else ExposedStreak = 0;
 
-            if (DaysClosed >= SurviveDays)
+            if (!OpenMode && DaysClosed >= SurviveDays)
             {
                 Verdict = Verdict.WonWeek;
                 VerdictReason = "Seven days. Both lives intact. For now.";

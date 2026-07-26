@@ -25,6 +25,8 @@ namespace Ledger.Core
                 { "jobsDone", camp.JobsDone }, { "jobsMissed", camp.JobsMissed },
                 { "daysClosed", camp.DaysClosed }, { "verdict", camp.Verdict.ToString() },
                 { "verdictReason", camp.VerdictReason },
+                { "openMode", camp.OpenMode }, { "outfitCutOff", camp.OutfitCutOff },
+                { "fallPending", camp.FallPending }, { "falls", camp.Falls },
                 { "extra", extra ?? new Dictionary<string, object>() },
             };
 
@@ -92,6 +94,8 @@ namespace Ledger.Core
             camp.Restore(Num(root, "patience"), MiniJson.GetInt(root, "exposedStreak"),
                 MiniJson.GetInt(root, "jobsDone"), MiniJson.GetInt(root, "jobsMissed"),
                 MiniJson.GetInt(root, "daysClosed"), verdict, MiniJson.GetString(root, "verdictReason"));
+            camp.RestoreOpen(Flag(root, "openMode"), Flag(root, "outfitCutOff"),
+                Flag(root, "fallPending"), MiniJson.GetInt(root, "falls"));
 
             foreach (var o in MiniJson.GetList(root, "knowledge") ?? new List<object>())
             {

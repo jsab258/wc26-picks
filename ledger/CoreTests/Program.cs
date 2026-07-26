@@ -376,6 +376,39 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+
+            // Open mode (open-city-spec.md): from day 8 nothing ends, things scar.
+            var o = new Campaign();
+            o.EnterOpenMode();
+            Check(!o.OpenMode, "open: cannot open the city before the week is won");
+            for (int i = 0; i < 7; i++) o.CloseDay(0);
+            Check(o.Verdict == Verdict.WonWeek, "open: week won first");
+            o.EnterOpenMode();
+            Check(o.OpenMode && o.Verdict == Verdict.Ongoing, "open: entering reopens the campaign");
+            o.CloseDay(0);
+            Check(o.DaysClosed == 8 && o.Verdict == Verdict.Ongoing, "open: day 8 closes without a verdict");
+            o.CloseDay(0.9);
+            o.CloseDay(0.95);
+            Check(o.FallPending && o.Verdict == Verdict.Ongoing, "open: the fuse stages a Fall, never an ending");
+            o.ConsumeFall();
+            Check(!o.FallPending && o.Falls == 1 && o.ExposedStreak == 0, "open: consuming the Fall resets the fuse and counts it");
+            o.ForcePendingFall();
+            Check(o.FallPending, "open: a Fall can be staged for the self-test");
+            o.ConsumeFall();
+
+            var oc = new Campaign();
+            for (int i = 0; i < 7; i++) oc.CloseDay(0);
+            oc.EnterOpenMode();
+            oc.JobMissed(); oc.JobMissed(); oc.JobMissed();
+            Check(oc.OutfitCutOff && oc.Verdict == Verdict.Ongoing, "open: exhausted patience cuts you off, never casts you out");
+            int missedBefore = oc.JobsMissed;
+            oc.JobMissed();
+            Check(oc.JobsMissed == missedBefore, "open: a cut-off outfit has nothing left to miss");
+
+            var w = new Wallet(50);
+            w.EarnDirty(170);
+            Check(w.Seize() == 170 && w.Dirty == 0 && w.Clean == 50, "wallet: a seizure takes exactly the unwashed cash");
+            Check(w.Seize() == 0, "wallet: nothing left to seize twice");
         }
 
         static void TestResponseValidator()
@@ -527,6 +560,22 @@ namespace Ledger.CoreTests
                 "suspicion round-trips");
             var sam2 = debts2.ById("sam");
             Check(!sam2.Outstanding && sam2.Forgiven && sam2.LastAskedDay == 2, "debt states round-trip through the codec");
+
+            // Open-mode fields are additive: an open city with a Fall behind it
+            // must come back exactly, and old saves (no keys) default closed.
+            var campO = new Campaign();
+            for (int i = 0; i < 7; i++) campO.CloseDay(0);
+            campO.EnterOpenMode();
+            campO.CloseDay(0.9); campO.CloseDay(0.95);
+            campO.ConsumeFall();
+            var jsonO = SaveCodec.Capture(now, new Wallet(10), campO, new PlayerKnowledge(), new SecretsBook(),
+                new BeatBook(), new GossipMill(new SocialGraph()), new DebtBook(), null);
+            var campO2 = new Campaign();
+            SaveCodec.Restore(jsonO, new Wallet(0), campO2, new PlayerKnowledge(), new SecretsBook(),
+                new BeatBook(), new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            Check(campO2.OpenMode && campO2.Falls == 1 && !campO2.FallPending && campO2.Verdict == Verdict.Ongoing,
+                "open-mode state round-trips");
+            Check(!camp2.OpenMode && camp2.Falls == 0, "a week-mode save restores with the city closed");
         }
 
         static void TestCompareNotes()

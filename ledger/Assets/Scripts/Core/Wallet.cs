@@ -41,6 +41,15 @@ namespace Ledger.Core
             Clean = clean; Dirty = dirty; TotalWashed = washed;
         }
 
+        /// The law takes what the books can't explain (a Fall seizes the
+        /// unwashed). Returns the amount seized.
+        public int Seize()
+        {
+            int seized = Dirty;
+            Dirty = 0;
+            return seized;
+        }
+
         /// Daily close: wash what the till can absorb. Returns the amount washed.
         public int Launder()
         {
