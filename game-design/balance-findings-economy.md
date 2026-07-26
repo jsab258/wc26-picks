@@ -58,3 +58,49 @@ CoreTests drives a campaign that never pays, and Mirek stops coming.
   in-engine sim and by hand, not here.
 - Districts beyond Hook Street. The economy is per-district by
   construction, but only one district exists to simulate.
+
+---
+
+## M13 — finite counterparty purses (2026-07-27)
+
+The spec set one bar before this could be called done: *if purses make
+collection weaker without making anything else weaker, they have moved the
+optimum rather than deepened the choice.* That is KCD2's own failure mode in
+reverse, and it is the thing worth checking.
+
+400 weeks per policy. Two new rows, plus two that turned out to prove nothing
+and are kept because knowing why is worth a line:
+
+| policy | avg$ | collected | visits | part-payments |
+|---|---|---|---|---|
+| collector | 1642 | 60 | 1.0 | 0.0 |
+| collector+purse | 1642 | 60 | 1.0 | 0.0 |
+| warm-collect | 1762 | 180 | 2.0 | 0.0 |
+| **warm-collect+purse** | **1762** | **180** | **3.0** | **1.0** |
+
+**The plain collector rows are identical, and that is correct rather than a
+null result.** Sam's authored loyalty is 0.3, so he refuses whatever is in his
+pocket and the purse is never opened; Rocco is willing and can afford his $60
+outright. Nothing about finite purses can matter to a player who never made
+anybody willing to pay in the first place.
+
+**The warm rows are the test.** They model a player who did the favours first
+and is now collecting from people who want to pay. Without purses, willing
+means paid in full on the spot: two visits, $180, done. With purses, willing
+means paying what is in the drawer — Sam produces $45 against a $120 marker,
+goes to his uncle that night, and closes it out on a later visit.
+
+**Same money. Same end cash to the dollar. One more visit and one
+part-payment.** That is exactly the intended result: the shape of collection
+changed and the optimum did not move. Nothing was nerfed, and a debt stopped
+being a transaction.
+
+The open-city table is unchanged by this — aggressive play still earns $1697
+in rackets and still finishes $94 behind a campaign that runs none.
+
+**What this does NOT yet test:** a squeezed street's effect on purses. In week
+mode prosperity sits at the ordinary half by construction, so the coupling
+that drains your debtors' pockets when you squeeze the district is proven in
+CoreTests and not yet in the lab. It needs the open-city path to collect
+debts, which it currently does not. Worth doing; not a blocker, and stated
+here rather than left as an impression that the lab covered it.

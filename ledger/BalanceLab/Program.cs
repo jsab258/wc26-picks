@@ -31,14 +31,28 @@ namespace Ledger.BalanceLab
                 ("beat-keeper",  new Policy { Dc = DcStyle.Smart, KeepBeats = true }),
                 ("hook-user",    new Policy { UseHooks = true }),
                 ("collector",    new Policy { CollectDebts = true }),
+                // Roadmap M13: the same collector, but the people they are
+                // collecting from can only pay what they actually have. If this
+                // line is dramatically worse than the one above, purses have
+                // nerfed a strategy rather than deepened it.
+                ("collector+purse", new Policy { CollectDebts = true, Purses = true }),
+                // The case that actually exercises M13. In the plain collector
+                // rows Sam's loyalty is 0.3, so he refuses whatever is in his
+                // pocket and the purse never gets opened — a true result and an
+                // uninformative one. These two model a player who did the
+                // favours FIRST and is now collecting from people who are
+                // willing: without purses, willing means paid in full on the
+                // spot; with them, willing means paying what is in the drawer.
+                ("warm-collect",     new Policy { CollectDebts = true, WarmFirst = true }),
+                ("warm-collect+purse", new Policy { CollectDebts = true, WarmFirst = true, Purses = true }),
             };
 
             Console.WriteLine($"weeks/policy={weeks}  talk/h={TalkChancePerHourSameCircle}  witness={WitnessChance}");
-            Console.WriteLine($"{"policy",-13} {"win%",5} {"exposed%",8} {"castout%",8} {"avg$",6} {"avgHeat",7} {"avgDC$",6}");
+            Console.WriteLine($"{"policy",-16} {"win%",5} {"exposed%",8} {"castout%",8} {"avg$",6} {"avgHeat",7} {"avgDC$",6} {"got$",5} {"visits",6} {"part",5}");
             foreach (var (name, policy) in policies)
             {
                 var r = RunMany(policy, weeks);
-                Console.WriteLine($"{name,-13} {r.winPct,5:0.0} {r.exposedPct,8:0.0} {r.castoutPct,8:0.0} {r.avgCash,6:0} {r.avgPeakHeat,7:0.00} {r.avgDcSpend,6:0}");
+                Console.WriteLine($"{name,-16} {r.winPct,5:0.0} {r.exposedPct,8:0.0} {r.castoutPct,8:0.0} {r.avgCash,6:0} {r.avgPeakHeat,7:0.00} {r.avgDcSpend,6:0} {r.avgCollected,5:0} {r.avgVisits,6:0.0} {r.avgPartials,5:0.0}");
             }
 
             RunOpenLab(weeks);
@@ -53,13 +67,16 @@ namespace Ledger.BalanceLab
             public bool KeepBeats;     // honor Ada d3 / Rocco d5 evenings, missing those drops
             public bool UseHooks;      // leash Rocco with his secret on day 2
             public bool CollectDebts;  // work Marek's book on day 2
+            public bool Purses;        // M13: counterparties can only pay what they hold
+            public bool WarmFirst;     // the player did the favours before asking for the money
         }
 
-        static (double winPct, double exposedPct, double castoutPct, double avgCash, double avgPeakHeat, double avgDcSpend)
+        static (double winPct, double exposedPct, double castoutPct, double avgCash, double avgPeakHeat,
+                double avgDcSpend, double avgCollected, double avgVisits, double avgPartials)
             RunMany(Policy policy, int weeks)
         {
             int win = 0, exposed = 0, castout = 0;
-            double cashSum = 0, peakHeatSum = 0, dcSum = 0;
+            double cashSum = 0, peakHeatSum = 0, dcSum = 0, collectedSum = 0, visitSum = 0, partialSum = 0;
             for (int seed = 0; seed < weeks; seed++)
             {
                 var o = RunWeek(policy, new Random(seed * 7919 + 13));
@@ -69,12 +86,17 @@ namespace Ledger.BalanceLab
                 cashSum += o.cash;
                 peakHeatSum += o.peakHeat;
                 dcSum += o.dcSpend;
+                collectedSum += o.collected;
+                visitSum += o.visits;
+                partialSum += o.partials;
             }
             return (100.0 * win / weeks, 100.0 * exposed / weeks, 100.0 * castout / weeks,
-                cashSum / weeks, peakHeatSum / weeks, dcSum / weeks);
+                cashSum / weeks, peakHeatSum / weeks, dcSum / weeks, collectedSum / weeks,
+                visitSum / weeks, partialSum / weeks);
         }
 
-        static (Verdict verdict, int cash, double peakHeat, int dcSpend) RunWeek(Policy policy, Random rng)
+        static (Verdict verdict, int cash, double peakHeat, int dcSpend, int collected, int visits, int partials)
+            RunWeek(Policy policy, Random rng)
         {
             var camp = new Campaign();
             var mill = BuildStreet();
@@ -95,6 +117,23 @@ namespace Ledger.BalanceLab
                 new Debtor { Id = "Sam", Name = "Sam", Amount = 120, Note = "stock" },
                 new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "door" },
             };
+            // The same means the game authors (PurseSetup): Sam is a runner
+            // with an uncle, Rocco has had a good few years at the door.
+            PurseBook purses = null;
+            if (policy.Purses)
+            {
+                purses = new PurseBook();
+                purses.Add(new Purse { OwnerId = "Sam", Name = "Sam", Weekly = 60, Ceiling = 95, Cash = 45, PatronId = "Danica" });
+                purses.Add(new Purse { OwnerId = "Rocco", Name = "Rocco", Weekly = 140, Ceiling = 260, Cash = 180 });
+                purses.Add(new Purse { OwnerId = "Danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
+            }
+            int collected = 0, visits = 0, partials = 0;
+            if (policy.WarmFirst)
+                foreach (var d in debts)
+                {
+                    var g = mill.Get(d.Id);
+                    if (g != null) g.Loyalty = Math.Max(g.Loyalty, 0.75);
+                }
 
             while (camp.Verdict == Verdict.Ongoing && !(now.Day > 8))
             {
@@ -114,6 +153,16 @@ namespace Ledger.BalanceLab
                     wallet.EarnClean(camp.CloseDay(heat));
                     wallet.Launder();
                     actedToday = false;
+                    if (purses != null)
+                    {
+                        // The week has no Economy instance; prosperity sits at
+                        // the ordinary half, which is the honest assumption for
+                        // a campaign that is not yet running rackets.
+                        purses.DailyTick(now.Day, 0.5);
+                        foreach (var d in debts)
+                            if (d.Outstanding && purses.Of(d.Id)?.LastEmptiedDay >= 0)
+                                purses.Borrow(d.Id, d.Amount, now.Day);
+                    }
                 }
 
                 // One damage-control visit per day, around noon, if anyone is talking.
@@ -138,9 +187,29 @@ namespace Ledger.BalanceLab
                         s.Learn("Lena", now);
                         mill.UseHook("Rocco", s, now);
                     }
-                    if (policy.CollectDebts)
-                        foreach (var d in debts) { d.Collect(mill.Get(d.Id), wallet, mill, now); dcSpend -= 0; }
+                    if (policy.CollectDebts && purses == null && now.Day == 2)
+                        foreach (var d in debts)
+                        {
+                            int had = wallet.Clean;
+                            var oc = d.Collect(mill.Get(d.Id), wallet, mill, now);
+                            if (oc == CollectOutcome.Paid || oc == CollectOutcome.PaidPart) visits++;
+                            collected += wallet.Clean - had;
+                        }
                 }
+
+                // With purses, one visit is not a collection: a man who turns
+                // over sixty a week cannot clear a hundred and twenty because
+                // you asked. So the collector goes back, which is exactly the
+                // behaviour the system is meant to produce.
+                if (policy.CollectDebts && purses != null && now.Day >= 2 && now.Hour == 12)
+                    foreach (var d in debts)
+                    {
+                        int had = wallet.Clean;
+                        var oc = d.Collect(mill.Get(d.Id), wallet, mill, now, purses);
+                        if (oc == CollectOutcome.Paid || oc == CollectOutcome.PaidPart) visits++;
+                        if (oc == CollectOutcome.PaidPart) partials++;
+                        collected += wallet.Clean - had;
+                    }
 
                 // Night job window.
                 if (now.Hour >= 22 && jobPostedDay != now.Day) { jobPostedDay = now.Day; jobOpen = true; }
@@ -172,7 +241,7 @@ namespace Ledger.BalanceLab
                     }
                 }
             }
-            return (camp.Verdict, wallet.Total, peakHeat, dcSpend);
+            return (camp.Verdict, wallet.Total, peakHeat, dcSpend, collected, visits, partials);
         }
 
         /// One damage-control move against the strongest lead. Returns dollars spent.
