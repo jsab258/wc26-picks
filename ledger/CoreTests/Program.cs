@@ -2169,6 +2169,17 @@ namespace Ledger.CoreTests
             var again = pop.SetBands(DistanceFromOrigin, loadBearing);
             Check(again.Count == 0, "standing still changes nobody's band");
 
+            // With an unstable sort, people at equal distance can swap places
+            // and be reported as having changed when nothing about them did —
+            // the game would despawn and respawn them forever. Force a heap of
+            // exact ties and check the ordering is total.
+            var tied = Population.Generate(400, 5, Districts);
+            var none = new HashSet<string>();
+            tied.SetBands(r => 1.0, none);                       // everybody equidistant
+            for (int pass = 0; pass < 4; pass++)
+                Check(tied.SetBands(r => 1.0, none).Count == 0,
+                    "a street where everyone is equally close does not churn");
+
             // The rule that outranks the caps.
             var farAway = pop.Residents.OrderByDescending(DistanceFromOrigin).First();
             Check(farAway.Band == Lod.Far, "somebody across the city is a record");

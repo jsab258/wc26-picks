@@ -175,20 +175,51 @@ namespace Ledger.Core
         ///
         /// Returns the residents whose band CHANGED, so the game can spawn and
         /// despawn exactly those and nothing else.
+        // Scratch buffers reused across calls. This runs every few seconds for
+        // the whole life of a session, and a fresh LINQ chain over three
+        // thousand people each time is three thousand delegate invocations, two
+        // enumerators and a new list — per call, forever. None of that is
+        // needed: the set of residents does not change, only their order does.
+        readonly List<Resident> _ordered = new List<Resident>();
+        readonly Dictionary<string, double> _distanceCache =
+            new Dictionary<string, double>(StringComparer.Ordinal);
+
         public List<Resident> SetBands(Func<Resident, double> distanceTo, ISet<string> loadBearing)
         {
             var changed = new List<Resident>();
             if (distanceTo == null) return changed;
 
+            // Distance is measured ONCE per resident and cached for the sort.
+            // A comparison-based sort asks for each key O(log n) times, so
+            // without this the game computes ~35,000 square roots to place 3,000
+            // people — and it is the same 3,000 answers every time.
+            _distanceCache.Clear();
+            _ordered.Clear();
+            for (int i = 0; i < Residents.Count; i++)
+            {
+                var r = Residents[i];
+                _distanceCache[r.Id] = distanceTo(r);
+                _ordered.Add(r);
+            }
+
             // Load-bearing people are placed first and take their slots off the
             // top, so a crowded street can never evict the bookkeeper.
-            var ordered = Residents
-                .OrderByDescending(r => IsLoadBearing(r, loadBearing))
-                .ThenBy(distanceTo)
-                .ToList();
+            // The Index tiebreak is load-bearing, not tidiness. List.Sort is
+            // UNSTABLE where OrderBy was stable, so two people standing the same
+            // distance away could swap places between calls and be reported as
+            // having changed band when nothing about them changed — the game
+            // would despawn and respawn them for nothing, forever. A total
+            // ordering makes the result identical every time it is asked.
+            _ordered.Sort((a, b) =>
+            {
+                bool la = IsLoadBearing(a, loadBearing), lb = IsLoadBearing(b, loadBearing);
+                if (la != lb) return la ? -1 : 1;
+                int d = _distanceCache[a.Id].CompareTo(_distanceCache[b.Id]);
+                return d != 0 ? d : a.Index.CompareTo(b.Index);
+            });
 
             int near = 0, mid = 0;
-            foreach (var r in ordered)
+            foreach (var r in _ordered)
             {
                 Lod want;
                 if (near < NearCap) { want = Lod.Near; near++; }
