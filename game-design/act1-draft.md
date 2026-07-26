@@ -1,7 +1,7 @@
-# Act I — The Inheritance (7-day structure DRAFT, awaiting player approval)
+# Act I — The Inheritance (7-day structure — APPROVED 2026-07-26)
 
-Drafted 2026-07-26 for the M5 vertical slice. DRAFT ONLY — nothing here is wired
-until approved. Per doc §8: **authored spine, systemic flesh, LLM skin** — the
+Drafted 2026-07-26 for the M5 vertical slice; approved same day with all four
+open questions decided (see §Decisions at bottom). This is now the build plan. Per doc §8: **authored spine, systemic flesh, LLM skin** — the
 spine below is pressure points that fire on *conditions*, not dates. The day
 numbers are the expected week of a first playthrough, not timers; every point
 lists its real trigger. Per §4: no hard timers anywhere.
@@ -94,17 +94,19 @@ No new systems. Estimated: 1–2 sessions of writing + wiring + a CI week per
 piece, all testable by the existing sim (each PP gets a fired/not-fired
 criterion in SimDirector).
 
-## Open questions (player decisions)
+## Decisions (player, 2026-07-26)
 
-1. **The posture choice (PP7):** dialogue answer with Fact-propagation (as
-   drafted, cheap, systemic) vs. a mechanical fork (e.g. wind-down mode
-   changes the campaign). RECOMMEND: dialogue + Fact now; mechanics are Act
-   II's job.
-2. **PP4 trigger:** gate Marek's warehouse page behind lena_ledger (as
-   drafted — rewards the trust/pressure game) vs. guarantee it by day 5 for
-   slice pacing. RECOMMEND: as drafted; the sim shows the secret moves.
-3. **Noor's entry:** PP3 assumes she's approved and on the street from day 2.
-   If her card changes materially, PP3/PP6 re-draft.
-4. **Week-fail = act-fail?** Exposed/cast-out currently ends the campaign.
-   Keep as Act I's fail state (as drafted) or let a lost week roll into a
-   darker Act II opening? RECOMMEND: keep for the slice; revisit for full game.
+1. **PP7 posture = dialogue answer + Fact propagation.** No mechanical fork;
+   the answer becomes a Fact every Tier-1 brain learns and sets Act II's
+   opening posture. Mechanics are Act II's job.
+2. **PP4 stays gated behind lena_ledger.** The warehouse page is earned via
+   the trust/pressure game, never delivered on a schedule.
+3. **Noor approved as drafted** (card + arrival + romance pacing — see
+   cast-noor-draft.md). PP3/PP6 build against the approved card.
+4. **Week-fail = act-fail for the slice.** A lost week restarts Act I; the
+   darker-Act-II salvage opening is revisited for the full game. (Note: from
+   day 8 the separate open-mode rule applies — survivable but scarring, per
+   open-city-spec.md §5.4.)
+
+Follows PP7 (Open City decision 2): the **day-8 teaser** — one authored Lena
+scene over the true books before the demo ends ("the city opens").

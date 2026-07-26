@@ -3,38 +3,39 @@
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
 Answered items move to the decision log in `process.md`.
+Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
+as answerable options — the doc is the record, the chat is the interface.
 
 ## Open now
 
-0. **Conversation suggestion chips** (from your 2026-07-26 playtest notes) —
-   free typing stays (conversation IS the minigame), but should 2–3 clickable
-   contextual openers appear beside the box (drawn from live leads/beats, e.g.
-   "ask about the fire")? RECOMMEND: yes, chips as optional accelerators, never
-   the only path. Rejected: full dialogue menus (kills the novelty claim).
-1. **Act I structure approval** — 7-day "The Inheritance" spine drafted at
-   `act1-draft.md`: 7 pressure points laid over the built campaign week, only
-   seven new authored text moments, 4 open questions inside (posture-choice
-   form, PP4 trigger gating, Noor entry timing, week-fail = act-fail). Each has
-   a recommendation; answer in batch with Noor's card since PP3/PP6 depend on her.
+*(empty — queue cleared 2026-07-26: Act I, Noor, Open City, chips all
+decided; see process.md log)*
 
-## Will need you at the vertical slice (M5)
+## Will need you at the vertical slice (M5) — ALL DEFERRED as long as possible (player, 2026-07-26)
 
-1. **Asset budget release** (~$40–60 city pack approved in principle 2026-07-24;
-   actual purchase + drop-in is manual). Also Character Creator (~$99/yr) go/no-go.
-2. **HDRP swap session** — needs a human in the Unity editor (RenderPipelineAsset
-   + shader remap); I prepare the branch and instructions, you click.
-3. **ElevenLabs voice** — account, key, and per-character voice casting choices.
-4. **Noor's card approval** — decided as the slice's love interest (2026-07-25);
-   I draft her Tier-1 card during M4 downtime, you approve the text before she
-   enters the game. DRAFTED: see game-design/cast-noor-draft.md (card + mechanical notes + 3 open questions).
-5. **The is-this-fun gate** — your playtest verdict on the M2–M4 loop decides
-   whether M5 polishes this design or we iterate the core first.
-6. **Drop-window feel check** — during the PC playtest: does the 22:00–02:00 job
-   window feel like a scheduled obligation (fine) or a countdown (soften to
-   lateness-decay)?
+Player direction: delay purchases/accounts/manual steps as far as they can be
+delayed and keep building everything else on procedural/fallback assets. Each
+item below now lists its true blocking point — the moment further delay stops
+being possible:
+
+1. **Asset budget release** (~$40–60 city pack; Character Creator ~$99/yr
+   go/no-go). Blocks: only the final art pass of M5 — layout, lighting,
+   systems, story all proceed on AssetLibrary procedural fallbacks (designed
+   for exactly this: pack drops in with no code change).
+2. **HDRP swap session** (human in the Unity editor). Blocks: final slice
+   visuals only; built-in RP remains the working target until then.
+3. **ElevenLabs voice** (account, key, casting). Blocks: voiced-slice gate
+   only; subtitles-first design (§9) means everything ships text until then.
+4. **The is-this-fun gate** — your playtest verdict on the M2–M4 loop (the
+   LEDGER-Windows artifact from any green build). Cannot be deferred
+   indefinitely: it decides whether M5 polishes this design or we iterate
+   the core first. Also watch: drop-window feel (obligation vs countdown).
+5. **API-key batch session** for Tier-2 district generation (Open City
+   decision 3: generation ships WITH Empire v1/M6). Blocks: M6 kickoff.
 
 ## Standing rules honored meanwhile
 
-- Design/story/character decisions → this queue, with a recommendation.
-- Purchases/keys/accounts → never without you.
+- Design/story/character decisions → this queue, with a recommendation,
+  AND spelled out in chat.
+- Purchases/keys/accounts → never without you; now also: as late as possible.
 - Model/config → unchanged unless you ask.

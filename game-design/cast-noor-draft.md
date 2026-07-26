@@ -1,8 +1,10 @@
-# Noor Farid — Tier-1 Card DRAFT (awaiting player approval)
+# Noor Farid — Tier-1 Card (APPROVED 2026-07-26, as drafted)
 
 Chosen as the vertical slice's love interest (player decision 2026-07-25:
-"the dangerous choice — intimacy IS exposure risk"). DRAFT ONLY — not wired
-into the game until the card text is approved.
+"the dangerous choice — intimacy IS exposure risk"). Approved 2026-07-26
+with all three open questions resolved: name/texture as drafted; arrival
+predates Marek's death (a month prior); romance = loyalty thresholds + 2
+authored beats. This card is the wiring spec.
 
 ## Card
 
@@ -57,10 +59,12 @@ always slightly embarrassed to be caught holding.
   (her ethics), which sets up the M6 triangle: two investigators, one street,
   different rules.
 
-## Open questions for approval
+## Decisions (player, 2026-07-26)
 
-1. Name/ethnicity texture fine as drafted? (Noor Farid, per doc §8 "Noor".)
-2. Should her arrival predate Marek's death (as drafted — she has history to
-   dig into) or arrive WITH the player (cleaner, less lore)?
-3. Romance pacing: loyalty thresholds as the arc (as drafted) vs authored
-   beat chain — recommend thresholds + 2 authored beats at the slice.
+1. Name/texture: **as drafted** (Noor Farid).
+2. Arrival: **predates Marek's death** — rented above Ada's a month before;
+   the street has history with her and the fire is already her open thread.
+3. Romance pacing: **loyalty thresholds + 2 authored beats.** Her loyalty
+   meter is the arc; >= 0.7 engages the two-drawers suppression leash; a
+   caught lie drops loyalty double and revokes it. The two authored beats
+   are written at slice-polish time.
