@@ -354,7 +354,45 @@ The gaps, in the order they are now being closed:
   is true of real streets.
 - **M10 — Phones + the distance layer** (was M9). Unchanged.
 - **M11 — Violence, staged** (was M10). Unchanged.
-- **M12 — Vehicles.** Approved for the late roadmap; unchanged.
+- **M12 — STREETS AND CARS — PULLED FORWARD, player 2026-07-26.**
+  *"city can't feel real or immersive without cars and real streets. spec it
+  and add it to the roadmap. needs to be built by 8 am. melee later."*
+
+  This supersedes the agency model's "vehicles: 40, late, non-differentiating"
+  line, and the reframing is what changes it: the argument is about
+  IMMERSION, not about driving as a mechanic. A city with no traffic and one
+  crossroads does not read as a city, and every social system in this project
+  stands on the claim that this is a real place.
+
+  The diagnosis is sharper than "no cars". The district's BUILDINGS already
+  exist — geometry is placed at all fifteen planned locations. What does not
+  exist is any street connecting them: there are exactly two roads, the
+  founding cross at x=0 and z=0, and twenty-two locations sit in open ground.
+  The city has buildings and no streets, which is precisely why it reads as
+  a diorama.
+
+  Full spec in `streets-and-cars-spec.md`. In short: a real grid of five
+  north–south and five east–west avenues on irregular spacing (the founding
+  cross is two of them, so nothing built moves), every map place connected to
+  it by a lane, three road classes, and the whole network as engine-free data
+  in Core so the walkers can follow actual streets, the cars have something
+  to drive on, and CoreTests can prove every address is reachable from every
+  other. Then traffic, then a driveable car, then witnesses who describe it.
+
+  Built in an order where the game is playable at every commit and the least
+  important thing arrives last — road geometry alone fixes the diorama
+  problem, so if the runway runs out everything from traffic down is cut
+  before the city stops looking like a city.
+
+  NOT in scope, deliberately: running people over, car ownership and
+  customisation, police pursuit, damage, fuel, parking. Those are a different
+  game's Tuesday.
+
+- **M11 — Violence, staged — MELEE DEFERRED** (player, same message). The
+  consequence layer (injuries that persist, crew trauma, feuds) is unaffected
+  and stays near. Playable brawling waits for the art pass: the spec is
+  positioning, timing and reading opponents, which is animation and readable
+  body language, and none of that can be judged on capsules.
 
 **LLM cost:** deferred by the player, explicitly not a build-time blocker.
 If we publish, the pricing models to weigh are subscription, pay-as-you-go,
