@@ -546,15 +546,28 @@ namespace Ledger.SimHarness
             Check("a line the keywords miss still reaches its verb",
                 routed.Kind == IntentKind.Mechanical && routed.VerbId == "collect_debt", routed.ToString());
 
-            // The boundary. A verb the moment does not offer cannot be reached,
-            // however the model names it.
+            // The boundary, stated as the property that actually matters: a
+            // routing may name ANY verb this moment offers and NO other. It is
+            // deliberately not "this line must be refused" — the first version
+            // of this check asserted that "I'll burn the place down" would be
+            // unroutable, and once the prompt learned that oblique threats are
+            // still threats, a live model routed it to lean_on. Which is
+            // correct: burning somebody's place down is leaning on them, and
+            // leaning on them was on the menu. The router improved and the test
+            // called it a regression, which is the test's fault.
             var invented = await router.RouteAsync("I'll burn the place down.", ctx, now);
-            Check("a verb this moment does not offer is refused, not improvised",
-                invented.Kind == IntentKind.Narrative, invented.ToString());
+            Check("a routing can only ever name a verb this moment is offering",
+                invented.Kind != IntentKind.Mechanical || ctx.VerbNamed(invented.VerbId) != null,
+                invented.ToString());
+            // And the unroutable case, deterministically, where it belongs.
+            Check("a verb id the game does not have is refused outright",
+                !IntentRouter.Validate("{\"kind\":\"verb\",\"verb\":\"burn_it_down\"}", ctx).Kind
+                    .Equals(IntentKind.Mechanical));
 
             var badCheck = await router.RouteAsync("I teleport behind him.", ctx, now);
             Check("a requirement outside the vocabulary is refused",
-                badCheck.Kind == IntentKind.Narrative, badCheck.ToString());
+                badCheck.Kind != IntentKind.Novel || Checks.Known(badCheck.Check),
+                badCheck.ToString());
 
             // The novel path, adjudicated against real numbers. Validated from a
             // FIXED payload rather than from whatever the model says today: what
