@@ -1,4 +1,4 @@
-# Tier-1 Cast, Batch 2 — DRAFT (awaiting player approval, 2026-07-26)
+# Tier-1 Cast, Batch 2 — APPROVED as drafted (player, 2026-07-26)
 
 Seven cards: the three rival heads, the Fixer, June, Father Emil, and the
 day-job dispatcher (the re-homed "first friend/coworker" role per the

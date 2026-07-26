@@ -1,4 +1,4 @@
-# Act II — The Squeeze (structure DRAFT, awaiting player approval)
+# Act II — The Squeeze (APPROVED 2026-07-26: 1a Facts+one mechanical effect, 2a highest-loyalty evening, 3a flat $600 truce, 4a Table resolves the act)
 
 Drafted 2026-07-26. Per doc §8: growth attracts the three rivals and one
 investigator, and the two lives begin colliding through the gossip system.
