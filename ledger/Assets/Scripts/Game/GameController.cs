@@ -58,6 +58,11 @@ namespace Ledger.Game
         // rackets, and the Dockside street arm watching it all grow.
         public EmpireBook Empire { get; } = EmpireSetup.Build();
 
+        // The district's money (roadmap M7). Squeezing the street makes the
+        // street poorer, and a poorer street spends less in your bar — so the
+        // night's dirty income quietly costs you clean income in the morning.
+        public Economy Economy { get; } = EconomySetup.Build();
+
         // Act II — The Squeeze (act2-draft.md, approved): the authored spine
         // laid over the empire the player actually built.
         public ActTwoState ActTwo { get; } = new ActTwoState();
@@ -275,6 +280,14 @@ namespace Ledger.Game
             // the book so the leverage economy scales with the street.
             foreach (var w in Tier2Batch.SpawnWalkers()) _npcs.Add(w);
             foreach (var s in Tier2Batch.Secrets()) HooksBook.Add(s);
+
+            // The suppliers walk (roadmap M7). They are not table rows: Mirek
+            // comes on Thursdays whether you are awake or not, and knows to the
+            // day when he was last paid.
+            SpawnSupplier("drayman", SupplierCast.MirekCard, SupplierCast.MirekColor,
+                SupplierCast.MirekSchedule, "On his round along Hook Street, talking with the bar's new owner.");
+            SpawnSupplier("wholesaler", SupplierCast.AntonCard, SupplierCast.AntonColor,
+                SupplierCast.AntonSchedule, "At the market corner, talking with the bar's new owner.");
 
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
@@ -612,6 +625,68 @@ namespace Ledger.Game
         /// NOT in the gossip mill — heads don't stand on corners trading talk;
         /// they arrive, they are answered, and the street hears about it after.
         readonly HashSet<string> _headsSpawned = new HashSet<string>();
+
+        /// A supplier, walking. Their ExtraContext is the district's economic
+        /// state IN THEIR OWN WORDS — the same numbers the daily close reads,
+        /// said as a man's circumstance rather than a status line.
+        void SpawnSupplier(string supplierId, string card, Color color,
+            (GameTime, Vector3)[] schedule, string scene)
+        {
+            var supplier = Economy.SupplierNamed(supplierId);
+            if (supplier == null) return;
+            var walker = NpcWalker.Spawn(supplier.Name, color, schedule);
+            _npcs.Add(walker);
+            var host = walker.gameObject.AddComponent<ConversationHost>();
+            host.Initialize(this, card, null, null);
+            host.SceneContext = scene;
+            host.ExtraContext = () =>
+            {
+                var owed = supplier.Refusing
+                    ? $" You have stopped delivering {supplier.Goods} here. You did not make a scene about it; you simply stopped, and you will not start again for an apology alone."
+                    : supplier.Unpaid > 0
+                        ? $" You are owed for {supplier.Unpaid} {(supplier.Unpaid == 1 ? "delivery" : "deliveries")} of {supplier.Goods} and you have not been paid. You have mentioned it once."
+                        : $" You were paid for {supplier.Goods} on time, and you have no complaint about that.";
+                var street = $" The people on this street are {Economy.ProsperityWord()} at the moment, and prices are {Economy.PriceWord()}.";
+                var feeling = supplier.Standing > 0.3 ? " You like dealing with this one."
+                    : supplier.Standing < -0.25 ? " You have gone off this one, and your prices reflect it."
+                    : " You have no strong feeling about this one either way.";
+                return owed + street + feeling + SuspicionBehaviorText(supplier.Name);
+            };
+            _hosts.Add(host);
+        }
+
+        /// Settle up with a supplier — the mechanical half of the amends verb.
+        /// Deliberately on GameController so the UI, the router, and any future
+        /// caller all go through one implementation.
+        public bool SettleSupplier(string supplierId, out string line)
+        {
+            line = null;
+            var s = Economy.SupplierNamed(supplierId);
+            if (s == null) return false;
+            if (s.Refusing) return Economy.MakeAmends(s, Wallet, Now, out line);
+            if (s.Unpaid <= 0) { line = $"{s.Name} is square with you. There is nothing to settle."; return false; }
+
+            int owed = Economy.DeliveryPrice(s) * s.Unpaid;
+            if (!Wallet.Spend(owed, dirtyOk: true))
+            {
+                line = $"{s.Name} works out what he's owed — ${owed} — and waits while you don't have it.";
+                return false;
+            }
+            s.Unpaid = 0;
+            s.LastPaidDay = Now.Day;
+            s.Standing = System.Math.Min(1.0, s.Standing + 0.2);
+            line = $"You count out ${owed}. {s.Name} puts it away without looking at it, which is how you know it mattered.";
+            return true;
+        }
+
+        /// Whether the person you are standing in front of is a supplier with
+        /// something outstanding — the availability rule for the amends verb.
+        public Supplier OutstandingSupplier(string personName)
+        {
+            foreach (var s in Economy.Suppliers)
+                if (s.Name == personName && (s.Refusing || s.Unpaid > 0)) return s;
+            return null;
+        }
 
         void SpawnHead(string armId, string headName)
         {
@@ -1094,9 +1169,15 @@ namespace Ledger.Game
                 // The machine's inspections (stage 2+) slow every front you own,
                 // and a signed cap slows them further.
                 double frontFactor = (Empire.MachineInspecting ? 0.75 : 1.0) * (Empire.FrontsCapped ? 0.7 : 1.0);
+                // The street's own state, as it stands this morning: how much
+                // money the district's people have, what things cost, and whether
+                // anyone is still delivering. Neutral at 1.0 on an unsqueezed
+                // street, so a campaign that takes nothing is unchanged by it.
+                takings = (int)System.Math.Round(takings * Economy.FactorFor(null));
                 foreach (var b in Empire.Businesses)
                     if (b.Owned && b.CleanIncomePerDay > 0)
-                        takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor * System.Math.Max(0.0, 1.0 - 0.85 * heat));
+                        takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor
+                            * Economy.FactorFor(b.Id) * System.Math.Max(0.0, 1.0 - 0.85 * heat));
                 Wallet.EarnClean(takings);
                 TotalTakings += takings;
                 LastTakings = takings;
@@ -1113,6 +1194,18 @@ namespace Ledger.Game
                         else streetLine = ev.Text; // rival/crew/witness — the last one speaks
                     }
 
+                // The district settles LAST, on what actually happened today, so
+                // tomorrow's takings reflect what you took tonight. Wages are what
+                // stays on the street: a generous cut is economic policy, and a
+                // skimmed envelope takes money out of the neighbourhood twice.
+                int wagesToday = 0;
+                foreach (var c in Empire.ActiveCrew)
+                    if (c.Assignment != null)
+                        wagesToday += c.Cut == "generous" ? 25 : c.Cut == "skim" ? 0 : 10;
+                var economyLine = (string)null;
+                foreach (var ev in Economy.DailyTick(Now, Wallet, racketToday, wagesToday, heat))
+                    if (ev.Kind != "supply") economyLine = ev.Text;  // deliveries are quiet; trouble talks
+
                 var line = ActTwo.BarFrozen(Now)
                     ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."
                     : takings >= Campaign.BarBaseTakings
@@ -1121,6 +1214,7 @@ namespace Ledger.Game
                 if (washed > 0) line += $" ${washed} of night money washed through the till.";
                 _ui?.Toast(line);
                 if (streetLine != null) _ui?.Toast(streetLine, 11f);
+                if (economyLine != null) _ui?.Toast(economyLine, 11f);
 
                 int talk = 0;
                 foreach (var k in Knowledge.Entries) if (!k.Handled) talk++;
@@ -1386,6 +1480,7 @@ namespace Ledger.Game
         Dictionary<string, object> ExtraFlags() => new Dictionary<string, object>
         {
             { "empire", Empire.Capture() },
+            { "economy", Economy.Capture() },
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
@@ -1452,6 +1547,7 @@ namespace Ledger.Game
                 ActOne.NoorDrawersEngaged = FlagB(extra, "noorDrawers");
                 ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
                 if (extra.TryGetValue("empire", out var em)) Empire.Restore(MiniJson.AsObject(em));
+                if (extra.TryGetValue("economy", out var ec)) Economy.Restore(MiniJson.AsObject(ec));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)

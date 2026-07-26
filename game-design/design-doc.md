@@ -200,6 +200,27 @@ Two currencies that resist mixing: clean money (spendable anywhere, slow) and di
 loop). Lifestyle upgrades (apartment, clothes, car) improve both lives but raise "how does
 he afford that?" suspicion if income doesn't cover them.
 
+**The district's own money (M7, built 2026-07-26).** The street is not a payout table. It
+holds a finite amount of money, and everything you do to it changes how much. Rackets take
+money out; wages and generous cuts put money back; heat keeps people indoors. Prosperity and
+prices drift over a week, never overnight, so a decision can be felt before its consequence
+lands — and both feed the bar's daily takings. **Squeezing the street therefore makes the
+street poorer, and a poorer street spends less in your bar**: the racket that pays dirty
+money at night quietly costs clean money in the morning, and past a point it costs more than
+it pays. The balance lab puts aggressive play $94 *behind* a campaign that ran no rackets
+at all, despite $1697 of racket income — the trade is real, and there is no dominant answer.
+
+**Suppliers are people.** Somebody brings the drink, and he is not a supply-chain node: he
+comes on Thursdays, remembers when he was last paid, sells to eight other places on this
+street and hears what all of them are worried about. Neglect loses him. A poor neighbourhood
+does not — it only makes him dearer, and he tells you so himself.
+
+**Legibility is a hard requirement, not a preference.** No number in this system is ever
+shown as a number. Prices rising is Mirek asking for more and not explaining the difference;
+a poorer street is two regulars drinking at home. If a value cannot be said as somebody's
+circumstance, it is not surfaced at all — and that rule is asserted in the test suite rather
+than merely intended.
+
 ## 7. The city — Meridian Bay
 
 A dense coastal city, one contiguous map, seven districts, each a personality and an

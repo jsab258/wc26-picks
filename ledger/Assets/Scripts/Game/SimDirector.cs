@@ -412,6 +412,26 @@ namespace Ledger.Game
             // least one courier round — clean pay through the honest channel.
             bool dayJobOk = !_game.Campaign.OpenMode || SimMode.Days < 9 || _game.Job.ShiftsWorked >= 1;
 
+            // The living economy (roadmap M7). Three things must be true after
+            // nine days: the district has actually been paying its suppliers
+            // (Mirek comes weekly and takes real money), the street's own state
+            // is inside its designed band rather than having inflated away or
+            // collapsed, and the whole thing survives its own codec. A campaign
+            // that never squeezes should still be sitting near the neutral 1.0,
+            // which is what makes this system safe to have shipped.
+            var econ = _game.Economy;
+            var econSnap = MiniJson.Serialize(econ.Capture());
+            var econTwin = EconomySetup.Build();
+            econTwin.Restore(MiniJson.AsObject(MiniJson.Deserialize(econSnap)));
+            bool economyOk =
+                econ.Suppliers.Exists(s => s.LastPaidDay >= 0)              // deliveries happened
+                && econ.Prosperity > 0.05 && econ.Prosperity < 0.95         // no collapse, no runaway
+                && econ.PriceLevel >= 0.9 && econ.PriceLevel <= 2.0         // no inflation spiral
+                && econ.TakingsFactor >= econ.MinTakingsFactor
+                && econ.TakingsFactor <= econ.MaxTakingsFactor
+                && System.Math.Abs(econTwin.Prosperity - econ.Prosperity) < 1e-6
+                && System.Math.Abs(econTwin.PriceLevel - econ.PriceLevel) < 1e-6;
+
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -525,7 +545,7 @@ namespace Ledger.Game
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk;
+                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -541,6 +561,8 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
+                      $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
+                      $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

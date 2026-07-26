@@ -16,9 +16,11 @@ namespace Ledger.CoreTests
     {
         static int _passed;
 
-        static void Check(bool condition, string name)
+        /// `detail` is printed only on failure — the value that made the check
+        /// fail, so a red run says what the number actually was.
+        static void Check(bool condition, string name, string detail = null)
         {
-            if (!condition) throw new Exception($"FAILED: {name}");
+            if (!condition) throw new Exception($"FAILED: {name}" + (detail == null ? "" : $" — {detail}"));
             _passed++;
             Console.WriteLine($"  ok - {name}");
         }
@@ -55,6 +57,7 @@ namespace Ledger.CoreTests
                 TestIntentLexical();
                 TestIntentValidation();
                 TestAdjudicator();
+                TestEconomy();
                 await TestIntentRouterAsync();
                 await TestRetryAndErrors();
                 Console.WriteLine($"\nAll {_passed} checks passed.");
@@ -1673,6 +1676,165 @@ namespace Ledger.CoreTests
             // not an accident, so it is asserted rather than assumed.
             Check(!Effects.All.Any(e => e.Contains("cash") || e.Contains("money") || e.Contains("pay")),
                 "no novel effect can mint money");
+        }
+
+        // ---------------------------------------------------------------
+        // The living economy (roadmap M7)
+        // ---------------------------------------------------------------
+
+        static Economy FreshEconomy()
+        {
+            var e = new Economy();
+            e.Suppliers.Add(new Supplier
+            {
+                Id = "drayman", Name = "Mirek", Goods = "the drink",
+                ServesBusinessId = null, PricePerWeek = 90,
+            });
+            e.Suppliers.Add(new Supplier
+            {
+                Id = "grocer", Name = "Vesna", Goods = "the stock",
+                ServesBusinessId = "pawnshop", PricePerWeek = 60,
+            });
+            return e;
+        }
+
+        static void TestEconomy()
+        {
+            Console.WriteLine("Economy — the street has a finite amount of money in it:");
+
+            // A campaign that takes nothing must behave exactly as it did before
+            // this system existed. The economy bites only once you start taking.
+            var quiet = FreshEconomy();
+            var rich = new Wallet(100000);
+            for (int d = 1; d <= 21; d++)
+                quiet.DailyTick(new GameTime(d, 9, 0), rich, racketIncomeToday: 0, wagesPaidToday: 0, heat: 0.1);
+            Check(quiet.TakingsFactor > 0.95 && quiet.TakingsFactor < 1.15,
+                "an unsqueezed street pays out about what it always did", quiet.TakingsFactor.ToString("0.000"));
+
+            // THE LOOP: squeezing the street makes the street poorer, and a poorer
+            // street spends less in your bar. The dirty money costs you clean money.
+            var squeezed = FreshEconomy();
+            var wallet2 = new Wallet(100000);
+            for (int d = 1; d <= 21; d++)
+                squeezed.DailyTick(new GameTime(d, 9, 0), wallet2, racketIncomeToday: 170, wagesPaidToday: 0, heat: 0.1);
+            Check(squeezed.Prosperity < quiet.Prosperity - 0.1,
+                "a squeezed street gets poorer", $"{squeezed.Prosperity:0.00} vs {quiet.Prosperity:0.00}");
+            Check(squeezed.PriceLevel > quiet.PriceLevel + 0.05,
+                "and dearer", $"{squeezed.PriceLevel:0.00} vs {quiet.PriceLevel:0.00}");
+            Check(squeezed.TakingsFactor < quiet.TakingsFactor * 0.85,
+                "so the bar takes noticeably less", squeezed.TakingsFactor.ToString("0.000"));
+
+            // Paying people well is economic policy, not charity.
+            var generous = FreshEconomy();
+            var wallet3 = new Wallet(100000);
+            for (int d = 1; d <= 21; d++)
+                generous.DailyTick(new GameTime(d, 9, 0), wallet3, racketIncomeToday: 170, wagesPaidToday: 110, heat: 0.1);
+            Check(generous.Prosperity > squeezed.Prosperity,
+                "wages put back into the street soften what the rackets take out",
+                $"{generous.Prosperity:0.00} vs {squeezed.Prosperity:0.00}");
+
+            // It must move over a week, not overnight: a player has to be able to
+            // feel a decision before its consequence lands on them.
+            var slow = FreshEconomy();
+            double startP = slow.Prosperity;
+            slow.DailyTick(new GameTime(1, 9, 0), new Wallet(100000), 180, 0, 0.5);
+            Check(Math.Abs(slow.Prosperity - startP) < 0.06,
+                "one bad day does not collapse a district", (slow.Prosperity - startP).ToString("0.000"));
+
+            // No death spiral: even at maximum squeeze and maximum heat the floor
+            // holds, because a floor of zero is not a decision, it is an ending.
+            var worst = FreshEconomy();
+            var wallet4 = new Wallet(100000);
+            for (int d = 1; d <= 60; d++)
+                worst.DailyTick(new GameTime(d, 9, 0), wallet4, 400, 0, 1.0);
+            Check(worst.TakingsFactor >= worst.MinTakingsFactor,
+                "the takings factor never falls through its floor", worst.TakingsFactor.ToString("0.000"));
+            Check(worst.Prosperity > 0.0, "the street never reaches zero", worst.Prosperity.ToString("0.000"));
+
+            // Suppliers are people. They arrive, they are paid or they are not,
+            // and they form an opinion about it.
+            var supply = FreshEconomy();
+            var broke = new Wallet(0);
+            var evs = supply.DailyTick(new GameTime(1, 9, 0), broke, 0, 0, 0.1);
+            Check(evs.Any(e => e.Kind == "supplier"), "an unpaid delivery is reported, not silently absorbed");
+            Check(supply.SupplierNamed("drayman").Unpaid == 1, "and it is remembered");
+            Check(supply.SupplierNamed("drayman").Standing < 0, "and it costs you with him");
+
+            // Weekly, not daily: a delivery is an event.
+            var paid = FreshEconomy();
+            var w = new Wallet(100000);
+            var day1 = paid.DailyTick(new GameTime(1, 9, 0), w, 0, 0, 0.1);
+            Check(day1.Count(e => e.Kind == "supply") == 2, "both suppliers deliver on the first day");
+            var day2 = paid.DailyTick(new GameTime(2, 9, 0), w, 0, 0, 0.1);
+            Check(!day2.Any(e => e.Kind == "supply"), "and not again the next morning");
+            var day8 = paid.DailyTick(new GameTime(8, 9, 0), w, 0, 0, 0.1);
+            Check(day8.Any(e => e.Kind == "supply"), "but again a week later");
+
+            // Push a supplier far enough and he stops coming. That is a business
+            // starved of stock, not a business at zero.
+            var lost = FreshEconomy();
+            var empty = new Wallet(0);
+            for (int d = 1; d <= 40; d++) lost.DailyTick(new GameTime(d, 9, 0), empty, 180, 0, 0.8);
+            var mirek = lost.SupplierNamed("drayman");
+            Check(mirek.Refusing, "a supplier you never pay and a street you squeeze eventually stops delivering");
+            Check(lost.FactorFor(null) < lost.TakingsFactor,
+                "the bar he supplied earns less than the street alone would explain");
+            Check(lost.FactorFor(null) > 0, "but it is not shut — a floor of zero is an ending, not a decision");
+
+            // The design decision behind that: what loses you a supplier is
+            // NEGLECT, not a poor neighbourhood. A man who is paid every Thursday
+            // does not walk out because the street got harder — he raises his
+            // price, and you hear him do it.
+            var kept = FreshEconomy();
+            var flush2 = new Wallet(100000);
+            int firstPrice = kept.DeliveryPrice(kept.SupplierNamed("drayman"));
+            for (int d = 1; d <= 40; d++) kept.DailyTick(new GameTime(d, 9, 0), flush2, 180, 0, 0.8);
+            Check(!kept.Suppliers.Any(s => s.Refusing),
+                "a supplier you always pay keeps coming, however hard you squeeze the street");
+            Check(kept.DeliveryPrice(kept.SupplierNamed("drayman")) > firstPrice,
+                "but he charges more for it than he used to",
+                $"{firstPrice} then {kept.DeliveryPrice(kept.SupplierNamed("drayman"))}");
+
+            // Making amends is expensive on purpose: the cheap moment to keep him
+            // was every week before this one.
+            var poor = new Wallet(50);
+            Check(!lost.MakeAmends(mirek, poor, new GameTime(41, 9, 0), out var refusedLine)
+                  && refusedLine.Contains("$"),
+                "you cannot fix it without the money, and he names the figure");
+            var flush = new Wallet(100000);
+            Check(lost.MakeAmends(mirek, flush, new GameTime(41, 9, 0), out var fixedLine) && !mirek.Refusing,
+                "paying what he asks brings him back");
+            Check(fixedLine.Contains("Mirek"), "and it is said as a person, not a status change");
+            Check(!lost.MakeAmends(mirek, flush, new GameTime(42, 9, 0), out _),
+                "and there is nothing to fix twice");
+
+            // Legibility law: every reported line reads as somebody's
+            // circumstance. No percentages, no bare numbers-as-nouns.
+            var legible = FreshEconomy();
+            var wl = new Wallet(100000);
+            var lines = new List<string>();
+            for (int d = 1; d <= 30; d++)
+                foreach (var ev in legible.DailyTick(new GameTime(d, 9, 0), wl, 170, 0, 0.4))
+                    lines.Add(ev.Text);
+            Check(lines.Count > 0, "the economy actually says things");
+            Check(!lines.Any(t => t.Contains("%")), "and never says any of them as a percentage");
+            Check(legible.ProsperityWord() != null && legible.PriceWord() != null,
+                "the street's state has words, not just values");
+
+            // Persistence: the city's state is the save file (pillar P5).
+            var before = FreshEconomy();
+            var wb = new Wallet(100000);
+            for (int d = 1; d <= 14; d++) before.DailyTick(new GameTime(d, 9, 0), wb, 150, 20, 0.3);
+            before.SupplierNamed("grocer").Refusing = true;
+            var after = FreshEconomy();
+            after.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(before.Capture()))));
+            Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "prosperity survives a save");
+            Check(Math.Abs(after.PriceLevel - before.PriceLevel) < 1e-6, "prices survive a save");
+            Check(after.SupplierNamed("grocer").Refusing, "a supplier's refusal survives a save");
+            Check(after.SupplierNamed("drayman").LastPaidDay == before.SupplierNamed("drayman").LastPaidDay,
+                "and so does when he was last paid");
+            after.Restore(null);
+            Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "restoring nothing changes nothing");
         }
 
         static async Task TestIntentRouterAsync()

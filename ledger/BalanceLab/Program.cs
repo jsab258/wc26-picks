@@ -208,33 +208,42 @@ namespace Ledger.BalanceLab
         static void RunOpenLab(int runs)
         {
             Console.WriteLine("\n== open city (21 days; week won -> empire; smart DC throughout) ==");
-            Console.WriteLine($"{"plan",-12} {"reach%",7} {"cash",7} {"falls",6} {"cutoff%",8} {"stage",6} {"rounds$",8} {"broke%",7}");
+            Console.WriteLine($"{"plan",-12} {"reach%",7} {"cash",7} {"falls",6} {"cutoff%",8} {"stage",6} {"rounds$",8} {"broke%",7}" +
+                              $" {"street",8} {"prices",7} {"nosupp%",8}");
             foreach (var plan in new[] { OpenPlan.Control, OpenPlan.Aggressive, OpenPlan.Cautious })
             {
-                int reached = 0, cutoff = 0, broke = 0;
-                double cash = 0, falls = 0, stage = 0, rounds = 0;
+                int reached = 0, cutoff = 0, broke = 0, noSupply = 0;
+                double cash = 0, falls = 0, stage = 0, rounds = 0, prosperity = 0, prices = 0;
                 for (int seed = 0; seed < runs; seed++)
                 {
                     var o = RunOpenCampaign(plan, new Random(seed * 104729 + 7));
                     if (!o.reachedOpen) continue;
                     reached++;
                     cash += o.endCash; falls += o.falls; stage += o.rivalStage; rounds += o.racketIncome;
+                    prosperity += o.prosperity; prices += o.priceLevel;
                     if (o.cutOff) cutoff++;
                     if (o.endCash < 50) broke++;
+                    if (o.supplyLost) noSupply++;
                 }
                 int n = Math.Max(1, reached);
                 Console.WriteLine($"{plan,-12} {100.0 * reached / runs,6:0.0}% {cash / n,7:0} {falls / n,6:0.00} " +
-                                  $"{100.0 * cutoff / n,7:0.0}% {stage / n,6:0.0} {rounds / n,8:0} {100.0 * broke / n,6:0.0}%");
+                                  $"{100.0 * cutoff / n,7:0.0}% {stage / n,6:0.0} {rounds / n,8:0} {100.0 * broke / n,6:0.0}%" +
+                                  $" {prosperity / n,8:0.00} {prices / n,7:0.00} {100.0 * noSupply / n,7:0.0}%");
             }
+            Console.WriteLine("  street 0.00-1.00 (0.55 = ordinary) · prices 1.00 = ordinary · nosupp% = a supplier walked");
         }
 
-        static (bool reachedOpen, int endCash, int falls, bool cutOff, int rivalStage, int racketIncome)
+        static (bool reachedOpen, int endCash, int falls, bool cutOff, int rivalStage, int racketIncome,
+                double prosperity, double priceLevel, bool supplyLost)
             RunOpenCampaign(OpenPlan plan, Random rng)
         {
             var camp = new Campaign();
             var mill = BuildOpenStreet();
             var wallet = new Wallet(250);
             var empire = BuildEmpire();
+            // Roadmap M7 gates the economy on this lab: a district that inflates
+            // away or collapses to nothing is a failed design, not a hard mode.
+            var economy = Ledger.Game.EconomySetup.Build();
             mill.Witness("Rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the old warehouse the night of the fire", true, new GameTime(1, 9, 0));
 
@@ -253,16 +262,27 @@ namespace Ledger.BalanceLab
                 {
                     lastClosedDay = now.Day;
                     int takings = camp.CloseDay(heat);
+                    takings = (int)Math.Round(takings * economy.FactorFor(null));
                     foreach (var b in empire.Businesses)
-                        if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * Math.Max(0.0, 1.0 - 0.85 * heat));
+                        if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * economy.FactorFor(b.Id)
+                            * Math.Max(0.0, 1.0 - 0.85 * heat));
                     wallet.EarnClean(takings);
                     wallet.LaunderPerDay = 120 + empire.OwnedLaunderCapacity;
                     wallet.Launder();
                     if (camp.Verdict == Verdict.WonWeek) camp.EnterOpenMode();
                     if (camp.Verdict != Verdict.Ongoing) break; // lost the week itself
+                    int racketToday = 0, wagesToday = 0;
                     if (camp.OpenMode)
                     {
-                        empire.DailyTick(now, wallet, mill);
+                        foreach (var ev in empire.DailyTick(now, wallet, mill))
+                            if (ev.Kind == "income") racketToday += ev.Amount;
+                        foreach (var c in empire.ActiveCrew)
+                            if (c.Assignment != null)
+                                wagesToday += c.Cut == "generous" ? 25 : c.Cut == "skim" ? 0 : 10;
+                    }
+                    economy.DailyTick(now, wallet, racketToday, wagesToday, heat);
+                    if (camp.OpenMode)
+                    {
                         if (camp.FallPending)
                         {
                             // The Fall, as the game runs it: seize, the street knows, 3 days gone.
@@ -305,7 +325,9 @@ namespace Ledger.BalanceLab
                             "the new owner was handling a package in the street past midnight", true, now);
                 }
             }
-            return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage, empire.TotalRacketIncome);
+            return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage,
+                empire.TotalRacketIncome, economy.Prosperity, economy.PriceLevel,
+                economy.Suppliers.Any(s => s.Refusing));
         }
 
         static void PlanActions(OpenPlan plan, EmpireBook e, GossipMill mill, Wallet wallet, GameTime now)

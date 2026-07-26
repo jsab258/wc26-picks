@@ -330,6 +330,16 @@ namespace Ledger.Game
                         : "Their cut: skimmed (change)";
                     _empireSayA = "change how much of the take they keep";
                 }
+                // A supplier you owe, or one who has stopped coming (roadmap M7).
+                // Settling up outranks recruiting: the man is standing there with
+                // a figure in his head and it is the only thing he wants to discuss.
+                else if (_game.OutstandingSupplier(id) is Supplier owed)
+                {
+                    labelA = owed.Refusing ? $"Make it right with {owed.Name}" : $"Settle what you owe {owed.Name}";
+                    _empireSayA = owed.Refusing
+                        ? $"pay {owed.Name} whatever it takes to start bringing {owed.Goods} again"
+                        : $"pay {owed.Name} the money you owe him for {owed.Goods}";
+                }
                 else if (crew == null && _game.TryNeedOf(id, out var cost, out _))
                 {
                     labelA = $"Sort what they need (${cost})";
@@ -395,6 +405,16 @@ namespace Ledger.Game
 
             var biz = FindBusinessOf(id);
             var hook = _game.HooksBook.UsableHook(id);
+
+            // Settling with a supplier (roadmap M7) — same ordering as the label
+            // logic above, so what the button says and what it does cannot drift.
+            var supplierOwed = biz == null ? _game.OutstandingSupplier(id) : null;
+            if (supplierOwed != null && !leverage)
+            {
+                _game.SettleSupplier(supplierOwed.Id, out var settleLine);
+                if (settleLine != null) Narrate(settleLine);
+                return;
+            }
 
             if (biz != null)
             {
@@ -643,6 +663,17 @@ namespace Ledger.Game
             if (anyEmpire)
             {
                 sb.Append($"\n<color={UiTheme.HexDim}><b>THE STREET — the other book</b></color>\n");
+                // The district's own money, said the way a person would say it —
+                // never a percentage (roadmap M7's legibility requirement).
+                var econ = _game.Economy;
+                sb.AppendLine($"<color={UiTheme.HexDim}>People here are <b>{econ.ProsperityWord()}</b>; prices are <b>{econ.PriceWord()}</b>.</color>");
+                foreach (var s in econ.Suppliers)
+                {
+                    if (s.Refusing)
+                        sb.AppendLine($"<b>{s.Name}</b> — <color={UiTheme.HexDebit}>stopped bringing {s.Goods}</color>");
+                    else if (s.Unpaid > 0)
+                        sb.AppendLine($"<b>{s.Name}</b> — <color={UiTheme.HexHeld}>owed for {s.Unpaid} {(s.Unpaid == 1 ? "delivery" : "deliveries")} of {s.Goods}</color>");
+                }
                 foreach (var b in e.Businesses)
                 {
                     if (b.Owned)

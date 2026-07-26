@@ -202,11 +202,38 @@ The gaps, in the order they are now being closed:
   (cash / dirty cash / standing / hook / crew / hour / heat) and a closed
   effect vocabulary with clamped magnitudes, so they are small and real
   instead of large and fake.
-- **M7 — The living economy** *(was M8; now next after the router)*.
-  Unchanged in content — the player raised economy to full district
-  simulation and that stands. It is the *conservative* kind of depth, and
-  it is better built underneath an interface that has stopped being a list
-  of buttons.
+- **M7 — The living economy — SHIPPED 2026-07-26.** `Economy` +
+  `EconomySetup` + `SupplierCast` in Core/Game, 31 new CoreTests (425
+  total), a new `economyOk` gate in the in-engine CI sim, and a 900-campaign
+  balance-lab pass (`balance-findings-economy.md`).
+
+  **The loop:** squeezing the street makes the street poorer, and a poorer
+  street spends less in your bar — so the racket that pays dirty money at
+  night quietly costs clean money in the morning. The lab confirms it is a
+  genuine trade rather than a tax: aggressive play earns $1697 in racket
+  income over three weeks and ends **$94 down** on a campaign that ran no
+  rackets at all. No dominant strategy, which is why this was worth
+  building instead of adding another income line.
+
+  **Legibility was the hard requirement and it held.** Nothing surfaces as
+  a percentage — asserted in the tests, not just intended. Prices rising is
+  Mirek asking for more and not explaining the difference. A poorer street
+  is two regulars drinking at home.
+
+  **Suppliers are people, not rows.** Mirek the drayman and Anton the
+  wholesaler walk the district on their own rounds, carry the economy's
+  state in their own words through `ExtraContext`, and can be settled with
+  — a verb the intent router picked up for free the moment its button
+  existed. Anton is the man Mirela's recruitment need has referred to since
+  the roster was written; he now exists.
+
+  **Neglect loses a supplier; a poor neighbourhood only makes him dearer.**
+  The first build lost one in 100% of aggressive campaigns, which is a
+  scripted event wearing a simulation's clothes. Retuned so paying on time
+  outweighs the worst drift the street can apply.
+
+  Safe to ship under a game about to be played: an unsqueezed campaign sits
+  at a takings factor of ~0.98, i.e. unchanged.
 - **M7.5 — Operation planning + access** (was M7). Still high value, still
   cheap; the router makes planning *say-able* rather than menu-only, so it
   benefits from being built after it.
