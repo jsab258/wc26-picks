@@ -69,6 +69,41 @@ namespace Ledger.Game
                 Traffic.Step(step);
                 foreach (var v in Traffic.Vehicles) PlaceBody(v);
             }
+            if (SimMode.Days == 0) HearTraffic();
+        }
+
+        /// The city sounds occupied. One engine bed for the whole district,
+        /// tracking the nearest moving vehicle: a dozen looping sources would mix
+        /// to roughly this, and what sells a street is that something is running
+        /// nearby rather than the stereo placement of each individual car.
+        void HearTraffic()
+        {
+            if (!Audio.Ready || _player == null) return;
+            var at = _player.transform.position;
+            const float earshot = 30f;
+            float best = 0f, pitch = 1f;
+            foreach (var v in Traffic.Vehicles)
+            {
+                if (v.Kind.EngineNote == "none") continue;      // a bicycle is silent
+                float dx = (float)v.X - at.x, dz = (float)v.Z - at.z;
+                float d = Mathf.Sqrt(dx * dx + dz * dz);
+                if (d > earshot) continue;
+                float speedFrac = Mathf.Clamp01((float)(v.Speed / v.Kind.TopSpeed));
+                float loud = (1f - d / earshot) * (0.30f + 0.70f * speedFrac);
+                if (loud <= best) continue;
+                best = loud;
+                // A lorry idles lower than a cab does.
+                pitch = (v.Kind.Id == "truck" || v.Kind.Id == "bus" ? 0.72f : 1.0f)
+                        + speedFrac * 0.45f;
+            }
+            var mine = PlayerCar.Instance;
+            if (mine != null && mine.Occupied)
+            {
+                // Your own engine wins: you are sitting on it.
+                float own = 0.55f + 0.45f * Mathf.Clamp01(Mathf.Abs(mine.Speed) / PlayerCar.MaxSpeed);
+                if (own > best) { best = own; pitch = 0.85f + Mathf.Abs(mine.Speed) / PlayerCar.MaxSpeed * 0.6f; }
+            }
+            Audio.Traffic(best, pitch);
         }
 
         /// Everybody a driver must not hit. The player always; the nearest

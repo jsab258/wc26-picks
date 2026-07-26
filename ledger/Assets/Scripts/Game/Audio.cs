@@ -19,7 +19,7 @@ namespace Ledger.Game
     {
         public const int SampleRate = 44100;
 
-        static AudioSource _ambience, _ui, _foot;
+        static AudioSource _ambience, _ui, _foot, _traffic;
         static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
         static GameObject _root;
         static bool _night;
@@ -34,6 +34,7 @@ namespace Ledger.Game
             _ambience = Make("Ambience", loop: true);
             _ui = Make("UI", loop: false);
             _foot = Make("Foot", loop: false);
+            _traffic = Make("Traffic", loop: true);
             ApplyVolumes();
             SetNight(false);
         }
@@ -56,6 +57,33 @@ namespace Ledger.Game
             if (_ambience != null) _ambience.volume = 0.35f * s.MasterVolume * s.MusicVolume;
             if (_ui != null) _ui.volume = 0.6f * s.MasterVolume * s.SfxVolume;
             if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume;
+            // The traffic bed's own volume is driven per-frame by proximity; the
+            // settings only scale the ceiling it is allowed to reach.
+            _trafficCeiling = 0.30f * s.MasterVolume * s.SfxVolume;
+        }
+
+        static float _trafficCeiling = 0.30f;
+
+        /// The nearest engine, as heard from where the player is standing.
+        /// `loudness` is 0..1 by proximity and speed; 0 stops the bed entirely.
+        ///
+        /// One source for the whole district rather than one per vehicle. A dozen
+        /// looping AudioSources would be a dozen voices mixing to roughly this,
+        /// and the thing that actually sells a street is that SOMETHING is
+        /// running nearby — not stereo placement of each individual car.
+        public static void Traffic(float loudness, float pitch)
+        {
+            if (_root == null || _traffic == null) return;
+            loudness = Mathf.Clamp01(loudness);
+            if (loudness <= 0.01f)
+            {
+                if (_traffic.isPlaying) _traffic.Stop();
+                return;
+            }
+            if (_traffic.clip == null) _traffic.clip = Clip("engine", Engine);
+            if (!_traffic.isPlaying) _traffic.Play();
+            _traffic.volume = loudness * _trafficCeiling;
+            _traffic.pitch = Mathf.Clamp(pitch, 0.6f, 1.7f);
         }
 
         /// Day and night have different rooms. Night is quieter, lower, and
@@ -127,6 +155,30 @@ namespace Ledger.Game
             }
             CrossfadeEnds(data, SampleRate / 4);
             return Make("ambience", data);
+        }
+
+        /// An engine at idle-to-cruise: a low sawtooth with its second and
+        /// third harmonics, roughened with a little filtered noise so it does
+        /// not read as a test tone. Pitch-shifted at playback by road speed,
+        /// which is why the loop itself is deliberately flat.
+        static AudioClip Engine()
+        {
+            int len = SampleRate * 2;
+            var data = new float[len];
+            var rng = new System.Random(41);
+            float lp = 0f;
+            const float f = 46f;
+            for (int i = 0; i < len; i++)
+            {
+                float t = i / (float)SampleRate;
+                float saw = 2f * (t * f - Mathf.Floor(t * f + 0.5f));
+                float h2 = Mathf.Sin(2 * Mathf.PI * f * 2f * t) * 0.35f;
+                float h3 = Mathf.Sin(2 * Mathf.PI * f * 3f * t) * 0.18f;
+                lp += ((float)(rng.NextDouble() * 2 - 1) - lp) * 0.08f;
+                data[i] = (saw * 0.35f + h2 + h3) * 0.28f + lp * 0.10f;
+            }
+            CrossfadeEnds(data, SampleRate / 8);
+            return Make("engine", data);
         }
 
         static AudioClip Step()
