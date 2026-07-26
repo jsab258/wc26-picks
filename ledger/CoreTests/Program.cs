@@ -44,6 +44,7 @@ namespace Ledger.CoreTests
                 TestCompareNotes();
                 TestSaveRoundTrip();
                 TestDebts();
+                TestEmpire();
                 TestResponseValidator();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
@@ -576,6 +577,138 @@ namespace Ledger.CoreTests
             Check(campO2.OpenMode && campO2.Falls == 1 && !campO2.FallPending && campO2.Verdict == Verdict.Ongoing,
                 "open-mode state round-trips");
             Check(!camp2.OpenMode && camp2.Falls == 0, "a week-mode save restores with the city closed");
+        }
+
+        static void TestEmpire()
+        {
+            Console.WriteLine("Empire:");
+            var now = new GameTime(8, 10, 0);
+
+            (EmpireBook, GossipMill, Gossiper, Gossiper) Build(double ownerNerve, double ownerLoyalty)
+            {
+                var mill = new GossipMill(new SocialGraph());
+                var owner = new Gossiper("ruta", "Ruta", new MemoryStore("ruta"), new KnowledgeBase(),
+                    new SuspicionTracker(), "both", 0.8, ownerNerve, ownerLoyalty);
+                var mate = new Gossiper("josip", "Josip", new MemoryStore("josip"), new KnowledgeBase(),
+                    new SuspicionTracker(), "night", 0.7, 0.45, 0.35);
+                mill.Add(owner); mill.Add(mate);
+                var e = new EmpireBook();
+                e.Businesses.Add(new Business
+                {
+                    Id = "pawnshop", Name = "pawnshop", OwnerId = "ruta", PlaceId = "pawnshop",
+                    AskPrice = 900, DebtPrice = 250, SecretId = "ruta_fence",
+                    CleanIncomePerDay = 60, LaunderPerDay = 80,
+                });
+                e.Rackets.Add(new Racket { Id = "collection", Name = "collection round", IncomePerDay = 60, BaseRisk = 1.0 });
+                return (e, mill, owner, mate);
+            }
+
+            // The clean route: clean money only, and it buys goodwill.
+            var (e1, m1, ruta1, _) = Build(0.5, 0.4);
+            var b1 = e1.BusinessOf("pawnshop");
+            var wPoor = new Wallet(100); wPoor.EarnDirty(2000);
+            Check(!e1.BuyClean(b1, wPoor, ruta1, now), "empire: dirty money cannot buy a shop clean");
+            var wRich = new Wallet(1000);
+            Check(e1.BuyClean(b1, wRich, ruta1, now) && b1.Owned && b1.AcquiredVia == "clean"
+                && wRich.Clean == 100 && ruta1.Loyalty > 0.4, "empire: the clean route closes at full price and warms the seller");
+            Check(e1.OwnedLaunderCapacity == 80, "empire: an owned front adds washing capacity");
+
+            // The debt route: paper first, then a trait-gated squeeze.
+            var (e2, m2, ruta2, _2) = Build(0.5, 0.3);
+            var b2 = e2.BusinessOf("pawnshop");
+            var w2 = new Wallet(0); w2.EarnDirty(300);
+            Check(e2.BuyDebt(b2, w2) && b2.DebtHeld && w2.Dirty == 50, "empire: dirty money buys the paper");
+            var r2 = e2.Squeeze(b2, ruta2, m2, now);
+            Check(r2.Outcome == DcOutcome.Contained && b2.Owned && b2.AcquiredVia == "debt",
+                "empire: a nervous owner folds to the squeeze");
+
+            var (e3, m3, ruta3, _3) = Build(0.9, 0.3);
+            var b3 = e3.BusinessOf("pawnshop");
+            var w3 = new Wallet(0); w3.EarnDirty(300);
+            e3.BuyDebt(b3, w3);
+            var r3 = e3.Squeeze(b3, ruta3, m3, now);
+            Check(r3.Outcome == DcOutcome.Backfired && !b3.Owned && ruta3.Holds("player.squeezing_pawnshop", "true"),
+                "empire: a hard owner refuses and the street hears about it");
+            Check(e3.Squeeze(b3, ruta3, m3, now).Outcome == DcOutcome.AlreadyDenied,
+                "empire: one squeeze per day");
+
+            // The hook route: leverage beats money; a weak hook is spent by it.
+            var (e4, m4, ruta4, _4) = Build(0.9, 0.5);
+            var b4 = e4.BusinessOf("pawnshop");
+            var hook = new Secret { Id = "ruta_fence", OwnerId = "ruta", Kind = SecretKind.Shameful, Summary = "the back room." };
+            hook.Learn("Sam", now);
+            var r4 = e4.AcquireViaHook(b4, hook, ruta4, now);
+            Check(r4.Outcome == DcOutcome.Contained && b4.Owned && b4.AcquiredVia == "hook" && hook.HookSpent,
+                "empire: a weak hook buys the shop once");
+
+            // Recruiting: the need route is slow and sticky; the hook route is fast and wounded.
+            var (e5, m5, _5, josip5) = Build(0.5, 0.4);
+            var w5 = new Wallet(500);
+            josip5.Loyalty = 0.2; // a stranger: one favor is not a yes
+            Check(!e5.RecruitByNeed(josip5, "Josip", 100, w5, now) && josip5.Loyalty > 0.35 && w5.Clean == 400,
+                "empire: supplying a need lands the favor before the yes");
+            Check(e5.RecruitByNeed(josip5, "Josip", 100, w5, now) && e5.CrewOf("josip") != null
+                && e5.CrewOf("josip").Route == "need", "empire: past the floor, the need route ends in a yes");
+
+            var (e6, m6, _6, josip6) = Build(0.5, 0.4);
+            var jHook = new Secret { Id = "josip_crates", OwnerId = "josip", Kind = SecretKind.Criminal, Summary = "the crates." };
+            jHook.Learn("Rocco", now);
+            double loyBefore = josip6.Loyalty;
+            Check(e6.RecruitByHook(josip6, jHook, now) && e6.CrewOf("josip").Route == "hook"
+                && josip6.Loyalty < loyBefore, "empire: the hook route recruits fast and wounded");
+
+            // Rackets: income flows dirty, witnesses enter the real mill, rot skims.
+            var racket = e6.RacketOf("collection");
+            Check(e6.Establish(racket, e6.CrewOf("josip"), now) && racket.Established,
+                "empire: a racket needs an unassigned runner");
+            var w6 = new Wallet(0);
+            josip6.Loyalty = 0.1; // hook crew, rotten — the skim shows
+            var events = e6.DailyTick(new GameTime(9, 8, 0), w6, m6);
+            Check(w6.Dirty == 45, "empire: a rotten hook-runner skims a quarter of the take");
+            Check(events.Any(ev => ev.Kind == "crew"), "empire: the light take is visible to the attentive");
+            Check(events.Any(ev => ev.Kind == "witness") && m6.Agents.Any(a => a.Rumors.Any(r => r.TopicKey.StartsWith("player.racket_collection"))),
+                "empire: racket witnesses seed the same gossip mill");
+
+            // The rival ladder: attention -> warning -> tax -> poach; a loyal crew warns instead.
+            var (e7, m7, _7, josip7) = Build(0.5, 0.4);
+            e7.Rival.Attention = 0.3;
+            var w7 = new Wallet(200);
+            var ev1 = e7.DailyTick(new GameTime(10, 8, 0), w7, m7);
+            Check(e7.Rival.Stage == 1 && ev1.Any(x => x.Kind == "rival"), "empire: attention brings the first slow beer");
+            e7.Rival.Attention = 0.6;
+            e7.DailyTick(new GameTime(11, 8, 0), w7, m7);
+            Check(e7.Rival.Stage == 2 && e7.Rival.ProtectionTaxPerDay == 40, "empire: stage two imposes the street's rent");
+            int cashBefore = w7.Total;
+            e7.DailyTick(new GameTime(12, 8, 0), w7, m7);
+            Check(w7.Total == cashBefore - 40, "empire: the rent is collected daily");
+
+            josip7.Loyalty = 0.2;
+            var j7Hook = new Secret { Id = "j", OwnerId = "josip", Kind = SecretKind.Criminal, Summary = "x" };
+            j7Hook.Learn("Rocco", now);
+            Check(e7.RecruitByHook(josip7, j7Hook, now), "empire: a known strong hook recruits");
+            var rk7 = e7.RacketOf("collection");
+            e7.Establish(rk7, e7.CrewOf("josip"), now);
+            e7.Rival.Attention = 0.8; // set after the moves so the stage lands on poach, not threat
+            e7.DailyTick(new GameTime(13, 8, 0), w7, m7);
+            Check(e7.Rival.Stage == 3 && e7.CrewOf("josip") == null && !rk7.Established,
+                "empire: a low-loyalty crew member is poached and the racket dies with him");
+
+            var (e8, m8, _8, josip8) = Build(0.5, 0.4);
+            e8.Rival.Attention = 0.8;
+            e8.Rival.Stage = 2;
+            josip8.Loyalty = 0.7;
+            e8.Crew.Add(new CrewMember { Id = "josip", Name = "Josip", Route = "need", Competence = 0.6, RecruitedDay = 8 });
+            var ev8 = e8.DailyTick(new GameTime(14, 8, 0), new Wallet(100), m8);
+            Check(e8.CrewOf("josip") != null && josip8.Loyalty > 0.7,
+                "empire: a loyal crew member reports the poach instead");
+
+            // Persistence: the whole book round-trips through plain data.
+            var snap = e7.Capture();
+            var (e9, m9, _9, __9) = Build(0.5, 0.4);
+            e9.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(snap))));
+            Check(e9.Rival.Stage == 3 && e9.Rival.ProtectionTaxPerDay == 40
+                && e9.Crew.Any(c => c.Id == "josip" && c.Departed) && !e9.RacketOf("collection").Established,
+                "empire: the whole book survives the codec");
         }
 
         static void TestCompareNotes()
