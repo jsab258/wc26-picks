@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestPopulation();
                 TestDirector();
                 await TestDirectorAsync();
                 await TestIntentRouterAsync();
@@ -1837,6 +1838,125 @@ namespace Ledger.CoreTests
                 "and so does when he was last paid");
             after.Restore(null);
             Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "restoring nothing changes nothing");
+        }
+
+        // ---------------------------------------------------------------
+        // Population at district scale (roadmap M9)
+        // ---------------------------------------------------------------
+
+        static readonly string[] Districts = { "the Hook", "Copper Row", "Ironside" };
+
+        static void TestPopulation()
+        {
+            Console.WriteLine("Population — the city stops being 36 people:");
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var pop = Population.Generate(3000, 20260726, Districts);
+            sw.Stop();
+            Check(pop.Residents.Count == 3000, "three thousand people exist");
+            Check(sw.ElapsedMilliseconds < 500, "and generating them is not something you would notice",
+                sw.ElapsedMilliseconds + "ms");
+
+            // Determinism is not a nicety here: it is what lets a save file store
+            // a seed instead of ten thousand people.
+            var twin = Population.Generate(3000, 20260726, Districts);
+            Check(twin.Residents[1500].Name == pop.Residents[1500].Name
+                  && twin.Residents[1500].Trade == pop.Residents[1500].Trade
+                  && twin.Residents[1500].HomeX == pop.Residents[1500].HomeX,
+                "the same seed always builds the same city");
+            var other = Population.Generate(3000, 7, Districts);
+            Check(other.Residents[1500].Name != pop.Residents[1500].Name
+                  || other.Residents[1500].Trade != pop.Residents[1500].Trade,
+                "and a different seed builds a different one");
+
+            Check(pop.Residents.All(r => !string.IsNullOrEmpty(r.Name) && r.Name.Contains(" ")),
+                "everybody has a name");
+            Check(pop.Residents.Select(r => r.Name).Distinct().Count() > 1000,
+                "and the street is not full of one family",
+                pop.Residents.Select(r => r.Name).Distinct().Count().ToString());
+            Check(Districts.All(d => pop.Residents.Any(r => r.District == d)), "every district is populated");
+            Check(pop.Residents.Any(r => r.Circle == "night") && pop.Residents.Any(r => r.Circle == "day"),
+                "and the city has a night shift as well as a day one");
+
+            // Level of detail. Almost nobody is simulated, and the caps hold.
+            var loadBearing = new HashSet<string>();
+            double DistanceFromOrigin(Resident r) => Math.Sqrt(r.HomeX * r.HomeX + r.HomeZ * r.HomeZ);
+            pop.SetBands(DistanceFromOrigin, loadBearing);
+            Check(pop.CountIn(Lod.Near) == pop.NearCap, "only a capped few have a body and a brain");
+            Check(pop.CountIn(Lod.Mid) == pop.MidCap, "a larger band carries talk without rendering");
+            Check(pop.CountIn(Lod.Far) == 3000 - pop.NearCap - pop.MidCap, "and the rest are records");
+
+            // Only what changed is reported, so the game spawns and despawns
+            // exactly those and nothing else.
+            var again = pop.SetBands(DistanceFromOrigin, loadBearing);
+            Check(again.Count == 0, "standing still changes nobody's band");
+
+            // The rule that outranks the caps.
+            var farAway = pop.Residents.OrderByDescending(DistanceFromOrigin).First();
+            Check(farAway.Band == Lod.Far, "somebody across the city is a record");
+            farAway.Known = true;
+            pop.SetBands(DistanceFromOrigin, loadBearing);
+            Check(farAway.Band >= Lod.Mid,
+                "but somebody the player has actually met is never dropped back to one");
+
+            var crew = pop.Residents.OrderByDescending(DistanceFromOrigin).Skip(1).First();
+            loadBearing.Add(crew.Id);
+            pop.SetBands(DistanceFromOrigin, loadBearing);
+            Check(crew.Band >= Lod.Mid, "and neither is anyone load-bearing, however far away they are");
+
+            // Walking somewhere new re-bands around the new position.
+            var corner = pop.Residents.OrderBy(r => r.HomeX).First();
+            pop.SetBands(r => Math.Abs(r.HomeX - corner.HomeX) + Math.Abs(r.HomeZ - corner.HomeZ), loadBearing);
+            Check(corner.Band == Lod.Near, "walking somewhere makes the people there real");
+            Check(pop.CountIn(Lod.Near) == pop.NearCap, "and the cap still holds after moving");
+            Check(farAway.Band >= Lod.Mid && crew.Band >= Lod.Mid, "and the people who matter are still not records");
+
+            // The statistical band, which answers exactly one question.
+            Check(Population.AmbientReach(0.0, 10) == 0, "a street with no talk has nothing to have heard");
+            Check(Population.AmbientReach(0.8, 0) == 0, "and talk that started today has reached nobody yet");
+            Check(Population.AmbientReach(0.8, 3) > Population.AmbientReach(0.8, 1),
+                "talk reaches further the longer it circulates");
+            Check(Population.AmbientReach(0.8, 3) > Population.AmbientReach(0.3, 3),
+                "and further when the street is louder");
+            Check(Population.AmbientReach(1.0, 500) <= Population.AmbientCeiling,
+                "but never reaches everybody, because some people do not listen");
+
+            // Promotion must be consistent between visits. Walking away and
+            // coming back cannot re-roll what the neighbourhood remembers.
+            double reach = Population.AmbientReach(0.7, 5);
+            var sample = pop.Residents.Take(400).ToList();
+            var firstVisit = sample.Select(r => Population.HeardIt(r, reach)).ToList();
+            var secondVisit = sample.Select(r => Population.HeardIt(r, reach)).ToList();
+            Check(firstVisit.SequenceEqual(secondVisit), "who had heard it does not change between visits");
+            int heard = firstVisit.Count(h => h);
+            Check(heard > 0 && heard < sample.Count, "some of them had heard it and some had not");
+            Check(Math.Abs(heard / (double)sample.Count - reach) < 0.08,
+                "and about as many as the district's reach says should have",
+                $"{heard}/{sample.Count} vs {reach:0.00}");
+            Check(!Population.HeardIt(pop.Residents[0], 0), "nobody has heard a story that isn't circulating");
+            Check(Population.HeardIt(pop.Residents[0], 1.0), "and everybody has heard one that is everywhere");
+
+            // Persistence: a seed and the exceptions, not ten thousand people.
+            var saved = pop.Capture(3000, 20260726);
+            var json = MiniJson.Serialize(saved);
+            Check(json.Length < 4000, "the whole city saves in a few hundred bytes", json.Length + " bytes");
+            var reloaded = Population.Generate(3000, 20260726, Districts);
+            reloaded.RestoreKnown(MiniJson.AsObject(MiniJson.Deserialize(json)));
+            Check(reloaded.ById(farAway.Id).Known, "somebody the player met is still met after a reload");
+            Check(reloaded.ById(farAway.Id).Band >= Lod.Mid, "and comes back at a band that keeps their state");
+            Check(reloaded.Residents.Count(r => r.Known) == pop.Residents.Count(r => r.Known),
+                "and exactly the people who were met, no more");
+            reloaded.RestoreKnown(MiniJson.AsObject(MiniJson.Deserialize("{\"known\":[]}")));
+            Check(reloaded.Residents.Count(r => r.Known) == 0, "a save where nobody was met restores a city of strangers");
+            reloaded.ById(farAway.Id).Known = true;
+            reloaded.RestoreKnown(null);
+            Check(reloaded.ById(farAway.Id).Known,
+                "but a MISSING population block leaves the city alone rather than wiping it");
+
+            // Degenerate inputs must not throw — this runs at startup.
+            Check(Population.Generate(0, 1, Districts).Residents.Count == 0, "a city of nobody is empty, not broken");
+            Check(Population.Generate(10, 1, null).Residents.Count == 0, "and a city with no districts is too");
+            Check(new Population().SetBands(null, null).Count == 0, "banding with nothing to measure changes nothing");
         }
 
         // ---------------------------------------------------------------

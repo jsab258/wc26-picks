@@ -367,6 +367,12 @@ namespace Ledger.Game
             _gossip.Begin(this, _npcs, _hosts);
             _gossip.OnEvents = OnGossipEvents;
 
+            // The crowd on top of the cast (roadmap M9): three thousand people
+            // who are records until the player's attention reaches them. The mid
+            // band has no body, so the gossip director is told where to find them.
+            BuildPopulation();
+            _gossip.ExtraPosition = CrowdPositionOf;
+
             // The week's two dilemma evenings: both windows sit inside the outfit's
             // drop window. Ada tests the day face; Rocco tests the family face.
             Beats.Add(new Beat
@@ -403,7 +409,15 @@ namespace Ledger.Game
             }
 
             UpdateSun();
-            foreach (var npc in _npcs) npc.Tick(Now);
+            // Level of detail before ticking, so a walker spawned this frame
+            // starts from the right place rather than the origin.
+            TickPopulation(_player != null ? _player.transform.position : Vector3.zero);
+            for (int i = _npcs.Count - 1; i >= 0; i--)
+            {
+                var npc = _npcs[i];
+                if (npc == null) { _npcs.RemoveAt(i); continue; }  // despawned crowd
+                npc.Tick(Now);
+            }
 
             // Once per game-hour, let rumors cool if nobody is keeping them alive — this
             // is what makes the player's "lie low and let it blow over" option real.
@@ -1492,6 +1506,7 @@ namespace Ledger.Game
             { "economy", Economy.Capture() },
             { "director", Directorate.Capture() },
             { "demands", CaptureDemands() },
+            { "population", CapturePopulation() },
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
@@ -1565,6 +1580,7 @@ namespace Ledger.Game
                     _lastDirectorDay = Directorate.LastRunDay;
                 }
                 if (extra.TryGetValue("demands", out var de)) RestoreDemands(MiniJson.AsList(de));
+                if (extra.TryGetValue("population", out var po)) RestorePopulation(MiniJson.AsObject(po));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)

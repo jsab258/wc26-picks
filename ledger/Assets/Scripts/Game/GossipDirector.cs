@@ -21,6 +21,9 @@ namespace Ledger.Game
         float _timer;
 
         public GossipMill Mill => _mill;
+        /// The acquaintance graph, exposed so the crowd (roadmap M9) can wire
+        /// its own neighbours in as residents enter the simulated band.
+        public SocialGraph Graph { get; private set; }
 
         public void Begin(GameController game, List<NpcWalker> npcs, List<ConversationHost> hosts)
         {
@@ -73,6 +76,7 @@ namespace Ledger.Game
             // The generated batch's connections — links to residents who aren't
             // walking yet simply stay dormant until they do.
             foreach (var (a, b, w) in Tier2Batch.GraphLinks()) graph.Link(a, b, w);
+            Graph = graph;
             _mill = new GossipMill(graph);
 
             // Every gossiper shares its conversation host's real memory, knowledge and
@@ -184,11 +188,24 @@ namespace Ledger.Game
 
         public int ChecksRun { get; private set; }
 
+        /// Where somebody simulated-but-not-rendered is standing (roadmap M9's
+        /// mid band). Set by GameController; without it the crowd could carry
+        /// talk but never pass it on, because a person with no body has no
+        /// position and Together would always say no.
+        public System.Func<string, Vector3?> ExtraPosition;
+
+        Vector3? PositionOf(string id)
+        {
+            if (_walkers.TryGetValue(id, out var w) && w != null) return w.transform.position;
+            return ExtraPosition != null ? ExtraPosition(id) : null;
+        }
+
         bool Together(string a, string b)
         {
-            if (!_walkers.TryGetValue(a, out var wa) || !_walkers.TryGetValue(b, out var wb)) return false;
-            if (wa == null || wb == null) return false;
-            return Vector3.Distance(wa.transform.position, wb.transform.position) <= TalkRange;
+            var pa = PositionOf(a);
+            var pb = PositionOf(b);
+            if (pa == null || pb == null) return false;
+            return Vector3.Distance(pa.Value, pb.Value) <= TalkRange;
         }
 
         const float WitnessRange = 10f;

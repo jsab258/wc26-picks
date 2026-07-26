@@ -459,6 +459,24 @@ namespace Ledger.Game
                 && System.Math.Abs(econTwin.Prosperity - econ.Prosperity) < 1e-6
                 && System.Math.Abs(econTwin.PriceLevel - econ.PriceLevel) < 1e-6;
 
+            // The crowd (roadmap M9). Three thousand residents exist; almost none
+            // of them are simulated, and the ones that are must be the ones near
+            // the player. The gate is that the bands are populated, that the caps
+            // held over nine days of the bot walking around, that the crowd
+            // actually entered the gossip mill, and that the whole city still
+            // saves as a seed rather than as three thousand records.
+            var pop = _game.Populace;
+            var popSnap = MiniJson.Serialize(_game.CapturePopulationForSim());
+            bool crowdOk = pop != null
+                && pop.Residents.Count == _game.PopulationCount
+                && pop.CountIn(Lod.Near) <= pop.NearCap
+                && pop.CountIn(Lod.Mid) <= pop.MidCap + pop.Residents.Count(r => r.Known)
+                && pop.CountIn(Lod.Near) > 0                      // somebody is always nearby
+                && pop.CountIn(Lod.Far) > pop.Residents.Count / 2 // and almost everybody is not
+                && popSnap.Length < 20000                         // a seed, not a census
+                && (_game.Gossip == null || _game.Gossip.Mill == null
+                    || _game.Gossip.Mill.Agents.Count(a => a.Id.StartsWith("r")) > 0);
+
             // The Director (roadmap M8). CI has no API key, so the nightly pass
             // never authors anything — which is exactly the property worth
             // gating: a game with no model available must run a completely
@@ -593,7 +611,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk;
+                        && directorOk && crowdOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -612,6 +630,9 @@ namespace Ledger.Game
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
+                      $"pop={(_game.Populace != null ? _game.Populace.Residents.Count : 0)} " +
+                      $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
+                      $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

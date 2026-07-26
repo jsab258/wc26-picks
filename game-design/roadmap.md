@@ -278,9 +278,41 @@ The gaps, in the order they are now being closed:
   produce an ordinary night. CI has no key, so the nightly pass never
   speaks there — the firing path is therefore staged by hand each build so
   the code most likely to break is the code most exercised.
-- **M9 — Population scale.** Thousands, via generation plus level-of-detail
-  simulation (full fidelity near the player's attention, statistical
-  elsewhere — the KCD2 approach, and the same work as production item P5).
+- **M9 — Population scale — SHIPPED 2026-07-26.** `Population` in Core,
+  `PopulationHost` in the game layer, 37 new CoreTests (504 total) and a
+  `crowdOk` gate in the in-engine CI sim. **The city went from 36 people to
+  3000.** This also delivers most of production item P5.
+
+  Three bands, KCD2's arrangement: **Near** is a walker with a full brain
+  (capped at 22 on top of the ~36 authored and generated cast); **Mid** is
+  in the gossip mill and nowhere else — they carry and pass talk without
+  rendering (capped at 110); **Far** is a record contributing only
+  statistically, and thousands of those cost nothing. Re-banded every three
+  seconds around wherever the player actually is, and only what *changed*
+  is acted on.
+
+  **The Far band is honest about what it doesn't know.** It answers exactly
+  one question — roughly what share of the district has heard the talk —
+  and it saturates, because a story never reaches literally everyone. When
+  somebody is promoted, that share decides *deterministically*, via a
+  stable hash of their id, whether this particular person had heard it. So
+  walking away and coming back finds the same neighbourhood rather than a
+  re-rolled one.
+
+  **Anyone load-bearing is never demoted.** Crew, anyone holding a rumor
+  about the player, anyone the player has met. And `GossipMill.Forget`
+  *refuses* to drop somebody carrying a rumor or a memory — the world must
+  not forget things because the player walked around a corner. Pillar P5
+  outranks the frame budget.
+
+  **The whole city saves as a seed plus the exceptions** — a few hundred
+  bytes rather than 3000 records — which is the actual point of generating
+  people rather than authoring them.
+
+  Generation is deterministic and takes under half a second for 3000: 1200
+  name combinations, 30 trades, day and night shifts, home and work
+  anchors, and traits. Past 1200 people share a name with somebody, which
+  is true of real streets.
 - **M10 — Phones + the distance layer** (was M9). Unchanged.
 - **M11 — Violence, staged** (was M10). Unchanged.
 - **M12 — Vehicles.** Approved for the late roadmap; unchanged.

@@ -47,8 +47,18 @@ Claims we make explicitly, so every design decision can be tested against them:
    can do this; it is the heart of the game.
 3. **Secrets are loot.** What you know about people — and what they know about you — is the
    primary currency and progression system (CK3 hooks × Outer Wilds knowledge-progression).
-4. **A living city at honest scale.** Hundreds of schedule-simulated characters (KCD2-proven
-   scale), any of whom can be promoted by attention into a full character.
+4. **A living city at honest scale.** Thousands of residents (3000 as of M9, 2026-07-26),
+   any of whom can be promoted by attention into a full character. Almost none of them are
+   simulated at any moment, and the design is honest about that: a **Near** band walks the
+   world with a full brain, a **Mid** band lives in the gossip mill without a body — carrying
+   and passing talk you have not met yet — and the **Far** band is a record that answers
+   exactly one question, *roughly what share of this district has heard it*, saturating
+   because a story never reaches literally everyone. When a Far resident is promoted, that
+   share decides via a stable hash whether **this** person had heard it, so leaving a street
+   and coming back finds the same neighbourhood rather than a re-rolled one. Anyone
+   load-bearing is exempt from the caps, and the gossip mill outright refuses to forget
+   somebody who is carrying a rumor or a memory: the world must not lose things because the
+   player walked around a corner. The whole city persists as a seed plus the exceptions.
 5. **Emergent betrayal.** Your organization is made of individuals with loyalty, fear, and
    grievances. Betrayal is never a cutscene; it is caused, and it is preventable.
 

@@ -126,6 +126,22 @@ namespace Ledger.Core
         public GossipMill(SocialGraph graph) { _graph = graph ?? new SocialGraph(); }
 
         public void Add(Gossiper g) => _agents[g.Id] = g;
+
+        /// Takes somebody out of the network (roadmap M9: a resident who has
+        /// drifted out of the player's attention band). REFUSES if they are
+        /// carrying anything — a rumor or a memory — because dropping those
+        /// would mean the world forgot something because the player walked away,
+        /// and pillar P5 says the city's state is the save file. Returns whether
+        /// they were actually removed.
+        public bool Forget(string id)
+        {
+            var g = Get(id);
+            if (g == null) return false;
+            if (g.Rumors.Count > 0 || g.Memory.Events.Count > 0 || g.Suppressed.Count > 0 || g.Leashed)
+                return false;
+            _agents.Remove(id);
+            return true;
+        }
         public Gossiper Get(string id) => _agents.TryGetValue(id, out var g) ? g : null;
         public IEnumerable<Gossiper> Agents => _agents.Values;
 
