@@ -19,6 +19,7 @@
 # ...but the hand-written test projects are real code
 !CoreTests/CoreTests.csproj
 !SimHarness/SimHarness.csproj
+!Tier2Gen/Tier2Gen.csproj
 
 # Generated playtest report
 SimHarness/sim-report.md
