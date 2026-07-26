@@ -165,7 +165,8 @@ namespace Ledger.Game
             _lena.ExtraContext = () =>
             {
                 var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
-                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
+                var firstDay = Now.Day == 1 ? " It is the new owner's first day; you are showing them the place, half testing them." : "";
+                if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week.{firstDay} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
                 return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
@@ -260,6 +261,7 @@ namespace Ledger.Game
                 CheckConfrontations();
                 CheckBarks();
                 CheckOsseiInterviews();
+                CheckOnboarding();
             }
         }
 
@@ -283,6 +285,29 @@ namespace Ledger.Game
                 _barkDay[name] = Now.Day;
                 _ui.Toast(line, 5f);
                 break; // one voice per pass
+            }
+        }
+
+        // First-morning onboarding: three lines, diegetic in tone, never in sim.
+        int _onboardStep;
+
+        void CheckOnboarding()
+        {
+            if (SimMode.Days > 0 || Now.Day != 1 || _ui == null) return;
+            if (_onboardStep == 0 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 10)))
+            {
+                _onboardStep = 1;
+                _ui.Toast("The bar is yours now. Walk up to anyone and press E to talk — they remember.", 9f);
+            }
+            else if (_onboardStep == 1 && Now.Hour >= 10)
+            {
+                _onboardStep = 2;
+                _ui.Toast("Press L for your ledger: what you believe the street knows about you — and what you hold over it.", 9f);
+            }
+            else if (_onboardStep == 2 && Now.Hour >= 12)
+            {
+                _onboardStep = 3;
+                _ui.Toast("Tonight the outfit will want its first drop made. C toggles the runner's coat — harder to name in the dark, harder to explain in daylight.", 10f);
             }
         }
 
