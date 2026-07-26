@@ -50,6 +50,9 @@ namespace Ledger.Game
             // Viktor (batch promotion): the pawnbroker's ties from his card.
             graph.Link("Viktor", "Lena", 0.4);
             graph.Link("Viktor", "Sam", 0.5);
+            // The generated batch's connections — links to residents who aren't
+            // walking yet simply stay dormant until they do.
+            foreach (var (a, b, w) in Tier2Batch.GraphLinks()) graph.Link(a, b, w);
             _mill = new GossipMill(graph);
 
             // Every gossiper shares its conversation host's real memory, knowledge and
@@ -59,7 +62,7 @@ namespace Ledger.Game
             {
                 var walkerName = host.GetComponent<NpcWalker>() != null
                     ? host.GetComponent<NpcWalker>().DisplayName : host.Card.Name;
-                var m = CastSetup.Get(walkerName) ?? Tier2Setup.Get(walkerName);
+                var m = CastSetup.Get(walkerName) ?? Tier2Setup.Get(walkerName) ?? Tier2Batch.Get(walkerName);
                 _mill.Add(m != null
                     ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
                         m.Circle, m.Greed, m.Nerve, m.Loyalty)

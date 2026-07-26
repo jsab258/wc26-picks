@@ -23,22 +23,25 @@ namespace Ledger.Game
         {
             Lamps.Clear();
             Windows.Clear();
+            Masses.Clear();
+            Masses.AddRange(BuildingSpecs);
             _windowsLit = false;
             AssetLibrary.Initialize();
             ConfigureEnvironment();
 
-            // Ground slab (tiled so it doesn't stretch across 50m).
+            // Ground slab — sized for the district, not just the founding street.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            ground.transform.localScale = new Vector3(5, 1, 5); // 50x50m
+            ground.transform.localScale = new Vector3(9, 1, 9); // 90x90m
             ground.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Concrete);
-            SetTiling(ground, 24, 24);
+            SetTiling(ground, 42, 42);
 
             BuildStreetsAndWalks();
             BuildBuildings();
             BuildBar();
             BuildProps();
             BuildLamps();
+            BuildDistrict();
         }
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame
@@ -54,10 +57,10 @@ namespace Ledger.Game
 
         static void BuildStreetsAndWalks()
         {
-            var streetNS = MakeBox("Street_NS", new Vector3(0, 0.02f, 0), new Vector3(6, 0.04f, 50), AssetLibrary.Asphalt);
-            var streetEW = MakeBox("Street_EW", new Vector3(0, 0.02f, 0), new Vector3(50, 0.04f, 6), AssetLibrary.Asphalt);
-            SetTiling(streetNS, 3, 25);
-            SetTiling(streetEW, 25, 3);
+            var streetNS = MakeBox("Street_NS", new Vector3(0, 0.02f, 0), new Vector3(6, 0.04f, 88), AssetLibrary.Asphalt);
+            var streetEW = MakeBox("Street_EW", new Vector3(0, 0.02f, 0), new Vector3(88, 0.04f, 6), AssetLibrary.Asphalt);
+            SetTiling(streetNS, 3, 44);
+            SetTiling(streetEW, 44, 3);
 
             // Sidewalks + kerbs flank each street arm, skipping the intersection.
             float[] arms = { 14f, -14f }; // segment centre along the street axis
@@ -83,7 +86,8 @@ namespace Ledger.Game
 
         /// XZ solid masses of the block. NpcWalker consults these to route around
         /// buildings instead of through them; kept as data so the routing needs no
-        /// physics casts (deterministic under the accelerated sim).
+        /// physics casts (deterministic under the accelerated sim). The founding
+        /// street's specs are fixed; the district build-out appends its own.
         static readonly (Vector3 pos, Vector3 size)[] BuildingSpecs =
         {
             (new Vector3(-14, 0, 14), new Vector3(10, 9, 10)),
@@ -94,13 +98,14 @@ namespace Ledger.Game
             (new Vector3(-20, 0, 0), new Vector3(6, 8, 4)),
             (new Vector3(0, 0, 20), new Vector3(4, 5, 6)),
         };
+        static readonly List<(Vector3 pos, Vector3 size)> Masses = new List<(Vector3, Vector3)>();
 
         /// True when the straight XZ line from a to b crosses no building mass.
         /// Masses containing either endpoint are ignored so characters can step
         /// off a stoop or reach a doorway spot set flush against a wall.
         public static bool SegmentClear(Vector3 a, Vector3 b, float inflate = 0.9f)
         {
-            foreach (var (pos, size) in BuildingSpecs)
+            foreach (var (pos, size) in Masses)
             {
                 float hx = size.x / 2f + inflate, hz = size.z / 2f + inflate;
                 if (InsideXZ(a, pos, hx, hz) || InsideXZ(b, pos, hx, hz)) continue;
@@ -281,6 +286,51 @@ namespace Ledger.Game
             MakeLamp(new Vector3(-4, 0, -14));
             MakeLamp(new Vector3(14, 0, -4));
             MakeLamp(new Vector3(-14, 0, 4));
+        }
+
+        /// The Hook district (open-city-spec §3): every planned place in the
+        /// HookMap registry gets graybox geometry at its coordinates — a mass
+        /// set back from the stop point so schedules land at the door, windows
+        /// that light at dusk, and a lamp on the busier corners. The generator
+        /// decided what exists; this renders it. A purchased pack later reskins
+        /// the same truth.
+        static void BuildDistrict()
+        {
+            string[] facades = { AssetLibrary.BrickGrey, AssetLibrary.Plaster, AssetLibrary.BrickRed, AssetLibrary.Concrete };
+            int i = 0;
+            foreach (var place in Ledger.Core.HookMap.Places)
+            {
+                if (!place.Planned) { i++; continue; }
+                var stop = new Vector3((float)place.X, 0, (float)place.Z);
+                // The mass sits radially outward from the stop, so the door faces town.
+                var dir = new Vector3(stop.x, 0, stop.z).normalized;
+                Vector3 size = place.Kind == "home" ? new Vector3(9, 10, 8)
+                    : place.Kind == "landmark" ? new Vector3(10, 7, 9)
+                    : place.Kind == "business" ? new Vector3(7, 6, 7)
+                    : new Vector3(4, 3, 4); // corner: a shelter, not a building
+                var pos = stop + dir * (size.z / 2f + 2.5f);
+
+                var facade = facades[i % facades.Length];
+                var body = MakeBox($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
+                SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
+                MakeBox($"District_{place.Id}_roof", pos + new Vector3(0, size.y + 0.12f, 0),
+                    new Vector3(size.x + 0.4f, 0.25f, size.z + 0.4f), AssetLibrary.Roof);
+                if (place.Kind != "corner") AddWindows($"District_{place.Id}", pos, size);
+                Masses.Add((pos, size));
+
+                // A doorstep pad marks the schedule stop itself.
+                MakeBox($"District_{place.Id}_step", stop + dir * 1.2f + new Vector3(0, 0.08f, 0),
+                    new Vector3(2.2f, 0.16f, 2.2f), AssetLibrary.Sidewalk);
+                i++;
+            }
+
+            // Light the district's busier corners so night rounds read.
+            MakeLamp(new Vector3(-27, 0, -5));   // outside the pawnshop
+            MakeLamp(new Vector3(-25, 0, 13));   // the teahouse corner
+            MakeLamp(new Vector3(29, 0, 17));    // the ferry stop
+            MakeLamp(new Vector3(23, 0, -9));    // the cab rank
+            MakeLamp(new Vector3(-17, 0, 19));   // the north tenements
+            MakeLamp(new Vector3(-11, 0, -17));  // the bakery corner
         }
 
         public static Light BuildSun()

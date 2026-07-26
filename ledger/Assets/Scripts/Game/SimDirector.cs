@@ -404,6 +404,10 @@ namespace Ledger.Game
                 beatStates.Add($"{b.Id}:{b.State}");
                 if (b.WindowPassed(_game.Now) && b.State == BeatState.Pending) beatsResolved = false;
             }
+            // The district population (open-city-spec §3): the founding cast plus
+            // Viktor plus the generated batch must actually be walking.
+            bool populationOk = _npcs != null && _npcs.Length >= 20;
+
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -493,6 +497,7 @@ namespace Ledger.Game
                 { "posture", _game.ActOne.Posture ?? "" }, { "postureFactPlanted", postureFact },
                 { "openMode", _game.Campaign.OpenMode }, { "outfitCutOff", _game.Campaign.OutfitCutOff },
                 { "falls", _game.Campaign.Falls }, { "daysClosed", _game.Campaign.DaysClosed },
+                { "npcCount", _npcs != null ? _npcs.Length : 0 },
                 { "empireOwned", _game.Empire.Businesses.FindAll(b => b.Owned).Count },
                 { "empireCrew", _game.Empire.Crew.Count }, { "racketIncome", _game.Empire.TotalRacketIncome },
                 { "rivalStage", _game.Empire.Rival.Stage },
@@ -509,7 +514,7 @@ namespace Ledger.Game
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk && empireOk;
+                        && openModeOk && fallOk && empireOk && populationOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -523,6 +528,7 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
+                      $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

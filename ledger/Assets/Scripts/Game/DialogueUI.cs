@@ -237,7 +237,7 @@ namespace Ledger.Game
                     var open = e.Rackets.Find(r => !r.Established);
                     if (open != null) labelA = $"Put them on the {open.Name}";
                 }
-                else if (crew == null && EmpireSetup.TryNeed(id, out var cost, out _))
+                else if (crew == null && _game.TryNeedOf(id, out var cost, out _))
                 {
                     labelA = $"Sort what they need (${cost})";
                     enabledA = _game.Wallet.Total >= cost;
@@ -307,7 +307,7 @@ namespace Ledger.Game
                     : "That lever doesn't move them.");
                 return;
             }
-            if (EmpireSetup.TryNeed(id, out var cost, out var line) && g != null)
+            if (_game.TryNeedOf(id, out var cost, out var line) && g != null)
             {
                 bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now);
                 Narrate($"{line} (-${cost})" + (joined

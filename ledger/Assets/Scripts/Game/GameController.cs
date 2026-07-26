@@ -160,11 +160,17 @@ namespace Ledger.Game
             }));
             _npcs.Add(NpcWalker.Spawn("Viktor", new Color(0.6f, 0.5f, 0.3f), new[]
             {
-                (new GameTime(0, 9, 0), new Vector3(10, 0, -14)),  // errands at the market corner
-                (new GameTime(0, 13, 0), new Vector3(0, 0, -8)),   // the crossing, watching trade
-                (new GameTime(0, 18, 0), WorldBuilder.BarDoor + new Vector3(2, 0, 3)),
+                (new GameTime(0, 9, 0), new Vector3(-28, 0, -6)),  // his shop, now standing
+                (new GameTime(0, 13, 0), new Vector3(10, 0, -14)), // errands at the market corner
+                (new GameTime(0, 17, 0), new Vector3(-26, 0, 14)), // the teahouse, per his card
                 (new GameTime(0, 22, 0), new Vector3(-16, 0, -12)), // home on the west row
             }));
+
+            // The generated district population (open-city-spec §3): the batch
+            // walks. Brains arrive via the generic host loop below; secrets join
+            // the book so the leverage economy scales with the street.
+            foreach (var w in Tier2Batch.SpawnWalkers()) _npcs.Add(w);
+            foreach (var s in Tier2Batch.Secrets()) HooksBook.Add(s);
 
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
@@ -222,7 +228,7 @@ namespace Ledger.Game
             // witness and handle him directly instead of only hearing about it from Lena.
             foreach (var npc in _npcs)
             {
-                var member = CastSetup.Get(npc.DisplayName) ?? Tier2Setup.Get(npc.DisplayName);
+                var member = CastSetup.Get(npc.DisplayName) ?? Tier2Setup.Get(npc.DisplayName) ?? Tier2Batch.Get(npc.DisplayName);
                 if (member == null) continue;
                 var host = npc.gameObject.AddComponent<ConversationHost>();
                 host.Initialize(this, member.Card, null, null);
@@ -499,6 +505,11 @@ namespace Ledger.Game
                 : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.", 14f);
             SaveNow(quiet: true);
         }
+
+        /// The recruit-by-need table: the authored roster first, then the
+        /// generated batch's own needs (default price, their card's words).
+        public bool TryNeedOf(string id, out int cost, out string line) =>
+            EmpireSetup.TryNeed(id, out cost, out line) || Tier2Batch.TryNeed(id, out cost, out line);
 
         /// PP7: the player says out loud which life they're choosing. Dialogue +
         /// a Fact every cast brain learns (player decision 2026-07-26); mechanics
