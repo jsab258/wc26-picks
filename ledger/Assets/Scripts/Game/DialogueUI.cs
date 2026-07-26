@@ -800,6 +800,12 @@ namespace Ledger.Game
                 if (_ledgerPanel.activeSelf) { RefreshLedger(); Audio.Ui("page"); }
             }
             if (_ledgerPanel.activeSelf && Time.frameCount % 30 == 0) RefreshLedger();
+
+            // Planning (roadmap M7.5) — open city only, and never over a
+            // conversation. Jobs are what the open city gives you INSTEAD of an
+            // outfit telling you where to be.
+            if (Input.GetKeyDown(keys.Key("Plan")) && !dialogueOpen && !_keyPanel.activeSelf
+                && !_ledgerPanel.activeSelf) TogglePlan();
             if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
 
             // The runner's coat — day face or night face, one key, never while typing.

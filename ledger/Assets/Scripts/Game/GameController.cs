@@ -1557,6 +1557,7 @@ namespace Ledger.Game
             { "demands", CaptureDemands() },
             { "population", CapturePopulation() },
             { "access", CaptureAccess() },
+            { "targets", CaptureTargets() },
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
@@ -1632,6 +1633,7 @@ namespace Ledger.Game
                 if (extra.TryGetValue("demands", out var de)) RestoreDemands(MiniJson.AsList(de));
                 if (extra.TryGetValue("population", out var pop)) RestorePopulation(MiniJson.AsObject(pop));
                 if (extra.TryGetValue("access", out var acc)) RestoreAccess(MiniJson.AsObject(acc));
+                if (extra.TryGetValue("targets", out var tg)) RestoreTargets(MiniJson.AsList(tg));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)

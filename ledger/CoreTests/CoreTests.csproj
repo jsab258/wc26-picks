@@ -14,5 +14,6 @@
          themselves that can drift away from what the game actually loads. -->
     <Compile Include="../Assets/Scripts/Game/AccessSetup.cs" />
     <Compile Include="../Assets/Scripts/Game/EconomySetup.cs" />
+    <Compile Include="../Assets/Scripts/Game/OperationSetup.cs" />
   </ItemGroup>
 </Project>

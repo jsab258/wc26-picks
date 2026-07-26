@@ -44,6 +44,7 @@ namespace Ledger.Game
         bool _forcedFall;
         bool _empireScripted;
         bool _directorStaged, _directorFired;
+        bool _planStaged, _planRan;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -142,6 +143,33 @@ namespace Ledger.Game
                 _game.Wallet.EarnDirty(200);   // so the demand can actually be answered
                 bool paid = _game.SettleDemand("Rocco", out _);
                 _directorFired = demand && rumor && paid && _game.DemandFrom("Rocco") == null;
+            }
+
+            // Operations in CI (roadmap M7.5). The bot cannot click a panel, so
+            // the plan is assembled and run through the SAME path the panel
+            // uses — which is the half most likely to break, because it is the
+            // half that pushes witnesses into the mill and writes into crew
+            // memory. Forced, at noon, bare-faced: chosen to guarantee somebody
+            // sees it, so the witness wiring is actually exercised.
+            if (!_planStaged && _game.CanPlan && now.Day >= 9 && now.Hour >= 12)
+            {
+                _planStaged = true;
+                var mark = System.Linq.Enumerable.FirstOrDefault(_game.OpenTargets);
+                if (mark != null)
+                {
+                    int dirtyBefore = _game.Wallet.Dirty;
+                    _game.Plan = new OperationPlan(mark.Id)
+                    { Approach = Approach.Forced, Hour = 12, Tools = true };
+                    foreach (var c in _game.Empire.ActiveCrew) _game.Plan.Crew.Add(c.Name);
+                    var read = _game.ReadPlan();
+                    var outcome = _game.RunPlan();
+                    _planRan = outcome != null
+                        && read != null && read.Line.Length > 0
+                        && !System.Linq.Enumerable.Any(read.Line, char.IsDigit)   // odds stay words
+                        && mark.Done == (outcome.Success || outcome.Partial)
+                        && _game.Wallet.Dirty == dirtyBefore + outcome.Take
+                        && _game.Plan == null;                                    // a plan is spent
+                }
             }
 
             // Open-mode Fall in CI: if week two arrived without the fuse ever
@@ -489,6 +517,11 @@ namespace Ledger.Game
             // refusal, and the evaluator must produce a legible answer for a
             // player who has nothing. A gate nobody can ever open is a wall,
             // and walls are the one thing this system exists to not build.
+            // Operations (roadmap M7.5): the board must be real, and the plan
+            // staged above must have gone all the way through the wiring.
+            bool opsOk = _game.Targets.Count >= 3
+                && (!_game.CanPlan || SimMode.Days < 9 || _planRan);
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -635,7 +668,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk;
+                        && directorOk && crowdOk && accessOk && opsOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -656,6 +689,7 @@ namespace Ledger.Game
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
                       $"pop={(_game.Populace != null ? _game.Populace.Residents.Count : 0)} " +
                       $"gates={_game.Gates.Count} accessOk={accessOk} " +
+                      $"targets={_game.Targets.Count} planRan={_planRan} opsOk={opsOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +

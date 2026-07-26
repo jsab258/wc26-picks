@@ -2139,6 +2139,46 @@ namespace Ledger.CoreTests
                 Rolls(0.99, 0.0, 0.9));
             Check(quiet.Talkers.Count == 0, "and a loyal one on a clean job does not");
 
+            // THE SHIPPED TARGETS. Three jobs are only worth having if each
+            // one wants a DIFFERENT plan — otherwise it is one job listed three
+            // times, and the panel is a menu rather than a decision.
+            var board = Ledger.Game.OperationSetup.Build();
+            Check(board.Count >= 3, "there are jobs on the board");
+            Check(board.Select(t => t.Id).Distinct().Count() == board.Count, "and no two are the same job");
+            foreach (var t in board)
+            {
+                Check(!string.IsNullOrEmpty(t.Name) && !string.IsNullOrEmpty(t.PlaceId),
+                    $"'{t.Id}' is somewhere real with a name");
+                Check(Ledger.Core.HookMap.Get(t.PlaceId) != null,
+                    $"'{t.Id}' happens at a place that exists on the map");
+                Check(t.Payout > 0 && t.Difficulty > 0 && t.Difficulty < 1, $"'{t.Id}' is worth doing and possible");
+            }
+
+            // The best plan must not be the same plan for all three. Sweep the
+            // approaches and hours and check the boards disagree about what the
+            // safest option is — that disagreement IS the content.
+            string BestPlanFor(OperationTarget t)
+            {
+                var st = Steady();
+                var options = new List<(string label, double risk)>();
+                foreach (Approach ap in new[] { Approach.Quiet, Approach.Forced, Approach.Social })
+                    foreach (int hr in new[] { 3, 12, 19, 23 })
+                        options.Add(($"{ap}@{hr}",
+                            Operations.Read(new OperationPlan(t.Id) { Approach = ap, Hour = hr }, t, st).Risk
+                            + Operations.Read(new OperationPlan(t.Id) { Approach = ap, Hour = hr }, t, st).Visibility));
+                return options.OrderBy(o => o.risk).First().label;
+            }
+            var bests = board.Select(BestPlanFor).ToList();
+            Check(bests.Distinct().Count() > 1,
+                "the three jobs do not all want the same plan — that difference is the content",
+                string.Join(" / ", bests));
+
+            // The warehouse row is the safest and the worst-paid on purpose:
+            // going back to the place that burned should never be about money.
+            var row = board.First(t => t.Id == "warehouse_row");
+            Check(row.Exposure == board.Min(t => t.Exposure), "the warehouse row is the least overlooked place on the board");
+            Check(row.Payout == board.Min(t => t.Payout), "and pays the worst, so going back there is never about money");
+
             // Degenerate inputs, since this runs off player choices.
             Check(Operations.Read(null, null, null).Risk >= 1, "an empty plan is not a plan");
             Check(!Operations.Run(null, null, null, null).Success, "and cannot be run");
