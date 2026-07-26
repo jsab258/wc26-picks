@@ -18,7 +18,7 @@ Answered items move to the decision log in `process.md`.
 3. **ElevenLabs voice** — account, key, and per-character voice casting choices.
 4. **Noor's card approval** — decided as the slice's love interest (2026-07-25);
    I draft her Tier-1 card during M4 downtime, you approve the text before she
-   enters the game.
+   enters the game. DRAFTED: see game-design/cast-noor-draft.md (card + mechanical notes + 3 open questions).
 5. **The is-this-fun gate** — your playtest verdict on the M2–M4 loop decides
    whether M5 polishes this design or we iterate the core first.
 6. **Drop-window feel check** — during the PC playtest: does the 22:00–02:00 job
