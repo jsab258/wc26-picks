@@ -136,16 +136,27 @@ namespace Ledger.Game
         /// nights: ShouldRun is deterministic and runs before any call is made.
         async void RunDirectorAsync()
         {
-            var world = BuildWorldSnapshot();
-            if (!TheDirector.ShouldRun(world, _lastDirectorDay)) return;
-            _lastDirectorDay = Now.Day;
-            Directorate.LastRunDay = Now.Day;
+            // The WHOLE body is guarded, not just the call. This is an async void
+            // on the daily-close path: anything that escapes it is an unhandled
+            // exception with no caller to catch it, which in this game means a
+            // red build and, worse, a morning that does not happen. Building the
+            // snapshot touches a dozen systems and the key file; none of that is
+            // worth a crash when the correct fallback is simply a quiet night.
+            try
+            {
+                var world = BuildWorldSnapshot();
+                if (!TheDirector.ShouldRun(world, _lastDirectorDay)) return;
+                _lastDirectorDay = Now.Day;
+                Directorate.LastRunDay = Now.Day;
 
-            Pressure p;
-            try { p = await TheDirector.ProposeAsync(world); }
-            catch (System.Exception) { return; }   // a quiet night is always safe
-            if (p == null || !p.IsSomething) return;
-            Directorate.Schedule(p);
+                var p = await TheDirector.ProposeAsync(world);
+                if (p == null || !p.IsSomething) return;
+                Directorate.Schedule(p);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Director: quiet night ({e.GetType().Name}).");
+            }
         }
 
         // ---------------------------------------------------------------

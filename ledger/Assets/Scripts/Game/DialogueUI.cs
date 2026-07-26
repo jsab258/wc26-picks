@@ -1029,7 +1029,11 @@ namespace Ledger.Game
             var reply = await host.SayAsync(text); // Unity's context resumes this on the main thread
             _waiting = false;
 
-            history.RemoveAt(history.Count - 1);
+            // Remove the placeholder BY MATCHING IT, not by position. The router
+            // path above can drop it before falling through, and blind removal
+            // would then delete the player's own line instead.
+            if (history.Count > 0 && history[history.Count - 1].EndsWith("is thinking...</i>"))
+                history.RemoveAt(history.Count - 1);
             history.Add($"<b>{name}:</b> {reply}");
             RenderHistory();
         }
