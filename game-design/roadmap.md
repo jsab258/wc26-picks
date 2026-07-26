@@ -97,4 +97,48 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
   productization (bundled inference, cost model, offline fallback), hardening,
   Steam page. Nemesis-patent design review before any rival-hierarchy work (§6.5 ⚠).
 
+## NEW DIRECTION — the agency model (player, 2026-07-26)
+
+`agency-model.md` now sets the depth target for every dimension of the
+game, benchmarked outside-in against GTA5 / RDR2 / KCD2 / BG3 / Hitman /
+Sims / CK3 rather than inside-out from our codebase. It raises economy,
+violence and traversal well above the earlier plan, adds six dimensions
+that the inside-out view had missed entirely, and settles phones as
+canon. Everything below is re-sequenced against it.
+
+**The three raises:** economy to full district simulation (85), violence
+staged to melee-then-guns (70 end state), traversal by breadth of place
+(65). **The additions:** operation planning (75 — the biggest hole found),
+multiple-solutions-per-obstacle as a project law (80), access as soft keys
+(65), communication at distance (60), companionship (55), home that reacts
+(50). **Unchanged refusals:** body needs, vehicle simulation, minigames,
+gear treadmills.
+
+### Re-sequenced plan
+
+- **M5 — Vertical slice** stays next and stays the gate. Nothing below is
+  worth building on a loop no human has played for one minute.
+- **M6 — The Open City**: core shipped; remaining flesh unchanged, plus
+  the faction-agency Core already landed (arms are rosters of real people;
+  poaching is the existing recruit verbs aimed at someone with an
+  employer; pledge/break allegiance with standing and tribute).
+- **M7 — Operation planning + access.** The two highest-value additions
+  from the outside-in pass, both cheap in the way that matters (decisions,
+  not animation): plan a job (approach / crew / hour / gear) and execute
+  it against the live witness system; soft-key access gating rooms and
+  people by standing, notoriety, dress, and introductions.
+- **M8 — The living economy.** District-scale simulation with legibility
+  as the hard requirement: costs, suppliers, customers, wages, prices —
+  every number surfaced as a person's circumstance. Balance lab gates it
+  against inflation/collapse before it ships.
+- **M9 — Phones + the distance layer.** A second information channel with
+  its own reach and fidelity, plus the counterplay it invites (messages
+  left with people, wiretaps, being reachable at the wrong moment).
+- **M10 — Violence, staged.** Consequence layer can land earlier and
+  cheaply (injuries, hospital, feuds); playable melee is its own milestone
+  after the slice's art pass; firearms last, when the city can react.
+- **Ongoing across all of the above**: districts by generation (traversal
+  breadth), companionship, home-that-reacts, legacy/succession into Act
+  III, notoriety, family, vice.
+
 Rule reaffirmed from §2: if a feature serves none of the five novelty claims, it is cut.
