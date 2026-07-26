@@ -114,6 +114,18 @@ multiple-solutions-per-obstacle as a project law (80), access as soft keys
 (50). **Unchanged refusals:** body needs, vehicle simulation, minigames,
 gear treadmills.
 
+### Approval state (2026-07-26)
+
+All eight outside-in dimensions APPROVED, plus vehicles/driving approved
+for the late roadmap. Approved-and-specced, buildable without further
+input: Act II (four questions answered), Tier-1 batch 2 cards, operation
+planning, access soft keys, companionship, home-that-reacts, multiple
+solutions as law. Approved but needing a design decision before build:
+visible odds (style), interiority (shape for an authored protagonist),
+competence (what unlocks), phones (setting era). Approved but deliberately
+sequenced late: economy at depth (wants the first playtest), staged
+violence beyond the consequence layer (wants art), vehicles.
+
 ### Re-sequenced plan
 
 - **M5 — Vertical slice** stays next and stays the gate. Nothing below is

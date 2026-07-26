@@ -51,11 +51,11 @@ This is the LLM-specific grind risk and the reason chips exist.
 | Character competence | 20 | 45 | 90 | 95 | 30 | 60 | 40 | 0 | **40** |
 | Vice & addiction | 15 | 25 | 40 | 10 | 0 | 30 | 25 | 5 | **40** |
 | Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | 15 | **35** |
-| Visible odds | 0 | 0 | 15 | 95 | 10 | 5 | 70 | 0 | **decide** |
+| Visible odds | 0 | 0 | 15 | 95 | 10 | 5 | 70 | 0 | **50** |
+| Interiority (psyche as system) | 0 | 15 | 0 | 20 | 0 | 30 | 20 | 0 | **30** |
+| Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | 0 | **40, late** |
 | Body needs (eat/sleep/hygiene) | 5 | 45 | 75 | 15 | 0 | 90 | 10 | 0 | **0** |
-| Vehicles as simulation | 95 | 60 | 50 | 0 | 10 | 20 | 0 | 0 | **0** |
 | Crafting / minigames | 20 | 70 | 85 | 30 | 15 | 55 | 0 | 0 | **0** |
-| Interiority (psyche as system) | 0 | 15 | 0 | 20 | 0 | 30 | 20 | 0 | **0** |
 
 \* BG3's social score is AUTHORED breadth — thousands of hand-written
 branches. It anticipates; it does not simulate. Outside the anticipated
@@ -97,17 +97,33 @@ space there is nothing. That is the ceiling we are trying to break.
    mill needs a phone channel with its own reach and fidelity rules, and
    surveillance/wiretaps become a natural counterplay.
 
-## Open decisions
+## The outside-in additions — APPROVED 2026-07-26 (all eight)
 
-- **Visible odds** — BG3 shows the dice; our resolution is hidden state.
-  Showing "this will probably fail" changes the feel of every risky
-  choice. Undecided.
-- **Character competence** — targeted at 40 as *options unlocked*, never
-  numbers that rise (the 2026-07-25 no-grindable-stats rule stands).
-  Needs a concrete design before build.
+1. **Operation planning (75)** — choose approach, people, hour, gear; then
+   survive contact. The largest gap found; where crew competence, loyalty
+   and the witness system converge into a scene.
+2. **Multiple solutions per obstacle (80)** — a project law, not a
+   feature: every locked problem gets three or four legitimate keys. The
+   businesses' buy/debt/leverage triple is the template.
+3. **Companionship (55)** — crew and friends accompany you, observe what
+   happens, and remember it.
+4. **Home / base that reacts (50)** — the bar changes as you do.
+5. **Character competence (40)** — options unlocked, never numbers that
+   rise (the 2026-07-25 no-grindable-stats rule stands).
+6. **Access as soft keys (65)** — Hitman's lesson: places and people cost
+   standing, notoriety, dress, an introduction, or a brokered appointment.
+7. **Visible odds (50)** — the player should know when something is
+   likely to go badly. Style undecided: exact percentages vs. qualitative
+   read vs. reveal-after.
+8. **Interiority (30)** — approved despite the initial recommendation
+   against; shape to be designed for an authored protagonist.
+
+**Vehicles / driving (40): approved for LATE roadmap** (player, same
+session) — no longer refused outright, but sequenced after the systems
+above, since it is expensive and non-differentiating relative to them.
 
 ## Explicitly refused
 
-Drivable vehicle simulation, lockpicking/alchemy/crafting minigames, gear
-treadmills, body-needs maintenance, psyche-as-system. All expensive, none
-differentiating, several actively hostile to the anti-grind rules above.
+Lockpicking/alchemy/crafting minigames, gear treadmills, body-needs
+maintenance. Expensive, non-differentiating, and hostile to the anti-grind
+rules above.
