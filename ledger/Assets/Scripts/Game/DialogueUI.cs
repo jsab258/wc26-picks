@@ -234,8 +234,16 @@ namespace Ledger.Game
                 var crew = e.CrewOf(id);
                 if (crew != null && crew.Assignment == null)
                 {
-                    var open = e.Rackets.Find(r => !r.Established);
+                    var open = e.Rackets.Find(r => !r.Established &&
+                        (r.RequiresBusinessId == null || (e.BusinessOf(r.RequiresBusinessId)?.Owned ?? false)));
                     if (open != null) labelA = $"Put them on the {open.Name}";
+                }
+                else if (crew != null && crew.Assignment != null)
+                {
+                    // §6.5 daily: how you split their take. Cycles on click.
+                    labelA = crew.Cut == "fair" ? "Their cut: fair (change)"
+                        : crew.Cut == "generous" ? "Their cut: generous (change)"
+                        : "Their cut: skimmed (change)";
                 }
                 else if (crew == null && _game.TryNeedOf(id, out var cost, out _))
                 {
@@ -295,9 +303,19 @@ namespace Ledger.Game
             var crew = e.CrewOf(id);
             if (crew != null && crew.Assignment == null)
             {
-                var open = e.Rackets.Find(r => !r.Established);
+                var open = e.Rackets.Find(r => !r.Established &&
+                    (r.RequiresBusinessId == null || (e.BusinessOf(r.RequiresBusinessId)?.Owned ?? false)));
                 if (open != null && e.Establish(open, crew, _game.Now))
                     Narrate($"{id} nods once. The {open.Name} is theirs from tonight.");
+                return;
+            }
+            if (crew != null && crew.Assignment != null)
+            {
+                var next = crew.Cut == "fair" ? "generous" : crew.Cut == "generous" ? "skim" : "fair";
+                e.SetCut(crew, next, _game.Gossip.Mill, _game.Now);
+                Narrate(next == "generous" ? $"You bump {id}'s cut without being asked. They notice things like that."
+                    : next == "skim" ? $"You start shorting {id}'s envelope. Free money, on a fuse."
+                    : $"Back to the standard split with {id}. Fair is fair.");
                 return;
             }
             if (leverage && hook != null && g != null)

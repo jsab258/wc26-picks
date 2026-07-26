@@ -498,6 +498,10 @@ namespace Ledger.Game
                 { "openMode", _game.Campaign.OpenMode }, { "outfitCutOff", _game.Campaign.OutfitCutOff },
                 { "falls", _game.Campaign.Falls }, { "daysClosed", _game.Campaign.DaysClosed },
                 { "npcCount", _npcs != null ? _npcs.Length : 0 },
+                // Informational (nondeterministic): did a racket witness surface to
+                // the player through the normal channels (warning/overheard)?
+                { "racketLeadKnown", System.Linq.Enumerable.Any(_game.Knowledge.Entries,
+                    k => k.TopicKey != null && k.TopicKey.StartsWith("player.racket")) },
                 { "empireOwned", _game.Empire.Businesses.FindAll(b => b.Owned).Count },
                 { "empireCrew", _game.Empire.Crew.Count }, { "racketIncome", _game.Empire.TotalRacketIncome },
                 { "rivalStage", _game.Empire.Rival.Stage },

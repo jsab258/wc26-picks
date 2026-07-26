@@ -244,6 +244,8 @@ namespace Ledger.Game
                 sb.Append($"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.");
                 if (Now.Day <= 2) sb.Append(" You have only just met the new owner.");
                 if (OsseiSpawned) sb.Append(NoorSetup.OsseiContextLine); // PP6: two collectors, different rules
+                if (Campaign.OpenMode && Empire.Rival.Stage >= 2)
+                    sb.Append(" You have heard the Dockside organization is taxing the new owner's street — protection, on Hook Street, in this day and age. That is a story, and you are pulling at it the way you pull at the fire.");
                 if (ActOne.NoorDrawersBroken) sb.Append(NoorSetup.DrawerBrokenLine);
                 else if (ActOne.NoorDrawersEngaged) sb.Append(NoorSetup.DrawerHeldLine);
                 sb.Append(HostRevealText("Noor")).Append(SecretContext("Noor")).Append(SuspicionBehaviorText("Noor"));
@@ -576,6 +578,20 @@ namespace Ledger.Game
             if (g.Leashed) return $"{name} finds somewhere else to look as you pass.";
             if (g.Suspicion.Level == SuspicionLevel.Confronting) return $"{name} stares at you, arms folded. No greeting.";
             if (g.Suspicion.Level == SuspicionLevel.Suspicious) return $"{name} watches you a beat too long before nodding.";
+            // Empire-aware greetings: the street remembers HOW things became yours.
+            var crewBark = Empire.CrewOf(name);
+            if (crewBark != null)
+                return crewBark.Route == "hook" || g.Loyalty < 0.35
+                    ? $"{name} nods the way people nod at debts. \"Boss.\""
+                    : $"{name} tips two fingers, easy. \"Boss.\"";
+            foreach (var b in Empire.Businesses)
+                if (b.Owned && b.OwnerId == name)
+                    return b.AcquiredVia == "clean"
+                        ? $"{name} waves from the counter that used to be theirs. No hard feelings; you paid in full."
+                        : b.AcquiredVia == "hook"
+                        ? $"{name} straightens as you pass, the way people do near ice."
+                        : $"{name} watches you pass their old shop and says nothing at all.";
+
             bool carries = false;
             foreach (var l in _gossip.Mill.Leads("player"))
                 if (l.HolderId == name) { carries = true; break; }

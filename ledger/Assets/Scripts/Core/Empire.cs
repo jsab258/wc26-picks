@@ -36,6 +36,7 @@ namespace Ledger.Core
         public int RecruitedDay;
         public string Assignment;     // racket id or null
         public bool Departed;         // poached or walked — betrayal is visible, never silent
+        public string Cut = "fair";   // fair | generous | skim — §6.5: loyalty is cuts paid
     }
 
     public class Racket
@@ -232,6 +233,22 @@ namespace Ledger.Core
         static double Competence(Gossiper g) =>
             Math.Clamp(0.3 + g.Nerve * 0.4 + g.Loyalty * 0.2, 0.2, 0.9);
 
+        /// §6.5 made daily: how you split the take with each of your people.
+        /// Generous costs money and builds the loyalty that defeats poaching;
+        /// skimming THEIR pay is free money on a fuse — and they keep books too.
+        public void SetCut(CrewMember crew, string policy, GossipMill mill, GameTime now)
+        {
+            if (crew == null || crew.Departed) return;
+            if (policy != "fair" && policy != "generous" && policy != "skim") return;
+            if (crew.Cut == policy) return;
+            crew.Cut = policy;
+            var g = mill?.Get(crew.Id);
+            g?.Memory.Append(new MemoryEvent(now, "observation", 0.7,
+                policy == "generous" ? "The new owner bumped my cut without being asked. I notice things like that."
+                : policy == "skim" ? "My envelope is light again. I counted twice. I always count twice."
+                : "Back to the standard split. Fair is fair, I suppose."));
+        }
+
         // ---- rackets (§2.3): the drop machinery, owned ----
 
         public bool Establish(Racket r, CrewMember runner, GameTime now)
@@ -264,6 +281,24 @@ namespace Ledger.Core
 
                 int income = r.IncomePerDay;
                 var runnerG = mill.Get(runner.Id);
+                // The cut, paid daily (§6.5): generosity is bought loyalty; a
+                // skimmed envelope is counted, remembered, and eventually repaid.
+                if (runnerG != null)
+                {
+                    if (runner.Cut == "generous")
+                    {
+                        income -= 15;
+                        runnerG.Loyalty = Math.Clamp(runnerG.Loyalty + 0.03, 0, 1);
+                    }
+                    else if (runner.Cut == "skim")
+                    {
+                        income += 15;
+                        runnerG.Loyalty = Math.Clamp(runnerG.Loyalty - 0.05, 0, 1);
+                        if (now.Day % 3 == 0)
+                            runnerG.Memory.Append(new MemoryEvent(now, "observation", 0.65,
+                                $"Light again. The {r.Name} pays the same every day; my envelope doesn't. I keep my own book on this."));
+                    }
+                }
                 // Rot is visible early: hook-crew whose loyalty has sunk skim the take.
                 if (runner.Route == "hook" && runnerG != null && runnerG.Loyalty < 0.3)
                 {
@@ -395,6 +430,7 @@ namespace Ledger.Core
                     { "id", c.Id }, { "name", c.Name }, { "route", c.Route },
                     { "competence", c.Competence }, { "day", c.RecruitedDay },
                     { "assignment", c.Assignment ?? "" }, { "departed", c.Departed },
+                    { "cut", c.Cut },
                 }).ToList() },
             { "rackets", Rackets.Select(r => (object)new Dictionary<string, object>
                 {
@@ -434,6 +470,7 @@ namespace Ledger.Core
                     RecruitedDay = MiniJson.GetInt(d, "day"),
                     Assignment = string.IsNullOrEmpty(assignment) ? null : assignment,
                     Departed = Is(d, "departed"),
+                    Cut = string.IsNullOrEmpty(MiniJson.GetString(d, "cut")) ? "fair" : MiniJson.GetString(d, "cut"),
                 });
             }
             foreach (var o in MiniJson.GetList(data, "rackets") ?? new List<object>())

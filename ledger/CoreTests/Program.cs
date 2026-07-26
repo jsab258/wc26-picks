@@ -702,6 +702,24 @@ namespace Ledger.CoreTests
             Check(e8.CrewOf("josip") != null && josip8.Loyalty > 0.7,
                 "empire: a loyal crew member reports the poach instead");
 
+            // The cut, paid daily (§6.5): generosity buys loyalty at $15/day;
+            // skimming their envelope is free money on a fuse they can hear.
+            var (eC, mC, _c, josipC) = Build(0.5, 0.4);
+            josipC.Loyalty = 0.5;
+            eC.RecruitByNeed(josipC, "Josip", 50, new Wallet(100), now);
+            var rkC = eC.RacketOf("collection");
+            eC.Establish(rkC, eC.CrewOf("josip"), now);
+            eC.SetCut(eC.CrewOf("josip"), "generous", mC, now);
+            var wC = new Wallet(0);
+            double loyC = josipC.Loyalty;
+            eC.DailyTick(new GameTime(9, 8, 0), wC, mC);
+            Check(wC.Dirty == 45 && josipC.Loyalty > loyC, "empire: a generous cut costs the take and buys loyalty");
+            eC.SetCut(eC.CrewOf("josip"), "skim", mC, now);
+            loyC = josipC.Loyalty;
+            eC.DailyTick(new GameTime(10, 8, 0), wC, mC);
+            Check(wC.Dirty >= 45 + 75 && josipC.Loyalty < loyC, "empire: skimming their pay earns more and burns loyalty");
+            Check(josipC.Memory.Events.Exists(ev => ev.Text.Contains("envelope")), "empire: the shorted envelope is in their book");
+
             // A racket that needs a front stays closed until the front is yours.
             var (e10, m10, ruta10, josip10) = Build(0.5, 0.4);
             e10.Rackets.Add(new Racket { Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4, RequiresBusinessId = "pawnshop" });

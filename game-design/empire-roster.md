@@ -54,3 +54,21 @@ play, dormant under none (balance-findings-open.md).
 - Data: 45 more validated batch cards ready to instantiate on demand.
 - Pending hand-authored ring (Ferko, Ruta, Vesna, Tibor): next promotions,
   slotting into the cab rank, pawnshop back room, chapel, customs shed.
+
+## Round 2-3 additions (2026-07-26, CI run 30204710961)
+
+- **Fencing line** ($100/day, risk 0.4) — requires owning the pawnshop;
+  Ruta's criminal secret is the natural unlock, her recruitment the natural
+  staffing. Rackets can now require fronts (`RequiresBusinessId`).
+- **The cut** (§6.5 daily): fair / generous (-$15/day, +loyalty — the
+  anti-poach investment) / skim (+$15/day, -loyalty, counted and remembered
+  in their memory file). Set in conversation with assigned crew.
+- **Businesses**: + Magda's teahouse ($600, +$45/day, washes $40),
+  Danica's bakery ($550 or her $150 marker, +$45/day, washes $25) — both
+  owners generated, their batch secrets are the leverage route.
+- **The break**: skipping drops while the rackets pay recontextualizes the
+  outfit cut-off as declared independence (+0.25 rival attention).
+- **Empire-aware street**: crew and former owners greet you by HOW it
+  happened (clean purchase vs squeeze vs leverage); Noor picks up the
+  Dockside-tax story at rival stage 2; Ossei stands down 4 days post-Fall.
+- Live population: ~36 walking (7 cast + Viktor + ring 4 + 24 batch).
