@@ -199,11 +199,7 @@ namespace Ledger.Core
                     "The new owner sorted the thing I needed sorting. I owe them. Not everything — but I owe them."));
                 return false; // the favor lands; the yes isn't there yet
             }
-            Crew.Add(new CrewMember
-            {
-                Id = g.Id, Name = g.DisplayName, Route = "need",
-                Competence = Competence(g), RecruitedDay = now.Day,
-            });
+            Enlist(g, "need", now);
             g.Memory.Append(new MemoryEvent(now, "conversation", 0.9,
                 "I said yes. I work for the new owner now — because of what they did for me, not what they know about me. There's a difference."));
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
@@ -219,11 +215,7 @@ namespace Ledger.Core
             if (!secret.Strong && secret.HookSpent) return false;
             if (!secret.Strong) secret.SpendWeak();
             g.Loyalty = Math.Clamp(g.Loyalty - 0.2, 0, 1);
-            Crew.Add(new CrewMember
-            {
-                Id = g.Id, Name = g.DisplayName, Route = "hook",
-                Competence = Competence(g), RecruitedDay = now.Day,
-            });
+            Enlist(g, "hook", now);
             g.Memory.Append(new MemoryEvent(now, "observation", 0.95,
                 "I work for the new owner now. Not because I chose to. I keep a list in my head of every time they remind me why."));
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
@@ -232,6 +224,29 @@ namespace Ledger.Core
 
         static double Competence(Gossiper g) =>
             Math.Clamp(0.3 + g.Nerve * 0.4 + g.Loyalty * 0.2, 0.2, 0.9);
+
+        /// Joining (or re-joining: someone who quit can be won back) revives the
+        /// departed record instead of duplicating it — one person, one line in
+        /// the book, however many times they've walked.
+        void Enlist(Gossiper g, string route, GameTime now)
+        {
+            var prior = Crew.FirstOrDefault(c => c.Id == g.Id);
+            if (prior != null)
+            {
+                prior.Departed = false;
+                prior.Route = route;
+                prior.Competence = Competence(g);
+                prior.RecruitedDay = now.Day;
+                prior.Assignment = null;
+                prior.Cut = "fair";
+                return;
+            }
+            Crew.Add(new CrewMember
+            {
+                Id = g.Id, Name = g.DisplayName, Route = route,
+                Competence = Competence(g), RecruitedDay = now.Day,
+            });
+        }
 
         /// §6.5 made daily: how you split the take with each of your people.
         /// Generous costs money and builds the loyalty that defeats poaching;

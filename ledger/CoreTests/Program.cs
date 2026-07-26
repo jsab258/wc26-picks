@@ -741,6 +741,13 @@ namespace Ledger.CoreTests
             Check(eQ2.Crew.Exists(c => c.Id == "josip" && c.Departed && c.Cut == "skim"),
                 "empire: departure and cut policy survive the codec");
 
+            // Winning a quitter back revives their record — one person, one line.
+            josipQ.Loyalty = 0.4;
+            Check(eQ.RecruitByNeed(josipQ, "Josip", 50, new Wallet(100), now)
+                && eQ.Crew.FindAll(c => c.Id == "josip").Count == 1
+                && eQ.CrewOf("josip") != null && eQ.CrewOf("josip").Cut == "fair",
+                "empire: re-recruiting revives the record, never duplicates it");
+
             // A racket that needs a front stays closed until the front is yours.
             var (e10, m10, ruta10, josip10) = Build(0.5, 0.4);
             e10.Rackets.Add(new Racket { Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4, RequiresBusinessId = "pawnshop" });
