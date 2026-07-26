@@ -112,27 +112,49 @@ namespace Ledger.Game
                 _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - Camera.main.transform.position);
         }
 
-        /// Street-wise steering: walk straight when the line is clear of building
-        /// masses, otherwise follow the street cross (nearest arm, corner at the
-        /// intersection). Stateless and re-evaluated every tick, so a schedule
-        /// change mid-walk just bends the route. Replaces the old straight-line
-        /// move that let characters pass through buildings.
+        /// Street-wise steering. Walk straight when the line is clear of
+        /// buildings; otherwise get to the nearest STREET and follow it.
+        ///
+        /// This used to fall back to "the nearest point on the founding cross",
+        /// which was true when the city had two roads and became nonsense the
+        /// moment it had forty. It now uses the real network, so people walk
+        /// down streets to get places instead of cutting diagonally across the
+        /// blocks between them — which is most of what makes a crowd read as a
+        /// crowd rather than as particles.
+        ///
+        /// Stateless and re-evaluated every tick, so a schedule change mid-walk
+        /// just bends the route, and the accelerated CI sim stays deterministic.
         Vector3 Steer(Vector3 cur, Vector3 target)
         {
             if (WorldBuilder.SegmentClear(cur, target)) return target;
-            var targetArm = NearestOnCross(target);
-            if (WorldBuilder.SegmentClear(cur, targetArm)) return targetArm;
-            var myArm = NearestOnCross(cur);
-            if ((myArm - cur).sqrMagnitude > 0.04f && WorldBuilder.SegmentClear(cur, myArm)) return myArm;
-            return new Vector3(0, cur.y, 0); // toward the intersection until a turn opens
+
+            // Aim for the street outside the destination first.
+            var targetStreet = NearestStreetPoint(target);
+            if (WorldBuilder.SegmentClear(cur, targetStreet)) return targetStreet;
+
+            // Otherwise get onto our own street and follow it round.
+            var myStreet = NearestStreetPoint(cur);
+            if ((myStreet - cur).sqrMagnitude > 0.04f && WorldBuilder.SegmentClear(cur, myStreet))
+                return myStreet;
+
+            // Last resort: the nearest junction, which is always on tarmac and
+            // always connected to everywhere else.
+            var j = Ledger.Core.StreetMap.NearestNode(cur.x, cur.z, junctionsOnly: true);
+            return j != null ? new Vector3((float)j.X, cur.y, (float)j.Z) : new Vector3(0, cur.y, 0);
         }
 
-        /// Closest point on the two street centerlines (x = 0 or z = 0).
-        static Vector3 NearestOnCross(Vector3 p)
+        /// Closest point on any street, pulled a little toward the pavement so
+        /// people walk beside the traffic rather than down the middle of it.
+        static Vector3 NearestStreetPoint(Vector3 p)
         {
-            var ns = new Vector3(0, p.y, p.z);
-            var ew = new Vector3(p.x, p.y, 0);
-            return (ns - p).sqrMagnitude <= (ew - p).sqrMagnitude ? ns : ew;
+            if (!Ledger.Core.StreetMap.NearestOnStreet(p.x, p.z, out var sx, out var sz, out var edge))
+                return p;
+            var onRoad = new Vector3((float)sx, p.y, (float)sz);
+            var toWalker = new Vector3(p.x - onRoad.x, 0, p.z - onRoad.z);
+            float pavement = (float)edge.Width / 2f + 1.1f;
+            return toWalker.sqrMagnitude < 0.01f
+                ? onRoad
+                : onRoad + toWalker.normalized * pavement;
         }
     }
 }
