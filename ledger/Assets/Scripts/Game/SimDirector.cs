@@ -94,7 +94,10 @@ namespace Ledger.Game
             // Open-mode Fall in CI: if week two arrived without the fuse ever
             // blowing organically, stage one on day 9 so the whole Fall path
             // (seizure, time skip, the street knowing) runs in-engine every build.
-            if (!_forcedFall && now.Day >= 9 && _game.Campaign.OpenMode
+            // AFTER the morning close (hour >= 10): the Fall's 3-day skip must
+            // not swallow day 9's close, or DaysClosed never reaches 8 and the
+            // openMode criterion reads as a regression (run 30199175088).
+            if (!_forcedFall && now.Day >= 9 && now.Hour >= 10 && _game.Campaign.OpenMode
                 && _game.Campaign.Falls == 0 && !_game.Campaign.FallPending)
             {
                 _forcedFall = true;
@@ -471,6 +474,7 @@ namespace Ledger.Game
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
                       $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
+                      $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
