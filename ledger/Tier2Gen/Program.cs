@@ -42,7 +42,7 @@ namespace Ledger.Tier2Gen
         static async Task<int> MainAsync(string[] args)
         {
             int count = ArgInt(args, "--count", 60);
-            int perCall = ArgInt(args, "--batch", 5);
+            int perCall = ArgInt(args, "--batch", 4);
             string outDir = ArgStr(args, "--out", "tier2-out");
             string model = ArgStr(args, "--model", "claude-sonnet-5");
 
@@ -71,7 +71,7 @@ namespace Ledger.Tier2Gen
                 var request = new LlmRequest
                 {
                     Model = model,
-                    MaxTokens = 4000,
+                    MaxTokens = 8000,
                     System = SystemPrompt(),
                     Messages = { new LlmMessage("user", UserPrompt(want, takenIds, takenNames, usedOccupations, lastFailures)) },
                 };
@@ -256,16 +256,50 @@ namespace Ledger.Tier2Gen
             return null;
         }
 
+        /// Salvage parser: a hard max_tokens cut mid-card must not cost the whole
+        /// batch (run 30199532311 died exactly that way). Walk the array tracking
+        /// string/escape state, carve out each balanced top-level object, and
+        /// parse them individually — complete cards survive a truncated tail.
         static List<Dictionary<string, object>> ParseCards(string text)
         {
-            // Tolerate stray prose/fences around the array: parse from first '[' to last ']'.
-            int a = text.IndexOf('['), b = text.LastIndexOf(']');
-            if (a < 0 || b <= a) return null;
-            var parsed = MiniJson.Deserialize(text.Substring(a, b - a + 1));
-            var list = MiniJson.AsList(parsed);
-            if (list == null) return null;
-            var cards = list.Select(MiniJson.AsObject).ToList();
-            return cards.Any(c => c == null) ? null : cards;
+            int start = text.IndexOf('[');
+            if (start < 0) return null;
+            var cards = new List<Dictionary<string, object>>();
+            bool inStr = false, esc = false;
+            int depth = 0, objStart = -1;
+            for (int i = start; i < text.Length; i++)
+            {
+                char ch = text[i];
+                if (inStr)
+                {
+                    if (esc) esc = false;
+                    else if (ch == '\\') esc = true;
+                    else if (ch == '"') inStr = false;
+                    continue;
+                }
+                if (ch == '"') { inStr = true; continue; }
+                if (ch == '{' || ch == '[')
+                {
+                    if (depth == 1 && ch == '{' && objStart < 0) objStart = i;
+                    depth++;
+                }
+                else if (ch == '}' || ch == ']')
+                {
+                    depth--;
+                    if (depth == 1 && ch == '}' && objStart >= 0)
+                    {
+                        try
+                        {
+                            var o = MiniJson.AsObject(MiniJson.Deserialize(text.Substring(objStart, i - objStart + 1)));
+                            if (o != null) cards.Add(o);
+                        }
+                        catch (Exception) { /* a malformed card dies alone */ }
+                        objStart = -1;
+                    }
+                    if (depth <= 0) break; // the array closed (or the text ran out honestly)
+                }
+            }
+            return cards.Count > 0 ? cards : null;
         }
 
         /// Same markdown shape the engine already parses (CharacterCard.Parse).
