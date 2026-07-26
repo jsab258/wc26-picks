@@ -23,12 +23,33 @@ crew, the hour, and how much of the street is watching, and it either lands or
 you're told plainly why it didn't. Anything else is just talking, which is most
 of what you'll say and always the safe default.
 
+| F | get in / out of your car (it's parked outside the bar) |
 | L | **the ledger** — what you believe the street knows, what you hold, THE STREET (open city) |
 | C | the runner's coat — harder to name at night, harder to explain in daylight |
 | F1 | debug: the brain of whoever you're near (memory file, suspicion, beliefs) |
 | F2 | API key entry (conversations are live LLM; get one at console.anthropic.com) |
 | F5 | save · autosaves every morning |
 | Esc | close panels |
+
+## The streets
+
+The district is a real grid now — ten named streets, sixteen blocks, traffic
+on them. Cars, vans, lorries, a bus that runs a circuit and stops at its
+stops, cabs that idle at the ferry stop and the cab rank, and bicycles that
+use the lanes. Lights at the four big crossings, stop signs everywhere else,
+and no-entry where a lane leaves a junction — the lanes go to doorways, not
+through.
+
+**Your car is parked outside the bar. F to get in, WASD to drive, F to get
+out.** It is arcade: no gears, no damage, no fuel. Traffic brakes for you,
+and for anybody else in the road — **you cannot run people over.** That is a
+deliberate decision and it's in the pending queue if you want it changed.
+
+**A car is a thing witnesses describe.** Driving to a night drop is faster
+and more memorable than walking to one: whoever sees you will mention the
+car, and they will mention it *whether or not you were wearing the coat*. The
+coat buys doubt about your face. It buys none at all about the vehicle
+standing in the street.
 
 ## The week (days 1–7)
 
