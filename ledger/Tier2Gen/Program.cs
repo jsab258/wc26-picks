@@ -24,7 +24,14 @@ namespace Ledger.Tier2Gen
         // Ids that already exist in the game; generated connections and knownBy
         // must resolve to these or to cards in the same run. Ossei is deliberately
         // absent — the police have no friends here.
-        static readonly string[] ExistingCast = { "rocco", "ada", "sam", "lena", "noor", "mirela", "josip" };
+        static readonly string[] ExistingCast =
+        {
+            "rocco", "ada", "sam", "lena", "noor", "mirela", "josip",
+            // Batch promotions and the hand-authored ring:
+            "viktor", "ferko", "ruta", "vesna", "tibor",
+            // Reserved for the doc's Tier-1 cast (§8):
+            "emil", "june", "aldous", "sera", "danny", "mara", "marek", "ossei",
+        };
 
         static readonly string[] OccupationPool =
         {

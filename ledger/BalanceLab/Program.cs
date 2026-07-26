@@ -40,6 +40,8 @@ namespace Ledger.BalanceLab
                 var r = RunMany(policy, weeks);
                 Console.WriteLine($"{name,-13} {r.winPct,5:0.0} {r.exposedPct,8:0.0} {r.castoutPct,8:0.0} {r.avgCash,6:0} {r.avgPeakHeat,7:0.00} {r.avgDcSpend,6:0}");
             }
+
+            RunOpenLab(weeks);
         }
 
         enum DcStyle { None, Bribe, Intimidate, Discredit, Smart }
@@ -199,6 +201,186 @@ namespace Ledger.BalanceLab
             }
         }
 
+        // ==== the open city (days 1-21): does the empire loop hold? ====
+
+        enum OpenPlan { Control, Aggressive, Cautious }
+
+        static void RunOpenLab(int runs)
+        {
+            Console.WriteLine("\n== open city (21 days; week won -> empire; smart DC throughout) ==");
+            Console.WriteLine($"{"plan",-12} {"reach%",7} {"cash",7} {"falls",6} {"cutoff%",8} {"stage",6} {"rounds$",8} {"broke%",7}");
+            foreach (var plan in new[] { OpenPlan.Control, OpenPlan.Aggressive, OpenPlan.Cautious })
+            {
+                int reached = 0, cutoff = 0, broke = 0;
+                double cash = 0, falls = 0, stage = 0, rounds = 0;
+                for (int seed = 0; seed < runs; seed++)
+                {
+                    var o = RunOpenCampaign(plan, new Random(seed * 104729 + 7));
+                    if (!o.reachedOpen) continue;
+                    reached++;
+                    cash += o.endCash; falls += o.falls; stage += o.rivalStage; rounds += o.racketIncome;
+                    if (o.cutOff) cutoff++;
+                    if (o.endCash < 50) broke++;
+                }
+                int n = Math.Max(1, reached);
+                Console.WriteLine($"{plan,-12} {100.0 * reached / runs,6:0.0}% {cash / n,7:0} {falls / n,6:0.00} " +
+                                  $"{100.0 * cutoff / n,7:0.0}% {stage / n,6:0.0} {rounds / n,8:0} {100.0 * broke / n,6:0.0}%");
+            }
+        }
+
+        static (bool reachedOpen, int endCash, int falls, bool cutOff, int rivalStage, int racketIncome)
+            RunOpenCampaign(OpenPlan plan, Random rng)
+        {
+            var camp = new Campaign();
+            var mill = BuildOpenStreet();
+            var wallet = new Wallet(250);
+            var empire = BuildEmpire();
+            mill.Witness("Rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "the new owner was at the old warehouse the night of the fire", true, new GameTime(1, 9, 0));
+
+            var now = new GameTime(1, 9, 0);
+            int lastClosedDay = 1, jobPostedDay = -1, lastActDay = 0;
+            bool jobOpen = false;
+
+            while (now.Day <= 21)
+            {
+                now = now.AddMinutes(60);
+                mill.Age(now);
+                mill.Tick(now, (a, b) => BothActive(a, b, now.Hour) && rng.NextDouble() < TalkChancePerHourSameCircle);
+                double heat = mill.DayCircleHeat();
+
+                if (now.Hour >= 8 && now.Day > lastClosedDay)
+                {
+                    lastClosedDay = now.Day;
+                    int takings = camp.CloseDay(heat);
+                    foreach (var b in empire.Businesses)
+                        if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * Math.Max(0.0, 1.0 - 0.85 * heat));
+                    wallet.EarnClean(takings);
+                    wallet.LaunderPerDay = 120 + empire.OwnedLaunderCapacity;
+                    wallet.Launder();
+                    if (camp.Verdict == Verdict.WonWeek) camp.EnterOpenMode();
+                    if (camp.Verdict != Verdict.Ongoing) break; // lost the week itself
+                    if (camp.OpenMode)
+                    {
+                        empire.DailyTick(now, wallet, mill);
+                        if (camp.FallPending)
+                        {
+                            // The Fall, as the game runs it: seize, the street knows, 3 days gone.
+                            camp.ConsumeFall();
+                            wallet.Seize();
+                            foreach (var a in mill.Agents)
+                            {
+                                a.Rumors.RemoveAll(r => r.Content.Subject == "player");
+                                a.Suspicion.Restore(0.2);
+                                a.Loyalty = Math.Clamp(a.Loyalty - 0.15, 0, 1);
+                            }
+                            now = new GameTime(now.Day + 3, 8, 0);
+                            lastClosedDay = now.Day;
+                            jobPostedDay = now.Day;
+                        }
+                    }
+                }
+
+                if (now.Hour >= 12 && now.Day > lastActDay)
+                {
+                    var lead = mill.Leads("player").FirstOrDefault();
+                    if (lead != null && lead.Confidence >= 0.25)
+                    {
+                        lastActDay = now.Day;
+                        Act(DcStyle.Smart, mill, lead, wallet, now);
+                    }
+                }
+
+                if (camp.OpenMode && now.Hour == 10) PlanActions(plan, empire, mill, wallet, now);
+
+                if (now.Hour >= 22 && jobPostedDay != now.Day && !camp.OutfitCutOff) { jobPostedDay = now.Day; jobOpen = true; }
+                if (jobOpen && now.Hour >= 23)
+                {
+                    jobOpen = false;
+                    camp.JobDone();
+                    wallet.EarnDirty(camp.JobPay);
+                    if (rng.NextDouble() < WitnessChance)
+                        mill.Witness(rng.NextDouble() < 0.6 ? "Rocco" : "Sam",
+                            new Fact("player", $"night_job_d{now.Day}", "seen"),
+                            "the new owner was handling a package in the street past midnight", true, now);
+                }
+            }
+            return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage, empire.TotalRacketIncome);
+        }
+
+        static void PlanActions(OpenPlan plan, EmpireBook e, GossipMill mill, Wallet wallet, GameTime now)
+        {
+            if (plan == OpenPlan.Control) return;
+            var sam = mill.Get("Sam");
+            var viktor = mill.Get("Viktor");
+            var josip = mill.Get("Josip");
+            var shop = e.BusinessOf("pawnshop");
+            var coll = e.RacketOf("collection");
+
+            if (plan == OpenPlan.Aggressive)
+            {
+                if (e.CrewOf("Sam") == null && sam != null) e.RecruitByNeed(sam, "Sam", 120, wallet, now);
+                if (!coll.Established && e.CrewOf("Sam") != null) e.Establish(coll, e.CrewOf("Sam"), now);
+                if (!shop.Owned && !shop.DebtHeld && wallet.Total >= shop.DebtPrice) e.BuyDebt(shop, wallet);
+                if (!shop.Owned && shop.DebtHeld && viktor != null) e.Squeeze(shop, viktor, mill, now);
+                if (e.CrewOf("Josip") == null && josip != null && wallet.Total >= 100) e.RecruitByNeed(josip, "Josip", 100, wallet, now);
+                var prot = e.RacketOf("protection");
+                if (!prot.Established && e.CrewOf("Josip") != null) e.Establish(prot, e.CrewOf("Josip"), now);
+            }
+            else // Cautious: clean money only, one round, and not before the street settles.
+            {
+                if (!shop.Owned && wallet.Clean >= shop.AskPrice && viktor != null) e.BuyClean(shop, wallet, viktor, now);
+                if (now.Day >= 12 && e.CrewOf("Sam") == null && sam != null) e.RecruitByNeed(sam, "Sam", 120, wallet, now);
+                if (now.Day >= 13 && !coll.Established && e.CrewOf("Sam") != null) e.Establish(coll, e.CrewOf("Sam"), now);
+            }
+        }
+
+        static EmpireBook BuildEmpire()
+        {
+            var e = new EmpireBook();
+            e.Businesses.Add(new Business
+            {
+                Id = "pawnshop", Name = "pawnshop", OwnerId = "Viktor", PlaceId = "pawnshop",
+                AskPrice = 900, DebtPrice = 250, SecretId = "viktor_skim",
+                CleanIncomePerDay = 60, LaunderPerDay = 80,
+            });
+            e.Businesses.Add(new Business
+            {
+                Id = "stall", Name = "market stall", OwnerId = "Mirela", PlaceId = "market_corner",
+                AskPrice = 500, DebtPrice = 0, SecretId = "mirela_scale",
+                CleanIncomePerDay = 40, LaunderPerDay = 30,
+            });
+            e.Rackets.Add(new Racket { Id = "collection", Name = "collection round", IncomePerDay = 60, BaseRisk = 0.35 });
+            e.Rackets.Add(new Racket { Id = "protection", Name = "protection round", IncomePerDay = 80, BaseRisk = 0.5 });
+            return e;
+        }
+
+        /// The founding street plus the empire's people, ties as in-game.
+        static GossipMill BuildOpenStreet()
+        {
+            var graph = new SocialGraph();
+            graph.Link("Rocco", "Lena", 0.7);
+            graph.Link("Rocco", "Sam", 0.8);
+            graph.Link("Sam", "Lena", 0.6);
+            graph.Link("Ada", "Lena", 0.6);
+            graph.Link("Ada", "Sam", 0.5);
+            graph.Link("Josip", "Rocco", 0.6);
+            graph.Link("Josip", "Sam", 0.3);
+            graph.Link("Mirela", "Ada", 0.5);
+            graph.Link("Mirela", "Sam", 0.4);
+            graph.Link("Viktor", "Lena", 0.4);
+            graph.Link("Viktor", "Sam", 0.5);
+            var mill = new GossipMill(graph);
+            mill.Add(Brain("Lena", "day", 0.25, 0.75, 0.5));
+            mill.Add(Brain("Rocco", "night", 0.6, 0.5, 0.6));
+            mill.Add(Brain("Ada", "day", 0.15, 0.8, 0.4));
+            mill.Add(Brain("Sam", "both", 0.85, 0.25, 0.3));
+            mill.Add(Brain("Josip", "night", 0.7, 0.45, 0.35));
+            mill.Add(Brain("Mirela", "day", 0.55, 0.35, 0.4));
+            mill.Add(Brain("Viktor", "day", 0.7, 0.4, 0.4));
+            return mill;
+        }
+
         /// Same cast, traits, and ties as the game wires up (CastSetup + GossipDirector).
         static GossipMill BuildStreet()
         {
@@ -233,6 +415,9 @@ namespace Ledger.BalanceLab
                 case "Rocco": return hour >= 12 || hour < 4; // bar afternoons, streets at night
                 case "Lena": return hour >= 8;               // behind the counter till close
                 case "Ada": return hour >= 8 && hour < 20;
+                case "Mirela": return hour >= 8 && hour < 18;  // the stall
+                case "Viktor": return hour >= 9 && hour < 20;  // shop hours, then the teahouse
+                case "Josip": return hour >= 18 || hour < 6;   // the docks' hours
                 default: return true;                        // Sam
             }
         }

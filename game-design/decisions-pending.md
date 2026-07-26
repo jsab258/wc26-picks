@@ -8,8 +8,16 @@ as answerable options — the doc is the record, the chat is the interface.
 
 ## Open now
 
-*(empty — queue cleared 2026-07-26: Act I, Noor, Open City, chips all
-decided; see process.md log)*
+*(nothing blocking — queue cleared 2026-07-26; the 24h build ran on standing
+mandates. Non-blocking items for whenever you surface:)*
+
+1. **Empire tuning taste check** (from balance-findings-open.md): aggressive
+   play nets only +11% cash for 10x the Falls. Fine as "position over
+   profit" design, or should rackets pay more? RECOMMEND: leave until you
+   feel it in play; knobs documented.
+2. **Playtest when ready**: the latest green LEDGER-Windows artifact now
+   contains the whole arc — Act I week, posture, the city opening, empire
+   verbs, 22 residents. This supersedes every earlier build.
 
 ## Will need you at the vertical slice (M5) — ALL DEFERRED as long as possible (player, 2026-07-26)
 
