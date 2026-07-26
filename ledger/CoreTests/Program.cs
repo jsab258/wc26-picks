@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestStreets();
                 TestAccess();
                 TestOperations();
                 TestPopulation();
@@ -1840,6 +1841,124 @@ namespace Ledger.CoreTests
                 "and so does when he was last paid");
             after.Restore(null);
             Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "restoring nothing changes nothing");
+        }
+
+        // ---------------------------------------------------------------
+        // The street network (roadmap M12)
+        // ---------------------------------------------------------------
+
+        static void TestStreets()
+        {
+            Console.WriteLine("Streets — the city gets roads:");
+            StreetMap.Rebuild();
+
+            Check(StreetMap.Nodes.Count(n => n.IsJunction) == 25, "twenty-five junctions, sixteen blocks",
+                StreetMap.Nodes.Count(n => n.IsJunction).ToString());
+            Check(StreetMap.Blocks.Count == 16, "sixteen blocks of buildable ground",
+                StreetMap.Blocks.Count.ToString());
+
+            // Scale, against the urban-design benchmarks. Portland's walkable
+            // block is 79m and Barcelona's Eixample is 113m; a game compresses,
+            // but the OLD district was a 90m slab entire — one city block for a
+            // whole city, which is why it read as a diorama.
+            double span = StreetMap.AvenuesX.Max() - StreetMap.AvenuesX.Min();
+            Check(span >= 100, "the city spans more than a single real city block", span + "m");
+            Check(StreetMap.Spacing >= 20 && StreetMap.Spacing <= 40,
+                "blocks are compressed for a game but not alleys", StreetMap.Spacing.ToString());
+            foreach (var b in StreetMap.Blocks)
+                Check(b.Width >= 12 && b.Depth >= 12, "every block has room to build on",
+                    $"{b.Width}x{b.Depth}");
+
+            // THE ONE THAT CAUGHT A REAL BUG. An earlier grid put avenues
+            // straight through all four founding corner buildings; nobody
+            // should discover that by driving into one. The founding boxes are
+            // re-placed into blocks by the world builder now, so what this
+            // asserts is that the ones that have NOT moved are still clear.
+            foreach (var x in StreetMap.AvenuesX)
+                Check(x == 0 || StreetMap.AvenueClear(x, northSouth: true),
+                    $"the avenue at x={x} does not cut through a standing building");
+            foreach (var z in StreetMap.AvenuesZ)
+                Check(z == 0 || StreetMap.AvenueClear(z, northSouth: false),
+                    $"the avenue at z={z} does not cut through a standing building");
+
+            // Every named place must sit on buildable ground or on its own
+            // lane — a doorway in the middle of an avenue is not a doorway.
+            foreach (var place in HookMap.Places)
+            {
+                bool onBlock = StreetMap.BlockAt(place.X, place.Z) != null;
+                bool nearRoad = StreetMap.OnStreet(place.X, place.Z, margin: 3);
+                Check(onBlock || nearRoad, $"{place.Id} is either on a block or beside a road",
+                    $"({place.X},{place.Z})");
+            }
+            Check(StreetMap.Edges.Any(e => e.Kind == "avenue"), "there are avenues");
+            Check(StreetMap.Edges.Any(e => e.Kind == "lane"), "and lanes to the doors");
+
+            // The founding cross must survive untouched — geometry is already
+            // built on it and moving a road under a building is not a refactor.
+            Check(StreetMap.AvenuesX.Contains(0.0) && StreetMap.AvenuesZ.Contains(0.0),
+                "the founding cross at x=0 and z=0 is part of the grid, so nothing built moves");
+            Check(StreetMap.Edges.Any(e => e.Kind == "street"), "and keeps its own narrower class");
+
+            // Irregular spacing: a chessboard reads as a chessboard.
+            // A regular grid is fine — Barcelona's Eixample is one, and the
+            // research is clear that what makes a grid read as designed is the
+            // CHAMFERED CORNER, not irregular spacing. Cutting the corner off
+            // each block turns every crossroads into a small plaza and opens
+            // the diagonal sightline, for almost nothing.
+            Check(StreetMap.Chamfer > 0 && StreetMap.Chamfer < StreetMap.Spacing / 4,
+                "junction corners are chamfered, and modestly", StreetMap.Chamfer.ToString());
+
+            // THE PROPERTY THAT MATTERS. An unreachable address is worse than no
+            // streets at all, because the player will walk at it.
+            Check(StreetMap.FullyConnected(), "every junction is reachable from every other by road");
+            foreach (var place in HookMap.Places)
+            {
+                var stop = StreetMap.Node("stop_" + place.Id);
+                Check(stop != null, $"{place.Id} is on the map as an address");
+                Check(StreetMap.EdgesAt(stop.Id).Any(), $"{place.Id} has a lane to a street");
+            }
+
+            // Every place routes to every other. Sampled across the extremes
+            // rather than all 576 pairs, which would be slow and no more true.
+            var ends = new[] { "bar_door", "customs_shed", "warehouse_row", "tenement_north", "repair_yard" };
+            foreach (var a in ends)
+                foreach (var b in ends)
+                {
+                    var route = StreetMap.Route("stop_" + a, "stop_" + b);
+                    Check(route.Count > 0, $"you can get from {a} to {b}");
+                    Check(route[0].Id == "stop_" + a && route[route.Count - 1].Id == "stop_" + b,
+                        $"and the route from {a} to {b} actually starts and ends there");
+                }
+
+            // A driving route may pull out of a lane and park in one, but must
+            // not thread lanes in the middle — that is driving through gardens.
+            var drive = StreetMap.Route("stop_bar_door", "stop_customs_shed", driveableOnly: true);
+            Check(drive.Count > 2, "a car can drive across the city");
+            for (int i = 1; i + 1 < drive.Count; i++)
+                Check(drive[i].IsJunction, "and does it on junctions, not through people's lanes", drive[i].Id);
+
+            // Steering: the nearest point on a street, and what counts as road.
+            Check(StreetMap.NearestOnStreet(2, 2, out var nx, out var nz, out var ne),
+                "any position has a nearest street");
+            Check(Math.Abs(nx) < 3 || Math.Abs(nz) < 3, "which near the crossing is the crossing", $"{nx:0.0},{nz:0.0}");
+            Check(StreetMap.OnRoad(0, 0), "the middle of the founding crossing is road");
+            Check(StreetMap.OnRoad(26, 10), "an avenue is road along its length");
+            // No AVENUE may cross a block interior — that is the whole promise
+            // of a grid. Lanes may and should: a lane crossing a courtyard to
+            // reach a door is a driveway, which is correct.
+            foreach (var b in StreetMap.Blocks)
+                Check(!StreetMap.OnRoad(b.CentreX, b.CentreZ),
+                    "no avenue runs through the middle of a block", $"({b.CentreX},{b.CentreZ})");
+            Check(StreetMap.Blocks.Any(b => StreetMap.OnStreet(b.CentreX, b.CentreZ)),
+                "but lanes do reach into blocks, because doors are inside them");
+
+            // Determinism: the city must be the same city every run.
+            var before = StreetMap.Edges.Count;
+            StreetMap.Rebuild();
+            Check(StreetMap.Edges.Count == before, "rebuilding produces the same city");
+
+            Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
+            Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
         }
 
         // ---------------------------------------------------------------
