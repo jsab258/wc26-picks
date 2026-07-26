@@ -29,6 +29,23 @@ namespace Ledger.Game
         // Empire v1 (open-city-spec §2): the other ledger. Businesses, crew,
         // rackets, and the Dockside street arm watching it all grow.
         public EmpireBook Empire { get; } = EmpireSetup.Build();
+
+        // The day job (doc §6.6): courier shifts at Meridian Parcel. Open-mode
+        // only for now — Act I's week belongs to the bar. The dispatcher's card
+        // (Zlata, cast-tier1-batch2.md) slots in on approval; the system stands.
+        public DayJob Job { get; } = new DayJob();
+        GameObject _dispatchMarker, _shiftMarker;
+        int _dispatchToastDay;
+        int _shiftStop;
+        static readonly Vector3 DispatchBoard = new Vector3(20, 0, 8);
+        static readonly Vector3[] ShiftStops =
+        {
+            new Vector3(10, 0, -14),   // the market corner
+            new Vector3(20, 0, 8),     // back to the board, signed sheet
+        };
+        public Vector3? DayJobTargetPos =>
+            _shiftMarker != null ? (Vector3?)_shiftMarker.transform.position
+            : _dispatchMarker != null ? (Vector3?)_dispatchMarker.transform.position : null;
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
         // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
         public DebtBook Debts { get; } = new DebtBook();
@@ -344,6 +361,7 @@ namespace Ledger.Game
                 CheckOsseiInterviews();
                 CheckOnboarding();
                 CheckActOne();
+                CheckDayJob();
             }
         }
 
@@ -413,6 +431,67 @@ namespace Ledger.Game
                         $"The detective asked me straight. I told her what I saw: {r.Summary}"));
                     if (_ossei != null) _ossei.Memory.Append(new MemoryEvent(Now, "conversation", 0.85,
                         $"Interviewed {npc.DisplayName}. Statement: {r.Summary}"));
+                }
+            }
+        }
+
+        /// The courier round (doc §6.6): the board by the docks, a route of
+        /// stops, clean pay, and the quiet cover of being someone with a
+        /// timecard. Time is the resource — the morning goes to parcels.
+        void CheckDayJob()
+        {
+            if (!Campaign.OpenMode || _ui == null || _player == null) return;
+
+            if (Job.CanAccept(Now))
+            {
+                if (_dispatchMarker == null)
+                {
+                    _dispatchMarker = SpawnGlowMarker(DispatchBoard, new Color(0.35f, 0.72f, 0.78f), "DispatchBoard");
+                    if (_dispatchToastDay != Now.Day)
+                    {
+                        _dispatchToastDay = Now.Day;
+                        ToastLine("Meridian Parcel's board is up by the docks: a morning route, $40 clean, honest as bread.", 8f);
+                    }
+                }
+            }
+            else if (_dispatchMarker != null) { Destroy(_dispatchMarker); _dispatchMarker = null; }
+
+            var p = _player.transform.position;
+            if (_dispatchMarker != null &&
+                Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(DispatchBoard.x, 0, DispatchBoard.z)) < 2.5f
+                && Job.Accept(Now))
+            {
+                Destroy(_dispatchMarker);
+                _dispatchMarker = null;
+                _shiftStop = 0;
+                _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+                ToastLine("The dispatcher hands you a satchel without ceremony. First stop: the market corner. Delivered by evening.", 9f);
+            }
+
+            if (_shiftMarker != null)
+            {
+                if (Job.Lapse(Now))
+                {
+                    Destroy(_shiftMarker);
+                    _shiftMarker = null;
+                    ToastLine("Evening. The parcels go back on the shelf, unsigned. The board remembers who finishes.", 8f);
+                    return;
+                }
+                var m = _shiftMarker.transform.position;
+                if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
+                {
+                    Destroy(_shiftMarker);
+                    _shiftMarker = null;
+                    if (Job.Advance(ShiftStops.Length))
+                    {
+                        int pay = Job.Complete(Wallet, Now);
+                        ToastLine($"Route done. +${pay} clean, and the dispatcher initials your sheet without looking up. Honest work shows.", 9f);
+                    }
+                    else
+                    {
+                        _shiftStop++;
+                        _shiftMarker = SpawnGlowMarker(ShiftStops[_shiftStop], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+                    }
                 }
             }
         }
@@ -791,6 +870,13 @@ namespace Ledger.Game
                     _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
                         "Counted the till again. There is money moving through this bar that no tap sold."));
                 }
+                // The cover of honest work (§6.6): a day walked in company
+                // uniform lets the day circle breathe out a little.
+                if (Job.WorkedYesterday(Now) && _gossip != null && _gossip.Mill != null)
+                    foreach (var a in _gossip.Mill.Agents)
+                        if (a.Circle == "day")
+                            a.Suspicion.Lower(0.02, "steady work reads honest");
+
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
                 SaveNow(quiet: true); // the morning close is the autosave point
             }
@@ -1022,6 +1108,7 @@ namespace Ledger.Game
         Dictionary<string, object> ExtraFlags() => new Dictionary<string, object>
         {
             { "empire", Empire.Capture() },
+            { "dayjob", Job.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
             { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
             { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
@@ -1086,6 +1173,7 @@ namespace Ledger.Game
                 ActOne.NoorDrawersEngaged = FlagB(extra, "noorDrawers");
                 ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
                 if (extra.TryGetValue("empire", out var em)) Empire.Restore(MiniJson.AsObject(em));
+                if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
                 {
                     // Drawer contents ride the mill's suppression sets; rebuild the

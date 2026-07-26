@@ -45,6 +45,7 @@ namespace Ledger.CoreTests
                 TestSaveRoundTrip();
                 TestDebts();
                 TestEmpire();
+                TestDayJob();
                 TestResponseValidator();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
@@ -803,6 +804,37 @@ namespace Ledger.CoreTests
             Check(e9.Rival.Stage == 3 && e9.Rival.ProtectionTaxPerDay == 40
                 && e9.Crew.Any(c => c.Id == "josip" && c.Departed) && !e9.RacketOf("collection").Established,
                 "empire: the whole book survives the codec");
+        }
+
+        static void TestDayJob()
+        {
+            Console.WriteLine("DayJob:");
+            var j = new DayJob();
+            Check(!j.Accept(new GameTime(8, 6, 0)), "dayjob: no shifts before the board is up");
+            Check(!j.Accept(new GameTime(8, 13, 0)), "dayjob: the board comes down at noon");
+            Check(j.Accept(new GameTime(8, 9, 0)), "dayjob: a morning shift is accepted");
+            Check(!j.Accept(new GameTime(8, 10, 0)), "dayjob: never two satchels at once");
+            Check(!j.Advance(2), "dayjob: one stop down is not the round");
+            var w = new Wallet(0);
+            Check(j.Advance(2), "dayjob: the last stop closes the route");
+            Check(j.Complete(w, new GameTime(8, 13, 0)) == 40 && w.Clean == 40, "dayjob: the round pays clean");
+            Check(!j.Accept(new GameTime(8, 11, 0)), "dayjob: one shift a day");
+            Check(j.WorkedYesterday(new GameTime(9, 8, 0)), "dayjob: yesterday's work is cover today");
+
+            var j2 = new DayJob();
+            j2.Accept(new GameTime(10, 9, 0));
+            Check(!j2.Lapse(new GameTime(10, 17, 0)), "dayjob: the afternoon is still working time");
+            Check(j2.Lapse(new GameTime(10, 19, 0)), "dayjob: evening lapses the undelivered round");
+            Check(j2.Complete(w, new GameTime(10, 19, 0)) == 0, "dayjob: a lapsed round pays nothing");
+
+            var j3 = new DayJob();
+            j3.Accept(new GameTime(11, 9, 0));
+            j3.Advance(2);
+            var snap = MiniJson.Serialize(j3.Capture());
+            var j4 = new DayJob();
+            j4.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(j4.ShiftActive && j4.WaypointIndex == 1 && j4.LastShiftDay == 11,
+                "dayjob: a half-walked round survives the codec");
         }
 
         static void TestCompareNotes()

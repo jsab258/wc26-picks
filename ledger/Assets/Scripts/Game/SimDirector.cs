@@ -133,7 +133,7 @@ namespace Ledger.Game
             // Drive the player around the block to exercise movement and camera —
             // except when the outfit's drop is open: then head straight for it, so the
             // night-job completion path (pay, witnesses, patience) runs in-engine.
-            var job = _game.ActiveJobPos;
+            var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
             _player.AutoMoveTarget = target;
             if (!job.HasValue &&
@@ -408,6 +408,10 @@ namespace Ledger.Game
             // Viktor plus the generated batch must actually be walking.
             bool populationOk = _npcs != null && _npcs.Length >= 20;
 
+            // The day job (§6.6): in the open city the bot must have walked at
+            // least one courier round — clean pay through the honest channel.
+            bool dayJobOk = !_game.Campaign.OpenMode || SimMode.Days < 9 || _game.Job.ShiftsWorked >= 1;
+
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -505,6 +509,9 @@ namespace Ledger.Game
                 { "empireOwned", _game.Empire.Businesses.FindAll(b => b.Owned).Count },
                 { "empireCrew", _game.Empire.Crew.Count }, { "racketIncome", _game.Empire.TotalRacketIncome },
                 { "rivalStage", _game.Empire.Rival.Stage },
+                { "machineStage", _game.Empire.ArmOf("machine").Stage },
+                { "newcrewStage", _game.Empire.ArmOf("newcrew").Stage },
+                { "shiftsWorked", _game.Job.ShiftsWorked },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -518,7 +525,7 @@ namespace Ledger.Game
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk && empireOk && populationOk;
+                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -533,6 +540,7 @@ namespace Ledger.Game
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
+                      $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
