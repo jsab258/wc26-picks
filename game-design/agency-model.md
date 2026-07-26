@@ -53,7 +53,7 @@ This is the LLM-specific grind risk and the reason chips exist.
 | Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | 15 | **35** |
 | Visible odds | 0 | 0 | 15 | 95 | 10 | 5 | 70 | 0 | **50** |
 | Interiority (psyche as system) | 0 | 15 | 0 | 20 | 0 | 30 | 20 | 0 | **30** |
-| Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | 0 | **40, late** |
+| Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | 0 | **40, late — superseded, see below** |
 | Body needs (eat/sleep/hygiene) | 5 | 45 | 75 | 15 | 0 | 90 | 10 | 0 | **0** |
 | Crafting / minigames | 20 | 70 | 85 | 30 | 15 | 55 | 0 | 0 | **0** |
 
@@ -130,9 +130,27 @@ without travelling at internet speed, which preserves the mill's core
 constraint and makes wiretaps, missed calls and being unreachable into
 real play. Cards and generation prompts inherit this.
 
-**Vehicles / driving (40): approved for LATE roadmap** (player, same
-session) — no longer refused outright, but sequenced after the systems
-above, since it is expensive and non-differentiating relative to them.
+**Vehicles / driving (40): SUPERSEDED AND BUILT** (player, 2026-07-26:
+*"city can't feel real or immersive without cars and real streets"*).
+
+The score of 40 was answering the wrong question. It weighed driving as a
+MECHANIC — and as a mechanic it really is expensive and
+non-differentiating, which is why the model put it late. The player's
+argument was about IMMERSION: a city with two roads and nothing moving on
+it does not read as a place, and every social system in this project is
+standing on the claim that this IS a place. Under that framing the streets
+are not competing with the systems above; they are the ground the systems
+stand on.
+
+The diagnosis bore that out. The district was a 90×90m slab with buildings
+and no streets — about the size of one real city block. So M12 was pulled
+forward and built: a real grid, traffic, signs, lights, and a car you can
+drive. See `streets-and-cars-spec.md` and roadmap M12.
+
+Point 4 above ("no drivable-vehicle physics, ever") stands as written and
+is not contradicted by this. There is still no vehicle physics: the car is
+kinematic and arcade, there is no tyre model, no damage, no fuel, and no
+pursuit. What was built is the CITY, with something moving in it.
 
 ## Explicitly refused
 
