@@ -74,10 +74,12 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
   6. Consequential loyalty (visible, affects warnings: a loyal NPC tells you what they
      heard before it spreads — which also feeds PlayerKnowledge naturally).
   7. Cost-per-hour telemetry surfaced.
-- **M4 — The other side of the street**: secrets-as-loot/hooks v1 (learnable NPC secrets,
-  weak/strong hooks, spend-for-favor); suspicion behavior thresholds (probe → verify →
-  confront); Detective Mara Ossei (authored Tier-1, heat-driven appearance); save/load
-  (full city state: mill, campaign, cash, knowledge).
+- **M4 — The other side of the street — COMPLETE 2026-07-26**: hooks v1, suspicion
+  escalation ladder, Det. Ossei (+witness interviews), save/load — PLUS the audit
+  adopt-soon set: recognition barks, eavesdropping channel, debt book, response
+  validator. Next stop M5 requires the player: playtest gate, purchases, HDRP, voice,
+  Noor approval (drafted). Autonomous pre-M5 runway: balance-lab expansion, Tier-2
+  sample ring, onboarding pass, AI-playtest hardening.
 - **M5 — Vertical slice** (doc M3): The Hook polished (HDRP swap, city pack, character
   models/Mixamo, audio+voice via ElevenLabs), 5 Tier-1 characters (Rocco, Lena, Sam, one
   love interest — Noor or Elias, player's pick — and Ossei), 7 in-game days of Act I,
