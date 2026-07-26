@@ -241,6 +241,17 @@ namespace Ledger.Game
             return true;
         }
 
+        /// True when a single point stands clear of every building. SegmentClear
+        /// deliberately ignores masses containing an endpoint (so a character can
+        /// step off a stoop), which makes it useless for "is this spot free" —
+        /// and parking a car inside a wall is exactly that question.
+        public static bool PointClear(Vector3 p, float inflate = 0.9f)
+        {
+            foreach (var (pos, size) in Masses)
+                if (InsideXZ(p, pos, size.x / 2f + inflate, size.z / 2f + inflate)) return false;
+            return true;
+        }
+
         static bool InsideXZ(Vector3 p, Vector3 c, float hx, float hz) =>
             p.x > c.x - hx && p.x < c.x + hx && p.z > c.z - hz && p.z < c.z + hz;
 

@@ -46,10 +46,17 @@ namespace Ledger.Game
             _mpb = new MaterialPropertyBlock();
             foreach (var v in Traffic.Vehicles) EnsureBody(v);
 
-            // Your car, parked on Hook Street outside the bar. One car, always
-            // in the same place, because a vehicle you have to go and find is a
-            // errand rather than a convenience.
-            PlayerCar.Spawn(new Vector3(-2.6f, 0.05f, 4f), 0f);
+            // Your car, parked outside the bar. One car, always in the same
+            // place, because a vehicle you have to go and find is an errand
+            // rather than a convenience.
+            //
+            // WHERE it parks matters more than it looks. Your car is a hazard to
+            // the AI whether you are in it or not — as it should be — so a car
+            // left standing in a running lane is a permanent obstruction, and
+            // Hook Street would be queued solid for the rest of the campaign.
+            // So the spot is searched for rather than hardcoded: off the
+            // carriageway, clear of every building, near the door.
+            PlayerCar.Spawn(FindParkingNear(WorldBuilder.BarDoor), 0f);
             Debug.Log($"Traffic: {Traffic.Vehicles.Count} vehicles on {StreetMap.Edges.Count} streets");
         }
 
@@ -81,7 +88,10 @@ namespace Ledger.Game
             if (mine != null)
             {
                 var mp = mine.transform.position;
-                list.Add(new TrafficSim.Hazard { X = mp.x, Z = mp.z, R = 2.2 });
+                // Sized to the car itself, not generously: an inflated radius
+                // reaches across the kerb and stops traffic in a lane the car is
+                // not actually in.
+                list.Add(new TrafficSim.Hazard { X = mp.x, Z = mp.z, R = 1.2 });
             }
 
             float range2 = HazardRange * HazardRange;
@@ -94,6 +104,27 @@ namespace Ledger.Game
                 if (dx * dx + dz * dz > range2) continue;
                 list.Add(new TrafficSim.Hazard { X = p.x, Z = p.z, R = 0.5 });
             }
+        }
+
+        /// A spot to leave a car: not on a road a driver uses, not inside a
+        /// building, and as close to the door as those two allow. Searched in
+        /// rings so the answer is the nearest acceptable spot rather than the
+        /// first one that happens to be listed.
+        static Vector3 FindParkingNear(Vector3 door)
+        {
+            for (float radius = 4f; radius <= 16f; radius += 1.5f)
+                for (int step = 0; step < 16; step++)
+                {
+                    float a = step * Mathf.PI * 2f / 16f;
+                    var spot = new Vector3(door.x + Mathf.Cos(a) * radius, 0.05f,
+                                           door.z + Mathf.Sin(a) * radius);
+                    if (StreetMap.OnRoad(spot.x, spot.z, margin: 1.2)) continue;
+                    if (!WorldBuilder.PointClear(spot, inflate: 2.0f)) continue;
+                    return spot;
+                }
+            // Nowhere clear near the door: the crossing is always tarmac and
+            // always somewhere, and a car in the road beats a car in a wall.
+            return new Vector3(door.x + 6f, 0.05f, door.z);
         }
 
         // ---- bodies ----
