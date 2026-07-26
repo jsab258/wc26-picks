@@ -24,7 +24,7 @@ namespace Ledger.Game
             Lamps.Clear();
             Windows.Clear();
             Masses.Clear();
-            Masses.AddRange(BuildingSpecs);
+            Masses.AddRange(BuildBlockSpecs());
             _windowsLit = false;
             AssetLibrary.Initialize();
             ConfigureEnvironment();
@@ -32,7 +32,7 @@ namespace Ledger.Game
             // Ground slab — sized for the district, not just the founding street.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            ground.transform.localScale = new Vector3(9, 1, 9); // 90x90m
+            ground.transform.localScale = new Vector3(13, 1, 13); // 130x130m — the grid spans ±52
             ground.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Concrete);
             SetTiling(ground, 42, 42);
 
@@ -55,49 +55,173 @@ namespace Ledger.Game
             RenderSettings.fogEndDistance = 80f;
         }
 
+        /// Roads, built from the network in Core rather than from two hardcoded
+        /// axes. Every driveable edge becomes tarmac with a centre line, every
+        /// junction gets a pad, and every block gets pavement and kerb around
+        /// its four sides — with the corners chamfered, which is Barcelona's
+        /// trick and the cheapest thing that stops a grid reading as graph paper.
         static void BuildStreetsAndWalks()
         {
-            var streetNS = MakeBox("Street_NS", new Vector3(0, 0.02f, 0), new Vector3(6, 0.04f, 88), AssetLibrary.Asphalt);
-            var streetEW = MakeBox("Street_EW", new Vector3(0, 0.02f, 0), new Vector3(88, 0.04f, 6), AssetLibrary.Asphalt);
-            SetTiling(streetNS, 3, 44);
-            SetTiling(streetEW, 44, 3);
+            var map = Ledger.Core.StreetMap.Edges;
 
-            // Sidewalks + kerbs flank each street arm, skipping the intersection.
-            float[] arms = { 14f, -14f }; // segment centre along the street axis
-            const float armLen = 22f;     // spans 3..25 (and mirror)
+            // 1. Tarmac along every road. Lanes are paved too but narrower and
+            // without markings — they are driveways, not streets.
+            int n = 0;
+            foreach (var e in map)
+            {
+                var a = Ledger.Core.StreetMap.Node(e.A);
+                var b = Ledger.Core.StreetMap.Node(e.B);
+                var pa = new Vector3((float)a.X, 0, (float)a.Z);
+                var pb = new Vector3((float)b.X, 0, (float)b.Z);
+                var mid = (pa + pb) * 0.5f;
+                var span = pb - pa;
+                float len = span.magnitude;
+                if (len < 0.5f) continue;
 
-            foreach (var sx in new[] { 1f, -1f })   // N-S street: walks at x = ±4.25
-                foreach (var cz in arms)
+                bool alongZ = Mathf.Abs(span.z) > Mathf.Abs(span.x);
+                float w = (float)e.Width;
+                var size = alongZ ? new Vector3(w, 0.04f, len) : new Vector3(len, 0.04f, w);
+                var road = MakeBox($"Road_{n}", mid + new Vector3(0, 0.02f, 0), size,
+                    e.Driveable ? AssetLibrary.Asphalt : AssetLibrary.Concrete);
+                SetTiling(road, alongZ ? 3 : Mathf.RoundToInt(len / 2f),
+                                alongZ ? Mathf.RoundToInt(len / 2f) : 3);
+
+                // A dashed centre line, so a road reads as a road at a glance.
+                if (e.Driveable && len > 12f)
                 {
-                    MakeBox($"Walk_NS_{sx}_{cz}", new Vector3(sx * 4.25f, 0.16f, cz), new Vector3(2.5f, 0.32f, armLen), AssetLibrary.Sidewalk);
-                    MakeBox($"Kerb_NS_{sx}_{cz}", new Vector3(sx * 3.05f, 0.20f, cz), new Vector3(0.2f, 0.40f, armLen), AssetLibrary.Kerb);
+                    int dashes = Mathf.FloorToInt(len / 6f);
+                    for (int d = 0; d < dashes; d++)
+                    {
+                        float t = (d + 0.5f) / dashes;
+                        var at = Vector3.Lerp(pa, pb, t) + new Vector3(0, 0.05f, 0);
+                        MakeBox($"Line_{n}_{d}", at,
+                            alongZ ? new Vector3(0.22f, 0.02f, 2.4f) : new Vector3(2.4f, 0.02f, 0.22f),
+                            AssetLibrary.Sidewalk);
+                    }
                 }
-            foreach (var sz in new[] { 1f, -1f })   // E-W street: walks at z = ±4.25
-                foreach (var cx in arms)
-                {
-                    MakeBox($"Walk_EW_{sz}_{cx}", new Vector3(cx, 0.16f, sz * 4.25f), new Vector3(armLen, 0.32f, 2.5f), AssetLibrary.Sidewalk);
-                    MakeBox($"Kerb_EW_{sz}_{cx}", new Vector3(cx, 0.20f, sz * 3.05f), new Vector3(armLen, 0.40f, 0.2f), AssetLibrary.Kerb);
-                }
-            // Inner corner pads at the crossing.
-            foreach (var sx in new[] { 1f, -1f })
-                foreach (var sz in new[] { 1f, -1f })
-                    MakeBox($"WalkCorner_{sx}_{sz}", new Vector3(sx * 4.25f, 0.16f, sz * 4.25f), new Vector3(2.5f, 0.32f, 2.5f), AssetLibrary.Sidewalk);
+                n++;
+            }
+
+            // 2. Junction pads, so crossings do not show a seam where two
+            // strips of tarmac meet at right angles.
+            foreach (var j in Ledger.Core.StreetMap.Nodes)
+            {
+                if (!j.IsJunction) continue;
+                float w = (float)Ledger.Core.StreetMap.AvenueWidth;
+                MakeBox($"Junction_{j.Id}", new Vector3((float)j.X, 0.025f, (float)j.Z),
+                    new Vector3(w, 0.04f, w), AssetLibrary.Asphalt);
+            }
+
+            // 3. Pavement and kerb around every block, with chamfered corners.
+            int bi = 0;
+            foreach (var b in Ledger.Core.StreetMap.Blocks)
+            {
+                float cx = (float)b.CentreX, cz = (float)b.CentreZ;
+                float hw = (float)b.Width / 2f, hd = (float)b.Depth / 2f;
+                float ch = (float)Ledger.Core.StreetMap.Chamfer;
+                const float walk = 2.2f, kerbH = 0.34f;
+
+                // Four pavement strips, each shortened by the chamfer so the
+                // corners are cut rather than square.
+                MakeBox($"Walk_{bi}_zP", new Vector3(cx, 0.16f, cz + hd - walk / 2f),
+                    new Vector3(b.Width > 2 * ch ? (float)b.Width - 2 * ch : 1f, 0.32f, walk), AssetLibrary.Sidewalk);
+                MakeBox($"Walk_{bi}_zN", new Vector3(cx, 0.16f, cz - hd + walk / 2f),
+                    new Vector3(b.Width > 2 * ch ? (float)b.Width - 2 * ch : 1f, 0.32f, walk), AssetLibrary.Sidewalk);
+                MakeBox($"Walk_{bi}_xP", new Vector3(cx + hw - walk / 2f, 0.16f, cz),
+                    new Vector3(walk, 0.32f, b.Depth > 2 * ch ? (float)b.Depth - 2 * ch : 1f), AssetLibrary.Sidewalk);
+                MakeBox($"Walk_{bi}_xN", new Vector3(cx - hw + walk / 2f, 0.16f, cz),
+                    new Vector3(walk, 0.32f, b.Depth > 2 * ch ? (float)b.Depth - 2 * ch : 1f), AssetLibrary.Sidewalk);
+
+                // The chamfer itself: a small pad across each cut corner, turning
+                // every crossroads into a little plaza.
+                foreach (var sx in new[] { 1f, -1f })
+                    foreach (var sz in new[] { 1f, -1f })
+                    {
+                        var corner = new Vector3(cx + sx * (hw - ch / 2f), 0.16f, cz + sz * (hd - ch / 2f));
+                        var pad = MakeBox($"Chamfer_{bi}_{sx}_{sz}", corner,
+                            new Vector3(ch * 1.45f, 0.32f, ch * 1.45f), AssetLibrary.Sidewalk);
+                        pad.transform.rotation = Quaternion.Euler(0, 45, 0);
+                    }
+
+                // Kerbs, just outside the pavement on each side.
+                MakeBox($"Kerb_{bi}_zP", new Vector3(cx, 0.20f, cz + hd + 0.1f),
+                    new Vector3((float)b.Width - 2 * ch, kerbH, 0.2f), AssetLibrary.Kerb);
+                MakeBox($"Kerb_{bi}_zN", new Vector3(cx, 0.20f, cz - hd - 0.1f),
+                    new Vector3((float)b.Width - 2 * ch, kerbH, 0.2f), AssetLibrary.Kerb);
+                MakeBox($"Kerb_{bi}_xP", new Vector3(cx + hw + 0.1f, 0.20f, cz),
+                    new Vector3(0.2f, kerbH, (float)b.Depth - 2 * ch), AssetLibrary.Kerb);
+                MakeBox($"Kerb_{bi}_xN", new Vector3(cx - hw - 0.1f, 0.20f, cz),
+                    new Vector3(0.2f, kerbH, (float)b.Depth - 2 * ch), AssetLibrary.Kerb);
+                bi++;
+            }
         }
 
         /// XZ solid masses of the block. NpcWalker consults these to route around
         /// buildings instead of through them; kept as data so the routing needs no
         /// physics casts (deterministic under the accelerated sim). The founding
         /// street's specs are fixed; the district build-out appends its own.
-        static readonly (Vector3 pos, Vector3 size)[] BuildingSpecs =
+        /// Buildings are no longer hand-placed. They are GENERATED TO FILL THE
+        /// BLOCKS, which is the only arrangement that survives having real
+        /// streets: three of the seven original boxes stood exactly where an
+        /// avenue needed to go. Each block gets a terrace of two to four
+        /// buildings of varied footprint and height, set back from the kerb,
+        /// with the bar's block and every named place left clear.
+        ///
+        /// Deterministic from the block index, so the city is the same city
+        /// every run and the CI screenshots stay comparable.
+        static List<(Vector3 pos, Vector3 size)> BuildBlockSpecs()
         {
-            (new Vector3(-14, 0, 14), new Vector3(10, 9, 10)),
-            (new Vector3(14, 0, 14), new Vector3(9, 13, 9)),
-            (new Vector3(14, 0, -14), new Vector3(11, 7, 9)),
-            (new Vector3(-14, 0, -14), new Vector3(9, 11, 10)),
-            (new Vector3(20, 0, 0), new Vector3(6, 6, 4)),
-            (new Vector3(-20, 0, 0), new Vector3(6, 8, 4)),
-            (new Vector3(0, 0, 20), new Vector3(4, 5, 6)),
-        };
+            var specs = new List<(Vector3, Vector3)>();
+            int bi = 0;
+            foreach (var b in Ledger.Core.StreetMap.Blocks)
+            {
+                var rng = new System.Random(9001 + bi * 131);
+                float inset = 2.6f;                       // pavement + a doorstep
+                float minX = (float)b.MinX + inset, maxX = (float)b.MaxX - inset;
+                float minZ = (float)b.MinZ + inset, maxZ = (float)b.MaxZ - inset;
+                float w = maxX - minX, d = maxZ - minZ;
+                if (w < 6 || d < 6) { bi++; continue; }
+
+                // Two to four along the longer axis, so a block reads as a
+                // terrace of separate buildings rather than one solid slab.
+                bool alongX = w >= d;
+                int count = 2 + rng.Next(3);
+                float run = alongX ? w : d;
+                float each = run / count;
+                for (int k = 0; k < count; k++)
+                {
+                    float t = (k + 0.5f) / count;
+                    float footprint = each * 0.82f;
+                    float depth = (alongX ? d : w) * (0.55f + 0.3f * (float)rng.NextDouble());
+                    float height = 6f + (float)rng.NextDouble() * 11f;
+                    var centre = alongX
+                        ? new Vector3(minX + t * w, 0, (maxZ + minZ) / 2f)
+                        : new Vector3((maxX + minX) / 2f, 0, minZ + t * d);
+                    var size = alongX
+                        ? new Vector3(footprint, height, depth)
+                        : new Vector3(depth, height, footprint);
+
+                    if (ClashesWithAuthored(centre, size)) continue;
+                    specs.Add((centre, size));
+                }
+                bi++;
+            }
+            return specs;
+        }
+
+        /// Keep clear of the bar and of every named place's doorway — a
+        /// generated terrace must not close a door the game opens.
+        static bool ClashesWithAuthored(Vector3 pos, Vector3 size)
+        {
+            float hx = size.x / 2f + 1.5f, hz = size.z / 2f + 1.5f;
+            // The bar.
+            if (Mathf.Abs(pos.x + 8f) < hx + 6f && Mathf.Abs(pos.z - 8f) < hz + 6f) return true;
+            foreach (var place in Ledger.Core.HookMap.Places)
+                if (Mathf.Abs(pos.x - (float)place.X) < hx + 3f &&
+                    Mathf.Abs(pos.z - (float)place.Z) < hz + 3f) return true;
+            return false;
+        }
+
         static readonly List<(Vector3 pos, Vector3 size)> Masses = new List<(Vector3, Vector3)>();
 
         /// True when the straight XZ line from a to b crosses no building mass.
@@ -142,7 +266,7 @@ namespace Ledger.Game
 
         static void BuildBuildings()
         {
-            var specs = BuildingSpecs;
+            var specs = Masses;
             string[] facades = { AssetLibrary.BrickRed, AssetLibrary.Plaster, AssetLibrary.BrickGrey, AssetLibrary.Concrete };
             int i = 0;
             foreach (var (pos, size) in specs)
@@ -273,19 +397,28 @@ namespace Ledger.Game
             MakeBox($"BenchLegB_{n}", pos + new Vector3(alongZ ? 0 : off, 0.21f, alongZ ? off : 0), leg, AssetLibrary.Metal);
         }
 
+        /// Lamps on the grid. Every junction is lit, and long avenue runs get
+        /// a pool part-way along, so a night walk anywhere in the district is
+        /// strung with light rather than pitch black between two crossings.
         static void BuildLamps()
         {
-            // The crossing…
-            MakeLamp(new Vector3(4, 0, 4));
-            MakeLamp(new Vector3(-4, 0, 4));
-            MakeLamp(new Vector3(4, 0, -4));
-            MakeLamp(new Vector3(-4, 0, -4));
-            // …and staggered pools down each arm, so night walks (and the way to the
-            // outfit's drop points) are strung with light instead of pitch black.
-            MakeLamp(new Vector3(4, 0, 14));
-            MakeLamp(new Vector3(-4, 0, -14));
-            MakeLamp(new Vector3(14, 0, -4));
-            MakeLamp(new Vector3(-14, 0, 4));
+            foreach (var j in Ledger.Core.StreetMap.Nodes)
+            {
+                if (!j.IsJunction) continue;
+                float off = (float)Ledger.Core.StreetMap.AvenueWidth / 2f + 1.6f;
+                MakeLamp(new Vector3((float)j.X + off, 0, (float)j.Z + off));
+                MakeLamp(new Vector3((float)j.X - off, 0, (float)j.Z - off));
+            }
+            foreach (var e in Ledger.Core.StreetMap.Edges)
+            {
+                if (!e.Driveable || e.Length < 20) continue;
+                var a = Ledger.Core.StreetMap.Node(e.A);
+                var b = Ledger.Core.StreetMap.Node(e.B);
+                var mid = new Vector3((float)(a.X + b.X) / 2f, 0, (float)(a.Z + b.Z) / 2f);
+                bool alongZ = Mathf.Abs((float)(b.Z - a.Z)) > Mathf.Abs((float)(b.X - a.X));
+                float off = (float)e.Width / 2f + 1.4f;
+                MakeLamp(mid + (alongZ ? new Vector3(off, 0, 0) : new Vector3(0, 0, off)));
+            }
         }
 
         /// The Hook district (open-city-spec §3): every planned place in the
@@ -302,8 +435,15 @@ namespace Ledger.Game
             {
                 if (!place.Planned) { i++; continue; }
                 var stop = new Vector3((float)place.X, 0, (float)place.Z);
-                // The mass sits radially outward from the stop, so the door faces town.
-                var dir = new Vector3(stop.x, 0, stop.z).normalized;
+                // The mass sits BACK FROM THE STREET into its own block, so the
+                // door faces the road it is addressed from. Pushing it radially
+                // outward from the city centre — which is what this used to do —
+                // now lands buildings in the middle of avenues.
+                var block = Ledger.Core.StreetMap.BlockAt(stop.x, stop.z);
+                var dir = block != null
+                    ? new Vector3((float)block.CentreX - stop.x, 0, (float)block.CentreZ - stop.z).normalized
+                    : new Vector3(stop.x, 0, stop.z).normalized;
+                if (dir.sqrMagnitude < 0.01f) dir = Vector3.forward;
                 Vector3 size = place.Kind == "home" ? new Vector3(9, 10, 8)
                     : place.Kind == "landmark" ? new Vector3(10, 7, 9)
                     : place.Kind == "business" ? new Vector3(7, 6, 7)
