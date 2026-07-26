@@ -826,7 +826,8 @@ namespace Ledger.Game
             var debugHost = _current ?? _nearest ?? (_hosts.Count > 0 ? _hosts[0] : null);
             if (_debugPanel.activeSelf && debugHost != null && Time.frameCount % 30 == 0)
                 _debugText.text = debugHost.DebugReport() +
-                    (_game.Gossip != null ? "\n\n" + _game.Gossip.StatusLine() : "");
+                    (_game.Gossip != null ? "\n\n" + _game.Gossip.StatusLine() : "") +
+                    "\n\n" + _game.PurseStatusLine();
 
             if (dialogueOpen && _input.isFocused && Input.GetKeyDown(KeyCode.Return))
                 Submit();
