@@ -86,6 +86,9 @@ namespace Ledger.Game
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
         // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
         public DebtBook Debts { get; } = new DebtBook();
+        /// What everybody on this street can actually lay hands on (roadmap M13).
+        /// Willing is not the same as able, and the difference is a conversation.
+        public PurseBook Purses { get; } = new PurseBook();
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
@@ -401,6 +404,7 @@ namespace Ledger.Game
 
             Debts.Add(new Debtor { Id = "Sam", Name = "Sam", Amount = 120, Note = "stock money, never repaid" });
             Debts.Add(new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "the door take, '19" });
+            BuildPurses();
 
             TryLoad();
         }
@@ -1284,6 +1288,16 @@ namespace Ledger.Game
                 var economyLine = (string)null;
                 foreach (var ev in Economy.DailyTick(Now, Wallet, racketToday, wagesToday, heat))
                     if (ev.Kind != "supply") economyLine = ev.Text;  // deliveries are quiet; trouble talks
+
+                // Purses fill from the same prosperity the bar drinks from
+                // (roadmap M13), so squeezing the street drains the pockets you
+                // are trying to collect from — a few days later, when you have
+                // started relying on being paid. Then anybody you emptied who
+                // still owes goes to whoever they have, overnight, and the cost
+                // of that asking is theirs to carry, not yours to see.
+                Purses.DailyTick(Now.Day, Economy.Prosperity);
+                if (_gossip != null && _gossip.Mill != null)
+                    Debts.NightBorrowing(Purses, _gossip.Mill, Now);
 
                 var line = ActTwo.BarFrozen(Now)
                     ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."

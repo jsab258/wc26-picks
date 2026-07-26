@@ -96,6 +96,10 @@ namespace Ledger.Core
                 {
                     { "id", d.Id }, { "collected", d.Collected }, { "forgiven", d.Forgiven },
                     { "lastAskedDay", d.LastAskedDay },
+                    // The remaining balance, because part-payment changes it and
+                    // a debt that reset to its original figure on load would be
+                    // a quiet way of stealing back what the player collected.
+                    { "amount", d.Amount },
                 }).ToList();
 
             root["discredited"] = mill.DiscreditedTopics.Cast<object>().ToList();
@@ -188,7 +192,8 @@ namespace Ledger.Core
                 var dd = MiniJson.AsObject(o);
                 var debtor = dd != null && debts != null ? debts.ById(MiniJson.GetString(dd, "id")) : null;
                 if (debtor != null)
-                    debtor.Restore(Flag(dd, "collected"), Flag(dd, "forgiven"), MiniJson.GetInt(dd, "lastAskedDay"));
+                    debtor.Restore(Flag(dd, "collected"), Flag(dd, "forgiven"), MiniJson.GetInt(dd, "lastAskedDay"),
+                        dd.ContainsKey("amount") ? MiniJson.GetInt(dd, "amount") : -1);
             }
 
             mill.RestoreDiscredited((MiniJson.GetList(root, "discredited") ?? new List<object>()).OfType<string>());

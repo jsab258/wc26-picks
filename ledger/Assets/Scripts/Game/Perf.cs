@@ -29,11 +29,18 @@ namespace Ledger.Game
         static readonly Dictionary<string, Counter> _counters = new Dictionary<string, Counter>();
         static readonly List<string> _order = new List<string>();
 
-        // Frame times, bucketed at a tenth of a millisecond up to 200ms. A
-        // histogram rather than a list because the sim runs for ten minutes and
-        // keeping every frame would be tens of megabytes to answer one question.
-        const int Buckets = 2000;
-        const double BucketMs = 0.1;
+        // Frame times, bucketed to two seconds. A histogram rather than a list
+        // because the sim runs for ten minutes and keeping every frame would be
+        // tens of megabytes to answer one question.
+        //
+        // The range was 200ms and that was a mistake the first run caught: the
+        // CI runner has no GPU, falls back to software rasterisation, and turns
+        // in 191ms frames — so every percentile landed in the overflow bucket
+        // and read as exactly 200.00ms. A percentile pinned at the top of its
+        // own range is not a measurement, it is a shrug, and it would have
+        // hidden a real regression behind a plausible number.
+        const int Buckets = 8000;
+        const double BucketMs = 0.25;
         static readonly int[] _frames = new int[Buckets + 1];
         static int _frameCount;
         static double _frameTotalMs, _frameWorstMs;

@@ -1252,13 +1252,21 @@ namespace Ledger.Game
             var id = CurrentHostId();
             var debtor = id != null ? _game.Debts.Of(id) : null;
             if (debtor == null) return;
-            var outcome = debtor.Collect(_game.Gossip.Mill.Get(id), _game.Wallet, _game.Gossip.Mill, _game.Now);
+            var outcome = debtor.Collect(_game.Gossip.Mill.Get(id), _game.Wallet, _game.Gossip.Mill,
+                _game.Now, _game.Purses);
             switch (outcome)
             {
                 case CollectOutcome.Paid:
-                    Narrate($"They count it out slowly. +${debtor.Amount} clean. The page closes; something else closes with it."); break;
+                    Narrate($"They count it out slowly. +${debtor.LastPaid} clean. The page closes; something else closes with it."); break;
+                // Roadmap M13: willing is not the same as able. The line names
+                // what they COULD find and what is still on the page — never
+                // what is left in the drawer, because you did not see the drawer,
+                // you saw a person emptying it.
+                case CollectOutcome.PaidPart:
+                    Narrate($"{debtor.LastLine} +${debtor.LastPaid} clean. ${debtor.Amount} still on the page, " +
+                            "and now they know you will come back for it."); break;
                 case CollectOutcome.Begged:
-                    Narrate("They don't have it. They ask for a day — and mean it. Come back tomorrow."); break;
+                    Narrate(debtor.LastLine ?? "They don't have it. They ask for a day — and mean it. Come back tomorrow."); break;
                 case CollectOutcome.Refused:
                     Narrate("They tell you where to put Marek's old paper. By tonight, the street will hear you came squeezing."); break;
                 default:

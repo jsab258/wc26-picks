@@ -436,6 +436,57 @@ The gaps, in the order they are now being closed:
   positioning, timing and reading opponents, which is animation and readable
   body language, and none of that can be judged on capsules.
 
+- **M13 — FINITE COUNTERPARTY PURSES** (player, 2026-07-27, after asking how
+  KCD2's economy works). *"add it to the end of the roadmap and spec/build
+  it."*
+
+  The living economy (M7) made the district's money finite in one direction:
+  squeeze the street, the street gets poorer, the bar takes less. But every
+  COUNTERPARTY still had infinite pockets — Ruta owed $180 and produced $180
+  on demand, out of a starving street, in one movement. That is a payout table
+  wearing a person's face, which is the exact failure the rest of this project
+  is built to avoid.
+
+  KCD2's traders hold a finite purse, and it is the best thing in that game's
+  economy: you cannot convert four suits of looted plate to cash in one place,
+  so money becomes a logistics problem and the map gets bigger without gaining
+  a metre. The version that belongs HERE is not logistics. It is *who has the
+  cash, and what do they want for fronting it* — which is a conversation.
+
+  Full spec in `counterparty-purses-spec.md`. In short:
+
+  - **A purse is what somebody can lay hands on today** — not their wealth,
+    not their income, the money in the drawer. Cash, weekly flow, ceiling;
+    none of the three is ever shown.
+  - **Purses fill from the district's prosperity**, so squeezing the street
+    drains the pockets you are trying to collect from — and it arrives a few
+    days later, when you have started relying on being paid. Two turns of the
+    same screw, and the second is the one that hurts.
+  - **Asking for more than somebody has gets you what they have.** Collection
+    gains a fourth outcome — paid what they could — and a big marker stops
+    being a transaction and becomes a relationship: four visits, or one visit
+    and a decision about what you are willing to do to shorten it.
+  - **They can go and get it.** A debtor emptied and still owing borrows from
+    a patron overnight. The money MOVES rather than appearing, and the favour
+    they now owe is real world state the Director can read. You will often not
+    know it happened; you will notice they paid, and that they are colder
+    about it than the money explains.
+  - **Generated on demand from a stable hash**, so all three thousand
+    residents have consistent means without anybody authoring three thousand
+    numbers. Only the named cast is hand-written, and only where their means
+    are character: Sam turns over sixty a week and owes a hundred and twenty,
+    which was never going to be one visit.
+
+  NOT in scope: rackets (already coupled through prosperity — a per-business
+  till would double-count the same pressure), banking, interest, or a lending
+  market. One patron, one favour.
+
+  The failure mode to watch is KCD2's own: its early economy is tight and
+  memorable and then crafting turns into a money printer and it stops
+  existing. If purses make collection weaker without making anything else
+  weaker, they have moved the optimum rather than deepened the choice — so the
+  balance lab runs against this before it is called done.
+
 **LLM cost:** deferred by the player, explicitly not a build-time blocker.
 If we publish, the pricing models to weigh are subscription, pay-as-you-go,
 cheap purchase plus a local model, or a dedicated server. `ILlmClient` is a

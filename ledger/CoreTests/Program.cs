@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestPurses();
                 TestStreets();
                 TestTraffic();
                 TestAccess();
@@ -1981,6 +1982,170 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // Finite counterparty purses (roadmap M13)
+        // ---------------------------------------------------------------
+
+        static void TestPurses()
+        {
+            Console.WriteLine("Purses — willing is not the same as able:");
+            var book = new PurseBook();
+            book.Add(new Purse { OwnerId = "sam", Name = "Sam", Weekly = 60, Ceiling = 95, Cash = 45, PatronId = "danica" });
+            book.Add(new Purse { OwnerId = "danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
+
+            // THE POINT OF THE WHOLE SYSTEM: you get what is there, never more.
+            var part = book.Take("sam", 120, day: 1);
+            Check(part.Paid == 45, "you get what is in the drawer", part.Paid.ToString());
+            Check(part.Short == 75, "and the rest stays owed", part.Short.ToString());
+            Check(book.Of("sam").Cash == 0, "the drawer is empty afterwards");
+            Check(part.Emptied && !part.InFull, "and the system knows it emptied them");
+            Check(part.Line != null && !part.Line.Contains("95") && !part.Line.Contains("/"),
+                "the line is a circumstance, not a balance", part.Line);
+
+            var nothing = book.Take("sam", 50, day: 1);
+            Check(nothing.Nothing && nothing.Paid == 0, "asking an empty man twice gets you nothing");
+            Check(nothing.Line != null, "and he shows you why");
+            Check(book.Of("sam").Cash == 0, "you cannot take a negative amount out of somebody");
+
+            // Nobody is ever left owing money to the void.
+            var free = book.Take("danica", 0, day: 1);
+            Check(free.Paid == 0 && free.Short == 0, "asking for nothing takes nothing");
+
+            // Refill, and the coupling that makes this worth building: a poorer
+            // street cannot pay you, and finds out a few days later.
+            Check(Math.Abs(PurseBook.FlowAt(0.5) - 1.0) < 1e-9,
+                "at ordinary prosperity purses fill at exactly the old rate");
+            Check(PurseBook.FlowAt(0.2) < PurseBook.FlowAt(0.8),
+                "a squeezed street fills its pockets slower");
+            Check(PurseBook.FlowAt(0.0) > 0, "but never stops entirely — a famine is not an economy");
+
+            var rich = new PurseBook();
+            rich.Add(new Purse { OwnerId = "a", Weekly = 70, Ceiling = 200, Cash = 0 });
+            var poor = new PurseBook();
+            poor.Add(new Purse { OwnerId = "a", Weekly = 70, Ceiling = 200, Cash = 0 });
+            for (int d = 1; d <= 7; d++) { rich.DailyTick(d, 0.8); poor.DailyTick(d, 0.2); }
+            Check(rich.Of("a").Cash > poor.Of("a").Cash,
+                "after a week the prosperous street has more in its pockets",
+                $"{rich.Of("a").Cash} vs {poor.Of("a").Cash}");
+            for (int d = 1; d <= 60; d++) rich.DailyTick(d, 1.0);
+            Check(rich.Of("a").Cash == 200, "and nobody hoards past what they would keep to hand",
+                rich.Of("a").Cash.ToString());
+
+            // Borrowing: the money MOVES. Cash is conserved on this street, and
+            // the favour is real state rather than flavour text.
+            int before = book.Of("danica").Cash;
+            var patron = book.Borrow("sam", 75, day: 2);
+            Check(patron == "danica", "somebody with nowhere to go stays broke; Sam has an uncle", patron);
+            Check(book.Of("sam").Cash == 75, "and comes back with what he was asked for");
+            Check(book.Of("danica").Cash == before - 75, "which came out of somebody else's pocket");
+            Check(book.Favours.Count == 1 && book.Favours[0].PatronId == "danica" && !book.Favours[0].Settled,
+                "and is recorded as a favour the Director can read");
+            Check(book.Owed("danica").Count == 1, "you can ask who is owed what");
+            Check(book.Borrow("sam", 40, day: 2) == null, "nobody goes begging twice in one night");
+
+            // A patron never lends the last of it, and nobody without a patron
+            // can borrow at all.
+            var tight = new PurseBook();
+            tight.Add(new Purse { OwnerId = "x", Weekly = 70, Ceiling = 100, Cash = 0, PatronId = "y" });
+            tight.Add(new Purse { OwnerId = "y", Weekly = 70, Ceiling = 100, Cash = 8 });
+            Check(tight.Borrow("x", 50, day: 3) == null, "a patron with nothing spare lends nothing");
+            tight.Add(new Purse { OwnerId = "z", Weekly = 70, Ceiling = 100, Cash = 0 });
+            Check(tight.Borrow("z", 50, day: 3) == null, "and having nobody to go to is its own kind of poor");
+            Check(tight.Borrow("nobody", 50, day: 3) == null, "asking about a stranger is safe");
+
+            // Generated purses: three thousand residents, no authored numbers,
+            // and the same person always has the same means.
+            var gen = new PurseBook();
+            var p1 = gen.For("resident_412", "Mira");
+            var p2 = gen.For("resident_412");
+            Check(ReferenceEquals(p1, p2), "asking twice finds the same person, not a second one");
+            var gen2 = new PurseBook();
+            Check(gen2.For("resident_412").Weekly == p1.Weekly && gen2.For("resident_412").Cash == p1.Cash,
+                "and a fresh city gives that person the same means again");
+            Check(p1.Cash > 0 && p1.Cash <= p1.Ceiling, "generated purses start part-full, not empty",
+                $"{p1.Cash}/{p1.Ceiling}");
+            var spread = new HashSet<int>();
+            for (int i = 0; i < 40; i++) spread.Add(gen.For("resident_" + i).Weekly);
+            Check(spread.Count > 10, "and people are not all the same means", spread.Count.ToString());
+
+            Check(gen.Liquidity() > 0 && gen.Liquidity() <= 1, "the street's liquidity is a fraction",
+                gen.Liquidity().ToString("0.00"));
+
+            // Collection, end to end: a willing debtor who cannot pay it all.
+            var mill = new GossipMill(new SocialGraph());
+            var sam = new Gossiper("sam", "Sam", null, null, null, "night", 0.5, 0.5, 0.9);
+            mill.Add(sam);
+            var purses = new PurseBook();
+            purses.Add(new Purse { OwnerId = "sam", Name = "Sam", Weekly = 60, Ceiling = 95, Cash = 45 });
+            var debts = new DebtBook();
+            var marker = new Debtor { Id = "sam", Name = "Sam", Amount = 120, Note = "stock money" };
+            debts.Add(marker);
+            var wallet = new Wallet(0);
+            var day1 = new GameTime(1, 12, 0);
+
+            var loyaltyBefore = sam.Loyalty;
+            var outcome = marker.Collect(sam, wallet, mill, day1, purses);
+            Check(outcome == CollectOutcome.PaidPart, "a willing man who is short pays what he has", outcome.ToString());
+            Check(wallet.Clean == 45, "the money is real", wallet.Clean.ToString());
+            Check(marker.Amount == 75, "and the balance stays on the page", marker.Amount.ToString());
+            Check(marker.Outstanding, "the debt is not closed");
+            Check(sam.Loyalty < loyaltyBefore - 0.05,
+                "emptying somebody costs more than being paid by them earns", sam.Loyalty.ToString("0.00"));
+            Check(marker.Collect(sam, wallet, mill, day1, purses) == CollectOutcome.Nothing,
+                "and you still only ask once a day");
+
+            // Willing and completely empty is a beg, and a truthful one.
+            var day2 = new GameTime(2, 12, 0);
+            var begged = marker.Collect(sam, wallet, mill, day2, purses);
+            Check(begged == CollectOutcome.Begged, "a man with nothing begs rather than refusing", begged.ToString());
+            Check(wallet.Clean == 45, "and nothing moves");
+
+            // With no purse book at all, the old behaviour is exactly preserved —
+            // every existing caller and save keeps working.
+            var oldWay = new DebtBook();
+            var rocco = new Gossiper("rocco", "Rocco", null, null, null, "night", 0.5, 0.5, 0.9);
+            var full = new Debtor { Id = "rocco", Name = "Rocco", Amount = 60 };
+            oldWay.Add(full);
+            var w2 = new Wallet(0);
+            Check(full.Collect(rocco, w2, mill, day1) == CollectOutcome.Paid,
+                "without purses a willing debtor simply pays, as before");
+            Check(w2.Clean == 60 && !full.Outstanding, "in full, and the page closes");
+
+            // Overnight, the emptied debtor goes to whoever they have.
+            purses.Of("sam").PatronId = "danica";
+            purses.Add(new Purse { OwnerId = "danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
+            mill.Add(new Gossiper("danica", "Danica", null, null, null, "day", 0.5, 0.5, 0.5));
+            int memoriesBefore = sam.Memory.Events.Count;
+            var went = debts.NightBorrowing(purses, mill, new GameTime(3, 2, 0));
+            Check(went.Count == 1 && went[0] == "sam", "the man you emptied goes and asks somebody");
+            Check(purses.Of("sam").Cash >= 75, "and has it when you next come", purses.Of("sam").Cash.ToString());
+            Check(sam.Memory.Events.Count > memoriesBefore, "and remembers having to ask");
+            Check(purses.Favours.Count == 1, "somebody on this street is now owed a favour");
+
+            // Save and load: a part-paid debt must not quietly reset to its
+            // original figure, which would steal back everything collected.
+            var codecMill = new GossipMill(new SocialGraph());
+            codecMill.Add(new Gossiper("sam", "Sam", null, null, null, "night", 0.5, 0.5, 0.9));
+            var saved = SaveCodec.Capture(day2, wallet, new Campaign(), new PlayerKnowledge(),
+                new SecretsBook(), new BeatBook(), codecMill, debts, null);
+            var reloadDebts = new DebtBook();
+            var reloadMarker = new Debtor { Id = "sam", Name = "Sam", Amount = 120 };
+            reloadDebts.Add(reloadMarker);
+            SaveCodec.Restore(saved, new Wallet(0), new Campaign(), new PlayerKnowledge(), new SecretsBook(),
+                new BeatBook(), new GossipMill(new SocialGraph()), reloadDebts, out _);
+            Check(reloadMarker.Amount == 75, "a part-paid debt reloads at what is still owed, not at what it was",
+                reloadMarker.Amount.ToString());
+
+            var purseSnap = MiniJson.Serialize(purses.Capture());
+            var twin = new PurseBook();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(purseSnap)));
+            Check(MiniJson.Serialize(twin.Capture()) == purseSnap, "and the purses survive their own codec");
+            Check(twin.Of("sam").PatronId == "danica", "including who somebody can go to");
+            Check(twin.Favours.Count == 1, "and what the street is owed");
+            twin.Restore(null);
+            Check(twin.Of("sam") != null, "restoring nothing changes nothing");
         }
 
         // ---------------------------------------------------------------

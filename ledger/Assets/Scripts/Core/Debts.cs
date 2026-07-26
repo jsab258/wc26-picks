@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Ledger.Core
 {
-    public enum CollectOutcome { Paid, Begged, Refused, Nothing }
+    public enum CollectOutcome { Paid, PaidPart, Begged, Refused, Nothing }
 
     /// One line in Marek's book of uncollectable debts (the founding premise's
     /// inheritance). Collection is social, not violent: whether they pay, beg, or
@@ -15,6 +15,10 @@ namespace Ledger.Core
         public string Name;
         public int Amount;
         public string Note;       // what the money was for, in Marek's hand
+        /// What the last collection actually produced, and what it left behind.
+        /// Read by the UI so the line it prints is the truth rather than the ask.
+        public int LastPaid { get; private set; }
+        public string LastLine { get; private set; }
         public bool Collected { get; private set; }
         public bool Forgiven { get; private set; }
         public int LastAskedDay { get; private set; } = -1;
@@ -23,19 +27,58 @@ namespace Ledger.Core
 
         /// Trait-gated collection. Loyal debtors pay (grudgingly); the nervous beg
         /// for a day; the rest refuse — and tell the street you came squeezing.
-        public CollectOutcome Collect(Gossiper g, Wallet wallet, GossipMill mill, GameTime now)
+        /// `purses` is optional so every existing caller and test keeps working;
+        /// pass it and the willing debtor can only hand over what they actually
+        /// have, which is roadmap M13 and the whole point of the system.
+        public CollectOutcome Collect(Gossiper g, Wallet wallet, GossipMill mill, GameTime now,
+            PurseBook purses = null)
         {
             if (!Outstanding || g == null) return CollectOutcome.Nothing;
             if (LastAskedDay == now.Day) return CollectOutcome.Nothing; // once a day
             LastAskedDay = now.Day;
+            LastPaid = 0;
+            LastLine = null;
 
             if (g.Loyalty >= 0.5)
             {
+                // Willing is not the same as able. Without a purse book this is
+                // the old behaviour exactly; with one, a man who turns over $90
+                // a week cannot produce $400 because you asked nicely.
+                int paid = Amount;
+                if (purses != null)
+                {
+                    var payment = purses.Take(Id, Amount, now.Day, g.DisplayName);
+                    paid = payment.Paid;
+                    LastLine = payment.Line;
+                }
+                LastPaid = paid;
+
+                if (paid <= 0)
+                {
+                    // Willing and empty. That is a beg, and it is a truthful one.
+                    g.Memory.Append(new MemoryEvent(now, "conversation", 0.55,
+                        $"The new owner came for Marek's ${Amount} and I had nothing to give them. " +
+                        "I have never been so glad of a drawer nobody can argue with."));
+                    return CollectOutcome.Begged;
+                }
+
+                wallet.EarnClean(paid);
+                if (paid < Amount)
+                {
+                    Amount -= paid;
+                    // Emptying somebody costs more standing than being paid by
+                    // them earns you. They stood there and counted it out.
+                    g.Loyalty = Math.Clamp(g.Loyalty - 0.09, 0, 1);
+                    g.Memory.Append(new MemoryEvent(now, "conversation", 0.7,
+                        $"Gave the new owner every coin in the place — ${paid} — against Marek's book. " +
+                        $"Still ${Amount} short and they know where I live."));
+                    return CollectOutcome.PaidPart;
+                }
+
                 Collected = true;
-                wallet.EarnClean(Amount);
                 g.Loyalty = Math.Clamp(g.Loyalty - 0.05, 0, 1);
                 g.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
-                    $"Paid the new owner what I owed Marek. ${Amount}. It stung, but fair is fair."));
+                    $"Paid the new owner what I owed Marek. ${paid}. It stung, but fair is fair."));
                 return CollectOutcome.Paid;
             }
             if (g.Nerve <= 0.5)
@@ -68,10 +111,13 @@ namespace Ledger.Core
             return true;
         }
 
-        /// Save-load overlay.
-        public void Restore(bool collected, bool forgiven, int lastAskedDay)
+        /// Save-load overlay. Amount is included because part-payment changes
+        /// it — a debt that reset to its original figure on load would be a
+        /// quiet way of stealing back everything the player collected.
+        public void Restore(bool collected, bool forgiven, int lastAskedDay, int amount = -1)
         {
             Collected = collected; Forgiven = forgiven; LastAskedDay = lastAskedDay;
+            if (amount >= 0) Amount = amount;
         }
     }
 
@@ -82,5 +128,36 @@ namespace Ledger.Core
         public IEnumerable<Debtor> All => _debtors;
         public Debtor Of(string id) => _debtors.FirstOrDefault(d => d.Id == id && d.Outstanding);
         public Debtor ById(string id) => _debtors.FirstOrDefault(d => d.Id == id);
+
+        /// Overnight, anybody who was emptied and still owes goes to whoever
+        /// they have. You will often not know this happened — you will notice
+        /// that they paid, and that they are colder about it than the money
+        /// explains.
+        public List<string> NightBorrowing(PurseBook purses, GossipMill mill, GameTime now)
+        {
+            var went = new List<string>();
+            if (purses == null) return went;
+            foreach (var d in _debtors)
+            {
+                if (!d.Outstanding) continue;
+                var purse = purses.Of(d.Id);
+                if (purse == null || purse.LastEmptiedDay < 0) continue;
+                var patron = purses.Borrow(d.Id, d.Amount, now.Day);
+                if (patron == null) continue;
+                went.Add(d.Id);
+
+                var g = mill?.Get(d.Id);
+                var lender = mill?.Get(patron);
+                if (g != null)
+                    g.Memory.Append(new MemoryEvent(now, "conversation", 0.75,
+                        $"Went to {lender?.DisplayName ?? patron} and asked for money, because of Marek's book " +
+                        "and the person who bought it. I will be paying for that asking longer than for the money."));
+                if (lender != null)
+                    lender.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
+                        $"{g?.DisplayName ?? d.Id} came to me for money. The new owner has been leaning on them. " +
+                        "I gave it. I will remember that I gave it."));
+            }
+            return went;
+        }
     }
 }
