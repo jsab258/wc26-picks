@@ -172,6 +172,44 @@ namespace Ledger.Core
             Remember(mill, arm, now, $"One of {arm.HeadName}'s people went over to the new owner.");
         }
 
+        // ---- the Table (Act II PP7): one mechanical effect per answer ----
+
+        /// Dockside accepted: a percentage of everything the street makes.
+        public double TributeShare;
+        /// Machine accepted: the fronts declare less, so they earn less.
+        public bool FrontsCapped;
+        /// New crew accepted: a round you staff but do not fully collect from.
+        public string SharedRacketId;
+
+        /// Resolve the summit. Accept costs something permanent, defiance costs
+        /// peace, a counter costs nothing but requires you to matter already.
+        public void ResolveTable(string armId, string answer, GossipMill mill, GameTime now)
+        {
+            var arm = ArmOf(armId);
+            if (arm == null) return;
+            switch (answer)
+            {
+                case "accept":
+                    if (armId == "dockside") TributeShare = 0.12;
+                    else if (armId == "machine") FrontsCapped = true;
+                    else SharedRacketId = Rackets.Find(r => r.Established)?.Id;
+                    arm.Standing = Math.Clamp(arm.Standing + 0.4, -1, 1);
+                    arm.Attention = Math.Clamp(arm.Attention - 0.5, 0, 1);
+                    arm.Stage = Math.Min(arm.Stage, 2);
+                    break;
+                case "defy":
+                    arm.Standing = Math.Clamp(arm.Standing - 0.5, -1, 1);
+                    arm.Attention = 1.0;
+                    break;
+                default: // counter — you had the standing to price yourself
+                    arm.Standing = Math.Clamp(arm.Standing + 0.15, -1, 1);
+                    arm.Attention = Math.Clamp(arm.Attention - 0.3, 0, 1);
+                    arm.Stage = Math.Min(arm.Stage, 3);
+                    break;
+            }
+            Remember(mill, arm, now, $"The new owner sat down with {arm.HeadName} and {(answer == "accept" ? "took the terms" : answer == "defy" ? "said no to her face" : "put their own number on the table")}.");
+        }
+
         /// Arm memory: what an organization's remaining people saw happen.
         static void Remember(GossipMill mill, RivalArm arm, GameTime now, string line)
         {
@@ -472,6 +510,9 @@ namespace Ledger.Core
                 }
                 // The New crew's kid taxing your rounds (stage 3+): loud, simple, real.
                 if (NewCrewTaxing) income = (int)Math.Round(income * 0.8);
+                // Treaty terms, if you signed any (Act II's Table).
+                if (TributeShare > 0) income = (int)Math.Round(income * (1.0 - TributeShare));
+                if (SharedRacketId != null && r.Id == SharedRacketId) income = (int)Math.Round(income * 0.5);
                 wallet.EarnDirty(income);
                 TotalRacketIncome += income;
                 events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
@@ -723,6 +764,8 @@ namespace Ledger.Core
                     { "members", a.Members.Cast<object>().ToList() },
                 }).ToList() },
             { "racketIncome", TotalRacketIncome },
+            { "tributeShare", TributeShare }, { "frontsCapped", FrontsCapped },
+            { "sharedRacket", SharedRacketId ?? "" },
         };
 
         public void Restore(Dictionary<string, object> data)
@@ -787,6 +830,10 @@ namespace Ledger.Core
                     arm.Members.Add(m);
             }
             TotalRacketIncome = MiniJson.GetInt(data, "racketIncome");
+            TributeShare = data.TryGetValue("tributeShare", out var ts) ? Convert.ToDouble(ts) : 0;
+            FrontsCapped = Is(data, "frontsCapped");
+            var shared = MiniJson.GetString(data, "sharedRacket");
+            SharedRacketId = string.IsNullOrEmpty(shared) ? null : shared;
         }
 
         static bool Is(Dictionary<string, object> d, string key) =>

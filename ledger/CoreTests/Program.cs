@@ -45,6 +45,7 @@ namespace Ledger.CoreTests
                 TestSaveRoundTrip();
                 TestDebts();
                 TestEmpire();
+                TestActTwo();
                 TestDayJob();
                 TestResponseValidator();
                 await TestConversationEngine();
@@ -841,6 +842,68 @@ namespace Ledger.CoreTests
             Check(e9.Rival.Stage == 3 && e9.Rival.ProtectionTaxPerDay == 40
                 && e9.Crew.Any(c => c.Id == "josip" && c.Departed) && !e9.RacketOf("collection").Established,
                 "empire: the whole book survives the codec");
+        }
+
+        static void TestActTwo()
+        {
+            Console.WriteLine("ActTwo:");
+            Check(!ActTwoState.ShouldOpen(false, 1, 1, 2), "act2: the closed city has no second act");
+            Check(!ActTwoState.ShouldOpen(true, 1, 0, 0), "act2: one holding is not an empire");
+            Check(ActTwoState.ShouldOpen(true, 1, 1, 0), "act2: a shop and a round open it");
+            Check(ActTwoState.ShouldOpen(true, 0, 1, 2), "act2: a round and a crew open it");
+
+            var a = new ActTwoState();
+            a.InjunctionUntilDay = 12;
+            Check(a.BarFrozen(new GameTime(11, 9, 0)), "act2: the licence review shuts the till");
+            Check(!a.BarFrozen(new GameTime(13, 9, 0)), "act2: the review expires on its own");
+            a.InjunctionAnswered = true;
+            Check(!a.BarFrozen(new GameTime(11, 9, 0)), "act2: answering the letter reopens the bar");
+
+            Check(ActTwoState.FirstNotice("machine").Contains("deed plate"), "act2: each arm notices in its own voice");
+            Check(ActTwoState.TableOffer("dockside").Contains("Twelve per cent"), "act2: Sera prices in percentages");
+            Check(ActTwoState.TableResult("newcrew", "defy").Contains("Hook Street vowels"), "act2: Danny's refusal lands cold");
+
+            // The Table's mechanical effects, one per doctrine.
+            var (e1, m1, _1, josip1) = BuildEmpireFixture();
+            e1.ResolveTable("dockside", "accept", m1, new GameTime(14, 12, 0));
+            Check(System.Math.Abs(e1.TributeShare - 0.12) < 1e-9 && e1.ArmOf("dockside").Attention < 0.5,
+                "act2: taking Sera's terms costs a share and buys quiet");
+            var wT = new Wallet(0);
+            josip1.Loyalty = 0.6;
+            e1.RecruitByNeed(josip1, "Josip", 0, wT, new GameTime(14, 12, 0));
+            e1.Establish(e1.RacketOf("collection"), e1.CrewOf("josip"), new GameTime(14, 12, 0));
+            e1.DailyTick(new GameTime(15, 8, 0), wT, m1);
+            Check(wT.Dirty == 53, "act2: the tribute comes off every round (60 -> 53)");
+
+            var (e2, m2, _2, __2) = BuildEmpireFixture();
+            e2.ResolveTable("machine", "accept", m2, new GameTime(14, 12, 0));
+            Check(e2.FrontsCapped, "act2: signing Vane's cap throttles the fronts");
+
+            var (e3, m3, _3, __3) = BuildEmpireFixture();
+            e3.ArmOf("newcrew").Attention = 0.3;
+            e3.ResolveTable("newcrew", "defy", m3, new GameTime(14, 12, 0));
+            Check(e3.ArmOf("newcrew").Attention >= 0.99 && e3.ArmOf("newcrew").Standing < 0,
+                "act2: refusing Danny buys his full attention");
+
+            var snap = MiniJson.Serialize(a.Capture());
+            var a2 = new ActTwoState();
+            a2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(a2.InjunctionUntilDay == 12 && a2.InjunctionAnswered, "act2: the act's state survives the codec");
+        }
+
+        /// A minimal empire fixture shaped like EmpireSetup's roster.
+        static (EmpireBook, GossipMill, Gossiper, Gossiper) BuildEmpireFixture()
+        {
+            var mill = new GossipMill(new SocialGraph());
+            var ruta = new Gossiper("ruta", "Ruta", new MemoryStore("ruta"), new KnowledgeBase(),
+                new SuspicionTracker(), "both", 0.8, 0.6, 0.25);
+            var josip = new Gossiper("josip", "Josip", new MemoryStore("josip"), new KnowledgeBase(),
+                new SuspicionTracker(), "night", 0.7, 0.45, 0.35);
+            mill.Add(ruta); mill.Add(josip);
+            var e = new EmpireBook();
+            e.Businesses.Add(new Business { Id = "pawnshop", Name = "pawnshop", OwnerId = "ruta", AskPrice = 900, DebtPrice = 250, CleanIncomePerDay = 60, LaunderPerDay = 80 });
+            e.Rackets.Add(new Racket { Id = "collection", Name = "collection round", IncomePerDay = 60, BaseRisk = 0.0 });
+            return (e, mill, ruta, josip);
         }
 
         static void TestDayJob()

@@ -30,6 +30,10 @@ namespace Ledger.Game
         // rackets, and the Dockside street arm watching it all grow.
         public EmpireBook Empire { get; } = EmpireSetup.Build();
 
+        // Act II — The Squeeze (act2-draft.md, approved): the authored spine
+        // laid over the empire the player actually built.
+        public ActTwoState ActTwo { get; } = new ActTwoState();
+
         // The day job (doc §6.6): courier shifts at Meridian Parcel. Open-mode
         // only for now — Act I's week belongs to the bar. The dispatcher's card
         // (Zlata, cast-tier1-batch2.md) slots in on approval; the system stands.
@@ -390,6 +394,7 @@ namespace Ledger.Game
                 CheckOsseiInterviews();
                 CheckOnboarding();
                 CheckActOne();
+                CheckActTwo();
                 CheckDayJob();
             }
         }
@@ -462,6 +467,138 @@ namespace Ledger.Game
                         $"Interviewed {npc.DisplayName}. Statement: {r.Summary}"));
                 }
             }
+        }
+
+        // ---- Act II: the squeeze, fired by the empire's own shape ----
+
+        void CheckActTwo()
+        {
+            if (!Campaign.OpenMode || _gossip == null || _gossip.Mill == null) return;
+            var e = Empire;
+
+            if (!ActTwo.Opened)
+            {
+                if (!ActTwoState.ShouldOpen(true, e.Businesses.FindAll(b => b.Owned).Count,
+                    e.Rackets.FindAll(r => r.Established).Count, e.Crew.FindAll(c => !c.Departed).Count)) return;
+                ActTwo.Opened = true;
+                ActTwo.OpenedDay = Now.Day;
+                ToastLine(ActTwoState.OpenText, 12f);
+                return;
+            }
+
+            // PP1 — a second organization notices: it isn't one rival anymore.
+            if (!ActTwo.Pp1Fired)
+            {
+                var noticing = e.Arms.FindAll(a => a.Attention >= 0.25);
+                if (noticing.Count >= 2)
+                {
+                    ActTwo.Pp1Fired = true;
+                    ToastLine(ActTwoState.FirstNotice(noticing[1].Id), 11f);
+                }
+            }
+
+            // PP2 — the machine's letter: the bar's licence, under review.
+            if (!ActTwo.Pp2Fired && e.ArmOf("machine").Attention >= 0.5)
+            {
+                ActTwo.Pp2Fired = true;
+                ActTwo.InjunctionUntilDay = Now.Day + 2;
+                ToastLine(ActTwoState.Pp2LetterText, 14f);
+            }
+
+            // PP3 — the kid, properly, outside your door. Real witnesses.
+            if (!ActTwo.Pp3Fired &&
+                (e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Ruta") != null))
+            {
+                ActTwo.Pp3Fired = true;
+                foreach (var a in _gossip.Mill.Agents)
+                {
+                    if (a.Circle != "day" || a.Leashed) continue;
+                    _gossip.Mill.Witness(a.Id, new Fact("player", $"street_incident_d{Now.Day}", "seen"),
+                        "there was real trouble outside the new owner's bar — the Strip crowd, glass everywhere", true, Now, 0.55);
+                    break;
+                }
+                ToastLine(ActTwoState.Pp3KidText, 12f);
+            }
+
+            // PP5 — the broker opens for business.
+            if (!ActTwo.Pp5Fired && e.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2)
+            {
+                ActTwo.Pp5Fired = true;
+                ToastLine(ActTwoState.Pp5ShopText, 12f);
+            }
+
+            // PP6 — two cases become one case.
+            if (!ActTwo.Pp6Fired && OsseiSpawned && OsseiInterviews.Count > 0
+                && e.TotalRacketIncome > 0)
+            {
+                ActTwo.Pp6Fired = true;
+                ToastLine(ActTwoState.Pp6CaseText, 12f);
+                _ossei?.Memory.Append(new MemoryEvent(Now, "observation", 0.95,
+                    "The fire and the rounds are the same case. I stopped asking about the warehouse today and started asking who collects."));
+            }
+
+            // PP7 — the Table: an arm at the summit wants a room.
+            if (!ActTwo.TableFired && ActTwo.TableArmId == null)
+            {
+                var summit = e.Arms.Find(a => a.Stage >= 4);
+                if (summit != null)
+                {
+                    ActTwo.TableArmId = summit.Id;
+                    SpawnHead(summit.Id, summit.HeadName);
+                    ToastLine($"Halvard's message is one line: {summit.HeadName} will see you. The coin shop, when you're ready.", 13f);
+                }
+            }
+        }
+
+        /// An organization's head comes to the room Halvard arranged. They are
+        /// NOT in the gossip mill — heads don't stand on corners trading talk;
+        /// they arrive, they are answered, and the street hears about it after.
+        readonly HashSet<string> _headsSpawned = new HashSet<string>();
+
+        void SpawnHead(string armId, string headName)
+        {
+            var shortName = armId == "dockside" ? "Sera" : armId == "machine" ? "Aldous" : "Danny";
+            if (!_headsSpawned.Add(shortName)) return;
+            var member = CastTier1.Get(shortName);
+            if (member == null) return;
+            var color = shortName == "Sera" ? CastTier1.SeraColor
+                : shortName == "Aldous" ? CastTier1.AldousColor : CastTier1.DannyColor;
+            // Halvard's back room, by the ferry: neutral ground, as arranged.
+            var walker = NpcWalker.Spawn(shortName, color, new[]
+            {
+                (new GameTime(0, 9, 0), new Vector3(29, 0, 22)),
+                (new GameTime(0, 22, 0), new Vector3(29, 0, 22)),
+            });
+            _npcs.Add(walker);
+            var host = walker.gameObject.AddComponent<ConversationHost>();
+            host.Initialize(this, member.Card, null, null);
+            host.SceneContext = member.Scene;
+            var arm = Empire.ArmOf(armId);
+            host.ExtraContext = () =>
+                $" You have called this meeting because the new owner's street has become worth taking. " +
+                $"Your standing with them is {(arm.Standing > 0.4 ? "unexpectedly good" : arm.Standing < -0.2 ? "poor" : "neutral")}. " +
+                $"Your offer is on the table and you are waiting for an answer. {ActTwoState.TableOffer(armId)}";
+            _hosts.Add(host);
+        }
+
+        /// The player answers the summit (accept | defy | counter). Like the
+        /// posture, the answer becomes a Fact the whole street learns.
+        public void AnswerTable(string answer)
+        {
+            if (ActTwo.TableArmId == null || ActTwo.TableFired) return;
+            ActTwo.TableAnswer = answer;
+            Empire.ResolveTable(ActTwo.TableArmId, answer, _gossip?.Mill, Now);
+            var arm = Empire.ArmOf(ActTwo.TableArmId);
+            var fact = new Fact("player", "table", answer);
+            foreach (var host in _hosts)
+            {
+                if (host == null) continue;
+                host.Knowledge.Learn(fact);
+                host.Memory.Append(new MemoryEvent(Now, "heard", 0.8,
+                    $"Word went round inside a day: the new owner sat down with {arm.HeadName} and {(answer == "accept" ? "took the terms" : answer == "defy" ? "refused them" : "named their own")}."));
+            }
+            ToastLine(ActTwoState.TableResult(ActTwo.TableArmId, answer), 14f);
+            SaveNow(quiet: true);
         }
 
         /// The courier round (doc §6.6): the board by the docks, a route of
@@ -856,10 +993,13 @@ namespace Ledger.Game
                 _lastClosedDay = Now.Day;
                 double heat = CurrentHeat;
                 int takings = Campaign.CloseDay(heat);
+                // The licence is under review: the bar's own till stays shut.
+                if (ActTwo.BarFrozen(Now)) takings = 0;
                 // Owned fronts pay clean and get heat-taxed exactly like the bar
                 // — a front is a front. Their washing capacity joins the till's.
-                // The machine's inspections (stage 2+) slow every front you own.
-                double frontFactor = Empire.MachineInspecting ? 0.75 : 1.0;
+                // The machine's inspections (stage 2+) slow every front you own,
+                // and a signed cap slows them further.
+                double frontFactor = (Empire.MachineInspecting ? 0.75 : 1.0) * (Empire.FrontsCapped ? 0.7 : 1.0);
                 foreach (var b in Empire.Businesses)
                     if (b.Owned && b.CleanIncomePerDay > 0)
                         takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor * System.Math.Max(0.0, 1.0 - 0.85 * heat));
@@ -879,7 +1019,9 @@ namespace Ledger.Game
                         else streetLine = ev.Text; // rival/crew/witness — the last one speaks
                     }
 
-                var line = takings >= Campaign.BarBaseTakings
+                var line = ActTwo.BarFrozen(Now)
+                    ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."
+                    : takings >= Campaign.BarBaseTakings
                     ? $"Bar takings: +${takings}."
                     : $"Bar takings: +${takings}. The talk on the street is costing you.";
                 if (washed > 0) line += $" ${washed} of night money washed through the till.";
@@ -1151,6 +1293,7 @@ namespace Ledger.Game
         {
             { "empire", Empire.Capture() },
             { "dayjob", Job.Capture() },
+            { "acttwo", ActTwo.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
             { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
             { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
@@ -1216,6 +1359,7 @@ namespace Ledger.Game
                 ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
                 if (extra.TryGetValue("empire", out var em)) Empire.Restore(MiniJson.AsObject(em));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
+                if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
                 {
                     // Drawer contents ride the mill's suppression sets; rebuild the

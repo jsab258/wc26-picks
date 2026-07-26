@@ -219,6 +219,36 @@ namespace Ledger.Game
             string labelA = null, labelB = null;
             bool enabledA = true;
 
+            // Halvard's brokerage (Act II PP5): reads, truces, and the room.
+            var act2 = _game.ActTwo;
+            if (id == "Halvard" && act2.Pp5Fired)
+            {
+                labelA = $"Buy a read (${ActTwoState.ReadPrice})";
+                enabledA = _game.Wallet.Total >= ActTwoState.ReadPrice;
+                labelB = act2.TruceSpent ? "A truce, again (he declines)" : $"Broker a truce (${ActTwoState.TrucePrice})";
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = labelA;
+                _empireBtnA.interactable = enabledA;
+                _empireBtnB.gameObject.SetActive(true);
+                _empireLabelB.text = labelB;
+                _empireBtnB.interactable = !act2.TruceSpent && _game.Wallet.Total >= ActTwoState.TrucePrice;
+                return;
+            }
+
+            // The Table (PP7): the head is in the room and wants an answer.
+            if (act2.TableArmId != null && !act2.TableFired
+                && _game.Empire.ArmOf(act2.TableArmId)?.HeadName == _current.Card.Name)
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = "Take the terms";
+                _empireBtnA.interactable = true;
+                _empireBtnB.gameObject.SetActive(true);
+                bool canCounter = _game.Empire.ArmOf(act2.TableArmId).Standing >= 0.5;
+                _empireLabelB.text = canCounter ? "Name your own number" : "Refuse them";
+                _empireBtnB.interactable = true;
+                return;
+            }
+
             var biz = FindBusinessOf(id);
             var hook = _game.HooksBook.UsableHook(id);
             if (biz != null)
@@ -272,6 +302,41 @@ namespace Ledger.Game
             if (id == null) return;
             var e = _game.Empire;
             var g = _game.Gossip.Mill.Get(id);
+            var act2 = _game.ActTwo;
+
+            if (id == "Halvard" && act2.Pp5Fired)
+            {
+                if (!leverage)
+                {
+                    if (!_game.Wallet.Spend(ActTwoState.ReadPrice, dirtyOk: true)) { Narrate("He names the price again, patiently."); return; }
+                    act2.ReadsBought++;
+                    var loudest = e.Arms[0];
+                    foreach (var a in e.Arms) if (a.Attention > loudest.Attention) loudest = a;
+                    Narrate($"\"One imagines,\" Halvard says to the counter, \"that {loudest.HeadName}'s people are " +
+                        $"{(loudest.Stage >= 4 ? "finished deliberating" : loudest.Stage >= 3 ? "reaching for what is yours" : loudest.Stage >= 2 ? "pricing you weekly" : "merely curious")}. " +
+                        "One imagines nothing else.\"");
+                }
+                else
+                {
+                    if (act2.TruceSpent) { Narrate("\"A person may buy peace once a season,\" he says. \"Not twice.\""); return; }
+                    if (!_game.Wallet.Spend(ActTwoState.TrucePrice, dirtyOk: true)) { Narrate("He does not repeat the figure."); return; }
+                    act2.TruceSpent = true;
+                    var worst = e.Arms[0];
+                    foreach (var a in e.Arms) if (a.Attention > worst.Attention) worst = a;
+                    worst.Attention = System.Math.Max(0, worst.Attention - ActTwoState.TruceRelief);
+                    Narrate($"Halvard writes nothing down. Within a day, {worst.HeadName}'s people have other things to look at.");
+                }
+                return;
+            }
+
+            if (act2.TableArmId != null && !act2.TableFired
+                && e.ArmOf(act2.TableArmId)?.HeadName == _current.Card.Name)
+            {
+                bool canCounter = e.ArmOf(act2.TableArmId).Standing >= 0.5;
+                _game.AnswerTable(!leverage ? "accept" : canCounter ? "counter" : "defy");
+                return;
+            }
+
             var biz = FindBusinessOf(id);
             var hook = _game.HooksBook.UsableHook(id);
 
