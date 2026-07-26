@@ -6,8 +6,11 @@ Answered items move to the decision log in `process.md`.
 
 ## Open now
 
-*(empty — batch cleared 2026-07-25: cast drift, combat deferral, love interest
-= Noor, drop-window judged at playtest. See process.md.)*
+1. **Act I structure approval** — 7-day "The Inheritance" spine drafted at
+   `act1-draft.md`: 7 pressure points laid over the built campaign week, only
+   seven new authored text moments, 4 open questions inside (posture-choice
+   form, PP4 trigger gating, Noor entry timing, week-fail = act-fail). Each has
+   a recommendation; answer in batch with Noor's card since PP3/PP6 depend on her.
 
 ## Will need you at the vertical slice (M5)
 
