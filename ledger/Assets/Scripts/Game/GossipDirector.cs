@@ -40,6 +40,13 @@ namespace Ledger.Game
             graph.Link("Mirela", "Sam", 0.4);
             graph.Link("Josip", "Rocco", 0.6);
             graph.Link("Josip", "Sam", 0.3);
+            // Noor hears everything (cast-noor-draft.md): the street's best
+            // listener — talk reaches her fast, and her card compels her to ask.
+            graph.Link("Noor", "Ada", 0.7);
+            graph.Link("Noor", "Sam", 0.6);
+            graph.Link("Noor", "Lena", 0.5);
+            graph.Link("Noor", "Rocco", 0.5);
+            graph.Link("Noor", "Mirela", 0.4);
             _mill = new GossipMill(graph);
 
             // Every gossiper shares its conversation host's real memory, knowledge and
@@ -53,6 +60,10 @@ namespace Ledger.Game
                 _mill.Add(m != null
                     ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
                         m.Circle, m.Greed, m.Nerve, m.Loyalty)
+                    : walkerName == "Noor"
+                    // Noor: both circles, a bribe is a story, a threat is a story.
+                    ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
+                        NoorSetup.Circle, NoorSetup.Greed, NoorSetup.Nerve, NoorSetup.StartLoyalty)
                     // Lena: the guarded bookkeeper — near-unbuyable, hard to rattle.
                     : new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
                         "day", 0.25, 0.75, 0.5));
@@ -65,13 +76,20 @@ namespace Ledger.Game
                 "the new owner was at the old warehouse the night of the fire", true, _game.Now);
         }
 
+        /// Fired with every batch of real gossip exchanges (organic ticks and
+        /// directed checks alike) so authored systems — Noor's two drawers —
+        /// can react to what actually happened on the street.
+        public System.Action<List<GossipEvent>> OnEvents;
+
         void Update()
         {
             if (_mill == null || _game == null) return;
             _timer += Time.deltaTime;
             if (_timer < TickInterval) return;
             _timer = 0f;
-            ReportOverheard(_mill.Tick(_game.Now, Together));
+            var events = _mill.Tick(_game.Now, Together);
+            ReportOverheard(events);
+            OnEvents?.Invoke(events);
             RunChecking();
         }
 
@@ -127,7 +145,9 @@ namespace Ledger.Game
                     if (partnerId == checker.Id || _mill.Get(partnerId) == null) continue;
                     if (!Together(checker.Id, partnerId)) continue;
                     // Directed asking is also audible if you happen to be standing there.
-                    ReportOverheard(_mill.CompareNotes(checker.Id, partnerId, _game.Now));
+                    var asked = _mill.CompareNotes(checker.Id, partnerId, _game.Now);
+                    ReportOverheard(asked);
+                    OnEvents?.Invoke(asked);
                     _checkedDay[checker.Id] = _game.Now.Day;
                     ChecksRun++;
                     break;

@@ -22,6 +22,9 @@ namespace Ledger.Game
 
         public Campaign Campaign { get; } = new Campaign();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
+        // Act I's authored spine state (act1-draft.md): pressure-point flags,
+        // the posture answer, Noor's two drawers.
+        public ActOneState ActOne { get; } = new ActOneState();
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
         // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
         public DebtBook Debts { get; } = new DebtBook();
@@ -72,6 +75,7 @@ namespace Ledger.Game
         readonly List<NpcWalker> _npcs = new List<NpcWalker>();
         readonly List<ConversationHost> _hosts = new List<ConversationHost>();
         ConversationHost _lena;
+        ConversationHost _noor;
         GossipDirector _gossip;
         DialogueUI _ui;
         PlayerController _player;
@@ -165,7 +169,7 @@ namespace Ledger.Game
             _lena.ExtraContext = () =>
             {
                 var mood = $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.";
-                var firstDay = Now.Day == 1 ? " It is the new owner's first day; you are showing them the place, half testing them." : "";
+                var firstDay = Now.Day == 1 ? " It is the new owner's first day; you are showing them the place, half testing them. Your walkthrough ended at the cellar door you did not open — \"storeroom's nothing, mind the step\" — and you would rather they didn't think about that door again." : "";
                 if (LastTakings < 0) return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week.{firstDay} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
@@ -173,6 +177,35 @@ namespace Ledger.Game
                        $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
             };
             _hosts.Add(_lena);
+
+            // Noor Farid (approved card): lives above Ada's, walks the port beat.
+            // Act I's PP3 is her card doing its job — she asks about the fire
+            // because it is a Hard Fact, not because a quest flag fired.
+            var noorWalker = NpcWalker.Spawn("Noor", NoorSetup.Color, new[]
+            {
+                (new GameTime(0, 7, 30), new Vector3(18, 0, 14)),   // docks, working the beat
+                (new GameTime(0, 11, 0), new Vector3(10, 0, -14)),  // market corner
+                (new GameTime(0, 14, 0), new Vector3(-14, 0, 12)),  // the room above Ada's, writing
+                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(-2, 0, 2)),
+                (new GameTime(0, 23, 0), new Vector3(-14, 0, 12)),  // home
+            });
+            _npcs.Add(noorWalker);
+            _noor = noorWalker.gameObject.AddComponent<ConversationHost>();
+            _noor.Initialize(this, NoorSetup.CardMarkdown, null, null);
+            _noor.SceneContext = "On her rounds of Hook Street, notebook half out of a pocket, talking with the new bar owner.";
+            _noor.ExtraContext = () =>
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. ");
+                sb.Append($"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.");
+                if (Now.Day <= 2) sb.Append(" You have only just met the new owner.");
+                if (OsseiSpawned) sb.Append(NoorSetup.OsseiContextLine); // PP6: two collectors, different rules
+                if (ActOne.NoorDrawersBroken) sb.Append(NoorSetup.DrawerBrokenLine);
+                else if (ActOne.NoorDrawersEngaged) sb.Append(NoorSetup.DrawerHeldLine);
+                sb.Append(HostRevealText("Noor")).Append(SecretContext("Noor")).Append(SuspicionBehaviorText("Noor"));
+                return sb.ToString();
+            };
+            _hosts.Add(_noor);
 
             // The rest of the cast gets conversation brains too — you can find the
             // witness and handle him directly instead of only hearing about it from Lena.
@@ -187,7 +220,7 @@ namespace Ledger.Game
                 host.ExtraContext = () =>
                     $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. " +
                     $"Talk about the new owner around the street is {StreetWord(CurrentHeat)}." +
-                    $"{HostRevealText(walkerName)}{BeatContext(walkerName)}{SecretContext(walkerName)}{SuspicionBehaviorText(walkerName)}";
+                    $"{ActOneState.DayOneContext(walkerName, Now.Day)}{HostRevealText(walkerName)}{BeatContext(walkerName)}{SecretContext(walkerName)}{SuspicionBehaviorText(walkerName)}";
                 _hosts.Add(host);
             }
 
@@ -195,6 +228,7 @@ namespace Ledger.Game
 
             _gossip = gameObject.AddComponent<GossipDirector>();
             _gossip.Begin(this, _npcs, _hosts);
+            _gossip.OnEvents = OnGossipEvents;
 
             // The week's two dilemma evenings: both windows sit inside the outfit's
             // drop window. Ada tests the day face; Rocco tests the family face.
@@ -262,6 +296,7 @@ namespace Ledger.Game
                 CheckBarks();
                 CheckOsseiInterviews();
                 CheckOnboarding();
+                CheckActOne();
             }
         }
 
@@ -317,6 +352,7 @@ namespace Ledger.Game
             foreach (var npc in _npcs)
             {
                 if (npc == null || npc == _osseiWalker) continue;
+                if (npc.DisplayName == "Noor") continue; // she never shares with police — the whole of her ethics
                 var g = _gossip.Mill.Get(npc.DisplayName);
                 if (g == null || g.Leashed) continue; // a leashed witness gives her nothing
                 if (Vector3.Distance(npc.transform.position, _osseiWalker.transform.position) > 6f) continue;
@@ -332,6 +368,99 @@ namespace Ledger.Game
                         $"Interviewed {npc.DisplayName}. Statement: {r.Summary}"));
                 }
             }
+        }
+
+        // ---- Act I (act1-draft.md, approved): authored moments over the machine ----
+
+        void CheckActOne()
+        {
+            // PP1 — day one: the tour ends at a door that stays shut.
+            if (!ActOne.Pp1Fired && Now.Day == 1 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 30)))
+            {
+                ActOne.Pp1Fired = true;
+                ToastLine(ActOneState.Pp1CellarLine, 9f);
+                _lena?.Memory.Append(new MemoryEvent(Now, "observation", 0.7,
+                    "Walked the new owner through the place. Ended the tour at the cellar door and kept it shut. Storeroom's nothing, I said. Mind the step."));
+            }
+
+            // PP4 — the book under the step: fires the moment the player learns
+            // where, whichever channel taught them (confession, sharing, pressure).
+            if (!ActOne.Pp4Fired)
+            {
+                var s = HooksBook.ById("lena_ledger");
+                if (s != null && s.KnownToPlayer)
+                {
+                    ActOne.Pp4Fired = true;
+                    ToastLine(ActOneState.Pp4LedgerPage, 14f);
+                    _lena?.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                        "The new owner knows where Marek's real ledger is now. All of it. Even the page about the warehouse."));
+                }
+            }
+
+            CheckNoorDrawers();
+        }
+
+        /// Noor's two drawers: while they hold, anything she hears about the
+        /// player stays out of circulation — suppressed, not forgotten.
+        void CheckNoorDrawers()
+        {
+            if (_gossip == null || _gossip.Mill == null || ActOne.NoorDrawersBroken) return;
+            var g = _gossip.Mill.Get("Noor");
+            if (g == null) return;
+            if (!ActOne.NoorDrawersEngaged)
+            {
+                if (g.Loyalty < NoorSetup.DrawerLoyaltyFloor) return;
+                ActOne.NoorDrawersEngaged = true;
+                ToastLine("Something has shifted with Noor. What she hears about you lately goes in the drawer that isn't a story.", 8f);
+            }
+            foreach (var r in g.Rumors)
+                if (r.Content.Subject == "player" && g.Suppressed.Add(r.TopicKey))
+                    ActOne.NoorDrawerTopics.Add(r.TopicKey);
+        }
+
+        /// A caught lie is the one thing that breaks the drawers: loyalty drops
+        /// double, and everything she was sitting on is a story again.
+        void OnGossipEvents(List<GossipEvent> events)
+        {
+            if (events == null || _gossip == null || _gossip.Mill == null) return;
+            foreach (var ev in events)
+            {
+                if (!ev.Contradiction || ev.ToId != "Noor") continue;
+                var g = _gossip.Mill.Get("Noor");
+                if (g == null) return;
+                g.Loyalty = System.Math.Clamp(g.Loyalty - NoorSetup.CaughtLieLoyaltyDrop, 0, 1);
+                if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
+                {
+                    ActOne.NoorDrawersBroken = true;
+                    foreach (var t in ActOne.NoorDrawerTopics) g.Suppressed.Remove(t);
+                    ActOne.NoorDrawerTopics.Clear();
+                    g.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                        "I caught the new owner lying to me. Everything moves to the story drawer now."));
+                    ToastLine("Noor has gone quiet on you. Whatever she was keeping out of print, she isn't anymore.", 8f);
+                }
+                return; // one lie lands once per batch
+            }
+        }
+
+        /// PP7: the player says out loud which life they're choosing. Dialogue +
+        /// a Fact every cast brain learns (player decision 2026-07-26); mechanics
+        /// are Act II's job. Ossei is excluded — the answer travels as street
+        /// talk, and this street does not talk to police on purpose.
+        public void AnswerPosture(string choice)
+        {
+            if (ActOne.Posture != null) return;
+            ActOne.Posture = choice;
+            var summary = ActOneState.PostureSummary(choice);
+            var fact = new Fact("player", "posture", choice);
+            foreach (var host in _hosts)
+            {
+                if (host == null || host == _ossei) continue;
+                host.Knowledge.Learn(fact);
+                host.Memory.Append(host == _lena
+                    ? new MemoryEvent(Now, "conversation", 0.95, $"Day seven, over the true books, I asked straight. {summary}.")
+                    : new MemoryEvent(Now, "heard", 0.7, $"Word moved down the street inside a day: {summary}."));
+            }
+            SaveNow(quiet: true);
         }
 
         string BarkFor(string name)
@@ -522,7 +651,14 @@ namespace Ledger.Game
             {
                 _jobPostedDay = Now.Day;
                 SpawnJobMarker(DropPoints[Now.Day % DropPoints.Length]);
-                _ui?.Toast("The outfit wants a drop made tonight. Find the glow on the street before 02:00.");
+                // PP2 — the first ask is authored: the runner names Marek's
+                // compliance, so refusal reads as breaking HIS deal.
+                if (!ActOne.Pp2Fired)
+                {
+                    ActOne.Pp2Fired = true;
+                    _ui?.Toast(ActOneState.Pp2RunnerLine, 12f);
+                }
+                else _ui?.Toast("The outfit wants a drop made tonight. Find the glow on the street before 02:00.");
             }
             if (_jobMarker == null) return;
 
@@ -729,6 +865,9 @@ namespace Ledger.Game
             { "maxCoatedWitnessConf", MaxCoatedWitnessConf }, { "totalConfrontations", TotalConfrontations },
             { "jobPostedDay", _jobPostedDay }, { "lastClosedDay", _lastClosedDay },
             { "lastReflectedDay", _lastReflectedDay }, { "observedPeakHeat", ObservedPeakHeat },
+            { "pp1", ActOne.Pp1Fired }, { "pp2", ActOne.Pp2Fired }, { "pp4", ActOne.Pp4Fired },
+            { "posture", ActOne.Posture ?? "" },
+            { "noorDrawers", ActOne.NoorDrawersEngaged }, { "noorBroken", ActOne.NoorDrawersBroken },
         };
 
         public string CaptureSave() =>
@@ -774,6 +913,22 @@ namespace Ledger.Game
                 _lastClosedDay = FlagI(extra, "lastClosedDay");
                 _lastReflectedDay = FlagI(extra, "lastReflectedDay");
                 ObservedPeakHeat = FlagD(extra, "observedPeakHeat");
+                ActOne.Pp1Fired = FlagB(extra, "pp1");
+                ActOne.Pp2Fired = FlagB(extra, "pp2");
+                ActOne.Pp4Fired = FlagB(extra, "pp4");
+                var posture = extra.TryGetValue("posture", out var po) ? po as string : null;
+                ActOne.Posture = string.IsNullOrEmpty(posture) ? null : posture;
+                ActOne.NoorDrawersEngaged = FlagB(extra, "noorDrawers");
+                ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
+                if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
+                {
+                    // Drawer contents ride the mill's suppression sets; rebuild the
+                    // index of which topics the drawer (not a bribe) is holding.
+                    var noorG = _gossip.Mill.Get("Noor");
+                    if (noorG != null)
+                        foreach (var t in noorG.Suppressed)
+                            if (t.StartsWith("player.")) ActOne.NoorDrawerTopics.Add(t);
+                }
                 if (FlagB(extra, "osseiSpawned")) SpawnOssei();
                 _ui?.Toast($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}. The street remembers where you left it.", 6f);
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();

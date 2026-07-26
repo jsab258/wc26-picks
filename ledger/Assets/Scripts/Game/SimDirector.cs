@@ -40,6 +40,7 @@ namespace Ledger.Game
 
         int _endDay;
         bool _finished;
+        bool _forcedLedgerLearn;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -78,6 +79,16 @@ namespace Ledger.Game
             // Ossei's spawn path gets exercised) and careful from day 3 (coated, so
             // the disguise path is exercised too). Both halves get CI coverage.
             _game.WearingCoat = now.Day >= 3 && (now.Hour >= 21 || now.Hour < 3);
+
+            // Act I PP4 in CI: the trust path needs live conversation, so on day 6
+            // the bot learns the hiding place the other way a player can — from
+            // Rocco — and the authored moment must fire off the real transition.
+            if (!_forcedLedgerLearn && now.Day >= 6)
+            {
+                _forcedLedgerLearn = true;
+                var s = _game.HooksBook.ById("lena_ledger");
+                if (s != null && !s.KnownToPlayer) s.Learn("Rocco", now);
+            }
 
             // Drive the player around the block to exercise movement and camera —
             // except when the outfit's drop is open: then head straight for it, so the
@@ -356,6 +367,21 @@ namespace Ledger.Game
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
 
+            // Act I in-engine proof (act1-draft.md): PP1/PP2 fired on their days,
+            // PP4 tracked the lena_ledger transition exactly, Noor is in the mill,
+            // and the PP7 posture answer plants a Fact in every cast brain — the
+            // sim answers here if the week ended before the verdict screen could.
+            if (_game.ActOne.Posture == null) _game.AnswerPosture("takeover");
+            bool postureFact = false;
+            var lenaG = mill != null ? mill.Get("Lena") : null;
+            if (lenaG != null)
+                postureFact = lenaG.Knowledge.CheckClaim(new Fact("player", "posture", "takeover")) == ClaimResult.Consistent;
+            bool ledgerKnown = _game.HooksBook.ById("lena_ledger") != null && _game.HooksBook.ById("lena_ledger").KnownToPlayer;
+            bool actOneOk = _game.ActOne.Pp1Fired && _game.ActOne.Pp2Fired
+                && _game.ActOne.Pp4Fired == ledgerKnown
+                && (mill == null || mill.Get("Noor") != null)
+                && postureFact;
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
@@ -389,6 +415,10 @@ namespace Ledger.Game
                 { "saveLoadOk", saveLoadOk },
                 { "beats", beatStates },
                 { "secretsKnown", System.Linq.Enumerable.Count(_game.HooksBook.Known) },
+                { "pp1", _game.ActOne.Pp1Fired }, { "pp2", _game.ActOne.Pp2Fired },
+                { "pp4", _game.ActOne.Pp4Fired }, { "ledgerSecretKnown", ledgerKnown },
+                { "noorInMill", mill != null && mill.Get("Noor") != null },
+                { "posture", _game.ActOne.Posture ?? "" }, { "postureFactPlanted", postureFact },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
                 { "hourlySamples", _samples.Count },
@@ -401,7 +431,7 @@ namespace Ledger.Game
             bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk;
+                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -411,7 +441,7 @@ namespace Ledger.Game
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
                       $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.OsseiSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
-                      $"saveLoad={saveLoadOk} " +
+                      $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

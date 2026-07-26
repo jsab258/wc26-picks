@@ -54,6 +54,16 @@ namespace Ledger.Game
         Text _hookLabel;
         Button _collectBtn, _forgiveBtn;
 
+        // Suggestion chips (player decision 2026-07-26): 2–3 contextual openers
+        // drawn from live state. Clicking one says it; typing stays the game.
+        GameObject _chipRow;
+        readonly Button[] _chipBtns = new Button[3];
+        readonly Text[] _chipLabels = new Text[3];
+        readonly string[] _chipSays = new string[3];
+
+        // PP7: the posture question, asked over the won week (act1-draft.md).
+        GameObject _posturePanel;
+
         GameObject _debugPanel;
         Text _debugText;
 
@@ -155,7 +165,64 @@ namespace Ledger.Game
             _collectBtn.gameObject.SetActive(false);
             _forgiveBtn.gameObject.SetActive(false);
 
+            // Chips float just above the panel, out of the history's way.
+            _chipRow = new GameObject("Chips");
+            _chipRow.transform.SetParent(_dialoguePanel.transform, false);
+            Place(_chipRow, new Vector2(0.5f, 1), new Vector2(0, 42), new Vector2(880, 36));
+            for (int i = 0; i < 3; i++)
+            {
+                int idx = i;
+                var anchor = i == 0 ? new Vector2(0, 0.5f) : i == 1 ? new Vector2(0.5f, 0.5f) : new Vector2(1, 0.5f);
+                _chipBtns[i] = MakeButton(_chipRow.transform, "", anchor, Vector2.zero, new Vector2(286, 32));
+                _chipLabels[i] = _chipBtns[i].GetComponentInChildren<Text>();
+                _chipLabels[i].fontSize = 15;
+                _chipLabels[i].fontStyle = FontStyle.Italic;
+                _chipLabels[i].color = UiTheme.Dim;
+                _chipBtns[i].onClick.AddListener(() => SayChip(idx));
+            }
+            _chipRow.SetActive(false);
+
             _dialoguePanel.SetActive(false);
+        }
+
+        void SayChip(int i)
+        {
+            if (_current == null || _waiting || string.IsNullOrEmpty(_chipSays[i])) return;
+            _input.text = _chipSays[i];
+            Submit();
+        }
+
+        /// 2–3 contextual openers from live game state — the act's threads, known
+        /// leads, tonight's beat, Marek's book. Never the only path.
+        void RefreshChips()
+        {
+            var id = CurrentHostId();
+            if (id == null) { _chipRow.SetActive(false); return; }
+            var opts = new List<(string label, string say)>();
+
+            if (id == "Noor")
+                opts.Add(("· the warehouse fire ·", "What do you know about the warehouse fire?"));
+            if (id == "Lena")
+                opts.Add(("· the real books ·", "Marek kept more than one ledger, didn't he?"));
+            var lead = CurrentLead();
+            if (lead != null && !lead.Handled)
+                opts.Add(("· what people are saying ·", "What exactly are people saying about me?"));
+            foreach (var b in _game.Beats.All)
+                if (b.HostId == id && b.State == BeatState.Pending && b.Day == _game.Now.Day)
+                { opts.Add(("· tonight ·", "About tonight — I'll do my best to be there.")); break; }
+            if (_game.Debts.Of(id) != null)
+                opts.Add(("· Marek's book ·", "Your name is in Marek's book. Talk to me about what's owed."));
+            opts.Add(("· Marek ·", "Tell me about my uncle. What was he really like?"));
+            opts.Add(("· the street ·", "How is the street treating everyone these days?"));
+
+            _chipRow.SetActive(true);
+            for (int i = 0; i < 3; i++)
+            {
+                bool has = i < opts.Count;
+                _chipBtns[i].gameObject.SetActive(has);
+                _chipSays[i] = has ? opts[i].say : null;
+                if (has) _chipLabels[i].text = opts[i].label;
+            }
         }
 
         void BuildKeyPanel(Transform parent)
@@ -307,6 +374,7 @@ namespace Ledger.Game
                 if (Input.GetKeyDown(KeyCode.R)) Restart();
                 return; // the week is settled; only the end screen listens now
             }
+            if (_posturePanel != null) return; // the question holds the room
 
             _nearest = NearestHostInRange();
             bool dialogueOpen = _dialoguePanel.activeSelf;
@@ -369,8 +437,10 @@ namespace Ledger.Game
                     _leanLabel.text = "Lean on them";
                     _doubtLabel.text = "Plant doubt";
                 }
+                RefreshChips();
             }
             else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
+            if (!dialogueOpen && _chipRow.activeSelf) _chipRow.SetActive(false);
 
             if (dialogueOpen && Time.frameCount % 30 == 0)
             {
@@ -406,27 +476,70 @@ namespace Ledger.Game
         }
 
         /// The week is over, one way or another. Freezes play input and offers restart.
+        /// A won week earns PP7 first — Lena's question over the true books — and
+        /// the verdict screen then carries the day-8 teaser: the city opens.
         public void ShowEnd(Campaign camp)
         {
-            if (_endPanel != null) return;
+            if (_endPanel != null || _posturePanel != null) return;
             CloseDialogue();
             _player.InputLocked = true;
             _promptText.text = "";
             _dcRow.SetActive(false);
+            _chipRow.SetActive(false);
 
-            _endPanel = MakePanel(_canvas, "EndPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, 420));
+            if (camp.Verdict == Verdict.WonWeek && _game.ActOne.Posture == null)
+            {
+                // The sim bot answers so the fact-propagation path runs in CI.
+                if (SimMode.Days > 0) _game.AnswerPosture("takeover");
+                else { ShowPostureScene(camp); return; }
+            }
+            ShowEndPanel(camp);
+        }
+
+        void ShowPostureScene(Campaign camp)
+        {
+            _posturePanel = MakePanel(_canvas, "PostureScene", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000, 520));
+            var t = MakeText(_posturePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(900, 40), 26, TextAnchor.UpperCenter);
+            t.text = "T H E   T R U E   B O O K S";
+            t.color = UiTheme.Dim;
+            MakeText(_posturePanel.transform, "Scene", new Vector2(0.5f, 1), new Vector2(0, -72), new Vector2(880, 340), 19, TextAnchor.UpperLeft)
+                .text = ActOneState.PostureSceneText;
+            MakePostureButton("Wind it down", "winddown", -330, camp);
+            MakePostureButton("Take it over", "takeover", 0, camp);
+            MakePostureButton("Refuse to answer", "refused", 330, camp);
+        }
+
+        void MakePostureButton(string label, string key, float x, Campaign camp)
+        {
+            var b = MakeButton(_posturePanel.transform, label, new Vector2(0.5f, 0), new Vector2(x, 24), new Vector2(300, 46));
+            b.onClick.AddListener(() =>
+            {
+                _game.AnswerPosture(key);
+                Destroy(_posturePanel);
+                _posturePanel = null;
+                ShowEndPanel(camp);
+            });
+        }
+
+        void ShowEndPanel(Campaign camp)
+        {
+            if (_endPanel != null) return;
             bool won = camp.Verdict == Verdict.WonWeek;
+            _endPanel = MakePanel(_canvas, "EndPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, won ? 640 : 420));
             var title = MakeText(_endPanel.transform, "EndTitle", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(1000, 70), 44, TextAnchor.UpperCenter);
             title.text = won ? "YOU LASTED THE WEEK"
                 : camp.Verdict == Verdict.LostExposed ? "EXPOSED" : "CAST OUT";
             title.color = won ? UiTheme.Credit : UiTheme.Debit;
-            MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(950, 90), 22, TextAnchor.UpperCenter)
+            MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(950, 60), 22, TextAnchor.UpperCenter)
                 .text = camp.VerdictReason;
-            MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -250), new Vector2(950, 60), 18, TextAnchor.UpperCenter)
+            MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -190), new Vector2(950, 50), 18, TextAnchor.UpperCenter)
                 .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   takings banked: ${_game.TotalTakings}   ·   " +
                         $"washed: ${_game.Wallet.TotalWashed}   ·   cash: ${_game.Wallet.Clean} clean, ${_game.Wallet.Dirty} dirty";
-            MakeText(_endPanel.transform, "EndHint", new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(950, 40), 20, TextAnchor.LowerCenter)
-                .text = "Press R to start the week over";
+            if (won)
+                MakeText(_endPanel.transform, "Teaser", new Vector2(0.5f, 1), new Vector2(0, -245), new Vector2(920, 330), 17, TextAnchor.UpperLeft)
+                    .text = ActOneState.TeaserText;
+            MakeText(_endPanel.transform, "EndHint", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(950, 36), 20, TextAnchor.LowerCenter)
+                .text = "Press R to play the week again";
         }
 
         void Restart()
@@ -445,7 +558,7 @@ namespace Ledger.Game
         /// interrupts an existing dialogue, the key prompt, or the end screen.
         public void ForceDialogue(ConversationHost host)
         {
-            if (_dialoguePanel.activeSelf || _keyPanel.activeSelf || _endPanel != null) return;
+            if (_dialoguePanel.activeSelf || _keyPanel.activeSelf || _endPanel != null || _posturePanel != null) return;
             OpenDialogue(host);
         }
 
@@ -459,6 +572,7 @@ namespace Ledger.Game
             _dialoguePanel.SetActive(true);
             _input.text = "";
             _input.ActivateInputField();
+            RefreshChips();
             RenderHistory();
         }
 
