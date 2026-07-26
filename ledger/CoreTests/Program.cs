@@ -758,6 +758,44 @@ namespace Ledger.CoreTests
             e10.BuyClean(e10.BusinessOf("pawnshop"), new Wallet(1000), ruta10, now);
             Check(e10.Establish(fence, e10.CrewOf("josip"), now), "empire: the front opens the line");
 
+            // The three arms (§6.5): each doctrine attacks a different ledger.
+            var (eA, mA, rutaA, _a2) = Build(0.5, 0.4);
+            eA.BuyClean(eA.BusinessOf("pawnshop"), new Wallet(1000), rutaA, now);
+            Check(eA.ArmOf("machine").Attention > 0, "arms: a deed on the registry wakes the machine");
+            eA.ArmOf("machine").Attention = 0.55;
+            eA.DailyTick(new GameTime(9, 8, 0), new Wallet(100), mA);
+            Check(eA.MachineInspecting, "arms: machine stage two inspects the fronts");
+            eA.ArmOf("machine").Attention = 0.8;
+            eA.DailyTick(new GameTime(10, 8, 0), new Wallet(100), mA);
+            var wFee = new Wallet(400);
+            var feeEvents = eA.DailyTick(new GameTime(12, 8, 0), wFee, mA); // 12 % 3 == 0: fee day
+            Check(wFee.Clean == 250 && feeEvents.Exists(ev => ev.Text.Contains("cream paper")),
+                "arms: machine stage three bills clean money by letter");
+
+            var (eN, mN, _n, _n2) = Build(0.5, 0.4);
+            mN.Witness("ruta", new Fact("player", "loud_thing", "seen"), "something loud", true, now, 0.9);
+            // ruta is circle both — plant on a day-circle brain instead for heat:
+            var adaN = new Gossiper("ada", "Ada", new MemoryStore("ada2"), new KnowledgeBase(),
+                new SuspicionTracker(), "day", 0.15, 0.8, 0.4);
+            mN.Add(adaN);
+            mN.Witness("ada", new Fact("player", "loud_thing2", "seen"), "something loud on the street", true, now, 0.9);
+            eN.DailyTick(new GameTime(9, 8, 0), new Wallet(100), mN);
+            Check(eN.ArmOf("newcrew").Attention > 0, "arms: a hot street draws the New crew's eyes");
+            eN.ArmOf("newcrew").Stage = 2;
+            var incEvents = eN.DailyTick(new GameTime(10, 8, 0), new Wallet(100), mN); // 10 % 3 == 1: incident day
+            Check(incEvents.Exists(ev => ev.Text.Contains("fire barrel"))
+                && mN.Agents.Any(a => a.Rumors.Any(r => r.TopicKey.StartsWith("player.street_trouble"))),
+                "arms: manufactured incidents spend your cover through the real mill");
+            eN.ArmOf("newcrew").Stage = 3;
+            Check(eN.NewCrewTaxing, "arms: stage three taxes the rounds");
+
+            var snapA = MiniJson.Serialize(eA.Capture());
+            var (eA2, _ma2, _ra2, __a2) = Build(0.5, 0.4);
+            eA2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snapA)));
+            Check(eA2.ArmOf("machine").Stage == eA.ArmOf("machine").Stage
+                && Math.Abs(eA2.ArmOf("machine").Attention - eA.ArmOf("machine").Attention) < 1e-9,
+                "arms: all three survive the codec");
+
             // Persistence: the whole book round-trips through plain data.
             var snap = e7.Capture();
             var (e9, m9, _9, __9) = Build(0.5, 0.4);

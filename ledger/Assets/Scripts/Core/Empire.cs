@@ -51,16 +51,21 @@ namespace Ledger.Core
         public int EstablishedDay;
     }
 
-    /// The Dockside street arm (§2.4): flat structure (Nemesis patent — no
-    /// promotion ladders, no player-defeat advancement). Attention is driven by
-    /// what its people actually observe; stages escalate on thresholds and act
-    /// at most once a day.
+    /// A rival organization's street presence (§2.4, extended to the doc's
+    /// three): flat structure (Nemesis patent — no promotion ladders, no
+    /// player-defeat advancement). Attention is driven by what its people
+    /// actually observe; stages escalate on thresholds and act at most once a
+    /// day. Each arm's doctrine attacks a different ledger:
+    ///   dockside — muscle and patience, against your PEOPLE
+    ///   machine  — lawyers and paper, against your CLEAN money
+    ///   newcrew  — noise, against your COVER
     public class RivalArm
     {
+        public string Id = "dockside";
         public double Attention;      // 0..1
-        public int Stage;             // 0 quiet · 1 warning · 2 tax · 3 poach · 4 threat
+        public int Stage;             // 0 quiet · 1 notice · 2 pressure · 3 grab · 4 summit
         public int LastActDay = -1;
-        public int ProtectionTaxPerDay; // stage 2+: the street's rent, taken daily
+        public int ProtectionTaxPerDay; // dockside stage 2+: the street's rent
     }
 
     public class EmpireEvent
@@ -76,7 +81,23 @@ namespace Ledger.Core
         public readonly List<Business> Businesses = new List<Business>();
         public readonly List<CrewMember> Crew = new List<CrewMember>();
         public readonly List<Racket> Rackets = new List<Racket>();
-        public readonly RivalArm Rival = new RivalArm();
+
+        /// The three organizations (§6.5): Sera Kest's dockside syndicate,
+        /// Aldous Vane's machine, Danny Ro's New crew.
+        public readonly List<RivalArm> Arms = new List<RivalArm>
+        {
+            new RivalArm { Id = "dockside" },
+            new RivalArm { Id = "machine" },
+            new RivalArm { Id = "newcrew" },
+        };
+        /// The founding rival keeps its name — existing callers and saves read
+        /// the dockside arm through it.
+        public RivalArm Rival => Arms[0];
+        public RivalArm ArmOf(string id) => Arms.Find(a => a.Id == id);
+
+        /// Doctrine effects other systems consume at the daily close.
+        public bool MachineInspecting => ArmOf("machine").Stage >= 2;   // fronts' income -25%
+        public bool NewCrewTaxing => ArmOf("newcrew").Stage >= 3;       // rackets' take -20%
 
         // Tunables.
         public double RecruitLoyaltyFloor = 0.55;   // the need route ends in a yes only past this
@@ -114,6 +135,7 @@ namespace Ledger.Core
                     $"Sold the {b.Name} to the new owner. Fair price, paid in full. I still run the counter."));
             }
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1); // even clean money moves get noticed
+            NoteDeed(); // deeds are public record — the machine's clerks read them
             return true;
         }
 
@@ -145,6 +167,7 @@ namespace Ledger.Core
                 owner.Memory.Append(new MemoryEvent(now, "observation", 0.9,
                     $"The new owner bought my paper and called it. The {b.Name} is theirs now. I work in my own shop."));
                 Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent, 0, 1);
+                NoteDeed();
                 return new DcResult { Outcome = DcOutcome.Contained, Message = $"{owner.DisplayName} looks at the paper a long time, then hands over the keys." };
             }
             owner.Memory.Append(new MemoryEvent(now, "observation", 0.9,
@@ -180,6 +203,7 @@ namespace Ledger.Core
                     $"The new owner said one quiet sentence about what they know, and I signed the {b.Name} over. I keep the counter. They keep me."));
             }
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent, 0, 1);
+            NoteDeed();
             return new DcResult { Outcome = DcOutcome.Contained,
                 Message = $"{owner?.DisplayName ?? b.OwnerId} goes very quiet, and the {b.Name} changes hands without a price." };
         }
@@ -247,6 +271,11 @@ namespace Ledger.Core
                 Competence = Competence(g), RecruitedDay = now.Day,
             });
         }
+
+        /// Every transfer of a deed is public record; the machine's clerks read
+        /// the registry so Aldous never has to visit.
+        void NoteDeed() =>
+            ArmOf("machine").Attention = Math.Clamp(ArmOf("machine").Attention + 0.12, 0, 1);
 
         /// §6.5 made daily: how you split the take with each of your people.
         /// Generous costs money and builds the loyalty that defeats poaching;
@@ -341,6 +370,8 @@ namespace Ledger.Core
                     events.Add(new EmpireEvent { Kind = "crew", ActorId = runner.Id,
                         Text = $"The {r.Name} take feels light again. {runner.Name} counts it out without meeting your eye." });
                 }
+                // The New crew's kid taxing your rounds (stage 3+): loud, simple, real.
+                if (NewCrewTaxing) income = (int)Math.Round(income * 0.8);
                 wallet.EarnDirty(income);
                 TotalRacketIncome += income;
                 events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
@@ -366,8 +397,106 @@ namespace Ledger.Core
             }
 
             events.AddRange(RivalTick(now, wallet, mill, rng));
+            events.AddRange(MachineTick(now, wallet, mill));
+            events.AddRange(NewCrewTick(now, mill, rng));
             return events;
         }
+
+        /// The machine (Aldous Vane): paper against your clean money. Its clerks
+        /// read the deed registry; its pressure arrives as filings, never faces.
+        List<EmpireEvent> MachineTick(GameTime now, Wallet wallet, GossipMill mill)
+        {
+            var events = new List<EmpireEvent>();
+            var arm = ArmOf("machine");
+            int stageDue = arm.Attention >= 0.9 ? 4 : arm.Attention >= 0.75 ? 3 : arm.Attention >= 0.5 ? 2 : arm.Attention >= 0.25 ? 1 : 0;
+
+            // Stage 3+: recurring legal fees, clean money only — lawyers don't take cash in envelopes.
+            if (arm.Stage >= 3 && now.Day % 3 == 0)
+            {
+                int fee = Math.Min(150, wallet.Clean);
+                if (fee > 0)
+                {
+                    wallet.Spend(fee, dirtyOk: false);
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = $"Another letter on cream paper. Answering it costs ${fee} in filings and fees. It is not meant to be affordable; it is meant to be regular." });
+                }
+            }
+            if (stageDue <= arm.Stage || arm.LastActDay == now.Day) return events;
+            arm.Stage = stageDue;
+            arm.LastActDay = now.Day;
+            switch (stageDue)
+            {
+                case 1:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "A clerk you've never seen photographs the pawnshop's deed plate, notes something, and leaves without buying." });
+                    break;
+                case 2:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "Inspectors visit every front you own in one morning. Nothing is wrong; everything is slower now. The paperwork has opinions." });
+                    break;
+                case 3:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "A letter from Vane, Holt & Partners: your acquisitions are 'of interest'. The first fees arrive with it." });
+                    break;
+                default:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "A single sheet, hand-delivered: a meeting is available, at your convenience, which is to say at his. The machine has finished reading you." });
+                    break;
+            }
+            return events;
+        }
+
+        /// The New crew (Danny Ro): noise against your cover. His kids watch the
+        /// street's temperature, and their incidents spend YOUR credibility.
+        List<EmpireEvent> NewCrewTick(GameTime now, GossipMill mill, Random rng)
+        {
+            var events = new List<EmpireEvent>();
+            var arm = ArmOf("newcrew");
+            // Observation: a loud street draws the loud. Heat is what his people see.
+            if (mill.DayCircleHeat() >= 0.45)
+                arm.Attention = Math.Clamp(arm.Attention + 0.06, 0, 1);
+
+            // Stage 2+: manufactured incidents — heat you didn't earn, every third day.
+            if (arm.Stage >= 2 && now.Day % 3 == 1)
+            {
+                var pool = new List<Gossiper>();
+                foreach (var a in Agents(mill)) if (a.Circle == "day" && !a.Leashed) pool.Add(a);
+                if (pool.Count > 0)
+                {
+                    var w = pool[rng.Next(pool.Count)];
+                    mill.Witness(w.Id, new Fact("player", $"street_trouble_d{now.Day}", "seen"),
+                        "there was trouble on the new owner's street again — broken glass, shouting, that crowd", true, now, 0.5);
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "Glass across the walk outside the bakery, a fire barrel tipped, laughter running off toward the Strip. Your street, your reputation, not your doing." });
+                }
+            }
+            int stageDue = arm.Attention >= 0.9 ? 4 : arm.Attention >= 0.75 ? 3 : arm.Attention >= 0.5 ? 2 : arm.Attention >= 0.25 ? 1 : 0;
+            if (stageDue <= arm.Stage || arm.LastActDay == now.Day) return events;
+            arm.Stage = stageDue;
+            arm.LastActDay = now.Day;
+            switch (stageDue)
+            {
+                case 1:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "A tag appears on the bar's side wall overnight — a grinning fish. Kids' stuff. Kids who wanted you to see it." });
+                    break;
+                case 2:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "The Strip kid is back on your corner, louder now, performing for somebody. The street watches you not deal with it." });
+                    break;
+                case 3:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "Your runners report a new toll: the kid takes his cut of your rounds now, 'for the neighborhood'. Danny Ro's neighborhood, apparently." });
+                    break;
+                default:
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = "Music from a car that circles your block four times, windows down, nobody hurrying. An invitation, the way a lit match is an invitation." });
+                    break;
+            }
+            return events;
+        }
+
+        static IEnumerable<Gossiper> Agents(GossipMill mill) => mill.Agents;
 
         /// The rival reads the street and, at most once a day, acts. Stages are
         /// escalation, not hierarchy; nothing here advances by beating the player.
@@ -471,6 +600,11 @@ namespace Ledger.Core
                 }).ToList() },
             { "rivalAttention", Rival.Attention }, { "rivalStage", Rival.Stage },
             { "rivalLastAct", Rival.LastActDay }, { "rivalTax", Rival.ProtectionTaxPerDay },
+            { "arms", Arms.Select(a => (object)new Dictionary<string, object>
+                {
+                    { "id", a.Id }, { "attention", a.Attention }, { "stage", a.Stage },
+                    { "lastAct", a.LastActDay }, { "tax", a.ProtectionTaxPerDay },
+                }).ToList() },
             { "racketIncome", TotalRacketIncome },
         };
 
@@ -519,6 +653,16 @@ namespace Ledger.Core
             Rival.Stage = MiniJson.GetInt(data, "rivalStage");
             Rival.LastActDay = data.TryGetValue("rivalLastAct", out var la) ? Convert.ToInt32(la) : -1;
             Rival.ProtectionTaxPerDay = MiniJson.GetInt(data, "rivalTax");
+            foreach (var o in MiniJson.GetList(data, "arms") ?? new List<object>())
+            {
+                var d = MiniJson.AsObject(o);
+                var arm = d != null ? ArmOf(MiniJson.GetString(d, "id")) : null;
+                if (arm == null) continue;
+                arm.Attention = d.TryGetValue("attention", out var at) ? Convert.ToDouble(at) : 0;
+                arm.Stage = MiniJson.GetInt(d, "stage");
+                arm.LastActDay = d.TryGetValue("lastAct", out var laa) ? Convert.ToInt32(laa) : -1;
+                arm.ProtectionTaxPerDay = MiniJson.GetInt(d, "tax");
+            }
             TotalRacketIncome = MiniJson.GetInt(data, "racketIncome");
         }
 

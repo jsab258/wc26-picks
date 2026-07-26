@@ -539,6 +539,12 @@ namespace Ledger.Game
                     _ => "is at your door",
                 };
                 sb.AppendLine($"<color={UiTheme.HexDim}>The Dockside arm {rivalWord}.</color>");
+                var machine = e.ArmOf("machine");
+                if (machine.Stage > 0)
+                    sb.AppendLine($"<color={UiTheme.HexDim}>The machine {(machine.Stage >= 4 ? "requests a meeting" : machine.Stage >= 3 ? "bills you by letter" : machine.Stage >= 2 ? "inspects your fronts" : "reads your deeds")}.</color>");
+                var crew9 = e.ArmOf("newcrew");
+                if (crew9.Stage > 0)
+                    sb.AppendLine($"<color={UiTheme.HexDim}>The New crew {(crew9.Stage >= 4 ? "circles the block" : crew9.Stage >= 3 ? "taxes your rounds" : crew9.Stage >= 2 ? "makes noise on your street" : "tagged your wall")}.</color>");
                 if (e.TotalRacketIncome > 0)
                     sb.AppendLine($"<color={UiTheme.HexDim}>Rounds to date: ${e.TotalRacketIncome} dirty.</color>");
             }

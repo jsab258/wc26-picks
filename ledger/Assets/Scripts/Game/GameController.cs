@@ -750,9 +750,11 @@ namespace Ledger.Game
                 int takings = Campaign.CloseDay(heat);
                 // Owned fronts pay clean and get heat-taxed exactly like the bar
                 // — a front is a front. Their washing capacity joins the till's.
+                // The machine's inspections (stage 2+) slow every front you own.
+                double frontFactor = Empire.MachineInspecting ? 0.75 : 1.0;
                 foreach (var b in Empire.Businesses)
                     if (b.Owned && b.CleanIncomePerDay > 0)
-                        takings += (int)System.Math.Round(b.CleanIncomePerDay * System.Math.Max(0.0, 1.0 - 0.85 * heat));
+                        takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor * System.Math.Max(0.0, 1.0 - 0.85 * heat));
                 Wallet.EarnClean(takings);
                 TotalTakings += takings;
                 LastTakings = takings;
