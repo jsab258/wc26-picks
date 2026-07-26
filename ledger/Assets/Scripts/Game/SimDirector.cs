@@ -470,12 +470,18 @@ namespace Ledger.Game
             bool crowdOk = pop != null
                 && pop.Residents.Count == _game.PopulationCount
                 && pop.CountIn(Lod.Near) <= pop.NearCap
-                && pop.CountIn(Lod.Mid) <= pop.MidCap + pop.Residents.Count(r => r.Known)
+                // Fully qualified, like everything else in this file: SimDirector
+                // deliberately does not import System.Linq, and extension-method
+                // syntax on List<T>.Count silently means the COUNT PROPERTY to a
+                // reader and a compile error to Unity. It cost a red build.
+                && pop.CountIn(Lod.Mid) <= pop.MidCap
+                    + System.Linq.Enumerable.Count(pop.Residents, r => r.Known)
                 && pop.CountIn(Lod.Near) > 0                      // somebody is always nearby
                 && pop.CountIn(Lod.Far) > pop.Residents.Count / 2 // and almost everybody is not
                 && popSnap.Length < 20000                         // a seed, not a census
                 && (_game.Gossip == null || _game.Gossip.Mill == null
-                    || _game.Gossip.Mill.Agents.Count(a => a.Id.StartsWith("r")) > 0);
+                    || System.Linq.Enumerable.Any(_game.Gossip.Mill.Agents,
+                           a => a.Id.StartsWith("r")));
 
             // The Director (roadmap M8). CI has no API key, so the nightly pass
             // never authors anything — which is exactly the property worth
