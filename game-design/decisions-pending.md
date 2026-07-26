@@ -17,13 +17,6 @@ Answered items move to the decision log in `process.md`.
    form, PP4 trigger gating, Noor entry timing, week-fail = act-fail). Each has
    a recommendation; answer in batch with Noor's card since PP3/PP6 depend on her.
 
-2. **Open City spec approval** — `open-city-spec.md` (drafted 2026-07-26 after
-   your linear-drift flag): week = Act I on-ramp only, open mode from day 8,
-   Empire v1 as the four firsts (business/recruit/racket/rival), district
-   generation as the density engine, M6 restructured around it. 4 open
-   questions inside (Empire v1 scope, day-8 teaser in the slice, generation
-   pass timing, open-mode fail state), each with a recommendation.
-
 ## Will need you at the vertical slice (M5)
 
 1. **Asset budget release** (~$40–60 city pack approved in principle 2026-07-24;

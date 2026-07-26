@@ -150,25 +150,24 @@ Act II authoring intentionally *follows* Empire v1: its pressure points
 fire on empire state (§8 — growth attracts the rivals and Ossei), so the
 sandbox must exist before the act that reacts to it is written.
 
-## 5. Open questions (player decisions)
+## 5. Decisions (player, 2026-07-26 — spec APPROVED with amendments)
 
-1. **Scope of Empire v1 — the four firsts as specced?** One business, one
-   recruit, one racket, one rival, one district. RECOMMEND: yes; every
-   addition after the shape is proven is cheap, every addition before it
-   is risk.
-2. **Day-8 teaser in the slice?** (§4.2) RECOMMEND: yes — one scene turns
-   the demo's closing note from "story complete" to "city opens."
-3. **First district generation pass — when?** With Empire v1 (the Hook
-   needs its 60–100 residents for recruiting/buying to feel open) vs.
-   sample-ring-only Empire v1 first. RECOMMEND: with Empire v1, budget
-   permitting — density is the point of the milestone; the sample ring
-   alone makes the sandbox feel staged.
-4. **Open-mode fail state.** Exposure/arrest in open mode: campaign over
-   (roguelike weight) vs. survivable-but-scarring (prison time, empire
-   decay, reputation reset — the city remembers). RECOMMEND: survivable-
-   but-scarring; P5 says the city's state is the save file, and an ending
-   screen contradicts an open game. Needs design work either way — flag
-   early.
+1. **Empire v1 scope — BROADER than the four firsts** (player overrode the
+   minimal recommendation). Multiple businesses and multiple racket types
+   ship in the first open-mode milestone, not one of each. §2 stands as
+   the *per-type* design (acquisition routes, recruit routes, the drop
+   inversion, the observing rival); the M6 kickoff proposes the concrete
+   roster (candidate businesses beyond the pawnbroker; racket types beyond
+   collections — protection and fencing are the natural nexts, both
+   pre-designed in doc §6.5). The §2 exclusions that remain: multiple
+   districts beyond The Hook, the other two rival organizations, combat,
+   vehicles.
+2. **Day-8 teaser in the slice — YES.** One authored scene per §4.2.
+3. **District generation — WITH Empire v1.** The Hook's 60–100 residents
+   are part of M6; batch generation scheduled for an API-key session.
+4. **Open-mode fail state — survivable but scarring.** Prison time, empire
+   decay, reputation ruin; the city remembers and the player climbs back.
+   No game-over screen in open mode. Design pass owed early in M6.
 
 ---
 
