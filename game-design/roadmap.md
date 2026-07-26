@@ -84,8 +84,14 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
   models/Mixamo, audio+voice via ElevenLabs), 5 Tier-1 characters (Rocco, Lena, Sam, one
   love interest — Noor or Elias, player's pick — and Ossei), 7 in-game days of Act I,
   output validator, onboarding. The is-this-fun gate and the demo artifact.
-- **M6+ — per doc §11 M4+**: districts/cast/acts expansion, Tier-2 batch pipeline,
-  LLM productization (bundled inference, cost model, offline fallback), hardening,
+- **M6 — The Open City (Empire v1)** — spec drafted 2026-07-26 at
+  `open-city-spec.md`, awaiting approval. Fixes the linear-drift flag raised by
+  the player: week campaign demoted to Act I's on-ramp, open mode from day 8,
+  the four firsts (first business, first recruit, first racket, one reacting
+  rival) in a generation-filled Hook district. Act II authoring follows this,
+  not precedes it.
+- **M7+ — per doc §11 M4+**: further districts/cast/acts expansion, LLM
+  productization (bundled inference, cost model, offline fallback), hardening,
   Steam page. Nemesis-patent design review before any rival-hierarchy work (§6.5 ⚠).
 
 Rule reaffirmed from §2: if a feature serves none of the five novelty claims, it is cut.
