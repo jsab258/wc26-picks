@@ -139,6 +139,18 @@ namespace Ledger.Game
                 (new GameTime(0, 21, 0), new Vector3(-12, 0, -14)),
             }));
 
+            _npcs.Add(NpcWalker.Spawn("Mirela", new Color(0.8f, 0.6f, 0.3f), new[]
+            {
+                (new GameTime(0, 8, 0), new Vector3(10, 0, -14)),  // market stall
+                (new GameTime(0, 18, 0), new Vector3(-12, 0, 14)), // home
+            }));
+            _npcs.Add(NpcWalker.Spawn("Josip", new Color(0.35f, 0.45f, 0.5f), new[]
+            {
+                (new GameTime(0, 6, 0), new Vector3(18, 0, 14)),   // docks
+                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(3, 0, -1)),
+                (new GameTime(0, 23, 0), new Vector3(16, 0, 12)),  // home by the water
+            }));
+
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
                 (new GameTime(0, 8, 0), WorldBuilder.BarCounter),
@@ -165,7 +177,7 @@ namespace Ledger.Game
             // witness and handle him directly instead of only hearing about it from Lena.
             foreach (var npc in _npcs)
             {
-                var member = CastSetup.Get(npc.DisplayName);
+                var member = CastSetup.Get(npc.DisplayName) ?? Tier2Setup.Get(npc.DisplayName);
                 if (member == null) continue;
                 var host = npc.gameObject.AddComponent<ConversationHost>();
                 host.Initialize(this, member.Card, null, null);

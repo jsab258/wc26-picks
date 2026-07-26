@@ -35,6 +35,11 @@ namespace Ledger.Game
             graph.Link("Sam", "Lena", 0.6);
             graph.Link("Ada", "Lena", 0.6);
             graph.Link("Ada", "Sam", 0.5);
+            // Tier-2 sample ring, live pair: the vendor and the dock hand.
+            graph.Link("Mirela", "Ada", 0.5);
+            graph.Link("Mirela", "Sam", 0.4);
+            graph.Link("Josip", "Rocco", 0.6);
+            graph.Link("Josip", "Sam", 0.3);
             _mill = new GossipMill(graph);
 
             // Every gossiper shares its conversation host's real memory, knowledge and
@@ -44,7 +49,7 @@ namespace Ledger.Game
             {
                 var walkerName = host.GetComponent<NpcWalker>() != null
                     ? host.GetComponent<NpcWalker>().DisplayName : host.Card.Name;
-                var m = CastSetup.Get(walkerName);
+                var m = CastSetup.Get(walkerName) ?? Tier2Setup.Get(walkerName);
                 _mill.Add(m != null
                     ? new Gossiper(walkerName, walkerName, host.Memory, host.Knowledge, host.Suspicion,
                         m.Circle, m.Greed, m.Nerve, m.Loyalty)
