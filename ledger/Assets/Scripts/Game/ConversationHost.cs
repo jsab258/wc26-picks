@@ -72,7 +72,9 @@ namespace Ledger.Game
             try
             {
                 var scene = ExtraContext != null ? $"{SceneContext} {ExtraContext()}" : SceneContext;
-                return await _engine.SayToAsync(playerInput, _game.Now, scene);
+                var reply = await _engine.SayToAsync(playerInput, _game.Now, scene);
+                // §9: nothing fourth-wall-breaking or essay-length reaches the player.
+                return ResponseValidator.Validate(reply, Card.Name);
             }
             catch (LlmApiException e)
             {

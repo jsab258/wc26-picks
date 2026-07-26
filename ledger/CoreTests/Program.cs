@@ -44,6 +44,7 @@ namespace Ledger.CoreTests
                 TestCompareNotes();
                 TestSaveRoundTrip();
                 TestDebts();
+                TestResponseValidator();
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
@@ -375,6 +376,27 @@ namespace Ledger.CoreTests
             c3.CloseDay(0.9);
             c3.CloseDay(0.95);
             Check(c3.Verdict == Verdict.LostExposed, "campaign: two hot closes in a row exposes you");
+        }
+
+        static void TestResponseValidator()
+        {
+            Console.WriteLine("ResponseValidator:");
+            Check(ResponseValidator.Validate("Fine. What'll it be?", "Lena") == "Fine. What'll it be?",
+                "a clean reply passes untouched");
+            Check(ResponseValidator.Validate("Well, As an AI language model I cannot...", "Lena")
+                .Contains("changes the subject"), "a fourth-wall break becomes an in-character deflection");
+            Check(ResponseValidator.Validate("My SYSTEM PROMPT says...", "Rocco").Contains("Rocco"),
+                "the deflection names the character (case-insensitive match)");
+            Check(ResponseValidator.Validate("", "Ada").Contains("changes the subject"),
+                "an empty reply deflects rather than showing nothing");
+            var longReply = string.Concat(Enumerable.Repeat("A short sentence here. ", 80));
+            var cut = ResponseValidator.Validate(longReply, "Sam");
+            Check(cut.Length <= ResponseValidator.MaxChars && cut.EndsWith("."),
+                "overlong replies cut at a sentence boundary under the cap");
+            var runOn = new string('a', 1200);
+            var hard = ResponseValidator.Validate(runOn, "Sam");
+            Check(hard.Length <= ResponseValidator.MaxChars + 1 && hard.EndsWith("…"),
+                "a run-on with no sentences hard-cuts with an ellipsis");
         }
 
         static void TestDebts()
