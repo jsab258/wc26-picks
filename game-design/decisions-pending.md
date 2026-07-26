@@ -8,13 +8,34 @@ as answerable options — the doc is the record, the chat is the interface.
 
 ## Open now
 
-*(nothing blocking — queue cleared 2026-07-26; the 24h build ran on standing
-mandates. Non-blocking items for whenever you surface:)*
+*(nothing blocking — the all-night run works on standing mandates. Items
+for whenever you surface, in the order I'd want them answered:)*
 
-1. **Empire tuning taste check** (from balance-findings-open.md): aggressive
-   play nets only +11% cash for 10x the Falls. Fine as "position over
-   profit" design, or should rackets pay more? RECOMMEND: leave until you
-   feel it in play; knobs documented.
+0. **The protagonist has no name.** Open since 2026-07-24 and now the
+   longest-standing item in the project. Every character card, every
+   generated line and every piece of authored text says "the new owner"
+   because there is nothing else to say. It is not blocking anything
+   mechanical and it is quietly shaping the writing — the game has learned
+   to avoid the moment where somebody would use your name, which is a
+   strange thing for a game about people knowing who you are.
+   RECOMMEND: name him, even provisionally. A placeholder we can rename
+   later costs nothing; the absence is costing something now.
+
+0b. **Day length.** A day is 12 real minutes. Nobody has ever checked
+   whether that feels right, because nobody has played it. This is the
+   single number most likely to be wrong and the cheapest to change — one
+   constant. Judge it in the first session: does the drop window feel like
+   an obligation or a countdown, and does the morning arrive too fast to
+   act on what you learned last night?
+
+1. **Empire tuning taste check.** This has moved since it was written. With
+   the living economy in (M7), aggressive play now nets $94 LESS than
+   running no rackets at all, despite $1697 of racket income — because
+   squeezing the street makes the street poorer and your bar takes less.
+   That is the intended shape ("position over profit", now with a real
+   mechanism), but it is a strong reading and only play will say whether it
+   reads as a meaningful trade or as futility. RECOMMEND: feel it first;
+   `SqueezeCostsProsperity` is the one knob and it is documented.
 2. **Playtest when ready** — the latest green LEDGER-Windows artifact is
    the whole game now. A suggested first session (~45 min):
    - Play the week straight: talk to Lena day 1 (the cellar line), meet
