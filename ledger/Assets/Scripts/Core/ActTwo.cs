@@ -10,7 +10,11 @@ namespace Ledger.Core
     {
         public bool Opened;
         public int OpenedDay = -1;
-        public bool Pp1Fired, Pp2Fired, Pp3Fired, Pp5Fired, Pp6Fired;
+        public bool Pp1Fired, Pp2Fired, Pp3Fired, Pp4Fired, Pp5Fired, Pp6Fired;
+        /// The open city's own social calendar: the last day someone asked you
+        /// to an evening. The honest life keeps inviting after the week ends.
+        public int LastEveningDay = -1;
+        public const int EveningEveryNDays = 4;
 
         // PP2: the machine's injunction freezes the BAR's takings (never the
         // fronts — the paper is against the licence, not the street).
@@ -98,7 +102,8 @@ namespace Ledger.Core
         {
             { "opened", Opened }, { "openedDay", OpenedDay },
             { "pp1", Pp1Fired }, { "pp2", Pp2Fired }, { "pp3", Pp3Fired },
-            { "pp5", Pp5Fired }, { "pp6", Pp6Fired },
+            { "pp4", Pp4Fired }, { "pp5", Pp5Fired }, { "pp6", Pp6Fired },
+            { "lastEvening", LastEveningDay },
             { "injUntil", InjunctionUntilDay }, { "injAnswered", InjunctionAnswered },
             { "tableArm", TableArmId ?? "" }, { "tableAnswer", TableAnswer ?? "" },
             { "truceSpent", TruceSpent }, { "reads", ReadsBought },
@@ -109,7 +114,8 @@ namespace Ledger.Core
             if (d == null) return;
             Opened = Flag(d, "opened"); OpenedDay = MiniJson.GetInt(d, "openedDay");
             Pp1Fired = Flag(d, "pp1"); Pp2Fired = Flag(d, "pp2"); Pp3Fired = Flag(d, "pp3");
-            Pp5Fired = Flag(d, "pp5"); Pp6Fired = Flag(d, "pp6");
+            Pp4Fired = Flag(d, "pp4"); Pp5Fired = Flag(d, "pp5"); Pp6Fired = Flag(d, "pp6");
+            LastEveningDay = d.ContainsKey("lastEvening") ? MiniJson.GetInt(d, "lastEvening") : -1;
             InjunctionUntilDay = MiniJson.GetInt(d, "injUntil");
             InjunctionAnswered = Flag(d, "injAnswered");
             var arm = MiniJson.GetString(d, "tableArm");

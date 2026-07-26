@@ -550,6 +550,36 @@ namespace Ledger.Game
             }
         }
 
+        /// PP4 — the collision the act guarantees. You are sitting in the honest
+        /// life when the other one knocks: a crew member on the step with
+        /// something that will not keep. Both worlds see each other, and the
+        /// mill carries it from there. Fires once, on the evening of whoever
+        /// thinks best of you — which is exactly what makes it cost something.
+        void FireCollision(Beat attended)
+        {
+            if (!ActTwo.Opened || ActTwo.Pp4Fired || _gossip == null || _gossip.Mill == null) return;
+            var crew = Empire.Crew.Find(c => !c.Departed);
+            if (crew == null) return;
+            var host = _gossip.Mill.Get(attended.HostId);
+            if (host == null) return;
+
+            ActTwo.Pp4Fired = true;
+            ToastLine(ActTwoState.Pp4CollisionText, 14f);
+
+            // The host saw who came, and at what hour, and how you changed.
+            host.Suspicion.Raise(0.18, $"one of the new owner's people came to my door at night");
+            host.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                $"We were sitting down properly for once and {crew.Name} came knocking after dark, for them, not for me. " +
+                "Whatever that was about, it could not wait until morning."));
+            _gossip.Mill.Witness(host.Id, new Fact("player", $"night_business_d{Now.Day}", "seen"),
+                $"the new owner had {crew.Name} at the door in the middle of an evening, and left the table for it",
+                true, Now, 0.85);
+
+            // The crew member remembers being sent, and being seen.
+            _gossip.Mill.Get(crew.Id)?.Memory.Append(new MemoryEvent(Now, "observation", 0.8,
+                "Had to fetch them out of somebody's front room tonight. They didn't like it. Neither did whoever was pouring."));
+        }
+
         /// An organization's head comes to the room Halvard arranged. They are
         /// NOT in the gossip mill — heads don't stand on corners trading talk;
         /// they arrive, they are answered, and the street hears about it after.
@@ -938,9 +968,37 @@ namespace Ledger.Game
             }
         }
 
+        /// The open city keeps a social calendar of its own: every few days the
+        /// person who thinks best of you asks for an evening. Without this the
+        /// honest life simply stops after day 7, and Act II's collision has
+        /// nothing to interrupt.
+        void OfferEvening()
+        {
+            if (!Campaign.OpenMode || _gossip == null || _gossip.Mill == null) return;
+            if (Now.Day < ActTwo.LastEveningDay + ActTwoState.EveningEveryNDays) return;
+            if (Now.Hour < 9 || Now.Hour >= 20) return;
+            if (Beats.Open(Now) != null) return;
+            foreach (var b in Beats.All) if (b.State == BeatState.Pending && b.Day >= Now.Day) return;
+
+            Gossiper best = null;
+            foreach (var a in _gossip.Mill.Agents)
+                if (a.Circle == "day" && !a.Leashed && (best == null || a.Loyalty > best.Loyalty)) best = a;
+            if (best == null || best.Loyalty < 0.5) return;
+
+            ActTwo.LastEveningDay = Now.Day;
+            var id = $"evening_d{Now.Day}";
+            Beats.Add(new Beat
+            {
+                Id = id, HostId = best.Id, Title = $"An evening with {best.DisplayName}", Day = Now.Day,
+                StartHour = 21, EndHour = 24,
+                InviteText = $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tonight. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\"",
+            });
+        }
+
         void UpdateBeats()
         {
             if (_gossip == null || _gossip.Mill == null) return;
+            OfferEvening();
 
             // Morning invitation, once, on the beat's day.
             var today = Beats.For(Now.Day);
@@ -961,6 +1019,13 @@ namespace Ledger.Game
                 _beatMarkerId = null;
                 if (open == null) return;
             }
+            // Generated evenings have no authored spot: use the host's own
+            // doorstep, wherever the day has left them standing.
+            if (!_beatSpots.ContainsKey(open.Id))
+                foreach (var npc in _npcs)
+                    if (npc != null && npc.DisplayName == open.HostId)
+                    { _beatSpots[open.Id] = npc.transform.position; break; }
+
             if (_beatMarker == null && _beatSpots.TryGetValue(open.Id, out var spot))
             {
                 // A warm porch-light glow, distinct from the drop's hot orange.
@@ -978,6 +1043,7 @@ namespace Ledger.Game
                     _beatMarker = null;
                     _beatMarkerId = null;
                     _ui?.Toast($"{open.Title}. You stayed a while. {open.HostId} will remember this.", 8f);
+                    FireCollision(open);
                 }
             }
         }
