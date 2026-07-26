@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestAccess();
                 TestPopulation();
                 TestDirector();
                 await TestDirectorAsync();
@@ -1838,6 +1839,129 @@ namespace Ledger.CoreTests
                 "and so does when he was last paid");
             after.Restore(null);
             Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "restoring nothing changes nothing");
+        }
+
+        // ---------------------------------------------------------------
+        // Access as soft keys (roadmap M7.5)
+        // ---------------------------------------------------------------
+
+        /// The back room at the ferry: four ways in, each costing something else.
+        static Gate BackRoom()
+        {
+            var g = new Gate("backroom", "the back room at the ferry", "Halvard's man")
+            {
+                Refusal = "\"Private tonight,\" he says, and does not move.",
+            };
+            g.WithKey(new AccessKey(KeyKind.Introduction, who: "Halvard"));
+            g.WithKey(new AccessKey(KeyKind.Standing, 40, who: "dockside"));
+            g.WithKey(new AccessKey(KeyKind.Payment, 60));
+            g.WithKey(new AccessKey(KeyKind.Dress, dress: "plain"));
+            return g;
+        }
+
+        static void TestAccess()
+        {
+            Console.WriteLine("Access — doors are decisions, not walls:");
+
+            var gate = BackRoom();
+            var nobody = new AccessState { Dress = "coat", Money = 10, Hour = 21 };
+            var refused = Doors.Try(gate, nobody);
+            Check(!refused.Allowed, "somebody with nothing is turned away");
+            Check(refused.Line.Contains("Private tonight"), "and it is a person saying so, not a padlock");
+            Check(refused.Nearest != null && refused.Hint.Length > 0,
+                "and they are told what would have worked");
+
+            // Four ways in, each independently sufficient. This is the law of
+            // multiple solutions, enforced structurally rather than remembered.
+            var introduced = new AccessState { Dress = "coat", Money = 0, Hour = 21 };
+            introduced.Introductions.Add("Halvard");
+            Check(Doors.Try(gate, introduced).Allowed, "a word from Halvard is enough");
+
+            var standing = new AccessState { Dress = "coat", Money = 0, Hour = 21 };
+            standing.Standing["dockside"] = 0.5;
+            Check(Doors.Try(gate, standing).Allowed, "so is standing with the docks");
+
+            var paying = new AccessState { Dress = "coat", Money = 100, Hour = 21 };
+            Check(Doors.Try(gate, paying).Allowed, "so is money");
+
+            var dressed = new AccessState { Dress = "plain", Money = 0, Hour = 21 };
+            Check(Doors.Try(gate, dressed).Allowed, "so is simply not looking like a man on a job");
+
+            // The cheapest key held wins. A player holding both an introduction
+            // and sixty dollars must not silently spend the sixty dollars.
+            var both = new AccessState { Dress = "coat", Money = 100, Hour = 21 };
+            both.Introductions.Add("Halvard");
+            var chose = Doors.Try(gate, both);
+            Check(chose.Allowed && chose.Used.Kind == KeyKind.Introduction,
+                "a free way in is taken over a costly one", chose.Used.Kind.ToString());
+            Check(chose.Paid == 0, "and nothing is spent that did not need spending");
+
+            var mustPay = new AccessState { Dress = "coat", Money = 100, Hour = 21 };
+            var paid = Doors.Try(gate, mustPay);
+            Check(paid.Allowed && paid.Paid == 60, "when money is the only way in, it is charged");
+
+            // The near miss must be the USEFUL one, not the first one listed.
+            var almostPaid = new AccessState { Dress = "coat", Money = 58, Hour = 21 };
+            var close = Doors.Try(gate, almostPaid);
+            Check(!close.Allowed && close.Nearest.Kind == KeyKind.Payment,
+                "the hint names the way in you came closest to", close.Nearest.Kind.ToString());
+            Check(close.Hint.Contains("$60") && close.Hint.Contains("$58"),
+                "and says the figure and what you actually have", close.Hint);
+
+            var almostStanding = new AccessState { Dress = "coat", Money = 0, Hour = 21 };
+            almostStanding.Standing["dockside"] = 0.38;
+            var closeStanding = Doors.Try(gate, almostStanding);
+            Check(closeStanding.Nearest.Kind == KeyKind.Standing,
+                "standing you nearly have beats money you do not have at all",
+                closeStanding.Nearest.Kind.ToString());
+
+            // Hours, notoriety and leverage.
+            var night = new Gate("cellar", "the cellar", "Rocco");
+            night.WithKey(new AccessKey(KeyKind.After, 22));
+            Check(!Doors.Try(night, new AccessState { Hour = 20 }).Allowed, "too early is refused");
+            Check(Doors.Try(night, new AccessState { Hour = 23 }).Allowed, "late enough is not");
+
+            var quiet = new Gate("parlour", "the parlour");
+            quiet.WithKey(new AccessKey(KeyKind.Quiet, 30));
+            Check(Doors.Try(quiet, new AccessState { Notoriety = 0.1 }).Allowed,
+                "a room that only opens to people nobody is talking about");
+            Check(!Doors.Try(quiet, new AccessState { Notoriety = 0.8 }).Allowed,
+                "closes once the street is saying your name");
+
+            var known = new Gate("table", "the upstairs table");
+            known.WithKey(new AccessKey(KeyKind.Notorious, 50));
+            Check(!Doors.Try(known, new AccessState { Notoriety = 0.2 }).Allowed,
+                "and some rooms only open to somebody who is already somebody");
+            Check(Doors.Try(known, new AccessState { Notoriety = 0.9 }).Allowed,
+                "which the same street noise eventually makes you");
+
+            var leaned = new Gate("office", "the office", "the clerk");
+            leaned.WithKey(new AccessKey(KeyKind.Hook));
+            Check(Doors.Try(leaned, new AccessState { HoldsHookOnDoor = true }).Allowed,
+                "something on the man at the door is a key like any other");
+            Check(!Doors.Try(leaned, new AccessState()).Allowed, "and having nothing on him is not");
+
+            var mob = new Gate("yard", "the yard");
+            mob.WithKey(new AccessKey(KeyKind.Crew, 3));
+            Check(Doors.Try(mob, new AccessState { Crew = 4 }).Allowed, "enough people behind you opens a yard");
+            var alone = Doors.Try(mob, new AccessState { Crew = 1 });
+            Check(!alone.Allowed && alone.Hint.Contains("3"), "and being short is said as a number of people");
+
+            // Design laws, asserted rather than assumed.
+            var wall = new Gate("nowhere", "a door with no way through it");
+            Check(Doors.Try(wall, new AccessState()).Allowed,
+                "a gate with no keys is a design failure, so it simply opens");
+            Check(!Doors.Try(null, new AccessState()).Allowed, "and nothing at all is not a door");
+            Check(!Doors.Try(gate, null).Allowed, "nor is a player who does not exist");
+
+            // Every refusal must be legible: somebody talking, and never a code.
+            foreach (var state in new[] { nobody, almostPaid, almostStanding })
+            {
+                var r = Doors.Try(gate, state);
+                Check(!r.Line.Contains("DENIED") && !r.Line.Contains("_") && r.Line.Length > 8,
+                    "a refusal is always somebody talking", r.Line);
+                Check(r.Hint.Length > 0, "and always teaches you something", r.Hint);
+            }
         }
 
         // ---------------------------------------------------------------

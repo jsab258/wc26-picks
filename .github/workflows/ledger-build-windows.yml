@@ -10,6 +10,12 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    # GitHub's default job timeout is six hours. A stuck step therefore burns an
+    # afternoon before anyone finds out, which is exactly what happened on run
+    # 30218422533: the Unity install sat for thirty minutes with nothing to stop
+    # it. Every long step below carries its own timeout as well, so a failure
+    # says WHICH part hung rather than only that the job did.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +29,7 @@ jobs:
         run: python3 ledger/lint-usings.py ledger/Assets/Scripts
 
       - name: Install Unity
+        timeout-minutes: 15
         uses: buildalon/unity-setup@v2
         with:
           version-file: ledger/ProjectSettings/ProjectVersion.txt
@@ -36,6 +43,7 @@ jobs:
           password: ${{ secrets.UNITY_PASSWORD }}
 
       - name: Build player
+        timeout-minutes: 15
         shell: pwsh
         run: |
           & "$env:UNITY_EDITOR_PATH" -quit -batchmode -nographics `
