@@ -29,11 +29,11 @@ This is the LLM-specific grind risk and the reason chips exist.
 
 | Dimension | GTA5 | RDR2 | KCD2 | BG3 | Hitman | Sims | CK3 | LEDGER now | **target** |
 |---|---|---|---|---|---|---|---|---|---|
-| Social: talk, trust, memory | 5 | 20 | 35 | 60* | 10 | 40 | 55 | 90 | **98** |
+| Social: talk, trust, memory | 5 | 20 | 35 | 60* | 10 | 40 | 55 | 93 | **98** |
 | Consequence persistence | 5 | 30 | 60 | 70 | 15 | 40 | 85 | 95 | **100** |
 | Information / who knows what | 5 | 15 | 40 | 25 | 30 | 5 | 65 | 90 | **95** |
 | Time & opportunity cost | 10 | 40 | 70 | 30 | 20 | 80 | 60 | 85 | **90** |
-| **Economy (full simulation)** | 15 | 25 | 55 | 20 | 5 | 60 | 45 | 65 | **85** |
+| **Economy (full simulation)** | 15 | 25 | 55 | 20 | 5 | 60 | 45 | 80 | **85** |
 | Faction politics / allegiance | 10 | 20 | 45 | 55 | 5 | 0 | 90 | 35 | **75** |
 | **Operation planning** | 70 | 25 | 20 | 45 | 95 | 5 | 30 | **5** | **75** |
 | Law & institutions as a tool | 5 | 25 | 55 | 20 | 10 | 5 | 60 | 15 | **70** |
@@ -41,7 +41,7 @@ This is the LLM-specific grind risk and the reason chips exist.
 | **Violence (staged: melee then guns)** | 90 | 90 | 80 | 85 | 70 | 5 | 20 | 0 | **70** |
 | **Traversal & place** | 95 | 90 | 70 | 30 | 40 | 15 | 0 | 20 | **65** |
 | Class & access (soft keys) | 10 | 25 | 60 | 30 | 95 | 20 | 50 | 10 | **65** |
-| Multiple solutions per obstacle | 30 | 25 | 55 | 85 | 95 | 20 | 40 | 35 | **80** |
+| Multiple solutions per obstacle | 30 | 25 | 55 | 85 | 95 | 20 | 40 | 60 | **80** |
 | Companionship (who's with you) | 25 | 75 | 30 | 90 | 0 | 45 | 20 | 0 | **55** |
 | Public notoriety | 20 | 45 | 50 | 30 | 25 | 15 | 60 | 25 | **60** |
 | Communication at distance | 40 | 5 | 0 | 5 | 20 | 50 | 30 | 0 | **60** |
@@ -139,3 +139,33 @@ above, since it is expensive and non-differentiating relative to them.
 Lockpicking/alchemy/crafting minigames, gear treadmills, body-needs
 maintenance. Expensive, non-differentiating, and hostile to the anti-grind
 rules above.
+
+## Built against this model, 2026-07-26 (night)
+
+Four dimensions moved, and one of them is not on the table above because
+the table did not have a row for it.
+
+- **Economy 65 → 80** (target 85). District money is now finite and
+  simulated: squeezing the street makes it poorer, and a poorer street
+  spends less in your bar. Suppliers are people with names, opinions and
+  prices. Every number surfaces as a person's circumstance and never as a
+  percentage — asserted in the tests. The remaining 5 is other districts,
+  which do not exist yet.
+- **Multiple solutions per obstacle 35 → 60** (target 80). Not because new
+  solutions were authored, but because the intent router made the existing
+  ones reachable by *saying* them, and added a third class: actions the
+  verb list never anticipated, adjudicated against real state with clamped
+  effects. The remaining 20 wants operation planning (M7.5).
+- **Social 90 → 93** (target 98). The Director makes the social layer
+  originate pressure rather than only absorb it.
+- **Living-city scale.** 36 people → 3000, with the KCD2 band arrangement.
+  This dimension was never in the benchmark table and should have been; it
+  is now tracked in the roadmap under M9.
+
+**The dimension the model was missing entirely: INTERFACE.** Every game in
+the benchmark table has a fixed verb set, because none of them can afford
+anything else. That is the one place where this project's tools are not
+merely competitive but categorically different, and the model scored it
+nowhere. The router is the first payment on it. It is worth adding as a
+row the next time this table is revised — and it is the row where our
+target should be 100, because nobody else can reach it.
