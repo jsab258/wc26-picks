@@ -62,15 +62,39 @@ namespace Ledger.Game
 
             if ((flatTarget - current).sqrMagnitude > 0.04f)
             {
-                var next = Vector3.MoveTowards(current, flatTarget, MoveSpeed * Time.deltaTime);
+                var waypoint = Steer(current, flatTarget);
+                var next = Vector3.MoveTowards(current, waypoint, MoveSpeed * Time.deltaTime);
                 transform.position = next;
-                var dir = flatTarget - current; dir.y = 0;
+                var dir = waypoint - current; dir.y = 0;
                 if (dir.sqrMagnitude > 0.001f)
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
             }
 
             if (_label != null && Camera.main != null)
                 _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - Camera.main.transform.position);
+        }
+
+        /// Street-wise steering: walk straight when the line is clear of building
+        /// masses, otherwise follow the street cross (nearest arm, corner at the
+        /// intersection). Stateless and re-evaluated every tick, so a schedule
+        /// change mid-walk just bends the route. Replaces the old straight-line
+        /// move that let characters pass through buildings.
+        Vector3 Steer(Vector3 cur, Vector3 target)
+        {
+            if (WorldBuilder.SegmentClear(cur, target)) return target;
+            var targetArm = NearestOnCross(target);
+            if (WorldBuilder.SegmentClear(cur, targetArm)) return targetArm;
+            var myArm = NearestOnCross(cur);
+            if ((myArm - cur).sqrMagnitude > 0.04f && WorldBuilder.SegmentClear(cur, myArm)) return myArm;
+            return new Vector3(0, cur.y, 0); // toward the intersection until a turn opens
+        }
+
+        /// Closest point on the two street centerlines (x = 0 or z = 0).
+        static Vector3 NearestOnCross(Vector3 p)
+        {
+            var ns = new Vector3(0, p.y, p.z);
+            var ew = new Vector3(p.x, p.y, 0);
+            return (ns - p).sqrMagnitude <= (ew - p).sqrMagnitude ? ns : ew;
         }
     }
 }

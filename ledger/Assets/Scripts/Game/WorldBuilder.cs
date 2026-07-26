@@ -81,18 +81,63 @@ namespace Ledger.Game
                     MakeBox($"WalkCorner_{sx}_{sz}", new Vector3(sx * 4.25f, 0.16f, sz * 4.25f), new Vector3(2.5f, 0.32f, 2.5f), AssetLibrary.Sidewalk);
         }
 
+        /// XZ solid masses of the block. NpcWalker consults these to route around
+        /// buildings instead of through them; kept as data so the routing needs no
+        /// physics casts (deterministic under the accelerated sim).
+        static readonly (Vector3 pos, Vector3 size)[] BuildingSpecs =
+        {
+            (new Vector3(-14, 0, 14), new Vector3(10, 9, 10)),
+            (new Vector3(14, 0, 14), new Vector3(9, 13, 9)),
+            (new Vector3(14, 0, -14), new Vector3(11, 7, 9)),
+            (new Vector3(-14, 0, -14), new Vector3(9, 11, 10)),
+            (new Vector3(20, 0, 0), new Vector3(6, 6, 4)),
+            (new Vector3(-20, 0, 0), new Vector3(6, 8, 4)),
+            (new Vector3(0, 0, 20), new Vector3(4, 5, 6)),
+        };
+
+        /// True when the straight XZ line from a to b crosses no building mass.
+        /// Masses containing either endpoint are ignored so characters can step
+        /// off a stoop or reach a doorway spot set flush against a wall.
+        public static bool SegmentClear(Vector3 a, Vector3 b, float inflate = 0.9f)
+        {
+            foreach (var (pos, size) in BuildingSpecs)
+            {
+                float hx = size.x / 2f + inflate, hz = size.z / 2f + inflate;
+                if (InsideXZ(a, pos, hx, hz) || InsideXZ(b, pos, hx, hz)) continue;
+                if (SegmentHitsBoxXZ(a, b, pos, hx, hz)) return false;
+            }
+            return true;
+        }
+
+        static bool InsideXZ(Vector3 p, Vector3 c, float hx, float hz) =>
+            p.x > c.x - hx && p.x < c.x + hx && p.z > c.z - hz && p.z < c.z + hz;
+
+        static bool SegmentHitsBoxXZ(Vector3 a, Vector3 b, Vector3 c, float hx, float hz)
+        {
+            float dx = b.x - a.x, dz = b.z - a.z;
+            float tmin = 0f, tmax = 1f;
+            if (Mathf.Abs(dx) < 1e-6f) { if (a.x < c.x - hx || a.x > c.x + hx) return false; }
+            else
+            {
+                float t1 = (c.x - hx - a.x) / dx, t2 = (c.x + hx - a.x) / dx;
+                if (t1 > t2) { var t = t1; t1 = t2; t2 = t; }
+                tmin = Mathf.Max(tmin, t1); tmax = Mathf.Min(tmax, t2);
+                if (tmin > tmax) return false;
+            }
+            if (Mathf.Abs(dz) < 1e-6f) { if (a.z < c.z - hz || a.z > c.z + hz) return false; }
+            else
+            {
+                float t1 = (c.z - hz - a.z) / dz, t2 = (c.z + hz - a.z) / dz;
+                if (t1 > t2) { var t = t1; t1 = t2; t2 = t; }
+                tmin = Mathf.Max(tmin, t1); tmax = Mathf.Min(tmax, t2);
+                if (tmin > tmax) return false;
+            }
+            return true;
+        }
+
         static void BuildBuildings()
         {
-            var specs = new[]
-            {
-                (new Vector3(-14, 0, 14), new Vector3(10, 9, 10)),
-                (new Vector3(14, 0, 14), new Vector3(9, 13, 9)),
-                (new Vector3(14, 0, -14), new Vector3(11, 7, 9)),
-                (new Vector3(-14, 0, -14), new Vector3(9, 11, 10)),
-                (new Vector3(20, 0, 0), new Vector3(6, 6, 4)),
-                (new Vector3(-20, 0, 0), new Vector3(6, 8, 4)),
-                (new Vector3(0, 0, 20), new Vector3(4, 5, 6)),
-            };
+            var specs = BuildingSpecs;
             string[] facades = { AssetLibrary.BrickRed, AssetLibrary.Plaster, AssetLibrary.BrickGrey, AssetLibrary.Concrete };
             int i = 0;
             foreach (var (pos, size) in specs)

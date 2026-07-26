@@ -55,6 +55,7 @@ namespace Ledger.SimHarness
                 await ScenarioDamageControl();
                 await ScenarioHookLeverage();
                 await ScenarioConfrontation();
+                await ScenarioSpeechStyle();
                 ScenarioBudget();
             }
             catch (Exception ex)
@@ -413,6 +414,24 @@ namespace Ledger.SimHarness
                 CheckLive("she confronts rather than serves (judge)",
                     await Judge("Lena has personally caught this person lying to her six separate times about where they were at night. They just repeated the same alibi. " +
                         $"Does this reply confront them firmly about the inconsistencies, rather than accepting the claim or staying meekly deferential? Reply: \"{reply}\""), reply);
+        }
+
+        static async Task ScenarioSpeechStyle()
+        {
+            Section("11. Speech style — the humanizer");
+            var (lena, _) = FreshLena("s11");
+            var now = new GameTime(1, 10, 0);
+
+            var prompt = lena.Engine.BuildSystemPrompt("Morning.", now, "Behind the counter.");
+            Check("speech-style rules reach every system prompt",
+                prompt.Contains("Talk like a person, not a writer"));
+            Check("the validator scrubs dashes, quotes, markdown and emoji",
+                ResponseValidator.Validate("Look — I *mean* it’s fine 😊", "Lena") == "Look, I mean it's fine");
+
+            var reply = await Say(lena, "Tell me about this street.", now);
+            if (_live)
+                CheckLive("live reply carries no written-prose tells",
+                    ResponseValidator.TellCount(reply) == 0, reply);
         }
 
         static void ScenarioBudget()

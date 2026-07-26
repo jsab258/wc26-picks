@@ -6,6 +6,11 @@ Answered items move to the decision log in `process.md`.
 
 ## Open now
 
+0. **Conversation suggestion chips** (from your 2026-07-26 playtest notes) —
+   free typing stays (conversation IS the minigame), but should 2–3 clickable
+   contextual openers appear beside the box (drawn from live leads/beats, e.g.
+   "ask about the fire")? RECOMMEND: yes, chips as optional accelerators, never
+   the only path. Rejected: full dialogue menus (kills the novelty claim).
 1. **Act I structure approval** — 7-day "The Inheritance" spine drafted at
    `act1-draft.md`: 7 pressure points laid over the built campaign week, only
    seven new authored text moments, 4 open questions inside (posture-choice

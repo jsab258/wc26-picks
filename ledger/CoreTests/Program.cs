@@ -397,6 +397,22 @@ namespace Ledger.CoreTests
             var hard = ResponseValidator.Validate(runOn, "Sam");
             Check(hard.Length <= ResponseValidator.MaxChars + 1 && hard.EndsWith("…"),
                 "a run-on with no sentences hard-cuts with an ellipsis");
+
+            // The humanizer pass: mechanical AI-voice tells scrubbed with no API call.
+            Check(ResponseValidator.Validate("Look — I mean it.", "Lena") == "Look, I mean it.",
+                "an em dash becomes a comma");
+            Check(ResponseValidator.Validate("Quiet–mostly.", "Lena") == "Quiet, mostly.",
+                "an en dash becomes a comma too");
+            Check(ResponseValidator.Validate("‘Fine’, she said — “fine”.", "Lena")
+                == "'Fine', she said, \"fine\".", "curly quotes go straight");
+            Check(ResponseValidator.Validate("I *really* `mean` it. 😊", "Lena") == "I really mean it.",
+                "markdown emphasis and emoji vanish");
+            Check(ResponseValidator.Validate("Café's open.", "Lena") == "Café's open.",
+                "accented letters survive the scrub");
+            Check(ResponseValidator.TellCount("A testament to the vibrant tapestry of it all") == 3,
+                "TellCount counts written-prose words");
+            Check(ResponseValidator.TellCount("Pay up or don't come back.") == 0,
+                "street talk carries no tells");
         }
 
         static void TestDebts()
