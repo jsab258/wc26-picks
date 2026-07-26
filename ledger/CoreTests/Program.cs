@@ -58,6 +58,8 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestDirector();
+                await TestDirectorAsync();
                 await TestIntentRouterAsync();
                 await TestRetryAndErrors();
                 Console.WriteLine($"\nAll {_passed} checks passed.");
@@ -1835,6 +1837,162 @@ namespace Ledger.CoreTests
                 "and so does when he was last paid");
             after.Restore(null);
             Check(Math.Abs(after.Prosperity - before.Prosperity) < 1e-6, "restoring nothing changes nothing");
+        }
+
+        // ---------------------------------------------------------------
+        // The Director (roadmap M8)
+        // ---------------------------------------------------------------
+
+        static WorldSnapshot SampleWorld(int day = 12)
+        {
+            var w = new WorldSnapshot { Day = day, Heat = 0.5, Street = "tight, prices up" };
+            w.People.Add(new WorldPerson("Lena", "bookkeeper", 0.6, 0.55, "counts money she can't explain"));
+            w.People.Add(new WorldPerson("Sam", "crew", 0.35, 0.2, "has been skimmed three weeks running"));
+            w.People.Add(new WorldPerson("Mirek", "supplier", 0.4, 0.1, "owed for two deliveries"));
+            w.People.Add(new WorldPerson("Sera Kest", "rival head", 0.1, 0.6));
+            w.Ignored.Add("Mirek has not been paid since day 4");
+            w.Recent.Add("the collection round paid out every night this week");
+            return w;
+        }
+
+        static void TestDirector()
+        {
+            Console.WriteLine("Director — the world authors its own next pressure:");
+            var d = new Director();
+            var w = SampleWorld();
+
+            // A pressure the state justifies, naming people who exist.
+            var ok = d.Validate("{\"kind\":\"demand\",\"who\":\"Mirek\",\"day\":14,\"hour\":9,\"amount\":180," +
+                "\"line\":\"Mirek came by early and said he would like the money for the last two loads.\"," +
+                "\"because\":\"Mirek has not been paid since day 4\"}", w);
+            Check(ok.Kind == Pressures.Demand && ok.Who == "Mirek" && ok.Amount == 180, "a justified demand is scheduled");
+            Check(ok.FireDay == 14 && ok.IsSomething, "and it has a day");
+
+            // The boundary. A person who does not exist cannot be given a pressure.
+            var stranger = d.Validate("{\"kind\":\"demand\",\"who\":\"The Mayor\",\"day\":14,\"amount\":100," +
+                "\"line\":\"x\",\"because\":\"y\"}", w);
+            Check(!stranger.IsSomething, "a pressure naming somebody who does not exist is discarded");
+
+            var invented = d.Validate("{\"kind\":\"assassination\",\"who\":\"Lena\",\"day\":14," +
+                "\"line\":\"x\",\"because\":\"y\"}", w);
+            Check(!invented.IsSomething, "a kind of pressure the game has no primitive for is discarded");
+
+            // The window: never tonight, never a month out. The player must
+            // always have a day to see it coming.
+            Check(!d.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":12,\"line\":\"x\",\"because\":\"y\"}", w).IsSomething,
+                "a pressure cannot land the same night it is decided");
+            Check(!d.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":40,\"line\":\"x\",\"because\":\"y\"}", w).IsSomething,
+                "and cannot be scheduled beyond the window");
+
+            // Justification is mandatory: an unexplained pressure is bad luck,
+            // and this game's pressure comes from neglect.
+            Check(!d.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":14,\"line\":\"x\",\"because\":\"\"}", w).IsSomething,
+                "an unjustified pressure is refused");
+            Check(!d.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":14,\"line\":\"\",\"because\":\"y\"}", w).IsSomething,
+                "and an occasion the player would never see is not an occasion");
+
+            // Meetings need two real, different people.
+            var meet = d.Validate("{\"kind\":\"meeting\",\"who\":\"Lena\",\"other\":\"Sera Kest\",\"day\":15,\"hour\":21," +
+                "\"line\":\"Lena was still behind the counter when Sera Kest came in.\",\"because\":\"Lena counts money she cannot explain\"}", w);
+            Check(meet.Kind == Pressures.Meeting && meet.Other == "Sera Kest" && meet.Hour == 21,
+                "a collision between two real people is scheduled");
+            Check(!d.Validate("{\"kind\":\"meeting\",\"who\":\"Lena\",\"other\":\"Lena\",\"day\":15,\"line\":\"x\",\"because\":\"y\"}", w).IsSomething,
+                "a meeting with oneself is not a meeting");
+            Check(!d.Validate("{\"kind\":\"meeting\",\"who\":\"Lena\",\"day\":15,\"line\":\"x\",\"because\":\"y\"}", w).IsSomething,
+                "and a meeting needs somebody to meet");
+
+            // Clamps: a demand nobody could meet is an ending, not a pressure.
+            var huge = d.Validate("{\"kind\":\"demand\",\"who\":\"Sera Kest\",\"day\":14,\"amount\":9999999," +
+                "\"line\":\"x\",\"because\":\"y\"}", w);
+            Check(huge.Amount == Director.MaxDemand, "a demand is capped at something a working week could cover");
+
+            var wild = d.Validate("{\"kind\":\"grievance\",\"who\":\"Sam\",\"day\":14,\"magnitude\":5," +
+                "\"line\":\"x\",\"because\":\"y\"}", w);
+            Check(wild.Magnitude <= Director.MaxMagnitude, "a grievance is a nudge, not a verdict");
+            Check(!d.Validate("{\"kind\":\"grievance\",\"who\":\"Sam\",\"day\":14,\"magnitude\":0," +
+                "\"line\":\"x\",\"because\":\"y\"}", w).IsSomething, "and a grievance that moves nothing is not scheduled");
+
+            // Nothing is a real, common answer and must survive the round trip.
+            Check(!d.Validate("{\"kind\":\"nothing\"}", w).IsSomething, "a quiet night is a quiet night");
+            Check(!d.Validate("garbage", w).IsSomething, "unparseable output is a quiet night");
+            Check(!d.Validate("", null).IsSomething, "and so is no world at all");
+
+            // The line the player reads goes through the same scrubbing every
+            // NPC line does — the Director does not get to leak tags.
+            var leaky = d.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":14," +
+                "\"line\":\"<thinking>they will never know</thinking>Sam told the market that you keep odd hours.\"," +
+                "\"because\":\"Sam has been skimmed three weeks running\"}", w);
+            Check(leaky.IsSomething && !leaky.Line.Contains("never know"),
+                "the Director's own reasoning cannot leak into what the player reads");
+
+            // Pacing. The Director is not a metronome.
+            Check(d.ShouldRun(w, -1), "the Director runs when it has never run");
+            Check(!d.ShouldRun(w, w.Day - 1), "and not the night after it last did");
+            Check(d.ShouldRun(w, w.Day - 5), "but does again once enough has happened");
+            var busy = SampleWorld();
+            busy.InFlight.Add("a demand from Mirek on day 14");
+            busy.InFlight.Add("a meeting on day 15");
+            Check(!d.ShouldRun(busy, -1), "and never stacks a third pressure onto two already coming");
+            Check(!d.ShouldRun(new WorldSnapshot { Day = 5 }, -1), "an empty world gives it nothing to read");
+
+            // The prompt may only offer people who exist, and must argue for silence.
+            var prompt = d.BuildPrompt(w);
+            Check(prompt.Contains("Lena") && prompt.Contains("Sera Kest"), "the prompt lists the world's people");
+            Check(prompt.Contains("has not been paid since day 4"), "and what the player left undone");
+            Check(prompt.Contains("USUALLY CORRECT"), "and argues that most nights nothing should happen");
+            Check(!prompt.Contains("Detective"), "and cannot mention somebody the snapshot never included");
+
+            // The book: scheduling, firing exactly once, and persistence.
+            var book = new DirectorBook();
+            book.Schedule(ok);
+            book.Schedule(meet);
+            book.Schedule(new Pressure());     // "nothing" must never enter the book
+            Check(book.Pending.Count == 2, "only real pressures are booked");
+            Check(book.InFlightLines().Count == 2, "and both report themselves as in flight");
+            Check(book.Due(new GameTime(13, 9, 0)).Count == 0, "nothing is due before its day");
+            var due = book.Due(new GameTime(14, 9, 0));
+            Check(due.Count == 1 && due[0].Who == "Mirek", "the day's pressure comes due");
+            Check(book.Due(new GameTime(14, 23, 0)).Count == 0, "and comes due exactly once, however often it is polled");
+            Check(book.Pending.Count == 1, "the rest waits its turn");
+
+            book.LastRunDay = 12;
+            book.History.Add("Mirek asked for his money.");
+            var twin = new DirectorBook();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(book.Capture()))));
+            Check(twin.Pending.Count == 1 && twin.Pending[0].Kind == Pressures.Meeting, "a scheduled pressure survives a save");
+            Check(twin.Pending[0].Other == "Sera Kest" && twin.Pending[0].Hour == 21, "with everything it needs to fire");
+            Check(twin.LastRunDay == 12 && twin.History.Count == 1, "and so does the Director's own pacing and record");
+
+            // A save is not trusted either: a doctored file cannot smuggle in a
+            // pressure the game has no primitive for.
+            var doctored = new DirectorBook();
+            doctored.Restore(MiniJson.AsObject(MiniJson.Deserialize(
+                "{\"lastRunDay\":3,\"pending\":[{\"kind\":\"summon_army\",\"who\":\"Lena\",\"fireDay\":4}]}")));
+            Check(doctored.Pending.Count == 0, "a save naming a pressure that does not exist restores to nothing");
+        }
+
+        static async Task TestDirectorAsync()
+        {
+            Console.WriteLine("Director — end to end:");
+            var llm = new FakeLlm();
+            var cost = new CostTracker();
+            var d = new Director(llm, cost);
+            var w = SampleWorld();
+
+            llm.NextReply = "{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":14,\"hour\":19," +
+                "\"line\":\"Sam has been telling people at the market that the envelopes have been light.\"," +
+                "\"because\":\"Sam has been skimmed three weeks running\"}";
+            var p = await d.ProposeAsync(w);
+            Check(p.Kind == Pressures.Rumor && p.Who == "Sam", "the Director reads the state and authors from it");
+            Check(p.Because.Contains("skimmed"), "and says what in the state justified it");
+            Check(cost.EstimateUsd() > 0, "and its nightly pass is measured like every other call");
+
+            llm.ThrowNext = new Exception("network down");
+            var quiet = await d.ProposeAsync(w);
+            Check(!quiet.IsSomething, "a Director failure is a quiet night, never a crash");
+
+            var offline = new Director();
+            Check(!(await offline.ProposeAsync(w)).IsSomething, "and with no model at all, every night is quiet");
         }
 
         static async Task TestIntentRouterAsync()

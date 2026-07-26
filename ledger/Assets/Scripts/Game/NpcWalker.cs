@@ -44,11 +44,49 @@ namespace Ledger.Game
             return npc;
         }
 
-        /// Where the schedule says this NPC should be at the given time.
+        // A temporary detour from the ordinary routine (roadmap M8). The
+        // Director schedules people into unusual places; a routine you can learn
+        // is only interesting if it can also be broken for a reason.
+        Vector3 _detour;
+        int _detourFromDay = -1, _detourToDay = -1, _detourFromHour, _detourToHour;
+
+        /// Puts this character somewhere they would not normally be, between two
+        /// hours, for a run of days. Replaces any detour already set — one reason
+        /// to be out of place at a time.
+        public void SetDetour(Vector3 where, int fromDay, int days, int fromHour, int toHour)
+        {
+            _detour = where;
+            _detourFromDay = fromDay;
+            _detourToDay = fromDay + Mathf.Max(0, days - 1);
+            _detourFromHour = Mathf.Clamp(fromHour, 0, 23);
+            _detourToHour = Mathf.Clamp(toHour, _detourFromHour + 1, 24);
+        }
+
+        public void ClearDetour() => _detourFromDay = _detourToDay = -1;
+
+        public bool OnDetour(GameTime now) =>
+            _detourFromDay >= 0 && now.Day >= _detourFromDay && now.Day <= _detourToDay
+            && now.Hour >= _detourFromHour && now.Hour < _detourToHour;
+
+        /// Where the schedule says this NPC should be at the given time — unless
+        /// something has taken them out of their routine.
         Vector3 TargetFor(GameTime now)
         {
+            if (OnDetour(now)) return _detour;
             int minute = now.Hour * 60 + now.Minute;
             Vector3 target = _schedule[_schedule.Count - 1].Position; // before first entry: last night's spot
+            foreach (var e in _schedule)
+                if (minute >= e.MinuteOfDay) target = e.Position;
+            return target;
+        }
+
+        /// Where this character's routine would put them at a given time,
+        /// ignoring any detour — so a meeting can be arranged AT somebody rather
+        /// than at a coordinate nobody visits.
+        public Vector3 RoutinePosition(GameTime now)
+        {
+            int minute = now.Hour * 60 + now.Minute;
+            Vector3 target = _schedule[_schedule.Count - 1].Position;
             foreach (var e in _schedule)
                 if (minute >= e.MinuteOfDay) target = e.Position;
             return target;

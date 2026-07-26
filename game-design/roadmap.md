@@ -237,12 +237,47 @@ The gaps, in the order they are now being closed:
 - **M7.5 — Operation planning + access** (was M7). Still high value, still
   cheap; the router makes planning *say-able* rather than menu-only, so it
   benefits from being built after it.
-- **M8 — The Director.** A nightly world-level LLM pass that reads actual
-  state and authors the next pressure from it, built from existing
-  primitives only (inject a fact, change a schedule, make a demand,
-  arrange a meeting) and validated against what those primitives permit.
-  Authored anchors still fire; the Director fills the space between them,
-  which today is empty.
+- **M8 — The Director — SHIPPED 2026-07-26.** `Director` + `DirectorBook`
+  in Core, `DirectorHost` in the game layer, 42 new CoreTests (467 total),
+  a 13-check SimHarness scenario (70 total) with a live half, and a
+  `directorOk` gate in the in-engine CI sim.
+
+  A world-level pass — not a character-level one — that every few nights
+  reads the actual state and authors the next pressure from it. Five
+  primitives and nothing else: put a fact in the mill, arrange a meeting,
+  make a demand, change where somebody is, seed a grievance. Plus
+  **nothing**, which the prompt argues for explicitly and which is the
+  correct answer most nights ("*a world that produces an event every few
+  days is a soap opera, not a place*").
+
+  **Same law as the router: proposal, not adjudication.** Every person it
+  names must exist in the snapshot it was given; every kind must be one the
+  game has a primitive for; every pressure must justify itself from
+  something concrete in the state, or it is discarded whole. Nothing is
+  coerced into validity. A doctored *save* is refused on the same terms.
+
+  **Pressure comes from neglect, not from bad luck.** The snapshot leads
+  with what the player has left undone — a supplier unpaid, a crew member
+  skimmed for weeks, a debt uncollected, stories in the street unanswered —
+  and the prompt forbids inventing a stranger, an accident or a
+  coincidence. This is the design decision that separates a director from a
+  random event table.
+
+  **Pacing is deterministic and checked before any call is made**: two
+  pressures in flight at most, three days minimum between passes, and a
+  window of one to four days so the player always has a day to see it
+  coming. Demands are capped at $800 — a demand nobody could meet is an
+  ending, not a pressure — and grievances at 0.2, the same ceiling the
+  router's novel actions live under.
+
+  **The player is never shown the pending list.** §6.2 says the player sees
+  what they believe, never ground truth; a panel reading "a demand from
+  Mirek is coming on day 14" would undo the game.
+
+  Degrades to silence: no key, a failed call, or a refused proposal all
+  produce an ordinary night. CI has no key, so the nightly pass never
+  speaks there — the firing path is therefore staged by hand each build so
+  the code most likely to break is the code most exercised.
 - **M9 — Population scale.** Thousands, via generation plus level-of-detail
   simulation (full fidelity near the player's attention, statistical
   elsewhere — the KCD2 approach, and the same work as production item P5).

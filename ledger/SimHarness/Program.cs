@@ -58,6 +58,7 @@ namespace Ledger.SimHarness
                 await ScenarioSpeechStyle();
                 await ScenarioEmpire();
                 await ScenarioRouter();
+                await ScenarioDirector();
                 ScenarioBudget();
             }
             catch (Exception ex)
@@ -600,6 +601,108 @@ namespace Ledger.SimHarness
                         : r.Kind == IntentKind.Mechanical && r.VerbId == expect;
                     CheckLive($"live routing: \"{Truncate(say, 48)}\" → {expect ?? "speech"}", ok, r.ToString());
                 }
+            }
+        }
+
+        /// The Director (roadmap M8). Fake mode gates the boundary — a pressure
+        /// naming somebody who does not exist, or a kind the game has no
+        /// primitive for, must become a quiet night. Live mode asks a real model
+        /// to read a real street and checks the thing that actually matters:
+        /// does it author from what the player NEGLECTED, or does it invent
+        /// misfortune? Advisory, because that is a judgement call.
+        static async Task ScenarioDirector()
+        {
+            Section("14. The Director — the world authors its own pressure");
+
+            WorldSnapshot Street(int day = 12)
+            {
+                var w = new WorldSnapshot { Day = day, Heat = 0.55, Street = "tight, prices up" };
+                w.People.Add(new WorldPerson("Lena", "bookkeeper, keeps the bar's books", 0.6, 0.55,
+                    "counts money the till cannot explain"));
+                w.People.Add(new WorldPerson("Sam", "works for the player", 0.3, 0.2,
+                    "has been skimmed on every envelope"));
+                w.People.Add(new WorldPerson("Mirek", "supplier", 0.35, 0.1,
+                    "owed for two deliveries of the drink"));
+                w.People.Add(new WorldPerson("Sera Kest", "head of a rival organization", 0.1, 0.6));
+                w.Ignored.Add("Mirek is owed for 2 deliveries of the drink");
+                w.Ignored.Add("Sam has been on a skimmed cut since day 9");
+                w.Recent.Add("the bar took $180 yesterday");
+                return w;
+            }
+
+            var world = Street();
+            var director = new Director(_npcClient, Cost) { Model = Models.Ambient };
+
+            var proposed = await director.ProposeAsync(world);
+            Check("the Director reads a street and returns a decision",
+                proposed != null, "null");
+
+            // The boundary, exercised through the real pipeline.
+            Check("a pressure naming somebody who does not exist is a quiet night",
+                !director.Validate("{\"kind\":\"demand\",\"who\":\"The Governor\",\"day\":14,\"amount\":100," +
+                    "\"line\":\"x\",\"because\":\"y\"}", world).IsSomething);
+            Check("a kind of pressure the game has no primitive for is a quiet night",
+                !director.Validate("{\"kind\":\"car_bomb\",\"who\":\"Sam\",\"day\":14," +
+                    "\"line\":\"x\",\"because\":\"y\"}", world).IsSomething);
+            Check("an unjustified pressure is refused",
+                !director.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":14,\"line\":\"x\",\"because\":\"\"}", world).IsSomething);
+            Check("a demand nobody could meet is capped, not scheduled as an ending",
+                director.Validate("{\"kind\":\"demand\",\"who\":\"Sam\",\"day\":14,\"amount\":50000," +
+                    "\"line\":\"Sam asked for what he is owed.\",\"because\":\"skimmed since day 9\"}", world).Amount
+                    == Director.MaxDemand);
+
+            // The prompt may only offer the world it was given.
+            var prompt = director.BuildPrompt(world);
+            Check("the prompt lists only people who exist",
+                prompt.Contains("Mirek") && prompt.Contains("Sera Kest") && !prompt.Contains("Ossei"));
+            Check("and leads with what the player left undone",
+                prompt.Contains("LEFT UNDONE") && prompt.Contains("owed for 2 deliveries"));
+
+            // Pacing: the world is not a metronome.
+            Check("the Director does not run the night after it last did",
+                !director.ShouldRun(world, world.Day - 1));
+            var busy = Street();
+            busy.InFlight.Add("a demand involving Mirek on day 14");
+            busy.InFlight.Add("a meeting involving Lena and Sera Kest on day 15");
+            Check("and never stacks a third pressure onto two already coming",
+                !director.ShouldRun(busy, -1));
+
+            // The book fires each pressure exactly once and survives a save.
+            var book = new DirectorBook();
+            book.Schedule(director.Validate("{\"kind\":\"rumor\",\"who\":\"Sam\",\"day\":13,\"hour\":19," +
+                "\"line\":\"Sam has been telling the market the envelopes are light.\"," +
+                "\"because\":\"Sam has been on a skimmed cut since day 9\"}", world));
+            Check("a validated pressure is booked", book.Pending.Count == 1);
+            Check("nothing is due before its day", book.Due(new GameTime(12, 23, 0)).Count == 0);
+            Check("the day's pressure comes due", book.Due(new GameTime(13, 9, 0)).Count == 1);
+            Check("and exactly once, however often it is polled", book.Due(new GameTime(13, 23, 0)).Count == 0);
+
+            if (_live)
+            {
+                // The question live mode exists to answer: given a street with two
+                // obvious neglected obligations, does a real model author from
+                // THEM, or does it reach for a coincidence?
+                var live = new Director(_npcClient, Cost);
+                var p = await live.ProposeAsync(Street());
+                bool named = p.IsSomething &&
+                    (p.Who == "Mirek" || p.Who == "Sam" || p.Who == "Lena" || p.Who == "Sera Kest");
+                CheckLive("live: a scheduled pressure names somebody who exists",
+                    !p.IsSomething || named, p.ToString());
+                CheckLive("live: and justifies itself from the neglected obligations",
+                    !p.IsSomething || p.Because.ToLowerInvariant().Contains("mirek")
+                        || p.Because.ToLowerInvariant().Contains("skim")
+                        || p.Because.ToLowerInvariant().Contains("sam")
+                        || p.Because.ToLowerInvariant().Contains("deliver"),
+                    p.Because);
+
+                // And on a street where nothing is owed and nobody is angry, the
+                // right answer is silence.
+                var calm = new WorldSnapshot { Day = 12, Heat = 0.1, Street = "getting by, prices ordinary" };
+                calm.People.Add(new WorldPerson("Lena", "bookkeeper", 0.8, 0.05, "has no complaint"));
+                calm.People.Add(new WorldPerson("Sam", "works for the player", 0.8, 0.05, "well paid"));
+                calm.Recent.Add("the bar took $200 yesterday and nothing else happened");
+                var q = await live.ProposeAsync(calm);
+                CheckLive("live: a street with nothing wrong gets a quiet night", !q.IsSomething, q.ToString());
             }
         }
 

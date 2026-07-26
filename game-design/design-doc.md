@@ -239,9 +239,21 @@ map-painting minigame.
 
 ## 8. Narrative
 
-**Structure: authored spine, systemic flesh, LLM skin (P4).**
-The spine is fixed pressure points that fire on conditions, not dates alone — the world
+**Structure: authored anchors, simulated bones, LLM director (P4, revised — see §17).**
+The anchors are fixed pressure points that fire on conditions, not dates alone — the world
 state at firing time makes each playthrough's version different.
+
+**Between the anchors, the Director (M8, built 2026-07-26).** Authored beats are finite and
+were all written before the player's city existed. So every few nights a world-level pass
+reads the actual state — who is angry, who is exposed, what has been left undone, what the
+street's money is doing — and authors the next pressure from it, using five primitives and
+no others: put a fact in the mill, arrange a meeting, make a demand, change where somebody
+is, seed a grievance. It proposes an occasion; the simulation runs it, exactly as it runs an
+authored one. Every person it names must exist, every pressure must justify itself from
+something concrete, and **pressure comes from what the player neglected, never from bad
+luck** — inventing a stranger, an accident or a coincidence is forbidden in the prompt and
+discarded in validation. Most nights the correct answer is that nothing happens, and the
+prompt argues for it. The player is never shown what is pending: §6.2's rule holds.
 
 - **Act I — The Inheritance.** Arrival, the bar, discovering what it really is. Choice of
   posture (wind it down / take it over) that the game then makes hard to keep.

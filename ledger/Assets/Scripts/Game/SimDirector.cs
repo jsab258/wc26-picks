@@ -43,6 +43,7 @@ namespace Ledger.Game
         bool _forcedLedgerLearn;
         bool _forcedFall;
         bool _empireScripted;
+        bool _directorStaged, _directorFired;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -115,6 +116,32 @@ namespace Ledger.Game
                     _game.Empire.BuyDebt(shop, _game.Wallet);
                     _game.Empire.Squeeze(shop, m.Get("Viktor"), m, now);
                 }
+            }
+
+            // The Director's firing path in CI (roadmap M8). No API key on the
+            // build machine means the nightly pass never authors anything, so
+            // the code that actually RUNS a pressure would never be exercised.
+            // Stage two by hand on day 9 — a demand from Rocco, then answered,
+            // and a rumor through Sam — so scheduling, firing through the real
+            // primitives, and settling all run in-engine every build.
+            if (!_directorStaged && _game.Campaign.OpenMode && now.Day >= 9 && now.Hour >= 11)
+            {
+                _directorStaged = true;
+                bool demand = _game.StagePressure(new Pressure
+                {
+                    Kind = Pressures.Demand, Who = "Rocco", FireDay = now.Day, Amount = 150,
+                    Line = "Rocco asked for a hundred and fifty, and did not say what for.",
+                    Because = "staged in CI",
+                });
+                bool rumor = _game.StagePressure(new Pressure
+                {
+                    Kind = Pressures.Rumor, Who = "Sam", FireDay = now.Day,
+                    Line = "Sam has been telling people the new owner keeps odd hours.",
+                    Because = "staged in CI",
+                });
+                _game.Wallet.EarnDirty(200);   // so the demand can actually be answered
+                bool paid = _game.SettleDemand("Rocco", out _);
+                _directorFired = demand && rumor && paid && _game.DemandFrom("Rocco") == null;
             }
 
             // Open-mode Fall in CI: if week two arrived without the fuse ever
@@ -432,6 +459,26 @@ namespace Ledger.Game
                 && System.Math.Abs(econTwin.Prosperity - econ.Prosperity) < 1e-6
                 && System.Math.Abs(econTwin.PriceLevel - econ.PriceLevel) < 1e-6;
 
+            // The Director (roadmap M8). CI has no API key, so the nightly pass
+            // never authors anything — which is exactly the property worth
+            // gating: a game with no model available must run a completely
+            // ordinary week. So the assertions are that it stayed silent, that
+            // its book survives its own codec, and — the part that would
+            // actually break — that a pressure fired by hand goes through the
+            // real primitives and lands. That last one is scripted below.
+            var dirSnap = MiniJson.Serialize(_game.Directorate.Capture());
+            var dirTwin = new DirectorBook();
+            dirTwin.Restore(MiniJson.AsObject(MiniJson.Deserialize(dirSnap)));
+            bool directorOk =
+                dirTwin.Pending.Count == _game.Directorate.Pending.Count
+                && dirTwin.LastRunDay == _game.Directorate.LastRunDay
+                && dirTwin.History.Count == _game.Directorate.History.Count
+                // Whatever it did or did not schedule, nothing may be in flight
+                // that names a pressure kind the game cannot run.
+                && _game.Directorate.Pending.TrueForAll(p => Pressures.Known(p.Kind))
+                // And the hand-fired pressure below must have landed.
+                && (!_game.Campaign.OpenMode || SimMode.Days < 9 || _directorFired);
+
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
@@ -545,7 +592,8 @@ namespace Ledger.Game
                         && _screenshots.Count > 0 && secretReachedDay && discreditWorks
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk;
+                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
+                        && directorOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -563,6 +611,7 @@ namespace Ledger.Game
                       $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
+                      $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);

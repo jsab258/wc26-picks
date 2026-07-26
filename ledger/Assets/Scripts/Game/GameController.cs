@@ -7,7 +7,7 @@ namespace Ledger.Game
     /// Owns the game clock, day/night cycle, and world orchestration for the
     /// M0 tech spike: one graybox block, a player, three scheduled NPCs, and
     /// Lena (the full conversational character).
-    public class GameController : MonoBehaviour
+    public partial class GameController : MonoBehaviour
     {
         public float MinutesPerRealSecond = 2f; // 1 game day = 12 real minutes (sim mode overrides)
 
@@ -1216,6 +1216,15 @@ namespace Ledger.Game
                 if (streetLine != null) _ui?.Toast(streetLine, 11f);
                 if (economyLine != null) _ui?.Toast(economyLine, 11f);
 
+                // The Director (roadmap M8): fire whatever it scheduled for
+                // today, settle any demand whose window has passed, and — only
+                // in the open city, and only every few days — let it read the
+                // state and author the next pressure. Fire-and-forget: a slow
+                // or failed nightly pass must never hold up the morning.
+                FireDuePressures();
+                CheckDemands();
+                if (Campaign.OpenMode) RunDirectorAsync();
+
                 int talk = 0;
                 foreach (var k in Knowledge.Entries) if (!k.Handled) talk++;
                 _ui?.ShowDaySummary(Now.Day - 1, takings, washed, talk,
@@ -1481,6 +1490,8 @@ namespace Ledger.Game
         {
             { "empire", Empire.Capture() },
             { "economy", Economy.Capture() },
+            { "director", Directorate.Capture() },
+            { "demands", CaptureDemands() },
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
@@ -1548,6 +1559,12 @@ namespace Ledger.Game
                 ActOne.NoorDrawersBroken = FlagB(extra, "noorBroken");
                 if (extra.TryGetValue("empire", out var em)) Empire.Restore(MiniJson.AsObject(em));
                 if (extra.TryGetValue("economy", out var ec)) Economy.Restore(MiniJson.AsObject(ec));
+                if (extra.TryGetValue("director", out var di))
+                {
+                    Directorate.Restore(MiniJson.AsObject(di));
+                    _lastDirectorDay = Directorate.LastRunDay;
+                }
+                if (extra.TryGetValue("demands", out var de)) RestoreDemands(MiniJson.AsList(de));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)

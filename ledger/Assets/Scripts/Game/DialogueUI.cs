@@ -330,6 +330,15 @@ namespace Ledger.Game
                         : "Their cut: skimmed (change)";
                     _empireSayA = "change how much of the take they keep";
                 }
+                // Somebody the Director had ask you for money (roadmap M8).
+                // Outranks everything else for the same reason the supplier does:
+                // they are standing there with a figure in their head.
+                else if (_game.DemandFrom(id) is GameController.OpenDemand asked)
+                {
+                    labelA = $"Give {id} the ${asked.Amount}";
+                    enabledA = _game.PlayerCash >= asked.Amount;
+                    _empireSayA = $"pay {id} the ${asked.Amount} they asked you for";
+                }
                 // A supplier you owe, or one who has stopped coming (roadmap M7).
                 // Settling up outranks recruiting: the man is standing there with
                 // a figure in his head and it is the only thing he wants to discuss.
@@ -406,9 +415,18 @@ namespace Ledger.Game
             var biz = FindBusinessOf(id);
             var hook = _game.HooksBook.UsableHook(id);
 
-            // Settling with a supplier (roadmap M7) — same ordering as the label
-            // logic above, so what the button says and what it does cannot drift.
-            var supplierOwed = biz == null ? _game.OutstandingSupplier(id) : null;
+            // Answering a demand (roadmap M8) and settling with a supplier
+            // (M7) — the SAME ordering as the label logic above, so what the
+            // button says and what it does cannot drift apart.
+            if (biz == null && _game.DemandFrom(id) != null && !leverage)
+            {
+                _game.SettleDemand(id, out var demandLine);
+                if (demandLine != null) Narrate(demandLine);
+                return;
+            }
+
+            var supplierOwed = biz == null && _game.DemandFrom(id) == null
+                ? _game.OutstandingSupplier(id) : null;
             if (supplierOwed != null && !leverage)
             {
                 _game.SettleSupplier(supplierOwed.Id, out var settleLine);
