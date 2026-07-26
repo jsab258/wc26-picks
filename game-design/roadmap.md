@@ -234,9 +234,48 @@ The gaps, in the order they are now being closed:
 
   Safe to ship under a game about to be played: an unsqueezed campaign sits
   at a takings factor of ~0.98, i.e. unchanged.
-- **M7.5 — Operation planning + access** (was M7). Still high value, still
-  cheap; the router makes planning *say-able* rather than menu-only, so it
-  benefits from being built after it.
+- **M7.5 — Operation planning + access — CORE SHIPPED 2026-07-26, WIRING
+  PENDING.** Both landed as Core with full test coverage (`Access.cs` +32
+  tests, `Operation.cs` +48 tests, 584 total) and **neither is reachable
+  from the game yet.**
+
+  That was a deliberate call rather than an oversight. Four Unity-layer
+  systems went in the same night and two of them broke the build, so the
+  last two milestones went in where the tests actually prove them instead
+  of where they could fail twenty minutes away on a runner. Wiring is the
+  first job next session and is small — the intent router picks both up the
+  moment their buttons exist, which is the router's whole point.
+
+  **Access.** Nothing is locked. A gate lists several keys and holding any
+  one opens it, which turns "multiple solutions per obstacle" from a thing
+  to remember into a structural property. Keys: standing with an
+  organization, street noise in *both* directions (some rooms open only to
+  somebody nobody has heard of, others only to somebody who already is
+  somebody), dress, an introduction, money, the hour, leverage on the
+  doorman, headcount. The cheapest key held wins, so a player carrying both
+  an introduction and sixty dollars does not silently spend the sixty. A
+  refusal is a person talking who names the way in you came *closest* to
+  having, with the figure — a door you cannot open and cannot learn about
+  is level geometry rather than a system. A gate with no keys is a design
+  failure, so it simply opens.
+
+  **Operation planning.** Four choices — approach, hour, who you bring,
+  tools — each trading something you want for something else you want. The
+  trade is asserted rather than assumed: forcing it is *both* likelier to
+  work and much likelier to be seen, so there is no dominant approach. The
+  read is qualitative per the approved decision on visible odds, and the
+  test sweeps the whole risk range checking no digit ever reaches the
+  player; it also names the single decision most worth changing, so a bad
+  plan says *which* choice is bad. Three outcome bands, and the middle one
+  is the interesting one: most of the way, leaving in a hurry, and a
+  half-done job is still done. A failure leaves the job there and harder.
+  Outcomes are computed in C# from competence, hour, heat, the coat and the
+  target; no model is consulted, and what the model does afterwards is
+  voice the people who saw it.
+
+  **Still needed before either is worth playing:** content. Gates on actual
+  places and a handful of authored targets. The systems are ready; the
+  street has nothing to gate yet.
 - **M8 — The Director — SHIPPED 2026-07-26.** `Director` + `DirectorBook`
   in Core, `DirectorHost` in the game layer, 42 new CoreTests (467 total),
   a 13-check SimHarness scenario (70 total) with a live half, and a
