@@ -685,6 +685,11 @@ namespace Ledger.Game
                 // never a percentage (roadmap M7's legibility requirement).
                 var econ = _game.Economy;
                 sb.AppendLine($"<color={UiTheme.HexDim}>People here are <b>{econ.ProsperityWord()}</b>; prices are <b>{econ.PriceWord()}</b>.</color>");
+                // Doors you have actually stood in front of — and only those.
+                // Listing every way into every room you have never visited is
+                // the same omniscience §6.2 refuses everywhere else.
+                var doors = _game.GatesLine();
+                if (doors != null) sb.Append(doors);
                 foreach (var s in econ.Suppliers)
                 {
                     if (s.Refusing)

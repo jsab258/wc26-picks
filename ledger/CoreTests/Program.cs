@@ -1955,6 +1955,37 @@ namespace Ledger.CoreTests
             Check(!Doors.Try(null, new AccessState()).Allowed, "and nothing at all is not a door");
             Check(!Doors.Try(gate, null).Allowed, "nor is a player who does not exist");
 
+            // THE SHIPPED GATES, not a fixture. A door in the actual game that
+            // nobody can open is a wall, and walls are the one thing this whole
+            // system exists in order not to build.
+            foreach (var g in Ledger.Game.AccessSetup.Build())
+            {
+                Check(g.Keys.Count > 0, $"the shipped gate '{g.Id}' has a way in");
+                Check(!string.IsNullOrEmpty(g.Doorman), $"'{g.Id}' has somebody standing there");
+                Check(!string.IsNullOrEmpty(g.Refusal), $"'{g.Id}' has a refusal in a person's voice");
+                foreach (var k in g.Keys)
+                    Check(!string.IsNullOrEmpty(k.Opens) && !string.IsNullOrEmpty(k.Nearly),
+                        $"every way into '{g.Id}' reads both when it works and when it nearly does");
+
+                // Somebody with nothing at three in the morning: either they get
+                // in, or they are told what would have worked. Never neither.
+                var pauper = Doors.Try(g, new AccessState { Hour = 3, Dress = "coat", Money = 0 });
+                Check(pauper.Allowed || (pauper.Nearest != null && pauper.Hint.Length > 0),
+                    $"'{g.Id}' either opens or teaches — it is never simply shut");
+            }
+
+            // The pair that makes the system a system: one room closes as you
+            // become somebody, the other opens. No build holds both.
+            var shipped = Ledger.Game.AccessSetup.Build();
+            var loft = shipped.Find(g => g.Id == "laundry");
+            var yard = shipped.Find(g => g.Id == "repair_yard");
+            var unknown = new AccessState { Notoriety = 0.05, Hour = 22, Money = 0 };
+            var famous = new AccessState { Notoriety = 0.9, Hour = 22, Money = 0 };
+            Check(Doors.Try(loft, unknown).Allowed, "the quiet loft opens to somebody nobody has heard of");
+            Check(!Doors.Try(loft, new AccessState { Notoriety = 0.9, Hour = 12, Money = 0 }).Allowed,
+                "and closes once the street is saying your name");
+            Check(Doors.Try(yard, famous).Allowed, "the yard opens to somebody the street talks about");
+
             // Every refusal must be legible: somebody talking, and never a code.
             foreach (var state in new[] { nobody, almostPaid, almostStanding })
             {

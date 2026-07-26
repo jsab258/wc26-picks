@@ -483,6 +483,24 @@ namespace Ledger.Game
                     || System.Linq.Enumerable.Any(_game.Gossip.Mill.Agents,
                            a => a.Id.StartsWith("r")));
 
+            // Access (roadmap M7.5). CI cannot walk the bot to every door, so
+            // the gate is on the RULES rather than on the walking: every gate
+            // must be openable by somebody, every one must have a doorman and a
+            // refusal, and the evaluator must produce a legible answer for a
+            // player who has nothing. A gate nobody can ever open is a wall,
+            // and walls are the one thing this system exists to not build.
+            bool accessOk = _game.Gates.Count > 0;
+            foreach (var gate in _game.Gates)
+            {
+                if (gate.Keys.Count == 0 || string.IsNullOrEmpty(gate.Doorman)
+                    || string.IsNullOrEmpty(gate.Refusal)) { accessOk = false; break; }
+                var pauper = new AccessState { Hour = 3, Dress = "coat", Money = 0 };
+                var turned = Doors.Try(gate, pauper);
+                if (turned.Allowed) continue;                 // openable even with nothing
+                if (turned.Nearest == null || string.IsNullOrEmpty(turned.Hint))
+                { accessOk = false; break; }                  // refused without teaching
+            }
+
             // The Director (roadmap M8). CI has no API key, so the nightly pass
             // never authors anything — which is exactly the property worth
             // gating: a game with no model available must run a completely
@@ -617,7 +635,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk;
+                        && directorOk && crowdOk && accessOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -637,6 +655,7 @@ namespace Ledger.Game
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
                       $"pop={(_game.Populace != null ? _game.Populace.Residents.Count : 0)} " +
+                      $"gates={_game.Gates.Count} accessOk={accessOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
