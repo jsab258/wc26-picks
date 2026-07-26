@@ -55,6 +55,13 @@ namespace Ledger.Game
                 RequiresBusinessId = "pawnshop",
             });
 
+            // The organizations are made of people who already walk this street
+            // (§6.5). Recruiting any of them is poaching, with consequences —
+            // and every one of them has a card, a need, and a secret already.
+            e.ArmOf("dockside").Members.AddRange(new[] { "Josip", "Ferko" });
+            e.ArmOf("machine").Members.Add("Tibor");   // the stamp in the customs shed
+            e.ArmOf("newcrew").Members.Add("Ruta");    // the kid taxes her; Danny counts her as his
+
             return e;
         }
 

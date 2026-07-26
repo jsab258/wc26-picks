@@ -797,6 +797,43 @@ namespace Ledger.CoreTests
                 && Math.Abs(eA2.ArmOf("machine").Attention - eA.ArmOf("machine").Attention) < 1e-9,
                 "arms: all three survive the codec");
 
+            // Allegiance (§ agency): arms are people, and taking one is poaching.
+            var (eP, mP, _p, josipP) = Build(0.5, 0.4);
+            eP.ArmOf("dockside").Members.Add("josip");
+            josipP.Loyalty = 0.5;
+            double standBefore = eP.ArmOf("dockside").Standing;
+            double attnBefore = eP.ArmOf("dockside").Attention;
+            eP.RecruitByNeed(josipP, "Josip", 50, new Wallet(100), now);
+            Check(eP.CrewOf("josip") != null && !eP.ArmOf("dockside").Members.Contains("josip"),
+                "allegiance: recruiting their man takes him off their roster");
+            Check(eP.ArmOf("dockside").Standing < standBefore && eP.ArmOf("dockside").Attention > attnBefore,
+                "allegiance: poaching costs standing and buys attention");
+            Check(eP.LastPoachedFrom == "dockside", "allegiance: the game layer learns who lost someone");
+
+            var (eL, mL, _l, _l2) = Build(0.5, 0.4);
+            Check(!eL.PledgeTo("dockside", mL, now), "allegiance: nobody flies a flag they haven't earned");
+            eL.ArmOf("dockside").Standing = 0.5;
+            Check(eL.PledgeTo("dockside", mL, now) && eL.Patron != null && eL.Patron.Id == "dockside",
+                "allegiance: standing earned, colors flown");
+            Check(eL.ArmOf("machine").Standing < 0, "allegiance: the others read a pledge as a side taken");
+            var wL = new Wallet(500);
+            double attnPatron = eL.ArmOf("dockside").Attention;
+            var pEvents = eL.DailyTick(new GameTime(12, 8, 0), wL, mL);
+            Check(wL.Total == 450 && pEvents.Exists(ev => ev.Text.Contains("tribute")),
+                "allegiance: a patron's protection is paid daily");
+            Check(eL.ArmOf("dockside").Attention <= attnPatron, "allegiance: under their flag they stop watching you");
+            Check(eL.BreakWith("dockside", mL, now) && eL.Patron == null
+                && eL.ArmOf("dockside").Standing < 0 && eL.ArmOf("dockside").Attention > attnPatron,
+                "allegiance: walking out is remembered and answered");
+
+            var snapL = MiniJson.Serialize(eL.Capture());
+            var (eL2, _ml2, _rl2, __l2) = Build(0.5, 0.4);
+            eL2.ArmOf("dockside").Members.Add("someone");
+            eL2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snapL)));
+            Check(Math.Abs(eL2.ArmOf("dockside").Standing - eL.ArmOf("dockside").Standing) < 1e-9
+                && eL2.Patron == null && !eL2.ArmOf("dockside").Members.Contains("someone"),
+                "allegiance: standing, patronage and rosters survive the codec");
+
             // Persistence: the whole book round-trips through plain data.
             var snap = e7.Capture();
             var (e9, m9, _9, __9) = Build(0.5, 0.4);

@@ -62,10 +62,23 @@ namespace Ledger.Core
     public class RivalArm
     {
         public string Id = "dockside";
+        public string HeadName = "Sera Kest";
         public double Attention;      // 0..1
         public int Stage;             // 0 quiet · 1 notice · 2 pressure · 3 grab · 4 summit
         public int LastActDay = -1;
         public int ProtectionTaxPerDay; // dockside stage 2+: the street's rent
+
+        /// An organization is people (§6.5: "their org charts are individuals —
+        /// flippable, bribable, with their own loyalty rot"). These are gossiper
+        /// ids: real cards on the street who happen to answer to this arm. Every
+        /// verb the player owns works on them; taking one is poaching.
+        public readonly List<string> Members = new List<string>();
+
+        /// Where the player stands with this arm, -1 (blood) .. +1 (theirs).
+        public double Standing;
+        /// True while the player works FOR this arm (one patron at a time).
+        public bool IsPatron;
+        public int TributePerDay;     // what a patron pays their people, or takes
     }
 
     public class EmpireEvent
@@ -86,9 +99,9 @@ namespace Ledger.Core
         /// Aldous Vane's machine, Danny Ro's New crew.
         public readonly List<RivalArm> Arms = new List<RivalArm>
         {
-            new RivalArm { Id = "dockside" },
-            new RivalArm { Id = "machine" },
-            new RivalArm { Id = "newcrew" },
+            new RivalArm { Id = "dockside", HeadName = "Sera Kest" },
+            new RivalArm { Id = "machine", HeadName = "Aldous Vane" },
+            new RivalArm { Id = "newcrew", HeadName = "Danny Ro" },
         };
         /// The founding rival keeps its name — existing callers and saves read
         /// the dockside arm through it.
@@ -98,6 +111,74 @@ namespace Ledger.Core
         /// Doctrine effects other systems consume at the daily close.
         public bool MachineInspecting => ArmOf("machine").Stage >= 2;   // fronts' income -25%
         public bool NewCrewTaxing => ArmOf("newcrew").Stage >= 3;       // rackets' take -20%
+
+        /// Whose banner you fly, if anyone's. Independence is the default and
+        /// the hardest road: three organizations, no protection from any.
+        public RivalArm Patron => Arms.Find(a => a.IsPatron);
+        public RivalArm ArmOfMember(string id) => Arms.Find(a => a.Members.Contains(id));
+
+        // ---- allegiance: pledging, breaking, and taking their people ----
+
+        public double PledgeStandingFloor = 0.2;   // they must not despise you
+        public int PatronTribute = 50;             // what a patron's protection costs daily
+        public double PoachStandingCost = 0.35;
+
+        /// Work for an arm instead of against it (§ agency): their attention
+        /// stops climbing, their protection is real, and the other two start
+        /// treating your street as an extension of theirs.
+        public bool PledgeTo(string armId, GossipMill mill, GameTime now)
+        {
+            var arm = ArmOf(armId);
+            if (arm == null || arm.IsPatron || arm.Standing < PledgeStandingFloor) return false;
+            foreach (var a in Arms) a.IsPatron = false;
+            arm.IsPatron = true;
+            arm.TributePerDay = PatronTribute;
+            arm.Standing = Math.Clamp(arm.Standing + 0.2, -1, 1);
+            arm.Attention = Math.Clamp(arm.Attention - 0.4, 0, 1);
+            foreach (var other in Arms)
+                if (other != arm) other.Standing = Math.Clamp(other.Standing - 0.25, -1, 1);
+            Remember(mill, arm, now, $"The new owner flies {arm.HeadName}'s colors now. Everyone on this street noticed the day it happened.");
+            return true;
+        }
+
+        /// Walk away from a patron. Nobody takes that quietly.
+        public bool BreakWith(string armId, GossipMill mill, GameTime now)
+        {
+            var arm = ArmOf(armId);
+            if (arm == null || !arm.IsPatron) return false;
+            arm.IsPatron = false;
+            arm.TributePerDay = 0;
+            // However well you stood with them, leaving ends it below zero:
+            // the higher you climbed, the further the fall reads.
+            arm.Standing = Math.Clamp(Math.Min(arm.Standing - 0.6, -0.2), -1, 1);
+            arm.Attention = Math.Clamp(arm.Attention + 0.35, 0, 1);
+            Remember(mill, arm, now, $"The new owner walked out on {arm.HeadName}. That is not a thing people do twice.");
+            return true;
+        }
+
+        /// Somebody who answered to an arm now answers to you. Called from the
+        /// recruit paths — poaching is not a new verb, it is the old verb aimed
+        /// at someone who already had an employer.
+        public void NotePoach(string id, GossipMill mill, GameTime now)
+        {
+            var arm = ArmOfMember(id);
+            if (arm == null) return;
+            arm.Members.Remove(id);
+            arm.Standing = Math.Clamp(arm.Standing - PoachStandingCost, -1, 1);
+            arm.Attention = Math.Clamp(arm.Attention + 0.2, 0, 1);
+            var g = mill?.Get(id);
+            g?.Memory.Append(new MemoryEvent(now, "observation", 0.9,
+                $"I used to answer to {arm.HeadName}'s people. I answer to the new owner now. Somebody will have noticed by morning."));
+            Remember(mill, arm, now, $"One of {arm.HeadName}'s people went over to the new owner.");
+        }
+
+        /// Arm memory: what an organization's remaining people saw happen.
+        static void Remember(GossipMill mill, RivalArm arm, GameTime now, string line)
+        {
+            if (mill == null) return;
+            foreach (var id in arm.Members)
+                mill.Get(id)?.Memory.Append(new MemoryEvent(now, "heard", 0.8, line));
+        }
 
         // Tunables.
         public double RecruitLoyaltyFloor = 0.55;   // the need route ends in a yes only past this
@@ -226,6 +307,7 @@ namespace Ledger.Core
             Enlist(g, "need", now);
             g.Memory.Append(new MemoryEvent(now, "conversation", 0.9,
                 "I said yes. I work for the new owner now — because of what they did for me, not what they know about me. There's a difference."));
+            NotePoachInternal(g.Id, now);
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
             return true;
         }
@@ -242,6 +324,7 @@ namespace Ledger.Core
             Enlist(g, "hook", now);
             g.Memory.Append(new MemoryEvent(now, "observation", 0.95,
                 "I work for the new owner now. Not because I chose to. I keep a list in my head of every time they remind me why."));
+            NotePoachInternal(g.Id, now);
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
             return true;
         }
@@ -271,6 +354,23 @@ namespace Ledger.Core
                 Competence = Competence(g), RecruitedDay = now.Day,
             });
         }
+
+        /// Recruit paths call this without a mill handle; the arm bookkeeping
+        /// still happens, and the poached person's own memory is written by the
+        /// caller. Mill-aware callers use NotePoach for the full effect.
+        void NotePoachInternal(string id, GameTime now)
+        {
+            var arm = ArmOfMember(id);
+            if (arm == null) return;
+            arm.Members.Remove(id);
+            arm.Standing = Math.Clamp(arm.Standing - PoachStandingCost, -1, 1);
+            arm.Attention = Math.Clamp(arm.Attention + 0.2, 0, 1);
+            LastPoachedFrom = arm.Id;
+        }
+
+        /// Which organization lost someone most recently — the game layer reads
+        /// this to voice the consequence.
+        public string LastPoachedFrom { get; private set; }
 
         /// Every transfer of a deed is public record; the machine's clerks read
         /// the registry so Aldous never has to visit.
@@ -511,6 +611,20 @@ namespace Ledger.Core
                 Rival.Attention >= 0.5 ? 2 :
                 Rival.Attention >= 0.25 ? 1 : 0;
 
+            // A patron's protection is real: they stop escalating and their
+            // rivals' pressure is answered by people who aren't you. It costs.
+            if (Rival.IsPatron)
+            {
+                Rival.Attention = Math.Clamp(Rival.Attention - 0.05, 0, 1);
+                if (Rival.TributePerDay > 0 && wallet.Total > 0)
+                {
+                    wallet.Spend(Math.Min(Rival.TributePerDay, wallet.Total), dirtyOk: true);
+                    events.Add(new EmpireEvent { Kind = "rival",
+                        Text = $"{Rival.HeadName}'s collector takes the tribute and leaves a nod. Under her flag, that nod is the product." });
+                }
+                return events;
+            }
+
             // The daily tax stands once imposed, whether or not they escalate today.
             if (Rival.ProtectionTaxPerDay > 0)
             {
@@ -604,6 +718,9 @@ namespace Ledger.Core
                 {
                     { "id", a.Id }, { "attention", a.Attention }, { "stage", a.Stage },
                     { "lastAct", a.LastActDay }, { "tax", a.ProtectionTaxPerDay },
+                    { "standing", a.Standing }, { "patron", a.IsPatron },
+                    { "tribute", a.TributePerDay },
+                    { "members", a.Members.Cast<object>().ToList() },
                 }).ToList() },
             { "racketIncome", TotalRacketIncome },
         };
@@ -662,6 +779,12 @@ namespace Ledger.Core
                 arm.Stage = MiniJson.GetInt(d, "stage");
                 arm.LastActDay = d.TryGetValue("lastAct", out var laa) ? Convert.ToInt32(laa) : -1;
                 arm.ProtectionTaxPerDay = MiniJson.GetInt(d, "tax");
+                arm.Standing = d.TryGetValue("standing", out var st) ? Convert.ToDouble(st) : 0;
+                arm.IsPatron = Is(d, "patron");
+                arm.TributePerDay = MiniJson.GetInt(d, "tribute");
+                arm.Members.Clear();
+                foreach (var m in (MiniJson.GetList(d, "members") ?? new List<object>()).OfType<string>())
+                    arm.Members.Add(m);
             }
             TotalRacketIncome = MiniJson.GetInt(data, "racketIncome");
         }
