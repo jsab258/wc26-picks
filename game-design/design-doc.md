@@ -2,9 +2,21 @@
 
 Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
 Genre: open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
-Engine: Unity 6, C#. Status: founding doc v1.1 (2026-07-25; §8 cast note and §11 revised
-against built reality). Companions: `research-mechanics.md`, `roadmap.md` (live milestone
-plan), `process.md` (decision log).
+Engine: Unity 6, C#. Setting: **late-analog** — landlines, payphones, answering machines,
+messages left with people; no internet, no mobiles.
+
+**Quality target: a high-quality indie game** (player decision 2026-07-26) — the bar is
+Disco Elysium / Papers Please / Rimworld / Shadows of Doubt: reviews well, sells, gets
+covered. Explicitly NOT chasing AAA breadth; the realistic ceiling for this team is AA /
+premium indie (Kingdom Come 1, Hunt: Showdown, Mount & Blade), and the winning position is
+*the game that does one thing no AAA studio can currently do, at a polish level that reads
+as excellent*.
+
+Status: founding doc **v2.0** (2026-07-26 — rewritten against built reality after the
+agency-model discussion; §§14-16 are new). Companions: `agency-model.md` (depth targets per
+dimension, and the filters that govern scope), `roadmap.md` (live milestone plan),
+`process.md` (decision log), `act1-draft.md` / `act2-draft.md` (the authored spine),
+`empire-roster.md`, `balance-findings-open.md`, `how-to-play.md`.
 
 ---
 
@@ -67,6 +79,14 @@ dates, collections, meets) compete for slots. End-of-day is a natural save/stop 
 ledger summary: money moved, secrets gained, rumors spreading, loyalty shifts. The two lives
 cross-feed Dave-the-Diver style: at work you plan the night; at night you worry about
 tomorrow's lunch with her parents.
+
+### The two modes (added v2.0)
+**Week mode (days 1-7)** is Act I's on-ramp: survive the week, learn every system under
+real stakes, answer Lena's question on day seven. **Open mode (day 8 on)** is the game:
+no verdict, no countdown, no win condition. Losing remains possible but *scars* rather than
+ends — exposure means the Fall (days inside, unwashed cash seized, every rumour about you
+collapsing into public fact, and you start again from there). An ending screen would
+contradict P5.
 
 ### Outer loop (campaign): the two ledgers
 Grow the empire (territory, rackets, crew) while growing the life (relationships, standing,
@@ -159,6 +179,13 @@ and a social graph. Relationships (friendship and romance) built through real co
 and remembered shared history, not gift-grinding. The honest life is not a mini-game; it is
 the stakes. The people in it are the ones your other life endangers, and the game's best
 content — dinner-table scenes where suspicion sits under small talk — lives here.
+
+**Built (v2.0):** the courier track at Meridian Parcel. Zlata's board goes up each morning
+until noon; take the satchel, walk the route, deliver by evening for clean pay AND cover —
+a day worked in company colours lets the whole day circle's suspicion breathe out. One
+round a day; the morning spent on parcels is a morning not spent on the other ledger (P1
+made literal). The open city also keeps its own social calendar: every few days the person
+who thinks best of you asks for an evening.
 
 ### 6.7 Economy
 Two currencies that resist mixing: clean money (spendable anywhere, slow) and dirty money
@@ -279,6 +306,80 @@ slots UI, melee combat (deliberately deferred; see roadmap open items).
 
 Scope honesty: systems milestones are heavily AI-buildable (code, cards, pipelines). The
 vertical slice is where taste, iteration, and playtesting (the human's real job) dominate.
+
+## 14. Agency: what the player can actually do (added v2.0)
+
+`agency-model.md` is canon and scores ~28 dimensions against shipped state-of-the-art. Two
+filters govern every scope decision:
+
+1. **Every non-social system exists to give the social system stakes.** Money buys silence,
+   violence is seen, health is how you meet June, clothes are how the street reads you. A
+   system that does not feed the social layer is grind.
+2. **Decisions ripple; maintenance is a chore.** Every system needs a lazy path and an
+   invested path, and nothing may punish a player for ignoring it. Conversation must never
+   be mandatory for progress — a full loop is playable with a few chip taps.
+
+Headline targets: social memory 98, persistence 100, information 95, time 90, economy 85,
+multiple-solutions-per-obstacle 80 (a project law, not a feature), faction politics 75,
+operation planning 75, law-as-a-tool 70, legacy 70, violence 70 (staged), traversal 65
+(breadth of place, never vehicle simulation), access-as-soft-keys 65. Refused outright:
+body needs, crafting/lockpicking minigames, gear treadmills.
+
+**Faction agency (built):** the three organizations are rosters of people who already walk
+the street, so poaching is not a new verb — it is recruit-by-need and recruit-by-hook aimed
+at someone who already had an employer. Allegiance is a state: pledge to an arm for
+protection and tribute, or break with them and never be trusted again.
+
+**Decided in the same discussion:** phones exist (late-analog, so information gains a
+channel without travelling at internet speed, and wiretaps become natural counterplay);
+visible odds are qualitative reads, never percentages; interiority is *pressure, not
+personality* (the protagonist's nerve, guilt and appetite as intrusive lines, never stats);
+competence tracks per domain and unlocks approaches rather than raising numbers;
+vehicles/driving are approved but sequenced late.
+
+## 15. Production requirements (added v2.0)
+
+The design doc previously tracked mechanics only. A shipped game needs all of the
+following, none of which is optional, and each of which is now on the roadmap:
+
+- **Front end**: main menu, new game / continue, options (audio, video, gameplay), key
+  rebinding, pause menu, quit. None of this exists today.
+- **Audio**: music, ambience, footsteps, doors, UI feedback, and the mixer to balance them.
+  Currently the game is entirely silent.
+- **Save robustness**: versioned saves with migration, multiple slots, corruption recovery.
+  We have one autosave slot and no version field.
+- **Accessibility**: subtitle sizing, colourblind-safe UI, remappable input, no-timer
+  guarantees (already a design rule), text scaling.
+- **Localisation**: UI and authored strings externalised; generated dialogue is a special
+  case (the model can speak the target language directly — an advantage, not a cost).
+- **Performance**: LOD and statistical simulation for distant districts (doc §9 already
+  specifies KCD2-style LOD; unimplemented), draw-call and memory budgets.
+- **Controller support** and Steam Deck verification.
+- **Platform**: Steam page, achievements, cloud saves, build pipeline for release.
+- **QA**: a human test matrix on top of the automated harness (334 unit checks, a 9-day
+  in-engine simulation per build, Monte-Carlo balance runs, an AI playtest harness — this
+  infrastructure is unusually strong for the project's size and materially reduces, but
+  does not replace, human QA).
+
+## 16. Shipping an LLM game (added v2.0)
+
+Three problems specific to this design, each of which can sink it:
+
+1. **Inference economics.** Target < $0.05 per played hour ambient. Options: bundled
+   inference (studio pays per player-hour forever), player-supplied API key (kills most of
+   the audience), or local models (quality drop, hardware floor). Undecided, and it
+   determines the business model. First real measurement comes from the first human
+   playtest.
+2. **Content safety.** Generated characters will eventually say something indefensible.
+   We have a response validator; shipping needs guardrails, moderation, red-teaming, and a
+   documented policy.
+3. **Age rating.** ESRB/PEGI rate authored content; ours is generated at runtime. No clean
+   industry precedent exists. Needs a human with a legal budget, early.
+
+**The quality risk that outranks all three:** slop. If conversations read as chatbot rather
+than person, the entire pitch collapses and nothing else in this document matters. That
+means relentless card and prompt iteration, a model strong enough to hold character, and
+latency low enough that talking feels alive.
 
 ## 12. Risks
 

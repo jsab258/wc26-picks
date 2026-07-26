@@ -153,4 +153,36 @@ violence beyond the consequence layer (wants art), vehicles.
   breadth), companionship, home-that-reacts, legacy/succession into Act
   III, notoriety, family, vice.
 
+### PRODUCTION TRACK — added 2026-07-26 (player: "these all need to go on
+### the roadmap and be built too"). Target: high-quality indie.
+
+The design doc tracked mechanics only; these are the things that turn a
+systems prototype into a product. They run in PARALLEL with the design
+milestones rather than after them, because several get harder the longer
+they are deferred (save versioning especially).
+
+- **P1 — Front end** (tonight): main menu, new game / continue, options
+  (audio / video / gameplay), key rebinding, pause menu, quit. The game
+  currently boots straight into play and cannot be exited cleanly.
+- **P2 — Save robustness** (tonight): a version field with migration,
+  multiple slots, corruption recovery. Today: one autosave, no version —
+  and every patch silently risks players' saves.
+- **P3 — Audio** (tonight, procedural first): music, ambience, footsteps,
+  doors, UI feedback, mixer. The game is silent. Procedural/synthesised
+  sources first via the AssetLibrary pattern, so purchased or recorded
+  audio drops in later with no code change — exactly how textures work.
+- **P4 — Accessibility**: subtitle sizing, colourblind-safe palette,
+  remappable input, text scaling. The no-hard-timers rule already helps.
+- **P5 — Performance**: KCD2-style LOD and statistical simulation for
+  distant districts (doc §9, unimplemented), draw-call/memory budgets.
+- **P6 — Controller + Steam Deck.**
+- **P7 — Localisation**: externalise UI and authored strings. Generated
+  dialogue can be produced directly in the target language — an advantage.
+- **P8 — Platform**: Steam page, achievements, cloud saves, release build
+  pipeline.
+- **P9 — QA matrix**: human test plan layered on the automated harness.
+- **P10 — LLM productization** (see doc §16): inference economics
+  decision, content safety and red-teaming, age-rating strategy. The
+  highest-risk item in the entire project and the one needing you earliest.
+
 Rule reaffirmed from §2: if a feature serves none of the five novelty claims, it is cut.
