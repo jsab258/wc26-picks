@@ -20,6 +20,7 @@
 !CoreTests/CoreTests.csproj
 !SimHarness/SimHarness.csproj
 !Tier2Gen/Tier2Gen.csproj
+!ShapeCheck/ShapeCheck.csproj
 
 # Generated playtest report
 SimHarness/sim-report.md
@@ -38,3 +39,7 @@ Assets/StreamingAssets/secrets.json
 # .NET tool build output
 Tier2Gen/bin/
 Tier2Gen/obj/
+
+# ShapeCheck build output (the tool is source + csproj only)
+ShapeCheck/bin/
+ShapeCheck/obj/

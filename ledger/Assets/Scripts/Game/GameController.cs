@@ -1628,7 +1628,7 @@ namespace Ledger.Game
                     _lastDirectorDay = Directorate.LastRunDay;
                 }
                 if (extra.TryGetValue("demands", out var de)) RestoreDemands(MiniJson.AsList(de));
-                if (extra.TryGetValue("population", out var po)) RestorePopulation(MiniJson.AsObject(po));
+                if (extra.TryGetValue("population", out var pop)) RestorePopulation(MiniJson.AsObject(pop));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)

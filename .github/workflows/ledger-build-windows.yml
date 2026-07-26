@@ -28,6 +28,17 @@ jobs:
         shell: bash
         run: python3 ledger/lint-usings.py ledger/Assets/Scripts
 
+      # Unity is the only thing that compiles Assets/Scripts, so a mistake in
+      # its own shape — a duplicate local, a duplicate member — costs a full
+      # twenty-minute round trip to discover. This builds a real Roslyn
+      # compilation with NO references and keeps only the diagnostics that do
+      # not need any, which is exactly that family. Runs in about fifteen
+      # seconds, before the seven-minute Unity install.
+      - name: Shape check (Unity layer)
+        timeout-minutes: 6
+        shell: bash
+        run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts
+
       - name: Install Unity
         timeout-minutes: 15
         uses: buildalon/unity-setup@v2
