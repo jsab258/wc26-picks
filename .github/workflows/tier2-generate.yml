@@ -1,0 +1,48 @@
+name: tier2-generate
+
+# The Tier-2 batch generator (game-design/tier2-pipeline-spec.md). Runs the
+# plain .NET tool against the Anthropic API using the repo secret (player
+# authorization 2026-07-26), validates every card by script, and prints the
+# full manifest to the job log between TIER2-MANIFEST markers so the cards can
+# be harvested from the log (the artifact host is not reachable from the dev
+# environment). Manual dispatch only — generation costs real API tokens.
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "How many cards to generate"
+        required: false
+        default: "60"
+      model:
+        description: "Generation model"
+        required: false
+        default: "claude-sonnet-5"
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Generate and validate cards
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          dotnet run --project ledger/Tier2Gen -c Release -- \
+            --count "${{ github.event.inputs.count }}" \
+            --model "${{ github.event.inputs.model }}" \
+            --out tier2-out
+
+      - name: Upload cards artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier2-cards
+          path: tier2-out/
+          if-no-files-found: warn
