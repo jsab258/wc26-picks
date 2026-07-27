@@ -4388,6 +4388,18 @@ namespace Ledger.CoreTests
         static void TestDirector()
         {
             Console.WriteLine("Director — the world authors its own next pressure:");
+
+            // A demand's window opens the day it REACHES you (audit 2026-07-27).
+            // The Fall skips three days; a demand scheduled inside them fires at
+            // the first post-Fall close, and its two-day window must start there
+            // — not have already expired while the player was inside.
+            Check(DirectorBook.DemandDueDay(scheduledFireDay: 10, todayDay: 13) == 15,
+                "a demand that reaches you late is due two days after it reaches you",
+                DirectorBook.DemandDueDay(10, 13).ToString());
+            Check(DirectorBook.DemandDueDay(scheduledFireDay: 10, todayDay: 10) == 12,
+                "and one that arrives on time keeps its ordinary window",
+                DirectorBook.DemandDueDay(10, 10).ToString());
+
             var d = new Director();
             var w = SampleWorld();
 

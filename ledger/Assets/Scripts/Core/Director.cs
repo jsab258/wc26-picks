@@ -351,6 +351,16 @@ namespace Ledger.Core
             Pending.Add(p);
         }
 
+        /// The day a demand handed out today falls due. Always a window, never
+        /// a countdown — and the window opens from the day the demand actually
+        /// REACHES the player, not the day it was scheduled to. The difference
+        /// bit once: the Fall skips three calendar days, so a demand scheduled
+        /// inside the skipped window fired at the first post-Fall close with
+        /// its due day already in the past, and the player took the ignored-it
+        /// loyalty penalty for a window that never existed (audit 2026-07-27).
+        public static int DemandDueDay(int scheduledFireDay, int todayDay) =>
+            Math.Max(scheduledFireDay, todayDay) + 2;
+
         /// Pressures whose day has come. Removed as they are handed out, so a
         /// pressure fires exactly once however often this is polled.
         public List<Pressure> Due(GameTime now)

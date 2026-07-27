@@ -212,7 +212,7 @@ namespace Ledger.Game
                     Demands.Add(new OpenDemand
                     {
                         Who = p.Who, Amount = p.Amount,
-                        DueDay = p.FireDay + 2,                       // always a window, never a countdown
+                        DueDay = DirectorBook.DemandDueDay(p.FireDay, Now.Day), // always a window, never a countdown — even fired late
                         Line = p.Line,
                     });
                     return true;
