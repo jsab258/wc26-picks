@@ -12,13 +12,33 @@ namespace Ledger.Game
     /// secret to the bar, and it leaks into the daytime world from there.
     public class GossipDirector : MonoBehaviour
     {
-        const float TickInterval = 3f; // real seconds between gossip rounds
+        /// GAME minutes between gossip rounds, not real seconds.
+        ///
+        /// This was 3 REAL seconds, accumulated from Time.deltaTime — which
+        /// Unity clamps to maximumDeltaTime. So on a slow machine the world
+        /// clock advanced by real time while the gossip clock advanced by
+        /// clamped frames, and the number of times talk spread in a game-day
+        /// became a function of the runner's frame rate. Two CI runs of the same
+        /// build ended the campaign on different DAYS because of it.
+        ///
+        /// It is the same bug class as the sim clock, in a file I did not think
+        /// to look at when I fixed that one: anything that decides world state
+        /// has to be driven by the world's clock. 6 game-minutes matches the old
+        /// cadence at the normal 2 game-minutes-per-second, so ordinary play is
+        /// unchanged.
+        const float TickIntervalGameMinutes = 6f;
+        /// A frame in the accelerated sim can cover a lot of game time; catch up
+        /// rather than skip, so the number of rounds per game-day is fixed. Capped
+        /// so a stall cannot spiral into hundreds of rounds in one frame.
+        const int MaxCatchUpRounds = 8;
         const float TalkRange = 6f;
 
         GameController _game;
         GossipMill _mill;
         readonly Dictionary<string, NpcWalker> _walkers = new Dictionary<string, NpcWalker>();
         float _timer;
+        GameTime _lastTickAt;
+        bool _haveLastTick;
 
         public GossipMill Mill => _mill;
         /// The acquaintance graph, exposed so the crowd (roadmap M9) can wire
@@ -115,14 +135,29 @@ namespace Ledger.Game
         void Update()
         {
             if (_mill == null || _game == null) return;
-            _timer += Time.deltaTime;
-            if (_timer < TickInterval) return;
-            _timer = 0f;
-            var events = _mill.Tick(_game.Now, Together);
-            ReportOverheard(events);
-            OnEvents?.Invoke(events);
-            RunChecking();
+
+            var now = _game.Now;
+            if (!_haveLastTick) { _lastTickAt = now; _haveLastTick = true; return; }
+            _timer += MinutesBetween(_lastTickAt, now);
+            _lastTickAt = now;
+            if (_timer < TickIntervalGameMinutes) return;
+
+            int rounds = 0;
+            while (_timer >= TickIntervalGameMinutes && rounds < MaxCatchUpRounds)
+            {
+                _timer -= TickIntervalGameMinutes;
+                rounds++;
+                var events = _mill.Tick(now, Together);
+                ReportOverheard(events);
+                OnEvents?.Invoke(events);
+                RunChecking();
+            }
+            if (rounds >= MaxCatchUpRounds) _timer = 0f;   // a long stall does not owe us a hundred rounds
         }
+
+        /// Game minutes from one stamp to the next, days included.
+        static float MinutesBetween(GameTime a, GameTime b) =>
+            (b.Day - a.Day) * 1440f + (b.Hour - a.Hour) * 60f + (b.Minute - a.Minute);
 
         // The audit's #1 pick: overheard chatter IS the gossip mill. If a real
         // exchange about the player happens within earshot, the player hears the

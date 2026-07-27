@@ -45,6 +45,9 @@ namespace Ledger.Game
         bool _empireScripted;
         bool _directorStaged, _directorFired;
         bool _harmStaged;
+        /// Night witnesses at the moment the car started following the bot. The
+        /// vehicle gate only means anything if a drop was SEEN after that.
+        int _witnessesWhenCarArrived = -1;
         double _harmCapabilityAtInjury = 1.0;
         bool _planStaged, _planRan;
         bool _secretEverReachedDay;
@@ -94,6 +97,7 @@ namespace Ledger.Game
             // whether or not the bot was wearing the coat.
             if (now.Day >= 5 && PlayerCar.Instance != null && _player != null)
             {
+                if (_witnessesWhenCarArrived < 0) _witnessesWhenCarArrived = _game.NightWitnesses;
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
             }
@@ -596,7 +600,18 @@ namespace Ledger.Game
                 foreach (var lead in millV.Leads("player"))
                     if (lead.TopicKey != null && lead.TopicKey.StartsWith("player.vehicle_d"))
                         vehicleFactSeen = true;
-            bool witnessCarOk = _game.NightWitnesses == 0 || SimMode.Days < 6 || vehicleFactSeen;
+            // Only meaningful if a drop was witnessed AFTER the car turned up.
+            //
+            // The first version of this gate said "if there were any night
+            // witnesses at all, somebody must be able to describe the car", and
+            // it went red the first time the bot lost the week on day three —
+            // the campaign ended before day five, the car never arrived, and the
+            // gate failed the build for something that had not happened yet. A
+            // test that assumes the campaign gets as far as it did last time is
+            // not testing the game, it is testing the runner.
+            bool sawADropWithTheCar = _witnessesWhenCarArrived >= 0
+                && _game.NightWitnesses > _witnessesWhenCarArrived;
+            bool witnessCarOk = !sawADropWithTheCar || vehicleFactSeen;
 
             // The consequence layer (roadmap M11). Four things, and every one of
             // them is about persistence rather than about the moment: the wound
@@ -759,6 +774,12 @@ namespace Ledger.Game
                 { "shiftsWorked", _game.Job.ShiftsWorked },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
+                // Diagnostics for the next time the campaign ends somewhere
+                // unexpected: which day it closed on, and whether the staged
+                // beats got the chance to run at all.
+                { "lostOnDay", _game.Campaign.DaysClosed },
+                { "carArrived", _witnessesWhenCarArrived >= 0 },
+                { "dropSeenWithCar", sawADropWithTheCar },
                 { "harmInjuries", _game.Harm.All.Count },
                 { "harmFeuds", _game.Harm.Feuds.Count },
                 { "samScars", _game.Harm.ScarsOf("Sam") },
@@ -815,6 +836,7 @@ namespace Ledger.Game
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} gap={tightest:0.00} " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
+                      $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
                       $"harmOk={harmOk} name={_game.Me.Full} " +
