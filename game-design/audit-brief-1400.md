@@ -9,7 +9,7 @@ This is the scope, so that session starts auditing instead of orienting.
 
 All three acts are wired and run end to end. Three districts exist. The
 endgame resolves off world state and its distribution has been measured.
-CoreTests 1344, SimHarness 71, lint and ShapeCheck clean. **The last full
+CoreTests 1357, SimHarness 71, lint and ShapeCheck clean. **The last full
 green in-engine run was two hours before this was written, and it was green
 having tested almost none of the game** — see "the honest part" below.
 
@@ -79,12 +79,22 @@ be "what do they pass *on*". Three tools now exist for that:
 1. `coverageOk` — fails the build if a nine-day run skipped the open city.
 2. `FAILING GATES: a, b, c` — the sim's last log line on failure, and the
    workflow echoes the verdict after the tail so it survives truncation.
-3. The "does anything actually read this" pattern — applied to `LedgerState`
-   (every field must be able to change the ending) and to three closed
-   vocabularies (`Checks`, `Effects`, `Pressures`). Not yet applied to
-   `Economy.FactorFor`, `Empire.DailyTick`'s income modifiers
-   (`NewCrewTaxing`, `TributeShare`, `SharedRacketId` — each a multiplier that
-   could be computed and dropped), or the Access/Operation vocabularies.
+3. The "does anything actually read this" pattern. Applied so far to:
+   `LedgerState` (every field must be able to change the ending — found the
+   collapsed life axis), three closed vocabularies (`Checks`, `Effects`,
+   `Pressures` — each must have a handler), and every money modifier
+   (`Economy.FactorFor`'s inputs, and the empire's `NewCrewTaxing`,
+   `TributeShare`, `SharedRacketId` and crew cut).
+
+   **The last three sweeps came back clean.** They stop the next bug rather
+   than having caught one, which is a weaker result than the first sweep and
+   is stated that way on purpose. Still unswept: the Access and Operation
+   vocabularies, which have the same closed-list shape.
+
+   One gap is pinned rather than fixed: the rackets read `IncomePerDay` flat,
+   so a starved district pays the same round as a rich one. The test asserts
+   the CURRENT behaviour and names decisions-pending #9, so it reads as a held
+   decision rather than an oversight.
 
 ## Known-unresolved at handover
 
