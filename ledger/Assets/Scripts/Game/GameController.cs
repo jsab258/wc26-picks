@@ -101,6 +101,10 @@ namespace Ledger.Game
         /// what THIS person calls the player. One place, rather than the same
         /// instruction hand-written into thirty character cards.
         /// The conversation host for somebody, by gossiper id or card name.
+        /// The panel layer, for the sim's UI smoke test. Read-only to everybody
+        /// else; the game talks to the UI through _ui as it always did.
+        public DialogueUI Ui { get; private set; }
+
         public ConversationHost HostFor(string whoId)
         {
             if (string.IsNullOrEmpty(whoId)) return null;
@@ -398,6 +402,7 @@ namespace Ledger.Game
             }
 
             _ui = DialogueUI.Create(this, player, _hosts);
+            Ui = _ui;
 
             _gossip = gameObject.AddComponent<GossipDirector>();
             _gossip.Begin(this, _npcs, _hosts);

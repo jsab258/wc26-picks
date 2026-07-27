@@ -45,6 +45,8 @@ namespace Ledger.Game
         bool _empireScripted;
         bool _directorStaged, _directorFired;
         bool _harmStaged;
+        bool _uiSmokeRun;
+        List<DialogueUI.PanelReport> _uiPanels;
         int _lastRungDay = -1, _callsAnswered, _callsWrongPerson, _callsRangOut;
         /// Night witnesses at the moment the car started following the bot. The
         /// vehicle gate only means anything if a drop was SEEN after that.
@@ -109,6 +111,18 @@ namespace Ledger.Game
                 if (_witnessesWhenCarArrived < 0) _witnessesWhenCarArrived = _game.NightWitnesses;
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
+            }
+
+            // The panels, once, on day two — after the world has some state in it
+            // so the ledger and the plan have something to say, and early enough
+            // that a panel which strands the player fails the build rather than
+            // fails the player.
+            if (!_uiSmokeRun && now.Day >= 2 && _game.Ui != null)
+            {
+                _uiSmokeRun = true;
+                _uiPanels = _game.Ui.SmokeTestPanels();
+                foreach (var r in _uiPanels)
+                    if (!r.Ok) Debug.LogWarning($"UI smoke: {r}");
             }
 
             // The exchange in CI (roadmap M10). Once a day the bot rings two
@@ -677,6 +691,21 @@ namespace Ledger.Game
                 && (SimMode.Days < 4 || (rings > 0 && _callsAnswered + _callsWrongPerson > 0
                                           && _callsAnswered < rings));
 
+            // Every panel opened, said something, closed, and gave the player
+            // back their controls. The last of those is the one that matters:
+            // a panel that cannot be closed leaves the player standing in a city
+            // they can no longer move around in, which is the worst bug this
+            // game can have and was invisible to every test we owned.
+            int panelsOk = 0, panelsBad = 0;
+            var badPanels = new List<string>();
+            if (_uiPanels != null)
+                foreach (var r in _uiPanels)
+                {
+                    if (r.Ok) panelsOk++;
+                    else { panelsBad++; badPanels.Add(r.ToString()); }
+                }
+            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 5;
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -814,6 +843,9 @@ namespace Ledger.Game
                 // Diagnostics for the next time the campaign ends somewhere
                 // unexpected: which day it closed on, and whether the staged
                 // beats got the chance to run at all.
+                { "panelsOk", panelsOk },
+                { "panelsBad", panelsBad },
+                { "panelsBroken", new List<object>(badPanels.ToArray()) },
                 { "phoneLines", _game.Phones.All.Count },
                 { "callsAnswered", _callsAnswered },
                 { "callsWrongPerson", _callsWrongPerson },
@@ -851,7 +883,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -883,6 +915,8 @@ namespace Ledger.Game
                       $"harmOk={harmOk} name={_game.Me.Full} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
+                      $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
+                      $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
