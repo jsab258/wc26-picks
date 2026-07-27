@@ -60,6 +60,7 @@ namespace Ledger.CoreTests
                 TestEconomy();
                 TestPopulationDistricts();
                 TestPhones();
+                TestEveryModifierBites();
                 TestClosedVocabulariesAreHandled();
                 TestActThree();
                 TestIdentity();
@@ -1619,6 +1620,130 @@ namespace Ledger.CoreTests
         /// forever; an Effect with no case in the bridge validates, adjudicates,
         /// and then does nothing at all. Both are silent, both look like working
         /// code, and both are the shape of the bug found in `Eligible()` today.
+        /// "Does anything actually read this", applied to the two places money
+        /// is modified on its way to the player. Each of these is a multiplier
+        /// sitting in a chain, and a multiplier that never fires is the same
+        /// bug as a strain nobody consults — the design says the street pushes
+        /// back, and the only proof is that the number moves.
+        static void TestEveryModifierBites()
+        {
+            Console.WriteLine("Money — every modifier on the way in actually moves it:");
+
+            // ---- the street's factor ----
+            var econ = Ledger.Game.EconomySetup.Build();
+            double neutral = econ.TakingsFactor;
+            Check(Math.Abs(neutral - 1.0) < 0.12,
+                "an unsqueezed street is neutral, so a campaign that takes nothing is unchanged",
+                neutral.ToString("0.00"));
+
+            var poor = Ledger.Game.EconomySetup.Build();
+            poor.Restore(MiniJson.AsObject(MiniJson.Deserialize(
+                "{\"prosperity\":0.05,\"priceLevel\":1.0}")));
+            Check(poor.TakingsFactor < neutral, "a starved street pays the bar less",
+                poor.TakingsFactor.ToString("0.00"));
+
+            var dear = Ledger.Game.EconomySetup.Build();
+            dear.Restore(MiniJson.AsObject(MiniJson.Deserialize(
+                "{\"prosperity\":0.55,\"priceLevel\":1.6}")));
+            Check(dear.TakingsFactor < neutral, "and dear prices take a bite of their own",
+                dear.TakingsFactor.ToString("0.00"));
+
+            var wild = Ledger.Game.EconomySetup.Build();
+            wild.Restore(MiniJson.AsObject(MiniJson.Deserialize(
+                "{\"prosperity\":9.0,\"priceLevel\":0.0}")));
+            Check(wild.TakingsFactor <= econ.MaxTakingsFactor + 1e-9
+                  && wild.TakingsFactor >= econ.MinTakingsFactor - 1e-9,
+                "and neither runs away with it", wild.TakingsFactor.ToString("0.00"));
+
+            // A supplier who has stopped delivering costs THAT front and not
+            // the others — the whole reason the factor is per-business.
+            var withSupplier = Ledger.Game.EconomySetup.Build();
+            var sup = withSupplier.Suppliers.FirstOrDefault();
+            if (sup != null)
+            {
+                string biz = sup.ServesBusinessId;
+                double before = withSupplier.FactorFor(biz);
+                sup.Refusing = true;
+                double after = withSupplier.FactorFor(biz);
+                Check(after < before, "a front nobody will deliver to earns less",
+                    $"{before:0.00} -> {after:0.00}");
+                Check(Math.Abs(withSupplier.FactorFor("nothing_of_theirs") - before) < 1e-9,
+                    "and only that one — which is why the factor is per-business");
+            }
+
+            // ---- the empire's take ----
+            //
+            // Each of these is a term in one expression, and the risk is not
+            // that the arithmetic is wrong but that the condition in front of
+            // it never becomes true in play. Set each condition by hand and
+            // require the day's take to move.
+            int TakeFor(Action<EmpireBook> arrange)
+            {
+                var mill = new GossipMill(new SocialGraph());
+                foreach (var id in new[] { "Sam" })
+                    mill.Add(new Gossiper(id, id, new MemoryStore(id), new KnowledgeBase(),
+                        new SuspicionTracker()) { Loyalty = 0.7, Nerve = 0.7 });
+                var e = new EmpireBook();
+                e.Rackets.Add(new Racket
+                {
+                    Id = "collection", Name = "collection round",
+                    IncomePerDay = 100, BaseRisk = 0.0, Established = true, RunnerId = "Sam",
+                });
+                e.Crew.Add(new CrewMember
+                {
+                    Id = "Sam", Name = "Sam", Route = "need", Competence = 0.7,
+                    Assignment = "collection", Cut = "fair",
+                });
+                arrange?.Invoke(e);
+                var wallet = new Wallet(0);
+                int take = 0;
+                foreach (var ev in e.DailyTick(new GameTime(9, 9, 0), wallet, mill))
+                    if (ev.Kind == "income") take += ev.Amount;
+                return take;
+            }
+
+            int plain = TakeFor(null);
+            Check(plain > 0, "a round pays something to begin with", plain.ToString());
+
+            Check(TakeFor(e => e.ArmOf("newcrew").Stage = 3) < plain,
+                "the New crew taxing your rounds actually costs you",
+                TakeFor(e => e.ArmOf("newcrew").Stage = 3).ToString());
+            Check(TakeFor(e => e.TributeShare = 0.12) < plain,
+                "a tribute treaty actually costs you", TakeFor(e => e.TributeShare = 0.12).ToString());
+            Check(TakeFor(e => e.SharedRacketId = "collection") < plain,
+                "and a shared round is genuinely shared",
+                TakeFor(e => e.SharedRacketId = "collection").ToString());
+
+            // The cut, which is the §6.5 rule: generosity costs money and buys
+            // loyalty; skimming does the reverse. Both must show in the till.
+            Check(TakeFor(e => e.Crew[0].Cut = "generous") < plain,
+                "paying a generous cut costs the till");
+            Check(TakeFor(e => e.Crew[0].Cut = "skim") > plain,
+                "and skimming shows up in it too, which is what makes it tempting");
+
+            // AND THE ONE THAT DOES NOT BITE, pinned on purpose.
+            //
+            // Everything above is a modifier that fires. The street's own
+            // prosperity is NOT among them: Empire.DailyTick reads
+            // `r.IncomePerDay` flat, so a district you have starved pays the
+            // same round as a rich one. That is the last infinite pocket in the
+            // game, and the purse spec skipped it on a reason that turned out
+            // to be wrong ("already coupled through prosperity" — true in the
+            // direction that drains the street, absent in the direction that
+            // limits the take).
+            //
+            // This assertion pins the CURRENT behaviour so it cannot change by
+            // accident. It is not an endorsement: it is decisions-pending #10's
+            // neighbour, #9, waiting on Jafar. When he answers, this test flips
+            // to demanding the coupling and this comment goes away.
+            var starved = Ledger.Game.EconomySetup.Build();
+            starved.Restore(MiniJson.AsObject(MiniJson.Deserialize(
+                "{\"prosperity\":0.02,\"priceLevel\":1.0}")));
+            Check(TakeFor(null) == plain,
+                "the rackets still ignore the street entirely — see decisions-pending #9",
+                $"{plain} either way; the bar's factor moved to {starved.TakingsFactor:0.00} and the round did not");
+        }
+
         static void TestClosedVocabulariesAreHandled()
         {
             Console.WriteLine("Novel actions — every check and effect is actually handled:");
