@@ -1364,7 +1364,9 @@ namespace Ledger.Game
                 int racketToday = 0;
                 string streetLine = null;
                 if (Campaign.OpenMode && _gossip != null && _gossip.Mill != null)
-                    foreach (var ev in Empire.DailyTick(Now, Wallet, _gossip.Mill))
+                    // The street's own factor, same as the bar's till: a district
+                    // you have starved cannot pay a full round (decision 9).
+                    foreach (var ev in Empire.DailyTick(Now, Wallet, _gossip.Mill, Economy.FactorFor(null)))
                     {
                         if (ev.Kind == "income") racketToday += ev.Amount;
                         else streetLine = ev.Text; // rival/crew/witness — the last one speaks

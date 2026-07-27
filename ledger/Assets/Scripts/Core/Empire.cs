@@ -502,17 +502,32 @@ namespace Ledger.Core
         /// generation through the SAME mill the night drops use, low-loyalty
         /// hook-crew skim, and the rival's daily read of the street. Deterministic
         /// per day (seeded) so the self-test can replay it.
-        public List<EmpireEvent> DailyTick(GameTime now, Wallet wallet, GossipMill mill)
+        /// `streetFactor` is what the district can actually pay, and it is the
+        /// same number the bar's till already uses (`Economy.FactorFor`).
+        ///
+        /// It used to be absent, and its absence was the last infinite pocket
+        /// in the game: the round paid a flat `IncomePerDay`, so a district you
+        /// had starved handed over exactly what a prosperous one did. The
+        /// coupling ran one way — squeezing drained the street, and the street
+        /// never got to answer — which made the squeeze's best idea only half
+        /// true. It is supposed to be two turns of the same screw, and the
+        /// second one is the one that hurts.
+        ///
+        /// Defaults to 1.0, so every caller that predates this behaves exactly
+        /// as it did and an unsqueezed street is unchanged.
+        public List<EmpireEvent> DailyTick(GameTime now, Wallet wallet, GossipMill mill,
+            double streetFactor = 1.0)
         {
             var events = new List<EmpireEvent>();
             var rng = new Random(now.Day * 7919 + 17);
+            double street = Math.Clamp(streetFactor, 0.1, 1.5);
 
             foreach (var r in Rackets.Where(x => x.Established))
             {
                 var runner = CrewOf(r.RunnerId);
                 if (runner == null) { r.Established = false; r.RunnerId = null; continue; }
 
-                int income = r.IncomePerDay;
+                int income = (int)Math.Round(r.IncomePerDay * street);
                 var runnerG = mill.Get(runner.Id);
                 // The cut, paid daily (§6.5): generosity is bought loyalty; a
                 // skimmed envelope is counted, remembered, and eventually repaid.
@@ -568,6 +583,17 @@ namespace Ledger.Core
                 TotalRacketIncome += income;
                 events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
                     Text = $"{runner.Name} brings in ${income} off the {r.Name}." });
+
+                // A street that cannot pay says so, once, in somebody's words —
+                // the same fourth outcome collection already has for debts.
+                // This is the moment the squeeze turns round and looks at you.
+                if (street < 0.7)
+                    events.Add(new EmpireEvent { Kind = "street", ActorId = runner.Id,
+                        Text = street < 0.5
+                            ? $"{runner.Name} works the whole {r.Name} and comes back with a light bag. " +
+                              "\"They're not holding out. There's nothing on that street to hold out with.\""
+                            : $"{runner.Name} counts the {r.Name} out twice before handing it over. " +
+                              "Nobody argued and nobody had it." });
 
                 // Witnesses: competence shades both the odds and how sure the story is.
                 double risk = r.BaseRisk * (1.35 - runner.Competence);

@@ -346,7 +346,7 @@ namespace Ledger.BalanceLab
                     int racketToday = 0, wagesToday = 0;
                     if (camp.OpenMode)
                     {
-                        foreach (var ev in empire.DailyTick(now, wallet, mill))
+                        foreach (var ev in empire.DailyTick(now, wallet, mill, economy.FactorFor(null)))
                             if (ev.Kind == "income") racketToday += ev.Amount;
                         foreach (var c in empire.ActiveCrew)
                             if (c.Assignment != null)

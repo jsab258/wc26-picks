@@ -1839,27 +1839,65 @@ namespace Ledger.CoreTests
             Check(TakeFor(e => e.Crew[0].Cut = "skim") > plain,
                 "and skimming shows up in it too, which is what makes it tempting");
 
-            // AND THE ONE THAT DOES NOT BITE, pinned on purpose.
+            // AND THE ONE THAT USED NOT TO BITE. Decision 9, answered
+            // 2026-07-27: couple it.
             //
-            // Everything above is a modifier that fires. The street's own
-            // prosperity is NOT among them: Empire.DailyTick reads
-            // `r.IncomePerDay` flat, so a district you have starved pays the
-            // same round as a rich one. That is the last infinite pocket in the
-            // game, and the purse spec skipped it on a reason that turned out
-            // to be wrong ("already coupled through prosperity" — true in the
-            // direction that drains the street, absent in the direction that
-            // limits the take).
+            // Empire.DailyTick read `r.IncomePerDay` flat, so a district you had
+            // starved paid the same round as a rich one — the last infinite
+            // pocket in the game, sitting on the player's main income. The purse
+            // spec had skipped it citing "already coupled through prosperity",
+            // which was true in the direction that DRAINS the street and absent
+            // in the direction that limits the take.
             //
-            // This assertion pins the CURRENT behaviour so it cannot change by
-            // accident. It is not an endorsement: it is decisions-pending #10's
-            // neighbour, #9, waiting on Jafar. When he answers, this test flips
-            // to demanding the coupling and this comment goes away.
-            var starved = Ledger.Game.EconomySetup.Build();
-            starved.Restore(MiniJson.AsObject(MiniJson.Deserialize(
-                "{\"prosperity\":0.02,\"priceLevel\":1.0}")));
-            Check(TakeFor(null) == plain,
-                "the rackets still ignore the street entirely — see decisions-pending #9",
-                $"{plain} either way; the bar's factor moved to {starved.TakingsFactor:0.00} and the round did not");
+            // Now the round is scaled by the same factor the bar's till uses, so
+            // the squeeze is genuinely two turns of the same screw.
+            int TakeAtStreet(double factor)
+            {
+                var mill = new GossipMill(new SocialGraph());
+                mill.Add(new Gossiper("Sam", "Sam", new MemoryStore("sam"), new KnowledgeBase(),
+                    new SuspicionTracker()) { Loyalty = 0.7, Nerve = 0.7 });
+                var e = new EmpireBook();
+                e.Rackets.Add(new Racket
+                {
+                    Id = "collection", Name = "collection round",
+                    IncomePerDay = 100, BaseRisk = 0.0, Established = true, RunnerId = "Sam",
+                });
+                e.Crew.Add(new CrewMember
+                {
+                    Id = "Sam", Name = "Sam", Route = "need", Competence = 0.7,
+                    Assignment = "collection", Cut = "fair",
+                });
+                var w = new Wallet(0);
+                int take = 0;
+                foreach (var ev in e.DailyTick(new GameTime(9, 9, 0), w, mill, factor))
+                    if (ev.Kind == "income") take += ev.Amount;
+                return take;
+            }
+            Check(TakeAtStreet(1.0) == plain, "an ordinary street pays an ordinary round");
+            Check(TakeAtStreet(0.4) < plain,
+                "and a street you have starved cannot pay a full one — decision 9",
+                $"{plain} -> {TakeAtStreet(0.4)}");
+            Check(TakeAtStreet(1.3) > plain, "while a prosperous one pays more");
+
+            // A poor street says so, in somebody's words rather than in a figure.
+            var poorMill = new GossipMill(new SocialGraph());
+            poorMill.Add(new Gossiper("Sam", "Sam", new MemoryStore("sam"), new KnowledgeBase(),
+                new SuspicionTracker()) { Loyalty = 0.7, Nerve = 0.7 });
+            var poorEmpire = new EmpireBook();
+            poorEmpire.Rackets.Add(new Racket
+            {
+                Id = "collection", Name = "collection round",
+                IncomePerDay = 100, BaseRisk = 0.0, Established = true, RunnerId = "Sam",
+            });
+            poorEmpire.Crew.Add(new CrewMember
+            {
+                Id = "Sam", Name = "Sam", Route = "need", Competence = 0.7,
+                Assignment = "collection", Cut = "fair",
+            });
+            bool saidSo = false;
+            foreach (var ev in poorEmpire.DailyTick(new GameTime(9, 9, 0), new Wallet(0), poorMill, 0.4))
+                if (ev.Kind == "street") saidSo = true;
+            Check(saidSo, "and somebody tells you why, rather than the number just being smaller");
         }
 
         static void TestClosedVocabulariesAreHandled()
@@ -2980,8 +3018,15 @@ namespace Ledger.CoreTests
         static void TestTheInspector()
         {
             Check(ActThreeState.ScopeFactor(0, 0) == 1.0, "an inspection nobody has handled is an ordinary one");
-            Check(ActThreeState.ScopeFactor(4, 0) < 0.75, "producing what is asked for narrows it",
+            Check(ActThreeState.ScopeFactor(4, 0) < 1.0 && ActThreeState.ScopeFactor(4, 0) > 0.75,
+                "producing what is asked for narrows it, and only somewhat (decision 10)",
                 ActThreeState.ScopeFactor(4, 0).ToString("0.00"));
+            // The asymmetry is deliberate: being difficult with a revenue man
+            // was never meant to be a strategy, and it is far easier to make
+            // somebody look harder than to make them look away.
+            Check(1.0 - ActThreeState.ScopeFactor(3, 0) < ActThreeState.ScopeFactor(0, 3) - 1.0,
+                "and being difficult moves him further than cooperating does",
+                $"{ActThreeState.ScopeFactor(3, 0):0.00} vs {ActThreeState.ScopeFactor(0, 3):0.00}");
             Check(ActThreeState.ScopeFactor(0, 3) > 1.35, "and being difficult widens it",
                 ActThreeState.ScopeFactor(0, 3).ToString("0.00"));
             Check(ActThreeState.ScopeFactor(99, 0) >= 0.55 && ActThreeState.ScopeFactor(0, 99) <= 1.6,

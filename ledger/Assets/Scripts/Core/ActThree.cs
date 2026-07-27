@@ -184,8 +184,21 @@ namespace Ledger.Core
         /// ones. It is available every day of the six, it rewards attention
         /// rather than money, and it never overrides the matrix — it only moves
         /// where in the matrix you are standing.
+        /// 0.045 per morning, halved from 0.09 on 2026-07-27 (decision 10).
+        ///
+        /// At the old number the balance lab measured an aggressive campaign
+        /// going from 100% Burn Both when the inspector was ignored to 100%
+        /// Kingdom when he was answered every day — six mornings of paperwork
+        /// outweighing three acts of laundering decisions. The audit is supposed
+        /// to be the bill for how the business was RUN; it should not be
+        /// argueable down almost entirely at the counter.
+        ///
+        /// Stonewalling keeps its full 0.15, and that asymmetry is deliberate:
+        /// being difficult with a revenue man was never meant to be a strategy,
+        /// and it is much easier to make somebody look harder than to make them
+        /// look away.
         public static double ScopeFactor(int cooperations, int stonewalls) =>
-            Math.Clamp(1.0 - 0.09 * cooperations + 0.15 * stonewalls, 0.55, 1.6);
+            Math.Clamp(1.0 - 0.045 * cooperations + 0.15 * stonewalls, 0.55, 1.6);
 
         public static string ScopeWord(double factor) =>
             factor <= 0.75 ? "he is looking at the quarter he asked for and nothing either side of it"
