@@ -719,8 +719,17 @@ namespace Ledger.Game
             // district ever crosses a few milliseconds, that is a regression
             // worth failing a build over, and it should be found in CI rather
             // than in a stutter on the player's machine.
+            //
+            // AND IT HAS TO HAVE MEASURED SOMETHING. This read
+            // "trafficCost == null || MeanMs < 4.0", which passes when the
+            // profiler recorded nothing at all — so a build where the timing
+            // scope stopped being entered would go green on the strength of
+            // having no data. Same disease as the coverage hole below, one
+            // system down: an absent measurement is not a passing one. Traffic
+            // demonstrably runs (the gate above requires ten vehicles), so no
+            // samples means the instrumentation broke.
             var trafficCost = Perf.Get("traffic");
-            bool perfOk = trafficCost == null || trafficCost.MeanMs < 4.0;
+            bool perfOk = trafficCost != null && trafficCost.Samples > 0 && trafficCost.MeanMs < 4.0;
 
             // The vehicle description (spec §4). Only meaningful if the bot was
             // seen at all; when it was, somebody must be able to describe the car.
