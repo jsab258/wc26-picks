@@ -815,6 +815,11 @@ namespace Ledger.Game
             if (_phonePanel != null && _phonePanel.activeSelf
                 && Input.GetKeyDown(KeyCode.Escape)) TogglePhone();
             if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
+            // The plan panel had no Escape at all — the only way out was the
+            // "Not tonight" button, and a panel with one exit is a panel that
+            // traps somebody who reached for the key every other panel uses.
+            if (_planPanel != null && _planPanel.activeSelf
+                && Input.GetKeyDown(KeyCode.Escape)) TogglePlan();
 
             // The runner's coat — day face or night face, one key, never while typing.
             if (Input.GetKeyDown(keys.Key("Coat")) && !dialogueOpen && !_keyPanel.activeSelf)
@@ -1361,7 +1366,7 @@ namespace Ledger.Game
             go.transform.SetParent(parent, false);
             var text = go.AddComponent<Text>();
             text.font = _font;
-            text.fontSize = fontSize;
+            text.fontSize = UiTheme.Scaled(fontSize);
             text.alignment = align;
             text.color = UiTheme.Ink;
             text.supportRichText = true;

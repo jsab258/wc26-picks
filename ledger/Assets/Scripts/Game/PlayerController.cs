@@ -73,8 +73,13 @@ namespace Ledger.Game
                 }
                 else
                 {
-                    _yaw += Input.GetAxis("Mouse X") * 2.5f;
-                    _pitch = Mathf.Clamp(_pitch - Input.GetAxis("Mouse Y") * 2f, -10f, 60f);
+                    // The sensitivity slider existed in Options, was saved, was
+                    // loaded, and was multiplied by nothing: these two numbers
+                    // were hardcoded. An accessibility control that does not
+                    // reach the thing it names is worse than no control.
+                    float sens = GameSettings.Current.MouseSensitivity;
+                    _yaw += Input.GetAxis("Mouse X") * 2.5f * sens;
+                    _pitch = Mathf.Clamp(_pitch - Input.GetAxis("Mouse Y") * 2f * sens, -10f, 60f);
 
                     var forward = Quaternion.Euler(0, _yaw, 0) * Vector3.forward;
                     var right = Quaternion.Euler(0, _yaw, 0) * Vector3.right;

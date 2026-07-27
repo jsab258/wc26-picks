@@ -30,6 +30,15 @@ namespace Ledger.Game
             HexDebit = on ? "#e08a30" : "#e05252";
         }
         // The street (world HUD)
+        /// Accessibility text scaling (P4). The Options slider set
+        /// TextScalePercent, saved it, reloaded it — and nothing ever multiplied
+        /// a font size by it. Every MakeText in the game now goes through here,
+        /// so the control reaches the thing it names.
+        public static int Scaled(int basePoints) =>
+            UnityEngine.Mathf.Clamp(
+                UnityEngine.Mathf.RoundToInt(basePoints * GameSettings.Current.TextScalePercent / 100f),
+                8, 96);
+
         public static readonly Color Amber     = Rgb(0xffa636, 1f);
         public static readonly Color AmberSoft = Rgb(0xffc272, 1f);
         // Controls

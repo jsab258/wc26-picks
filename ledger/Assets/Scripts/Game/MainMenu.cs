@@ -222,7 +222,7 @@ namespace Ledger.Game
             var go = new GameObject("Label");
             go.transform.SetParent(parent, false);
             var t = go.AddComponent<Text>();
-            t.font = _font; t.fontSize = fontSize; t.alignment = align;
+            t.font = _font; t.fontSize = UiTheme.Scaled(fontSize); t.alignment = align;
             t.color = UiTheme.Ink; t.supportRichText = true; t.text = text;
             Place(go, anchor, offset, size);
             return t;

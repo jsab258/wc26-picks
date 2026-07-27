@@ -88,6 +88,21 @@ other side has infinite pockets.
 supplier is money leaving *your* pocket, which is already finite; bribing
 somebody who cannot make change is the interesting case.
 
+### 7. Options cannot be reached mid-game — FINDING, needs a call
+
+Found during the front-end pass. The pause menu has Resume, Save now, Save
+and quit to menu, Save and quit to desktop — **and no Options.** The only way
+to change text size, sensitivity, volume or a keybinding is to quit to the main
+menu and go in from there.
+
+**RECOMMEND: lift the options panel out of MainMenu into its own component and
+show it from both.** It is the standard expectation and the current shape fails
+it. Roughly an hour, and it is the last structural gap in P1.
+
+I did not do it in the same pass as the other fixes because it is a refactor
+rather than a fix, and refactoring the front end while a build is verifying is
+how you end up with two unrelated failures at once.
+
 ## Previously open
 
 *(nothing blocking — the all-night run works on standing mandates. Items
