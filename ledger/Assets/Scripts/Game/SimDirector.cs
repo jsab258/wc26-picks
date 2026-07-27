@@ -57,6 +57,7 @@ namespace Ledger.Game
         bool _openModeForced;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
+        string _actThreeWhy = "not staged";
         bool _actThreeHandedOver;
         Ending _actThreeEnding = Ending.None;
         bool _secretEverReachedDay;
@@ -324,6 +325,20 @@ namespace Ledger.Game
                     if (_game.ActTwo.TableArmId == null) _game.ActTwo.TableArmId = "dockside";
                     _game.AnswerTable("defy");
                 }
+
+                // WHY the act did or did not open, recorded at the moment the
+                // preconditions were set. `ShouldOpen` is a conjunction of three
+                // things and a gate that only says "actThree failed" cannot tell
+                // which of them was missing — the recruit may have been
+                // unaffordable, the racket may have wanted a front nobody owns,
+                // the Table may not have had an arm to answer. One line here
+                // saves a twenty-minute build to find out.
+                _actThreeWhy =
+                    $"table={_game.ActTwo.TableFired} " +
+                    $"biz={_game.Empire.Businesses.FindAll(b => b.Owned).Count} " +
+                    $"rax={_game.Empire.Rackets.FindAll(r => r.Established).Count} " +
+                    $"crew={_game.Empire.Crew.FindAll(c => !c.Departed).Count} " +
+                    $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty}";
             }
 
             // One pass later, so the act has actually opened through its own
@@ -987,6 +1002,8 @@ namespace Ledger.Game
                 { "actTwoOk", act2Ok },
                 { "actThreeClosesDay", _game.ActThree.AuditClosesDay },
                 { "actThreeStaged", _actThreeStaged },
+                { "actThreeWhy", _actThreeWhy },
+                { "actThreeOpened", _game.ActThree.Opened },
                 { "actThreeEnding", _actThreeEnding.ToString() },
                 { "actThreeHandedOver", _actThreeHandedOver },
                 { "actThreeOk", actThreeOk },
@@ -1117,7 +1134,8 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} weekLostAs={_weekLostVerdict} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
-                      $"actThree={_actThreeStaged} ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
+                      $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
+                      $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"shifts={_game.Job.ShiftsWorked} dayJobStaged={_dayJobStaged} dayJobOk={dayJobOk} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
