@@ -243,6 +243,9 @@ asset-pack-coherent build target:
 6. **Ironside** (industrial) — warehouses, logistics, places without witnesses.
 7. **Gullwing** (faded resort waterfront) — off-season melancholy, hideouts, endgame turf.
 
+**Built as of 2026-07-27: the Hook and Copper Row. The other five are names in
+this document and nothing on the ground.**
+
 Districts have local information ecosystems: a rumor can own Copper Row and not exist in
 Fairview. Territory control is social (who talks to you, who pays, who warns you) not a
 map-painting minigame.
@@ -516,6 +519,117 @@ falls through to conversation exactly as today), then the economy substrate, the
 Director, then population scale. The economy is still worth building; it is simply the
 *conservative* kind of depth, and it is better built underneath a game whose interface has
 already stopped being a list of buttons.
+
+## 18. What has actually been built since the first-principles pass (2026-07-27)
+
+This document was last reconciled with the code at M9. Six milestones landed
+after that in about eighteen hours, and the doc was silent on all of them —
+which is exactly how a design document becomes a historical artifact. Written
+down here so §§1-17 can be read knowing what is true.
+
+### The protagonist has a name
+
+**Tomas Vrba**, Marek's sister's boy. Marek is *your mother's brother*, named
+in §1 and now load-bearing.
+
+The part that is a design decision rather than a naming decision: **"the new
+owner" was never a placeholder.** It is what people call you before they know
+you, and this is a game about being known. So the name is something the street
+LEARNS, and what somebody calls you is a readout of where you stand with them —
+the new owner, then Vrba, then Tomas, then Toma, which two or three people ever
+get to. The gate is knowing rather than liking. Gender stays deliberately
+unset; the street mostly uses the surname, so a later choice costs nothing.
+
+### M7.5 — access and operations, wired
+
+Soft keys on real doors (§6.4's cover made spatial): a gate lists several ways
+in and any of them works, the cheapest key you hold wins, and a refusal names
+the way in you came closest to having. Operation planning is four decisions and
+a read in words — never a percentage.
+
+### M10 — phones and the distance layer
+
+Delivers §1's "late-analog" setting as a system. **A phone is a place, not a
+pocket**: you ring the bar, or the boarding-house hall phone, and whoever is
+near it answers. Reaching somebody is a gamble on their afternoon; somebody
+else picking up is the interesting outcome, not a failure; a message left with
+a person travels as talk at one hop and second-hand confidence.
+
+The trade is symmetric and is the point: a line reaches across the city
+instantly and cannot read a face, so suspicion moves at 45% on a call. Your
+lies land better and so do theirs, which is what stops it being an upgrade
+over walking there.
+
+### M11 — the consequence layer of violence (melee still deferred)
+
+§8's combat line said injuries persist, crew carry trauma, and every fight
+happened in front of somebody who remembers it. None of that needs a brawling
+system and all of it needed to exist BEFORE one, because a punch with no
+aftermath teaches the player that violence is free.
+
+Injuries last, compound, show as a look rather than a number, and **turn if
+untreated** — which is what makes the infirmary a decision, and treatment costs
+clean money because you cannot hand a doctor a roll of night money. Trauma is
+cumulative and does not heal with the wound. **Feuds are first-class**, not
+suspicion: they do not decay when you leave the room and evidence cannot settle
+them, only somebody choosing to stop. Two people in a hot feud will not work
+together, which is a scheduling problem solved with people rather than a menu.
+
+### M12 — streets, traffic, and a driveable car (pulled forward by the player)
+
+The diagnosis was not "no cars". The district was a 90x90m slab — **about the
+size of one real city block** — with buildings and no streets. §7's "dense
+coastal city" was not being delivered by the geometry.
+
+Now: a real grid on 26m spacing with chamfered corners, sixteen blocks, ten
+named streets. Traffic as a deterministic Core model with six vehicle kinds,
+lights, stop signs, and four properties held as tests that cannot be judged
+from a screenshot. A driveable car — kinematic, arcade, no tyre model, which
+does NOT contradict the agency model's "no drivable-vehicle physics, ever".
+
+**And a car is a thing witnesses describe**, whether or not you wore the coat.
+The disguise buys doubt about your face and none about the vehicle.
+
+**Collisions hurt and never kill** (player decision, 2026-07-27). Nothing in
+the code can produce a death — a property, not a tuning value. AI drivers brake
+for everybody; only the player's car can strike anybody, because the player is
+holding the wheel.
+
+### M13 — finite counterparty purses
+
+§6.7's economy was finite in one direction only: squeezing the street made it
+poorer and the bar took less, but every counterparty still had infinite
+pockets. A purse is now what somebody can lay hands on TODAY. Ask for more and
+you get what is there; the balance stays on the page; a debtor you emptied goes
+to a patron overnight and the money MOVES rather than appearing, leaving a
+favour the Director can read.
+
+### Copper Row is on the ground
+
+§7 lists seven districts. **Two now exist.** Copper Row has its own grid, its
+own streets, its own places, and its own people — and about a third of the city
+crosses one of two bridges to work, which is what makes a chokepoint a place
+where things can happen.
+
+**The other five districts remain names in this document.** Downtown, The
+Strip, Fairview, Ironside and Gullwing have no geography, no places, and no
+cast. Ironside is referenced by the population generator and by research notes
+as though it exists; it does not.
+
+### What §§1-17 still describe that does not exist
+
+Stated plainly so this document stops overselling the build:
+
+- **Playable melee.** Deferred to after the art pass. Correct call.
+- **Five of seven districts.**
+- **Act III.** Drafted (`act3-draft.md`), and the endgame matrix is written and
+  tested as Core code — but it is NOT wired into the game and no ending can
+  currently fire. The crisis (an audit) is awaiting the player's approval.
+- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the
+  machinery exists, the authored moments are not all fired.
+- **The day job**, romance, and most of §6.6's honest life.
+- **HDRP, the city pack, and voice.** All deliberately deferred; the game runs
+  on procedural fallbacks by design.
 
 ## 12. Risks
 
