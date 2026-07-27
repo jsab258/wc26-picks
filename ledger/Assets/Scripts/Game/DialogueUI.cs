@@ -806,6 +806,14 @@ namespace Ledger.Game
             // outfit telling you where to be.
             if (Input.GetKeyDown(keys.Key("Plan")) && !dialogueOpen && !_keyPanel.activeSelf
                 && !_ledgerPanel.activeSelf) TogglePlan();
+
+            // The telephone (roadmap M10). Only where there is a line, which is
+            // the point — a phone you carry would be a different century and a
+            // different game.
+            if (Input.GetKeyDown(keys.Key("Phone")) && !dialogueOpen && !_keyPanel.activeSelf
+                && !_ledgerPanel.activeSelf) TogglePhone();
+            if (_phonePanel != null && _phonePanel.activeSelf
+                && Input.GetKeyDown(KeyCode.Escape)) TogglePhone();
             if (_ledgerPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape)) _ledgerPanel.SetActive(false);
 
             // The runner's coat — day face or night face, one key, never while typing.
@@ -973,6 +981,15 @@ namespace Ledger.Game
             OpenDialogue(host);
         }
 
+        /// Open a conversation with somebody the player is NOT standing next to
+        /// — currently only the telephone. Public because the call comes from
+        /// the game rather than from walking up to a person.
+        public void OpenConversation(ConversationHost host)
+        {
+            if (host == null) return;
+            OpenDialogue(host);
+        }
+
         void OpenDialogue(ConversationHost host)
         {
             _current = host;
@@ -989,6 +1006,11 @@ namespace Ledger.Game
 
         void CloseDialogue()
         {
+            // Hanging up ends the call. If this is not cleared, the next
+            // face-to-face conversation would still be told nobody can see
+            // anybody, which is the sort of stale flag that produces a
+            // character behaving oddly for reasons nobody can trace.
+            if (_current != null) _current.OnTheLine = false;
             _dialoguePanel.SetActive(false);
             _current = null;
         }

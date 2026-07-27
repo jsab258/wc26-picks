@@ -100,6 +100,20 @@ namespace Ledger.Game
         /// The sentence appended to every conversation's scene telling the model
         /// what THIS person calls the player. One place, rather than the same
         /// instruction hand-written into thirty character cards.
+        /// The conversation host for somebody, by gossiper id or card name.
+        public ConversationHost HostFor(string whoId)
+        {
+            if (string.IsNullOrEmpty(whoId)) return null;
+            foreach (var h in _hosts)
+            {
+                if (h == null) continue;
+                if (h.Card != null && (h.Card.Id == whoId || h.Card.Name == whoId)) return h;
+                var walker = h.GetComponent<NpcWalker>();
+                if (walker != null && walker.DisplayName == whoId) return h;
+            }
+            return null;
+        }
+
         public string AddressLine(string gossiperId)
         {
             var g = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Get(gossiperId) : null;

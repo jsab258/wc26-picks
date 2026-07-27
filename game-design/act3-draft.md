@@ -153,15 +153,23 @@ answer themselves.**
 4. Seven authored text moments.
 5. The epilogue mode for the Quiet Ending.
 
-## Open questions (player decisions)
+## Answered by Jafar, 2026-07-27
 
-1. **Should "Both" be achievable on a first playthrough?** RECOMMEND: no, and
-   deliberately. It should be visible as a thing that was possible, in
-   hindsight, once the player understands what the information landscape
-   actually is. The first campaign teaching you what the second one is for is
-   the whole shape of this genre.
-2. **Does the Quiet Ending's epilogue let the player intervene?** RECOMMEND:
-   no. Watching without a verb is the point, and it is three days, not thirty.
-3. **Can the player refuse Ossei's offer and still reach "Both"?** RECOMMEND:
-   yes, but only through the information landscape — which makes refusing her
-   the hardest and most interesting line in the act.
+1. **"Both" is NOT achievable on a first playthrough.** Confirmed. It stays
+   visible in hindsight as a thing that was possible once you understand what
+   the information landscape is — the first campaign teaching you what the
+   second one is for.
+2. **The Quiet Ending's epilogue is watch-only.** No verbs. Three days, and
+   you are not in charge of them.
+3. **You CAN refuse Ossei and still reach "Both"** — but only through the
+   information landscape. That makes refusing her the hardest and most
+   interesting line in the act, which is the point of allowing it.
+
+## Still open — the biggest one, and I should have asked it first
+
+**Is an audit the right crisis at all?** It is the least dramatic instrument
+available and that is exactly why I chose it: a courteous procedural letter is
+frightening in a way a raid is not, and it turns three acts of laundering
+decisions into the thing that convicts you. But this is the ending of the
+game, and a raid, a betrayal, or a death are all defensible instead. Not
+building the wiring until this is settled.

@@ -93,6 +93,28 @@ namespace Ledger.Game
                 id => mill?.Get(id)?.DisplayName ?? id);
         }
 
+        /// Is the PLAYER standing next to this line? Distinct from NearPhone,
+        /// which asks about a cast member — the player has no gossiper id and
+        /// answers to a position rather than to a name.
+        public bool PhoneNear(string placeId, Vector3 where) =>
+            _phoneSpots.TryGetValue(placeId, out var spot)
+            && Vector3.Distance(where, spot) <= PhoneReach;
+
+        /// They picked up. Open the conversation, and tell the engine that this
+        /// one is happening down a wire: a voice on a line is not a face across
+        /// a table, so what either party can read in the other is damped.
+        public void BeginPhoneConversation(string whoId)
+        {
+            var host = HostFor(whoId);
+            if (host == null) return;
+            host.OnTheLine = true;
+            _ui?.OpenConversation(host);
+        }
+
+        /// Leave word with whoever answered.
+        public bool LeavePhoneMessage(Call call, string summary) =>
+            Phones.LeaveMessage(call, _gossip != null ? _gossip.Mill : null, "player", summary, Now);
+
         /// Who could the player plausibly ring right now, and about whom. Used
         /// by the F1 readout and, next, by the panel the player rings from.
         public string PhoneStatusLine()

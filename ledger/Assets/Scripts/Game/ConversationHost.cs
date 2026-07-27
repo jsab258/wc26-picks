@@ -62,6 +62,12 @@ namespace Ledger.Game
         /// Where this character usually is when spoken to; set per character at spawn.
         public string SceneContext = "On Hook Street, talking with the new owner.";
 
+        /// This conversation is happening down a wire (roadmap M10). A voice on
+        /// a line is not a face across a table: the model is told so, and the
+        /// suspicion the exchange can move is damped in BOTH directions, which
+        /// is what stops a telephone being a straight upgrade over walking there.
+        public bool OnTheLine;
+
         /// Live campaign flavor appended to the scene each turn (street mood, and for
         /// those who'd know it, the state of the bar's takings). Set by GameController.
         public Func<string> ExtraContext;
@@ -79,6 +85,11 @@ namespace Ledger.Game
                 // says Tomas. The player gets to notice that change happening,
                 // which is the whole point of having a name in this game.
                 scene += " " + _game.AddressLine(Card.Id);
+                if (OnTheLine)
+                    scene += " THIS IS A TELEPHONE CALL. You cannot see them and they cannot see you. " +
+                             "You have no idea what their face is doing, and neither do they. " +
+                             "People say things on a telephone they would not say to a face, and believe things " +
+                             "they would question in a room.";
                 var reply = await _engine.SayToAsync(playerInput, _game.Now, scene);
                 // §9: nothing fourth-wall-breaking or essay-length reaches the player.
                 return ResponseValidator.Validate(reply, Card.Name);

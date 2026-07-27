@@ -122,14 +122,19 @@ namespace Ledger.Game
 
         void BuildKeys()
         {
-            _keysPanel = Panel(_canvas, "Controls", new Vector2(680, 560));
+            _keysPanel = Panel(_canvas, "Controls", new Vector2(680, 640));   // nine bindings, not six
             Label(_keysPanel.transform, "C O N T R O L S", new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(620, 34), 22, TextAnchor.UpperCenter)
                 .color = UiTheme.Dim;
             Label(_keysPanel.transform, "WASD moves. Shift runs. Click an action to rebind it.", new Vector2(0.5f, 1), new Vector2(0, -58), new Vector2(620, 28), 15, TextAnchor.UpperCenter)
                 .color = UiTheme.Dim;
 
+            // Driven from the bindings themselves, not from a list typed out
+            // here. The hardcoded version had drifted: Plan, Drive and Phone all
+            // existed as keys the game listened for and none of them could be
+            // rebound, because adding a binding and adding a ROW are two edits
+            // and nobody does the second one. Now there is only one edit.
             float y = -110;
-            foreach (var action in new[] { "Talk", "Ledger", "Coat", "Save", "Debug", "Pause" })
+            foreach (var action in new List<string>(GameSettings.Current.Keys.Keys))
             {
                 var a = action;
                 Label(_keysPanel.transform, a, new Vector2(0, 1), new Vector2(60, y), new Vector2(260, 32), 18, TextAnchor.MiddleLeft);

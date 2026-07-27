@@ -25,6 +25,7 @@ namespace Ledger.Game
             { "Plan", KeyCode.J },
             { "Coat", KeyCode.C },
             { "Drive", KeyCode.F },
+            { "Phone", KeyCode.T },
             { "Save", KeyCode.F5 },
             { "Debug", KeyCode.F1 },
             { "Pause", KeyCode.Escape },
