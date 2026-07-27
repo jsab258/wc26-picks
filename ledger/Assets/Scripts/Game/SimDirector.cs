@@ -1064,13 +1064,31 @@ namespace Ledger.Game
             };
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
-            bool pass = _errors.Count == 0 && npcsMoved && WorldBuilder.LampToggleCount >= 2
-                        && _screenshots.Count > 0 && secretReachedDay && discreditWorks
-                        && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
-                        && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
-                        && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk
-                        && act2Ok && actThreeOk && coverageOk;
+            // Every gate, by name, so a failure says WHICH one.
+            //
+            // Getting this out of CI used to mean reading a job log that the
+            // API truncates and the two ASCII screenshots fill, or downloading
+            // an artifact from a host the sandbox cannot reach. The one line
+            // worth having was the one that never survived. Now it is printed
+            // last, alone, and only when something is wrong.
+            var gates = new (string name, bool ok)[]
+            {
+                ("noErrors", _errors.Count == 0), ("npcsMoved", npcsMoved),
+                ("lamps", WorldBuilder.LampToggleCount >= 2), ("screenshots", _screenshots.Count > 0),
+                ("secretReachedDay", secretReachedDay), ("discredit", discreditWorks),
+                ("jobRan", jobRan), ("takingsBanked", takingsBanked), ("verdictSane", verdictSane),
+                ("knowledge", knowledgeWorks), ("launder", launderWorks), ("disguise", disguiseWorks),
+                ("beats", beatsResolved), ("ossei", osseiOk), ("saveLoad", saveLoadOk),
+                ("actOne", actOneOk), ("openMode", openModeOk), ("fall", fallOk), ("empire", empireOk),
+                ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
+                ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
+                ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
+                ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk),
+                ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
+            };
+            var failed = new List<string>();
+            foreach (var g in gates) if (!g.ok) failed.Add(g.name);
+            bool pass = failed.Count == 0;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -1113,6 +1131,9 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
+            // Last line in the log, on purpose: whatever else scrolls past, this
+            // is what a person reading a red build needs.
+            if (!pass) Debug.LogError($"SimDirector: FAILING GATES: {string.Join(", ", failed)}");
             Application.Quit(pass ? 0 : 1);
         }
 

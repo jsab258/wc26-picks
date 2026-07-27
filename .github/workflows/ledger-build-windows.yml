@@ -113,6 +113,14 @@ jobs:
             exit 1
           }
           Get-Content sim-run/player.log -Tail 60
+          # The two lines worth having, printed LAST so they survive every log
+          # viewer that truncates from the top. The tail above is 60 lines and
+          # two of them are 24-row ASCII screenshots, which is enough to push
+          # the verdict out of a truncated view — and the verdict is the entire
+          # reason anybody opens this step.
+          Write-Host "=== verdict ==="
+          Get-Content sim-run/player.log | Select-String -Pattern "SimDirector: done\.|FAILING GATES" |
+            ForEach-Object { $_.Line }
           if ($p.ExitCode -ne 0) { Write-Error "Simulation reported failure (exit $($p.ExitCode))"; exit 1 }
 
       - name: Upload simulation report
