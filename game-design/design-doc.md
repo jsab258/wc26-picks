@@ -409,6 +409,26 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   does not, and telling you is gated entirely on her loyalty.** That is the thesis of the
   project stated as a mechanic.
 
+  **The books have to hold.** Keeping anything requires the ledger to survive being looked
+  at — managing every mouth on the street does not save books that describe a business which
+  does not exist, and that is the whole reason the crisis is an audit rather than a raid.
+  Two exemptions, both the price of a door: selling up (there is nothing left to be in them)
+  and handing over (the inspection lands on whoever signed).
+
+  **The audit has a face: Tobias Reisz, Board of Excise.** Not corrupt — load-bearing rather
+  than characterisation, because an inspector with a price collapses the matrix into *did you
+  save up*. Not cruel either, which is the frightening part. He sits at a table in the bar
+  from nine until six and does not go anywhere else. The only thing about him that moves is
+  **how much he reads**: one item a day for six days, produce it or tell him to put it in
+  writing. It is the act's only verb that is not irreversible and the only one that costs
+  nothing but attention.
+
+  **The last day is a scene, not a countdown.** Two calls, and reaching one is not reaching
+  another: Lena moves the real books (gated on loyalty — a felony at a few hours' notice, and
+  her refusal has her own reason), somebody on the crew is told to go quiet, or somebody in
+  the day life hears it from you rather than from the street. All three run down the M10
+  exchange, so whether you reach anybody at all is a question about where they are standing.
+
 **Core cast (Tier 1, sketch):** Rocco & Lena (the inherited loyalists — old muscle, older
 bookkeeper); the three rival heads (Aldous Vane / "the Widow" Sera Kest / Danny Ro); Det.
 Mara Ossei; the day-life ring: Sam (first friend, coworker), Ada (landlady, sees
@@ -661,9 +681,9 @@ stops being usable for planning, and this one was drifting that way.
 - **Act II's seven pressure points.** Drafted and approved 2026-07-26; the machinery exists,
   the authored moments are not all fired. With Act I and Act III both running end to end,
   this is now the thinnest stretch of the spine.
-- **Act III's inspector.** The audit has no face — the letter arrives, the date passes, and
-  the books are read offstage. Everything the act does mechanically is built; the person
-  doing it to you is not somebody you can talk to.
+- **A played endgame.** Act III is built, measured and tested; nobody has sat down and
+  reached it. Measured is not the same as felt, and the distribution
+  (`balance-findings-endings.md`) cannot tell us whether the six days have the right shape.
 - **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks, the
   apartment.
 - **Lifestyle upgrades** in §6.7 — apartment, clothes, car as status. The car exists as
