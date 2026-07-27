@@ -81,6 +81,67 @@ namespace Ledger.Core
         public static readonly double[] AvenuesX = { -52, -26, 0, 26, 52 };
         public static readonly double[] AvenuesZ = { -52, -26, 0, 26, 52 };
 
+        /// A district: its own grid, its own street names, its own character.
+        ///
+        /// The city was one district hardcoded into this file. Copper Row
+        /// existed in the population, in the fiction and in three characters'
+        /// backstories, and nowhere on the ground — which meant the game could
+        /// talk about somewhere the player could never walk to. That is a worse
+        /// kind of missing than an empty lot.
+        public class District
+        {
+            public string Id, Name;
+            public double[] AvenuesX, AvenuesZ;
+            public string[] NamesNorthSouth, NamesEastWest;
+            /// The founding cross belongs to the Hook alone. Elsewhere every
+            /// road is an avenue, because nowhere else has a street the game
+            /// was built on top of.
+            public bool HasFoundingCross;
+        }
+
+        /// The Hook, and Copper Row across the cut to the north.
+        ///
+        /// Copper Row is deliberately NOT more of the same. Its blocks are
+        /// tighter (20m against the Hook's 26), which makes it read as older and
+        /// denser the moment you walk into it, and it costs nothing — the grid
+        /// generator does not care. Two bridges join them, and only two, because
+        /// a chokepoint is a place things can happen: somebody waiting at a
+        /// bridge is a scene, and somebody waiting on an open grid is a man
+        /// standing in a road.
+        public const double CopperSpacing = 20.0;
+        public static readonly District[] Districts =
+        {
+            new District
+            {
+                Id = "hook", Name = "the Hook",
+                AvenuesX = new double[] { -52, -26, 0, 26, 52 },
+                AvenuesZ = new double[] { -52, -26, 0, 26, 52 },
+                NamesNorthSouth = new[] { "Tannery Row", "Copper Row", "Hook Street", "Anchor Walk", "Customs Way" },
+                NamesEastWest = new[] { "Ironside Road", "Bakers Cross", "Quay Street", "Chapel Street", "Harbour Road" },
+                HasFoundingCross = true,
+            },
+            new District
+            {
+                Id = "copper", Name = "Copper Row",
+                AvenuesX = new double[] { -40, -20, 0, 20, 40 },
+                AvenuesZ = new double[] { 92, 112, 132 },
+                NamesNorthSouth = new[] { "Furnace Lane", "Smeltyard", "Copper Row", "Ropewalk", "Kiln Street" },
+                NamesEastWest = new[] { "The Cut", "Foundry Road", "Northgate" },
+            },
+        };
+
+        /// Which district a position is in, by name, or null out on the cut.
+        public static string DistrictAt(double x, double z)
+        {
+            foreach (var d in Districts)
+            {
+                double minX = d.AvenuesX[0] - 12, maxX = d.AvenuesX[d.AvenuesX.Length - 1] + 12;
+                double minZ = d.AvenuesZ[0] - 12, maxZ = d.AvenuesZ[d.AvenuesZ.Length - 1] + 12;
+                if (x >= minX && x <= maxX && z >= minZ && z <= maxZ) return d.Name;
+            }
+            return null;
+        }
+
         /// What genuinely cannot move: the bar. It is hand-built, its door and
         /// counter are referenced by name all over the game, and Act I happens
         /// inside it. Every OTHER building is now generated to fill a block,
@@ -148,25 +209,54 @@ namespace Ledger.Core
             _edges = new List<StreetEdge>();
             _byId = new Dictionary<string, StreetNode>();
 
-            // 1. The grid. Twenty-five junctions, sixteen blocks.
-            for (int i = 0; i < AvenuesX.Length; i++)
-                for (int j = 0; j < AvenuesZ.Length; j++)
-                    Add(new StreetNode
-                    {
-                        Id = $"j{i}_{j}",
-                        X = AvenuesX[i],
-                        Z = AvenuesZ[j],
-                        IsJunction = true,
-                    });
+            // 1. Every district's grid. The Hook's junctions keep their
+            // original ids ("j2_2" and the rest) because the traffic model, the
+            // bus circuit and a pile of tests all name them — a district system
+            // that renamed the founding grid would have been a rewrite wearing
+            // a refactor's clothes.
+            _blocks = new List<Block>();
+            foreach (var d in Districts)
+            {
+                string prefix = d.Id == "hook" ? "j" : d.Id + "_j";
+                for (int i = 0; i < d.AvenuesX.Length; i++)
+                    for (int j = 0; j < d.AvenuesZ.Length; j++)
+                        Add(new StreetNode
+                        {
+                            Id = $"{prefix}{i}_{j}",
+                            X = d.AvenuesX[i],
+                            Z = d.AvenuesZ[j],
+                            IsJunction = true,
+                        });
 
-            // 2. The avenues between them. The founding cross keeps its own
-            // class, because it is narrower and already built.
-            for (int i = 0; i < AvenuesX.Length; i++)
-                for (int j = 0; j + 1 < AvenuesZ.Length; j++)
-                    Link($"j{i}_{j}", $"j{i}_{j + 1}", AvenuesX[i] == 0 ? "street" : "avenue");
-            for (int j = 0; j < AvenuesZ.Length; j++)
-                for (int i = 0; i + 1 < AvenuesX.Length; i++)
-                    Link($"j{i}_{j}", $"j{i + 1}_{j}", AvenuesZ[j] == 0 ? "street" : "avenue");
+                // The avenues between them. The founding cross keeps its own
+                // class, because it is narrower and already built.
+                for (int i = 0; i < d.AvenuesX.Length; i++)
+                    for (int j = 0; j + 1 < d.AvenuesZ.Length; j++)
+                        Link($"{prefix}{i}_{j}", $"{prefix}{i}_{j + 1}",
+                            d.HasFoundingCross && d.AvenuesX[i] == 0 ? "street" : "avenue");
+                for (int j = 0; j < d.AvenuesZ.Length; j++)
+                    for (int i = 0; i + 1 < d.AvenuesX.Length; i++)
+                        Link($"{prefix}{i}_{j}", $"{prefix}{i + 1}_{j}",
+                            d.HasFoundingCross && d.AvenuesZ[j] == 0 ? "street" : "avenue");
+
+                // The blocks between the streets — the buildable ground.
+                double halfW = AvenueWidth / 2.0;
+                for (int i = 0; i + 1 < d.AvenuesX.Length; i++)
+                    for (int j = 0; j + 1 < d.AvenuesZ.Length; j++)
+                        _blocks.Add(new Block
+                        {
+                            MinX = d.AvenuesX[i] + halfW,
+                            MaxX = d.AvenuesX[i + 1] - halfW,
+                            MinZ = d.AvenuesZ[j] + halfW,
+                            MaxZ = d.AvenuesZ[j + 1] - halfW,
+                        });
+            }
+
+            // 2. The bridges. TWO, and only two, because a chokepoint is a place
+            // where things can happen — somebody waiting at a bridge is a scene,
+            // and somebody waiting on an open grid is a man standing in a road.
+            Link("j1_4", "copper_j1_0", "avenue");   // the west bridge
+            Link("j3_4", "copper_j3_0", "avenue");   // the east bridge
 
             // 3. Every place on the map gets a lane to the nearest junction, so
             // it stops being a point in a field and becomes an address.
@@ -183,19 +273,6 @@ namespace Ledger.Core
                 var nearest = _nodes.Where(n => n.IsJunction).OrderBy(n => n.DistanceTo(stop)).First();
                 Link(stop.Id, nearest.Id, "lane");
             }
-
-            // 4. The blocks between the streets — the buildable ground.
-            _blocks = new List<Block>();
-            double half = AvenueWidth / 2.0;
-            for (int i = 0; i + 1 < AvenuesX.Length; i++)
-                for (int j = 0; j + 1 < AvenuesZ.Length; j++)
-                    _blocks.Add(new Block
-                    {
-                        MinX = AvenuesX[i] + half,
-                        MaxX = AvenuesX[i + 1] - half,
-                        MinZ = AvenuesZ[j] + half,
-                        MaxZ = AvenuesZ[j + 1] - half,
-                    });
 
             _adjacency = new Dictionary<string, List<StreetEdge>>();
             foreach (var e in _edges)
@@ -359,23 +436,25 @@ namespace Ledger.Core
         /// (-26, 14)". The plates at the junctions and the witness lines read
         /// from the same table, so the city can never tell the player one name
         /// and a character another.
-        static readonly string[] NamesNorthSouth =
+        /// The name of the road running along this coordinate. Now district-aware:
+        /// x=0 is Hook Street in the Hook and Copper Row across the cut, which is
+        /// how streets actually work and is the reason this takes a hint.
+        ///
+        /// `near` is a coordinate on the OTHER axis, used only to decide which
+        /// district is being asked about. Without it a bare coordinate is
+        /// genuinely ambiguous once there is more than one grid, and guessing
+        /// would put the wrong plate on a corner.
+        public static string NameOf(double coord, bool northSouth, double near = 0)
         {
-            "Tannery Row", "Copper Row", "Hook Street", "Anchor Walk", "Customs Way",
-        };
-        static readonly string[] NamesEastWest =
-        {
-            "Ironside Road", "Bakers Cross", "Quay Street", "Chapel Street", "Harbour Road",
-        };
-
-        /// The name of the avenue running along this coordinate, or null if no
-        /// avenue runs there.
-        public static string NameOf(double coord, bool northSouth)
-        {
-            var line = northSouth ? AvenuesX : AvenuesZ;
-            var names = northSouth ? NamesNorthSouth : NamesEastWest;
-            for (int i = 0; i < line.Length && i < names.Length; i++)
-                if (Math.Abs(line[i] - coord) < 0.001) return names[i];
+            foreach (var d in Districts)
+            {
+                var cross = northSouth ? d.AvenuesZ : d.AvenuesX;
+                if (near < cross[0] - 14 || near > cross[cross.Length - 1] + 14) continue;
+                var line = northSouth ? d.AvenuesX : d.AvenuesZ;
+                var names = northSouth ? d.NamesNorthSouth : d.NamesEastWest;
+                for (int i = 0; i < line.Length && i < names.Length; i++)
+                    if (Math.Abs(line[i] - coord) < 0.001) return names[i];
+            }
             return null;
         }
 
@@ -384,24 +463,39 @@ namespace Ledger.Core
         public static string AddressOf(double x, double z)
         {
             Ensure();
-            string ns = NameOf(x, true), ew = NameOf(z, false);
+            string ns = NameOf(x, true, z), ew = NameOf(z, false, x);
             if (ns != null && ew != null) return $"{ns} at {ew}";
             if (ns != null) return ns;
             if (ew != null) return ew;
 
             double bestD = double.MaxValue;
             string best = null;
-            for (int i = 0; i < AvenuesX.Length; i++)
+            foreach (var dist in Districts)
             {
-                double d = Math.Abs(AvenuesX[i] - x);
-                if (d < bestD) { bestD = d; best = NameOf(AvenuesX[i], true); }
-            }
-            for (int j = 0; j < AvenuesZ.Length; j++)
-            {
-                double d = Math.Abs(AvenuesZ[j] - z);
-                if (d < bestD) { bestD = d; best = NameOf(AvenuesZ[j], false); }
+                foreach (var ax in dist.AvenuesX)
+                {
+                    double d = Math.Abs(ax - x) + DistancePenalty(dist, z, northSouth: true);
+                    if (d < bestD) { bestD = d; best = NameOf(ax, true, z); }
+                }
+                foreach (var az in dist.AvenuesZ)
+                {
+                    double d = Math.Abs(az - z) + DistancePenalty(dist, x, northSouth: false);
+                    if (d < bestD) { bestD = d; best = NameOf(az, false, x); }
+                }
             }
             return best;
+        }
+
+        /// How far outside a district's own extent the query sits. Keeps a
+        /// position in the Hook from being told it is on a Copper Row street
+        /// that merely happens to share an x.
+        static double DistancePenalty(District d, double along, bool northSouth)
+        {
+            var cross = northSouth ? d.AvenuesZ : d.AvenuesX;
+            double lo = cross[0], hi = cross[cross.Length - 1];
+            if (along < lo) return lo - along;
+            if (along > hi) return along - hi;
+            return 0;
         }
 
         /// The two streets that meet at a junction, for the plates on its posts.
@@ -409,8 +503,8 @@ namespace Ledger.Core
         {
             northSouth = eastWest = null;
             if (n == null || !n.IsJunction) return false;
-            northSouth = NameOf(n.X, true);
-            eastWest = NameOf(n.Z, false);
+            northSouth = NameOf(n.X, true, n.Z);
+            eastWest = NameOf(n.Z, false, n.X);
             return northSouth != null && eastWest != null;
         }
 

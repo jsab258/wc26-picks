@@ -32,7 +32,11 @@ namespace Ledger.Game
             // Ground slab — sized for the district, not just the founding street.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            ground.transform.localScale = new Vector3(13, 1, 13); // 130x130m — the grid spans ±52
+            // Wide enough for BOTH districts. Copper Row sits north of the cut,
+            // out to z=132, and a district standing on nothing is a district the
+            // player walks off the edge of.
+            ground.transform.position = new Vector3(0, 0, 40);
+            ground.transform.localScale = new Vector3(13, 1, 21); // 130 x 210m
             ground.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Concrete);
             SetTiling(ground, 42, 42);
 

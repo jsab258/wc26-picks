@@ -1857,10 +1857,22 @@ namespace Ledger.CoreTests
             Console.WriteLine("Streets — the city gets roads:");
             StreetMap.Rebuild();
 
-            Check(StreetMap.Nodes.Count(n => n.IsJunction) == 25, "twenty-five junctions, sixteen blocks",
-                StreetMap.Nodes.Count(n => n.IsJunction).ToString());
-            Check(StreetMap.Blocks.Count == 16, "sixteen blocks of buildable ground",
+            // Two districts now: the Hook's 5x5 and Copper Row's 5x3 across the
+            // cut. Counted from the district table rather than hardcoded, so
+            // adding a third district does not silently break an assertion that
+            // was really about the Hook.
+            int expectedJunctions = 0, expectedBlocks = 0;
+            foreach (var d in StreetMap.Districts)
+            {
+                expectedJunctions += d.AvenuesX.Length * d.AvenuesZ.Length;
+                expectedBlocks += (d.AvenuesX.Length - 1) * (d.AvenuesZ.Length - 1);
+            }
+            Check(StreetMap.Nodes.Count(n => n.IsJunction) == expectedJunctions,
+                "every district's junctions are on the map",
+                $"{StreetMap.Nodes.Count(n => n.IsJunction)} of {expectedJunctions}");
+            Check(StreetMap.Blocks.Count == expectedBlocks, "and every district's buildable blocks",
                 StreetMap.Blocks.Count.ToString());
+            Check(StreetMap.Districts.Length == 2, "the Hook, and Copper Row across the cut");
 
             // Scale, against the urban-design benchmarks. Portland's walkable
             // block is 79m and Barcelona's Eixample is 113m; a game compresses,
@@ -1967,12 +1979,15 @@ namespace Ledger.CoreTests
             // character another.
             Check(StreetMap.NameOf(0, northSouth: true) == "Hook Street",
                 "the founding street is Hook Street, where the bar is");
-            Check(StreetMap.NameOf(7, northSouth: true) == null, "and nothing runs where no avenue runs");
+            Check(StreetMap.NameOf(7, northSouth: true, near: 0) == null, "and nothing runs where no avenue runs");
             var namesSeen = new HashSet<string>();
-            foreach (var x in StreetMap.AvenuesX) namesSeen.Add(StreetMap.NameOf(x, true));
-            foreach (var z in StreetMap.AvenuesZ) namesSeen.Add(StreetMap.NameOf(z, false));
-            Check(namesSeen.Count == 10 && !namesSeen.Contains(null),
-                "every street in the grid has its own name", namesSeen.Count.ToString());
+            foreach (var d in StreetMap.Districts)
+            {
+                foreach (var x in d.AvenuesX) namesSeen.Add(StreetMap.NameOf(x, true, d.AvenuesZ[0]));
+                foreach (var z in d.AvenuesZ) namesSeen.Add(StreetMap.NameOf(z, false, d.AvenuesX[0]));
+            }
+            Check(!namesSeen.Contains(null), "every street in the city has a name");
+            Check(namesSeen.Count >= 16, "and there are a lot of them now", namesSeen.Count.ToString());
             Check(StreetMap.NamesAt(StreetMap.Node("j2_2"), out var nsName, out var ewName)
                 && nsName == "Hook Street" && ewName == "Quay Street",
                 "a junction is the corner of two named streets", $"{nsName} / {ewName}");
@@ -1982,6 +1997,54 @@ namespace Ledger.CoreTests
                 "standing on the crossing, you are on a corner", StreetMap.AddressOf(0, 0));
             Check(StreetMap.AddressOf(-6, 6) != null, "and anywhere else has a nearest street",
                 StreetMap.AddressOf(-6, 6));
+
+            // COPPER ROW. It was in the population and the fiction and nowhere on
+            // the ground, which meant the game could talk about somewhere the
+            // player could never walk to.
+            Check(StreetMap.DistrictAt(-6, 6) == "the Hook", "the bar is in the Hook");
+            Check(StreetMap.DistrictAt(-6, 102) == "Copper Row", "and the foundry is across the cut");
+            Check(StreetMap.DistrictAt(0, 72) == null, "with the cut between them");
+
+            // x=0 is Hook Street in one district and Copper Row in the other,
+            // which is how streets actually work.
+            Check(StreetMap.NameOf(0, northSouth: true, near: 0) == "Hook Street",
+                "x=0 is Hook Street where the bar is");
+            Check(StreetMap.NameOf(0, northSouth: true, near: 112) == "Copper Row",
+                "and Copper Row across the cut", StreetMap.NameOf(0, true, 112));
+            Check(StreetMap.AddressOf(0, 112) == "Copper Row at Foundry Road",
+                "so a corner up there is named from its own district", StreetMap.AddressOf(0, 112));
+
+            // The property that matters, extended: a second district is only
+            // real if you can GET there. Two bridges, and every Copper Row
+            // address routes from the bar.
+            foreach (var id in new[] { "foundry", "smeltyard", "north_market", "kiln_terrace", "ropewalk" })
+            {
+                var over = StreetMap.Route("stop_bar_door", "stop_" + id);
+                Check(over.Count > 0, $"you can walk from the bar to {id}");
+                var driven = StreetMap.Route("stop_bar_door", "stop_" + id, driveableOnly: true);
+                Check(driven.Count > 0, $"and drive there");
+            }
+            var backAgain = StreetMap.Route("stop_north_market", "stop_customs_shed", driveableOnly: true);
+            Check(backAgain.Count > 0, "and come back the other way");
+
+            // Only two ways across, because a chokepoint is a place things can
+            // happen and an open grid is not.
+            int bridges = 0;
+            foreach (var e in StreetMap.Edges)
+            {
+                var a = StreetMap.Node(e.A);
+                var b = StreetMap.Node(e.B);
+                if (a == null || b == null) continue;
+                if ((a.Z < 60 && b.Z > 60) || (b.Z < 60 && a.Z > 60)) bridges++;
+            }
+            Check(bridges == 2, "two bridges across the cut, and only two", bridges.ToString());
+
+            // Copper Row is tighter than the Hook — older and denser, and it
+            // costs nothing, because the grid generator does not care.
+            var copper = StreetMap.Districts[1];
+            double copperGap = copper.AvenuesX[1] - copper.AvenuesX[0];
+            Check(copperGap < StreetMap.Spacing, "Copper Row's blocks are tighter than the Hook's",
+                $"{copperGap} vs {StreetMap.Spacing}");
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
