@@ -96,9 +96,9 @@ be "what do they pass *on*". Three tools now exist for that:
 
 1. `coverageOk` — fails the build if a nine-day run skipped the open city.
 2. `FAILING GATES: a, b, c` — the sim names its own failures instead of
-   hiding them in a thirty-term `&&`. **Read it in the Actions web UI**: open
-   the run, click the job, read the `Verdict` step. That has always worked;
-   only this sandbox's log truncation made it look hard (see known-unresolved).
+   hiding them in a thirty-term `&&`. Read it with the `get_job_logs` call at
+   the top of this file, or in the Actions web UI. Both work; only the wrong
+   API call ever made this look hard.
 3. The "does anything actually read this" pattern. Applied so far to:
    `LedgerState` (every field must be able to change the ending — found the
    collapsed life axis), three closed vocabularies (`Checks`, `Effects`,
