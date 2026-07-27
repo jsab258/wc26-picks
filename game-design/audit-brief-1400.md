@@ -240,6 +240,63 @@ assumed. Apply this to anything new.
   installs were ~7½ minutes. Only `started_at`/`completed_at` on a COMPLETED
   step is real.
 
+## RECOMMENDED AUDIT SCOPE — read this first
+
+Ranked. Everything here is chosen because it is either unenforced, enforced in
+exactly one place, or degrades with delay. Time-box it: the point is to produce
+a list to fix, not to admire the codebase.
+
+**0. Before trusting anything else: run the sim 3-5 times on different seeds.**
+Act III's in-engine gate has executed TWICE in the life of this project, both
+on the morning of 27 July, and one of those resolved `ending=Kingdom`. That
+may be the design working or it may be luck. This is cheap and everything
+below assumes the harness tells the truth.
+
+**1. The legibility law has exactly one enforcement point.** "No number is ever
+shown as a number — it must be sayable as somebody's circumstance" is the most
+distinctive rule in the project and it is asserted in ONE place (`ReadPlan`'s
+no-digits check). Sweep every player-facing string for digits. Mechanical,
+cheap, and it protects the thing that makes the game feel like itself.
+
+**2. Authored content that nothing can reach.** The doorman gap found on 27
+July — two of ten `KeyKind`s had no line, so the two doors where the clock IS
+the point got a flat "lets you past" while a bribe, a hook and a reputation
+each got a sentence — was found by accident. Sweep every authored string
+constant for "is there a code path that can display this".
+
+**3. Save/load, because it is the item that gets worse with delay.** Still no
+version field (P2). Every `Capture`/`Restore` pair should round-trip, and every
+field added in the last week should be checked into the codec. Save corruption
+is the worst player-facing bug class and it is silent.
+
+**4. Determinism.** BalanceLab and the sim both rest on seeded RNG. Sweep for
+`DateTime.Now`, unseeded `Random`, or dictionary-order dependence anywhere that
+feeds game state. If runs are not reproducible, every balance number in
+`balance-findings-endings.md` is softer than it reads.
+
+**5. What else the Fall silently empties.** `RunTheFall` clears EVERY rumor
+about the player, by design. That is what broke the car gate. Anything else
+that reads the mill as evidence — Ossei's case, hooks, leads — deserves a
+check for whether a post-Fall read still means anything.
+
+### Do NOT do this
+
+**Do not repeat the vacuous-conditional sweep.** Five closed vocabularies
+(`Checks`, `Effects`, `Pressures`, `KeyKind`, `Approach`), `LedgerState`'s
+fields and every money modifier are done, and four of five came back clean.
+Re-running it is theatre. Apply the question to things that are NEW.
+
+### And one standing rule for anything built from here
+
+Every new gate gets BOTH halves:
+
+1. does anything actually read this — can it fail?
+2. is it latched, or is it read off a world that is still moving?
+
+The second half produced three bugs on 27 July alone, in both directions: the
+car gate read a world that had moved on and erased the evidence; the Act II
+gate read one that had not yet caught up.
+
 ## Suggested audit order
 
 1. Read the verdict of the latest build with the call at the top of this file.
