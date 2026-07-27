@@ -60,6 +60,7 @@ namespace Ledger.CoreTests
                 TestEconomy();
                 TestPopulationDistricts();
                 TestPhones();
+                TestEveryApproachIsADifferentPlan();
                 TestEveryKeyKindHasItsOwnWords();
                 TestEveryModifierBites();
                 TestClosedVocabulariesAreHandled();
@@ -1636,6 +1637,63 @@ namespace Ledger.CoreTests
         /// This found two: the hour keys, which are precisely the doors where
         /// the clock is the whole content of being let in, were being told
         /// "the man on the door lets you past".
+        /// The last closed list: the three ways to run an operation.
+        ///
+        /// An Approach that changes neither the risk, nor who sees you, nor the
+        /// words is a choice in a menu and nothing else — and this is the system
+        /// the agency model called the biggest hole in the game before it was
+        /// built, so a decorative approach would be the worst possible outcome.
+        static void TestEveryApproachIsADifferentPlan()
+        {
+            Console.WriteLine("Operations — the three approaches are genuinely three plans:");
+            var target = new OperationTarget
+            {
+                Id = "store", Name = "the bonded store", PlaceId = "bonded_store",
+                Difficulty = 0.5, Payout = 200, Exposure = 0.5,
+            };
+            OperationState Steady() => new OperationState { Heat = 0.2, Nerve = 0.5, Coated = true };
+
+            var risk = new Dictionary<Approach, double>();
+            var seen = new Dictionary<Approach, double>();
+            var worry = new Dictionary<Approach, string>();
+            foreach (Approach a in Enum.GetValues(typeof(Approach)))
+            {
+                var plan = new OperationPlan(target.Id) { Approach = a, Hour = 2, Tools = true };
+                var read = Operations.Read(plan, target, Steady());
+                risk[a] = read.Risk;
+                seen[a] = read.Visibility;
+                worry[a] = read.Worry;
+                Check(read.Line.Length > 0, $"{a} has a plan somebody would say out loud", a.ToString());
+                Check(!read.Line.Any(char.IsDigit) && !read.Worry.Any(char.IsDigit),
+                    $"{a} says it without a single number", read.Line);
+            }
+
+            Check(new HashSet<double>(risk.Values).Count == risk.Count,
+                "each approach carries its own risk", string.Join(" ", risk.Values.Select(v => v.ToString("0.00"))));
+            Check(new HashSet<double>(seen.Values).Count == seen.Count,
+                "and its own chance of being seen", string.Join(" ", seen.Values.Select(v => v.ToString("0.00"))));
+            Check(risk[Approach.Forced] < risk[Approach.Quiet],
+                "forcing it is the reliable one", $"{risk[Approach.Forced]:0.00} vs {risk[Approach.Quiet]:0.00}");
+            Check(seen[Approach.Forced] > seen[Approach.Quiet],
+                "and the loud one — which is the whole trade");
+
+            // The approaches must also disagree about DIFFERENT worlds, or the
+            // ordering above is a constant rather than a choice.
+            var hot = new OperationState { Heat = 0.9, Nerve = 0.5, Coated = true };
+            var jumpy = new OperationState { Heat = 0.2, Nerve = 0.1, Coated = true };
+            double socialWhenKnown = Operations.Read(
+                new OperationPlan(target.Id) { Approach = Approach.Social, Hour = 2 }, target, hot).Risk;
+            double socialWhenNot = Operations.Read(
+                new OperationPlan(target.Id) { Approach = Approach.Social, Hour = 2 }, target, Steady()).Risk;
+            Check(socialWhenKnown > socialWhenNot,
+                "talking your way in gets harder once the street knows your name");
+
+            double quietWhenJumpy = Operations.Read(
+                new OperationPlan(target.Id) { Approach = Approach.Quiet, Hour = 2 }, target, jumpy).Risk;
+            Check(quietWhenJumpy > risk[Approach.Quiet],
+                "and the quiet one leans on a steady hand you may not have");
+        }
+
         static void TestEveryKeyKindHasItsOwnWords()
         {
             Console.WriteLine("Doors — every kind of key has its own words:");
