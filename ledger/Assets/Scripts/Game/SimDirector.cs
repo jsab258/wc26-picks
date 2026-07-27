@@ -56,6 +56,10 @@ namespace Ledger.Game
         bool _dayJobStaged;
         bool _openModeForced;
         int _lastSeenDay = -1, _daysSkipped;
+        /// Latched the moment a witness can describe the car. Read once per
+        /// in-game hour rather than at the end, because the Fall clears the mill.
+        bool _vehicleFactLatched;
+        int _vehicleScanHour = -1;
         bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
@@ -120,6 +124,18 @@ namespace Ledger.Game
                 if (_witnessesWhenCarArrived < 0) _witnessesWhenCarArrived = _game.NightWitnesses;
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
+            }
+
+            // Catch the car description while it is still in somebody's head.
+            // Once an hour is often enough — a rumor lives for days — and cheap
+            // enough that scanning the mill does not show up in the frame time.
+            if (!_vehicleFactLatched && now.Hour != _vehicleScanHour
+                && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                _vehicleScanHour = now.Hour;
+                foreach (var lead in _game.Gossip.Mill.Leads("player"))
+                    if (lead.TopicKey != null && lead.TopicKey.StartsWith("player.vehicle_d"))
+                    { _vehicleFactLatched = true; break; }
             }
 
             // The panels, once, on day two — after the world has some state in it
@@ -793,7 +809,16 @@ namespace Ledger.Game
 
             // The vehicle description (spec §4). Only meaningful if the bot was
             // seen at all; when it was, somebody must be able to describe the car.
-            bool vehicleFactSeen = false;
+            //
+            // LATCHED WHILE THE RUN HAPPENS, not read out of the mill at the
+            // end, and the difference is not academic: the Fall deliberately
+            // wipes every rumor about the player — three days inside and the
+            // street stops guessing, which is the whole point of that beat. So
+            // an end-of-run read asks "can anybody still describe the car" and
+            // gets a truthful no, having actually asked a question about the
+            // Fall rather than about the car. The gate wants to know the fact
+            // was FILED. It was; something erased it afterwards, on purpose.
+            bool vehicleFactSeen = _vehicleFactLatched;
             var millV = _game.Gossip != null ? _game.Gossip.Mill : null;
             if (millV != null)
                 foreach (var lead in millV.Leads("player"))
