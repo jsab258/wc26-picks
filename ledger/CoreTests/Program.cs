@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestHarm();
                 TestPurses();
                 TestStreets();
                 TestTraffic();
@@ -1982,6 +1983,142 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // The consequence layer of violence (roadmap M11)
+        // ---------------------------------------------------------------
+
+        static void TestHarm()
+        {
+            Console.WriteLine("Harm — violence that lasts:");
+            var book = new HarmBook();
+
+            // An injury persists. That is the whole point: a punch with no
+            // aftermath teaches the player violence is free.
+            var cut = book.Inflict("Sam", "Sam", InjuryKind.Cut, day: 3,
+                "somebody opened his arm on the ferry rail");
+            Check(cut != null && book.IsHurt("Sam", 3), "getting hurt leaves something behind");
+            Check(book.IsHurt("Sam", 5), "and it is still there days later");
+            Check(!book.IsHurt("Sam", 30), "but it does not last forever");
+            Check(!book.IsHurt("Rocco", 3), "and it belongs to the person it happened to");
+            Check(book.Inflict(null, null, InjuryKind.Cut, 3, "nobody") == null,
+                "hurting nobody is safe");
+
+            // Capability. Injuries compound rather than add — three bruises are
+            // not a broken arm — and a person is never quite nothing.
+            Check(book.Capability("Rocco", 3) == 1.0, "an unhurt person is all of themselves");
+            double hurt = book.Capability("Sam", 3);
+            Check(hurt < 1.0 && hurt > 0, "a hurt one is less", hurt.ToString("0.00"));
+            book.Inflict("Sam", "Sam", InjuryKind.Bruised, 3, "and took a few more");
+            Check(book.Capability("Sam", 3) < hurt, "and two injuries are worse than one");
+            for (int i = 0; i < 6; i++) book.Inflict("Sam", "Sam", InjuryKind.Broken, 3, "again");
+            Check(book.Capability("Sam", 3) > 0, "but nobody is ever reduced to literally nothing",
+                book.Capability("Sam", 3).ToString("0.000"));
+
+            // It SHOWS. An injury is information before it is a stat.
+            Check(book.LooksLike("Sam", 3) != null, "you can see it on them");
+            Check(book.LooksLike("Rocco", 3) == null, "and see that somebody else is fine");
+            var quiet = new HarmBook();
+            quiet.Inflict("Ada", "Ada", InjuryKind.Broken, 2, "a rib, under the coat", visible: false);
+            Check(quiet.IsHurt("Ada", 2) && quiet.LooksLike("Ada", 2) == null,
+                "but a cracked rib is nobody's business");
+
+            // The infirmary. Money AND being seen paying it — the caller plants
+            // the fact, but the cost has to be real or it is not a decision.
+            var clinic = new HarmBook();
+            var arm = clinic.Inflict("Sam", "Sam", InjuryKind.Cut, 3, "the ferry rail");
+            var poor = new Wallet(10);
+            Check(clinic.Treat(arm, poor, 3) == 0 && !arm.Treated,
+                "you cannot be treated on money you do not have");
+            var rich = new Wallet(500);
+            int paid = clinic.Treat(arm, rich, 3);
+            Check(paid == HarmBook.PriceOf(InjuryKind.Cut) && arm.Treated, "treatment costs", paid.ToString());
+            Check(rich.Clean == 500 - paid, "and the money is really gone");
+            Check(clinic.Treat(arm, rich, 3) == 0, "and you only pay once");
+
+            var dirty = new Wallet(0);
+            dirty.EarnDirty(900);
+            var arm2 = clinic.Inflict("Rocco", "Rocco", InjuryKind.Cut, 3, "a bottle");
+            Check(clinic.Treat(arm2, dirty, 3) == 0,
+                "and you cannot hand a doctor a roll of night money");
+
+            // Treated heals faster, and healing restarts from the day you went —
+            // a week of ignoring it does not count as a week of getting better.
+            var slowBook = new HarmBook();
+            var untreated = slowBook.Inflict("A", "A", InjuryKind.Broken, 1, "a door");
+            var treatedOne = slowBook.Inflict("B", "B", InjuryKind.Broken, 1, "a door");
+            slowBook.Treat(treatedOne, null, 1);
+            Check(treatedOne.HealsOnDay < untreated.HealsOnDay, "seeing somebody helps",
+                $"{treatedOne.HealsOnDay} vs {untreated.HealsOnDay}");
+
+            // THE DECISION THE INFIRMARY EXISTS FOR: leave it and it turns.
+            var rot = new HarmBook();
+            var ignored = rot.Inflict("Sam", "Sam", InjuryKind.Cut, 1, "a knife nobody admits to");
+            var seen = rot.Inflict("Rocco", "Rocco", InjuryKind.Cut, 1, "the same knife");
+            rot.Treat(seen, null, 1);
+            var news = rot.DailyTick(2);
+            Check(news.Count == 0, "one day is not neglect");
+            news = rot.DailyTick(4);
+            Check(news.Count == 1, "but leaving it is", news.Count.ToString());
+            Check(ignored.WentBad && ignored.Kind == InjuryKind.Broken, "and it gets worse, not just longer");
+            Check(!seen.WentBad, "while the one that was looked at is fine");
+            Check(rot.DailyTick(6).Count == 0, "and a wound cannot rot twice");
+            var bruise = new HarmBook();
+            bruise.Inflict("C", "C", InjuryKind.Bruised, 1, "a shove");
+            Check(bruise.DailyTick(5).Count == 0, "a bruise is just a bruise and never turns");
+
+            // Trauma is cumulative and does NOT heal with the wound. That is the
+            // entire difference between an injury and a scar.
+            Check(book.ScarsOf("Sam") == 8, "every hurt leaves a mark on the count", book.ScarsOf("Sam").ToString());
+            Check(book.ScarsOf("Rocco") == 0, "and somebody untouched carries none");
+            Check(!book.IsHurt("Sam", 200) && book.ScarsOf("Sam") == 8,
+                "the wounds heal and the scars do not");
+
+            // Feuds. Not a belief — it does not decay when you leave the room,
+            // and evidence cannot settle it. Only somebody choosing to stop can.
+            var f = new HarmBook();
+            Check(f.FeudBetween("Sam", "Rocco") == null, "two people start out fine");
+            var feud = f.Flare("Sam", "Sam", "Rocco", "Rocco", day: 4);
+            Check(feud != null && feud.Exchanges == 1, "hurting somebody starts one");
+            Check(f.FeudBetween("Rocco", "Sam") == feud, "and it reads the same from either side");
+            var again = f.Flare("Rocco", "Rocco", "Sam", "Sam", day: 6);
+            Check(ReferenceEquals(again, feud), "a second exchange flares the same feud, not a rival one");
+            Check(feud.Exchanges == 2 && feud.Heat > 0.35, "and it gets hotter and longer-running");
+            Check(f.Flare("Sam", "Sam", "Sam", "Sam", 6) == null, "nobody feuds with themselves");
+            Check(f.Flare(null, null, "Rocco", "Rocco", 6) == null, "and a feud needs two people");
+
+            // A hot feud is a scheduling problem the player solves with people.
+            Check(!f.WillWorkTogether("Sam", "Rocco"), "people in a hot feud will not work together");
+            Check(f.WillWorkTogether("Sam", "Ada"), "but strangers are fine");
+            Check(f.Hottest() == feud, "the Director can ask what the worst of it is");
+
+            // Time cools it but never finishes it.
+            for (int d = 7; d < 60; d++) f.DailyTick(d);
+            Check(feud.Heat <= 0.21 && feud.Heat > 0, "a feud cools with time");
+            Check(!feud.Settled, "but time never ends one");
+            Check(f.WillWorkTogether("Sam", "Rocco"), "though it cools enough to stand near each other");
+            Check(f.Settle(feud) && feud.Settled && feud.Heat == 0, "somebody has to choose to stop");
+            Check(!f.Settle(feud), "and stopping twice is not a thing");
+            Check(f.FeudBetween("Sam", "Rocco") == null, "a settled feud is over");
+            Check(f.FeudsOf("Sam").Count == 0, "and stops following them around");
+            Check(f.Hottest() == null, "with nothing left for the Director to read");
+
+            // Save and load.
+            var snap = MiniJson.Serialize(f.Capture());
+            var twin = new HarmBook();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(MiniJson.Serialize(twin.Capture()) == snap, "harm survives its own codec");
+            var snap2 = MiniJson.Serialize(rot.Capture());
+            var twin2 = new HarmBook();
+            twin2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap2)));
+            Check(twin2.IsHurt("Sam", 5) == rot.IsHurt("Sam", 5), "including who is still hurt");
+            Check(twin2.All.Count == rot.All.Count, "and everything that happened to them");
+            var wentBad = false;
+            foreach (var i in twin2.All) if (i.WentBad) wentBad = true;
+            Check(wentBad, "and which wounds were left too long");
+            twin2.Restore(null);
+            Check(twin2.All.Count == rot.All.Count, "restoring nothing changes nothing");
         }
 
         // ---------------------------------------------------------------
