@@ -156,12 +156,30 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $lines = @()
           if (Test-Path sim-run/player.log) {
-            Write-Host "================ LEDGER SIM VERDICT ================"
-            Get-Content sim-run/player.log |
+            $lines = Get-Content sim-run/player.log |
               Select-String -Pattern "SimDirector: done\.|FAILING GATES" |
               ForEach-Object { $_.Line }
-            Write-Host "==================================================="
-          } else {
-            Write-Host "no player.log — the run did not reach the simulation step"
+          }
+          if (-not $lines) { $lines = @("no verdict — the run did not reach the simulation step") }
+
+          Write-Host "================ LEDGER SIM VERDICT ================"
+          $lines | ForEach-Object { Write-Host $_ }
+          Write-Host "==================================================="
+
+          # AND into the job summary, which is the only channel that actually
+          # survives. The log tail is a fixed ~4KB window and GitHub's own
+          # post-job cleanup — licence deactivation, git config unwinding —
+          # fills it entirely AFTER every user step, so no amount of moving the
+          # print statement helps; that was tried three times. Artifacts are on
+          # a host this environment's egress policy denies outright.
+          #
+          # The job summary comes back through the check-run API as output text,
+          # which is what that API is for.
+          if ($env:GITHUB_STEP_SUMMARY) {
+            "## LEDGER sim verdict" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
