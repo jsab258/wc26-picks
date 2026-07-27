@@ -20,6 +20,12 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Nothing here pushes, and the credential it would otherwise persist
+          # costs about 1.5KB of git-config unwinding in POST-job cleanup —
+          # which matters because the log API returns a fixed ~4KB tail of the
+          # job and that cleanup is what has been burying the sim's verdict.
+          persist-credentials: false
 
       # Runs in a second, before eight minutes of Unity install. Catches the one
       # compile error nothing else in the pipeline can see: LINQ used in
@@ -164,9 +170,22 @@ jobs:
           }
           if (-not $lines) { $lines = @("no verdict — the run did not reach the simulation step") }
 
-          Write-Host "================ LEDGER SIM VERDICT ================"
-          $lines | ForEach-Object { Write-Host $_ }
-          Write-Host "==================================================="
+          # COMPACT ON PURPOSE. The whole "done." line is ~1.2KB and the tail
+          # this has to survive is a few hundred bytes wide after cleanup. So
+          # print the failing gates — which is the actionable half — and only
+          # the handful of fields that say whether the run covered anything.
+          $gates = $lines | Where-Object { $_ -match "FAILING GATES" }
+          $done  = $lines | Where-Object { $_ -match "SimDirector: done" }
+          $keys  = ""
+          if ($done) {
+            $keys = (($done -split " ") | Where-Object {
+              $_ -match "^(coverageOk|openModeForced|endScreen|actThree|actTwoOk|dayJob|opened|ending|verdict|pass)="
+            }) -join " "
+          }
+          Write-Host "=== LEDGER VERDICT ==="
+          if ($gates) { $gates | ForEach-Object { Write-Host $_ } } else { Write-Host "no failing gates" }
+          Write-Host $keys
+          Write-Host "======================"
 
           # AND into the job summary, which is the only channel that actually
           # survives. The log tail is a fixed ~4KB window and GitHub's own
