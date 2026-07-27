@@ -45,6 +45,7 @@ namespace Ledger.Game
         bool _empireScripted;
         bool _directorStaged, _directorFired;
         bool _harmStaged;
+        int _lastRungDay = -1, _callsAnswered, _callsWrongPerson, _callsRangOut;
         /// Night witnesses at the moment the car started following the bot. The
         /// vehicle gate only means anything if a drop was SEEN after that.
         int _witnessesWhenCarArrived = -1;
@@ -100,6 +101,25 @@ namespace Ledger.Game
                 if (_witnessesWhenCarArrived < 0) _witnessesWhenCarArrived = _game.NightWitnesses;
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
+            }
+
+            // The exchange in CI (roadmap M10). Once a day the bot rings two
+            // lines it has no special claim on. What this proves in-engine is
+            // the thing the whole design rests on: that whether somebody
+            // answers depends on where they actually ARE, so over nine days the
+            // same call gets a different person, or nobody, or the person you
+            // wanted. If every ring came back identical the system would be a
+            // menu wearing a telephone.
+            if (_lastRungDay != now.Day && now.Hour >= 11)
+            {
+                _lastRungDay = now.Day;
+                foreach (var (place, who) in new[] { ("bar", "Lena"), ("boarding_house", "Ada") })
+                {
+                    var call = _game.RingLine(place, who);
+                    if (call.Result == CallResult.Answered) _callsAnswered++;
+                    else if (call.Result == CallResult.SomebodyElse) _callsWrongPerson++;
+                    else if (call.Result == CallResult.NoAnswer) _callsRangOut++;
+                }
             }
 
             // Harm in CI (roadmap M11). The bot cannot get into a fight, so the
@@ -640,6 +660,15 @@ namespace Ledger.Game
                     && !_game.Harm.WillWorkTogether("Sam", "Rocco");    // which is a scheduling problem
             }
 
+            // The exchange is real if it is not always the same answer. Over
+            // eighteen calls across nine days the bot must have got through at
+            // least once AND missed at least once — a phone that always works
+            // is a menu, and one that never does is a wall.
+            int rings = _callsAnswered + _callsWrongPerson + _callsRangOut;
+            bool phonesOk = _game.Phones.All.Count >= 4
+                && (SimMode.Days < 4 || (rings > 0 && _callsAnswered + _callsWrongPerson > 0
+                                          && _callsAnswered < rings));
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -777,6 +806,10 @@ namespace Ledger.Game
                 // Diagnostics for the next time the campaign ends somewhere
                 // unexpected: which day it closed on, and whether the staged
                 // beats got the chance to run at all.
+                { "phoneLines", _game.Phones.All.Count },
+                { "callsAnswered", _callsAnswered },
+                { "callsWrongPerson", _callsWrongPerson },
+                { "callsRangOut", _callsRangOut },
                 { "lostOnDay", _game.Campaign.DaysClosed },
                 { "carArrived", _witnessesWhenCarArrived >= 0 },
                 { "dropSeenWithCar", sawADropWithTheCar },
@@ -810,7 +843,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -840,6 +873,8 @@ namespace Ledger.Game
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
                       $"harmOk={harmOk} name={_game.Me.Full} " +
+                      $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
+                      $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +

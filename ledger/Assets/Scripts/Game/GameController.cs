@@ -400,6 +400,7 @@ namespace Ledger.Game
             // every time you load the same save.
             BuildTraffic();
             BuildSignalHeads();
+            BuildPhones();
 
             // The week's two dilemma evenings: both windows sit inside the outfit's
             // drop window. Ada tests the day face; Rocco tests the family face.
