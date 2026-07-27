@@ -575,10 +575,15 @@ the sim-bot and purse changes stand.
 
 **Unblocked and queued:**
 
-- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the
-  machinery exists, the authored moments are not all fired. This is now the
-  weakest link in the spine, because Act I and Act III both run end to end
-  and the middle is the part that has to carry the campaign's length.
+- ~~**Act II's seven pressure points.**~~ CORRECTED 2026-07-27. This entry said
+  the authored moments were not all fired; they are, and have been. What was
+  actually missing was PROOF — Act I had a sim gate and Act III got one, and
+  the middle of the spine had none. Now gated on the implication "wherever a
+  pressure point's condition holds, its flag is set", which catches a beat
+  that can never fire without pretending a nine-day sim reached a summit.
+
+  What remains genuinely open in Act II is playtest, not code: nobody has
+  seen the seven fire in a long campaign, so their PACING is unverified.
 - **Act III's own gaps.** The act ships whole, and three things in it are
   thinner than the rest: PP5 ("the last day, and the phone") is a line of
   text rather than a scene; the audit has no in-fiction inspector to talk to;
