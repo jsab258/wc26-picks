@@ -21,7 +21,9 @@ namespace Ledger.Game
                 Id = "drayman",
                 Name = "Mirek",
                 Goods = "the drink",
-                ServesBusinessId = null,      // the bar itself
+                ServesBusinessId = "bar",     // the bar itself — a real id, because
+                                              // FactorFor(null) means the district
+                                              // and must never match a supplier
                 PricePerWeek = 90,
                 Standing = 0.25,              // Marek's arrangement, inherited
             });

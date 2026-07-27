@@ -333,7 +333,7 @@ namespace Ledger.BalanceLab
                 {
                     lastClosedDay = now.Day;
                     int takings = camp.CloseDay(heat);
-                    takings = (int)Math.Round(takings * economy.FactorFor(null));
+                    takings = (int)Math.Round(takings * economy.FactorFor("bar"));
                     foreach (var b in empire.Businesses)
                         if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * economy.FactorFor(b.Id)
                             * Math.Max(0.0, 1.0 - 0.85 * heat));

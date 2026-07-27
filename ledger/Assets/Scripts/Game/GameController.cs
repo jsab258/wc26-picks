@@ -1348,7 +1348,7 @@ namespace Ledger.Game
                 // money the district's people have, what things cost, and whether
                 // anyone is still delivering. Neutral at 1.0 on an unsqueezed
                 // street, so a campaign that takes nothing is unchanged by it.
-                takings = (int)System.Math.Round(takings * Economy.FactorFor(null));
+                takings = (int)System.Math.Round(takings * Economy.FactorFor("bar"));
                 foreach (var b in Empire.Businesses)
                     if (b.Owned && b.CleanIncomePerDay > 0)
                         takings += (int)System.Math.Round(b.CleanIncomePerDay * frontFactor

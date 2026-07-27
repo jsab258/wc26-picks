@@ -137,8 +137,15 @@ namespace Ledger.Core
 
         /// Per-business, because a front nobody will deliver to earns less than
         /// one that is stocked, however rich the street is.
+        ///
+        /// null means THE DISTRICT AS A WHOLE, never "whichever supplier has a
+        /// null id". That distinction bit once: the bar's drayman was authored
+        /// with ServesBusinessId = null, so this lookup matched him and his
+        /// refusal starved every racket in every district — decision 9 coupled
+        /// to the bar's cellar instead of the street (audit 2026-07-27).
         public double FactorFor(string businessId)
         {
+            if (businessId == null) return TakingsFactor;
             var s = SupplierFor(businessId);
             return TakingsFactor * (s != null && s.Refusing ? StarvedFactor : 1.0);
         }

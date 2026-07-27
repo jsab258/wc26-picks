@@ -2103,6 +2103,29 @@ namespace Ledger.CoreTests
         {
             Console.WriteLine("Economy — the street has a finite amount of money in it:");
 
+            // THE STREET IS NOT THE BAR'S CELLAR (decision 9, audit 2026-07-27).
+            // FactorFor(null) means "the district as a whole", and it must never
+            // accidentally match a supplier whose ServesBusinessId happens to be
+            // null. It did: the bar's drayman was authored with a null id, so his
+            // refusal starved every racket in every district. The rackets read the
+            // street; only the business he actually serves reads him.
+            var cellar = FreshEconomy();
+            var dray = cellar.SupplierNamed("drayman");
+            dray.Refusing = true;
+            Check(Math.Abs(cellar.FactorFor(null) - cellar.TakingsFactor) < 1e-9,
+                "the district factor ignores any one supplier's tantrum (decision 9)",
+                $"{cellar.FactorFor(null):0.000} vs street {cellar.TakingsFactor:0.000}");
+            // And the business he DOES serve still pays for the tantrum — the
+            // starving is real, it just lands on the right door.
+            var served = FreshEconomy();
+            served.Suppliers.Add(new Supplier
+            {
+                Id = "barman", Name = "Mirek2", Goods = "the drink",
+                ServesBusinessId = "bar", PricePerWeek = 90, Refusing = true,
+            });
+            Check(served.FactorFor("bar") < served.TakingsFactor * 0.6,
+                "while the door he serves goes hungry", served.FactorFor("bar").ToString("0.000"));
+
             // A campaign that takes nothing must behave exactly as it did before
             // this system existed. The economy bites only once you start taking.
             var quiet = FreshEconomy();
@@ -2177,8 +2200,9 @@ namespace Ledger.CoreTests
             var empty = new Wallet(0);
             for (int d = 1; d <= 40; d++) lost.DailyTick(new GameTime(d, 9, 0), empty, 180, 0, 0.8);
             var mirek = lost.SupplierNamed("drayman");
+            mirek.ServesBusinessId = "bar"; // as authored in the game since decision 9's audit fix
             Check(mirek.Refusing, "a supplier you never pay and a street you squeeze eventually stops delivering");
-            Check(lost.FactorFor(null) < lost.TakingsFactor,
+            Check(lost.FactorFor("bar") < lost.TakingsFactor,
                 "the bar he supplied earns less than the street alone would explain");
             Check(lost.FactorFor(null) > 0, "but it is not shut — a floor of zero is an ending, not a decision");
 
