@@ -445,6 +445,25 @@ namespace Ledger.Core
         /// have decided about long before today.
         public static bool WillMoveTheLedgers(double lenaLoyalty) => lenaLoyalty >= 0.7;
 
+        /// Kingdom covers two worlds, and the difference is the entire point of
+        /// the matrix's second axis.
+        ///
+        /// One is the empire kept at the cost of everybody who knew you before
+        /// it. The other — found by the test that asks whether every input can
+        /// change the ending — is the player who kept the empire AND somebody
+        /// who still counts them, but did not earn Both because the enterprise
+        /// never quite added up. That is not the same evening, and until now it
+        /// was told it had nobody left, which was simply untrue.
+        ///
+        /// The ending stays Kingdom either way: you kept what you built, and
+        /// there are five endings, not six. What changes is what it cost.
+        public static string KingdomText(bool anybodyLeft) => anybodyLeft
+            ? "The books hold. Everything you built is still yours, and there is still one person in this city " +
+              "who knew you before any of it and did not stop knowing you. You are aware, sitting with them, " +
+              "of how narrow that is. It would have taken one more careless month. It still might."
+            : "The books hold. Everything you built is still yours. Ada is civil at the market and does not " +
+              "stop walking; Lena works her hours and goes home. You have the street. That is the whole of it.";
+
         /// The straight life has two roads into it and they do not feel the
         /// same. One is a man who built something and gave it up; the other is
         /// a man who was handed the makings of it and never did — which is the
@@ -467,8 +486,7 @@ namespace Ledger.Core
                   "quite believes you got away with it. You did. It took managing every mouth on this street, " +
                   "and you will be managing them tomorrow too."
             : e == Ending.Kingdom
-                ? "The books hold. Everything you built is still yours. Ada is civil at the market and does not " +
-                  "stop walking; Lena works her hours and goes home. You have the street. That is the whole of it."
+                ? KingdomText(anybodyLeft: false)
             : e == Ending.StraightLife
                 ? StraightLifeText(everBuiltIt: true)
             : e == Ending.Quiet

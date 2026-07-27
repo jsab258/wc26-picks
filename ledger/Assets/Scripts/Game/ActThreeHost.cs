@@ -221,8 +221,11 @@ namespace Ledger.Game
             // The straight life has two roads in and they do not read the same:
             // a man who built something and gave it up, and a man who was handed
             // the makings and never did.
-            string ending = ActThree.Result == Ending.StraightLife
-                ? ActThreeState.StraightLifeText(everBuiltIt: ActThree.SoldUp || Empire.TotalRacketIncome > 0)
+            string ending =
+                ActThree.Result == Ending.StraightLife
+                    ? ActThreeState.StraightLifeText(everBuiltIt: ActThree.SoldUp || Empire.TotalRacketIncome > 0)
+                : ActThree.Result == Ending.Kingdom
+                    ? ActThreeState.KingdomText(anybodyLeft: s.BestDayLifeLoyalty >= LedgerState.TrustThreshold)
                 : ActThreeState.EndingText(ActThree.Result, s.SuccessorName);
             ToastLine(ending, 22f);
             Debug.Log($"ACT III: audit closed day {Now.Day} — {ActThree.Result} " +

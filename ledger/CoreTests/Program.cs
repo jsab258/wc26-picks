@@ -2411,10 +2411,114 @@ namespace Ledger.CoreTests
             Check(ActThreeState.EpilogueText(2, "Sam", handedHot) != ActThreeState.EpilogueText(2, "Sam", handedQuiet),
                 "and a life you kept still writes to you");
 
+            TestEveryInputIsRead();
             TestBooksMustHold();
             TestTheInspector();
             TestLastDay();
             TestDissolve();
+        }
+
+        /// THE GENERALISED VERSION OF TODAY'S BUG.
+        ///
+        /// `LedgerStrain` was computed, worded, displayed — and never read by
+        /// the function that picks the ending. Every laundering decision across
+        /// three acts was decorative, and no test caught it because each test
+        /// varied the thing it was about and left the rest of the world alone.
+        ///
+        /// So: for every field of LedgerState, perturb THAT FIELD ALONE and
+        /// require that it can change the answer. An input nobody reads is
+        /// either a bug or a decision, and this forces it to be a decision —
+        /// the exemptions below are listed with reasons rather than discovered
+        /// six months later by somebody wondering why their number does nothing.
+        static void TestEveryInputIsRead()
+        {
+            Console.WriteLine("Act III — every input to the ending is actually read:");
+
+            // A world sitting near enough to several lines that a single nudge
+            // in any direction can move it.
+            LedgerState Base() => new LedgerState
+            {
+                BusinessesOwned = 1, RacketsEstablished = 1, CrewCount = 2,
+                BestDayLifeLoyalty = 0.6, DayCircleRacketHeat = 0.3,
+                OsseiCaseAnswerable = false,
+                TotalWashed = 900, TotalRacketIncome = 1000, BarTakingsToDate = 3000,
+                HasReadySuccessor = true,
+            };
+
+            // `setup` puts the world where the field under test is the only
+            // thing holding its condition up — otherwise a field can look dead
+            // when it is merely redundant with another. Owning a shop and
+            // running a round both keep the empire alive, so zeroing either one
+            // alone proves nothing about whether it is read.
+            void Reads(string field, Action<LedgerState> setup, params Action<LedgerState>[] nudges)
+            {
+                LedgerState Start() { var w = Base(); setup?.Invoke(w); return w; }
+                var baseline = ActThreeState.Resolve(Start());
+                bool moved = false;
+                foreach (var nudge in nudges)
+                {
+                    var w = Start();
+                    nudge(w);
+                    if (ActThreeState.Resolve(w) != baseline) { moved = true; break; }
+                }
+                Check(moved, $"{field} can change the ending on its own", baseline.ToString());
+            }
+
+            Reads("BusinessesOwned", w => w.RacketsEstablished = 0, w => w.BusinessesOwned = 0);
+            Reads("RacketsEstablished", w => w.BusinessesOwned = 0, w => w.RacketsEstablished = 0);
+            Reads("EmpireDissolved", null, w => w.EmpireDissolved = true);
+            // The life decides the ENDING where there is no empire to keep
+            // (straight life against losing both), and decides what the ending
+            // SAYS where there is — Kingdom covers "kept it, kept somebody" and
+            // "kept it, kept nobody", which are not the same evening.
+            Reads("BestDayLifeLoyalty", w => { w.BusinessesOwned = 0; w.RacketsEstablished = 0; },
+                w => w.BestDayLifeLoyalty = 0.1);
+            Check(ActThreeState.KingdomText(true) != ActThreeState.KingdomText(false),
+                "and where it does not change the ending it changes what the ending says");
+            Check(!ActThreeState.KingdomText(true).Contains("That is the whole of it"),
+                "so nobody with a friend left is told they have nobody");
+            // Heat only decides anything where Both is otherwise live — it is
+            // one of the two halves of "the information landscape was managed",
+            // and the other half is the deflection.
+            Reads("DayCircleRacketHeat", w => w.OsseiCaseAnswerable = true,
+                w => w.DayCircleRacketHeat = 0.95);
+            Reads("OsseiCaseAnswerable", null, w => w.OsseiCaseAnswerable = true);
+            Reads("TotalWashed", null, w => w.TotalWashed = 0, w => w.TotalWashed = 9000);
+            Reads("TotalRacketIncome", null, w => w.TotalRacketIncome = 9000);
+            Reads("BarTakingsToDate", null, w => w.BarTakingsToDate = 1);
+            Reads("HandedOver", null, w => w.HandedOver = true);
+            // Only meaningful once you have actually signed: it is the check
+            // that stops you handing it to somebody who could not hold it.
+            Reads("HasReadySuccessor", w => w.HandedOver = true, w => w.HasReadySuccessor = false);
+            // The three that only bite on books near the line — which is the
+            // design: none of them is allowed to rescue a business that never
+            // made sense, and none of them is meant to matter when it did. The
+            // world-setup goes in `setup` so the nudge really is one field.
+            Reads("Cooperations", w => w.TotalWashed = 200, w => w.Cooperations = 6);
+            Reads("Stonewalls", w => w.TotalWashed = 450, w => w.Stonewalls = 4);
+            Reads("LedgersMoved", w => w.TotalWashed = 300, w => w.LedgersMoved = true);
+
+            // The two that deliberately do NOT decide, named so that being
+            // unread is a choice rather than an oversight:
+            //
+            //   CrewCount      — how MANY people you have never decided which
+            //                    life you keep. Whether one of them could hold
+            //                    it does, and that is HasReadySuccessor.
+            //   DayLifeDeparted— the ending asks whether anybody still counts
+            //                    you, not how many walked. Best-not-average is
+            //                    the whole point: one friend IS a life kept.
+            //
+            // Both are carried for the ledger screen and the epilogue's wording.
+            // If either ever needs to decide something, delete it from here and
+            // this test will start demanding it.
+            foreach (var (name, nudge) in new (string, Action<LedgerState>)[]
+                { ("CrewCount", w => w.CrewCount = 40), ("DayLifeDeparted", w => w.DayLifeDeparted = 40) })
+            {
+                var w2 = Base();
+                nudge(w2);
+                Check(ActThreeState.Resolve(w2) == ActThreeState.Resolve(Base()),
+                    $"{name} is deliberately not a deciding input", name);
+            }
         }
 
         /// THE HOLE THIS CLOSES. Strain was computed, worded, and shown — and
