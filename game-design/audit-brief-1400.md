@@ -117,10 +117,21 @@ be "what do they pass *on*". Three tools now exist for that:
   do not retry). The check-run API returns job output, and it was empty
   because nothing had ever written a job summary.
 
-  **Fixed by writing the verdict to `GITHUB_STEP_SUMMARY`**, which comes back
-  through `get_check_run` as output text. That is what the API is for and it
-  should have been the first thing tried. If you need CI diagnostics out of
-  this environment in future, that is the channel — not logs, not artifacts.
+  **`GITHUB_STEP_SUMMARY` does not work either** — tested on a completed,
+  failed job: `check_run.output` came back empty. For Actions jobs that field
+  is not populated from the job summary.
+
+  So four channels are ruled out by test: end of the sim step, a final step,
+  artifacts (egress 403), and the check-run summary. What is left is the ~4KB
+  log tail, and the fifth attempt attacks the NOISE instead of the position:
+  `actions/checkout` with `persist-credentials: false` (nothing here pushes,
+  and the credential costs ~1.5KB of git-config unwinding in post-job), plus
+  a Verdict step that prints a compact block rather than the ~1.2KB done-line.
+
+  **If that also fails, treat the verdict as unavailable and diagnose from the
+  sim-report fields printed in the step itself, or run the sim locally.** Five
+  attempts is already more than this deserves and it should not eat the audit
+  session too.
 - My `dayJobOk` fix is therefore **a prediction, not a diagnosis**. It stands
   on its own merits (the day job was the one open-city system the sim left to
   the bot's legs) but it has never been confirmed as the cause. If the verdict
