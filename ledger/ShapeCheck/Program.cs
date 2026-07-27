@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -84,8 +85,15 @@ int bad = 0;
 foreach (var d in compilation.GetDiagnostics())
 {
     if (d.Severity != DiagnosticSeverity.Error) continue;
+    // Leading underscores count as lower-case for this purpose. Private
+    // fields in this codebase are all _likeThis, and the first version of this
+    // check tested char.IsLower(name[0]) — which is false for '_', so the most
+    // common typo in the codebase was the one class it silently skipped. A
+    // checker with a hole exactly where the code is densest is worse than no
+    // checker, because it is trusted.
     bool missingLocal = MissingName(d, out var missing)
-                        && char.IsLower(missing[0]) && !inherited.Contains(missing);
+                        && char.IsLower(missing.TrimStart('_').FirstOrDefault())
+                        && !inherited.Contains(missing);
     if (!interesting.Contains(d.Id) && !missingLocal) continue;
     bad++;
     var span = d.Location.GetLineSpan();
