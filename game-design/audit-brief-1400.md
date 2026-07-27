@@ -240,64 +240,84 @@ assumed. Apply this to anything new.
   installs were ~7½ minutes. Only `started_at`/`completed_at` on a COMPLETED
   step is real.
 
-## RECOMMENDED AUDIT SCOPE — read this first
+## AUDIT SCOPE — EXHAUSTIVE. Cover everything. (Jafar, 2026-07-27)
 
-Ranked. Everything here is chosen because it is either unenforced, enforced in
-exactly one place, or degrades with delay. Time-box it: the point is to produce
-a list to fix, not to admire the codebase.
+**The instruction is ultra-thorough coverage of the whole codebase, not a
+time-boxed pass.** An earlier draft of this section ranked five items and told
+you to skip re-checking this morning's work. That was wrong on the second
+point and it is worth saying why, because the reason is the finding of the day:
 
-**0. Before trusting anything else: run the sim 3-5 times on different seeds.**
-Act III's in-engine gate has executed TWICE in the life of this project, both
-on the morning of 27 July, and one of those resolved `ending=Kingdom`. That
-may be the design working or it may be luck. This is cheap and everything
-below assumes the harness tells the truth.
+**I wrote this morning's tests, so I am the wrong one to certify them.** Five
+gates that looked green turned out to be worth nothing — three had never
+executed once, two were reading a world still in motion — and I did not find
+that by inspecting my own work, I found it because a floor forced the
+question. **Re-check the sweep I called finished.** If it comes back clean,
+that is a real result and worth stating plainly. Do not take my word for it.
 
-**1. The legibility law has exactly one enforcement point.** "No number is ever
-shown as a number — it must be sayable as somebody's circumstance" is the most
-distinctive rule in the project and it is asserted in ONE place (`ReadPlan`'s
-no-digits check). Sweep every player-facing string for digits. Mechanical,
-cheap, and it protects the thing that makes the game feel like itself.
+The list below is a starting point, in rough value order, NOT a boundary.
+Anything not on it is still in scope.
 
-**2. Authored content that nothing can reach.** The doorman gap found on 27
-July — two of ten `KeyKind`s had no line, so the two doors where the clock IS
-the point got a flat "lets you past" while a bribe, a hook and a reputation
-each got a sentence — was found by accident. Sweep every authored string
-constant for "is there a code path that can display this".
+**0. Before trusting the green: run the sim several times on different seeds.**
+Act III's in-engine gate has executed TWICE in this project's life, both on
+the morning of 27 July, and one of those produced the `ending=Kingdom` that
+several documents now quote. That may be the design working or it may be one
+seed. Everything else assumes the harness tells the truth.
 
-**3. Save/load, because it is the item that gets worse with delay.** Still no
-version field (P2). Every `Capture`/`Restore` pair should round-trip, and every
-field added in the last week should be checked into the codec. Save corruption
-is the worst player-facing bug class and it is silent.
+**1. Re-audit the vacuous-conditional sweep rather than trusting it.** Five
+closed vocabularies (`Checks`, `Effects`, `Pressures`, `KeyKind`, `Approach`),
+`LedgerState`'s fields, every money modifier. Four of five came back clean —
+verify that. Then extend the question to every gate in `SimDirector`, every
+`Due(...)` condition, and every assertion in CoreTests: **can this test fail?
+Construct the input that fails it.** A test nobody can fail is decoration.
 
-**4. Determinism.** BalanceLab and the sim both rest on seeded RNG. Sweep for
-`DateTime.Now`, unseeded `Random`, or dictionary-order dependence anywhere that
-feeds game state. If runs are not reproducible, every balance number in
+**2. The legibility law has exactly ONE enforcement point.** "No number is
+ever shown as a number — it must be sayable as somebody's circumstance" is the
+most distinctive rule in the project and it is asserted in one place
+(`ReadPlan`'s no-digits check). Sweep EVERY player-facing string for digits:
+toasts, ledger sections, panel text, barks, morning summaries, endings.
+
+**3. Authored content nothing can reach.** Two of ten `KeyKind`s had no doorman
+line and were found by accident. Sweep every authored string constant for "is
+there a code path that can display this", and every branch of authored text
+for whether its condition is satisfiable.
+
+**4. Save/load — the item that degrades while you wait.** Still no version
+field (P2). Every `Capture`/`Restore` pair must round-trip; every field added
+recently must be in the codec. A field that saves but does not restore is
+silent and permanent.
+
+**5. Determinism.** BalanceLab and the sim rest on seeded RNG. Sweep for
+`DateTime.Now`, unseeded `Random`, `Math.Random`, and dictionary/set iteration
+order feeding game state. If runs are not reproducible, every number in
 `balance-findings-endings.md` is softer than it reads.
 
-**5. What else the Fall silently empties.** `RunTheFall` clears EVERY rumor
-about the player, by design. That is what broke the car gate. Anything else
-that reads the mill as evidence — Ossei's case, hooks, leads — deserves a
-check for whether a post-Fall read still means anything.
+**6. What else the Fall silently empties.** `RunTheFall` clears EVERY rumor
+about the player, by design — that is what broke the car gate. Audit every
+consumer of the mill (Ossei's case, hooks, leads, Act III's `OsseiCaseAnswerable`)
+for whether a post-Fall read still means anything.
 
-### Do NOT do this
+**7. Everything else.** Core/Game boundary, the codec, the economy's inputs,
+Act I/II/III's conditions, traffic, population LOD, phones, harm, access,
+operations, UI panels, the workflow itself. If it has never been looked at
+with the two questions below, look at it.
 
-**Do not repeat the vacuous-conditional sweep.** Five closed vocabularies
-(`Checks`, `Effects`, `Pressures`, `KeyKind`, `Approach`), `LedgerState`'s
-fields and every money modifier are done, and four of five came back clean.
-Re-running it is theatre. Apply the question to things that are NEW.
+### The two questions to carry through all of it
 
-### And one standing rule for anything built from here
+1. **Does anything actually read this — can it fail?** Perturb one input and
+   require the answer to change.
+2. **Is it latched, or read off a world that is still moving?** This produced
+   three bugs on 27 July, in BOTH directions: the car gate read a world that
+   had moved on and erased the evidence; the Act II gate read one that had not
+   yet caught up.
 
-Every new gate gets BOTH halves:
+### What a finding looks like
 
-1. does anything actually read this — can it fail?
-2. is it latched, or is it read off a world that is still moving?
+Name the failing input, not the smell. "This test cannot fail because X" or
+"this condition is unreachable because Y". A list of suspicions is not an
+audit — and equally, **a clean result stated plainly is a real result.** Do
+not manufacture findings to look thorough.
 
-The second half produced three bugs on 27 July alone, in both directions: the
-car gate read a world that had moved on and erased the evidence; the Act II
-gate read one that had not yet caught up.
-
-## Suggested audit order
+## Suggested audit order## Suggested audit order
 
 1. Read the verdict of the latest build with the call at the top of this file.
    Fix whatever it names.
