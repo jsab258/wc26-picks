@@ -451,6 +451,20 @@ namespace Ledger.Game
                     return true;
                 }
             }
+
+            // PP5, the last day. Offered last so it never covers a bigger verb,
+            // and offered to whoever you actually managed to reach — in person
+            // or on the line, which is the whole design of the scene.
+            var lastDay = _game.LastDayOffer(id);
+            if (lastDay != null)
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = lastDay;
+                _empireBtnA.interactable = true;
+                _empireSayA = "say the thing there is still time to say";
+                _empireBtnB.gameObject.SetActive(false);
+                return true;
+            }
             return false;
         }
 
@@ -488,6 +502,12 @@ namespace Ledger.Game
             {
                 var ready = _game.ReadySuccessor();
                 if (ready != null && ready.Id == id) { if (!leverage) _game.HandOver(id); return true; }
+            }
+
+            if (_game.LastDayOffer(id) != null)
+            {
+                if (!leverage && !_game.SpendLastDay(id)) Narrate(ActThreeState.LastDaySpentText);
+                return true;
             }
             return false;
         }

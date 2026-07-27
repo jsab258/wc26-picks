@@ -78,6 +78,8 @@ namespace Ledger.Core
         /// count of days you produced what was asked for, against days you told
         /// him to put it in writing.
         public int Cooperations, Stonewalls;
+        /// The real books went somewhere else on the last day.
+        public bool LedgersMoved;
 
         /// Above this, the day circle holds the rackets as fact rather than as
         /// talk, and "Both" is off the table.
@@ -120,6 +122,13 @@ namespace Ledger.Core
         public bool InspectorArrived;
         public int Cooperations, Stonewalls;
         public int LastDealtDay = -1;
+
+        /// The last day (PP5). Two calls, and reaching one is not reaching
+        /// another.
+        public int LastDayActions;
+        public bool LedgersMoved;
+        public int LastDayLeft => Math.Max(0, LastDayBudget - LastDayActions);
+        public bool IsLastDay(int day) => Opened && !AuditClosed && day >= AuditClosesDay - 1;
         /// Who the audit was pointed at instead, and who told you about them —
         /// because the street knows who talks, and the second name is the price.
         public string DeflectedOnto, BurnedWitnessId;
@@ -193,6 +202,11 @@ namespace Ledger.Core
             if (s == null) return 0;
             double seen = LedgerStrain(s) * ScopeFactor(s.Cooperations, s.Stonewalls);
             if (s.OsseiCaseAnswerable) seen *= 0.7;
+            // What is not in the cellar cannot be read out of it. Deliberately
+            // the single largest movement any one action makes, because it is
+            // the last day, it costs a whole call, and it is only available to
+            // somebody Lena decided about a long time ago.
+            if (s.LedgersMoved) seen *= 0.55;
             return Math.Clamp(seen, 0, 1);
         }
 
@@ -339,6 +353,55 @@ namespace Ledger.Core
             "The last day. You can reach a few people, and reaching one is not reaching another. " +
             "Whoever picks up is the campaign you actually played.";
 
+        /// PP5 — the last day, made into a scene rather than a sentence.
+        ///
+        /// The line above was written first and it describes something that did
+        /// not exist: there was nothing to DO on the last day except wait for
+        /// the ninth of the month. This is the doing.
+        ///
+        /// Three things you might say to three kinds of person, and the budget
+        /// is two — so "reaching one is not reaching another" is a rule rather
+        /// than a mood. Each one moves state the endings already read, so none
+        /// of them is an ending button:
+        ///
+        ///   - Lena moves the real ledgers, which narrows what can be found.
+        ///     Gated on loyalty, because it is a felony you are asking her to
+        ///     commit for you on a few hours' notice.
+        ///   - Somebody on the crew is told to go quiet, which takes them out
+        ///     of the count and out of the inspection's reach.
+        ///   - Somebody in the day life hears it from you rather than from the
+        ///     street, which is the only thing that has ever repaired one of
+        ///     those relationships.
+        ///
+        /// And it runs on the telephone, which is what makes it a scene: a
+        /// phone is a place, so whether you reach anybody at all on the last
+        /// day is a question about where they happen to be standing.
+        public const int LastDayBudget = 2;
+
+        public static string LastDayLenaText(bool willing) => willing
+            ? "\"They're in the cellar and they're in Marek's hand,\" Lena says. \"Give me until four.\" " +
+              "She does not ask what happens to her if somebody notices, and you do not offer to tell her."
+            : "Lena listens to the whole of it. Then she says that the books are where they have always been, " +
+              "and that she has a daughter, and that those two facts are the same answer.";
+
+        public static string LastDayCrewText(string name) =>
+            $"{name} is gone inside the hour — no argument, no goodbye worth the name. " +
+            "Whatever the inspection turns over, it will not turn them over, and whatever you built with them " +
+            "is finished either way.";
+
+        public static string LastDayTruthText(string name) =>
+            $"You tell {name} yourself, before the street can. It goes badly and it goes honestly, " +
+            "and at the end of it they are still standing there — which is more than the alternative " +
+            "was ever going to give you.";
+
+        public const string LastDaySpentText =
+            "There is not time for another. The date on the letter is tomorrow and it was always going to " +
+            "come down to which two people you could reach.";
+
+        /// Will she do it? A felony, at short notice, for somebody she has to
+        /// have decided about long before today.
+        public static bool WillMoveTheLedgers(double lenaLoyalty) => lenaLoyalty >= 0.7;
+
         public static string EndingText(Ending e, string successorName = null) =>
             e == Ending.Both
                 ? "The books are opened, and they are a bar's books. The inspector is bored by two o'clock. " +
@@ -403,6 +466,7 @@ namespace Ledger.Core
             { "deflectedOnto", DeflectedOnto ?? "" }, { "burned", BurnedWitnessId ?? "" },
             { "inspector", InspectorArrived }, { "cooperations", Cooperations },
             { "stonewalls", Stonewalls }, { "dealtDay", LastDealtDay },
+            { "lastDayActions", LastDayActions }, { "ledgersMoved", LedgersMoved },
         };
 
         public void Restore(Dictionary<string, object> d)
@@ -431,6 +495,8 @@ namespace Ledger.Core
             Cooperations = MiniJson.GetInt(d, "cooperations");
             Stonewalls = MiniJson.GetInt(d, "stonewalls");
             LastDealtDay = MiniJson.GetInt(d, "dealtDay");
+            LastDayActions = MiniJson.GetInt(d, "lastDayActions");
+            LedgersMoved = Flag(d, "ledgersMoved");
         }
 
         static bool Flag(Dictionary<string, object> o, string key) =>

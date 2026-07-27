@@ -42,6 +42,7 @@ namespace Ledger.Game
                 HandedOver = ActThree.SuccessorId != null,
                 Cooperations = ActThree.Cooperations,
                 Stonewalls = ActThree.Stonewalls,
+                LedgersMoved = ActThree.LedgersMoved,
             };
 
             // The life: the named people whose circle is the daylight one. Best
@@ -334,6 +335,81 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
         /// Has he asked for something today that is still unanswered?
         public bool InspectorWaiting => ActThree.Opened && !ActThree.AuditClosed
             && ActThree.InspectorArrived && _inspectorAskedDay == Now.Day;
+
+        // ---- PP5: the last day ----
+
+        /// What, if anything, this person is worth reaching on the last day.
+        /// Null when there is nothing to say to them that would change anything,
+        /// which is most people — and is the point.
+        public string LastDayOffer(string whoId)
+        {
+            if (!ActThree.IsLastDay(Now.Day) || ActThree.LastDayLeft <= 0) return null;
+            if (whoId == "Lena") return ActThree.LedgersMoved ? null : "Ask her to move the books";
+            if (Empire.CrewOf(whoId) != null) return "Tell them to go quiet";
+            var g = _gossip?.Mill?.Get(whoId);
+            if (g != null && g.Circle != "night" && Empire.CrewOf(whoId) == null
+                && whoId != ActThreeState.InspectorName && whoId != "Ossei")
+                return "Tell them yourself, before the street does";
+            return null;
+        }
+
+        /// Spend one of the last day's two calls.
+        ///
+        /// Every one of these moves state the endings already read — the books,
+        /// the crew count, a relationship — so none of them is an ending button
+        /// wearing a conversation. And all three run just as well down a
+        /// telephone line, which is what turns "whoever picks up is the campaign
+        /// you actually played" from a nice sentence into a mechanic.
+        public bool SpendLastDay(string whoId)
+        {
+            if (LastDayOffer(whoId) == null) return false;
+            var mill = _gossip?.Mill;
+
+            if (whoId == "Lena")
+            {
+                double loyalty = mill?.Get("Lena")?.Loyalty ?? 0;
+                bool willing = ActThreeState.WillMoveTheLedgers(loyalty);
+                ToastLine(ActThreeState.LastDayLenaText(willing), 16f);
+                ActThree.LastDayActions++;      // the call is spent either way
+                if (!willing) return true;
+                ActThree.LedgersMoved = true;
+                mill?.Get("Lena")?.Memory.Append(new MemoryEvent(Now, "conversation", 1.0,
+                    "I moved Marek's books the night before the inspection because they asked me to. " +
+                    "I have thought about that evening more than any other."));
+                return true;
+            }
+
+            var crew = Empire.CrewOf(whoId);
+            if (crew != null)
+            {
+                ActThree.LastDayActions++;
+                crew.Departed = true;
+                crew.Assignment = null;
+                ToastLine(ActThreeState.LastDayCrewText(crew.Name), 14f);
+                var g = mill?.Get(whoId);
+                g?.Memory.Append(new MemoryEvent(Now, "conversation", 0.95,
+                    "They told me to go and not come back, and they told me before it happened rather than after. " +
+                    "That is not nothing. It is not much, but it is not nothing."));
+                if (g != null) g.Loyalty = Mathf.Clamp01((float)g.Loyalty + 0.1f);
+                return true;
+            }
+
+            // The day life. The only repair this game has ever offered one of
+            // these relationships is hearing it from you first.
+            var friend = mill?.Get(whoId);
+            if (friend == null) return false;
+            ActThree.LastDayActions++;
+            friend.Loyalty = Mathf.Clamp01((float)friend.Loyalty + 0.28f);
+            friend.Memory.Append(new MemoryEvent(Now, "conversation", 1.0,
+                "They came and told me the whole of it themselves, the day before it broke. " +
+                "I did not take it well. I would rather have had it that way than the other."));
+            // They now genuinely know, and knowing is a fact in this world
+            // rather than a mood — it goes into the mill like anything else.
+            mill.Witness(whoId, new Fact("player", "confessed", "true"),
+                "the one who owns the bar told me what they have really been doing, to my face", true, Now, 1.0);
+            ToastLine(ActThreeState.LastDayTruthText(friend.DisplayName ?? whoId), 15f);
+            return true;
+        }
 
         /// Sell up, pay everyone off, take the loss. The straight life is bought
         /// with the empire, at a bad price, and it cannot be undone.

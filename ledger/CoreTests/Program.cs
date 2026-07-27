@@ -2413,6 +2413,7 @@ namespace Ledger.CoreTests
 
             TestBooksMustHold();
             TestTheInspector();
+            TestLastDay();
             TestDissolve();
         }
 
@@ -2540,6 +2541,65 @@ namespace Ledger.CoreTests
             twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(act.Capture()))));
             Check(twin.InspectorArrived && twin.Cooperations == 4 && twin.Stonewalls == 1
                   && twin.LastDealtDay == 22, "and every morning you answered him survives a reload");
+        }
+
+        /// PP5. The line "you can reach a few people, and reaching one is not
+        /// reaching another" was written before there was anything to reach
+        /// them ABOUT. These are the rules that make it true.
+        static void TestLastDay()
+        {
+            var act = new ActThreeState { Opened = true, AuditClosesDay = 30 };
+            Check(!act.IsLastDay(28), "the last day is not the whole week");
+            Check(act.IsLastDay(29) && act.IsLastDay(30), "it is the eve and the day itself");
+            act.AuditClosed = true;
+            Check(!act.IsLastDay(30), "and it is over once the books are open");
+
+            var live = new ActThreeState { Opened = true, AuditClosesDay = 30 };
+            Check(live.LastDayLeft == ActThreeState.LastDayBudget, "two calls, to start with");
+            live.LastDayActions = 1;
+            Check(live.LastDayLeft == 1, "one spent is one left");
+            live.LastDayActions = 9;
+            Check(live.LastDayLeft == 0, "and it never goes negative, however hard anybody tries");
+
+            // Moving the books is the largest single movement in the act, and
+            // it is gated on a relationship rather than on money — which is the
+            // same rule Lena's PP2 scene runs on, applied to the last day.
+            Check(!ActThreeState.WillMoveTheLedgers(0.5), "she will not commit a felony for an employer");
+            Check(ActThreeState.WillMoveTheLedgers(0.8), "she will for somebody she decided about long ago");
+            Check(ActThreeState.LastDayLenaText(true) != ActThreeState.LastDayLenaText(false),
+                "and the refusal is its own scene rather than a failure message");
+            Check(ActThreeState.LastDayLenaText(false).Contains("daughter"),
+                "with a reason that belongs to her rather than to you");
+
+            LedgerState Books(bool moved)
+            {
+                var s = Kingdom();
+                s.TotalWashed = 1000; s.TotalRacketIncome = 3000; s.BarTakingsToDate = 9000;
+                s.LedgersMoved = moved;
+                return s;
+            }
+            double kept = ActThreeState.SeenStrain(Books(false));
+            double gone = ActThreeState.SeenStrain(Books(true));
+            Check(gone < kept, "what is not in the cellar cannot be read out of it",
+                $"{kept:0.00} -> {gone:0.00}");
+            Check(kept > LedgerState.BooksHoldThreshold && gone < LedgerState.BooksHoldThreshold,
+                "and on books at the line it is the difference between keeping it and not");
+
+            // It survives a reload, like every other one-way thing in the act.
+            var spent = new ActThreeState
+            {
+                Opened = true, AuditClosesDay = 30, LastDayActions = 2, LedgersMoved = true,
+            };
+            var twin = new ActThreeState();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(spent.Capture()))));
+            Check(twin.LastDayActions == 2 && twin.LedgersMoved,
+                "and the last day cannot be replayed by reloading");
+
+            // The authored text names the person rather than a role, because a
+            // last call is to somebody.
+            Check(ActThreeState.LastDayCrewText("Sam").Contains("Sam")
+                  && ActThreeState.LastDayTruthText("Ada").Contains("Ada"),
+                "and every last-day line is addressed to a name");
         }
 
         /// Selling up: the straight life's price, paid in the thing you built.
