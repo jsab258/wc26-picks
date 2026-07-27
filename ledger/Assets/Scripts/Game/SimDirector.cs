@@ -423,6 +423,15 @@ namespace Ledger.Game
             // AFTER the morning close (hour >= 10): the Fall's 3-day skip must
             // not swallow day 9's close, or DaysClosed never reaches 8 and the
             // openMode criterion reads as a regression (run 30199175088).
+            //
+            // `day >= 9` IS SAFE HERE, and it is the only place left in this
+            // file where an exact day still appears — everything else was moved
+            // off dates after three gates turned out to be unsatisfiable for
+            // exactly that reason. It survives on `Falls == 0`: the only thing
+            // that moves the clock is a Fall, so if none has happened the clock
+            // has not jumped and day 9 arrives normally. If one HAS happened
+            // this block is not wanted anyway. Do not "fix" it to day 8 — that
+            // would stage a fall before the open city has had a day to be one.
             if (!_forcedFall && now.Day >= 9 && now.Hour >= 10 && _game.Campaign.OpenMode
                 && _game.Campaign.Falls == 0 && !_game.Campaign.FallPending)
             {
