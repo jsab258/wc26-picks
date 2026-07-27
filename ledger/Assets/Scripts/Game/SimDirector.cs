@@ -31,6 +31,11 @@ namespace Ledger.Game
         /// Ceiling on days given back to the sim after the clock jumps. See the
         /// reclaim in Update: uncapped, repeated falls make the run unbounded.
         const int MaxReclaimedDays = 4;
+        /// Consecutive hourly samples an Act II beat may stay due-and-unfired
+        /// before the build fails. Two, so a beat has a clear game-hour to
+        /// fire — enough that the last hour of the run cannot manufacture a
+        /// failure, small enough that a beat which never fires still does.
+        const int ActTwoGraceSamples = 2;
 
         GameController _game;
         PlayerController _player;
@@ -63,6 +68,10 @@ namespace Ledger.Game
         /// in-game hour rather than at the end, because the Fall clears the mill.
         bool _vehicleFactLatched;
         int _vehicleScanHour = -1;
+        /// Per Act II pressure point: how many consecutive hourly samples its
+        /// condition has held while its flag stayed unset. See ActTwoSample.
+        readonly Dictionary<string, int> _act2Owed = new Dictionary<string, int>();
+        int _act2SampleHour = -1;
         bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
@@ -128,6 +137,8 @@ namespace Ledger.Game
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
             }
+
+            ActTwoSample(now);
 
             // Catch the car description while it is still in somebody's head.
             // Once an hour is often enough — a rumor lives for days — and cheap
@@ -476,6 +487,62 @@ namespace Ledger.Game
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
 
             if (now.Day >= _endDay) Finish();
+        }
+
+        /// Act II's standing conditions, in ONE place so the sampler below and
+        /// the gate cannot drift apart. Each entry is (name, the condition that
+        /// makes this beat due, whether it has fired).
+        ///
+        /// PP4 is absent on purpose rather than by oversight: it is the
+        /// collision, it fires off an ATTENDED beat rather than off empire
+        /// state, and so it has no standing condition to check.
+        List<KeyValuePair<string, bool>> ActTwoOwed()
+        {
+            var owed = new List<KeyValuePair<string, bool>>();
+            var a2 = _game.ActTwo;
+            if (!a2.Opened) return owed;
+            var e = _game.Empire;
+            void Due(string name, bool condition, bool fired)
+            {
+                if (condition && !fired) owed.Add(new KeyValuePair<string, bool>(name, true));
+            }
+            Due("pp1", e.Arms.FindAll(a => a.Attention >= 0.25).Count >= 2, a2.Pp1Fired);
+            Due("pp2", e.ArmOf("machine").Attention >= 0.5, a2.Pp2Fired);
+            Due("pp3", e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Ruta") != null, a2.Pp3Fired);
+            Due("pp5", e.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2, a2.Pp5Fired);
+            Due("pp6", _game.OsseiSpawned && _game.OsseiInterviews.Count > 0
+                       && e.TotalRacketIncome > 0, a2.Pp6Fired);
+            Due("pp7", e.Arms.Exists(a => a.Stage >= 4), a2.TableArmId != null);
+            return owed;
+        }
+
+        /// Once an in-game hour, ask which beats are DUE AND UNFIRED, and count
+        /// how many samples in a row that has been true of each.
+        ///
+        /// The gate used to ask the same question once, at the end of the run,
+        /// and that is a race it loses: the world's last hour can make a
+        /// condition true, and `CheckActTwo` runs on a 30-frame cadence, so the
+        /// beat is reported missing before the game was ever given a tick in
+        /// which to fire it. Requiring the debt to SURVIVE a sample is the
+        /// difference between "this beat never fires" — worth failing a build —
+        /// and "this beat fired a moment after we looked", which is not a bug.
+        ///
+        /// It is the car gate's lesson pointed the other way: there, the world
+        /// moved on and erased the evidence; here, the world had not yet caught
+        /// up. Both are end-of-run reads of a thing that was still moving.
+        void ActTwoSample(GameTime now)
+        {
+            if (now.Hour == _act2SampleHour) return;
+            _act2SampleHour = now.Hour;
+            var owed = ActTwoOwed();
+            var stillOwed = new HashSet<string>();
+            foreach (var kv in owed) stillOwed.Add(kv.Key);
+            // Anything that has been settled since the last look drops back to
+            // zero: a beat that fired late is a beat that fired.
+            var keys = new List<string>(_act2Owed.Keys);
+            foreach (var k in keys) if (!stillOwed.Contains(k)) _act2Owed[k] = 0;
+            foreach (var k in stillOwed)
+                _act2Owed[k] = (_act2Owed.TryGetValue(k, out var n) ? n : 0) + 1;
         }
 
         /// Renders through an explicit RenderTexture rather than ScreenCapture:
@@ -1022,27 +1089,18 @@ namespace Ledger.Game
             // drifted away from its firing site — without pretending the bot
             // played a longer campaign than it did.
             var a2 = _game.ActTwo;
-            var emp = _game.Empire;
             bool act2Ok = true;
             var act2Missed = new List<object>();
             if (a2.Opened)
             {
-                void Due(string name, bool condition, bool fired)
-                {
-                    if (!condition || fired) return;
-                    act2Ok = false;
-                    act2Missed.Add(name);
-                }
-                Due("pp1", emp.Arms.FindAll(a => a.Attention >= 0.25).Count >= 2, a2.Pp1Fired);
-                Due("pp2", emp.ArmOf("machine").Attention >= 0.5, a2.Pp2Fired);
-                Due("pp3", emp.ArmOf("newcrew").Attention >= 0.5 || emp.CrewOf("Ruta") != null, a2.Pp3Fired);
-                Due("pp5", emp.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2, a2.Pp5Fired);
-                Due("pp6", _game.OsseiSpawned && _game.OsseiInterviews.Count > 0 && emp.TotalRacketIncome > 0,
-                    a2.Pp6Fired);
-                Due("pp7", emp.Arms.Exists(a => a.Stage >= 4), a2.TableArmId != null);
-                // PP4 is the collision, and it fires off an ATTENDED beat rather
-                // than off empire state, so there is no standing condition to
-                // check — it is left out deliberately rather than forgotten.
+                // A beat counts as MISSED only if it stayed due and unfired
+                // across consecutive hourly samples — see ActTwoSample for why
+                // one end-of-run look is a race the gate loses rather than a
+                // test it passes. The conditions themselves live in ActTwoOwed,
+                // so this and the sampler cannot drift apart.
+                ActTwoSample(_game.Now);
+                foreach (var kv in _act2Owed)
+                    if (kv.Value >= ActTwoGraceSamples) { act2Ok = false; act2Missed.Add(kv.Key); }
                 act2Ok &= MiniJson.Serialize(a2.Capture()) ==
                           MiniJson.Serialize(RoundTripActTwo(a2).Capture());
             }
