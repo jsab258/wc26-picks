@@ -98,13 +98,22 @@ be "what do they pass *on*". Three tools now exist for that:
 
 ## Known-unresolved at handover
 
-- **The failing gate has still never been read.** Two builds have now gone red
-  in the simulation step and both times the verdict was out of reach. The
-  first fix printed it at the end of the sim STEP, which was not enough — two
-  artifact uploads and cleanup run after it and the log APIs return a
-  fixed-size tail of the JOB. It is now a final `Verdict` step with
-  `if: always()` and nothing after it. **The next red build will name its
-  gate; take that over anything written here.**
+- **The failing gate has still never been read**, across THREE red builds.
+  Worth knowing why, because it cost most of a morning:
+
+  The job-log API returns a fixed ~4KB tail, and GitHub's own post-job cleanup
+  (licence deactivation, git config unwinding) writes about that much AFTER
+  every user step. The budget is consumed by hooks nobody controls, so
+  "print it later in the job" can never work — I tried it three times.
+  Artifacts hold the full `sim-report.json` but sit on a blob host this
+  environment's egress policy denies with a 403 (a policy denial: report it,
+  do not retry). The check-run API returns job output, and it was empty
+  because nothing had ever written a job summary.
+
+  **Fixed by writing the verdict to `GITHUB_STEP_SUMMARY`**, which comes back
+  through `get_check_run` as output text. That is what the API is for and it
+  should have been the first thing tried. If you need CI diagnostics out of
+  this environment in future, that is the channel — not logs, not artifacts.
 - My `dayJobOk` fix is therefore **a prediction, not a diagnosis**. It stands
   on its own merits (the day job was the one open-city system the sim left to
   the bot's legs) but it has never been confirmed as the cause. If the verdict
