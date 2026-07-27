@@ -1236,7 +1236,7 @@ namespace Ledger.Game
                 Narrate($"You'd need ${price}. You have ${_game.PlayerCash}.");
                 return;
             }
-            var result = mill.Bribe(known.HolderId, known.TopicKey, price, _game.Now);
+            var result = mill.Bribe(known.HolderId, known.TopicKey, price, _game.Now, _game.Purses);
             if (ResolveStale(known, result)) return;
             // Money only changes hands if they actually take it.
             if (result.Outcome == DcOutcome.Contained)

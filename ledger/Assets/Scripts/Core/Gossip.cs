@@ -381,7 +381,12 @@ namespace Ledger.Core
 
         /// Pay an NPC to drop a rumor. A greedy enough NPC pockets it and goes quiet; a
         /// too-principled one is offended and starts saying you tried to buy their silence.
-        public DcResult Bribe(string npcId, string topicKey, double offer, GameTime now)
+        /// `purses` is optional so every existing caller keeps working. Pass it
+        /// and the money you hand over lands in their drawer instead of leaving
+        /// the world (roadmap M13) — which means a bribed man is carrying cash
+        /// he cannot account for, and can pay a debt with it next week.
+        public DcResult Bribe(string npcId, string topicKey, double offer, GameTime now,
+            PurseBook purses = null)
         {
             var n = Get(npcId);
             // A leashed NPC already complies — no money needed, no backfire possible
@@ -397,6 +402,7 @@ namespace Ledger.Core
             {
                 Contain(n, topicKey);
                 n.Loyalty = Math.Clamp(n.Loyalty + 0.05, 0, 1);
+                purses?.Credit(npcId, (int)Math.Round(price), now.Day, n.DisplayName);
                 n.Memory.Append(new MemoryEvent(now, "conversation", 0.5,
                     $"The new owner paid me to keep quiet about {Short(topicKey)}. Suits me."));
                 return Dc(DcOutcome.Contained, $"{n.DisplayName} takes the money and lets it drop.");

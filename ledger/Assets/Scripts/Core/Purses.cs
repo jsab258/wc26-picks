@@ -36,6 +36,12 @@ namespace Ledger.Core
 
         public int LastEmptiedDay = -1;
         public int TimesEmptied;
+        /// Money that arrived from the player rather than from their week's
+        /// work, and the day it did. A bribed man is a man carrying cash he
+        /// cannot account for, which is evidence — and it is exactly the sort
+        /// of thing a careful investigator asks about.
+        public int Windfall;
+        public int LastWindfallDay = -1;
         /// Set the night they borrow, so the game can tell the difference
         /// between somebody who had it and somebody who went and got it.
         public int LastBorrowedDay = -1;
@@ -157,6 +163,38 @@ namespace Ledger.Core
             return result;
         }
 
+        /// Money the player hands somebody — a bribe, a payoff, a generous cut.
+        ///
+        /// It goes INTO their drawer rather than out of the world. That is the
+        /// same rule borrowing follows and it matters for the same reason: money
+        /// that vanishes when spent makes the district's economy a fiction the
+        /// moment the player participates in it. Bribe Rocco two hundred and
+        /// Rocco has two hundred — and if you come collecting from him next
+        /// week, he can pay you with it.
+        ///
+        /// A windfall is allowed to push somebody past their ceiling, because
+        /// the ceiling is what they would keep to hand in the ordinary way and
+        /// this is not ordinary. Somebody visibly holding more than their life
+        /// explains is the point rather than a rounding error.
+        public void Credit(string id, int amount, int day, string name = null, bool windfall = true)
+        {
+            if (string.IsNullOrEmpty(id) || amount <= 0) return;
+            var p = For(id, name);
+            p.Cash += amount;
+            if (!windfall) { p.Cash = Math.Min(p.Cash, p.Ceiling); return; }
+            p.Windfall += amount;
+            p.LastWindfallDay = day;
+        }
+
+        /// Is this person carrying money their life does not explain? The
+        /// threshold is their own weekly turnover: a docker holding a week's
+        /// wages in cash is unremarkable, and holding four is a question.
+        public bool CarryingUnexplained(string id)
+        {
+            var p = Of(id);
+            return p != null && p.Windfall > p.Weekly;
+        }
+
         /// Overnight, somebody who was emptied and still owes goes to whoever
         /// they have. The money MOVES rather than appearing — the patron's purse
         /// is lighter by exactly what the debtor's is heavier by — and a favour
@@ -218,6 +256,7 @@ namespace Ledger.Core
                     { "id", p.OwnerId }, { "name", p.Name }, { "cash", p.Cash },
                     { "weekly", p.Weekly }, { "ceiling", p.Ceiling },
                     { "patron", p.PatronId ?? "" },
+                    { "windfall", p.Windfall }, { "windfallDay", p.LastWindfallDay },
                     { "emptiedDay", p.LastEmptiedDay }, { "timesEmptied", p.TimesEmptied },
                     { "borrowedDay", p.LastBorrowedDay },
                 });
@@ -256,6 +295,8 @@ namespace Ledger.Core
                         LastEmptiedDay = MiniJson.GetInt(o, "emptiedDay"),
                         TimesEmptied = MiniJson.GetInt(o, "timesEmptied"),
                         LastBorrowedDay = MiniJson.GetInt(o, "borrowedDay"),
+                        Windfall = MiniJson.GetInt(o, "windfall"),
+                        LastWindfallDay = MiniJson.GetInt(o, "windfallDay"),
                     });
                 }
             }

@@ -2671,6 +2671,33 @@ namespace Ledger.CoreTests
             Check(sam.Memory.Events.Count > memoriesBefore, "and remembers having to ask");
             Check(purses.Favours.Count == 1, "somebody on this street is now owed a favour");
 
+            // MONEY THE PLAYER SPENDS ON PEOPLE LANDS IN THEIR DRAWER. Money
+            // that vanished when spent would make the district's economy a
+            // fiction the moment the player participated in it.
+            var paid_out = new PurseBook();
+            paid_out.Add(new Purse { OwnerId = "Rocco", Name = "Rocco", Weekly = 140, Ceiling = 260, Cash = 100 });
+            paid_out.Credit("Rocco", 200, day: 5);
+            Check(paid_out.Of("Rocco").Cash == 300, "a bribe goes into their pocket, not out of the world",
+                paid_out.Of("Rocco").Cash.ToString());
+            Check(paid_out.Of("Rocco").Cash > paid_out.Of("Rocco").Ceiling,
+                "and a windfall is allowed past what they would normally keep to hand");
+            Check(paid_out.CarryingUnexplained("Rocco"),
+                "which leaves them carrying money their life does not explain");
+            Check(paid_out.Of("Rocco").LastWindfallDay == 5, "and the game knows which day it arrived");
+
+            // And they can pay a debt with it next week, which is the loop.
+            var payBack = paid_out.Take("Rocco", 250, day: 6);
+            Check(payBack.Paid == 250, "so they can settle with the money you gave them", payBack.Paid.ToString());
+
+            // Ordinary income is not a windfall and does respect the ceiling.
+            paid_out.Credit("Rocco", 500, day: 7, windfall: false);
+            Check(paid_out.Of("Rocco").Cash <= paid_out.Of("Rocco").Ceiling,
+                "ordinary money still stops at what somebody keeps to hand");
+            Check(paid_out.CarryingUnexplained("nobody") == false, "and a stranger is carrying nothing");
+            paid_out.Credit("Rocco", 0, day: 7);
+            paid_out.Credit(null, 50, day: 7);
+            Check(paid_out.Of("Rocco") != null, "paying nothing, or paying nobody, is safe");
+
             // Save and load: a part-paid debt must not quietly reset to its
             // original figure, which would steal back everything collected.
             var codecMill = new GossipMill(new SocialGraph());
