@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestPhones();
                 TestActThree();
                 TestIdentity();
                 TestHarm();
@@ -2048,6 +2049,98 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // Phones and the distance layer (roadmap M10)
+        // ---------------------------------------------------------------
+
+        static void TestPhones()
+        {
+            Console.WriteLine("Phones — a phone is a place, not a pocket:");
+            var book = new PhoneBook();
+            var bar = new Phone { PlaceId = "bar", PlaceName = "the bar", OpenFrom = 10, OpenTo = 24 };
+            bar.Regulars.Add("Lena"); bar.Regulars.Add("Rocco");
+            book.Add(bar);
+            var house = new Phone { PlaceId = "boarding", PlaceName = "the boarding house", Public = true, OpenFrom = 7, OpenTo = 22 };
+            house.Regulars.Add("Ada"); house.Regulars.Add("Sam");
+            book.Add(house);
+
+            var noon = new GameTime(3, 12, 0);
+            Func<string, string, bool> everyone = (who, where) => true;
+            Func<string, string, bool> nobody = (who, where) => false;
+
+            // No line at all.
+            var nowhere = book.Ring("customs_shed", "Halvard", noon, everyone);
+            Check(nowhere.Result == CallResult.NoLine, "some places still expect you to walk");
+
+            // Out of hours the bell rings in an empty room.
+            var dawn = book.Ring("bar", "Lena", new GameTime(3, 4, 0), everyone);
+            Check(dawn.Result == CallResult.NoAnswer, "nobody keeps the bar line at four in the morning");
+
+            // THE GOOD CASE.
+            var got = book.Ring("bar", "Lena", noon, everyone);
+            Check(got.Result == CallResult.Answered && got.AnsweredById == "Lena",
+                "ring the bar at noon and Lena picks up");
+
+            // THE INTERESTING CASE — not a failure state. Lena is out, Rocco is
+            // by the phone, and now Rocco knows you rang.
+            Func<string, string, bool> lenaOut = (who, where) => who != "Lena";
+            var wrongPerson = book.Ring("bar", "Lena", noon, lenaOut);
+            Check(wrongPerson.Result == CallResult.SomebodyElse && wrongPerson.AnsweredById == "Rocco",
+                "somebody else picking up is the interesting outcome, not a failure");
+            Check(wrongPerson.Line.Contains("now they know you rang"),
+                "and the game says so plainly", wrongPerson.Line);
+
+            // Nobody near it at all.
+            var empty = book.Ring("bar", "Lena", noon, nobody);
+            Check(empty.Result == CallResult.NoAnswer, "and an empty room is an empty room");
+
+            // Order matters: whoever is nearest reaches for it first.
+            Check(book.Ring("bar", "Rocco", noon, everyone).AnsweredById == "Lena",
+                "whoever is by the phone answers it, not whoever you wanted");
+
+            // MESSAGES. The cost is that the person holding it now knows.
+            var mill = new GossipMill(new SocialGraph());
+            var rocco = new Gossiper("Rocco", "Rocco", null, null, null, "night", 0.5, 0.5, 0.6);
+            mill.Add(rocco);
+            int memories = rocco.Memory.Events.Count, rumors = rocco.Rumors.Count;
+            Check(book.LeaveMessage(wrongPerson, mill, "player", "Tell her Vrba called about the delivery.", noon),
+                "you can leave word with whoever answered");
+            Check(rocco.Memory.Events.Count > memories, "and they remember taking it");
+            Check(rocco.Rumors.Count > rumors, "and it enters the mill as talk, because that is what a message is");
+            Check(rocco.Rumors[rocco.Rumors.Count - 1].Hops == 1,
+                "one hop out, because somebody is carrying it for you");
+            Check(rocco.Rumors[rocco.Rumors.Count - 1].Confidence < 0.7,
+                "at second-hand confidence, like anything passed along");
+            Check(!book.LeaveMessage(empty, mill, "player", "anything", noon),
+                "you cannot leave a message with nobody");
+            Check(!book.LeaveMessage(null, mill, "player", "anything", noon), "or with nothing");
+
+            // REACH is the thing a phone buys, and it is real.
+            Check(book.ReachableNow("Lena", noon, everyone), "Lena can be reached at noon");
+            Check(!book.ReachableNow("Lena", new GameTime(3, 4, 0), everyone),
+                "and cannot at four in the morning");
+            Check(!book.ReachableNow("Lena", noon, lenaOut), "or when she simply is not there");
+            Check(!book.ReachableNow("Halvard", noon, everyone), "somebody with no line is never on one");
+            Check(book.LinesFor("Sam").Count == 1 && book.LinesFor("nobody").Count == 0,
+                "you can ask what numbers somebody might be on");
+
+            // FIDELITY is the price of reach, and it cuts both ways: a call
+            // cannot read a face, so your lies land better AND so do theirs.
+            Check(PhoneBook.Damped(0.4) < 0.4, "suspicion moves less on the line");
+            Check(PhoneBook.Damped(0.4) > 0, "but it does move");
+            Check(Math.Abs(PhoneBook.Damped(1.0) - PhoneBook.FidelityOnTheLine) < 1e-9,
+                "and the damping is the same in both directions, which is what stops it being an upgrade");
+
+            var snap = MiniJson.Serialize(book.Capture());
+            var twin = new PhoneBook();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(MiniJson.Serialize(twin.Capture()) == snap, "the exchange survives its own codec");
+            Check(twin.AtPlace("bar") != null && twin.AtPlace("bar").Regulars.Count == 2,
+                "including who is expected to be near which phone");
+            twin.Restore(null);
+            Check(twin.All.Count == 2, "restoring nothing changes nothing");
         }
 
         // ---------------------------------------------------------------
