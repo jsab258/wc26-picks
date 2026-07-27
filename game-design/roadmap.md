@@ -352,8 +352,34 @@ The gaps, in the order they are now being closed:
   name combinations, 30 trades, day and night shifts, home and work
   anchors, and traits. Past 1200 people share a name with somebody, which
   is true of real streets.
-- **M10 — Phones + the distance layer** (was M9). Unchanged.
-- **M11 — Violence, staged** (was M10). Unchanged.
+- **M10 — PHONES + THE DISTANCE LAYER — SHIPPED 2026-07-27.** `Phones` in
+  Core, five lines wired, a panel to ring from. **A phone is a place, not a
+  pocket**: you ring the bar or the boarding-house hall phone and whoever is
+  near it answers, so reaching somebody is a gamble on their afternoon and
+  somebody else picking up is the interesting outcome rather than a failure.
+  Messages left with a person travel as talk at one hop. Suspicion moves at
+  45% on a line, in both directions, which is what stops it being a straight
+  upgrade over walking there. Reachability reads live positions, not schedule
+  tables — the schedule would have said yes while the person was two districts
+  away. CI gate: eighteen calls over nine days must include at least one that
+  got through AND at least one that did not.
+- **M11 — VIOLENCE, STAGED — CONSEQUENCE LAYER SHIPPED 2026-07-27, MELEE
+  DEFERRED.** `Harm` in Core, wired to the operation board. Injuries persist,
+  compound, show as a look, and **turn if untreated** — which is what makes the
+  infirmary a decision. Trauma is cumulative and does not heal with the wound.
+  Feuds are first-class rather than suspicion: time cools them and never
+  finishes them, and two people in a hot feud will not work together. A failed
+  job breaks something, a partial cuts and bruises, a clean job hurts nobody.
+  Getting hurt for you COSTS loyalty rather than earning it.
+- **M13 — FINITE COUNTERPARTY PURSES — SHIPPED 2026-07-27** (see the full
+  entry below; listed here so the milestone list reads in order).
+- **COPPER ROW — SHIPPED 2026-07-27.** The city's second district. `StreetMap`
+  generalised from one hardcoded grid to a district table, with the Hook's
+  junction ids untouched. Copper Row is tighter (20m blocks), has its own
+  streets and eight places, and its people actually live there — the population
+  anchors were hardcoded to the Hook, so three hundred residents "of Copper
+  Row" had been living in the wrong district. About a third of the city crosses
+  one of the two bridges to work.
 - **M12 — STREETS AND CARS — PULLED FORWARD, player 2026-07-26.**
   *"city can't feel real or immersive without cars and real streets. spec it
   and add it to the roadmap. needs to be built by 8 am. melee later."*
@@ -486,6 +512,43 @@ The gaps, in the order they are now being closed:
   existing. If purses make collection weaker without making anything else
   weaker, they have moved the optimum rather than deepened the choice — so the
   balance lab runs against this before it is called done.
+
+## STILL OPEN — the honest list (2026-07-27)
+
+Kept current alongside the shipped entries, because a roadmap that only grows
+a "done" column stops being a plan.
+
+**Blocked on Jafar** (see `decisions-pending.md` — recommendations attached):
+
+- **Act III's crisis.** The endgame is drafted and the matrix is written and
+  tested as Core code, but nothing is wired and no ending can fire, because the
+  crisis itself — an audit — is a choice about the ending of the game.
+- **Copper Row's character.** The design doc calls it an *immigrant market
+  quarter: dense street life, cash economies, loyalty*. What got built this
+  morning drifted industrial (a foundry, a smelt yard, kilns), which is
+  arguably Ironside's brief. Re-cutting is about twenty minutes and keeps the
+  grid.
+
+**Unblocked and queued:**
+
+- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the
+  machinery exists, the authored moments are not all fired.
+- **Front-end completeness.** P1 shipped a main menu, options and a pause menu.
+  The rebind screen had drifted to six actions while the game listened for nine
+  (fixed 2026-07-27). Not yet verified: every panel closes on Escape, no panel
+  traps the player, and options actually apply on the newer panels (Plan,
+  Phone, Ledger).
+- **UI has no automated test coverage at all.** Every one of the 1182 tests is
+  Core logic; nothing tests a panel. This is the weakest verification in the
+  project and it should stop being invisible.
+- **Ironside has no geography** — the same gap Copper Row had, and it is
+  referenced by the population generator and the research notes as though it
+  exists. Four more districts behind it.
+- **Purses in more payment paths.** Currently debts only; bribes, payoffs and
+  supplier payments still assume infinite pockets on the other side.
+- **The lab does not test a squeezed street's effect on purses**, because week
+  mode holds prosperity at the ordinary half by construction. That coupling is
+  proven in CoreTests only.
 
 **LLM cost:** deferred by the player, explicitly not a build-time blocker.
 If we publish, the pricing models to weigh are subscription, pay-as-you-go,

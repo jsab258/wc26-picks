@@ -22,8 +22,8 @@ dimension, and the filters that govern scope), `roadmap.md` (live milestone plan
 
 ## 1. High concept
 
-You arrive alone in Meridian Bay with one suitcase and a letter: an uncle you barely knew has
-died and left you his bar. The bar is real. So is what came with it — a half-dead criminal
+You are **Tomas Vrba**, and you arrive alone in Meridian Bay with one suitcase and a letter:
+Marek, your mother's brother, has died and left you his bar. The bar is real. So is what came with it — a half-dead criminal
 outfit: two aging loyalists, a book of uncollectable debts, and a territory the city's three
 established organizations have already begun to carve up.
 
@@ -133,6 +133,13 @@ No dark patterns: no dailies, no timers, no FOMO. Retention through curiosity an
   (KCD2-style AI level-of-detail). Talking to one instantiates a Tier-2 card on the spot —
   the city has no "non-characters," only characters nobody has looked at yet.
 
+**What the city calls you.** The street learns your name rather than being told it, and what
+somebody calls you is a readout of where you stand with them: *the new owner* (they know the
+bar changed hands, not who you are) → *Vrba* (you are a fact on this street) → *Tomas* (they
+decided about you and it was fine) → *Toma* (two or three people, ever). The gate is knowing,
+not liking — somebody can think well of you and still not know what to call you. It is
+appended to every conversation's scene from one place rather than written into thirty cards.
+
 ## 6. The systems
 
 ### 6.1 Memory (the foundation)
@@ -152,6 +159,16 @@ Player-facing: the **Ledger UI** shows what you *believe* the city knows — nev
 truth. Counterplay: silence a witness (many ways, most non-violent), buy a rumor's source,
 plant a counter-story, or get ahead of it by confessing.
 
+**The second channel: the telephone (built).** §1's late-analog setting made into a system.
+**A phone is a place, not a pocket** — you ring the bar, or the boarding-house hall phone, or
+the foundry office across the water, and whoever is near it answers. That single constraint
+generates the play: reaching somebody is a gamble on their afternoon; **somebody else picking
+up is the interesting outcome, not a failure**, because now they know you called and you must
+decide whether to leave word; a message left with a person enters the mill as talk at one hop
+and second-hand confidence, which is what a passed-along message actually is. Being
+unreachable at the wrong moment is now something that happens *to* the player, which a
+walking city could never do.
+
 ### 6.3 Secrets, hooks, leverage (CK3-shaped)
 Learning a shameful secret grants a **weak hook** (one big favor); a criminal secret grants
 a **strong hook** (standing coercion, protection from hostile acts). Hooks work on you too:
@@ -166,6 +183,12 @@ evidence). Thresholds trigger behavior: probing questions → checking with othe
 confrontation. Crucially: **persuasion outcomes are decided by game state** (relationship,
 evidence, plausibility), the LLM performs the scene. Players can't jailbreak an NPC into
 believing the unbelievable; NPCs can't be talked out of what they remember seeing.
+
+**On the telephone, both of you are half-blind (built).** A voice on a line is not a face
+across a table, so suspicion moves at 45% of its in-person weight — in *both* directions.
+Your lies land better and so do theirs. That symmetry is deliberate: it stops the phone being
+a straight upgrade over walking there, and makes "say this to their face or say it down a
+wire" a real choice rather than a convenience.
 
 ### 6.5 The empire (bottom-up crime sim)
 - **Crew**: recruited individuals from Tier 2, each with loyalty (to you personally), fear,
@@ -182,13 +205,31 @@ believing the unbelievable; NPCs can't be talked out of what they remember seein
   against the Nemesis patent (US10926179B2, active to 2036) — no promotion-by-defeating-
   the-player structures. Rival advancement is driven by their internal politics, not by
   encounters with the player.
-- **Combat — melee-first, guns rare** (player decision, 2026-07). Physical, readable
-  third-person brawling in the Sleeping Dogs lineage: fists, grapples, improvised objects;
-  skill is positioning, timing, and reading opponents. Firearms exist and change everything:
-  drawing one escalates a scene, firing one is a city-level event (witnesses, heat spike,
-  blood feuds). Presentation is hard-hitting but not gory — impact over blood. Violence
-  stays consequence-heavy in the sim: injuries persist, crew members carry trauma, and
-  every fight happened in front of somebody who remembers it.
+- **Violence, staged — consequence first, melee second, guns last** (player decisions
+  2026-07-26/27). The eventual fighting is Sleeping Dogs-lineage: physical, readable,
+  third-person; fists, grapples, improvised objects; skill is positioning, timing and reading
+  opponents. Firearms exist and change everything — drawing one escalates a scene, firing one
+  is a city-level event. Impact over blood, never gory. **Playable melee is deferred until
+  after the art pass**, because positioning-and-timing combat cannot be judged on capsules.
+
+  **The consequence layer is BUILT and came first on purpose**, because a punch with no
+  aftermath teaches the player that violence is free and that lesson is very hard to take
+  back later. The rule it is built on: **an injury is information.** It is on your face, the
+  infirmary keeps hours and neighbours, and a man with his hand dressed on Tuesday cannot
+  claim he was somewhere quiet on Monday night — getting hurt costs you capability *and* the
+  ability to have been elsewhere.
+    - Injuries persist, compound, and show as a look rather than a number.
+    - **They turn if untreated**, which is what makes the infirmary a decision. Treatment
+      takes clean money: you cannot hand a doctor a roll of night money and expect the visit
+      to be remembered for the right reason.
+    - **Trauma is cumulative and does not heal with the wound** — that is the whole
+      difference between an injury and a scar.
+    - **Feuds are first-class, not suspicion.** A feud does not decay when you leave the room
+      and evidence cannot settle it; only somebody choosing to stop can. Two people in a hot
+      feud will not work together, which is a scheduling problem solved with people rather
+      than with a menu.
+  Violence currently enters through systems that already exist — a job that goes wrong, a
+  rival's answer, the Fall — rather than through a fight the player drives.
 
 ### 6.6 The honest life
 A day job (chosen from a few tracks — bar, courier, office) that provides cover, income,
@@ -225,6 +266,20 @@ comes on Thursdays, remembers when he was last paid, sells to eight other places
 street and hears what all of them are worried about. Neglect loses him. A poor neighbourhood
 does not — it only makes him dearer, and he tells you so himself.
 
+**Nobody has infinite pockets either (M13, built 2026-07-27).** The economy was finite in
+one direction only — squeeze the street, the street gets poorer — while every *counterparty*
+still produced whatever they owed on demand, out of a starving district, in one movement. A
+purse is now what somebody can lay hands on **today**: not their wealth, not their income,
+the money in the drawer. Ask for more and you get what is there and the balance stays on the
+page, so a big marker stops being a transaction and becomes a relationship — four visits, or
+one visit and a decision about what you are willing to do to shorten it. Purses fill from the
+district's prosperity, so squeezing the street drains the pockets you are trying to collect
+from, and it arrives a few days later when you have started relying on being paid. A debtor
+you emptied goes to a patron overnight: **the money moves rather than appearing**, and the
+favour they now owe is world state the Director can read. You will usually not know it
+happened — you will notice they paid, and that they are colder about it than the money
+explains.
+
 **Legibility is a hard requirement, not a preference.** No number in this system is ever
 shown as a number. Prices rising is Mirek asking for more and not explaining the difference;
 a poorer street is two regulars drinking at home. If a value cannot be said as somebody's
@@ -244,7 +299,43 @@ asset-pack-coherent build target:
 7. **Gullwing** (faded resort waterfront) — off-season melancholy, hideouts, endgame turf.
 
 **Built as of 2026-07-27: the Hook and Copper Row. The other five are names in
-this document and nothing on the ground.**
+this document and nothing on the ground** — Downtown, The Strip, Fairview, Ironside and
+Gullwing have no geometry, no places and no cast. Ironside in particular is referenced by the
+population generator and by the research notes as though it exists; it does not.
+
+### 7.1 Streets, traffic, and the car (M12, built 2026-07-26/27)
+
+The district used to be a 90×90m slab with buildings and no streets — **about the size of one
+real city block** — which is why it read as a diorama rather than a place. A walkable block is
+79m in Portland and 113m in Barcelona's Eixample; games compress, and the research is
+consistent that DENSITY carries the feeling of size rather than area does.
+
+- **A real grid**, streets first and buildings fitted into blocks rather than the reverse.
+  26m spacing in the Hook, tighter 20m in Copper Row so it reads older the moment you walk
+  into it. Chamfered junction corners — Barcelona's trick, nearly free, and the single
+  cheapest thing that makes a grid read as designed rather than as graph paper.
+- **Ten named streets**, with the plates and the gossip reading the same table, so the city
+  can never tell the player one name and a character another. An address is the unit people
+  give directions in.
+- **Two bridges between the districts, and only two.** A chokepoint is a place where things
+  can happen: somebody waiting at a bridge is a scene, somebody waiting on an open grid is a
+  man standing in a road. About a third of the city crosses one to work.
+- **Traffic** as a deterministic engine-free model: six vehicle kinds, lights at the big
+  crossings, stop signs elsewhere, buses that keep a circuit and cabs that idle at ranks.
+  Four properties are held as tests because none can be judged from a screenshot — nobody
+  overlaps, nobody crosses a stop line on red, nobody drives through a person, and the grid
+  never wedges solid.
+- **A driveable car.** Arcade and kinematic — no gears, damage, fuel or tyre model, which
+  does not contradict the agency model's "no drivable-vehicle physics, ever". What it is
+  *for* is that **a car is a thing witnesses describe**, and they describe it whether or not
+  you wore the coat. The disguise buys doubt about your face and none at all about the
+  vehicle standing in the street.
+- **Collisions hurt and never kill** (player decision, 2026-07-27). Nothing in the code can
+  produce a death — a property, not a tuning value. The victim is really injured on the
+  system above, everyone nearby holds it as hard fact, and it records a low-heat exchange
+  rather than a feud, because an accident is not a war until it goes unanswered. AI drivers
+  brake for everybody; **only the player's car can strike anyone**, because the player is
+  holding the wheel, and that is the difference between a system and a decision.
 
 Districts have local information ecosystems: a rumor can own Copper Row and not exist in
 Fairview. Territory control is social (who talks to you, who pays, who warns you) not a
@@ -274,10 +365,33 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   Detective **Mara Ossei** — patient, personal, incorruptible-so-far. The two lives begin
   colliding through the gossip system; Act II's set pieces are systemic collisions the spine
   guarantees (someone from each life ends up in a room together).
-- **Act III — The Ledger Comes Due.** A triggered crisis forces the books open: the endgame
-  matrix is *empire × life* — keep both (hardest, requires the city's information landscape
-  actively managed), lose one to save the other, burn both, or the quiet ending: hand the
-  empire to a crew member you built up, and see if what you built survives you.
+- **Act III — The Ledger Comes Due** (drafted 2026-07-27, `act3-draft.md`; endgame written
+  and tested as Core code; **not wired, and the crisis is awaiting the player's approval**).
+  The proposed crisis is an **audit** — the least dramatic instrument available, which is what
+  makes it frightening. Somebody with a mandate asks to see the bar's books, and the books are
+  the one document in this game that has been quietly lying since day one. Everything the
+  player did to the ledger becomes evidence in the other direction, **and it is wrong in both
+  directions**: launder too little and the night money has nowhere to have come from, launder
+  too much and the bar earned more than a bar on this street possibly could.
+
+  The endgame matrix is *empire × life*, and **the player never picks an ending from a list**.
+  Each is a condition the world can be IN when the books open; several can be live at once and
+  the last thing the player did decides between them:
+    - **Both** — keep everything. Requires the information landscape actively managed, not
+      merely a big empire and a friend. Deliberately not achievable on a first playthrough
+      (player decision, 2026-07-27).
+    - **The Kingdom** — you keep it all and nobody is left who knew you before it.
+    - **The Straight Life** — you dissolve the business to keep the people.
+    - **Burn Both** — what doing nothing produces, which is why it is the default rather than
+      a special case: the ledger comes due whether or not you answer it.
+    - **The Quiet Ending** — hand it to a crew member you built up. Not a fifth cell but a way
+      of leaving the matrix; the only one you cannot reach by accident, and **the only ending
+      with an epilogue** — three days where you are not in charge and you watch whether what
+      you built holds, without a verb (player decision, 2026-07-27).
+
+  The act's best scene is its cheapest: **Lena knows exactly where the lie holds and where it
+  does not, and telling you is gated entirely on her loyalty.** That is the thesis of the
+  project stated as a mechanic.
 
 **Core cast (Tier 1, sketch):** Rocco & Lena (the inherited loyalists — old muscle, older
 bookkeeper); the three rival heads (Aldous Vane / "the Widow" Sera Kest / Danny Ro); Det.
@@ -520,116 +634,22 @@ Director, then population scale. The economy is still worth building; it is simp
 *conservative* kind of depth, and it is better built underneath a game whose interface has
 already stopped being a list of buttons.
 
-## 18. What has actually been built since the first-principles pass (2026-07-27)
+## 18. What this document describes that does not exist yet (2026-07-27)
 
-This document was last reconciled with the code at M9. Six milestones landed
-after that in about eighteen hours, and the doc was silent on all of them —
-which is exactly how a design document becomes a historical artifact. Written
-down here so §§1-17 can be read knowing what is true.
+Kept deliberately, and kept current. A design document that only accumulates achievements
+stops being usable for planning, and this one was drifting that way.
 
-### The protagonist has a name
-
-**Tomas Vrba**, Marek's sister's boy. Marek is *your mother's brother*, named
-in §1 and now load-bearing.
-
-The part that is a design decision rather than a naming decision: **"the new
-owner" was never a placeholder.** It is what people call you before they know
-you, and this is a game about being known. So the name is something the street
-LEARNS, and what somebody calls you is a readout of where you stand with them —
-the new owner, then Vrba, then Tomas, then Toma, which two or three people ever
-get to. The gate is knowing rather than liking. Gender stays deliberately
-unset; the street mostly uses the surname, so a later choice costs nothing.
-
-### M7.5 — access and operations, wired
-
-Soft keys on real doors (§6.4's cover made spatial): a gate lists several ways
-in and any of them works, the cheapest key you hold wins, and a refusal names
-the way in you came closest to having. Operation planning is four decisions and
-a read in words — never a percentage.
-
-### M10 — phones and the distance layer
-
-Delivers §1's "late-analog" setting as a system. **A phone is a place, not a
-pocket**: you ring the bar, or the boarding-house hall phone, and whoever is
-near it answers. Reaching somebody is a gamble on their afternoon; somebody
-else picking up is the interesting outcome, not a failure; a message left with
-a person travels as talk at one hop and second-hand confidence.
-
-The trade is symmetric and is the point: a line reaches across the city
-instantly and cannot read a face, so suspicion moves at 45% on a call. Your
-lies land better and so do theirs, which is what stops it being an upgrade
-over walking there.
-
-### M11 — the consequence layer of violence (melee still deferred)
-
-§8's combat line said injuries persist, crew carry trauma, and every fight
-happened in front of somebody who remembers it. None of that needs a brawling
-system and all of it needed to exist BEFORE one, because a punch with no
-aftermath teaches the player that violence is free.
-
-Injuries last, compound, show as a look rather than a number, and **turn if
-untreated** — which is what makes the infirmary a decision, and treatment costs
-clean money because you cannot hand a doctor a roll of night money. Trauma is
-cumulative and does not heal with the wound. **Feuds are first-class**, not
-suspicion: they do not decay when you leave the room and evidence cannot settle
-them, only somebody choosing to stop. Two people in a hot feud will not work
-together, which is a scheduling problem solved with people rather than a menu.
-
-### M12 — streets, traffic, and a driveable car (pulled forward by the player)
-
-The diagnosis was not "no cars". The district was a 90x90m slab — **about the
-size of one real city block** — with buildings and no streets. §7's "dense
-coastal city" was not being delivered by the geometry.
-
-Now: a real grid on 26m spacing with chamfered corners, sixteen blocks, ten
-named streets. Traffic as a deterministic Core model with six vehicle kinds,
-lights, stop signs, and four properties held as tests that cannot be judged
-from a screenshot. A driveable car — kinematic, arcade, no tyre model, which
-does NOT contradict the agency model's "no drivable-vehicle physics, ever".
-
-**And a car is a thing witnesses describe**, whether or not you wore the coat.
-The disguise buys doubt about your face and none about the vehicle.
-
-**Collisions hurt and never kill** (player decision, 2026-07-27). Nothing in
-the code can produce a death — a property, not a tuning value. AI drivers brake
-for everybody; only the player's car can strike anybody, because the player is
-holding the wheel.
-
-### M13 — finite counterparty purses
-
-§6.7's economy was finite in one direction only: squeezing the street made it
-poorer and the bar took less, but every counterparty still had infinite
-pockets. A purse is now what somebody can lay hands on TODAY. Ask for more and
-you get what is there; the balance stays on the page; a debtor you emptied goes
-to a patron overnight and the money MOVES rather than appearing, leaving a
-favour the Director can read.
-
-### Copper Row is on the ground
-
-§7 lists seven districts. **Two now exist.** Copper Row has its own grid, its
-own streets, its own places, and its own people — and about a third of the city
-crosses one of two bridges to work, which is what makes a chokepoint a place
-where things can happen.
-
-**The other five districts remain names in this document.** Downtown, The
-Strip, Fairview, Ironside and Gullwing have no geography, no places, and no
-cast. Ironside is referenced by the population generator and by research notes
-as though it exists; it does not.
-
-### What §§1-17 still describe that does not exist
-
-Stated plainly so this document stops overselling the build:
-
-- **Playable melee.** Deferred to after the art pass. Correct call.
-- **Five of seven districts.**
-- **Act III.** Drafted (`act3-draft.md`), and the endgame matrix is written and
-  tested as Core code — but it is NOT wired into the game and no ending can
-  currently fire. The crisis (an audit) is awaiting the player's approval.
-- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the
-  machinery exists, the authored moments are not all fired.
-- **The day job**, romance, and most of §6.6's honest life.
-- **HDRP, the city pack, and voice.** All deliberately deferred; the game runs
-  on procedural fallbacks by design.
+- **Playable melee.** Deferred until after the art pass. The consequence layer is built.
+- **Five of the seven districts** in §7. Two exist.
+- **Act III.** Drafted and tested as Core code; not wired, and no ending can currently fire.
+- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the machinery exists,
+  the authored moments are not all fired.
+- **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks, the
+  apartment.
+- **Lifestyle upgrades** in §6.7 — apartment, clothes, car as status. The car exists as
+  transport and evidence, not as a purchase.
+- **HDRP, the city pack, and voice.** Deliberately deferred; the game runs on procedural
+  fallbacks by design, and the pack drops in with no code change.
 
 ## 12. Risks
 

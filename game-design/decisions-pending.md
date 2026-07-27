@@ -6,7 +6,89 @@ Answered items move to the decision log in `process.md`.
 Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
 as answerable options — the doc is the record, the chat is the interface.
 
-## Open now
+## Open now — 2026-07-27, six decisions
+
+Ordered by how much they block. 1 and 2 are blocking real work right now;
+3-6 are cheap and I will proceed on the recommendation if you say nothing.
+
+### 1. Act III's crisis — BLOCKING, and it is the ending of your game
+
+The endgame matrix is drafted, written and tested. **Nothing is wired and no
+ending can fire**, because the crisis itself is yours to choose.
+
+**Proposed: an audit.** Somebody with a mandate asks to see the bar's books,
+and the books are the one document in this game that has been lying since day
+one. Everything you did to the ledger becomes evidence in the other direction,
+and it is wrong in both directions — launder too little and the night money has
+nowhere to have come from, launder too much and the bar earned more than a bar
+on this street possibly could.
+
+**RECOMMEND: keep it.** It is the least dramatic instrument available and that
+is exactly why it works — a courteous procedural letter is frightening in a way
+a raid is not, it cannot be fought or shot, and it converts three acts of
+quiet laundering decisions into the thing that convicts you. It is also the
+only crisis that makes Lena's loyalty the most valuable thing in the game.
+
+Alternatives, all defensible: **a raid** (dramatic, but fightable and therefore
+smaller), **a betrayal** (a crew member turns — strong, but the empire systems
+already do betrayal), **a death** (the biggest, and it would eat the ending).
+
+### 2. Copper Row's character — BLOCKING a re-cut
+
+Your design doc says: *"Copper Row (immigrant market quarter) — dense street
+life, cash economies, loyalty."*
+
+What I built this morning drifted **industrial**: a foundry, a smelt yard, a
+ropewalk, kiln terraces. That is arguably Ironside's brief, not Copper Row's.
+I invented it without checking the doc first.
+
+**RECOMMEND: re-cut it as the market quarter the doc describes.** About twenty
+minutes, the grid stays, the places get renamed — and it is the better district
+for this game, because a cash-economy market quarter is where the purse system
+and the debt system bite hardest. The industrial character can go to Ironside
+when Ironside gets built.
+
+### 3. UI has no automated test coverage — none at all
+
+Every one of the 1182 tests is Core logic. Nothing tests a panel. This is the
+weakest verification in the project, and it is why I could not honestly answer
+"is the front end complete everywhere" without going and reading the code —
+where I immediately found three keybindings that could not be rebound.
+
+**RECOMMEND: a smoke-test pass in the CI sim** — open every panel, close every
+panel, assert nothing traps the player and no panel is empty. Cheap, catches
+the class of bug I just found, and does not need a UI test framework.
+
+### 4. Which district next, and how many
+
+Two of seven exist. Ironside is referenced by the population generator and the
+research notes as though it is real.
+
+**RECOMMEND: build Ironside next and stop at three for now.** It is the one the
+code already half-believes in, it is the doc's "places without witnesses" which
+is directly useful to night work, and three districts is enough to prove the
+district system without spending the whole runway on geography.
+
+### 5. The sim bot's carelessness
+
+The bot used to go bare-faced until day 3. With gossip running at its designed
+rate it now loses the week on day 3, which costs CI every gate that only exists
+in the open city. I changed it to coat up from night two.
+
+**RECOMMEND: keep the change**, and treat the underlying number as a real
+balance question for your playtest — the week may now be harder than intended
+for a careless player, and only playing will say.
+
+### 6. Purses in more payment paths
+
+Currently debts only. Bribes, payoffs and supplier payments still assume the
+other side has infinite pockets.
+
+**RECOMMEND: extend to bribes and payoffs, not to supplier payments.** Paying a
+supplier is money leaving *your* pocket, which is already finite; bribing
+somebody who cannot make change is the interesting case.
+
+## Previously open
 
 *(nothing blocking — the all-night run works on standing mandates. Items
 for whenever you surface, in the order I'd want them answered:)*
