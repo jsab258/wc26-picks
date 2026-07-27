@@ -690,10 +690,13 @@ the sim-bot and purse changes stand.
   400 worlds a row rather than inferred from CoreTests
   (`balance-findings-endings.md`).
 
-  What replaced them is smaller and sharper: **the in-engine Act III gate has
-  still never executed once** — it staged on a day the clock steps over — and
-  **the inspector is inert for a player who never built an empire**, which is
-  a playtest question rather than a bug.
+  What replaced them is smaller and sharper. The in-engine Act III gate had
+  never executed once — it staged on a day the clock steps over — and on run
+  30259492282 it finally did: **the audit opened, closed on day 8, and
+  resolved to `Kingdom`.** It has now run exactly ONCE, so treat its first
+  green as new information rather than as confirmation. Still open and
+  genuinely a playtest question: **the inspector is inert for a player who
+  never built an empire.**
 - **Front-end completeness.** P1 shipped a main menu, options and a pause menu.
   The rebind screen had drifted to six actions while the game listened for nine
   (fixed 2026-07-27). Not yet verified: every panel closes on Escape, no panel
@@ -712,11 +715,10 @@ the sim-bot and purse changes stand.
   on people lands in their drawer). Supplier payments deliberately excluded:
   that is money leaving the player's own already-finite pocket.
 
-  What is left is one thing and it needs a decision: **the rackets are still
-  an infinite pocket**, and the spec's reason for excluding them ("already
-  coupled through prosperity") is wrong in the direction that matters — the
-  take drains the street but the street never limits the take. See
-  `decisions-pending.md` #9.
+  ~~What is left is one thing and it needs a decision: the rackets are still
+  an infinite pocket.~~ **ANSWERED AND BUILT 2026-07-27** (Jafar: *"couple
+  it"*). Racket income now scales with the street it squeezes, and says so
+  rather than quietly paying less. Nothing is left open on purses.
 - **The lab does not test a squeezed street's effect on purses**, because week
   mode holds prosperity at the ordinary half by construction. That coupling is
   proven in CoreTests only.
