@@ -19,16 +19,24 @@ the single outstanding item.
 
 ## What is DONE and verified
 
+**Read the right-hand column literally.** After this morning, "there is a gate
+for it" and "the gate has run" are known to be different claims, so they are
+written differently here.
+
 | | verified how |
 |---|---|
-| Act I — the week, seven pressure points | sim gate `actOne` |
-| Act II — seven pressure points | sim gate `actTwo` (added today) |
-| Act III — audit, inspector, last day, five endings | CoreTests + sim gate `actThree` + balance lab |
-| Three districts (Hook, Copper Row, Ironside) | CoreTests geography + population |
-| Traffic, signals, vehicles, the car | CoreTests + sim gates |
-| Phones (M10), harm (M11), purses (M13) | CoreTests + sim gates |
-| Front end (menu, options, pause, rebinding) | UI smoke test, `panelsBad == 0` |
+| Act I — the week, seven pressure points | sim gate `actOne`, **observed passing** |
+| Act II — seven pressure points | sim gate `actTwo`, **observed passing** (`actTwoOk=True`, none missed) |
+| Act III — audit, inspector, last day, five endings | CoreTests + balance lab, both real. **The in-engine gate has never once executed** — see below |
+| Three districts (Hook, Copper Row, Ironside) | CoreTests geography + population, **observed** (`npcs=42`, `pop=3000`) |
+| Traffic, signals, vehicles | CoreTests + sim gates, **observed** (14 vehicles, 11.7km driven, 0 off-road) |
+| The car as a witness fact | CoreTests real; the sim gate was **asking the wrong question** until this morning |
+| Phones (M10), harm (M11), purses (M13) | CoreTests + sim gates, **observed passing** |
+| Front end (menu, options, pause, rebinding) | UI smoke test, **observed** (`panelsBad=0`) |
 | Save/load of everything above | codec round-trips, in-engine overlay |
+
+The Director and operations rows are deliberately absent: their gates have
+also never executed. That is the whole finding below.
 
 ## What is DONE but NOT felt
 
