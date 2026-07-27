@@ -98,10 +98,17 @@ be "what do they pass *on*". Three tools now exist for that:
 
 ## Known-unresolved at handover
 
-- The build in flight when this was written had **not** yet reported which
-  gate failed on its predecessor. My `dayJobOk` fix is **a prediction, not a
-  diagnosis** — I never read the failing gate. If the verdict line names
-  something else, fix that instead of inheriting my guess.
+- **The failing gate has still never been read.** Two builds have now gone red
+  in the simulation step and both times the verdict was out of reach. The
+  first fix printed it at the end of the sim STEP, which was not enough — two
+  artifact uploads and cleanup run after it and the log APIs return a
+  fixed-size tail of the JOB. It is now a final `Verdict` step with
+  `if: always()` and nothing after it. **The next red build will name its
+  gate; take that over anything written here.**
+- My `dayJobOk` fix is therefore **a prediction, not a diagnosis**. It stands
+  on its own merits (the day job was the one open-city system the sim left to
+  the bot's legs) but it has never been confirmed as the cause. If the verdict
+  names something else, fix that instead of inheriting the guess.
 - Two facts I stated today were wrong and corrected: a "20+ minute Unity
   install" (twice) read off an **in-progress** API snapshot that lags. Both
   installs were ~7½ minutes. Only `started_at`/`completed_at` on a COMPLETED
