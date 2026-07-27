@@ -311,6 +311,9 @@ namespace Ledger.BalanceLab
             var mill = BuildOpenStreet();
             var wallet = new Wallet(250);
             var empire = BuildEmpire();
+            // Every world gets its own empire roll stream — the lab's whole
+            // point is variance, and a constant salt was collapsing it.
+            empire.Seed = rng.Next(1, 1 << 22);
             // Roadmap M7 gates the economy on this lab: a district that inflates
             // away or collapses to nothing is a failed design, not a hard mode.
             var economy = Ledger.Game.EconomySetup.Build();

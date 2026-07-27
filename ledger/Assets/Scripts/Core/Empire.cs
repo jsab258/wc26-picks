@@ -91,6 +91,12 @@ namespace Ledger.Core
 
     public class EmpireBook
     {
+        /// Salt for the daily roll stream. Set once per WORLD (the game wires
+        /// the population seed in; the lab wires its per-world seed), persisted
+        /// so a reloaded campaign continues the same stream. Default keeps the
+        /// pre-audit stream for anything that never sets it.
+        public int Seed = 17;
+
         public readonly List<Business> Businesses = new List<Business>();
         public readonly List<CrewMember> Crew = new List<CrewMember>();
         public readonly List<Racket> Rackets = new List<Racket>();
@@ -519,7 +525,12 @@ namespace Ledger.Core
             double streetFactor = 1.0)
         {
             var events = new List<EmpireEvent>();
-            var rng = new Random(now.Day * 7919 + 17);
+            // Seeded per WORLD and per day, not per day alone. The old constant
+            // salt meant every campaign replayed the identical empire random
+            // stream for a given day — BalanceLab's Monte Carlo seed sweep never
+            // perturbed a single empire roll, quietly collapsing the variance
+            // under its headline numbers (audit 2026-07-27).
+            var rng = new Random(now.Day * 7919 + Seed);
             double street = Math.Clamp(streetFactor, 0.1, 1.5);
 
             foreach (var r in Rackets.Where(x => x.Established))
@@ -831,6 +842,7 @@ namespace Ledger.Core
                     { "runner", r.RunnerId ?? "" }, { "day", r.EstablishedDay },
                 }).ToList() },
             { "rivalAttention", Rival.Attention }, { "rivalStage", Rival.Stage },
+            { "seed", Seed },
             { "rivalLastAct", Rival.LastActDay }, { "rivalTax", Rival.ProtectionTaxPerDay },
             { "arms", Arms.Select(a => (object)new Dictionary<string, object>
                 {
@@ -888,6 +900,7 @@ namespace Ledger.Core
             }
             Rival.Attention = data.TryGetValue("rivalAttention", out var ra) ? Convert.ToDouble(ra) : 0;
             Rival.Stage = MiniJson.GetInt(data, "rivalStage");
+            if (data.ContainsKey("seed")) Seed = MiniJson.GetInt(data, "seed");
             Rival.LastActDay = data.TryGetValue("rivalLastAct", out var la) ? Convert.ToInt32(la) : -1;
             Rival.ProtectionTaxPerDay = MiniJson.GetInt(data, "rivalTax");
             foreach (var o in MiniJson.GetList(data, "arms") ?? new List<object>())

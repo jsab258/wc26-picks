@@ -444,6 +444,7 @@ namespace Ledger.Game
             Debts.Add(new Debtor { Id = "Sam", Name = "Sam", Amount = 120, Note = "stock money, never repaid" });
             Debts.Add(new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "the door take, '19" });
             BuildPurses();
+            Empire.Seed = PopulationSeed;   // one world, one roll stream (audit 2026-07-27)
 
             TryLoad();
         }

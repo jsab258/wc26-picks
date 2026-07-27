@@ -95,6 +95,14 @@ namespace Ledger.Core
 
         public Rumor Best(string topicKey) =>
             Rumors.Where(r => r.TopicKey == topicKey).OrderByDescending(r => r.Confidence).FirstOrDefault();
+
+        /// The strongest telling of this PARTICULAR version of the story. The
+        /// re-tell guards compare against this rather than Best(): two agents
+        /// holding conflicting values must settle, not re-copy each other's
+        /// version every round (audit 2026-07-27).
+        public Rumor BestOfValue(string topicKey, string value) =>
+            Rumors.Where(r => r.TopicKey == topicKey && r.Content.Value == value)
+                  .OrderByDescending(r => r.Confidence).FirstOrDefault();
     }
 
     /// One thing that happened during a gossip round — for the sim report and for the
@@ -213,8 +221,13 @@ namespace Ledger.Core
 
                         // Don't re-tell something the listener already holds at least as
                         // strongly — stops rumors amplifying by bouncing back and forth.
-                        var existing = listener.Best(r.TopicKey);
-                        if (existing != null && existing.Content.Value == r.Content.Value && existing.Confidence >= passed)
+                        // Compared against the listener's best rumor OF THIS VALUE, not
+                        // the topic's best overall: when two agents hold conflicting
+                        // values, comparing against the overall best let each re-add an
+                        // identical copy of the other's version every round, growing
+                        // Rumors and Memory without bound (audit 2026-07-27).
+                        var existing = listener.BestOfValue(r.TopicKey, r.Content.Value);
+                        if (existing != null && existing.Confidence >= passed)
                             continue;
 
                         var heard = new Rumor
@@ -281,8 +294,10 @@ namespace Ledger.Core
 
                 double passed = r.Confidence * tie * HopDecay;
                 if (passed < MinConfidenceToShare) continue;
-                var existing = checker.Best(r.TopicKey);
-                if (existing != null && existing.Content.Value == r.Content.Value && existing.Confidence >= passed)
+                // Value-aware for the same reason as Tick's guard: conflicting
+                // versions must settle, not breed (audit 2026-07-27).
+                var existing = checker.BestOfValue(r.TopicKey, r.Content.Value);
+                if (existing != null && existing.Confidence >= passed)
                     continue;
 
                 var heard = new Rumor

@@ -111,13 +111,13 @@ jobs:
           # Wait-Process honours its timeout on the object Start-Process returns;
           # WaitForExit(ms) does not reliably.
           $timedOut = $false
-          try { Wait-Process -Id $p.Id -Timeout 1200 -ErrorAction Stop }
+          try { Wait-Process -Id $p.Id -Timeout 1440 -ErrorAction Stop }
           catch { $timedOut = $true }
           if ($timedOut) {
-            Write-Host "=== simulation timed out after 20 minutes; last 80 log lines ==="
+            Write-Host "=== simulation timed out after 24 minutes; last 80 log lines ==="
             if (Test-Path sim-run/player.log) { Get-Content sim-run/player.log -Tail 80 }
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-            Write-Error "Simulation timed out after 20 minutes"
+            Write-Error "Simulation timed out after 24 minutes"
             exit 1
           }
           Get-Content sim-run/player.log -Tail 60

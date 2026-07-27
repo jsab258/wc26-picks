@@ -37,6 +37,7 @@ namespace Ledger.CoreTests
                 TestRetrieval();
                 TestSuspicion();
                 TestGossip();
+                TestConflictingValuesStayBounded();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -368,6 +369,31 @@ namespace Ledger.CoreTests
             return (mill, witness, day);
         }
 
+        static void TestConflictingValuesStayBounded()
+        {
+            Console.WriteLine("Gossip — two versions of a story do not breed forever:");
+            // Rocco holds "warehouse", Lena holds "docks" — same topic, different
+            // values, tied to each other. The re-tell guard used to compare the
+            // incoming rumor only against the topic's BEST regardless of value,
+            // so each round every agent re-added an identical copy of the other's
+            // version, growing Rumors and Memory unboundedly (audit 2026-07-27).
+            var g = new SocialGraph();
+            g.Link("rocco", "lena", 0.85);
+            var mill = new GossipMill(g);
+            var rocco = new Gossiper("rocco", "Rocco", new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "both");
+            var lena = new Gossiper("lena", "Lena", new MemoryStore("lena"), new KnowledgeBase(), new SuspicionTracker(), "both");
+            mill.Add(rocco); mill.Add(lena);
+            var now = new GameTime(3, 20, 0);
+            mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "he was at the warehouse", true, now, 0.9);
+            mill.Witness("lena", new Fact("player", "location_d2_evening", "docks"),
+                "he was at the docks", true, now, 0.9);
+            for (int i = 0; i < 30; i++) mill.Tick(now, (a, b) => true);
+            Check(rocco.Rumors.Count <= 4 && lena.Rumors.Count <= 4,
+                "thirty rounds of disagreement settle instead of multiplying",
+                $"rocco {rocco.Rumors.Count}, lena {lena.Rumors.Count}");
+        }
+
         static void TestCampaign()
         {
             Console.WriteLine("Campaign:");
@@ -697,6 +723,31 @@ namespace Ledger.CoreTests
                 e.Rackets.Add(new Racket { Id = "collection", Name = "collection round", IncomePerDay = 60, BaseRisk = 1.0 });
                 return (e, mill, owner, mate);
             }
+
+            // ONE WORLD, ONE ROLL STREAM (audit 2026-07-27). The daily rng was
+            // seeded from the day alone, so every campaign replayed identical
+            // empire rolls and the lab's Monte Carlo never perturbed one. Two
+            // worlds must roll differently; the same world must roll the same.
+            string WitnessPattern(int seed)
+            {
+                var (eS, mS, _oS, jS) = Build(0.5, 0.4);
+                eS.Seed = seed;
+                jS.Loyalty = 0.9;
+                eS.RecruitByNeed(jS, "Josip", 50, new Wallet(1000), now);
+                eS.Establish(eS.RacketOf("collection"), eS.CrewOf("josip"), now);
+                var bits = "";
+                for (int d = 9; d < 29; d++)
+                {
+                    var evs = eS.DailyTick(new GameTime(d, 8, 0), new Wallet(0), mS);
+                    bits += evs.Exists(ev => ev.Kind == "witness") ? "1" : "0";
+                }
+                return bits;
+            }
+            Check(WitnessPattern(101) != WitnessPattern(202),
+                "empire: two worlds do not share one luck",
+                $"{WitnessPattern(101)} vs {WitnessPattern(202)}");
+            Check(WitnessPattern(101) == WitnessPattern(101),
+                "empire: while one world's luck is its own and repeatable");
 
             // The clean route: clean money only, and it buys goodwill.
             var (e1, m1, ruta1, _) = Build(0.5, 0.4);
