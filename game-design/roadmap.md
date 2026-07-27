@@ -518,16 +518,17 @@ The gaps, in the order they are now being closed:
 Kept current alongside the shipped entries, because a roadmap that only grows
 a "done" column stops being a plan.
 
-**Blocked on Jafar** (see `decisions-pending.md` — recommendations attached):
+**All six open decisions answered by Jafar, 2026-07-27.** Act III's crisis is
+the **audit**; Copper Row is **re-cut as the market quarter** (done); the UI
+smoke test is **"yes, very important"**; **Ironside next and the rest later**;
+the sim-bot and purse changes stand.
 
-- **Act III's crisis.** The endgame is drafted and the matrix is written and
-  tested as Core code, but nothing is wired and no ending can fire, because the
-  crisis itself — an audit — is a choice about the ending of the game.
-- **Copper Row's character.** The design doc calls it an *immigrant market
-  quarter: dense street life, cash economies, loyalty*. What got built this
-  morning drifted industrial (a foundry, a smelt yard, kilns), which is
-  arguably Ironside's brief. Re-cutting is about twenty minutes and keeps the
-  grid.
+- **M14 — DISTRICTS 4-7, LATER** (player, 2026-07-27: *"ironside, rest
+  later"*). Downtown, The Strip, Fairview and Gullwing stay names in the design
+  doc until there is a reason to build them. Three districts is enough to prove
+  the district system; seven is enough to spend a runway on. Ironside is the
+  exception because the code already half-believes in it — the population
+  generator and the research notes both reference it as though it exists.
 
 **Unblocked and queued:**
 

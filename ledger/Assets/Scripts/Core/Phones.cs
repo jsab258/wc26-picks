@@ -11,7 +11,7 @@ namespace Ledger.Core
     /// **A PHONE IS A PLACE, NOT A POCKET.**
     ///
     /// You do not call a person. You call the bar, or the hall phone at the
-    /// boarding house, or the foundry office, and whoever is near it answers.
+    /// boarding house, or the letter-writer's stall, and whoever is near it answers.
     /// That single constraint generates every interesting thing here without a
     /// line of special-case code:
     ///
@@ -50,7 +50,7 @@ namespace Ledger.Core
         /// A hall phone in a boarding house is answered by whoever is passing.
         /// A private line in an office is not.
         public bool Public;
-        /// Hours the line is worth trying at all. A foundry office at three in
+        /// Hours the line is worth trying at all. A market stall at three in
         /// the morning is a bell in an empty room.
         public int OpenFrom = 7, OpenTo = 23;
 

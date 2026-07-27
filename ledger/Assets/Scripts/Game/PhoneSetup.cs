@@ -31,12 +31,14 @@ namespace Ledger.Game
         {
             // Five lines, and the choice of WHICH five is the design. The bar is
             // yours. The boarding house hall phone is the one where anybody
-            // might answer. The foundry office is across the water, so reaching
-            // it at all is a fact about the day. The harbourmaster's is
-            // official, keeps office hours, and answering it is somebody's job.
+            // might answer. The letter-writer's stall is across the water in the
+            // market quarter — a public line in a place whose whole trade is
+            // other people's messages, so reaching it is a fact about the day and
+            // whoever takes your words does this for a living. The harbourmaster's
+            // is official, keeps office hours, and answering it is somebody's job.
             Line("bar", "the bar", 10, 24, new[] { "Lena", "Rocco" });
             Line("boarding_house", "the boarding house", 7, 22, new[] { "Ada", "Sam", "Danica" }, isPublic: true);
-            Line("foundry_office", "the foundry office", 8, 18, new[] { "Anton Brela", "Mirek Sedlak" });
+            Line("letter_stall", "the letter-writer's stall", 8, 18, new[] { "Anton Brela", "Mirek Sedlak" });
             Line("harbor_office", "the harbourmaster's office", 9, 17, new[] { "Halvard" });
             Line("pawnshop", "Ruta's pawnshop", 10, 20, new[] { "Ruta", "Viktor" });
 

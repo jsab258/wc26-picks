@@ -2004,7 +2004,7 @@ namespace Ledger.CoreTests
             // the ground, which meant the game could talk about somewhere the
             // player could never walk to.
             Check(StreetMap.DistrictAt(-6, 6) == "the Hook", "the bar is in the Hook");
-            Check(StreetMap.DistrictAt(-6, 102) == "Copper Row", "and the foundry is across the cut");
+            Check(StreetMap.DistrictAt(-6, 102) == "Copper Row", "and the covered market is across the cut");
             Check(StreetMap.DistrictAt(0, 72) == null, "with the cut between them");
 
             // x=0 is Hook Street in one district and Copper Row in the other,
@@ -2013,13 +2013,13 @@ namespace Ledger.CoreTests
                 "x=0 is Hook Street where the bar is");
             Check(StreetMap.NameOf(0, northSouth: true, near: 112) == "Copper Row",
                 "and Copper Row across the cut", StreetMap.NameOf(0, true, 112));
-            Check(StreetMap.AddressOf(0, 112) == "Copper Row at Foundry Road",
+            Check(StreetMap.AddressOf(0, 112) == "Copper Row at Market Road",
                 "so a corner up there is named from its own district", StreetMap.AddressOf(0, 112));
 
             // The property that matters, extended: a second district is only
             // real if you can GET there. Two bridges, and every Copper Row
             // address routes from the bar.
-            foreach (var id in new[] { "foundry", "smeltyard", "north_market", "kiln_terrace", "ropewalk" })
+            foreach (var id in new[] { "covered_market", "weighhouse", "north_market", "stair_tenements", "money_changer" })
             {
                 var over = StreetMap.Route("stop_bar_door", "stop_" + id);
                 Check(over.Count > 0, $"you can walk from the bar to {id}");

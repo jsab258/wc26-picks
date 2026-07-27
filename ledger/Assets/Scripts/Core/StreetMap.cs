@@ -101,13 +101,24 @@ namespace Ledger.Core
 
         /// The Hook, and Copper Row across the cut to the north.
         ///
-        /// Copper Row is deliberately NOT more of the same. Its blocks are
-        /// tighter (20m against the Hook's 26), which makes it read as older and
-        /// denser the moment you walk into it, and it costs nothing — the grid
-        /// generator does not care. Two bridges join them, and only two, because
-        /// a chokepoint is a place things can happen: somebody waiting at a
-        /// bridge is a scene, and somebody waiting on an open grid is a man
-        /// standing in a road.
+        /// Copper Row is the design doc's **immigrant market quarter — dense
+        /// street life, cash economies, loyalty**. The first version of it drifted
+        /// industrial (a foundry, a smelt yard, kilns) because I built it without
+        /// reading §7 first; that is Ironside's brief, and it has gone back there.
+        ///
+        /// The market quarter is the better district for THIS game, which is why
+        /// the correction was worth making rather than shrugging at. A cash
+        /// economy is exactly where finite purses and Marek's book of debts bite
+        /// hardest: everybody here settles in notes, nobody's money is in a bank,
+        /// and "what can you actually lay hands on today" is the question the
+        /// whole street lives by.
+        ///
+        /// Its blocks are tighter (20m against the Hook's 26), which reads as
+        /// dense rather than merely old and costs nothing — the grid generator
+        /// does not care. Two bridges join the districts, and only two, because a
+        /// chokepoint is a place things can happen: somebody waiting at a bridge
+        /// is a scene, and somebody waiting on an open grid is a man standing in
+        /// a road.
         public const double CopperSpacing = 20.0;
         public static readonly District[] Districts =
         {
@@ -125,8 +136,8 @@ namespace Ledger.Core
                 Id = "copper", Name = "Copper Row",
                 AvenuesX = new double[] { -40, -20, 0, 20, 40 },
                 AvenuesZ = new double[] { 92, 112, 132 },
-                NamesNorthSouth = new[] { "Furnace Lane", "Smeltyard", "Copper Row", "Ropewalk", "Kiln Street" },
-                NamesEastWest = new[] { "The Cut", "Foundry Road", "Northgate" },
+                NamesNorthSouth = new[] { "Weighhouse Lane", "Saltmarket", "Copper Row", "Lantern Walk", "Basket Street" },
+                NamesEastWest = new[] { "The Cut", "Market Road", "Northgate" },
             },
         };
 

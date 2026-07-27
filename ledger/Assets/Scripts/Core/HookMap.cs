@@ -51,22 +51,21 @@ namespace Ledger.Core
             P("tenement_south",  "the south tenements",      -20, -16, "home",     true),
             P("bakery",          "the corner bakery",        -12, -18, "business", true),
 
-            // COPPER ROW, across the cut. It has been in the population, in the
-            // fiction and in three characters' backstories since the roster was
-            // written, and nowhere on the ground — so the game could talk about
-            // somewhere the player could never walk to, which is a worse kind of
-            // missing than an empty lot.
+            // COPPER ROW, across the cut: the design doc's immigrant market
+            // quarter — dense street life, cash economies, loyalty.
             //
-            // Older, tighter, and industrial: this is where the metal trade was
-            // before the harbour took over, and half of it is still working.
-            P("foundry",         "the old copper foundry",     -6, 102, "landmark", true),
-            P("smeltyard",       "the smelt yard",            -22, 104, "business", true),
+            // Every one of these is somewhere money changes hands in NOTES, which
+            // is the point of putting the district here at all: this is where
+            // finite purses and Marek's book bite hardest, because nobody on this
+            // street keeps their money anywhere you could subpoena it.
+            P("covered_market",  "the covered market",         -6, 102, "landmark", true),
+            P("weighhouse",      "the weighhouse",            -22, 104, "business", true),
             P("copper_rooms",    "the Copper Row rooms",       10, 100, "home",     true),
-            P("ropewalk",        "the ropewalk",               22, 110, "business", true),
+            P("money_changer",   "Vasu's money counter",       22, 110, "business", true),
             P("cut_bridge",      "the west bridge",           -26,  92, "corner",   true),
             P("north_market",    "the Northgate market",        4, 126, "business", true),
-            P("kiln_terrace",    "the kiln terraces",          34, 118, "home",     true),
-            P("foundry_office",  "the foundry office",        -14, 118, "business", true),
+            P("stair_tenements", "the stair tenements",        34, 118, "home",     true),
+            P("letter_stall",    "the letter-writer's stall", -14, 118, "business", true),
         };
 
         static HookPlace P(string id, string name, double x, double z, string kind, bool planned = false) =>
