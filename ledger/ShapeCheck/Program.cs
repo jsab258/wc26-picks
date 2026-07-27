@@ -42,11 +42,51 @@ var compilation = CSharpCompilation.Create("UnityLayerCheck", trees,
     references: null,
     options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
+// CS0103 ("the name X does not exist") is the diagnostic this checker was
+// built to catch and the one it has been throwing away, because without
+// references every unknown TYPE raises it too — GameObject, Vector3, Mathf,
+// all of them. Discarding the whole id meant a mistyped LOCAL sailed through
+// and cost a nine-minute round trip on the runner, twice.
+//
+// The split is cheap and holds across this codebase: unresolved types are
+// PascalCase and unresolved locals are camelCase. So keep CS0103 only when
+// the missing name begins with a lower-case letter. On a clean tree that
+// reports nothing; on the run that motivated it, it reports exactly the one
+// line that broke the build.
+//
+// It is a heuristic and it is allowed to be: the cost of a false positive is
+// renaming a local, and the cost of the false negative it replaces is a
+// twenty-minute build that fails on a typo.
+// The exceptions are the lower-case members a MonoBehaviour INHERITS, which
+// are camelCase and unresolvable for the same reason every Unity type is.
+// Small, closed, and the compiler will tell us loudly if the list ever needs
+// another entry — a new one shows up as a false positive here, not as a
+// silent miss on the runner.
+var inherited = new HashSet<string>
+{
+    "transform", "gameObject", "enabled", "tag", "name", "hideFlags",
+    "isActiveAndEnabled", "useGUILayout", "runInEditMode", "rigidbody", "camera",
+};
+
+static bool MissingName(Diagnostic d, out string name)
+{
+    name = null;
+    if (d.Id != "CS0103") return false;
+    var msg = d.GetMessage();
+    int open = msg.IndexOf('\'');
+    int close = open >= 0 ? msg.IndexOf('\'', open + 1) : -1;
+    if (open < 0 || close <= open + 1) return false;
+    name = msg.Substring(open + 1, close - open - 1);
+    return true;
+}
+
 int bad = 0;
 foreach (var d in compilation.GetDiagnostics())
 {
     if (d.Severity != DiagnosticSeverity.Error) continue;
-    if (!interesting.Contains(d.Id)) continue;
+    bool missingLocal = MissingName(d, out var missing)
+                        && char.IsLower(missing[0]) && !inherited.Contains(missing);
+    if (!interesting.Contains(d.Id) && !missingLocal) continue;
     bad++;
     var span = d.Location.GetLineSpan();
     Console.WriteLine($"{span.Path}:{span.StartLinePosition.Line + 1}: {d.Id}: {d.GetMessage()}");

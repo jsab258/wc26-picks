@@ -1061,7 +1061,7 @@ namespace Ledger.Game
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
                         && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk
-                        && actTwoOk && actThreeOk && coverageOk;
+                        && act2Ok && actThreeOk && coverageOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
