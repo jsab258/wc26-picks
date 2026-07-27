@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestIdentity();
                 TestHarm();
                 TestPurses();
                 TestStreets();
@@ -1986,6 +1987,60 @@ namespace Ledger.CoreTests
         }
 
         // ---------------------------------------------------------------
+        // Who the player is, and what the street calls them
+        // ---------------------------------------------------------------
+
+        static void TestIdentity()
+        {
+            Console.WriteLine("Identity — the street learns your name:");
+            var me = new PlayerIdentity();
+            Check(me.Full == "Tomas Vrba", "the protagonist has a name at last", me.Full);
+            Check(me.BenefactorFirst == "Marek", "and the uncle who left him the bar is still Marek");
+
+            // THE DESIGN DECISION. "The new owner" was never a placeholder — it
+            // is what people call you before they know you, and this is a game
+            // about being known. So it survives, as the bottom of a gradient.
+            Check(me.AddressBy(knowsName: false, closeness: 1.0) == "the new owner",
+                "somebody who has not placed you calls you the new owner, however much they like you");
+            Check(me.AddressBy(true, 0.1) == "Vrba", "once they know you, you are a fact on this street");
+            Check(me.AddressBy(true, 0.5) == "Tomas", "people who decided about you use your name");
+            Check(me.AddressBy(true, 0.9) == "Toma", "and two or three people, ever, use the short one");
+
+            // The gate is knowing, not liking — someone can think well of you
+            // and still not know what to call you.
+            Check(me.AddressBy(false, 0.9) != me.AddressBy(true, 0.9),
+                "closeness cannot promote a stranger");
+
+            // Talk travels further than acquaintance: a rumor can carry your
+            // surname into mouths that never met you.
+            Check(me.InTalk(true) == "Vrba" && me.InTalk(false) == "the new owner",
+                "a name gets around a district ahead of the person");
+
+            // From a real person.
+            var mill = new GossipMill(new SocialGraph());
+            var stranger = new Gossiper("s", "Stranger", null, null, null, "day", 0.5, 0.5, 0.9);
+            Check(!PlayerIdentity.KnowsName(stranger), "somebody who has never noticed you does not know your name");
+            Check(me.AddressBy(stranger) == "the new owner", "and calls you what the street calls you");
+            stranger.Memory.Append(new MemoryEvent(new GameTime(1, 9, 0), "conversation", 0.5,
+                "Talked to the one who took over Marek's place."));
+            Check(PlayerIdentity.KnowsName(stranger), "one memory of you is enough to learn it");
+            Check(me.AddressBy(stranger) == "Toma", "and a friend uses the short one", me.AddressBy(stranger));
+            Check(me.AddressBy((Gossiper)null) == "the new owner", "asking about nobody is safe");
+
+            // Renaming is free, which is the whole reason this is data.
+            var snap = MiniJson.Serialize(me.Capture());
+            var twin = new PlayerIdentity();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(twin.Full == me.Full, "the name survives a save");
+            twin.Restore(null);
+            Check(twin.Full == me.Full, "restoring nothing changes nothing");
+            var renamed = new PlayerIdentity();
+            renamed.Restore(MiniJson.AsObject(MiniJson.Deserialize("{\"first\":\"Ilya\",\"surname\":\"Brandt\"}")));
+            Check(renamed.Full == "Ilya Brandt" && renamed.Diminutive == "Toma",
+                "and a later rename costs nothing, field by field", renamed.Full);
+        }
+
+        // ---------------------------------------------------------------
         // The consequence layer of violence (roadmap M11)
         // ---------------------------------------------------------------
 
@@ -2529,6 +2584,41 @@ namespace Ledger.CoreTests
                 hours.TotalDistance.ToString("0"));
             foreach (var v in hours.Vehicles)
                 if (v.Dormant) Check(v.Speed == 0, $"parked vehicle {v.Id} is not creeping");
+
+            // Collisions that hurt without killing (player decision 2026-07-27).
+            // AI drivers still brake for everybody — an NPC car maiming a
+            // pedestrian while the player watches is a consequence with no
+            // decision attached. Only the player's car can strike anybody.
+            var road = new TrafficSim(seed: 33);
+            road.Populate(6);
+            road.Hazards.Add(new TrafficSim.Hazard { X = 4, Z = 4, R = 0.5, Id = "Lena", Name = "Lena" });
+            Check(road.Contact(4, 4, speed: 0.5, 1.1, 2.3) == null,
+                "a car at walking pace does not put anybody in the infirmary");
+            var struck = road.Contact(4, 4, speed: 9.0, 1.1, 2.3);
+            Check(struck != null && struck.Value.VictimId == "Lena",
+                "but at speed it knocks somebody down, and the somebody has a name");
+            Check(struck.Value.ByPlayer, "and it was the player at the wheel, which is the only case that matters");
+            Check(struck.Value.Force > 0 && struck.Value.Force <= 1,
+                "how hard it was is a fraction, not a fatality", struck.Value.Force.ToString("0.00"));
+            Check(road.Strikes.Count == 1, "and it is reported for the host to act on");
+            Check(road.Contact(40, 40, 9.0, 1.1, 2.3) == null, "missing everybody hits nobody");
+            road.Hazards.Add(new TrafficSim.Hazard { X = 9, Z = 9, R = 1.2, Id = road.PlayerHazardId });
+            Check(road.Contact(9, 9, 9.0, 1.1, 2.3) == null, "and your own car is not somebody you can run into");
+            var anonymous = new TrafficSim(seed: 34);
+            anonymous.Hazards.Add(new TrafficSim.Hazard { X = 0, Z = 0, R = 0.5 });
+            Check(anonymous.Contact(0, 0, 9.0, 1.1, 2.3) == null,
+                "an unnamed obstacle is a bollard, not a person");
+
+            // Force scales with speed and saturates — the top of an arcade speed
+            // range is as bad as it ever gets, and it is still not fatal.
+            var soft = new TrafficSim(seed: 35);
+            soft.Hazards.Add(new TrafficSim.Hazard { X = 0, Z = 0, R = 0.5, Id = "A", Name = "A" });
+            var gentle = soft.Contact(0, 0, 3.0, 1.1, 2.3);
+            soft.Hazards.Clear();
+            soft.Hazards.Add(new TrafficSim.Hazard { X = 0, Z = 0, R = 0.5, Id = "B", Name = "B" });
+            var hard = soft.Contact(0, 0, 13.0, 1.1, 2.3);
+            Check(gentle.Value.Force < hard.Value.Force, "faster hurts more");
+            Check(hard.Value.Force <= 1.0, "and nothing goes past the worst it can be");
 
             // Zero deltas and empty streets are not crashes.
             var empty = new TrafficSim(seed: 1);

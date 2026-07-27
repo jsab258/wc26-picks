@@ -72,6 +72,13 @@ namespace Ledger.Game
             try
             {
                 var scene = ExtraContext != null ? $"{SceneContext} {ExtraContext()}" : SceneContext;
+                // What THIS person calls the player, appended to every scene so
+                // the model uses the right name without anybody hand-writing it
+                // into thirty character cards. Somebody who has not placed you
+                // still says "the new owner"; somebody who has decided about you
+                // says Tomas. The player gets to notice that change happening,
+                // which is the whole point of having a name in this game.
+                scene += " " + _game.AddressLine(Card.Id);
                 var reply = await _engine.SayToAsync(playerInput, _game.Now, scene);
                 // §9: nothing fourth-wall-breaking or essay-length reaches the player.
                 return ResponseValidator.Validate(reply, Card.Name);

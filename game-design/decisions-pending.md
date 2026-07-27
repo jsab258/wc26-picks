@@ -11,15 +11,30 @@ as answerable options — the doc is the record, the chat is the interface.
 *(nothing blocking — the all-night run works on standing mandates. Items
 for whenever you surface, in the order I'd want them answered:)*
 
-0. **The protagonist has no name.** Open since 2026-07-24 and now the
-   longest-standing item in the project. Every character card, every
-   generated line and every piece of authored text says "the new owner"
-   because there is nothing else to say. It is not blocking anything
-   mechanical and it is quietly shaping the writing — the game has learned
-   to avoid the moment where somebody would use your name, which is a
-   strange thing for a game about people knowing who you are.
-   RECOMMEND: name him, even provisionally. A placeholder we can rename
-   later costs nothing; the absence is costing something now.
+0. **~~The protagonist has no name.~~ ANSWERED 2026-07-27 — delegated to me.**
+   He is **Tomas Vrba**, Marek's sister's boy, off the boat with a suitcase
+   and a letter. Vrba sits beside Sedlak, Brela and Farid without sounding
+   imported, it is two syllables and hard to soften, and it is a word
+   (willow) — the kind of name a city shortens without affection.
+
+   **The part that turned out to be a design decision:** I came to this
+   expecting to find-and-replace "the new owner" and that would have been
+   wrong. *"The new owner" is not a placeholder — it is what people call
+   you before they know you*, and this is a game about being known. So the
+   name is something the street LEARNS, and what somebody calls you is now
+   a readout of where you stand:
+
+   | | |
+   |---|---|
+   | the new owner | they know the bar changed hands, not who you are |
+   | Vrba | you are a fact on this street now |
+   | Tomas | they decided about you, and it was fine |
+   | Toma | two or three people, ever |
+
+   Appended to every conversation's scene, so the model uses the right one
+   without it being hand-written into thirty character cards. Renaming is
+   free and field-by-field — it is data, not a constant — and gender is
+   deliberately still unset, since the street mostly uses the surname.
 
 0b. **Day length.** A day is 12 real minutes. Nobody has ever checked
    whether that feels right, because nobody has played it. This is the
@@ -73,9 +88,40 @@ being possible:
 5. **API-key batch session** for Tier-2 district generation (Open City
    decision 3: generation ships WITH Empire v1/M6). Blocks: M6 kickoff.
 
-## Traffic: can you run people over? (raised 2026-07-27, M12)
+## ~~Traffic: can you run people over?~~ ANSWERED 2026-07-27 — the middle option
 
-**Currently: no.** Cars brake for anybody in the road and wait there while
+**Collisions that hurt but do not kill**, as chosen. Built the same morning.
+
+A knock at walking pace is nothing; the top of the arcade speed range is a
+broken bone and a very bad morning, and that is the whole range. Nothing in
+the code can produce a death, which is a property rather than a tuning
+value.
+
+What it costs the player is the interesting part, and none of it is new
+machinery — it all lands in systems that already existed:
+
+- The victim is really hurt, on the M11 harm system: it persists, it shows,
+  it turns if nobody treats it.
+- They remember it in their own words, and lose a lot of loyalty. *"It was
+  not on purpose. That is not the same as it being nothing."*
+- Everyone nearby holds it as a hard fact at 0.95 confidence — **and this
+  is the one thing the coat cannot soften**, because they did not see a
+  figure, they saw a car and what it did.
+- It records a low-heat exchange rather than a feud. An accident is not a
+  war. It is the kind of thing that becomes one if it goes unanswered, and
+  that is left to the player.
+- Your car stops hard, so you get the beat where you understand what just
+  happened instead of leaving it behind at forty.
+
+AI drivers still brake for everybody, always. An NPC car maiming a
+pedestrian while the player watches is a consequence with no decision
+attached, which is the definition of noise. **Only the player's car can
+strike anybody**, because the player is holding the wheel — and that is
+exactly the difference between a system and a decision.
+
+## The old writeup, for the record
+
+**Was: no.** Cars brake for anybody in the road and wait there while
 they stand in it. That is enforced in Core and held as a test, so it is a
 design position rather than something that merely has not been built.
 

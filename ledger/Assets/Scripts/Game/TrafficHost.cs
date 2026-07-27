@@ -76,7 +76,79 @@ namespace Ledger.Game
                 foreach (var v in Traffic.Vehicles) PlaceBody(v);
             }
             if (SimMode.Days == 0) HearTraffic();
+            CheckCollisions();
         }
+
+        /// The player hit somebody (roadmap M11 + M12, player decision
+        /// 2026-07-27: collisions that hurt without killing).
+        ///
+        /// This is the only place in the game where the player can hurt somebody
+        /// by accident, and that is what makes it interesting: there is no menu,
+        /// no confirmation, and no way to claim you meant something else. You
+        /// were driving, and now somebody is on the ground.
+        void CheckCollisions()
+        {
+            var car = PlayerCar.Instance;
+            if (Traffic == null || car == null || !car.Occupied) return;
+
+            var p = car.transform.position;
+            var hit = Traffic.Contact(p.x, p.z, Mathf.Abs(car.Speed),
+                PlayerCar.Kind.Width / 2.0 + 0.2, PlayerCar.Kind.Length / 2.0 + 0.2);
+            if (hit == null) return;
+            Traffic.Strikes.Clear();
+
+            var s = hit.Value;
+            if (_struckRecently.TryGetValue(s.VictimId, out var lastDay) && lastDay == Now.Day) return;
+            _struckRecently[s.VictimId] = Now.Day;
+
+            // Force decides the injury, and NOTHING decides a death. A knock at
+            // walking pace is a bruise; the top of an arcade speed range is a
+            // broken bone and a very bad morning. That is the whole range.
+            var kind = s.Force > 0.6 ? InjuryKind.Broken
+                     : s.Force > 0.25 ? InjuryKind.Cut
+                     : InjuryKind.Bruised;
+            var injury = Harm.Inflict(s.VictimId, s.VictimName, kind, Now.Day,
+                $"knocked down in the street by a car, and the car was being driven by {Me.Surname}");
+
+            // The car takes the hit too — you do not drive away from this at
+            // speed, which gives the player a beat to understand what happened
+            // rather than leaving it behind at forty.
+            car.Jolt();
+            Audio.Ui("dread");
+
+            var mill = _gossip != null ? _gossip.Mill : null;
+            var victim = mill?.Get(s.VictimId);
+            if (victim != null)
+            {
+                victim.Memory.Append(new MemoryEvent(Now, "observation", 1.0,
+                    $"{Me.Surname} hit me with a car. I am {injury?.Look ?? "hurt"}. " +
+                    "It was not on purpose. That is not the same as it being nothing."));
+                victim.Loyalty = Mathf.Clamp01((float)(victim.Loyalty - 0.35));
+                victim.Suspicion.Raise(0.15, "was knocked down in the street by that car");
+                // Not a feud yet — an accident is not a war. But it is the kind
+                // of thing that becomes one if it goes unanswered, so it is
+                // recorded as an exchange with low heat and left to the player.
+                Harm.Flare("player", Me.Surname, s.VictimId, s.VictimName, Now.Day, heat: 0.2);
+            }
+
+            // Everybody nearby saw it, and this is the one fact the coat cannot
+            // soften: they did not see a figure, they saw a car and what it did.
+            if (mill != null)
+                foreach (var w in _npcs)
+                {
+                    if (w == null || w.DisplayName == s.VictimId) continue;
+                    if (Vector3.Distance(w.transform.position, p) > 14f) continue;
+                    mill.Witness(w.DisplayName,
+                        new Fact("player", $"struck_d{Now.Day}", s.VictimId),
+                        $"{Me.Surname} put {s.VictimName} on the road with a car on Hook Street",
+                        sensitive: true, now: Now, confidence: 0.95);
+                }
+
+            _ui?.Toast($"You hit {s.VictimName}. They are {injury?.Look ?? "hurt"}, and getting up slowly. " +
+                       "Everyone on this street saw the car.", 12f);
+        }
+
+        readonly Dictionary<string, int> _struckRecently = new Dictionary<string, int>();
 
         /// The city sounds occupied. One engine bed for the whole district,
         /// tracking the nearest moving vehicle: a dozen looping sources would mix
@@ -122,7 +194,7 @@ namespace Ledger.Game
             list.Clear();
             Vector3 focus = _player != null ? _player.transform.position : Vector3.zero;
             if (_player != null)
-                list.Add(new TrafficSim.Hazard { X = focus.x, Z = focus.z, R = 0.6 });
+                list.Add(new TrafficSim.Hazard { X = focus.x, Z = focus.z, R = 0.6, Id = "player" });
 
             // Your car is an obstacle to everybody else's, whether you are in it
             // or you left it in the road.
@@ -133,7 +205,7 @@ namespace Ledger.Game
                 // Sized to the car itself, not generously: an inflated radius
                 // reaches across the kerb and stops traffic in a lane the car is
                 // not actually in.
-                list.Add(new TrafficSim.Hazard { X = mp.x, Z = mp.z, R = 1.2 });
+                list.Add(new TrafficSim.Hazard { X = mp.x, Z = mp.z, R = 1.2, Id = Traffic.PlayerHazardId });
             }
 
             float range2 = HazardRange * HazardRange;
@@ -144,7 +216,13 @@ namespace Ledger.Game
                 var p = npc.transform.position;
                 float dx = p.x - focus.x, dz = p.z - focus.z;
                 if (dx * dx + dz * dz > range2) continue;
-                list.Add(new TrafficSim.Hazard { X = p.x, Z = p.z, R = 0.5 });
+                // Named, so a collision can report WHO rather than reporting
+                // that a car hit a coordinate.
+                list.Add(new TrafficSim.Hazard
+                {
+                    X = p.x, Z = p.z, R = 0.5,
+                    Id = npc.DisplayName, Name = npc.DisplayName,
+                });
             }
         }
 

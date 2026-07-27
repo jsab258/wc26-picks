@@ -93,6 +93,21 @@ namespace Ledger.Game
         /// (roadmap M11). Violence is deferred as a thing you DO and present as
         /// a thing that has happened to you.
         public HarmBook Harm { get; } = new HarmBook();
+        /// The player's name, and the gradient of what people call them
+        /// (decided 2026-07-27, delegated by Jafar). Tomas Vrba.
+        public PlayerIdentity Me { get; } = new PlayerIdentity();
+
+        /// The sentence appended to every conversation's scene telling the model
+        /// what THIS person calls the player. One place, rather than the same
+        /// instruction hand-written into thirty character cards.
+        public string AddressLine(string gossiperId)
+        {
+            var g = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Get(gossiperId) : null;
+            var name = Me.AddressBy(g);
+            return name == Me.Unplaced
+                ? $"You do not know this person's name. You think of them as {Me.Unplaced}, and that is how you would refer to them."
+                : $"You call them {name}.";
+        }
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }

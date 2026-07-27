@@ -14,11 +14,13 @@ namespace Ledger.Core
     /// properties a test can hold, and none of them can be judged by looking at
     /// a screenshot.
     ///
-    /// A deliberate absence, flagged to the player rather than decided quietly:
-    /// **cars cannot run people over.** They brake. Pedestrian death is a
-    /// different game's Tuesday and it would eat the gossip and investigation
-    /// systems whole — every witness in the district would have exactly one
-    /// thing to talk about. See §5 of the spec.
+    /// **Nobody dies under a car.** Flagged to the player as a decision rather
+    /// than taken quietly, and answered by them on 2026-07-27: collisions that
+    /// HURT but do not kill. Vehicular death would eat the gossip and
+    /// investigation systems whole — every witness in the district would have
+    /// exactly one thing to talk about for the rest of the campaign — while a
+    /// knock-down is a hard fact with a vehicle attached, which is machinery
+    /// this game already has. See `Strike` below and §5 of the spec.
 
     /// One class of vehicle. A data table rather than six subclasses, because
     /// the differences between a bus and a bike are numbers plus two flags, and
@@ -200,7 +202,39 @@ namespace Ledger.Core
         /// Something a driver will stop for and never drive through: the player,
         /// a walker crossing, a spilled crate. The host rewrites these each
         /// frame; Core never guesses where people are.
-        public struct Hazard { public double X, Z, R; }
+        ///
+        /// `Id` is who it is, when it is somebody — needed so a collision can
+        /// name a victim rather than reporting that a car hit a coordinate.
+        public struct Hazard { public double X, Z, R; public string Id, Name; }
+
+        /// Somebody was struck. Not killed — see the note at the top of the file.
+        public struct Strike
+        {
+            public string VictimId, VictimName;
+            public Vehicle By;
+            /// True when it was the player at the wheel, which is the only case
+            /// where any of this is the player's fault.
+            public bool ByPlayer;
+            public double Speed;
+            /// How hard, 0..1, from the speed it happened at.
+            public double Force;
+        }
+
+        /// Collisions since the last time anybody asked. The host drains these,
+        /// turns them into injuries and memories, and clears the list — Core
+        /// reports the physics and decides none of the consequences.
+        public readonly List<Strike> Strikes = new List<Strike>();
+
+        /// Below this, a vehicle nudging somebody is a nudge. A driver who has
+        /// already braked to walking pace does not put anybody in the infirmary,
+        /// and pretending otherwise would make the player's own careful driving
+        /// feel unrewarded.
+        public const double StrikeSpeed = 2.2;
+        /// The player's car is the only thing that can strike anybody. AI
+        /// drivers brake in time, always — an NPC car that maimed a pedestrian
+        /// while the player watched would be a consequence with no decision
+        /// attached, which is the definition of noise.
+        public string PlayerHazardId = "player_car";
 
         public readonly List<Vehicle> Vehicles = new List<Vehicle>();
         public readonly List<Hazard> Hazards = new List<Hazard>();
@@ -462,8 +496,9 @@ namespace Ledger.Core
                 if (gap < best) { best = gap; why = "car"; }
             }
 
-            // 2. A person in the road. This is the rule that means a car cannot
-            // run anybody over: the driver stops, always, however inconvenient.
+            // 2. A person in the road. An AI driver stops, always, however
+            // inconvenient — they have no story to be part of, so all a
+            // pedestrian gets from them is a delay.
             foreach (var hz in Hazards)
             {
                 double ahead = Corridor(v, hz.X, hz.Z, hz.R);
@@ -816,6 +851,40 @@ namespace Ledger.Core
             int n = 0;
             foreach (var v in Vehicles) if (!v.Dormant) n++;
             return n;
+        }
+
+        /// Did the player's car just hit somebody? Called by the host with the
+        /// player's vehicle, because the player's car is not in Vehicles — it is
+        /// driven by a person, not by this model.
+        ///
+        /// Deliberately one-directional: AI traffic brakes for people and the
+        /// player's car does not brake for anybody, because the player is
+        /// holding the wheel and that is exactly the difference between a system
+        /// and a decision.
+        public Strike? Contact(double x, double z, double speed, double halfWidth, double halfLength)
+        {
+            if (speed < StrikeSpeed) return null;
+            foreach (var hz in Hazards)
+            {
+                if (hz.Id == PlayerHazardId || string.IsNullOrEmpty(hz.Id)) continue;
+                double dx = hz.X - x, dz = hz.Z - z;
+                double reach = Math.Max(halfWidth, halfLength) + hz.R;
+                if (dx * dx + dz * dz > reach * reach) continue;
+
+                var strike = new Strike
+                {
+                    VictimId = hz.Id,
+                    VictimName = hz.Name ?? hz.Id,
+                    ByPlayer = true,
+                    Speed = speed,
+                    // Walking pace is nothing; the top of the arcade speed range
+                    // is as bad as it gets, and it still is not fatal.
+                    Force = Math.Clamp((speed - StrikeSpeed) / 9.0, 0, 1),
+                };
+                Strikes.Add(strike);
+                return strike;
+            }
+            return null;
         }
 
         /// The nearest vehicle to a point, within a radius — how a witness comes

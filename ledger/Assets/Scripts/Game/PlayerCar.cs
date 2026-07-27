@@ -84,6 +84,11 @@ namespace Ledger.Game
             return go.transform;
         }
 
+        /// You hit somebody. The car stops hard — you do not leave this behind
+        /// at forty, because the beat where the player realises what has just
+        /// happened is the entire point of the system.
+        public void Jolt() => Speed = Mathf.Min(Speed, 1.0f);
+
         public bool WithinReach(Vector3 from) =>
             (new Vector3(transform.position.x - from.x, 0, transform.position.z - from.z)).magnitude <= EnterRange;
 
