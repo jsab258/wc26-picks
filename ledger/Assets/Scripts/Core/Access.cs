@@ -264,6 +264,11 @@ namespace Ledger.Core
                 case KeyKind.Payment:      return $"{who} takes the money without looking at it.";
                 case KeyKind.Crew:         return $"{who} counts the people behind you and does the arithmetic.";
                 case KeyKind.Hook:         return $"{who} meets your eye, remembers what you know, and looks away.";
+                // The two hour keys used to fall through to the flat default,
+                // which is the wrong line for exactly the doors where the CLOCK
+                // is the whole content of being let in.
+                case KeyKind.After:        return $"{who} checks the hour without hurrying. Whatever this room is before now, it is something else after.";
+                case KeyKind.Before:       return $"{who} waves you through. Another twenty minutes and he would have been locking up.";
                 default:                   return $"{who} lets you past.";
             }
         }

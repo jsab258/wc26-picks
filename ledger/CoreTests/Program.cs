@@ -60,6 +60,7 @@ namespace Ledger.CoreTests
                 TestEconomy();
                 TestPopulationDistricts();
                 TestPhones();
+                TestEveryKeyKindHasItsOwnWords();
                 TestEveryModifierBites();
                 TestClosedVocabulariesAreHandled();
                 TestActThree();
@@ -1625,6 +1626,65 @@ namespace Ledger.CoreTests
         /// sitting in a chain, and a multiplier that never fires is the same
         /// bug as a strain nobody consults — the design says the street pushes
         /// back, and the only proof is that the number moves.
+        /// The same question again, asked of authored TEXT rather than of logic.
+        ///
+        /// Every kind of key a door can want has a line for being let past on
+        /// it, and a line for nearly making it. A kind with no case falls to a
+        /// flat default — nothing crashes, nothing is logged, and the player
+        /// simply gets a worse game at that door than at every other one.
+        ///
+        /// This found two: the hour keys, which are precisely the doors where
+        /// the clock is the whole content of being let in, were being told
+        /// "the man on the door lets you past".
+        static void TestEveryKeyKindHasItsOwnWords()
+        {
+            Console.WriteLine("Doors — every kind of key has its own words:");
+            var generic = new HashSet<string>();
+            var lines = new Dictionary<KeyKind, string>();
+
+            // One gate per kind, with a state built to satisfy exactly that key
+            // — After and Before disagree about the hour, so they cannot share.
+            AccessState StateFor(KeyKind kind)
+            {
+                var st = new AccessState { Dress = "plain", Hour = 12, Money = 0, Crew = 0 };
+                switch (kind)
+                {
+                    case KeyKind.Standing: st.Standing["dockside"] = 0.5; break;
+                    case KeyKind.Quiet: st.Notoriety = 0.02; break;
+                    case KeyKind.Notorious: st.Notoriety = 0.9; break;
+                    case KeyKind.Introduction: st.Introductions.Add("dockside"); break;
+                    case KeyKind.Payment: st.Money = 500; break;
+                    case KeyKind.After: st.Hour = 22; break;
+                    case KeyKind.Before: st.Hour = 6; break;
+                    case KeyKind.Hook: st.HoldsHookOnDoor = true; break;
+                    case KeyKind.Crew: st.Crew = 20; break;
+                }
+                return st;
+            }
+
+            foreach (KeyKind kind in Enum.GetValues(typeof(KeyKind)))
+            {
+                var gate = new Gate("room", "the room", "Halvard");
+                gate.WithKey(new AccessKey(kind, 10, who: "dockside", dress: "plain"));
+                var r = Doors.Try(gate, StateFor(kind));
+                Check(r.Allowed, $"{kind} can actually open a door", kind.ToString());
+                if (!r.Allowed) continue;
+                lines[kind] = r.Line;
+                Check(!string.IsNullOrEmpty(r.Line), $"{kind} has something to say", kind.ToString());
+                if (r.Line.EndsWith("lets you past.")) generic.Add(kind.ToString());
+            }
+
+            Check(generic.Count == 0,
+                "and none of them falls back on the flat default",
+                generic.Count == 0 ? "all specific" : string.Join(", ", generic));
+
+            // Distinct, too — two keys sharing a line is the same failure
+            // wearing a copy-paste.
+            var distinct = new HashSet<string>(lines.Values);
+            Check(distinct.Count == lines.Count,
+                "and no two keys share a line", $"{distinct.Count} of {lines.Count} distinct");
+        }
+
         static void TestEveryModifierBites()
         {
             Console.WriteLine("Money — every modifier on the way in actually moves it:");
