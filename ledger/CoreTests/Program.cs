@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestPopulationDistricts();
                 TestPhones();
                 TestActThree();
                 TestIdentity();
@@ -2049,6 +2050,54 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // People live in their own district (M9 + Copper Row)
+        // ---------------------------------------------------------------
+
+        static void TestPopulationDistricts()
+        {
+            Console.WriteLine("Population — people live where they say they live:");
+            StreetMap.Rebuild();
+            var pop = Population.Generate(600, 4242, new[] { "the Hook", "Copper Row" });
+
+            int hookHomes = 0, copperHomes = 0, commuters = 0, misplaced = 0;
+            foreach (var r in pop.Residents)
+            {
+                var where = StreetMap.DistrictAt(r.HomeX, r.HomeZ);
+                if (where != r.District) misplaced++;
+                if (r.District == "the Hook") hookHomes++; else copperHomes++;
+                if (StreetMap.DistrictAt(r.WorkX, r.WorkZ) != r.District) commuters++;
+            }
+
+            // THE BUG THIS EXISTS TO CATCH: anchors were -40..40 for everybody,
+            // which was fine with one district and quietly wrong with two —
+            // every resident "of Copper Row" was living in the Hook, and the
+            // crowd would never have gone north of the cut.
+            Check(misplaced == 0, "everybody's home is in the district they belong to", misplaced.ToString());
+            Check(copperHomes > 200, "and Copper Row has a real share of the city", copperHomes.ToString());
+            Check(hookHomes > 200, "without emptying the Hook", hookHomes.ToString());
+
+            // A third cross the water to work, which is what makes two bridges
+            // carry somebody rather than being scenery.
+            double commuteShare = (double)commuters / pop.Residents.Count;
+            Check(commuteShare > 0.2 && commuteShare < 0.45,
+                "about a third of the city crosses the cut to work", commuteShare.ToString("0.00"));
+
+            // Still deterministic, which the whole save format depends on.
+            var twin = Population.Generate(600, 4242, new[] { "the Hook", "Copper Row" });
+            bool same = true;
+            for (int i = 0; i < pop.Residents.Count && same; i++)
+                same = twin.Residents[i].HomeX == pop.Residents[i].HomeX
+                    && twin.Residents[i].WorkZ == pop.Residents[i].WorkZ;
+            Check(same, "and the same seed still builds the same city");
+
+            // A district that exists in the fiction and not on the ground must
+            // not throw — Ironside is named in the population and has no
+            // geography yet.
+            var withGhost = Population.Generate(60, 7, new[] { "the Hook", "Ironside" });
+            Check(withGhost.Residents.Count == 60, "somewhere not yet built still houses its people");
         }
 
         // ---------------------------------------------------------------

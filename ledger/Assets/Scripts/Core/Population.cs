@@ -151,17 +151,52 @@ namespace Ledger.Core
                     Greed = Round2(0.2 + rng.NextDouble() * 0.6),
                     Nerve = Round2(0.2 + rng.NextDouble() * 0.6),
                     Loyalty = Round2(0.3 + rng.NextDouble() * 0.4),
-                    HomeX = rng.Next(-40, 41),
-                    HomeZ = rng.Next(-40, 41),
-                    WorkX = rng.Next(-40, 41),
-                    WorkZ = rng.Next(-40, 41),
                 };
+                // People live IN their district. This was -40..40 for everybody,
+                // which was fine while there was one district and quietly wrong
+                // the moment there were two: three hundred residents "of Copper
+                // Row" were living in the Hook, and the crowd would never have
+                // gone north of the cut.
+                Place(rng, district, out r.HomeX, out r.HomeZ);
+                // And about a third of them cross the water to work, which is
+                // what makes the two bridges carry somebody rather than being
+                // scenery. A commuter is also the cheapest possible reason for a
+                // face to be somewhere it is not usually seen.
+                var worksIn = rng.NextDouble() < 0.33 ? Across(districts, district) : district;
+                Place(rng, worksIn, out r.WorkX, out r.WorkZ);
                 if (night) { r.WorkFromHour = 20; r.WorkToHour = 4; }
                 else { r.WorkFromHour = 7 + rng.Next(3); r.WorkToHour = 16 + rng.Next(4); }
                 pop.Residents.Add(r);
                 pop._byId[r.Id] = r;
             }
             return pop;
+        }
+
+        /// A point inside the named district, or inside the founding one when
+        /// the name is somewhere that exists in the fiction and not yet on the
+        /// ground (Ironside). Deliberately inset from the edges so nobody's
+        /// front door is in the middle of an avenue.
+        static void Place(Random rng, string districtName, out int x, out int z)
+        {
+            foreach (var d in StreetMap.Districts)
+            {
+                if (d.Name != districtName) continue;
+                int minX = (int)d.AvenuesX[0] + 6, maxX = (int)d.AvenuesX[d.AvenuesX.Length - 1] - 6;
+                int minZ = (int)d.AvenuesZ[0] + 6, maxZ = (int)d.AvenuesZ[d.AvenuesZ.Length - 1] - 6;
+                x = rng.Next(minX, maxX + 1);
+                z = rng.Next(minZ, maxZ + 1);
+                return;
+            }
+            x = rng.Next(-40, 41);
+            z = rng.Next(-40, 41);
+        }
+
+        /// Somewhere that is not here, for the third of people who commute.
+        static string Across(IReadOnlyList<string> districts, string here)
+        {
+            for (int i = 0; i < districts.Count; i++)
+                if (districts[i] != here) return districts[i];
+            return here;
         }
 
         static double Round2(double v) => Math.Round(v, 2);
