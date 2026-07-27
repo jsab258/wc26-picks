@@ -261,6 +261,15 @@ money at night quietly costs clean money in the morning, and past a point it cos
 it pays. The balance lab puts aggressive play $94 *behind* a campaign that ran no rackets
 at all, despite $1697 of racket income — the trade is real, and there is no dominant answer.
 
+**And the screw turns twice (decision 9, 2026-07-27).** The paragraph above was only half
+the loop for a while: the take drained the street, and nothing let the street limit the
+take. You collected the same sixty a day from a district you had emptied. Now the racket's
+income scales with the street it is squeezing, so a starved district simply has less to
+hand over — and it says so rather than quietly paying less: *"They're not holding out.
+There's nothing on that street to hold out with."* Over 400 worlds, cautious play's rounds
+fell 468 → 434 as prosperity dropped to 0.40. Squeezing harder is now genuinely capable of
+earning you less, which is the shape this system was always supposed to have.
+
 **Suppliers are people.** Somebody brings the drink, and he is not a supply-chain node: he
 comes on Thursdays, remembers when he was last paid, sells to eight other places on this
 street and hears what all of them are worried about. Neglect loses him. A poor neighbourhood
@@ -422,6 +431,14 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   **how much he reads**: one item a day for six days, produce it or tell him to put it in
   writing. It is the act's only verb that is not irreversible and the only one that costs
   nothing but attention.
+
+  **But attention must not be the whole game (decision 10, 2026-07-27).** Measured for the
+  first time, six answered mornings outweighed three acts of laundering: the aggressive plan
+  ended 100% Kingdom whatever it had done to its books. Cooperation's relief was halved, and
+  stonewalling kept its full weight — **being difficult moves him further than cooperating
+  does**, which is the asymmetry an inspector who cannot be bought should have. Aggressive
+  play now ends 100% Burn Both; cautious-and-answered splits 48/52. Paperwork buys you room,
+  not absolution.
 
   **The last day is a scene, not a countdown.** Two calls, and reaching one is not reaching
   another: Lena moves the real books (gated on loyalty — a felony at a few hours' notice, and
