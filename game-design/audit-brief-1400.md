@@ -1,4 +1,27 @@
-# Audit brief — for the 14:00 CEST session
+# Audit brief — for the Fable session
+
+> **KICKOFF PROMPT — paste this to start the session:**
+>
+> *You are taking over LEDGER from the previous session. Read
+> `game-design/audit-brief-1400.md` first and in full — it is the handover and
+> it is current as of 11:45 UTC 27 July.*
+>
+> *Your job, in phases, per that document's SESSION PLAN: (1) an EXHAUSTIVE
+> audit of the whole codebase — everything in scope, including re-checking the
+> previous session's own test work, which it explicitly asks you not to take on
+> trust; (2) fix what you find, each with a test shown to fail first; (3) build
+> the unbuilt roadmap items in the order given, starting with UI test coverage;
+> (4) hand back green with the docs current.*
+>
+> *The build is currently GREEN (run 30261150542) and that is a new state — the
+> in-engine gates for Act III, the Director and operations had never executed
+> once before this morning. Treat their first green as new information, not as
+> confirmation. Start by running the sim on several seeds.*
+>
+> *Work on branch `claude/game-dev-ai-automation-2h67ix`. Do not open a PR. Do
+> not make design or story decisions — those go to `decisions-pending.md` with
+> a recommendation. Never purchase anything or touch keys or accounts.*
+
 
 Jafar's plan: **full audit and test → fix → one more build → playtest.**
 This is the scope, so that session starts auditing instead of orienting.
@@ -317,17 +340,57 @@ Name the failing input, not the smell. "This test cannot fail because X" or
 audit — and equally, **a clean result stated plainly is a real result.** Do
 not manufacture findings to look thorough.
 
-## Suggested audit order## Suggested audit order
+## THE SESSION PLAN — audit → fix → build → hand back
 
-1. Read the verdict of the latest build with the call at the top of this file.
-   Fix whatever it names.
-2. Build HEAD green, in-engine, with `coverageOk=True` — that is the first
-   run that will have genuinely exercised the second half of the game, and as
-   of this handover it has still never happened.
-3. The vacuous-assertion sweep is done; do not repeat it. If something new
-   is added, apply both questions to it: does anything actually read this,
-   and **is it latched or is it read off a world that moves?**
-4. Only then: playtest, with `day-2026-07-27.md` as the what-changed guide.
+Jafar playtests after this. Work in these phases and do not interleave them.
+
+**Phase 1 — AUDIT.** The scope section above. Exhaustive, everything in play,
+re-checking my work included. Produce a written list of findings with the
+failing input named for each. Do not fix while auditing — a half-fixed
+codebase makes the rest of the audit read a moving target, which is the exact
+mistake that cost this morning.
+
+**Phase 2 — FIX.** Work the list. Every fix gets a test that would have caught
+it, and that test must be shown to fail before the fix. `CoreTests` +
+`lint-usings.py` + `ShapeCheck` on every chunk; commit per fix with the
+finding named. Then ONE build, and read the verdict with the call at the top
+of this file. Never two builds at once — they contend for the Unity install
+lock.
+
+**Phase 3 — BUILD the unbuilt.** Recommended order, and the reasoning matters
+more than the order:
+
+1. **UI test coverage.** All 1395 CoreTests are Core logic; NOTHING asserts
+   what a panel says. It is the weakest verification in the project and it is
+   also the thing that makes everything built after it safer to trust, which
+   is why it goes first. **Three tests that assert what a panel SAYS beat
+   thirty that assert it opens** — after a morning in which five gates turned
+   out to assert nothing, resist the pull to add coverage that feels like
+   progress and checks nothing.
+2. **P2 save robustness.** Still no version field. It is the only roadmap item
+   that gets actively worse while it waits: every patch shipped without it is
+   another patch that can silently eat a player's save.
+3. **Front-end completeness.** Escape closes every panel, no panel traps the
+   player, options apply on Plan / Phone / Ledger.
+
+Then the rest of the production track (P4-P10) and the M6 leftovers (ring-card
+promotions, more batch walkers and businesses, the deliberate
+outfit-independence path) as time allows.
+
+**Phase 4 — HAND BACK.** Leave green, tree clean, pushed. Update
+`audit-brief-1400.md`, `roadmap.md`, `design-doc.md` and `process.md` — the
+standing rule is that the roadmap and design doc are always current. Write
+what was found, what was fixed, and **what was checked and came back clean**,
+because that last one is what stops the next session re-doing the work.
+
+### Standing constraints — these do not change
+
+- **Purchases, keys and accounts: never without Jafar.**
+- **Design, story and character decisions go to `decisions-pending.md` with a
+  recommendation** — not built on your own initiative.
+- Branch `claude/game-dev-ai-automation-2h67ix`. **Never push elsewhere.**
+- **Do not open a pull request** unless Jafar asks.
+- Never run two builds at once.
 
 ## Two decisions Jafar answered this morning — already built
 
