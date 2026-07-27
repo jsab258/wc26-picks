@@ -592,9 +592,10 @@ the sim-bot and purse changes stand.
 - **UI has no automated test coverage at all.** Every one of the 1182 tests is
   Core logic; nothing tests a panel. This is the weakest verification in the
   project and it should stop being invisible.
-- **Ironside has no geography** — the same gap Copper Row had, and it is
-  referenced by the population generator and the research notes as though it
-  exists. Four more districts behind it.
+- ~~**Ironside has no geography**~~ — BUILT 2026-07-27. 34m blocks, two goods
+  roads off Ironside Road, seven places, and a population split that houses
+  one person in fourteen there and employs one in three. Downtown, The Strip,
+  Fairview and Gullwing remain names in §7, deferred by the player.
 - **Purses in more payment paths.** Currently debts only; bribes, payoffs and
   supplier payments still assume infinite pockets on the other side.
 - **The lab does not test a squeezed street's effect on purses**, because week

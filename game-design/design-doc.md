@@ -298,10 +298,26 @@ asset-pack-coherent build target:
 6. **Ironside** (industrial) — warehouses, logistics, places without witnesses.
 7. **Gullwing** (faded resort waterfront) — off-season melancholy, hideouts, endgame turf.
 
-**Built as of 2026-07-27: the Hook and Copper Row. The other five are names in
-this document and nothing on the ground** — Downtown, The Strip, Fairview, Ironside and
-Gullwing have no geometry, no places and no cast. Ironside in particular is referenced by the
-population generator and by the research notes as though it exists; it does not.
+**Built as of 2026-07-27: the Hook, Copper Row and Ironside. The other four are names in
+this document and nothing on the ground** — Downtown, The Strip, Fairview and Gullwing have
+no geometry, no places and no cast (player decision, 2026-07-27: *"ironside, rest later"* —
+three districts prove the system, seven spend a runway).
+
+The three that exist are deliberately different in the two ways a map can actually be
+different, and both are legible from the street without a word of explanation:
+
+| | block size | who is there |
+|---|---|---|
+| **Copper Row** | 20m — tightest | dense, and there all day and all night |
+| **the Hook** | 26m | where you live, and where the game happens |
+| **Ironside** | 34m — widest | one person in fourteen sleeps there; one in three works there |
+
+Ironside's brief is *warehouses, logistics, places without witnesses*, and the third of those
+is the only one that is a mechanic. What makes a place unwitnessed is that nobody is in it —
+so Ironside is a district you can be busy in at noon and alone in at midnight, and its blocks
+are long low sheds with few doors rather than terraces with windows above them. Everything the
+player can do anywhere else they can do here; the difference is only who sees it, which is the
+difference this game is made of.
 
 ### 7.1 Streets, traffic, and the car (M12, built 2026-07-26/27)
 
@@ -640,7 +656,8 @@ Kept deliberately, and kept current. A design document that only accumulates ach
 stops being usable for planning, and this one was drifting that way.
 
 - **Playable melee.** Deferred until after the art pass. The consequence layer is built.
-- **Five of the seven districts** in §7. Two exist.
+- **Four of the seven districts** in §7 — Downtown, The Strip, Fairview and Gullwing. Three
+  exist. Deferred by the player, 2026-07-27.
 - **Act II's seven pressure points.** Drafted and approved 2026-07-26; the machinery exists,
   the authored moments are not all fired. With Act I and Act III both running end to end,
   this is now the thinnest stretch of the spine.
