@@ -667,19 +667,27 @@ the sim-bot and purse changes stand.
 
   What remains genuinely open in Act II is playtest, not code: nobody has
   seen the seven fire in a long campaign, so their PACING is unverified.
-- **Act III's own gaps.** The act ships whole, and three things in it are
-  thinner than the rest: PP5 ("the last day, and the phone") is a line of
-  text rather than a scene; the audit has no in-fiction inspector to talk to;
-  and there is no way to see the endgame except by reaching it, so the only
-  balance evidence for how often each ending fires is CoreTests.
+- ~~**Act III's own gaps.**~~ ALL THREE CLOSED 2026-07-27. PP5 is a scene now
+  (two calls down the M10 exchange, and reaching one is not reaching another);
+  the audit has a face in **Tobias Reisz**, Board of Excise, who sits in the
+  bar from nine until six; and the ending distribution has been measured over
+  400 worlds a row rather than inferred from CoreTests
+  (`balance-findings-endings.md`).
+
+  What replaced them is smaller and sharper: **the in-engine Act III gate has
+  still never executed once** — it staged on a day the clock steps over — and
+  **the inspector is inert for a player who never built an empire**, which is
+  a playtest question rather than a bug.
 - **Front-end completeness.** P1 shipped a main menu, options and a pause menu.
   The rebind screen had drifted to six actions while the game listened for nine
   (fixed 2026-07-27). Not yet verified: every panel closes on Escape, no panel
   traps the player, and options actually apply on the newer panels (Plan,
   Phone, Ledger).
-- **UI has no automated test coverage at all.** Every one of the 1182 tests is
-  Core logic; nothing tests a panel. This is the weakest verification in the
-  project and it should stop being invisible.
+- **UI test coverage is still the weakest link.** All 1395 CoreTests are Core
+  logic. There is now an in-engine smoke test that opens every panel and
+  reports `panelsBad` (currently 0 of 6), which is real and catches a panel
+  that strands the player — but it is a smoke test, not coverage. Nothing
+  asserts what a panel SAYS. Still the thinnest verification in the project.
 - ~~**Ironside has no geography**~~ — BUILT 2026-07-27. 34m blocks, two goods
   roads off Ironside Road, seven places, and a population split that houses
   one person in fourteen there and employs one in three. Downtown, The Strip,
