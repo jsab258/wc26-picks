@@ -70,6 +70,26 @@ namespace Ledger.Core
             if (OpenMode && Verdict == Verdict.Ongoing) FallPending = true;
         }
 
+        /// Self-test hook: open the city without having earned it.
+        ///
+        /// The CI bot is not a player, and its job is not to DESERVE the open
+        /// city — it is to exercise it. A run that loses the week on day six
+        /// leaves every gate past day eight inert (the empire, the Director,
+        /// operations, both later acts), and the build goes green having proven
+        /// the first six days twice. That happened, silently, and the only
+        /// reason it was caught is that somebody read the numbers under a green
+        /// tick.
+        ///
+        /// Never called from the game. `EnterOpenMode` is the real door and it
+        /// still requires the week to have been won.
+        public void ForceOpenMode()
+        {
+            OpenMode = true;
+            Verdict = Verdict.Ongoing;
+            VerdictReason = "";
+            ExposedStreak = 0;
+        }
+
         /// Save-load overlay for the open-mode fields (additive; old saves default off).
         public void RestoreOpen(bool openMode, bool outfitCutOff, bool fallPending, int falls)
         {

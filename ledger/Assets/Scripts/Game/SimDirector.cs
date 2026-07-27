@@ -53,6 +53,8 @@ namespace Ledger.Game
         int _witnessesWhenCarArrived = -1;
         double _harmCapabilityAtInjury = 1.0;
         bool _planStaged, _planRan;
+        bool _openModeForced;
+        Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
         bool _actThreeHandedOver;
         Ending _actThreeEnding = Ending.None;
@@ -173,6 +175,29 @@ namespace Ledger.Game
                 _forcedLedgerLearn = true;
                 var s = _game.HooksBook.ById("lena_ledger");
                 if (s != null && !s.KnownToPlayer) s.Learn("Rocco", now);
+            }
+
+            // THE COVERAGE FLOOR. If day eight has arrived and the city has not
+            // opened, open it anyway.
+            //
+            // Run 30248511085 went green having tested almost nothing: the bot
+            // lost the week on day six, so OpenMode stayed false, so the empire
+            // gate, the Director gate, the operations gate and BOTH act gates
+            // passed vacuously on their own preconditions. Nine simulated days,
+            // and the second half of the game was never touched.
+            //
+            // A conditional gate is only honest if something asserts the
+            // condition was met. This is that something — and losing the week is
+            // still reported, because whether a careful player can survive it is
+            // a real balance question and papering over it here would be the
+            // second mistake.
+            if (!_openModeForced && !_game.Campaign.OpenMode && now.Day >= 8 && now.Hour >= 8)
+            {
+                _openModeForced = true;
+                _weekLostVerdict = _game.Campaign.Verdict;
+                _game.Campaign.ForceOpenMode();
+                Debug.Log($"SimDirector: week ended {_weekLostVerdict} — forcing open mode so the " +
+                          "second half of the game is actually exercised.");
             }
 
             // Empire v1 in CI: the moment the city opens, the bot plays one
@@ -678,6 +703,15 @@ namespace Ledger.Game
                     && kindsSeen >= 3                    // it is traffic, not a fleet of one car
                     && traffic.TotalDistance > 500;      // and it went somewhere
             }
+            // TightestGap returns its sentinel when no two vehicles shared a
+            // road in the same direction at the sampled instant — which after
+            // the local-destination fix is common, because the traffic spreads
+            // out instead of queueing. That is a good thing about the city and a
+            // bad thing about this check: "999" passing `>= 0` reads like proven
+            // clearance and is actually no measurement at all. Reported as such,
+            // and the real following-distance property is covered properly in
+            // CoreTests, which samples every step of a three-minute run.
+            bool gapMeasured = tightest < 900;
 
             // Frame cost, measured rather than assumed. Traffic is the first
             // system here that does work every frame for every visible object,
@@ -842,6 +876,23 @@ namespace Ledger.Game
                     && MiniJson.Serialize(twin.Capture()) == snap;
             }
 
+            // THE GATE THAT WOULD HAVE CAUGHT ALL OF THIS. Every conditional
+            // check below is only worth its green tick if its precondition was
+            // actually reached, and on run 30248511085 none of them were: nine
+            // simulated days, the week lost on day six, and the entire open
+            // city — empire, Director, operations, Acts II and III — skipped
+            // while the build reported success.
+            //
+            // So the run now has to prove it got there. Not "the open city
+            // behaved", which the individual gates say; just "the open city
+            // HAPPENED", which nothing said.
+            bool coverageOk = SimMode.Days < 8 ||
+                (_game.Campaign.OpenMode
+                 && _game.Empire.Businesses.Exists(b => b.Owned)      // the empire beat ran
+                 && _actThreeStaged                                    // Act III was reached
+                 && _planRan                                           // an operation went through
+                 && _directorFired);                                   // and the Director fired one
+
             // Act II (act2-draft.md). All seven pressure points are wired; none
             // of them was ever PROVEN, which is a different thing and the reason
             // this exists — Act I and Act III both have gates and the middle of
@@ -902,6 +953,9 @@ namespace Ledger.Game
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
+                { "coverageOk", coverageOk },
+                { "openModeForced", _openModeForced },
+                { "weekLostAs", _weekLostVerdict.ToString() },
                 { "actTwoOpened", _game.ActTwo.Opened },
                 { "actTwoFired", $"{(_game.ActTwo.Pp1Fired ? 1 : 0)}{(_game.ActTwo.Pp2Fired ? 1 : 0)}" +
                                  $"{(_game.ActTwo.Pp3Fired ? 1 : 0)}{(_game.ActTwo.Pp4Fired ? 1 : 0)}" +
@@ -986,7 +1040,7 @@ namespace Ledger.Game
                 { "vehicles", traffic != null ? traffic.Vehicles.Count : 0 },
                 { "vehicleKinds", kindsSeen },
                 { "trafficMetres", traffic != null ? System.Math.Round(traffic.TotalDistance, 0) : 0 },
-                { "tightestGap", System.Math.Round(tightest, 2) },
+                { "tightestGap", gapMeasured ? (object)System.Math.Round(tightest, 2) : "not-measured" },
                 { "vehiclesOffRoad", offRoad },
                 { "trafficYields", traffic != null ? traffic.YieldsToPeople : 0 },
                 { "frames", Perf.FrameCount },
@@ -1007,7 +1061,7 @@ namespace Ledger.Game
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
                         && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk
-                        && actTwoOk && actThreeOk;
+                        && actTwoOk && actThreeOk && coverageOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -1021,6 +1075,7 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
+                      $"coverageOk={coverageOk} openModeForced={_openModeForced} weekLostAs={_weekLostVerdict} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
@@ -1032,7 +1087,8 @@ namespace Ledger.Game
                       $"gates={_game.Gates.Count} accessOk={accessOk} " +
                       $"targets={_game.Targets.Count} planRan={_planRan} opsOk={opsOk} " +
                       $"vehicles={(traffic != null ? traffic.Vehicles.Count : 0)} kinds={kindsSeen} " +
-                      $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} gap={tightest:0.00} " +
+                      $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} " +
+                      $"gap={(gapMeasured ? tightest.ToString("0.00") : "not-measured")} " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
                       $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +
