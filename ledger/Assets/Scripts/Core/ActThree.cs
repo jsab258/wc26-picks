@@ -1,0 +1,281 @@
+using System;
+using System.Collections.Generic;
+
+namespace Ledger.Core
+{
+    /// Act III — The Ledger Comes Due (`act3-draft.md`).
+    ///
+    /// The crisis is an AUDIT: the least dramatic instrument available, which
+    /// is what makes it frightening. Somebody with a mandate asks to see the
+    /// bar's books, and the bar's books are the one document in this game that
+    /// has been quietly lying since day one.
+    ///
+    /// Everything the player did to the ledger is now evidence in the other
+    /// direction. Launder too little and the night money has nowhere to have
+    /// come from. Launder too much and the bar earned more than a bar on this
+    /// street possibly could. The lie has a shape, and the shape is now being
+    /// measured. It cannot be fought — only survived, deflected onto somebody,
+    /// or answered by choosing which life to keep.
+    ///
+    /// THE RULE THAT MATTERS MOST HERE: **the player never picks an ending from
+    /// a list.** Each ending is a condition the world can be IN when the audit
+    /// closes. More than one can be live at once, and then the last thing the
+    /// player did decides between them. Which ending somebody earned is exactly
+    /// the kind of thing that must never come from a coin flip or from a
+    /// language model, so all of it is a pure function of state and all of it
+    /// is tested.
+
+    public enum Ending
+    {
+        /// The audit has not closed.
+        None,
+        /// Empire and life both survive. Requires the information landscape
+        /// actively managed. Should be rare, and should feel earned rather
+        /// than lucky.
+        Both,
+        /// You kept everything you built, and nobody is left who knew you
+        /// before it.
+        Kingdom,
+        /// You gave up the business to keep the people.
+        StraightLife,
+        /// The ledger took it all. This is what doing nothing produces, which
+        /// is correct: it comes due whether or not you answer it.
+        BurnBoth,
+        /// Handed to somebody you built up. Not a fifth cell in the matrix — a
+        /// way of leaving it, and the only ending with an epilogue.
+        Quiet,
+    }
+
+    /// Everything the ending depends on, gathered in one place so the decision
+    /// is a function rather than a scattering of ifs across the game layer.
+    public class LedgerState
+    {
+        // The empire.
+        public int BusinessesOwned;
+        public int RacketsEstablished;
+        public int CrewCount;
+        public bool EmpireDissolved;      // sold up and paid off before the close
+
+        // The life.
+        public double BestDayLifeLoyalty; // the strongest surviving relationship
+        public int DayLifeDeparted;       // how many walked away
+
+        // The information landscape.
+        public double DayCircleRacketHeat; // how firmly the day circle holds it
+        public bool OsseiCaseAnswerable;   // her strongest lead discredited, bought or contradicted
+
+        // The books themselves.
+        public int TotalWashed;
+        public int TotalRacketIncome;
+        public int BarTakingsToDate;
+
+        // Succession.
+        public bool HasReadySuccessor;
+        public string SuccessorId, SuccessorName;
+        public bool HandedOver;
+
+        /// Above this, the day circle holds the rackets as fact rather than as
+        /// talk, and "Both" is off the table.
+        public const double FactThreshold = 0.5;
+        /// Above this, a relationship counts as surviving.
+        public const double TrustThreshold = 0.55;
+    }
+
+    public class ActThreeState
+    {
+        public bool Opened;
+        public int OpenedDay = -1;
+        public bool Pp1Fired, Pp2Fired, Pp3Fired, Pp4Fired, Pp5Fired;
+
+        /// The audit runs to a day, and that day is named in the letter. Not a
+        /// timer the player watches tick — a date somebody wrote down.
+        public int AuditClosesDay = -1;
+        public bool AuditClosed;
+        public Ending Result = Ending.None;
+
+        /// Set when the player hands over. The epilogue runs from here.
+        public string SuccessorId;
+        public int EpilogueDay = -1;
+        public const int EpilogueDays = 3;
+
+        /// How long the letter gives you. Long enough to act, short enough that
+        /// you cannot do everything.
+        public const int DaysOfGrace = 6;
+
+        /// The act opens when the Table has been answered AND one of the two
+        /// ledgers has become undeniable: Ossei can name the rackets, or the
+        /// empire is too big for the bar to explain its own money.
+        public static bool ShouldOpen(bool tableAnswered, bool osseiCanName, int businessesOwned,
+            int racketsEstablished) =>
+            tableAnswered && (osseiCanName || businessesOwned + racketsEstablished >= 3);
+
+        /// How wrong the books look. 0 = the lie holds, 1 = it does not.
+        ///
+        /// Wrong in BOTH directions, which is the whole idea. Money washed far
+        /// beyond what a bar on this street could plausibly turn over is as
+        /// damning as racket income with no laundering behind it at all.
+        public static double LedgerStrain(LedgerState s)
+        {
+            if (s == null) return 0;
+            double unexplained = s.TotalRacketIncome <= 0
+                ? 0
+                : Math.Clamp(1.0 - (double)s.TotalWashed / Math.Max(1, s.TotalRacketIncome), 0, 1);
+
+            // A bar can plausibly account for washing about a third of what it
+            // takes over the counter. Past that the till is telling a story
+            // nobody on this street believes.
+            double plausible = Math.Max(1, s.BarTakingsToDate) * 0.35;
+            double tooMuch = Math.Clamp((s.TotalWashed - plausible) / Math.Max(1.0, plausible), 0, 1);
+
+            return Math.Clamp(Math.Max(unexplained, tooMuch), 0, 1);
+        }
+
+        /// The word for it. No number ever reaches the player.
+        public static string StrainWord(double strain) =>
+            strain < 0.2 ? "the books look like a bar's books"
+            : strain < 0.45 ? "there are one or two months a careful reader would ask about"
+            : strain < 0.7 ? "the shape of it is wrong, and a careful reader will see the shape"
+            : "these books describe a business that does not exist";
+
+        // ---- the endings ----
+
+        /// Every ending the world currently qualifies for, best-first.
+        ///
+        /// Several can be live at once. That is deliberate: the matrix is a
+        /// description of the world, not a menu, and when more than one fits
+        /// the player's last decisions choose.
+        public static List<Ending> Eligible(LedgerState s)
+        {
+            var list = new List<Ending>();
+            if (s == null) return list;
+
+            // The Quiet Ending outranks everything, because it is the only one
+            // the player has to actively reach for — you cannot arrive at it by
+            // accident.
+            if (s.HandedOver && s.HasReadySuccessor) list.Add(Ending.Quiet);
+
+            bool lifeSurvives = s.BestDayLifeLoyalty >= LedgerState.TrustThreshold;
+            bool empireSurvives = !s.EmpireDissolved &&
+                (s.BusinessesOwned > 0 || s.RacketsEstablished > 0);
+            bool landscapeManaged = s.DayCircleRacketHeat < LedgerState.FactThreshold
+                                     && s.OsseiCaseAnswerable;
+
+            if (empireSurvives && lifeSurvives && landscapeManaged) list.Add(Ending.Both);
+            if (s.EmpireDissolved && lifeSurvives) list.Add(Ending.StraightLife);
+            if (empireSurvives && !lifeSurvives) list.Add(Ending.Kingdom);
+            if (!list.Contains(Ending.Both) && !list.Contains(Ending.StraightLife)
+                && !list.Contains(Ending.Quiet) && !list.Contains(Ending.Kingdom))
+                list.Add(Ending.BurnBoth);
+            return list;
+        }
+
+        /// What actually happens when the books are opened. Never random, never
+        /// the model's call — the world is in a state, and the state resolves.
+        public static Ending Resolve(LedgerState s)
+        {
+            var live = Eligible(s);
+            return live.Count == 0 ? Ending.BurnBoth : live[0];
+        }
+
+        /// Can this person hold it? Deliberately a judgement of a PERSON —
+        /// competence, loyalty, standing on their own feet, and nobody in the
+        /// crew who will not work with them. The player is never shown the
+        /// number, because being asked to judge somebody is the point.
+        public static bool CouldHold(double competence, double loyalty, bool independent, bool feuding) =>
+            independent && !feuding && competence >= 0.55 && loyalty >= 0.6;
+
+        // ---- authored text ----
+
+        public const string OpenText =
+            "There is a letter on the counter when you come down, addressed to the bar rather than to you. " +
+            "It is courteous, entirely procedural, and it names a date.";
+
+        public const string Pp1LetterText =
+            "Under the Revenue Act, the licensed premises known as the Hook Street bar is required to produce " +
+            "its books of account for inspection. A date is given. There is no threat in it anywhere, " +
+            "which is what makes it the worst thing that has ever arrived at this address.";
+
+        public static string Pp2LenaText(double loyalty, double strain)
+        {
+            if (loyalty < 0.35)
+                return "Lena reads the letter twice, puts it back on the counter, and says the books are in the cellar " +
+                       "where they have always been. She does not offer to walk you through them. You have not earned that, " +
+                       "and she is not pretending otherwise.";
+            if (loyalty < LedgerState.TrustThreshold)
+                return "\"They'll want the ledgers,\" Lena says. \"The real ones are where Marek left them.\" " +
+                       "She tells you that much and stops, and the stopping is deliberate.";
+            return "Lena puts the kettle on, which she has not done since Marek died. Then she takes you through it, " +
+                   "month by month, in the flat voice of somebody who has been waiting years to be asked. " +
+                   $"By the end you know exactly where the lie holds and exactly where it does not: {StrainWord(strain)}.";
+        }
+
+        public const string Pp3OsseiText =
+            "Ossei does not arrest anybody. She sets a name on the table — not yours — and explains, without " +
+            "any pleasure in it, that an audit finds whatever it is pointed at. Give her the arm that has been " +
+            "hardest on you, with enough to make it stick, and it will be pointed elsewhere.\n\n" +
+            "Everything you would hand her came from somebody who told you. The street knows who talks.";
+
+        public static string Pp4SuccessionText(string name) =>
+            $"{name} finds you before you find them. Not a betrayal — an offer, and they have clearly been " +
+            "rehearsing it. They know what is coming. They are asking for the thing you are about to lose, " +
+            "and they are asking for it because they think they can carry it.\n\n" +
+            "Nobody will tell you whether they are right.";
+
+        public const string Pp5CallsText =
+            "The last day. You can reach a few people, and reaching one is not reaching another. " +
+            "Whoever picks up is the campaign you actually played.";
+
+        public static string EndingText(Ending e, string successorName = null) =>
+            e == Ending.Both
+                ? "The books are opened, and they are a bar's books. The inspector is bored by two o'clock. " +
+                  "Nobody in the day circle ever quite says what they think you do, and nobody in the night one " +
+                  "quite believes you got away with it. You did. It took managing every mouth on this street, " +
+                  "and you will be managing them tomorrow too."
+            : e == Ending.Kingdom
+                ? "The books hold. Everything you built is still yours. Ada is civil at the market and does not " +
+                  "stop walking; Lena works her hours and goes home. You have the street. That is the whole of it."
+            : e == Ending.StraightLife
+                ? "There is nothing in the books because there is nothing left to be in them. You sold up, paid " +
+                  "everyone off, and took the loss. The bar is a bar. Somebody asks you, weeks later, whether it " +
+                  "is true what they used to say about this place, and you get to tell the truth."
+            : e == Ending.Quiet
+                ? $"You sign it over to {successorName ?? "them"} and take the boat. Whether what you built " +
+                  "survives you is not up to you anymore, which is the first honest thing about it."
+                : "The audit finds the shape of it, and the street was already saying the rest out loud. " +
+                  "You lose the business and you lose the people, and the order in which those two happen " +
+                  "turns out not to matter at all.";
+
+        // ---- persistence ----
+
+        public Dictionary<string, object> Capture() => new Dictionary<string, object>
+        {
+            { "opened", Opened }, { "openedDay", OpenedDay },
+            { "pp1", Pp1Fired }, { "pp2", Pp2Fired }, { "pp3", Pp3Fired },
+            { "pp4", Pp4Fired }, { "pp5", Pp5Fired },
+            { "closesDay", AuditClosesDay }, { "closed", AuditClosed },
+            { "result", Result.ToString() },
+            { "successor", SuccessorId ?? "" }, { "epilogueDay", EpilogueDay },
+        };
+
+        public void Restore(Dictionary<string, object> d)
+        {
+            if (d == null) return;
+            Opened = Flag(d, "opened");
+            OpenedDay = MiniJson.GetInt(d, "openedDay");
+            Pp1Fired = Flag(d, "pp1"); Pp2Fired = Flag(d, "pp2"); Pp3Fired = Flag(d, "pp3");
+            Pp4Fired = Flag(d, "pp4"); Pp5Fired = Flag(d, "pp5");
+            AuditClosesDay = MiniJson.GetInt(d, "closesDay");
+            AuditClosed = Flag(d, "closed");
+            var r = MiniJson.GetString(d, "result");
+            Result = r == "Both" ? Ending.Both : r == "Kingdom" ? Ending.Kingdom
+                : r == "StraightLife" ? Ending.StraightLife : r == "Quiet" ? Ending.Quiet
+                : r == "BurnBoth" ? Ending.BurnBoth : Ending.None;
+            var succ = MiniJson.GetString(d, "successor");
+            SuccessorId = string.IsNullOrEmpty(succ) ? null : succ;
+            EpilogueDay = MiniJson.GetInt(d, "epilogueDay");
+        }
+
+        static bool Flag(Dictionary<string, object> o, string key) =>
+            o != null && o.TryGetValue(key, out var v) && v is bool b && b;
+    }
+}

@@ -58,6 +58,7 @@ namespace Ledger.CoreTests
                 TestIntentValidation();
                 TestAdjudicator();
                 TestEconomy();
+                TestActThree();
                 TestIdentity();
                 TestHarm();
                 TestPurses();
@@ -1984,6 +1985,155 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // Act III — The Ledger Comes Due
+        // ---------------------------------------------------------------
+
+        static LedgerState Kingdom() => new LedgerState
+        {
+            BusinessesOwned = 2, RacketsEstablished = 2, CrewCount = 3,
+            BestDayLifeLoyalty = 0.2, DayCircleRacketHeat = 0.8,
+            TotalWashed = 900, TotalRacketIncome = 1000, BarTakingsToDate = 3000,
+        };
+
+        static void TestActThree()
+        {
+            Console.WriteLine("Act III — the ledger comes due:");
+
+            // The act opens on state, never on a date.
+            Check(!ActThreeState.ShouldOpen(false, true, 3, 3), "Act III waits for the Table to be answered");
+            Check(ActThreeState.ShouldOpen(true, true, 0, 0),
+                "then opens when Ossei can name the rackets");
+            Check(ActThreeState.ShouldOpen(true, false, 2, 1),
+                "or when the empire is too big for the bar to explain its own money");
+            Check(!ActThreeState.ShouldOpen(true, false, 1, 1), "a small operation is still deniable");
+
+            // THE LEDGER STRAIN, wrong in BOTH directions. This is the idea the
+            // whole act rests on: laundering too little and laundering too much
+            // are the same crime to a careful reader.
+            var honest = new LedgerState { TotalRacketIncome = 0, TotalWashed = 0, BarTakingsToDate = 2000 };
+            Check(ActThreeState.LedgerStrain(honest) < 0.05, "a bar that only ever sold drink has nothing to explain");
+
+            var unwashed = new LedgerState { TotalRacketIncome = 1000, TotalWashed = 0, BarTakingsToDate = 2000 };
+            Check(ActThreeState.LedgerStrain(unwashed) > 0.9,
+                "night money with no laundering behind it has nowhere to have come from");
+
+            var overwashed = new LedgerState { TotalRacketIncome = 1000, TotalWashed = 3000, BarTakingsToDate = 1000 };
+            Check(ActThreeState.LedgerStrain(overwashed) > 0.9,
+                "and a bar that washed more than it could ever have taken is telling a story nobody believes",
+                ActThreeState.LedgerStrain(overwashed).ToString("0.00"));
+
+            var careful = new LedgerState { TotalRacketIncome = 500, TotalWashed = 500, BarTakingsToDate = 4000 };
+            Check(ActThreeState.LedgerStrain(careful) < 0.3, "careful laundering inside a real trade holds",
+                ActThreeState.LedgerStrain(careful).ToString("0.00"));
+
+            // Never a number to the player.
+            for (double x = 0; x <= 1.0; x += 0.1)
+            {
+                var word = ActThreeState.StrainWord(x);
+                Check(!string.IsNullOrEmpty(word) && !word.Contains("0."), "the books are described, never scored", word);
+            }
+
+            // THE ENDINGS ARE STATES, NOT A MENU.
+            var kingdom = Kingdom();
+            Check(ActThreeState.Resolve(kingdom) == Ending.Kingdom,
+                "keep everything and lose everybody, and that is the Kingdom");
+
+            var straight = Kingdom();
+            straight.EmpireDissolved = true; straight.BestDayLifeLoyalty = 0.8;
+            Check(ActThreeState.Resolve(straight) == Ending.StraightLife,
+                "give up the business to keep the people, and that is the Straight Life");
+
+            var burn = Kingdom();
+            burn.EmpireDissolved = true; burn.BestDayLifeLoyalty = 0.1;
+            Check(ActThreeState.Resolve(burn) == Ending.BurnBoth, "lose both and the ledger took it all");
+
+            // Doing NOTHING must produce Burn Both — the ledger comes due whether
+            // or not you answer it, and that has to be the default rather than a
+            // special case somebody remembered to write.
+            var did_nothing = new LedgerState
+            {
+                BusinessesOwned = 1, RacketsEstablished = 1,
+                BestDayLifeLoyalty = 0.1, DayCircleRacketHeat = 0.9,
+            };
+            Check(ActThreeState.Resolve(did_nothing) == Ending.Kingdom
+                  || ActThreeState.Resolve(did_nothing) == Ending.BurnBoth,
+                "doing nothing never lands you somewhere good");
+
+            // "Both" is the hard one and must require the information landscape
+            // to have been actively managed — not merely a big empire and a friend.
+            var both = Kingdom();
+            both.BestDayLifeLoyalty = 0.8;
+            both.DayCircleRacketHeat = 0.2;
+            both.OsseiCaseAnswerable = true;
+            Check(ActThreeState.Resolve(both) == Ending.Both, "manage every mouth on the street and you keep both");
+
+            var loud = Kingdom();
+            loud.BestDayLifeLoyalty = 0.8; loud.DayCircleRacketHeat = 0.9; loud.OsseiCaseAnswerable = true;
+            Check(ActThreeState.Resolve(loud) != Ending.Both,
+                "but not if the day circle holds the rackets as fact", ActThreeState.Resolve(loud).ToString());
+
+            var unanswered = Kingdom();
+            unanswered.BestDayLifeLoyalty = 0.8; unanswered.DayCircleRacketHeat = 0.2;
+            unanswered.OsseiCaseAnswerable = false;
+            Check(ActThreeState.Resolve(unanswered) != Ending.Both,
+                "and not with Ossei's case still standing", ActThreeState.Resolve(unanswered).ToString());
+
+            // The Quiet Ending outranks everything, because it is the only one
+            // you cannot arrive at by accident.
+            var quiet = Kingdom();
+            quiet.BestDayLifeLoyalty = 0.8; quiet.DayCircleRacketHeat = 0.2;
+            quiet.OsseiCaseAnswerable = true;
+            quiet.HasReadySuccessor = true; quiet.HandedOver = true; quiet.SuccessorName = "Sam";
+            Check(ActThreeState.Eligible(quiet).Contains(Ending.Both), "several endings can be live at once");
+            Check(ActThreeState.Resolve(quiet) == Ending.Quiet, "and handing it over outranks keeping it");
+
+            var wishful = Kingdom();
+            wishful.HandedOver = true; wishful.HasReadySuccessor = false;
+            Check(ActThreeState.Resolve(wishful) != Ending.Quiet,
+                "you cannot hand it to somebody who could not hold it");
+
+            Check(ActThreeState.Resolve(null) == Ending.BurnBoth, "and no world at all resolves safely");
+
+            // Succession is a judgement of a PERSON.
+            Check(ActThreeState.CouldHold(0.8, 0.8, independent: true, feuding: false), "a good one can hold it");
+            Check(!ActThreeState.CouldHold(0.8, 0.8, true, feuding: true), "not while feuding with the crew");
+            Check(!ActThreeState.CouldHold(0.8, 0.8, independent: false, feuding: false),
+                "not before they can stand on their own");
+            Check(!ActThreeState.CouldHold(0.3, 0.9, true, false), "loyalty is not competence");
+            Check(!ActThreeState.CouldHold(0.9, 0.3, true, false), "and competence is not loyalty");
+
+            // The authored text exists for every ending — an ending with no
+            // words is an ending the player never sees.
+            foreach (Ending e in Enum.GetValues(typeof(Ending)))
+            {
+                if (e == Ending.None) continue;
+                var text = ActThreeState.EndingText(e, "Sam");
+                Check(!string.IsNullOrEmpty(text) && text.Length > 80, $"{e} has something to say", e.ToString());
+            }
+            Check(ActThreeState.EndingText(Ending.Quiet, "Sam").Contains("Sam"),
+                "and the quiet one names who you handed it to");
+
+            // Lena's scene is gated entirely on the relationship, which is the
+            // project's whole thesis stated as a mechanic.
+            var cold = ActThreeState.Pp2LenaText(0.2, 0.8);
+            var warm = ActThreeState.Pp2LenaText(0.9, 0.8);
+            Check(cold != warm && warm.Length > cold.Length,
+                "the most valuable information in the game is gated on a relationship");
+            Check(!cold.Contains("kettle") && warm.Contains("kettle"), "and she only puts the kettle on for a friend");
+
+            // Save-load.
+            var act = new ActThreeState { Opened = true, OpenedDay = 20, AuditClosesDay = 26, Pp2Fired = true };
+            act.Result = Ending.Quiet; act.SuccessorId = "Sam";
+            var snap = MiniJson.Serialize(act.Capture());
+            var twin = new ActThreeState();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
+            Check(MiniJson.Serialize(twin.Capture()) == snap, "Act III survives its own codec");
+            Check(twin.Result == Ending.Quiet && twin.SuccessorId == "Sam", "including how it ended and who got it");
+            twin.Restore(null);
+            Check(twin.Opened, "restoring nothing changes nothing");
         }
 
         // ---------------------------------------------------------------
