@@ -40,6 +40,8 @@ namespace Ledger.Game
                 TotalRacketIncome = e.TotalRacketIncome,
                 BarTakingsToDate = TotalTakings,
                 HandedOver = ActThree.SuccessorId != null,
+                Cooperations = ActThree.Cooperations,
+                Stonewalls = ActThree.Stonewalls,
             };
 
             // The life: the named people whose circle is the daylight one. Best
@@ -149,6 +151,28 @@ namespace Ledger.Game
                 }
             }
 
+            // The inspector arrives the morning after the letter and is in the
+            // bar every day until the close. He is the act's only recurring
+            // face, and the only one you cannot talk around.
+            if (!ActThree.InspectorArrived && Now.Day > ActThree.OpenedDay && Now.Hour >= 9)
+            {
+                ActThree.InspectorArrived = true;
+                ToastLine(ActThreeState.InspectorArrivesText, 16f);
+                SpawnInspector();
+            }
+
+            // And he has an item for today, once a day, which the player can
+            // answer or refuse. Neither costs money; both cost a morning or a
+            // reputation, and the difference decides how much he reads.
+            if (ActThree.InspectorArrived && ActThree.LastDealtDay != Now.Day && Now.Hour >= 10
+                && Now.Day < ActThree.AuditClosesDay)
+            {
+                ToastLine(ActThreeState.InspectorAskText(Now.Day,
+                    ActThreeState.ScopeFactor(ActThree.Cooperations, ActThree.Stonewalls)), 12f);
+                ActThree.LastDealtDay = Now.Day;   // asked; answering it is the player's move
+                _inspectorAskedDay = Now.Day;
+            }
+
             // PP3 — Ossei's offer. She comes to you, once, with two days left,
             // and she does not come at all if she was never on the case.
             if (!ActThree.Pp3Fired && OsseiSpawned && DaysLeftOnAudit <= 3)
@@ -217,7 +241,99 @@ namespace Ledger.Game
             ToastLine(ActThreeState.EpilogueText(index, s.SuccessorName, s), 16f);
         }
 
+        int _inspectorAskedDay = -1;
+        NpcWalker _inspectorWalker;
+
+        /// He does not walk the district. He is at the bar, at a table, from
+        /// nine until six, and the fact that he does not go anywhere is the
+        /// characterisation: everybody else in this game has a life you can
+        /// intersect, and he has an appointment with your books.
+        void SpawnInspector()
+        {
+            if (_inspectorWalker != null) return;
+            var seat = WorldBuilder.BarDoor + new Vector3(2.5f, 0, -1.5f);
+            _inspectorWalker = NpcWalker.Spawn(ActThreeState.InspectorName,
+                new Color(0.34f, 0.33f, 0.30f), new[]
+                {
+                    (new GameTime(0, 9, 0), seat),
+                    (new GameTime(0, 13, 0), seat + new Vector3(0.6f, 0, 0.4f)),  // he takes lunch where he sits
+                    (new GameTime(0, 18, 0), WorldBuilder.BarDoor + new Vector3(6, 0, -4)), // and leaves at six
+                });
+            _npcs.Add(_inspectorWalker);   // he is NOT in the gossip mill: he does not talk to the street
+
+            var host = _inspectorWalker.gameObject.AddComponent<ConversationHost>();
+            host.Initialize(this, InspectorCard, null, null);
+            host.SceneContext = "At a table just inside the Hook Street bar, papers squared, talking with the owner.";
+            host.ExtraContext = () =>
+            {
+                var s = Books();
+                int left = Mathf.Max(0, ActThree.AuditClosesDay - Now.Day);
+                return $"The inspection closes on day {ActThree.AuditClosesDay}; {left} day(s) remain. " +
+                       $"Your present scope: {ActThreeState.ScopeWord(ActThreeState.ScopeFactor(s.Cooperations, s.Stonewalls))}. " +
+                       $"You have been given what you asked for on {s.Cooperations} occasion(s) and refused on {s.Stonewalls}. " +
+                       "You do not accuse, you do not threaten, and you do not take anything from anybody. " +
+                       "You state what you require and when you require it.";
+            };
+            _hosts.Add(host);
+        }
+
+        /// Authored rather than generated, because Act III's whole crisis rests
+        /// on this man being exactly one thing and never bending.
+        public const string InspectorCard = @"# Tobias Reisz
+id: reisz
+tier: core
+
+## Summary
+Inspector, Board of Excise, nineteen years. Fifty-ish, grey, entirely unremarkable — the sort of man who is already sitting down when you notice he has come in. He is at a table in the bar every day until the date on the letter, and he is not going anywhere else.
+
+## Personality
+Incorruptible, and not out of principle — out of a total lack of interest. He is not building a case, he does not think you are wicked, and he could not tell you the name of the street outside. He is reading a document. He explains each step because the procedure requires him to explain it, and the courtesy is real and worth nothing.
+
+## Speech Style
+Flat, exact, complete sentences. Names the regulation before the request. Says ""of course"" to refusals. Never raises his voice and never repeats himself, and both of those are worse than the alternative.
+
+## Hard Facts
+- I am here under the Revenue Act. Everything I do, I will tell you I am doing.
+- I do not take anything from anybody. Not a drink, not a lift, not a favour.
+- What I am asked to inspect is set out in the letter. What I inspect beyond it depends on the cooperation I receive.
+- I have been doing this for nineteen years and I have never once been surprised by a bar.
+";
+
         // ---- the three verbs ----
+
+        /// Today's item: produce it, or tell him to put it in writing.
+        ///
+        /// The one Act III verb that is not irreversible and costs no money.
+        /// It is available every day of the six and it does exactly one thing —
+        /// it moves how much of the business gets read. Which is the only thing
+        /// about this man that can be moved at all.
+        public bool AnswerInspector(bool cooperate)
+        {
+            if (!ActThree.Opened || ActThree.AuditClosed || !ActThree.InspectorArrived) return false;
+            if (_inspectorAskedDay != Now.Day) return false;   // one item a day, and he has to have asked
+            _inspectorAskedDay = -1;
+
+            if (cooperate)
+            {
+                ActThree.Cooperations++;
+                ToastLine(ActThreeState.CooperateText, 13f);
+            }
+            else
+            {
+                ActThree.Stonewalls++;
+                ToastLine(ActThreeState.StonewallText, 14f);
+                // Lena has watched a revenue man be told to put it in writing
+                // before, and she knows how that one went.
+                _gossip?.Mill?.Get("Lena")?.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                    "They sent the excise man away with a piece of paper today. " +
+                    "Marek did that once. It did not go the way he thought it would."));
+            }
+            return true;
+        }
+
+        /// Has he asked for something today that is still unanswered?
+        public bool InspectorWaiting => ActThree.Opened && !ActThree.AuditClosed
+            && ActThree.InspectorArrived && _inspectorAskedDay == Now.Day;
 
         /// Sell up, pay everyone off, take the loss. The straight life is bought
         /// with the empire, at a bad price, and it cannot be undone.

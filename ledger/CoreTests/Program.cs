@@ -2411,7 +2411,135 @@ namespace Ledger.CoreTests
             Check(ActThreeState.EpilogueText(2, "Sam", handedHot) != ActThreeState.EpilogueText(2, "Sam", handedQuiet),
                 "and a life you kept still writes to you");
 
+            TestBooksMustHold();
+            TestTheInspector();
             TestDissolve();
+        }
+
+        /// THE HOLE THIS CLOSES. Strain was computed, worded, and shown — and
+        /// never read by the thing that decides the ending. Three acts of
+        /// laundering decisions were decorative, and an audit resolved without
+        /// consulting the document it came to read.
+        static void TestBooksMustHold()
+        {
+            // A player who did everything else right: big empire, a friend who
+            // still counts them, the street quiet, Ossei answered — and books
+            // that describe a business which does not exist.
+            LedgerState Ruinous()
+            {
+                var s = Kingdom();
+                s.BestDayLifeLoyalty = 0.8;
+                s.DayCircleRacketHeat = 0.2;
+                s.OsseiCaseAnswerable = true;
+                s.TotalWashed = 0;            // every coin of racket income unexplained
+                s.TotalRacketIncome = 4000;
+                return s;
+            }
+            var ruined = Ruinous();
+            Check(ActThreeState.LedgerStrain(ruined) > 0.9, "unwashed racket income is ruinous on its face",
+                ActThreeState.LedgerStrain(ruined).ToString("0.00"));
+            Check(ActThreeState.Resolve(ruined) != Ending.Both,
+                "managing every mouth on the street does not save books that cannot be read",
+                ActThreeState.Resolve(ruined).ToString());
+
+            // The same world with the washing actually done keeps everything.
+            var washed = Ruinous();
+            washed.TotalWashed = 3800; washed.BarTakingsToDate = 14000;
+            Check(ActThreeState.SeenStrain(washed) < LedgerState.BooksHoldThreshold,
+                "and the same world with the washing done reads as a bar",
+                ActThreeState.SeenStrain(washed).ToString("0.00"));
+            Check(ActThreeState.Resolve(washed) == Ending.Both, "which is what keeps both");
+
+            // Keeping the empire alone is gated the same way: the audit takes
+            // the business whether or not anybody still likes you.
+            var coldAndRuined = Ruinous();
+            coldAndRuined.BestDayLifeLoyalty = 0.1;
+            Check(ActThreeState.Resolve(coldAndRuined) == Ending.BurnBoth,
+                "and a kingdom with unreadable books is not a kingdom",
+                ActThreeState.Resolve(coldAndRuined).ToString());
+
+            // Two deliberate exemptions, both of which are the price of a door.
+            var soldUp = Ruinous();
+            soldUp.EmpireDissolved = true;
+            Check(ActThreeState.Resolve(soldUp) == Ending.StraightLife,
+                "selling up outruns the books, because there is nothing left to be in them");
+
+            var handed = Ruinous();
+            handed.HandedOver = true; handed.HasReadySuccessor = true; handed.SuccessorName = "Sam";
+            Check(ActThreeState.Resolve(handed) == Ending.Quiet,
+                "and handing it over outruns them too — it lands on whoever signed");
+        }
+
+        /// The inspector: not buyable, and therefore the only thing about him
+        /// that can move is how much he reads.
+        static void TestTheInspector()
+        {
+            Check(ActThreeState.ScopeFactor(0, 0) == 1.0, "an inspection nobody has handled is an ordinary one");
+            Check(ActThreeState.ScopeFactor(4, 0) < 0.75, "producing what is asked for narrows it",
+                ActThreeState.ScopeFactor(4, 0).ToString("0.00"));
+            Check(ActThreeState.ScopeFactor(0, 3) > 1.35, "and being difficult widens it",
+                ActThreeState.ScopeFactor(0, 3).ToString("0.00"));
+            Check(ActThreeState.ScopeFactor(99, 0) >= 0.55 && ActThreeState.ScopeFactor(0, 99) <= 1.6,
+                "and neither runs away with it — cooperation is not a cheat code");
+
+            // THE PROPERTY THAT MAKES THE VERB WORTH HAVING: on books that sit
+            // near the line, how the man was handled decides the ENDING. Not by
+            // money, not by leverage — by having answered him for six mornings.
+            //
+            // Built as a Kingdom candidate (empire intact, nobody left who knew
+            // you before it) so that the books are genuinely the only thing left
+            // deciding it, and the flip is visible rather than implied.
+            LedgerState Marginal(int coop, int stone)
+            {
+                var s = Kingdom();
+                s.BestDayLifeLoyalty = 0.2;      // the life is already gone
+                s.DayCircleRacketHeat = 0.8;
+                s.OsseiCaseAnswerable = false;   // no deflection easing it
+                s.TotalWashed = 1000; s.TotalRacketIncome = 3000; s.BarTakingsToDate = 9000;
+                s.Cooperations = coop; s.Stonewalls = stone;
+                return s;
+            }
+            Check(ActThreeState.Resolve(Marginal(0, 0)) == Ending.BurnBoth,
+                "the same world, unhandled, loses everything");
+            Check(ActThreeState.Resolve(Marginal(5, 0)) == Ending.Kingdom,
+                "and handled, keeps the kingdom — six mornings of paperwork is the whole difference");
+            Check(ActThreeState.Resolve(Marginal(0, 2)) == Ending.BurnBoth,
+                "being difficult with him never helps");
+            double bare = ActThreeState.SeenStrain(Marginal(0, 0));
+            Check(bare > LedgerState.BooksHoldThreshold,
+                "books a third washed do not survive an ordinary reading", bare.ToString("0.00"));
+            Check(ActThreeState.SeenStrain(Marginal(5, 0)) < LedgerState.BooksHoldThreshold,
+                "the same books survive a narrow one",
+                ActThreeState.SeenStrain(Marginal(5, 0)).ToString("0.00"));
+            Check(ActThreeState.SeenStrain(Marginal(0, 2)) > bare, "and are worse under a wide one");
+
+            // Pointing the case elsewhere also eases what gets read — they do
+            // not look as hard at a business they have stopped suspecting.
+            var deflected = Marginal(0, 0);
+            deflected.OsseiCaseAnswerable = true;
+            Check(ActThreeState.SeenStrain(deflected) < bare,
+                "and a case pointed elsewhere is a case read less carefully");
+
+            // The words never become numbers, at either end.
+            foreach (var f in new[] { 0.55, 0.7, 1.0, 1.2, 1.6 })
+            {
+                var word = ActThreeState.ScopeWord(f);
+                Check(!string.IsNullOrEmpty(word) && !word.Any(char.IsDigit),
+                    $"scope at {f} is said as a circumstance", word);
+            }
+
+            // He survives a reload with his count intact — a saved game that
+            // forgot six mornings of cooperation would hand back a different
+            // ending than the one that was earned.
+            var act = new ActThreeState
+            {
+                Opened = true, InspectorArrived = true,
+                Cooperations = 4, Stonewalls = 1, LastDealtDay = 22,
+            };
+            var twin = new ActThreeState();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(act.Capture()))));
+            Check(twin.InspectorArrived && twin.Cooperations == 4 && twin.Stonewalls == 1
+                  && twin.LastDealtDay == 22, "and every morning you answered him survives a reload");
         }
 
         /// Selling up: the straight life's price, paid in the thing you built.

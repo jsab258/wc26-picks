@@ -74,11 +74,21 @@ namespace Ledger.Core
         public string SuccessorId, SuccessorName;
         public bool HandedOver;
 
+        /// How the man reading the books has been handled. Not a bribe — a
+        /// count of days you produced what was asked for, against days you told
+        /// him to put it in writing.
+        public int Cooperations, Stonewalls;
+
         /// Above this, the day circle holds the rackets as fact rather than as
         /// talk, and "Both" is off the table.
         public const double FactThreshold = 0.5;
         /// Above this, a relationship counts as surviving.
         public const double TrustThreshold = 0.55;
+        /// Above this, the inspection finds the shape of it and you keep
+        /// nothing. Deliberately not the top of the range: books that a careful
+        /// reader would ask about are survivable, and books that describe a
+        /// business which does not exist are not.
+        public const double BooksHoldThreshold = 0.62;
     }
 
     public class ActThreeState
@@ -103,6 +113,13 @@ namespace Ledger.Core
         /// one-way: you cannot un-sell a business or un-name a name.
         public bool SoldUp;
         public bool Deflected;
+
+        /// The man doing the reading, and how he has been dealt with. Once a
+        /// day, every day of the six — the only Act III verb that is not
+        /// irreversible, and the only one that costs nothing but attention.
+        public bool InspectorArrived;
+        public int Cooperations, Stonewalls;
+        public int LastDealtDay = -1;
         /// Who the audit was pointed at instead, and who told you about them —
         /// because the street knows who talks, and the second name is the price.
         public string DeflectedOnto, BurnedWitnessId;
@@ -146,6 +163,39 @@ namespace Ledger.Core
             : strain < 0.7 ? "the shape of it is wrong, and a careful reader will see the shape"
             : "these books describe a business that does not exist";
 
+        /// How much of the business the inspection actually looks at.
+        ///
+        /// THE POINT OF THIS: the audit cannot be fought and must not be
+        /// buyable — an inspector with a price would collapse the whole ending
+        /// matrix into "did you save up". But it can be **narrowed**, by the
+        /// least dramatic means available: producing what is asked for, on the
+        /// day it is asked for, without being difficult about it.
+        ///
+        /// So Act III gains a verb that is not one of the three irreversible
+        /// ones. It is available every day of the six, it rewards attention
+        /// rather than money, and it never overrides the matrix — it only moves
+        /// where in the matrix you are standing.
+        public static double ScopeFactor(int cooperations, int stonewalls) =>
+            Math.Clamp(1.0 - 0.09 * cooperations + 0.15 * stonewalls, 0.55, 1.6);
+
+        public static string ScopeWord(double factor) =>
+            factor <= 0.75 ? "he is looking at the quarter he asked for and nothing either side of it"
+            : factor < 1.1 ? "he is looking at what an inspection ordinarily looks at"
+            : factor < 1.35 ? "he has started asking for years you did not offer"
+            : "he is going through the whole of it, and taking his time";
+
+        /// What the inspection will actually SEE: the strain in the books,
+        /// widened or narrowed by how you have handled the man reading them,
+        /// and eased if the case has been pointed at somebody else — they do
+        /// not look as hard at a business they have already stopped suspecting.
+        public static double SeenStrain(LedgerState s)
+        {
+            if (s == null) return 0;
+            double seen = LedgerStrain(s) * ScopeFactor(s.Cooperations, s.Stonewalls);
+            if (s.OsseiCaseAnswerable) seen *= 0.7;
+            return Math.Clamp(seen, 0, 1);
+        }
+
         // ---- the endings ----
 
         /// Every ending the world currently qualifies for, best-first.
@@ -161,6 +211,12 @@ namespace Ledger.Core
             // The Quiet Ending outranks everything, because it is the only one
             // the player has to actively reach for — you cannot arrive at it by
             // accident.
+            //
+            // It survives any amount of strain, and that is not an oversight:
+            // you signed it over, so what the inspection finds lands on the
+            // person whose name is now on the licence. Leaving somebody holding
+            // your books is the cost of the quietest door out, and the epilogue
+            // is where you find out what it cost them.
             if (s.HandedOver && s.HasReadySuccessor) list.Add(Ending.Quiet);
 
             bool lifeSurvives = s.BestDayLifeLoyalty >= LedgerState.TrustThreshold;
@@ -169,9 +225,27 @@ namespace Ledger.Core
             bool landscapeManaged = s.DayCircleRacketHeat < LedgerState.FactThreshold
                                      && s.OsseiCaseAnswerable;
 
-            if (empireSurvives && lifeSurvives && landscapeManaged) list.Add(Ending.Both);
+            // THE BOOKS HAVE TO HOLD.
+            //
+            // Without this the whole "wrong in both directions" mechanic was
+            // flavour: it changed the words Lena said and nothing else, and an
+            // audit resolved without ever reading the document it came to read.
+            // Every laundering decision across three acts was decorative.
+            //
+            // So keeping ANYTHING now requires the ledger to survive being
+            // looked at. Managing every mouth on the street does not save books
+            // that describe a business which does not exist — that is the one
+            // thing the street's opinion cannot argue with, and it is the whole
+            // reason the crisis is an audit rather than a raid.
+            double seen = SeenStrain(s);
+            bool booksHold = seen < LedgerState.BooksHoldThreshold;
+
+            if (empireSurvives && lifeSurvives && landscapeManaged && booksHold) list.Add(Ending.Both);
+            // Selling up is the one route the books cannot follow you down:
+            // there is nothing in them because there is nothing left to be in
+            // them, and taking that loss is exactly what you paid for it.
             if (s.EmpireDissolved && lifeSurvives) list.Add(Ending.StraightLife);
-            if (empireSurvives && !lifeSurvives) list.Add(Ending.Kingdom);
+            if (empireSurvives && !lifeSurvives && booksHold) list.Add(Ending.Kingdom);
             if (!list.Contains(Ending.Both) && !list.Contains(Ending.StraightLife)
                 && !list.Contains(Ending.Quiet) && !list.Contains(Ending.Kingdom))
                 list.Add(Ending.BurnBoth);
@@ -229,6 +303,37 @@ namespace Ledger.Core
             "rehearsing it. They know what is coming. They are asking for the thing you are about to lose, " +
             "and they are asking for it because they think they can carry it.\n\n" +
             "Nobody will tell you whether they are right.";
+
+        /// THE INSPECTOR. Act III's crisis had no face — the letter arrived,
+        /// the date passed, and the books were read offstage by nobody.
+        ///
+        /// He is not corrupt, and the design depends on that: an inspector with
+        /// a price turns the ending matrix into "did you save up enough". He is
+        /// not cruel either, and that is the frightening part. He is a man doing
+        /// a job he is good at, who explains each step because the procedure
+        /// requires him to explain it, and who is not interested in you as a
+        /// person at all. Everybody else in this game can be talked around.
+        /// He cannot, and the only thing you can move is how much he looks at.
+        public const string InspectorName = "Tobias Reisz";
+
+        public const string InspectorArrivesText =
+            "He is at the bar at ten past nine with a case and a folding rule, and he introduces himself " +
+            "twice — once to you and once to Lena, in the same words. Tobias Reisz, Board of Excise. " +
+            "He asks where he may sit, and then he asks whether the light is always this poor.";
+
+        public static string InspectorAskText(int day, double scope) =>
+            $"Reisz has an item for today and he says it out loud, the way he says everything: " +
+            $"{ScopeWord(scope)}. He will want it before he leaves.";
+
+        public const string CooperateText =
+            "You put it in front of him inside the hour. He reads it, writes one line, and thanks you " +
+            "by your surname. It costs you a morning and it buys the only thing he has to sell, which " +
+            "is not looking any further than he was asked to.";
+
+        public const string StonewallText =
+            "You tell him to put the request in writing. He says \"of course\" without any edge at all, " +
+            "writes it, and hands it to you — and then writes something else, for himself, which he does " +
+            "not hand to anybody. A man with a reason to widen the thing he is doing now has one.";
 
         public const string Pp5CallsText =
             "The last day. You can reach a few people, and reaching one is not reaching another. " +
@@ -296,6 +401,8 @@ namespace Ledger.Core
             { "successor", SuccessorId ?? "" }, { "epilogueDay", EpilogueDay },
             { "soldUp", SoldUp }, { "deflected", Deflected },
             { "deflectedOnto", DeflectedOnto ?? "" }, { "burned", BurnedWitnessId ?? "" },
+            { "inspector", InspectorArrived }, { "cooperations", Cooperations },
+            { "stonewalls", Stonewalls }, { "dealtDay", LastDealtDay },
         };
 
         public void Restore(Dictionary<string, object> d)
@@ -320,6 +427,10 @@ namespace Ledger.Core
             DeflectedOnto = string.IsNullOrEmpty(onto) ? null : onto;
             var burned = MiniJson.GetString(d, "burned");
             BurnedWitnessId = string.IsNullOrEmpty(burned) ? null : burned;
+            InspectorArrived = Flag(d, "inspector");
+            Cooperations = MiniJson.GetInt(d, "cooperations");
+            Stonewalls = MiniJson.GetInt(d, "stonewalls");
+            LastDealtDay = MiniJson.GetInt(d, "dealtDay");
         }
 
         static bool Flag(Dictionary<string, object> o, string key) =>

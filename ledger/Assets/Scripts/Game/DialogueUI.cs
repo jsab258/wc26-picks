@@ -395,6 +395,21 @@ namespace Ledger.Game
             if (!a3.Opened || a3.AuditClosed) return false;
             var e = _game.Empire;
 
+            // Reisz. Nothing to buy and nothing to threaten — the only thing on
+            // offer is how much of the business he reads.
+            if (id == ActThreeState.InspectorName)
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = "Fetch him what he asked for";
+                _empireBtnA.interactable = _game.InspectorWaiting;
+                _empireSayA = "go and get the record he has asked for and put it in front of him";
+                _empireBtnB.gameObject.SetActive(true);
+                _empireLabelB.text = "Tell him to put it in writing";
+                _empireBtnB.interactable = _game.InspectorWaiting;
+                _empireSayB = "tell him to submit the request in writing";
+                return true;
+            }
+
             // Halvard: the way out. A bad price, and he does not ask why.
             if (id == "Halvard" && !a3.SoldUp
                 && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
@@ -446,6 +461,13 @@ namespace Ledger.Game
             var a3 = _game.ActThree;
             if (!a3.Opened || a3.AuditClosed) return false;
             var e = _game.Empire;
+
+            if (id == ActThreeState.InspectorName)
+            {
+                if (!_game.AnswerInspector(cooperate: !leverage))
+                    Narrate("\"I have what I need for today,\" Reisz says, and goes back to it.");
+                return true;
+            }
 
             if (id == "Halvard" && !a3.SoldUp
                 && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
@@ -853,6 +875,10 @@ namespace Ledger.Game
                     var books = _game.Books();
                     sb.AppendLine($"The inspection is set for <b>day {_game.ActThree.AuditClosesDay}</b>.");
                     sb.AppendLine($"<color={UiTheme.HexDim}>{ActThreeState.StrainWord(ActThreeState.LedgerStrain(books))}.</color>");
+                    // What he is actually reading, which is the half of it the
+                    // player can still change.
+                    if (_game.ActThree.InspectorArrived)
+                        sb.AppendLine($"<color={UiTheme.HexDim}>Reisz: {ActThreeState.ScopeWord(ActThreeState.ScopeFactor(books.Cooperations, books.Stonewalls))}.</color>");
                     if (_game.ActThree.SoldUp)
                         sb.AppendLine($"<color={UiTheme.HexHeld}>There is nothing left for them to find.</color>");
                     if (_game.ActThree.Deflected)
