@@ -44,6 +44,8 @@ namespace Ledger.Game
         bool _forcedFall;
         bool _empireScripted;
         bool _directorStaged, _directorFired;
+        bool _harmStaged;
+        double _harmCapabilityAtInjury = 1.0;
         bool _planStaged, _planRan;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
@@ -94,6 +96,24 @@ namespace Ledger.Game
             {
                 var pp = _player.transform.position;
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
+            }
+
+            // Harm in CI (roadmap M11). The bot cannot get into a fight, so the
+            // consequence layer is staged directly: one wound left alone and one
+            // seen to, on day 4, plus a feud between two of the crew. What this
+            // proves is the part that only shows up over TIME — that an injury
+            // is still there days later, that neglect turns it into something
+            // worse, and that treatment prevents exactly that.
+            if (!_harmStaged && now.Day >= 4 && now.Hour >= 10)
+            {
+                _harmStaged = true;
+                _game.Harm.Inflict("Sam", "Sam", InjuryKind.Cut, now.Day,
+                    "opened his arm on the ferry rail and would not go and get it seen to");
+                var seen = _game.Harm.Inflict("Rocco", "Rocco", InjuryKind.Cut, now.Day,
+                    "the same rail, the same night");
+                _game.Harm.Treat(seen, null, now.Day);   // no wallet: the sim is proving the mechanism
+                _game.Harm.Flare("Sam", "Sam", "Rocco", "Rocco", now.Day, heat: 0.7);
+                _harmCapabilityAtInjury = _game.Harm.Capability("Sam", now.Day);
             }
 
             // Act I PP4 in CI: the trust path needs live conversation, so on day 6
@@ -578,6 +598,33 @@ namespace Ledger.Game
                         vehicleFactSeen = true;
             bool witnessCarOk = _game.NightWitnesses == 0 || SimMode.Days < 6 || vehicleFactSeen;
 
+            // The consequence layer (roadmap M11). Four things, and every one of
+            // them is about persistence rather than about the moment: the wound
+            // outlived the day it happened, neglect made it worse, treatment
+            // stopped exactly that, and a feud is still standing between two
+            // people who have to work together.
+            bool harmOk = true;
+            if (SimMode.Days >= 6)
+            {
+                var samHurts = _game.Harm.Hurts("Sam", _game.Now.Day);
+                bool stillHurt = samHurts.Count > 0;
+                bool turned = false;
+                foreach (var i in samHurts) if (i.WentBad) turned = true;
+                bool roccoFine = true;
+                foreach (var i in _game.Harm.All)
+                    if (i.PersonId == "Rocco" && i.WentBad) roccoFine = false;
+                var feud = _game.Harm.FeudBetween("Sam", "Rocco");
+
+                harmOk = _harmStaged
+                    && stillHurt                                        // days later, still carrying it
+                    && turned                                           // and it got worse for being ignored
+                    && roccoFine                                        // while the treated one did not
+                    && _game.Harm.ScarsOf("Sam") >= 1                   // the count does not heal
+                    && _harmCapabilityAtInjury < 1.0                    // it cost him something
+                    && feud != null                                     // and the feud is still standing
+                    && !_game.Harm.WillWorkTogether("Sam", "Rocco");    // which is a scheduling problem
+            }
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -712,6 +759,11 @@ namespace Ledger.Game
                 { "shiftsWorked", _game.Job.ShiftsWorked },
                 { "llmCalls", _game.Cost.TotalCalls },
                 { "llmCostUsd", _game.Cost.EstimateUsd() },
+                { "harmInjuries", _game.Harm.All.Count },
+                { "harmFeuds", _game.Harm.Feuds.Count },
+                { "samScars", _game.Harm.ScarsOf("Sam") },
+                { "samCapability", System.Math.Round(_game.Harm.Capability("Sam", _game.Now.Day), 3) },
+                { "playerName", _game.Me.Full },
                 { "vehicleFactSeen", vehicleFactSeen },
                 { "signsBuilt", StreetFurniture.SignCount },
                 { "vehicles", traffic != null ? traffic.Vehicles.Count : 0 },
@@ -737,7 +789,7 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -763,6 +815,9 @@ namespace Ledger.Game
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} gap={tightest:0.00} " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
+                      $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
+                      $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
+                      $"harmOk={harmOk} name={_game.Me.Full} " +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
