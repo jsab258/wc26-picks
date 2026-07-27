@@ -623,11 +623,27 @@ at the end of the run, and the Fall deliberately clears every rumor about the
 player. So with a fall in the middle it was asking "did the Fall happen" and
 answering truthfully. Now latched hourly, while the run happens.
 
-Which is the rule's second half, and it earned its place three times in one
-morning: **a gate about something that HAPPENED must be latched when it
-happens.** Reading a mutable world at the end and treating the answer as
-history is a different failure from the vacuous conditional and it hides just
-as well.
+Which is the rule's second half: **a gate about something that HAPPENED must be
+latched when it happens.** Reading a mutable world at the end and treating the
+answer as history is a different failure from the vacuous conditional and it
+hides just as well.
+
+**And it has a mirror image, found an hour later when the fixed build came back
+naming `actTwoMissed=[pp6]`.** Act II's gate asserts the implication "wherever
+a pressure point's condition holds, its flag is set", and PP6's firing
+condition and the gate's condition were textually identical — so the gate was
+not catching a drift, it was losing a race. It asked once, at the end, while
+`CheckActTwo` runs on a 30-frame cadence: a condition that comes true in the
+world's last hour is reported missing before the game has been given a single
+tick in which to fire the beat. Now sampled hourly, with the conditions in one
+place so sampler and gate cannot drift, and a beat fails only if it stays due
+AND unfired across consecutive samples.
+
+**The pair is the actual lesson, and it is worth stating as a pair:** the car
+gate read a world that had MOVED ON and erased the evidence; the Act II gate
+read a world that had not yet CAUGHT UP. Both were end-of-run reads of
+something still in motion, and they fail in opposite directions — which is
+why "just look at the end state" is not a safe default for either.
 
 A footnote worth keeping, because it cost most of a morning: the sim's verdict
 was believed unreadable from this environment and five builds went into moving
