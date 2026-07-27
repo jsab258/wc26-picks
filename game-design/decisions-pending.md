@@ -130,6 +130,53 @@ and says "of course" when you refuse him.
 Taken on the same basis as Tomas Vrba (*"0 — you choose a name"*). Say the
 word and he becomes somebody else; nothing but the name and the card moves.
 
+### 9. The rackets are the last infinite pocket — and the reason we skipped them was wrong
+
+**This one needs you, because it changes the game's main income loop.**
+
+`counterparty-purses-spec.md` excluded rackets, and gave a reason:
+
+> NOT in scope: rackets (already coupled through prosperity — a per-business
+> till would double-count the same pressure)
+
+I went to extend purses into the remaining payment paths and checked that
+claim. **It is half true, and the half that is missing is the half that
+matters.** In `Empire.DailyTick` the take is literally `int income =
+r.IncomePerDay` — a flat number, modified afterwards by your crew's cut, the
+New crew's tax and any treaty, and by nothing about the street.
+
+- Rackets → prosperity: **yes**. `racketToday` feeds `Economy.DailyTick`, so
+  squeezing the street does make it poorer.
+- Prosperity → rackets: **no**. Nothing anywhere scales the take by what the
+  street can actually pay.
+
+So you collect the same sixty a day from a district you have starved as from
+a prosperous one. That is the exact shape the purse system exists to
+delete — a payout table wearing a person's face — and it is sitting on the
+player's primary income in the open city.
+
+It also quietly weakens the living economy's best idea. The squeeze is
+supposed to be *two turns of the same screw, and the second is the one that
+hurts*: you drain the street, and a few days later you are the one who
+notices. Right now only the bar's takings notice. The rackets never do.
+
+**RECOMMEND: couple it, at the district level rather than per-business.**
+Scale the daily take by the same `Economy.FactorFor` the bar already uses, so
+a starved street pays less, and let a very poor district produce the fourth
+collection outcome that already exists for debts — *paid what they could*,
+said as somebody's circumstance rather than a number. That is one line of
+coupling plus a line of text, it does not need per-shop tills, and it does
+not double-count anything, because right now it does not count at all.
+
+**Against it:** it makes the aggressive path materially harder, and the
+balance lab has never run against it. If you would rather feel that in play
+before I change it, say so and I will leave it and note it in the lab's
+findings instead.
+
+**Not doing anything until you answer.** Decision 6 (bribes and payoffs) is
+already built — money you spend on people lands in their drawer, and a
+bribed man carries cash he cannot account for.
+
 ## Previously open
 
 *(nothing blocking — the all-night run works on standing mandates. Items

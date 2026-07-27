@@ -601,8 +601,15 @@ the sim-bot and purse changes stand.
   roads off Ironside Road, seven places, and a population split that houses
   one person in fourteen there and employs one in three. Downtown, The Strip,
   Fairview and Gullwing remain names in §7, deferred by the player.
-- **Purses in more payment paths.** Currently debts only; bribes, payoffs and
-  supplier payments still assume infinite pockets on the other side.
+- **Purses in more payment paths** — bribes and payoffs DONE (money you spend
+  on people lands in their drawer). Supplier payments deliberately excluded:
+  that is money leaving the player's own already-finite pocket.
+
+  What is left is one thing and it needs a decision: **the rackets are still
+  an infinite pocket**, and the spec's reason for excluding them ("already
+  coupled through prosperity") is wrong in the direction that matters — the
+  take drains the street but the street never limits the take. See
+  `decisions-pending.md` #9.
 - **The lab does not test a squeezed street's effect on purses**, because week
   mode holds prosperity at the ordinary half by construction. That coupling is
   proven in CoreTests only.
