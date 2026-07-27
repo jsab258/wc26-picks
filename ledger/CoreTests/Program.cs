@@ -588,6 +588,42 @@ namespace Ledger.CoreTests
             var sam2 = debts2.ById("sam");
             Check(!sam2.Outstanding && sam2.Forgiven && sam2.LastAskedDay == 2, "debt states round-trip through the codec");
 
+            // A PROMOTED CROWD RESIDENT'S MEMORY MUST SURVIVE THE LOAD ORDER
+            // (audit 2026-07-27). Restore runs before the population layer has
+            // promoted crowd residents back into the mill, so their saved state
+            // was silently dropped with the unknown id. The second pass exists
+            // for exactly that agent, and is idempotent for everyone else.
+            var (millP, _, _) = FreshMill();
+            var resident = new Gossiper("r42", "Vera", new MemoryStore("r42"),
+                new KnowledgeBase(), new SuspicionTracker());
+            resident.Rumors.Add(new Rumor
+            {
+                Content = new Fact("player", "night_job_d5", "seen"),
+                OriginId = "r42", Summary = "she saw the drop from her window",
+                Confidence = 0.8, Hops = 0, Sensitive = true,
+            });
+            resident.Loyalty = 0.35;
+            millP.Add(resident);
+            var jsonP = SaveCodec.Capture(now, new Wallet(10), new Campaign(), new PlayerKnowledge(),
+                new SecretsBook(), new BeatBook(), millP, new DebtBook(), null);
+            var (millQ, _, _) = FreshMill();      // freshly authored: r42 not promoted yet
+            SaveCodec.Restore(jsonP, new Wallet(0), new Campaign(), new PlayerKnowledge(),
+                new SecretsBook(), new BeatBook(), millQ, new DebtBook(), out _);
+            Check(millQ.Get("r42") == null, "an agent the world has not rebuilt yet is skipped, not invented");
+            millQ.Add(new Gossiper("r42", "Vera", new MemoryStore("r42"),
+                new KnowledgeBase(), new SuspicionTracker()));   // population layer promotes her
+            SaveCodec.RestoreMillAgents(jsonP, millQ);
+            var vera = millQ.Get("r42");
+            Check(vera != null && vera.Rumors.Count == 1
+                && vera.Rumors[0].TopicKey == "player.night_job_d5"
+                && Math.Abs(vera.Loyalty - 0.35) < 1e-9,
+                "and gets her memory back on the second pass, once she exists again");
+            var lenaAgain = millQ.Get("lena");
+            int lenaRumors = lenaAgain != null ? lenaAgain.Rumors.Count : -1;
+            SaveCodec.RestoreMillAgents(jsonP, millQ);
+            Check((lenaAgain != null ? lenaAgain.Rumors.Count : -1) == lenaRumors,
+                "and the second pass is idempotent for everyone who was already restored");
+
             // Open-mode fields are additive: an open city with a Fall behind it
             // must come back exactly, and old saves (no keys) default closed.
             var campO = new Campaign();

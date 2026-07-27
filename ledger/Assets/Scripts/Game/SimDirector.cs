@@ -765,6 +765,17 @@ namespace Ledger.Game
                         if (twin == null || twin.Rumors.Count != a.Rumors.Count || twin.Leashed != a.Leashed)
                             saveLoadOk = false;
                     }
+                // THE SAVE MUST CARRY THE WHOLE WORLD. Injuries, purses and
+                // Ossei's interview record all existed, all round-tripped in
+                // CoreTests — and none was in the save, because nothing ever
+                // asserted the game-layer wiring (audit 2026-07-27). This does:
+                // a subsystem with live state whose key is missing from the
+                // save is a red build, not a surprise on reload.
+                var extraKeys = MiniJson.AsObject(MiniJson.Deserialize(json));
+                var flags = extraKeys != null ? MiniJson.AsObject(extraKeys.TryGetValue("extra", out var ex) ? ex : null) : null;
+                foreach (var mustCarry in new[] { "harm", "purses", "osseiInterviews", "interviewed", "empire", "economy", "acttwo", "actthree" })
+                    if (flags == null || !flags.ContainsKey(mustCarry))
+                    { _errors.Add("save missing key: " + mustCarry); saveLoadOk = false; }
                 _game.SaveNow(quiet: true);
                 if (!System.IO.File.Exists(_game.SavePath)) saveLoadOk = false;
             }

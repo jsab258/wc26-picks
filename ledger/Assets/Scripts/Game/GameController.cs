@@ -1675,12 +1675,21 @@ namespace Ledger.Game
 
         // ---- save/load (P5: the city's state is the save file) ----
 
-        public string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "ledger-save.json");
+        /// The self-test writes its own file: every SaveNow call site runs in
+        /// sim mode too (the sim asserts autosave), and before this split a
+        /// -simdays run on a dev machine overwrote the real campaign's save
+        /// with the bot's world (audit 2026-07-27).
+        public string SavePath => System.IO.Path.Combine(Application.persistentDataPath,
+            SimMode.Days > 0 ? "ledger-save-sim.json" : "ledger-save.json");
 
         Dictionary<string, object> ExtraFlags() => new Dictionary<string, object>
         {
             { "empire", Empire.Capture() },
             { "economy", Economy.Capture() },
+            { "harm", Harm.Capture() },
+            { "purses", Purses.Capture() },
+            { "osseiInterviews", CaptureStrings(OsseiInterviews) },
+            { "interviewed", CaptureStrings(_interviewed) },
             { "director", Directorate.Capture() },
             { "demands", CaptureDemands() },
             { "population", CapturePopulation() },
@@ -1730,7 +1739,8 @@ namespace Ledger.Game
             {
                 if (SimMode.Days > 0) return; // the self-test always plays a fresh week
                 if (!System.IO.File.Exists(SavePath)) return;
-                var now = SaveCodec.Restore(System.IO.File.ReadAllText(SavePath),
+                var rawSave = System.IO.File.ReadAllText(SavePath);
+                var now = SaveCodec.Restore(rawSave,
                     Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, out var extra);
                 Now = now;
                 WearingCoat = FlagB(extra, "wearingCoat");
@@ -1759,13 +1769,43 @@ namespace Ledger.Game
                     Directorate.Restore(MiniJson.AsObject(di));
                     _lastDirectorDay = Directorate.LastRunDay;
                 }
+                if (extra.TryGetValue("harm", out var hm)) Harm.Restore(MiniJson.AsObject(hm));
+                if (extra.TryGetValue("purses", out var pu)) Purses.Restore(MiniJson.AsObject(pu));
+                if (extra.TryGetValue("osseiInterviews", out var oi))
+                {
+                    OsseiInterviews.Clear();
+                    foreach (var o in MiniJson.AsList(oi) ?? new List<object>())
+                        if (o is string line) OsseiInterviews.Add(line);
+                }
+                if (extra.TryGetValue("interviewed", out var iv))
+                {
+                    _interviewed.Clear();
+                    foreach (var o in MiniJson.AsList(iv) ?? new List<object>())
+                        if (o is string key) _interviewed.Add(key);
+                }
                 if (extra.TryGetValue("demands", out var de)) RestoreDemands(MiniJson.AsList(de));
                 if (extra.TryGetValue("population", out var pop)) RestorePopulation(MiniJson.AsObject(pop));
+                // Second pass, AFTER the population layer has promoted crowd
+                // residents back into the mill: their saved rumors, loyalty and
+                // leashes were skipped in the first pass because the agents did
+                // not exist yet (audit 2026-07-27). Idempotent for everyone else.
+                SaveCodec.RestoreMillAgents(rawSave, _gossip.Mill);
                 if (extra.TryGetValue("access", out var acc)) RestoreAccess(MiniJson.AsObject(acc));
                 if (extra.TryGetValue("targets", out var tg)) RestoreTargets(MiniJson.AsList(tg));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
+                // People who existed before the save must exist after the load.
+                // Ossei always had this (below); the summit head and the
+                // inspector did not, which soft-locked the Table and froze the
+                // audit on any mid-act reload (audit 2026-07-27) — the verbs
+                // they carry are only reachable by talking to them.
+                if (ActTwo.TableArmId != null)
+                {
+                    var tableArm = Empire.ArmOf(ActTwo.TableArmId);
+                    if (tableArm != null) SpawnHead(tableArm.Id, tableArm.HeadName);
+                }
                 if (extra.TryGetValue("actthree", out var a3)) RestoreActThree(MiniJson.AsObject(a3));
+                if (ActThree.InspectorArrived && !ActThree.AuditClosed) SpawnInspector();
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
                 {
                     // Drawer contents ride the mill's suppression sets; rebuild the
@@ -1780,6 +1820,13 @@ namespace Ledger.Game
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
             }
             catch (System.Exception e) { Debug.LogError($"Load failed: {e.Message}"); }
+        }
+
+        static List<object> CaptureStrings(IEnumerable<string> lines)
+        {
+            var list = new List<object>();
+            foreach (var line in lines) list.Add(line);
+            return list;
         }
 
         static bool FlagB(Dictionary<string, object> d, string k) => d.TryGetValue(k, out var v) && v is bool b && b;

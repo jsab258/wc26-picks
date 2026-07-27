@@ -197,6 +197,29 @@ namespace Ledger.Core
             }
 
             mill.RestoreDiscredited((MiniJson.GetList(root, "discredited") ?? new List<object>()).OfType<string>());
+            RestoreAgents(root, mill);
+            return now;
+        }
+
+        /// Re-applies saved agent state onto whichever agents EXIST in the mill
+        /// right now. Public because restore is two-pass: the main Restore runs
+        /// before the population layer has promoted crowd residents back into
+        /// the mill, so a promoted resident's saved rumors, loyalty, suspicion
+        /// and leash were silently dropped along with the unknown id (audit
+        /// 2026-07-27). Call this again once every agent exists; re-applying to
+        /// an agent that was already restored is harmless — the same state
+        /// lands twice.
+        public static void RestoreMillAgents(string json, GossipMill mill)
+        {
+            Dictionary<string, object> root;
+            try { root = MiniJson.AsObject(MiniJson.Deserialize(json)); }
+            catch { return; }
+            if (root == null) return;
+            RestoreAgents(root, mill);
+        }
+
+        static void RestoreAgents(Dictionary<string, object> root, GossipMill mill)
+        {
             foreach (var o in MiniJson.GetList(root, "agents") ?? new List<object>())
             {
                 var a = MiniJson.AsObject(o);
@@ -228,7 +251,6 @@ namespace Ledger.Core
                     g.Knowledge.Learn(new Fact(MiniJson.GetString(f, "subj"), MiniJson.GetString(f, "pred"), MiniJson.GetString(f, "val")));
                 }
             }
-            return now;
         }
 
         static double Num(Dictionary<string, object> obj, string key) =>
