@@ -11,9 +11,12 @@ All three acts are wired and run end to end. Three districts exist. The
 endgame resolves off world state and its distribution has been measured.
 CoreTests 1395, SimHarness 71, lint and ShapeCheck clean.
 
-**As of run 30259492282 the open city is genuinely covered — `coverageOk=True`
-for the first time.** That run reached this, none of which any previous build
-had ever executed:
+**GREEN. Run 30261150542 (commit `7464083`) passed end to end at 11:33 UTC** —
+the first build in this project's history that went green having actually
+exercised the second half of the game.
+
+The run before it, 30259492282, is where the substance is. It reached this,
+and no previous build had ever executed any of it:
 
     coverageOk=True openModeForced=True daysSkipped=2 endDay=12
     directorFired=True opsOk=True planRan=True witnessCarOk=True
@@ -24,13 +27,23 @@ had ever executed:
 
 The Director fired, an operation went all the way through the real planning
 path, a witness described the car, and **the endgame resolved to a real
-ending in-engine for the first time in the project's history.**
+ending in-engine for the first time.** Its one failing gate — `actTwoMissed=
+[pp6]`, a race in the gate rather than a fault in the game — is what
+30261150542 fixed, and that run is green.
 
-It is still not a green BUILD: one gate failed, `actTwoMissed=[pp6]`, which
-was a race in the gate rather than a fault in the game (see below). The fix
-is pushed and building as run 3 of the morning. **If that run is green, the
-audit inherits a genuinely covered build; if it is not, read what it names —
-everything else in this file still holds.**
+**A precise note on how the green was confirmed, because it matters for
+trusting it.** `failed_only=true` only returns logs when a job FAILED, and
+the per-`job_id` call returns the ~4KB tail, which does not reach back to the
+done-line. So the green was confirmed from the job's step conclusions: the
+simulation step itself completed with `conclusion=success`, and that step
+exits non-zero on `pass=False` — it is the sim's own verdict that gates it.
+**The individual gate values for the green run were not re-read.** If the
+audit wants them, the done-line is in the Actions web UI under the `Verdict`
+step, and `sim-report.json` is in the `LEDGER-SimRun` artifact.
+
+**Treat Act III's green as new information, not confirmation.** Its in-engine
+gate has now executed exactly twice in the life of the project, both this
+morning. One green run is the start of evidence, not the end of it.
 
 ---
 
@@ -81,8 +94,23 @@ no change made. Do not fix it from the lab.
 
 ## What is PENDING
 
-**One item: a green in-engine build that proves it covered the open city.**
-Nothing else is waiting on a decision.
+**Nothing is blocked, and the green build is done.** The morning's single
+outstanding item — a green in-engine run that proves it covered the open city
+— closed at 11:33 UTC on run 30261150542.
+
+What is left is all playtest or production track, and none of it waits on a
+decision:
+
+- **Playtest:** Act II's pacing, the endgame's shape, and the inert inspector
+  described above. Measured is not felt.
+- **Code, genuinely unbuilt:** UI test coverage (the weakest verification in
+  the project — nothing asserts what a panel SAYS); front-end completeness
+  (Escape on every panel, no panel traps the player, options apply on Plan /
+  Phone / Ledger); and the lab cannot exercise a squeezed street's effect on
+  purses because week mode pins prosperity by construction.
+- **Production track P2-P10**, mostly untouched. **P2 save robustness is the
+  one that gets worse with delay** — still no version field, so every patch
+  silently risks saves.
 
 Decisions #9 and #10 were answered by Jafar this morning and both are built —
 see the bottom of this file for what changed and what it measured.
