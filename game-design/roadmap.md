@@ -556,6 +556,58 @@ flags surviving a reload, and dissolution moving the world rather than
 clearing a flag; plus an in-engine sim gate that stages the preconditions on
 day 9 and asserts the audit closes on an ending that is not `None`.
 
+**Finished the same day, in four more passes:**
+
+- **The ending actually reads the books.** `Eligible()` never consulted the
+  strain — it was computed, worded, shown to the player, and ignored by the
+  function that decides. Three acts of laundering decisions were decorative.
+  Keeping anything now requires the ledger to survive being looked at, with
+  two deliberate exemptions: selling up (nothing left to be in them) and
+  handing over (it lands on whoever signed).
+- **The audit has a face.** Tobias Reisz, Board of Excise. Not corrupt, and
+  that is load-bearing rather than characterisation — an inspector with a
+  price turns the ending matrix into "did you save up". One item a day for six
+  days: produce it or tell him to put it in writing. The only Act III verb
+  that is not irreversible and the only one that costs nothing but attention.
+- **PP5 is a scene.** Two calls on the last day: Lena moves the real books
+  (gated on loyalty, and her refusal has her own reason), a crew member is
+  told to go quiet, or somebody in the day life hears it from you first. All
+  three run down the M10 exchange, so reaching anybody at all is a question
+  about where they happen to be standing.
+- **The distribution is measured** (`balance-findings-endings.md`). Three
+  holes: a player who never built an empire had exactly one ending; Both fired
+  51-58% against a decision that it should not be first-playthrough
+  reachable; and empire-kept + life-kept + audit-survived fell through the
+  matrix into losing everything. All three closed. CoreTests 1291.
+
+Still open in Act III, and both are Jafar's: `decisions-pending.md` #10 (the
+inspector may be too decisive) and the fact that nobody has PLAYED the
+endgame — measured is not the same as felt.
+
+### CI HONESTY — 2026-07-27, and the most useful thing found all day
+
+A build went green having tested almost none of the game. The sim bot lost
+the week on day six, so the open city never opened, so every gate guarding
+itself on `OpenMode` passed **on its own precondition being false** — empire,
+Director, operations, Act II, Act III. Nine simulated days, the entire second
+half skipped, CI reporting success, and the Act III gate written that morning
+had never once run.
+
+The rule that came out of it: **a conditional check is worth its green tick
+only if something asserts the condition was reached.** Applied as:
+
+- a **coverage floor** — day eight arrives without the city open, the sim
+  opens it (the bot's job is not to *deserve* the open city, it is to exercise
+  it), and `coverageOk` fails the build if the run skipped the second half;
+- `perfOk` no longer passes on having recorded no samples at all;
+- the traffic following-distance check reports `not-measured` instead of a
+  sentinel that read like proven clearance;
+- and `ShapeCheck` now keeps CS0103 for lower-case names, so a mistyped local
+  is caught in a second rather than nine minutes into a runner.
+
+Losing the week is still reported rather than papered over: whether a careful
+player survives at the current gossip rate is a real balance question.
+
 ## STILL OPEN — the honest list (2026-07-27)
 
 Kept current alongside the shipped entries, because a roadmap that only grows
