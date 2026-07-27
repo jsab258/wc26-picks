@@ -116,17 +116,50 @@ namespace Ledger.Core
         /// Everybody in the district, deterministically. The same seed always
         /// produces the same city — which is what lets a save file store a seed
         /// and a handful of exceptions instead of ten thousand people.
-        public static Population Generate(int count, int seed, IReadOnlyList<string> districts)
+        /// How the city's people divide between its districts, in parts.
+        ///
+        /// Equal thirds were fine while both districts were places people live,
+        /// and became a lie the moment Ironside existed: a warehouse district
+        /// with a thousand residents is not a place without witnesses, it is a
+        /// suburb with bad lighting. Density IS the district's character here —
+        /// what makes Ironside worth walking to at night is that almost nobody
+        /// sleeps between those long walls.
+        ///
+        /// Null means equal, which is what every caller that predates this got.
+        public static IReadOnlyList<string> Spread(IReadOnlyList<string> districts,
+            IReadOnlyList<int> weights)
+        {
+            if (districts == null || districts.Count == 0) return districts;
+            if (weights == null || weights.Count != districts.Count) return districts;
+            var wheel = new List<string>();
+            for (int i = 0; i < districts.Count; i++)
+                for (int w = 0; w < Math.Max(0, weights[i]); w++) wheel.Add(districts[i]);
+            return wheel.Count > 0 ? wheel : districts;
+        }
+
+        /// `weights` is where people SLEEP; `workWeights` is where they spend
+        /// the day. Two lists rather than one, because the difference between
+        /// them is the most useful thing a district generator can express:
+        /// Ironside houses almost nobody and employs a third of the city, so it
+        /// is crowded at noon and empty at midnight — and a player who works
+        /// that out has learned something real about where to do things.
+        /// Both default to equal shares, which is what callers predating this got.
+        public static Population Generate(int count, int seed, IReadOnlyList<string> districts,
+            IReadOnlyList<int> weights = null, IReadOnlyList<int> workWeights = null)
         {
             var pop = new Population();
             if (count <= 0 || districts == null || districts.Count == 0) return pop;
 
             var rng = new Random(seed);
             var used = new HashSet<string>();
+            // The wheel repeats each district in proportion to its share, so
+            // the round-robin below stays exactly as deterministic as it was.
+            var wheel = Spread(districts, weights);
+            var workWheel = Spread(districts, workWeights ?? weights);
 
             for (int i = 0; i < count; i++)
             {
-                var district = districts[i % districts.Count];
+                var district = wheel[i % wheel.Count];
                 string name = null;
                 // Given × Family is 1200 combinations; past that, people share a
                 // name with somebody, which is true of real streets. A middle
@@ -162,7 +195,7 @@ namespace Ledger.Core
                 // what makes the two bridges carry somebody rather than being
                 // scenery. A commuter is also the cheapest possible reason for a
                 // face to be somewhere it is not usually seen.
-                var worksIn = rng.NextDouble() < 0.33 ? Across(districts, district) : district;
+                var worksIn = rng.NextDouble() < 0.33 ? Across(workWheel, district, rng) : district;
                 Place(rng, worksIn, out r.WorkX, out r.WorkZ);
                 if (night) { r.WorkFromHour = 20; r.WorkToHour = 4; }
                 else { r.WorkFromHour = 7 + rng.Next(3); r.WorkToHour = 16 + rng.Next(4); }
@@ -192,10 +225,22 @@ namespace Ledger.Core
         }
 
         /// Somewhere that is not here, for the third of people who commute.
-        static string Across(IReadOnlyList<string> districts, string here)
+        ///
+        /// Drawn off the WORK wheel, which is how Ironside ends up with hands
+        /// in it: almost nobody sleeps there, and the day still fills the goods
+        /// yards with people who came down the two roads from somewhere else
+        /// and will leave again before dark. The gap between who is there at
+        /// noon and who is there at midnight is the district, and it falls
+        /// straight out of the two lists rather than out of a special case.
+        static string Across(IReadOnlyList<string> wheel, string here, Random rng)
         {
-            for (int i = 0; i < districts.Count; i++)
-                if (districts[i] != here) return districts[i];
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                var pick = wheel[rng.Next(wheel.Count)];
+                if (pick != here) return pick;
+            }
+            for (int i = 0; i < wheel.Count; i++)
+                if (wheel[i] != here) return wheel[i];
             return here;
         }
 

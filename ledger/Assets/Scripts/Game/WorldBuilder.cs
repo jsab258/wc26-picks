@@ -191,16 +191,28 @@ namespace Ledger.Game
 
                 // Two to four along the longer axis, so a block reads as a
                 // terrace of separate buildings rather than one solid slab.
+                //
+                // Except in Ironside, where the SAME rule would have been wrong:
+                // a warehouse district is one or two long low sheds per block,
+                // not a row of houses. Cheap to say and it does most of the work
+                // of making the place read as somewhere goods are kept rather
+                // than somewhere people live — long unbroken walls, few doors,
+                // and nothing tall enough to have anybody looking down out of it.
+                bool warehouses = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ) == "Ironside";
                 bool alongX = w >= d;
-                int count = 2 + rng.Next(3);
+                int count = warehouses ? 1 + rng.Next(2) : 2 + rng.Next(3);
                 float run = alongX ? w : d;
                 float each = run / count;
                 for (int k = 0; k < count; k++)
                 {
                     float t = (k + 0.5f) / count;
-                    float footprint = each * 0.82f;
-                    float depth = (alongX ? d : w) * (0.55f + 0.3f * (float)rng.NextDouble());
-                    float height = 6f + (float)rng.NextDouble() * 11f;
+                    float footprint = each * (warehouses ? 0.92f : 0.82f);
+                    float depth = (alongX ? d : w) *
+                        (warehouses ? 0.72f + 0.2f * (float)rng.NextDouble()
+                                    : 0.55f + 0.3f * (float)rng.NextDouble());
+                    float height = warehouses
+                        ? 5f + (float)rng.NextDouble() * 4f
+                        : 6f + (float)rng.NextDouble() * 11f;
                     var centre = alongX
                         ? new Vector3(minX + t * w, 0, (maxZ + minZ) / 2f)
                         : new Vector3((maxX + minX) / 2f, 0, minZ + t * d);

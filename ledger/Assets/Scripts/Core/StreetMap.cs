@@ -139,6 +139,30 @@ namespace Ledger.Core
                 NamesNorthSouth = new[] { "Weighhouse Lane", "Saltmarket", "Copper Row", "Lantern Walk", "Basket Street" },
                 NamesEastWest = new[] { "The Cut", "Market Road", "Northgate" },
             },
+            // IRONSIDE, south past the goods yards. The design doc's brief is
+            // three words — **warehouses, logistics, places without witnesses**
+            // — and the third one is the only one that is a mechanic.
+            //
+            // A district is not made quiet by saying so in a name. It is made
+            // quiet by two numbers: how far apart the junctions are, and how
+            // many people sleep between them. Ironside's blocks are 34m against
+            // the Hook's 26 and Copper Row's 20, so there are FEWER corners per
+            // acre — long walls, long sightlines, and nowhere for a face to be
+            // standing that is not deliberate. And barely anybody lives here
+            // (see `Population.Generate`'s weights): the buildings are for goods,
+            // and goods do not look out of windows at two in the morning.
+            //
+            // That is the whole design. Everything the player can do anywhere
+            // else, they can do here — the difference is only who sees it, which
+            // is the difference this game is made of.
+            new District
+            {
+                Id = "ironside", Name = "Ironside",
+                AvenuesX = new double[] { -51, -17, 17, 51 },
+                AvenuesZ = new double[] { -160, -126, -92 },
+                NamesNorthSouth = new[] { "Foundry Lane", "Smelt Yard", "Crane Street", "Slipway Road" },
+                NamesEastWest = new[] { "The Sidings", "Goods Road", "Gate Road" },
+            },
         };
 
         /// Which district a position is in, by name, or null out on the cut.
@@ -268,6 +292,12 @@ namespace Ledger.Core
             // and somebody waiting on an open grid is a man standing in a road.
             Link("j1_4", "copper_j1_0", "avenue");   // the west bridge
             Link("j3_4", "copper_j3_0", "avenue");   // the east bridge
+
+            // South, the two goods roads down off Ironside Road — named for
+            // where they go, which is how the Hook has always talked about the
+            // place it sends its cargo and does not visit.
+            Link("j1_0", "ironside_j1_2", "avenue");
+            Link("j3_0", "ironside_j2_2", "avenue");
 
             // 3. Every place on the map gets a lane to the nearest junction, so
             // it stops being a point in a field and becomes an address.

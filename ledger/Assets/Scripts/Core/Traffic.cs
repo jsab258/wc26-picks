@@ -753,6 +753,41 @@ namespace Ledger.Core
             return true;
         }
 
+        /// How often a vehicle is going somewhere outside its own district.
+        /// Enough that the bridges and the goods roads always have somebody on
+        /// them; few enough that they are a crossing rather than a queue.
+        public const int CrossDistrictPercent = 22;
+
+        readonly Dictionary<string, List<string>> _junctionsByDistrict =
+            new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        readonly List<string> _allJunctions = new List<string>();
+
+        void IndexJunctions()
+        {
+            if (_allJunctions.Count > 0) return;
+            foreach (var n in StreetMap.Nodes)
+            {
+                if (!n.IsJunction) continue;
+                _allJunctions.Add(n.Id);
+                var district = StreetMap.DistrictAt(n.X, n.Z) ?? "";
+                if (!_junctionsByDistrict.TryGetValue(district, out var list))
+                    _junctionsByDistrict[district] = list = new List<string>();
+                list.Add(n.Id);
+            }
+        }
+
+        List<string> AllJunctions() { IndexJunctions(); return _allJunctions; }
+
+        /// The junctions in the same district as this one.
+        List<string> LocalJunctions(string nodeId)
+        {
+            IndexJunctions();
+            var n = StreetMap.Node(nodeId);
+            if (n == null) return null;
+            var district = StreetMap.DistrictAt(n.X, n.Z) ?? "";
+            return _junctionsByDistrict.TryGetValue(district, out var list) ? list : null;
+        }
+
         void Reroute(Vehicle v)
         {
             v.Route.Clear();
@@ -763,12 +798,30 @@ namespace Ledger.Core
 
             if (destination == null)
             {
-                var junctions = new List<string>();
-                foreach (var n in StreetMap.Nodes) if (n.IsJunction) junctions.Add(n.Id);
-                if (junctions.Count == 0) return;
+                // MOST TRIPS ARE LOCAL, and it is not a realism flourish — it is
+                // the difference between a working city and a solid one.
+                //
+                // Destinations used to be uniform over every junction on the
+                // map. With one district that is indistinguishable from local.
+                // With three it makes every second vehicle a long-haul commuter,
+                // and since the districts are joined by exactly four chokepoints
+                // (two bridges, two goods roads) EVERY one of those journeys
+                // queues at the same four places. Measured: throughput fell by
+                // two thirds over three minutes and fourteen vehicles converged
+                // onto one corridor. The chokepoints were doing their job; there
+                // was simply no reason for anybody to be anywhere else.
+                //
+                // Real streets are not like that. Most journeys are short and
+                // stay in the neighbourhood, and the ones that cross are a
+                // minority — which keeps the bridges carrying somebody without
+                // making them the whole city's only story.
+                var pool = LocalJunctions(v.ToId);
+                if (pool == null || pool.Count == 0 || NextInt(100) < CrossDistrictPercent)
+                    pool = AllJunctions();
+                if (pool.Count == 0) return;
                 for (int tries = 0; tries < 6; tries++)
                 {
-                    var pick = junctions[NextInt(junctions.Count)];
+                    var pick = pool[NextInt(pool.Count)];
                     if (pick != v.ToId && pick != v.FromId) { destination = pick; break; }
                 }
                 if (destination == null) return;

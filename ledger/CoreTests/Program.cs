@@ -1874,7 +1874,20 @@ namespace Ledger.CoreTests
                 $"{StreetMap.Nodes.Count(n => n.IsJunction)} of {expectedJunctions}");
             Check(StreetMap.Blocks.Count == expectedBlocks, "and every district's buildable blocks",
                 StreetMap.Blocks.Count.ToString());
-            Check(StreetMap.Districts.Length == 2, "the Hook, and Copper Row across the cut");
+            Check(StreetMap.Districts.Length == 3,
+                "the Hook, Copper Row across the cut, and Ironside past the goods yards");
+
+            // Ironside's whole brief is "places without witnesses", and the only
+            // part of that a map can carry is the block size: fewer corners per
+            // acre means longer walls and nowhere to be standing by accident.
+            double BlockSpan(string id)
+            {
+                var d = StreetMap.Districts.First(x => x.Id == id);
+                return d.AvenuesX[1] - d.AvenuesX[0];
+            }
+            Check(BlockSpan("ironside") > BlockSpan("hook") && BlockSpan("hook") > BlockSpan("copper"),
+                "Ironside's blocks are the widest and the market quarter's the tightest",
+                $"{BlockSpan("ironside")} / {BlockSpan("hook")} / {BlockSpan("copper")}");
 
             // Scale, against the urban-design benchmarks. Portland's walkable
             // block is 79m and Barcelona's Eixample is 113m; a game compresses,
@@ -2094,10 +2107,39 @@ namespace Ledger.CoreTests
             Check(same, "and the same seed still builds the same city");
 
             // A district that exists in the fiction and not on the ground must
-            // not throw — Ironside is named in the population and has no
-            // geography yet.
-            var withGhost = Population.Generate(60, 7, new[] { "the Hook", "Ironside" });
+            // not throw. Ironside used to be the example and now has streets;
+            // Downtown is still only a name in §7 of the design doc.
+            var withGhost = Population.Generate(60, 7, new[] { "the Hook", "Downtown" });
             Check(withGhost.Residents.Count == 60, "somewhere not yet built still houses its people");
+
+            // IRONSIDE. Its whole brief is "places without witnesses", and the
+            // only thing that actually makes a place unwitnessed is that nobody
+            // is in it. So the district has to be genuinely thin at night — and
+            // genuinely busy by day, or it is a hole in the map rather than a
+            // working part of the city somebody has a reason to walk into.
+            var city = Population.Generate(3000, 20260726,
+                new[] { "the Hook", "Copper Row", "Ironside" },
+                new[] { 45, 40, 7 }, new[] { 35, 30, 33 });
+            int sleepsIn = 0, worksIn = 0;
+            foreach (var r in city.Residents)
+            {
+                if (r.District == "Ironside") sleepsIn++;
+                if (StreetMap.DistrictAt(r.WorkX, r.WorkZ) == "Ironside") worksIn++;
+            }
+            double sleepShare = (double)sleepsIn / city.Residents.Count;
+            double workShare = (double)worksIn / city.Residents.Count;
+            Check(sleepShare < 0.12, "almost nobody sleeps in Ironside", sleepShare.ToString("0.00"));
+            Check(workShare > sleepShare * 1.5,
+                "and far more people spend the day there than the night — which IS the district",
+                $"{workShare:0.00} by day against {sleepShare:0.00} by night");
+
+            // And the homes it does have are in Ironside, not quietly in the
+            // Hook: the exact bug the two-district version of this test caught.
+            int ironMisplaced = 0;
+            foreach (var r in city.Residents)
+                if (r.District == "Ironside" && StreetMap.DistrictAt(r.HomeX, r.HomeZ) != "Ironside")
+                    ironMisplaced++;
+            Check(ironMisplaced == 0, "and the few who do live there live there", ironMisplaced.ToString());
         }
 
         // ---------------------------------------------------------------
@@ -2857,6 +2899,7 @@ namespace Ledger.CoreTests
             // Three minutes of traffic, checked every step for the things that
             // must NEVER be true. A screenshot cannot tell you any of this.
             double worstGap = 999;
+            double earlyDistance = 0, midDistance = 0;
             int redRunners = 0, offRoad = 0, litCrossings = 0;
             var heading = new Dictionary<int, (string from, string to)>();
             for (int i = 0; i < 360; i++)
@@ -2865,6 +2908,8 @@ namespace Ledger.CoreTests
                 foreach (var v in sim.Vehicles) heading[v.Id] = (v.FromId, v.ToId);
                 double before = sim.Clock;
                 sim.Step(0.5);
+                if (i == 119) earlyDistance = sim.TotalDistance;
+                if (i == 239) midDistance = sim.TotalDistance;
                 double gap = sim.TightestGap();
                 if (gap < worstGap) worstGap = gap;
                 foreach (var v in sim.Vehicles)
@@ -2902,6 +2947,19 @@ namespace Ledger.CoreTests
             Check(sim.TotalDistance > 1000, "the traffic actually goes somewhere", sim.TotalDistance.ToString("0"));
             int moving = sim.Vehicles.FindAll(v => v.Speed > 0.5).Count;
             Check(moving >= sim.Vehicles.Count / 3, "and most of it is moving at any moment", moving.ToString());
+
+            // THE GATE THAT CAUGHT IRONSIDE. A single-instant sample cannot tell
+            // a queue from a city slowly congealing, and congealing is exactly
+            // what a third district produced: uniform random destinations made
+            // every second journey cross one of four chokepoints, and throughput
+            // fell by two thirds over three minutes without ever hard-locking.
+            // So measure the LAST minute against the first and require the city
+            // to still be moving at the end of the evening.
+            double firstThird = earlyDistance;
+            double lastThird = sim.TotalDistance - midDistance;
+            Check(lastThird > firstThird * 0.6,
+                "and it is still moving as freely at the end as at the start",
+                $"{firstThird:0} then {lastThird:0}");
             int stuck = 0;
             var mark = new Dictionary<int, double>();
             foreach (var v in sim.Vehicles) mark[v.Id] = sim.TotalDistance;

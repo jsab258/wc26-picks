@@ -66,6 +66,22 @@ namespace Ledger.Core
             P("north_market",    "the Northgate market",        4, 126, "business", true),
             P("stair_tenements", "the stair tenements",        34, 118, "home",     true),
             P("letter_stall",    "the letter-writer's stall", -14, 118, "business", true),
+
+            // IRONSIDE, south past the goods yards: warehouses, logistics, and
+            // places without witnesses.
+            //
+            // Every one of these is somewhere goods are HELD rather than sold,
+            // which is the opposite of Copper Row and the reason both exist. A
+            // market is a hundred people watching money change hands; a bonded
+            // store is one clerk, a book, and a door that is shut at six. What
+            // the player can do here is not different — who sees them do it is.
+            P("goods_yard",      "the goods yard",            -34, -110, "landmark", true),
+            P("bonded_store",    "the bonded store",            0, -104, "business", true),
+            P("crane_wharf",     "the crane wharf",            34, -100, "landmark", true),
+            P("weigh_office",    "the Ironside weigh office",  -6, -132, "business", true),
+            P("night_gate",      "the night gate",             17,  -92, "corner",   true),
+            P("dry_dock",        "the dry dock",              -40, -148, "landmark", true),
+            P("watchmans_hut",   "the watchman's hut",         40, -140, "home",     true),
         };
 
         static HookPlace P(string id, string name, double x, double z, string kind, bool planned = false) =>

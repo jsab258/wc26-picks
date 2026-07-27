@@ -31,6 +31,14 @@ namespace Ledger.Game
 
         /// How many of the crowd may be walking at once. A frame-budget number,
         /// on top of the ~36 authored and generated walkers already in the world.
+        /// The city, and how it divides. Kept in one place because the two
+        /// share lists must stay the same length as the district list, and a
+        /// save-rebuild that used a different split would quietly build a
+        /// different city from the same seed.
+        public static readonly string[] Districts = { "the Hook", "Copper Row", "Ironside" };
+        public static readonly int[] HomeShares = { 45, 40, 7 };
+        public static readonly int[] WorkShares = { 35, 30, 33 };
+
         public const int CrowdWalkerCap = 22;
         public const int CrowdMillCap = 110;
         /// Re-banding is not free (it sorts the whole population), so it happens
@@ -50,8 +58,13 @@ namespace Ledger.Game
             // street; when new-game options exist this becomes a choice.
             PopulationSeed = 20260726;
             PopulationCount = 3000;
+            // Where people sleep, and where they spend the day. Ironside is the
+            // reason these are two lists: it houses about one person in
+            // fourteen and employs closer to one in three, so it is busy at
+            // noon and all but empty after dark. That is what "places without
+            // witnesses" has to mean if it is going to mean anything.
             Populace = Population.Generate(PopulationCount, PopulationSeed,
-                new[] { "the Hook", "Copper Row", "Ironside" });
+                Districts, HomeShares, WorkShares);
             Populace.NearCap = CrowdWalkerCap;
             Populace.MidCap = CrowdMillCap;
         }
@@ -233,7 +246,7 @@ namespace Ledger.Game
                 PopulationSeed = seed;
                 PopulationCount = Mathf.Clamp(count, 0, 20000);
                 Populace = Population.Generate(PopulationCount, PopulationSeed,
-                    new[] { "the Hook", "Copper Row", "Ironside" });
+                    Districts, HomeShares, WorkShares);
                 Populace.NearCap = CrowdWalkerCap;
                 Populace.MidCap = CrowdMillCap;
             }
