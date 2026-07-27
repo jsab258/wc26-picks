@@ -2339,6 +2339,71 @@ namespace Ledger.CoreTests
             Check(twin.Result == Ending.Quiet && twin.SuccessorId == "Sam", "including how it ended and who got it");
             twin.Restore(null);
             Check(twin.Opened, "restoring nothing changes nothing");
+
+            // The three verbs are one-way, so their flags MUST survive a save —
+            // a reload that quietly un-sells a business would hand the player a
+            // different ending than the one they earned.
+            var acted = new ActThreeState
+            {
+                Opened = true, AuditClosesDay = 30,
+                SoldUp = true, Deflected = true,
+                DeflectedOnto = "dockside", BurnedWitnessId = "Ada",
+            };
+            var twin2 = new ActThreeState();
+            twin2.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(acted.Capture()))));
+            Check(twin2.SoldUp && twin2.Deflected, "selling up and pointing it elsewhere survive a reload");
+            Check(twin2.DeflectedOnto == "dockside" && twin2.BurnedWitnessId == "Ada",
+                "and so does who you gave up, and who paid for it");
+
+            // The epilogue is the only "after" this game has, and it reports the
+            // world you handed over rather than how the handover felt.
+            var handedHot = new LedgerState { DayCircleRacketHeat = 0.9, BestDayLifeLoyalty = 0.1 };
+            var handedQuiet = new LedgerState { DayCircleRacketHeat = 0.1, BestDayLifeLoyalty = 0.9 };
+            for (int i = 0; i < ActThreeState.EpilogueDays; i++)
+            {
+                var text = ActThreeState.EpilogueText(i, "Sam", handedQuiet);
+                Check(!string.IsNullOrEmpty(text) && text.Length > 60, $"epilogue day {i} has words", i.ToString());
+            }
+            Check(ActThreeState.EpilogueText(1, "Sam", handedHot) != ActThreeState.EpilogueText(1, "Sam", handedQuiet),
+                "a street you left loud is not a street you left quiet");
+            Check(ActThreeState.EpilogueText(2, "Sam", handedHot) != ActThreeState.EpilogueText(2, "Sam", handedQuiet),
+                "and a life you kept still writes to you");
+
+            TestDissolve();
+        }
+
+        /// Selling up: the straight life's price, paid in the thing you built.
+        static void TestDissolve()
+        {
+            var mill = new GossipMill(new SocialGraph());
+            var wallet = new Wallet(0);
+            var now = new GameTime(20, 10, 0);
+            var e = new EmpireBook();
+            e.Businesses.Add(new Business
+            {
+                Id = "shop", Name = "shop", OwnerId = "Ruta", AskPrice = 400,
+                CleanIncomePerDay = 20, LaunderPerDay = 60, Owned = true, AcquiredVia = "clean",
+            });
+            e.Rackets.Add(new Racket { Id = "collection", Name = "rounds", Established = true, RunnerId = "Sam" });
+            e.Crew.Add(new CrewMember { Id = "Sam", Name = "Sam", Assignment = "collection", Cut = "skim" });
+            e.Crew.Add(new CrewMember { Id = "Rocco", Name = "Rocco", Cut = "generous" });
+            foreach (var id in new[] { "Ruta", "Sam", "Rocco" })
+                mill.Add(new Gossiper(id, id, new MemoryStore(id), new KnowledgeBase(), new SuspicionTracker())
+                    { Loyalty = 0.6 });
+
+            int raised = e.Dissolve(wallet, mill, now);
+            Check(raised == 200, "everything goes at about half what it cost", raised.ToString());
+            Check(wallet.Clean == 200, "and it lands as clean money, which is the whole point of taking the loss");
+            Check(!e.Businesses[0].Owned && e.Businesses[0].AcquiredVia == null, "the shop is theirs again");
+            Check(!e.Rackets[0].Established && e.Rackets[0].RunnerId == null, "the rounds stop");
+            Check(e.Crew.TrueForAll(c => c.Departed && c.Assignment == null), "and everybody is paid off");
+            Check(e.OwnedLaunderCapacity == 0, "the washing capacity goes with the fronts");
+
+            // How they take it depends on what they were getting, which is the
+            // §6.5 rule holding right up to the last day.
+            Check(mill.Get("Rocco").Loyalty > mill.Get("Sam").Loyalty,
+                "a fair cut is remembered kindly even when the job ends");
+            Check(mill.Get("Ruta").Memory.Events.Count > 0, "and the seller remembers who sold back at a loss");
         }
 
         // ---------------------------------------------------------------

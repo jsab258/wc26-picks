@@ -538,6 +538,7 @@ namespace Ledger.Game
                 CheckOnboarding();
                 CheckActOne();
                 CheckActTwo();
+                CheckActThree();
                 CheckDayJob();
             }
         }
@@ -1661,6 +1662,7 @@ namespace Ledger.Game
             { "targets", CaptureTargets() },
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
+            { "actthree", CaptureActThree() },
             { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
             { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
             { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
@@ -1737,6 +1739,7 @@ namespace Ledger.Game
                 if (extra.TryGetValue("targets", out var tg)) RestoreTargets(MiniJson.AsList(tg));
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
+                if (extra.TryGetValue("actthree", out var a3)) RestoreActThree(MiniJson.AsObject(a3));
                 if (ActOne.NoorDrawersEngaged && !ActOne.NoorDrawersBroken)
                 {
                     // Drawer contents ride the mill's suppression sets; rebuild the

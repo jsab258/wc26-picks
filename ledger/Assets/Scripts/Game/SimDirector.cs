@@ -53,6 +53,9 @@ namespace Ledger.Game
         int _witnessesWhenCarArrived = -1;
         double _harmCapabilityAtInjury = 1.0;
         bool _planStaged, _planRan;
+        bool _actThreeStaged;
+        bool _actThreeHandedOver;
+        Ending _actThreeEnding = Ending.None;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
         bool _tookDayShot, _tookNightShot;
@@ -249,6 +252,57 @@ namespace Ledger.Game
                         && _game.Plan == null;                                    // a plan is spent
                 }
             }
+
+            // Act III in CI (act3-draft.md). The act's own trigger wants the
+            // Table answered and an operation too big to deny, and its clock
+            // wants six days the nine-day sim does not have. So the sim stages
+            // the PRECONDITIONS by hand and then lets the act run itself: the
+            // opening, the letter, the succession judgement, the handover and
+            // the close all go through the real paths, on the real state.
+            //
+            // Every ending in this game is a description of the world, so what
+            // this gate proves is not that a particular ending happens — it is
+            // that the world always resolves to SOMETHING. An audit that closed
+            // on Ending.None would be a player left standing in a finished game.
+            if (!_actThreeStaged && _game.Campaign.OpenMode && now.Day >= 9 && now.Hour >= 13)
+            {
+                _actThreeStaged = true;
+                var m = _game.Gossip != null ? _game.Gossip.Mill : null;
+
+                // A second racket and a second pair of hands: the act opens on
+                // an operation the bar cannot explain, and it needs somebody
+                // who could be handed it.
+                var rocco = m != null ? m.Get("Rocco") : null;
+                if (rocco != null && _game.Empire.CrewOf("Rocco") == null)
+                {
+                    rocco.Loyalty = 0.75;                       // the week's favours, staged
+                    _game.Empire.RecruitByNeed(rocco, "Rocco", 100, _game.Wallet, now);
+                    _game.Empire.Establish(_game.Empire.RacketOf("fencing"), _game.Empire.CrewOf("Rocco"), now);
+                }
+
+                // The Table, answered. Somebody at a summit wanted a room and
+                // got an answer; which answer does not matter to Act III.
+                if (!_game.ActTwo.TableFired)
+                {
+                    if (_game.ActTwo.TableArmId == null) _game.ActTwo.TableArmId = "dockside";
+                    _game.AnswerTable("defy");
+                }
+            }
+
+            // One pass later, so the act has actually opened through its own
+            // check rather than being constructed here: judge the successor,
+            // hand it over, and bring the named day forward to today so the
+            // close runs in-engine instead of six days after the sim ends.
+            if (_actThreeStaged && _game.ActThree.Opened && !_game.ActThree.AuditClosed
+                && _game.ActThree.Pp1Fired && now.Hour >= 14)
+            {
+                var ready = _game.ReadySuccessor();
+                if (ready != null && _game.ActThree.SuccessorId == null)
+                    _actThreeHandedOver = _game.HandOver(ready.Id);
+                _game.ActThree.AuditClosesDay = now.Day;   // the letter's date, brought forward
+            }
+
+            if (_game.ActThree.AuditClosed) _actThreeEnding = _game.ActThree.Result;
 
             // Open-mode Fall in CI: if week two arrived without the fuse ever
             // blowing organically, stage one on day 9 so the whole Fall path
@@ -788,9 +842,32 @@ namespace Ledger.Game
                     && MiniJson.Serialize(twin.Capture()) == snap;
             }
 
+            // Act III (act3-draft.md). Only asserted when the sim actually got
+            // far enough to stage it — the gate must never assume the bot
+            // reaches day 9, which is exactly the brittleness that made the
+            // car gate lie on a short run.
+            bool actThreeOk = true;
+            if (_actThreeStaged)
+            {
+                var a3 = _game.ActThree;
+                actThreeOk = a3.Opened && a3.Pp1Fired && a3.AuditClosed
+                    && _actThreeEnding != Ending.None
+                    // Handing over is the only ending you reach for, so if the
+                    // bot reached for it, it must be the one it got.
+                    && (!_actThreeHandedOver || _actThreeEnding == Ending.Quiet)
+                    // And the act must survive its own codec, like everything else.
+                    && MiniJson.Serialize(a3.Capture()) ==
+                       MiniJson.Serialize(RoundTrip(a3).Capture());
+            }
+
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
+                { "actThreeClosesDay", _game.ActThree.AuditClosesDay },
+                { "actThreeStaged", _actThreeStaged },
+                { "actThreeEnding", _actThreeEnding.ToString() },
+                { "actThreeHandedOver", _actThreeHandedOver },
+                { "actThreeOk", actThreeOk },
                 { "finalTime", _game.Now.ToString() },
                 { "errorCount", _errors.Count },
                 { "errors", new List<object>(_errors.ToArray()) },
@@ -883,7 +960,8 @@ namespace Ledger.Game
                         && jobRan && takingsBanked && verdictSane && knowledgeWorks && launderWorks
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
-                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk;
+                        && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk
+                        && actThreeOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -897,6 +975,7 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
+                      $"actThree={_actThreeStaged} ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
@@ -923,6 +1002,15 @@ namespace Ledger.Game
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"verdict={camp.Verdict} pass={pass}");
             Application.Quit(pass ? 0 : 1);
+        }
+
+        /// A save-and-reload of the act, for the gate that proves an ending
+        /// cannot be lost between one session and the next.
+        static ActThreeState RoundTrip(ActThreeState a)
+        {
+            var twin = new ActThreeState();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(a.Capture()))));
+            return twin;
         }
     }
 }

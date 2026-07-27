@@ -280,6 +280,11 @@ namespace Ledger.Game
             string labelA = null, labelB = null;
             bool enabledA = true;
 
+            // Act III outranks everything, because during the audit these people
+            // are only one thing to you. Each verb appears in front of exactly
+            // the person it costs something with — never on a menu.
+            if (ActThreeButtons(id)) return;
+
             // Halvard's brokerage (Act II PP5): reads, truces, and the room.
             var act2 = _game.ActTwo;
             if (id == "Halvard" && act2.Pp5Fired)
@@ -382,6 +387,102 @@ namespace Ledger.Game
             return null;
         }
 
+        /// The audit's three verbs, shown to the three people they belong to.
+        /// Returns true when Act III has claimed the buttons.
+        bool ActThreeButtons(string id)
+        {
+            var a3 = _game.ActThree;
+            if (!a3.Opened || a3.AuditClosed) return false;
+            var e = _game.Empire;
+
+            // Halvard: the way out. A bad price, and he does not ask why.
+            if (id == "Halvard" && !a3.SoldUp
+                && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = "Sell up, pay everyone off";
+                _empireBtnA.interactable = true;
+                _empireSayA = "have him sell everything you own and settle with everyone, whatever it costs";
+                _empireBtnB.gameObject.SetActive(_game.ActTwo.Pp5Fired);
+                _empireLabelB.text = $"Buy a read (${ActTwoState.ReadPrice})";
+                _empireBtnB.interactable = _game.Wallet.Total >= ActTwoState.ReadPrice;
+                _empireSayB = "pay him to tell you where you stand with the three arms";
+                return true;
+            }
+
+            // Ossei: point it elsewhere. Only offered once she has asked, and
+            // only if somebody actually told you something worth giving her.
+            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected)
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = "Give her the arm";
+                _empireBtnA.interactable = _game.OsseiInterviews.Count > 0;
+                _empireSayA = "give her the organization that has been hardest on you, with enough to make it stick";
+                _empireBtnB.gameObject.SetActive(false);
+                return true;
+            }
+
+            // The successor: the only ending you have to reach for.
+            if (a3.SuccessorId == null && a3.Pp4Fired)
+            {
+                var ready = _game.ReadySuccessor();
+                if (ready != null && ready.Id == id)
+                {
+                    _empireBtnA.gameObject.SetActive(true);
+                    _empireLabelA.text = "Sign it over to them";
+                    _empireBtnA.interactable = true;
+                    _empireSayA = "sign the whole thing over to them and go";
+                    _empireBtnB.gameObject.SetActive(false);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// The matching half of ActThreeButtons. Same order, same conditions —
+        /// so what the button says and what it does cannot drift apart.
+        bool ActThreeAct(string id, bool leverage)
+        {
+            var a3 = _game.ActThree;
+            if (!a3.Opened || a3.AuditClosed) return false;
+            var e = _game.Empire;
+
+            if (id == "Halvard" && !a3.SoldUp
+                && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
+            {
+                if (!leverage) _game.SellUp();
+                else BuyHalvardRead();
+                return true;
+            }
+
+            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected)
+            {
+                if (!leverage && !_game.Deflect())
+                    Narrate("\"I need something to point at,\" she says. \"You have not given me a name that anybody would stand behind.\"");
+                return true;
+            }
+
+            if (a3.SuccessorId == null && a3.Pp4Fired)
+            {
+                var ready = _game.ReadySuccessor();
+                if (ready != null && ready.Id == id) { if (!leverage) _game.HandOver(id); return true; }
+            }
+            return false;
+        }
+
+        void BuyHalvardRead()
+        {
+            var e = _game.Empire;
+            if (!_game.ActTwo.Pp5Fired) return;
+            if (!_game.Wallet.Spend(ActTwoState.ReadPrice, dirtyOk: true)) { Narrate("He names the price again, patiently."); return; }
+            _game.ActTwo.ReadsBought++;
+            var loudest = e.Arms[0];
+            foreach (var a in e.Arms) if (a.Attention > loudest.Attention) loudest = a;
+            Narrate($"\"One imagines,\" Halvard says to the counter, \"that {loudest.HeadName}'s people are " +
+                $"{(loudest.Stage >= 4 ? "finished deliberating" : loudest.Stage >= 3 ? "reaching for what is yours" : loudest.Stage >= 2 ? "pricing you weekly" : "merely curious")}. " +
+                "One imagines nothing else.\"");
+        }
+
         void EmpireAct(bool leverage)
         {
             var id = CurrentHostId();
@@ -389,6 +490,8 @@ namespace Ledger.Game
             var e = _game.Empire;
             var g = _game.Gossip.Mill.Get(id);
             var act2 = _game.ActTwo;
+
+            if (ActThreeAct(id, leverage)) return;
 
             if (id == "Halvard" && act2.Pp5Fired)
             {
@@ -736,6 +839,27 @@ namespace Ledger.Game
                     sb.AppendLine($"<color={UiTheme.HexDim}>The New crew {(crew9.Stage >= 4 ? "circles the block" : crew9.Stage >= 3 ? "taxes your rounds" : crew9.Stage >= 2 ? "makes noise on your street" : "tagged your wall")}.</color>");
                 if (e.TotalRacketIncome > 0)
                     sb.AppendLine($"<color={UiTheme.HexDim}>Rounds to date: ${e.TotalRacketIncome} dirty.</color>");
+            }
+
+            // Act III: the one thing in this book that has a deadline. A date
+            // and a shape — never a countdown, never a figure.
+            if (_game.ActThree.Opened)
+            {
+                sb.Append($"\n<color={UiTheme.HexDebit}><b>THE AUDIT</b></color>\n");
+                if (_game.ActThree.AuditClosed)
+                    sb.AppendLine($"<color={UiTheme.HexDim}>The books were opened on day {_game.ActThree.AuditClosesDay}.</color>");
+                else
+                {
+                    var books = _game.Books();
+                    sb.AppendLine($"The inspection is set for <b>day {_game.ActThree.AuditClosesDay}</b>.");
+                    sb.AppendLine($"<color={UiTheme.HexDim}>{ActThreeState.StrainWord(ActThreeState.LedgerStrain(books))}.</color>");
+                    if (_game.ActThree.SoldUp)
+                        sb.AppendLine($"<color={UiTheme.HexHeld}>There is nothing left for them to find.</color>");
+                    if (_game.ActThree.Deflected)
+                        sb.AppendLine($"<color={UiTheme.HexHeld}>They are looking somewhere else. Somebody paid for that.</color>");
+                    if (_game.ActThree.SuccessorId != null)
+                        sb.AppendLine($"<color={UiTheme.HexHeld}>It is {books.SuccessorName}'s name on the licence now.</color>");
+                }
             }
             _ledgerText.text = sb.ToString();
         }

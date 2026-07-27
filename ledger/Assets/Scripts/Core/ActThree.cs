@@ -98,6 +98,15 @@ namespace Ledger.Core
         public int EpilogueDay = -1;
         public const int EpilogueDays = 3;
 
+        /// The two things the player can actually DO about the audit, as
+        /// opposed to the many things they can do about the world. Both are
+        /// one-way: you cannot un-sell a business or un-name a name.
+        public bool SoldUp;
+        public bool Deflected;
+        /// Who the audit was pointed at instead, and who told you about them —
+        /// because the street knows who talks, and the second name is the price.
+        public string DeflectedOnto, BurnedWitnessId;
+
         /// How long the letter gives you. Long enough to act, short enough that
         /// you cannot do everything.
         public const int DaysOfGrace = 6;
@@ -245,6 +254,36 @@ namespace Ledger.Core
                   "You lose the business and you lose the people, and the order in which those two happen " +
                   "turns out not to matter at all.";
 
+        /// The only ending with an after.
+        ///
+        /// Three mornings, and you are not in any of them — you hear about the
+        /// street the way anybody who left hears about anywhere, second-hand and
+        /// late. What arrives is decided by the world you handed over rather than
+        /// by how the handover felt: a street you starved is still starved, and a
+        /// crew that liked you does not necessarily like them.
+        public static string EpilogueText(int dayIndex, string successorName, LedgerState s)
+        {
+            string who = successorName ?? "whoever took it";
+            bool hot = s != null && s.DayCircleRacketHeat >= LedgerState.FactThreshold;
+            bool intact = s != null && s.BestDayLifeLoyalty >= LedgerState.TrustThreshold;
+
+            if (dayIndex <= 0)
+                return $"First morning off the street. Somebody who came in on the same boat says the bar opened on time and " +
+                       $"{who} was behind the counter at seven, which is earlier than you ever managed.";
+            if (dayIndex == 1)
+                return hot
+                    ? $"Word comes down the line that the talk about the Hook has not stopped, it has only changed its subject. " +
+                      $"{who} inherited the street's opinion of you along with everything else. That was not in the papers you signed."
+                    : $"Word comes down the line that nothing is happening on the Hook at all. {who} is running it quietly, " +
+                      "the way you kept saying you would once things settled. Things never did settle. They have, now, for somebody else.";
+            return intact
+                ? $"A letter, forwarded twice, in handwriting you know. It does not ask you to come back and it does not " +
+                  "say you were wrong. It tells you what the street had for breakfast and who is arguing with whom, " +
+                  "and it is signed the way people sign letters to somebody they still count."
+                : $"No letter. {who} has your old address and has not used it. You find you are not surprised, " +
+                  "and the not being surprised is the part that stays with you.";
+        }
+
         // ---- persistence ----
 
         public Dictionary<string, object> Capture() => new Dictionary<string, object>
@@ -255,6 +294,8 @@ namespace Ledger.Core
             { "closesDay", AuditClosesDay }, { "closed", AuditClosed },
             { "result", Result.ToString() },
             { "successor", SuccessorId ?? "" }, { "epilogueDay", EpilogueDay },
+            { "soldUp", SoldUp }, { "deflected", Deflected },
+            { "deflectedOnto", DeflectedOnto ?? "" }, { "burned", BurnedWitnessId ?? "" },
         };
 
         public void Restore(Dictionary<string, object> d)
@@ -273,6 +314,12 @@ namespace Ledger.Core
             var succ = MiniJson.GetString(d, "successor");
             SuccessorId = string.IsNullOrEmpty(succ) ? null : succ;
             EpilogueDay = MiniJson.GetInt(d, "epilogueDay");
+            SoldUp = Flag(d, "soldUp");
+            Deflected = Flag(d, "deflected");
+            var onto = MiniJson.GetString(d, "deflectedOnto");
+            DeflectedOnto = string.IsNullOrEmpty(onto) ? null : onto;
+            var burned = MiniJson.GetString(d, "burned");
+            BurnedWitnessId = string.IsNullOrEmpty(burned) ? null : burned;
         }
 
         static bool Flag(Dictionary<string, object> o, string key) =>

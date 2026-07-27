@@ -237,6 +237,57 @@ namespace Ledger.Core
         /// the inverted drop machinery actually pays.
         public int TotalRacketIncome { get; private set; }
 
+        /// Sell up and pay everybody off (Act III's straight life).
+        ///
+        /// Deliberately a bad deal. Everything goes at roughly half what it cost,
+        /// because a business sold in a fortnight under a revenue inspection is
+        /// not a business anybody bids on — and because the ending where you walk
+        /// away should cost you the thing you spent the whole game accumulating.
+        ///
+        /// The crew are RELEASED rather than deleted. They keep their memory of
+        /// having worked for you, and how they take being paid off depends on
+        /// what they were getting: somebody on a generous cut has lost a good
+        /// job, and somebody you were skimming has lost nothing and knows it.
+        /// Returns what the whole thing raised.
+        public int Dissolve(Wallet wallet, GossipMill mill, GameTime now)
+        {
+            int raised = 0;
+            foreach (var b in Businesses)
+            {
+                if (!b.Owned) continue;
+                raised += b.AskPrice / 2;
+                b.Owned = false;
+                b.DebtHeld = false;
+                b.AcquiredVia = null;
+                var owner = mill?.Get(b.OwnerId);
+                owner?.Memory.Append(new MemoryEvent(now, "conversation", 0.85,
+                    $"The {b.Name} is mine again. They sold it back at a loss and did not explain why, " +
+                    "which told me more than an explanation would have."));
+            }
+            foreach (var r in Rackets)
+            {
+                if (!r.Established) continue;
+                r.Established = false;
+                r.RunnerId = null;
+            }
+            foreach (var c in Crew)
+            {
+                if (c.Departed) continue;
+                c.Departed = true;
+                c.Assignment = null;
+                var g = mill?.Get(c.Id);
+                if (g == null) continue;
+                // A payoff is not a kindness if the work was never fair.
+                double moves = c.Cut == "generous" ? -0.05 : c.Cut == "skim" ? -0.25 : -0.12;
+                g.Loyalty = Math.Clamp(g.Loyalty + moves, 0, 1);
+                g.Memory.Append(new MemoryEvent(now, "conversation", 0.9,
+                    "Paid off and finished. No round tonight, no round tomorrow. " +
+                    "They said it was over and handed me what was owed, to the coin."));
+            }
+            if (raised > 0) wallet?.EarnClean(raised);
+            return raised;
+        }
+
         // ---- businesses: three ways in (open-city-spec §2.1) ----
 
         /// The clean route: full price, clean money only, and the owner stays a
