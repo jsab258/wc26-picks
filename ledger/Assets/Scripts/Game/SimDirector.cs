@@ -55,6 +55,7 @@ namespace Ledger.Game
         bool _planStaged, _planRan;
         bool _dayJobStaged;
         bool _openModeForced;
+        bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
         string _actThreeWhy = "not staged";
@@ -198,8 +199,16 @@ namespace Ledger.Game
                 _openModeForced = true;
                 _weekLostVerdict = _game.Campaign.Verdict;
                 _game.Campaign.ForceOpenMode();
+                // AND take the end screen down. Losing the week raises a panel
+                // and sets InputLocked permanently — the won-week path has a sim
+                // bypass and the lost one never did, because nothing after a
+                // loss was ever exercised. Forcing open mode while the player is
+                // frozen behind "the week is settled" is not a test of the open
+                // city, it is a test of a paused game.
+                _endScreenDismissed = _game.Ui != null && _game.Ui.DismissEndScreen();
+                if (_player != null) _player.InputLocked = false;
                 Debug.Log($"SimDirector: week ended {_weekLostVerdict} — forcing open mode so the " +
-                          "second half of the game is actually exercised.");
+                          $"second half of the game is actually exercised (endScreen={_endScreenDismissed}).");
             }
 
             // The day job in CI. Staged for the same reason everything else in
@@ -991,6 +1000,7 @@ namespace Ledger.Game
                 { "simDays", SimMode.Days },
                 { "coverageOk", coverageOk },
                 { "openModeForced", _openModeForced },
+                { "endScreenDismissed", _endScreenDismissed },
                 { "weekLostAs", _weekLostVerdict.ToString() },
                 { "dayJobStaged", _dayJobStaged },
                 { "actTwoOpened", _game.ActTwo.Opened },
@@ -1132,7 +1142,8 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
-                      $"coverageOk={coverageOk} openModeForced={_openModeForced} weekLostAs={_weekLostVerdict} " +
+                      $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
+                      $"weekLostAs={_weekLostVerdict} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +

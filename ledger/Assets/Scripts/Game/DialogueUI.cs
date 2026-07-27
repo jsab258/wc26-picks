@@ -1078,6 +1078,28 @@ namespace Ledger.Game
         /// The week is over, one way or another. Freezes play input and offers restart.
         /// A won week earns PP7 first — Lena's question over the true books — and
         /// the verdict screen then carries the day-8 teaser: the city opens.
+        /// Self-test hook: take the end screen down and give the player back
+        /// their legs.
+        ///
+        /// A LOST week puts this panel up and sets InputLocked, permanently —
+        /// the won-week path has a sim bypass a few lines below and the lost
+        /// one never did, because until the coverage floor existed nothing
+        /// after a loss was ever tested. The bot has been sitting behind a
+        /// "campaign over" screen, unable to walk, while the sim asserted
+        /// things about the open city.
+        ///
+        /// Never called from the game: a player who loses the week reads the
+        /// screen and presses R.
+        public bool DismissEndScreen()
+        {
+            if (_endPanel == null) return false;
+            Destroy(_endPanel);
+            _endPanel = null;
+            _endCamp = null;
+            if (_player != null) _player.InputLocked = false;
+            return true;
+        }
+
         public void ShowEnd(Campaign camp)
         {
             if (_endPanel != null || _posturePanel != null) return;
