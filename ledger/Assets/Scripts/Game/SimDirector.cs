@@ -28,6 +28,9 @@ namespace Ledger.Game
     public class SimDirector : MonoBehaviour
     {
         const float SimMinutesPerRealSecond = 20f; // 1 game day = 72 real seconds
+        /// Ceiling on days given back to the sim after the clock jumps. See the
+        /// reclaim in Update: uncapped, repeated falls make the run unbounded.
+        const int MaxReclaimedDays = 4;
 
         GameController _game;
         PlayerController _player;
@@ -198,7 +201,16 @@ namespace Ledger.Game
             if (now.Day > _lastSeenDay)
             {
                 int skipped = now.Day - _lastSeenDay - 1;
-                if (skipped > 0) { _endDay += skipped; _daysSkipped += skipped; }
+                // Capped, because the Fall can happen more than once in the open
+                // city and an uncapped reclaim is a run that never ends — each
+                // fall buying the days that let the bot earn the next one. Four
+                // is two falls' worth, which is all the coverage this is for.
+                if (skipped > 0 && _daysSkipped < MaxReclaimedDays)
+                {
+                    skipped = Math.Min(skipped, MaxReclaimedDays - _daysSkipped);
+                    _endDay += skipped;
+                    _daysSkipped += skipped;
+                }
                 _lastSeenDay = now.Day;
             }
 
