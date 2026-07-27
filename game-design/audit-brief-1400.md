@@ -45,6 +45,20 @@ ending distribution is in `balance-findings-endings.md`; whether the six days
 have the right *shape* is a question only playing answers. Same for Act II's
 pacing — the seven fire correctly and nobody has watched them space out.
 
+**One thing to look for specifically when you do play it.** Re-reading the
+whole ending matrix after decision 10 turned up something nobody had noticed:
+**the inspector is completely inert for a player who never built an empire.**
+Four different ways of handling six days of Tobias Reisz, and the Control
+plan's outcome is 49.8 / 50.3 in every one of them. The strain he sees moves
+properly and then changes nothing, because with no empire there is no Kingdom
+and no Both to reach.
+
+Defensible — nothing to inspect, nothing to find — but it means one of three
+playstyles experiences the act's central verb as scenery. **Whether inert
+reads as peaceful or as pointless is exactly a playtest question**, which is
+why it is written up in `balance-findings-endings.md` with three options and
+no change made. Do not fix it from the lab.
+
 ## What is PENDING
 
 **One item: a green in-engine build that proves it covered the open city.**
