@@ -200,6 +200,16 @@ namespace Ledger.Game
                     : $"{outcome.Witnesses} people saw something.", 9f);
             foreach (var who in outcome.Talkers)
                 Toast($"{who} has not said much since. That is not the same as saying nothing.", 9f);
+
+            // Somebody got hurt (roadmap M11). Said as a look rather than as a
+            // number, and said last, because it is the part that outlives the
+            // night — the money is spent by Friday and the arm is not.
+            var hurt = _game.LastInjury;
+            if (hurt != null)
+                Toast(hurt.PersonId == "player"
+                    ? $"You came away {hurt.Look}. It will keep, or it will get worse."
+                    : $"{hurt.PersonName} came away {hurt.Look}. They will remember who asked them to be there.",
+                    11f);
         }
     }
 }

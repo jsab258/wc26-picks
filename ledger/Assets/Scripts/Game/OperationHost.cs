@@ -107,12 +107,81 @@ namespace Ledger.Game
                 }
             }
 
+            // Somebody gets hurt (roadmap M11). Only on the outcomes where it
+            // makes sense: a job that fails outright, or a partial one where the
+            // whole point is that you left in a hurry. A clean job hurts nobody,
+            // which is what makes a clean job worth planning for.
+            //
+            // Who takes it is deterministic from the same seed the outcome came
+            // from, because "who got hurt" is not a place to add a coin flip on
+            // top of a coin flip — the plan decided this, and the plan is what
+            // the player is being asked to read.
+            if (!outcome.Success || outcome.Partial)
+                InjureSomebody(outcome, target, rng);
+
             LastOutcome = outcome;
             Plan = null;   // a plan is spent whether or not it worked
             return outcome;
         }
 
         public OperationOutcome LastOutcome { get; private set; }
+
+        /// The last person hurt on a job, and what it did to them — so the UI can
+        /// say it in the same breath as the outcome rather than as a second toast.
+        public Injury LastInjury { get; private set; }
+
+        /// A job that went wrong costs a body. The crew who were there take it
+        /// first, because they are the ones who were there; the player takes it
+        /// only when they went alone, which is the honest answer to bringing
+        /// nobody.
+        void InjureSomebody(OperationOutcome outcome, OperationTarget target, System.Random rng)
+        {
+            LastInjury = null;
+            var mill = _gossip != null ? _gossip.Mill : null;
+
+            // A failure breaks something; leaving in a hurry cuts and bruises.
+            var kind = !outcome.Success
+                ? (rng.NextDouble() < 0.35 ? InjuryKind.Broken : InjuryKind.Cut)
+                : (rng.NextDouble() < 0.4 ? InjuryKind.Cut : InjuryKind.Bruised);
+
+            string whoId = null, whoName = null;
+            if (outcome.Talkers.Count > 0)
+            {
+                whoId = outcome.Talkers[rng.Next(outcome.Talkers.Count)];
+                whoName = mill?.Get(whoId)?.DisplayName ?? whoId;
+            }
+            else
+            {
+                whoId = "player";
+                whoName = "You";
+            }
+
+            string cause = outcome.Success
+                ? $"caught it getting out of {target.Name}"
+                : $"took it badly at {target.Name}, and the job did not even work";
+            LastInjury = Harm.Inflict(whoId, whoName, kind, Now.Day, cause);
+
+            // It happened in front of the people who were there, and they write
+            // it in their own words — which is what the model reads next time
+            // the player talks to any of them.
+            if (mill != null)
+                foreach (var id in outcome.Talkers)
+                {
+                    var g = mill.Get(id);
+                    if (g == null || id == whoId) continue;
+                    g.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                        $"{whoName} got hurt at {target.Name}. I watched it happen and I could not do anything."));
+                }
+            if (whoId != "player" && mill != null)
+            {
+                var victim = mill.Get(whoId);
+                victim?.Memory.Append(new MemoryEvent(Now, "observation", 0.95,
+                    $"I got hurt working {target.Name} for the new owner. {LastInjury?.Look ?? "It shows."}"));
+                // Getting hurt for somebody costs them your goodwill, not gains
+                // it. Loyalty is cuts paid and risks shared, and this was neither.
+                if (victim != null) victim.Loyalty = Mathf.Clamp01((float)(victim.Loyalty - 0.12));
+            }
+        }
 
         // ---- persistence ----
 

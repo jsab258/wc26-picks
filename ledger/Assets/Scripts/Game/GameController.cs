@@ -89,6 +89,10 @@ namespace Ledger.Game
         /// What everybody on this street can actually lay hands on (roadmap M13).
         /// Willing is not the same as able, and the difference is a conversation.
         public PurseBook Purses { get; } = new PurseBook();
+        /// Who is hurt, who is carrying it, and who is not finished with whom
+        /// (roadmap M11). Violence is deferred as a thing you DO and present as
+        /// a thing that has happened to you.
+        public HarmBook Harm { get; } = new HarmBook();
         public int TotalTakings { get; private set; }
         public int LastTakings { get; private set; } = -1;
         public int NightWitnesses { get; private set; }
@@ -1298,6 +1302,11 @@ namespace Ledger.Game
                 Purses.DailyTick(Now.Day, Economy.Prosperity);
                 if (_gossip != null && _gossip.Mill != null)
                     Debts.NightBorrowing(Purses, _gossip.Mill, Now);
+
+                // Wounds left alone turn (roadmap M11). The line is a person's
+                // circumstance, so it goes out the same channel as the economy's.
+                foreach (var turned in Harm.DailyTick(Now.Day))
+                    _ui?.Toast(turned, 11f);
 
                 var line = ActTwo.BarFrozen(Now)
                     ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."
