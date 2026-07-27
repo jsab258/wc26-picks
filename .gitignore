@@ -1,0 +1,17 @@
+# .NET build output. These were tracked, which meant every local test run
+# dirtied the working tree with rebuilt binaries and a latency number that
+# moves by a millisecond — noise in every diff, and a stop-hook nag after
+# every verification pass. Nothing depends on the committed copies: CI builds
+# the tools from source (`dotnet run --project ...`).
+**/bin/
+**/obj/
+
+# Unity's generated folders, for the same reason.
+ledger/Library/
+ledger/Temp/
+ledger/Logs/
+ledger/UserSettings/
+
+# Local self-test output.
+ledger/sim-out/
+sim-run/
