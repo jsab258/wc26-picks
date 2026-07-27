@@ -514,6 +514,7 @@ namespace Ledger.Game
             TickSignals();
             if (SimMode.Days == 0) CheckDriving();
 
+            TickWorldDay();
             UpdateCampaign();
             if (Campaign.FallPending) RunTheFall();
             UpdateBeats();
@@ -1267,9 +1268,37 @@ namespace Ledger.Game
             }
         }
 
+        int _lastWorldDay = -1;
+
+        /// The day-boundary systems that belong to the WORLD rather than to the
+        /// campaign: wounds turning, purses filling, somebody going to their
+        /// patron overnight.
+        ///
+        /// These used to live inside UpdateCampaign, which returns the moment
+        /// the verdict settles — so the day the player lost the week was the day
+        /// every wound in the city stopped healing and every drawer stopped
+        /// refilling. The comment on that early return says "world keeps
+        /// turning" and it was the only part of the file that did not.
+        ///
+        /// A wound does not care whether you lost the week.
+        void TickWorldDay()
+        {
+            if (Now.Hour < 8 || Now.Day <= _lastWorldDay) return;
+            _lastWorldDay = Now.Day;
+
+            Purses.DailyTick(Now.Day, Economy.Prosperity);
+            if (_gossip != null && _gossip.Mill != null)
+                Debts.NightBorrowing(Purses, _gossip.Mill, Now);
+
+            // The line is a person's circumstance, so it goes out the same
+            // channel as the economy's.
+            foreach (var turned in Harm.DailyTick(Now.Day))
+                _ui?.Toast(turned, 11f);
+        }
+
         void UpdateCampaign()
         {
-            if (Campaign.Verdict != Verdict.Ongoing) return; // world keeps turning; stakes are settled
+            if (Campaign.Verdict != Verdict.Ongoing) return; // stakes are settled; the world is ticked elsewhere
 
             // Daily close at the bar's morning open: bank takings taxed by the
             // street's current heat, and advance the exposure fuse.
@@ -1329,15 +1358,6 @@ namespace Ledger.Game
                 // started relying on being paid. Then anybody you emptied who
                 // still owes goes to whoever they have, overnight, and the cost
                 // of that asking is theirs to carry, not yours to see.
-                Purses.DailyTick(Now.Day, Economy.Prosperity);
-                if (_gossip != null && _gossip.Mill != null)
-                    Debts.NightBorrowing(Purses, _gossip.Mill, Now);
-
-                // Wounds left alone turn (roadmap M11). The line is a person's
-                // circumstance, so it goes out the same channel as the economy's.
-                foreach (var turned in Harm.DailyTick(Now.Day))
-                    _ui?.Toast(turned, 11f);
-
                 var line = ActTwo.BarFrozen(Now)
                     ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."
                     : takings >= Campaign.BarBaseTakings

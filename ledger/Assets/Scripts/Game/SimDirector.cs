@@ -88,7 +88,15 @@ namespace Ledger.Game
             // The sim bot is careless early (bare-faced drops, so heat climbs and
             // Ossei's spawn path gets exercised) and careful from day 3 (coated, so
             // the disguise path is exercised too). Both halves get CI coverage.
-            _game.WearingCoat = now.Day >= 3 && (now.Hour >= 21 || now.Hour < 3);
+            // Careless on the first night only, careful from the second.
+            //
+            // This was "careless until day 3", and it was tuned when gossip was
+            // quietly under-running on slow CI machines. With talk spreading at
+            // its designed rate the bot now loses the week on day three, which
+            // costs CI every gate that only exists in the open city — empire,
+            // the Fall, the Director. One bare-faced night still exercises the
+            // witness path; three of them just ended the run early.
+            _game.WearingCoat = now.Day >= 2 && (now.Hour >= 21 || now.Hour < 3);
 
             // The car in CI (roadmap M12 step 7). The bot cannot press a key, so
             // from day 5 it simply keeps the car with it — the same world state
