@@ -1681,6 +1681,28 @@ namespace Ledger.CoreTests
             foreach (var e in expected)
                 Check(Effects.Known(e), $"effect '{e}' is still in the vocabulary", e);
 
+            // THE SECOND CANARY, same shape, one system over. The Director's
+            // pressure kinds are the other closed vocabulary the model writes
+            // into, and DirectorHost.Fire switches on them. A kind with no case
+            // there is scheduled, validated, comes due, and silently does
+            // nothing — a night the world was supposed to move and did not.
+            //
+            // The sim already asserts the reverse direction (nothing UNKNOWN is
+            // ever scheduled). This is the direction that was missing.
+            var firedKinds = new[]
+            {
+                Pressures.Rumor, Pressures.Meeting, Pressures.Demand,
+                Pressures.Schedule, Pressures.Grievance,
+            };
+            Check(Pressures.All.Length == firedKinds.Length + 1,
+                "the pressure vocabulary is the size DirectorHost handles",
+                $"{Pressures.All.Length} kinds — if you added one, DirectorHost.Fire needs a case " +
+                "and this list needs the name; 'nothing' is the +1 and correctly has no case");
+            foreach (var k in firedKinds)
+                Check(Pressures.Known(k), $"pressure '{k}' is still in the vocabulary", k);
+            Check(Pressures.Known(Pressures.Nothing),
+                "and 'nothing' stays in it, because the correct answer most nights is no pressure");
+
             // Magnitude is clamped whatever the model says, including when it
             // says something that is not a number.
             foreach (var mag in new[] { 99.0, -99.0, double.NaN, double.PositiveInfinity })
