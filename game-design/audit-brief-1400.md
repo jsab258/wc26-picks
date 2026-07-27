@@ -118,6 +118,17 @@ be "what do they pass *on*". Three tools now exist for that:
   on its own merits (the day job was the one open-city system the sim left to
   the bot's legs) but it has never been confirmed as the cause. If the verdict
   names something else, fix that instead of inheriting the guess.
+- **The strongest candidate, found by reading the last GREEN run instead of
+  waiting:** that run ended `verdict=LostExposed` on day six. Losing the week
+  calls `EndCampaign`, which raises an end panel and sets `InputLocked` — and
+  the won-week path has a sim bypass while the lost path never did, because
+  until the coverage floor existed nothing after a loss was ever exercised.
+  So the bot was frozen behind "the week is settled" while the sim asserted
+  things about the open city, and the day job in particular needs legs.
+
+  The floor now calls `Ui.DismissEndScreen()` and unlocks the player, and
+  reports `endScreen=`. **Still a candidate, not a confirmed cause** — the
+  verdict has not been read even once.
 - Two facts I stated today were wrong and corrected: a "20+ minute Unity
   install" (twice) read off an **in-progress** API snapshot that lags. Both
   installs were ~7½ minutes. Only `started_at`/`completed_at` on a COMPLETED
