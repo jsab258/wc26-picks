@@ -9,11 +9,28 @@ This is the scope, so that session starts auditing instead of orienting.
 
 All three acts are wired and run end to end. Three districts exist. The
 endgame resolves off world state and its distribution has been measured.
-CoreTests 1395, SimHarness 71, lint and ShapeCheck clean. **There has still
-never been a green in-engine run that actually exercised the second half of
-the game.** The last green one tested almost none of it; the five since have
-been red, and this morning's work was finding out why — see below. That is
-the single outstanding item.
+CoreTests 1395, SimHarness 71, lint and ShapeCheck clean.
+
+**As of run 30259492282 the open city is genuinely covered — `coverageOk=True`
+for the first time.** That run reached this, none of which any previous build
+had ever executed:
+
+    coverageOk=True openModeForced=True daysSkipped=2 endDay=12
+    directorFired=True opsOk=True planRan=True witnessCarOk=True
+    vehicleFact=True actThree=True opened=True ending=Kingdom
+
+    ACT III: audit closed day 8 — Kingdom
+             (strain 0.56, heat 0.95, life 0.80, owned 1, rackets 2)
+
+The Director fired, an operation went all the way through the real planning
+path, a witness described the car, and **the endgame resolved to a real
+ending in-engine for the first time in the project's history.**
+
+It is still not a green BUILD: one gate failed, `actTwoMissed=[pp6]`, which
+was a race in the gate rather than a fault in the game (see below). The fix
+is pushed and building as run 3 of the morning. **If that run is green, the
+audit inherits a genuinely covered build; if it is not, read what it names —
+everything else in this file still holds.**
 
 ---
 
@@ -27,16 +44,19 @@ written differently here.
 |---|---|
 | Act I — the week, seven pressure points | sim gate `actOne`, **observed passing** |
 | Act II — seven pressure points | sim gate `actTwo`, **observed passing** (`actTwoOk=True`, none missed) |
-| Act III — audit, inspector, last day, five endings | CoreTests + balance lab, both real. **The in-engine gate has never once executed** — see below |
+| Act III — audit, inspector, last day, five endings | CoreTests + balance lab + **in-engine, run 30259492282: opened, audit closed day 8, `ending=Kingdom`.** First execution ever |
 | Three districts (Hook, Copper Row, Ironside) | CoreTests geography + population, **observed** (`npcs=42`, `pop=3000`) |
 | Traffic, signals, vehicles | CoreTests + sim gates, **observed** (14 vehicles, 11.7km driven, 0 off-road) |
-| The car as a witness fact | CoreTests real; the sim gate was **asking the wrong question** until this morning |
+| The car as a witness fact | CoreTests real; sim gate was **asking the wrong question** until this morning, now **observed** (`vehicleFact=True`) |
 | Phones (M10), harm (M11), purses (M13) | CoreTests + sim gates, **observed passing** |
 | Front end (menu, options, pause, rebinding) | UI smoke test, **observed** (`panelsBad=0`) |
 | Save/load of everything above | codec round-trips, in-engine overlay |
 
-The Director and operations rows are deliberately absent: their gates have
-also never executed. That is the whole finding below.
+| The Director (M8) | **observed, run 30259492282** (`directorFired=True`) — first execution ever |
+| Operations planning (M7.5) | **observed, run 30259492282** (`planRan=True`) — first execution ever |
+
+The last three rows are new as of this morning. Until run 30259492282 their
+gates had never executed once; see the finding below for why.
 
 ## What is DONE but NOT felt
 
@@ -117,10 +137,10 @@ be "what do they pass *on*". Three tools now exist for that:
    most of these tests stop the next bug rather than having caught one. Do not
    invent further sweeps for their own sake.
 
-   One gap is pinned rather than fixed: the rackets read `IncomePerDay` flat,
-   so a starved district pays the same round as a rich one. The test asserts
-   the CURRENT behaviour and names decisions-pending #9, so it reads as a held
-   decision rather than an oversight.
+   The one gap that was pinned rather than fixed — the rackets reading
+   `IncomePerDay` flat, so a starved district paid the same round as a rich
+   one — is **closed**: Jafar answered decision 9 with "couple it" and the
+   test was flipped from asserting the old behaviour to demanding the new.
 
 ## HOW TO READ THE VERDICT — solved, and it was never a plumbing problem
 
