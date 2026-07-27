@@ -115,6 +115,21 @@ owns the keyboard while it is up — the first version of that guard sat after t
 Talk key, so a player adjusting the volume could still start a conversation with
 whoever they were standing next to.
 
+### 8. The inspector's name — DECIDED, override freely
+
+Act III's audit had no face, which was its biggest gap: the letter arrived,
+the date passed, and the books were read offstage by nobody.
+
+**Built as Tobias Reisz, Board of Excise, nineteen years.** Fifty-ish, grey,
+the sort of man who is already sitting down when you notice he came in. Not
+corrupt — and that is load-bearing rather than characterisation, because an
+inspector with a price collapses the ending matrix into "did you save up".
+Not cruel either: he explains each step because the procedure requires it,
+and says "of course" when you refuse him.
+
+Taken on the same basis as Tomas Vrba (*"0 — you choose a name"*). Say the
+word and he becomes somebody else; nothing but the name and the card moves.
+
 ## Previously open
 
 *(nothing blocking — the all-night run works on standing mandates. Items
