@@ -55,6 +55,7 @@ namespace Ledger.Game
         bool _planStaged, _planRan;
         bool _dayJobStaged;
         bool _openModeForced;
+        int _lastSeenDay = -1, _daysSkipped;
         bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
@@ -170,6 +171,21 @@ namespace Ledger.Game
                 _harmCapabilityAtInjury = _game.Harm.Capability("Sam", now.Day);
             }
 
+            // THE CLOCK CAN JUMP, AND THE SIM MUST NOT PAY FOR IT. The Fall puts
+            // the player away for three days by moving the calendar, not by
+            // simulating them — so a fall on day 8 lands the world on day 11 and
+            // a nine-day run ends having simulated six. Those three days are
+            // world time, not sim time, and counting them as coverage is how
+            // "nine simulated days" quietly became "however many the bot had
+            // left". Give them back.
+            if (_lastSeenDay < 0) _lastSeenDay = now.Day;
+            if (now.Day > _lastSeenDay)
+            {
+                int skipped = now.Day - _lastSeenDay - 1;
+                if (skipped > 0) { _endDay += skipped; _daysSkipped += skipped; }
+                _lastSeenDay = now.Day;
+            }
+
             // Act I PP4 in CI: the trust path needs live conversation, so on day 6
             // the bot learns the hiding place the other way a player can — from
             // Rocco — and the authored moment must fire off the real transition.
@@ -253,7 +269,15 @@ namespace Ledger.Game
             // Stage two by hand on day 9 — a demand from Rocco, then answered,
             // and a rumor through Sam — so scheduling, firing through the real
             // primitives, and settling all run in-engine every build.
-            if (!_directorStaged && _game.Campaign.OpenMode && now.Day >= 9 && now.Hour >= 11)
+            // Staged on the open city EXISTING, not on a date. It used to say
+            // "day 9", and day 9 turned out to be unreachable: the Fall moves
+            // the clock three days forward, so a fall late on day 8 lands the
+            // world on day 11 and Finish() runs before hour 11 ever comes round
+            // again. Every gate keyed to day 9 was therefore unsatisfiable, and
+            // the only reason four builds did not say so is that they were also
+            // vacuous — OpenMode was false, so each gate passed on its own
+            // precondition being unmet. Closing the vacuum exposed the trap.
+            if (!_directorStaged && _game.Campaign.OpenMode && now.Day >= 8 && now.Hour >= 11)
             {
                 _directorStaged = true;
                 bool demand = _game.StagePressure(new Pressure
@@ -279,7 +303,7 @@ namespace Ledger.Game
             // half that pushes witnesses into the mill and writes into crew
             // memory. Forced, at noon, bare-faced: chosen to guarantee somebody
             // sees it, so the witness wiring is actually exercised.
-            if (!_planStaged && _game.CanPlan && now.Day >= 9 && now.Hour >= 12)
+            if (!_planStaged && _game.CanPlan && now.Day >= 8 && now.Hour >= 12)
             {
                 _planStaged = true;
                 var mark = System.Linq.Enumerable.FirstOrDefault(_game.OpenTargets);
@@ -311,7 +335,7 @@ namespace Ledger.Game
             // this gate proves is not that a particular ending happens — it is
             // that the world always resolves to SOMETHING. An audit that closed
             // on Ending.None would be a player left standing in a finished game.
-            if (!_actThreeStaged && _game.Campaign.OpenMode && now.Day >= 9 && now.Hour >= 13)
+            if (!_actThreeStaged && _game.Campaign.OpenMode && now.Day >= 8 && now.Hour >= 13)
             {
                 _actThreeStaged = true;
                 var m = _game.Gossip != null ? _game.Gossip.Mill : null;
@@ -999,6 +1023,7 @@ namespace Ledger.Game
             {
                 { "simDays", SimMode.Days },
                 { "coverageOk", coverageOk },
+                { "daysSkipped", _daysSkipped },
                 { "openModeForced", _openModeForced },
                 { "endScreenDismissed", _endScreenDismissed },
                 { "weekLostAs", _weekLostVerdict.ToString() },
@@ -1143,6 +1168,7 @@ namespace Ledger.Game
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
+                      $"daysSkipped={_daysSkipped} endDay={_endDay} " +
                       $"weekLostAs={_weekLostVerdict} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +

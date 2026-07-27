@@ -15,9 +15,11 @@ jobs:
     # 30218422533: the Unity install sat for thirty minutes with nothing to stop
     # it. Every long step below carries its own timeout as well, so a failure
     # says WHICH part hung rather than only that the job did.
-    # 30 (install) + 15 (build) + 20 (sim) is 65 in the worst case, so the job
-    # cap has to clear that or it becomes the thing that fails instead.
-    timeout-minutes: 75
+    # 30 (install) + 15 (build) + 25 (sim) is 70 in the worst case, so the job
+    # cap has to clear that or it becomes the thing that fails instead. The sim
+    # cap went 20 -> 25 because the run now reclaims the days the Fall skips,
+    # and three extra game-days is about four extra minutes.
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
         with:
@@ -99,7 +101,7 @@ jobs:
         # object can block past its timeout instead of returning false. Run
         # 30217466971 sat in this step for 33 minutes on a 15-minute wait and
         # had to be cancelled by hand, which is 33 minutes of learning nothing.
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           New-Item -ItemType Directory -Force sim-run | Out-Null
           $exe = Resolve-Path "ledger/build/LEDGER/LEDGER.exe"
@@ -109,13 +111,13 @@ jobs:
           # Wait-Process honours its timeout on the object Start-Process returns;
           # WaitForExit(ms) does not reliably.
           $timedOut = $false
-          try { Wait-Process -Id $p.Id -Timeout 900 -ErrorAction Stop }
+          try { Wait-Process -Id $p.Id -Timeout 1200 -ErrorAction Stop }
           catch { $timedOut = $true }
           if ($timedOut) {
-            Write-Host "=== simulation timed out after 15 minutes; last 80 log lines ==="
+            Write-Host "=== simulation timed out after 20 minutes; last 80 log lines ==="
             if (Test-Path sim-run/player.log) { Get-Content sim-run/player.log -Tail 80 }
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-            Write-Error "Simulation timed out after 15 minutes"
+            Write-Error "Simulation timed out after 20 minutes"
             exit 1
           }
           Get-Content sim-run/player.log -Tail 60
@@ -179,7 +181,7 @@ jobs:
           $keys  = ""
           if ($done) {
             $keys = (($done -split " ") | Where-Object {
-              $_ -match "^(coverageOk|openModeForced|endScreen|actThree|actTwoOk|dayJob|opened|ending|verdict|pass)="
+              $_ -match "^(coverageOk|openModeForced|endScreen|daysSkipped|actThree|actTwoOk|dayJob|opened|ending|verdict|pass)="
             }) -join " "
           }
           Write-Host "=== LEDGER VERDICT ==="
@@ -198,7 +200,7 @@ jobs:
           # which is what that API is for.
           if ($env:GITHUB_STEP_SUMMARY) {
             "## LEDGER sim verdict" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
