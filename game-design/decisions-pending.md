@@ -130,9 +130,20 @@ and says "of course" when you refuse him.
 Taken on the same basis as Tomas Vrba (*"0 — you choose a name"*). Say the
 word and he becomes somebody else; nothing but the name and the card moves.
 
-### 9. The rackets are the last infinite pocket — and the reason we skipped them was wrong
+### 9. ~~The rackets are the last infinite pocket~~ — ANSWERED: **couple it**. Built 2026-07-27.
 
-**This one needs you, because it changes the game's main income loop.**
+> Jafar, 2026-07-27: *"Couple it."*
+
+`Empire.DailyTick` now takes a street factor and the take scales with it, so a
+starved district pays less. It is not silent about it: below 0.7 somebody says
+*"They're not holding out. There's nothing on that street to hold out with."*
+The CoreTest that pinned the OLD behaviour was flipped to demand the coupling,
+plus one asserting that a person says why.
+
+Measured over 400 worlds: cautious rounds fell 468 → 434 as prosperity dropped
+to 0.40. The squeeze is now two turns of the same screw, which was the idea.
+
+*(Original writeup below, kept because it is the reasoning that got the answer.)*
 
 `counterparty-purses-spec.md` excluded rackets, and gave a reason:
 
@@ -177,7 +188,29 @@ findings instead.
 already built — money you spend on people lands in their drawer, and a
 bribed man carries cash he cannot account for.
 
-### 10. The inspector may be too decisive — a tuning judgement, with numbers
+### 10. ~~The inspector may be too decisive~~ — ANSWERED: **halve the relief**. Built 2026-07-27.
+
+> Jafar, 2026-07-27: *"Halve the relief now."*
+
+`ScopeFactor`'s cooperation term went 0.09 → 0.045. Stonewalling KEPT its full
+0.15, and the asymmetry is deliberate: being difficult moves him further than
+cooperating does.
+
+What it did, 400 worlds a row:
+
+| plan | before | after |
+|---|---|---|
+| Aggressive, answered every morning | 100% Kingdom | **100% Burn Both** |
+| Cautious, answered every morning | 100% Kingdom | **48% Kingdom / 52% Burn** |
+| Cautious, answered + deflected | 13% Both | 15% Both |
+
+Six mornings of paperwork no longer outweighs three acts of laundering.
+**Whether it now FEELS right is a playtest question**, and it is still one
+constant — dial it either way in a minute.
+
+*(Original writeup below.)*
+
+#### The original case — a tuning judgement, with numbers
 
 The ending matrix has now been measured for the first time
 (`balance-findings-endings.md`, 400 worlds a row). Three real holes came out
