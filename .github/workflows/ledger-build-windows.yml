@@ -142,3 +142,26 @@ jobs:
           name: LEDGER-Windows
           path: ledger/build/LEDGER
           retention-days: 14
+
+      # THE LAST STEP IN THE JOB, deliberately.
+      #
+      # The verdict was already printed at the end of the simulation step, and
+      # that was not enough: two artifact uploads, a licence deactivation and
+      # git cleanup all run afterwards, and the log APIs return a fixed-size
+      # tail of the JOB. So the one line worth having was still being pushed
+      # out of reach on exactly the runs where it matters.
+      #
+      # Last step, always(), nothing after it. This is the line a person reads.
+      - name: Verdict
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path sim-run/player.log) {
+            Write-Host "================ LEDGER SIM VERDICT ================"
+            Get-Content sim-run/player.log |
+              Select-String -Pattern "SimDirector: done\.|FAILING GATES" |
+              ForEach-Object { $_.Line }
+            Write-Host "==================================================="
+          } else {
+            Write-Host "no player.log — the run did not reach the simulation step"
+          }
