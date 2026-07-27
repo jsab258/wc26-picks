@@ -899,6 +899,30 @@ namespace Ledger.Game
             }
         }
 
+        /// Self-test hook: put the satchel in the bot's arms without making it
+        /// reach the board first.
+        ///
+        /// The day job is the ONE open-city system the sim did not stage — the
+        /// empire beat, the Director's pressures, an operation, the harm layer
+        /// and Act III are all staged by hand, and this was left to the bot's
+        /// legs. Under the accelerated clock the board is up for four game
+        /// hours, which is about twelve real seconds, and the walk across a
+        /// district that is now three districts wide does not fit in that.
+        ///
+        /// So the ACCEPT is staged and the round is not: the bot still has to
+        /// walk all three stops and get back to Zlata to be paid, which is the
+        /// half that can actually break. Never called from the game — the real
+        /// door is standing at the board while the chalk is wet.
+        public bool StageDayJobShift()
+        {
+            if (!Campaign.OpenMode || _shiftMarker != null) return false;
+            if (!Job.Accept(Now)) return false;
+            if (_dispatchMarker != null) { Destroy(_dispatchMarker); _dispatchMarker = null; }
+            _shiftStop = 0;
+            _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+            return true;
+        }
+
         // ---- Act I (act1-draft.md, approved): authored moments over the machine ----
 
         void CheckActOne()

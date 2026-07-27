@@ -53,6 +53,7 @@ namespace Ledger.Game
         int _witnessesWhenCarArrived = -1;
         double _harmCapabilityAtInjury = 1.0;
         bool _planStaged, _planRan;
+        bool _dayJobStaged;
         bool _openModeForced;
         Verdict _weekLostVerdict = Verdict.Ongoing;
         bool _actThreeStaged;
@@ -198,6 +199,17 @@ namespace Ledger.Game
                 _game.Campaign.ForceOpenMode();
                 Debug.Log($"SimDirector: week ended {_weekLostVerdict} — forcing open mode so the " +
                           "second half of the game is actually exercised.");
+            }
+
+            // The day job in CI. Staged for the same reason everything else in
+            // the open city is: the accelerated clock gives the dispatch board a
+            // four-hour window that is twelve real seconds, and the bot cannot
+            // cross three districts in that. The ROUND is not staged — it still
+            // walks all three stops and back to Zlata to be paid, which is the
+            // half that can break.
+            if (!_dayJobStaged && _game.Campaign.OpenMode && now.Hour >= 8 && now.Hour < 11)
+            {
+                _dayJobStaged = _game.StageDayJobShift();
             }
 
             // Empire v1 in CI: the moment the city opens, the bot plays one
@@ -965,6 +977,7 @@ namespace Ledger.Game
                 { "coverageOk", coverageOk },
                 { "openModeForced", _openModeForced },
                 { "weekLostAs", _weekLostVerdict.ToString() },
+                { "dayJobStaged", _dayJobStaged },
                 { "actTwoOpened", _game.ActTwo.Opened },
                 { "actTwoFired", $"{(_game.ActTwo.Pp1Fired ? 1 : 0)}{(_game.ActTwo.Pp2Fired ? 1 : 0)}" +
                                  $"{(_game.ActTwo.Pp3Fired ? 1 : 0)}{(_game.ActTwo.Pp4Fired ? 1 : 0)}" +
@@ -1106,7 +1119,7 @@ namespace Ledger.Game
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
-                      $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
+                      $"shifts={_game.Job.ShiftsWorked} dayJobStaged={_dayJobStaged} dayJobOk={dayJobOk} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
