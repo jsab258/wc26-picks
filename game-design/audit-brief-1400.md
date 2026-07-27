@@ -128,10 +128,18 @@ be "what do they pass *on*". Three tools now exist for that:
   and the credential costs ~1.5KB of git-config unwinding in post-job), plus
   a Verdict step that prints a compact block rather than the ~1.2KB done-line.
 
-  **If that also fails, treat the verdict as unavailable and diagnose from the
-  sim-report fields printed in the step itself, or run the sim locally.** Five
-  attempts is already more than this deserves and it should not eat the audit
-  session too.
+  **THE IMPORTANT DISTINCTION, and it took far too long to state:** the verdict
+  is not missing. It is printed, it is in the log, and it is plainly visible in
+  the Actions web UI — open the run, click the job, read the `Verdict` step.
+  The whole problem is that MY retrieval path truncates. A human with a browser
+  has never been blocked by any of this.
+
+  So if attempt five also fails: **just look at it in the browser.** Do not
+  spend another build cycle on the plumbing. Five attempts is already more
+  than a logging problem deserves and it must not eat the audit session.
+
+  The same holds for the artifacts: `sim-report.json` has every gate value and
+  downloads fine from the browser. Only the sandbox's egress policy blocks it.
 - My `dayJobOk` fix is therefore **a prediction, not a diagnosis**. It stands
   on its own merits (the day job was the one open-city system the sim left to
   the bot's legs) but it has never been confirmed as the cause. If the verdict
