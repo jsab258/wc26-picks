@@ -82,7 +82,7 @@ namespace Ledger.Game
 
         void BuildPausePanel()
         {
-            _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 420));
+            _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 480));
             var t = MakeText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(460, 36), 24, TextAnchor.UpperCenter);
             t.text = "P A U S E D";
             t.color = UiTheme.Dim;
@@ -103,7 +103,18 @@ namespace Ledger.Game
                 MainMenu.Create();
             });
 
-            var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -274), new Vector2(320, 48));
+            // Options, reachable mid-game at last. Before this the only way to
+            // change text size, sensitivity, volume or a keybinding was to quit
+            // to the main menu, which fails the plainest expectation anybody has
+            // of a pause screen.
+            var options = MakeButton(_pausePanel.transform, "Options", new Vector2(0.5f, 1), new Vector2(0, -274), new Vector2(320, 48));
+            options.onClick.AddListener(() =>
+            {
+                _pausePanel.SetActive(false);
+                OptionsScreen.Show(() => { if (_pausePanel != null) _pausePanel.SetActive(true); });
+            });
+
+            var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -332), new Vector2(320, 48));
             quit.onClick.AddListener(() => { _game.SaveNow(quiet: true); MainMenu.Quit(); });
 
             MakeText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(460, 30), 15, TextAnchor.LowerCenter)
@@ -775,6 +786,13 @@ namespace Ledger.Game
             bool dialogueOpen = _dialoguePanel.activeSelf;
             _promptText.text = !dialogueOpen && _nearest != null
                 ? $"Press E to talk to {_nearest.Card.Name}" : "";
+
+            // The options screen owns the whole keyboard while it is up. Placed
+            // BEFORE any other key is read: the first version of this guard sat
+            // after the Talk key, so a player adjusting the volume could still
+            // start a conversation with whoever they happened to be standing
+            // next to.
+            if (OptionsScreen.Open) return;
 
             var keys = GameSettings.Current;
             if (Input.GetKeyDown(keys.Key("Talk")) && _nearest != null && !dialogueOpen && !_keyPanel.activeSelf)

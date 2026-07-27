@@ -88,7 +88,7 @@ other side has infinite pockets.
 supplier is money leaving *your* pocket, which is already finite; bribing
 somebody who cannot make change is the interesting case.
 
-### 7. Options cannot be reached mid-game — FINDING, needs a call
+### 7. ~~Options cannot be reached mid-game~~ — DONE 2026-07-27
 
 Found during the front-end pass. The pause menu has Resume, Save now, Save
 and quit to menu, Save and quit to desktop — **and no Options.** The only way
@@ -99,9 +99,14 @@ menu and go in from there.
 show it from both.** It is the standard expectation and the current shape fails
 it. Roughly an hour, and it is the last structural gap in P1.
 
-I did not do it in the same pass as the other fixes because it is a refactor
-rather than a fix, and refactoring the front end while a build is verifying is
-how you end up with two unrelated failures at once.
+**Built.** `OptionsScreen` is now one screen that both the main menu and the
+pause menu open, on its own overlay canvas so it works over a live city. It was
+an EXTRACTION rather than a second copy on purpose: the last time this front end
+had two lists of the same thing, they drifted and three keys became
+un-rebindable. Escape backs out one level like everywhere else, and the screen
+owns the keyboard while it is up — the first version of that guard sat after the
+Talk key, so a player adjusting the volume could still start a conversation with
+whoever they were standing next to.
 
 ## Previously open
 

@@ -13,9 +13,8 @@ namespace Ledger.Game
     {
         Font _font;
         Transform _canvas;
-        GameObject _root, _optionsPanel, _keysPanel;
+        GameObject _root;
         Text _continueLabel, _saveNote;
-        string _rebinding;   // action awaiting a keypress
 
         public static bool Showing { get; private set; }
 
@@ -74,7 +73,14 @@ namespace Ledger.Game
             MenuButton(_root.transform, "New game", new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(360, 52))
                 .onClick.AddListener(() => StartGame(load: false));
             MenuButton(_root.transform, "Options", new Vector2(0.5f, 0.5f), new Vector2(0, -62), new Vector2(360, 52))
-                .onClick.AddListener(() => ShowOptions(true));
+                .onClick.AddListener(() =>
+                {
+                    // One options screen, shared with the pause menu. A second
+                    // copy is how the rebind list drifted to six rows while the
+                    // game listened for nine.
+                    _root.SetActive(false);
+                    OptionsScreen.Show(() => { if (_root != null) _root.SetActive(true); });
+                });
             MenuButton(_root.transform, "Quit", new Vector2(0.5f, 0.5f), new Vector2(0, -128), new Vector2(360, 52))
                 .onClick.AddListener(Quit);
 
@@ -83,100 +89,11 @@ namespace Ledger.Game
             Label(_root.transform, "Conversations are live — press F2 in game to enter an Anthropic API key.", new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(1100, 28), 14, TextAnchor.LowerCenter)
                 .color = UiTheme.Dim;
 
-            BuildOptions();
         }
 
-        // ---- options ----
-
-        void BuildOptions()
-        {
-            _optionsPanel = Panel(_canvas, "Options", new Vector2(760, 620));
-            var s = GameSettings.Current;
-
-            Label(_optionsPanel.transform, "O P T I O N S", new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(700, 34), 22, TextAnchor.UpperCenter)
-                .color = UiTheme.Dim;
-
-            float y = -90;
-            MenuSlider(_optionsPanel.transform, "Master volume", y, s.MasterVolume, v => { s.MasterVolume = v; Audio.ApplyVolumes(); }); y -= 58;
-            MenuSlider(_optionsPanel.transform, "Music", y, s.MusicVolume, v => { s.MusicVolume = v; Audio.ApplyVolumes(); }); y -= 58;
-            MenuSlider(_optionsPanel.transform, "Sound", y, s.SfxVolume, v => { s.SfxVolume = v; Audio.ApplyVolumes(); }); y -= 58;
-            MenuSlider(_optionsPanel.transform, "Mouse sensitivity", y, Mathf.InverseLerp(0.2f, 3f, s.MouseSensitivity),
-                v => s.MouseSensitivity = Mathf.Lerp(0.2f, 3f, v)); y -= 58;
-            MenuSlider(_optionsPanel.transform, "Text size", y, Mathf.InverseLerp(80, 150, s.TextScalePercent),
-                v => s.TextScalePercent = Mathf.RoundToInt(Mathf.Lerp(80, 150, v))); y -= 64;
-
-            MenuToggle(_optionsPanel.transform, "Colourblind-safe colours", y, s.ColourblindSafe, v => { s.ColourblindSafe = v; UiTheme.SetColourblind(v); }); y -= 48;
-            MenuToggle(_optionsPanel.transform, "Show the odds before risky moves", y, s.ShowOdds, v => s.ShowOdds = v); y -= 60;
-
-            MenuButton(_optionsPanel.transform, "Controls…", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(300, 44))
-                .onClick.AddListener(() => { _optionsPanel.SetActive(false); _keysPanel.SetActive(true); });
-
-            MenuButton(_optionsPanel.transform, "Back", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(220, 46))
-                .onClick.AddListener(() => { GameSettings.Current.Save(); ShowOptions(false); });
-            _optionsPanel.SetActive(false);
-
-            BuildKeys();
-        }
-
-        readonly Dictionary<string, Text> _keyLabels = new Dictionary<string, Text>();
-
-        void BuildKeys()
-        {
-            _keysPanel = Panel(_canvas, "Controls", new Vector2(680, 640));   // nine bindings, not six
-            Label(_keysPanel.transform, "C O N T R O L S", new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(620, 34), 22, TextAnchor.UpperCenter)
-                .color = UiTheme.Dim;
-            Label(_keysPanel.transform, "WASD moves. Shift runs. Click an action to rebind it.", new Vector2(0.5f, 1), new Vector2(0, -58), new Vector2(620, 28), 15, TextAnchor.UpperCenter)
-                .color = UiTheme.Dim;
-
-            // Driven from the bindings themselves, not from a list typed out
-            // here. The hardcoded version had drifted: Plan, Drive and Phone all
-            // existed as keys the game listened for and none of them could be
-            // rebound, because adding a binding and adding a ROW are two edits
-            // and nobody does the second one. Now there is only one edit.
-            float y = -110;
-            foreach (var action in new List<string>(GameSettings.Current.Keys.Keys))
-            {
-                var a = action;
-                Label(_keysPanel.transform, a, new Vector2(0, 1), new Vector2(60, y), new Vector2(260, 32), 18, TextAnchor.MiddleLeft);
-                var btn = MenuButton(_keysPanel.transform, GameSettings.Current.Key(a).ToString(), new Vector2(1, 1), new Vector2(-60, y - 4), new Vector2(220, 38));
-                _keyLabels[a] = btn.GetComponentInChildren<Text>();
-                btn.onClick.AddListener(() =>
-                {
-                    _rebinding = a;
-                    _keyLabels[a].text = "press a key…";
-                });
-                y -= 52;
-            }
-
-            MenuButton(_keysPanel.transform, "Back", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(220, 46))
-                .onClick.AddListener(() =>
-                {
-                    GameSettings.Current.Save();
-                    _keysPanel.SetActive(false);
-                    _optionsPanel.SetActive(true);
-                });
-            _keysPanel.SetActive(false);
-        }
-
-        void ShowOptions(bool on)
-        {
-            _optionsPanel.SetActive(on);
-            _root.SetActive(!on);
-        }
-
-        void Update()
-        {
-            if (_rebinding == null) return;
-            foreach (KeyCode code in System.Enum.GetValues(typeof(KeyCode)))
-            {
-                if (code == KeyCode.None || !Input.GetKeyDown(code)) continue;
-                if (code != KeyCode.Escape) GameSettings.Current.Rebind(_rebinding, code);
-                foreach (var pair in _keyLabels) pair.Value.text = GameSettings.Current.Key(pair.Key).ToString();
-                _rebinding = null;
-                GameSettings.Current.Save();
-                break;
-            }
-        }
+        // Options and controls now live in OptionsScreen, opened from here and
+        // from the pause menu. They were here, which meant the only way to
+        // change text size or a keybinding was to quit to the main menu.
 
         // ---- transitions ----
 
