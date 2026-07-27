@@ -842,6 +842,45 @@ namespace Ledger.Game
                     && MiniJson.Serialize(twin.Capture()) == snap;
             }
 
+            // Act II (act2-draft.md). All seven pressure points are wired; none
+            // of them was ever PROVEN, which is a different thing and the reason
+            // this exists — Act I and Act III both have gates and the middle of
+            // the spine had none.
+            //
+            // A nine-day sim cannot reach most of these preconditions honestly
+            // (PP7 wants an organization at its summit), and staging all seven
+            // would only prove that the staging works. So this asserts the
+            // IMPLICATION instead: wherever a pressure point's condition is
+            // true, its flag must be set. That catches the failure that actually
+            // matters — a beat that can never fire, or one whose condition
+            // drifted away from its firing site — without pretending the bot
+            // played a longer campaign than it did.
+            var a2 = _game.ActTwo;
+            var emp = _game.Empire;
+            bool act2Ok = true;
+            var act2Missed = new List<object>();
+            if (a2.Opened)
+            {
+                void Due(string name, bool condition, bool fired)
+                {
+                    if (!condition || fired) return;
+                    act2Ok = false;
+                    act2Missed.Add(name);
+                }
+                Due("pp1", emp.Arms.FindAll(a => a.Attention >= 0.25).Count >= 2, a2.Pp1Fired);
+                Due("pp2", emp.ArmOf("machine").Attention >= 0.5, a2.Pp2Fired);
+                Due("pp3", emp.ArmOf("newcrew").Attention >= 0.5 || emp.CrewOf("Ruta") != null, a2.Pp3Fired);
+                Due("pp5", emp.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2, a2.Pp5Fired);
+                Due("pp6", _game.OsseiSpawned && _game.OsseiInterviews.Count > 0 && emp.TotalRacketIncome > 0,
+                    a2.Pp6Fired);
+                Due("pp7", emp.Arms.Exists(a => a.Stage >= 4), a2.TableArmId != null);
+                // PP4 is the collision, and it fires off an ATTENDED beat rather
+                // than off empire state, so there is no standing condition to
+                // check — it is left out deliberately rather than forgotten.
+                act2Ok &= MiniJson.Serialize(a2.Capture()) ==
+                          MiniJson.Serialize(RoundTripActTwo(a2).Capture());
+            }
+
             // Act III (act3-draft.md). Only asserted when the sim actually got
             // far enough to stage it — the gate must never assume the bot
             // reaches day 9, which is exactly the brittleness that made the
@@ -863,6 +902,13 @@ namespace Ledger.Game
             var report = new Dictionary<string, object>
             {
                 { "simDays", SimMode.Days },
+                { "actTwoOpened", _game.ActTwo.Opened },
+                { "actTwoFired", $"{(_game.ActTwo.Pp1Fired ? 1 : 0)}{(_game.ActTwo.Pp2Fired ? 1 : 0)}" +
+                                 $"{(_game.ActTwo.Pp3Fired ? 1 : 0)}{(_game.ActTwo.Pp4Fired ? 1 : 0)}" +
+                                 $"{(_game.ActTwo.Pp5Fired ? 1 : 0)}{(_game.ActTwo.Pp6Fired ? 1 : 0)}" +
+                                 $"{(_game.ActTwo.TableFired ? 1 : 0)}" },
+                { "actTwoMissed", act2Missed },
+                { "actTwoOk", act2Ok },
                 { "actThreeClosesDay", _game.ActThree.AuditClosesDay },
                 { "actThreeStaged", _actThreeStaged },
                 { "actThreeEnding", _actThreeEnding.ToString() },
@@ -961,7 +1007,7 @@ namespace Ledger.Game
                         && disguiseWorks && beatsResolved && osseiOk && saveLoadOk && actOneOk
                         && openModeOk && fallOk && empireOk && populationOk && dayJobOk && economyOk
                         && directorOk && crowdOk && accessOk && opsOk && trafficOk && perfOk && witnessCarOk && harmOk && phonesOk && uiOk
-                        && actThreeOk;
+                        && actTwoOk && actThreeOk;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -975,6 +1021,7 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
+                      $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"shifts={_game.Job.ShiftsWorked} dayJobOk={dayJobOk} " +
@@ -1009,6 +1056,13 @@ namespace Ledger.Game
         static ActThreeState RoundTrip(ActThreeState a)
         {
             var twin = new ActThreeState();
+            twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(a.Capture()))));
+            return twin;
+        }
+
+        static ActTwoState RoundTripActTwo(ActTwoState a)
+        {
+            var twin = new ActTwoState();
             twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(a.Capture()))));
             return twin;
         }
