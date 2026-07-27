@@ -9,7 +9,7 @@ This is the scope, so that session starts auditing instead of orienting.
 
 All three acts are wired and run end to end. Three districts exist. The
 endgame resolves off world state and its distribution has been measured.
-CoreTests 1357, SimHarness 71, lint and ShapeCheck clean. **The last full
+CoreTests 1391, SimHarness 71, lint and ShapeCheck clean. **The last full
 green in-engine run was two hours before this was written, and it was green
 having tested almost none of the game** — see "the honest part" below.
 
@@ -21,7 +21,7 @@ having tested almost none of the game** — see "the honest part" below.
 |---|---|
 | Act I — the week, seven pressure points | sim gate `actOne` |
 | Act II — seven pressure points | sim gate `actTwo` (added today) |
-| Act III — audit, inspector, last day, five endings | 1344 CoreTests + sim gate `actThree` + balance lab |
+| Act III — audit, inspector, last day, five endings | CoreTests + sim gate `actThree` + balance lab |
 | Three districts (Hook, Copper Row, Ironside) | CoreTests geography + population |
 | Traffic, signals, vehicles, the car | CoreTests + sim gates |
 | Phones (M10), harm (M11), purses (M13) | CoreTests + sim gates |
@@ -77,8 +77,9 @@ worth its green tick only if something asserts the condition was reached.**
 be "what do they pass *on*". Three tools now exist for that:
 
 1. `coverageOk` — fails the build if a nine-day run skipped the open city.
-2. `FAILING GATES: a, b, c` — the sim's last log line on failure, and the
-   workflow echoes the verdict after the tail so it survives truncation.
+2. `FAILING GATES: a, b, c` — the sim names its own failures instead of
+   hiding them in a thirty-term `&&`. Read it from the **job summary via
+   `get_check_run`**, never from the logs (see known-unresolved).
 3. The "does anything actually read this" pattern. Applied so far to:
    `LedgerState` (every field must be able to change the ending — found the
    collapsed life axis), three closed vocabularies (`Checks`, `Effects`,
@@ -86,10 +87,16 @@ be "what do they pass *on*". Three tools now exist for that:
    (`Economy.FactorFor`'s inputs, and the empire's `NewCrewTaxing`,
    `TributeShare`, `SharedRacketId` and crew cut).
 
-   **The last three sweeps came back clean.** They stop the next bug rather
-   than having caught one, which is a weaker result than the first sweep and
-   is stated that way on purpose. Still unswept: the Access and Operation
-   vocabularies, which have the same closed-list shape.
+   The sweep is now **finished**: five closed lists — `Checks`, `Effects`,
+   `Pressures`, `KeyKind`, `Approach` — plus `LedgerState`'s fields and every
+   money modifier. **Four of the five vocabularies came back clean.** One did
+   not: two of the ten door-key kinds had no doorman line, so the two doors
+   where the clock IS the point got a flat "lets you past" while a bribe, a
+   hook and a reputation each got a sentence.
+
+   That is the proportionate result and it is stated that way on purpose —
+   most of these tests stop the next bug rather than having caught one. Do not
+   invent further sweeps for their own sake.
 
    One gap is pinned rather than fixed: the rackets read `IncomePerDay` flat,
    so a starved district pays the same round as a rich one. The test asserts
@@ -139,5 +146,6 @@ be "what do they pass *on*". Three tools now exist for that:
 1. Read the verdict line of the latest build. Fix whatever it names.
 2. Build HEAD green, in-engine, with `coverageOk=True` — that is the first
    run that will have genuinely exercised the second half of the game.
-3. Sweep for more vacuous assertions (list above).
+3. The vacuous-assertion sweep is done; do not repeat it. If something new
+   is added, apply the same question to it: does anything actually read this?
 4. Only then: playtest, with `day-2026-07-27.md` as the what-changed guide.
