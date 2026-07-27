@@ -9,9 +9,11 @@ This is the scope, so that session starts auditing instead of orienting.
 
 All three acts are wired and run end to end. Three districts exist. The
 endgame resolves off world state and its distribution has been measured.
-CoreTests 1391, SimHarness 71, lint and ShapeCheck clean. **The last full
-green in-engine run was two hours before this was written, and it was green
-having tested almost none of the game** — see "the honest part" below.
+CoreTests 1395, SimHarness 71, lint and ShapeCheck clean. **There has still
+never been a green in-engine run that actually exercised the second half of
+the game.** The last green one tested almost none of it; the five since have
+been red, and this morning's work was finding out why — see below. That is
+the single outstanding item.
 
 ---
 
@@ -37,17 +39,11 @@ pacing — the seven fire correctly and nobody has watched them space out.
 
 ## What is PENDING
 
-Two items, **both Jafar's calls, both written up with recommendations and
-numbers in `decisions-pending.md`. Neither should be built without an answer.**
+**One item: a green in-engine build that proves it covered the open city.**
+Nothing else is waiting on a decision.
 
-- **#9 — the rackets are the last infinite pocket.** The purse spec skipped
-  them citing "already coupled through prosperity". Half true: the take drains
-  the street; nothing lets the street limit the take. You collect the same
-  sixty a day from a district you have starved.
-- **#10 — the inspector may be too decisive.** Ignored is 100% Burn Both,
-  answered every morning is 100% Kingdom on the aggressive plan. Six mornings
-  of paperwork outweighs three acts of laundering. One constant, dialled
-  either way in a minute — but what it should FEEL like is a playtest answer.
+Decisions #9 and #10 were answered by Jafar this morning and both are built —
+see the bottom of this file for what changed and what it measured.
 
 Deferred by decision, not blocked: districts 4-7, melee, HDRP/city pack/voice,
 LLM cost model.
@@ -104,68 +100,101 @@ be "what do they pass *on*". Three tools now exist for that:
    the CURRENT behaviour and names decisions-pending #9, so it reads as a held
    decision rather than an oversight.
 
-## Known-unresolved at handover
+## HOW TO READ THE VERDICT — solved, and it was never a plumbing problem
 
-- **The failing gate has still never been read**, across FOUR red builds.
-  Worth knowing why, because it cost most of a morning:
+```
+mcp__github__get_job_logs(run_id=<id>, failed_only=true,
+                          return_content=true, tail_lines=200)
+```
 
-  The job-log API returns a fixed ~4KB tail, and GitHub's own post-job cleanup
-  (licence deactivation, git config unwinding) writes about that much AFTER
-  every user step. The budget is consumed by hooks nobody controls, so
-  "print it later in the job" can never work — I tried it three times.
-  Artifacts hold the full `sim-report.json` but sit on a blob host this
-  environment's egress policy denies with a 403 (a policy denial: report it,
-  do not retry). The check-run API returns job output, and it was empty
-  because nothing had ever written a job summary.
+That returns the whole `SimDirector: done.` line and the `FAILING GATES`
+list intact. **Use `failed_only=true` with `run_id`. Do not use `job_id`** —
+the per-job call is the one that returns a ~4KB tail, and it is what made
+this look impossible for most of a morning.
 
-  **`GITHUB_STEP_SUMMARY` does not work either** — tested on a completed,
-  failed job: `check_run.output` came back empty. For Actions jobs that field
-  is not populated from the job summary.
+Five builds went on moving the print statement around: end of the sim step, a
+final step, artifacts (egress 403, a real policy denial), `GITHUB_STEP_SUMMARY`
+via `check_run.output` (verified empty for Actions jobs), then log-noise
+reduction. All of it was unnecessary. The verdict was in the log the whole
+time and the call was wrong. Two lessons, and the second is the one that
+generalises: when a channel looks blocked, re-check the *retrieval* before
+rebuilding the *sender* — and a browser was always the trivial fallback.
 
-  So four channels are ruled out by test: end of the sim step, a final step,
-  artifacts (egress 403), and the check-run summary. What is left is the ~4KB
-  log tail, and the fifth attempt attacks the NOISE instead of the position:
-  `actions/checkout` with `persist-credentials: false` (nothing here pushes,
-  and the credential costs ~1.5KB of git-config unwinding in post-job), plus
-  a Verdict step that prints a compact block rather than the ~1.2KB done-line.
+`persist-credentials: false` and the compact Verdict step are still in the
+workflow. They are harmless and mildly useful; they are not what fixed this.
 
-  **THE IMPORTANT DISTINCTION, and it took far too long to state:** the verdict
-  is not missing. It is printed, it is in the log, and it is plainly visible in
-  the Actions web UI — open the run, click the job, read the `Verdict` step.
-  The whole problem is that MY retrieval path truncates. A human with a browser
-  has never been blocked by any of this.
+## What the verdict said, and what it cost
 
-  So if attempt five also fails: **just look at it in the browser.** Do not
-  spend another build cycle on the plumbing. Five attempts is already more
-  than a logging problem deserves and it must not eat the audit session.
+`FAILING GATES: director, ops, witnessCar, coverage` — four gates, two bugs,
+and neither was in the game. **Both were in the tests, and both were the same
+mistake in different clothes.**
 
-  The same holds for the artifacts: `sim-report.json` has every gate value and
-  downloads fine from the browser. Only the sandbox's egress policy blocks it.
-- My `dayJobOk` fix is therefore **a prediction, not a diagnosis**. It stands
-  on its own merits (the day job was the one open-city system the sim left to
-  the bot's legs) but it has never been confirmed as the cause. If the verdict
-  names something else, fix that instead of inheriting the guess.
-- **The strongest candidate, found by reading the last GREEN run instead of
-  waiting:** that run ended `verdict=LostExposed` on day six. Losing the week
-  calls `EndCampaign`, which raises an end panel and sets `InputLocked` — and
-  the won-week path has a sim bypass while the lost path never did, because
-  until the coverage floor existed nothing after a loss was ever exercised.
-  So the bot was frozen behind "the week is settled" while the sim asserted
-  things about the open city, and the day job in particular needs legs.
+**1. Three gates were unsatisfiable.** The Director, the operations plan and
+Act III all staged on `now.Day >= 9`, and day 9 cannot be reached in a
+nine-day run: the Fall moves the calendar three days forward instead of
+simulating them, so a fall late on day 8 lands the world on day 11 and
+`Finish()` runs before hour 11 comes round again. Those three gates had never
+once been evaluated. The reason four red builds never said so is the vacuum
+the coverage floor was written to drain — while `OpenMode` was false each gate
+passed on its own precondition being unmet. **Closing the vacuum is what
+exposed the trap.** The floor worked exactly as intended.
 
-  The floor now calls `Ui.DismissEndScreen()` and unlocks the player, and
-  reports `endScreen=`. **Still a candidate, not a confirmed cause** — the
-  verdict has not been read even once.
-- Two facts I stated today were wrong and corrected: a "20+ minute Unity
+Fixed by keying staging on the open city EXISTING rather than on a date, and
+by having the sim reclaim days the clock skips (reported as `daysSkipped`) —
+three days inside is world time, not simulated time, and counting it as
+coverage is how "nine simulated days" quietly became "however many the bot had
+left".
+
+**2. The car gate was asking about the Fall.** `RunTheFall` clears every rumor
+about the player — three days inside and the street stops guessing because it
+now knows. Correct beat, and one of the better ones. But the gate read the
+mill at the END of the run, so with a fall in the middle it was asking "did
+the Fall happen" and answering truthfully. Now latched hourly while the run
+happens.
+
+**The pattern, named because it is three-for-three today:** a gate about
+something that HAPPENED must be latched when it happens. Reading a mutable
+world at the end and treating the answer as history is what broke the perf
+gate, the car gate, and — in the other direction — what the day-9 staging
+assumed. Apply this to anything new.
+
+## Still unconfirmed at handover
+
+- My earlier `dayJobOk` fix was **a prediction, not a diagnosis**, and the
+  verdict did not name it. It stands on its own merits; it was never the bug.
+- The end-screen freeze theory was also never the cause. The floor's
+  `Ui.DismissEndScreen()` reports `endScreen=True` and is worth keeping, but
+  `dayJobOk=True` and `actTwoOk=True` were already passing.
+- Two facts I stated earlier were wrong and corrected: a "20+ minute Unity
   install" (twice) read off an **in-progress** API snapshot that lags. Both
   installs were ~7½ minutes. Only `started_at`/`completed_at` on a COMPLETED
   step is real.
 
 ## Suggested audit order
 
-1. Read the verdict line of the latest build. Fix whatever it names.
+1. Read the verdict of the latest build with the call at the top of this file.
+   Fix whatever it names.
 2. Build HEAD green, in-engine, with `coverageOk=True` — that is the first
-   run that will have genuinely exercised the second half of the game.
+   run that will have genuinely exercised the second half of the game, and as
+   of this handover it has still never happened.
 3. The vacuous-assertion sweep is done; do not repeat it. If something new
-   is added, apply the same question to it: does anything actually read this?
+   is added, apply both questions to it: does anything actually read this,
+   and **is it latched or is it read off a world that moves?**
 4. Only then: playtest, with `day-2026-07-27.md` as the what-changed guide.
+
+## Two decisions Jafar answered this morning — already built
+
+- **#9, the rackets.** "Couple it." `Empire.DailyTick` now takes a street
+  factor; a starved district pays less, and somebody says why. The pinned test
+  that asserted the old behaviour was flipped to demand the coupling.
+- **#10, the inspector.** "Halve the relief now." `ScopeFactor`'s cooperation
+  term 0.09 → 0.045. Stonewalling keeps its full 0.15; the asymmetry is
+  deliberate — being difficult moves him further than cooperating does.
+
+Measured over 400 worlds a row: the aggressive plan went 100% Kingdom → 100%
+Burn Both; cautious-and-answered went 100% Kingdom → 48/52 Kingdom/Burn.
+Cautious rounds fell 468 → 434 as prosperity dropped to 0.40 — decision 9
+biting. Full table in `balance-findings-endings.md`.
+
+**Whether that is the right FEEL is a playtest question, not a lab question.**
+Both constants are one-line dials if the audit session wants them moved.

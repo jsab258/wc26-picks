@@ -605,6 +605,37 @@ only if something asserts the condition was reached.** Applied as:
 - and `ShapeCheck` now keeps CS0103 for lower-case names, so a mistyped local
   is caught in a second rather than nine minutes into a runner.
 
+**And then the floor paid for itself within the day.** With the vacuum drained
+the gates finally reported, and named four: `director`, `ops`, `witnessCar`,
+`coverage`. Two bugs, neither in the game, both in the tests.
+
+Three of the four were **unsatisfiable**. The Director, the operations plan and
+Act III all staged on `now.Day >= 9`, and day 9 cannot be reached in a nine-day
+run — the Fall moves the calendar forward three days rather than simulating
+them, so a fall late on day 8 lands the world on day 11 and the run ends before
+hour 11 comes round again. Those gates had never once been evaluated, and only
+looked green because they were also vacuous. Staging now keys on the open city
+existing rather than on a date, and the sim reclaims days the clock skips —
+three days inside is world time, not simulated time.
+
+The fourth was **asking the wrong question**. The car gate read the gossip mill
+at the end of the run, and the Fall deliberately clears every rumor about the
+player. So with a fall in the middle it was asking "did the Fall happen" and
+answering truthfully. Now latched hourly, while the run happens.
+
+Which is the rule's second half, and it earned its place three times in one
+morning: **a gate about something that HAPPENED must be latched when it
+happens.** Reading a mutable world at the end and treating the answer as
+history is a different failure from the vacuous conditional and it hides just
+as well.
+
+A footnote worth keeping, because it cost most of a morning: the sim's verdict
+was believed unreadable from this environment and five builds went into moving
+the print statement. It was always readable — `get_job_logs` with
+`failed_only=true` and a `run_id` returns the whole line, while the per-job
+`job_id` call returns a ~4KB tail. **Re-check the retrieval before rebuilding
+the sender.**
+
 Losing the week is still reported rather than papered over: whether a careful
 player survives at the current gossip rate is a real balance question.
 
