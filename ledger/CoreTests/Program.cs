@@ -60,6 +60,7 @@ namespace Ledger.CoreTests
                 TestEconomy();
                 TestPopulationDistricts();
                 TestPhones();
+                TestClosedVocabulariesAreHandled();
                 TestActThree();
                 TestIdentity();
                 TestHarm();
@@ -1609,6 +1610,90 @@ namespace Ledger.CoreTests
             Check(IntentRouter.Validate("not json at all", ctx).Kind == IntentKind.Narrative, "unparseable output is speech");
             Check(IntentRouter.Validate("", ctx).Kind == IntentKind.Narrative, "empty output is speech");
             Check(IntentRouter.Validate("{\"kind\":\"speech\"}", ctx).Kind == IntentKind.Narrative, "speech is speech");
+        }
+
+        /// The same idea as "every input to the ending is read", applied to the
+        /// two closed vocabularies the novel-action path runs on.
+        ///
+        /// A Check with no case in the switch falls to `default` and fails
+        /// forever; an Effect with no case in the bridge validates, adjudicates,
+        /// and then does nothing at all. Both are silent, both look like working
+        /// code, and both are the shape of the bug found in `Eligible()` today.
+        static void TestClosedVocabulariesAreHandled()
+        {
+            Console.WriteLine("Novel actions — every check and effect is actually handled:");
+
+            // A state generous enough that any check CAN pass, so a check that
+            // fails here fails because nothing handles it.
+            var rich = new AdjudicationInput
+            {
+                Clean = 10000, Dirty = 10000, Crew = 9, Hour = 23,
+                Standing = 1.0, Heat = 0.0, HoldsHook = true,
+            };
+            foreach (var check in Checks.All)
+            {
+                var intent = new Intent
+                {
+                    Kind = IntentKind.Novel, Check = check, CheckAmount = 1,
+                    Effect = Effects.StandingUp, Magnitude = 0.05,
+                };
+                Check(Adjudicator.Resolve(intent, rich).Passed,
+                    $"check '{check}' has a case that can pass", check);
+            }
+
+            // And every check that takes an amount must be able to FAIL, or it
+            // is a requirement in name only.
+            var broke = new AdjudicationInput
+            {
+                Clean = 0, Dirty = 0, Crew = 0, Hour = 0,
+                Standing = -1.0, Heat = 1.0, HoldsHook = false,
+            };
+            foreach (var check in Checks.All)
+            {
+                if (check == Checks.None) continue;   // costs nothing but nerve, by design
+                var intent = new Intent
+                {
+                    Kind = IntentKind.Novel, Check = check, CheckAmount = 50,
+                    Effect = Effects.StandingUp, Magnitude = 0.05,
+                };
+                var r = Adjudicator.Resolve(intent, broke);
+                Check(!r.Passed && r.Reason.Length > 0,
+                    $"check '{check}' can refuse, and says why", check + ": " + r.Reason);
+            }
+
+            // THE CANARY. Effects are applied in the game layer, which CoreTests
+            // cannot reach — so this pins the vocabulary instead. If somebody
+            // adds an effect, this fails and points at the two switches in
+            // IntentBridge (the one that APPLIES it and the one that NARRATES
+            // it) that must gain a case, plus this list. That is a deliberately
+            // annoying test: the alternative is an effect that quietly does
+            // nothing, which is how a feature ships broken and stays that way.
+            var expected = new[]
+            {
+                Effects.Nothing, Effects.StandingUp, Effects.StandingDown,
+                Effects.SuspicionUp, Effects.SuspicionDown,
+                Effects.AttentionUp, Effects.AttentionDown, Effects.Rumor,
+            };
+            Check(Effects.All.Length == expected.Length,
+                "the effect vocabulary is the size IntentBridge handles",
+                $"{Effects.All.Length} effects — if you added one, IntentBridge.Apply and " +
+                "IntentBridge's narration switch both need a case");
+            foreach (var e in expected)
+                Check(Effects.Known(e), $"effect '{e}' is still in the vocabulary", e);
+
+            // Magnitude is clamped whatever the model says, including when it
+            // says something that is not a number.
+            foreach (var mag in new[] { 99.0, -99.0, double.NaN, double.PositiveInfinity })
+            {
+                var intent = new Intent
+                {
+                    Kind = IntentKind.Novel, Check = Checks.None,
+                    Effect = Effects.StandingUp, Magnitude = mag,
+                };
+                var r = Adjudicator.Resolve(intent, rich);
+                Check(r.Magnitude >= 0 && r.Magnitude <= Effects.MaxMagnitude,
+                    $"a magnitude of {mag} is clamped to something real", r.Magnitude.ToString("0.00"));
+            }
         }
 
         static void TestAdjudicator()
