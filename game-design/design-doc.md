@@ -365,9 +365,9 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   Detective **Mara Ossei** — patient, personal, incorruptible-so-far. The two lives begin
   colliding through the gossip system; Act II's set pieces are systemic collisions the spine
   guarantees (someone from each life ends up in a room together).
-- **Act III — The Ledger Comes Due** (drafted 2026-07-27, `act3-draft.md`; endgame written
-  and tested as Core code; **not wired, and the crisis is awaiting the player's approval**).
-  The proposed crisis is an **audit** — the least dramatic instrument available, which is what
+- **Act III — The Ledger Comes Due** (`act3-draft.md`; drafted, approved and wired
+  2026-07-27 — the act opens off world state, runs its six days, and resolves in play).
+  The crisis is an **audit** — the least dramatic instrument available, which is what
   makes it frightening. Somebody with a mandate asks to see the bar's books, and the books are
   the one document in this game that has been quietly lying since day one. Everything the
   player did to the ledger becomes evidence in the other direction, **and it is wrong in both
@@ -641,9 +641,12 @@ stops being usable for planning, and this one was drifting that way.
 
 - **Playable melee.** Deferred until after the art pass. The consequence layer is built.
 - **Five of the seven districts** in §7. Two exist.
-- **Act III.** Drafted and tested as Core code; not wired, and no ending can currently fire.
 - **Act II's seven pressure points.** Drafted and approved 2026-07-26; the machinery exists,
-  the authored moments are not all fired.
+  the authored moments are not all fired. With Act I and Act III both running end to end,
+  this is now the thinnest stretch of the spine.
+- **Act III's inspector.** The audit has no face — the letter arrives, the date passes, and
+  the books are read offstage. Everything the act does mechanically is built; the person
+  doing it to you is not somebody you can talk to.
 - **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks, the
   apartment.
 - **Lifestyle upgrades** in §6.7 — apartment, clothes, car as status. The car exists as

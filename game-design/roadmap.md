@@ -513,6 +513,49 @@ The gaps, in the order they are now being closed:
   weaker, they have moved the optimum rather than deepened the choice — so the
   balance lab runs against this before it is called done.
 
+### ACT III — THE LEDGER COMES DUE — SHIPPED 2026-07-27
+
+The last authored act, and the one the whole game had been pointing at with
+nothing at the end of it: the ending arithmetic had existed since the act was
+drafted, and no path through the game could reach it.
+
+The crisis is the **audit** (player decision, 2026-07-27). Somebody with a
+mandate asks to see the bar's books, and the bar's books are the one document
+in this game that has been quietly lying since day one. It cannot be fought —
+only survived, deflected, or answered by choosing which life to keep.
+
+- **It opens off the world**, not off a day number: the Table answered, plus
+  either Ossei able to name the rackets or an operation too big for a bar to
+  explain its own money. The letter names a date six days out. That date is
+  the clock — the player is never shown a countdown.
+- **The strain is wrong in BOTH directions.** Launder too little and the night
+  money has nowhere to have come from; launder too much and the bar earned
+  more than a bar on this street possibly could. Said as a shape ("these books
+  describe a business that does not exist"), never as a figure.
+- **Five pressure points off real state.** PP2 waits until the player is
+  standing in front of Lena, because the scene *is* her deciding what they
+  have earned — and what she shows them is gated entirely on loyalty. PP4
+  fires the moment somebody on the crew could genuinely hold it, which is a
+  fact about how the player has treated their people.
+- **Three verbs, each in front of the person it costs something with.**
+  Halvard sells you out of it at half what it cost (fronts back to their
+  owners, rounds stopped, crew paid off — and how they take it depends on the
+  cut they were on). Ossei points the audit elsewhere, and burns by name
+  whoever gave her the statement that made it possible. The successor gets it
+  signed over.
+- **No ending menu, anywhere.** Each ending is a condition the world can be IN
+  when the books are opened; several can be live at once, and the last thing
+  the player did decides. A player who does nothing still gets an ending,
+  because the audit was never waiting for them to be ready.
+- **The Quiet Ending is the only one with an after** — three mornings in which
+  you hear about the street the way anybody who left hears about anywhere, and
+  what arrives is decided by the world you handed over.
+
+Verification: 15 new CoreTests (1205 total) over the epilogue, the one-way
+flags surviving a reload, and dissolution moving the world rather than
+clearing a flag; plus an in-engine sim gate that stages the preconditions on
+day 9 and asserts the audit closes on an ending that is not `None`.
+
 ## STILL OPEN — the honest list (2026-07-27)
 
 Kept current alongside the shipped entries, because a roadmap that only grows
@@ -533,7 +576,14 @@ the sim-bot and purse changes stand.
 **Unblocked and queued:**
 
 - **Act II's seven pressure points.** Drafted and approved 2026-07-26; the
-  machinery exists, the authored moments are not all fired.
+  machinery exists, the authored moments are not all fired. This is now the
+  weakest link in the spine, because Act I and Act III both run end to end
+  and the middle is the part that has to carry the campaign's length.
+- **Act III's own gaps.** The act ships whole, and three things in it are
+  thinner than the rest: PP5 ("the last day, and the phone") is a line of
+  text rather than a scene; the audit has no in-fiction inspector to talk to;
+  and there is no way to see the endgame except by reaching it, so the only
+  balance evidence for how often each ending fires is CoreTests.
 - **Front-end completeness.** P1 shipped a main menu, options and a pause menu.
   The rebind screen had drifted to six actions while the game listened for nine
   (fixed 2026-07-27). Not yet verified: every panel closes on Escape, no panel

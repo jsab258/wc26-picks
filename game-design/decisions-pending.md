@@ -11,12 +11,19 @@ as answerable options — the doc is the record, the chat is the interface.
 Ordered by how much they block. 1 and 2 are blocking real work right now;
 3-6 are cheap and I will proceed on the recommendation if you say nothing.
 
-### 1. Act III's crisis — BLOCKING, and it is the ending of your game
+**All six answered by Jafar the same day.** Kept here with the answers rather
+than deleted, because the reasoning is the record of why the game is shaped
+the way it is.
 
-The endgame matrix is drafted, written and tested. **Nothing is wired and no
-ending can fire**, because the crisis itself is yours to choose.
+### 1. ~~Act III's crisis~~ — ANSWERED: **audit**. Wired and shipped 2026-07-27.
 
-**Proposed: an audit.** Somebody with a mandate asks to see the bar's books,
+> *"1 audit"* — Jafar, 2026-07-27.
+
+The act now opens off world state, names its date, fires its five pressure
+points, and resolves into one of the five endings. See `roadmap.md` (ACT III —
+SHIPPED) for what was actually built and what in it is still thin.
+
+**The proposal, for the record: an audit.** Somebody with a mandate asks to see the bar's books,
 and the books are the one document in this game that has been lying since day
 one. Everything you did to the ledger becomes evidence in the other direction,
 and it is wrong in both directions — launder too little and the night money has
