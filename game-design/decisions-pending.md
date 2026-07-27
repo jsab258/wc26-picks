@@ -177,6 +177,41 @@ findings instead.
 already built — money you spend on people lands in their drawer, and a
 bribed man carries cash he cannot account for.
 
+### 10. The inspector may be too decisive — a tuning judgement, with numbers
+
+The ending matrix has now been measured for the first time
+(`balance-findings-endings.md`, 400 worlds a row). Three real holes came out
+of it and I fixed all three, because each was a violation of something
+already decided rather than a preference:
+
+- a player who never built an empire had **no ending but Burn Both**;
+- **Both fired 51-58%** against a design that calls it rare and your
+  decision that it should not be reachable on a first playthrough (now 13%,
+  and only for a careful campaign);
+- empire kept + life kept + audit survived fell through the matrix into
+  Burn Both, having survived the thing that was supposed to take it.
+
+**What is left is genuinely a judgement, so it is yours.** On the aggressive
+plan the inspector swings the result completely:
+
+| | ignored | answered every morning |
+|---|---|---|
+| Aggressive | 100% Burn Both | 100% Kingdom |
+
+Six mornings of producing what a revenue man asks for currently outweighs
+three acts of laundering decisions. In its favour: that row is *perfect* play
+against him, five cooperations out of six possible, and the verb was built
+precisely so the last week is playable rather than a wait. Against it: the
+whole crisis is supposed to be the bill for how you ran the business, and
+right now the bill can be argued down almost entirely at the counter.
+
+**RECOMMEND: leave it until you have played it.** It is a single constant
+(`ScopeFactor`'s 0.09 per cooperation) and it is trivially dialled either
+way; what it should feel like is exactly the sort of thing the numbers
+cannot tell us and one playthrough can. If you would rather I weaken it
+now, halving the per-morning relief puts the aggressive answered row at
+roughly a coin flip instead of a certainty.
+
 ## Previously open
 
 *(nothing blocking — the all-night run works on standing mandates. Items

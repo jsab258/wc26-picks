@@ -56,6 +56,7 @@ namespace Ledger.BalanceLab
             }
 
             RunOpenLab(weeks);
+            RunEndingLab(weeks);
         }
 
         enum DcStyle { None, Bribe, Intimidate, Discredit, Smart }
@@ -303,7 +304,7 @@ namespace Ledger.BalanceLab
         }
 
         static (bool reachedOpen, int endCash, int falls, bool cutOff, int rivalStage, int racketIncome,
-                double prosperity, double priceLevel, bool supplyLost)
+                double prosperity, double priceLevel, bool supplyLost, LedgerState books)
             RunOpenCampaign(OpenPlan plan, Random rng)
         {
             var camp = new Campaign();
@@ -319,6 +320,7 @@ namespace Ledger.BalanceLab
             var now = new GameTime(1, 9, 0);
             int lastClosedDay = 1, jobPostedDay = -1, lastActDay = 0;
             bool jobOpen = false;
+            int takingsToDate = 0;   // Act III reads this: what a bar could plausibly have washed
 
             while (now.Day <= 21)
             {
@@ -336,6 +338,7 @@ namespace Ledger.BalanceLab
                         if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * economy.FactorFor(b.Id)
                             * Math.Max(0.0, 1.0 - 0.85 * heat));
                     wallet.EarnClean(takings);
+                    takingsToDate += takings;
                     wallet.LaunderPerDay = 120 + empire.OwnedLaunderCapacity;
                     wallet.Launder();
                     if (camp.Verdict == Verdict.WonWeek) camp.EnterOpenMode();
@@ -394,9 +397,91 @@ namespace Ledger.BalanceLab
                             "the new owner was handling a package in the street past midnight", true, now);
                 }
             }
+            // The world as Act III would find it. Assembled from what the
+            // campaign actually did rather than from invented numbers, which is
+            // the only way an ending distribution means anything.
+            var books = new LedgerState
+            {
+                BusinessesOwned = empire.Businesses.Count(b => b.Owned),
+                RacketsEstablished = empire.Rackets.Count(r => r.Established),
+                CrewCount = empire.ActiveCrew.Count(),
+                DayCircleRacketHeat = mill.DayCircleHeat(),
+                TotalWashed = wallet.TotalWashed,
+                TotalRacketIncome = empire.TotalRacketIncome,
+                BarTakingsToDate = takingsToDate,
+            };
+            foreach (var a in mill.Agents)
+                if (a.Circle != "night" && a.Loyalty > books.BestDayLifeLoyalty)
+                    books.BestDayLifeLoyalty = a.Loyalty;
+
             return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage,
                 empire.TotalRacketIncome, economy.Prosperity, economy.PriceLevel,
-                economy.Suppliers.Any(s => s.Refusing));
+                economy.Suppliers.Any(s => s.Refusing), books);
+        }
+
+        /// THE ENDING MATRIX, sampled over real worlds (roadmap: Act III).
+        ///
+        /// The one thing nobody could answer about the endgame: how often does
+        /// each ending actually fire? It was known only from unit tests, which
+        /// prove that a given world resolves correctly and say nothing about
+        /// which worlds a player ends up in.
+        ///
+        /// So: run the same 21-day campaigns the open lab runs, take the world
+        /// each one ends in, and resolve Act III over it three ways — the audit
+        /// ignored, the inspector answered every morning, the inspector
+        /// stonewalled. Two design claims are on trial here.
+        ///
+        ///   1. **"Both" must be RARE and earned** (player decision: not
+        ///      reachable on a first playthrough). If it shows up in a quarter
+        ///      of aggressive runs, it is not rare, it is the default.
+        ///   2. **The inspector must matter without deciding everything.** If
+        ///      cooperating changes nothing, the verb is decoration. If it
+        ///      changes everything, the six days of paperwork have eaten the
+        ///      three acts that came before them.
+        static void RunEndingLab(int runs)
+        {
+            Console.WriteLine("\n== the ending matrix (21-day worlds, resolved three ways) ==");
+            Console.WriteLine($"{"plan",-12} {"inspector",-11} {"n",4} {"Both",6} {"Kingdom",8} {"Straight",9} {"Burn",6} {"strain",7}");
+
+            foreach (var plan in new[] { OpenPlan.Control, OpenPlan.Aggressive, OpenPlan.Cautious })
+            {
+                // The fourth row exists because without it the "Both" column is
+                // a lie by omission: Both requires the case to have been pointed
+                // elsewhere, and the lab bot never does that, so a 0% there
+                // would read as "unreachable" when it means "never attempted".
+                foreach (var (label, coop, stone, deflected) in new[]
+                    { ("ignored", 0, 0, false), ("answered", 5, 0, false),
+                      ("stonewalled", 0, 3, false), ("answered+deflect", 5, 0, true) })
+                {
+                    var tally = new Dictionary<Ending, int>();
+                    double strain = 0;
+                    int n = 0;
+                    for (int seed = 0; seed < runs; seed++)
+                    {
+                        var o = RunOpenCampaign(plan, new Random(seed * 104729 + 7));
+                        if (!o.reachedOpen) continue;
+                        n++;
+                        var books = o.books;
+                        books.Cooperations = coop;
+                        books.Stonewalls = stone;
+                        books.OsseiCaseAnswerable = deflected;
+                        strain += ActThreeState.SeenStrain(books);
+                        var e = ActThreeState.Resolve(books);
+                        tally[e] = tally.TryGetValue(e, out var c) ? c + 1 : 1;
+                    }
+                    int d = Math.Max(1, n);
+                    double Pct(Ending e) => 100.0 * (tally.TryGetValue(e, out var c) ? c : 0) / d;
+                    Console.WriteLine($"{plan,-12} {label,-11} {n,4} {Pct(Ending.Both),5:0.0}% " +
+                                      $"{Pct(Ending.Kingdom),7:0.0}% {Pct(Ending.StraightLife),8:0.0}% " +
+                                      $"{Pct(Ending.BurnBoth),5:0.0}% {strain / d,7:0.00}");
+                }
+            }
+            Console.WriteLine("  strain = what the inspection SEES (books x scope x deflection); " +
+                              $"above {LedgerState.BooksHoldThreshold:0.00} you keep nothing.");
+            Console.WriteLine("  Quiet is absent by construction: handing over is a deliberate act " +
+                              "and the lab bot never reaches for it.");
+            Console.WriteLine("  The first three rows CANNOT produce Both — it requires the case pointed " +
+                              "elsewhere. Read the fourth row for whether Both is reachable at all.");
         }
 
         static void PlanActions(OpenPlan plan, EmpireBook e, GossipMill mill, Wallet wallet, GameTime now)

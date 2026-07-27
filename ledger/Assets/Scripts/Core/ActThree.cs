@@ -254,12 +254,55 @@ namespace Ledger.Core
             double seen = SeenStrain(s);
             bool booksHold = seen < LedgerState.BooksHoldThreshold;
 
-            if (empireSurvives && lifeSurvives && landscapeManaged && booksHold) list.Add(Ending.Both);
+            // BOTH ASKS FOR MORE THAN THE OTHERS, and it asks for the one thing
+            // that cannot be arranged in the last week: books that are actually
+            // defensible, not merely well-handled.
+            //
+            // The balance lab caught this. With the mitigations stacking
+            // multiplicatively — a case pointed elsewhere at 0.7, a narrowed
+            // scope at 0.55 — an aggressive campaign's strain fell from 1.00 to
+            // 0.39, and Both fired in fifty-one runs out of a hundred. That is
+            // not "rare and earned rather than lucky" (§8) and it is not "not
+            // reachable on a first playthrough" (player decision, 2026-07-27);
+            // it is a two-step win button.
+            //
+            // So the mitigations keep doing what they should — they save you
+            // from losing everything — and they no longer BUY you the best
+            // ending. For that the underlying business has to have made sense
+            // all along, which is a judgement about three acts of play rather
+            // than about six mornings of paperwork.
+            bool booksAreClean = LedgerStrain(s) < LedgerState.BooksHoldThreshold;
+
+            if (empireSurvives && lifeSurvives && landscapeManaged && booksHold && booksAreClean)
+                list.Add(Ending.Both);
             // Selling up is the one route the books cannot follow you down:
             // there is nothing in them because there is nothing left to be in
             // them, and taking that loss is exactly what you paid for it.
-            if (s.EmpireDissolved && lifeSurvives) list.Add(Ending.StraightLife);
-            if (empireSurvives && !lifeSurvives && booksHold) list.Add(Ending.Kingdom);
+            //
+            // THE CONDITION IS "no empire", not "dissolved an empire". It used
+            // to be the latter, and that quietly meant a player who never built
+            // one had no ending available except Burn Both — they could not
+            // reach the straight life because you cannot sell what you never
+            // bought. The balance lab found it immediately: the do-nothing plan
+            // ended in "you lose the business and you lose the people" a hundred
+            // times out of a hundred, having neither.
+            //
+            // Never building it is a way of keeping your life, and it is the
+            // hardest one to play. It gets the same door.
+            if (!empireSurvives && lifeSurvives) list.Add(Ending.StraightLife);
+            // Kingdom is "you kept what you built", and it does NOT require the
+            // life to be gone — Both already outranks it in this list, so the
+            // ordering does that work. Requiring it here left a hole the tests
+            // fell straight into: a player who kept the empire, kept a friend,
+            // managed the street and survived the reading, but whose books were
+            // only saved by handling rather than by making sense, qualified for
+            // nothing and got Burn Both. They survived the audit. Losing
+            // everything is the one thing that clearly did not happen to them.
+            //
+            // What they get instead is the ending whose text is about keeping
+            // the street and finding the people in it civil and no more, which
+            // is exactly what an enterprise that never added up costs you.
+            if (empireSurvives && booksHold) list.Add(Ending.Kingdom);
             if (!list.Contains(Ending.Both) && !list.Contains(Ending.StraightLife)
                 && !list.Contains(Ending.Quiet) && !list.Contains(Ending.Kingdom))
                 list.Add(Ending.BurnBoth);
@@ -402,6 +445,21 @@ namespace Ledger.Core
         /// have decided about long before today.
         public static bool WillMoveTheLedgers(double lenaLoyalty) => lenaLoyalty >= 0.7;
 
+        /// The straight life has two roads into it and they do not feel the
+        /// same. One is a man who built something and gave it up; the other is
+        /// a man who was handed the makings of it and never did — which is the
+        /// harder game to play and deserves its own paragraph rather than
+        /// somebody else's.
+        public static string StraightLifeText(bool everBuiltIt) => everBuiltIt
+            ? "There is nothing in the books because there is nothing left to be in them. You sold up, paid " +
+              "everyone off, and took the loss. The bar is a bar. Somebody asks you, weeks later, whether it " +
+              "is true what they used to say about this place, and you get to tell the truth."
+            : "The inspection takes an afternoon. There was never anything in the books, because you never put " +
+              "anything in them — and the whole of what that cost you is invisible, which is the point. " +
+              "Marek's people drifted off to other people's rounds. The street decided you were nobody in " +
+              "particular. You have a bar, and the hours are bad, and everybody who knew you when you arrived " +
+              "still knows you.";
+
         public static string EndingText(Ending e, string successorName = null) =>
             e == Ending.Both
                 ? "The books are opened, and they are a bar's books. The inspector is bored by two o'clock. " +
@@ -412,9 +470,7 @@ namespace Ledger.Core
                 ? "The books hold. Everything you built is still yours. Ada is civil at the market and does not " +
                   "stop walking; Lena works her hours and goes home. You have the street. That is the whole of it."
             : e == Ending.StraightLife
-                ? "There is nothing in the books because there is nothing left to be in them. You sold up, paid " +
-                  "everyone off, and took the loss. The bar is a bar. Somebody asks you, weeks later, whether it " +
-                  "is true what they used to say about this place, and you get to tell the truth."
+                ? StraightLifeText(everBuiltIt: true)
             : e == Ending.Quiet
                 ? $"You sign it over to {successorName ?? "them"} and take the boat. Whether what you built " +
                   "survives you is not up to you anymore, which is the first honest thing about it."

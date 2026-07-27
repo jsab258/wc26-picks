@@ -2443,6 +2443,25 @@ namespace Ledger.CoreTests
                 "managing every mouth on the street does not save books that cannot be read",
                 ActThreeState.Resolve(ruined).ToString());
 
+            // MITIGATION SAVES YOU; IT DOES NOT BUY YOU THE BEST ENDING.
+            // With both reliefs stacked — the case pointed elsewhere, the scope
+            // narrowed — ruinous books drop under the threshold and used to
+            // qualify for Both. The lab measured it at fifty-one runs in a
+            // hundred on an aggressive campaign, against a design that calls
+            // Both "rare, and earned rather than lucky" and a player decision
+            // that it should not be reachable on a first playthrough.
+            var mitigated = Ruinous();
+            mitigated.Cooperations = 5;
+            mitigated.OsseiCaseAnswerable = true;
+            Check(ActThreeState.SeenStrain(mitigated) < LedgerState.BooksHoldThreshold,
+                "handling it well does save ruinous books from being read",
+                ActThreeState.SeenStrain(mitigated).ToString("0.00"));
+            Check(ActThreeState.Resolve(mitigated) != Ending.BurnBoth,
+                "so you do not lose everything");
+            Check(ActThreeState.Resolve(mitigated) != Ending.Both,
+                "but you do not get to keep both lives on books that never made sense",
+                ActThreeState.Resolve(mitigated).ToString());
+
             // The same world with the washing actually done keeps everything.
             var washed = Ruinous();
             washed.TotalWashed = 3800; washed.BarTakingsToDate = 14000;
@@ -2464,6 +2483,37 @@ namespace Ledger.CoreTests
             soldUp.EmpireDissolved = true;
             Check(ActThreeState.Resolve(soldUp) == Ending.StraightLife,
                 "selling up outruns the books, because there is nothing left to be in them");
+
+            // THE HOLE THE BALANCE LAB FOUND. StraightLife used to require
+            // EmpireDissolved, which meant a player who never built an empire
+            // could not reach it — you cannot sell what you never bought — and
+            // had exactly one ending available: "you lose the business and you
+            // lose the people", having neither. The lab's do-nothing plan ended
+            // that way a hundred times out of a hundred.
+            var neverBuilt = new LedgerState
+            {
+                BusinessesOwned = 0, RacketsEstablished = 0, CrewCount = 0,
+                EmpireDissolved = false,          // never dissolved, because never built
+                BestDayLifeLoyalty = 0.7,
+                TotalWashed = 1800, TotalRacketIncome = 0, BarTakingsToDate = 3099,
+            };
+            Check(ActThreeState.LedgerStrain(neverBuilt) > LedgerState.BooksHoldThreshold,
+                "an honest player's books can still read badly (see decisions-pending #10)",
+                ActThreeState.LedgerStrain(neverBuilt).ToString("0.00"));
+            Check(ActThreeState.Resolve(neverBuilt) == Ending.StraightLife,
+                "but never building it is a way of keeping your life, and it gets the same door");
+
+            // And it is still gated on the life: nothing built and nobody left
+            // is not the straight life, it is just nothing.
+            var neitherOne = new LedgerState { BestDayLifeLoyalty = 0.1 };
+            Check(ActThreeState.Resolve(neitherOne) == Ending.BurnBoth,
+                "nothing built and nobody left is not a quiet ending, it is an empty one");
+
+            // The two roads into the straight life do not read the same.
+            Check(ActThreeState.StraightLifeText(true) != ActThreeState.StraightLifeText(false),
+                "and a man who gave it up is not a man who never started");
+            Check(ActThreeState.StraightLifeText(false).Contains("never put"),
+                "with the harder game getting its own paragraph");
 
             var handed = Ruinous();
             handed.HandedOver = true; handed.HasReadySuccessor = true; handed.SuccessorName = "Sam";
