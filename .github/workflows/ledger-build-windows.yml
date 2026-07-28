@@ -15,13 +15,15 @@ jobs:
     # 30218422533: the Unity install sat for thirty minutes with nothing to stop
     # it. Every long step below carries its own timeout as well, so a failure
     # says WHICH part hung rather than only that the job did.
-    # 30 (install) + 15 (build) + 25 (sim) is 70 in the worst case, so the job
-    # cap has to clear that or it becomes the thing that fails instead. The sim
-    # cap went 20 -> 25 because the run now reclaims the days the Fall skips,
-    # and three extra game-days is about four extra minutes.
-    timeout-minutes: 80
+    # Per-step caps sum to 6 (shape) + 30 (install) + 15 (build) + 25 (sim)
+    # + 2 (checkout) + 1 (lint) + 2 (license) + 10 + 10 (uploads) + 1 (verdict)
+    # = 102 in the worst case, so the job cap clears that with headroom — the
+    # old cap of 80 could kill a run in which every step passed its own cap,
+    # and the arithmetic in this comment omitted four steps (audit 2026-07-27).
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 2
         with:
           # Nothing here pushes, and the credential it would otherwise persist
           # costs about 1.5KB of git-config unwinding in POST-job cleanup —
@@ -35,6 +37,7 @@ jobs:
       # only thing that semantically compiles this tree, so without this the
       # feedback loop on that mistake is twenty minutes long.
       - name: Lint (missing usings)
+        timeout-minutes: 1
         shell: bash
         run: python3 ledger/lint-usings.py ledger/Assets/Scripts
 
@@ -75,6 +78,7 @@ jobs:
           build-targets: StandaloneWindows64
 
       - name: Activate Unity license
+        timeout-minutes: 2
         uses: buildalon/activate-unity-license@v2
         with:
           license: Personal
@@ -132,6 +136,7 @@ jobs:
           if ($p.ExitCode -ne 0) { Write-Error "Simulation reported failure (exit $($p.ExitCode))"; exit 1 }
 
       - name: Upload simulation report
+        timeout-minutes: 10
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -142,6 +147,7 @@ jobs:
           retention-days: 14
 
       - name: Upload build artifact
+        timeout-minutes: 10
         # always(): a failing self-test simulation must not discard the built player —
         # the binary is still the thing we want to download and inspect when a run is red.
         if: always()
@@ -161,6 +167,7 @@ jobs:
       #
       # Last step, always(), nothing after it. This is the line a person reads.
       - name: Verdict
+        timeout-minutes: 1
         if: always()
         shell: pwsh
         run: |

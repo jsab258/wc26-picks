@@ -66,7 +66,11 @@ var compilation = CSharpCompilation.Create("UnityLayerCheck", trees,
 var inherited = new HashSet<string>
 {
     "transform", "gameObject", "enabled", "tag", "name", "hideFlags",
-    "isActiveAndEnabled", "useGUILayout", "runInEditMode", "rigidbody", "camera",
+    "isActiveAndEnabled", "useGUILayout", "runInEditMode",
+    // "rigidbody" and "camera" were here — Unity 5 removed those shortcut
+    // properties, so whitelisting them turned a genuine CS0103 into a silent
+    // miss, the exact thing the comment above promises cannot happen (audit
+    // 2026-07-27).
 };
 
 static bool MissingName(Diagnostic d, out string name)

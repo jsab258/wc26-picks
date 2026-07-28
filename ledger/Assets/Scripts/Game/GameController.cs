@@ -1054,14 +1054,24 @@ namespace Ledger.Game
             _jobPostedDay = Now.Day;    // no ghost job from the lost nights
 
             var didTime = new Fact("player", "did_time", "true");
+            // Everyone KNOWS (the fact, the loyalty, the settled suspicion).
+            // Only the named cast REMEMBER the day in their own words: a
+            // memory line pins an agent as load-bearing forever (Forget
+            // refuses non-empty memories), and stamping the whole milled
+            // crowd made one Fall permanently pin ~130 residents the LOD
+            // could never again release (audit 2026-07-27). The crowd's
+            // knowing is fully carried by the fact.
+            var principals = new HashSet<string>();
+            foreach (var h in _hosts) if (h != null && h.Card != null) principals.Add(h.Card.Name);
             foreach (var a in _gossip.Mill.Agents)
             {
                 a.Rumors.RemoveAll(r => r.Content.Subject == "player");
                 a.Knowledge.Learn(didTime);
                 a.Loyalty = System.Math.Clamp(a.Loyalty - 0.15, 0, 1);
                 a.Suspicion.Restore(0.2); // nothing left to suspect — they know
-                a.Memory.Append(new MemoryEvent(Now, "heard", 0.9,
-                    "They took the new owner in. Three days inside. Nobody on this street is guessing anymore."));
+                if (principals.Contains(a.Id))
+                    a.Memory.Append(new MemoryEvent(Now, "heard", 0.9,
+                        "They took the new owner in. Three days inside. Nobody on this street is guessing anymore."));
             }
             // The talk is over — it's public record now; the old liabilities settle.
             foreach (var k in Knowledge.Entries) Knowledge.MarkHandled(k.HolderId, k.TopicKey);

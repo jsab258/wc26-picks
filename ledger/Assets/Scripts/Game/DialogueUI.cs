@@ -1021,7 +1021,14 @@ namespace Ledger.Game
             if (Input.GetKeyDown(keys.Key("Pause")))
             {
                 // Escape closes whatever is open; with nothing open, it pauses.
+                // The Plan, Phone and day-summary panels were missing from this
+                // chain, so Escape opened the pause menu ON TOP of them (audit
+                // 2026-07-27). Toggles for the first two, because they own
+                // their input locks; a plain SetActive would leave those set.
                 if (dialogueOpen) CloseDialogue();
+                else if (_planPanel != null && _planPanel.activeSelf) TogglePlan();
+                else if (_phonePanel != null && _phonePanel.activeSelf) TogglePhone();
+                else if (_summaryPanel != null && _summaryPanel.activeSelf) _summaryPanel.SetActive(false);
                 else if (_ledgerPanel.activeSelf) _ledgerPanel.SetActive(false);
                 else if (_keyPanel.activeSelf) _keyPanel.SetActive(false);
                 else if (_debugPanel.activeSelf) _debugPanel.SetActive(false);

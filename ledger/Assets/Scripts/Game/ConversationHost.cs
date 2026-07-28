@@ -30,7 +30,13 @@ namespace Ledger.Game
             _game = game;
             Card = CharacterCard.Parse(cardMarkdown);
 
-            MemoryFilePath = Path.Combine(Application.persistentDataPath, "memories", $"{Card.Id}.md");
+            // The self-test gets its own memory root: a -simdays run used to
+            // load the player's NPC brains AND append the bot's events into
+            // them — the "fresh week" claim was false for memory, and the
+            // player's files were polluted (audit 2026-07-27). Same split as
+            // the save file.
+            MemoryFilePath = Path.Combine(Application.persistentDataPath,
+                SimMode.Days > 0 ? "memories-sim" : "memories", $"{Card.Id}.md");
             Memory = new MemoryStore(Card.Id, MemoryFilePath);
             seedMemories?.Invoke(Memory);
 

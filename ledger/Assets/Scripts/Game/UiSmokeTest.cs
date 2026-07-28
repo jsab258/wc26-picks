@@ -50,12 +50,16 @@ namespace Ledger.Game
             if (_planPanel == null && _game != null) BuildPlanPanel();
             if (_phonePanel == null) BuildPhonePanel();
 
-            Check(reports, "ledger", _ledgerPanel);
+            // Each panel's REAL refresh runs while it is open, so HadWords
+            // reads live-rendered content rather than build-time chrome — a
+            // renderer that throws or writes nothing is a red bar now (audit
+            // 2026-07-27).
+            Check(reports, "ledger", _ledgerPanel, RefreshLedger);
             Check(reports, "dialogue", _dialoguePanel);
             Check(reports, "apiKey", _keyPanel);
             Check(reports, "pause", _pausePanel);
-            Check(reports, "plan", _planPanel);
-            Check(reports, "phone", _phonePanel);
+            Check(reports, "plan", _planPanel, RefreshPlan);
+            Check(reports, "phone", _phonePanel, RefreshPhone);
 
             // Whatever the walk did, the player must end it able to move. This
             // is the assertion the whole file is for.
@@ -63,7 +67,7 @@ namespace Ledger.Game
             return reports;
         }
 
-        void Check(List<PanelReport> into, string name, GameObject panel)
+        void Check(List<PanelReport> into, string name, GameObject panel, System.Action refresh = null)
         {
             var r = new PanelReport { Name = name };
             into.Add(r);
@@ -82,7 +86,10 @@ namespace Ledger.Game
 
             panel.SetActive(true);
             r.Opened = panel.activeInHierarchy;
-            r.HadWords = HasVisibleWords(panel);
+            bool refreshOk = true;
+            if (refresh != null)
+                try { refresh(); } catch { refreshOk = false; }
+            r.HadWords = refreshOk && HasVisibleWords(panel);
 
             // A panel that takes the screen must also take the controls — and
             // it must do so through the ONE policy Update() re-derives the lock

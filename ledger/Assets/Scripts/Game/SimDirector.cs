@@ -74,6 +74,8 @@ namespace Ledger.Game
         int _act2SampleHour = -1;
         bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
+        bool _discreditExercised;
+        bool? _discreditWorked;   // null = the secret never reached the day circle
         int _frozenCloses;   // closes the lost-week end screen ate before the day-8 reopen
         bool _actThreeStaged;
         string _actThreeWhy = "not staged";
@@ -229,6 +231,38 @@ namespace Ledger.Game
                     _daysSkipped += _endDay - before;
                 }
                 _lastSeenDay = now.Day;
+            }
+
+            // Damage control in CI, staged BEFORE the fall: the fall deletes
+            // every player rumor, so running this at Finish measured an empty
+            // mill and defaulted true — permanently vacuous in every 9-day run
+            // (audit 2026-07-27). Day 8, open city, pre-fall: the staged
+            // warehouse story and the night jobs' witnesses are all still
+            // alive, so the exercise is deterministic.
+            if (!_discreditExercised && _secretEverReachedDay && now.Day >= 8 && now.Hour >= 9)
+            {
+                _discreditExercised = true;
+                var mill8 = _game.Gossip != null ? _game.Gossip.Mill : null;
+                if (mill8 != null)
+                {
+                    string topic = null; string value = null; double before = 0;
+                    foreach (var a8 in mill8.Agents)
+                        if (a8.Circle == "day")
+                            foreach (var r8 in a8.Rumors)
+                                if (r8.Sensitive && r8.Confidence > before)
+                                { before = r8.Confidence; topic = r8.TopicKey; value = r8.Content.Value; }
+                    if (topic == null) _discreditWorked = false;   // nothing to deny = the gate is lying
+                    else
+                    {
+                        mill8.Discredit(topic, value, _game.Now);
+                        double after8 = 0;
+                        foreach (var a8 in mill8.Agents)
+                            if (a8.Circle == "day")
+                                foreach (var r8 in a8.Rumors)
+                                    if (r8.TopicKey == topic && r8.Confidence > after8) after8 = r8.Confidence;
+                        _discreditWorked = after8 < before;
+                    }
+                }
             }
 
             // Act I PP4 in CI: the trust path needs live conversation, so on day 6
@@ -700,26 +734,10 @@ namespace Ledger.Game
             // circle and verify THAT story loses confidence — the night jobs the sim
             // completes seed fresh witnessed rumors, so the original warehouse story
             // is not necessarily the one dominating the heat reading anymore.
-            bool discreditWorks = true;
-            if (mill != null && secretReachedDay)
-            {
-                string topic = null; string value = null; double before = 0;
-                foreach (var a in mill.Agents)
-                    if (a.Circle == "day")
-                        foreach (var r in a.Rumors)
-                            if (r.Sensitive && r.Confidence > before)
-                            { before = r.Confidence; topic = r.TopicKey; value = r.Content.Value; }
-                if (topic != null)
-                {
-                    mill.Discredit(topic, value, _game.Now);
-                    double after = 0;
-                    foreach (var a in mill.Agents)
-                        if (a.Circle == "day")
-                            foreach (var r in a.Rumors)
-                                if (r.TopicKey == topic && r.Confidence > after) after = r.Confidence;
-                    discreditWorks = after < before;
-                }
-            }
+            // Measured on day 8, pre-fall, when the stories provably existed
+            // (audit 2026-07-27) — measuring here at Finish read the post-fall
+            // wiped mill and defaulted true.
+            bool discreditWorks = _discreditWorked ?? !secretReachedDay;
 
             // Campaign self-test. The sim bot does every drop and NO damage control,
             // so over a full week any verdict except cast-out is legitimate play —

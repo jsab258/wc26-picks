@@ -51,7 +51,8 @@ def check(path: pathlib.Path) -> list:
         return []
 
     problems = []
-    for lineno, line in enumerate(text.splitlines(), 1):
+    lines = text.splitlines()
+    for lineno, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped.startswith("//") or stripped.startswith("///"):
             continue
@@ -63,7 +64,14 @@ def check(path: pathlib.Path) -> list:
             # method, but other types might. Flag them only with a lambda.
             if name not in ALWAYS_LINQ:
                 after = scrubbed[m.end():]
-                if "=>" not in after[:120]:
+                # The lambda may sit on the NEXT line — normal formatting for a
+                # long predicate — but only when the call's argument list is
+                # still open at the line break. Same-line-only scanning let
+                # those through; unconditional look-ahead flagged Math.Max next
+                # to any expression-bodied member (audit 2026-07-27).
+                spans_lines = after.count("(") + 1 > after.count(")")
+                lookahead = after if not spans_lines else after + " " + " ".join(lines[lineno:lineno + 2])
+                if "=>" not in lookahead[:200]:
                     continue
             problems.append((lineno, name, stripped))
     return problems
