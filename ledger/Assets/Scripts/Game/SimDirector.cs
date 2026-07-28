@@ -1061,12 +1061,23 @@ namespace Ledger.Game
             // timing ones report, because CI hardware is weather.
             int walkerCount = 0;
             foreach (var w in FindObjectsByType<NpcWalker>(FindObjectsSortMode.None)) walkerCount++;
-            int millCount = 0, crowdMill = 0;
+            int millCount = 0, crowdMill = 0, strandedEmpty = 0;
             if (mill != null)
                 foreach (var a in mill.Agents)
                 {
                     millCount++;
-                    if (a.Id != null && a.Id.Length > 1 && a.Id[0] == 'r' && char.IsDigit(a.Id[1])) crowdMill++;
+                    if (a.Id == null || a.Id.Length < 2 || a.Id[0] != 'r' || !char.IsDigit(a.Id[1])) continue;
+                    crowdMill++;
+                    // The leak signal is an EMPTY crowd agent stranded outside
+                    // the band: carrying nothing, Forget would take them, and
+                    // the LOD should have called it. Carriers above the band
+                    // cap are pillar P5 working (run 30339120018: 132 crowd
+                    // agents, 110 in band + 22 rumor-carriers — healthy).
+                    bool empty = a.Rumors.Count == 0 && a.Memory.Events.Count == 0
+                        && a.Suppressed.Count == 0 && !a.Leashed;
+                    var res = _game.Populace != null ? _game.Populace.ById(a.Id) : null;
+                    bool inBand = res != null && res.Band == Lod.Mid;
+                    if (empty && !inBand) strandedEmpty++;
                 }
             long heapMb = System.GC.GetTotalMemory(false) / (1024 * 1024);
             double avgMs = _frames > 0 ? _frameSum / _frames * 1000.0 : 0;
@@ -1077,7 +1088,7 @@ namespace Ledger.Game
             // total-ceiling red a healthy build (run 30335994335: 42 authored
             // walkers against my invented "+40 headroom").
             bool budgetsOk = _game.CrowdWalkerCount <= GameController.CrowdWalkerCap
-                && crowdMill <= GameController.CrowdMillCap;
+                && strandedEmpty == 0;
 
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
@@ -1379,7 +1390,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
