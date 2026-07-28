@@ -242,11 +242,11 @@ namespace Ledger.Game
             _empireBtnB = MakeButton(_dialoguePanel.transform, "", new Vector2(0.5f, 0), new Vector2(250, 152), new Vector2(300, 36));
             _empireLabelA = _empireBtnA.GetComponentInChildren<Text>();
             _empireLabelB = _empireBtnB.GetComponentInChildren<Text>();
-            _empireLabelA.fontSize = 16;
-            _empireLabelB.fontSize = 16;
+            _empireLabelA.fontSize = UiTheme.Scaled(16);
+            _empireLabelB.fontSize = UiTheme.Scaled(16);
             _empireBtnC = MakeButton(_dialoguePanel.transform, "", new Vector2(0.5f, 0), new Vector2(250, 192), new Vector2(300, 36));
             _empireLabelC = _empireBtnC.GetComponentInChildren<Text>();
-            _empireLabelC.fontSize = 16;
+            _empireLabelC.fontSize = UiTheme.Scaled(16);
             _empireBtnA.onClick.AddListener(() => EmpireAct(false));
             _empireBtnB.onClick.AddListener(() => EmpireAct(true));
             _empireBtnC.onClick.AddListener(EmpireActThird);
@@ -264,7 +264,7 @@ namespace Ledger.Game
                 var anchor = i == 0 ? new Vector2(0, 0.5f) : i == 1 ? new Vector2(0.5f, 0.5f) : new Vector2(1, 0.5f);
                 _chipBtns[i] = MakeButton(_chipRow.transform, "", anchor, Vector2.zero, new Vector2(286, 32));
                 _chipLabels[i] = _chipBtns[i].GetComponentInChildren<Text>();
-                _chipLabels[i].fontSize = 15;
+                _chipLabels[i].fontSize = UiTheme.Scaled(15);
                 _chipLabels[i].fontStyle = FontStyle.Italic;
                 _chipLabels[i].color = UiTheme.Dim;
                 _chipBtns[i].onClick.AddListener(() => SayChip(idx));

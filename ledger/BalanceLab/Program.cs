@@ -279,18 +279,18 @@ namespace Ledger.BalanceLab
         {
             Console.WriteLine("\n== open city (21 days; week won -> empire; smart DC throughout) ==");
             Console.WriteLine($"{"plan",-12} {"reach%",7} {"cash",7} {"falls",6} {"cutoff%",8} {"stage",6} {"rounds$",8} {"broke%",7}" +
-                              $" {"street",8} {"prices",7} {"nosupp%",8}");
+                              $" {"street",8} {"prices",7} {"nosupp%",8} {"drawers$",8}");
             foreach (var plan in new[] { OpenPlan.Control, OpenPlan.Aggressive, OpenPlan.Cautious })
             {
                 int reached = 0, cutoff = 0, broke = 0, noSupply = 0;
-                double cash = 0, falls = 0, stage = 0, rounds = 0, prosperity = 0, prices = 0;
+                double cash = 0, falls = 0, stage = 0, rounds = 0, prosperity = 0, prices = 0, drawers = 0;
                 for (int seed = 0; seed < runs; seed++)
                 {
                     var o = RunOpenCampaign(plan, new Random(seed * 104729 + 7));
                     if (!o.reachedOpen) continue;
                     reached++;
                     cash += o.endCash; falls += o.falls; stage += o.rivalStage; rounds += o.racketIncome;
-                    prosperity += o.prosperity; prices += o.priceLevel;
+                    prosperity += o.prosperity; prices += o.priceLevel; drawers += o.purseTotal;
                     if (o.cutOff) cutoff++;
                     if (o.endCash < 50) broke++;
                     if (o.supplyLost) noSupply++;
@@ -298,19 +298,26 @@ namespace Ledger.BalanceLab
                 int n = Math.Max(1, reached);
                 Console.WriteLine($"{plan,-12} {100.0 * reached / runs,6:0.0}% {cash / n,7:0} {falls / n,6:0.00} " +
                                   $"{100.0 * cutoff / n,7:0.0}% {stage / n,6:0.0} {rounds / n,8:0} {100.0 * broke / n,6:0.0}%" +
-                                  $" {prosperity / n,8:0.00} {prices / n,7:0.00} {100.0 * noSupply / n,7:0.0}%");
+                                  $" {prosperity / n,8:0.00} {prices / n,7:0.00} {100.0 * noSupply / n,7:0.0}% {drawers / n,8:0}");
             }
-            Console.WriteLine("  street 0.00-1.00 (0.55 = ordinary) · prices 1.00 = ordinary · nosupp% = a supplier walked");
+            Console.WriteLine("  street 0.00-1.00 (0.55 = ordinary) · prices 1.00 = ordinary · nosupp% = a supplier walked · drawers$ = six days of refill after a day-15 sweep — the street's prosperity, read out of pockets");
         }
 
         static (bool reachedOpen, int endCash, int falls, bool cutOff, int rivalStage, int racketIncome,
-                double prosperity, double priceLevel, bool supplyLost, LedgerState books)
+                double prosperity, double priceLevel, bool supplyLost, int purseTotal, LedgerState books)
             RunOpenCampaign(OpenPlan plan, Random rng)
         {
             var camp = new Campaign();
             var mill = BuildOpenStreet();
             var wallet = new Wallet(250);
             var empire = BuildEmpire();
+            // Roadmap: "the lab does not test a squeezed street's effect on
+            // purses" — week mode pins prosperity by construction. Out here
+            // prosperity MOVES, so the drawers empty for real.
+            var openPurses = new PurseBook();
+            openPurses.Add(new Purse { OwnerId = "Sam", Name = "Sam", Weekly = 60, Ceiling = 95, Cash = 45, PatronId = "Danica" });
+            openPurses.Add(new Purse { OwnerId = "Rocco", Name = "Rocco", Weekly = 140, Ceiling = 260, Cash = 180 });
+            openPurses.Add(new Purse { OwnerId = "Danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
             // Every world gets its own empire roll stream — the lab's whole
             // point is variance, and a constant salt was collapsing it.
             empire.Seed = rng.Next(1, 1 << 22);
@@ -323,6 +330,7 @@ namespace Ledger.BalanceLab
             var now = new GameTime(1, 9, 0);
             int lastClosedDay = 1, jobPostedDay = -1, lastActDay = 0;
             bool jobOpen = false;
+            bool swept = false;   // the day-15 purse sweep, latched
             int takingsToDate = 0;   // Act III reads this: what a bar could plausibly have washed
 
             while (now.Day <= 21)
@@ -356,6 +364,17 @@ namespace Ledger.BalanceLab
                                 wagesToday += c.Cut == "generous" ? 25 : c.Cut == "skim" ? 0 : 10;
                     }
                     economy.DailyTick(now, wallet, racketToday, wagesToday, heat);
+                    openPurses.DailyTick(now.Day, economy.Prosperity);
+                    // One collection sweep on day 15: without a drain the
+                    // ceilings clip everything to the same number (first
+                    // measurement literally printed 875 for all three plans —
+                    // the ceilings' sum). Six days of REFILL under this
+                    // street's prosperity is the coupling, isolated.
+                    if (!swept && now.Day >= 15 && now.Hour >= 8)
+                    {
+                        swept = true;   // >= and a latch: a Fall can jump straight over day 15
+                        foreach (var pp in openPurses.All) pp.Cash = 0;
+                    }
                     if (camp.OpenMode)
                     {
                         if (camp.FallPending)
@@ -421,9 +440,11 @@ namespace Ledger.BalanceLab
             books.OsseiCaseAnswerable = mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt;
             books.PublicRecord = camp.Falls > 0;   // every fall plants the record
 
+            int purseTotal = 0;
+            foreach (var pp in openPurses.All) purseTotal += pp.Cash;
             return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage,
                 empire.TotalRacketIncome, economy.Prosperity, economy.PriceLevel,
-                economy.Suppliers.Any(s => s.Refusing), books);
+                economy.Suppliers.Any(s => s.Refusing), purseTotal, books);
         }
 
         /// THE ENDING MATRIX, sampled over real worlds (roadmap: Act III).
