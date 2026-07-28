@@ -165,7 +165,11 @@ should be built so it is not a rewrite.
    — **BUILT 2026-07-28**, and it needed no model: a limp is an ASYMMETRY,
    so the alternating stride length and the heavier footfall on the good leg
    carry it entirely through sound and cadence.
-5. **Transitions**, especially the Fall.
+5. **Transitions**, especially the Fall. — **BUILT 2026-07-28.** The Fall
+   now drops a curtain, changes the world under full black where the join
+   cannot be seen, holds the words long enough to be uncomfortable, and
+   returns into a different morning. Remaining in §8: continuous rather
+   than stepped day/night, and menu transitions.
 
 Then everything in **[MODELS]** the moment the character purchase lands.
 

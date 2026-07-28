@@ -5481,6 +5481,64 @@ namespace Ledger.CoreTests
                   Bumps.WorthRemembering(BumpReaction.Knock),
                 "a brush in a crowd is not an event; a knock is",
                 "being noticed is the currency of this game");
+
+            // ---- the curtain: no hard cuts, and a held beat ----
+            var curtain = new Curtain();
+            Check(curtain.Alpha == 0 && !curtain.Running, "the curtain starts up and clear");
+            Check(curtain.Begin() && !curtain.Begin(), "it can be dropped, once");
+
+            double maxAlpha = 0; int hidden = 0; bool sawText = false;
+            double alphaWhenHidden = -1;
+            var alphas = new List<double>();
+            for (int i = 0; i < 600; i++)
+            {
+                curtain.Tick(1.0 / 60.0);
+                if (curtain.Hidden) { hidden++; alphaWhenHidden = curtain.Alpha; }
+                if (curtain.TextAlpha > 0.99) sawText = true;
+                if (curtain.Running) alphas.Add(curtain.Alpha);
+                maxAlpha = Math.Max(maxAlpha, curtain.Alpha);
+            }
+            Check(Math.Abs(maxAlpha - 1.0) < 1e-9, "it reaches full black", $"{maxAlpha:0.000}");
+            Check(hidden == 1, "and offers exactly one moment to change the world", $"{hidden}");
+            Check(alphaWhenHidden >= 0.999,
+                "which happens UNDER full black, so the player never sees the cut",
+                $"alpha {alphaWhenHidden:0.000}");
+            Check(sawText, "the line is legible while the curtain is down");
+            Check(!curtain.Running && curtain.Alpha == 0, "and it lifts completely");
+
+            // The held beat is the part people skip and the part that works.
+            var quick = new Curtain();
+            Check(quick.HoldSeconds > 2.0,
+                "the hold is long enough to be uncomfortable, which is the point");
+
+            // Text must not fight the returning street for the same beat.
+            var t2 = new Curtain();
+            t2.Begin();
+            bool textOverStreet = false;
+            for (int i = 0; i < 600; i++)
+            {
+                t2.Tick(1.0 / 60.0);
+                if (t2.TextAlpha > 0.01 && t2.Alpha < 0.999) textOverStreet = true;
+            }
+            Check(!textOverStreet,
+                "and never fades in over the returning world — two things, one beat");
+
+            // Frame-rate independence, same as everything else here.
+            var c30 = new Curtain(); var c240 = new Curtain();
+            c30.Begin(); c240.Begin();
+            for (int i = 0; i < 15; i++) c30.Tick(1.0 / 30.0);
+            for (int i = 0; i < 120; i++) c240.Tick(1.0 / 240.0);
+            Check(Math.Abs(c30.Alpha - c240.Alpha) < 1e-9,
+                "the curtain falls at the same rate at 30fps and 240",
+                $"{c30.Alpha:0.0000} vs {c240.Alpha:0.0000}");
+
+            var slowFrame = new Curtain();
+            slowFrame.Begin();
+            int hiddenSlow = 0;
+            for (int i = 0; i < 12; i++) { slowFrame.Tick(0.9); if (slowFrame.Hidden) hiddenSlow++; }
+            Check(hiddenSlow == 1,
+                "and a frame longer than the whole fade still gives exactly one moment",
+                $"{hiddenSlow}");
         }
 
         static void TestDirector()

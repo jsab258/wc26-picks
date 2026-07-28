@@ -1053,11 +1053,44 @@ namespace Ledger.Game
         /// seized; the street stops guessing and starts KNOWING — rumors collapse
         /// into hard fact, suspicion has nothing left to feed on, and everyone
         /// thinks a little less of you. The city remembers. Play resumes.
+        /// THE FALL, STAGED (game-feel-spec.md §8).
+        ///
+        /// This is the biggest thing that happens in LEDGER and it used to be
+        /// a toast: amber text sliding in over a normally-lit street while
+        /// three days snapped forward in front of you. Now the curtain comes
+        /// down first, the world changes underneath it where the join cannot
+        /// be seen, the words hold on black long enough to be uncomfortable,
+        /// and you come back into a different morning.
+        ///
+        /// If the curtain cannot be staged — no UI yet, or one already
+        /// falling — the work still happens IMMEDIATELY and unstaged. A
+        /// missed presentation is a disappointment; a skipped Fall is a
+        /// broken save and a campaign that never opens.
         void RunTheFall()
         {
             if (!Campaign.FallPending || _gossip == null || _gossip.Mill == null) return;
-            Campaign.ConsumeFall();
+
+            // ALREADY FALLING. This is called every frame while the Fall is
+            // pending, and pending stays true until the work runs under
+            // black — so without this guard the second frame would find the
+            // curtain busy, take the unstaged path, and apply the Fall in
+            // full daylight a sixtieth of a second after starting to hide it.
+            // The staging would have been dead on arrival and looked like it
+            // worked in every test that did not watch the screen.
+            if (ScreenCurtain.Busy) return;
+
             Audio.Ui("dread");   // the heaviest thing that happens to you
+            if (SimMode.Days == 0 && _ui != null &&
+                ScreenCurtain.Fall(_ui.CanvasRoot, FallText(), ApplyTheFall, 3.4f))
+                return;
+            ApplyTheFall();
+        }
+
+        /// What the Fall does to the world. Split out so it can be run under
+        /// a black screen, and so the staging can never change the outcome.
+        void ApplyTheFall()
+        {
+            Campaign.ConsumeFall();
             if (_jobMarker != null) { Destroy(_jobMarker); _jobMarker = null; }
 
             int seized = Wallet.Seize();
@@ -1099,10 +1132,26 @@ namespace Ledger.Game
                 _gossip.Mill.RumorHalfLifeHours = 96;
             }
 
-            _ui?.Toast(seized > 0
-                ? $"THE FALL. Three days inside. They kept the ${seized} they found — the money the books couldn't explain. The street knows now. Start from there."
-                : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.", 14f);
+            // The line has already been shown on the curtain in the staged
+            // path; a toast on top of it would be the same words twice, and
+            // the audit already caught two channels fighting for one event.
+            _lastSeized = seized;
+            if (SimMode.Days != 0 || _ui == null) _ui?.Toast(FallText(), 14f);
             SaveNow(quiet: true);
+        }
+
+        int _lastSeized;
+
+        /// The words. Written before the money is counted because the curtain
+        /// needs them up front — it says what was taken using the LAST known
+        /// figure, which is the live one at the moment the curtain drops
+        /// because seizure happens under black a beat later.
+        string FallText()
+        {
+            int seized = _lastSeized > 0 ? _lastSeized : Wallet.Dirty;
+            return seized > 0
+                ? $"THE FALL. Three days inside. They kept the ${seized} they found — the money the books couldn't explain. The street knows now. Start from there."
+                : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.";
         }
 
         /// The recruit-by-need table: the authored roster first, then the

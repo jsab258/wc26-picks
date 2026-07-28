@@ -18,6 +18,8 @@ namespace Ledger.Game
 
         Font _font;
         Transform _canvas;
+        /// So the Fall can stage itself rather than announce itself.
+        public Transform CanvasRoot => _canvas;
         Text _clockText;
         Text _statusText;
         Text _toastText;

@@ -238,4 +238,88 @@ namespace Ledger.Core
         /// already talking about is.
         public static bool WorthRemembering(BumpReaction r) => r != BumpReaction.Brush;
     }
+
+    /// TRANSITIONS (game-feel-spec.md §8): "no hard cuts anywhere — fades,
+    /// camera moves, a held beat."
+    ///
+    /// The Fall is the biggest thing that happens in LEDGER. Three days
+    /// vanish, the money is seized, and every person on the street stops
+    /// guessing about you and simply knows. It is currently a toast: a line
+    /// of amber text that slides in over a normally-lit street while the
+    /// world snaps three days forward in front of you.
+    ///
+    /// A curtain is the cheapest possible fix and the oldest trick in
+    /// film — you do not show the cut, you hold black across it. The held
+    /// beat is the part people skip and the part that does the work: the
+    /// silence is what makes the player sit with it rather than read it.
+    public class Curtain
+    {
+        public double FadeOutSeconds = 1.2;
+        /// Long enough to be uncomfortable. That is the point.
+        public double HoldSeconds = 2.6;
+        public double FadeInSeconds = 2.2;
+
+        double _t = -1;
+        bool _firedThisRun;
+
+        /// 0 = clear, 1 = fully black.
+        public double Alpha { get; private set; }
+        public bool Running => _t >= 0;
+        /// True on the one tick where the world is fully hidden and may
+        /// therefore be changed. Everything jarring goes here.
+        public bool Hidden { get; private set; }
+
+        public double Total => FadeOutSeconds + HoldSeconds + FadeInSeconds;
+
+        public bool Begin()
+        {
+            if (Running) return false;
+            _t = 0;
+            _firedThisRun = false;
+            Alpha = 0;
+            return true;
+        }
+
+        public void Tick(double dt)
+        {
+            Hidden = false;
+            if (!Running || dt <= 0) return;
+            _t += dt;
+
+            double a = FadeOutSeconds, b = a + HoldSeconds, c = b + FadeInSeconds;
+
+            // Same latch as VerbBeat, for the same reason: a long frame must
+            // not skip the moment, and that moment is where three days of
+            // world state change. Missing it would show the player the cut.
+            if (!_firedThisRun && _t >= a) { Hidden = true; _firedThisRun = true; }
+
+            if (_t >= c) { Alpha = 0; _t = -1; return; }
+            if (_t >= b) { Alpha = 1.0 - Feel.Clamp01((_t - b) / Math.Max(1e-6, FadeInSeconds)); return; }
+            if (_t >= a) { Alpha = 1.0; return; }
+            Alpha = Feel.Clamp01(_t / Math.Max(1e-6, FadeOutSeconds));
+        }
+
+        /// Text should appear only while the curtain is fully down, and go
+        /// before the world comes back. A line fading in over the returning
+        /// street is two things competing for the same beat.
+        public double TextAlpha
+        {
+            get
+            {
+                // No Alpha guard needed: `into` is negative during the fade
+                // out and past HoldSeconds during the fade in, so both edges
+                // already clamp to zero. A redundant check here looked
+                // load-bearing and was not — a deliberate break removed it
+                // and no test noticed, which is how dead code earns its
+                // place in a file forever.
+                if (!Running) return 0;
+                double a = FadeOutSeconds;
+                double into = _t - a;
+                double edge = Math.Min(0.5, HoldSeconds * 0.25);
+                if (into < edge) return Feel.Clamp01(into / edge);
+                if (into > HoldSeconds - edge) return Feel.Clamp01((HoldSeconds - into) / edge);
+                return 1.0;
+            }
+        }
+    }
 }
