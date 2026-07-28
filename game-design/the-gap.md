@@ -27,7 +27,7 @@ present.
 | Content volume | 3 | 9 | 10 | **not closable — rescope** |
 | Environment art | 2 | 9 | 9 | expensive |
 | **Lighting / render** | **2** | 9 | 8 | **cheapest big win** |
-| **Animation** | **1** | 8 | 9 | **biggest single gap** |
+| **Animation** | **1 → 4** | 8 | 9 | **still the biggest gap** |
 
 **The resourcing reality.** KCD2 is roughly 250 people for five years. GTA5
 was around a thousand people and about a quarter of a billion dollars. Almost
@@ -86,6 +86,32 @@ work beginning now.
 
 ### 3b. ANIMATION — the biggest gap, and the most honest limit
 
+> **Updated 2026-07-29 — this section was written assuming a download that
+> had not happened, and then the download stayed un-happened for weeks while
+> everything it blocked sat still.** That was the wrong shape for a
+> dependency. `Core/Rig` had a gait, a lean, a breath, a limp, a look-split
+> and two-bone IK, all of it driving a capsule, waiting for a skeleton.
+>
+> The skeleton is now built from primitives (`Game/Mannequin`): thirteen
+> boxes and a sphere in a real joint hierarchy, with proportions, stride,
+> idle phase and head varied per person off their name. It will not be
+> mistaken for a person. It is unmistakably **a person walking**, which is
+> the part that makes a street read as populated, and the capsules never
+> were.
+>
+> **This does not replace the Mixamo download — it de-risks it.** The bones
+> are the contract: `CharacterRig` prefers a Humanoid Avatar and falls back
+> to the mannequin, so when the FBX lands, tier one starts matching, tier two
+> stops being instantiated, and nothing downstream changes. The integration
+> was the risk; it is now already exercised, in CI, every build. Score moves
+> 1 → 4: the gap to KCD2 is still motion matching over a mocap corpus, and
+> that is still a purchase.
+>
+> The general lesson is worth more than the animation: **when a dependency is
+> somebody else's to satisfy, build the thing behind it against a stand-in
+> you control.** Three other items on this list were parked behind
+> acquisitions and at least one of them deserves the same treatment.
+
 Mixamo plus procedural layers — foot IK, look-at, additive breathing, the
 limp already driven by real capability, ragdoll-blended hit reactions — gets
 to **good indie**. It does not get to KCD2.
@@ -125,15 +151,20 @@ Depth over breadth, every time, for a team this size.
 |---|---|---|---|---|
 | 1 | **Lighting + volumetrics + wet materials** | huge | low | me |
 | 2 | **Voiced bark bank** (chatterbox, one overnight run) | huge | low | me + one listening pass |
-| 3 | **Characters + procedural animation layers** | huge | low-med | Mixamo download is yours |
+| 3 | ~~Characters +~~ **procedural animation layers** | huge | low-med | **done without the download** — bodies, walk cycle, idle, gaze |
 | 4 | Set dressing density on 2–3 districts | big | med | asset packs |
 | 5 | Music — adaptive layers off real state | med | low | me |
 | 6 | Motion matching on a licensed corpus | big | med | a purchase |
 | 7 | UI typography and iconography pass | med | v.low | me |
 | 8 | Cinematic framing for the authored beats | med | low | me |
 
-Items 1, 5, 7 and 8 need nothing from anybody. Item 2 needs fifteen minutes
-of listening. Item 3 needs a download. Items 4 and 6 need money.
+Items 1, 5, 7 and 8 need nothing from anybody and are **done**. Item 4 is
+done procedurally (`Core/Dressing`) without the asset packs. Item 3 is done
+to the limit of what code can do, and the Mixamo download now **upgrades** it
+rather than unblocking it.
+
+**What is actually left needing you:** item 2's fifteen-minute listening pass,
+and item 6's mocap licence. That is the whole list.
 
 ## 6. Rough budget
 
