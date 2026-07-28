@@ -623,6 +623,12 @@ namespace Ledger.Game
                 // A doorstep pad marks the schedule stop itself.
                 MakeBox($"District_{place.Id}_step", stop + dir * 1.2f + new Vector3(0, 0.08f, 0),
                     new Vector3(2.2f, 0.16f, 2.2f), AssetLibrary.Sidewalk);
+
+                // AND THE CLUTTER. The street-facing wall gets whatever has
+                // collected against it — deterministic, so the same bin is in
+                // the same doorway on every load.
+                DressFacade(place.Id, pos, size, -dir, place.Kind != "corner",
+                            ProsperityOf(place.Kind));
                 i++;
             }
 
@@ -634,6 +640,82 @@ namespace Ledger.Game
             MakeLamp(new Vector3(-17, 0, 19));   // the north tenements
             MakeLamp(new Vector3(-11, 0, -17));  // the bakery corner
         }
+
+        /// Dress the street-facing wall of a mass (Core/Dressing).
+        ///
+        /// Seven districts shared three benches and a dumpster before this,
+        /// all hand-placed near the bar — so everything past Hook Street was
+        /// bare geometry, which is the loudest signal there is that a place
+        /// was generated rather than built.
+        /// How kept-up a frontage is, from the ONE piece of data that
+        /// actually exists about it.
+        ///
+        /// Per-district wealth would be the right input and there is no such
+        /// field — StreetMap.District carries a name and its avenues and
+        /// nothing about how well the street is doing. Rather than invent
+        /// one here, this reads the place's own Kind, which is real: a
+        /// landmark is kept up, a corner shelter is not. Noted in the roadmap
+        /// as a data gap rather than papered over.
+        static double ProsperityOf(string kind) =>
+            kind == "landmark" ? 0.70
+            : kind == "business" ? 0.50
+            : kind == "home" ? 0.35
+            : 0.20;
+
+        static void DressFacade(string id, Vector3 centre, Vector3 size, Vector3 outward,
+                                bool hasDoor, double prosperity)
+        {
+            // The wall runs across the outward direction.
+            var along = new Vector3(-outward.z, 0, outward.x).normalized;
+            float half = (Mathf.Abs(along.x) > 0.5f ? size.x : size.z) * 0.5f;
+            var faceCentre = centre + outward * ((Mathf.Abs(outward.x) > 0.5f ? size.x : size.z) * 0.5f);
+            var a = faceCentre - along * half;
+            var b = faceCentre + along * half;
+
+            foreach (var d in Ledger.Core.Dressing.Facade(a.x, a.z, b.x, b.z,
+                                                          prosperity, !hasDoor, hasDoor))
+            {
+                var at = new Vector3((float)d.X, 0, (float)d.Z);
+                float sc = (float)d.Scale;
+                switch (d.Kind)
+                {
+                    case Ledger.Core.Clutter.Bin:
+                        MakeBox($"Bin_{id}_{at.x:0.0}", at + new Vector3(0, 0.55f * sc, 0),
+                            new Vector3(0.75f, 1.1f, 0.7f) * sc, AssetLibrary.Metal);
+                        break;
+                    case Ledger.Core.Clutter.Drainpipe:
+                        // Vertical, hugging the wall, full height of the mass.
+                        MakeBox($"Pipe_{id}_{at.x:0.0}", at + new Vector3(0, size.y * 0.5f, 0),
+                            new Vector3(0.16f, size.y, 0.16f), AssetLibrary.Metal);
+                        break;
+                    case Ledger.Core.Clutter.Ground:
+                        MakeBox($"Hatch_{id}_{at.x:0.0}", at + new Vector3(0, 0.03f, 0),
+                            new Vector3(0.9f * sc, 0.06f, 0.9f * sc), AssetLibrary.Concrete);
+                        break;
+                    case Ledger.Core.Clutter.Awning:
+                        MakeBox($"Awning_{id}", at + new Vector3(0, 2.9f, 0),
+                            new Vector3(2.6f, 0.1f, 1.1f), AssetLibrary.Roof);
+                        break;
+                    case Ledger.Core.Clutter.Puddle:
+                        // Flat, dark and SMOOTH: a puddle is only a puddle
+                        // because it reflects the lamps, which is the whole
+                        // reason the wet-surface work exists.
+                        var pool = MakeBox($"Puddle_{id}_{at.x:0.0}", at + new Vector3(0, 0.012f, 0),
+                            new Vector3(1.5f * sc, 0.024f, 1.1f * sc), AssetLibrary.Asphalt);
+                        var pr = pool.GetComponent<Renderer>();
+                        var mpb = new MaterialPropertyBlock();
+                        pr.GetPropertyBlock(mpb);
+                        mpb.SetColor("_Color", new Color(0.06f, 0.07f, 0.08f));
+                        pr.SetPropertyBlock(mpb);
+                        break;
+                }
+                Dressed++;
+            }
+        }
+
+        /// How many pieces of clutter the city put down. Read by the sim, so
+        /// "the streets are dressed" is a measured claim rather than a hope.
+        public static int Dressed;
 
         public static Light BuildSun()
         {

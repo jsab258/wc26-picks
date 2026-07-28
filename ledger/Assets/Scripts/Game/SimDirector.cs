@@ -1578,6 +1578,11 @@ namespace Ledger.Game
                 ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
+                // The streets must actually be dressed. A model that computes
+                // beautiful placements nothing ever builds is the exact shape
+                // of every other "verified in a test, absent in the game"
+                // defect this project has found.
+                ($"dressing[{WorldBuilder.Dressed}]", WorldBuilder.Dressed >= 20),
                 // THE GATE NAME CARRIES ITS OWN NUMBERS. The FAILING GATES
                 // line is the only channel that reliably survives out of CI —
                 // the log tail is a fixed window that post-job cleanup fills,
@@ -1641,6 +1646,7 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
+                      $"dressed={WorldBuilder.Dressed} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +

@@ -92,6 +92,7 @@ namespace Ledger.CoreTests
                 TestRig();
                 TestTypography();
                 TestFraming();
+                TestDressing();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -6816,6 +6817,161 @@ namespace Ledger.CoreTests
             Check(Math.Abs(f30.PushScale - f240.PushScale) < 1e-9,
                 "the push travels the same distance at 30fps and 240",
                 $"{f30.PushScale:0.0000} vs {f240.PushScale:0.0000}");
+        }
+
+        static void TestDressing()
+        {
+            Console.WriteLine("Set dressing — clutter accumulates, it does not scatter:");
+
+            // A 20m facade along the x axis, building to the north.
+            List<Dressed> Wall(double prosperity, bool alley = false, bool door = false) =>
+                Dressing.Facade(0, 0, 20, 0, prosperity, alley, door);
+
+            var poor = Wall(0.15);
+            var rich = Wall(0.95);
+            Check(poor.Count > 0, "a poor street collects things", $"{poor.Count} pieces");
+            Check(poor.Count > rich.Count,
+                "and collects MORE than a rich one — which is true, and is free "
+                + "characterisation: Hook reads as poorer than Fairview without a single "
+                + "authored difference between them",
+                $"{poor.Count} vs {rich.Count}");
+            Check(Dressing.Density(0.5, true) > Dressing.Density(0.5, false),
+                "and nobody tidies an alley");
+
+            // ---- DETERMINISM, which the whole thing rests on ----
+            var again = Wall(0.15);
+            bool identical = again.Count == poor.Count;
+            for (int i = 0; i < poor.Count && identical; i++)
+                if (Math.Abs(again[i].X - poor[i].X) > 1e-12
+                    || Math.Abs(again[i].Z - poor[i].Z) > 1e-12
+                    || again[i].Kind != poor[i].Kind
+                    || Math.Abs(again[i].Scale - poor[i].Scale) > 1e-12) identical = false;
+            Check(identical,
+                "THE SAME STREET DRESSES THE SAME WAY EVERY TIME — a city that rearranges "
+                + "its bins when you reload a save is broken in a way players notice "
+                + "immediately and cannot unsee");
+            // And the hash is ours, not the runtime's.
+            Check(Dressing.Hash(3.25, -7.5, 1) == Dressing.Hash(3.25, -7.5, 1),
+                "the hash is stable within a run");
+            Check(Dressing.Hash(3.25, -7.5, 1) != Dressing.Hash(3.25, -7.5, 2),
+                "and the salt actually separates the questions asked at one spot");
+            Check(Math.Abs(Dressing.Roll(1.0, 1.0, 1) - Dressing.Roll(1.0000001, 1.0, 1)) < 1e-12,
+                "quantised to the centimetre, so floating-point drift in a position cannot "
+                + "change what stands there");
+
+            // ---- SPACING ----
+            // Checked on a LONG POOR ALLEY, where the budget is generous
+            // enough for the spacing rule to be what actually constrains.
+            // The first version of this check used the twenty-metre wall
+            // above, where the budget fills long before anything can crowd —
+            // so deleting the spacing rule entirely left it green. A test
+            // that cannot fail is not testing the thing it names.
+            var crowded = Dressing.Facade(0, 0, 160, 0, 0.0, true, false);
+            Check(crowded.Count >= 8, "a long poor alley fills up", $"{crowded.Count} pieces");
+            bool spaced = true;
+            double closest = 1e9;
+            for (int i = 0; i < crowded.Count; i++)
+                for (int j = i + 1; j < crowded.Count; j++)
+                {
+                    double d = Math.Sqrt(Math.Pow(crowded[i].X - crowded[j].X, 2)
+                                       + Math.Pow(crowded[i].Z - crowded[j].Z, 2));
+                    // The awning deliberately sits over a door and may share
+                    // its metre with something on the ground.
+                    if (crowded[i].Kind == Clutter.Awning || crowded[j].Kind == Clutter.Awning) continue;
+                    closest = Math.Min(closest, d);
+                    if (d < Dressing.MinSpacing - 1e-9) spaced = false;
+                }
+            Check(spaced,
+                "nothing is closer than the spacing rule — below it two objects read as "
+                + "one lumpy thing rather than as two", $"closest pair {closest:0.00}m");
+
+            var packed = Dressing.Facade(0, 0, 200, 0, 0.0, true, false);
+            Check(packed.Count <= Dressing.MaxPerFacade,
+                "and a long poor alley is CAPPED — a street buried in bins stops reading "
+                + "as a place and starts reading as a warehouse of props",
+                $"{packed.Count}");
+            // THE CAP SCALES WITH THE WALL. A flat cap bound on every short
+            // facade, so the prosperity difference above never showed up at
+            // all and long walls came out sparser than short ones — the
+            // opposite of both. Caught by the density check failing 7 vs 7.
+            Check(Dressing.BudgetFor(20, 0.5) < Dressing.BudgetFor(80, 0.5),
+                "a longer wall may carry more, so the budget is per metre rather than "
+                + "per wall", $"{Dressing.BudgetFor(20, 0.5)} vs {Dressing.BudgetFor(80, 0.5)}");
+            Check(Dressing.BudgetFor(40, 0.1) > Dressing.BudgetFor(40, 0.9),
+                "AND POVERTY SCALES THE BUDGET, not merely the per-slot chance — a wall "
+                + "offers far more legal slots than it can use, so a probability alone "
+                + "gets swamped by the cap and every street comes out identical",
+                $"{Dressing.BudgetFor(40, 0.1)} vs {Dressing.BudgetFor(40, 0.9)}");
+            Check(Dressing.BudgetFor(1e6, 0.0, true) <= Dressing.MaxPerFacade,
+                "and it is bounded above");
+
+            // ---- AGAINST THE WALL, NEVER IN THE ROAD ----
+            // Building at z<0, street at z>0, so everything should sit just
+            // off the wall on the street side and nowhere near the middle.
+            bool offWall = true;
+            foreach (var p in poor)
+                if (Math.Abs(Math.Abs(p.Z) - Dressing.WallOffset) > 1e-9) offWall = false;
+            Check(offWall,
+                "everything sits exactly against the wall and nothing is out in the "
+                + "roadway — which is both correct and the thing that makes a naive "
+                + "scatter look wrong");
+            bool facesOut = true;
+            foreach (var p in poor)
+                if (Math.Abs(Feel.DeltaAngle(p.Facing, poor[0].Facing)) > 1e-9) facesOut = false;
+            Check(facesOut, "and all of it faces the same way out of the same wall");
+
+            // ---- CORNERS COLLECT ----
+            int nearEnds = 0, middle = 0;
+            var long1 = Dressing.Facade(0, 0, 40, 0, 0.1, false, false);
+            foreach (var p in long1)
+            {
+                if (p.X < 2.5 || p.X > 37.5) nearEnds++;
+                else middle++;
+            }
+            Check(nearEnds > 0,
+                "the ends of a wall collect too — corners are where things are put down "
+                + "and where nobody sweeps", $"{nearEnds} at the ends, {middle} along it");
+
+            // ---- VARIETY ----
+            var kinds = new HashSet<Clutter>();
+            for (double x = 0; x < 400; x += 37) kinds.UnionWith(
+                Dressing.Facade(x, 0, x + 20, 0, 0.2, false, false).ConvertAll(p => p.Kind));
+            Check(kinds.Count >= 3,
+                "a walk down the street turns up more than one kind of thing",
+                string.Join(",", kinds));
+            var scales = new HashSet<double>();
+            foreach (var p in long1) scales.Add(Math.Round(p.Scale, 3));
+            Check(scales.Count > 1,
+                "and nothing is exactly the same size as anything else, which is the "
+                + "cheapest possible defence against a street of clones");
+            bool scaleSane = true;
+            foreach (var p in long1) if (p.Scale < 0.7 || p.Scale > 1.35) scaleSane = false;
+            Check(scaleSane, "within a believable range, so nothing is a doll or a monolith");
+
+            // ---- DOORS ----
+            var withDoor = Wall(0.5, door: true);
+            Check(withDoor.Exists(p => p.Kind == Clutter.Awning),
+                "a door gets an awning — an entrance nobody can find from down the street "
+                + "is an entrance the player walks past");
+            Check(!Wall(0.5).Exists(p => p.Kind == Clutter.Awning),
+                "and a blank wall does not");
+
+            // ---- OVERHEAD ----
+            Check(!Dressing.CableAt(5, 5, 0.1, 30),
+                "nothing is strung across a wide avenue — a cable over a main road reads "
+                + "as a mistake rather than as a slum");
+            int cables = 0;
+            for (double x = 0; x < 200; x += 4) if (Dressing.CableAt(x, 0, 0.1, 9)) cables++;
+            Check(cables > 0,
+                "but a narrow poor street gets them, which is the cheapest thing there is "
+                + "for making a street feel ENCLOSED rather than like two rows of boxes "
+                + "with a gap", $"{cables} spans");
+
+            // ---- DEGENERATE INPUT ----
+            Check(Dressing.Facade(0, 0, 0, 0, 0.1, false, false).Count == 0,
+                "a wall with no length dresses nothing rather than dividing by it");
+            Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
+                "and neither does one too short to put anything against");
         }
 
         static void TestPalette()
