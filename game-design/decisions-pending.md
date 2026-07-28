@@ -517,10 +517,13 @@ DIRECTION at the same time.
 
 Three routes:
 
-**A. Record our own. RECOMMENDED.** Ten seconds per character, ten
-characters — under two minutes of audio in total. Costs nothing, needs no
-acting talent (a reference clip carries timbre, not performance), and is
-unambiguously ours.
+**A. ~~Record our own~~ — RULED OUT by Jafar, 2026-07-28.**
+
+> *"I'm not going to record anything. if anything you can collect suitable
+> samples and use those"*
+
+His call, and it stands. What follows is how I do B without walking into the
+consent problem I raised against it.
 
 **B. A public-domain corpus** (LibriVox and similar). Free, enormous
 variety, legally clean as to copyright — the recordings are released public
@@ -528,23 +531,51 @@ domain.
 
 **C. Buy voice samples.** Unnecessary; A and B cover it.
 
-**The reason I recommend A over B is not copyright, it is consent.** A
-LibriVox recording being public domain settles the copyright question and
-does not settle the other one: cloning an identifiable real person's voice
-touches personality and publicity rights in several jurisdictions, and a
-volunteer who read a novel aloud in 2009 did not agree to become a character
-in a crime game. It is a live issue for anything that might ship
-commercially, and "the file was free" is not an answer to it. Recording our
-own removes the question rather than managing it.
+**So: B, sourced by me, under one rule.** The concern I raised was never
+copyright — it was consent, and "the file was free" does not answer it. But
+that concern has a clean solution short of recording ourselves: use corpora
+whose contributors donated their voices **specifically to build speech
+technology**, rather than corpora that merely happen to be free to copy.
 
-If you want B anyway, say so and I will restrict it to corpora explicitly
-licensed for speech synthesis rather than merely public domain.
+| Corpus | Licence | Donated for speech tech? | Accent |
+|---|---|---|---|
+| **Mozilla Common Voice** | CC0 | **Yes, explicitly — that is its entire purpose** | many US English |
+| LibriTTS / LibriSpeech | CC BY 4.0 | No — audiobook readers, repurposed | US English, clean |
+| LJSpeech | Public domain | No | one US female |
+| VCTK | CC BY 4.0 | Yes | mostly British/Scottish — wrong for us |
 
-### NEEDS YOU — 2. Who sounds like what?
+**Common Voice is the one I will use.** Contributors record clips knowing
+they are building speech technology and release them CC0; that is as close
+to consent for synthesis as a public corpus gets, and it has the accent the
+setting needs. LibriTTS is the fallback if a particular timbre is missing.
 
-Once the route is picked, the actual casting is a creative call and yours:
-Lena, Rocco, Mara, and the crowd voices. I can propose a shortlist against
-the character notes if that is easier than starting from a blank page.
+Two rules I will hold to without being asked: **no identifiable public
+figures**, and no corpus whose licence does not cover synthesis. If a
+character needs a voice I cannot source cleanly, I will say so rather than
+quietly reach for something looser.
+
+**What I will bring back:** a shortlist of candidate clips per character,
+already trimmed to ~10 seconds and matched to the character notes by
+timbre. You approve by ear — listening to five clips, not researching
+licences.
+
+### NEEDS YOU — 2. Who sounds like what? (a listening task, not a research task)
+
+Casting stays yours because it is a creative call, but you should not have
+to start from a blank page or read a licence. I will bring a shortlist of
+trimmed candidate clips per character; you say which one is Lena.
+
+### Kokoro: dropped, not deferred
+
+> *"why are we using kokoro? will it be better than what we generated now,
+> because that sounds like shit"*
+
+We should not have been. It was kept for live crowd murmur and that
+justification does not hold: crowd ambience is the most pre-generatable
+speech in the game, so it never needed to be live, and a second engine buys
+a second voice identity and a second quality ceiling — a crowd that audibly
+does not belong to the same world as the cast. Chatterbox does the crowd in
+the same overnight batch. One engine.
 
 ## Standing rules honored meanwhile
 
