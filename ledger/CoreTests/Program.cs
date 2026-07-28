@@ -696,6 +696,13 @@ namespace Ledger.CoreTests
             var beats1 = new BeatBook();
             var b1 = new Beat { Id = "tea", HostId = "Ada", Title = "Tea", Day = 3, StartHour = 22, EndHour = 24 };
             beats1.Add(b1); b1.Restore(BeatState.Attended);
+            // A beat the RUNTIME generated — no fresh boot re-authors this one,
+            // so the codec itself must carry enough to rebuild it (audit
+            // 2026-07-27: id+state alone silently dropped every generated
+            // evening on load).
+            var bGen = new Beat { Id = "evening_d9", HostId = "r0042", Title = "An evening with Vera",
+                Day = 9, StartHour = 21, EndHour = 24, InviteText = "Come by tonight." };
+            beats1.Add(bGen); bGen.Restore(BeatState.Skipped);
             var extra1 = new Dictionary<string, object> { { "wearingCoat", true }, { "osseiSpawned", true } };
 
             var debts1 = new DebtBook();
@@ -732,6 +739,10 @@ namespace Ledger.CoreTests
             Check(mill2.Discredit("player.location_d2_evening", null, now).Outcome == DcOutcome.AlreadyDenied,
                 "the denial cap survives the save");
             Check(beats2.All.First(b => b.Id == "tea").State == BeatState.Attended, "beat states round-trip");
+            var gen2 = beats2.All.FirstOrDefault(b => b.Id == "evening_d9");
+            Check(gen2 != null && gen2.State == BeatState.Skipped && gen2.HostId == "r0042"
+                && gen2.Day == 9 && gen2.StartHour == 21,
+                "a runtime-generated evening is rebuilt whole from the save, stood-up state and all");
             Check(extra2.ContainsKey("wearingCoat") && (bool)extra2["wearingCoat"], "game-layer flags round-trip");
             Check(Math.Abs(mill2.Get("rocco").Loyalty - mill1.Get("rocco").Loyalty) < 1e-9, "loyalty round-trips");
             Check(Math.Abs(mill2.Get("lena").Suspicion.Value - mill1.Get("lena").Suspicion.Value) < 1e-9,

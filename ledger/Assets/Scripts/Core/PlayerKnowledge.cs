@@ -72,6 +72,11 @@ namespace Ledger.Core
         /// carrying — what the damage-control verbs key off.
         public KnownLead StrongestFor(string holderId) =>
             _known.Values.Where(k => k.HolderId == holderId && !k.Handled)
-                .OrderByDescending(k => k.ConfidenceWhenLearned).FirstOrDefault();
+                .OrderByDescending(k => k.ConfidenceWhenLearned)
+                // Stable on ties: dictionary insertion order reverses across a
+                // save/load, and the damage-control verbs must key the same
+                // lead before and after (audit 2026-07-27).
+                .ThenBy(k => k.TopicKey, System.StringComparer.Ordinal)
+                .FirstOrDefault();
     }
 }

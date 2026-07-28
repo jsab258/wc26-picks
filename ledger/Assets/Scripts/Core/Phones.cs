@@ -156,6 +156,7 @@ namespace Ledger.Core
 
             taker.Memory.Append(new MemoryEvent(now, "conversation", 0.5,
                 $"Took a message on the {call.PlaceName} line. {summary}"));
+            if (!taker.Holds($"{aboutWhom}.left_word", call.WantedId ?? "somebody"))
             taker.Rumors.Add(new Rumor
             {
                 Content = new Fact(aboutWhom, "left_word", call.WantedId ?? "somebody"),

@@ -123,11 +123,18 @@ namespace Ledger.Game
             if (!Campaign.OpenMode || _gossip == null || _gossip.Mill == null) return;
 
             // A calendar jump during the audit gives the grace days back
-            // (audit 2026-07-27) — the letter promised days, not dates.
-            if (ActThree.Opened && !ActThree.AuditClosed
-                && _lastAuditSeenDay >= 0 && Now.Day > _lastAuditSeenDay + 1)
-                ActThree.AuditClosesDay =
-                    ActThreeState.ClosesDayAfterJump(ActThree.AuditClosesDay, _lastAuditSeenDay, Now.Day);
+            // (audit 2026-07-27) — the letter promised days, not dates. Same
+            // for the epilogue's three mornings: a Fall inside them used to
+            // skip the remaining vignettes silently.
+            if (_lastAuditSeenDay >= 0 && Now.Day > _lastAuditSeenDay + 1)
+            {
+                int jumped = Now.Day - _lastAuditSeenDay - 1;
+                if (ActThree.Opened && !ActThree.AuditClosed)
+                    ActThree.AuditClosesDay =
+                        ActThreeState.ClosesDayAfterJump(ActThree.AuditClosesDay, _lastAuditSeenDay, Now.Day);
+                else if (ActThree.AuditClosed && ActThree.EpilogueDay >= 0)
+                    ActThree.EpilogueDay += jumped;
+            }
             _lastAuditSeenDay = Now.Day;
 
             if (ActThree.AuditClosed) { TickEpilogue(); return; }

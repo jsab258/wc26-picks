@@ -30,6 +30,10 @@ namespace Ledger.SimHarness
 
         static async Task<int> Main(string[] args)
         {
+            // The report is committed; its floats must not depend on the
+            // machine's locale — a comma-decimal culture would diff every
+            // number in sim-report.md (audit 2026-07-27).
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             _live = Array.IndexOf(args, "--live") >= 0;
             var key = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
             if (_live && string.IsNullOrEmpty(key))

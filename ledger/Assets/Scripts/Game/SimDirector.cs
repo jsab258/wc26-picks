@@ -12,15 +12,24 @@ namespace Ledger.Game
     /// then writes sim-out/sim-report.json and exits with a pass/fail code.
     public static class SimMode
     {
+        // Parsed once (it cannot change after process start — and the old
+        // per-read GetCommandLineArgs() allocated a fresh array six times a
+        // frame on the normal-play hot path), and clamped at zero (a negative
+        // -simdays used to produce a normal-looking game with driving, audio
+        // and the key prompt all silently disabled). Audit 2026-07-27.
+        static int? _days;
         public static int Days
         {
             get
             {
+                if (_days.HasValue) return _days.Value;
+                int parsed = 0;
                 var args = Environment.GetCommandLineArgs();
                 for (int i = 0; i < args.Length - 1; i++)
                     if (args[i] == "-simdays" && int.TryParse(args[i + 1], out var d))
-                        return d;
-                return 0;
+                        parsed = Math.Max(0, d);
+                _days = parsed;
+                return parsed;
             }
         }
     }
@@ -1050,7 +1059,10 @@ namespace Ledger.Game
                 // And the hand-fired pressure below must have landed.
                 && (!_game.Campaign.OpenMode || SimMode.Days < 9 || _directorFired);
 
-            bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
+            // _weekLostVerdict too: ForceOpenMode rewrites any pre-open verdict
+            // to Ongoing at day 8, which made the cast-out clause unfalsifiable
+            // (audit 2026-07-27) — the sampled copy is the honest record.
+            bool verdictSane = camp.Verdict != Verdict.LostCastOut && _weekLostVerdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
                 (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2 - _frozenCloses);
 

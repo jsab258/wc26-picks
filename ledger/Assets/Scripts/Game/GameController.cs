@@ -507,6 +507,11 @@ namespace Ledger.Game
             // step across the exact hour, and the per-day guard already limits it to once.
             if (Now.Hour >= 23 && Now.Day > _lastReflectedDay && _lena != null && _lena.Ready)
             {
+                // Days the Fall jumped over never reach their own 23:00; any
+                // that carry events (the fall day itself) reflect now, so a
+                // lived day is never left raw forever (audit 2026-07-27).
+                for (int day = _lastReflectedDay + 1; day < Now.Day; day++)
+                    _ = _lena.RunReflectionForDayAsync(day, Now);
                 _lastReflectedDay = Now.Day;
                 _ = _lena.RunReflectionAsync(Now);
             }
@@ -1051,7 +1056,10 @@ namespace Ledger.Game
             int seized = Wallet.Seize();
             Now = new GameTime(Now.Day + 3, 8, 0);
             _lastClosedDay = Now.Day;   // the skipped mornings never close
-            _jobPostedDay = Now.Day;    // no ghost job from the lost nights
+            // (_jobPostedDay deliberately NOT touched: posting checks the live
+            // window at post time, so no ghost job can appear from the lost
+            // nights — and stamping it here suppressed the landing night's
+            // legitimate drop, audit 2026-07-27.)
 
             var didTime = new Fact("player", "did_time", "true");
             // Everyone KNOWS (the fact, the loyalty, the settled suspicion).
@@ -1882,6 +1890,11 @@ namespace Ledger.Game
                             if (t.StartsWith("player.")) ActOne.NoorDrawerTopics.Add(t);
                 }
                 if (FlagB(extra, "osseiSpawned")) SpawnOssei();
+                // SpawnOssei resets the rumor half-life to its presence value;
+                // if the save was made inside the post-Fall calm, put the calm
+                // back (audit 2026-07-27).
+                if (_osseiCalmUntilDay > Now.Day && _gossip != null && _gossip.Mill != null)
+                    _gossip.Mill.RumorHalfLifeHours = 96;
                 _ui?.Toast($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}. The street remembers where you left it.", 6f);
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
             }

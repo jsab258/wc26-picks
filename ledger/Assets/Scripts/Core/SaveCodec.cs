@@ -86,9 +86,15 @@ namespace Ledger.Core
                 { "from", s.LearnedFrom ?? "" }, { "learnedAt", (double)s.LearnedAt.TotalMinutes },
             }).ToList();
 
+            // Full authored fields ride along so a beat the RUNTIME generated
+            // (the open city's evening_dN invitations) can be rebuilt on load —
+            // id+state alone restored only beats the fresh boot re-authors,
+            // silently dropping every generated evening (audit 2026-07-27).
             root["beats"] = beats.All.Select(b => (object)new Dictionary<string, object>
             {
                 { "id", b.Id }, { "state", b.State.ToString() },
+                { "host", b.HostId }, { "title", b.Title }, { "day", b.Day },
+                { "from", b.StartHour }, { "to", b.EndHour }, { "invite", b.InviteText ?? "" },
             }).ToList();
 
             root["debts"] = (debts != null ? debts.All : Enumerable.Empty<Debtor>())
@@ -183,6 +189,17 @@ namespace Ledger.Core
                 var b = MiniJson.AsObject(o);
                 if (b == null) continue;
                 var beat = beats.All.FirstOrDefault(x => x.Id == MiniJson.GetString(b, "id"));
+                if (beat == null && b.ContainsKey("day"))
+                {
+                    beat = new Beat
+                    {
+                        Id = MiniJson.GetString(b, "id"), HostId = MiniJson.GetString(b, "host"),
+                        Title = MiniJson.GetString(b, "title"), Day = MiniJson.GetInt(b, "day"),
+                        StartHour = MiniJson.GetInt(b, "from"), EndHour = MiniJson.GetInt(b, "to"),
+                        InviteText = MiniJson.GetString(b, "invite"),
+                    };
+                    beats.Add(beat);
+                }
                 if (beat != null && Enum.TryParse(MiniJson.GetString(b, "state"), out BeatState bs))
                     beat.Restore(bs);
             }

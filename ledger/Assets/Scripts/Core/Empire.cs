@@ -354,7 +354,11 @@ namespace Ledger.Core
                 OriginId = owner.Id, Summary = $"the new owner is squeezing {owner.DisplayName} for the {b.Name}",
                 Confidence = 0.85, Hops = 0, Sensitive = true,
             };
-            owner.Rumors.Add(backfire);
+            // Holds() first, like every other rumor writer: a second refused
+            // squeeze used to append an identical copy every time (audit
+            // 2026-07-27).
+            if (!owner.Holds(backfire.TopicKey, backfire.Content.Value))
+                owner.Rumors.Add(backfire);
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent, 0, 1);
             return new DcResult { Outcome = DcOutcome.Backfired, NewRumor = backfire,
                 Message = $"{owner.DisplayName} doesn't fold — and by tonight the street will know you came squeezing." };

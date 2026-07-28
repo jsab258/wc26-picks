@@ -120,6 +120,16 @@ namespace Ledger.Game
             catch (Exception e) { Debug.LogWarning($"Reflection failed: {e.Message}"); }
         }
 
+        /// Reflect a PAST day — the Fall jumps the calendar over 23:00, and a
+        /// day that was lived but never reflected would otherwise stay raw
+        /// forever (audit 2026-07-27).
+        public async Task RunReflectionForDayAsync(int day, GameTime now)
+        {
+            if (Memory.EventsOnDay(day).Count == 0) return;
+            try { await _engine.ReflectAsync(day, now); }
+            catch (Exception e) { Debug.LogWarning($"Reflection failed: {e.Message}"); }
+        }
+
         public string DebugReport()
         {
             var sb = new System.Text.StringBuilder();

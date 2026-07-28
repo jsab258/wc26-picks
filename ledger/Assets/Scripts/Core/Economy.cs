@@ -36,7 +36,8 @@ namespace Ledger.Core
         /// What they bring, in the words a person would use: "the drink",
         /// "the stock", "the produce".
         public string Goods;
-        /// Which business they keep stocked. Null means the bar itself.
+        /// Which business they keep stocked ("bar" is the bar itself; null
+        /// matches nothing — FactorFor(null) means the district as a whole).
         public string ServesBusinessId;
         /// Charged weekly, not daily — a delivery is an event, not a drip.
         public int PricePerWeek = 90;
@@ -329,6 +330,7 @@ namespace Ledger.Core
                 {
                     { "id", s.Id }, { "standing", s.Standing }, { "refusing", s.Refusing },
                     { "lastPaidDay", s.LastPaidDay }, { "unpaid", s.Unpaid },
+                    { "lastPrice", s.LastPrice },   // the "he charges more now" baseline (audit 2026-07-27)
                 });
             return new Dictionary<string, object>
             {
@@ -356,6 +358,7 @@ namespace Ledger.Core
                 s.Refusing = o.TryGetValue("refusing", out var r) && r is bool b && b;
                 s.LastPaidDay = MiniJson.GetInt(o, "lastPaidDay");
                 s.Unpaid = MiniJson.GetInt(o, "unpaid");
+                s.LastPrice = MiniJson.GetInt(o, "lastPrice");
             }
         }
 
