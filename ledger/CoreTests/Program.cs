@@ -89,6 +89,7 @@ namespace Ledger.CoreTests
                 TestPalette();
                 TestLightModel();
                 TestMusicModel();
+                TestRig();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -6263,6 +6264,206 @@ namespace Ledger.CoreTests
             Check(Math.Abs(f30[(int)MusicLayer.Unease] - f240[(int)MusicLayer.Unease]) < 1e-3,
                 "the score settles at the same rate at 30fps and 240",
                 $"{f30[(int)MusicLayer.Unease]:0.0000} vs {f240[(int)MusicLayer.Unease]:0.0000}");
+        }
+
+        static void TestRig()
+        {
+            Console.WriteLine("Procedural rig — built against capsules so the characters drop straight in:");
+
+            // ---- TWO-BONE IK ----
+            const double up = 0.45, lo = 0.43;   // roughly a human leg
+
+            // The property that matters: a reachable target is REACHED. If
+            // the solve is wrong the foot lands somewhere near the ground and
+            // nobody notices until it is a shipping bug.
+            bool reaches = true;
+            double worst = 0;
+            for (double d = Math.Abs(up - lo) + 0.02; d < up + lo - 0.02; d += 0.005)
+            {
+                var (hip, knee) = Rig.TwoBone(up, lo, d);
+                // Reconstruct the foot position from the angles and check it
+                // landed on the target — testing the ANSWER, not the formula
+                // restated.
+                double kneeX = Math.Sin(hip) * up, kneeY = -Math.Cos(hip) * up;
+                // The lower bone's direction is (hip - knee) off straight
+                // down. My first version of this line wrote hip - (pi - knee)
+                // and the check failed by 0.84m — the SOLVE was right and the
+                // reconstruction was wrong, which is the fourth time on this
+                // project that a metric has measured the wrong thing. The
+                // convention is now written down in Rig itself so the next
+                // person to reconstruct it does not have to re-derive it.
+                double lowerDir = hip - knee;
+                double footX = kneeX + Math.Sin(lowerDir) * lo;
+                double footY = kneeY - Math.Cos(lowerDir) * lo;
+                double got = Math.Sqrt(footX * footX + footY * footY);
+                worst = Math.Max(worst, Math.Abs(got - d));
+                if (Math.Abs(got - d) > 1e-6) reaches = false;
+            }
+            Check(reaches, "every reachable target is reached exactly across the whole range",
+                $"worst error {worst:0.000000}m");
+
+            // OVER-EXTENSION IS THE COMMON CASE, not the edge case: a walking
+            // leg is nearly straight for most of its cycle, and a solver that
+            // returns NaN past full reach snaps the leg once per step.
+            var far = Rig.TwoBone(up, lo, 5.0);
+            Check(!double.IsNaN(far.hip) && !double.IsNaN(far.knee),
+                "a target past full reach does not produce NaN — which would snap the "
+                + "leg once per step, because a walking leg is nearly straight most of "
+                + "the time");
+            Check(far.knee < 0.05, "it just straightens instead", $"knee {far.knee:0.000} rad");
+            var near = Rig.TwoBone(up, lo, 0.0);
+            Check(!double.IsNaN(near.knee) && near.knee > 2.0,
+                "and a target inside the hip folds the knee up rather than dividing by zero");
+            Check(Rig.TwoBone(0, lo, 0.4).knee == 0, "a zero-length bone is refused, not solved");
+            // WHERE THE REACH CLAMP ACTUALLY EARNS ITS PLACE. The acos calls
+            // are clamped internally, so removing the outer clamp does NOT
+            // produce a NaN for any positive reach and a deliberate break
+            // aimed there passed. A NEGATIVE reach is the case that matters:
+            // the cosine denominator flips sign and the solver returns a
+            // plausible, wrong answer rather than an obviously broken one.
+            // Written down because "the guard looks redundant" is exactly how
+            // it gets deleted.
+            var behind = Rig.TwoBone(up, lo, -0.5);
+            Check(!double.IsNaN(behind.hip) && !double.IsNaN(behind.knee)
+                  && behind.knee > 2.0,
+                "a NEGATIVE reach folds the leg up rather than returning a plausible "
+                + "wrong answer — which is what an unclamped solve does, because the "
+                + "cosine denominator flips sign",
+                $"knee {behind.knee:0.000} rad");
+
+            // Bending further as the target comes closer, monotonically.
+            bool bendsIn = true;
+            double prevKnee = -1;
+            for (double d = up + lo - 0.02; d > Math.Abs(up - lo) + 0.02; d -= 0.01)
+            {
+                var (_, k) = Rig.TwoBone(up, lo, d);
+                if (k < prevKnee - 1e-9) bendsIn = false;
+                prevKnee = k;
+            }
+            Check(bendsIn, "and the knee bends further the closer the foot comes, never back");
+
+            // ---- THE HALF EVERYBODY FORGETS ----
+            Check(Rig.PelvisDrop(0, 0, 0.88) == 0, "level ground drops the pelvis not at all");
+            Check(Rig.PelvisDrop(0, 0.30, 0.88) < 0,
+                "but a foot on a kerb drops the hips — planting each foot independently "
+                + "on a slope stretches one leg past its reach and the character does the "
+                + "splits");
+            Check(Rig.PelvisDrop(0, 3.0, 0.88) >= -0.88 * 0.25,
+                "and it is capped, or a big step down becomes a crouch and reads as a bug",
+                $"{Rig.PelvisDrop(0, 3.0, 0.88):0.000}m");
+            Check(Math.Abs(Rig.PelvisDrop(0, 0.3, 0.88) - Rig.PelvisDrop(0.3, 0, 0.88)) < 1e-12,
+                "and it does not care which foot is the low one");
+
+            // ---- FOOT PLACEMENT ----
+            Check(Math.Abs(Rig.FootHeight(1.0, 1.05, 1.0) - 1.05) < 1e-9,
+                "a foot lands on ground within reach of it");
+            Check(Rig.FootHeight(1.0, 9.0, 1.0) <= 1.0 + Rig.MaxFootAdjustMetres + 1e-9,
+                "and never chases ground it cannot reach — a foot that follows exactly "
+                + "will chase a kerb edge or a passing collider and jitter, which looks "
+                + "worse than no IK at all");
+            Check(Math.Abs(Rig.FootHeight(1.0, 1.2, 0.0) - 1.0) < 1e-9,
+                "with the blend off, the animation wins completely");
+
+            Check(Rig.PlantBlend(0.05) == 0, "IK is off while the foot swings");
+            Check(Rig.PlantBlend(0.55) == 1, "and full while it is planted");
+            Check(Rig.PlantBlend(0.82) > 0 && Rig.PlantBlend(0.82) < 1, "easing out as it lifts");
+            bool continuous = true;
+            double prevB = Rig.PlantBlend(0);
+            for (double p = 0; p <= 2.0; p += 0.002)
+            {
+                double b = Rig.PlantBlend(p);
+                if (Math.Abs(b - prevB) > 0.06) continuous = false;
+                prevB = b;
+            }
+            Check(continuous,
+                "and it never jumps, including across the wrap — a discontinuity here is "
+                + "a visible pop on every single step");
+
+            // ---- LOOK-AT ----
+            var (c, n, h) = Rig.LookSplit(60);
+            Check(Math.Abs(c + n + h - 60) < 1e-9,
+                "the turn is SPLIT down the spine and adds up to the angle asked for");
+            Check(c > 0 && n > 0 && h > 0,
+                "with all three joints in it — a head that turns alone is an owl");
+            var small = Rig.LookSplit(12);
+            var large = Rig.LookSplit(75);
+            Check(small.head / 12.0 > large.head / 75.0,
+                "a glance is mostly head and a proper look comes from the chest — you "
+                + "flick your eyes at a passing face and you turn to look at somebody "
+                + "who said your name",
+                $"{small.head / 12.0:0.00} vs {large.head / 75.0:0.00}");
+            var beyond = Rig.LookSplit(170);
+            Check(Math.Abs(beyond.chest + beyond.neck + beyond.head) <= Rig.LookLimitDegrees + 1e-9,
+                "nothing exceeds the limit however far round the target is");
+            Check(Rig.MustTurnBody(170) && !Rig.MustTurnBody(30),
+                "and the caller is TOLD it could not be reached, so the body comes round — "
+                + "which is a decision the character makes, not a clamp");
+            var left = Rig.LookSplit(-45);
+            Check(left.chest < 0 && left.neck < 0 && left.head < 0, "and it works both ways");
+
+            // ---- LEAN ----
+            var accel = Rig.Lean(6, 0, 4);
+            var brake = Rig.Lean(-6, 0, 4);
+            Check(accel.pitch > 0 && brake.pitch < 0,
+                "lean forward into acceleration and back into braking");
+            Check(Math.Abs(Rig.Lean(100, 0, 4).pitch) < 12,
+                "capped, because a character leaning fifteen degrees is falling over, "
+                + "not running");
+            Check(Math.Abs(Rig.Lean(0, 180, 0).roll) < 1e-9,
+                "A PIVOT ON THE SPOT HAS NO BANK IN IT — banking a stationary turn is the "
+                + "single most common giveaway of a procedural rig");
+            Check(Math.Abs(Rig.Lean(0, 180, 6).roll) > 1,
+                "but a turn at speed banks into the corner");
+            Check(Rig.Lean(0, 90, 6).roll * Rig.Lean(0, -90, 6).roll < 0,
+                "and it banks the opposite way turning the other way");
+
+            // ---- BREATHING ----
+            Check(Rig.BreathRate(0.1, 1) > Rig.BreathRate(1.0, 1),
+                "a spent fighter breathes faster than a rested one");
+            Check(Rig.BreathRate(0.1, 1) < 1.2,
+                "but not like a panting dog", $"{Rig.BreathRate(0.1, 1):0.00}/s");
+            Check(Rig.BreathDepth(0.1, 1) > Rig.BreathDepth(1.0, 1),
+                "and deeper when winded");
+            Check(Rig.BreathDepth(0.5, 0.3) < Rig.BreathDepth(0.5, 1.0),
+                "BUT SHALLOWER WHEN HURT — a cracked rib stops you filling your lungs, "
+                + "and getting this backwards reads instantly as wrong",
+                $"{Rig.BreathDepth(0.5, 0.3):0.0000} vs {Rig.BreathDepth(0.5, 1.0):0.0000}");
+            double mn = 9, mx = -9;
+            bool asym = false;
+            double lastB = Rig.Breath(0, 0.5, 1);
+            int rising = 0, falling = 0;
+            for (double t = 0; t < 12; t += 1.0 / 90.0)
+            {
+                double b = Rig.Breath(t, 0.5, 1);
+                mn = Math.Min(mn, b); mx = Math.Max(mx, b);
+                if (b > lastB) rising++; else if (b < lastB) falling++;
+                lastB = b;
+            }
+            Check(mx > 0 && mn < 0 && mx < 0.05,
+                "the chest moves both ways around rest and by a believable amount",
+                $"{mn:0.0000}..{mx:0.0000}");
+            asym = falling > rising * 1.2;
+            Check(asym,
+                "and the out-breath is longer than the in-breath, which is true and is "
+                + "what stops it reading as a sine wave",
+                $"{rising} rising vs {falling} falling samples");
+
+            // ---- THE LIMP, ON THE BODY ----
+            Check(Rig.Limp(1.0, true, 0.2).stanceScale == 1.0,
+                "an unhurt person does not limp");
+            var onBad = Rig.Limp(0.4, true, 0.2);
+            var onGood = Rig.Limp(0.4, true, 0.7);
+            Check(onBad.stanceScale < onGood.stanceScale,
+                "weight comes off the bad leg fast and stays on the good one — the same "
+                + "ASYMMETRY the footstep rhythm already carries");
+            Check(onGood.pelvisDip < 0 && onBad.pelvisDip == 0,
+                "and the hips dip onto the leg that can take it");
+            var mirrored = Rig.Limp(0.4, false, 0.7);
+            Check(mirrored.stanceScale < Rig.Limp(0.4, false, 0.2).stanceScale,
+                "and it mirrors for a bad right leg");
+            Check(Rig.Limp(0.2, true, 0.2).stanceScale < Rig.Limp(0.7, true, 0.2).stanceScale,
+                "a worse injury is a worse limp, from the SAME capability number the "
+                + "audio uses — a limp you can hear but not see is worse than neither");
         }
 
         static void TestPalette()

@@ -162,6 +162,7 @@ namespace Ledger.Game
 
                 Footsteps(speed, severity, dt);
                 _bobPhase += speed * dt * 3.2f;
+                DriveRig(speed, severity, dt);
             }
             else
             {
@@ -202,6 +203,44 @@ namespace Ledger.Game
             if (Weather.Wetness > 0.45f && Random.value < Weather.Wetness * 0.45f)
                 Splash(transform.position);
             _footfall++;
+        }
+
+        /// THE BODY, from the numbers the movement already produces
+        /// (Core/Rig, the-gap.md §3b).
+        ///
+        /// Runs on the capsule today and will run on a Mixamo humanoid the
+        /// moment one is imported, with no change here — `CharacterRig` binds
+        /// through the Avatar and falls back to the transform when there is
+        /// no skeleton. This is the whole reason it was built before the
+        /// characters: none of it is waiting on them.
+        // `_body`, not `_rig` — CameraRig already holds `_rig` on this
+        // class, and ShapeCheck caught the collision locally in a second
+        // rather than twenty minutes into a Windows runner.
+        CharacterRig _body;
+        float _lastSpeed, _lastFacing;
+
+        void DriveRig(float speed, float severity, float dt)
+        {
+            if (_body == null) _body = CharacterRig.Attach(gameObject);
+            if (_body == null || dt <= 0) return;
+
+            _body.Speed = speed;
+            // Acceleration and turn rate MEASURED rather than passed through
+            // from input: the locomotion model has momentum, so what the
+            // player asked for and what the body is doing are different
+            // things, and the lean belongs to the body.
+            _body.AccelMetresPerSecSq = (speed - _lastSpeed) / dt;
+            float facing = (float)_loco.FacingDegrees;
+            _body.TurnDegreesPerSec = Feel.DeltaAngle(_lastFacing, facing) / dt;
+            _lastSpeed = speed;
+            _lastFacing = facing;
+
+            _body.Capability = Game != null ? Game.Harm.Capability("player", Game.Now.Day) : 1.0;
+            _body.Stamina = 1.0;   // combat will own this once a fight can start
+            // ONE phase for the pose and the sound, so the limp you see and
+            // the limp you hear cannot drift apart. Two steps make one cycle.
+            float stride = Mathf.Max(0.01f, (float)Gait.StrideFor(_footfall, severity));
+            _body.Phase = ((_footfall + _sinceStep / stride) * 0.5) % 1.0;
         }
 
         /// A small ring of droplets kicked out sideways and low. Built and
@@ -248,8 +287,8 @@ namespace Ledger.Game
             var flat = new Vector3((float)_loco.VelocityX, 0, (float)_loco.VelocityZ);
             if (flat.sqrMagnitude > 0.0001f) flat.Normalize();
 
-            _rig.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
-            var target = new Vector3((float)_rig.X, (float)_rig.Y, (float)_rig.Z);
+            _body.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
+            var target = new Vector3((float)_body.X, (float)_body.Y, (float)_body.Z);
 
             // Head bob is applied to the CAMERA, not the body, and is small.
             // This is the line between "alive" and "seasick".
@@ -268,7 +307,7 @@ namespace Ledger.Game
 
             _camera.transform.position = desired;
             _camera.transform.LookAt(target);
-            _camera.fieldOfView = (float)_rig.Fov;
+            _camera.fieldOfView = (float)_body.Fov;
         }
 
         /// YOU ARE NOT A GHOST (game-feel-spec.md §5).
@@ -345,7 +384,7 @@ namespace Ledger.Game
         public void ResumeCamera()
         {
             var pivot = transform.position + Vector3.up * 1.5f;
-            _rig.Place(pivot.x, pivot.y, pivot.z);
+            _body.Place(pivot.x, pivot.y, pivot.z);
         }
     }
 }
