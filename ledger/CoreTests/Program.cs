@@ -83,6 +83,7 @@ namespace Ledger.CoreTests
                 TestPopulation();
                 TestFeel();
                 TestAcoustics();
+                TestPalette();
                 TestDirector();
                 await TestDirectorAsync();
                 await TestIntentRouterAsync();
@@ -5313,6 +5314,48 @@ namespace Ledger.CoreTests
             Check(lanes > 0 && lanes == alleys,
                 "and every lane the city actually has reads as one",
                 $"{alleys}/{lanes}");
+        }
+
+        static void TestPalette()
+        {
+            Console.WriteLine("Palette — neon that stays the colour it was authored:");
+
+            // The eight real signs, as authored in WorldBuilder.
+            var signs = new (string name, double r, double g, double b)[]
+            {
+                ("MARQUEE", 1.00, 0.15, 0.55), ("CARDS", 0.20, 0.85, 1.00),
+                ("OPEN ALL NITE", 1.00, 0.65, 0.10), ("ROOMS", 0.45, 0.35, 1.00),
+                ("MICKEY'S", 1.00, 0.35, 0.12), ("BATHS", 0.30, 1.00, 0.70),
+                ("VACANCY", 1.00, 0.75, 0.25), ("MARKET", 0.95, 0.90, 0.35),
+            };
+
+            int washed = 0;
+            foreach (var (name, r, g, b) in signs)
+            {
+                double authored = Palette.Saturation(r, g, b);
+                var (nr, ng, nb) = Palette.NaiveScale(r, g, b, 2.2);
+                if (Palette.Saturation(nr, ng, nb) < authored * 0.75) washed++;
+
+                var (er, eg, eb) = Palette.Emissive(r, g, b, 0.95);
+                Check(Math.Abs(Palette.Saturation(er, eg, eb) - authored) < 1e-9,
+                    $"{name} keeps its saturation exactly",
+                    $"{Palette.Saturation(er, eg, eb):0.0000} vs {authored:0.0000}");
+                Check(Math.Abs(Math.Max(er, Math.Max(eg, eb)) - 0.95) < 1e-9,
+                    $"{name} reaches the brightness asked for");
+                Check(er <= 1.0 && eg <= 1.0 && eb <= 1.0,
+                    $"{name} never clips, so nothing is lost to the display");
+            }
+            Check(washed >= 4,
+                "and the naive x2.2 the art pass shipped washed out half the signs",
+                $"{washed} of {signs.Length}");
+
+            // The property that makes it worth having in Core at all.
+            Check(Palette.Saturation(0.5, 0.5, 0.5) == 0, "grey has no saturation");
+            Check(Palette.Saturation(0, 0, 0) == 0, "and neither does black, without dividing by it");
+            var (zr, zg, zb) = Palette.Emissive(0, 0, 0, 1.0);
+            Check(zr == 0 && zg == 0 && zb == 0, "a black sign stays off rather than becoming a divide");
+            Check(Palette.Saturation(1, 0, 1) > Palette.Saturation(1, 0.8, 1),
+                "and a washed colour reads as less saturated than a pure one");
         }
 
         static void TestDirector()

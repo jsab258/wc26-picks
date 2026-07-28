@@ -104,7 +104,16 @@ namespace Ledger.Game
                 var mat = new Material(Shader.Find("Standard"));
                 mat.color = colour * 0.35f;
                 mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", colour * 2.2f);
+                // SCALE TO THE BRIGHTEST CHANNEL, never multiply uniformly.
+                // `colour * 2.2` was the first attempt and it clipped every
+                // channel above 0.45 to white, so ROOMS, BATHS, VACANCY and
+                // MARKET all rendered as bright grey — half the signs, and
+                // the pale ones that carry the warmth. The CI render
+                // fingerprint caught it: bright pixels averaging 247,249,244
+                // on a night frame that is meant to be full of colour.
+                var (er, eg, eb) = Ledger.Core.Palette.Emissive(
+                    colour.r, colour.g, colour.b, 0.95);
+                mat.SetColor("_EmissionColor", new Color((float)er, (float)eg, (float)eb));
                 panel.GetComponent<Renderer>().sharedMaterial = mat;
                 Object.Destroy(panel.GetComponent<Collider>());
 
@@ -116,7 +125,12 @@ namespace Ledger.Game
                 light.type = LightType.Point;
                 light.color = colour;
                 light.range = 13f;
-                light.intensity = 2.1f;
+                // The panel is no longer allowed to blow out, so the APPARENT
+                // brightness has to come from the pool it throws instead —
+                // which is the more truthful model anyway. A neon tube is not
+                // very bright; it just looks it against a dark wet street,
+                // and the light on the asphalt is what the eye actually reads.
+                light.intensity = 2.9f;
                 _neon.Add(light);
             }
         }

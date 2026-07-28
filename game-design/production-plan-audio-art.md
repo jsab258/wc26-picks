@@ -310,8 +310,30 @@ rather than a decision.
 | Channel | Engine | Why |
 |---|---|---|
 | Barks, ambience, recognition, refusals | **chatterbox, offline** | Directable, alive, ~6 RTF is irrelevant for a one-time batch |
-| Crowd murmur, if we want it live | kokoro | 0.34 RTF on a CPU with no GPU; direction does not matter for a murmur |
-| Named-cast free dialogue | **open** | Decide after the bark bank exists and we know how far cloned voices carry | If
+| Crowd murmur | **chatterbox, offline** | See below — kokoro is dropped |
+| Named-cast free dialogue | **open** | Decide after the bark bank exists and we know how far cloned voices carry |
+
+### 1j. KOKORO IS DROPPED (2026-07-28)
+
+> *"why are we using kokoro? will it be better than what we generated now,
+> because that sounds like shit"* — Jafar
+
+He is right and the answer is that we should not be. Kokoro was kept for one
+job: live crowd murmur, on the strength of 0.34 RTF on a CPU with no GPU.
+That justification does not survive contact with two facts.
+
+**The murmur does not need to be live.** Crowd ambience is finite and
+repetitive — it is the most pre-generatable speech in the game. It was only
+ever a candidate for live generation because kokoro happened to be fast
+enough, which is choosing the work to fit the tool.
+
+**And a second engine costs more than it looks.** Two engines means two
+voice identities, two sets of artefacts, two quality ceilings — and the
+crowd would audibly not belong to the same world as the cast. One engine for
+all pre-generated speech is not a compromise, it is the better result.
+
+Chatterbox generates the crowd barks in the same overnight batch as
+everything else. **One engine. Dropped, not deferred.** If
 none does, the fallback is not "pay more" — it is to buy direction
 structurally: generate 2–3 takes per line and pick, use distinct voices per
 emotional register, and lean on the distance filtering and occlusion already

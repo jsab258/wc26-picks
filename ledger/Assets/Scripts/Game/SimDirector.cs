@@ -667,6 +667,7 @@ namespace Ledger.Game
                     // The bright pixels' own colour. A magenta error shader
                     // reads as high-red/high-blue with green near zero.
                     { "brightRgb", fp.brightRgb },
+                    { "satPct", fp.satPct }, { "satRgb", fp.satRgb },
                 });
             }
             catch (Exception e)
@@ -685,7 +686,8 @@ namespace Ledger.Game
         /// Downsample a captured frame to a small ASCII art thumbnail (logged so it
         /// is visible in CI, where the PNG artifact host is unreachable) plus mean
         /// luminance and RGB for the JSON report.
-        static (string luma, string rgb, string maxLuma, string brightPct, string brightRgb) Fingerprint(Texture2D tex, string name)
+        static (string luma, string rgb, string maxLuma, string brightPct, string brightRgb,
+                string satPct, string satRgb) Fingerprint(Texture2D tex, string name)
         {
             const int cols = 64, rows = 24;
             const string ramp = " .:-=+*#%@"; // dark -> bright
@@ -710,16 +712,34 @@ namespace Ledger.Game
             // colour of only the bright pixels makes the failure legible from
             // a text log, which is the only channel CI actually gives us.
             long br = 0, bg = 0, bb = 0;
+            // AND THE SATURATED PIXELS, SEPARATELY. Averaging the colour of
+            // merely BRIGHT pixels answers the magenta question and nothing
+            // else, because any white in the mix drags the mean to grey — the
+            // night frame came back at 247,249,244 and that could equally have
+            // meant "no coloured light" or "coloured light plus a white UI".
+            // Measuring the saturated pixels on their own says whether there
+            // is real colour on screen, which is the actual art question.
+            long sc = 0, sr = 0, sg = 0, sb = 0;
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i];
                 double l = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255.0;
                 if (l > maxLuma) maxLuma = l;
                 if (l > 0.60) { brightCount++; br += c.r; bg += c.g; bb += c.b; }
+                int mx = Math.Max(c.r, Math.Max(c.g, c.b));
+                if (mx >= 40)
+                {
+                    int mn = Math.Min(c.r, Math.Min(c.g, c.b));
+                    if ((mx - mn) / (double)mx >= 0.35)
+                    { sc++; sr += c.r; sg += c.g; sb += c.b; }
+                }
             }
             double brightPct = 100.0 * brightCount / px.Length;
             long bn = brightCount > 0 ? brightCount : 1;
             string brightRgb = $"{br / bn},{bg / bn},{bb / bn}";
+            long sn = sc > 0 ? sc : 1;
+            double satPct = 100.0 * sc / px.Length;
+            string satRgb = $"{sr / sn},{sg / sn},{sb / sn}";
             var art = new StringBuilder(cols * rows + rows + 64);
             art.Append($"\n--- render[{name}] {cols}x{rows} ascii-luma ---\n");
             for (int ry = 0; ry < rows; ry++)
@@ -752,14 +772,16 @@ namespace Ledger.Game
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             art.Append($"render[{name}] meanLuma={luma:0.000} maxLuma={maxLuma:0.000} " +
                        $"bright(>0.6)%={brightPct:0.00} meanRgb={(int)mr},{(int)mg},{(int)mb} " +
-                       $"brightRgb={brightRgb}\n");
+                       $"brightRgb={brightRgb} sat(>0.35)%={satPct:0.00} satRgb={satRgb}\n");
             Debug.Log(art.ToString());
             return (
                 luma.ToString("0.000", inv),
                 $"{(int)mr},{(int)mg},{(int)mb}",
                 maxLuma.ToString("0.000", inv),
                 brightPct.ToString("0.00", inv),
-                brightRgb);
+                brightRgb,
+                satPct.ToString("0.00", inv),
+                satRgb);
         }
 
         void Finish()
