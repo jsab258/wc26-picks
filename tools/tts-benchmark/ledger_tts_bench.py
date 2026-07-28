@@ -64,7 +64,7 @@ from pathlib import Path
 
 # Bumped on every change. Printed at startup so a stale copy in the Downloads
 # folder announces itself instead of reproducing an old failure exactly.
-VERSION = "2026-07-28.7  (cached venvs are re-probed and repaired; chatterbox watermarker)"
+VERSION = "2026-07-28.8  (says what your GPU actually is, and what that costs you)"
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "ledger-tts-out"
@@ -167,6 +167,38 @@ def has_nvidia():
         return True
     except Exception:
         return False
+
+
+def gpu_kind():
+    """What card is in the machine, and be honest about what it buys.
+
+    "none detected" was misleading: it only ever meant "no nvidia-smi", so an
+    AMD card read as no card at all and looked like a PATH problem to fix.
+    It is not fixable. **PyTorch has no Windows AMD backend** — ROCm is Linux
+    only — so on Windows every torch engine here runs on the CPU no matter
+    what is in the case. torch-directml exists but does not carry models of
+    this shape.
+
+    That is worth knowing BEFORE waiting rather than after, and it is much
+    less bad than it sounds: bark generation is offline and one-time, so slow
+    is merely slow. It only rules out live dialogue on this machine, and only
+    on this machine — what ships to players depends on THEIR card.
+    """
+    if has_nvidia():
+        return "nvidia"
+    if sys.platform.startswith("win"):
+        try:
+            out = subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 "(Get-CimInstance Win32_VideoController).Name"],
+                capture_output=True, text=True, timeout=20).stdout.lower()
+            if "radeon" in out or "amd" in out:
+                return "amd"
+            if "intel" in out:
+                return "intel"
+        except Exception:
+            pass
+    return "none"
 
 
 def write_wav(path, samples, rate):
@@ -844,8 +876,17 @@ def main():
         return 0 if run_engine(e, a.quick)["ok"] else 1
 
     say(f"LEDGER TTS benchmark   v{VERSION}")
-    say(f"python {sys.version.split()[0]}   gpu: {'nvidia' if has_nvidia() else 'none detected'}")
+    kind = gpu_kind()
+    say(f"python {sys.version.split()[0]}   gpu: {kind}")
     say(f"output: {OUT}")
+    if kind in ("amd", "intel"):
+        say(f"\n  NOTE: torch has no Windows {kind.upper()} backend (ROCm is Linux only), so")
+        say("  every engine here runs on the CPU. Nothing is misconfigured and there")
+        say("  is nothing to fix. Budget MINUTES per engine, not seconds, and do not")
+        say("  kill it when it goes quiet — chatterbox and xtts are the slow ones.")
+        say("  This matters less than it looks: barks are generated offline, once.")
+        say("  It only rules out LIVE dialogue on this machine, and what ships to")
+        say("  players depends on their card, not yours.")
 
     if a.engine == "all":
         names = list(DEFAULT_ORDER)

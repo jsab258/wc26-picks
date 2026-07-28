@@ -207,6 +207,32 @@ barks. The bench now looks for `lena.wav`, `lena.grave.wav` and
 get, so the headline BORED-vs-GRAVE test becomes a real A/B for cloning
 engines as well.
 
+### 1g. THE TEST MACHINE IS AMD, AND THAT SPLITS THE DECISION IN TWO
+
+Jafar's card is AMD. **PyTorch has no Windows AMD backend** — ROCm is Linux
+only, and torch-directml does not carry models of this shape — so every
+local engine in this benchmark runs on his CPU. That is not a
+misconfiguration and there is nothing to fix; the earlier reading of
+"gpu: none detected" as a PATH problem was wrong.
+
+It matters much less than it first appears, because it lands on the two
+channels differently:
+
+| Channel | Runs when | AMD/CPU verdict |
+|---|---|---|
+| **Barks, ambience, recognition, refusals** | Offline, once, on our machine | **Unaffected.** A batch that takes a night is still a batch that takes a night. Quality is the only criterion |
+| **Named-cast live dialogue** | At play time, on the player's machine | Ruled out on THIS machine. Kokoro at 0.33 RTF is the exception and the reason it stays in the running |
+
+So the slow engines are not disqualified by this — they are disqualified
+from *live* use *here*. What ships to players depends on the player's card,
+not on the development box, and the tiered shape in §1a was already built
+around exactly that split.
+
+The practical consequence is only patience: chatterbox and xtts will take
+minutes per engine on CPU rather than seconds. The benchmark now names the
+card, explains why it cannot help, and says so before the wait rather than
+after.
+
 **Still open:** whether any local engine takes direction by either route. If
 none does, the fallback is not "pay more" — it is to buy direction
 structurally: generate 2–3 takes per line and pick, use distinct voices per
