@@ -198,10 +198,25 @@ Shader "Hidden/LedgerFilmGrade"
                 float2( 1.050,  0.000), float2( 0.795, -0.795),
             };
 
+            // ONE HANDEDNESS, and this is the bug that would have shipped.
+            //
+            // `DecodeDepthNormal` returns a view-space normal in Unity's
+            // frame, where the camera looks down -Z, so a surface facing the
+            // camera has a normal near (0,0,-1). The position reconstructed
+            // below puts depth on +Z, because depth grows away from the eye.
+            // Those are opposite handednesses, and `dot(n, sample - p)` with
+            // the two mixed comes out INVERTED: occlusion appears on convex
+            // edges instead of in concave corners, which is haloing — a
+            // bright rim on every object rather than a dark seam under it.
+            //
+            // It would have looked like a broken effect rather than a sign
+            // error, and the A/B gate that proves AO reaches pixels would
+            // have passed the whole time: the frame is darker either way.
             float3 ViewPos(float2 uv, out float3 normal)
             {
                 float depth;
                 DecodeDepthNormal(tex2D(_CameraDepthNormalsTexture, uv), depth, normal);
+                normal.z = -normal.z;
                 float eye = depth * _ProjectionParams.z;
                 // Reconstruct the view ray from the clip-space position.
                 float2 ndc = uv * 2.0 - 1.0;
