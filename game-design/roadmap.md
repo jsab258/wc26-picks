@@ -665,12 +665,14 @@ the **audit**; Copper Row is **re-cut as the market quarter** (done); the UI
 smoke test is **"yes, very important"**; **Ironside next and the rest later**;
 the sim-bot and purse changes stand.
 
-- **M14 — DISTRICTS 4-7, LATER** (player, 2026-07-27: *"ironside, rest
-  later"*). Downtown, The Strip, Fairview and Gullwing stay names in the design
-  doc until there is a reason to build them. Three districts is enough to prove
-  the district system; seven is enough to spend a runway on. Ironside is the
-  exception because the code already half-believes in it — the population
-  generator and the research notes both reference it as though it exists.
+- ~~**M14 — DISTRICTS 4-7**~~ BUILT 2026-07-28 (player: *"m14 now"*). All
+  seven districts on the ground, each with §7's character expressed the way
+  this map expresses character — block size, connector count, massing, and
+  who sleeps there. Downtown works and does not sleep; Fairview sleeps and
+  does not work; the Strip's workforce keeps night hours; Gullwing is
+  nearly empty both ways, which is its mechanic. Chokepoint connectors
+  throughout; the two-bridge rule holds on the actual water. Places,
+  phones and population shares wired; the map tests scaled themselves.
 
 **Unblocked and queued:**
 
@@ -753,18 +755,22 @@ they are deferred (save versioning especially).
   copy" / "Open the copy — day N"), Continue opens the newest save, and a
   new game no longer burns the player's snapshots. The sim asserts the
   backup line exists after a second write.
-- **P3 — Audio** — MOSTLY DONE (entry was stale): procedural day/night
-  ambience, footsteps, traffic, UI feedback (dread/coin/door/page), and a
-  settings-driven mix all exist via the AssetLibrary pattern. STILL OPEN:
-  MUSIC — there is no score, only ambience. A composed or procedural music
-  layer is the remaining half of this entry.
+- ~~**P3 — Audio**~~ COMPLETE 2026-07-28: the score joined the ambience —
+  a procedural aeolian piece under a sparse pentatonic line, night as the
+  day's tune with the lights off, ducked to a third while people talk.
+  Same drop-in pattern as everything else: composed music replaces it by
+  file name, no code change.
 - **P4 — Accessibility** — PARTIAL: colourblind-safe palette (toggle,
   UiTheme-wide), remappable input, and text scaling (now reaching every
   UI font) exist. STILL OPEN: an audit against a real checklist — e.g.
   reduced motion, input hold/toggle alternatives, readable-font option —
   and whether dialogue needs subtitle-style presentation options at all.
-- **P5 — Performance**: KCD2-style LOD and statistical simulation for
-  distant districts (doc §9, unimplemented), draw-call/memory budgets.
+- **P5 — Performance** — HALF BUILT 2026-07-28: the district pulse is
+  §9's "statistical sim elsewhere" made concrete (the far city summarized,
+  cashed in at promotion), and the sim now GATES on deterministic entity
+  budgets while reporting frame times and heap. STILL OPEN: draw-call
+  counts and real frame budgets on target hardware — Jafar's machine, via
+  the QA matrix.
 - **P6 — Controller + Steam Deck.**
 - **P7 — Localisation**: externalise UI and authored strings. Generated
   dialogue can be produced directly in the target language — an advantage.
