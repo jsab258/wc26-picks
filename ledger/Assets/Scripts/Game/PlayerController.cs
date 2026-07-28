@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
 
@@ -218,6 +219,33 @@ namespace Ledger.Game
             _camera.transform.position = desired;
             _camera.transform.LookAt(target);
             _camera.fieldOfView = (float)_rig.Fov;
+        }
+
+        /// YOU ARE NOT A GHOST (game-feel-spec.md §5).
+        ///
+        /// CharacterController reports every wall it slides along too, so the
+        /// filter matters: only bodies, only above a speed, and only once per
+        /// person per second — a controller pressed against someone reports a
+        /// hit every single frame, and a stumble per frame is a seizure.
+        readonly Dictionary<int, float> _lastBump = new Dictionary<int, float>();
+
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.collider == null) return;
+            var npc = hit.collider.GetComponent<NpcWalker>();
+            if (npc == null) return;
+
+            float speed = (float)_loco.Speed;
+            if (speed < Bumps.MinSpeed) return;
+
+            int id = npc.GetInstanceID();
+            if (_lastBump.TryGetValue(id, out var last) && Time.time - last < 1f) return;
+            _lastBump[id] = Time.time;
+
+            npc.Bumped(npc.transform.position - transform.position, speed);
+            if (SimMode.Days == 0)
+                Audio.Footstep(Bumps.Classify(speed) == BumpReaction.Brush ? 0.5f : 1.3f,
+                               Weather.Wetness);
         }
 
         /// Called when the car hands the camera back, so the spring resumes

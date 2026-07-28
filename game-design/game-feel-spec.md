@@ -154,7 +154,12 @@ should be built so it is not a rewrite.
    heard something decides how sure the rumour you carry away is. See
    `Assets/Scripts/Core/Acoustics.cs`.
 3. **Interaction grammar and door weight** — prompts that fade, doors that
-   have mass, NPCs that react to being bumped. (§5, §6)
+   have mass, NPCs that react to being bumped. (§5, §6) — **BUILT
+   2026-07-28.** Verbs have anticipation/action/consequence/recovery; doors
+   are damped springs that overshoot, settle and latch; the prompt fades and
+   is buffered and forgiving; walking into someone staggers them and buys
+   their attention. Remaining in §5: objects reacting to being brushed, and
+   puddles that splash.
 4. **The limp.** Free characterisation from data we already have, and a
    perfect demonstration of the whole "stage it, don't show it" principle.
    — **BUILT 2026-07-28**, and it needed no model: a limp is an ASYMMETRY,

@@ -24,6 +24,12 @@ namespace Ledger.Game
         float _toastUntil;
         GameObject _endPanel;
         Text _promptText;
+        float _promptAlpha;
+        /// Both from Ledger.Core, both tested there. A key pressed just before
+        /// an action becomes legal still counts, and a prompt survives a step
+        /// out of range.
+        readonly InputBuffer _talkBuffer = new InputBuffer();
+        readonly Forgiveness _grace = new Forgiveness();
 
         GameObject _ledgerPanel;
         Text _ledgerText;
@@ -1090,10 +1096,26 @@ namespace Ledger.Game
             }
             if (_posturePanel != null) return; // the question holds the room
 
-            _nearest = NearestHostInRange();
+            var found = NearestHostInRange();
             bool dialogueOpen = _dialoguePanel.activeSelf;
-            _promptText.text = !dialogueOpen && _nearest != null
-                ? $"Press E to talk to {_nearest.Card.Name}" : "";
+
+            // FORGIVENESS WINDOW (game-feel-spec.md §1). The prompt used to
+            // vanish the instant you stepped a centimetre out of range, which
+            // makes it flicker on the boundary and teaches players to stand
+            // unnaturally still. It now survives a beat, so the offer outlives
+            // the exact arithmetic of where your feet are.
+            if (found != null) { _nearest = found; _grace.SeenInRange(Time.time); }
+            else if (!_grace.StillOffered(Time.time)) _nearest = null;
+
+            bool offering = !dialogueOpen && _nearest != null;
+            _promptText.text = offering ? $"Press E to talk to {_nearest.Card.Name}" : "";
+
+            // AND IT FADES (§6). A prompt that pops is the single most common
+            // tell that a game's interface was bolted on rather than staged.
+            _promptAlpha = (float)Feel.Approach(_promptAlpha, offering ? 1f : 0f, 11.0, Time.deltaTime);
+            var pc = _promptText.color;
+            pc.a = _promptAlpha;
+            _promptText.color = pc;
 
             // The options screen owns the whole keyboard while it is up. Placed
             // BEFORE any other key is read: the first version of this guard sat
@@ -1103,7 +1125,14 @@ namespace Ledger.Game
             if (OptionsScreen.Open) return;
 
             var keys = GameSettings.Current;
-            if (Input.GetKeyDown(keys.Key("Talk")) && _nearest != null && !dialogueOpen && !_keyPanel.activeSelf)
+
+            // INPUT BUFFERING (§1). A press up to 150ms before the prompt
+            // became legal still counts. Players never report "no input
+            // buffer" — they report the game as unresponsive, and then you go
+            // looking for a performance problem that is not there.
+            if (Input.GetKeyDown(keys.Key("Talk"))) _talkBuffer.Press(Time.time);
+            if (_nearest != null && !dialogueOpen && !_keyPanel.activeSelf
+                && _talkBuffer.Consume(Time.time))
                 OpenDialogue(_nearest);
             if (Input.GetKeyDown(keys.Key("Pause")))
             {

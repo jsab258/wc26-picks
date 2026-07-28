@@ -84,6 +84,7 @@ namespace Ledger.CoreTests
                 TestFeel();
                 TestAcoustics();
                 TestPalette();
+                TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
                 await TestIntentRouterAsync();
@@ -5356,6 +5357,130 @@ namespace Ledger.CoreTests
             Check(zr == 0 && zg == 0 && zb == 0, "a black sign stays off rather than becoming a divide");
             Check(Palette.Saturation(1, 0, 1) > Palette.Saturation(1, 0.8, 1),
                 "and a washed colour reads as less saturated than a pure one");
+        }
+
+        static void TestInteraction()
+        {
+            Console.WriteLine("Interaction grammar — verbs with a shape, doors with mass:");
+
+            // ---- a verb takes time and fires exactly once ----
+            var verb = new VerbBeat();
+            Check(verb.Phase == VerbPhase.Idle && !verb.Busy, "a verb starts idle");
+            Check(verb.Begin(), "and can be begun");
+            Check(!verb.Begin(), "but not begun twice — a verb refuses to be spammed");
+            Check(verb.Phase == VerbPhase.Anticipation,
+                "it opens on anticipation, so the player sees it coming");
+
+            int fired = 0;
+            var seen = new List<VerbPhase>();
+            for (int i = 0; i < 200; i++)
+            {
+                verb.Tick(1.0 / 60.0);
+                if (verb.Fired) fired++;
+                if (seen.Count == 0 || seen[seen.Count - 1] != verb.Phase) seen.Add(verb.Phase);
+            }
+            Check(fired == 1, "the state changes exactly once per verb", $"fired {fired}");
+            Check(seen.SequenceEqual(new[] { VerbPhase.Anticipation, VerbPhase.Action,
+                                             VerbPhase.Consequence, VerbPhase.Recovery,
+                                             VerbPhase.Idle }),
+                "and passes anticipation, action, consequence, recovery, in that order and no other",
+                string.Join(" -> ", seen));
+            Check(!verb.Busy, "then returns to idle so it can be used again");
+            Check(verb.Begin(), "and it can");
+
+            // A long frame must not skip the state change. This is the classic
+            // way a door opens on a fast machine and does not on a slow one.
+            var slow = new VerbBeat();
+            slow.Begin();
+            int firedSlow = 0;
+            for (int i = 0; i < 10; i++) { slow.Tick(0.5); if (slow.Fired) firedSlow++; }
+            Check(firedSlow == 1,
+                "a frame longer than the whole action window still fires it once",
+                $"fired {firedSlow}");
+
+            // A verb meant to be instant still fires. The crossing-based
+            // version of this silently never did, because nothing crosses
+            // zero from below, and an instant verb is a legitimate thing to
+            // want — picking up money should not have a wind-up.
+            var instant = new VerbBeat { AnticipationSeconds = 0.0 };
+            instant.Begin();
+            int firedInstant = 0;
+            for (int i = 0; i < 120; i++) { instant.Tick(1.0 / 60.0); if (instant.Fired) firedInstant++; }
+            Check(firedInstant == 1,
+                "a verb with no anticipation still fires exactly once",
+                $"fired {firedInstant}");
+
+            var cancelled = new VerbBeat();
+            cancelled.Begin();
+            cancelled.Cancel();
+            Check(!cancelled.Busy, "a cancelled verb is idle at once");
+            cancelled.Tick(1.0);
+            Check(!cancelled.Fired, "and never fires afterwards");
+
+            // ---- doors with mass ----
+            var door = new DoorSwing();
+            Check(door.Angle == 0 && !door.Open, "a door starts shut");
+            door.Set(true);
+            door.Tick(1.0 / 60.0);
+            Check(door.Angle > 0 && door.Angle < door.OpenAngle,
+                "opening takes time — it is not a boolean", $"{door.Angle:0.0} deg");
+
+            double peak = 0;
+            for (int i = 0; i < 600; i++) { door.Tick(1.0 / 60.0); peak = Math.Max(peak, door.Angle); }
+            Check(peak > door.OpenAngle,
+                "it overshoots, because a door that never does reads as a sliding panel",
+                $"peak {peak:0.0} vs {door.OpenAngle:0}");
+            Check(Math.Abs(door.Angle - door.OpenAngle) < 0.5 && door.AtRest,
+                "and then settles onto its stop", $"{door.Angle:0.00}");
+
+            // The latch: the most recognisable sound a door makes.
+            door.Set(false);
+            bool latched = false;
+            for (int i = 0; i < 600; i++) { door.Tick(1.0 / 60.0); if (door.Latched) latched = true; }
+            Check(latched, "closing it latches, once, at the very end");
+            Check(door.Angle == 0 && door.AtRest, "and it comes to rest shut");
+
+            var again = new DoorSwing();
+            again.Set(true);
+            int latches = 0;
+            for (int i = 0; i < 1200; i++) { again.Tick(1.0 / 60.0); if (again.Latched) latches++; }
+            Check(latches == 0, "an opening door never latches");
+
+            var slam = new DoorSwing { Stiffness = 30.0, Damping = 0.15 };
+            slam.Set(true);
+            bool hit = false;
+            for (int i = 0; i < 600; i++) { slam.Tick(1.0 / 60.0); if (slam.HitStop) hit = true; }
+            Check(hit, "a door thrown hard hits its stop, and that is a sound");
+            Check(slam.Angle <= slam.OpenAngle * 1.15 + 1e-9,
+                "and never swings through its own frame", $"{slam.Angle:0.0}");
+
+            // Frame-rate independence: a door must not be heavier at 30fps.
+            var d30 = new DoorSwing(); var d240 = new DoorSwing();
+            d30.Set(true); d240.Set(true);
+            for (int i = 0; i < 30; i++) d30.Tick(1.0 / 30.0);
+            for (int i = 0; i < 240; i++) d240.Tick(1.0 / 240.0);
+            Check(Math.Abs(d30.Angle - d240.Angle) < 3.0,
+                "and weighs the same at 30fps as at 240",
+                $"{d30.Angle:0.0} vs {d240.Angle:0.0}");
+
+            // ---- you are not a ghost ----
+            Check(Bumps.Classify(0.8) == BumpReaction.Brush, "drifting into someone is a brush");
+            Check(Bumps.Classify(Locomotion.WalkSpeed) == BumpReaction.Knock,
+                "walking into them is a knock");
+            Check(Bumps.Classify(Locomotion.RunSpeed) == BumpReaction.Shove,
+                "running into them is a shove");
+            Check(Bumps.Stagger(Locomotion.RunSpeed) > Bumps.Stagger(Locomotion.WalkSpeed),
+                "the harder the contact the further they stumble");
+            Check(Bumps.Stagger(100) <= 0.55,
+                "but a stumble stays a stumble — this is not physics comedy",
+                $"{Bumps.Stagger(100):0.00}m");
+            Check(Bumps.AttentionSeconds(BumpReaction.Shove) >
+                  Bumps.AttentionSeconds(BumpReaction.Brush),
+                "and being shoved buys more of their attention than being brushed");
+            Check(!Bumps.WorthRemembering(BumpReaction.Brush) &&
+                  Bumps.WorthRemembering(BumpReaction.Knock),
+                "a brush in a crowd is not an event; a knock is",
+                "being noticed is the currency of this game");
         }
 
         static void TestDirector()

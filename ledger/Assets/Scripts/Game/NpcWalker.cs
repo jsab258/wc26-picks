@@ -109,10 +109,46 @@ namespace Ledger.Game
 
         public void SetPlayer(Transform player) => _player = player;
 
+        /// SOMEBODY WALKED INTO YOU (game-feel-spec.md §5).
+        ///
+        /// Until now the player passed through a crowd like a ghost, which
+        /// quietly tells them none of it is real — the most damaging
+        /// impression in the whole document, because it makes the simulation
+        /// underneath get disbelieved on the strength of the contact layer.
+        ///
+        /// A shove is also a FACT in a game about being noticed, so a real
+        /// knock buys real attention and the stance system reads it.
+        Vector3 _stagger;
+        float _staredUntil;
+
+        public void Bumped(Vector3 fromPlayer, float relativeSpeed)
+        {
+            var kind = Bumps.Classify(relativeSpeed);
+            var away = fromPlayer; away.y = 0;
+            if (away.sqrMagnitude > 0.001f)
+                _stagger = away.normalized * (float)Bumps.Stagger(relativeSpeed);
+            _staredUntil = Time.time + (float)Bumps.AttentionSeconds(kind);
+            if (Bumps.WorthRemembering(kind)) BumpsWorthRemembering++;
+        }
+
+        /// Knocks and shoves only. Read by the sim so "you barge through this
+        /// city" is something the world can know about you.
+        public int BumpsWorthRemembering { get; private set; }
+
         public void Tick(GameTime now)
         {
             var target = TargetFor(now);
             var current = transform.position;
+
+            // The stumble resolves over a moment rather than teleporting them
+            // sideways: displacement first, recovery after.
+            if (_stagger.sqrMagnitude > 0.0001f)
+            {
+                var step = Vector3.ClampMagnitude(_stagger, 2.2f * Time.deltaTime);
+                transform.position = current + step;
+                _stagger -= step;
+                current = transform.position;
+            }
 
             // Somebody who wants nothing to do with you puts distance between
             // you — the ladder's "avoids" rung, expressed as walking away
@@ -145,7 +181,18 @@ namespace Ledger.Game
             // GAZE. How far off somebody picks you out is how much they have
             // heard — and standing still to look at you is the cheapest, most
             // legible signal in the game.
-            if (_player != null && !moving)
+            // Just been walked into? Then they are looking at you, whatever
+            // their stance would otherwise have them do. Nobody ignores being
+            // shoved, and a stance ladder that let them is a ladder the
+            // player would immediately catch out.
+            if (_player != null && Time.time < _staredUntil)
+            {
+                var at = _player.position - transform.position; at.y = 0;
+                if (at.sqrMagnitude > 0.01f)
+                    transform.rotation = Quaternion.Slerp(transform.rotation,
+                        Quaternion.LookRotation(at), 9f * Time.deltaTime);
+            }
+            else if (_player != null && !moving)
             {
                 float gaze = (float)StreetVoice.GazeMetres(Stance);
                 if (gaze > 0.5f)
