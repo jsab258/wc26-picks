@@ -48,6 +48,11 @@ namespace Ledger.Game
         /// SEE and the limp you HEAR are the same limp.
         public double Phase;
 
+        /// How far THIS person swings, relative to everyone else. A short
+        /// brisk stride and a long loose one are recognisable across a street
+        /// when height alone is not — and it is one multiply.
+        public double GaitBias = 1.0;
+
         float _breathTime;
         Quaternion _chest0, _neck0, _head0;
         Vector3 _hips0;
@@ -108,6 +113,11 @@ namespace Ledger.Game
                 _lUpperArm = man.LUpperArm; _lForearm = man.LForearm;
                 _rUpperArm = man.RUpperArm; _rForearm = man.RForearm;
                 LegLength = Mannequin.ThighLength + Mannequin.ShinLength;
+                // This person's own stride and their own bad leg. A crowd
+                // where everybody limps on the left is a crowd with one
+                // injury shared between them.
+                GaitBias = man.Shape.Gait;
+                BadLegIsLeft = man.Shape.BadLegIsLeft;
                 CaptureRest();
                 return;
             }
@@ -268,12 +278,17 @@ namespace Ledger.Game
         /// a diff and it is anatomy.
         void DriveLimbs(double stance)
         {
-            var lLeg = Rig.LegSwing(Phase, Speed);
-            var rLeg = Rig.LegSwing(Phase + 0.5, Speed);
+            // The bias scales the SPEED the cycle is asked about rather than
+            // its output, so a loose-strided person also gets the knee lift
+            // and the bob that go with a longer stride. Scaling the returned
+            // angles would give them long legs and a short person's bounce.
+            double gait = Speed * GaitBias;
+            var lLeg = Rig.LegSwing(Phase, gait);
+            var rLeg = Rig.LegSwing(Phase + 0.5, gait);
             // Same-side phase: the API already applied the opposition, so
             // the left arm takes the LEFT leg's phase.
-            var lArm = Rig.ArmSwing(Phase, Speed);
-            var rArm = Rig.ArmSwing(Phase + 0.5, Speed);
+            var lArm = Rig.ArmSwing(Phase, gait);
+            var rArm = Rig.ArmSwing(Phase + 0.5, gait);
 
             double lScale = BadLegIsLeft ? stance : 1.0;
             double rScale = BadLegIsLeft ? 1.0 : stance;
@@ -294,7 +309,7 @@ namespace Ledger.Game
             Level(_lFoot);
             Level(_rFoot);
 
-            var (pelvisYaw, chestYaw) = Rig.Counterturn(Phase, Speed);
+            var (pelvisYaw, chestYaw) = Rig.Counterturn(Phase, gait);
             if (_hips != null)
                 _hips.localRotation = Quaternion.Euler(0, (float)pelvisYaw, 0);
             if (_chest != null)
@@ -304,7 +319,7 @@ namespace Ledger.Game
             if (_hips != null)
             {
                 var p = _hips.localPosition;
-                p.y += (float)Rig.Bob(Phase, Speed);
+                p.y += (float)Rig.Bob(Phase, gait);
                 _hips.localPosition = p;
             }
         }

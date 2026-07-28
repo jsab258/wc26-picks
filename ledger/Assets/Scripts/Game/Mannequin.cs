@@ -1,3 +1,4 @@
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -63,7 +64,11 @@ namespace Ledger.Game
         /// Build a body onto `host`, replacing whatever primitive mesh it was
         /// wearing. The host keeps its collider, its controller and its
         /// scripts — only the visible shape changes.
-        public static Mannequin Build(GameObject host, Color skin, Color cloth)
+        /// This body's proportions. Public so the rig can read the gait bias
+        /// and so the sim gate can prove a crowd is not thirty of one person.
+        public Physique Shape { get; private set; }
+
+        public static Mannequin Build(GameObject host, Color skin, Color cloth, string who = null)
         {
             if (host == null) return null;
             var existing = host.GetComponent<Mannequin>();
@@ -77,6 +82,7 @@ namespace Ledger.Game
             if (ownMesh != null) Destroy(ownMesh);
 
             var m = host.AddComponent<Mannequin>();
+            m.Shape = Physique.For(string.IsNullOrEmpty(who) ? host.name : who);
             m.Assemble(skin, cloth);
             return m;
         }
@@ -86,7 +92,30 @@ namespace Ledger.Game
             var skinMat = Mat(skin);
             var clothMat = Mat(cloth);
 
-            Hips = Joint("Hips", transform, new Vector3(0, HipY, 0));
+            // HEIGHT scales the whole body; BREADTH widens it without making
+            // it taller. Applied on a single wrapper transform rather than by
+            // rewriting every offset, so the joint hierarchy below stays the
+            // authored one and matches the Mixamo skeleton it will be swapped
+            // for.
+            //
+            // The wrapper is also LIFTED, because scaling a body scales the
+            // distance from its origin to its soles: a 1.56m person hung off
+            // an origin authored for 1.80m floats 9cm, and a 1.93m one is
+            // buried. `Physique.SoleOffset` is that arithmetic and it exists
+            // because the last vertical-offset bug in this file cost 6.5cm
+            // and a screenshot to find.
+            float scale = (float)Physique.HeightScale(Shape);
+            var body = Joint("Body", transform,
+                new Vector3(0, SoleBelowOrigin - (float)Physique.SoleOffset(Shape, SoleBelowOrigin), 0));
+            // BREADTH ON X ONLY, and this is not an aesthetic call. Every
+            // limb swings about its LOCAL X axis, in the YZ plane — so a
+            // parent scaled differently in Y and Z shears each limb as it
+            // rotates, stretching a leg by up to a fifth at the extremes of
+            // its stride. Width is the x axis; depth staying uniform is both
+            // correct and free of that.
+            body.localScale = new Vector3(scale * (float)Shape.Breadth, scale, scale);
+
+            Hips = Joint("Hips", body, new Vector3(0, HipY, 0));
             Box(Hips, "Pelvis", new Vector3(0, -0.05f, 0), new Vector3(0.30f, 0.16f, 0.20f), clothMat);
 
             Chest = Joint("Chest", Hips, new Vector3(0, ChestRise, 0));
@@ -96,6 +125,13 @@ namespace Ledger.Game
             Box(Neck, "NeckMesh", new Vector3(0, 0.03f, 0), new Vector3(0.09f, 0.08f, 0.09f), skinMat);
 
             Head = Joint("Head", Neck, new Vector3(0, HeadRise, 0));
+            // The head carries its own size, and cancels breadth on the way
+            // — a broad person whose head widened by the same factor reads as
+            // a caricature, and the head is the part of a silhouette a viewer
+            // measures the rest against.
+            Head.localScale = new Vector3(
+                (float)Shape.HeadScale / Mathf.Max(0.01f, (float)Shape.Breadth),
+                (float)Shape.HeadScale, (float)Shape.HeadScale);
             Ball(Head, "Skull", new Vector3(0, 0.04f, 0), 0.20f, skinMat);
             // A nose. One box, and it is the entire reason a head reads as
             // facing somewhere rather than as a ball on a stick — which

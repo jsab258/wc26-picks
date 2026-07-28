@@ -61,6 +61,7 @@ namespace Ledger.CoreTests
                 await TestConversationEngine();
                 await TestTranscriptRollback();
                 await TestReflection();
+                TestPhysique();
                 TestResponseParsing();
                 TestIntentLexical();
                 TestIntentValidation();
@@ -6679,6 +6680,130 @@ namespace Ledger.CoreTests
                 "the chest turns against the pelvis and less far — this is the "
                 + "difference between a walking spine and a crate with legs",
                 $"pelvis {turn.pelvisYaw:0.0} chest {turn.chestYaw:0.0}");
+        }
+
+        static void TestPhysique()
+        {
+            Console.WriteLine("Physique — a crowd of identical bodies is worse than a crowd of capsules:");
+
+            // DETERMINISM. The same person is the same shape forever, on
+            // every machine, before and after a save.
+            var a1 = Physique.For("Ossei Tannen");
+            var a2 = Physique.For("Ossei Tannen");
+            Check(a1.Height == a2.Height && a1.Breadth == a2.Breadth
+                  && a1.HeadScale == a2.HeadScale && a1.Gait == a2.Gait
+                  && a1.BadLegIsLeft == a2.BadLegIsLeft,
+                "the same name is the same body, always — a city that reshuffles its "
+                + "people on reload is broken in a way nobody can unsee");
+            Check(Physique.For("Noor Farid").Height != Physique.For("Ossei Tannen").Height,
+                "and different people are different");
+
+            // GOLDEN VALUES, and the only way this property is testable at
+            // all. "Same answer twice in a row" passes inside one process no
+            // matter how the hash is seeded — a break that swapped FNV for
+            // GetHashCode, which .NET Core randomises PER PROCESS, sailed
+            // through every other check here. What that break actually
+            // destroys is agreement between two RUNS, and a run cannot
+            // observe that about itself. A number written down can.
+            //
+            // These constants were computed independently, not copied out of
+            // a failing assertion. If one of them ever changes, every save
+            // file in existence describes a city of different people.
+            Check(Math.Abs(Physique.Fraction("Ossei Tannen", 1) - 0.12129163884587857) < 1e-12
+                  && Math.Abs(Physique.Fraction("Noor Farid", 3) - 0.5411552368991904) < 1e-12,
+                "the hash produces the same numbers it did when it was written — the "
+                + "one property a single run cannot check about itself",
+                $"{Physique.Fraction("Ossei Tannen", 1):0.00000000000000} / "
+                + $"{Physique.Fraction("Noor Farid", 3):0.00000000000000}");
+
+            // IN RANGE. A crowd wider than real human variation stops reading
+            // as people.
+            double lo = 99, hi = -99, bLo = 99, bHi = -99;
+            for (int i = 0; i < 4000; i++)
+            {
+                var p = Physique.For("person" + i);
+                lo = Math.Min(lo, p.Height); hi = Math.Max(hi, p.Height);
+                bLo = Math.Min(bLo, p.Breadth); bHi = Math.Max(bHi, p.Breadth);
+            }
+            Check(lo >= Physique.MinHeight - 1e-9 && hi <= Physique.MaxHeight + 1e-9,
+                "everybody is a plausible height across four thousand names",
+                $"{lo:0.00}..{hi:0.00}");
+            Check(hi - lo > 0.25 && bHi - bLo > 0.2,
+                "and the crowd actually spreads — a variation model that computes a "
+                + "range nobody occupies is the same defect as a set-dressing model "
+                + "that places nothing",
+                $"height {hi - lo:0.00}m breadth {bHi - bLo:0.00}");
+
+            // ORDINARY IS COMMON. A flat draw has as many giants as average
+            // people and reads as a fantasy tavern.
+            int middle = 0, total = 4000;
+            double mid = (Physique.MinHeight + Physique.MaxHeight) / 2;
+            double quarter = (Physique.MaxHeight - Physique.MinHeight) / 4;
+            for (int i = 0; i < total; i++)
+                if (Math.Abs(Physique.For("person" + i).Height - mid) < quarter) middle++;
+            Check(middle > total * 0.62,
+                "most people are close to average height — a uniform draw puts as many "
+                + "giants on the street as ordinary people",
+                $"{middle * 100 / total}% within the middle half");
+
+            // THE TRAITS ARE INDEPENDENT. One hash reused with different
+            // arithmetic gives a crowd that varies along ONE axis wearing a
+            // disguise: everybody tall is also broad.
+            double sh = 0, sb = 0, shb = 0, sh2 = 0, sb2 = 0;
+            for (int i = 0; i < 4000; i++)
+            {
+                var p = Physique.For("person" + i);
+                double x = p.Breadth, y = p.HeadScale;
+                sh += x; sb += y; shb += x * y; sh2 += x * x; sb2 += y * y;
+            }
+            double n = 4000;
+            double corr = (n * shb - sh * sb)
+                / Math.Sqrt((n * sh2 - sh * sh) * (n * sb2 - sb * sb));
+            Check(Math.Abs(corr) < 0.06,
+                "breadth and head size are drawn independently — correlated traits "
+                + "collapse a crowd back onto one axis of variation",
+                $"r = {corr:0.000}");
+
+            // AND HEIGHT AGAINST BREADTH, which is the pair the doc comment
+            // makes a claim about — and the pair that was correlated at 0.7
+            // while the comment said "independent of height on purpose",
+            // because the height's second draw borrowed breadth's variable.
+            double th = 0, tb = 0, thb = 0, th2 = 0, tb2 = 0;
+            for (int i = 0; i < 4000; i++)
+            {
+                var p = Physique.For("person" + i);
+                th += p.Height; tb += p.Breadth; thb += p.Height * p.Breadth;
+                th2 += p.Height * p.Height; tb2 += p.Breadth * p.Breadth;
+            }
+            double hbCorr = (n * thb - th * tb)
+                / Math.Sqrt((n * th2 - th * th) * (n * tb2 - tb * tb));
+            Check(Math.Abs(hbCorr) < 0.06,
+                "and height is independent of breadth — tall-and-narrow crossed with "
+                + "short-and-broad is four silhouettes, where one axis is two",
+                $"r = {hbCorr:0.000}");
+
+            // Salting must actually separate. Two salts of one name landing
+            // adjacent is how "independent" draws end up correlated in the
+            // first place.
+            double d = Math.Abs(Physique.Fraction("Ossei Tannen", 1)
+                                - Physique.Fraction("Ossei Tannen", 2));
+            Check(d > 0.02,
+                "and two salts of one name are far apart rather than neighbours",
+                $"{d:0.000}");
+
+            // A scaled body's feet have to stay on the ground.
+            var tall = new Physique { Height = Physique.MaxHeight };
+            var small = new Physique { Height = Physique.MinHeight };
+            Check(Physique.SoleOffset(tall, 0.90) > 0.90
+                  && Physique.SoleOffset(small, 0.90) < 0.90,
+                "a tall body's soles are further below its origin and a short one's are "
+                + "nearer — scale the body without this and half the street floats and "
+                + "the other half sinks",
+                $"{Physique.SoleOffset(small, 0.90):0.000} .. "
+                + $"{Physique.SoleOffset(tall, 0.90):0.000}");
+            Check(Math.Abs(Physique.HeightScale(new Physique { Height = Physique.ReferenceHeight })
+                           - 1.0) < 1e-9,
+                "and a reference-height body is not scaled at all");
         }
 
         static void TestTypography()

@@ -708,6 +708,7 @@ namespace Ledger.Game
         int _bodyRigs;
         /// Samples where at least one rig was outside the solve radius — the
         /// only samples at which a cull COULD have happened.
+        double _bodyTallest, _bodyShortest = 99;
         int _bodyCullable;
         /// ...and samples where one actually did. The gate compares the two
         /// rather than asserting a cull outright, because a city whose people
@@ -730,6 +731,19 @@ namespace Ledger.Game
             _bodyRigs = Math.Max(_bodyRigs, rigs.Length);
             int solved = CharacterRig.SolvedLastFrame;
             _bodyMaxSolved = Math.Max(_bodyMaxSolved, solved);
+
+            // The crowd must be a crowd. A body model that generates thirty
+            // heights and builds thirty identical bodies passes every Core
+            // test about the distribution — the failure is entirely in the
+            // wiring, which is where every "verified in a test, absent in the
+            // game" defect this project has found has lived.
+            foreach (var r in rigs)
+            {
+                var man = r != null ? r.GetComponent<Mannequin>() : null;
+                if (man == null) continue;
+                _bodyTallest = Math.Max(_bodyTallest, man.Shape.Height);
+                _bodyShortest = Math.Min(_bodyShortest, man.Shape.Height);
+            }
 
             var cam = Camera.main;
             if (cam != null)
@@ -1678,7 +1692,10 @@ namespace Ledger.Game
                 // Never "a cull happened", which is unsatisfiable in a city
                 // where everybody is close by and would make this gate a
                 // report on where the walkers wandered.
-                && (_bodyCullable == 0 || _bodyCulled > _bodyCullable / 2);
+                && (_bodyCullable == 0 || _bodyCulled > _bodyCullable / 2)
+                // 8cm apart at minimum: enough that the variation reached the
+                // transforms rather than only the struct.
+                && _bodyTallest - _bodyShortest > 0.08;
 
             // Every gate, by name, so a failure says WHICH one.
             //
@@ -1721,7 +1738,8 @@ namespace Ledger.Game
                 ($"reflect[wet={_reflWetFrames} dry={_reflDryFrames} " +
                  $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
-                 $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable}]", bodiesOk),
+                 $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
+                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1778,7 +1796,8 @@ namespace Ledger.Game
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
-                      $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} bodiesOk={bodiesOk} " +
+                      $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
+                      $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +

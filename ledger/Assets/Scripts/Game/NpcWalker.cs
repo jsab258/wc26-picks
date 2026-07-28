@@ -39,7 +39,7 @@ namespace Ledger.Game
             var skin = new Color(Mathf.Lerp(color.r, 0.72f, 0.65f),
                                  Mathf.Lerp(color.g, 0.58f, 0.65f),
                                  Mathf.Lerp(color.b, 0.47f, 0.65f));
-            Mannequin.Build(go, skin, color);
+            Mannequin.Build(go, skin, color, name);
 
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
