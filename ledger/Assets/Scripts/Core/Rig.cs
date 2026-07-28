@@ -205,6 +205,79 @@ namespace Ledger.Core
             return (shape - 0.5) * 2.0 * depth;
         }
 
+        // ---- standing still ------------------------------------------------
+
+        /// WHAT A PERSON DOES WHEN THEY ARE DOING NOTHING, which turns out to
+        /// be the direct cost of having a walk cycle at all: the gait is
+        /// gated to zero at a standstill, on purpose, and that leaves a body
+        /// perfectly rigid. A rigid crowd is worse than a crowd of capsules —
+        /// a capsule is obviously a placeholder and a motionless person is
+        /// obviously a corpse.
+        ///
+        /// AND THE PHASE OFFSET IS THE WHOLE THING. Thirty people breathing
+        /// and swaying to the same clock is dramatically worse than thirty
+        /// rigid ones; it reads as a chorus line, and once seen it cannot be
+        /// unseen. So every one of these takes a per-person offset, and the
+        /// PERIODS ARE MUTUALLY IRRATIONAL — a weight shift every 4.3s and a
+        /// sway every 2.9s never re-align, where 4 and 2 would put the whole
+        /// street back in step every few seconds however well it was offset
+        /// to begin with.
+
+        /// Seconds per weight shift. Long: standing people shift about this
+        /// often, and anything faster reads as needing the lavatory.
+        ///
+        /// The RATIO to the sway below is the golden ratio, and that is not
+        /// decoration. My first pair was 4.3 and 2.9 — which is 1.483, within
+        /// a hair of three-halves, so two shifts and three sways re-aligned
+        /// every nine seconds and the whole street fell into one visible beat
+        /// no per-person offset could hide. Phi is the number furthest from
+        /// any simple ratio, so these two cycles drift past each other
+        /// forever and never lock.
+        public const double SwaySeconds = 2.9;
+        public const double WeightShiftSeconds = SwaySeconds * 1.6180339887;
+
+        /// Lateral weight shift, -1..1, positive meaning weight on the right
+        /// foot. Squared-off rather than sinusoidal: standing weight sits on
+        /// one leg for a while and then moves, it does not oscillate.
+        public static double WeightShift(double time, double offset)
+        {
+            double p = ((time / WeightShiftSeconds) + offset) % 1.0;
+            if (p < 0) p += 1;
+            // Hold, move, hold, move — the move taking about a fifth of the
+            // cycle.
+            if (p < 0.4) return 1.0;
+            if (p < 0.5) return 1.0 - 2.0 * Smooth((p - 0.4) / 0.1);
+            if (p < 0.9) return -1.0;
+            return -1.0 + 2.0 * Smooth((p - 0.9) / 0.1);
+        }
+
+        /// Degrees of pelvis roll and centimetres of lateral travel for a
+        /// given weight shift. Both small — this is the difference between a
+        /// person and a statue, not a dance.
+        public static (double rollDegrees, double lateralMetres) Stance(double shift)
+        {
+            double sh = Feel.Clamp(shift, -1, 1);
+            return (-2.6 * sh, 0.022 * sh);
+        }
+
+        /// Slow postural sway, metres, fore-and-aft. Nobody stands still;
+        /// balance is a continuous correction and this is what it looks like
+        /// from outside.
+        public static double Sway(double time, double offset)
+        {
+            double p = ((time / SwaySeconds) + offset) % 1.0;
+            return 0.009 * Math.Sin(2 * Math.PI * p);
+        }
+
+        /// How much of all this to apply, from speed. It fades OUT as they
+        /// start walking, because a weight shift on top of a stride is two
+        /// systems fighting over the same hip.
+        public static double IdleAmount(double speedMetresPerSec)
+        {
+            if (speedMetresPerSec <= StillBelowMetresPerSec) return 1.0;
+            return Feel.Clamp01(1.0 - (speedMetresPerSec - StillBelowMetresPerSec) / 0.45);
+        }
+
         // ---- the limp, on the body -----------------------------------------
 
         /// The limp already exists in the FOOTSTEP RHYTHM (game-feel-spec §2,

@@ -53,6 +53,13 @@ namespace Ledger.Game
         /// when height alone is not — and it is one multiply.
         public double GaitBias = 1.0;
 
+        /// This body's own offset into the idle cycles, 0..1. Set from the
+        /// physique so that a street of people standing about are not all
+        /// shifting their weight on the same beat — which is far worse than
+        /// all standing rigid, and is the thing that makes a crowd read as
+        /// animated furniture.
+        public double IdleOffset;
+
         float _breathTime;
         Quaternion _chest0, _neck0, _head0;
         Vector3 _hips0;
@@ -118,6 +125,7 @@ namespace Ledger.Game
                 // injury shared between them.
                 GaitBias = man.Shape.Gait;
                 BadLegIsLeft = man.Shape.BadLegIsLeft;
+                IdleOffset = man.Shape.IdlePhase;
                 CaptureRest();
                 return;
             }
@@ -322,6 +330,32 @@ namespace Ledger.Game
                 p.y += (float)Rig.Bob(Phase, gait);
                 _hips.localPosition = p;
             }
+
+            Idle();
+        }
+
+        /// STANDING STILL, which is what most of a crowd is doing at any
+        /// moment and was, until this, being done perfectly rigidly. A
+        /// capsule reads as a placeholder; a motionless person reads as a
+        /// corpse, and the difference cost the walk cycle nothing to create.
+        ///
+        /// Fades out as they start moving rather than switching off: a weight
+        /// shift on top of a stride is two systems arguing over one hip.
+        void Idle()
+        {
+            double amount = Rig.IdleAmount(Speed);
+            if (amount <= 0.001 || _hips == null) return;
+
+            double shift = Rig.WeightShift(_breathTime, IdleOffset);
+            var (roll, lateral) = Rig.Stance(shift);
+            double sway = Rig.Sway(_breathTime, IdleOffset * 0.7 + 0.31);
+
+            _hips.localRotation = _hips.localRotation
+                * Quaternion.Euler(0, 0, (float)(roll * amount));
+            var p = _hips.localPosition;
+            p.x += (float)(lateral * amount);
+            p.z += (float)(sway * amount);
+            _hips.localPosition = p;
         }
 
         static void Swing(Transform joint, double degrees)

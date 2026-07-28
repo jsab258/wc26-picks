@@ -33,6 +33,13 @@ namespace Ledger.Core
         /// brisk stride and a long loose one are recognisable from across a
         /// street when height alone is not.
         public double Gait;
+        /// Where this person is in the idle cycles, 0..1. Its own draw, not
+        /// a function of any other trait: derived from the gait it would put
+        /// everyone with a similar stride on the same beat, which is the
+        /// correlation problem this struct already had once and is exactly as
+        /// visible here — a street of people breathing in time.
+        public double IdlePhase;
+
         /// Which leg carries an injury when one is carried. Fixed per person,
         /// so somebody hurt on Tuesday is still limping on the same side on
         /// Friday.
@@ -75,6 +82,7 @@ namespace Ledger.Core
                 Breadth = 0.86 + 0.32 * b,
                 HeadScale = 0.93 + 0.14 * k,
                 Gait = 0.85 + 0.32 * g,
+                IdlePhase = Fraction(name, 7),
                 BadLegIsLeft = Fraction(name, 5) < 0.5,
             };
         }

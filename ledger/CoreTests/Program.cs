@@ -6672,6 +6672,108 @@ namespace Ledger.CoreTests
                 "and the two legs are one cycle read half a stride apart, so a gait "
                 + "cannot go lame by accident");
 
+            // ---- STANDING STILL ----
+            //
+            // The direct cost of gating the gait to zero: a body that is
+            // perfectly rigid. A capsule is obviously a placeholder; a
+            // motionless person is obviously a corpse.
+
+            Check(Rig.IdleAmount(0) == 1.0 && Rig.IdleAmount(2.5) == 0,
+                "a standing body idles fully and a walking one not at all — a weight "
+                + "shift on top of a stride is two systems fighting over one hip");
+            Check(Rig.IdleAmount(0.25) > 0 && Rig.IdleAmount(0.25) < 1,
+                "and it hands over gradually, so stepping off is not a jolt",
+                $"{Rig.IdleAmount(0.25):0.00}");
+
+            // WEIGHT SITS, then moves. Standing weight rests on one leg for a
+            // while; a sinusoidal shift is a body swaying to music.
+            int held = 0, samples = 600;
+            for (int i = 0; i < samples; i++)
+                if (Math.Abs(Rig.WeightShift(i * Rig.WeightShiftSeconds / samples, 0)) > 0.95) held++;
+            Check(held > samples * 0.7,
+                "weight rests on one leg most of the time and moves between them "
+                + "briefly — a body that oscillates smoothly is swaying to music",
+                $"{held * 100 / samples}% settled");
+            Check(Math.Abs(Rig.WeightShift(0, 0) + Rig.WeightShift(Rig.WeightShiftSeconds / 2, 0)) < 1e-6,
+                "and it spends equal time on each leg");
+
+            // NOT IN UNISON. Thirty people breathing to one clock is far
+            // worse than thirty rigid ones — it reads as a chorus line, and
+            // once seen it cannot be unseen.
+            double spread = 0;
+            for (int i = 0; i < 40; i++)
+                for (int j = i + 1; j < 40; j++)
+                    spread = Math.Max(spread,
+                        Math.Abs(Rig.WeightShift(3.0, i * 0.137) - Rig.WeightShift(3.0, j * 0.137)));
+            Check(spread > 1.5,
+                "a street's worth of people offset from each other are genuinely out of "
+                + "step, rather than all shifting weight on the same beat",
+                $"spread {spread:0.00}");
+
+            // AND THEY STAY out of step. This check took three attempts and
+            // the first two measured the wrong thing, which is the recurring
+            // lesson of this file — check the ruler before the reading.
+            //
+            // Attempt one asked whether the ratio was near a small rational.
+            // That is a proxy, and it did catch my original 4.3/2.9 (which is
+            // three-halves to within a hair), but a proxy can be satisfied by
+            // constants that still lock.
+            //
+            // Attempt two measured the phase DIFFERENCE between the two
+            // cycles over a minute and asked whether it visited the whole
+            // circle. It always does: two linear phases drift apart at a
+            // constant rate for any unequal periods, so that check passes for
+            // 3:2 as readily as for phi. It could not fail.
+            //
+            // What actually matters is whether the COMBINED motion repeats
+            // inside a stretch of time somebody might stand and watch. At 3:2
+            // the pair comes back to itself every three sway cycles — under
+            // nine seconds, a loop the eye picks out immediately. So: look
+            // for a repeat directly.
+            double worstMatch = 999;
+            double bestLag = 0;
+            for (double lag = 0.5; lag <= 20.0; lag += 0.05)
+            {
+                double gap = 0;
+                for (int k = 0; k < 120; k++)
+                {
+                    double t = k * 0.5;
+                    gap = Math.Max(gap,
+                        Math.Abs(Rig.WeightShift(t + lag, 0.2) - Rig.WeightShift(t, 0.2))
+                        + Math.Abs(Rig.Sway(t + lag, 0.2) - Rig.Sway(t, 0.2)) * 50);
+                }
+                if (gap < worstMatch) { worstMatch = gap; bestLag = lag; }
+            }
+            Check(worstMatch > 0.25,
+                "the weight shift and the sway never bring the body back to a pose it "
+                + "held before, in the twenty seconds anyone spends looking at one "
+                + "idle figure — and the margin is not fine: every simple ratio "
+                + "repeats EXACTLY (3:2 at 8.7s, 2:1 at 5.8s, 4:3 at 11.6s) where phi "
+                + "gets no nearer than half a unit",
+                $"closest repeat {worstMatch:0.000} at {bestLag:0.0}s, ratio "
+                + $"{Rig.WeightShiftSeconds / Rig.SwaySeconds:0.0000}");
+
+            // SMALL. This is the difference between a person and a statue,
+            // not a dance.
+            double maxRoll = 0, maxLat = 0, maxSway = 0;
+            for (int i = 0; i < 400; i++)
+            {
+                var st = Rig.Stance(Rig.WeightShift(i * 0.05, 0.3));
+                maxRoll = Math.Max(maxRoll, Math.Abs(st.rollDegrees));
+                maxLat = Math.Max(maxLat, Math.Abs(st.lateralMetres));
+                maxSway = Math.Max(maxSway, Math.Abs(Rig.Sway(i * 0.05, 0.7)));
+            }
+            Check(maxRoll < 4 && maxLat < 0.04 && maxSway < 0.02,
+                "and all of it is tiny — visible as life, invisible as motion",
+                $"roll {maxRoll:0.0}deg lat {maxLat * 100:0.0}cm sway {maxSway * 100:0.0}cm");
+
+            // Weight on the right leans the pelvis the other way, which is
+            // what a hip does. Backwards, it reads as leaning INTO the raised
+            // leg, and looks like someone about to fall over.
+            Check(Rig.Stance(1.0).rollDegrees < 0 && Rig.Stance(1.0).lateralMetres > 0,
+                "weight on the right foot drops the pelvis toward it and rolls the "
+                + "spine away — the opposite reads as falling over");
+
             // The spine turns against the hips. Both are small; the point is
             // the SIGN.
             var turn = Rig.Counterturn(0.25, 1.4);
@@ -6781,6 +6883,24 @@ namespace Ledger.CoreTests
                 "and height is independent of breadth — tall-and-narrow crossed with "
                 + "short-and-broad is four silhouettes, where one axis is two",
                 $"r = {hbCorr:0.000}");
+
+            // The idle phase is its own draw too. Derived from the gait it
+            // would put everyone with a similar stride on the same beat —
+            // the same correlation defect as above, and just as visible: a
+            // street of people breathing in time.
+            double tg = 0, ti = 0, tgi = 0, tg2 = 0, ti2 = 0;
+            for (int i = 0; i < 4000; i++)
+            {
+                var p = Physique.For("person" + i);
+                tg += p.Gait; ti += p.IdlePhase; tgi += p.Gait * p.IdlePhase;
+                tg2 += p.Gait * p.Gait; ti2 += p.IdlePhase * p.IdlePhase;
+            }
+            double giCorr = (n * tgi - tg * ti)
+                / Math.Sqrt((n * tg2 - tg * tg) * (n * ti2 - ti * ti));
+            Check(Math.Abs(giCorr) < 0.06,
+                "and where a person is in their idle cycle is independent of how they "
+                + "walk — otherwise a street of similar strides breathes in time",
+                $"r = {giCorr:0.000}");
 
             // Salting must actually separate. Two salts of one name landing
             // adjacent is how "independent" draws end up correlated in the
