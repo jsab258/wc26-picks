@@ -57,6 +57,128 @@ namespace Ledger.BalanceLab
 
             RunOpenLab(weeks);
             RunEndingLab(weeks);
+            RunViolenceLab(weeks);
+        }
+
+        /// COMBAT PHASE 4, the half that needs no art (combat-spec §6, §8).
+        ///
+        /// The spec names the risk itself: *"if a Monte Carlo run says
+        /// fighting wins, the design is wrong regardless of how it plays."*
+        /// Phase 3 is blocked on characters, but the thing that decides
+        /// whether violence is the efficient path is not the animation — it
+        /// is the arithmetic in Combat, Homicide and the gossip mill, and all
+        /// three of those exist. So this runs now.
+        ///
+        /// The question, precisely: a witness is carrying a story that would
+        /// stand up in front of a magistrate. Four ways to answer it. Which
+        /// one leaves the player best off?
+        static void RunViolenceLab(int runs)
+        {
+            Console.WriteLine("\n== is violence ever the efficient path? (combat-spec §2) ==");
+            Console.WriteLine($"{"answer",-16} {"lead",5} {"police",-14} {"$cost",6} {"quiet?",7} {"bodies",6}");
+
+            foreach (var answer in new[] { "leave-it", "bribe", "intimidate", "kill-one", "kill-all" })
+            {
+                double lead = 0, spend = 0, bodies = 0;
+                int quiet = 0, n = 0;
+                var worstStage = Inquiry.None;
+
+                for (int seed = 0; seed < runs; seed++)
+                {
+                    var rng = new Random(seed * 15485863 + 3);
+                    var graph = new SocialGraph();
+                    var mill = new GossipMill(graph);
+                    var ids = new[] { "w1", "w2", "w3", "n1", "n2", "n3" };
+                    for (int i = 0; i < ids.Length; i++)
+                    {
+                        var g = new Gossiper(ids[i], ids[i], new MemoryStore(ids[i]),
+                            new KnowledgeBase(), new SuspicionTracker(), "night");
+                        // Real spread of dispositions, so bribe and intimidate
+                        // get their honest hit rates rather than a best case.
+                        g.Greed = rng.NextDouble();
+                        g.Nerve = rng.NextDouble();
+                        g.Loyalty = rng.NextDouble();
+                        mill.Add(g);
+                        for (int j = 0; j < i; j++) graph.Link(ids[i], ids[j], 0.6 + 0.3 * rng.NextDouble());
+                    }
+                    var now = new GameTime(5, 23, 0);
+
+                    // Three people saw the player do something they should not
+                    // have. This is the situation the verb exists for.
+                    var fact = new Fact("player", "night_job_d5", "true");
+                    foreach (var w in new[] { "w1", "w2", "w3" })
+                        mill.Witness(w, fact, "the new owner was at the warehouse at three", true, now, 0.95);
+
+                    var book = new HomicideBook();
+                    var dead = new HashSet<string>();
+                    Func<string, bool> alive = id => !dead.Contains(id);
+                    double cost = 0;
+
+                    void Kill(string victim, int count)
+                    {
+                        var k = book.Record(victim, victim, 5, 23, "the alley");
+                        // Who else was there. A killing in a room with three
+                        // people in it is the mechanism by which this spirals,
+                        // and it needs no new system at all.
+                        foreach (var other in new[] { "w1", "w2", "w3", "n1" })
+                            if (other != victim && alive(other) && rng.NextDouble() < 0.5)
+                                k.SawYouDoIt.Add(other);
+                        dead.Add(victim);
+                        mill.Forget(victim);
+                        book.FileWith(mill, k, now, alive);
+                    }
+
+                    switch (answer)
+                    {
+                        case "bribe":
+                            foreach (var w in new[] { "w1", "w2", "w3" })
+                            {
+                                double price = mill.BribePrice(w, "player.night_job_d5");
+                                var r = mill.Bribe(w, "player.night_job_d5", price, now);
+                                if (r.Outcome == DcOutcome.Contained) cost += price;
+                            }
+                            break;
+                        case "intimidate":
+                            foreach (var w in new[] { "w1", "w2", "w3" })
+                                mill.Intimidate(w, "player.night_job_d5", now);
+                            break;
+                        case "kill-one":
+                            Kill("w1", 1);
+                            break;
+                        case "kill-all":
+                            // The honest version of "killing works": finish
+                            // everyone who could name you.
+                            Kill("w1", 1); Kill("w2", 2); Kill("w3", 3);
+                            break;
+                    }
+
+                    // A week of the street doing what the street does.
+                    for (int h = 0; h < 24 * 7; h++)
+                    {
+                        mill.Age(new GameTime(5 + h / 24, h % 24, 0));
+                        if (h % 6 == 0) mill.Tick(new GameTime(5 + h / 24, h % 24, 0), (a, b) => true);
+                    }
+
+                    var stage = book.Stage(mill, alive);
+                    if (stage > worstStage) worstStage = stage;
+                    lead += mill.StrongestSurvivingPlayerLead();
+                    spend += cost;
+                    bodies += book.BodyCount;
+                    if (!Police.BarsQuietExit(stage)) quiet++;
+                    n++;
+                }
+
+                int d = Math.Max(1, n);
+                Console.WriteLine($"{answer,-16} {lead / d,5:0.00} {worstStage,-14} {spend / d,6:0} " +
+                                  $"{100.0 * quiet / d,6:0}% {bodies / d,6:0.0}");
+            }
+
+            Console.WriteLine("  lead = strongest surviving story a magistrate could be handed. " +
+                              $"Below {LedgerState.CaseStandsAt:0.00} the case is answerable.");
+            Console.WriteLine("  THE TEST: killing must not beat paying. A body cannot be discredited, " +
+                              "bought, scared quiet or waited out, so the lead it leaves is 1.00 forever —");
+            Console.WriteLine("  which is worse than the story it was meant to bury, and worse the more " +
+                              "of it you do. If these rows ever say otherwise, the design is wrong.");
         }
 
         enum DcStyle { None, Bribe, Intimidate, Discredit, Smart }

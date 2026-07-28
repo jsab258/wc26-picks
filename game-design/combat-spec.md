@@ -223,10 +223,40 @@ goes to the police is the frightened one, not the disloyal one.
 
 39 checks; 16 deliberate breaks confirmed red first.
 
-**Phase 4 — Tuning against the fiction.** Make sure violence is never the
-efficient path. This is a BalanceLab job, not a feel job: if a Monte Carlo
-run says fighting wins, the design is wrong regardless of how it plays.
-*~1 day.*
+**Phase 4 — Tuning against the fiction. THE HALF THAT NEEDS NO ART IS RUN.**
+
+What decides whether violence is the efficient path is not the animation —
+it is the arithmetic in `Combat`, `Homicide` and the gossip mill, and all
+three exist. So `BalanceLab`'s `RunViolenceLab` runs it now: three people
+saw the player do something they should not have, four ways to answer it,
+a real spread of dispositions, then a week of the street doing what the
+street does.
+
+```
+answer            lead police          $cost  quiet? bodies
+leave-it          0.28 None                0    100%    0.0
+bribe             0.18 None              414    100%    0.0
+intimidate        0.23 None                0    100%    0.0
+kill-one          0.91 Manhunt             0     13%    1.0
+kill-all          1.00 Manhunt             0      0%    3.0
+```
+
+`lead` is the strongest surviving story a magistrate could be handed;
+below 0.50 the case is answerable. **The design holds.** Killing is not
+merely no better than paying — it is three to five times worse on the only
+metric that decides the ending, and it takes the quiet exit off the table
+in 87% of runs at one body and 100% at three. Money buys the best outcome
+and costs money; lying low genuinely works, which is the "let it cool"
+option working as designed.
+
+The 13% at one body is not noise: it is the fraction of runs where nobody
+was in the alley. **Kill somebody with no witnesses and you can still get
+away with it.** That is the design too — it is what makes choosing the
+alley at three in the morning a real decision rather than a flavour of the
+same outcome.
+
+What is still blocked: the feel of it. Whether a swing READS is a phase 3
+question and needs bodies. *~1 day once they land.*
 
 ## 7. DECISIONS — ANSWERED by Jafar, 2026-07-28
 
