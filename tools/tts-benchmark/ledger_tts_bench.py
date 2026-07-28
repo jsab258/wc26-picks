@@ -116,6 +116,22 @@ def pip_install(*pkgs, assume_yes=False):
         return False
 
 
+def fetch(url, filename):
+    """Download a model file next to the script, once."""
+    dest = Path(__file__).parent / "models" / filename
+    if dest.exists() and dest.stat().st_size > 0:
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    import urllib.request
+    say(f"  downloading {filename} ...")
+    try:
+        urllib.request.urlretrieve(url, dest)
+        say(f"  got {dest.stat().st_size // (1024*1024)} MB")
+    except Exception as e:
+        raise RuntimeError(f"could not download {filename}: {e}")
+    return dest
+
+
 def write_wav(path, samples, rate):
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -164,15 +180,24 @@ class Kokoro:
     MAP = {"lena": "af_heart", "mara": "af_bella", "crowd_f": "af_sarah",
            "rocco": "am_michael", "crowd_m": "am_adam"}
 
-    def present(self):
+    def probe(self):
         try:
-            import kokoro; return True                                   # noqa
-        except Exception:
-            return False
+            import kokoro                                                 # noqa
+            return True, ""
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"
 
     def load(self):
         from kokoro import KPipeline
-        self.pipe = KPipeline(lang_code="a")      # American English
+        try:
+            self.pipe = KPipeline(lang_code="a")      # American English
+        except Exception as e:
+            if "espeak" in str(e).lower():
+                raise RuntimeError(
+                    "kokoro needs espeak-ng for some words. On Windows install "
+                    "the espeak-ng MSI from github.com/espeak-ng/espeak-ng/releases "
+                    "and re-run.") from e
+            raise
 
     def synth(self, text, voice, direction):
         import numpy as np
@@ -188,13 +213,14 @@ class Kokoro:
 class XTTS:
     name = "xtts"
     note = "voice CLONING. If its clones hold up, the pre-generated/live seam disappears."
-    pkgs = ("TTS",)
+    pkgs = ("coqui-tts",)   # the maintained fork; old "TTS" caps out below py3.12
 
-    def present(self):
+    def probe(self):
         try:
-            from TTS.api import TTS; return True                          # noqa
-        except Exception:
-            return False
+            from TTS.api import TTS                                       # noqa
+            return True, ""
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"
 
     def load(self):
         from TTS.api import TTS
@@ -225,17 +251,22 @@ class Piper:
     note = "CPU-only, very fast, lower ceiling. The control case."
     pkgs = ("piper-tts",)
 
-    def present(self):
+    def probe(self):
         try:
-            import piper; return True                                     # noqa
-        except Exception:
-            return False
+            import piper                                                  # noqa
+            return True, ""
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"
+
+    VOICE_URL = ("https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+                 "en/en_US/lessac/medium/en_US-lessac-medium.onnx")
 
     def load(self):
         from piper import PiperVoice
         model = os.environ.get("PIPER_MODEL", "")
         if not model or not Path(model).exists():
-            raise RuntimeError("set PIPER_MODEL to a downloaded en_US-*.onnx voice")
+            model = str(fetch(self.VOICE_URL, "en_US-lessac-medium.onnx"))
+            fetch(self.VOICE_URL + ".json", "en_US-lessac-medium.onnx.json")
         self.voice = PiperVoice.load(model)
 
     def synth(self, text, voice, direction):
@@ -350,7 +381,7 @@ def main():
         say(f"no such engine '{a.engine}' (kokoro | xtts | piper | all)")
         return 2
 
-    missing = [e for e in chosen if not e.present()]
+    missing = [e for e in chosen if not e.probe()[0]]
     if missing:
         say("\nNot installed yet:")
         for e in missing:
@@ -359,11 +390,31 @@ def main():
             say("\nStart with kokoro — smallest and fastest.")
         for e in missing:
             if pip_install(*e.pkgs, assume_yes=a.yes):
-                say(f"  installed {e.name}")
+                # A package installed INTO A RUNNING PROCESS is invisible until
+                # the import caches are dropped. Without this the engine you
+                # just installed looks absent and silently never runs.
+                import importlib
+                importlib.invalidate_caches()
+                ok, err = e.probe()
+                say(f"  installed {e.name}" if ok else f"  installed {e.name}, but it will not import yet:")
+                if not ok:
+                    say(f"    {err}")
+                    say(f"    -> this usually just needs a fresh process. Re-run the script.")
 
-    ready = [e for e in chosen if e.present()]
+    ready = []
+    for e in chosen:
+        ok, err = e.probe()
+        if ok:
+            ready.append(e)
+        elif e in missing:
+            pass                      # already explained above
+        else:
+            say(f"\n=== {e.name}: cannot import — {err}")
+
     if not ready:
-        say("\nNothing installed, nothing to run. Re-run once something is in.")
+        say("\nNothing runnable in THIS process.")
+        say("If something installed just now, simply run the script again —")
+        say("a fresh process will pick it up.")
         return 1
 
     reports = [r for r in (run(e, a.quick) for e in ready) if r]
