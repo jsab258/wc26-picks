@@ -50,6 +50,21 @@ sweeps (codec/clock/purity, player-facing surface, instruments). 40 of the
 - ShapeCheck's PascalCase blind spot: inherent to the CS0103 heuristic;
   documented as a known limit rather than pretended away.
 
+**FINAL BUILD: GREEN** (run 30342318038, 2026-07-28 08:25Z) — the whole
+night in one artifact: 104 audit fixes, both delegated decisions, Phase 3
+(UI content coverage, P2 saves, QA matrix), M14's seven districts, P5's
+district pulse and budgets, P3's score. THE playtest build.
+
+The last six runs are worth recording as a pattern: every GAME-logic gate
+was green from the first seven-district run onward, and every red was the
+new instrumentation learning the world's real shape — the authored cast is
+42 walkers (not my guessed headroom); the mill keeps rumor-carriers by
+design (P5, so a carrier count cannot be a cap); the near band has gossip
+brains too (so "in band" is not-Far, not Mid). Four calibrations, each
+teaching a true fact about the sim. Two earlier reds were missing usings
+that no local tool could see — both tools were extended and proven by
+reintroducing the break.
+
 **Fix-phase CI build: GREEN** (run 30326027427, 2026-07-28 03:28Z). The
 in-engine run exercised the fixes for real: daysSkipped=3 — the reclaim
 extended a run past its landing for the first time; the bot lost the week,
