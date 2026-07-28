@@ -303,9 +303,17 @@ namespace Ledger.Game
             {
                 var s = Books();
                 int left = Mathf.Max(0, ActThree.AuditClosesDay - Now.Day);
-                return $"The inspection closes on day {ActThree.AuditClosesDay}; {left} day(s) remain. " +
+                // Counts go to the model as WORDS: what we feed it is what it
+                // says back, and "on 3 occasion(s)" is a spreadsheet talking
+                // (audit 2026-07-27). The closing DATE stays a date — the
+                // letter has one on it.
+                string remain = left <= 0 ? "it closes today"
+                    : left == 1 ? "one day remains"
+                    : left == 2 ? "two days remain" : "a few days remain";
+                string Times(int n) => n == 0 ? "not once" : n == 1 ? "once" : n == 2 ? "twice" : "time after time";
+                return $"The inspection closes on day {ActThree.AuditClosesDay}; {remain}. " +
                        $"Your present scope: {ActThreeState.ScopeWord(ActThreeState.ScopeFactor(s.Cooperations, s.Stonewalls))}. " +
-                       $"You have been given what you asked for on {s.Cooperations} occasion(s) and refused on {s.Stonewalls}. " +
+                       $"You have been given what you asked for {Times(s.Cooperations)} and refused {Times(s.Stonewalls)}. " +
                        "You do not accuse, you do not threaten, and you do not take anything from anybody. " +
                        "You state what you require and when you require it.";
             };

@@ -72,7 +72,39 @@ namespace Ledger.Core
                 if (char.IsSurrogate(c) || (c >= '\u2600' && c <= '\u27BF') || c == '\uFE0F') continue;
                 sb.Append(c);
             }
-            return sb.ToString().Trim();
+            return StripBareDecimals(sb.ToString()).Trim();
+        }
+
+        /// The legibility law's last line of defense on the game's largest
+        /// text surface: a bare internal scalar ("0.62") must never reach the
+        /// player, whatever the prompt fed the model (audit 2026-07-27).
+        /// Money keeps its digits, days keep their dates — only unanchored
+        /// decimal fractions are scrubbed.
+        static string StripBareDecimals(string reply)
+        {
+            var sb = new System.Text.StringBuilder(reply.Length);
+            int i = 0;
+            while (i < reply.Length)
+            {
+                char c = reply[i];
+                if (char.IsDigit(c) && (sb.Length == 0 || (sb[sb.Length - 1] != '$' && !char.IsDigit(sb[sb.Length - 1]))))
+                {
+                    int j = i;
+                    bool dot = false;
+                    while (j < reply.Length && (char.IsDigit(reply[j]) || (reply[j] == '.' && !dot && j + 1 < reply.Length && char.IsDigit(reply[j + 1]))))
+                    { if (reply[j] == '.') dot = true; j++; }
+                    if (dot)
+                    {
+                        // drop the token and one adjacent space so sentences close up
+                        if (sb.Length > 0 && sb[sb.Length - 1] == ' ' && j < reply.Length && reply[j] == ' ') j++;
+                        i = j;
+                        continue;
+                    }
+                }
+                sb.Append(c);
+                i++;
+            }
+            return sb.ToString();
         }
 
         // Written-prose words a person behind a bar would never say. Telemetry

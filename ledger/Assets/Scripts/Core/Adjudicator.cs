@@ -94,7 +94,9 @@ namespace Ledger.Core
                     if (state.Crew < amount)
                         return Adjudication.Fail(amount == 1
                             ? "that needs somebody who works for you"
-                            : $"that needs {amount} people, and you have {state.Crew}");
+                            : state.Crew == 0
+                                ? "that needs more hands than yours, and yours are the only ones you have"
+                                : "that needs more hands than you can put on it");
                     break;
 
                 case Checks.Hour:

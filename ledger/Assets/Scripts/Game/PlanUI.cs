@@ -197,7 +197,9 @@ namespace Ledger.Game
             if (outcome.Witnesses > 0)
                 Toast(outcome.Witnesses == 1
                     ? "One person saw something. One is enough to start with."
-                    : $"{outcome.Witnesses} people saw something.", 9f);
+                    : outcome.Witnesses <= 3
+                        ? "A few people saw something. A few is a conversation waiting to happen."
+                        : "Half the street saw something. There is no keeping that in.", 9f);
             foreach (var who in outcome.Talkers)
                 Toast($"{who} has not said much since. That is not the same as saying nothing.", 9f);
 

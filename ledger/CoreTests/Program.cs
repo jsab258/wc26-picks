@@ -41,6 +41,7 @@ namespace Ledger.CoreTests
                 TestSimClockReclaim();
                 TestSurvivingLead();
                 TestGossipRepairs();
+                TestValidatorScalars();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -370,6 +371,17 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestValidatorScalars()
+        {
+            Console.WriteLine("Response validator — no internal scalar reaches the player:");
+            var v = ResponseValidator.Humanize("Your books read 0.62 exposed, whatever that means.");
+            Check(!v.Contains("0.62"), "a bare decimal is scrubbed from the model's mouth", v);
+            var money = ResponseValidator.Humanize("That comes to $12.50, same as last week.");
+            Check(money.Contains("$12.50"), "money keeps its digits", money);
+            var date = ResponseValidator.Humanize("The inspection closes on day 14.");
+            Check(date.Contains("day 14"), "and a date keeps its day", date);
         }
 
         static void TestGossipRepairs()
