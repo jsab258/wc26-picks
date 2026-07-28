@@ -1314,16 +1314,19 @@ namespace Ledger.Game
                     string line = Police.Describe(inquiry);
                     if (!string.IsNullOrEmpty(line)) _ui?.Toast(line, 10f);
                 }
-                // The floor, not a raise: the reason it is there does not go
-                // away, so re-applying it nightly must not compound.
-                double floor = Police.SuspicionFloor(inquiry);
-                if (floor > 0)
-                    foreach (var a in _gossip.Mill.Agents)
-                        if (a.Suspicion.Value < floor)
-                            a.Suspicion.Raise(floor - a.Suspicion.Value, "there is a body and everybody knows it");
+                ApplySuspicionFloor(inquiry);
                 return;
             }
-            if (Police.SummonsEllis(inquiry)) return;   // no calm-down path once there is a case
+            if (Police.SummonsEllis(inquiry))
+            {
+                // Applied EVERY tick, not only on the frame the stage
+                // changed. The crowd promotes new gossipers as the player
+                // moves, and somebody who walked onto the street after the
+                // killing would otherwise be the one person on it who had
+                // not heard.
+                ApplySuspicionFloor(inquiry);
+                return;     // and no calm-down path once there is a case
+            }
 
             if (!EllisSpawned && heat >= EllisSetup.SpawnHeatThreshold) { SpawnOssei(); return; }
             if (EllisSpawned && _osseiCalmUntilDay > 0 && Now.Day > _osseiCalmUntilDay
@@ -1334,6 +1337,18 @@ namespace Ledger.Game
                     _gossip.Mill.RumorHalfLifeHours = EllisSetup.PresenceRumorHalfLifeHours;
                 _ui?.Toast("The tan coat is back at the market corner, unhurried as ever. The street's stories stop dying young again.", 9f);
             }
+        }
+
+        /// A FLOOR, not a raise: the reason it is there does not go away, so
+        /// re-applying it every tick must not compound. Written as "lift to
+        /// the floor" rather than "add" for exactly that reason.
+        void ApplySuspicionFloor(Inquiry inquiry)
+        {
+            double floor = Police.SuspicionFloor(inquiry);
+            if (floor <= 0 || _gossip?.Mill == null) return;
+            foreach (var a in _gossip.Mill.Agents)
+                if (a.Suspicion.Value < floor)
+                    a.Suspicion.Raise(floor - a.Suspicion.Value, "there is a body and everybody knows it");
         }
 
         void SpawnOssei()
