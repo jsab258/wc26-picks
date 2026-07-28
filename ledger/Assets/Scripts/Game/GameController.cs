@@ -1798,11 +1798,49 @@ namespace Ledger.Game
             if (_gossip == null || _gossip.Mill == null) return;
             try
             {
-                System.IO.File.WriteAllText(SavePath, CaptureSave());
+                WriteSafely(SavePath, CaptureSave());
                 if (!quiet) _ui?.Toast("The ledger is written. (Saved.)", 3f);
             }
             catch (System.Exception e) { Debug.LogError($"Save failed: {e.Message}"); }
         }
+
+        /// A manual copy in a numbered drawer (P2). Same codec, own file.
+        public void SaveToSlot(int slot)
+        {
+            if (_gossip == null || _gossip.Mill == null) return;
+            try
+            {
+                WriteSafely(SaveSlots.SlotPath(slot), CaptureSave());
+                _ui?.Toast($"A copy of the ledger goes in the drawer. (Day {Now.Day}.)", 4f);
+            }
+            catch (System.Exception e) { Debug.LogError($"Slot save failed: {e.Message}"); }
+        }
+
+        /// Write-then-swap, keeping the previous good file as .bak (P2:
+        /// corruption recovery). A crash mid-write costs the .tmp, never the
+        /// save; a corrupted save falls back to the backup on load.
+        static void WriteSafely(string path, string json)
+        {
+            var tmp = path + ".tmp";
+            System.IO.File.WriteAllText(tmp, json);
+            if (System.IO.File.Exists(path))
+            {
+                try { System.IO.File.Replace(tmp, path, path + ".bak"); }
+                catch (System.Exception)
+                {
+                    // Replace can refuse across volumes or on exotic mounts;
+                    // the slow road reaches the same end state.
+                    System.IO.File.Copy(path, path + ".bak", overwrite: true);
+                    System.IO.File.Copy(tmp, path, overwrite: true);
+                    System.IO.File.Delete(tmp);
+                }
+            }
+            else System.IO.File.Move(tmp, path);
+        }
+
+        /// Set by the menus before the controller boots: which file "Continue"
+        /// or a slot copy actually opens. Null means the autosave.
+        public static string PendingLoadPath;
 
         public void DeleteSave()
         {
@@ -1818,10 +1856,30 @@ namespace Ledger.Game
             try
             {
                 if (SimMode.Days > 0) return; // the self-test always plays a fresh week
-                if (!System.IO.File.Exists(SavePath)) return;
-                var rawSave = System.IO.File.ReadAllText(SavePath);
-                var now = SaveCodec.Restore(rawSave,
-                    Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, out var extra);
+                var loadPath = PendingLoadPath ?? SavePath;
+                PendingLoadPath = null;
+                if (!System.IO.File.Exists(loadPath)) return;
+                var rawSave = System.IO.File.ReadAllText(loadPath);
+                bool recovered = false;
+                GameTime now;
+                Dictionary<string, object> extra;
+                try
+                {
+                    now = SaveCodec.Restore(rawSave,
+                        Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, out extra);
+                }
+                catch (SaveIncompatibleException e) when (e.Fault == SaveFault.Unreadable
+                    && System.IO.File.Exists(loadPath + ".bak"))
+                {
+                    // P2 corruption recovery: the write-behind backup is the
+                    // last GOOD ledger. The bad file is set aside, not deleted
+                    // — a hand recovery stays possible.
+                    SaveSlots.Quarantine(loadPath);
+                    rawSave = System.IO.File.ReadAllText(loadPath + ".bak");
+                    now = SaveCodec.Restore(rawSave,
+                        Wallet, Campaign, Knowledge, HooksBook, Beats, _gossip.Mill, Debts, out extra);
+                    recovered = true;
+                }
                 Now = now;
                 WearingCoat = FlagB(extra, "wearingCoat");
                 TotalTakings = FlagI(extra, "totalTakings");
@@ -1901,7 +1959,9 @@ namespace Ledger.Game
                 // back (audit 2026-07-27).
                 if (_osseiCalmUntilDay > Now.Day && _gossip != null && _gossip.Mill != null)
                     _gossip.Mill.RumorHalfLifeHours = 96;
-                _ui?.Toast($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}. The street remembers where you left it.", 6f);
+                _ui?.Toast(recovered
+                    ? $"The ledger's last page was water-damaged; the copy underneath opens instead. Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}."
+                    : $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)}. The street remembers where you left it.", recovered ? 10f : 6f);
                 if (Campaign.Verdict != Verdict.Ongoing) EndCampaign();
             }
             catch (System.Exception e) { Debug.LogError($"Load failed: {e.Message}"); }

@@ -822,6 +822,11 @@ namespace Ledger.Game
                     { _errors.Add("save missing key: " + mustCarry); saveLoadOk = false; }
                 _game.SaveNow(quiet: true);
                 if (!System.IO.File.Exists(_game.SavePath)) saveLoadOk = false;
+                // P2: the second write must leave the previous good file as
+                // .bak — the corruption-recovery line the load path falls to.
+                _game.SaveNow(quiet: true);
+                if (!System.IO.File.Exists(_game.SavePath + ".bak"))
+                { _errors.Add("save backup missing after second write"); saveLoadOk = false; }
             }
             catch (Exception e) { _errors.Add("saveLoad: " + e.Message); saveLoadOk = false; }
 

@@ -82,7 +82,7 @@ namespace Ledger.Game
 
         void BuildPausePanel()
         {
-            _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 480));
+            _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 540));
             var t = MakeText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(460, 36), 24, TextAnchor.UpperCenter);
             t.text = "P A U S E D";
             t.color = UiTheme.Dim;
@@ -93,7 +93,12 @@ namespace Ledger.Game
             var save = MakeButton(_pausePanel.transform, "Save now", new Vector2(0.5f, 1), new Vector2(0, -158), new Vector2(320, 48));
             save.onClick.AddListener(() => { _game.SaveNow(); Audio.Ui("coin"); });
 
-            var menu = MakeButton(_pausePanel.transform, "Save and quit to menu", new Vector2(0.5f, 1), new Vector2(0, -216), new Vector2(320, 48));
+            // P2: a manual copy in a rotating drawer — snapshot before a risky
+            // night, reopen it from the main menu if the night goes wrong.
+            var copy = MakeButton(_pausePanel.transform, "Keep a copy", new Vector2(0.5f, 1), new Vector2(0, -216), new Vector2(320, 48));
+            copy.onClick.AddListener(() => { _game.SaveToSlot(SaveSlots.NextSlot()); Audio.Ui("coin"); });
+
+            var menu = MakeButton(_pausePanel.transform, "Save and quit to menu", new Vector2(0.5f, 1), new Vector2(0, -274), new Vector2(320, 48));
             menu.onClick.AddListener(() =>
             {
                 _game.SaveNow(quiet: true);
@@ -107,14 +112,14 @@ namespace Ledger.Game
             // change text size, sensitivity, volume or a keybinding was to quit
             // to the main menu, which fails the plainest expectation anybody has
             // of a pause screen.
-            var options = MakeButton(_pausePanel.transform, "Options", new Vector2(0.5f, 1), new Vector2(0, -274), new Vector2(320, 48));
+            var options = MakeButton(_pausePanel.transform, "Options", new Vector2(0.5f, 1), new Vector2(0, -332), new Vector2(320, 48));
             options.onClick.AddListener(() =>
             {
                 _pausePanel.SetActive(false);
                 OptionsScreen.Show(() => { if (_pausePanel != null) _pausePanel.SetActive(true); });
             });
 
-            var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -332), new Vector2(320, 48));
+            var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -390), new Vector2(320, 48));
             quit.onClick.AddListener(() => { _game.SaveNow(quiet: true); MainMenu.Quit(); });
 
             MakeText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(460, 30), 15, TextAnchor.LowerCenter)

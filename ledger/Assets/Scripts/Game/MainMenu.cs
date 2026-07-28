@@ -68,7 +68,27 @@ namespace Ledger.Game
             var contBtn = MenuButton(_root.transform, hasSave ? "Continue" : "Continue (no save)", new Vector2(0.5f, 0.5f), new Vector2(0, 70), new Vector2(360, 52));
             _continueLabel = contBtn.GetComponentInChildren<Text>();
             contBtn.interactable = hasSave;
-            contBtn.onClick.AddListener(() => StartGame(load: true));
+            contBtn.onClick.AddListener(() =>
+            {
+                // Continue opens the NEWEST save wherever it lives — the
+                // autosave usually, a fresher manual copy when there is one.
+                GameController.PendingLoadPath = SaveSlots.NewestPath();
+                StartGame(load: true);
+            });
+
+            // P2: the manual copies, each its own door back in.
+            float slotY = 70;
+            foreach (var (slot, line) in SaveSlots.SlotLines())
+            {
+                int s2 = slot;
+                MenuButton(_root.transform, line, new Vector2(0.5f, 0.5f), new Vector2(430, slotY), new Vector2(300, 44))
+                    .onClick.AddListener(() =>
+                    {
+                        GameController.PendingLoadPath = SaveSlots.SlotPath(s2);
+                        StartGame(load: true);
+                    });
+                slotY -= 52;
+            }
 
             MenuButton(_root.transform, "New game", new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(360, 52))
                 .onClick.AddListener(() => StartGame(load: false));
@@ -99,7 +119,7 @@ namespace Ledger.Game
 
         void StartGame(bool load)
         {
-            if (!load) SaveSlots.DeleteAll();
+            if (!load) SaveSlots.DeleteAuto();   // the manual copies are the player's property
             GameSettings.Current.Save();
             Showing = false;
             Destroy(gameObject);

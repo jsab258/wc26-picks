@@ -76,6 +76,38 @@ namespace Ledger.Game
             catch (Exception) { return "A save exists but cannot be read."; }
         }
 
+        /// Where the next manual copy goes: the empty slot if there is one,
+        /// otherwise the OLDEST — one button in the pause menu, no picker.
+        public static int NextSlot()
+        {
+            int oldest = 1; DateTime oldestTime = DateTime.MaxValue;
+            for (int i = 1; i <= ManualSlots; i++)
+            {
+                if (!File.Exists(SlotPath(i))) return i;
+                var t = File.GetLastWriteTimeUtc(SlotPath(i));
+                if (t < oldestTime) { oldestTime = t; oldest = i; }
+            }
+            return oldest;
+        }
+
+        /// One line per existing manual copy, for the main menu's load list.
+        public static List<(int slot, string line)> SlotLines()
+        {
+            var lines = new List<(int, string)>();
+            for (int i = 1; i <= ManualSlots; i++)
+            {
+                if (!File.Exists(SlotPath(i))) continue;
+                try
+                {
+                    var root = MiniJson.AsObject(MiniJson.Deserialize(File.ReadAllText(SlotPath(i))));
+                    int day = root != null ? MiniJson.GetInt(root, "day") : 0;
+                    lines.Add((i, $"Open the copy — day {day}"));
+                }
+                catch (Exception) { lines.Add((i, "Open the copy (unreadable)")); }
+            }
+            return lines;
+        }
+
         /// Corruption recovery: move the bad file aside so the player can start
         /// again without losing the chance of hand-recovering it later.
         public static void Quarantine(string path)
@@ -89,6 +121,14 @@ namespace Ledger.Game
                 Debug.LogWarning($"Save quarantined to {bad}");
             }
             catch (Exception e) { Debug.LogError($"Could not quarantine save: {e.Message}"); }
+        }
+
+        /// A new game clears the AUTOSAVE line only — the manual copies are
+        /// the player's property and stay openable from the menu (P2).
+        public static void DeleteAuto()
+        {
+            foreach (var p in new[] { AutoPath, AutoPath + ".bak", AutoPath + ".tmp" })
+                try { if (File.Exists(p)) File.Delete(p); } catch (Exception) { }
         }
 
         public static void DeleteAll()
