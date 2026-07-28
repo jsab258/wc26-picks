@@ -181,6 +181,44 @@ namespace Ledger.Game
             }
         }
 
+        /// CONTINUOUS DAY AND NIGHT (game-feel-spec.md §8, "continuous
+        /// day/night lighting, not stepped").
+        ///
+        /// The light has always lerped smoothly and the SOUND did not: the
+        /// room swapped on an hour boundary, so at 20:00 exactly the street
+        /// changed character in one frame. That is the one hard cut left in
+        /// the game, and it is the more noticeable half, because a picture
+        /// that fades while its soundtrack jumps reads as a bug rather than
+        /// as dusk.
+        ///
+        /// Both beds now play at once and crossfade on the SAME daylight
+        /// number the sun uses, so light and sound cannot disagree about what
+        /// time it is.
+        static AudioSource _ambienceNight;
+
+        public static void SetDaylight(float night)
+        {
+            if (_root == null || _ambience == null) return;
+            night = Mathf.Clamp01(night);
+            if (_ambienceNight == null)
+            {
+                _ambienceNight = Make("AmbienceNight", loop: true);
+                _ambienceNight.clip = Clip("ambience_night", () => Ambience(true));
+                _ambienceNight.Play();
+            }
+            if (_ambience.clip == null)
+            {
+                _ambience.clip = Clip("ambience_day", () => Ambience(false));
+                _ambience.Play();
+            }
+            var s = GameSettings.Current;
+            float bed = (0.28f + 0.34f * _chatter) * s.MasterVolume * s.MusicVolume;
+            // Equal-power rather than linear, or the crossfade dips in the
+            // middle and dusk sounds like a hole in the audio.
+            _ambience.volume = bed * Mathf.Cos(night * Mathf.PI * 0.5f);
+            _ambienceNight.volume = bed * Mathf.Sin(night * Mathf.PI * 0.5f);
+        }
+
         /// The score steps back while people talk — dialogue is the game's
         /// instrument and the music knows it (P3).
         static bool _ducked;

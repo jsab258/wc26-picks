@@ -65,6 +65,17 @@ namespace Ledger.Game
             cc.height = 1.8f;
             cc.radius = 0.35f;
             cc.center = Vector3.zero;
+            // SLOPES AND STAIRS (game-feel-spec.md §2). Defaults let a
+            // controller catch on a kerb and judder, which reads as the world
+            // being made of separate objects rather than as ground. A step
+            // offset just over a kerb height and a slope limit that accepts a
+            // ramp are the whole fix.
+            cc.stepOffset = 0.42f;
+            cc.slopeLimit = 48f;
+            // A hair of skin stops the controller shivering against a wall it
+            // is pressed into, which is the other half of the same complaint.
+            cc.skinWidth = 0.04f;
+            cc.minMoveDistance = 0f;
 
             var player = go.AddComponent<PlayerController>();
 

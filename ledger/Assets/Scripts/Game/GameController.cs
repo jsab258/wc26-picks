@@ -2076,6 +2076,9 @@ namespace Ledger.Game
         {
             if (_sun == null) return;
             // The room changes with the light: day tone, night tone.
+            // The music still swaps on a boundary — it is a different piece
+            // of music, not a different time of day — but the ROOM now
+            // crossfades continuously, below.
             if (Audio.Ready) Audio.SetNight(Now.Hour >= 20 || Now.Hour < 6);
             // 06:00 sunrise, 18:00 sunset mapped across a full rotation.
             float dayFraction = (Now.Hour * 60 + Now.Minute) / 1440f;
@@ -2087,6 +2090,9 @@ namespace Ledger.Game
             // SAME number the sun uses. Two independent notions of "how dark
             // is it" would drift, and the grain would peak at the wrong hour.
             NightAmount = 1f - daylight;
+            // Light and sound off the SAME number, so dusk cannot arrive at
+            // two different times.
+            if (Audio.Ready) Audio.SetDaylight(NightAmount);
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;

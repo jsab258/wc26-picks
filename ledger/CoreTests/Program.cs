@@ -84,6 +84,7 @@ namespace Ledger.CoreTests
                 TestFeel();
                 TestAcoustics();
                 TestCrowdOnTheStreet();
+                TestCombat();
                 TestPalette();
                 TestInteraction();
                 TestDirector();
@@ -5405,6 +5406,153 @@ namespace Ledger.CoreTests
             Check(total > 20 && lowHalf / total > 0.25 && lowHalf / total < 0.75,
                 "and the outdoor crowd spreads along the route rather than bunching",
                 $"{lowHalf / Math.Max(1, total):0.00} in the near half");
+        }
+
+        static void TestCombat()
+        {
+            Console.WriteLine("Combat — violence that works and costs more than it saves:");
+
+            Fighter Guy(string id, double cap = 1.0) =>
+                new Fighter { Id = id, Name = id, Capability = cap };
+
+            // ---- reach: a hit that lands from four metres loses the player ----
+            var me = Guy("me"); var him = Guy("him");
+            Check(!Combat.Available(Blow.Strike, me, him, 4.0),
+                "a strike cannot reach across the street");
+            Check(Combat.Available(Blow.Strike, me, him, 1.2),
+                "but lands at arm's length");
+            Check(Combat.Resolve(Blow.Strike, me, him, 4.0).Landed == false,
+                "and resolving an unavailable blow does nothing at all");
+
+            // ---- available() and resolve() must agree, or prompts lie ----
+            var tired = Guy("tired"); tired.Stamina = 0.05;
+            Check(!Combat.Available(Blow.Strike, tired, him, 1.0),
+                "an exhausted fighter cannot swing");
+            Check(!Combat.Resolve(Blow.Strike, tired, him, 1.0).Landed,
+                "and the rules refuse it for the same reason the prompt would grey it out");
+
+            // ---- a tired swing is a weak one ----
+            var fresh = Guy("fresh"); var weary = Guy("weary"); weary.Stamina = 0.3;
+            var a = Guy("a"); var b = Guy("b");
+            double hard = Combat.Resolve(Blow.Strike, fresh, a, 1.0).Force;
+            double soft = Combat.Resolve(Blow.Strike, weary, b, 1.0).Force;
+            Check(hard > soft, "a tired swing is a weaker one", $"{hard:0.00} vs {soft:0.00}");
+
+            // ---- a hurt fighter hits softer AND goes down sooner ----
+            var hurt = Guy("hurt", 0.4);
+            var whole = Guy("whole");
+            double hurtHit = Combat.Resolve(Blow.Strike, hurt, Guy("x"), 1.0).Force;
+            double wholeHit = Combat.Resolve(Blow.Strike, whole, Guy("y"), 1.0).Force;
+            Check(hurtHit < wholeHit, "an injured fighter hits softer");
+
+            // ---- guarding absorbs, never negates ----
+            var att = Guy("att"); var def = Guy("def");
+            def.Guarding = true;
+            var guarded = Combat.Resolve(Blow.Strike, att, def, 1.0);
+            Check(guarded.Landed && guarded.Guarded, "a guarded blow still lands");
+            Check(def.Punished > 0, "and still hurts — a guard that negates is one you hold forever");
+            Check(!def.Guarding, "and it breaks the guard");
+
+            // ---- you can be put down, and only then finished ----
+            var victim = Guy("victim");
+            var puncher = Guy("puncher");
+            int swings = 0;
+            while (victim.Footing != Footing.Down && swings < 20)
+            {
+                puncher.Stamina = 1.0;                 // isolate the target's side
+                Combat.Resolve(Blow.Strike, puncher, victim, 1.0);
+                swings++;
+            }
+            Check(victim.Footing == Footing.Down, "enough clean blows put somebody down");
+            Check(swings >= 2,
+                "and it is never one punch — a one-shot knockdown is a different genre",
+                $"{swings} swings");
+            Check(!victim.CanAct, "somebody down cannot act");
+
+            // THE SEPARATION THAT IS THE DESIGN.
+            var standing = Guy("standing");
+            Check(!Combat.Available(Blow.Finish, puncher, standing, 1.0),
+                "FINISHING SOMEBODY STANDING IS IMPOSSIBLE — it is not a combat move, "
+                + "it is a decision made in the quiet afterwards");
+            Check(Combat.Available(Blow.Finish, puncher, victim, 1.0),
+                "only somebody already down can be finished");
+            Check(!Combat.Available(Blow.Finish, puncher, victim, 3.0),
+                "and not from across the room");
+            var kill = Combat.Resolve(Blow.Finish, puncher, victim, 1.0);
+            Check(kill.Killed, "and then it is done");
+
+            // Nothing else in the entire verb set can kill. Checked
+            // exhaustively rather than by inspection, because "no accidental
+            // deaths" is a promise and not a preference.
+            bool anyAccident = false;
+            foreach (Blow verb in Enum.GetValues(typeof(Blow)))
+            {
+                if (verb == Blow.Finish) continue;
+                for (int i = 0; i < 40; i++)
+                {
+                    var p = Guy("p"); var q = Guy("q");
+                    p.Stamina = 1.0;
+                    if (Combat.Resolve(verb, p, q, 1.0).Killed) anyAccident = true;
+                }
+            }
+            Check(!anyAccident,
+                "NO verb except Finish can ever kill — not once in every blow at every state");
+
+            // ---- back off is always available, because leaving must be ----
+            var cornered = Guy("cornered"); cornered.Stamina = 0;
+            Check(Combat.Available(Blow.BackOff, cornered, him, 0.5),
+                "you can always leave, even exhausted and up against somebody");
+
+            // ---- stamina comes back by NOT swinging ----
+            var winded = Guy("winded"); winded.Stamina = 0.2;
+            Combat.Breathe(winded, 3.0);
+            Check(winded.Stamina > 0.2 && winded.Stamina <= 1.0,
+                "standing off gets your wind back", $"{winded.Stamina:0.00}");
+
+            // ---- WHO SAW IT: the half of combat that is actually the game ----
+            Check(Violence.Confidence(2, false) > Violence.Confidence(20, false),
+                "a fight at your elbow is surer than one down the street");
+            Check(Violence.Confidence(2, true) < Violence.Confidence(2, false),
+                "and through a wall you know something happened, not what");
+            Check(Violence.Confidence(2, true) <= 0.5,
+                "capped, because hearing is not seeing", $"{Violence.Confidence(2, true):0.00}");
+            Check(Violence.Confidence(200, false) == 0, "and across the district, nothing");
+            Check(Violence.Confidence(2, false) > Acoustics.OverheardConfidence(2, false),
+                "you do not need to make out words to know what you are looking at");
+
+            var nearby = new List<FightWitness>
+            {
+                new FightWitness { Id = "close", Metres = 3 },
+                new FightWitness { Id = "far", Metres = 200 },
+                new FightWitness { Id = "wall", Metres = 3, Occluded = true },
+            };
+            var saw = Violence.Saw(nearby);
+            Check(saw.Count == 2 && saw.Exists(w => w.Id == "close") && saw.Exists(w => w.Id == "wall"),
+                "only the people who could have carried it away are witnesses",
+                string.Join(",", saw.ConvertAll(w => w.Id)));
+
+            // The alley at three versus the bar at noon. This difference IS
+            // the game.
+            Check(Violence.Notoriety(0, false) < Violence.Notoriety(6, false),
+                "a fight nobody saw is not the day's news");
+            Check(Violence.Notoriety(0, true) >= 0.75,
+                "but a KILLING nobody saw is still enormous — a body is not a rumour",
+                $"{Violence.Notoriety(0, true):0.00}");
+
+            // ---- THE ASYMMETRY: a body cannot be discredited ----
+            Check(Violence.KillingConfidence(3, false) >= 0.95,
+                "seeing a killing is being CERTAIN of it");
+            Check(Violence.KillingConfidence(3, false) > Acoustics.OverheardConfidence(3, false),
+                "far past anything the gossip mill lets an overheard thing reach");
+            var mill = new GossipMill(new SocialGraph());
+            var eyes = Agent("eyes", "Eyes", "night");
+            mill.Add(eyes);
+            var killing = new Fact("player", "killed_d5", "true");
+            mill.Witness("eyes", killing, "watched him do it", true, new GameTime(5, 23, 0),
+                Violence.KillingConfidence(3, false));
+            Check(eyes.Knowledge.CheckClaim(killing) == ClaimResult.Consistent,
+                "so unlike EVERY other thing in this game, it becomes hard knowledge — "
+                + "which is exactly what makes killing terrifying rather than efficient");
         }
 
         static void TestPalette()
