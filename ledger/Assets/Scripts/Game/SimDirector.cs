@@ -1076,7 +1076,12 @@ namespace Ledger.Game
                     bool empty = a.Rumors.Count == 0 && a.Memory.Events.Count == 0
                         && a.Suppressed.Count == 0 && !a.Leashed;
                     var res = _game.Populace != null ? _game.Populace.ById(a.Id) : null;
-                    bool inBand = res != null && res.Band == Lod.Mid;
+                    // In-band is anything not Far: the NEAR band's 22 walkers
+                    // are in the mill too (a walker you can talk to needs a
+                    // gossip brain), and counting them as stranded red a
+                    // healthy build (run 30340665815: strandedEmpty=22, the
+                    // walker cap to the digit).
+                    bool inBand = res != null && res.Band != Lod.Far;
                     if (empty && !inBand) strandedEmpty++;
                 }
             long heapMb = System.GC.GetTotalMemory(false) / (1024 * 1024);
