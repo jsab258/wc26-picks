@@ -19,8 +19,10 @@ whether a green Windows CI run has confirmed it yet.
 | 8 | The hush — they stop talking when you walk up | pending |
 | 9 | Perf: one silhouette per body, instancing, detail LOD | pending |
 | 10 | A frame-time gate, which nothing had | pending |
+| 11 | The mix: ducking that does not pump, voice budgets, crowd summing | pending |
+| 12 | AO split into its own shader so it cannot break the grade | pending |
 
-Core checks went 2060 → 2135.
+Core checks went 2060 → 2165.
 
 ## The one that matters most
 
@@ -132,6 +134,30 @@ the more useful finding is that nothing was measuring frame time at all** —
 `perfOk` gated one subsystem, so a global regression could only surface as a
 job timeout, which is a diagnosis-free failure on a twenty-minute loop. There
 is a frame-time gate now.
+
+## The mix
+
+The bark bank is blocked on your listening pass. **The mix is not blocked on
+anything**, and it is most of why an independent game sounds independent.
+
+What was there: `DuckMusic(true/false)`, which snapped the score to 35% and
+back. Symmetric, so the bed swells into every gap between syllables and
+collapses again — the most recognisable sound of an amateur mix, and audible
+to people who could not name it. It is an envelope now, 80ms down and 750ms
+back, and the depth is per-bus because ducking everything equally takes the
+street out from behind the speaker and sounds like a fault rather than
+emphasis.
+
+**Overhearing is a different duck**, and it is the one this game needs. Two
+people discussing the player six metres away is the moment the whole gossip
+network exists for, and until tonight it competed on equal terms with rain and
+traffic. The street now leans out of the way harder for something he was not
+meant to hear than for a conversation he is having.
+
+Plus a budget on how many sounds may speak at once — stealing from the
+*quietest*, never from an authored line — and summing that matches hearing:
+ten incoherent sources at 0.3 make about 0.95, not 3.0, and adding them
+linearly is why crowds clip.
 
 ## Still needing you
 
