@@ -63,6 +63,7 @@ namespace Ledger.CoreTests
                 await TestReflection();
                 TestPhysique();
                 TestConfab();
+                TestMixing();
                 TestResponseParsing();
                 TestIntentLexical();
                 TestIntentValidation();
@@ -6843,6 +6844,149 @@ namespace Ledger.CoreTests
                 "the chest turns against the pelvis and less far — this is the "
                 + "difference between a walking spine and a crate with legs",
                 $"pelvis {turn.pelvisYaw:0.0} chest {turn.chestYaw:0.0}");
+        }
+
+        static void TestMixing()
+        {
+            Console.WriteLine("Mixing — the whole desk was one boolean and a per-source constant:");
+
+            // ASYMMETRY IS THE WHOLE THING. Equal attack and release make the
+            // bed swell into every gap between syllables and collapse again,
+            // which is the most recognisable sound of an amateur mix.
+            Check(Mixing.DuckAttackSeconds < Mixing.DuckReleaseSeconds / 4,
+                "a duck drops fast and comes back slowly — symmetric times make the mix "
+                + "breathe on every line, audibly, to people who could not name it",
+                $"{Mixing.DuckAttackSeconds}s down, {Mixing.DuckReleaseSeconds}s up");
+
+            double down = 0, up = 1;
+            for (int i = 0; i < 10; i++) down = Mixing.StepDuck(down, 1, 0.016);
+            for (int i = 0; i < 10; i++) up = Mixing.StepDuck(up, 0, 0.016);
+            Check(down > 0.75 && up > 0.75,
+                "in a tenth of a second it is most of the way down, and barely started "
+                + "coming back",
+                $"down to {down:0.00}, back to {up:0.00}");
+
+            // Frame-rate independence, the same standard as everything else
+            // — but sampled MID-CURVE.
+            //
+            // The first version ran a full second at both rates and compared
+            // the results. Both had long since saturated at 1.0, so a break
+            // replacing the exponential with a plain `dt / seconds` passed
+            // cleanly: two curves that arrive at the same place by different
+            // routes are identical once they have both arrived. The test has
+            // to look while they are still travelling.
+            double a5 = 0, a40 = 0;
+            for (int i = 0; i < 5; i++) a5 = Mixing.StepDuck(a5, 1, 0.05 / 5);
+            for (int i = 0; i < 40; i++) a40 = Mixing.StepDuck(a40, 1, 0.05 / 40);
+            Check(Math.Abs(a5 - a40) < 1e-3,
+                "and a duck sounds the same at 100fps and at 800 — measured partway "
+                + "down, where the curves differ, not at the end where every curve "
+                + "agrees",
+                $"{a5:0.0000} vs {a40:0.0000}");
+            double r5 = 1, r40 = 1;
+            for (int i = 0; i < 5; i++) r5 = Mixing.StepDuck(r5, 0, 0.4 / 5);
+            for (int i = 0; i < 40; i++) r40 = Mixing.StepDuck(r40, 0, 0.4 / 40);
+            Check(Math.Abs(r5 - r40) < 1e-3,
+                "in both directions, since attack and release run different constants",
+                $"{r5:0.0000} vs {r40:0.0000}");
+
+            // NOT UNIFORM. The classic over-correction is ducking everything
+            // equally, which takes the street out from behind the speaker and
+            // sounds like a bug.
+            Check(Mixing.DuckDepth(Bus.Music) > Mixing.DuckDepth(Bus.Ambience),
+                "music gets out of the way harder than the street does — it is competing "
+                + "for the same frequencies and the same attention");
+            Check(Mixing.DuckDepth(Bus.Ambience) > 0 && Mixing.DuckDepth(Bus.Ambience) < 0.5,
+                "but the street never disappears behind a speaker, which is the classic "
+                + "over-correction and sounds like a fault",
+                $"{Mixing.DuckDepth(Bus.Ambience):0.00}");
+            Check(Mixing.DuckDepth(Bus.Foley) < Mixing.DuckDepth(Bus.Ambience),
+                "and footsteps stay, because dialogue over nothing sounds like a vacuum");
+            Check(Mixing.DuckDepth(Bus.Ui) == 0 && Mixing.DuckDepth(Bus.Voice) == 0,
+                "the interface is not in the world, and a voice does not duck itself");
+
+            // OVERHEARING IS A DIFFERENT DUCK — the moment the entire gossip
+            // system exists for, competing with rain and traffic.
+            foreach (var b in new[] { Bus.Music, Bus.Ambience, Bus.Foley, Bus.Impact })
+                Check(Mixing.OverhearDepth(b) > Mixing.DuckDepth(b),
+                    $"the mix leans in harder for something the player was not meant to "
+                    + $"hear than for a conversation he is having ({b})",
+                    $"{Mixing.OverhearDepth(b):0.00} vs {Mixing.DuckDepth(b):0.00}");
+
+            Check(Mixing.Gain(Bus.Music, 0, false) == 1.0,
+                "nothing is attenuated when nothing is speaking");
+            Check(Mixing.Gain(Bus.Ambience, 1, true) < Mixing.Gain(Bus.Ambience, 1, false),
+                "and the bed is quieter under an overheard secret than under a chat");
+
+            // A BUDGET. Forty people is forty footsteps, and the one sound
+            // that mattered arrives last and loses.
+            Check(Mixing.Budget(Bus.Voice) <= 4,
+                "four people talking at once is already a crowd; more is mush",
+                $"{Mixing.Budget(Bus.Voice)}");
+            bool steal;
+            Check(Mixing.Admit(Bus.Foley, 0.5, 2, 0.4, out steal) && !steal,
+                "a sound plays outright when the bus has room");
+            Check(Mixing.Admit(Bus.Foley, 0.9, Mixing.Budget(Bus.Foley), 0.2, out steal) && steal,
+                "and takes the quietest slot when it is louder than what it displaces");
+            Check(!Mixing.Admit(Bus.Foley, 0.1, Mixing.Budget(Bus.Foley), 0.5, out steal),
+                "but a sound quieter than everything already playing is dropped — it "
+                + "would have been inaudible, and playing it only costs the slot");
+
+            // PRIORITY IS SEPARATE FROM LOUDNESS, because an important line
+            // spoken quietly is exactly the case that matters.
+            Check(Mixing.Protected(Bus.Voice, true) && !Mixing.Protected(Bus.Voice, false),
+                "an authored line is protected and an incidental one is not");
+            Check(!Mixing.Protected(Bus.Foley, true),
+                "and a footstep is never protected, however it was triggered");
+
+            // SUMMING THAT MATCHES HEARING. Ten sounds at 0.3 make about
+            // 0.95, not 3.0 — adding them linearly is why crowds clip.
+            Check(Mixing.CrowdGain(1) == 1.0, "one sound is not attenuated");
+            Check(Math.Abs(0.3 * 10 * Mixing.CrowdGain(10) - 0.949) < 0.01,
+                "ten footsteps at 0.3 come out just under one, where adding them would "
+                + "have made three",
+                $"{0.3 * 10 * Mixing.CrowdGain(10):0.000}");
+            Check(Mixing.CrowdGain(4) > Mixing.CrowdGain(16),
+                "and more sources are attenuated further");
+
+            // THE CEILING. Clipping is the one artefact no amount of good
+            // sound design survives.
+            Check(Mixing.Limit(0.5) == 1.0, "a quiet moment is left alone");
+            Check(Math.Abs(1.4 * Mixing.Limit(1.4) - Mixing.Headroom) < 1e-9,
+                "and a loud one is brought exactly to the ceiling — as a whole, so the "
+                + "balance between buses survives instead of the loudest thing being "
+                + "singled out and everything else jumping forward",
+                $"{1.4 * Mixing.Limit(1.4):0.000}");
+
+            // DISTANCE. A voice has to carry further than a scuff or the
+            // overheard-gossip channel becomes a stealth minigame.
+            Check(Mixing.Reach(Bus.Voice) > Mixing.Reach(Bus.Foley) * 1.5,
+                "a conversation is audible from further off than a footstep — otherwise "
+                + "the player has to stand on top of people to catch anything",
+                $"{Mixing.Reach(Bus.Voice)}m vs {Mixing.Reach(Bus.Foley)}m");
+            Check(Mixing.Attenuate(Bus.Voice, 0) >= 0.99,
+                "a sound at the source is at full volume");
+            Check(Mixing.Attenuate(Bus.Voice, Mixing.Reach(Bus.Voice)) == 0
+                  && Mixing.Attenuate(Bus.Voice, 999) == 0,
+                "and gone at its reach, rather than hanging about at two percent for the "
+                + "width of a district");
+            // Fast at first, slow after — a linear rolloff is why so many
+            // games have a sound that is either full volume or absent.
+            double near = Mixing.Attenuate(Bus.Voice, 1) - Mixing.Attenuate(Bus.Voice, 3);
+            double far = Mixing.Attenuate(Bus.Voice, 9) - Mixing.Attenuate(Bus.Voice, 11);
+            Check(near > far * 2,
+                "and it falls off fast close in and slowly further out, the way sound "
+                + "does and the way a linear rolloff does not",
+                $"{near:0.000} over 2m near, {far:0.000} over 2m far");
+            double prev = 2;
+            bool monotonic = true;
+            for (double d = 0; d <= 20; d += 0.25)
+            {
+                double v = Mixing.Attenuate(Bus.Voice, d);
+                if (v > prev + 1e-9) monotonic = false;
+                prev = v;
+            }
+            Check(monotonic, "and walking away from something never makes it louder");
         }
 
         static void TestConfab()

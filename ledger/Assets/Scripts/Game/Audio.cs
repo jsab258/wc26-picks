@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
@@ -56,14 +57,24 @@ namespace Ledger.Game
         {
             if (_root == null) return;
             var s = GameSettings.Current;
+            // PER-BUS DUCK DEPTH, from Core/Mixing. Ducking everything by the
+            // same amount is the classic over-correction: it takes the street
+            // out from behind the speaker, which sounds like a fault rather
+            // than like emphasis. Music gets out of the way hard, the bed a
+            // little, footsteps barely — dialogue over nothing sounds like a
+            // vacuum — and the interface not at all, because it is not in the
+            // world.
+            float dAmb = (float)Mixing.Gain(Bus.Ambience, _duck, _overhearing);
+            float dMus = (float)Mixing.Gain(Bus.Music, _duck, _overhearing);
+            float dFol = (float)Mixing.Gain(Bus.Foley, _duck, _overhearing);
             if (_ambience != null)
-                _ambience.volume = (0.28f + 0.34f * _chatter) * s.MasterVolume * s.MusicVolume;
-            if (_music != null) _music.volume = 0.22f * s.MasterVolume * s.MusicVolume * (_ducked ? 0.35f : 1f);
+                _ambience.volume = (0.28f + 0.34f * _chatter) * s.MasterVolume * s.MusicVolume * dAmb;
+            if (_music != null) _music.volume = 0.22f * s.MasterVolume * s.MusicVolume * dMus;
             if (_ui != null) _ui.volume = 0.6f * s.MasterVolume * s.SfxVolume;
-            if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume;
+            if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume * dFol;
             // The traffic bed's own volume is driven per-frame by proximity; the
             // settings only scale the ceiling it is allowed to reach.
-            _trafficCeiling = 0.30f * s.MasterVolume * s.SfxVolume;
+            _trafficCeiling = 0.30f * s.MasterVolume * s.SfxVolume * dAmb;
         }
 
         static float _trafficCeiling = 0.30f;
@@ -384,14 +395,46 @@ namespace Ledger.Game
             return Make("music_stem_" + layer, data);
         }
 
-        /// The score steps back while people talk — dialogue is the game's
-        /// instrument and the music knows it (P3).
-        static bool _ducked;
+        /// THE DUCK, which was a boolean and is now an envelope.
+        ///
+        /// `DuckMusic(true/false)` snapped the score to 35% and back, which
+        /// makes the mix breathe on every line — the bed swelling into each
+        /// gap and collapsing again. It is the most recognisable sound of an
+        /// amateur mix and audible to people who could not name it.
+        ///
+        /// Every number is `Core/Mixing`, where they are tested. This holds
+        /// one float and calls into it.
+        static bool _talking, _overhearing;
+        static double _duck;
+
+        public static double DuckAmount => _duck;
+
         public static void DuckMusic(bool talking)
         {
-            if (_ducked == talking) return;
-            _ducked = talking;
-            ApplyVolumes();
+            _talking = talking;
+        }
+
+        /// OVERHEARING IS A DIFFERENT DUCK. Two people discussing the player
+        /// six metres away is the moment the whole gossip system exists for,
+        /// and it competes with rain, traffic, and a street bed authored to
+        /// sit comfortably for walking around in. So the bed gets out of the
+        /// way HARDER for something he was not meant to hear.
+        public static void DuckForOverheard(bool overhearing)
+        {
+            _overhearing = overhearing;
+        }
+
+        /// Advance the envelope. Called once a frame from the same place
+        /// that drives the score.
+        public static void StepMix(float dt)
+        {
+            double before = _duck;
+            _duck = Mixing.StepDuck(_duck, (_talking || _overhearing) ? 1 : 0, dt);
+            // Only push to the sources when it actually moved enough to
+            // hear. ApplyVolumes touches every AudioSource in the game and
+            // running it every frame for a change of 0.0001 is a cost for
+            // nothing.
+            if (Math.Abs(_duck - before) > 0.002) ApplyVolumes();
         }
 
         /// P3's missing half: a score, synthesised once and cached — and like

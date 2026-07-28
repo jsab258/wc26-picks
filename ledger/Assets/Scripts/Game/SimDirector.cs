@@ -617,6 +617,7 @@ namespace Ledger.Game
             SampleScore();
             SampleReflections();
             SampleBodies();
+            SampleMix();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
             // ONE A/B, ONCE. The only way to prove an image effect reaches
@@ -697,6 +698,23 @@ namespace Ledger.Game
         double _scoreEnergyRange;
         double _scoreCalmUnease = -1, _scoreCalmestHeat, _scoreHotUnease = -1, _scoreHottestHeat = -1;
         double _scoreMinE = double.MaxValue, _scoreMaxE = double.MinValue;
+
+        // ---- THE MIX ----
+        //
+        // A duck envelope is invisible in a screenshot and inaudible in CI.
+        // What CAN be checked is that it MOVED and that it moved BOTH WAYS:
+        // an envelope stuck at zero is the old boolean with extra steps, and
+        // one stuck at one is a game that ducked the music at the title
+        // screen and never brought it back.
+        double _mixDuckMin = 9, _mixDuckMax = -1;
+
+        void SampleMix()
+        {
+            if (!Audio.Ready) return;
+            double d = Audio.DuckAmount;
+            if (d < _mixDuckMin) _mixDuckMin = d;
+            if (d > _mixDuckMax) _mixDuckMax = d;
+        }
 
         // ---- BODIES ----
         //
@@ -1805,6 +1823,11 @@ namespace Ledger.Game
             // is subtle" and "the feature is absent" is a number.
             bool confabOk = _game.Gossip == null || _game.Gossip.Confabs > 0;
 
+            // The duck has to have gone down AND come back. Either
+            // extreme alone is a mix that is broken in a way nobody would
+            // notice until they played it.
+            bool mixOk = _mixDuckMax > 0.25 && _mixDuckMin < 0.05;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1852,6 +1875,7 @@ namespace Ledger.Game
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
+                ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00}]", mixOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1909,6 +1933,7 @@ namespace Ledger.Game
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
+                      $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +

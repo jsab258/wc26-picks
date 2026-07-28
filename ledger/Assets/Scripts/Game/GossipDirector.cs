@@ -178,6 +178,16 @@ namespace Ledger.Game
         public int Overheard { get; private set; }
         const float EarshotRange = 6f;
 
+        /// Holds the deeper duck for as long as the exchange is on screen,
+        /// then releases it. The release itself is slow — Core/Mixing owns
+        /// that — so the bed comes back without anybody noticing it left.
+        System.Collections.IEnumerator OverhearDuck()
+        {
+            Audio.DuckForOverheard(true);
+            yield return new WaitForSeconds(6.5f);
+            Audio.DuckForOverheard(false);
+        }
+
         System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay, Color colour, float hold)
         {
             if (delay > 0) yield return new WaitForSeconds(delay);
@@ -393,6 +403,12 @@ namespace Ledger.Game
                     StartCoroutine(SayAfter(w, spoken[i].Text, i * 2.1f, UiTheme.AmberSoft, 6.5f));
                 }
                 Audio.Ui("page");   // the sound of the street noticing you
+                // AND THE STREET GETS OUT OF THE WAY. This is the one moment
+                // the whole gossip network exists for, and until now it was
+                // two lines of dialogue competing on equal terms with rain,
+                // traffic and an ambience bed authored for walking around in.
+                // Leaning in to catch something is a real thing ears do.
+                StartCoroutine(OverhearDuck());
 
                 _game.Knowledge.Learn(new Lead
                 {

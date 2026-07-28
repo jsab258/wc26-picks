@@ -2291,6 +2291,10 @@ namespace Ledger.Game
             // two different times.
             if (Audio.Ready) Audio.SetDaylight(NightAmount);
             if (Audio.Ready) Audio.SetScore(ScoreNow(), Time.deltaTime);
+            // The duck envelope, next to the score because they are the same
+            // frame of the same mix. Was a boolean that snapped the music to
+            // 35% and back, which breathes audibly on every line.
+            if (Audio.Ready) Audio.StepMix(Time.deltaTime);
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;
