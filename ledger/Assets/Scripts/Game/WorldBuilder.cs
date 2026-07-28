@@ -198,20 +198,38 @@ namespace Ledger.Game
                 // of making the place read as somewhere goods are kept rather
                 // than somewhere people live — long unbroken walls, few doors,
                 // and nothing tall enough to have anybody looking down out of it.
-                bool warehouses = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ) == "Ironside";
+                // Per-district massing (M14). One switch, four characters:
+                // warehouses read long and low; Downtown reads TALL and
+                // committee-shaped; Fairview low with garden gaps; the Strip
+                // mid-rise and tight to the pavement; Gullwing low, wide and
+                // half-empty. Cheap numbers doing district work.
+                var districtName = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ);
+                bool warehouses = districtName == "Ironside";
+                bool offices = districtName == "Downtown";
+                bool villas = districtName == "Fairview";
+                bool resort = districtName == "Gullwing";
                 bool alongX = w >= d;
-                int count = warehouses ? 1 + rng.Next(2) : 2 + rng.Next(3);
+                int count = warehouses ? 1 + rng.Next(2)
+                    : offices ? 1 + rng.Next(2)
+                    : villas ? 2 + rng.Next(2)
+                    : resort ? 1 + rng.Next(2)
+                    : 2 + rng.Next(3);
                 float run = alongX ? w : d;
                 float each = run / count;
                 for (int k = 0; k < count; k++)
                 {
                     float t = (k + 0.5f) / count;
-                    float footprint = each * (warehouses ? 0.92f : 0.82f);
+                    float footprint = each * (warehouses ? 0.92f : offices ? 0.88f : villas ? 0.6f : resort ? 0.8f : 0.82f);
                     float depth = (alongX ? d : w) *
                         (warehouses ? 0.72f + 0.2f * (float)rng.NextDouble()
-                                    : 0.55f + 0.3f * (float)rng.NextDouble());
-                    float height = warehouses
-                        ? 5f + (float)rng.NextDouble() * 4f
+                         : offices ? 0.7f + 0.2f * (float)rng.NextDouble()
+                         : villas ? 0.45f + 0.2f * (float)rng.NextDouble()
+                         : resort ? 0.6f + 0.25f * (float)rng.NextDouble()
+                         : 0.55f + 0.3f * (float)rng.NextDouble());
+                    float height = warehouses ? 5f + (float)rng.NextDouble() * 4f
+                        : offices ? 14f + (float)rng.NextDouble() * 10f
+                        : villas ? 4f + (float)rng.NextDouble() * 3f
+                        : resort ? 4f + (float)rng.NextDouble() * 5f
                         : 6f + (float)rng.NextDouble() * 11f;
                     var centre = alongX
                         ? new Vector3(minX + t * w, 0, (maxZ + minZ) / 2f)

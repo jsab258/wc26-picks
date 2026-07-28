@@ -82,6 +82,45 @@ namespace Ledger.Core
             P("night_gate",      "the night gate",             17,  -92, "corner",   true),
             P("dry_dock",        "the dry dock",              -40, -148, "landmark", true),
             P("watchmans_hut",   "the watchman's hut",         40, -140, "home",     true),
+
+            // DOWNTOWN: where money becomes deniable, during office hours.
+            // Every one of these is a door the LAUNDERING side of the game can
+            // eventually point at — the notary who never asks, the exchange
+            // where figures become other figures, the lawyers the machine
+            // keeps. Shut after six, which is the district's whole character.
+            P("charter_exchange", "the Charter Road exchange", -170,   6, "landmark", true),
+            P("notary_office",    "Willem's notary office",    -146,  26, "business", true),
+            P("machine_chambers", "the machine's chambers",    -186,  28, "business", true),
+            P("counting_house",   "the counting house",        -128,  -8, "business", true),
+            P("clerks_steps",     "the clerks' steps",         -140,   4, "corner",   true),
+            P("archive_cellar",   "the deed archive",          -158, -18, "business", true),
+
+            // THE STRIP: open when everything else is shut. A witness pool
+            // that keeps NIGHT hours — the one place a face out late has a
+            // legitimate reason to exist, and the New crew's home water.
+            P("marquee_club",     "the Marquee club",           118,  24, "landmark", true),
+            P("card_rooms",       "the card rooms",             100, -20, "business", true),
+            P("stage_door",       "the stage door",             138,  10, "corner",   true),
+            P("allnight_counter", "the all-night counter",      120, -40, "business", true),
+            P("strip_boarding",   "the performers' boarding",   136, -18, "home",     true),
+            P("gaslight_end",     "the Gaslight Walk end",       98,  42, "corner",   true),
+
+            // FAIRVIEW: quiet money. Doors that open to introductions, not to
+            // knocking — the Straight Life ending lives on these streets.
+            P("crescent_houses",  "the Crescent houses",       -160, 128, "home",     true),
+            P("garden_gate",      "the Garden Row gate",       -132, 150, "corner",   true),
+            P("hill_chapel",      "the hill chapel",           -184, 152, "landmark", true),
+            P("doctors_house",    "the doctor's house",        -172, 108, "business", true),
+            P("laurel_letting",   "the Laurel Drive letting",  -188, 118, "home",     true),
+
+            // GULLWING: the resort the crowds left. Boarding houses that ask
+            // no questions, a pier with nobody on it — hideout country, and
+            // the endgame's natural last address.
+            P("winter_pier",      "the winter pier",            128, -158, "landmark", true),
+            P("gull_boarding",    "the Gullwing boarding house",100, -120, "home",     true),
+            P("bathhouse",        "the shuttered bathhouse",    150, -126, "business", true),
+            P("esplanade_shelter","the esplanade shelter",      158, -156, "corner",   true),
+            P("keepers_cottage",  "the pier keeper's cottage",  144, -100, "home",     true),
         };
 
         static HookPlace P(string id, string name, double x, double z, string kind, bool planned = false) =>

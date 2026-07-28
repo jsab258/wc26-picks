@@ -41,6 +41,14 @@ namespace Ledger.Game
             Line("letter_stall", "the letter-writer's stall", 8, 18, new[] { "Anton Brela", "Mirek Sedlak" });
             Line("harbor_office", "the harbourmaster's office", 9, 17, new[] { "Halvard" });
             Line("pawnshop", "Ruta's pawnshop", 10, 20, new[] { "Ruta", "Viktor" });
+            // M14: the outer districts' lines. The exchange is official and
+            // keeps the hours of the place it rings — the Marquee answers at
+            // night, the counting house only inside office hours, and the
+            // Gullwing boarding house whenever the keeper is awake, which is
+            // most hours; an off-season boarding house is mostly waiting.
+            Line("counting_house", "the counting house", 9, 17, new[] { "Halvard" });
+            Line("marquee_club", "the Marquee club", 19, 4, new string[0], isPublic: true);
+            Line("gull_boarding", "the Gullwing boarding house", 7, 23, new string[0], isPublic: true);
 
             Debug.Log($"Phones: {Phones.All.Count} lines on the exchange");
         }

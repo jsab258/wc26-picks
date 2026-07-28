@@ -35,9 +35,14 @@ namespace Ledger.Game
         /// share lists must stay the same length as the district list, and a
         /// save-rebuild that used a different split would quietly build a
         /// different city from the same seed.
-        public static readonly string[] Districts = { "the Hook", "Copper Row", "Ironside" };
-        public static readonly int[] HomeShares = { 45, 40, 7 };
-        public static readonly int[] WorkShares = { 35, 30, 33 };
+        // Seven districts (M14), shares per the §7 characters: Fairview
+        // HOUSES people and employs almost nobody; Downtown and Ironside are
+        // the inverse; the Strip's workforce keeps night hours; Gullwing is
+        // nearly empty both ways — that emptiness is its mechanic.
+        public static readonly string[] Districts =
+            { "the Hook", "Copper Row", "Ironside", "Downtown", "the Strip", "Fairview", "Gullwing" };
+        public static readonly int[] HomeShares = { 30, 28, 4, 3, 6, 22, 7 };
+        public static readonly int[] WorkShares = { 24, 22, 20, 16, 9, 3, 6 };
 
         public const int CrowdWalkerCap = 22;
         public const int CrowdMillCap = 110;

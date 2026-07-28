@@ -52,7 +52,7 @@ namespace Ledger.Game
             {
                 if (line == null)
                 {
-                    Toast("There is no telephone here. The bar has one, and so do four other places on this map.", 6f);
+                    Toast("There is no telephone here. The bar has one, and so do a handful of other places on this map.", 6f);
                     return;
                 }
                 _phonePlaceId = line;

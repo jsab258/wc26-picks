@@ -163,6 +163,66 @@ namespace Ledger.Core
                 NamesNorthSouth = new[] { "Foundry Lane", "Smelt Yard", "Crane Street", "Slipway Road" },
                 NamesEastWest = new[] { "The Sidings", "Goods Road", "Gate Road" },
             },
+            // DOWNTOWN, west along Charter Road (M14, §7: **the day-job world,
+            // offices, the machine's lawyers, money laundering**). The inverse
+            // of Ironside on the clock: FULL of faces from nine to six and
+            // empty after dark, because the mechanic here is respectability —
+            // this is where money goes to become deniable, and deniability
+            // keeps office hours. Wide formal blocks (30m), because nothing
+            // says institution like a street you have to commit to crossing.
+            new District
+            {
+                Id = "downtown", Name = "Downtown",
+                AvenuesX = new double[] { -200, -170, -140, -110 },
+                AvenuesZ = new double[] { -26, 4, 34 },
+                NamesNorthSouth = new[] { "Chancery Lane", "Exchange Street", "Assay Row", "Bank Walk" },
+                NamesEastWest = new[] { "Charter Road", "Office Row", "Court Street" },
+            },
+            // THE STRIP, east of the Hook (§7: **clubs, gambling, the New
+            // crew, information nightlife**). One long spine and short cross
+            // streets — a strip is a PROMENADE, somewhere to be seen walking,
+            // which is exactly its mechanic: the night circle's day-circle.
+            // Everything here is open when everything else is shut, so a face
+            // out late has a legitimate reason to exist and a witness pool to
+            // go with it. Danny Ro's ground.
+            new District
+            {
+                Id = "strip", Name = "the Strip",
+                AvenuesX = new double[] { 96, 118, 140 },
+                AvenuesZ = new double[] { -44, -22, 0, 22, 44 },
+                NamesNorthSouth = new[] { "Gaslight Walk", "The Strip", "Stage Door Lane" },
+                NamesEastWest = new[] { "Cardroom Row", "Marquee Street", "Chorus Lane", "Late Street", "Morning After Lane" },
+            },
+            // FAIRVIEW, on the north-west rise (§7: **residential hills —
+            // where the honest life aspires to live; quiet money**). The
+            // district the STRAIGHT LIFE ending is made of: generous blocks,
+            // gardens between the junctions, and a witness density that is
+            // low but RESPECTABLE — nobody here is out at night, so anybody
+            // seen here at night is remembered twice as long. Quiet money
+            // does not gossip; it writes letters.
+            new District
+            {
+                Id = "fairview", Name = "Fairview",
+                AvenuesX = new double[] { -190, -160, -130 },
+                AvenuesZ = new double[] { 96, 126, 156 },
+                NamesNorthSouth = new[] { "Laurel Drive", "Fairview Crescent", "Garden Row" },
+                NamesEastWest = new[] { "Hillcrest Road", "Vista Terrace", "Quiet Street" },
+            },
+            // GULLWING, the faded resort waterfront to the south-east (§7:
+            // **off-season melancholy, hideouts, endgame turf**). The widest
+            // blocks in the city and the fewest people: a promenade built for
+            // crowds that stopped coming, which makes it Ironside's cousin
+            // with a sadder face — places without witnesses because the
+            // witnesses LEFT. Boarding houses that ask no questions; the
+            // natural last address for anybody the endgame has made scarce.
+            new District
+            {
+                Id = "gullwing", Name = "Gullwing",
+                AvenuesX = new double[] { 96, 128, 160 },
+                AvenuesZ = new double[] { -160, -128, -96 },
+                NamesNorthSouth = new[] { "Promenade", "Pier Approach", "Shell Walk" },
+                NamesEastWest = new[] { "The Esplanade", "Bathhouse Row", "Winter Quay" },
+            },
         };
 
         /// Which district a position is in, by name, or null out on the cut.
@@ -298,6 +358,26 @@ namespace Ledger.Core
             // place it sends its cargo and does not visit.
             Link("j1_0", "ironside_j1_2", "avenue");
             Link("j3_0", "ironside_j2_2", "avenue");
+
+            // M14: the four outer districts, each joined by the fewest roads
+            // its character allows — chokepoints are places things can happen.
+            //
+            // Downtown, west off the Hook: TWO formal roads, because this is
+            // the commuter artery and a district of offices with one door
+            // would be a joke the map was telling about itself.
+            Link("j0_2", "downtown_j3_1", "avenue");   // Charter Road
+            Link("j0_1", "downtown_j3_0", "avenue");   // Court Street approach
+            // The Strip, east off the Hook: two, and both stay lit all night.
+            Link("j4_2", "strip_j0_2", "avenue");      // Marquee Street west end
+            Link("j4_1", "strip_j0_1", "avenue");      // Cardroom Row approach
+            // Fairview, up the rise: ONE road from Copper Row and one long
+            // drive down to Downtown. Quiet money likes one road in.
+            Link("copper_j0_1", "fairview_j2_1", "avenue");   // the hill road
+            Link("downtown_j1_2", "fairview_j1_0", "avenue"); // the long drive
+            // Gullwing: the winter road down from the Strip, and the goods
+            // spur across from Ironside. Both feel longer than they are.
+            Link("strip_j1_0", "gullwing_j1_2", "avenue");    // the winter road
+            Link("ironside_j3_1", "gullwing_j0_1", "avenue"); // the goods spur
 
             // 3. Every place on the map gets a lane to the nearest junction, so
             // it stops being a point in a field and becomes an address.

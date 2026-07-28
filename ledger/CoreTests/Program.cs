@@ -2668,8 +2668,17 @@ namespace Ledger.CoreTests
                 $"{StreetMap.Nodes.Count(n => n.IsJunction)} of {expectedJunctions}");
             Check(StreetMap.Blocks.Count == expectedBlocks, "and every district's buildable blocks",
                 StreetMap.Blocks.Count.ToString());
-            Check(StreetMap.Districts.Length == 3,
-                "the Hook, Copper Row across the cut, and Ironside past the goods yards");
+            Check(StreetMap.Districts.Length == 7,
+                "all seven of the design doc's districts are on the ground (M14, 2026-07-28)");
+            // No two districts may overlap: every junction must sit in exactly
+            // the district that claims it, or DistrictAt would lie somewhere.
+            foreach (var d in StreetMap.Districts)
+            {
+                double cx = (d.AvenuesX[0] + d.AvenuesX[d.AvenuesX.Length - 1]) / 2;
+                double cz = (d.AvenuesZ[0] + d.AvenuesZ[d.AvenuesZ.Length - 1]) / 2;
+                Check(StreetMap.DistrictAt(cx, cz) == d.Name,
+                    $"the centre of {d.Name} is in {d.Name}", StreetMap.DistrictAt(cx, cz) ?? "nowhere");
+            }
 
             // Ironside's whole brief is "places without witnesses", and the only
             // part of that a map can carry is the block size: fewer corners per
@@ -2844,7 +2853,11 @@ namespace Ledger.CoreTests
                 var a = StreetMap.Node(e.A);
                 var b = StreetMap.Node(e.B);
                 if (a == null || b == null) continue;
-                if ((a.Z < 60 && b.Z > 60) || (b.Z < 60 && a.Z > 60)) bridges++;
+                // The CUT is water only where the Hook faces Copper Row; the
+                // Fairview drive crosses the same latitude far to the west,
+                // over dry hillside (M14).
+                bool inCutX = a.X > -60 && a.X < 60 && b.X > -60 && b.X < 60;
+                if (inCutX && ((a.Z < 60 && b.Z > 60) || (b.Z < 60 && a.Z > 60))) bridges++;
             }
             Check(bridges == 2, "two bridges across the cut, and only two", bridges.ToString());
 
