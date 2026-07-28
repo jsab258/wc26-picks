@@ -6081,6 +6081,120 @@ namespace Ledger.CoreTests
             Check(hiddenSlow == 1,
                 "and a frame longer than the whole fade still gives exactly one moment",
                 $"{hiddenSlow}");
+
+            // ---- MENU TRANSITIONS (§8, the last item in the feel spec) ----
+            Console.WriteLine("Menus — the opposite problem from the Fall:");
+
+            void Run(PanelFade f, double seconds, double dt = 1.0 / 60.0)
+            {
+                for (double t = 0; t < seconds; t += dt) f.Tick(dt);
+            }
+
+            // A menu is the moment the player is most impatient. Slow is broken.
+            Check(Menus.InSeconds < 0.2 && Menus.InSeconds < Menus.OutSeconds,
+                "a menu arrives faster than it leaves — the reverse of every other "
+                + "transition in the game, because nothing is waiting on the exit");
+
+            var p = new PanelFade();
+            p.Show();
+            Run(p, 0.05);
+            Check(p.Alpha > 0 && p.Alpha < 1, "it is on its way in after 50ms");
+            Check(p.Interactable,
+                "and it already takes clicks — an impatient player has hit the button "
+                + "they can SEE, and eating that to protect an animation is the "
+                + "definition of clunky");
+            Run(p, 0.2);
+            Check(p.Alpha >= 0.999, "and it is fully there well inside a fifth of a second");
+
+            // THE FLICKER. The single most common way a menu transition goes
+            // wrong: click Back, change your mind, watch the panel restart from
+            // nothing.
+            p.Hide();
+            Run(p, 0.10);
+            double mid = p.Alpha;
+            Check(mid > 0.1 && mid < 0.9, "half way out", $"{mid:0.00}");
+            p.Show();
+            p.Tick(1.0 / 60.0);
+            Check(p.Alpha > mid,
+                "changing your mind mid-fade reverses from where the panel actually IS, "
+                + "rather than restarting from nothing and flickering",
+                $"{p.Alpha:0.00} from {mid:0.00}");
+            Run(p, 0.08);
+            Check(p.Alpha >= 0.999, "and a half-finished fade takes half the time to undo");
+
+            // The latch, same shape as VerbBeat and Curtain.
+            var g = new PanelFade();
+            g.SnapOn(); g.Hide();
+            int gone = 0;
+            for (int i = 0; i < 200; i++) { g.Tick(1.0 / 60.0); if (g.Gone) gone++; }
+            Check(gone == 1, "the panel reports leaving exactly once, not every frame after",
+                $"{gone}");
+            var lagged = new PanelFade();
+            lagged.SnapOn(); lagged.Hide();
+            int goneSlow = 0;
+            for (int i = 0; i < 10; i++) { lagged.Tick(2.0); if (lagged.Gone) goneSlow++; }
+            Check(goneSlow == 1,
+                "and a frame longer than the whole fade still gives exactly one",
+                $"{goneSlow}");
+
+            var never = new PanelFade();
+            never.SnapOff();
+            int spurious = 0;
+            for (int i = 0; i < 60; i++) { never.Tick(1.0 / 60.0); if (never.Gone) spurious++; }
+            Check(spurious == 0, "a panel that was never shown never reports leaving");
+
+            // Frame-rate independence, held to the same standard as everything else.
+            var f30 = new PanelFade(); var f240 = new PanelFade();
+            f30.Show(); f240.Show();
+            for (int i = 0; i < 3; i++) f30.Tick(1.0 / 30.0);
+            for (int i = 0; i < 24; i++) f240.Tick(1.0 / 240.0);
+            Check(Math.Abs(f30.Alpha - f240.Alpha) < 1e-9,
+                "menus open at the same rate at 30fps and 240",
+                $"{f30.Alpha:0.0000} vs {f240.Alpha:0.0000}");
+
+            // The rise: a hint that something moved, not an animation.
+            var r = new PanelFade();
+            r.Show(); r.Tick(0.001);
+            Check(r.Rise > 0 && r.Rise <= Menus.RisePixels,
+                "it arrives from slightly below");
+            Run(r, 0.2);
+            Check(Math.Abs(r.Rise) < 0.001, "and lands exactly where it belongs");
+            Check(Menus.RisePixels <= 20,
+                "and the distance is small, because a panel that slides a long way "
+                + "is a panel the player is waiting on");
+
+            // Easing, in the direction claimed.
+            Check(Menus.EaseIn(0.25) > 0.25, "ease-in is fast off the mark");
+            Check(Menus.EaseOut(0.25) < 0.25, "ease-out is slow off the mark");
+            Check(Menus.EaseIn(0) == 0 && Menus.EaseIn(1) == 1
+                  && Menus.EaseOut(0) == 0 && Menus.EaseOut(1) == 1,
+                "and both hit their ends exactly, so nothing is left half-drawn");
+            Check(Menus.EaseIn(-5) == 0 && Menus.EaseIn(50) == 1,
+                "with the input clamped, so an overrun frame cannot invert the curve");
+
+            // ---- the swap: options to keybindings without blanking ----
+            var swap = new PanelSwap();
+            Check(swap.A.Alpha >= 0.999 && swap.B.Alpha <= 0.001,
+                "a swap starts on its first panel, already there — fading it in at "
+                + "boot would read as a stutter rather than a transition");
+            swap.ToB();
+            bool blanked = false, crossed = false;
+            for (int i = 0; i < 120; i++)
+            {
+                swap.Tick(1.0 / 60.0);
+                if (swap.Crossing) crossed = true;
+                if (swap.A.Alpha < 0.001 && swap.B.Alpha < 0.001) blanked = true;
+            }
+            Check(crossed, "the outgoing panel leaves WHILE the incoming one arrives");
+            Check(!blanked,
+                "so the screen never blanks between them — blanking says the whole "
+                + "menu went away when only its contents did");
+            Check(swap.B.Alpha >= 0.999 && swap.A.Alpha <= 0.001, "and it lands on the second panel");
+            Check(swap.A.RisePixels == 0 && swap.B.RisePixels == 0,
+                "with no rise, because the frame around them never moved");
+            swap.ToA();
+            for (int i = 0; i < 120; i++) swap.Tick(1.0 / 60.0);
+            Check(swap.A.Alpha >= 0.999 && swap.B.Alpha <= 0.001, "and back again");
         }
 
         static void TestDirector()

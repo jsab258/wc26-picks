@@ -98,8 +98,13 @@ namespace Ledger.Game
                     // One options screen, shared with the pause menu. A second
                     // copy is how the rebind list drifted to six rows while the
                     // game listened for nine.
-                    _root.SetActive(false);
-                    OptionsScreen.Show(() => { if (_root != null) _root.SetActive(true); });
+                    UiFade.Out(_root);
+                    OptionsScreen.Show(() =>
+                    {
+                        if (_root == null) return;
+                        _root.SetActive(true);
+                        UiFade.In(_root);
+                    });
                 });
             MenuButton(_root.transform, "Quit", new Vector2(0.5f, 0.5f), new Vector2(0, -128), new Vector2(360, 52))
                 .onClick.AddListener(Quit);
@@ -109,6 +114,10 @@ namespace Ledger.Game
             Label(_root.transform, "Conversations are live — press F2 in game to enter an Anthropic API key.", new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(1100, 28), 14, TextAnchor.LowerCenter)
                 .color = UiTheme.Dim;
 
+            // Present, not faded in: the menu IS the boot screen, and fading
+            // it up from nothing at launch reads as a stutter rather than as
+            // a transition.
+            UiFade.Present(_root);
         }
 
         // Options and controls now live in OptionsScreen, opened from here and
@@ -119,13 +128,27 @@ namespace Ledger.Game
 
         void StartGame(bool load)
         {
+            // Checked BEFORE anything irreversible: below this line the
+            // autosave may be deleted, and a double-click that got that far
+            // and then bailed would have thrown the save away for nothing.
+            if (_starting || Blackout.Busy) return;
+            _starting = true;
             if (!load) SaveSlots.DeleteAuto();   // the manual copies are the player's property
             GameSettings.Current.Save();
             Showing = false;
-            Destroy(gameObject);
-            var go = new GameObject("GameController");
-            go.AddComponent<GameController>();
+            // The menu leaves and the street arrives UNDER BLACK, where the
+            // join cannot be seen. Destroying on the click cut from a dark
+            // field straight into a lit city — the same hard cut the Fall
+            // used to have, and the last one §8 had left in it.
+            UiFade.Out(_root);
+            Blackout.Cover(() =>
+            {
+                Destroy(gameObject);
+                var go = new GameObject("GameController");
+                go.AddComponent<GameController>();
+            });
         }
+        bool _starting;
 
         public static void Quit()
         {

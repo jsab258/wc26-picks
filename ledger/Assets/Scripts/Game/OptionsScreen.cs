@@ -28,6 +28,7 @@ namespace Ledger.Game
         Transform _canvas;
         GameObject _optionsPanel, _keysPanel;
         string _rebinding;
+        GameObject _shade;
         System.Action _onClose;
         readonly Dictionary<string, Text> _keyLabels = new Dictionary<string, Text>();
 
@@ -72,10 +73,16 @@ namespace Ledger.Game
             shade.transform.SetParent(_canvas, false);
             shade.AddComponent<Image>().color = new Color(0.04f, 0.06f, 0.055f, 0.92f);
             Stretch(shade);
+            // The shade arrives with the panel rather than a frame ahead of
+            // it, or the city dims and then waits.
+            UiFade.In(shade);
+            _shade = shade;
 
             BuildOptions();
             BuildKeys();
             _optionsPanel.SetActive(true);
+            UiFade.In(_optionsPanel);
+            _showing = _optionsPanel;
         }
 
         void BuildOptions()
@@ -115,7 +122,7 @@ namespace Ledger.Game
 
             MenuButton(_optionsPanel.transform, "Controls…", new Vector2(0.5f, 1), new Vector2(0, y),
                 new Vector2(300, 44))
-                .onClick.AddListener(() => { _optionsPanel.SetActive(false); _keysPanel.SetActive(true); });
+                .onClick.AddListener(() => Swap(_optionsPanel, _keysPanel));
 
             MenuButton(_optionsPanel.transform, "Back", new Vector2(0.5f, 0), new Vector2(0, 24),
                 new Vector2(220, 46)).onClick.AddListener(Close);
@@ -154,8 +161,7 @@ namespace Ledger.Game
                 new Vector2(220, 46)).onClick.AddListener(() =>
                 {
                     GameSettings.Current.Save();
-                    _keysPanel.SetActive(false);
-                    _optionsPanel.SetActive(true);
+                    Swap(_keysPanel, _optionsPanel);
                 });
             _keysPanel.SetActive(false);
         }
@@ -166,13 +172,42 @@ namespace Ledger.Game
         /// (the founding bug of the UI test file).
         public IReadOnlyCollection<string> ListedActions => _keyLabels.Keys;
 
+        /// One panel leaves while the other arrives, overlapping. Blanking
+        /// between them would say the whole screen went away when only its
+        /// contents did.
+        void Swap(GameObject from, GameObject to)
+        {
+            UiFade.Out(from);
+            to.SetActive(true);
+            var f = UiFade.In(to);
+            f.Fade.InSeconds = Menus.SwapSeconds;
+            f.Fade.RisePixels = 0;      // the frame around them never moved
+            var g = UiFade.Ensure(from);
+            g.Fade.OutSeconds = Menus.SwapSeconds;
+            g.Fade.RisePixels = 0;
+            _showing = to;
+        }
+        GameObject _showing;
+
         public void Close()
         {
+            if (_closing) return;
+            _closing = true;
             GameSettings.Current.Save();
+            // Open flips NOW rather than when the object dies: the caller uses
+            // it to decide whether the options screen is up, and leaving it
+            // true through the fade would let a second Escape open a second
+            // one over the first.
             Open = false;
+            UiFade.Out(_optionsPanel);
+            UiFade.Out(_keysPanel);
+            UiFade.Out(_shade);
             _onClose?.Invoke();
-            Destroy(gameObject);
+            // Destroyed only once the fade has actually finished. Destroying
+            // on the click is exactly the hard cut this replaces.
+            Destroy(gameObject, (float)Menus.OutSeconds + 0.02f);
         }
+        bool _closing;
 
         void Update()
         {
@@ -193,10 +228,9 @@ namespace Ledger.Game
 
             // Escape backs out one level, like every other screen in the game.
             if (!Input.GetKeyDown(KeyCode.Escape)) return;
-            if (_keysPanel.activeSelf)
+            if (_showing == _keysPanel)
             {
-                _keysPanel.SetActive(false);
-                _optionsPanel.SetActive(true);
+                Swap(_keysPanel, _optionsPanel);
                 return;
             }
             Close();

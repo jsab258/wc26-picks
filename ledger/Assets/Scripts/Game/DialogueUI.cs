@@ -87,7 +87,9 @@ namespace Ledger.Game
             if (SimMode.Days > 0) return;
             _paused = !_paused;
             if (_pausePanel == null) BuildPausePanel();
-            _pausePanel.SetActive(_paused);
+            // Fades on unscaled time, so it still moves with the clock stopped.
+            if (_paused) { _pausePanel.SetActive(true); UiFade.In(_pausePanel); }
+            else UiFade.Out(_pausePanel);
             Time.timeScale = _paused ? 0f : 1f;
             _player.InputLocked = _paused;
             Audio.Ui("page");
@@ -116,9 +118,11 @@ namespace Ledger.Game
             {
                 _game.SaveNow(quiet: true);
                 Time.timeScale = 1f;
-                Destroy(_game.gameObject);
-                Destroy(gameObject);
-                MainMenu.Create();
+                // The city leaves before the menu arrives. Tearing both down
+                // on the click cut from a lit street to a dark field in one
+                // frame, which is the thing §8 was about.
+                UiFade.Out(_pausePanel);
+                _game.LeaveToMenu();
             });
 
             // Options, reachable mid-game at last. Before this the only way to
@@ -128,8 +132,13 @@ namespace Ledger.Game
             var options = MakeButton(_pausePanel.transform, "Options", new Vector2(0.5f, 1), new Vector2(0, -332), new Vector2(320, 48));
             options.onClick.AddListener(() =>
             {
-                _pausePanel.SetActive(false);
-                OptionsScreen.Show(() => { if (_pausePanel != null) _pausePanel.SetActive(true); });
+                UiFade.Out(_pausePanel);
+                OptionsScreen.Show(() =>
+                {
+                    if (_pausePanel == null) return;
+                    _pausePanel.SetActive(true);
+                    UiFade.In(_pausePanel);
+                });
             });
 
             var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -390), new Vector2(320, 48));

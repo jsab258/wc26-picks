@@ -322,4 +322,144 @@ namespace Ledger.Core
             }
         }
     }
+    // -------------------------------------------------------------------
+
+    /// MENU TRANSITIONS (game-feel-spec §8, the last item in it).
+    ///
+    /// The Fall gets a two-second curtain because it is the heaviest moment
+    /// in the game. A menu is the opposite problem: it is the moment the
+    /// player is most impatient, and a menu that takes its time is a menu
+    /// that feels broken. So the numbers here are small, and the asymmetry
+    /// runs the other way from everything else in this file — IN is fast,
+    /// OUT is slower. Arriving should feel instant; leaving is allowed to be
+    /// soft, because by then the player has already decided and is not
+    /// waiting on anything.
+    public static class Menus
+    {
+        /// Fast enough to read as instant, slow enough not to pop.
+        public const double InSeconds = 0.12;
+        /// Leaving may be soft: nothing is waiting on it.
+        public const double OutSeconds = 0.20;
+        /// Panel-to-panel inside one menu — options to keybindings and back.
+        /// A hair quicker than a full open, because the frame around it never
+        /// went anywhere and re-fading the whole screen would say it did.
+        public const double SwapSeconds = 0.10;
+
+        /// How far a panel rises as it arrives, in reference-resolution
+        /// pixels. Small. Motion here is a hint that something moved, not an
+        /// animation to be admired — and a panel that slides a long way is a
+        /// panel the player is waiting on.
+        public const double RisePixels = 14;
+
+        /// Ease-out on the way in (fast start, gentle landing) and ease-in on
+        /// the way out. Cubic, because quadratic is not quite enough to read
+        /// at 120ms and quartic overshoots into sluggish.
+        public static double EaseIn(double t)
+        {
+            t = Feel.Clamp01(t);
+            double u = 1 - t;
+            return 1 - u * u * u;
+        }
+
+        public static double EaseOut(double t)
+        {
+            t = Feel.Clamp01(t);
+            return t * t * t;
+        }
+    }
+
+    /// One panel's arrival and departure. Deliberately a state machine over
+    /// an ALPHA rather than over a timer, so that reversing mid-transition
+    /// picks up from where the panel actually is. A timer-based version
+    /// restarts from zero when the player clicks Back and then immediately
+    /// changes their mind, and the panel visibly flickers — which is the
+    /// single most common way a menu transition goes wrong.
+    public class PanelFade
+    {
+        public double InSeconds = Menus.InSeconds;
+        public double OutSeconds = Menus.OutSeconds;
+        public double RisePixels = Menus.RisePixels;
+
+        /// 0 = absent, 1 = fully present. This is the state; everything else
+        /// is read off it.
+        public double Alpha { get; private set; }
+        public bool Wanted { get; private set; }
+
+        /// True whenever there is anything to draw. The caller keeps the
+        /// object alive while this holds.
+        public bool Visible => Alpha > 0.0001 || Wanted;
+
+        /// Fires ONCE on the tick the panel has finished leaving, so the
+        /// caller can deactivate it exactly once rather than every frame
+        /// afterwards. Same latch as VerbBeat and Curtain, for the same
+        /// reason: a long frame must not swallow the moment.
+        public bool Gone { get; private set; }
+
+        /// A panel accepts clicks the moment it starts arriving, not when it
+        /// finishes. The forgiveness principle from §6: an impatient player
+        /// who clicks at 40ms has hit the button they can see, and eating
+        /// that click to protect an animation is how a menu earns the word
+        /// clunky.
+        public bool Interactable => Wanted && Alpha > 0.0001;
+
+        /// Reference-resolution pixels of upward offset remaining. Positive
+        /// means the panel is still below where it belongs.
+        public double Rise => RisePixels * (1 - Menus.EaseIn(Alpha));
+
+        public void Show() => Wanted = true;
+        public void Hide() => Wanted = false;
+
+        /// Present immediately, no transition. For a panel that is already
+        /// meant to be on screen when the menu is first built — fading it in
+        /// at boot would look like a stutter rather than a transition.
+        public void SnapOn() { Wanted = true; Alpha = 1; Gone = false; }
+        public void SnapOff() { Wanted = false; Alpha = 0; Gone = false; }
+
+        public void Tick(double dt)
+        {
+            Gone = false;
+            if (dt <= 0) return;
+            bool wasPresent = Alpha > 0.0001;
+            // Linear in alpha with the easing applied at read time, so the
+            // reverse of a half-finished fade takes half the time rather than
+            // the full one. Easing the alpha itself would make a reversal
+            // start from the wrong place on the curve.
+            double rate = Wanted
+                ? (InSeconds > 0 ? 1.0 / InSeconds : double.MaxValue)
+                : (OutSeconds > 0 ? -1.0 / OutSeconds : double.MinValue);
+            Alpha = Feel.Clamp01(Alpha + rate * dt);
+            if (!Wanted && wasPresent && Alpha <= 0.0001) Gone = true;
+        }
+    }
+
+    /// Two panels sharing one frame — options and keybindings, a pause menu
+    /// and its confirm. The outgoing one leaves while the incoming one
+    /// arrives, overlapping, because a menu that blanks between two panels
+    /// tells the player the whole screen went away when only its contents
+    /// did.
+    public class PanelSwap
+    {
+        public double Seconds = Menus.SwapSeconds;
+
+        public readonly PanelFade A = new PanelFade();
+        public readonly PanelFade B = new PanelFade();
+
+        public PanelSwap()
+        {
+            A.InSeconds = A.OutSeconds = Menus.SwapSeconds;
+            B.InSeconds = B.OutSeconds = Menus.SwapSeconds;
+            A.RisePixels = B.RisePixels = 0;   // the frame did not move; neither do they
+            A.SnapOn();
+            B.SnapOff();
+        }
+
+        public void ToA() { A.Show(); B.Hide(); }
+        public void ToB() { B.Show(); A.Hide(); }
+
+        public void Tick(double dt) { A.Tick(dt); B.Tick(dt); }
+
+        /// Both are drawn at once mid-swap, and that is the point.
+        public bool Crossing => A.Alpha > 0.0001 && B.Alpha > 0.0001;
+    }
+
 }

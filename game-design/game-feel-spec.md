@@ -191,8 +191,36 @@ should be built so it is not a rewrite.
 5. **Transitions**, especially the Fall. — **BUILT 2026-07-28.** The Fall
    now drops a curtain, changes the world under full black where the join
    cannot be seen, holds the words long enough to be uncomfortable, and
-   returns into a different morning. Remaining in §8: continuous rather
-   than stepped day/night, and menu transitions.
+   returns into a different morning. Continuous day/night landed
+   2026-07-28 (an equal-power crossfade between the two ambience beds off
+   the same `NightAmount` the sun uses — the room used to swap in a single
+   frame at 20:00). **§8 CLOSED 2026-07-28** with menu transitions.
+
+   Menus are the opposite problem from the Fall. The Fall gets two seconds
+   of held silence because it is the heaviest moment in the game; a menu is
+   the moment the player is most impatient, and one that takes its time
+   reads as broken. So the asymmetry runs the other way: **in is fast
+   (120ms), out is slower (200ms)**, because nothing is waiting on the exit.
+
+   `Core/Interaction.cs` holds `Menus`, `PanelFade` and `PanelSwap`; the
+   Unity side is `UiFade` (a CanvasGroup driver) and `Blackout` (a short
+   fade that outlives what it is tearing down). Four things it gets right
+   that a naive version does not:
+
+   - **It is a state machine over ALPHA, not over a timer.** Click Back and
+     change your mind, and the panel reverses from where it actually is. A
+     timer restarts from zero and the panel visibly flickers — the single
+     most common way a menu transition goes wrong.
+   - **A panel takes clicks the moment it starts arriving**, not when it
+     finishes. An impatient player has hit the button they can see, and
+     eating that click to protect an animation is the definition of clunky.
+   - **Panel swaps overlap.** Options to controls cross-fades rather than
+     blanking; blanking says the whole screen went away when only its
+     contents did.
+   - **The world changes under black.** Starting a game and quitting to menu
+     both go through `Blackout`, which fades down, swaps the entire world at
+     the moment nothing is visible, and fades back up. Both used to be a
+     single-frame cut between a lit street and a dark field.
 
 Then everything in **[MODELS]** the moment the character purchase lands.
 

@@ -224,6 +224,23 @@ namespace Ledger.Game
 
         public void ToastLine(string line, float seconds = 6f) => _ui?.Toast(line, seconds);
 
+        /// Quit to the main menu, under black. The city goes away and the menu
+        /// arrives at the moment nothing is visible — tearing both down on the
+        /// click cut from a lit street to a dark field in a single frame, and
+        /// that was the last hard cut §8 had left.
+        public void LeaveToMenu()
+        {
+            // A second click while one is running does nothing rather than
+            // tearing the world down twice.
+            Blackout.Cover(() =>
+            {
+                Time.timeScale = 1f;
+                if (_ui != null) Destroy(_ui.gameObject);
+                Destroy(gameObject);
+                MainMenu.Create();
+            });
+        }
+
         void Start()
         {
             WorldBuilder.BuildBlock();
