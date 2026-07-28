@@ -32,9 +32,10 @@ namespace Ledger.Game
         {
             public string Name;
             public bool Opened, HadWords, Closed, GaveBackControl;
-            public bool Ok => Opened && HadWords && Closed && GaveBackControl;
+            public bool LockHonored = true;   // locking panels only: the policy saw it while open
+            public bool Ok => Opened && HadWords && Closed && GaveBackControl && LockHonored;
             public override string ToString() =>
-                $"{Name}:{(Ok ? "ok" : $"open={Opened} words={HadWords} closed={Closed} control={GaveBackControl}")}";
+                $"{Name}:{(Ok ? "ok" : $"open={Opened} words={HadWords} closed={Closed} control={GaveBackControl} lock={LockHonored}")}";
         }
 
         /// Walk every panel. Called by the sim; harmless in a real session, but
@@ -74,15 +75,23 @@ namespace Ledger.Game
             r.Opened = panel.activeInHierarchy;
             r.HadWords = HasVisibleWords(panel);
 
+            // A panel that takes the screen must also take the controls — and
+            // it must do so through the ONE policy Update() re-derives the lock
+            // from every frame. The Plan and Phone panels locked input in their
+            // own toggles, were missing from the policy, and had their locks
+            // erased one frame later (audit 2026-07-27). This catches the next
+            // panel that makes that mistake.
+            bool locking = name == "dialogue" || name == "apiKey" || name == "plan" || name == "phone";
+            if (locking) r.LockHonored = AnyPanelDemandsInput();
+
             panel.SetActive(false);
             r.Closed = !panel.activeSelf;
 
-            // The panel is shut; the player must have their hands back. Checked
-            // AFTER closing rather than trusting the toggle to have done it,
-            // because "the close path forgot to unlock input" is precisely the
-            // bug that strands somebody in their own city.
-            if (_player != null) _player.InputLocked = false;
-            r.GaveBackControl = _player == null || !_player.InputLocked;
+            // The panel is shut; the player must have their hands back — read
+            // from the policy, never written first. The old version assigned
+            // InputLocked=false and then asserted !InputLocked, a check that
+            // could not fail (audit 2026-07-27).
+            r.GaveBackControl = !AnyPanelDemandsInput();
 
             if (wasOpen) panel.SetActive(true);
         }

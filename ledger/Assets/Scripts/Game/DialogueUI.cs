@@ -1061,8 +1061,20 @@ namespace Ledger.Game
                 _forgiveBtn.gameObject.SetActive(false);
             }
 
-            _player.InputLocked = dialogueOpen || _keyPanel.activeSelf;
+            _player.InputLocked = AnyPanelDemandsInput();
         }
+
+        /// THE input-lock policy, in one place. Update() re-derives InputLocked
+        /// from this every frame, so a panel that locks input in its own toggle
+        /// but is missing here has its lock erased one frame later — exactly
+        /// what happened to the Plan and Phone panels (audit 2026-07-27). The
+        /// UI smoke test asserts through this method for every locking panel,
+        /// so leaving a new panel out of it is a red build, not a subtle walk-
+        /// while-planning bug.
+        public bool AnyPanelDemandsInput() =>
+            _dialoguePanel.activeSelf || _keyPanel.activeSelf
+            || (_planPanel != null && _planPanel.activeSelf)
+            || (_phonePanel != null && _phonePanel.activeSelf);
 
         static string HeatWord(double h) => GameController.StreetWord(h);
         static string PatienceWord(double p) => GameController.OutfitWord(p);

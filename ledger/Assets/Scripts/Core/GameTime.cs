@@ -63,4 +63,26 @@ namespace Ledger.Core
             return true;
         }
     }
+
+    /// Arithmetic for a simulated run's clock when the world jumps the calendar
+    /// (the Fall moves the player three days by moving the date, not by
+    /// simulating them). Pure and Core-side so the reclaim can be tested: the
+    /// first version of this arithmetic lived inline in the sim, added
+    /// (jump - 1) to the end day, and thereby extended every run exactly to its
+    /// own landing day — the reclaim compiled, read plausibly, and had never
+    /// once extended a run (audit 2026-07-27, confirmed against sim logs).
+    public static class SimClock
+    {
+        /// The new end day after a calendar jump: the run still owes
+        /// (endDay - lastSeenDay) lived days, so it now ends that many days
+        /// after the landing — capped by the remaining reclaim budget, because
+        /// each fall buying the days that earn the next fall is a run that
+        /// never ends. Call only when a jump was detected (nowDay > lastSeenDay + 1).
+        public static int EndDayAfterJump(int endDay, int lastSeenDay, int nowDay, int reclaimBudget)
+        {
+            int owed = Math.Max(0, endDay - lastSeenDay);
+            int extended = Math.Min(nowDay + owed, endDay + Math.Max(0, reclaimBudget));
+            return Math.Max(endDay, extended);
+        }
+    }
 }

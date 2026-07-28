@@ -38,6 +38,7 @@ namespace Ledger.CoreTests
                 TestSuspicion();
                 TestGossip();
                 TestConflictingValuesStayBounded();
+                TestSimClockReclaim();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -367,6 +368,25 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestSimClockReclaim()
+        {
+            Console.WriteLine("SimClock — the Fall's skipped days are given back, actually:");
+            // The 9-day run: promised end day 10, staged fall on day 9 lands on
+            // day 12. The old inline arithmetic added (jump - 1) = 2 and ended
+            // the run ON the landing day — every reclaimed run ended exactly at
+            // its own landing, having reclaimed nothing (confirmed against the
+            // staged-fall trial logs, audit 2026-07-27).
+            Check(SimClock.EndDayAfterJump(endDay: 10, lastSeenDay: 9, nowDay: 12, reclaimBudget: 4) == 13,
+                "a fall on the last-but-one day extends the run past its landing",
+                SimClock.EndDayAfterJump(10, 9, 12, 4).ToString());
+            Check(SimClock.EndDayAfterJump(13, 12, 15, 1) == 14,
+                "a second fall spends only what is left of the budget",
+                SimClock.EndDayAfterJump(13, 12, 15, 1).ToString());
+            Check(SimClock.EndDayAfterJump(13, 12, 15, 0) == 13,
+                "and an exhausted budget extends nothing",
+                SimClock.EndDayAfterJump(13, 12, 15, 0).ToString());
         }
 
         static void TestConflictingValuesStayBounded()
@@ -2258,8 +2278,23 @@ namespace Ledger.CoreTests
             var wallet4 = new Wallet(100000);
             for (int d = 1; d <= 60; d++)
                 worst.DailyTick(new GameTime(d, 9, 0), wallet4, 400, 0, 1.0);
-            Check(worst.TakingsFactor >= worst.MinTakingsFactor,
-                "the takings factor never falls through its floor", worst.TakingsFactor.ToString("0.000"));
+            // Two real assertions where a tautology used to stand (audit
+            // 2026-07-27: the old ">= floor" check could not fail — the daily
+            // targets are clamped upstream, so 400 brutal days bottom out at
+            // ~0.45 and the floor never binds on any simulated path). Pin the
+            // actual worst-case equilibrium instead, tight enough that balance
+            // drift in either direction is a red bar:
+            Check(worst.TakingsFactor >= 0.40 && worst.TakingsFactor <= 0.50,
+                "maximum squeeze and heat settle at the designed worst case, not below it",
+                worst.TakingsFactor.ToString("0.000"));
+            // ...and prove the floor clamp is load-bearing where it CAN bind:
+            // Restore accepts PriceLevel up to 3.0 and Prosperity down to 0.0
+            // from a save file, and there the formula would go to zero without it.
+            var outOfBand = FreshEconomy();
+            outOfBand.Prosperity = 0.0; outOfBand.PriceLevel = 3.0;
+            Check(outOfBand.TakingsFactor == outOfBand.MinTakingsFactor,
+                "a hostile save meets the floor, not a dead street",
+                outOfBand.TakingsFactor.ToString("0.000"));
             Check(worst.Prosperity > 0.0, "the street never reaches zero", worst.Prosperity.ToString("0.000"));
 
             // Suppliers are people. They arrive, they are paid or they are not,

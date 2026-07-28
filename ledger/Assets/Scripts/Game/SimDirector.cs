@@ -74,6 +74,7 @@ namespace Ledger.Game
         int _act2SampleHour = -1;
         bool _endScreenDismissed;
         Verdict _weekLostVerdict = Verdict.Ongoing;
+        int _frozenCloses;   // closes the lost-week end screen ate before the day-8 reopen
         bool _actThreeStaged;
         string _actThreeWhy = "not staged";
         bool _actThreeHandedOver;
@@ -218,9 +219,14 @@ namespace Ledger.Game
                 // is two falls' worth, which is all the coverage this is for.
                 if (skipped > 0 && _daysSkipped < MaxReclaimedDays)
                 {
-                    skipped = Math.Min(skipped, MaxReclaimedDays - _daysSkipped);
-                    _endDay += skipped;
-                    _daysSkipped += skipped;
+                    // The arithmetic lives in Core (SimClock) because the first
+                    // inline version extended every run exactly to its own
+                    // landing day — a reclaim that had never reclaimed anything
+                    // (audit 2026-07-27). CoreTests pin it now.
+                    int before = _endDay;
+                    _endDay = SimClock.EndDayAfterJump(_endDay, _lastSeenDay, now.Day,
+                        MaxReclaimedDays - _daysSkipped);
+                    _daysSkipped += _endDay - before;
                 }
                 _lastSeenDay = now.Day;
             }
@@ -253,6 +259,13 @@ namespace Ledger.Game
             {
                 _openModeForced = true;
                 _weekLostVerdict = _game.Campaign.Verdict;
+                // How many closes the frozen end-screen span ate: a live week
+                // has closed 7 times by the day-8 morning. The gates baseline
+                // on ACHIEVABLE counts, not ideal ones — a legitimately lost
+                // week used to red the build under two misleading gate names
+                // (openModeOk, verdictSane) for closes and job postings that
+                // structurally could not have happened (audit 2026-07-27).
+                _frozenCloses = Mathf.Max(0, 7 - _game.Campaign.DaysClosed);
                 _game.Campaign.ForceOpenMode();
                 // AND take the end screen down. Losing the week raises a panel
                 // and sets InputLocked permanently — the won-week path has a sim
@@ -1021,7 +1034,7 @@ namespace Ledger.Game
 
             bool verdictSane = camp.Verdict != Verdict.LostCastOut &&
                 // While the campaign is live, most nights must actually post a job.
-                (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2);
+                (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2 - _frozenCloses);
 
             // Act I in-engine proof (act1-draft.md): PP1/PP2 fired on their days,
             // PP4 tracked the lena_ledger transition exactly, Noor is in the mill,
@@ -1042,7 +1055,7 @@ namespace Ledger.Game
             // have opened and kept closing days past seven; and one Fall (organic
             // or the day-9 staged one) must have run — proven by the street holding
             // player.did_time as hard fact, an invariant later play can't erase.
-            bool openModeOk = !_game.Campaign.OpenMode || _game.Campaign.DaysClosed >= 8;
+            bool openModeOk = !_game.Campaign.OpenMode || _game.Campaign.DaysClosed >= 8 - _frozenCloses;
             bool fallOk = true;
             if (_game.Campaign.OpenMode && SimMode.Days >= 9)
             {
@@ -1284,7 +1297,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
