@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -101,6 +102,40 @@ namespace Ledger.Game
             }
             return mat;
         }
+
+        /// WET GROUND (the-gap.md §3a, LightModel.Smoothness/AlbedoScale).
+        ///
+        /// Driven onto the SHARED material, so every road slab and pavement in
+        /// the city changes together in one assignment rather than per-object.
+        ///
+        /// The mistake this exists to avoid is raising smoothness alone. A
+        /// water film fills the surface micro-structure, so less light
+        /// scatters back out AND more reflects specularly — wet asphalt is
+        /// shinier and DARKER. Shiny-but-not-darker is polished plastic, and
+        /// it is why so many rainy game streets look like a car showroom
+        /// floor.
+        public static void SetWetness(float wetness)
+        {
+            if (!_initialized) return;
+            wetness = Mathf.Clamp01(wetness);
+            if (Mathf.Abs(wetness - _wetness) < 0.002f) return;   // shared material, so this is a global write
+            _wetness = wetness;
+            double albedo = LightModel.AlbedoScale(wetness);
+            foreach (var name in WetSurfaces)
+            {
+                if (!_materials.TryGetValue(name, out var mat) || mat == null) continue;
+                var spec = SurfaceSpec.For(name);
+                mat.SetFloat("_Glossiness", (float)LightModel.Smoothness(spec.Smoothness, wetness));
+                mat.color = new Color(spec.Tint.r * (float)albedo, spec.Tint.g * (float)albedo,
+                                      spec.Tint.b * (float)albedo, spec.Tint.a);
+            }
+        }
+        static float _wetness = -1f;
+
+        /// Ground the rain lands on. Walls and roofs are deliberately absent —
+        /// a vertical brick face does not pool water, and wetting everything
+        /// uniformly is the other half of why rainy scenes read as plastic.
+        static readonly string[] WetSurfaces = { Asphalt, Sidewalk, Kerb, Concrete };
 
         static Shader DefaultShader()
         {

@@ -733,6 +733,18 @@ namespace Ledger.Game
             }
         }
 
+        /// The fingerprint stores its numbers as invariant-culture STRINGS so
+        /// the JSON report is stable across locales. Reading them back needs
+        /// the same culture, or a machine with a comma decimal separator
+        /// parses 0.35 as 35 and every gate here inverts.
+        static double ShotNum(Dictionary<string, object> shot, string key)
+        {
+            if (shot == null || !shot.TryGetValue(key, out var v)) return -1;
+            if (v is double d) return d;
+            return double.TryParse(v as string, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : -1;
+        }
+
         /// Downsample a captured frame to a small ASCII art thumbnail (logged so it
         /// is visible in CI, where the PNG artifact host is unreachable) plus mean
         /// luminance and RGB for the JSON report.
@@ -1455,6 +1467,40 @@ namespace Ledger.Game
             };
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
+            // THE RENDER, GATED (the-gap.md §3a). The fingerprint has been
+            // diagnostic-only since it was written — it caught the neon
+            // clipping defect because a human read the numbers, not because
+            // anything failed. Lighting is now driven per frame from
+            // LightModel, and a driven rig can break in ways a static one
+            // could not: a curve that returns zero is a black street, a
+            // runaway exposure is a white one, and either would ship.
+            bool lightingOk = true;
+            var lightingWhy = new List<string>();
+            {
+                double dayLuma = -1, nightLuma = -1, nightSat = -1;
+                foreach (var shot in _screenshots)
+                {
+                    string nm = shot.TryGetValue("path", out var pv) ? (pv as string ?? "") : "";
+                    double luma = ShotNum(shot, "meanLuma");
+                    // NEVER A BLACK FRAME and NEVER A BLOWN ONE. These two
+                    // catch the whole family at once, whatever caused it.
+                    if (luma < 0.012) { lightingOk = false; lightingWhy.Add($"black:{nm}:{luma:0.000}"); }
+                    if (luma > 0.85) { lightingOk = false; lightingWhy.Add($"blown:{nm}:{luma:0.000}"); }
+                    if (nm.Contains("noon")) dayLuma = luma;
+                    if (nm.Contains("night")) { nightLuma = luma; nightSat = ShotNum(shot, "satPct"); }
+                }
+                // Night must actually be darker than noon. This is the one
+                // that proves the day/night curves reach the RENDER rather
+                // than merely being computed correctly in a test.
+                if (dayLuma >= 0 && nightLuma >= 0 && nightLuma >= dayLuma)
+                { lightingOk = false; lightingWhy.Add($"nightNotDarker:{nightLuma:0.000}>={dayLuma:0.000}"); }
+                // And a night street must have COLOUR in it — lamps and neon.
+                // A grey night is the failure mode the fog work exists to
+                // prevent, and it is invisible to a luminance check.
+                if (nightSat >= 0 && nightSat < 0.20)
+                { lightingOk = false; lightingWhy.Add($"greyNight:{nightSat:0.00}%"); }
+            }
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1476,6 +1522,7 @@ namespace Ledger.Game
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
                 ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
+                ("lighting", lightingOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1527,6 +1574,8 @@ namespace Ledger.Game
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
+                      $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
+                      $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
                       $"verdict={camp.Verdict} pass={pass}");
             // Last line in the log, on purpose: whatever else scrolls past, this
             // is what a person reading a red build needs.

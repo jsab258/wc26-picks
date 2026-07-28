@@ -49,6 +49,10 @@ namespace Ledger.Game
             go.transform.SetParent(cam.transform, false);
             _instance = go.AddComponent<FilmGrade>();
             _instance._cam = cam;
+            // HDR, or the tonemap has nothing to map: without it the frame
+            // buffer clips at 1.0 BEFORE the curve ever sees it, and the
+            // roll-off is applied to a value that has already lost its hue.
+            cam.allowHDR = true;
             _instance.Build();
         }
 
@@ -96,6 +100,9 @@ namespace Ledger.Game
             _mat.SetFloat("_Bloom", 0.55f + 0.35f * night);
             _mat.SetFloat("_Grain", grain);
             _mat.SetFloat("_Vignette", vignette);
+            // The aperture opens at night and closes in daylight rain, from
+            // the same curve the scene lighting uses.
+            _mat.SetFloat("_Exposure", (float)Ledger.Core.LightModel.Exposure(night, Weather.Rain));
             // A grain that does not move is dirt on the lens. Seeded per
             // frame off unscaled time so it keeps crawling even when the
             // game is paused behind a panel.

@@ -1,0 +1,165 @@
+using System.Collections.Generic;
+using Ledger.Core;
+using UnityEngine;
+
+namespace Ledger.Game
+{
+    /// The cone of lit air under a lamp (the-gap.md §3a).
+    ///
+    /// Attached to a Light. Builds one open cone mesh, shares it across every
+    /// shaft in the city, and drives its brightness from the same fog density
+    /// the scene is using — so shafts appear as the air thickens with rain and
+    /// night, and vanish on a clear afternoon instead of hanging there like
+    /// plastic.
+    ///
+    /// Fails closed: no shader, no shaft, and the game is exactly as it was.
+    public class LightShaft : MonoBehaviour
+    {
+        static Mesh _cone;
+        static Shader _shader;
+        static bool _probed;
+
+        static readonly List<LightShaft> _all = new List<LightShaft>();
+
+        Light _light;
+        Material _mat;
+        Renderer _renderer;
+        float _baseIntensity;
+
+        /// How far a shaft is drawn at all. Beyond this the cone is smaller
+        /// than the fade would make visible and it is pure cost.
+        public const float DrawDistance = 95f;
+
+        public static void Attach(Light light, float intensity = 1f)
+        {
+            if (light == null) return;
+            if (!_probed)
+            {
+                _probed = true;
+                _shader = Shader.Find("Hidden/LedgerLightShaft");
+                if (_shader != null && !_shader.isSupported) _shader = null;
+            }
+            if (_shader == null) return;      // fail closed, silently
+            var shaft = light.gameObject.AddComponent<LightShaft>();
+            shaft._light = light;
+            shaft._baseIntensity = intensity;
+            shaft.Build();
+        }
+
+        void Build()
+        {
+            if (_cone == null) _cone = BuildCone(16);
+
+            var go = new GameObject("Shaft");
+            go.transform.SetParent(transform, false);
+            // Cones point DOWN from the bulb: this is a street lamp, not a
+            // searchlight.
+            go.transform.localRotation = Quaternion.identity;
+
+            var mf = go.AddComponent<MeshFilter>();
+            mf.sharedMesh = _cone;
+            _renderer = go.AddComponent<MeshRenderer>();
+            _mat = new Material(_shader) { hideFlags = HideFlags.HideAndDontSave };
+            _renderer.sharedMaterial = _mat;
+            _renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _renderer.receiveShadows = false;
+            // No light probes or reflection on an additive volume — it is not
+            // a surface and sampling for it is wasted.
+            _renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            _renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+            // Scaled to the lamp's own reach, so a short bollard and a tall
+            // street lamp do not throw the same cone.
+            float r = Mathf.Max(1f, _light != null ? _light.range * 0.55f : 6f);
+            go.transform.localScale = new Vector3(r * 0.75f, r, r * 0.75f);
+
+            _all.Add(this);
+        }
+
+        void OnDestroy()
+        {
+            _all.Remove(this);
+            if (_mat != null) Destroy(_mat);
+        }
+
+        void LateUpdate()
+        {
+            if (_mat == null || _light == null) return;
+
+            // A shaft only exists if its lamp is on. This also means the whole
+            // effect switches with the day/night cycle for free.
+            bool on = _light.enabled && _light.isActiveAndEnabled;
+            if (_renderer.enabled != on) _renderer.enabled = on;
+            if (!on) return;
+
+            // THE THING THAT MAKES IT HONEST: brightness comes from the fog
+            // the scene is actually using. Clear afternoon, no shafts. Rain at
+            // night, the street fills with them. A constant-intensity shaft is
+            // the giveaway that it is a decal rather than lit air.
+            float night = GameController.NightAmount;
+            float rain = Weather.Rain;
+            double density = LightModel.FogDensity(night, rain);
+            // Normalised against the clear-day floor, so "some fog always"
+            // does not mean "some shaft always".
+            double clear = LightModel.FogDensity(0, 0);
+            float scale = (float)Feel.Clamp01((density - clear) / (clear * 2.6));
+
+            _mat.SetColor("_Color", _light.color);
+            _mat.SetFloat("_Intensity", _baseIntensity * scale * 0.85f);
+            _mat.SetFloat("_Anisotropy", 0.62f);
+        }
+
+        /// An open cone: apex at the origin, lip one unit below, no cap.
+        ///
+        /// No cap on purpose — a disc at the bottom is a visible bright
+        /// ellipse on the ground, and the light's own pool is already drawing
+        /// that far better. Normals point OUTWARD so the rim fade in the
+        /// shader has something to measure against.
+        static Mesh BuildCone(int segments)
+        {
+            var verts = new Vector3[segments * 2];
+            var norms = new Vector3[segments * 2];
+            var uvs = new Vector2[segments * 2];
+            var tris = new int[segments * 6];
+
+            for (int i = 0; i < segments; i++)
+            {
+                float t = i / (float)segments * Mathf.PI * 2f;
+                var dir = new Vector3(Mathf.Cos(t), 0, Mathf.Sin(t));
+                verts[i] = Vector3.zero;                  // apex, at the bulb
+                verts[segments + i] = dir - Vector3.up;   // the lip
+                // The side normal of a 45-degree cone, which is what the rim
+                // fade reads. Computed rather than approximated as `dir`,
+                // because a horizontal normal makes the top of the cone fade
+                // wrongly when you look down at it from above — which is
+                // exactly where the player's camera usually is.
+                var n = new Vector3(dir.x, 1f, dir.z).normalized;
+                norms[i] = n;
+                norms[segments + i] = n;
+                uvs[i] = new Vector2(i / (float)segments, 0f);
+                uvs[segments + i] = new Vector2(i / (float)segments, 1f);
+
+                int j = (i + 1) % segments;
+                int o = i * 6;
+                tris[o + 0] = i;
+                tris[o + 1] = segments + i;
+                tris[o + 2] = segments + j;
+                tris[o + 3] = i;
+                tris[o + 4] = segments + j;
+                tris[o + 5] = j;
+            }
+
+            var mesh = new Mesh { name = "LightShaftCone" };
+            mesh.vertices = verts;
+            mesh.normals = norms;
+            mesh.uv = uvs;
+            mesh.triangles = tris;
+            // Generous, because the cone is scaled per lamp and a tight bound
+            // pops it out of view at the exact moment you walk under it.
+            mesh.bounds = new Bounds(new Vector3(0, -0.5f, 0), new Vector3(2.2f, 1.2f, 2.2f));
+            return mesh;
+        }
+
+        public static int Count => _all.Count;
+    }
+}

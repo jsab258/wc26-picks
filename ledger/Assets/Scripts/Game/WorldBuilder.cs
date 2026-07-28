@@ -131,6 +131,9 @@ namespace Ledger.Game
                 // very bright; it just looks it against a dark wet street,
                 // and the light on the asphalt is what the eye actually reads.
                 light.intensity = 2.9f;
+                // Neon throws a shorter, brighter shaft than a street lamp —
+                // a tube is a small source and its cone is tight.
+                LightShaft.Attach(light, 0.7f);
                 _neon.Add(light);
             }
         }
@@ -156,11 +159,13 @@ namespace Ledger.Game
 
         static void ConfigureEnvironment()
         {
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 22f;
-            RenderSettings.fogEndDistance = 80f;
+            // SceneLighting owns ambient, fog and shadows now, and drives all
+            // three per frame off LightModel. The fixed linear fog that used
+            // to live here was a second authority on the same settings — it
+            // never changed with the hour, so night fog was the same grey as
+            // noon fog, which is the single most common way a street reads as
+            // untextured game rather than photograph.
+            SceneLighting.Ensure();
         }
 
         /// Roads, built from the network in Core rather than from two hardcoded
@@ -652,6 +657,7 @@ namespace Ledger.Game
             light.intensity = 1.4f;
             light.color = new Color(1f, 0.82f, 0.55f);
             light.enabled = false;
+            LightShaft.Attach(light, 1.0f);
             Lamps.Add(light);
         }
 

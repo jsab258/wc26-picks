@@ -87,6 +87,7 @@ namespace Ledger.CoreTests
                 TestCombat();
                 TestHomicide();
                 TestPalette();
+                TestLightModel();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -5925,6 +5926,196 @@ namespace Ledger.CoreTests
                     "and a body reloads as a body rather than as an ordinary rumour "
                     + "that a night's sleep would wash out");
             }
+        }
+
+        static void TestLightModel()
+        {
+            Console.WriteLine("Light model — the cheapest large win in the project (the-gap.md §3a):");
+
+            // ---- TONE MAPPING: the difference between a photograph and a clamp ----
+            Check(LightModel.Aces(0) == 0, "black stays black");
+            bool monotone = true;
+            double prev = -1;
+            for (double x = 0; x <= 8.0; x += 0.01)
+            {
+                double y = LightModel.Aces(x);
+                if (y < prev - 1e-12) monotone = false;
+                prev = y;
+            }
+            Check(monotone, "and the curve never goes backwards, so no brighter input is darker out");
+            bool inRange = true;
+            for (double x = 0; x <= 200; x += 0.5)
+                if (LightModel.Aces(x) > 1.0 || LightModel.Aces(x) < 0) inRange = false;
+            Check(inRange, "nothing leaves the curve out of range, however hot the light");
+
+            // The property the whole thing exists for. A linear clamp takes
+            // everything over 1.0 to white and a red sign becomes a white
+            // rectangle — the exact defect the neon pass had, one level down.
+            double midIn = 0.4, hotIn = 3.0;
+            double midGain = LightModel.Aces(midIn) / midIn;
+            double hotGain = LightModel.Aces(hotIn) / hotIn;
+            // A linear clamp also passes a naive compression ratio (1.0 vs
+            // 0.33), so the discriminating check is where the ROLL-OFF
+            // starts: a filmic curve is already bending well below white,
+            // and a clamp is dead straight until it hits the wall.
+            Check(LightModel.Aces(1.0) < 0.85,
+                "the curve is already rolling off at 1.0 rather than running straight "
+                + "into a wall, which is what a clamp does",
+                $"{LightModel.Aces(1.0):0.000}");
+            Check(hotGain < midGain * 0.5,
+                "highlights are COMPRESSED far harder than midtones — that roll-off "
+                + "is what keeps hue in a bright sign instead of clipping it to white",
+                $"mid x{midGain:0.00} vs hot x{hotGain:0.00}");
+            Check(LightModel.Aces(3.0) > LightModel.Aces(1.5),
+                "and a hotter light is still brighter, rather than flattening to one value");
+
+            // ---- EXPOSURE: night is LIFTED ----
+            Check(LightModel.Exposure(1.0) > LightModel.Exposure(0.0),
+                "night opens the aperture — a player who cannot see the street is "
+                + "not experiencing atmosphere, they are experiencing a bug report");
+            Check(LightModel.Exposure(0, 1) < LightModel.Exposure(0, 0),
+                "an overcast day loses light");
+            Check(LightModel.Exposure(1, 1) > LightModel.Exposure(1, 0),
+                "but a wet night GAINS it, because everything reflects the lamps");
+
+            // ---- THE SKY, in three bands ----
+            var (sr, sg, sb) = LightModel.SkyColour(1.0);
+            var (hr, hg, hb) = LightModel.HorizonColour(1.0);
+            var (gr, gg, gb) = LightModel.GroundColour(1.0);
+            Check(sb > sr && sb > sg, "a night sky is BLUE, not grey");
+            Check(sr + sg + sb > 0.05,
+                "and never black — a black sky reads as a missing skybox, not as night");
+            Check(hr > hb, "the horizon carries the sodium glow of a city on low cloud");
+            Check(hr + hg + hb > sr + sg + sb,
+                "which is brighter than the sky above it, so the middle distance "
+                + "does not fall into a flat void",
+                $"horizon {hr+hg+hb:0.000} vs sky {sr+sg+sb:0.000}");
+            Check(gr + gg + gb < hr + hg + hb, "and the ground is the darkest band");
+            var (dsr, dsg, dsb) = LightModel.SkyColour(0.0);
+            Check(dsr + dsg + dsb > sr + sg + sb, "day is brighter than night in every band");
+
+            // Rain takes SATURATION out rather than adding grey.
+            double Sat(double r, double g, double b)
+            {
+                double mx = Math.Max(r, Math.Max(g, b)), mn = Math.Min(r, Math.Min(g, b));
+                return mx <= 0 ? 0 : (mx - mn) / mx;
+            }
+            var (wr, wg, wb) = LightModel.SkyColour(1.0, 1.0);
+            Check(Sat(wr, wg, wb) < Sat(sr, sg, sb),
+                "rain desaturates the sky rather than greying it down",
+                $"{Sat(wr, wg, wb):0.000} vs {Sat(sr, sg, sb):0.000}");
+
+            // ---- FOG: depth cueing, not weather ----
+            Check(LightModel.FogDensity(0, 0) > 0,
+                "there is always some fog — without it every building sits at the "
+                + "same apparent distance");
+            Check(LightModel.FogDensity(0, 1) > LightModel.FogDensity(0, 0), "rain thickens it");
+            Check(LightModel.FogDensity(1, 0) > LightModel.FogDensity(0, 0), "and so does night");
+            Check(LightModel.FogDensity(1, 1) < 0.05,
+                "but never so far that you cannot see across the street",
+                $"{LightModel.FogDensity(1, 1):0.0000}");
+
+            var (fr, fg, fb) = LightModel.FogColour(1.0);
+            // Measured against the horizon it is DERIVED FROM, not against
+            // itself. The first version of this check compared r to b and
+            // passed with the warm term deleted, because the horizon is
+            // already warm — it was testing HorizonColour and reporting on
+            // FogColour, which is the third time on this project a metric has
+            // measured the wrong thing.
+            Check(fr / Math.Max(1e-6, fb) > hr / Math.Max(1e-6, hb) * 1.05,
+                "NIGHT FOG IS WARMER THAN THE SKY IT SITS UNDER, because it is lit by "
+                + "sodium lamps from inside the scene. Grey fog at night is the single "
+                + "most common way a street reads as untextured game rather than photograph",
+                $"fog r/b {fr / fb:0.000} vs horizon r/b {hr / hb:0.000}");
+            var (dfr, dfg, dfb) = LightModel.FogColour(0.0);
+            Check(dfr + dfg + dfb > fr + fg + fb, "and day fog is brighter than night fog");
+            Check(fr <= 1 && fg <= 1 && fb <= 1, "fog never leaves the colour range");
+
+            // ---- VOLUMETRICS ----
+            Check(LightModel.Transmittance(0, 0.02) == 1.0, "nothing is absorbed at zero distance");
+            Check(LightModel.Transmittance(50, 0.02) < LightModel.Transmittance(5, 0.02),
+                "and more of the light is eaten the further it travels");
+            Check(LightModel.Transmittance(1e6, 0.02) >= 0 && LightModel.Transmittance(1e6, 0.02) < 1e-6,
+                "it approaches zero without ever going negative");
+            Check(LightModel.Transmittance(50, 0.05) < LightModel.Transmittance(50, 0.01),
+                "thicker fog eats more of it");
+
+            // THE reason volumetric light looks like light.
+            double toward = LightModel.Phase(1.0), across = LightModel.Phase(0.0),
+                   away = LightModel.Phase(-1.0);
+            Check(toward > across && across > away,
+                "fog scatters FORWARD — a lamp glows far more looking toward it than "
+                + "away, and that asymmetry is why a shaft reads as light rather than "
+                + "as a translucent cone-shaped object",
+                $"{toward:0.000} / {across:0.000} / {away:0.000}");
+            Check(Math.Abs(LightModel.Phase(1.0, 0.0) - LightModel.Phase(-1.0, 0.0)) < 1e-9,
+                "and with no anisotropy it is uniform haze — which is what fog on the "
+                + "LENS looks like, and is the wrong effect");
+            bool phaseFinite = true;
+            for (double g = -0.99; g <= 0.99; g += 0.01)
+                for (double c = -1; c <= 1; c += 0.05)
+                {
+                    double v = LightModel.Phase(c, g);
+                    if (double.IsNaN(v) || double.IsInfinity(v) || v < 0) phaseFinite = false;
+                }
+            Check(phaseFinite,
+                "and it never divides by zero at grazing angles, however extreme the "
+                + "anisotropy — a NaN here is a black or white screen, not a soft bug");
+
+            Check(LightModel.ConeBrightness(100, 13, 1, 0, 0.02) == 0,
+                "a lamp throws nothing past its range");
+            Check(LightModel.ConeBrightness(3, 13, 1, 0, 0.02)
+                  > LightModel.ConeBrightness(9, 13, 1, 0, 0.02),
+                "and less the further out you stand in it");
+            Check(LightModel.ConeBrightness(3, 13, 1, 0, 0.02)
+                  > LightModel.ConeBrightness(3, 13, 1, 0.9, 0.02),
+                "the lip of the cone is soft, because a hard edge is a cone-shaped object");
+            Check(LightModel.ConeBrightness(3, 13, 1, 0, 0.04)
+                  > LightModel.ConeBrightness(3, 13, 1, 0, 0.01),
+                "and there is more of it to see in thicker air");
+            Check(LightModel.ConeBrightness(0, 13, 1, 0, 0.02) < 1e6,
+                "standing in the bulb does not divide by zero");
+
+            // ---- SURFACES: the mistake everybody makes ----
+            Check(LightModel.Smoothness(0.15, 1.0) > LightModel.Smoothness(0.15, 0.0),
+                "wet ground is shinier");
+            Check(LightModel.AlbedoScale(1.0) < LightModel.AlbedoScale(0.0),
+                "AND DARKER. A water film fills the micro-structure so less light "
+                + "scatters back out. Raising smoothness alone gives polished plastic; "
+                + "dropping albedo at the same time is what makes the lamps pop off a "
+                + "dark road, which is the whole look of a rainy street at night",
+                $"{LightModel.AlbedoScale(1.0):0.00} vs {LightModel.AlbedoScale(0.0):0.00}");
+            Check(LightModel.AlbedoScale(1.0) > 0.4,
+                "but not so dark the road becomes a hole in the world");
+            Check(LightModel.Smoothness(0.15, 1.0) <= 1.0 && LightModel.Smoothness(0.9, 1.0) <= 1.0,
+                "and smoothness never leaves its range, however smooth it started");
+
+            // Wetness lags rain in both directions — free continuity.
+            double wet = 0;
+            for (int i = 0; i < 30; i++) wet = LightModel.Wetness(wet, 1.0, 1.0 / 60.0);
+            Check(wet > 0.05 && wet < 1.0, "the street takes time to get wet", $"{wet:0.00}");
+            double soaked = 1.0, drying = 1.0;
+            for (int i = 0; i < 60; i++) drying = LightModel.Wetness(drying, 0.0, 1.0 / 60.0);
+            double wetting = 0;
+            for (int i = 0; i < 60; i++) wetting = LightModel.Wetness(wetting, 1.0, 1.0 / 60.0);
+            // A REAL MARGIN, not `<`. The first version compared the two
+            // rates directly, and with the asymmetry deleted they come out
+            // equal to within floating-point noise on two differently-rounded
+            // sequences — so the comparison went whichever way the last bits
+            // fell, and a deliberate break passed. A test decided by rounding
+            // is not a test.
+            Check((soaked - drying) < wetting * 0.6,
+                "and dries MUCH slower than it wets, so the street still looks like it "
+                + "rained half an hour after it stopped",
+                $"dried {soaked - drying:0.000} vs wetted {wetting:0.000}");
+
+            // Frame-rate independence, same standard as everything else here.
+            double a30 = 0, a240 = 0;
+            for (int i = 0; i < 30; i++) a30 = LightModel.Wetness(a30, 1.0, 1.0 / 30.0);
+            for (int i = 0; i < 240; i++) a240 = LightModel.Wetness(a240, 1.0, 1.0 / 240.0);
+            Check(Math.Abs(a30 - a240) < 1e-3,
+                "the street wets at the same rate at 30fps and 240",
+                $"{a30:0.0000} vs {a240:0.0000}");
         }
 
         static void TestPalette()

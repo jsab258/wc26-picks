@@ -21,8 +21,24 @@ Shader "Hidden/LedgerFilmGrade"
         sampler2D _MainTex;
         float4 _MainTex_TexelSize;
         sampler2D _BloomTex;
-        float _Threshold, _Bloom, _Grain, _Vignette, _Seed;
+        float _Threshold, _Bloom, _Grain, _Vignette, _Seed, _Exposure;
         float4 _Dir;
+
+        // ACES filmic tonemap (Narkowicz fit) — the same curve as
+        // Core/LightModel.Aces, which is where its properties are tested.
+        //
+        // THIS IS THE DIFFERENCE BETWEEN A PHOTOGRAPH AND A CLAMP. A linear
+        // clamp takes everything over 1.0 to white, which is precisely how a
+        // red neon sign becomes a white rectangle — the defect the palette
+        // pass fixed at the source and which the post stack was still
+        // capable of reintroducing one level down. A filmic curve rolls the
+        // highlights off instead: they compress, the hue survives, and the
+        // eye reads it as exposure rather than as damage.
+        float3 aces(float3 x)
+        {
+            const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+            return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
+        }
 
         struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
         v2f vert(appdata_img v)
@@ -58,6 +74,12 @@ Shader "Hidden/LedgerFilmGrade"
                 // highlight rather than only inside it.
                 fixed3 bloom = tex2D(_BloomTex, i.uv).rgb;
                 col.rgb += bloom * _Bloom;
+
+                // EXPOSURE then TONEMAP, in that order and before anything
+                // else. Exposure is a scene-referred operation and vignette
+                // and grain are display-referred ones; doing them the other
+                // way round grades the vignette instead of the image.
+                col.rgb = aces(col.rgb * _Exposure);
 
                 // VIGNETTE. Pulls the eye to the middle and makes the frame
                 // feel photographed. Squared so it stays off the centre
