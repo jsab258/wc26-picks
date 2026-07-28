@@ -183,7 +183,46 @@ namespace Ledger.Game
             if (_sinceStep < stride) return;
             _sinceStep -= stride;
             Audio.Footstep((float)Gait.StepWeight(_footfall, severity), Weather.Wetness);
+            // AND THE PUDDLE ANSWERS (§5). A wet street that makes a wet
+            // sound and shows nothing is half an effect — the eye goes
+            // looking for what it just heard. Only on a genuinely wet street,
+            // and not every step, because a splash under every footfall reads
+            // as wading rather than as walking on wet ground.
+            if (Weather.Wetness > 0.45f && Random.value < Weather.Wetness * 0.45f)
+                Splash(transform.position);
             _footfall++;
+        }
+
+        /// A small ring of droplets kicked out sideways and low. Built and
+        /// destroyed per splash rather than pooled: they are rare, tiny, and
+        /// a pool for a dozen quads a minute is complexity paid for nothing.
+        static void Splash(Vector3 at)
+        {
+            var go = new GameObject("Splash");
+            go.transform.position = at + Vector3.up * 0.04f;
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.startLifetime = 0.34f;
+            main.startSpeed = 1.5f;
+            main.startSize = 0.035f;
+            main.startColor = new Color(0.78f, 0.84f, 0.92f, 0.55f);
+            main.maxParticles = 14;
+            main.gravityModifier = 2.2f;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            main.duration = 0.12f;
+            main.loop = false;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 68f;
+            shape.radius = 0.06f;
+            var burst = ps.emission;
+            burst.SetBursts(new[] { new ParticleSystem.Burst(0f, 6, 10) });
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.Billboard;
+            r.material = AssetLibrary.Material(AssetLibrary.Glass) ??
+                         new Material(Shader.Find("Sprites/Default"));
+            ps.Play();
+            Destroy(go, 1.2f);
         }
 
         /// The camera follows, it is not welded on: spring lag, FOV that opens
@@ -233,7 +272,7 @@ namespace Ledger.Game
         {
             if (hit.collider == null) return;
             var npc = hit.collider.GetComponent<NpcWalker>();
-            if (npc == null) return;
+            if (npc == null) { BrushedObject(hit); return; }
 
             float speed = (float)_loco.Speed;
             if (speed < Bumps.MinSpeed) return;
@@ -246,6 +285,46 @@ namespace Ledger.Game
             if (SimMode.Days == 0)
                 Audio.Footstep(Bumps.Classify(speed) == BumpReaction.Brush ? 0.5f : 1.3f,
                                Weather.Wetness);
+        }
+
+        /// THINGS REACT TO BEING BRUSHED (game-feel-spec.md §5).
+        ///
+        /// A world where the bins are welded to the pavement is a world of
+        /// scenery. One where a bin rocks when you clip it is a world of
+        /// objects — and the difference costs a nudge and a sound, not an
+        /// art budget. Reused off the same collider callback as bumping
+        /// people, with the same once-per-second filter, because a
+        /// CharacterController pressed against a bin reports a hit every
+        /// frame and a rock per frame is a vibration.
+        void BrushedObject(ControllerColliderHit hit)
+        {
+            var body = hit.collider.attachedRigidbody;
+            float speed = (float)_loco.Speed;
+            if (speed < Bumps.MinSpeed || SimMode.Days != 0) return;
+
+            int id = hit.collider.GetInstanceID();
+            if (_lastBump.TryGetValue(id, out var last) && Time.time - last < 0.8f) return;
+            _lastBump[id] = Time.time;
+
+            // A push if it can be pushed, always a sound. Small: this is a
+            // knock, not a demolition, and objects that fly across the street
+            // are funny exactly once.
+            if (body != null && !body.isKinematic)
+                body.AddForceAtPosition(-hit.normal * speed * 1.4f, hit.point, ForceMode.Impulse);
+            Audio.Impact(MaterialOf(hit.collider), Mathf.Clamp01(speed / RunSpeed));
+        }
+
+        /// What it sounds like when hit. Named off the object because we do
+        /// not have physics materials and a bin is not a wall.
+        static string MaterialOf(Collider c)
+        {
+            var n = c.name;
+            if (n.Contains("Bin") || n.Contains("Lamp") || n.Contains("Rail") ||
+                n.Contains("Sign") || n.Contains("Car")) return "metal";
+            if (n.Contains("Window") || n.Contains("Glass") || n.Contains("Neon")) return "glass";
+            if (n.Contains("Crate") || n.Contains("Board") || n.Contains("Door") ||
+                n.Contains("Bench")) return "wood";
+            return "soft";
         }
 
         /// Called when the car hands the camera back, so the spring resumes

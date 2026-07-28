@@ -59,6 +59,13 @@ and each caught.
   show it — a limp is free characterisation from data we already have.
 - **Foot IK** so feet plant on kerbs and stairs instead of sliding. **[MODELS]**
 - **Root-motion vs code-driven** decision, made once, applied everywhere.
+  **DECIDED 2026-07-28: CODE-DRIVEN.** Made deliberately BEFORE the
+  animations land, because after they land it is a rewrite. The momentum,
+  turn rate and gait in `Core/Feel.cs` are already tested and frame-rate
+  independent; root motion would put authority for movement inside animation
+  clips we did not author and cannot test, and the two would fight. The cost
+  is accepted and named: foot sliding, which foot IK fixes and which is
+  cheaper to fix than a movement model is to replace.
 - **Slope and stair handling** that does not judder.
 - **Head bob and hand sway**, subtle, scaled to gait — off by default in
   options for motion sensitivity.
@@ -103,8 +110,14 @@ This is where the biggest cheap win in the whole document lives.
 ## 5. World response **[NOW]**
 
 - **Doors with mass**: handle, swing, latch, and a slight camera nudge.
-- **Objects react to being brushed** — a bin, a bottle, a chair.
-- **Puddles splash**; footprints in the wet; the rain lands ON things.
+- **Objects react to being brushed** — a bin, a bottle, a chair. **BUILT
+  2026-07-28.** A world where the bins are welded to the pavement is a world
+  of scenery; one where a bin rocks when you clip it is a world of objects,
+  and the difference costs a nudge and a sound rather than an art budget.
+- **Puddles splash** **BUILT 2026-07-28** — and deliberately not on every
+  step, because a splash under every footfall reads as wading rather than as
+  walking on wet ground. Footprints in the wet and rain landing ON things are
+  still outstanding.
 - **NPCs react to being bumped** — a stumble, a look, a word. Right now you
   walk through a crowd like a ghost, which quietly tells the player that
   none of it is real.

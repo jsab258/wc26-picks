@@ -15,6 +15,11 @@ namespace Ledger.Game
         public int TextScalePercent = 100;      // 80..150, accessibility
         public bool ColourblindSafe;            // swaps the credit/debit hues
         public float MouseSensitivity = 1.0f;
+        /// Film grain, 0..1 of the authored amount. A slider rather than a
+        /// fixed value because grain is the one post effect a meaningful
+        /// number of people cannot tolerate, and an art choice that makes
+        /// somebody unable to play is not an art choice.
+        public float GrainAmount = 1.0f;
         public bool ShowOdds = true;            // qualitative reads before risky moves
 
         /// Rebindable actions. Names are what the help line prints.
@@ -51,7 +56,8 @@ namespace Ledger.Game
             {
                 { "master", MasterVolume }, { "music", MusicVolume }, { "sfx", SfxVolume },
                 { "textScale", TextScalePercent }, { "colourblind", ColourblindSafe },
-                { "sensitivity", MouseSensitivity }, { "showOdds", ShowOdds },
+                { "sensitivity", MouseSensitivity }, { "grain", GrainAmount },
+                { "showOdds", ShowOdds },
                 { "keys", keys },
             });
         }
@@ -69,6 +75,7 @@ namespace Ledger.Game
                 s.TextScalePercent = root.ContainsKey("textScale") ? MiniJson.GetInt(root, "textScale") : s.TextScalePercent;
                 s.ColourblindSafe = root.TryGetValue("colourblind", out var cb) && cb is bool b && b;
                 s.MouseSensitivity = Num(root, "sensitivity", s.MouseSensitivity);
+                s.GrainAmount = Num(root, "grain", s.GrainAmount);
                 s.ShowOdds = !root.TryGetValue("showOdds", out var so) || !(so is bool sb) || sb;
                 var keys = MiniJson.GetObject(root, "keys");
                 if (keys != null)

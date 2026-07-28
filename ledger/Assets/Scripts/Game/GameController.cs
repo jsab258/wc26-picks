@@ -227,6 +227,10 @@ namespace Ledger.Game
             // The alley sounds like an alley, from the street network we
             // already had — no acoustic volumes were authored for this.
             RoomTone.Ensure(player.Eye != null ? player.Eye.transform : null);
+            // Grain, vignette and bloom. Fails closed to an unfiltered image
+            // if the shader is missing, because an art effect that can break
+            // the picture must never be able to.
+            FilmGrade.Ensure(player.Eye);
 
             _npcs.Add(NpcWalker.Spawn("Rocco", new Color(0.75f, 0.3f, 0.25f), new[]
             {
@@ -2065,6 +2069,9 @@ namespace Ledger.Game
             return marker;
         }
 
+        /// 0 at noon, 1 in the dead of night. Read by the film grade.
+        public static float NightAmount { get; private set; }
+
         void UpdateSun()
         {
             if (_sun == null) return;
@@ -2076,6 +2083,10 @@ namespace Ledger.Game
             _sun.transform.rotation = Quaternion.Euler(sunAngle, 35f, 0);
 
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
+            // Published so the film grade pushes the stock at night off the
+            // SAME number the sun uses. Two independent notions of "how dark
+            // is it" would drift, and the grain would peak at the wrong hour.
+            NightAmount = 1f - daylight;
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;
