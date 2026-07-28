@@ -31,8 +31,24 @@ lab).
 **Design question raised, not decided:** post-Fall heat laundering (does
 prison count as a managed information landscape?) → decisions-pending.md.
 
-**Remaining: 33 medium and ~46 low findings** — untriaged beyond severity;
-next session's docket, same test-first rule.
+**2026-07-28, second wave: ALL MEDIUM AND LOW FINDINGS RESOLVED.** The 33
+mediums landed in six batches (gossip core, CoreTests tautologies, clock
+jumps, act promises, legibility, infrastructure); the 45 lows in three
+sweeps (codec/clock/purity, player-facing surface, instruments). 40 of the
+45 lows are code fixes; five are dispositioned with reasons:
+
+- Injunction expiring during a Fall: waiting it out in a cell still waits
+  it out — narratively sound, kept.
+- Money-conservation invariant: impossible by design; the economy mints
+  and burns daily. Accepted.
+- Dirty cash paying suppliers: a defensible design call either way —
+  logged in decisions-pending.md with a recommendation, not changed the
+  night before a playtest.
+- Staged-fall in-flight state: substantially covered by the demand
+  due-day fix; jobs resolve at the close and a beat lapsed while inside
+  is acceptable fiction.
+- ShapeCheck's PascalCase blind spot: inherent to the CS0103 heuristic;
+  documented as a known limit rather than pretended away.
 
 **Fix-phase CI build: GREEN** (run 30326027427, 2026-07-28 03:28Z). The
 in-engine run exercised the fixes for real: daysSkipped=3 — the reclaim

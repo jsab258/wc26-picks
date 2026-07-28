@@ -419,6 +419,23 @@ leashing witnesses and buying silence — flattens the act's central skill.
 
 No action taken — this changes what an ending means, so it is yours.
 
+## Should dirty money pay the drayman? (audit finding, 2026-07-28)
+
+The wallet's own rule says dirty cash is for criminal counterparties — but
+weekly supplier deliveries and MakeAmends are paid with dirtyOk: true, so
+unwashed money buys the drink and the flour. Two readings:
+
+- **Enforce the rule (clean only).** Purist; makes washing matter more.
+  But a dirty-heavy campaign short on clean cash starts losing suppliers,
+  which shifts balance noticeably — I did not want to move that the night
+  before you play.
+- **Keep it, as written into the fiction (recommended).** A supplier to a
+  mob bar taking cash off the counter is not a bank; he is exactly the
+  kind of grey counterparty the rule contemplates. If you keep this, the
+  wallet comment should say so, so the next audit doesn't flag it again.
+
+No action taken; one line in Wallet.cs settles it whichever way you call.
+
 ## Standing rules honored meanwhile
 
 - Design/story/character decisions → this queue, with a recommendation,
