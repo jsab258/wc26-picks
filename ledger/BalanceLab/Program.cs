@@ -339,7 +339,7 @@ namespace Ledger.BalanceLab
                     takings = (int)Math.Round(takings * economy.FactorFor("bar"));
                     foreach (var b in empire.Businesses)
                         if (b.Owned) takings += (int)Math.Round(b.CleanIncomePerDay * economy.FactorFor(b.Id)
-                            * Math.Max(0.0, 1.0 - 0.85 * heat));
+                            * empire.FrontFactor * Math.Max(0.0, 1.0 - 0.85 * heat));
                     wallet.EarnClean(takings);
                     takingsToDate += takings;
                     wallet.LaunderPerDay = 120 + empire.OwnedLaunderCapacity;

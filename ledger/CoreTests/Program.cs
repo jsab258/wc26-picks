@@ -42,6 +42,7 @@ namespace Ledger.CoreTests
                 TestSurvivingLead();
                 TestGossipRepairs();
                 TestValidatorScalars();
+                TestActOne();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -340,7 +341,8 @@ namespace Ledger.CoreTests
             foreach (var rr in d3.Rumors) rr.Confidence = 0.5;
             double combined = mill3.DayCircleHeat();
             Check(Math.Abs(combined - 0.75) < 1e-9, "two half-believed stories corroborate to 0.75, not 0.5");
-            Check(combined <= 1.0, "corroborated heat stays within 0..1");
+            // (the old "stays within 0..1" check here could not fail — the
+            // previous line already pinned the exact value; audit 2026-07-27)
             var dup = new Rumor { Content = new Fact("player", "night_job_d2", "seen"), OriginId = "w3", Summary = "same story again", Confidence = 0.3, Sensitive = true, Hops = 1 };
             d3.Rumors.Add(dup);
             Check(Math.Abs(mill3.DayCircleHeat() - 0.75) < 1e-9, "a weaker retelling of the SAME story does not stack");
@@ -371,6 +373,21 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestActOne()
+        {
+            Console.WriteLine("Act I — the inheritance's own logic (audit 2026-07-27: zero coverage):");
+            Check(Ledger.Game.ActOneState.PostureSummary("winddown").Contains("wind the family business down")
+                && Ledger.Game.ActOneState.PostureSummary("takeover").Contains("take the family business over")
+                && Ledger.Game.ActOneState.PostureSummary("refused").Contains("refused to answer"),
+                "each posture becomes its own sentence in the street's mouth");
+            Check(Ledger.Game.ActOneState.PostureSummary("takeover") != Ledger.Game.ActOneState.PostureSummary("winddown"),
+                "and the street can tell them apart");
+            Check(Ledger.Game.ActOneState.DayOneContext("Sam", 1).Contains("$120"),
+                "Sam's first-day condolences carry the debt he knows about");
+            Check(Ledger.Game.ActOneState.DayOneContext("Sam", 2) == "" && Ledger.Game.ActOneState.DayOneContext("Ada", 1) == "",
+                "and only Sam's, and only on the first day");
         }
 
         static void TestValidatorScalars()
@@ -879,6 +896,26 @@ namespace Ledger.CoreTests
                 }
                 return bits;
             }
+            // The street clamp's boundaries, both ends (audit 2026-07-27: the
+            // clamp at [0.1, 1.5] was never exercised by any caller or test).
+            {
+                var (eC1, mC1, _c1, jC1) = Build(0.5, 0.4);
+                jC1.Loyalty = 0.9;
+                eC1.RecruitByNeed(jC1, "Josip", 50, new Wallet(1000), now);
+                eC1.Establish(eC1.RacketOf("collection"), eC1.CrewOf("josip"), now);
+                var wC1 = new Wallet(0);
+                eC1.DailyTick(new GameTime(9, 8, 0), wC1, mC1, streetFactor: 0.01);
+                var (eC2, mC2, _c2, jC2) = Build(0.5, 0.4);
+                jC2.Loyalty = 0.9;
+                eC2.RecruitByNeed(jC2, "Josip", 50, new Wallet(1000), now);
+                eC2.Establish(eC2.RacketOf("collection"), eC2.CrewOf("josip"), now);
+                var wC2 = new Wallet(0);
+                eC2.DailyTick(new GameTime(9, 8, 0), wC2, mC2, streetFactor: 99.0);
+                Check(wC1.Dirty == 6 && wC2.Dirty == 90,
+                    "the street factor is clamped at both ends — no free collapse, no jackpot",
+                    $"floor {wC1.Dirty}, ceiling {wC2.Dirty}");
+            }
+
             Check(WitnessPattern(101) != WitnessPattern(202),
                 "empire: two worlds do not share one luck",
                 $"{WitnessPattern(101)} vs {WitnessPattern(202)}");
@@ -1156,6 +1193,20 @@ namespace Ledger.CoreTests
             Check(!a.BarFrozen(new GameTime(11, 9, 0)), "act2: answering the letter reopens the bar");
 
             Check(ActTwoState.FirstNotice("machine").Contains("deed plate"), "act2: each arm notices in its own voice");
+            // EVERY arm, enumerated: a new arm must not silently inherit
+            // another's lines from the fallback (audit 2026-07-27).
+            {
+                var armVoice = new EmpireBook();
+                var notices = new HashSet<string>();
+                var offers = new HashSet<string>();
+                bool allDistinct = true;
+                foreach (var arm in armVoice.Arms)
+                {
+                    if (!notices.Add(ActTwoState.FirstNotice(arm.Id))) allDistinct = false;
+                    if (!offers.Add(ActTwoState.TableOffer(arm.Id))) allDistinct = false;
+                }
+                Check(allDistinct, "act2: every arm speaks its own notice and its own offer — none inherits a fallback");
+            }
             Check(ActTwoState.TableOffer("dockside").Contains("Twelve per cent"), "act2: Sera prices in percentages");
             Check(ActTwoState.TableResult("newcrew", "defy").Contains("Hook Street vowels"), "act2: Danny's refusal lands cold");
 
@@ -1174,6 +1225,15 @@ namespace Ledger.CoreTests
             var (e2, m2, _2, __2) = BuildEmpireFixture();
             e2.ResolveTable("machine", "accept", m2, new GameTime(14, 12, 0));
             Check(e2.FrontsCapped, "act2: signing Vane's cap throttles the fronts");
+            // ...and the throttle is ARITHMETIC, not just a flag (audit
+            // 2026-07-27: the factor lived only in the Unity layer, untested,
+            // and the lab omitted it — one law in Core now).
+            Check(System.Math.Abs(e2.FrontFactor - 0.7) < 1e-9 || System.Math.Abs(e2.FrontFactor - 0.525) < 1e-9,
+                "act2: the signed cap costs the fronts three tenths",
+                e2.FrontFactor.ToString("0.000"));
+            var (eF, _mf, _f, __f) = BuildEmpireFixture();
+            Check(System.Math.Abs(eF.FrontFactor - 1.0) < 1e-9 || eF.MachineInspecting,
+                "act2: an unthrottled front keeps its whole till", eF.FrontFactor.ToString("0.000"));
 
             // TotalRacketIncome is the number Act III's LedgerStrain calls the
             // dirty income the books must explain — and it had zero coverage:
@@ -2955,8 +3015,11 @@ namespace Ledger.CoreTests
             // cannot read a face, so your lies land better AND so do theirs.
             Check(PhoneBook.Damped(0.4) < 0.4, "suspicion moves less on the line");
             Check(PhoneBook.Damped(0.4) > 0, "but it does move");
-            Check(Math.Abs(PhoneBook.Damped(1.0) - PhoneBook.FidelityOnTheLine) < 1e-9,
-                "and the damping is the same in both directions, which is what stops it being an upgrade");
+            // (audit 2026-07-27: the old check here compared Damped(1.0) to the
+            // constant it multiplies by — true by construction. The real
+            // property is that the SAME factor applies to a rise and a fall.)
+            Check(Math.Abs(PhoneBook.Damped(0.4) + PhoneBook.Damped(-0.4)) < 1e-9,
+                "a raise and a soothe are damped by the same factor on the line — neither direction is an upgrade");
 
             var snap = MiniJson.Serialize(book.Capture());
             var twin = new PhoneBook();
@@ -3085,11 +3148,27 @@ namespace Ledger.CoreTests
             Check(ActThreeState.Resolve(null) == Ending.BurnBoth, "and no world at all resolves safely");
 
             // Succession is a judgement of a PERSON.
+            // The scope terms pinned exactly, both directions (audit 2026-07-27:
+            // the stonewall term was pinned only from below; inflating it hid
+            // behind the 1.6 clamp).
+            Check(System.Math.Abs(ActThreeState.ScopeFactor(0, 1) - 1.15) < 1e-9,
+                "one stonewall costs exactly its 0.15 — no more, no clamp to hide in",
+                ActThreeState.ScopeFactor(0, 1).ToString("0.000"));
+            Check(System.Math.Abs(ActThreeState.ScopeFactor(1, 0) - 0.955) < 1e-9,
+                "and one cooperation buys exactly its 0.045",
+                ActThreeState.ScopeFactor(1, 0).ToString("0.000"));
+
             Check(ActThreeState.CouldHold(0.8, 0.8, independent: true, feuding: false), "a good one can hold it");
             Check(!ActThreeState.CouldHold(0.8, 0.8, true, feuding: true), "not while feuding with the crew");
             Check(!ActThreeState.CouldHold(0.8, 0.8, independent: false, feuding: false),
                 "not before they can stand on their own");
             Check(!ActThreeState.CouldHold(0.3, 0.9, true, false), "loyalty is not competence");
+            // The thresholds bracketed tightly from both sides (audit
+            // 2026-07-27: a large drift was invisible to the wide checks).
+            Check(ActThreeState.CouldHold(0.55, 0.6, true, false) && !ActThreeState.CouldHold(0.54, 0.6, true, false),
+                "the competence bar sits exactly at its documented line");
+            Check(ActThreeState.CouldHold(0.55, 0.6, true, false) && !ActThreeState.CouldHold(0.55, 0.59, true, false),
+                "and so does the loyalty bar");
             Check(!ActThreeState.CouldHold(0.9, 0.3, true, false), "and competence is not loyalty");
 
             // The authored text exists for every ending — an ending with no
@@ -3248,6 +3327,20 @@ namespace Ledger.CoreTests
             Reads("Cooperations", w => w.TotalWashed = 200, w => w.Cooperations = 6);
             Reads("Stonewalls", w => w.TotalWashed = 450, w => w.Stonewalls = 4);
             Reads("LedgersMoved", w => w.TotalWashed = 300, w => w.LedgersMoved = true);
+            // "The single largest movement any one action makes" is a design
+            // claim, and it is now an assertion: moving the books must beat the
+            // deflection's easing, and by a real margin (audit 2026-07-27: the
+            // 0.55 was pinned only from above).
+            {
+                var baseline = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400 };
+                var moved = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, LedgersMoved = true };
+                var pointed = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, OsseiCaseAnswerable = true };
+                double easeMoved = ActThreeState.SeenStrain(baseline) - ActThreeState.SeenStrain(moved);
+                double easePointed = ActThreeState.SeenStrain(baseline) - ActThreeState.SeenStrain(pointed);
+                Check(easeMoved > easePointed + 1e-9,
+                    "moving the books eases more than pointing the case away — the largest single movement, as designed",
+                    $"{easeMoved:0.000} vs {easePointed:0.000}");
+            }
 
             // The two that deliberately do NOT decide, named so that being
             // unread is a choice rather than an oversight:
@@ -4522,7 +4615,7 @@ namespace Ledger.CoreTests
                 Warehouse(), bare, Rolls(0.99, 0.99, 0.0, 0.0));
             var seenLoss = Operations.Run(new OperationPlan("x") { Approach = Approach.Forced, Hour = 12 },
                 Warehouse(), bare, Rolls(0.0, 0.99, 0.0, 0.0));
-            Check(seenLoss.Witnesses >= seenWin.Witnesses, "a botched job is seen by more people than a clean one",
+            Check(seenLoss.Witnesses > seenWin.Witnesses, "a botched job is seen by more people than a clean one",
                 $"{seenLoss.Witnesses} vs {seenWin.Witnesses}");
 
             // Your own people talk, and loyalty is what decides whether they do.

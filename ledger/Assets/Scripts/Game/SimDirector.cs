@@ -44,7 +44,11 @@ namespace Ledger.Game
         /// before the build fails. Two, so a beat has a clear game-hour to
         /// fire — enough that the last hour of the run cannot manufacture a
         /// failure, small enough that a beat which never fires still does.
-        const int ActTwoGraceSamples = 2;
+        // Three, not two: beat firing runs on a 30-frame cadence, and on a
+        // runner sustaining under ~10 fps one game-hour can span fewer frames
+        // than the cadence — two samples could red a healthy build for being
+        // slow (audit 2026-07-27).
+        const int ActTwoGraceSamples = 3;
 
         GameController _game;
         PlayerController _player;

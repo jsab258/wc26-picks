@@ -116,6 +116,14 @@ namespace Ledger.Core
 
         /// Doctrine effects other systems consume at the daily close.
         public bool MachineInspecting => ArmOf("machine").Stage >= 2;   // fronts' income -25%
+
+        /// The throttle every owned front's clean income passes through: the
+        /// machine's inspections and Vane's signed cap. In Core so the game
+        /// and the balance lab read ONE law — the arithmetic used to live only
+        /// in the Unity layer, untestable, and the lab omitted it entirely,
+        /// so the Monte Carlo balanced an economy the game does not run
+        /// (audit 2026-07-27).
+        public double FrontFactor => (MachineInspecting ? 0.75 : 1.0) * (FrontsCapped ? 0.7 : 1.0);
         public bool NewCrewTaxing => ArmOf("newcrew").Stage >= 3;       // rackets' take -20%
 
         /// Whose banner you fly, if anyone's. Independence is the default and

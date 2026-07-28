@@ -1423,7 +1423,7 @@ namespace Ledger.Game
                 // — a front is a front. Their washing capacity joins the till's.
                 // The machine's inspections (stage 2+) slow every front you own,
                 // and a signed cap slows them further.
-                double frontFactor = (Empire.MachineInspecting ? 0.75 : 1.0) * (Empire.FrontsCapped ? 0.7 : 1.0);
+                double frontFactor = Empire.FrontFactor;
                 // The street's own state, as it stands this morning: how much
                 // money the district's people have, what things cost, and whether
                 // anyone is still delivering. Neutral at 1.0 on an unsqueezed

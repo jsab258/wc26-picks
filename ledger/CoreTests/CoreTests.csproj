@@ -12,6 +12,7 @@
     <Compile Include="../Assets/Scripts/Core/**/*.cs" />
     <!-- Engine-free content files, tested as SHIPPED rather than as a copy of
          themselves that can drift away from what the game actually loads. -->
+    <Compile Include="../Assets/Scripts/Game/ActOne.cs" />
     <Compile Include="../Assets/Scripts/Game/AccessSetup.cs" />
     <Compile Include="../Assets/Scripts/Game/EconomySetup.cs" />
     <Compile Include="../Assets/Scripts/Game/OperationSetup.cs" />

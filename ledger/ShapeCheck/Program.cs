@@ -95,9 +95,14 @@ foreach (var d in compilation.GetDiagnostics())
     // common typo in the codebase was the one class it silently skipped. A
     // checker with a hole exactly where the code is densest is worse than no
     // checker, because it is trusted.
+    // The inherited-member exemption is for MonoBehaviours; Core is
+    // engine-free, so a bare "name" or "enabled" typo there is a REAL
+    // CS0103 the whitelist used to swallow (audit 2026-07-27).
+    var file = (d.Location.SourceTree?.FilePath ?? "").Replace('\\', '/');
+    bool engineFile = !file.Contains("/Core/");
     bool missingLocal = MissingName(d, out var missing)
                         && char.IsLower(missing.TrimStart('_').FirstOrDefault())
-                        && !inherited.Contains(missing);
+                        && !(engineFile && inherited.Contains(missing));
     if (!interesting.Contains(d.Id) && !missingLocal) continue;
     bad++;
     var span = d.Location.GetLineSpan();

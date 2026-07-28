@@ -28,7 +28,9 @@ LINQ = re.compile(
     r"FirstOrDefault|Last|LastOrDefault|Single|SingleOrDefault|OrderBy|"
     r"OrderByDescending|ThenBy|ThenByDescending|Skip|Take|Distinct|Concat|"
     r"Except|Intersect|Union|Reverse|GroupBy|Zip|ToList|ToArray|ToDictionary|"
-    r"ToHashSet|Cast|OfType|SequenceEqual|Aggregate)\s*[(<]"
+    r"ToHashSet|Cast|OfType|SequenceEqual|Aggregate|TakeWhile|SkipWhile|"
+    r"Prepend|ElementAt|ElementAtOrDefault|DefaultIfEmpty|ToLookup|MaxBy|"
+    r"MinBy|Chunk)\s*[(<]"
 )
 
 # `.ToList()` etc. also exist on some non-LINQ types, and List<T> has its own
@@ -39,10 +41,25 @@ ALWAYS_LINQ = {
     "ThenBy", "ThenByDescending", "Skip", "Take", "Distinct", "Except",
     "Intersect", "Union", "GroupBy", "Zip", "ToDictionary", "Cast", "OfType",
     "SequenceEqual", "Aggregate", "Sum", "Average",
+    # audit 2026-07-27: always-LINQ names the list missed. (Append and
+    # Contains stay out — the regex is receiver-blind and StringBuilder
+    # .Append / List.Contains would false-positive constantly.)
+    "TakeWhile", "SkipWhile", "Prepend", "ElementAt", "ElementAtOrDefault",
+    "DefaultIfEmpty", "ToLookup", "MaxBy", "MinBy", "Chunk",
 }
 
 # A member call whose receiver is `System.Linq.Enumerable` is already qualified.
 QUALIFIED = re.compile(r"System\.Linq\.Enumerable\s*\.")
+
+
+# Parameterless call = LINQ for these: no common BCL receiver in this
+# codebase has the empty-arg method (List<T>.Count is a property, ToArray/
+# Reverse/Contains exist on List<T> and are deliberately absent here).
+EMPTY_CALL_LINQ = {
+    "Count", "ToList", "First", "FirstOrDefault", "Last", "LastOrDefault",
+    "Single", "SingleOrDefault", "Min", "Max", "Sum", "Average", "Distinct",
+    "ToHashSet",
+}
 
 
 def check(path: pathlib.Path) -> list:
@@ -64,6 +81,13 @@ def check(path: pathlib.Path) -> list:
             # method, but other types might. Flag them only with a lambda.
             if name not in ALWAYS_LINQ:
                 after = scrubbed[m.end():]
+                # audit 2026-07-27: the docstring promised "a lambda or an
+                # empty call", and the empty-call half was never implemented.
+                # Only names where no common BCL receiver has the parameterless
+                # method (List.Count is a property; .Count() is LINQ).
+                if name in EMPTY_CALL_LINQ and after.lstrip().startswith(")"):
+                    problems.append((lineno, name, stripped))
+                    continue
                 # The lambda may sit on the NEXT line — normal formatting for a
                 # long predicate — but only when the call's argument list is
                 # still open at the line break. Same-line-only scanning let
