@@ -6178,6 +6178,66 @@ namespace Ledger.CoreTests
                 + "rained half an hour after it stopped",
                 $"dried {soaked - drying:0.000} vs wetted {wetting:0.000}");
 
+            // ---- AMBIENT OCCLUSION ----
+            //
+            // The last cheap win: untextured geometry reads flat because
+            // nothing sits IN anything. The corner where a bin meets a wall
+            // is lit exactly as brightly as open ground, so the bin floats.
+
+            Check(LightModel.AoStrength(1.0, 0) > LightModel.AoStrength(0, 0),
+                "occlusion counts for more at night, when nearly all the light is fill "
+                + "and there is ambient to block",
+                $"{LightModel.AoStrength(1.0, 0):0.00} vs {LightModel.AoStrength(0, 0):0.00}");
+            Check(LightModel.AoStrength(0, 1.0) > LightModel.AoStrength(0, 0),
+                "and in the rain even at noon, because overcast flattens daylight into "
+                + "ambient — applying a constant amount is what makes cheap AO read as "
+                + "smudge");
+            Check(LightModel.AoStrength(0, 0) > 0.15 && LightModel.AoStrength(1, 1) < 0.85,
+                "but it is never off and never total",
+                $"{LightModel.AoStrength(0, 0):0.00}..{LightModel.AoStrength(1, 1):0.00}");
+
+            // THE RANGE CHECK is what separates AO from a dark halo traced
+            // round every silhouette — the single most recognisable tell of
+            // screen-space occlusion done cheaply.
+            Check(LightModel.AoRangeCheck(0.1, 0.55) == 1.0,
+                "a sample within the radius counts fully");
+            Check(LightModel.AoRangeCheck(4.0, 0.55) == 0,
+                "a sample metres in front of the surface is a different object, and "
+                + "counting it draws a dark halo round every silhouette");
+            double r1 = LightModel.AoRangeCheck(0.7, 0.55), r2 = LightModel.AoRangeCheck(0.9, 0.55);
+            Check(r1 > r2 && r1 < 1.0 && r2 > 0,
+                "and it falls off between, or the halo is merely a hard edge instead of "
+                + "a soft one",
+                $"{r1:0.00} then {r2:0.00}");
+
+            // DIRECTLY-LIT PIXELS GET RELIEF. A post pass cannot separate
+            // ambient from direct, so multiplying the whole frame darkens a
+            // sunlit wall as much as a shaded corner — which is why so much
+            // screen-space AO looks like grime.
+            Check(LightModel.AoDirectRelief(1.0) < LightModel.AoDirectRelief(0.0),
+                "a bright pixel is probably directly lit, so occlusion backs off there "
+                + "— an approximation, and stated as one");
+
+            // NEVER TO BLACK.
+            double darkest = 9;
+            for (double raw = 0; raw <= 1.0001; raw += 0.05)
+                for (double lum = 0; lum <= 1.0001; lum += 0.1)
+                    darkest = Math.Min(darkest,
+                        LightModel.AoMultiplier(raw, LightModel.AoStrength(1, 1), lum));
+            Check(darkest >= 0.35 - 1e-9,
+                "and no corner is ever unlit — an occlusion term that reaches zero "
+                + "turns every interior angle into a hole",
+                $"darkest {darkest:0.00}");
+            Check(LightModel.AoMultiplier(0, 0.7, 0.2) == 1.0,
+                "open ground is untouched, so the effect costs nothing where there is "
+                + "nothing to occlude");
+            Check(LightModel.AoMultiplier(1, 0.7, 0.2) < LightModel.AoMultiplier(0.3, 0.7, 0.2),
+                "more enclosure is more darkening");
+            Check(LightModel.AoRadiusMetres > 0.2 && LightModel.AoRadiusMetres < 1.2,
+                "the radius is contact-scale, not room-scale — a large one produces a "
+                + "soft grey wash that reads as dirt rather than as contact",
+                $"{LightModel.AoRadiusMetres}m");
+
             // ---- REFLECTIONS ----
             Check(LightModel.ReflectionStrength(0.0, 1.0) == 0,
                 "a dry street reflects nothing, and is not charged for the privilege");

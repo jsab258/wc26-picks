@@ -38,6 +38,11 @@ namespace Ledger.Game
     {
         static FilmGrade _instance;
 
+        /// Frames on which occlusion was actually computed. The sim gate
+        /// reads this: an effect that silently stops running looks exactly
+        /// like one that is running and doing nothing.
+        public static int Applied { get; private set; }
+
         Material _mat;
         RenderTexture _bloomA, _bloomB;
         Camera _cam;
@@ -68,7 +73,20 @@ namespace Ledger.Game
                 return;
             }
             _mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+
+            // AMBIENT OCCLUSION needs depth AND normals, and this one line is
+            // what makes `_CameraDepthNormalsTexture` exist at all. Without
+            // it the AO pass samples a texture Unity never rendered and
+            // returns a uniform grey — which looks like a shader bug and is
+            // a missing request.
+            if (_cam != null) _cam.depthTextureMode |= DepthTextureMode.DepthNormals;
         }
+
+        /// Whether occlusion is worth its passes at all. Off is a real
+        /// setting: this is three extra full-screen operations, and on a
+        /// machine that is already missing frame time the honest trade is to
+        /// drop the effect rather than the frame rate.
+        public static bool AmbientOcclusion = true;
 
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
@@ -107,8 +125,55 @@ namespace Ledger.Game
             // frame off unscaled time so it keeps crawling even when the
             // game is paused behind a panel.
             _mat.SetFloat("_Seed", Time.unscaledTime * 37.13f % 1000f);
+
+            // OCCLUSION, at half resolution and blurred twice.
+            //
+            // Half res is not a compromise here, it is the right resolution:
+            // contact darkening is low-frequency by nature and the blur that
+            // has to follow a twelve-tap kernel would throw away the extra
+            // detail anyway. Full res would cost four times as much to
+            // produce an image the next pass erases.
+            RenderTexture aoA = null, aoB = null;
+            if (AmbientOcclusion && _cam != null)
+            {
+                int aw = Mathf.Max(2, src.width / 2), ah = Mathf.Max(2, src.height / 2);
+                aoA = RenderTexture.GetTemporary(aw, ah, 0, RenderTextureFormat.R8);
+                aoB = RenderTexture.GetTemporary(aw, ah, 0, RenderTextureFormat.R8);
+                _mat.SetFloat("_AoRadius", (float)LightModel.AoRadiusMetres);
+                _mat.SetVector("_AoTexelSize", new Vector4(1f / aw, 1f / ah, aw, ah));
+                // The projection matrix, so the AO pass can turn a UV back
+                // into a view-space ray. Taken from the camera rather than
+                // assumed, because a changed FOV would otherwise silently
+                // scale the sampling radius.
+                _mat.SetMatrix("_AoProj", _cam.projectionMatrix);
+                Graphics.Blit(src, aoA, _mat, 3);            // pass 3: occlusion
+                _mat.SetVector("_Dir", new Vector4(1f / aw, 0, 0, 0));
+                Graphics.Blit(aoA, aoB, _mat, 4);            // pass 4: blur X, edge-aware
+                _mat.SetVector("_Dir", new Vector4(0, 1f / ah, 0, 0));
+                Graphics.Blit(aoB, aoA, _mat, 4);            // pass 4: blur Y
+                _mat.SetTexture("_AoTex", aoA);
+                _mat.SetFloat("_AoStrength",
+                    (float)LightModel.AoStrength(night, Weather.Rain));
+                _mat.SetFloat("_AoRelief", 0.65f);
+                _mat.SetFloat("_AoFloor", 0.35f);
+                Applied++;
+            }
+            else
+            {
+                // Fails to NO occlusion rather than to full occlusion. A
+                // missing AO texture reads as black, and black in this term
+                // means fully enclosed — so the failure mode of forgetting
+                // this branch is a completely dark frame.
+                _mat.SetTexture("_AoTex", Texture2D.blackTexture);
+                _mat.SetFloat("_AoStrength", 0f);
+                _mat.SetFloat("_AoRelief", 0f);
+                _mat.SetFloat("_AoFloor", 1f);
+            }
+
             Graphics.Blit(src, dst, _mat, 0);
 
+            if (aoA != null) RenderTexture.ReleaseTemporary(aoA);
+            if (aoB != null) RenderTexture.ReleaseTemporary(aoB);
             RenderTexture.ReleaseTemporary(_bloomA);
             RenderTexture.ReleaseTemporary(_bloomB);
         }

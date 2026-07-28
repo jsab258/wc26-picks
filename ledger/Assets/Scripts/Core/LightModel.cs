@@ -276,6 +276,78 @@ namespace Ledger.Core
         /// will — the person standing three metres away.
         public const double ShadowDistanceMetres = 70;
 
+        // ---- ambient occlusion ---------------------------------------------
+
+        /// AMBIENT OCCLUSION, and why it is the last cheap win: untextured
+        /// geometry reads flat because nothing sits IN anything. A crate on a
+        /// pavement, a bin against a wall, a person on a street — each is a
+        /// shape floating in front of another shape, because the corner where
+        /// they meet is lit exactly as brightly as the open ground.
+        ///
+        /// Contact darkening is what the eye uses to place objects on
+        /// surfaces, and it is the single largest remaining difference
+        /// between this render and a photographed one that costs no assets.
+        ///
+        /// The sampling itself lives in the shader. What lives HERE is every
+        /// number that decides how it looks, so it is tested rather than
+        /// tuned by eye in a file nobody can run.
+
+        /// How far, in metres, a surface looks for things occluding it.
+        /// Contact-scale, not room-scale: this is meant to darken the seam
+        /// where two things meet, and a large radius produces a soft grey
+        /// wash that reads as dirt.
+        public const double AoRadiusMetres = 0.55;
+
+        /// HOW MUCH, from the light. Strong under a flat overcast or at
+        /// night under fill, weak under hard sun — because AO is an
+        /// approximation of ambient light being blocked, and when almost all
+        /// the light is directional there is little ambient to block.
+        /// Applying a constant amount is what makes cheap AO read as smudge.
+        public static double AoStrength(double night, double rain)
+        {
+            double n = Feel.Clamp01(night), r = Feel.Clamp01(rain);
+            // Overcast (rain) flattens daylight into ambient, so AO matters
+            // MORE in the rain even at noon.
+            double ambientness = Math.Max(n, r * 0.8);
+            return 0.32 + 0.38 * ambientness;
+        }
+
+        /// Whether a sample counts. A sample far in FRONT of the surface is
+        /// a different object entirely, and counting it is what produces the
+        /// dark halo around every silhouette that gives cheap SSAO away.
+        public static double AoRangeCheck(double depthDeltaMetres, double radiusMetres)
+        {
+            double r = Math.Max(1e-6, radiusMetres);
+            double d = Math.Abs(depthDeltaMetres);
+            if (d <= r) return 1.0;
+            // Falls off rather than cutting, or the halo becomes a hard edge
+            // instead of a soft one.
+            return Feel.Clamp01(1.0 - (d - r) / r);
+        }
+
+        /// AO RELIEF ON DIRECTLY-LIT PIXELS.
+        ///
+        /// A post-process pass cannot separate ambient light from direct, so
+        /// multiplying the composited frame darkens a sunlit wall as much as
+        /// a shaded corner — which is wrong, and is why so much screen-space
+        /// AO looks like grime. Brightness is a decent proxy for "this pixel
+        /// is directly lit", so the effect backs off as the pixel gets
+        /// brighter. It is an approximation and it is stated as one.
+        public static double AoDirectRelief(double luminance)
+        {
+            return 1.0 - 0.65 * Feel.Clamp01(luminance);
+        }
+
+        /// The final multiplier applied to a pixel. `raw` is 0 (fully open)
+        /// to 1 (fully enclosed).
+        public static double AoMultiplier(double raw, double strength, double luminance)
+        {
+            double a = Feel.Clamp01(raw) * Feel.Clamp01(strength) * AoDirectRelief(luminance);
+            // Never to black. An occlusion term that reaches zero turns every
+            // interior corner into a hole, and no real corner is unlit.
+            return Feel.Clamp(1.0 - a, 0.35, 1.0);
+        }
+
         // ---- helpers ------------------------------------------------------
 
         static double Mix(double a, double b, double t) => a + (b - a) * Feel.Clamp01(t);

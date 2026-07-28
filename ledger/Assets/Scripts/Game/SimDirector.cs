@@ -619,6 +619,12 @@ namespace Ledger.Game
             SampleBodies();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
+            // ONE A/B, ONCE. The only way to prove an image effect reaches
+            // pixels is to render the same frame without it and compare —
+            // everything else proves the code ran, which is not the same
+            // claim and is exactly the gap every "verified in a test, absent
+            // in the game" defect in this project has lived in.
+            if (!_tookAoPair && now.Day >= 3 && now.Hour == 21) MeasureAo();
 
             if (now.Day >= _endDay) Finish();
         }
@@ -828,6 +834,60 @@ namespace Ledger.Game
             { _scoreCalmestHeat = heat; _scoreCalmUnease = unease; }
             if (_scoreHotUnease < 0 || heat > _scoreHottestHeat)
             { _scoreHottestHeat = heat; _scoreHotUnease = unease; }
+        }
+
+        // ---- ambient occlusion, measured against its own absence ----
+        bool _tookAoPair;
+        double _aoOn = -1, _aoOff = -1;
+
+        void MeasureAo()
+        {
+            _tookAoPair = true;
+            var cam = Camera.main;
+            if (cam == null) return;
+            // Night, and a frame with geometry in it: occlusion on an empty
+            // street is correctly almost nothing, and measuring THAT would
+            // give a difference of zero and a gate that fails for being
+            // pointed somewhere honest.
+            double on = FrameLuma(cam);
+            FilmGrade.AmbientOcclusion = false;
+            double off = FrameLuma(cam);
+            FilmGrade.AmbientOcclusion = true;
+            _aoOn = on;
+            _aoOff = off;
+            Debug.Log($"SimDirector: ao a/b on={on:0.0000} off={off:0.0000} "
+                      + $"delta={off - on:0.0000} applied={FilmGrade.Applied}");
+        }
+
+        /// Mean luminance of one rendered frame, without writing a file.
+        double FrameLuma(Camera cam)
+        {
+            RenderTexture rt = null;
+            Texture2D tex = null;
+            var prevTarget = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+            try
+            {
+                rt = new RenderTexture(640, 360, 24, RenderTextureFormat.ARGB32);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                tex.Apply();
+                var px = tex.GetPixels();
+                double sum = 0;
+                foreach (var c in px) sum += 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+                return px.Length > 0 ? sum / px.Length : 0;
+            }
+            catch (Exception e) { _errors.Add("FrameLuma: " + e.Message); return -1; }
+            finally
+            {
+                cam.targetTexture = prevTarget;
+                RenderTexture.active = prevActive;
+                if (tex != null) UnityEngine.Object.Destroy(tex);
+                if (rt != null) rt.Release();
+            }
         }
 
         void Shot(string name)
@@ -1697,6 +1757,23 @@ namespace Ledger.Game
                 // transforms rather than only the struct.
                 && _bodyTallest - _bodyShortest > 0.08;
 
+            // OCCLUSION, gated on the A/B rather than on the counter.
+            //
+            // `Applied > 0` proves three Blits happened. It does not prove
+            // the shader compiled, that DepthNormals was requested, that the
+            // AO texture was bound, or that the composite multiplied by it —
+            // and every one of those failures leaves the counter climbing and
+            // the picture unchanged. The frame rendered without it has to
+            // come out BRIGHTER, and by enough to be a real effect rather
+            // than dither.
+            //
+            // Both directions matter. Too little and it is doing nothing;
+            // too much and it is grime rather than contact, which is the
+            // characteristic failure of screen-space occlusion and the reason
+            // this has an upper bound at all.
+            double aoDelta = (_aoOn >= 0 && _aoOff >= 0) ? _aoOff - _aoOn : -1;
+            bool aoOk = FilmGrade.Applied > 0 && aoDelta > 0.002 && aoDelta < 0.09;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1740,6 +1817,8 @@ namespace Ledger.Game
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
+                ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
+                 $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1795,6 +1874,7 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
+                      $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
