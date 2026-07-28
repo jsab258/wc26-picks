@@ -582,17 +582,43 @@ deliberately get NO dedicated clips until playtest says one of them needs
 to be somebody. Spending a voice on a character nobody remembers is how a
 cast becomes a phone book.
 
-### THE REMAINING BLOCKER — sourcing, and it is not casting
+### THE REMAINING BLOCKER — sourcing. FETCHER BUILT 2026-07-28.
 
 Common Voice, HuggingFace and OpenSLR are all blocked from my environment.
 I checked rather than assumed; it is the same wall that stops me reaching
-the CC0 texture sites. So the clips have to come from your machine.
+the CC0 texture sites. So the clips have to come from your machine — and
+your part is now two commands and about fifteen minutes.
 
-My job is to make that one command rather than an afternoon, and the next
-thing I build is a fetcher in the same shape as the TTS benchmark: pulls
-candidates matching each brief, trims to ten seconds, normalises, lays them
-out in listening order with the brief printed above each. **Your part is a
-listening pass, not research.**
+```
+cd tools/voice-fetch
+python ledger_voice_fetch.py          # streams candidates, opens a page
+# listen, write picks into ledger-voices-out/picks.txt
+python ledger_voice_fetch.py --install
+```
+
+It builds its own environment, **streams** Common Voice rather than
+downloading it (the English tarball is tens of gigabytes and we need three
+and a half minutes of it), filters on the age and gender each brief asks
+for, and prints the brief above each character's players so you are judging
+against the character rather than against which voice is nicest.
+
+**Nineteen clips, not thirty-seven** — and that is a correction rather than
+a saving. Common Voice contributors read neutral sentences, so the "grave"
+and "bored" clips the casting doc asked for were never sourceable from that
+corpus at all. What the direction test actually proved is that chatterbox's
+exaggeration control does moods, which you heard yourself. So the reference
+clip decides IDENTITY and the parameter decides DIRECTION.
+
+**What I could not test is the download itself**, for the reason above. So
+the fetcher reports per character what it could not find instead of failing
+quietly, and there is a `--source libritts` fallback whose rows carry no age
+or gender — the script says so rather than pretending the filter worked.
+The assembly logic (which is the part that is actually hard: a Common Voice
+sentence is three to six seconds and a clone needs eleven, so a candidate is
+the same speaker concatenated with real silence between sentences) has 22
+checks that touch no network at all.
+
+**Your part is a listening pass, not research.**
 
 ### (superseded) Who sounds like what — a listening task, not a research task
 
