@@ -168,8 +168,22 @@ mine to fix rather than findings about the engines:
   pip loudly when that fails. An install is not finished until the thing it
   installed can be imported.
 - **chatterbox** loaded its models — all 3.2 GB of them downloaded — and then
-  threw `TypeError: 'NoneType' object is not callable`. Not diagnosable from
-  the summary line; the traceback is on disk and is the next thing to read.
+  threw `TypeError: 'NoneType' object is not callable`. The traceback named
+  it: `self.watermarker = perth.PerthImplicitWatermarker()`. `resemble-perth`
+  wraps its own imports in a try/except and binds the name to **None** when
+  they fail, so a broken dependency never surfaces as an ImportError — it
+  surfaces 3.2 GB later, on a line that looks perfectly fine. Diagnosed and
+  stubbed with a no-op, with a note that the stub must not survive into a
+  shipping build: the watermarker exists so generated speech stays
+  identifiable as generated, and if chatterbox wins we fix perth and keep it.
+
+**And the fix I shipped for xtts did not run.** v6 added an install probe;
+the broken `.venv-xtts` from v5 still carried its "installed" stamp, so the
+early return fired and the environment sailed straight past the check added
+to catch exactly it. A stamp records that we once finished installing, not
+that the result works, and only the second of those is worth anything.
+Cached environments are now re-probed and repaired every run — which is the
+general lesson, not an xtts one.
 
 ### 1f. THE IDEA THAT CHANGES WHAT "DIRECTABLE" MEANS
 

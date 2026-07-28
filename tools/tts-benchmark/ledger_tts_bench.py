@@ -64,7 +64,7 @@ from pathlib import Path
 
 # Bumped on every change. Printed at startup so a stale copy in the Downloads
 # folder announces itself instead of reproducing an old failure exactly.
-VERSION = "2026-07-28.6  (installs are verified, not assumed; mood refs; locked-file retry)"
+VERSION = "2026-07-28.7  (cached venvs are re-probed and repaired; chatterbox watermarker)"
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "ledger-tts-out"
@@ -323,12 +323,60 @@ class Kokoro:
 class Chatterbox:
     name = "chatterbox"
     note = "explicit EXAGGERATION control + zero-shot cloning. The answer to piper's flat affect."
-    pkgs = ("chatterbox-tts",)
+    # resemble-perth named explicitly because chatterbox constructs its
+    # watermarker unconditionally and never declares it loudly enough.
+    pkgs = ("chatterbox-tts", "resemble-perth")
     probe = "chatterbox.tts"          # importable == installed
     directable = True
 
+    @staticmethod
+    def fix_watermarker():
+        """chatterbox's constructor ends with
+
+            self.watermarker = perth.PerthImplicitWatermarker()
+
+        unconditionally. resemble-perth's __init__ wraps its own imports in
+        a try/except and binds the name to None when they fail, so a broken
+        dependency does not surface as an ImportError at import time — it
+        surfaces 3.2 GB of model downloads later as 'NoneType object is not
+        callable', pointing at a line that looks perfectly fine.
+
+        So: find out why it is None, say so, and substitute a no-op rather
+        than lose the only engine in this benchmark with a direction control
+        to a watermarking library we are not testing.
+
+        NOTE FOR SHIPPING, not for the benchmark: the watermarker exists so
+        generated speech stays identifiable as generated. If chatterbox wins,
+        fix perth properly and keep it — do not carry this stub forward.
+        """
+        try:
+            import perth
+        except ImportError as e:
+            return f"perth is not installed at all ({e})"
+        if getattr(perth, "PerthImplicitWatermarker", None) is not None:
+            return None
+
+        reason = "no reason reported"
+        try:
+            import perth.perth_net.perth_net_implicit.perth_watermarker  # noqa: F401
+        except Exception as e:
+            reason = f"{type(e).__name__}: {e}"
+
+        class _NoWatermark:
+            def apply_watermark(self, wav, watermark=None, sample_rate=44100, **kw):
+                return wav
+
+            def get_watermark(self, *a, **kw):
+                return None
+
+        perth.PerthImplicitWatermarker = _NoWatermark
+        return reason
+
     def load(self):
         allow_full_torch_load()
+        why = self.fix_watermarker()
+        if why:
+            say(f"  perth's watermarker was unusable, running without it: {why}")
         from chatterbox.tts import ChatterboxTTS
         self.model = ChatterboxTTS.from_pretrained(device=device())
         self.rate = int(getattr(self.model, "sr", 24000))
@@ -358,7 +406,11 @@ class Chatterbox:
 class XTTS:
     name = "xtts"
     note = "voice CLONING. If its clones hold up, the pre-generated/live seam disappears."
-    pkgs = ("coqui-tts",)   # the maintained fork; the abandoned "TTS" caps out below py3.12
+    # torch and torchaudio named EXPLICITLY. coqui-tts declares them, pip
+    # exited 0, and the environment came out with no torch in it — so the
+    # declaration is not something to rely on. Naming them costs nothing when
+    # they would have been installed anyway.
+    pkgs = ("torch", "torchaudio", "coqui-tts")   # the maintained fork; the abandoned "TTS" caps out below py3.12
     probe = "TTS.api"          # importable == installed
     directable = False
 
@@ -606,8 +658,23 @@ def ensure_venv(engine, assume_yes):
     py = venv_python(venv_dir)
     stamp = venv_dir / ".ledger-installed"
 
-    if stamp.exists() and py.exists():
+    def works():
+        if not py.exists():
+            return False
+        return subprocess.run([str(py), "-c", f"import {engine.probe}"],
+                              capture_output=True, text=True).returncode == 0
+
+    # RE-PROBE EVEN A STAMPED VENV. v6 added an install check and it never
+    # ran: the broken .venv-xtts from v5 still had its "installed" stamp, so
+    # the early return fired and the environment sailed straight past the
+    # verification added to catch exactly it. A stamp records that we once
+    # finished installing, not that the result works — and only the second
+    # of those is worth anything.
+    if stamp.exists() and works():
         return py
+    if stamp.exists():
+        say(f"\n  {venv_dir.name} exists but cannot 'import {engine.probe}' — repairing it")
+        stamp.unlink(missing_ok=True)
 
     if not py.exists():
         say(f"\n  building {venv_dir.name}  (a few GB; your main Python is untouched)")
