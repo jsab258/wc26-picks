@@ -125,6 +125,8 @@ namespace Ledger.Game
         // leverage route — living above the hook/debt row while talking to
         // someone the other ledger has business with.
         Button _empireBtnA, _empireBtnB;
+        Button _empireBtnC;   // the Table's third answer — defy is never gated (audit 2026-07-27)
+        Text _empireLabelC;
         Text _empireLabelA, _empireLabelB;
 
         GameObject _debugPanel;
@@ -237,10 +239,15 @@ namespace Ledger.Game
             _empireLabelB = _empireBtnB.GetComponentInChildren<Text>();
             _empireLabelA.fontSize = 16;
             _empireLabelB.fontSize = 16;
+            _empireBtnC = MakeButton(_dialoguePanel.transform, "", new Vector2(0.5f, 0), new Vector2(250, 192), new Vector2(300, 36));
+            _empireLabelC = _empireBtnC.GetComponentInChildren<Text>();
+            _empireLabelC.fontSize = 16;
             _empireBtnA.onClick.AddListener(() => EmpireAct(false));
             _empireBtnB.onClick.AddListener(() => EmpireAct(true));
+            _empireBtnC.onClick.AddListener(EmpireActThird);
             _empireBtnA.gameObject.SetActive(false);
             _empireBtnB.gameObject.SetActive(false);
+            _empireBtnC.gameObject.SetActive(false);
 
             // Chips float just above the panel, out of the history's way.
             _chipRow = new GameObject("Chips");
@@ -270,6 +277,7 @@ namespace Ledger.Game
         {
             var id = CurrentHostId();
             _empireSayA = _empireSayB = null;   // the router reads these; never stale
+            _empireBtnC.gameObject.SetActive(false);   // only the Table uses it
             if (id == null || !_game.Campaign.OpenMode)
             {
                 _empireBtnA.gameObject.SetActive(false);
@@ -326,15 +334,26 @@ namespace Ledger.Game
             if (act2.TableArmId != null && !act2.TableFired
                 && _game.Empire.ArmOf(act2.TableArmId)?.HeadName == _current.Card.Name)
             {
+                // act2-draft PP7: "Accept, defy, or counter with leverage."
+                // Defy is NEVER gated; counter appears only with the standing
+                // to back it. Two buttons used to compress this to two verbs,
+                // making defy unreachable exactly when the player had earned
+                // the third option (audit 2026-07-27).
                 _empireBtnA.gameObject.SetActive(true);
                 _empireLabelA.text = "Take the terms";
                 _empireBtnA.interactable = true;
-                _empireBtnB.gameObject.SetActive(true);
                 bool canCounter = _game.Empire.ArmOf(act2.TableArmId).Standing >= 0.5;
-                _empireLabelB.text = canCounter ? "Name your own number" : "Refuse them";
+                _empireBtnB.gameObject.SetActive(true);
+                _empireLabelB.text = "Refuse them";
                 _empireBtnB.interactable = true;
                 _empireSayA = "accept the terms they are putting to you";
-                _empireSayB = canCounter ? "counter their terms with your own number" : "refuse their terms outright";
+                _empireSayB = "refuse their terms outright";
+                if (canCounter)
+                {
+                    _empireBtnC.gameObject.SetActive(true);
+                    _empireLabelC.text = "Name your own number";
+                    _empireBtnC.interactable = true;
+                }
                 return;
             }
 
@@ -446,7 +465,7 @@ namespace Ledger.Game
 
             // Ossei: point it elsewhere. Only offered once she has asked, and
             // only if somebody actually told you something worth giving her.
-            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected)
+            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
             {
                 _empireBtnA.gameObject.SetActive(true);
                 _empireLabelA.text = "Give her the arm";
@@ -510,7 +529,7 @@ namespace Ledger.Game
                 return true;
             }
 
-            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected)
+            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
             {
                 if (!leverage && !_game.Deflect())
                     Narrate("\"I need something to point at,\" she says. \"You have not given me a name that anybody would stand behind.\"");
@@ -547,6 +566,17 @@ namespace Ledger.Game
             Narrate($"\"One imagines,\" Halvard says to the counter, \"that {loudest.HeadName}'s people are " +
                 $"{(loudest.Stage >= 4 ? "finished deliberating" : loudest.Stage >= 3 ? "reaching for what is yours" : loudest.Stage >= 2 ? "pricing you weekly" : "merely curious")}. " +
                 "One imagines nothing else.\"");
+        }
+
+        /// The Table's counter — the one verb that needed a third button.
+        void EmpireActThird()
+        {
+            var id = CurrentHostId();
+            if (id == null) return;
+            var act2 = _game.ActTwo;
+            if (act2.TableArmId != null && !act2.TableFired
+                && _game.Empire.ArmOf(act2.TableArmId)?.HeadName == _current.Card.Name)
+                _game.AnswerTable("counter");
         }
 
         void EmpireAct(bool leverage)
@@ -610,8 +640,7 @@ namespace Ledger.Game
             if (act2.TableArmId != null && !act2.TableFired
                 && e.ArmOf(act2.TableArmId)?.HeadName == _current.Card.Name)
             {
-                bool canCounter = e.ArmOf(act2.TableArmId).Standing >= 0.5;
-                _game.AnswerTable(!leverage ? "accept" : canCounter ? "counter" : "defy");
+                _game.AnswerTable(!leverage ? "accept" : "defy");
                 return;
             }
 
@@ -817,7 +846,11 @@ namespace Ledger.Game
             else sb.AppendLine($"The street is <b>{streetWord}</b>. The outfit is <b>{outfitWord}</b>.");
             sb.AppendLine(talkCount == 0
                 ? $"<color={UiTheme.HexDim}>No open liabilities you know of.</color>"
-                : $"Open liabilities you haven't dealt with: <color={UiTheme.HexDebit}><b>{talkCount}</b></color> — press L for the books.");
+                : talkCount == 1
+                    ? $"<color={UiTheme.HexDebit}><b>Somebody is carrying something on you</b></color> — press L for the books."
+                    : talkCount <= 3
+                        ? $"<color={UiTheme.HexDebit}><b>A few people are carrying things on you</b></color> — press L for the books."
+                        : $"<color={UiTheme.HexDebit}><b>Too many people are carrying things on you</b></color> — press L for the books.");
             // The street's own words — the strongest story the player KNOWS about
             // (belief, never ground truth), quoted verbatim from the mill.
             KnownLead word = null;
@@ -902,7 +935,9 @@ namespace Ledger.Game
                     if (s.Refusing)
                         sb.AppendLine($"<b>{s.Name}</b> — <color={UiTheme.HexDebit}>stopped bringing {s.Goods}</color>");
                     else if (s.Unpaid > 0)
-                        sb.AppendLine($"<b>{s.Name}</b> — <color={UiTheme.HexHeld}>owed for {s.Unpaid} {(s.Unpaid == 1 ? "delivery" : "deliveries")} of {s.Goods}</color>");
+                        sb.AppendLine($"<b>{s.Name}</b> — <color={UiTheme.HexHeld}>owed for " +
+                            (s.Unpaid == 1 ? "a delivery" : s.Unpaid == 2 ? "two deliveries" : "weeks of deliveries") +
+                            $" of {s.Goods}</color>");
                 }
                 foreach (var b in e.Businesses)
                 {
@@ -940,7 +975,9 @@ namespace Ledger.Game
             {
                 sb.Append($"\n<color={UiTheme.HexDebit}><b>THE AUDIT</b></color>\n");
                 if (_game.ActThree.AuditClosed)
-                    sb.AppendLine($"<color={UiTheme.HexDim}>The books were opened on day {_game.ActThree.AuditClosesDay}.</color>");
+                    // The authored post-close line — including Quiet's
+                    // "not yours anymore" — had no caller (audit 2026-07-27).
+                    sb.AppendLine($"<color={UiTheme.HexDim}>{_game.ActThreeLedgerLine()}</color>");
                 else
                 {
                     var books = _game.Books();
@@ -981,7 +1018,8 @@ namespace Ledger.Game
                         : $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}") +
                     $"  ·  the street: {HeatWord(heat)}  ·  the outfit: " +
                     (camp.OutfitCutOff ? "silent" : PatienceWord(camp.OutfitPatience)) +
-                    (camp.Falls > 0 ? $"  ·  falls: {camp.Falls}" : "") +
+                    (camp.Falls == 1 ? "  ·  you have fallen once"
+                        : camp.Falls > 1 ? "  ·  the street has watched you fall more than once" : "") +
                     (_game.WearingCoat ? $"  ·  <color={UiTheme.HexAmber}>in the coat</color>" : "");
             }
 
@@ -1098,8 +1136,12 @@ namespace Ledger.Game
             {
                 RefreshDamageControlRow();
                 RefreshChips();
-                RefreshEmpireButtons();
             }
+            // Every frame, not every 30: at an Act III state boundary a stale
+            // label executes a different verb than the one displayed (audit
+            // 2026-07-27). The buttons re-derive from the same state the click
+            // handler reads, so what you see is what you press.
+            if (dialogueOpen) RefreshEmpireButtons();
             else if (!dialogueOpen && _dcRow.activeSelf) _dcRow.SetActive(false);
             if (!dialogueOpen && _chipRow.activeSelf) _chipRow.SetActive(false);
             if (!dialogueOpen && _empireBtnA.gameObject.activeSelf)
@@ -1603,6 +1645,7 @@ namespace Ledger.Game
             var known = CurrentLead();
             if (known == null) return;
             var result = _game.Gossip.Mill.Discredit(known.TopicKey, null, _game.Now);
+            if (ResolveStale(known, result)) return;   // the Fall can wipe a story out from under a lead (audit 2026-07-27)
             if (result.Outcome == DcOutcome.Contained || result.Outcome == DcOutcome.AlreadyDenied)
                 _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
             Narrate(result.Message);

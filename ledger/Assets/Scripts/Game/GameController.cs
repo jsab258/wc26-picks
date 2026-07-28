@@ -1356,8 +1356,14 @@ namespace Ledger.Game
                     Destroy(_beatMarker);
                     _beatMarker = null;
                     _beatMarkerId = null;
-                    _ui?.Toast($"{open.Title}. You stayed a while. {HostName(open.HostId)} will remember this.", 8f);
+                    // The collision outranks the pleasant acknowledgment — the
+                    // second toast overwrote the first in the same frame, so
+                    // the acknowledgment displayed for zero frames whenever
+                    // PP4 fired (audit 2026-07-27). One moment, one toast.
+                    bool pp4Before = ActTwo.Pp4Fired;
                     FireCollision(open);
+                    if (ActTwo.Pp4Fired == pp4Before)
+                        _ui?.Toast($"{open.Title}. You stayed a while. {HostName(open.HostId)} will remember this.", 8f);
                 }
             }
         }

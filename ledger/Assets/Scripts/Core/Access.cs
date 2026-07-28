@@ -194,6 +194,14 @@ namespace Ledger.Core
         /// Evaluates a gate. Prefers the CHEAPEST key held rather than the first
         /// listed — a player who has both an introduction and forty dollars
         /// should not silently spend the forty dollars.
+        /// An hour as a person says it — the doorman does not read clocks at
+        /// the player (audit 2026-07-27).
+        static string HourWord(int hour) =>
+            hour >= 23 || hour < 5 ? "in the dead of night"
+            : hour >= 20 ? "after dark"
+            : hour >= 17 ? "in the evening"
+            : hour >= 12 ? "in the afternoon" : "in the morning";
+
         public static AccessResult Try(Gate gate, AccessState state)
         {
             var result = new AccessResult();
@@ -292,9 +300,9 @@ namespace Ledger.Core
                 case KeyKind.Payment:
                     return $"It would take ${k.Amount}, and you have ${s.Money}.";
                 case KeyKind.After:
-                    return $"Not before {k.Amount}. Come back when it is dark enough.";
+                    return $"Not this early. Come back {HourWord(k.Amount)}, when it is dark enough.";
                 case KeyKind.Before:
-                    return $"You have left it too late. Before {k.Amount}, and not after.";
+                    return $"You have left it too late. This door is for {HourWord(k.Amount)}, and not after.";
                 case KeyKind.Hook:
                     return "If you had something on him, this would be a different conversation.";
                 case KeyKind.Crew:
