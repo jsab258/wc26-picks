@@ -175,8 +175,31 @@ def check_collisions(path):
 
 
 CORE_USING = re.compile(r"^\s*using\s+Ledger\.Core\s*;", re.MULTILINE)
-# Comments and string literals, so a type name mentioned in prose is not a use.
-NOISE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:[^"\\\n]|\\.)*"|\$@?"(?:[^"]|"")*"', re.S)
+
+# Comments and string literals, stripped WHOLE-FILE rather than line by line.
+#
+# The line-by-line version of this was wrong and I only found out by feeding
+# it a probe: the character cards in CastSetup and friends are multi-line
+# `@"..."` blocks, so any prose in one that happened to say `Combat.Resolve(`
+# read as code and the gate cried wolf. A gate that cries wolf is a gate
+# people turn off, which is worse than not having it.
+#
+# One alternation, in this order, so a `//` inside a string is not a comment
+# and a quote inside a comment does not open a string. Verbatim forms come
+# before the ordinary one because `@"a\"` is not an escape.
+NOISE = re.compile(
+    r'/\*.*?\*/'                    # block comment, multi-line
+    r"|//[^\n]*"                     # line comment
+    r'|[$@]{1,2}"(?:[^"]|"")*"'      # @"..", $@"..", @$".." — multi-line, "" escapes
+    r'|"(?:[^"\\\n]|\\.)*"'         # ordinary string
+    r"|'(?:[^'\\\n]|\\.)*'",        # char literal
+    re.S)
+
+
+def scrub(text: str) -> str:
+    """Blank out comments and literals, PRESERVING NEWLINES so the line
+    numbers this reports still point at the real line."""
+    return NOISE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
 
 
 def core_type_names(root: pathlib.Path) -> set:
@@ -205,13 +228,14 @@ def check_core_using(path: pathlib.Path, core_names: set) -> list:
     30391686667.
     """
     out = []
-    text = path.read_text(encoding="utf-8", errors="replace")
-    if CORE_USING.search(text):
+    raw = path.read_text(encoding="utf-8", errors="replace")
+    if CORE_USING.search(raw):
         return out
     # Types the file declares itself shadow the Core name legitimately.
-    own = {m.group(1) for m in (TYPE_DECL.match(l) for l in text.splitlines()) if m}
-    for lineno, line in enumerate(text.splitlines(), 1):
-        code = NOISE.sub(" ", line)
+    own = {m.group(1) for m in (TYPE_DECL.match(l) for l in raw.splitlines()) if m}
+    lines = raw.splitlines()
+    for lineno, code in enumerate(scrub(raw).splitlines(), 1):
+        line = lines[lineno - 1] if lineno <= len(lines) else code
         if re.match(r"\s*using\s", code):
             continue
         for name in core_names:
