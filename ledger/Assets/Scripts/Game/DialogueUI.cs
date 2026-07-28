@@ -178,7 +178,7 @@ namespace Ledger.Game
             _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
             _promptText.color = UiTheme.Amber;
             var help = MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft);
-            help.text = "WASD move · Shift run · E talk · C coat · L your ledger · F1 debug · F2 API key · Esc close";
+            help.text = "WASD move    Shift run    E talk    C coat    L ledger    J plan    T phone    F car    F2 key    Esc close";
             help.color = UiTheme.Dim;
 
             BuildDialoguePanel(canvasGo.transform);
@@ -730,9 +730,33 @@ namespace Ledger.Game
             }
         }
 
+        // What has already been asked of each person, so a chip never offers
+        // the same opener twice (playtest 2026-07-28).
+        readonly Dictionary<string, HashSet<string>> _asked = new Dictionary<string, HashSet<string>>();
+
+        HashSet<string> AskedOf(string id)
+        {
+            if (id == null) return new HashSet<string>();
+            if (!_asked.TryGetValue(id, out var set)) { set = new HashSet<string>(); _asked[id] = set; }
+            return set;
+        }
+
+        /// The last thing this person actually said, so the next chip can
+        /// follow it rather than re-offering the opening menu.
+        string LastLineFrom(string id)
+        {
+            if (_current == null) return null;
+            var history = HistoryOf(_current);
+            var mark = $"<b>{id}:</b> ";
+            for (int i = history.Count - 1; i >= 0; i--)
+                if (history[i].StartsWith(mark)) return history[i].Substring(mark.Length);
+            return null;
+        }
+
         void SayChip(int i)
         {
             if (_current == null || _waiting || string.IsNullOrEmpty(_chipSays[i])) return;
+            AskedOf(CurrentHostId()).Add(_chipLabels[i].text);
             _input.text = _chipSays[i];
             Submit();
         }
@@ -746,19 +770,36 @@ namespace Ledger.Game
             var opts = new List<(string label, string say)>();
 
             if (id == "Noor")
-                opts.Add(("· the warehouse fire ·", "What do you know about the warehouse fire?"));
+                opts.Add(("the warehouse fire", "What do you know about the warehouse fire?"));
             if (id == "Lena")
-                opts.Add(("· the real books ·", "Marek kept more than one ledger, didn't he?"));
+                opts.Add(("the real books", "Marek kept more than one ledger, didn't he?"));
             var lead = CurrentLead();
             if (lead != null && !lead.Handled)
-                opts.Add(("· what people are saying ·", "What exactly are people saying about me?"));
+                opts.Add(("what people are saying", "What exactly are people saying about me?"));
             foreach (var b in _game.Beats.All)
                 if (b.HostId == id && b.State == BeatState.Pending && b.Day == _game.Now.Day)
-                { opts.Add(("· tonight ·", "About tonight — I'll do my best to be there.")); break; }
+                { opts.Add(("tonight", "About tonight. I'll do my best to be there.")); break; }
             if (_game.Debts.Of(id) != null)
-                opts.Add(("· Marek's book ·", "Your name is in Marek's book. Talk to me about what's owed."));
-            opts.Add(("· Marek ·", "Tell me about my uncle. What was he really like?"));
-            opts.Add(("· the street ·", "How is the street treating everyone these days?"));
+                opts.Add(("Marek's book", "Your name is in Marek's book. Talk to me about what's owed."));
+
+            // FOLLOW THE CONVERSATION. These were a fixed list per person, so
+            // after asking about Marek the chip still said "Marek" (playtest
+            // 2026-07-28). Anything already asked of this person drops out, and
+            // the last thing they SAID offers the obvious next question.
+            var asked = AskedOf(id);
+            var lastSaid = LastLineFrom(id);
+            if (lastSaid != null)
+            {
+                if (lastSaid.Contains("Marek") && !asked.Contains("how he died"))
+                    opts.Insert(0, ("how he died", "You knew him. How did he actually die?"));
+                if ((lastSaid.Contains("police") || lastSaid.Contains("Ossei")) && !asked.Contains("the police"))
+                    opts.Insert(0, ("the police", "Has somebody been round asking questions?"));
+                if (lastSaid.Contains("money") && !asked.Contains("the money"))
+                    opts.Insert(0, ("the money", "Say plainly what you think I owe, or what you're owed."));
+            }
+            opts.Add(("Marek", "Tell me about my uncle. What was he really like?"));
+            opts.Add(("the street", "How is the street treating everyone these days?"));
+            opts.RemoveAll(o => asked.Contains(o.label));
 
             _chipRow.SetActive(true);
             for (int i = 0; i < 3; i++)
@@ -1009,7 +1050,10 @@ namespace Ledger.Game
             var money = _game.Wallet.Dirty > 0
                 ? $"${_game.Wallet.Clean} <color={UiTheme.HexAmber}>+ ${_game.Wallet.Dirty} dirty</color>"
                 : $"${_game.Wallet.Clean}";
-            _clockText.text = $"Day {now.Day} — {now.Hour:D2}:{now.Minute:D2} ({now.Slot})  ·  {money}";
+            // Plain chrome. The em dash and the middle dot are a WRITER's
+            // punctuation and they read as somebody's house style rather than
+            // as a game's instrument panel (playtest 2026-07-28).
+            _clockText.text = $"Day {now.Day}   {now.Hour:D2}:{now.Minute:D2}   {now.Slot}      {money}";
 
             // Campaign readout: the week, the street's mood, the outfit's patience —
             // in words, not meters. Cheap enough to refresh on a coarse cadence.
@@ -1019,13 +1063,13 @@ namespace Ledger.Game
                 double heat = _game.Gossip != null && _game.Gossip.Mill != null ? _game.Gossip.Mill.DayCircleHeat() : 0.0;
                 // Open mode drops the countdown framing: nobody is counting days.
                 _statusText.text = (camp.OpenMode
-                        ? $"The open city — day {now.Day}"
+                        ? $"The open city, day {now.Day}"
                         : $"Day {Mathf.Min(now.Day, camp.SurviveDays)} of {camp.SurviveDays}") +
-                    $"  ·  the street: {HeatWord(heat)}  ·  the outfit: " +
-                    (camp.OutfitCutOff ? "silent" : PatienceWord(camp.OutfitPatience)) +
-                    (camp.Falls == 1 ? "  ·  you have fallen once"
-                        : camp.Falls > 1 ? "  ·  the street has watched you fall more than once" : "") +
-                    (_game.WearingCoat ? $"  ·  <color={UiTheme.HexAmber}>in the coat</color>" : "");
+                    $".   The street: {HeatWord(heat)}.   The outfit: " +
+                    (camp.OutfitCutOff ? "silent" : PatienceWord(camp.OutfitPatience)) + "." +
+                    (camp.Falls == 1 ? "   You have fallen once."
+                        : camp.Falls > 1 ? "   The street has watched you fall more than once." : "") +
+                    (_game.WearingCoat ? $"   <color={UiTheme.HexAmber}>In the coat.</color>" : "");
             }
 
             if (_toastUntil > 0f && Time.unscaledTime > _toastUntil) { _toastText.text = ""; _toastUntil = 0f; }

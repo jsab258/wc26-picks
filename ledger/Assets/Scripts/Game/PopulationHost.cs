@@ -44,8 +44,15 @@ namespace Ledger.Game
         public static readonly int[] HomeShares = { 30, 28, 4, 3, 6, 22, 7 };
         public static readonly int[] WorkShares = { 24, 22, 20, 16, 9, 3, 6 };
 
-        public const int CrowdWalkerCap = 22;
-        public const int CrowdMillCap = 110;
+        // Set from MEASUREMENT, not from ambition (playtest 2026-07-28). At
+        // 3000 residents there were 333 people standing within 34m of the bar
+        // door: the caps were not thinning a crowd, they were choosing 28 out of a
+        // mob, and every one of them spawned on top of the player. KCD2 carries
+        // ~3.5k over square kilometres; this city is about a tenth of one.
+        // 700 puts roughly a dozen people out of doors within earshot at
+        // midday, which is a street rather than a demonstration.
+        public const int CrowdWalkerCap = 12;
+        public const int CrowdMillCap = 60;
         /// Re-banding is not free (it sorts the whole population), so it happens
         /// on a timer rather than a frame — the player cannot outrun three
         /// seconds of walking.
@@ -64,7 +71,7 @@ namespace Ledger.Game
             // The seed is the city. Fixed for now so every playthrough shares a
             // street; when new-game options exist this becomes a choice.
             PopulationSeed = 20260726;
-            PopulationCount = 3000;
+            PopulationCount = 700;
             // Where people sleep, and where they spend the day. Ironside is the
             // reason these are two lists: it houses about one person in
             // fourteen and employs closer to one in three, so it is busy at
@@ -108,7 +115,10 @@ namespace Ledger.Game
                 ? 0.0
                 : Population.AmbientReach(heat, Now.Day - _talkStartedDay);
 
-            var changed = Populace.SetBands(r => Distance(r, playerPos), LoadBearingIds());
+            // Only people who are actually OUT get bodies (playtest: the map
+            // read as a crowd scene because everyone was on the pavement).
+            var changed = Populace.SetBands(r => Distance(r, playerPos), LoadBearingIds(),
+                r => Population.OutdoorsAt(r, Now.Hour));
             foreach (var r in changed) ApplyBand(r, reach);
         }
 

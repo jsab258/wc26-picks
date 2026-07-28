@@ -4773,6 +4773,31 @@ namespace Ledger.CoreTests
             var again = pop.SetBands(DistanceFromOrigin, loadBearing);
             Check(again.Count == 0, "standing still changes nobody's band");
 
+            // A CEILING, NOT JUST A QUOTA (playtest 2026-07-28). Band assignment
+            // was pure rank, so the nearest N always got bodies however far away
+            // they were: walk into an empty quarter and the crowd materialised
+            // around you. Out in the fields, nobody is near enough to render.
+            var empty = pop.SetBands(r => 5000.0, loadBearing);
+            Check(pop.CountIn(Lod.Near) == 0,
+                "an empty horizon spawns nobody, whatever the cap allows", pop.CountIn(Lod.Near).ToString());
+            Check(empty.Count > 0, "and the people who had bodies are told to put them away");
+
+            // Most people are INDOORS. The street is a handful of walkers, not
+            // the whole population standing on the pavement.
+            int outAtNoon = 0, outAtThree = 0;
+            foreach (var r in pop.Residents)
+            {
+                if (Population.OutdoorsAt(r, 13)) outAtNoon++;
+                if (Population.OutdoorsAt(r, 3)) outAtThree++;
+            }
+            Check(outAtNoon < pop.Residents.Count / 3,
+                "most of the city is indoors at any hour", $"{outAtNoon} of {pop.Residents.Count} out at one o'clock");
+            Check(outAtThree < outAtNoon / 2,
+                "and the small hours belong to far fewer", $"{outAtThree} out at three in the morning");
+            var someone = pop.Residents[42];
+            Check(Population.OutdoorsAt(someone, 13) == Population.OutdoorsAt(someone, 13),
+                "whether somebody is out is stable, not a coin flipped every frame");
+
             // With an unstable sort, people at equal distance can swap places
             // and be reported as having changed when nothing about them did —
             // the game would despawn and respawn them forever. Force a heap of

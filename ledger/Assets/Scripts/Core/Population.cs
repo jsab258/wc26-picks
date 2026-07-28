@@ -88,6 +88,19 @@ namespace Ledger.Core
         /// street feel populated by people you have not met yet.
         public int MidCap = 120;
 
+        /// How near a body has to be to exist at all. THE CAPS ARE NOT ENOUGH:
+        /// band assignment is by RANK, so the nearest 28 people got bodies
+        /// however far away they were — walk into an empty district and the
+        /// crowd materialises around you at whatever distance the 28th-nearest
+        /// person happens to be. That is the "characters appear suddenly"
+        /// playtest note, and it is the same bug as "too many characters":
+        /// rank with no ceiling always fills the quota (2026-07-28).
+        public double NearMetres = 34;
+        public double MidMetres = 130;
+        /// Hysteresis: once you have a body you keep it a little past the
+        /// ceiling, so somebody walking the boundary does not strobe.
+        public double BandSlack = 6;
+
         // ---- generation ----
 
         static readonly string[] Given =
@@ -264,7 +277,37 @@ namespace Ledger.Core
         readonly Dictionary<string, double> _distanceCache =
             new Dictionary<string, double>(StringComparer.Ordinal);
 
-        public List<Resident> SetBands(Func<Resident, double> distanceTo, ISet<string> loadBearing)
+        /// Is this person out of doors right now? MOST PEOPLE ARE INSIDE — the
+        /// street of a living city is a handful of walkers, not its whole
+        /// population standing on the pavement. Deterministic per person and
+        /// hour, so somebody who is out stays out rather than flickering, and
+        /// biased to the working day: mornings and evenings move, small hours
+        /// do not (playtest 2026-07-28).
+        public static bool OutdoorsAt(Resident r, int hour)
+        {
+            if (r == null) return false;
+            int h = ((hour % 24) + 24) % 24;
+            // A stable per-person-per-hour value in [0,1).
+            unchecked
+            {
+                int seed = r.Index * 486187739 + h * 97;
+                seed ^= seed >> 13; seed *= 1274126177; seed ^= seed >> 16;
+                double roll = (seed & 0x7FFFFFF) / (double)0x8000000;
+                double chance =
+                    h >= 23 || h < 5 ? 0.03 :          // the small hours belong to few
+                    h < 7 ? 0.07 :
+                    h < 9 ? 0.20 :                     // out to work
+                    h < 12 ? 0.13 :
+                    h < 14 ? 0.18 :                    // the middle of the day
+                    h < 17 ? 0.13 :
+                    h < 19 ? 0.20 :                    // home again
+                    0.10;
+                return roll < chance;
+            }
+        }
+
+        public List<Resident> SetBands(Func<Resident, double> distanceTo, ISet<string> loadBearing,
+            Func<Resident, bool> hasBody = null)
         {
             var changed = new List<Resident>();
             if (distanceTo == null) return changed;
@@ -301,9 +344,15 @@ namespace Ledger.Core
             int near = 0, mid = 0;
             foreach (var r in _ordered)
             {
+                double dist = _distanceCache[r.Id];
+                // The ceiling, with slack for whoever already has a body.
+                double nearLimit = NearMetres + (r.Band == Lod.Near ? BandSlack : 0);
+                double midLimit = MidMetres + (r.Band == Lod.Mid ? BandSlack : 0);
+                bool bodyOk = hasBody == null || hasBody(r);
+
                 Lod want;
-                if (near < NearCap) { want = Lod.Near; near++; }
-                else if (mid < MidCap) { want = Lod.Mid; mid++; }
+                if (near < NearCap && dist <= nearLimit && bodyOk) { want = Lod.Near; near++; }
+                else if (mid < MidCap && dist <= midLimit) { want = Lod.Mid; mid++; }
                 else want = Lod.Far;
 
                 // The one rule that overrides the caps: somebody with real state

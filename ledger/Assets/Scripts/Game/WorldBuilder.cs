@@ -32,13 +32,28 @@ namespace Ledger.Game
             // Ground slab — sized for the district, not just the founding street.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            // Wide enough for BOTH districts. Copper Row sits north of the cut,
-            // out to z=132, and a district standing on nothing is a district the
-            // player walks off the edge of.
-            ground.transform.position = new Vector3(0, 0, 40);
-            ground.transform.localScale = new Vector3(13, 1, 21); // 130 x 210m
+            // Sized from the MAP, not from a remembered pair of districts: M14
+            // added four more and five of the seven were standing on nothing,
+            // which is what "the streets glitch" looks like from inside — road
+            // slabs floating over the skybox (playtest, 2026-07-28).
+            double gMinX = double.MaxValue, gMaxX = double.MinValue;
+            double gMinZ = double.MaxValue, gMaxZ = double.MinValue;
+            foreach (var d in Ledger.Core.StreetMap.Districts)
+            {
+                gMinX = System.Math.Min(gMinX, d.AvenuesX[0]);
+                gMaxX = System.Math.Max(gMaxX, d.AvenuesX[d.AvenuesX.Length - 1]);
+                gMinZ = System.Math.Min(gMinZ, d.AvenuesZ[0]);
+                gMaxZ = System.Math.Max(gMaxZ, d.AvenuesZ[d.AvenuesZ.Length - 1]);
+            }
+            const float shoulder = 40f;   // you can walk past the last junction
+            float gw = (float)(gMaxX - gMinX) + shoulder * 2f;
+            float gd = (float)(gMaxZ - gMinZ) + shoulder * 2f;
+            ground.transform.position = new Vector3(
+                (float)(gMinX + gMaxX) / 2f, 0, (float)(gMinZ + gMaxZ) / 2f);
+            // A Unity Plane is 10m per unit of scale.
+            ground.transform.localScale = new Vector3(gw / 10f, 1, gd / 10f);
             ground.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Concrete);
-            SetTiling(ground, 42, 42);
+            SetTiling(ground, Mathf.RoundToInt(gw / 3f), Mathf.RoundToInt(gd / 3f));
 
             BuildStreetsAndWalks();
             BuildBuildings();

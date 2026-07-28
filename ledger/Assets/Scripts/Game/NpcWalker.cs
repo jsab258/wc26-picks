@@ -15,6 +15,9 @@ namespace Ledger.Game
 
         readonly List<Entry> _schedule = new List<Entry>();
         TextMesh _label;
+        /// Fully legible this close; gone by the far one. Recognition, not HUD.
+        const float LabelFullAt = 4f;
+        const float LabelFadeOut = 11f;
 
         public string DisplayName { get; private set; }
 
@@ -36,10 +39,11 @@ namespace Ledger.Game
             labelGo.transform.localPosition = new Vector3(0, 1.4f, 0);
             npc._label = labelGo.AddComponent<TextMesh>();
             npc._label.text = name;
-            npc._label.characterSize = 0.12f;
-            npc._label.fontSize = 32;
+            npc._label.characterSize = 0.055f;   // was 0.12: legible, not a banner
+            npc._label.fontSize = 48;
             npc._label.anchor = TextAnchor.MiddleCenter;
-            npc._label.color = Color.white;
+            npc._label.color = new Color(1f, 1f, 1f, 0f);   // fades in on approach
+            labelGo.SetActive(false);
 
             return npc;
         }
@@ -108,8 +112,28 @@ namespace Ledger.Game
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
             }
 
+            // A NAME IS NOT A NAMEPLATE. Every walker used to carry its name in
+            // white, at full size, at every distance — which is why a street of
+            // a dozen people read as a wall of text (playtest 2026-07-28). A
+            // name now behaves like recognition does: it resolves as you get
+            // close enough to speak to somebody, and it is not there at all
+            // across the road.
             if (_label != null && Camera.main != null)
-                _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - Camera.main.transform.position);
+            {
+                var cam = Camera.main.transform.position;
+                float d = Vector3.Distance(transform.position, cam);
+                float alpha = Mathf.Clamp01((LabelFadeOut - d) / (LabelFadeOut - LabelFullAt));
+                if (alpha <= 0.01f)
+                {
+                    if (_label.gameObject.activeSelf) _label.gameObject.SetActive(false);
+                }
+                else
+                {
+                    if (!_label.gameObject.activeSelf) _label.gameObject.SetActive(true);
+                    var c = _label.color; c.a = alpha; _label.color = c;
+                    _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - cam);
+                }
+            }
         }
 
         /// Street-wise steering. Walk straight when the line is clear of
