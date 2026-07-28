@@ -39,6 +39,19 @@ foreach (var path in Directory.EnumerateFiles(args[0], "*.cs", SearchOption.AllD
         new CSharpParseOptions(LanguageVersion.CSharp9), path: path));
 }
 
+// Every type name WE declare, so a CS0246 naming one of them (or a common
+// BCL container) is a missing using rather than Unity noise.
+var ourTypes = new HashSet<string>();
+foreach (var t in trees)
+    foreach (var node in t.GetRoot().DescendantNodes())
+        switch (node)
+        {
+            case Microsoft.CodeAnalysis.CSharp.Syntax.BaseTypeDeclarationSyntax btd:
+                ourTypes.Add(btd.Identifier.Text); break;
+            case Microsoft.CodeAnalysis.CSharp.Syntax.DelegateDeclarationSyntax dd:
+                ourTypes.Add(dd.Identifier.Text); break;
+        }
+
 var compilation = CSharpCompilation.Create("UnityLayerCheck", trees,
     references: null,
     options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -73,6 +86,19 @@ var inherited = new HashSet<string>
     // 2026-07-27).
 };
 
+static bool MissingTypeName(Diagnostic d, out string name)
+{
+    name = null;
+    var msg = d.GetMessage();
+    int open = msg.IndexOf('\'');
+    int close = open >= 0 ? msg.IndexOf('\'', open + 1) : -1;
+    if (open < 0 || close <= open + 1) return false;
+    name = msg.Substring(open + 1, close - open - 1);
+    int generic = name.IndexOf('<');
+    if (generic > 0) name = name.Substring(0, generic);   // List<> -> List
+    return name.Length > 0;
+}
+
 static bool MissingName(Diagnostic d, out string name)
 {
     name = null;
@@ -103,7 +129,18 @@ foreach (var d in compilation.GetDiagnostics())
     bool missingLocal = MissingName(d, out var missing)
                         && char.IsLower(missing.TrimStart('_').FirstOrDefault())
                         && !(engineFile && inherited.Contains(missing));
-    if (!interesting.Contains(d.Id) && !missingLocal) continue;
+    // CS0246 for a type WE declared, or for a common BCL type, means a
+    // missing using — a real break the old filter discarded with the
+    // Unity noise. Two CI builds died on exactly this before the sim ever
+    // ran (List<> in SaveSlots, OperationPlan in UiSmokeTest, 2026-07-28):
+    // the compiler upstairs caught what this file was built to catch.
+    // Only types WE declared: this compilation has no reference assemblies
+    // at all, so every BCL name is CS0246 by construction and only
+    // cross-tree resolution of our own namespaces is meaningful. (The BCL
+    // half of this class of break lives in lint-usings.py, textually.)
+    bool missingOurType = d.Id == "CS0246" && MissingTypeName(d, out var typeName)
+                          && ourTypes.Contains(typeName);
+    if (!interesting.Contains(d.Id) && !missingLocal && !missingOurType) continue;
     bad++;
     var span = d.Location.GetLineSpan();
     Console.WriteLine($"{span.Path}:{span.StartLinePosition.Line + 1}: {d.Id}: {d.GetMessage()}");

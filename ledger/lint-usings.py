@@ -62,12 +62,34 @@ EMPTY_CALL_LINQ = {
 }
 
 
+CONTAINERS = re.compile(r"\b(List|Dictionary|HashSet|Queue|Stack)\s*<")
+GENERIC_USING = re.compile(r"^\s*using\s+System\.Collections\.Generic\s*;", re.MULTILINE)
+
+
+def check_containers(path: pathlib.Path, text: str) -> list:
+    """A BCL container without its using dies in Unity's compiler, not here —
+    two CI builds proved it (2026-07-28). Textual, so it needs no references."""
+    if GENERIC_USING.search(text):
+        return []
+    problems = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("//") or stripped.startswith("///"):
+            continue
+        if "System.Collections.Generic" in line:
+            continue
+        m = CONTAINERS.search(line)
+        if m:
+            problems.append((lineno, "generic:" + m.group(1), stripped))
+    return problems
+
+
 def check(path: pathlib.Path) -> list:
     text = path.read_text(encoding="utf-8", errors="replace")
+    problems = check_containers(path, text)
     if re.search(r"^\s*using\s+System\.Linq\s*;", text, re.MULTILINE):
-        return []
+        return problems
 
-    problems = []
     lines = text.splitlines()
     for lineno, line in enumerate(lines, 1):
         stripped = line.strip()
@@ -111,8 +133,11 @@ def main() -> int:
         files += 1
         for lineno, name, line in check(path):
             bad += 1
-            print(f"{path}:{lineno}: .{name}(...) needs 'using System.Linq;' "
-                  f"or System.Linq.Enumerable.{name}(...)\n    {line}")
+            if name.startswith("generic:"):
+                print(f"{path}:{lineno}: {name[8:]}<> needs 'using System.Collections.Generic;'\n    {line}")
+            else:
+                print(f"{path}:{lineno}: .{name}(...) needs 'using System.Linq;' "
+                      f"or System.Linq.Enumerable.{name}(...)\n    {line}")
     print(f"checked {files} files, {bad} missing-using error(s)")
     return 1 if bad else 0
 
