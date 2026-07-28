@@ -405,4 +405,26 @@ namespace Ledger.Core
                 if (ids.Contains(r.Id)) { r.Known = true; r.Band = Lod.Mid; }
         }
     }
+
+    /// P5's "statistical sim elsewhere", made concrete: one number per
+    /// district for what the far city is FEELING while nobody renders it.
+    /// Computed from things that are already district-keyed — how much of the
+    /// district the player's empire owns, and how poor the street has gotten —
+    /// and cashed in at exactly one moment: when a resident is promoted into
+    /// the live mill, they arrive already shaped by where they live. A
+    /// squeezed, half-owned quarter sends up warier, less loyal people; a
+    /// rich untouched one sends up people with no opinion of you yet. The far
+    /// city is not frozen; it is summarized.
+    public static class DistrictPulse
+    {
+        /// 0..1. Deliberately gentle: this seeds STARTING posture, it does not
+        /// play the game for anybody.
+        public static double Unease(int ownedBusinessesHere, double prosperity) =>
+            Math.Clamp(0.18 * ownedBusinessesHere + Math.Max(0.0, 0.45 - prosperity) * 1.2, 0.0, 1.0);
+
+        /// How the pulse lands on a promoted resident: suspicion floor and a
+        /// loyalty shave, both bounded so authored people stay authorable.
+        public static (double suspicionFloor, double loyaltyShave) Arrival(double unease) =>
+            (Math.Min(0.5, unease * 0.35), Math.Min(0.2, unease * 0.15));
+    }
 }

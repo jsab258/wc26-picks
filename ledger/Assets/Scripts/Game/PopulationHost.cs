@@ -165,6 +165,15 @@ namespace Ledger.Game
             if (mill.Get(r.Id) != null) return;
 
             var g = new Gossiper(r.Id, r.Name, null, null, null, r.Circle, r.Greed, r.Nerve, r.Loyalty);
+            // P5: the district's pulse, cashed in at promotion — where they
+            // live has been HAPPENING to them while nobody rendered it.
+            double unease = DistrictUnease(r.District);
+            if (unease > 0.05)
+            {
+                var arrival = Ledger.Core.DistrictPulse.Arrival(unease);
+                if (g.Suspicion.Value < arrival.suspicionFloor) g.Suspicion.Restore(arrival.suspicionFloor);
+                g.Loyalty = System.Math.Clamp(g.Loyalty - arrival.loyaltyShave, 0, 1);
+            }
             mill.Add(g);
 
             // Neighbours: a handful of deterministic ties so talk has somewhere
@@ -238,6 +247,31 @@ namespace Ledger.Game
         Dictionary<string, object> CapturePopulation() =>
             Populace != null ? Populace.Capture(PopulationCount, PopulationSeed)
                              : new Dictionary<string, object>();
+
+        // P5: how much of each district the empire owns, recomputed at most
+        // once per day — the input to the district pulse.
+        readonly Dictionary<string, int> _ownedByDistrict = new Dictionary<string, int>();
+        int _pulseDay = -1;
+
+        double DistrictUnease(string districtName)
+        {
+            if (_pulseDay != Now.Day)
+            {
+                _pulseDay = Now.Day;
+                _ownedByDistrict.Clear();
+                foreach (var b in Empire.Businesses)
+                {
+                    if (!b.Owned) continue;
+                    var place = HookMap.Get(b.PlaceId);
+                    if (place == null) continue;
+                    var d = Ledger.Core.StreetMap.DistrictAt(place.X, place.Z);
+                    if (d == null) continue;
+                    _ownedByDistrict[d] = (_ownedByDistrict.TryGetValue(d, out var n) ? n : 0) + 1;
+                }
+            }
+            _ownedByDistrict.TryGetValue(districtName, out var owned);
+            return Ledger.Core.DistrictPulse.Unease(owned, Economy.Prosperity);
+        }
 
         void RestorePopulation(Dictionary<string, object> data)
         {

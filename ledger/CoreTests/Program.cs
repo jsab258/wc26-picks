@@ -43,6 +43,7 @@ namespace Ledger.CoreTests
                 TestGossipRepairs();
                 TestValidatorScalars();
                 TestActOne();
+                TestDistrictPulse();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -373,6 +374,22 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestDistrictPulse()
+        {
+            Console.WriteLine("District pulse — the far city is summarized, not frozen (P5):");
+            Check(DistrictPulse.Unease(0, 0.55) < 0.01,
+                "a rich untouched quarter has no opinion of you yet",
+                DistrictPulse.Unease(0, 0.55).ToString("0.00"));
+            Check(DistrictPulse.Unease(3, 0.30) > DistrictPulse.Unease(1, 0.30)
+                && DistrictPulse.Unease(1, 0.30) > DistrictPulse.Unease(1, 0.50),
+                "owning more of a street, and bleeding it, both raise its temperature");
+            var arrivalHot = DistrictPulse.Arrival(1.0);
+            double floorHot = arrivalHot.suspicionFloor, shaveHot = arrivalHot.loyaltyShave;
+            Check(floorHot <= 0.5 && shaveHot <= 0.2,
+                "and even the worst quarter seeds a posture, not a verdict",
+                $"floor {floorHot:0.00}, shave {shaveHot:0.00}");
         }
 
         static void TestActOne()

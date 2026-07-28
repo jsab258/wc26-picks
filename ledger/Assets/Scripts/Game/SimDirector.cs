@@ -90,6 +90,8 @@ namespace Ledger.Game
         bool _discreditExercised;
         bool? _discreditWorked;   // null = the secret never reached the day circle
         int _frozenCloses;   // closes the lost-week end screen ate before the day-8 reopen
+        // P5 budgets: frame times accumulated every Update, reported at Finish.
+        int _frames; double _frameSum; double _frameWorst;
         bool _actThreeStaged;
         string _actThreeWhy = "not staged";
         bool _actThreeHandedOver;
@@ -224,6 +226,10 @@ namespace Ledger.Game
             // world time, not sim time, and counting them as coverage is how
             // "nine simulated days" quietly became "however many the bot had
             // left". Give them back.
+            _frames++;
+            _frameSum += Time.unscaledDeltaTime;
+            if (Time.unscaledDeltaTime > _frameWorst && _frames > 30) _frameWorst = Time.unscaledDeltaTime;
+
             if (_lastSeenDay < 0) _lastSeenDay = now.Day;
             if (now.Day > _lastSeenDay)
             {
@@ -1039,6 +1045,19 @@ namespace Ledger.Game
             // rather than shrinking the walk (audit 2026-07-27 pattern).
             bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7;
 
+            // P5 BUDGETS. The deterministic ones gate (caps are design
+            // numbers, so exceeding them is a leak, not a slow machine); the
+            // timing ones report, because CI hardware is weather.
+            int walkerCount = 0;
+            foreach (var w in FindObjectsByType<NpcWalker>(FindObjectsSortMode.None)) walkerCount++;
+            int millCount = mill != null ? System.Linq.Enumerable.Count(mill.Agents) : 0;
+            long heapMb = System.GC.GetTotalMemory(false) / (1024 * 1024);
+            double avgMs = _frames > 0 ? _frameSum / _frames * 1000.0 : 0;
+            // Walkers: the crowd cap plus every AUTHORED walker that can exist
+            // at once (cast, heads, inspector). Mill: the mid cap plus cast.
+            bool budgetsOk = walkerCount <= GameController.CrowdWalkerCap + 40
+                && millCount <= GameController.CrowdMillCap + 60;
+
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
             {
@@ -1318,7 +1337,7 @@ namespace Ledger.Game
                 ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
                 ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
-                ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk),
+                ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
             };
             var failed = new List<string>();
@@ -1339,7 +1358,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} millAgents={millCount} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +
