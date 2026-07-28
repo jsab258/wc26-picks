@@ -1298,6 +1298,24 @@ namespace Ledger.Game
             var trafficCost = Perf.Get("traffic");
             bool perfOk = trafficCost != null && trafficCost.Samples > 0 && trafficCost.MeanMs < 4.0;
 
+            // FRAME TIME, WHICH NOTHING WAS MEASURING.
+            //
+            // `perfOk` above gates ONE SUBSYSTEM — the traffic update — and
+            // has done since it was written. A global regression could not
+            // fail it, and in fact one did not: the day bodies landed the sim
+            // went from ten and a half minutes to eighteen, and the only
+            // thing that noticed was the job's twenty-four minute wall clock.
+            // That is a diagnosis-free failure on a twenty-minute loop.
+            //
+            // THE NUMBER IS A REGRESSION DETECTOR, NOT A TARGET. This runner
+            // has no GPU and software-rasterises everything, so 187ms is a
+            // healthy frame here and would be catastrophic anywhere else.
+            // What it catches is the frame time DOUBLING, which is what
+            // happened and what a per-subsystem gate structurally cannot see.
+            double meanFrameMs = Perf.MeanFrameMs;
+            bool frameOk = meanFrameMs <= 0 || meanFrameMs < 300;
+
+
             // The vehicle description (spec §4). Only meaningful if the bot was
             // seen at all; when it was, somebody must be able to describe the car.
             //
@@ -1833,6 +1851,7 @@ namespace Ledger.Game
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
+                ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
