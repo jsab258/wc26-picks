@@ -707,31 +707,47 @@ the sim-bot and purse changes stand.
 
 **OPEN AS OF 2026-07-28 EVENING — the current front:**
 
-*Waiting on Jafar (nothing else blocked by them):*
+*Waiting on Jafar — and as of this entry, THE ONLY THINGS WAITING ON
+ANYBODY:*
 - **Mixamo characters + animations.** ~4 characters and ~13 animations,
   downloaded and committed. Art direction moved to semi-realistic after he
   rejected the Synty low-poly look. Blocks foot IK, the coat reading at
   distance, fatigue breathing, and moving the limp from the footstep rhythm
   onto the body.
-- **Bark curation.** Steps 1-3 of the pipeline need no audio and can run
-  now; step 3 is a human pass and is not optional — it is what separates
-  writing from AI slop.
+- **The voice listening pass.** `tools/voice-fetch/` makes this two commands
+  and about fifteen minutes; see below.
+- **Bark curation, step 3.** A human pass, and not optional — it is what
+  separates writing from AI slop. Steps 1 and 2 are done.
 
-*Mine, not blocked:*
-- **Voice casting** — pick voices per character, source clips from Common
-  Voice (CC0, donated for speech technology), no public figures.
-- **Bark enumeration and generation** — steps 1-2.
-- **Grain, vignette, bloom** — named in the art direction, not built.
-- **Game feel leftovers** — objects reacting to being brushed; puddles that
-  splash; continuous rather than stepped day/night; menu transitions; slope
-  and stair handling.
-- **The root-motion vs code-driven decision.** Worth making BEFORE the
-  animations land, because after is a rewrite. Leaning code-driven, since
-  the momentum in `Core/Feel.cs` is already tested.
-- **Street density.** The hourly sampler shipped today; the numbers arrive
-  with the next CI run. The question "is 700 NPCs right" turned out to be
-  the wrong question — 700 is the size of the social graph, density is a
-  different knob.
+*Mine, and CLEARED 2026-07-28:*
+- ~~**Voice casting**~~ — cast written as briefs rather than preferences (a
+  brief is sourceable, a preference is not), and `tools/voice-fetch/` built:
+  streams Common Voice, assembles eleven seconds of one speaker per
+  candidate, lays them out under their briefs. Cut from 37 clips to 19 —
+  a correction, not a saving: Common Voice contributors read neutral
+  sentences, so the mood variants were never sourceable from it, and the
+  direction test proved chatterbox's exaggeration control does moods.
+- ~~**Bark enumeration and generation**~~ — `ledger/BarkGen` walks the state
+  space and measures the banks instead of asserting them. It found every
+  slot repeating inside ninety seconds, and a pairing bug no line count
+  could see (openers welded to replies by `seed + 1`: fourteen banks of
+  fourteen giving fourteen conversations, not 196). 58 lines → 420.
+- ~~**Grain, vignette, bloom**~~ — `FilmGrade` + `LedgerFilmGrade.shader`,
+  three passes, fails closed to unfiltered.
+- ~~**Game feel leftovers**~~ — ALL of them. Objects react to being brushed;
+  puddles splash; day/night is a continuous equal-power crossfade instead of
+  a single-frame swap at 20:00; menus fade, swap and change the world under
+  black; kerbs and stairs are no longer walls. **§8 of the feel spec is
+  closed.**
+- ~~**The root-motion vs code-driven decision**~~ — **CODE-DRIVEN**, decided
+  and written into the feel spec §2 before the animations land, because
+  after they land it is a rewrite. The cost is named rather than hidden:
+  foot sliding, which foot IK fixes, and which is cheaper to fix than a
+  movement model is to replace.
+- **Street density** — sampler shipped; the numbers arrive with the next CI
+  run, so this is waiting on a machine rather than on a person. The question
+  "is 700 NPCs right" was the wrong question: 700 is the size of the social
+  graph, density is a different knob.
 
 *COMBAT — specced 2026-07-28, see `game-design/combat-spec.md`:*
 
@@ -747,12 +763,33 @@ The filter that decides the design, from `agency-model.md`: *violence is
 SEEN*. In a game whose antagonist is gossip, a fight is the loudest possible
 event, and its cost is witnesses rather than damage.
 
-| Phase | What | Blocked? |
+| Phase | What | State |
 |---|---|---|
-| 1 | `Combat.cs` — five verbs as tested state machines on the existing VerbBeat clock, reach, guard, the rule connecting a landed strike to HarmBook | **No. Can start now** |
-| 2 | Witness rules — who saw it, from how far, through what. `Acoustics.OverheardConfidence` already answers this shape for speech | **No** |
-| 3 | Bodies, telegraphs, hit reactions | **Yes — characters** |
-| 4 | Tuning so violence is never the efficient path. A BalanceLab job: if Monte Carlo says fighting wins, the design is wrong however it plays | After 1-3 |
+| 1 | `Core/Combat.cs` — the verbs as tested state machines, reach, guard, footing, stamina | **BUILT 2026-07-28** |
+| 2 | Witness rules — who saw it, from how far, through what | **BUILT 2026-07-28** |
+| 3b | `Core/Homicide.cs` — the body as an undiscreditable fact, police escalation on Ellis, the crew who watched | **BUILT 2026-07-28** |
+| 3 | Bodies on screen, telegraphs, hit reactions | **Blocked — characters** |
+| 4 | Tuning so violence is never the efficient path. A BalanceLab job: if Monte Carlo says fighting wins, the design is wrong however it plays | After 3 |
+
+**Phase 3b is where the lethality answer cashes out**, and the design
+problem was never "how does killing work". It was making the trade true as
+ARITHMETIC rather than as an assertion in a document — killing has to
+genuinely work or the choice is fake, and it has to cost more than it saves
+or the gossip game is dead. `HomicideBook.Pressure`:
+
+| Situation | Pressure | Police |
+|---|---|---|
+| One body, nobody saw | 0.40 | Procedure |
+| One body, a witness through a wall | 0.76 | Investigation |
+| One body, a witness who watched | 1.00 | **Manhunt** |
+| Two bodies, nobody left alive to talk | 0.80 | Investigation |
+| Three bodies, nobody left | 1.20 | **Manhunt** |
+
+Lines three and four are the feature. Killing the only witness **really
+does** take the manhunt off you — it has to, or the player stops believing
+the system inside one attempt. It never takes you back to procedure, and
+the body you add to fix the last one leaves you past where the first one
+put you.
 
 **UI/UX target: almost entirely absent.** No health bar, no damage numbers,
 no hit markers, no combat mode. Condition is written on the body — the limp
