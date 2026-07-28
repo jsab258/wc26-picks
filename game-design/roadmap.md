@@ -697,16 +697,20 @@ the sim-bot and purse changes stand.
   green as new information rather than as confirmation. Still open and
   genuinely a playtest question: **the inspector is inert for a player who
   never built an empire.**
-- **Front-end completeness.** P1 shipped a main menu, options and a pause menu.
-  The rebind screen had drifted to six actions while the game listened for nine
-  (fixed 2026-07-27). Not yet verified: every panel closes on Escape, no panel
-  traps the player, and options actually apply on the newer panels (Plan,
-  Phone, Ledger).
-- **UI test coverage is still the weakest link.** All 1395 CoreTests are Core
-  logic. There is now an in-engine smoke test that opens every panel and
-  reports `panelsBad` (currently 0 of 6), which is real and catches a panel
-  that strands the player — but it is a smoke test, not coverage. Nothing
-  asserts what a panel SAYS. Still the thinnest verification in the project.
+- ~~**Front-end completeness.**~~ CLOSED 2026-07-28. Every panel closes on
+  Escape (the chain was missing Plan/Phone/summary — audit), no panel traps
+  the player (the lock policy is one method and the smoke test asserts
+  through it), and options apply on the newer panels: every font size in
+  the UI routes through UiTheme.Scaled, with the build-time limitation
+  stated on the options screen itself. The rebind screen's completeness is
+  now a standing smoke assertion, not a one-time fix.
+- ~~**UI test coverage is still the weakest link.**~~ CLOSED as specified
+  2026-07-28: every panel's smoke check now carries a CONTENT predicate
+  read off the live Text components (the ledger its sections, the pause
+  menu its verbs, the plan a REAL seeded plan, the rebind screen the full
+  set of actions the game listens for), and the ui gate floors the report
+  count so a dropped panel reds the build. What remains beyond this is
+  per-string assertion depth — a matter of degree, no longer a named gap.
 - ~~**Ironside has no geography**~~ — BUILT 2026-07-27. 34m blocks, two goods
   roads off Ironside Road, seven places, and a population split that houses
   one person in fourteen there and employs one in three. Downtown, The Strip,
@@ -719,9 +723,11 @@ the sim-bot and purse changes stand.
   an infinite pocket.~~ **ANSWERED AND BUILT 2026-07-27** (Jafar: *"couple
   it"*). Racket income now scales with the street it squeezes, and says so
   rather than quietly paying less. Nothing is left open on purses.
-- **The lab does not test a squeezed street's effect on purses**, because week
-  mode holds prosperity at the ordinary half by construction. That coupling is
-  proven in CoreTests only.
+- ~~**The lab does not test a squeezed street's effect on purses.**~~
+  MEASURED 2026-07-28 in the open lab, where prosperity moves: six days of
+  refill after a day-15 collection sweep reads 346/306/203 dollars for
+  Control/Cautious/Aggressive (street 0.48/0.40/0.29). Squeezing the
+  street empties the pockets you later collect from, ~40% at the hard end.
 
 **LLM cost:** deferred by the player, explicitly not a build-time blocker.
 If we publish, the pricing models to weigh are subscription, pay-as-you-go,
@@ -741,9 +747,12 @@ they are deferred (save versioning especially).
 - **P1 — Front end** (tonight): main menu, new game / continue, options
   (audio / video / gameplay), key rebinding, pause menu, quit. The game
   currently boots straight into play and cannot be exited cleanly.
-- **P2 — Save robustness** (tonight): a version field with migration,
-  multiple slots, corruption recovery. Today: one autosave, no version —
-  and every patch silently risks players' saves.
+- ~~**P2 — Save robustness**~~ DONE 2026-07-28: version field + migration
+  (2026-07-27), atomic write-then-swap with .bak, corruption recovery with
+  quarantine and an in-fiction line, three rotating manual copies ("Keep a
+  copy" / "Open the copy — day N"), Continue opens the newest save, and a
+  new game no longer burns the player's snapshots. The sim asserts the
+  backup line exists after a second write.
 - **P3 — Audio** (tonight, procedural first): music, ambience, footsteps,
   doors, UI feedback, mixer. The game is silent. Procedural/synthesised
   sources first via the AssetLibrary pattern, so purchased or recorded
@@ -757,7 +766,8 @@ they are deferred (save versioning especially).
   dialogue can be produced directly in the target language — an advantage.
 - **P8 — Platform**: Steam page, achievements, cloud saves, release build
   pipeline.
-- **P9 — QA matrix**: human test plan layered on the automated harness.
+- ~~**P9 — QA matrix**~~ WRITTEN 2026-07-28: `game-design/qa-matrix.md`,
+  every row something automation cannot establish, half-coverage named.
 - **P10 — LLM productization** (see doc §16): inference economics
   decision, content safety and red-teaming, age-rating strategy. The
   highest-risk item in the entire project and the one needing you earliest.
