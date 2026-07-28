@@ -114,14 +114,41 @@ enough.
 
 ---
 
-## Total to source
+## Total to source — REVISED DOWN 2026-07-28, from 37 to 19
+
+The three-clips-per-principal plan was written before the direction test
+came back, and it is wrong in a way worth stating rather than quietly
+fixing.
+
+**Common Voice contributors read neutral sentences.** A "grave" clip is not
+something that corpus contains, so the mood variants were never sourceable
+from it in the first place. What the benchmark actually proved is that
+**chatterbox's exaggeration control does moods** — Jafar heard it himself on
+`same_line_BORED.wav` against `same_line_GRAVE.wav`.
+
+So the reference clip decides **identity** and the exaggeration parameter
+decides **direction**. One clip per character.
 
 | | clips |
 |---|---|
-| 5 principals × 3 moods | 15 |
-| 8 street × 2 moods | 16 |
+| 5 principals × 1 | 5 |
+| 8 street × 1 | 8 |
 | 6 crowd × 1 | 6 |
-| **Total** | **37 clips, ~10s each ≈ 6 minutes of audio** |
+| **Total** | **19 clips, ~11s each ≈ 3.5 minutes of audio** |
+
+Direction, as parameters rather than recordings:
+
+| Stage direction | exaggeration |
+|---|---|
+| bored | 0.25 |
+| neutral | 0.5 |
+| warm | 0.6 |
+| grave | 0.7 |
+| urgent | 0.85 |
+
+That table lives in `tools/voice-fetch/ledger_voice_fetch.py` so it exists
+in exactly one place, and the fetcher writes it into `casting.json` beside
+the clips.
 
 ---
 
@@ -131,11 +158,34 @@ enough.
 blocked from this environment — I checked, it is the same wall that stops me
 reaching the CC0 texture sites. Verified, not assumed.
 
-So the sourcing is Jafar's, and my job is to make it one command rather than
-an afternoon. **Next build: a fetcher script**, in the same shape as the TTS
-benchmark — downloads Common Voice candidates matching each brief, trims to
-ten seconds, normalises, and lays them out in listening order with the brief
-printed above each one. He runs it, listens, and keeps the ones that are
-right.
+So the sourcing is Jafar's, and my job was to make it one command rather
+than an afternoon. **BUILT 2026-07-28: `tools/voice-fetch/`.**
+
+```
+python ledger_voice_fetch.py          # streams candidates, opens a page
+# ... listen, write picks into picks.txt ...
+python ledger_voice_fetch.py --install
+```
+
+It builds its own environment, **streams** Common Voice rather than
+downloading it (the English tarball is tens of gigabytes and we need three
+and a half minutes of it), filters rows on the age and gender each brief
+asks for, and lays the candidates out in a page with the brief printed above
+the players.
+
+The part that is actually hard, and the part the self-test covers: a Common
+Voice sentence is three to six seconds and a clone needs about eleven, so a
+candidate is **the same speaker concatenated** — with real silence between
+sentences, because butt-joined audio teaches the model a speaker who never
+breathes. 22 checks cover the assembly, the loudness match, the resampling
+and the cast table, and **none of them touch the network**, which is the
+only reason I could verify any of it from here.
+
+**What I could not test: the download itself.** Common Voice, HuggingFace
+and OpenSLR are all blocked from this environment — verified, not assumed.
+So the fetch path reports per character what it could not find rather than
+failing quietly, and there is a `--source libritts` fallback whose rows
+carry no age or gender at all (the script says so instead of pretending the
+filter worked).
 
 Casting stays mine as delegated; his part is a listening pass, not research.
