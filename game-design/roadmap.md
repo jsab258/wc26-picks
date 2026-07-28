@@ -733,6 +733,45 @@ the sim-bot and purse changes stand.
   the wrong question — 700 is the size of the social graph, density is a
   different knob.
 
+*COMBAT — specced 2026-07-28, see `game-design/combat-spec.md`:*
+
+Deferred by Jafar earlier, correctly, on the grounds that timing combat
+cannot be judged on capsules. That deferral produced something unusual and
+valuable: **the aftermath of violence was built before the violence.**
+Injuries persist and turn bad, treatment costs money and plants a witness,
+feuds outlive fights, scars are permanent, and lost capability now shows in
+the walk. We are not adding combat to a game — we are adding the last
+missing verb to a consequence system that has been waiting for it.
+
+The filter that decides the design, from `agency-model.md`: *violence is
+SEEN*. In a game whose antagonist is gossip, a fight is the loudest possible
+event, and its cost is witnesses rather than damage.
+
+| Phase | What | Blocked? |
+|---|---|---|
+| 1 | `Combat.cs` — five verbs as tested state machines on the existing VerbBeat clock, reach, guard, the rule connecting a landed strike to HarmBook | **No. Can start now** |
+| 2 | Witness rules — who saw it, from how far, through what. `Acoustics.OverheardConfidence` already answers this shape for speech | **No** |
+| 3 | Bodies, telegraphs, hit reactions | **Yes — characters** |
+| 4 | Tuning so violence is never the efficient path. A BalanceLab job: if Monte Carlo says fighting wins, the design is wrong however it plays | After 1-3 |
+
+**UI/UX target: almost entirely absent.** No health bar, no damage numbers,
+no hit markers, no combat mode. Condition is written on the body — the limp
+already is — and `HarmBook.LooksLike` has returned exactly this since it was
+written and nothing has ever displayed it. Same principle as M15: the
+simulation IS the interface.
+
+**Four decisions are Jafar's** and are in the spec: whether the player can
+start fights, whether anyone can die (recommend no), guns (recommend not in
+scope), and an auto-resolve option (recommend yes, as accessibility rather
+than difficulty).
+
+**The risk, named rather than discovered later:** combat is the single
+easiest way to ruin this game. It is the most familiar verb in the medium,
+it attracts effort, and it will pull the design toward being about itself.
+If phases 1 and 2 land and it still reads as a distraction, the correct
+decision is to stop there and leave violence as something that happens TO
+you.
+
 *Blocked on a real refactor, named rather than quietly dropped:*
 - **General audio occlusion.** Speech is occluded; every other source is 2D,
   so doing it properly means per-source 3D audio. Half-doing it gives a
