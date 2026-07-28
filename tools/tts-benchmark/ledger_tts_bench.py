@@ -64,7 +64,7 @@ from pathlib import Path
 
 # Bumped on every change. Printed at startup so a stale copy in the Downloads
 # folder announces itself instead of reproducing an old failure exactly.
-VERSION = "2026-07-28.8  (says what your GPU actually is, and what that costs you)"
+VERSION = "2026-07-28.9  (RTF was measuring the wrong axis; xtts needs transformers<5)"
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "ledger-tts-out"
@@ -236,10 +236,19 @@ def write_wav(path, samples, rate):
 
 
 def length_of(samples, rate):
-    try:
-        n = len(samples)
-    except TypeError:
-        n = int(samples.shape[-1])
+    """Seconds of audio.
+
+    MEASURE THE LAST AXIS, NOT THE FIRST. chatterbox returns a torch tensor
+    shaped (1, N) — one channel, N samples — and len() on that is 1, not N.
+    So every chatterbox clip was recorded as 0.0s long and its real-time
+    factor came out at 326711 instead of about 6. The audio itself was fine,
+    because write_wav squeezes; only the measurement was nonsense, which is
+    the dangerous kind of bug: it looks like a catastrophic result rather
+    than a broken ruler, and it would have disqualified the only engine that
+    has passed a listening test.
+    """
+    shape = getattr(samples, "shape", None)
+    n = int(shape[-1]) if shape else len(samples)
     if n == 0:
         return 0.0
     return n / float(rate)
@@ -442,7 +451,12 @@ class XTTS:
     # exited 0, and the environment came out with no torch in it — so the
     # declaration is not something to rely on. Naming them costs nothing when
     # they would have been installed anyway.
-    pkgs = ("torch", "torchaudio", "coqui-tts")   # the maintained fork; the abandoned "TTS" caps out below py3.12
+    # transformers<5 is load-bearing. coqui-tts declares transformers>=4.57
+    # with no upper bound, transformers 5 removed `isin_mps_friendly`, and
+    # coqui's tortoise layer still imports it — so a clean install resolves
+    # to a combination that cannot import itself.
+    pkgs = ("torch", "torchaudio", "transformers<5",
+            "coqui-tts")   # the maintained fork; the abandoned "TTS" caps out below py3.12
     probe = "TTS.api"          # importable == installed
     directable = False
 
@@ -637,6 +651,13 @@ def run_engine(engine, quick):
             if dur <= 0:
                 raise RuntimeError("produced zero samples")
             rtf = gen / dur
+            if rtf > 500:
+                # No engine is five hundred times slower than real time. This
+                # is a measurement fault, and printing it as a number invites
+                # someone to act on it.
+                raise RuntimeError(f"implausible RTF {rtf:.0f} — {dur:.4f}s of audio "
+                                   f"reported from a {gen:.1f}s generation; the sample "
+                                   f"count is being read off the wrong axis")
             rtfs.append(rtf)
             write_wav(outdir / f"{cid}.wav", samples, rate)
             result["rows"].append([cid, voice, f"{dur:.1f}s", f"{gen:.2f}s", f"{rtf:.2f}"])
@@ -774,8 +795,16 @@ def drive(names, args):
         engine = BY_NAME[name]
         py = ensure_venv(engine, args.yes)
         if py is None:
+            # Overwrite any error.txt from a previous run. Leaving the old one
+            # in place sent Jafar back with a stale torch traceback while the
+            # real failure — a transformers version — was only on screen.
+            (OUT / name).mkdir(parents=True, exist_ok=True)
+            (OUT / name / "error.txt").write_text(
+                "The environment could not be built, so the engine never loaded.\n"
+                "The reason is in the pip output above this line in the console.\n",
+                encoding="utf-8")
             results.append({"engine": name, "ok": False,
-                            "error": "environment could not be built"})
+                            "error": "environment could not be built (see the pip output above)"})
             if not args.keep_going:
                 say("  (--keep-going to carry on past this)")
             continue

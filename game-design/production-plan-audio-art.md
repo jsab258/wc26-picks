@@ -233,6 +233,43 @@ minutes per engine on CPU rather than seconds. The benchmark now names the
 card, explains why it cannot help, and says so before the wait rather than
 after.
 
+### 1h. BENCHMARK RESULT #3 — chatterbox clears the bar
+
+Jafar, on the first engine to produce audio he did not immediately reject:
+
+> "chatterbox sounds pretty good"
+
+That is the first time anything in this benchmark has cleared the floor
+piper set. Everything before it was either the floor itself or a failure to
+launch.
+
+| engine | verdict | median RTF (CPU) | takes direction |
+|---|---|---|---|
+| **chatterbox** | **"sounds pretty good"** | **~5.9** | yes — exaggeration control |
+| kokoro | usable, uninteresting | 0.34 | no |
+| piper | the floor: "very obviously synthetic" | 0.05 | no |
+| xtts | still has not run | — | via reference clips |
+
+**Its speed number was reported as 326711 and that was my bug, not the
+engine's.** chatterbox returns a torch tensor shaped `(1, N)` — one channel,
+N samples — and `len()` on that is 1. So every clip was recorded as 0.0
+seconds long. The audio was always fine; only the ruler was broken. The real
+figure, recomputed from the generation times against the same lines' known
+durations, is **about 5.9 on CPU**.
+
+This is the most dangerous class of bug this benchmark can have: it does not
+look like a broken measurement, it looks like a catastrophic result, and it
+would have disqualified the only engine that has passed a listening test.
+The bench now measures the last axis and refuses outright to print a
+real-time factor above 500, because no engine is five hundred times slower
+than real time and printing the number invites someone to act on it.
+
+**What ~6 RTF means for us, given §1g:** offline only on this machine, which
+is exactly the channel chatterbox is wanted for. A 3,000-line bark bank at
+~3 seconds a line is about five hours of generation — one overnight run,
+once. It does not touch live dialogue, and on an NVIDIA card it would be
+roughly ten times faster anyway.
+
 **Still open:** whether any local engine takes direction by either route. If
 none does, the fallback is not "pay more" — it is to buy direction
 structurally: generate 2–3 takes per line and pick, use distinct voices per
