@@ -665,7 +665,28 @@ districts), P5 (district pulse + budget gates), P3 (score). CoreTests
 
 Next is not code: it is `game-design/qa-matrix.md` and a human.
 
-## STILL OPEN — the honest list (2026-07-27)
+## BUILD STATE — 2026-07-28 late
+
+Everything below happened after the 08:25Z entry above, which had stopped
+being true by lunchtime.
+
+**Shipped today, all green in CI:**
+
+| | |
+|---|---|
+| **Game feel §1-§4, §6, §8** | Momentum and turn radius; camera spring, speed-linked FOV, look-ahead, collision, head bob; footsteps by surface with variants; **the limp**; acoustics (reverb by space, distance filtering, occlusion on speech, half-heard lines); interaction grammar (verb clock, doors with mass, bump reactions); input buffering and forgiveness wired; **the Fall staged behind a curtain**; foley and material impacts; the coat as a real verb |
+| **Art pass** | Weather, wetness, neon, palette, fog (morning) — then **rain audio** and the **material palette sweep** (evening), which were the two items of the plan's concrete first pass that the first art commit skipped |
+| **Voice** | Benchmark built and run four times against real game dialogue. **Engine decided: chatterbox**, on the direction test. Kokoro dropped. XTTS moot |
+| **CI instrumentation** | Render colour fingerprint (caught a real neon defect on its first run), saturation metric, hourly street-density sampler |
+| **Verification** | CoreTests 1595 → **1750**. Roughly 30 deliberate regressions reintroduced and caught across the day, two of which found bugs that would otherwise have shipped |
+
+**The lesson worth keeping from today:** three separate times, the METRIC was
+wrong rather than the thing it measured — brightRgb averaged colour to white,
+satRgb averaged hues to khaki, and the TTS bench measured the wrong tensor
+axis and reported a real-time factor of 326711. Each looked like a
+catastrophic result and was a broken ruler. Check the ruler first.
+
+## STILL OPEN — the honest list (2026-07-27, kept current)
 
 Kept current alongside the shipped entries, because a roadmap that only grows
 a "done" column stops being a plan.
@@ -683,6 +704,46 @@ the sim-bot and purse changes stand.
   nearly empty both ways, which is its mechanic. Chokepoint connectors
   throughout; the two-bridge rule holds on the actual water. Places,
   phones and population shares wired; the map tests scaled themselves.
+
+**OPEN AS OF 2026-07-28 EVENING — the current front:**
+
+*Waiting on Jafar (nothing else blocked by them):*
+- **Mixamo characters + animations.** ~4 characters and ~13 animations,
+  downloaded and committed. Art direction moved to semi-realistic after he
+  rejected the Synty low-poly look. Blocks foot IK, the coat reading at
+  distance, fatigue breathing, and moving the limp from the footstep rhythm
+  onto the body.
+- **Bark curation.** Steps 1-3 of the pipeline need no audio and can run
+  now; step 3 is a human pass and is not optional — it is what separates
+  writing from AI slop.
+
+*Mine, not blocked:*
+- **Voice casting** — pick voices per character, source clips from Common
+  Voice (CC0, donated for speech technology), no public figures.
+- **Bark enumeration and generation** — steps 1-2.
+- **Grain, vignette, bloom** — named in the art direction, not built.
+- **Game feel leftovers** — objects reacting to being brushed; puddles that
+  splash; continuous rather than stepped day/night; menu transitions; slope
+  and stair handling.
+- **The root-motion vs code-driven decision.** Worth making BEFORE the
+  animations land, because after is a rewrite. Leaning code-driven, since
+  the momentum in `Core/Feel.cs` is already tested.
+- **Street density.** The hourly sampler shipped today; the numbers arrive
+  with the next CI run. The question "is 700 NPCs right" turned out to be
+  the wrong question — 700 is the size of the social graph, density is a
+  different knob.
+
+*Blocked on a real refactor, named rather than quietly dropped:*
+- **General audio occlusion.** Speech is occluded; every other source is 2D,
+  so doing it properly means per-source 3D audio. Half-doing it gives a
+  muffled bin beside an unmuffled car.
+
+*On hold by decision:*
+- **M15.3** — deleting the ledger panel and toasts for Mickey's book as a
+  physical prop. Held until Jafar has played M15.1-2, because it removes
+  things that currently work.
+- **Environment art packs.** Would clash with semi-realistic characters.
+  Waits on the character look being settled.
 
 **Unblocked and queued:**
 
