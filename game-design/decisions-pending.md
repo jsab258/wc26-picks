@@ -475,6 +475,77 @@ than buying anything.
 toasts in favour of Mickey's actual book as a prop. That removes things
 that currently "work", so I will not do it until you have seen M15.1-2.
 
+## THE VOICE — engine decided, casting is yours (2026-07-28)
+
+### Engine: CHATTERBOX. Decided by me, on measured evidence.
+
+Four engines were benchmarked on real game dialogue. Jafar's verdicts:
+
+| engine | direction (BORED vs GRAVE) | emphasis on "your" | consistency | verdict |
+|---|---|---|---|---|
+| **chatterbox** | **different** | **slightly emphasised** | *"was, alive"* | **chosen** |
+| kokoro | *"exactly the same"* | — | — | crowd ambience only |
+| piper | *"same"* | *"no stress"* | *"all sound the same"* | the floor |
+| xtts | never ran | — | — | moot, see below |
+
+This is a technical decision on measured evidence, so I made it. It is here
+because you should be able to see the reasoning and overturn it.
+
+**Why it is not close.** Direction was the one criterion that mattered, for
+the reason argued in production-plan §1d: the game already knows how every
+speaker feels, and an engine that ignores that gives us pre-recorded voice
+acting with extra steps. Three engines failed it identically. Chatterbox is
+the only one that passed, and it passed the harder consistency test too —
+*alive* rather than piper's degenerate *uniform*.
+
+**XTTS is now moot and I am not asking you to run it again.** Its unique
+selling point was cloning; chatterbox clones as well. Running it would buy a
+comparison, not a decision, and it has already cost enough of your evening.
+The dependency fix is committed in case we ever want it.
+
+### NEEDS YOU — 1. Where do the reference voices come from?
+
+> *"don't like the actual voice but I guess there are many we can generate
+> with"* — Jafar, 2026-07-28
+
+Better than that: **we do not pick from a menu, we define the voice.**
+Chatterbox clones from about ten seconds of reference audio, so whatever we
+give it becomes Lena. The v6 benchmark already reads `lena.wav`,
+`lena.grave.wav` and `lena.bored.wav` and picks by the line's stage
+direction — which means the reference clips carry the CASTING and the
+DIRECTION at the same time.
+
+Three routes:
+
+**A. Record our own. RECOMMENDED.** Ten seconds per character, ten
+characters — under two minutes of audio in total. Costs nothing, needs no
+acting talent (a reference clip carries timbre, not performance), and is
+unambiguously ours.
+
+**B. A public-domain corpus** (LibriVox and similar). Free, enormous
+variety, legally clean as to copyright — the recordings are released public
+domain.
+
+**C. Buy voice samples.** Unnecessary; A and B cover it.
+
+**The reason I recommend A over B is not copyright, it is consent.** A
+LibriVox recording being public domain settles the copyright question and
+does not settle the other one: cloning an identifiable real person's voice
+touches personality and publicity rights in several jurisdictions, and a
+volunteer who read a novel aloud in 2009 did not agree to become a character
+in a crime game. It is a live issue for anything that might ship
+commercially, and "the file was free" is not an answer to it. Recording our
+own removes the question rather than managing it.
+
+If you want B anyway, say so and I will restrict it to corpora explicitly
+licensed for speech synthesis rather than merely public domain.
+
+### NEEDS YOU — 2. Who sounds like what?
+
+Once the route is picked, the actual casting is a creative call and yours:
+Lena, Rocco, Mara, and the crowd voices. I can propose a shortlist against
+the character notes if that is easier than starting from a blank page.
+
 ## Standing rules honored meanwhile
 
 - Design/story/character decisions → this queue, with a recommendation,

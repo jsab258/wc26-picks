@@ -270,7 +270,48 @@ is exactly the channel chatterbox is wanted for. A 3,000-line bark bank at
 once. It does not touch live dialogue, and on an NVIDIA card it would be
 roughly ten times faster anyway.
 
-**Still open:** whether any local engine takes direction by either route. If
+### 1i. DECIDED — chatterbox, on the strength of the direction test
+
+Jafar's listening verdicts on chatterbox, 2026-07-28:
+
+| test | verdict |
+|---|---|
+| **direction — BORED vs GRAVE** | **"different with chatterbox"** |
+| emphasis — "That's **your** problem" | "slightly emphasized" |
+| consistency — ten lines, one character | **"was, alive"** |
+| the voice itself | "don't like the actual voice" |
+
+**The engine question is closed.** Direction was the criterion, for the
+reason argued in §1d, and three engines failed it identically while one
+passed. Chatterbox also passed the consistency test in the way that matters:
+piper was *uniform*, chatterbox was **alive**. Emphasis landing "slightly"
+is a partial pass and still strictly more than the zero everything else
+scored.
+
+**Not liking the voice is not an engine problem, and the fix is better than
+choosing from a menu: we do not pick a voice, we define one.** Chatterbox
+clones from ~10 seconds of reference audio, so whatever we record becomes
+Lena. The mood-reference mechanism from §1f then does double duty — the same
+clips carry the casting AND the direction, because `lena.grave.wav` is both
+"this is who she is" and "this is how she sounds when it matters".
+
+Where those clips come from is a decision for Jafar and is queued in
+`decisions-pending.md`, with a recommendation to record our own rather than
+clone a public-domain reader: PD settles copyright and does not settle
+consent, and a volunteer who read a novel aloud did not agree to become a
+character in a crime game.
+
+**XTTS is moot.** Its unique value was cloning; chatterbox clones too. The
+dependency fix is committed, but running it now would buy a comparison
+rather than a decision.
+
+**The shape that follows from all this:**
+
+| Channel | Engine | Why |
+|---|---|---|
+| Barks, ambience, recognition, refusals | **chatterbox, offline** | Directable, alive, ~6 RTF is irrelevant for a one-time batch |
+| Crowd murmur, if we want it live | kokoro | 0.34 RTF on a CPU with no GPU; direction does not matter for a murmur |
+| Named-cast free dialogue | **open** | Decide after the bark bank exists and we know how far cloned voices carry | If
 none does, the fallback is not "pay more" — it is to buy direction
 structurally: generate 2–3 takes per line and pick, use distinct voices per
 emotional register, and lean on the distance filtering and occlusion already
