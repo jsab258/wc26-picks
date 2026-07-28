@@ -338,8 +338,11 @@ namespace Ledger.Game
                 // The LISTENER walks over. Both moving reads as choreography.
                 wa.SetConfabRole(!Confab.ListenerApproaches, leansLeft: true);
                 wb.SetConfabRole(Confab.ListenerApproaches, leansLeft: false);
-                wa.BeginConfab(wb, tie, sensitive, hostile);
-                wb.BeginConfab(wa, tie, sensitive, hostile);
+                // Whether it is about HIM, which is what decides if they
+                // break off when he walks up.
+                bool aboutPlayer = ev.Rumor != null && ev.Rumor.Content.Subject == "player";
+                wa.BeginConfab(wb, tie, sensitive, hostile, aboutPlayer);
+                wb.BeginConfab(wa, tie, sensitive, hostile, aboutPlayer);
                 Confabs++;
                 staged++;
             }

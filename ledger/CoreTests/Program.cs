@@ -6944,6 +6944,36 @@ namespace Ledger.CoreTests
             Check(Confab.WorthStopping(4.0, true, true),
                 "two people already near each other, on foot, with somewhere to stand: "
                 + "that is a conversation");
+
+            // ---- AND THE PART THAT MAKES IT A GAME ----
+            //
+            // A pair who break off and look away as you approach have told
+            // the player something no interface could: they were talking
+            // about HIM, they know he can see them, and they would rather he
+            // did not hear it.
+
+            Check(!Confab.ShouldHush(false, 0.5, 0.5),
+                "a pair discussing the fish price keep talking while he walks straight "
+                + "through them — which is exactly what makes the ones who DON'T mean "
+                + "something");
+            Check(Confab.ShouldHush(true, 1.0, 0.2),
+                "two near-strangers caught talking about him go quiet");
+            Check(!Confab.ShouldHush(true, 30, 0.2),
+                "and nobody stops talking because of somebody on the other side of the "
+                + "district");
+            Check(!Confab.ShouldHush(true, 3.6, 0.95) && Confab.ShouldHush(true, 3.6, 0.05),
+                "a close pair holds its nerve and lets him see them do it — which is "
+                + "its own message, and a worse one — while a loose pair scatters",
+                $"bold breaks at {Confab.HushRadiusMetres * (1 - 0.62):0.0}m, "
+                + $"timid at {Confab.HushRadiusMetres:0.0}m");
+            Check(Confab.HushSeconds > 0.4 && Confab.HushSeconds < 1.5,
+                "and the breaking off takes a beat — a pair that cuts out the frame he "
+                + "crosses a line is a trigger, and a trigger is what this is trying "
+                + "not to be");
+            Check(Confab.HushCooldownSeconds > Confab.MaxSeconds,
+                "nor do they pick the sentence back up when he leaves: somebody caught "
+                + "talking about you moves off, and the street is quieter behind you",
+                $"{Confab.HushCooldownSeconds}s vs a {Confab.MaxSeconds}s confab");
         }
 
         static void TestPhysique()

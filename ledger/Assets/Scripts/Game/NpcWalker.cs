@@ -199,15 +199,49 @@ namespace Ledger.Game
 
         /// Begin one. Called on both halves of a pair, by whoever noticed the
         /// exchange — the walkers do not decide this, the gossip does.
-        public void BeginConfab(NpcWalker other, double tie, bool sensitive, bool hostile)
+        /// `aboutPlayer` is a parameter rather than a property set beforehand
+        /// because it is the one input that decides whether this pair breaks
+        /// off when he walks up, and a flag the caller can forget to set is a
+        /// feature that silently never fires.
+        public void BeginConfab(NpcWalker other, double tie, bool sensitive, bool hostile,
+                                bool aboutPlayer)
         {
             if (other == null || other == this) return;
+            if (Time.time < _confabBlockedUntil) return;
             _talkingTo = other;
+            _confabTie = tie;
+            _confabAboutPlayer = aboutPlayer;
             _confabTotal = (float)Confab.Seconds(tie, sensitive);
             _confabStarted = Time.time;
             _confabUntil = Time.time + _confabTotal;
             _confabDistance = Confab.Distance(tie, sensitive);
             _confabOffAxis = Confab.OffAxis(hostile);
+            _hushing = false;
+        }
+
+        bool _confabAboutPlayer;
+        double _confabTie;
+        bool _hushing;
+        float _confabBlockedUntil;
+
+        /// THE MOMENT THE WHOLE THING IS FOR. A pair who break off as he
+        /// walks up have told him they were talking about him, that they know
+        /// he can see them, and that they would rather he had not heard —
+        /// which no interface could say, and two people stopping does.
+        void CheckHush()
+        {
+            if (_hushing || _talkingTo == null || _player == null) return;
+            float d = Vector3.Distance(transform.position, _player.position);
+            if (!Confab.ShouldHush(_confabAboutPlayer, d, _confabTie)) return;
+            _hushing = true;
+            // They finish the word. A pair that cuts out the frame he crosses
+            // a line is a trigger, and a trigger is what this is not.
+            _confabUntil = Mathf.Min(_confabUntil, Time.time + (float)Confab.HushSeconds);
+            _confabTotal = Mathf.Max(0.01f, _confabUntil - _confabStarted);
+            // And they do not pick it back up when he leaves. Somebody caught
+            // talking about you moves off, and the street is quieter behind
+            // you.
+            _confabBlockedUntil = Time.time + (float)Confab.HushCooldownSeconds;
         }
 
         /// Where this walker wants to stand and face while talking, or false
@@ -262,6 +296,7 @@ namespace Ledger.Game
             // A conversation outranks a schedule. Somebody who walks off
             // mid-sentence because it is nine o'clock is the exact failure
             // this is meant to fix.
+            CheckHush();
             if (ConfabTarget(current, out var standAt, out var faceDir))
             {
                 var step = Vector3.MoveTowards(current, new Vector3(standAt.x, current.y, standAt.z),
@@ -273,7 +308,11 @@ namespace Ledger.Game
                 // The head goes to the person they are talking to, which is
                 // what the off-axis stance leaves room for: the body is
                 // angled and the face is not.
-                if (_body != null) _body.LookAt = _talkingTo.transform;
+                // AND THEY LOOK AWAY. Breaking off while still staring at
+                // each other is two people pausing; breaking off and finding
+                // somewhere else to look is two people who have been caught,
+                // and the second is the one worth the whole feature.
+                if (_body != null) _body.LookAt = _hushing ? null : _talkingTo.transform;
                 DriveBody();
                 return;
             }

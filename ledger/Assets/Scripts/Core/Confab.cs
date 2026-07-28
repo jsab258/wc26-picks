@@ -121,6 +121,49 @@ namespace Ledger.Core
             return metresApart <= StartWithinMetres;
         }
 
+        // ---- and the part that makes it a game ------------------------------
+
+        /// THEY STOP TALKING WHEN YOU WALK UP.
+        ///
+        /// Of everything in this file this is the one that is not decoration.
+        /// A pair of strangers who break off and look away as you approach
+        /// has told the player something no interface could: they were
+        /// talking about HIM, they know he can see them, and they would
+        /// rather he did not hear it. That is the entire emotional content of
+        /// a game whose antagonist is gossip, delivered by two people
+        /// stopping.
+        ///
+        /// And it has to be conditional, or it is a proximity trigger rather
+        /// than a signal. A pair discussing the fish price keep talking while
+        /// he walks straight through them — which is what makes the ones who
+        /// DON'T mean something.
+        public const double HushRadiusMetres = 4.5;
+
+        /// Whether this pair goes quiet. `tie` matters: two people who barely
+        /// know each other scatter at the first sign of being overheard,
+        /// while a close pair will hold a conversation with him standing
+        /// there and let him see them do it — which is its own message, and a
+        /// worse one.
+        public static bool ShouldHush(bool aboutPlayer, double playerMetres, double tie)
+        {
+            if (!aboutPlayer) return false;
+            if (playerMetres > HushRadiusMetres) return false;
+            // Bold pairs hold their nerve until he is almost on top of them.
+            double nerve = Feel.Clamp01(tie);
+            double breakAt = HushRadiusMetres * (1.0 - 0.62 * nerve);
+            return playerMetres <= breakAt;
+        }
+
+        /// How long the breaking-off takes. Not instant: a pair that cuts out
+        /// the frame he crosses a line is a trigger, and a trigger is what
+        /// this is trying not to be. They finish the word.
+        public const double HushSeconds = 0.85;
+
+        /// And afterwards they do not simply resume. Somebody who has been
+        /// caught talking about you does not pick the sentence back up when
+        /// you leave — they move off, and the street is quieter behind you.
+        public const double HushCooldownSeconds = 22;
+
         static double Smooth(double t)
         {
             t = Feel.Clamp01(t);
