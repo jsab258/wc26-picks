@@ -188,7 +188,7 @@ jobs:
           $keys  = ""
           if ($done) {
             $keys = (($done -split " ") | Where-Object {
-              $_ -match "^(coverageOk|openModeForced|endScreen|daysSkipped|actThree|actTwoOk|dayJobStaged|dayJobOk|opened|ending|verdict|pass)="
+              $_ -match "^(coverageOk|openModeForced|endScreen|daysSkipped|actThree|actTwoOk|dayJobStaged|dayJobOk|opened|ending|verdict|pass|lightingOk|scoreOk|scoreSamples|scoreRange|calmUnease|hotUnease|shafts|wet)="
             }) -join " "
           }
           Write-Host "=== LEDGER VERDICT ==="

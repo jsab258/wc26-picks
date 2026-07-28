@@ -1577,7 +1577,18 @@ namespace Ledger.Game
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
                 ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
-                ("lighting", lightingOk), ("score", scoreOk),
+                ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
+                // THE GATE NAME CARRIES ITS OWN NUMBERS. The FAILING GATES
+                // line is the only channel that reliably survives out of CI —
+                // the log tail is a fixed window that post-job cleanup fills,
+                // the artifacts are on a host this environment cannot reach,
+                // and the check-run summary came back empty when it was
+                // needed. A gate that can only say its own name costs a
+                // twenty-minute round trip to learn WHY, which is what this
+                // one cost the first time it fired.
+                ($"score[running={Audio.ScoreRunning} n={_scoreSamples} " +
+                 $"range={_scoreEnergyRange:0.000} calm={_scoreCalmUnease:0.00}@{_scoreCalmestHeat:0.00} " +
+                 $"hot={_scoreHotUnease:0.00}@{_scoreHottestHeat:0.00}]", scoreOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
