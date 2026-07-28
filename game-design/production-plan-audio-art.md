@@ -431,11 +431,27 @@ striking option if budget collapses.
 needs intimacy.
 
 ### If A is chosen, the concrete first pass
-1. Lighting and fog rebuild (free, biggest single visual gain).
-2. Wet-surface materials + reflections (cheap, high production value).
-3. Rain and its audio (cheap, transformative).
-4. Restricted palette enforced across every existing material.
-5. Modular period building/prop packs consistent with the palette.
+1. Lighting and fog rebuild (free, biggest single visual gain). **DONE.**
+2. Wet-surface materials + reflections (cheap, high production value). **DONE.**
+3. Rain and its audio (cheap, transformative). **DONE 2026-07-28** — the
+   first art commit shipped rain you could see and not hear, which is worse
+   than no rain: the eye and the ear disagree and the ear wins.
+4. Restricted palette enforced across every existing material. **DONE
+   2026-07-28** — and it was genuinely missing. The lighting had been moved
+   to noir and the materials left exactly where they started, which is why
+   the world read as generically grey rather than as a chosen palette. All
+   nine surfaces now pull toward blue-grey and darker, verified rather than
+   eyeballed: 9/9 cooled or neutralised, 9/9 darkened. Contrast is a
+   RELATIONSHIP — warm lamps against warm walls is not contrast, so the
+   walls had to give.
+5. Modular period building/prop packs consistent with the palette. **NOT
+   DONE, and on hold** — the character direction moved toward semi-realistic
+   (Mixamo) on 2026-07-28, and stylised low-poly buildings would clash with
+   that. Buying environment art before the character look is settled would
+   be paying for a mismatch.
+
+Still outstanding from §4's own list: **film grain, vignette, and bloom on
+light sources.** Named in the art direction and not built.
 
 ---
 

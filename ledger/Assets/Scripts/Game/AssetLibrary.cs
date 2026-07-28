@@ -183,15 +183,30 @@ namespace Ledger.Game
             SurfaceSpec s;
             switch (logical)
             {
-                case AssetLibrary.Asphalt:  s = Make(new Color(0.20f,0.20f,0.22f), 0.18f, 0f, new Vector2(6,6),  "noise"); break;
-                case AssetLibrary.Sidewalk: s = Make(new Color(0.55f,0.55f,0.55f), 0.10f, 0f, new Vector2(8,8),  "slab");  break;
-                case AssetLibrary.Kerb:     s = Make(new Color(0.62f,0.60f,0.56f), 0.12f, 0f, new Vector2(2,2),  "noise"); break;
-                case AssetLibrary.BrickRed: s = Make(new Color(0.52f,0.30f,0.24f), 0.08f, 0f, new Vector2(3,4),  "brick"); break;
-                case AssetLibrary.BrickGrey:s = Make(new Color(0.45f,0.44f,0.43f), 0.08f, 0f, new Vector2(3,4),  "brick"); break;
-                case AssetLibrary.Plaster:  s = Make(new Color(0.66f,0.62f,0.55f), 0.06f, 0f, new Vector2(2,3),  "noise"); break;
-                case AssetLibrary.Concrete: s = Make(new Color(0.48f,0.48f,0.49f), 0.10f, 0f, new Vector2(2,3),  "noise"); break;
-                case AssetLibrary.Wood:     s = Make(new Color(0.36f,0.25f,0.16f), 0.20f, 0f, new Vector2(1,2),  "plank"); break;
-                case AssetLibrary.Roof:     s = Make(new Color(0.22f,0.21f,0.20f), 0.12f, 0.1f, new Vector2(4,4),"noise"); break;
+                // PALETTE SWEEP (art plan §4, "restricted palette enforced
+                // across every existing material") — the one item of the
+                // concrete first pass that the art commit never did. The
+                // lighting was moved to stylised noir and the materials were
+                // left where they had always been, which is why the world
+                // read as generically grey rather than as a chosen palette.
+                //
+                // The rule, applied uniformly: pull everything toward
+                // BLUE-GREY and DESATURATE it, so the only warm things in the
+                // frame are the sodium lamps and the neon. Contrast is the
+                // whole look, and contrast is a relationship — you cannot get
+                // it by making the lights warmer if the walls are warm too.
+                // Brick keeps the most of its own colour because a street
+                // with no red left in it stops being a place and becomes a
+                // mood board.
+                case AssetLibrary.Asphalt:  s = Make(new Color(0.16f,0.17f,0.20f), 0.18f, 0f, new Vector2(6,6),  "noise"); break;
+                case AssetLibrary.Sidewalk: s = Make(new Color(0.42f,0.44f,0.48f), 0.10f, 0f, new Vector2(8,8),  "slab");  break;
+                case AssetLibrary.Kerb:     s = Make(new Color(0.46f,0.47f,0.49f), 0.12f, 0f, new Vector2(2,2),  "noise"); break;
+                case AssetLibrary.BrickRed: s = Make(new Color(0.40f,0.26f,0.24f), 0.08f, 0f, new Vector2(3,4),  "brick"); break;
+                case AssetLibrary.BrickGrey:s = Make(new Color(0.35f,0.36f,0.39f), 0.08f, 0f, new Vector2(3,4),  "brick"); break;
+                case AssetLibrary.Plaster:  s = Make(new Color(0.50f,0.50f,0.50f), 0.06f, 0f, new Vector2(2,3),  "noise"); break;
+                case AssetLibrary.Concrete: s = Make(new Color(0.37f,0.39f,0.42f), 0.10f, 0f, new Vector2(2,3),  "noise"); break;
+                case AssetLibrary.Wood:     s = Make(new Color(0.28f,0.22f,0.18f), 0.20f, 0f, new Vector2(1,2),  "plank"); break;
+                case AssetLibrary.Roof:     s = Make(new Color(0.17f,0.18f,0.20f), 0.12f, 0.1f, new Vector2(4,4),"noise"); break;
                 case AssetLibrary.Metal:    s = Make(new Color(0.30f,0.31f,0.33f), 0.55f, 0.9f, new Vector2(1,1),"flat");  break;
                 case AssetLibrary.Glass:    s = Make(new Color(0.20f,0.28f,0.32f), 0.90f, 0.2f, new Vector2(1,1),"flat");
                                             s.Emission = new Color(0.05f,0.06f,0.08f); break;

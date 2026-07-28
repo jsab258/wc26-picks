@@ -67,6 +67,83 @@ namespace Ledger.Game
 
         static float _trafficCeiling = 0.30f;
 
+        /// RAIN, which the art pass shipped without. A downpour you can see
+        /// and cannot hear is worse than no rain at all, because the eye and
+        /// the ear disagree and the ear wins — the scene reads as a video
+        /// playing behind glass.
+        ///
+        /// Two layers, because rain is two sounds. A broad hiss that is the
+        /// sum of a million drops too far away to resolve, and a sparser
+        /// patter of the ones landing near you. Crossfading between them with
+        /// intensity is what makes a drizzle sound like a drizzle rather than
+        /// like a quiet downpour.
+        static AudioSource _rain, _rainNear;
+
+        public static void Rain(float intensity, float indoors = 0f)
+        {
+            if (_root == null) return;
+            intensity = Mathf.Clamp01(intensity);
+            if (_rain == null)
+            {
+                _rain = Make("Rain", loop: true);
+                _rainNear = Make("RainNear", loop: true);
+            }
+            if (intensity <= 0.01f)
+            {
+                if (_rain.isPlaying) _rain.Stop();
+                if (_rainNear.isPlaying) _rainNear.Stop();
+                return;
+            }
+            if (_rain.clip == null) _rain.clip = Clip("rain_bed", () => RainBed(false));
+            if (_rainNear.clip == null) _rainNear.clip = Clip("rain_near", () => RainBed(true));
+            if (!_rain.isPlaying) _rain.Play();
+            if (!_rainNear.isPlaying) _rainNear.Play();
+
+            var s = GameSettings.Current;
+            float gain = (1f - 0.72f * Mathf.Clamp01(indoors)) * s.MasterVolume * s.SfxVolume;
+            // The bed comes up fast and saturates; the near patter only
+            // arrives once it is really raining. A shower and a storm differ
+            // mostly in how much of the near layer you get.
+            _rain.volume = Mathf.Sqrt(intensity) * 0.34f * gain;
+            _rainNear.volume = Mathf.Clamp01((intensity - 0.25f) / 0.75f) * 0.28f * gain;
+            _rain.pitch = 0.94f + 0.12f * intensity;
+        }
+
+        /// `near` gives the sparse, bright, individual drops; otherwise the
+        /// broad hiss. Both are noise, but shaped completely differently —
+        /// which is the whole point, because one noise source at two volumes
+        /// is what makes fake rain sound like static.
+        static AudioClip RainBed(bool near)
+        {
+            int len = SampleRate * 4;                    // loops seamlessly below
+            var data = new float[len];
+            var rng = new System.Random(near ? 7717 : 313);
+            float lp = 0, hp = 0;
+            for (int i = 0; i < len; i++)
+            {
+                float n = (float)(rng.NextDouble() * 2 - 1);
+                if (near)
+                {
+                    // Sparse impulses: most samples are silent, a few are
+                    // sharp. That sparseness is what the ear hears as
+                    // individual drops rather than as hiss.
+                    float drop = rng.NextDouble() < 0.0016 ? n * 1.6f : 0f;
+                    lp += (drop - lp) * 0.55f;
+                    hp = lp - hp * 0.25f;
+                    data[i] = hp * 0.9f;
+                }
+                else
+                {
+                    // Broadband, slightly darkened. Real rain is not white
+                    // noise; the high end is eaten by air and by distance.
+                    lp += (n - lp) * 0.38f;
+                    data[i] = lp * 0.5f;
+                }
+            }
+            CrossfadeEnds(data, SampleRate / 4);
+            return Make(near ? "rain_near" : "rain_bed", data);
+        }
+
         /// The nearest engine, as heard from where the player is standing.
         /// `loudness` is 0..1 by proximity and speed; 0 stops the bed entirely.
         ///

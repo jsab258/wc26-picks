@@ -121,6 +121,14 @@ namespace Ledger.Game
                 em.rateOverTime = Rain * 2200f;
             }
 
+            // AND YOU CAN HEAR IT. The art pass shipped a downpour you could
+            // only see, which is worse than no rain at all: the eye and the
+            // ear disagree and the ear wins, so the scene reads as footage
+            // playing behind glass. Indoors ducks it, because the clearest
+            // signal that you have stepped inside is that the weather gets
+            // quieter.
+            Audio.Rain(Rain, RoomTone.Current == Ledger.Core.SpaceKind.Outdoors ? 0f : 0.8f);
+
             ApplyWetness();
         }
 
