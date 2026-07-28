@@ -444,6 +444,37 @@ unwashed money buys the drink and the flour. Two readings:
 **Built:** the line is in Wallet.cs — the drayman is a grey counterparty
 and the fiction says so; the next audit reads intent, not an oversight.
 
+## M15 — the immersion milestone, and one purchase (2026-07-28)
+
+Playtest note: *"overall feel is very text heavy / text adventure like...
+the goal is real-feeling characters (KCD2 did well, improve with LLMs)."*
+
+Full proposal in `m15-the-world-speaks.md`. The diagnosis in one line: we
+built a causal gossip simulation and hid it behind a text panel —
+`ReportOverheard` already detects two NPCs trading a rumour about you six
+metres away, and its entire output is a row in the ledger. The player
+hears nothing.
+
+**Proceeding without asking on M15.1 and M15.2** (system work, no
+purchases): make the city audible — overheard exchanges become generated
+speech in the speakers' voices, ambient NPC-to-NPC conversation, chatter
+volume as the heat meter, recognition barks you can stop and interrogate;
+then bodies that perceive you — gaze, the notice/watch/comment/avoid/
+refuse/confront ladder, occupation stations.
+
+**NEEDS YOU — M15.4, real bodies.** Character models plus an animation set
+(idle/walk/work/talk/react) and gaze rigging. Capsules undermine every hour
+spent on gaze and reaction, because there is nothing to read them on. This
+is an asset-store PURCHASE and therefore yours by standing rule. Options:
+a character system (Character Creator-class pipeline) plus an animation
+library, or a cheaper stylised character pack if we want to lean away from
+realism. Say the word and I will spec exact candidates and prices rather
+than buying anything.
+
+**Also needs you eventually:** M15.3 deletes the ledger panel and the
+toasts in favour of Marek's actual book as a prop. That removes things
+that currently "work", so I will not do it until you have seen M15.1-2.
+
 ## Standing rules honored meanwhile
 
 - Design/story/character decisions → this queue, with a recommendation,
