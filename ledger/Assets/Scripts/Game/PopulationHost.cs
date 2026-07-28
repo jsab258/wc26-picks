@@ -61,6 +61,9 @@ namespace Ledger.Game
         readonly Dictionary<string, NpcWalker> _crowdWalkers = new Dictionary<string, NpcWalker>();
         /// The crowd's live walker count, for the sim's budget gate (P5).
         public int CrowdWalkerCount => _crowdWalkers.Count;
+        /// Every crowd body, by resident id — the street the gossip director
+        /// makes audible and reactive (M15).
+        public IEnumerable<KeyValuePair<string, NpcWalker>> CrowdBodies => _crowdWalkers;
         float _nextReband;
         /// The day the current talk about the player started circulating, for
         /// the ambient reach calculation. -1 when the street is quiet.

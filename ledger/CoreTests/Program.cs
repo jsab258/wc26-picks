@@ -44,6 +44,7 @@ namespace Ledger.CoreTests
                 TestValidatorScalars();
                 TestActOne();
                 TestDistrictPulse();
+                TestStreetVoice();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -374,6 +375,78 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestStreetVoice()
+        {
+            Console.WriteLine("Street voice — the simulation, out loud (M15.1):");
+            var now = new GameTime(4, 14, 0);
+            var g = new SocialGraph();
+            var mill = new GossipMill(g);
+            var teller = new Gossiper("rocco", "Rocco", new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night", 0.5, 0.4, 0.5);
+            var hearer = new Gossiper("ada", "Ada", new MemoryStore("ada"), new KnowledgeBase(), new SuspicionTracker(), "day", 0.3, 0.3, 0.8);
+            mill.Add(teller); mill.Add(hearer);
+            mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
+                "the new owner was at the old warehouse the night of the fire", true, now, 0.9);
+            var rumor = teller.Best("player.location_d2_evening");
+
+            // THE LINE IS THE RUMOUR. Not a canned bark: the words carry the
+            // actual story, which is why overhearing it teaches the player
+            // exactly what the ledger row used to.
+            var said = StreetVoice.Exchange(rumor, teller, hearer, seed: 0);
+            Check(said.Count == 2, "an exchange is two people, not an announcement");
+            Check(said[0].Text.Contains("warehouse") && said[0].SpeakerId == "rocco",
+                "the teller says the thing they actually know", said[0].Text);
+            Check(said[0].AboutPlayer && said[0].Source == rumor,
+                "and the line carries its rumour, so hearing it IS learning it");
+            Check(said[1].SpeakerId == "ada" && said[1].Text.Length > 0,
+                "the hearer answers in their own character", said[1].Text);
+
+            // A shaky story is told as a shaky story.
+            var doubt = new Rumor
+            {
+                Content = new Fact("player", "night_walk", "seen"), OriginId = "ada",
+                Summary = "he keeps hours nobody keeps", Confidence = 0.3, Sensitive = true,
+            };
+            var weak = StreetVoice.Exchange(doubt, teller, hearer, seed: 0);
+            Check(weak[0].Text != said[0].Text, "certainty changes how a thing is said", weak[0].Text);
+
+            // THE LADDER. Every rung is a number the player used to read in a
+            // panel and can now watch happen.
+            Check(StreetVoice.Stance(0.0, 0.5, 0.0, false, false) == StanceKind.Indifferent,
+                "a stranger with nothing on you is a person in the street");
+            Check(StreetVoice.Stance(0.95, 0.1, 0.95, false, false) >= StanceKind.Refuses,
+                "somebody certain of the worst will not deal with you");
+            var friend = StreetVoice.Stance(0.6, 0.95, 0.6, false, false);
+            var stranger = StreetVoice.Stance(0.6, 0.2, 0.6, false, false);
+            Check(friend < stranger,
+                "a friend asks you about it where a stranger crosses the street",
+                $"{friend} vs {stranger}");
+            Check(StreetVoice.Stance(0.6, 0.2, 0.6, leashed: true, wearingCoat: false) != StanceKind.Comments,
+                "a leashed mouth watches without speaking");
+            Check(StreetVoice.GazeMetres(StanceKind.Indifferent) == 0
+                  && StreetVoice.GazeMetres(StanceKind.Watches) > StreetVoice.GazeMetres(StanceKind.Notices),
+                "and the more they care the further off they pick you out");
+
+            // AMBIENT LIFE: the city talking about itself, which is what makes
+            // it feel older than the player.
+            var dear = StreetVoice.Ambient(teller, hearer, now, prosperity: 0.5, priceLevel: 1.3,
+                aInjured: false, feuding: false, seed: 0);
+            Check(dear.Count == 2 && !dear[0].AboutPlayer, "ambient talk is not about you");
+            Check(dear[0].Text.Contains("up") || dear[0].Text.Contains("dearer") || dear[0].Text.Contains("less"),
+                "a dear street complains about prices", dear[0].Text);
+            var poor = StreetVoice.Ambient(teller, hearer, now, prosperity: 0.2, priceLevel: 1.0, false, false, 0);
+            Check(poor[0].Text != dear[0].Text, "a poor one complains about something else", poor[0].Text);
+            var sore = StreetVoice.Ambient(teller, hearer, now, 0.5, 1.0, aInjured: true, feuding: false, seed: 0);
+            Check(sore[0].Text != dear[0].Text && sore[0].Text != poor[0].Text,
+                "and a hurt man talks about the wound", sore[0].Text);
+
+            // Volume as temperature: the readout the status line should stop
+            // needing to print.
+            Check(StreetVoice.ChatterLevel(0.9, 6) > StreetVoice.ChatterLevel(0.1, 6),
+                "a hot street is a loud street");
+            Check(StreetVoice.ChatterLevel(0.9, 0) < 0.01, "an empty one is quiet whatever is being said elsewhere");
+            Check(StreetVoice.AmbientEverySeconds(0.5, 1) > 1e9, "one person alone does not hold a conversation");
         }
 
         static void TestDistrictPulse()

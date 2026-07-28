@@ -55,7 +55,8 @@ namespace Ledger.Game
         {
             if (_root == null) return;
             var s = GameSettings.Current;
-            if (_ambience != null) _ambience.volume = 0.35f * s.MasterVolume * s.MusicVolume;
+            if (_ambience != null)
+                _ambience.volume = (0.28f + 0.34f * _chatter) * s.MasterVolume * s.MusicVolume;
             if (_music != null) _music.volume = 0.22f * s.MasterVolume * s.MusicVolume * (_ducked ? 0.35f : 1f);
             if (_ui != null) _ui.volume = 0.6f * s.MasterVolume * s.SfxVolume;
             if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume;
@@ -172,6 +173,17 @@ namespace Ledger.Game
             }
             CrossfadeEnds(data, SampleRate);
             return Make(night ? "music_night" : "music_day", data);
+        }
+
+        /// M15.1 — THE STREET'S VOLUME IS ITS TEMPERATURE. A hot street is a
+        /// talkative one, and the player should learn to read the noise rather
+        /// than a word in a status line. Rides on top of the ambience bed so
+        /// it costs nothing but a gain change.
+        static float _chatter;
+        public static void SetChatter(float level)
+        {
+            _chatter = Mathf.Clamp01(level);
+            ApplyVolumes();
         }
 
         public static void Footstep()

@@ -96,13 +96,43 @@ namespace Ledger.Game
             return target;
         }
 
+        // ---- M15.2: being perceived ----
+        //
+        // The stance is computed in Core from state the player could only read
+        // in a panel; here it becomes something they can WATCH. A body that
+        // turns to follow you across a street says "they have heard about the
+        // warehouse" better than any readout, and it says it while you are
+        // busy doing something else.
+        public StanceKind Stance = StanceKind.Indifferent;
+        Transform _player;
+        float _nextAvoidStep;
+
+        public void SetPlayer(Transform player) => _player = player;
+
         public void Tick(GameTime now)
         {
             var target = TargetFor(now);
             var current = transform.position;
+
+            // Somebody who wants nothing to do with you puts distance between
+            // you — the ladder's "avoids" rung, expressed as walking away
+            // rather than as a word in a book.
+            if (_player != null && Stance >= StanceKind.Avoids && Stance < StanceKind.Confronts)
+            {
+                float toPlayer = Vector3.Distance(current, _player.position);
+                if (toPlayer < 7f && Time.time > _nextAvoidStep)
+                {
+                    _nextAvoidStep = Time.time + 2.5f;
+                    var away = (current - _player.position); away.y = 0;
+                    if (away.sqrMagnitude > 0.01f)
+                        target = current + away.normalized * 9f;
+                }
+            }
+
             var flatTarget = new Vector3(target.x, current.y, target.z);
 
-            if ((flatTarget - current).sqrMagnitude > 0.04f)
+            bool moving = (flatTarget - current).sqrMagnitude > 0.04f;
+            if (moving)
             {
                 var waypoint = Steer(current, flatTarget);
                 var next = Vector3.MoveTowards(current, waypoint, MoveSpeed * Time.deltaTime);
@@ -110,6 +140,21 @@ namespace Ledger.Game
                 var dir = waypoint - current; dir.y = 0;
                 if (dir.sqrMagnitude > 0.001f)
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
+            }
+
+            // GAZE. How far off somebody picks you out is how much they have
+            // heard — and standing still to look at you is the cheapest, most
+            // legible signal in the game.
+            if (_player != null && !moving)
+            {
+                float gaze = (float)StreetVoice.GazeMetres(Stance);
+                if (gaze > 0.5f)
+                {
+                    var toYou = _player.position - current; toYou.y = 0;
+                    if (toYou.sqrMagnitude > 0.04f && toYou.magnitude <= gaze)
+                        transform.rotation = Quaternion.Slerp(transform.rotation,
+                            Quaternion.LookRotation(toYou), 3.5f * Time.deltaTime);
+                }
             }
 
             // A NAME IS NOT A NAMEPLATE. Every walker used to carry its name in

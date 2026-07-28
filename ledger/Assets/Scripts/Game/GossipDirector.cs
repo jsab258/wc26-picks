@@ -136,6 +136,12 @@ namespace Ledger.Game
         {
             if (_mill == null || _game == null) return;
 
+            // The street talks about itself on the REAL clock, not the gossip
+            // tick — a conversation is a thing that takes seconds, not game
+            // hours (M15.1).
+            TickAmbient();
+            TickStances();
+
             var now = _game.Now;
             if (!_haveLastTick) { _lastTickAt = now; _haveLastTick = true; return; }
             _timer += MinutesBetween(_lastTickAt, now);
@@ -166,6 +172,120 @@ namespace Ledger.Game
         public int Overheard { get; private set; }
         const float EarshotRange = 6f;
 
+        System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay, Color colour, float hold)
+        {
+            if (delay > 0) yield return new WaitForSeconds(delay);
+            if (who != null) SpeechBubble.Say(who.transform, line, hold, colour);
+        }
+
+        /// M15.2 — WHO IS PERCEIVING YOU, and how. Recomputed on a slow
+        /// cadence (stances change on the scale of rumours, not frames) and
+        /// pushed onto the bodies, which express it as gaze and distance.
+        float _nextStance;
+        readonly Dictionary<string, float> _lastBark = new Dictionary<string, float>();
+
+        /// Every body on the street: the authored cast AND the crowd, which
+        /// is most of it. The cast is keyed in the mill by display name and a
+        /// promoted resident by id, so the lookup has to try both — a street
+        /// where only the six named people react is not a street.
+        IEnumerable<(NpcWalker walker, Gossiper agent)> LiveBodies()
+        {
+            foreach (var kv in _walkers)
+            {
+                var g = kv.Value != null ? _mill.Get(kv.Value.DisplayName) : null;
+                if (g != null) yield return (kv.Value, g);
+            }
+            if (_game.CrowdBodies != null)
+                foreach (var kv in _game.CrowdBodies)
+                {
+                    if (kv.Value == null) continue;
+                    var g = _mill.Get(kv.Key);
+                    if (g != null) yield return (kv.Value, g);
+                }
+        }
+
+        void TickStances()
+        {
+            if (Time.time < _nextStance) return;
+            _nextStance = Time.time + 1.5f;
+            var player = _game.Player;
+            if (player == null) return;
+
+            foreach (var (w, g) in LiveBodies())
+            {
+                if (w == null || g == null) continue;
+                w.SetPlayer(player.transform);
+
+                Rumor strongest = null;
+                foreach (var r in g.Rumors)
+                    if (r.Content.Subject == "player" && (strongest == null || r.Confidence > strongest.Confidence))
+                        strongest = r;
+
+                var stance = StreetVoice.Stance(g.Suspicion.Value, g.Loyalty,
+                    strongest != null ? strongest.Confidence : 0.0, g.Leashed, _game.WearingCoat);
+                w.Stance = stance;
+
+                // A bark as you pass: said BY somebody who holds a story, and
+                // stoppable — press E and they can be asked what they meant,
+                // because the same rumour is sitting in their memory.
+                if (stance < StanceKind.Comments) continue;
+                float d = Vector3.Distance(player.transform.position, w.transform.position);
+                if (d > 7f) continue;
+                float last = _lastBark.TryGetValue(g.Id, out var t) ? t : -999f;
+                if (Time.time - last < 45f) continue;
+                _lastBark[g.Id] = Time.time;
+                var line = StreetVoice.Recognition(g, strongest, stance, _game.Now.Day * 7 + _game.Now.Hour);
+                if (line != null)
+                    SpeechBubble.Say(w.transform, line.Text, 5f,
+                        stance >= StanceKind.Refuses ? UiTheme.Debit : UiTheme.AmberSoft);
+            }
+        }
+
+        /// M15.1 — AMBIENT LIFE. The city talking about ITSELF: debts, prices,
+        /// a wound that will not heal, the weather. None of it is about the
+        /// player, which is exactly why it matters — a place that only ever
+        /// discusses you is a stage set, not a city.
+        float _nextAmbient;
+
+        void TickAmbient()
+        {
+            var player = _game.Player;
+            if (player == null || _mill == null) return;
+
+            // Who is near enough to be heard at all.
+            var near = new List<(NpcWalker w, Gossiper g)>();
+            foreach (var (w, g) in LiveBodies())
+                if (Vector3.Distance(player.transform.position, w.transform.position) <= 14f) near.Add((w, g));
+
+            double heat = _mill.DayCircleHeat();
+            Audio.SetChatter((float)StreetVoice.ChatterLevel(heat, near.Count));
+            double every = StreetVoice.AmbientEverySeconds(heat, near.Count);
+            if (every > 1e8) return;                       // nobody to talk with
+            if (Time.time < _nextAmbient) return;
+            _nextAmbient = Time.time + (float)every;
+
+            // Two of them, standing near each other, out of the player's way.
+            NpcWalker a = null, b = null;
+            Gossiper ga = null, gb = null;
+            float best = float.MaxValue;
+            for (int i = 0; i < near.Count; i++)
+                for (int j = i + 1; j < near.Count; j++)
+                {
+                    float d = Vector3.Distance(near[i].w.transform.position, near[j].w.transform.position);
+                    if (d < best && d < 7f)
+                    { best = d; a = near[i].w; b = near[j].w; ga = near[i].g; gb = near[j].g; }
+                }
+            if (a == null || b == null || ga == null || gb == null) return;
+
+            bool hurt = _game.Harm != null && _game.Harm.Hurts(ga.Id, _game.Now.Day).Count > 0;
+            bool feud = _game.Harm != null && _game.Harm.FeudBetween(ga.Id, gb.Id) != null;
+            int seed = _game.Now.Day * 17 + _game.Now.Hour * 3 + near.Count;
+            var lines = StreetVoice.Ambient(ga, gb, _game.Now,
+                _game.Economy.Prosperity, _game.Economy.PriceLevel, hurt, feud, seed);
+            for (int i = 0; i < lines.Count; i++)
+                StartCoroutine(SayAfter(i == 0 ? a : b, lines[i].Text, i * 2.4f, UiTheme.Dim, 5.5f));
+        }
+
         void ReportOverheard(List<GossipEvent> events)
         {
             var player = _game.Player;
@@ -178,6 +298,23 @@ namespace Ledger.Game
                 var p = player.transform.position;
                 if (Vector3.Distance(p, wa.transform.position) > EarshotRange) continue;
                 if (Vector3.Distance(p, wb.transform.position) > EarshotRange) continue;
+
+                // M15.1: SAY IT. This is the moment the whole gossip network
+                // exists for, and until now the game answered it by adding a
+                // row to a panel the player had to press L to read. Two people
+                // are discussing him six metres away; they should be audible.
+                var fromG = _mill.Get(ev.FromId);
+                var toG = _mill.Get(ev.ToId);
+                int seed = _game.Now.Day * 31 + _game.Now.Hour;
+                var spoken = StreetVoice.Exchange(ev.Rumor, fromG, toG, seed);
+                for (int i = 0; i < spoken.Count; i++)
+                {
+                    var w = i == 0 ? wa : wb;
+                    // The reply lands a beat after the telling, the way a
+                    // conversation does.
+                    StartCoroutine(SayAfter(w, spoken[i].Text, i * 2.1f, UiTheme.AmberSoft, 6.5f));
+                }
+                Audio.Ui("page");   // the sound of the street noticing you
 
                 _game.Knowledge.Learn(new Lead
                 {
