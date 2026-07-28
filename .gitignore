@@ -15,3 +15,13 @@ ledger/UserSettings/
 # Local self-test output.
 ledger/sim-out/
 sim-run/
+
+# TTS benchmark: per-engine venvs, downloaded models, generated audio. Multi-GB
+# and machine-specific — the script rebuilds all of it on demand.
+tools/tts-benchmark/.venv-*/
+tools/tts-benchmark/models/
+tools/tts-benchmark/refs/
+tools/tts-benchmark/ledger-tts-out/
+
+# Python scratch.
+__pycache__/

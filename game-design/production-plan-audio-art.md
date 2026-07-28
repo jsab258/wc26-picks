@@ -87,6 +87,63 @@ directed from the simulation.
 6. **Local model acceptable?** Adds GPU requirement and ~1–3GB install, in
    exchange for zero runtime cost and offline play.
 
+### 1d. BENCHMARK RESULT #1 — piper, the control case: FAILED (2026-07-28)
+
+Jafar ran the benchmark and listened. Verbatim:
+
+> "very obviously synthetic, no emphasis, very unnatural"
+
+Per test:
+
+| test | result | reading |
+|---|---|---|
+| consistency (10 lines, one character) | *"consistent but literally all of them sound the same"* | passed **degenerately** — uniformity, not character |
+| direction (same line BORED vs GRAVE) | *"same"* | **total failure**, the most important result on this page |
+| emphasis ("That's **your** problem") | *"no stress"* | failure |
+| numbers ($120, day 8) | *"read correctly"* | pass — but table stakes |
+| long dialogue | *"doesn't change but I wouldn't call it alive"* | flat |
+| speed | median RTF **0.04** on CPU | 25× faster than real time |
+
+**This is exactly what the control case is for.** Piper was included to set a
+floor: *if something more expensive is not audibly better than this, it is
+not worth its cost.* We now have that floor, and it is measured rather than
+guessed.
+
+**What it proves, beyond piper.** Look at which tests failed: direction,
+emphasis, aliveness. Those are precisely the tells listed in §1b, and they
+are all the same underlying thing — **a model that maps text to phonemes
+cannot be directed.** Piper has no input for how a line is meant to be said,
+so it was never going to pass tests 2, 3 and 5. Its speed proves the same
+point from the other side: 0.04 RTF is cheap because the model is not
+reasoning about delivery at all.
+
+**Therefore the decisive criterion is no longer quality-in-general — it is
+whether an engine takes direction.** That single property is what makes our
+unfair advantage (§1b: the game already knows how every speaker feels) worth
+anything. A gorgeous engine that ignores direction gives us pre-recorded
+voice acting with extra steps; a merely good engine that takes direction
+gives us something no recorded cast can do.
+
+Benchmark v5 is rebuilt around that:
+
+- **chatterbox** added, specifically because it exposes an `exaggeration`
+  control. The bench now maps every case's stage direction to a scalar, with
+  BORED at 0.25 and GRAVE at 0.8, so the headline test is a real A/B.
+- **kokoro and xtts made to actually run.** They installed but never loaded:
+  kokoro was missing `misaki[en]` (its phonemiser, which also bundles
+  espeak-ng so Windows needs no MSI), and xtts refused to synthesise without
+  reference clips when it ships ~58 built-in speakers. Both were my bugs.
+- **One venv per engine**, because these packages pin conflicting torch
+  versions and installing one silently broke the next.
+- **eleven** available opt-in as a paid ceiling reference, so "is local good
+  enough" is answered against a real upper bound rather than an argument.
+
+**Still open, pending the next run:** whether any local engine takes
+direction. If none does, the fallback is not "pay more" — it is to buy
+direction structurally: generate 2–3 takes per line and pick, use distinct
+voices per emotional register, and lean on the distance filtering and
+occlusion in the game-feel spec to hide the seams.
+
 ---
 
 ## 2. Character models + animation — "ok, how?"

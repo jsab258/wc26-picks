@@ -4,24 +4,45 @@ LEDGER — local TTS benchmark.  ONE FILE.  Download it, run it.
 
     python ledger_tts_bench.py
 
-That is the whole thing. It checks what is installed, offers to install what
-is missing, generates the audio, and tells you what to listen for. No repo,
-no config, no other files.
+That is the whole thing. It builds a separate clean environment PER ENGINE,
+installs what that engine needs, generates the audio, and tells you what to
+listen for. No repo, no config, no other files.
 
 Options (all optional):
-    --yes            install missing engines without asking
-    --engine kokoro  just one engine (kokoro | xtts | piper)
-    --quick          fewer lines, faster pass
-    --no-open        do not open the output folder at the end
+    --engine kokoro         one engine, or a list: --engine kokoro,chatterbox
+    --yes                   don't ask before installing
+    --quick                 fewer lines
+    --no-open               don't open the output folder
+    --keep-going            don't stop when one engine fails
+
+WHY EACH ENGINE IS HERE
+
+  kokoro      small, fast, American English. The live-dialogue bet: if this
+              is good enough we can voice speech AS IT HAPPENS, which is the
+              whole reason to do this locally at all.
+  chatterbox  the answer to what piper failed. It has an explicit
+              EXAGGERATION control, so the game can say "grave" or "bored"
+              and have the model actually do it. Also clones a voice from
+              ~10 seconds of reference.
+  xtts        voice CLONING. If its clones hold up, the seam between
+              pre-generated barks and live lines disappears.
+  piper       CPU-only, very fast, lower ceiling. THE CONTROL CASE — already
+              run, already judged: "very obviously synthetic, no emphasis,
+              very unnatural." That is the floor. Anything that is not
+              audibly better than piper is not worth its cost.
+  eleven      OPT-IN paid reference (free tier is enough for this test).
+              Never runs unless you ask for it AND set ELEVENLABS_API_KEY.
+              It is here to calibrate the ceiling: if local is close, we
+              ship local; if the gap is huge, we know what we are giving up.
 
 WHAT THIS IS DECIDING, in order of importance:
 
   1. CONSISTENCY — ten lines, one character, back to back. A model that
-     cannot make them sound like ONE PERSON cannot voice a character however
-     good any single line is. This decides the whole voice architecture.
+     cannot make them sound like ONE PERSON cannot voice a character.
   2. DIRECTION — the same sentence, once bored, once grave. Our advantage
      over recorded barks is that the game always knows how the speaker
-     feels; a model that ignores direction throws that away.
+     feels; a model that ignores direction throws that away. Piper scored
+     zero here. This is now the headline test.
   3. SPEED — real-time factor. Under ~0.35 we can voice live dialogue with
      no perceptible wait. Over ~1.0 it is offline-only.
   4. FOOTPRINT — VRAM, because this ships to players.
@@ -31,19 +52,24 @@ you nothing.
 """
 
 import argparse
+import json
 import os
 import statistics
 import subprocess
 import sys
 import time
+import traceback
 import wave
 from pathlib import Path
 
 # Bumped on every change. Printed at startup so a stale copy in the Downloads
 # folder announces itself instead of reproducing an old failure exactly.
-VERSION = "2026-07-28.4  (clean-venv bootstrap, piper API drift, real errors)"
+VERSION = "2026-07-28.5  (one venv per engine, kokoro+xtts actually load, chatterbox added)"
 
-OUT = Path(__file__).parent / "ledger-tts-out"
+HERE = Path(__file__).resolve().parent
+OUT = HERE / "ledger-tts-out"
+
+TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu126"
 
 # --------------------------------------------------------------- the lines
 
@@ -54,6 +80,8 @@ VOICES = {
     "crowd_m": "An anonymous man on the street.",
     "crowd_f": "An anonymous woman on the street.",
 }
+
+FEMALE = ("lena", "mara", "crowd_f")
 
 CASES = [
     ("bark_overheard_certain", "rocco", "low, leaning in, certain of what he saw",
@@ -98,90 +126,57 @@ CONSISTENCY = [
     "So which is it going to be?",
 ]
 
+# Direction is a sentence written for a human actor. Engines that take a
+# scalar need it turned into a number, and the two same_line cases have to
+# land at opposite ends or the test proves nothing.
+_FLAT = ("bored", "offhand", "resigned", "shrug", "unconvinced", "procedural",
+         "no drama", "not hostile", "neutral")
+_HOT = ("grave", "certain", "warning", "serious", "menace", "cold", "leaning in")
+
+
+def intensity(direction):
+    """0 = flat delivery, 1 = fully committed. Used by engines with a knob."""
+    d = (direction or "").lower()
+    if any(k in d for k in _FLAT):
+        return 0.25
+    if any(k in d for k in _HOT):
+        return 0.8
+    return 0.5
+
+
 # --------------------------------------------------------------- utilities
 
 def say(msg=""):
     print(msg, flush=True)
 
 
-def in_venv():
-    return sys.prefix != sys.base_prefix
+def rule(msg):
+    say("\n" + "=" * 66)
+    say(msg)
+    say("=" * 66)
 
 
 def venv_python(venv_dir):
     return venv_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def bootstrap_clean_env(assume_yes):
-    """Build our own environment and re-run inside it.
-
-    THE REASON: installing TTS engines into whatever interpreter happens to
-    be on PATH means fighting whatever is already there. Jafar's miniconda
-    base carried a years-old torch (pytorch-lightning 1.7.6), and every
-    modern engine failed with `cannot import name 'DTensor'` — a version
-    conflict that has nothing to do with the engines and cannot be fixed by
-    reinstalling them. A private venv sidesteps the whole class of problem.
-    """
-    venv_dir = Path(__file__).parent / ".ledger-tts-venv"
-    py = venv_python(venv_dir)
-    if not py.exists():
-        say(f"\n  Building a clean environment in {venv_dir.name}")
-        say("  (your main Python is left completely alone)")
-        if not assume_yes:
-            try:
-                if input("  Go ahead? [Y/n] ").strip().lower() in ("n", "no"):
-                    return None
-            except EOFError:
-                pass
-        try:
-            subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
-            subprocess.check_call([str(py), "-m", "pip", "install", "--quiet",
-                                   "--upgrade", "pip"])
-        except subprocess.CalledProcessError as e:
-            say(f"  ! could not create the venv: {e}")
-            return None
-    return py
-
-
-def pip_install(*pkgs, assume_yes=False):
-    say(f"\n  Need: {' '.join(pkgs)}")
-    if not assume_yes:
-        try:
-            if input("  Install now with pip? [y/N] ").strip().lower() not in ("y", "yes"):
-                return False
-        except EOFError:
-            return False
+def has_nvidia():
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", *pkgs])
+        subprocess.run(["nvidia-smi"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=True)
         return True
-    except subprocess.CalledProcessError as e:
-        say(f"  ! pip failed ({e}). Install by hand and re-run.")
+    except Exception:
         return False
-
-
-def fetch(url, filename):
-    """Download a model file next to the script, once."""
-    dest = Path(__file__).parent / "models" / filename
-    if dest.exists() and dest.stat().st_size > 0:
-        return dest
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    import urllib.request
-    say(f"  downloading {filename} ...")
-    try:
-        urllib.request.urlretrieve(url, dest)
-        say(f"  got {dest.stat().st_size // (1024*1024)} MB")
-    except Exception as e:
-        raise RuntimeError(f"could not download {filename}: {e}")
-    return dest
 
 
 def write_wav(path, samples, rate):
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         import numpy as np
-        a = np.asarray(samples).squeeze()
+        a = samples
         if hasattr(a, "detach"):
             a = a.detach().cpu().numpy()
+        a = np.asarray(a).squeeze()
         if a.dtype.kind == "f":
             a = (np.clip(a, -1.0, 1.0) * 32767).astype("<i2")
         else:
@@ -201,6 +196,8 @@ def length_of(samples, rate):
         n = len(samples)
     except TypeError:
         n = int(samples.shape[-1])
+    if n == 0:
+        return 0.0
     return n / float(rate)
 
 
@@ -214,92 +211,164 @@ def peak_vram_mb():
     return None
 
 
+def device():
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        return "cpu"
+
+
+def refs_dir():
+    d = HERE / "refs"
+    out = {}
+    if d.exists():
+        for f in sorted(d.glob("*.wav")):
+            out[f.stem] = str(f)
+    return out
+
+
+def allow_full_torch_load():
+    """torch 2.6 flipped torch.load to weights_only=True by default, which
+    breaks every TTS checkpoint that carries a config object. This is the
+    single most common reason a working engine suddenly stops loading."""
+    import torch
+    if getattr(torch.load, "_ledger_patched", False):
+        return
+    original = torch.load
+
+    def patched(*a, **k):
+        k["weights_only"] = False
+        return original(*a, **k)
+
+    patched._ledger_patched = True
+    torch.load = patched
+
+
 # ---------------------------------------------------------------- engines
 
 class Kokoro:
     name = "kokoro"
-    note = "small and fast; American English is its strength. The live-dialogue bet."
-    pkgs = ("kokoro", "soundfile", "numpy")
+    note = "small and fast; American English. The live-dialogue bet."
+    # misaki[en] is what actually turns text into phonemes, and it carries a
+    # bundled espeak-ng so Windows needs no MSI. Leaving it out is why kokoro
+    # installs cleanly and then refuses to run.
+    pkgs = ("kokoro>=0.9.4", "misaki[en]", "soundfile", "numpy", "huggingface_hub")
+    directable = False
     MAP = {"lena": "af_heart", "mara": "af_bella", "crowd_f": "af_sarah",
            "rocco": "am_michael", "crowd_m": "am_adam"}
-
-    def probe(self):
-        try:
-            import kokoro                                                 # noqa
-            return True, ""
-        except Exception as e:
-            return False, f"{type(e).__name__}: {e}"
 
     def load(self):
         from kokoro import KPipeline
         try:
-            self.pipe = KPipeline(lang_code="a")      # American English
-        except Exception as e:
-            if "espeak" in str(e).lower():
-                raise RuntimeError(
-                    "kokoro needs espeak-ng for some words. On Windows install "
-                    "the espeak-ng MSI from github.com/espeak-ng/espeak-ng/releases "
-                    "and re-run.") from e
-            raise
+            self.pipe = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
+        except TypeError:
+            self.pipe = KPipeline(lang_code="a")      # older signature
 
     def synth(self, text, voice, direction):
         import numpy as np
         parts = []
-        for chunk in self.pipe(text, voice=self.MAP.get(voice, "af_heart")):
-            audio = chunk[2] if isinstance(chunk, (tuple, list)) else chunk
+        # No emotion control, so the only lever is pace. It is a weak lever
+        # and the listening test should say so honestly.
+        speed = 0.92 + 0.16 * intensity(direction)
+        for chunk in self.pipe(text, voice=self.MAP.get(voice, "af_heart"), speed=speed):
+            audio = getattr(chunk, "audio", None)
+            if audio is None:
+                audio = chunk[2] if isinstance(chunk, (tuple, list)) else chunk
             if hasattr(audio, "detach"):
                 audio = audio.detach().cpu().numpy()
             parts.append(np.asarray(audio).squeeze())
+        if not parts:
+            raise RuntimeError("kokoro produced no audio for this line")
         return np.concatenate(parts), 24000
+
+
+class Chatterbox:
+    name = "chatterbox"
+    note = "explicit EXAGGERATION control + zero-shot cloning. The answer to piper's flat affect."
+    pkgs = ("chatterbox-tts",)
+    directable = True
+
+    def load(self):
+        allow_full_torch_load()
+        from chatterbox.tts import ChatterboxTTS
+        self.model = ChatterboxTTS.from_pretrained(device=device())
+        self.rate = int(getattr(self.model, "sr", 24000))
+        self.refs = refs_dir()
+        if not self.refs:
+            say("  (no ./refs/*.wav — using the model's default voice; cloning untested)")
+
+    def synth(self, text, voice, direction):
+        i = intensity(direction)
+        kw = {}
+        ref = self.refs.get(voice)
+        if ref:
+            kw["audio_prompt_path"] = ref
+        try:
+            wav = self.model.generate(
+                text,
+                exaggeration=0.3 + 0.6 * i,
+                # Lower cfg_weight slows the pace, which is what stops a
+                # committed reading from turning into a rushed one.
+                cfg_weight=0.5 - 0.2 * i,
+                **kw)
+        except TypeError:
+            wav = self.model.generate(text, **kw)
+        return wav, self.rate
 
 
 class XTTS:
     name = "xtts"
     note = "voice CLONING. If its clones hold up, the pre-generated/live seam disappears."
-    pkgs = ("coqui-tts",)   # the maintained fork; old "TTS" caps out below py3.12
+    pkgs = ("coqui-tts",)   # the maintained fork; the abandoned "TTS" caps out below py3.12
+    directable = False
 
-    def probe(self):
-        try:
-            from TTS.api import TTS                                       # noqa
-            return True, ""
-        except Exception as e:
-            return False, f"{type(e).__name__}: {e}"
+    # xtts_v2 ships ~58 studio speakers, so this runs with NO reference clips
+    # at all. Requiring refs is why it produced nothing last time.
+    PREFERRED = {"lena": "Sofia Hellen", "mara": "Brenda Stern",
+                 "crowd_f": "Ana Florence", "rocco": "Damien Black",
+                 "crowd_m": "Craig Gutsy"}
 
     def load(self):
+        os.environ["COQUI_TOS_AGREED"] = "1"
+        allow_full_torch_load()
         from TTS.api import TTS
-        import torch
-        dev = "cuda" if torch.cuda.is_available() else "cpu"
-        os.environ.setdefault("COQUI_TOS_AGREED", "1")
-        self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(dev)
-        self.refs = {}
-        refdir = Path(__file__).parent / "refs"
-        if refdir.exists():
-            for f in refdir.glob("*.wav"):
-                self.refs[f.stem] = str(f)
-        if not self.refs:
-            say("  ! xtts: no reference clips found, so cloning is untested.")
-            say("    Put 6-10s of clean speech per voice in ./refs/ as")
-            say("    lena.wav rocco.wav mara.wav crowd_m.wav crowd_f.wav")
-            say("    (any clean American speech works for a test - even yours)")
+        self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device())
+        self.speakers = [s for s in (getattr(self.tts, "speakers", None) or [])]
+        self.refs = refs_dir()
+        if self.refs:
+            say(f"  cloning from ./refs/: {', '.join(sorted(self.refs))}")
+        elif self.speakers:
+            say(f"  {len(self.speakers)} built-in speakers; cloning untested "
+                f"(drop 6-10s wavs in ./refs/ to test it)")
+
+    def speaker_for(self, voice):
+        want = self.PREFERRED.get(voice)
+        if want and want in self.speakers:
+            return want
+        if not self.speakers:
+            return None
+        # Deterministic fallback so a rerun gives the same voice: sorted
+        # order, offset by where this voice sits in our own cast.
+        order = sorted(self.speakers)
+        idx = sorted(VOICES).index(voice) if voice in VOICES else 0
+        return order[(idx * 7) % len(order)]
 
     def synth(self, text, voice, direction):
-        ref = self.refs.get(voice) or (next(iter(self.refs.values())) if self.refs else None)
-        if ref is None:
-            raise RuntimeError("no reference wav in ./refs/ - cloning cannot run")
-        return self.tts.tts(text=text, speaker_wav=ref, language="en"), 24000
+        ref = self.refs.get(voice)
+        if ref:
+            return self.tts.tts(text=text, speaker_wav=ref, language="en"), 24000
+        sp = self.speaker_for(voice)
+        if sp is None:
+            raise RuntimeError("no built-in speakers and no ./refs/*.wav — cannot synthesise")
+        return self.tts.tts(text=text, speaker=sp, language="en"), 24000
 
 
 class Piper:
     name = "piper"
-    note = "CPU-only, very fast, lower ceiling. The control case."
+    note = "CPU-only, very fast, lower ceiling. THE CONTROL CASE (already judged: too synthetic)."
     pkgs = ("piper-tts",)
-
-    def probe(self):
-        try:
-            import piper                                                  # noqa
-            return True, ""
-        except Exception as e:
-            return False, f"{type(e).__name__}: {e}"
+    directable = False
 
     VOICE_URL = ("https://huggingface.co/rhasspy/piper-voices/resolve/main/"
                  "en/en_US/lessac/medium/en_US-lessac-medium.onnx")
@@ -318,7 +387,6 @@ class Piper:
         import io, array
         rate = int(getattr(getattr(self.voice, "config", None), "sample_rate", 22050))
 
-        # Newest: synthesize() yields AudioChunk objects.
         try:
             chunks = list(self.voice.synthesize(text))
             if chunks and hasattr(chunks[0], "audio_int16_bytes"):
@@ -328,7 +396,6 @@ class Piper:
         except TypeError:
             pass                      # older signature wants a second argument
 
-        # Middle: a raw byte stream.
         if hasattr(self.voice, "synthesize_stream_raw"):
             raw = b"".join(self.voice.synthesize_stream_raw(text))
             return array.array("h", raw), rate
@@ -344,24 +411,95 @@ class Piper:
             return array.array("h", r.readframes(r.getnframes())), r.getframerate()
 
 
-ENGINES = [Kokoro(), XTTS(), Piper()]
+class Eleven:
+    """OPT-IN ONLY. Never installed or run unless explicitly requested, and it
+    needs a key you create yourself. It exists purely to calibrate the ceiling
+    — the free tier covers this benchmark several times over."""
+    name = "eleven"
+    note = "PAID reference (opt-in). Calibrates how far local actually is from the ceiling."
+    pkgs = ("elevenlabs",)
+    directable = False
+    opt_in = True
+
+    IDS = {"lena": "EXAVITQu4vr4xnSDxMaL",     # Bella
+           "mara": "21m00Tcm4TlvDq8ikWAM",     # Rachel
+           "crowd_f": "MF3mGyEYCl7XYWbV9V6O",  # Elli
+           "rocco": "pNInz6obpgDQGcFmaJgB",    # Adam
+           "crowd_m": "ErXwobaYiN019PkySvjV"}  # Antoni
+
+    def load(self):
+        key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+        if not key:
+            raise RuntimeError(
+                "set ELEVENLABS_API_KEY first (free tier is enough).\n"
+                "    Windows:  setx ELEVENLABS_API_KEY \"...\"  then open a new terminal")
+        from elevenlabs.client import ElevenLabs
+        self.client = ElevenLabs(api_key=key)
+
+    def synth(self, text, voice, direction):
+        import array
+        stream = self.client.text_to_speech.convert(
+            voice_id=self.IDS.get(voice, self.IDS["lena"]),
+            model_id="eleven_multilingual_v2",
+            text=text,
+            output_format="pcm_24000")
+        raw = b"".join(stream)
+        return array.array("h", raw), 24000
 
 
-# -------------------------------------------------------------------- run
+ENGINES = [Kokoro(), Chatterbox(), XTTS(), Piper(), Eleven()]
+BY_NAME = {e.name: e for e in ENGINES}
+DEFAULT_ORDER = ["kokoro", "chatterbox", "xtts", "piper"]
 
-def run(engine, quick):
+
+def fetch(url, filename):
+    """Download a model file next to the script, once."""
+    dest = HERE / "models" / filename
+    if dest.exists() and dest.stat().st_size > 0:
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    import urllib.request
+    say(f"  downloading {filename} ...")
+    urllib.request.urlretrieve(url, dest)
+    say(f"  got {dest.stat().st_size // (1024*1024)} MB")
+    return dest
+
+
+# --------------------------------------------------------------- the worker
+
+def run_engine(engine, quick):
+    """Runs INSIDE that engine's own venv. Writes audio, report.md, result.json."""
+    outdir = OUT / engine.name
+    outdir.mkdir(parents=True, exist_ok=True)
+    result = {"engine": engine.name, "ok": False, "error": None,
+              "median_rtf": None, "vram_mb": None, "device": None, "rows": []}
+
     say(f"\n=== {engine.name} — {engine.note}")
     t0 = time.time()
     try:
         engine.load()
     except Exception as e:
-        say(f"  ! could not load: {e}")
-        return None
-    say(f"  loaded in {time.time() - t0:.1f}s")
+        detail = traceback.format_exc()
+        (outdir / "error.txt").write_text(detail, encoding="utf-8")
+        say(f"  ! could not load: {type(e).__name__}: {e}")
+        say(f"    full traceback -> {outdir / 'error.txt'}")
+        result["error"] = f"{type(e).__name__}: {e}"
+        (outdir / "result.json").write_text(json.dumps(result), encoding="utf-8")
+        return result
 
-    outdir = OUT / engine.name
-    cases = CASES[:5] if quick else CASES
-    rows, rtfs = [], []
+    result["device"] = device()
+    say(f"  loaded in {time.time() - t0:.1f}s on {result['device']}")
+
+    # Warm up OUTSIDE the timing loop. The first call always pays for lazy
+    # imports and kernel compilation, and last run that made case one look
+    # ten times slower than every other case.
+    try:
+        engine.synth("Ready.", CONSISTENCY_VOICE, "neutral")
+    except Exception:
+        pass
+
+    cases = CASES[:6] if quick else CASES
+    rtfs, failures = [], 0
 
     for cid, voice, direction, text in cases:
         try:
@@ -369,141 +507,237 @@ def run(engine, quick):
             samples, rate = engine.synth(text, voice, direction)
             gen = time.time() - t
             dur = length_of(samples, rate)
-            rtf = gen / dur if dur > 0 else 0
+            if dur <= 0:
+                raise RuntimeError("produced zero samples")
+            rtf = gen / dur
             rtfs.append(rtf)
             write_wav(outdir / f"{cid}.wav", samples, rate)
-            rows.append((cid, voice, f"{dur:.1f}s", f"{gen:.2f}s", f"{rtf:.2f}"))
+            result["rows"].append([cid, voice, f"{dur:.1f}s", f"{gen:.2f}s", f"{rtf:.2f}"])
             say(f"  {cid:26} {dur:5.1f}s audio  {gen:5.2f}s gen  RTF {rtf:.2f}")
         except Exception as e:
-            say(f"  ! {cid}: {e}")
-            rows.append((cid, voice, "-", "-", f"FAILED {e}"))
+            failures += 1
+            say(f"  ! {cid}: {type(e).__name__}: {e}")
+            result["rows"].append([cid, voice, "-", "-", f"FAILED {type(e).__name__}: {e}"])
+            if failures == 1:
+                (outdir / "error.txt").write_text(traceback.format_exc(), encoding="utf-8")
 
     say("  --- consistency probe (the decisive one)")
-    lines = CONSISTENCY[:4] if quick else CONSISTENCY
-    for i, text in enumerate(lines):
+    for i, text in enumerate(CONSISTENCY[:4] if quick else CONSISTENCY):
         try:
             samples, rate = engine.synth(text, CONSISTENCY_VOICE, "neutral, in character")
             write_wav(outdir / "CONSISTENCY" / f"{i:02d}.wav", samples, rate)
         except Exception as e:
-            say(f"  ! consistency {i}: {e}")
+            say(f"  ! consistency {i}: {type(e).__name__}: {e}")
             break
-    say(f"  wrote {outdir / 'CONSISTENCY'}")
 
-    v = peak_vram_mb()
-    outdir.mkdir(parents=True, exist_ok=True)   # nothing may have been written
-    rep = outdir / "report.md"
-    with rep.open("w", encoding="utf-8") as f:
+    result["vram_mb"] = peak_vram_mb()
+    result["median_rtf"] = statistics.median(rtfs) if rtfs else None
+    result["ok"] = bool(rtfs)
+    if not result["ok"] and not result["error"]:
+        result["error"] = "loaded, but every line failed to synthesise"
+
+    with (outdir / "report.md").open("w", encoding="utf-8") as f:
         f.write(f"# {engine.name}\n\n{engine.note}\n\n")
-        f.write(f"- peak VRAM: {v:.0f} MB\n" if v else "- peak VRAM: n/a (CPU)\n")
-        if rtfs:
-            f.write(f"- median RTF: {statistics.median(rtfs):.2f} "
+        f.write(f"- device: {result['device']}\n")
+        f.write(f"- peak VRAM: {result['vram_mb']:.0f} MB\n"
+                if result["vram_mb"] else "- peak VRAM: n/a (CPU)\n")
+        if result["median_rtf"] is not None:
+            f.write(f"- median RTF: {result['median_rtf']:.2f} "
                     f"(under 0.35 = usable for LIVE dialogue)\n")
+        f.write(f"- takes direction: {'yes' if engine.directable else 'no (text only)'}\n")
         f.write("\n| case | voice | audio | gen | RTF |\n|---|---|---|---|---|\n")
-        for r in rows:
+        for r in result["rows"]:
             f.write("| " + " | ".join(r) + " |\n")
-    return rep
+
+    (outdir / "result.json").write_text(json.dumps(result), encoding="utf-8")
+    return result
 
 
-def listening_guide():
-    say("""
-==================== NOW LISTEN, IN THIS ORDER ====================
+# --------------------------------------------------------------- the driver
 
-1. CONSISTENCY/00..09.wav  — play all of them straight through.
-   *Is this one person?*  If not, that engine cannot voice a character,
-   whatever any single line sounded like. This decides everything.
+def ensure_venv(engine, assume_yes):
+    """One environment per engine. THE REASON: these packages pin conflicting
+    torch versions, and last time installing one quietly broke the next. A
+    private venv each means an engine can only ever fail on its own terms."""
+    venv_dir = HERE / f".venv-{engine.name}"
+    py = venv_python(venv_dir)
+    stamp = venv_dir / ".ledger-installed"
 
-2. same_line_BORED.wav  vs  same_line_GRAVE.wav
-   Identical text, opposite direction. Obviously different, or the same
-   reading twice?
+    if stamp.exists() and py.exists():
+        return py
+
+    if not py.exists():
+        say(f"\n  building {venv_dir.name}  (a few GB; your main Python is untouched)")
+        if not assume_yes:
+            try:
+                if input("  go ahead? [Y/n] ").strip().lower() in ("n", "no"):
+                    return None
+            except EOFError:
+                pass
+        try:
+            subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
+        except subprocess.CalledProcessError as e:
+            say(f"  ! could not create the venv: {e}")
+            return None
+
+    def pip(*args):
+        return subprocess.call([str(py), "-m", "pip", "install", "--quiet", *args])
+
+    pip("--upgrade", "pip", "wheel")
+    say(f"  installing {' '.join(engine.pkgs)} ... (this is the slow part)")
+    if pip(*engine.pkgs) != 0:
+        say(f"  ! pip failed for {engine.name}; skipping it")
+        return None
+
+    # If there is an NVIDIA card, make sure torch can actually see it. pip's
+    # default wheel on Windows is CPU-only, which turns a 0.2 RTF into a 5.0
+    # and makes the speed column meaningless.
+    if has_nvidia():
+        probe = ("import torch,sys;"
+                 "print(torch.__version__, torch.cuda.is_available())")
+        r = subprocess.run([str(py), "-c", probe], capture_output=True, text=True)
+        if r.returncode == 0 and "False" in r.stdout:
+            ver = r.stdout.split()[0].split("+")[0]
+            say(f"  NVIDIA card found but torch {ver} is CPU-only — fetching the CUDA build")
+            pip(f"torch=={ver}", "torchaudio", "--index-url", TORCH_CUDA_INDEX)
+
+    stamp.write_text("ok", encoding="utf-8")
+    return py
+
+
+def drive(names, args):
+    OUT.mkdir(parents=True, exist_ok=True)
+    results = []
+    for name in names:
+        engine = BY_NAME[name]
+        py = ensure_venv(engine, args.yes)
+        if py is None:
+            results.append({"engine": name, "ok": False,
+                            "error": "environment could not be built"})
+            if not args.keep_going:
+                say("  (--keep-going to carry on past this)")
+            continue
+        cmd = [str(py), str(Path(__file__).resolve()), "--worker", name]
+        if args.quick:
+            cmd.append("--quick")
+        subprocess.call(cmd)
+        rp = OUT / name / "result.json"
+        if rp.exists():
+            results.append(json.loads(rp.read_text(encoding="utf-8")))
+        else:
+            results.append({"engine": name, "ok": False,
+                            "error": "the worker exited without writing a result"})
+    return results
+
+
+def summarise(results):
+    rule("RESULTS")
+    say(f"{'engine':12} {'status':10} {'RTF':>6}  {'VRAM':>8}  direction  notes")
+    lines = []
+    for r in results:
+        e = BY_NAME.get(r["engine"])
+        rtf = f"{r['median_rtf']:.2f}" if r.get("median_rtf") is not None else "-"
+        vram = f"{r['vram_mb']:.0f}MB" if r.get("vram_mb") else (r.get("device") or "-")
+        status = "ok" if r.get("ok") else "FAILED"
+        direct = ("yes" if e and e.directable else "no ") if e else "?  "
+        note = "" if r.get("ok") else (r.get("error") or "")
+        say(f"{r['engine']:12} {status:10} {rtf:>6}  {vram:>8}  {direct:9}  {note[:40]}")
+        lines.append(f"| {r['engine']} | {status} | {rtf} | {vram} | {direct.strip()} | {note} |")
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    with (OUT / "SUMMARY.md").open("w", encoding="utf-8") as f:
+        f.write(f"# LEDGER TTS benchmark\n\nv{VERSION}\n\n")
+        f.write("| engine | status | median RTF | VRAM/device | takes direction | note |\n")
+        f.write("|---|---|---|---|---|---|\n")
+        f.write("\n".join(lines) + "\n")
+        f.write("\nRTF under 0.35 = fast enough to voice dialogue live.\n")
+
+    failed = [r for r in results if not r.get("ok")]
+    if failed:
+        say("\nDidn't produce audio:")
+        for r in failed:
+            say(f"  {r['engine']}: {r.get('error')}")
+            p = OUT / r["engine"] / "error.txt"
+            if p.exists():
+                say(f"    full traceback: {p}")
+        say("\n  ^ paste those lines to me and I'll fix them.")
+
+
+def listening_guide(results):
+    ok = [r["engine"] for r in results if r.get("ok")]
+    if not ok:
+        return
+    rule("NOW LISTEN, IN THIS ORDER")
+    say(f"""Engines with audio: {', '.join(ok)}
+Piper is already judged — it is the FLOOR. The question for every other
+engine is only: is it audibly better than piper, and by how much?
+
+1. same_line_BORED.wav  vs  same_line_GRAVE.wav      <-- THE HEADLINE TEST
+   Identical text, opposite direction. Piper scored zero here. If an engine
+   makes these obviously different, that alone justifies choosing it: it
+   means the game can direct its own actors from simulation state.
+
+2. CONSISTENCY/00..09.wav — play straight through.
+   Piper was "consistent but literally all of them sound the same." That is
+   flat affect, not character. Listen for one person who is ALIVE, not one
+   person who is uniform.
 
 3. emphasis_test.wav — "That's YOUR problem." Does the stress land on
    'your'? Best single test of whether a model reads meaning or words.
 
-4. hard_prosody.wav — is "$120" spoken as 'a hundred and twenty' and
-   "day 8" as 'day eight'? Or read out as symbols?
+4. hard_prosody.wav — "$120" as 'a hundred and twenty', "day 8" as
+   'day eight'? Piper got this right, so it is table stakes, not a win.
 
 5. long_dialogue.wav — does it stay alive to the end, or flatten out?
 
-Then tell me, per engine: one person or several? did direction land? did
-the emphasis land? and did anything sound obviously synthetic — and how?
-That last one is the bar you set.
-===================================================================
+Then per engine, in one line each: better than piper or not, and where.
 """)
 
 
 def main():
     ap = argparse.ArgumentParser(add_help=True)
-    ap.add_argument("--engine", default="all")
-    ap.add_argument("--yes", action="store_true", help="install missing engines without asking")
+    ap.add_argument("--engine", default="all",
+                    help="all | a name | a comma list (kokoro,chatterbox,xtts,piper,eleven)")
+    ap.add_argument("--yes", action="store_true")
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--no-open", action="store_true")
-    ap.add_argument("--here", action="store_true",
-                    help="install into the current Python instead of a private venv")
+    ap.add_argument("--keep-going", action="store_true", default=True)
+    ap.add_argument("--worker", default=None, help=argparse.SUPPRESS)
     a = ap.parse_args()
 
+    # Worker mode: we are already inside an engine's venv.
+    if a.worker:
+        e = BY_NAME.get(a.worker)
+        if e is None:
+            say(f"unknown engine '{a.worker}'")
+            return 2
+        return 0 if run_engine(e, a.quick)["ok"] else 1
+
     say(f"LEDGER TTS benchmark   v{VERSION}")
-    say(f"python {sys.version.split()[0]}{'  (private venv)' if in_venv() else ''}")
+    say(f"python {sys.version.split()[0]}   gpu: {'nvidia' if has_nvidia() else 'none detected'}")
     say(f"output: {OUT}")
 
-    chosen = [e for e in ENGINES if a.engine in ("all", e.name)]
-    if not chosen:
-        say(f"no such engine '{a.engine}' (kokoro | xtts | piper | all)")
-        return 2
+    if a.engine == "all":
+        names = list(DEFAULT_ORDER)
+    else:
+        names = [n.strip() for n in a.engine.split(",") if n.strip()]
+        bad = [n for n in names if n not in BY_NAME]
+        if bad:
+            say(f"no such engine: {', '.join(bad)}  "
+                f"(have: {', '.join(BY_NAME)})")
+            return 2
 
-    missing = [e for e in chosen if not e.probe()[0]]
+    # piper is already judged; running it again is only useful as an
+    # A/B reference, and it is cheap, so keep it — but say why it is there.
+    say(f"\nrunning: {', '.join(names)}")
+    say("each engine gets its OWN environment, so one bad install cannot")
+    say("break the next. First run downloads models and is slow.")
 
-    # Anything to install? Do it in OUR OWN environment, not whatever
-    # interpreter happens to be on PATH, and re-run in there.
-    if missing and not in_venv() and not a.here:
-        py = bootstrap_clean_env(a.yes)
-        if py:
-            say("  re-running inside the clean environment...\n")
-            cmd = [str(py), str(Path(__file__).resolve())] + sys.argv[1:]
-            return subprocess.call(cmd)
-        say("  carrying on in the current environment instead.")
+    results = drive(names, a)
+    summarise(results)
+    listening_guide(results)
 
-    if missing:
-        say("\nNot installed yet:")
-        for e in missing:
-            say(f"  {e.name:8} pip install {' '.join(e.pkgs)}")
-        if a.engine == "all" and len(missing) == len(chosen):
-            say("\nStart with kokoro — smallest and fastest.")
-        for e in missing:
-            if pip_install(*e.pkgs, assume_yes=a.yes):
-                # A package installed INTO A RUNNING PROCESS is invisible until
-                # the import caches are dropped. Without this the engine you
-                # just installed looks absent and silently never runs.
-                import importlib
-                importlib.invalidate_caches()
-                ok, err = e.probe()
-                say(f"  installed {e.name}" if ok else f"  installed {e.name}, but it will not import yet:")
-                if not ok:
-                    say(f"    {err}")
-                    say(f"    -> this usually just needs a fresh process. Re-run the script.")
-
-    ready = []
-    for e in chosen:
-        ok, err = e.probe()
-        if ok:
-            ready.append(e)
-        elif e in missing:
-            pass                      # already explained above
-        else:
-            say(f"\n=== {e.name}: cannot import — {err}")
-
-    if not ready:
-        say("\nNothing runnable in THIS process.")
-        say("If something installed just now, simply run the script again —")
-        say("a fresh process will pick it up.")
-        return 1
-
-    reports = [r for r in (run(e, a.quick) for e in ready) if r]
-    if not reports:
-        say("\nNo engine produced audio. Send me the errors above.")
-        return 1
-
-    listening_guide()
-    say(f"Audio and reports: {OUT}")
+    say(f"\nAudio and reports: {OUT}")
     if not a.no_open:
         try:
             if sys.platform.startswith("win"):
@@ -514,7 +748,7 @@ def main():
                 subprocess.run(["xdg-open", str(OUT)], check=False)
         except Exception:
             pass
-    return 0
+    return 0 if any(r.get("ok") for r in results) else 1
 
 
 if __name__ == "__main__":
