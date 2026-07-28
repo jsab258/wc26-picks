@@ -559,7 +559,42 @@ already trimmed to ~10 seconds and matched to the character notes by
 timbre. You approve by ear — listening to five clips, not researching
 licences.
 
-### NEEDS YOU — 2. Who sounds like what? (a listening task, not a research task)
+### ~~2. Who sounds like what?~~ DONE — I cast it, as delegated
+
+Full briefs for all five principals, eight street characters and the crowd
+are in `game-design/voice-casting.md`. Written as briefs rather than
+preferences: each says what must come through, so any clip carrying it is a
+valid casting — which is what makes it sourceable at all.
+
+Three of them are cast deliberately against the obvious reading, and those
+are the ones worth arguing with if you disagree:
+
+- **Mara Ellis** gets the WARMEST, most reasonable voice in the shortlist.
+  A cold detective is a villain; a courteous one is inevitable, and the
+  menace is entirely that she never has to raise her voice.
+- **Hal** gets the least distinctive voice in the game, on purpose. He
+  carries messages and nobody knows his first name. Being forgettable is
+  his job.
+- **Rocco** is not a tough-guy voice. He is a tired one.
+
+The rest of the roster — Tibor, Ferko, June, Victor, Zlata and the others —
+deliberately get NO dedicated clips until playtest says one of them needs
+to be somebody. Spending a voice on a character nobody remembers is how a
+cast becomes a phone book.
+
+### THE REMAINING BLOCKER — sourcing, and it is not casting
+
+Common Voice, HuggingFace and OpenSLR are all blocked from my environment.
+I checked rather than assumed; it is the same wall that stops me reaching
+the CC0 texture sites. So the clips have to come from your machine.
+
+My job is to make that one command rather than an afternoon, and the next
+thing I build is a fetcher in the same shape as the TTS benchmark: pulls
+candidates matching each brief, trims to ten seconds, normalises, lays them
+out in listening order with the brief printed above each. **Your part is a
+listening pass, not research.**
+
+### (superseded) Who sounds like what — a listening task, not a research task
 
 Casting stays yours because it is a creative call, but you should not have
 to start from a blank page or read a licence. I will bring a shortlist of
