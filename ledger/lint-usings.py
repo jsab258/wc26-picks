@@ -174,14 +174,73 @@ def check_collisions(path):
     return out
 
 
+CORE_USING = re.compile(r"^\s*using\s+Ledger\.Core\s*;", re.MULTILINE)
+# Comments and string literals, so a type name mentioned in prose is not a use.
+NOISE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:[^"\\\n]|\\.)*"|\$@?"(?:[^"]|"")*"', re.S)
+
+
+def core_type_names(root: pathlib.Path) -> set:
+    """Every public type Core declares. Read from the tree rather than listed,
+    because a list goes stale the day somebody adds a type."""
+    names = set()
+    for path in sorted(root.rglob("*.cs")):
+        if path.parts[-2] != "Core":
+            continue
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            m = TYPE_DECL.match(line)
+            if m:
+                names.add(m.group(1))
+    return names
+
+
+def check_core_using(path: pathlib.Path, core_names: set) -> list:
+    """A Game file that names a Core type without importing Ledger.Core.
+
+    This is CS0103 at player-build time and NOTHING before it can see it:
+    CoreTests compiles Core alone so the name always resolves there, the
+    Roslyn check has no reference assemblies so it discards CS0103 wholesale,
+    and this lint used to look only at LINQ and container usings. Cost of
+    finding out the other way: a twenty-minute round trip on a CI runner,
+    which is exactly what `Menus` in OptionsScreen.cs cost on run
+    30391686667.
+    """
+    out = []
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if CORE_USING.search(text):
+        return out
+    # Types the file declares itself shadow the Core name legitimately.
+    own = {m.group(1) for m in (TYPE_DECL.match(l) for l in text.splitlines()) if m}
+    for lineno, line in enumerate(text.splitlines(), 1):
+        code = NOISE.sub(" ", line)
+        if re.match(r"\s*using\s", code):
+            continue
+        for name in core_names:
+            if name in own:
+                continue
+            # Not preceded by a dot: `foo.Menus` is a member, not the type.
+            if re.search(r"(?<![\w.])" + re.escape(name) + r"\s*[.(<]", code):
+                out.append((lineno, name, line.strip()))
+                break
+    return out
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "ledger/Assets/Scripts")
+    core_names = core_type_names(root)
     bad = 0
     files = 0
     for path in sorted(root.rglob("*.cs")):
         if "/obj/" in str(path) or "/bin/" in str(path):
             continue
         files += 1
+        if path.parts[-2] != "Core":
+            for lineno, name, line in check_core_using(path, core_names):
+                bad += 1
+                print(f"{path}:{lineno}: uses Core type '{name}' without "
+                      f"'using Ledger.Core;'. That is CS0103 at player-build time and "
+                      f"nothing before it can see it — CoreTests compiles Core alone, "
+                      f"and ShapeCheck has no reference assemblies so it discards "
+                      f"CS0103 wholesale.\n    {line}")
         if path.parts[-2] == "Core":
             for lineno, name, line in check_collisions(path):
                 bad += 1
