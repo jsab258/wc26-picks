@@ -5613,6 +5613,69 @@ namespace Ledger.CoreTests
                 "but a KILLING nobody saw is still enormous — a body is not a rumour",
                 $"{Violence.Notoriety(0, true):0.00}");
 
+            // ---- THE SYSTEM MUST NOT BE INERT (BalanceLab, 2026-07-28) ----
+            //
+            // The original constants made a clean strike do 0.86 against a
+            // floor of 1.0, so a fight was over in TWO BLOWS and stamina fell
+            // from 1.00 to 0.88 across the whole thing. Guard, footing and
+            // stamina were all decorative — they never got a turn — and the
+            // fight lab's verdict was that mashing Strike won 76% of
+            // exchanges while taking the LEAST punishment, which is exactly
+            // what combat-spec §2 says breaks the fiction.
+            //
+            // None of the tests above could see it. Every one of them was
+            // true, and the system was still hollow. That is the difference
+            // between checking rules and checking BALANCE, and it is why the
+            // lab exists.
+            {
+                var swinger = Guy("swinger");
+                var taker = Guy("taker");
+                int clean = 0;
+                while (taker.Footing != Footing.Down && clean < 20)
+                {
+                    if (!Combat.Available(Blow.Strike, swinger, taker, 1.0)) break;
+                    Combat.Resolve(Blow.Strike, swinger, taker, 1.0);
+                    clean++;
+                    Combat.Breathe(swinger, 0.9);
+                }
+                Check(clean >= 3,
+                    "a fight takes at least three committed swings — at two, stamina and "
+                    + "guard and footing never get a turn and the whole file is decoration",
+                    $"{clean} blows");
+                Check(swinger.Stamina < 0.55,
+                    "AND THE SWINGER IS SPENT BY THE END. A fighter who can mash and "
+                    + "recover has no reason ever to stop, which is the mechanic "
+                    + "StrikeStamina was written for and could not reach",
+                    $"{swinger.Stamina:0.00} left");
+            }
+            {
+                // The consequence that makes it a decision: a tired swing is
+                // dramatically weaker, not marginally.
+                var rested = Guy("f2"); var spent = Guy("s2");
+                var a2 = Guy("a2"); var b2 = Guy("b2");
+                double full = Combat.Resolve(Blow.Strike, rested, a2, 1.0).Force;
+                spent.Stamina = 0.4;
+                double weak = Combat.Resolve(Blow.Strike, spent, b2, 1.0).Force;
+                Check(weak < full * 0.85,
+                    "and an exhausted swing lands meaningfully softer, so spending "
+                    + "everything early is a decision with a price",
+                    $"{weak:0.00} vs {full:0.00}");
+            }
+            {
+                // Guard has to be worth the turn it costs.
+                var hitter = Guy("h3");
+                var blocking = Guy("g3"); blocking.Guarding = true;
+                var open = Guy("o3");
+                double stopped = Combat.Resolve(Blow.Strike, hitter, blocking, 1.0).Force;
+                hitter.Stamina = 1.0;
+                double through = Combat.Resolve(Blow.Strike, hitter, open, 1.0).Force;
+                Check(stopped < through * 0.35,
+                    "a guard saves most of a blow — at a third saved it cost a whole turn "
+                    + "to avoid a third of one hit, which is a losing trade in every "
+                    + "situation, so the verb existed and nobody would ever have used it",
+                    $"{stopped:0.00} vs {through:0.00}");
+            }
+
             // ---- THE ASYMMETRY: a body cannot be discredited ----
             Check(Violence.KillingConfidence(3, false) >= 0.95,
                 "seeing a killing is being CERTAIN of it");

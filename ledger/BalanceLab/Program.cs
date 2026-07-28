@@ -58,6 +58,114 @@ namespace Ledger.BalanceLab
             RunOpenLab(weeks);
             RunEndingLab(weeks);
             RunViolenceLab(weeks);
+            RunFightLab(weeks);
+        }
+
+        /// COMBAT PHASE 4, the exchange itself (combat-spec §2).
+        ///
+        /// The violence lab above answers the STRATEGIC question — is
+        /// fighting the efficient path through the game. This answers the
+        /// moment-to-moment one, which is a different question and has its
+        /// own way of going wrong:
+        ///
+        ///   *"NOT empowering. Tom Novak runs a bar. He is not a fighter, and
+        ///   the moment-to-moment should feel dangerous and slightly out of
+        ///   control. If the player feels GOOD at fighting, the fiction and
+        ///   the systems both break."*
+        ///
+        /// So the failure mode to hunt is not "combat is too hard". It is
+        /// **mashing Strike wins**, which is what happens by default in every
+        /// system where attacking is free, and which would make Tom a
+        /// brawler in nine exchanges.
+        static void RunFightLab(int runs)
+        {
+            Console.WriteLine("\n== the exchange itself: is Tom Novak bad at this? (combat-spec §2) ==");
+            Console.WriteLine($"{"policy",-12} {"win%",5} {"down%",6} {"hurt",5} {"blows",6} {"gassed%",8}");
+
+            foreach (var policy in new[] { "mash", "guard-then-hit", "patient", "shove-and-go", "back-off" })
+            {
+                int wins = 0, downs = 0, n = 0, gassed = 0;
+                double punishTaken = 0, blows = 0;
+
+                for (int seed = 0; seed < runs * 12; seed++)
+                {
+                    var rng = new Random(seed * 7919 + 11);
+                    var me = new Fighter { Id = "me", Name = "Tom", Capability = 0.85 + rng.NextDouble() * 0.15 };
+                    // A door-man or a dock hand: better at this than a
+                    // publican, which is the fiction.
+                    var them = new Fighter { Id = "them", Name = "Them", Capability = 1.0 };
+                    double metres = 1.2;
+                    bool left = false, tiredOut = false;
+                    int exchanges = 0;
+
+                    for (; exchanges < 40; exchanges++)
+                    {
+                        // ---- what the player does ----
+                        Blow mine;
+                        switch (policy)
+                        {
+                            case "mash": mine = Blow.Strike; break;
+                            case "guard-then-hit":
+                                mine = exchanges % 2 == 0 ? Blow.Guard : Blow.Strike; break;
+                            // Swings only with wind in hand, guards while
+                            // getting it back. The line a player who has
+                            // LEARNED the system would take, and the ceiling
+                            // this design is willing to offer.
+                            case "patient":
+                                mine = me.Stamina > 0.72 ? Blow.Strike : Blow.Guard; break;
+                            case "shove-and-go":
+                                mine = exchanges < 2 ? Blow.Shove : Blow.BackOff; break;
+                            default: mine = Blow.BackOff; break;
+                        }
+                        if (mine == Blow.Strike && me.Stamina < Combat.StrikeStamina)
+                        { mine = Blow.Guard; tiredOut = true; }
+
+                        if (mine == Blow.BackOff) { left = true; break; }
+                        var r = Combat.Resolve(mine, me, them, metres);
+                        if (r.Landed) blows++;
+                        // A SHOVE BUYS DISTANCE, which is the entire point of
+                        // the verb and which the first version of this lab
+                        // did not model at all — so "shove and go" was being
+                        // scored as "stand still and get hit twice", and the
+                        // table said the de-escalation tool was the worst
+                        // line available. It was the LAB that was wrong.
+                        if (mine == Blow.Shove && r.Landed) metres += 1.3;
+                        if (them.Footing == Footing.Down) break;
+
+                        // ---- and what they do back ----
+                        // Not a mirror: an opponent who mashes is the easiest
+                        // possible test and would flatter every policy. This
+                        // one paces itself, which is what a person who can
+                        // fight actually does.
+                        Blow theirs = them.Stamina > 0.35 && rng.NextDouble() < 0.7
+                            ? Blow.Strike : Blow.Guard;
+                        // Out of reach they have to close first, which is the
+                        // second the shove bought.
+                        if (metres > Combat.Reach) { metres = Math.Max(1.2, metres - 1.1); theirs = Blow.SquareUp; }
+                        Combat.Resolve(theirs, them, me, metres);
+                        Combat.Breathe(me, 0.9);
+                        Combat.Breathe(them, 0.9);
+                        if (me.Footing == Footing.Down) break;
+                    }
+
+                    n++;
+                    if (them.Footing == Footing.Down && me.Footing != Footing.Down) wins++;
+                    if (me.Footing == Footing.Down) downs++;
+                    punishTaken += me.Punished;
+                    if (tiredOut) gassed++;
+                    if (left) { /* leaving is not losing, and the table says so */ }
+                }
+
+                int d = Math.Max(1, n);
+                Console.WriteLine($"{policy,-12} {100.0 * wins / d,4:0}% {100.0 * downs / d,5:0}% " +
+                                  $"{punishTaken / d,5:0.00} {blows / d,6:0.0} {100.0 * gassed / d,7:0}%");
+            }
+
+            Console.WriteLine("  hurt = punishment TOM took, in units where 1.0 puts a man down.");
+            Console.WriteLine("  THE TEST: mashing must not be the best line, and winning must still hurt.");
+            Console.WriteLine("  If the mash row wins most and takes little, Tom is a brawler and the");
+            Console.WriteLine("  fiction is broken — combat-spec §2, 'if the player feels GOOD at");
+            Console.WriteLine("  fighting, the fiction and the systems both break'.");
         }
 
         /// COMBAT PHASE 4, the half that needs no art (combat-spec §6, §8).

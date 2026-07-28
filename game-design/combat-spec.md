@@ -255,6 +255,66 @@ away with it.** That is the design too — it is what makes choosing the
 alley at three in the morning a real decision rather than a flavour of the
 same outcome.
 
+### The exchange itself — RUN 2026-07-28, and it found a real defect
+
+The violence lab answers the strategic question. This answers the
+moment-to-moment one, and §2 names the failure to hunt: *"if the player
+feels GOOD at fighting, the fiction and the systems both break."*
+
+**First run, at the original constants:**
+
+```
+policy        win%  down%  hurt  blows  gassed%
+mash           76%    24%  0.63    1.8       0%
+```
+
+Mashing Strike won three exchanges in four AND took the least punishment
+doing it. The cause was not the balance of the verbs — it was that **a
+clean strike did 0.86 against a floor of 1.0, so a fight was over in two
+blows.** Stamina fell from 1.00 to 0.88 across an entire fight. Guard,
+footing and stamina never got a turn: every mechanic in `Combat.cs`
+except Strike was decoration.
+
+Every unit test passed throughout. They were all true, and the system was
+still hollow — which is the difference between checking rules and
+checking balance.
+
+**Retuned:** floor 1.0 → 2.8, strike cost 0.22 → 0.34, recovery 0.18 →
+0.09, guard absorption 0.35 → 0.22.
+
+```
+policy        win%  down%  hurt  blows  gassed%
+mash           15%    67%  2.52    8.9     100%
+guard-then-hit    0%     3%  2.05   11.0     100%
+patient        26%    46%  2.39    9.6       0%
+shove-and-go    0%     0%  0.00    2.0       0%
+back-off        0%     0%  0.00    0.0       0%
+```
+
+- **Mashing gasses out every time and puts Tom on the ground two thirds
+  of the time.** The stamina mechanic finally reaches the fight.
+- **Patience beats it** — more wins, fewer knockdowns, never gassed. A
+  player who learns the system is rewarded, which is not the same as
+  being made good at fighting.
+- **Even the best line wins a quarter of the time and takes 2.39
+  punishment** — most of a knockdown. Winning costs.
+- **Guard-then-hit does not lose, it runs out of clock**: 2.32 damage
+  against a floor of 2.8 across forty exchanges. Two men who cannot
+  fight, flailing until they stop. That is better fiction than a win.
+- **Backing off and shoving-then-leaving take nothing at all**, which is
+  §3 saying the de-escalation tools should be the best option and the
+  game should say so.
+
+The lab also had to be corrected: its first version did not model a shove
+creating distance, so it scored the de-escalation tool as "stand still
+and get hit twice". The table said the best verb was the worst line, and
+it was the LAB that was wrong.
+
+Guards against the inert-system defect now live in CoreTests — a fight
+must take three swings, the swinger must be spent by the end, and a guard
+must save most of a blow — so the hollow version cannot come back
+silently.
+
 What is still blocked: the feel of it. Whether a swing READS is a phase 3
 question and needs bodies. *~1 day once they land.*
 

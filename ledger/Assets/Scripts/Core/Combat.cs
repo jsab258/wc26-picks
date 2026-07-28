@@ -88,13 +88,29 @@ namespace Ledger.Core
 
         /// What a swing costs the swinger. Striking when exhausted is how a
         /// fight turns, and it should be the player's own fault.
-        public const double StrikeStamina = 0.22;
-        public const double ShoveStamina = 0.08;
-        /// Per second, when not striking.
-        public const double StaminaRecovery = 0.18;
+        ///
+        /// RETUNED 2026-07-28 after BalanceLab's fight lab found the whole
+        /// system inert. At the original numbers a clean strike did 0.86
+        /// against a floor of 1.0, so a fight was over in TWO BLOWS and
+        /// stamina fell from 1.00 to 0.88 in the course of it. Every
+        /// mechanic in this file except Strike was therefore decorative —
+        /// guard, footing and stamina never got a turn — and the lab's
+        /// verdict was blunt: mashing Strike won 76% of exchanges and took
+        /// the LEAST punishment doing it, which is exactly the outcome
+        /// combat-spec §2 says breaks the fiction.
+        ///
+        /// A fight is now three to four committed swings, and by the last
+        /// one a mashing player is hitting at 0.59 instead of 0.81 — down
+        /// nearly a third, because they spent everything early. That is the
+        /// mechanic the constant was written for, finally reachable.
+        public const double StrikeStamina = 0.34;
+        public const double ShoveStamina = 0.10;
+        /// Per second, when not striking. Deliberately slower than a swing
+        /// costs: a fighter who can mash and recover has no reason to stop.
+        public const double StaminaRecovery = 0.09;
 
         /// Punishment needed to floor somebody, at full capability.
-        public const double FloorAt = 1.0;
+        public const double FloorAt = 2.8;
 
         public static double StaminaCost(Blow b) =>
             b == Blow.Strike ? StrikeStamina :
@@ -176,7 +192,12 @@ namespace Ledger.Core
                     // Guarding ABSORBS, it does not negate — a guard that
                     // makes you invulnerable is a guard the player holds
                     // forever.
-                    double through = target.Guarding ? power * 0.35 : power;
+                    // A guard now saves nearly four fifths rather than two
+                    // thirds. At the old value guarding cost a whole turn to
+                    // avoid a third of one hit, which is a losing trade in
+                    // every situation — so the verb existed and nobody would
+                    // ever have used it.
+                    double through = target.Guarding ? power * 0.22 : power;
                     target.Punished += through;
                     target.Guarding = false;      // a landed blow breaks it
 
