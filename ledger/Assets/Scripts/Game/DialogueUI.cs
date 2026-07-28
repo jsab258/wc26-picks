@@ -799,9 +799,13 @@ namespace Ledger.Game
             foreach (var k in _game.Knowledge.Entries)
             {
                 if (shown++ >= 12) { sb.AppendLine("…"); break; }
+                // A word, not a figure — the legibility law the rest of this
+                // screen already obeys (HeatWord, StrainWord, ProsperityWord).
+                // "−0.62" told the player nothing a person would say; how hard
+                // someone would swear to it does (audit 2026-07-27).
                 var figure = k.Handled
                     ? $"<color={UiTheme.HexHeld}>settled</color>"
-                    : $"<color={UiTheme.HexDebit}><b>−{k.ConfidenceWhenLearned:0.00}</b></color>";
+                    : $"<color={UiTheme.HexDebit}><b>{GripWord(k.ConfidenceWhenLearned)}</b></color>";
                 sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"  {figure}");
                 sb.AppendLine($"   <color={UiTheme.HexDim}>posted day {k.LearnedAt.Day} · {k.Source}</color>");
             }
@@ -1077,6 +1081,12 @@ namespace Ledger.Game
             || (_phonePanel != null && _phonePanel.activeSelf);
 
         static string HeatWord(double h) => GameController.StreetWord(h);
+
+        /// How hard the holder would swear to what they have on you.
+        static string GripWord(double c) =>
+            c >= 0.75 ? "they'd swear to it"
+            : c >= 0.5 ? "they'll repeat it"
+            : "half a story";
         static string PatienceWord(double p) => GameController.OutfitWord(p);
 
         /// A short transient line at the top of the screen — takings banked, a job

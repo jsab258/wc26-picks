@@ -39,6 +39,7 @@ namespace Ledger.CoreTests
                 TestGossip();
                 TestConflictingValuesStayBounded();
                 TestSimClockReclaim();
+                TestSurvivingLead();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -368,6 +369,38 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestSurvivingLead()
+        {
+            Console.WriteLine("Act III — the case against you is whatever survives:");
+            // act3-draft.md answer 3: refusing Ossei can still reach Both, but
+            // only through the information landscape. That cashes out here: her
+            // case rests on the strongest SURVIVING lead — the best sensitive
+            // player rumor whose holder is not leashed, not paid quiet on the
+            // topic, and whose story has not been publicly discredited.
+            var g = new SocialGraph();
+            var mill = new GossipMill(g);
+            var w1 = new Gossiper("w1", "Petra", new MemoryStore("w1"), new KnowledgeBase(), new SuspicionTracker(), "day");
+            var w2 = new Gossiper("w2", "Old Sef", new MemoryStore("w2"), new KnowledgeBase(), new SuspicionTracker(), "day");
+            mill.Add(w1); mill.Add(w2);
+            var now = new GameTime(15, 20, 0);
+            mill.Witness("w1", new Fact("player", "night_drop_d14", "seen"), "she watched the drop", true, now, 0.9);
+            mill.Witness("w2", new Fact("player", "racket_row_d13", "seen"), "he clocked the round", true, now, 0.6);
+            Check(mill.StrongestSurvivingPlayerLead() > 0.85,
+                "an unmanaged landscape hands the investigator her case", mill.StrongestSurvivingPlayerLead().ToString("0.00"));
+            w1.Leashed = true;   // the strong witness is held by a hook
+            Check(System.Math.Abs(mill.StrongestSurvivingPlayerLead() - 0.6) < 1e-9,
+                "a leash removes the witness, not just the story", mill.StrongestSurvivingPlayerLead().ToString("0.00"));
+            w2.Suppressed.Add("player.racket_row_d13");   // the weak one is paid quiet
+            Check(mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt,
+                "and a managed landscape leaves nothing of testimony grade — the case is answerable without her deal",
+                mill.StrongestSurvivingPlayerLead().ToString("0.00"));
+            w2.Suppressed.Clear();
+            mill.Discredit("player.racket_row_d13", null, now);
+            Check(mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt,
+                "a publicly discredited story is equally dead as evidence",
+                mill.StrongestSurvivingPlayerLead().ToString("0.00"));
         }
 
         static void TestSimClockReclaim()

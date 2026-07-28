@@ -476,6 +476,32 @@ namespace Ledger.Core
 
         /// Save-load surface for the once-per-story denial cap.
         public IEnumerable<string> DiscreditedTopics => _discredited;
+        public bool IsDiscredited(string topicKey) => _discredited.Contains(topicKey);
+
+        /// The strongest live lead an investigator could take to a magistrate:
+        /// the best-confidence sensitive player rumor held by anyone who is not
+        /// leashed, not bribed/scared quiet on that topic, and whose story has
+        /// not been publicly discredited. This is what "managing the
+        /// information landscape" cashes out to in Act III: drive this below
+        /// testimony grade and Ossei's case is answerable WITHOUT taking her
+        /// deflection deal (act3-draft.md answer 3, wired per audit 2026-07-27
+        /// — before this, Deflected was the sole source of answerability).
+        public double StrongestSurvivingPlayerLead()
+        {
+            double best = 0;
+            foreach (var a in Agents)
+            {
+                if (a.Leashed) continue;
+                foreach (var r in a.Rumors)
+                {
+                    if (r.Content.Subject != "player" || !r.Sensitive) continue;
+                    if (a.Suppressed.Contains(r.TopicKey)) continue;
+                    if (_discredited.Contains(r.TopicKey)) continue;
+                    if (r.Confidence > best) best = r.Confidence;
+                }
+            }
+            return best;
+        }
         public void RestoreDiscredited(IEnumerable<string> topics)
         {
             _discredited.Clear();

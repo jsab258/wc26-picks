@@ -90,10 +90,15 @@ namespace Ledger.Game
                 }
                 else
                 {
-                    // The line, then what would have worked. Never one without
-                    // the other — that pairing IS the feature.
-                    _ui.Toast(result.Line, 8f);
-                    if (!string.IsNullOrEmpty(result.Hint)) _ui.Toast(result.Hint, 10f);
+                    // The line, then what would have worked — in ONE toast,
+                    // stacked, because there is a single toast slot and the
+                    // second call overwrites the first in the same frame: all
+                    // four authored refusal lines were displaying for exactly
+                    // zero frames (audit 2026-07-27). The pairing IS the
+                    // feature, so it ships as a pair.
+                    _ui.Toast(string.IsNullOrEmpty(result.Hint)
+                        ? result.Line
+                        : result.Line + "\n" + result.Hint, 10f);
                     Audio.Ui("page");
                 }
             }

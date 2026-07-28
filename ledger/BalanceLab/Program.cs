@@ -416,6 +416,7 @@ namespace Ledger.BalanceLab
             foreach (var a in mill.Agents)
                 if (a.Circle != "night" && a.Loyalty > books.BestDayLifeLoyalty)
                     books.BestDayLifeLoyalty = a.Loyalty;
+            books.OsseiCaseAnswerable = mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt;
 
             return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage,
                 empire.TotalRacketIncome, economy.Prosperity, economy.PriceLevel,
@@ -467,7 +468,9 @@ namespace Ledger.BalanceLab
                         var books = o.books;
                         books.Cooperations = coop;
                         books.Stonewalls = stone;
-                        books.OsseiCaseAnswerable = deflected;
+                        // The landscape leg was computed in-world by the run
+                        // (surviving lead below testimony grade); her deal ORs in.
+                        books.OsseiCaseAnswerable = books.OsseiCaseAnswerable || deflected;
                         strain += ActThreeState.SeenStrain(books);
                         var e = ActThreeState.Resolve(books);
                         tally[e] = tally.TryGetValue(e, out var c) ? c + 1 : 1;

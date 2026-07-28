@@ -84,6 +84,11 @@ namespace Ledger.Core
         /// Above this, the day circle holds the rackets as fact rather than as
         /// talk, and "Both" is off the table.
         public const double FactThreshold = 0.5;
+
+        /// Testimony grade: a surviving lead at or above this stands up in
+        /// front of a magistrate, below it Ossei's case is answerable without
+        /// her deal (act3-draft.md answer 3).
+        public const double CaseStandsAt = 0.5;
         /// Above this, a relationship counts as surviving.
         public const double TrustThreshold = 0.55;
         /// Above this, the inspection finds the shape of it and you keep

@@ -35,7 +35,14 @@ namespace Ledger.Game
                 CrewCount = e.Crew.FindAll(c => !c.Departed).Count,
                 EmpireDissolved = ActThree.SoldUp,
                 DayCircleRacketHeat = CurrentHeat,
-                OsseiCaseAnswerable = ActThree.Deflected,
+                // Deflection answers her case — but so does a managed
+                // information landscape: no surviving lead of testimony grade
+                // (act3-draft.md answer 3: "You CAN refuse Ossei and still
+                // reach Both"). Deflected was the sole source before the
+                // audit, which made her deal compulsory for that ending.
+                OsseiCaseAnswerable = ActThree.Deflected
+                    || (_gossip != null && _gossip.Mill != null
+                        && _gossip.Mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt),
                 TotalWashed = Wallet.TotalWashed,
                 TotalRacketIncome = e.TotalRacketIncome,
                 BarTakingsToDate = TotalTakings,
