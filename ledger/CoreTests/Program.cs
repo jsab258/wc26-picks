@@ -3327,6 +3327,18 @@ namespace Ledger.CoreTests
             Reads("Cooperations", w => w.TotalWashed = 200, w => w.Cooperations = 6);
             Reads("Stonewalls", w => w.TotalWashed = 450, w => w.Stonewalls = 4);
             Reads("LedgersMoved", w => w.TotalWashed = 300, w => w.LedgersMoved = true);
+            // Prison does not launder the state's ledger (decided 2026-07-28,
+            // by recommendation): the same books read HARDER with a conviction
+            // on file — and the term is modest, not fatal.
+            {
+                var noRecord = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400 };
+                var record = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, PublicRecord = true };
+                Check(ActThreeState.SeenStrain(record) > ActThreeState.SeenStrain(noRecord) + 1e-9,
+                    "a conviction on file makes the same books read harder",
+                    $"{ActThreeState.SeenStrain(record):0.000} vs {ActThreeState.SeenStrain(noRecord):0.000}");
+                Check(ActThreeState.SeenStrain(record) < ActThreeState.SeenStrain(noRecord) * 1.2,
+                    "but it reads as a record, not a verdict — modest, by design");
+            }
             // "The single largest movement any one action makes" is a design
             // claim, and it is now an assertion: moving the books must beat the
             // deflection's easing, and by a real margin (audit 2026-07-27: the

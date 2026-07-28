@@ -63,6 +63,7 @@ namespace Ledger.Core
         // The information landscape.
         public double DayCircleRacketHeat; // how firmly the day circle holds it
         public bool OsseiCaseAnswerable;   // her strongest lead discredited, bought or contradicted
+        public bool PublicRecord;          // the street KNOWS you did time — a conviction on file
 
         // The books themselves.
         public int TotalWashed;
@@ -233,6 +234,13 @@ namespace Ledger.Core
         {
             if (s == null) return 0;
             double seen = LedgerStrain(s) * ScopeFactor(s.Cooperations, s.Stonewalls);
+            // A conviction is the one thing a state inspector can read better
+            // than anybody: doing time settles the STREET's ledger (rumors
+            // die, heat drops — that stands), but it cannot settle the
+            // state's. Without this term, three days inside was mechanically
+            // the best information-management move in the game (audit
+            // 2026-07-28; decided by recommendation, delegated by Jafar).
+            if (s.PublicRecord) seen *= 1.15;
             if (s.OsseiCaseAnswerable) seen *= 0.7;
             // What is not in the cellar cannot be read out of it. Deliberately
             // the single largest movement any one action makes, because it is

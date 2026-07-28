@@ -384,7 +384,7 @@ real fork and it is yours:
 
 No action needed before you play. The city works either way.
 
-## Does prison launder the information landscape? (audit finding, 2026-07-28)
+## ~~Does prison launder the information landscape?~~ DECIDED 2026-07-28 — option C, by recommendation (Jafar delegated: "go with your recommendations")
 
 **The mechanics today.** The Fall deletes every live player rumor (the street
 stops speculating — now they KNOW) and writes `did_time` into everyone's head
@@ -417,9 +417,16 @@ leashing witnesses and buying silence — flattens the act's central skill.
   read; the street's mood is separate. Small, targeted, testable in the
   lab before wiring.
 
-No action taken — this changes what an ending means, so it is yours.
+**Built:** SeenStrain reads a PublicRecord term (x1.15) when the street
+KNOWS did_time — knowledge, not rumor, so no leash or denial touches it.
+Heat and the epilogue stay as they were: the street stops talking, the
+state does not stop reading. Measured over ~400 worlds/cell: Control and
+Cautious rows essentially unchanged (Both still 6.1/12.9%); aggressive
+campaigns that FELL now mostly cannot keep the kingdom through the audit
+(deflect road 100% -> 30.4%, strain 0.60 against the 0.62 keep-nothing
+line). The ledger comes due, which is the name of the act.
 
-## Should dirty money pay the drayman? (audit finding, 2026-07-28)
+## ~~Should dirty money pay the drayman?~~ DECIDED 2026-07-28 — keep it, written into the fiction, by recommendation (delegated)
 
 The wallet's own rule says dirty cash is for criminal counterparties — but
 weekly supplier deliveries and MakeAmends are paid with dirtyOk: true, so
@@ -434,7 +441,8 @@ unwashed money buys the drink and the flour. Two readings:
   kind of grey counterparty the rule contemplates. If you keep this, the
   wallet comment should say so, so the next audit doesn't flag it again.
 
-No action taken; one line in Wallet.cs settles it whichever way you call.
+**Built:** the line is in Wallet.cs — the drayman is a grey counterparty
+and the fiction says so; the next audit reads intent, not an oversight.
 
 ## Standing rules honored meanwhile
 

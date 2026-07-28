@@ -4,6 +4,9 @@ namespace Ledger.Core
 {
     /// Two currencies that resist mixing (design-doc §6.7): clean money spends
     /// anywhere; dirty money is fast but only criminal counterparties take it, and
+    /// a supplier to a mob bar taking cash off the counter IS one — the drayman
+    /// and the amends-price are paid dirtyOk by design, settled 2026-07-28
+    /// (delegated; wrote the fiction in rather than flipping the balance), and
     /// it only becomes clean by washing through the bar's till — a capped daily
     /// pipeline. Hoarded dirty cash is evidence to anyone who sees the books.
     public class Wallet

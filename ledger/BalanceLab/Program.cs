@@ -363,9 +363,11 @@ namespace Ledger.BalanceLab
                             // The Fall, as the game runs it: seize, the street knows, 3 days gone.
                             camp.ConsumeFall();
                             wallet.Seize();
+                            var didTime = new Fact("player", "did_time", "true");
                             foreach (var a in mill.Agents)
                             {
                                 a.Rumors.RemoveAll(r => r.Content.Subject == "player");
+                                a.Knowledge.Learn(didTime);   // the record, as the game plants it
                                 a.Suspicion.Restore(0.2);
                                 a.Loyalty = Math.Clamp(a.Loyalty - 0.15, 0, 1);
                             }
@@ -417,6 +419,7 @@ namespace Ledger.BalanceLab
                 if (a.Circle != "night" && a.Loyalty > books.BestDayLifeLoyalty)
                     books.BestDayLifeLoyalty = a.Loyalty;
             books.OsseiCaseAnswerable = mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt;
+            books.PublicRecord = camp.Falls > 0;   // every fall plants the record
 
             return (camp.OpenMode, wallet.Total, camp.Falls, camp.OutfitCutOff, empire.Rival.Stage,
                 empire.TotalRacketIncome, economy.Prosperity, economy.PriceLevel,

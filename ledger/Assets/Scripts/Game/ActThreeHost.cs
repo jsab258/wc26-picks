@@ -40,6 +40,9 @@ namespace Ledger.Game
                 // (act3-draft.md answer 3: "You CAN refuse Ossei and still
                 // reach Both"). Deflected was the sole source before the
                 // audit, which made her deal compulsory for that ending.
+                // The record is street KNOWLEDGE, not rumor — a leash cannot
+                // hide it and a denial cannot cut it.
+                PublicRecord = AnyoneKnowsDidTime(),
                 OsseiCaseAnswerable = ActThree.Deflected
                     || (_gossip != null && _gossip.Mill != null
                         && _gossip.Mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt),
@@ -91,6 +94,15 @@ namespace Ledger.Game
         /// standing on their own feet (running something of yours unsupervised),
         /// and at war with nobody in the crew. The player is shown none of these
         /// numbers — they get a name, and have to decide whether they believe it.
+        bool AnyoneKnowsDidTime()
+        {
+            if (_gossip == null || _gossip.Mill == null) return false;
+            var didTime = new Fact("player", "did_time", "true");
+            foreach (var a in _gossip.Mill.Agents)
+                if (a.Knowledge.CheckClaim(didTime) == ClaimResult.Consistent) return true;
+            return false;
+        }
+
         public CrewMember ReadySuccessor()
         {
             CrewMember best = null;
