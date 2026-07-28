@@ -25,8 +25,21 @@ namespace Ledger.Game
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = $"NPC_{name}";
-            go.transform.position = schedule[0].pos + Vector3.up * 1.0f;
-            go.GetComponent<Renderer>().material.color = color;
+            // Was 1.0 — half a capsule. A body's ground contact is its
+            // SOLE, and the two numbers are 10cm apart.
+            go.transform.position = schedule[0].pos + Vector3.up * Mannequin.SoleBelowOrigin;
+            // A BODY, not a capsule. Ten boxes and a sphere articulated by
+            // Core/Rig — which will not be mistaken for a person and is
+            // unmistakably a person WALKING, and that is the whole difference
+            // between a populated street and objects sliding along one.
+            //
+            // The name colour becomes the clothes; skin is a warm neutral off
+            // the same hue, so a crowd is varied without anybody being
+            // pillar-box red from the neck up.
+            var skin = new Color(Mathf.Lerp(color.r, 0.72f, 0.65f),
+                                 Mathf.Lerp(color.g, 0.58f, 0.65f),
+                                 Mathf.Lerp(color.b, 0.47f, 0.65f));
+            Mannequin.Build(go, skin, color);
 
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
@@ -135,6 +148,37 @@ namespace Ledger.Game
         /// city" is something the world can know about you.
         public int BumpsWorthRemembering { get; private set; }
 
+        CharacterRig _body;
+        Vector3 _lastBodyPos;
+        double _gaitPhase;
+
+        /// The gait, from distance actually covered rather than from whether
+        /// the walk state says "walking". Somebody shoved sideways, steering
+        /// round a bin or stopped by a red light all move at speeds their
+        /// state machine does not know about, and a stride that ignores that
+        /// is the foot-sliding every graybox crowd has.
+        void DriveBody()
+        {
+            if (_body == null)
+            {
+                _body = CharacterRig.Attach(gameObject);
+                _lastBodyPos = transform.position;
+                if (_body == null) return;
+            }
+            float dt = Time.deltaTime;
+            if (dt <= 0) return;
+            var here = transform.position;
+            float moved = Vector3.Distance(new Vector3(here.x, 0, here.z),
+                                           new Vector3(_lastBodyPos.x, 0, _lastBodyPos.z));
+            _lastBodyPos = here;
+            double speed = moved / dt;
+            _body.Speed = speed;
+            // Cadence rises with speed, so a hurrying person takes faster
+            // steps rather than longer ones.
+            _gaitPhase = (_gaitPhase + speed * dt * 0.62) % 1.0;
+            _body.Phase = _gaitPhase;
+        }
+
         public void Tick(GameTime now)
         {
             var target = TargetFor(now);
@@ -226,6 +270,12 @@ namespace Ledger.Game
                     _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - cam);
                 }
             }
+
+            // Last, and after every branch above that can move them: the
+            // stagger, the avoid step and the walk are all displacement this
+            // frame, and a gait measured before any of them is a gait that
+            // disagrees with where the body went.
+            DriveBody();
         }
 
         /// Street-wise steering. Walk straight when the line is clear of

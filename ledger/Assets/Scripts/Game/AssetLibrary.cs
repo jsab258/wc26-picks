@@ -77,6 +77,35 @@ namespace Ledger.Game
             return mat;
         }
 
+        /// A flat, cached, SHARED material for an arbitrary colour.
+        ///
+        /// Cached by colour on purpose. Bodies are the one thing this game
+        /// makes hundreds of, and a `new Material` per limb per person is a
+        /// thousand materials, a thousand draw calls and no batching at all —
+        /// which is how a crowd system that computes correctly still cannot
+        /// be switched on. Rounded to 5 bits a channel before keying, or the
+        /// cache never hits and the whole point is lost to float noise.
+        public static Material Opaque(Color c)
+        {
+            if (!_initialized) Initialize();
+            int key = (Mathf.RoundToInt(Mathf.Clamp01(c.r) * 31) << 10)
+                    | (Mathf.RoundToInt(Mathf.Clamp01(c.g) * 31) << 5)
+                    | Mathf.RoundToInt(Mathf.Clamp01(c.b) * 31);
+            if (_flat.TryGetValue(key, out var cached) && cached != null) return cached;
+            var shader = Shader.Find("Standard");
+            var mat = new Material(shader != null ? shader : DefaultShader())
+            {
+                name = $"mat_flat_{key:x}",
+                color = new Color(((key >> 10) & 31) / 31f, ((key >> 5) & 31) / 31f,
+                                  (key & 31) / 31f, 1f),
+            };
+            mat.SetFloat("_Glossiness", 0.16f);
+            mat.SetFloat("_Metallic", 0f);
+            _flat[key] = mat;
+            return mat;
+        }
+        static readonly Dictionary<int, Material> _flat = new Dictionary<int, Material>();
+
         static Material BuildMaterial(string logical)
         {
             var spec = SurfaceSpec.For(logical);

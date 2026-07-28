@@ -59,7 +59,11 @@ namespace Ledger.Game
             go.name = "Player";
             Object.Destroy(go.GetComponent<Collider>()); // CharacterController replaces it
             go.transform.position = position;
-            go.GetComponent<Renderer>().material.color = new Color(0.85f, 0.8f, 0.7f);
+            // The player gets a body for the same reason everybody else does:
+            // the camera can be pulled off the shoulder, the reflection now
+            // has something to reflect, and a shadow cast by a capsule is the
+            // loudest possible statement that this is a prototype.
+            Mannequin.Build(go, new Color(0.72f, 0.58f, 0.47f), new Color(0.30f, 0.32f, 0.38f));
 
             var cc = go.AddComponent<CharacterController>();
             cc.height = 1.8f;

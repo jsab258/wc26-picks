@@ -616,6 +616,7 @@ namespace Ledger.Game
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
             SampleScore();
             SampleReflections();
+            SampleBodies();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
 
@@ -690,6 +691,74 @@ namespace Ledger.Game
         double _scoreEnergyRange;
         double _scoreCalmUnease = -1, _scoreCalmestHeat, _scoreHotUnease = -1, _scoreHottestHeat = -1;
         double _scoreMinE = double.MaxValue, _scoreMaxE = double.MinValue;
+
+        // ---- BODIES ----
+        //
+        // `Core/Rig` computed a gait for months while every person in the
+        // city was a capsule. Three separate things can be wrong here and
+        // only the first shows up in a screenshot:
+        //
+        //   nobody has a body   — Mannequin is wired to nothing;
+        //   nobody's legs move  — the rig binds but never drives the joints;
+        //   everybody solves    — the distance cull is not culling, and the
+        //                         frame budget goes on people whose legs
+        //                         cannot be seen from where the camera is.
+        int _bodySamples, _bodyMaxSolved;
+        double _bodyMaxKnee, _bodyMinKnee = 999;
+        int _bodyRigs;
+        /// Samples where at least one rig was outside the solve radius — the
+        /// only samples at which a cull COULD have happened.
+        int _bodyCullable;
+        /// ...and samples where one actually did. The gate compares the two
+        /// rather than asserting a cull outright, because a city whose people
+        /// all happen to be nearby has nothing to cull and must not fail for
+        /// it. My first version asserted `solved <= rigs`, which is true of
+        /// every possible run including a cull that never fires.
+        int _bodyCulled;
+        int _bodyTick;
+
+        void SampleBodies()
+        {
+            // Throttled: this is a scene-wide object scan, and running one
+            // every frame of a nine-day simulation to check a gate is the
+            // measurement costing more than the thing measured.
+            if (++_bodyTick % 30 != 0) return;
+            var rigs = UnityEngine.Object.FindObjectsByType<CharacterRig>(
+                FindObjectsSortMode.None);
+            if (rigs == null || rigs.Length == 0) return;
+            _bodySamples++;
+            _bodyRigs = Math.Max(_bodyRigs, rigs.Length);
+            int solved = CharacterRig.SolvedLastFrame;
+            _bodyMaxSolved = Math.Max(_bodyMaxSolved, solved);
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                bool anyFar = false;
+                foreach (var r in rigs)
+                {
+                    if (r == null) continue;
+                    if (Vector3.Distance(r.transform.position, cam.transform.position)
+                        > CharacterRig.SolveWithinMetres) { anyFar = true; break; }
+                }
+                if (anyFar)
+                {
+                    _bodyCullable++;
+                    if (solved < rigs.Length) _bodyCulled++;
+                }
+            }
+            // Read the KNEE the rig would be producing rather than a joint
+            // angle off a transform: a transform tells you where a limb ended
+            // up after four other systems touched it, and would pass this
+            // gate on a body that is merely being pushed around.
+            foreach (var r in rigs)
+            {
+                if (r == null || r.Speed < 0.4) continue;
+                double knee = Rig.LegSwing(r.Phase, r.Speed).knee;
+                if (knee > _bodyMaxKnee) _bodyMaxKnee = knee;
+                if (knee < _bodyMinKnee) _bodyMinKnee = knee;
+            }
+        }
 
         // ---- WET REFLECTIONS ----
         //
@@ -1598,6 +1667,19 @@ namespace Ledger.Game
                 && ReflRefreshes > 0
                 && ReflRefreshes < _reflWetFrames / 4;
 
+            // Bodies exist, their legs move through a real cycle, and the
+            // rig does NOT solve for everyone at once. The knee spread is
+            // the load-bearing part: a rig bound to a body it never drives
+            // reports a constant, and a constant knee is a mannequin being
+            // dragged rather than a person walking.
+            bool bodiesOk = _bodySamples > 0 && _bodyRigs >= 2
+                && _bodyMaxKnee - _bodyMinKnee > 10
+                // Whenever somebody WAS out of range, somebody was culled.
+                // Never "a cull happened", which is unsatisfiable in a city
+                // where everybody is close by and would make this gate a
+                // report on where the walkers wandered.
+                && (_bodyCullable == 0 || _bodyCulled > _bodyCullable / 2);
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1638,6 +1720,8 @@ namespace Ledger.Game
                  $"hot={_scoreHotUnease:0.00}@{_scoreHottestHeat:0.00}]", scoreOk),
                 ($"reflect[wet={_reflWetFrames} dry={_reflDryFrames} " +
                  $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
+                ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
+                 $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable}]", bodiesOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1693,6 +1777,8 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
+                      $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
+                      $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} bodiesOk={bodiesOk} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +

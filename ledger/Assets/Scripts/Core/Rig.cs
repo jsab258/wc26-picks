@@ -229,6 +229,116 @@ namespace Ledger.Core
             return (stance, dip);
         }
 
+        // ---- the walk cycle ------------------------------------------------
+
+        /// THE GAIT ITSELF, which every other function here assumed somebody
+        /// else was providing. Nothing did: the limp shortened a stance on a
+        /// body whose legs never moved, and the look-split turned a head on a
+        /// capsule. This is the cycle the rest of the file was written to
+        /// modulate.
+        ///
+        /// PHASE IS ONE FULL CYCLE — two steps — not one. Left leg leads at
+        /// zero, the right leg is the same functions at `phase + 0.5`. Half
+        /// the bugs in a hand-built gait are a cycle counted in steps by one
+        /// caller and in strides by another, so it is stated once here and
+        /// every function below obeys it.
+
+        /// Degrees of hip swing at a flat sprint. A walk is well under this.
+        public const double MaxHipSwingDegrees = 45;
+        /// Below this, a body is standing still and MUST NOT MOVE. A
+        /// mannequin idly marching on the spot is more obviously wrong than
+        /// one standing perfectly rigid, because the error is in motion.
+        ///
+        /// Unlike `LightModel.DryBelow` — which turned out to be a redundant
+        /// second copy of a threshold the curve already enforced — this guard
+        /// is load-bearing: the amplitude curve is an exponential and returns
+        /// a small NONZERO value at a standstill. Delete the guard and every
+        /// idle body in the city develops a twitch.
+        public const double StillBelowMetresPerSec = 0.05;
+
+        /// How big the whole cycle is, from speed. Saturating rather than
+        /// linear: the difference between a stroll and a walk is large, the
+        /// difference between a run and a sprint is mostly frequency.
+        public static double SwingScale(double speedMetresPerSec)
+        {
+            if (speedMetresPerSec < StillBelowMetresPerSec) return 0;
+            return Feel.Clamp01(1 - Math.Exp(-speedMetresPerSec / 1.6));
+        }
+
+        /// One leg. `hip` is positive forward; `knee` is FLEXION and is never
+        /// negative, because a knee that bends both ways is the single most
+        /// unsettling thing a procedural rig can do.
+        ///
+        /// The knee is the part worth getting right. It is nearly straight at
+        /// heel strike and maximally bent in mid-swing, when the foot has to
+        /// clear the ground. A knee driven by the same sine as the hip — the
+        /// obvious implementation — bends symmetrically through the stance
+        /// phase instead, which reads as wading.
+        public static (double hip, double knee) LegSwing(double phase, double speedMetresPerSec)
+        {
+            double a = SwingScale(speedMetresPerSec);
+            if (a <= 0) return (0, 0);
+            double p = phase - Math.Floor(phase);
+            double hip = MaxHipSwingDegrees * a * Math.Sin(2 * Math.PI * p);
+            // Peaks at p = 0.75 — under the body and travelling forward,
+            // which is the moment the foot must clear the kerb.
+            double swing = Math.Max(0, Math.Sin(2 * Math.PI * (p - 0.5)));
+            double knee = (4 + 62 * a) * swing + 6 * a;
+            return (hip, knee);
+        }
+
+        /// The arm on the SAME SIDE as the leg at this phase. Pass the left
+        /// leg's phase and get the left arm, opposition already applied.
+        ///
+        /// The API is shaped this way on purpose. Arms swing OPPOSITE the leg
+        /// beside them — left arm forward with the right leg — and it is the
+        /// most commonly inverted detail in an amateur walk cycle. Making the
+        /// caller apply the half-cycle offset is making the caller get it
+        /// wrong; here it cannot be passed the wrong phase without also
+        /// swapping the arm.
+        public static (double shoulder, double elbow) ArmSwing(double phase, double speedMetresPerSec)
+        {
+            double a = SwingScale(speedMetresPerSec);
+            if (a <= 0) return (0, 0);
+            double p = phase - Math.Floor(phase);
+            // Arms swing perhaps half as far as legs, and the sign is the
+            // opposition.
+            double shoulder = -22 * a * Math.Sin(2 * Math.PI * p);
+            // The elbow closes as the arm comes forward and opens behind —
+            // an arm swinging straight is a soldier on parade, not a person.
+            double forward = Math.Max(0, -Math.Sin(2 * Math.PI * p));
+            double elbow = 10 + (8 + 30 * a) * forward;
+            return (shoulder, elbow);
+        }
+
+        /// The pelvis turns with the leading leg and the chest turns against
+        /// it. Small, and the reason a walk reads as a spine rather than as a
+        /// crate with legs.
+        public static (double pelvisYaw, double chestYaw) Counterturn(double phase,
+                                                                      double speedMetresPerSec)
+        {
+            double a = SwingScale(speedMetresPerSec);
+            if (a <= 0) return (0, 0);
+            double p = phase - Math.Floor(phase);
+            double pelvis = 7.5 * a * Math.Sin(2 * Math.PI * p);
+            return (pelvis, -0.6 * pelvis);
+        }
+
+        /// Vertical travel of the body, metres. Positive is up.
+        ///
+        /// AT TWICE THE FREQUENCY OF THE STRIDE, which is the whole point:
+        /// the body rises over each straight supporting leg and drops through
+        /// each double-support, so it bobs twice per cycle. Bobbing once is
+        /// the classic tell of a rig built by someone who reused the hip sine
+        /// for everything, and it reads as a limp on both legs.
+        public static double Bob(double phase, double speedMetresPerSec)
+        {
+            double a = SwingScale(speedMetresPerSec);
+            if (a <= 0) return 0;
+            double p = phase - Math.Floor(phase);
+            return 0.035 * a * Math.Cos(4 * Math.PI * p);
+        }
+
         // ---- helpers -------------------------------------------------------
 
         static double Smooth(double t)

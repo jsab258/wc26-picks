@@ -6573,6 +6573,112 @@ namespace Ledger.CoreTests
             Check(Rig.Limp(0.2, true, 0.2).stanceScale < Rig.Limp(0.7, true, 0.2).stanceScale,
                 "a worse injury is a worse limp, from the SAME capability number the "
                 + "audio uses — a limp you can hear but not see is worse than neither");
+
+            // ---- THE WALK CYCLE ----
+            //
+            // Everything above modulates a gait that did not exist. The limp
+            // shortened a stance on a body whose legs never moved.
+
+            // A body at rest is RIGID. Not nearly still — still.
+            var restLeg = Rig.LegSwing(0.31, 0);
+            var restArm = Rig.ArmSwing(0.31, 0);
+            Check(restLeg.hip == 0 && restLeg.knee == 0 && restArm.shoulder == 0
+                  && Rig.Bob(0.31, 0) == 0 && Rig.Counterturn(0.31, 0).pelvisYaw == 0,
+                "a body standing still does not move at all — a mannequin marching on "
+                + "the spot is more obviously wrong than one standing rigid, because "
+                + "the error is in motion");
+            Check(Rig.SwingScale(Rig.StillBelowMetresPerSec * 0.5) == 0
+                  && Rig.SwingScale(0.9) > 0.3,
+                "and the standstill guard is load-bearing, because the amplitude curve "
+                + "is an exponential that never actually reaches zero on its own",
+                $"{Rig.SwingScale(0.9):0.00}");
+
+            // ARMS OPPOSE LEGS. The single most commonly inverted detail in a
+            // hand-built walk, and the API hands the caller the arm on the
+            // SAME side so it cannot be got wrong by passing the wrong phase.
+            bool opposed = true;
+            for (double ph = 0.02; ph < 1.0; ph += 0.05)
+            {
+                double hip = Rig.LegSwing(ph, 1.4).hip;
+                double sh = Rig.ArmSwing(ph, 1.4).shoulder;
+                if (Math.Abs(hip) < 1 || Math.Abs(sh) < 0.5) continue;
+                if ((hip > 0) == (sh > 0)) opposed = false;
+            }
+            Check(opposed,
+                "the arm on a side swings OPPOSITE the leg beside it, everywhere in "
+                + "the cycle — get this backwards and the walk reads as wrong to "
+                + "people who cannot say why");
+
+            // A KNEE BENDS ONE WAY.
+            double worstKnee = 999, worstElbow = 999;
+            for (double ph = 0; ph < 1.0; ph += 0.01)
+            {
+                worstKnee = Math.Min(worstKnee, Rig.LegSwing(ph, 5.0).knee);
+                worstElbow = Math.Min(worstElbow, Rig.ArmSwing(ph, 5.0).elbow);
+            }
+            Check(worstKnee >= 0 && worstElbow >= 0,
+                "a knee and an elbow flex one way only — a joint that bends backwards "
+                + "is the most unsettling thing a procedural rig can do",
+                $"knee {worstKnee:0.0} elbow {worstElbow:0.0}");
+
+            // AND IT BENDS WHEN THE FOOT HAS TO CLEAR THE GROUND, not through
+            // the stance. A knee driven by the hip's own sine — the obvious
+            // implementation — bends symmetrically and reads as wading.
+            double kneeMidSwing = Rig.LegSwing(0.75, 1.4).knee;
+            double kneeAtStrike = Rig.LegSwing(0.25, 1.4).knee;
+            Check(kneeMidSwing > kneeAtStrike * 3,
+                "the knee is bent in mid-swing, when the foot must clear the kerb, and "
+                + "nearly straight at heel strike — not the same sine as the hip",
+                $"swing {kneeMidSwing:0.0} vs strike {kneeAtStrike:0.0}");
+
+            // THE BOB IS AT TWICE THE STRIDE FREQUENCY. The body rises over
+            // each straight supporting leg, so it goes up twice per cycle.
+            // Once is the classic tell of a rig that reused the hip sine for
+            // everything, and it reads as a limp on both legs.
+            int bobPeaks = 0;
+            for (int i = 0; i < 200; i++)
+            {
+                double ph = i / 200.0;
+                double prev = Rig.Bob(ph - 0.005, 1.4), here = Rig.Bob(ph, 1.4),
+                       next = Rig.Bob(ph + 0.005, 1.4);
+                if (here > prev && here >= next) bobPeaks++;
+            }
+            Check(bobPeaks == 2,
+                "the body rises TWICE per stride, once over each supporting leg — a "
+                + "single rise per cycle is a limp on both legs",
+                $"{bobPeaks} peaks");
+
+            // Continuous across the seam, or the walk ticks once a stride.
+            Check(Math.Abs(Rig.LegSwing(0.999, 1.4).hip - Rig.LegSwing(1.001, 1.4).hip) < 0.5
+                  && Math.Abs(Rig.Bob(0.999, 1.4) - Rig.Bob(1.001, 1.4)) < 0.002,
+                "and the cycle joins up at the seam, or the whole body ticks once per "
+                + "stride forever");
+
+            // Faster is bigger — but saturating, because the difference
+            // between a run and a sprint is mostly frequency.
+            Check(Rig.LegSwing(0.25, 4.5).hip > Rig.LegSwing(0.25, 1.4).hip
+                  && Rig.LegSwing(0.25, 1.4).hip > Rig.LegSwing(0.25, 0.4).hip,
+                "a faster body swings further");
+            Check(Rig.SwingScale(9) - Rig.SwingScale(5) < Rig.SwingScale(2) - Rig.SwingScale(0.6),
+                "but it saturates — the gap between a stroll and a walk is large, the "
+                + "gap between a run and a sprint is mostly cadence",
+                $"{Rig.SwingScale(9) - Rig.SwingScale(5):0.000} vs "
+                + $"{Rig.SwingScale(2) - Rig.SwingScale(0.6):0.000}");
+
+            // The right leg is the left leg half a cycle later, and nothing
+            // in the model should make that untrue.
+            Check(Math.Abs(Rig.LegSwing(0.1, 1.4).hip + Rig.LegSwing(0.6, 1.4).hip) < 1e-9,
+                "and the two legs are one cycle read half a stride apart, so a gait "
+                + "cannot go lame by accident");
+
+            // The spine turns against the hips. Both are small; the point is
+            // the SIGN.
+            var turn = Rig.Counterturn(0.25, 1.4);
+            Check(turn.pelvisYaw != 0 && (turn.pelvisYaw > 0) != (turn.chestYaw > 0)
+                  && Math.Abs(turn.chestYaw) < Math.Abs(turn.pelvisYaw),
+                "the chest turns against the pelvis and less far — this is the "
+                + "difference between a walking spine and a crate with legs",
+                $"pelvis {turn.pelvisYaw:0.0} chest {turn.chestYaw:0.0}");
         }
 
         static void TestTypography()
