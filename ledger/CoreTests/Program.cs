@@ -1136,16 +1136,50 @@ namespace Ledger.CoreTests
             e2.ResolveTable("machine", "accept", m2, new GameTime(14, 12, 0));
             Check(e2.FrontsCapped, "act2: signing Vane's cap throttles the fronts");
 
+            // TotalRacketIncome is the number Act III's LedgerStrain calls the
+            // dirty income the books must explain — and it had zero coverage:
+            // neither accumulation nor codec round-trip (audit 2026-07-27).
+            var (eI, mI, _i, josipI) = BuildEmpireFixture();
+            josipI.Loyalty = 0.7;
+            var wI = new Wallet(0);
+            eI.RecruitByNeed(josipI, "Josip", 0, wI, new GameTime(14, 12, 0));
+            eI.Establish(eI.RacketOf("collection"), eI.CrewOf("josip"), new GameTime(14, 12, 0));
+            eI.DailyTick(new GameTime(15, 8, 0), wI, mI);
+            eI.DailyTick(new GameTime(16, 8, 0), wI, mI);
+            Check(eI.TotalRacketIncome == 120,
+                "act3's books: two collection days accumulate exactly what the rounds took",
+                eI.TotalRacketIncome.ToString());
+            var snapI = MiniJson.Serialize(eI.Capture());
+            var eI2 = new EmpireBook();
+            eI2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snapI)));
+            Check(eI2.TotalRacketIncome == eI.TotalRacketIncome,
+                "and the books survive the codec — the audit reads the same number after a load");
+
             var (e3, m3, _3, __3) = BuildEmpireFixture();
             e3.ArmOf("newcrew").Attention = 0.3;
             e3.ResolveTable("newcrew", "defy", m3, new GameTime(14, 12, 0));
             Check(e3.ArmOf("newcrew").Attention >= 0.99 && e3.ArmOf("newcrew").Standing < 0,
                 "act2: refusing Danny buys his full attention");
 
+            // EVERY field non-default, then the codec — a restore regression in
+            // any of the fifteen used to ship green behind a two-field assert
+            // (audit 2026-07-27).
+            a.Opened = true; a.OpenedDay = 9;
+            a.Pp1Fired = true; a.Pp2Fired = true; a.Pp3Fired = true;
+            a.Pp4Fired = true; a.Pp5Fired = true; a.Pp6Fired = true;
+            a.LastEveningDay = 11;
+            a.TableArmId = "machine"; a.TableAnswer = "counter";
+            a.TruceSpent = true; a.ReadsBought = 2;
             var snap = MiniJson.Serialize(a.Capture());
             var a2 = new ActTwoState();
             a2.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
-            Check(a2.InjunctionUntilDay == 12 && a2.InjunctionAnswered, "act2: the act's state survives the codec");
+            Check(a2.Opened && a2.OpenedDay == 9
+                && a2.Pp1Fired && a2.Pp2Fired && a2.Pp3Fired && a2.Pp4Fired && a2.Pp5Fired && a2.Pp6Fired
+                && a2.LastEveningDay == 11
+                && a2.InjunctionUntilDay == 12 && a2.InjunctionAnswered
+                && a2.TableArmId == "machine" && a2.TableAnswer == "counter"
+                && a2.TruceSpent && a2.ReadsBought == 2,
+                "act2: the act's WHOLE state survives the codec, all fifteen fields");
         }
 
         /// A minimal empire fixture shaped like EmpireSetup's roster.
@@ -1224,6 +1258,17 @@ namespace Ledger.CoreTests
             Check(!lena3.Holds("player.location_d2_evening", "warehouse"), "a leashed partner shares nothing about the player");
             lena3.Leashed = true;
             Check(mill3.CompareNotes("lena", "rocco", now).Count == 0, "a leashed checker does not go asking");
+            // The pair above is leashed on BOTH sides, so it could not catch
+            // the checker guard being deleted (audit 2026-07-27). This pair
+            // can: the partner is free and has a story to give, so the only
+            // thing keeping the count at zero is the checker's own leash.
+            var (mill5, _r5, lena5) = FreshMill(greed: 0.1, nerve: 0.9);
+            lena5.Leashed = true;
+            Check(mill5.CompareNotes("lena", "rocco", now).Count == 0,
+                "a leashed checker does not go asking even when the partner would answer");
+            lena5.Leashed = false;
+            Check(mill5.CompareNotes("lena", "rocco", now).Count > 0,
+                "and the same pair proves the fixture can produce the exchange");
         }
 
         static void TestHooks()
@@ -2348,6 +2393,29 @@ namespace Ledger.CoreTests
             Check(squeezed.TakingsFactor < quiet.TakingsFactor * 0.85,
                 "so the bar takes noticeably less", squeezed.TakingsFactor.ToString("0.000"));
 
+            // Heat is an economic input, not a flavor: the same squeeze on a
+            // hotter street leaves the district poorer. Deleting the heat
+            // coupling used to leave every check in this suite green (audit
+            // 2026-07-27).
+            var cool = FreshEconomy(); var hot = FreshEconomy();
+            var wH1 = new Wallet(100000); var wH2 = new Wallet(100000);
+            for (int d = 1; d <= 21; d++)
+            {
+                cool.DailyTick(new GameTime(d, 9, 0), wH1, 120, 0, heat: 0.1);
+                hot.DailyTick(new GameTime(d, 9, 0), wH2, 120, 0, heat: 0.9);
+            }
+            Check(hot.Prosperity < cool.Prosperity - 0.05,
+                "a hot street is a poorer street, same squeeze",
+                $"{hot.Prosperity:0.00} vs {cool.Prosperity:0.00}");
+            // And a supplier who has stopped liking you charges for it.
+            var soured = FreshEconomy();
+            var dray2 = soured.SupplierNamed("drayman");
+            int likedPrice = soured.DeliveryPrice(dray2);
+            dray2.Standing = -0.9;
+            Check(soured.DeliveryPrice(dray2) > likedPrice,
+                "a soured supplier charges for the relationship",
+                $"{soured.DeliveryPrice(dray2)} vs {likedPrice}");
+
             // Paying people well is economic policy, not charity.
             var generous = FreshEconomy();
             var wallet3 = new Wallet(100000);
@@ -2927,14 +2995,20 @@ namespace Ledger.CoreTests
             // Doing NOTHING must produce Burn Both — the ledger comes due whether
             // or not you answer it, and that has to be the default rather than a
             // special case somebody remembered to write.
+            // The old fixture had TotalRacketIncome = 0 — the books had nothing
+            // to explain, strain was zero, and Resolve returned Kingdom
+            // deterministically; the BurnBoth arm was dead code and the comment
+            // above was unpinned (audit 2026-07-27). Doing nothing for an act
+            // means the rackets RAN and nobody managed anything.
             var did_nothing = new LedgerState
             {
                 BusinessesOwned = 1, RacketsEstablished = 1,
                 BestDayLifeLoyalty = 0.1, DayCircleRacketHeat = 0.9,
+                TotalRacketIncome = 2500, TotalWashed = 0, BarTakingsToDate = 400,
             };
-            Check(ActThreeState.Resolve(did_nothing) == Ending.Kingdom
-                  || ActThreeState.Resolve(did_nothing) == Ending.BurnBoth,
-                "doing nothing never lands you somewhere good");
+            Check(ActThreeState.Resolve(did_nothing) == Ending.BurnBoth,
+                "doing nothing produces Burn Both, as the default and not a special case",
+                ActThreeState.Resolve(did_nothing).ToString());
 
             // "Both" is the hard one and must require the information landscape
             // to have been actively managed — not merely a big empire and a friend.
@@ -4250,6 +4324,14 @@ namespace Ledger.CoreTests
             Check(!Doors.Try(loft, new AccessState { Notoriety = 0.9, Hour = 12, Money = 0 }).Allowed,
                 "and closes once the street is saying your name");
             Check(Doors.Try(yard, famous).Allowed, "the yard opens to somebody the street talks about");
+            // ...and it is the NOTORIETY that opens it: at noon the after-hours
+            // key is dead, so this passes only through the Notorious key — the
+            // old check passed via Hour 22 whatever the notoriety was (audit
+            // 2026-07-27).
+            Check(Doors.Try(yard, new AccessState { Notoriety = 0.9, Hour = 12, Money = 0 }).Allowed,
+                "and it is the name that opens it, not the hour");
+            Check(!Doors.Try(yard, new AccessState { Notoriety = 0.05, Hour = 12, Money = 0 }).Allowed,
+                "a nobody at noon stays outside");
 
             // Every refusal must be legible: somebody talking, and never a code.
             foreach (var state in new[] { nobody, almostPaid, almostStanding })
@@ -4363,7 +4445,8 @@ namespace Ledger.CoreTests
             Check(daylight.Worry.Contains("daylight"), "so is a bad hour", daylight.Worry);
             var crowded = Operations.Read(
                 new OperationPlan("x") { Hour = 3 }.Bringing("Sam", "Josip", "Ada", "Sam"), Warehouse(), Steady());
-            Check(crowded.Worry.Length > 0, "and a plan with too many people in it says so", crowded.Worry);
+            Check(crowded.Worry.Contains("Four people"),
+                "and a plan with too many people in it names the crowd as the problem", crowded.Worry);
 
             // Running it. Three bands, and the partial is the interesting one.
             var win = Operations.Run(new OperationPlan("x") { Approach = Approach.Forced, Hour = 3 },
