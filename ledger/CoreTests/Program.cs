@@ -62,6 +62,7 @@ namespace Ledger.CoreTests
                 await TestTranscriptRollback();
                 await TestReflection();
                 TestPhysique();
+                TestConfab();
                 TestResponseParsing();
                 TestIntentLexical();
                 TestIntentValidation();
@@ -6842,6 +6843,107 @@ namespace Ledger.CoreTests
                 "the chest turns against the pelvis and less far — this is the "
                 + "difference between a walking spine and a crate with legs",
                 $"pelvis {turn.pelvisYaw:0.0} chest {turn.chestYaw:0.0}");
+        }
+
+        static void TestConfab()
+        {
+            Console.WriteLine("Confab — the game is about gossip and the street shows none of it:");
+
+            // PERSONAL DISTANCE, not intimate and not social. Closer reads as
+            // a threat; further reads as two strangers who happen to be
+            // standing near each other, which is what the street looks like
+            // today.
+            double strangers = Confab.Distance(0.05, false);
+            double close = Confab.Distance(0.95, false);
+            // LITERALS, not the constants being pinned. Written as
+            // `<= Confab.FarMetres` this moved with the number it was
+            // supposed to constrain: a break that pushed people out to 3.3m
+            // — social distance, two strangers standing near each other
+            // rather than a conversation — passed cleanly. Second time this
+            // exact mistake has been caught by a break run today.
+            Check(strangers > 1.1 && strangers <= 1.4,
+                "acquaintances stand at arm's length and a bit — near enough to talk "
+                + "quietly, far enough not to be looming",
+                $"{strangers:0.00}m");
+            Check(close < strangers && close >= 0.6,
+                "people who know each other stand closer, but never intimately — that "
+                + "reads as a threat or a courtship, neither of which is what happened",
+                $"{close:0.00}m vs {strangers:0.00}m");
+            Check(Confab.Distance(0.5, true) < Confab.Distance(0.5, false),
+                "and a SECRET is told closer — people lean in for the thing they should "
+                + "not be saying, and that lean is legible across a street when the "
+                + "words are not",
+                $"{Confab.Distance(0.5, true):0.00} vs {Confab.Distance(0.5, false):0.00}");
+            double tightest = 9;
+            for (double t = 0; t <= 1.0001; t += 0.05)
+                tightest = Math.Min(tightest, Confab.Distance(t, true));
+            Check(tightest >= 0.6,
+                "nobody ever ends up nose to nose, however close they are and however "
+                + "juicy it is",
+                $"{tightest:0.00}m");
+
+            // NOT SQUARED UP. Two people dead-on is the posture of an
+            // argument; a city staging every conversation that way reads as
+            // one on the edge of a fight.
+            Check(Confab.OffAxis(false) > 10 && Confab.OffAxis(false) < 35,
+                "friendly talk is shoulders-angled, not face-on",
+                $"{Confab.OffAxis(false)}deg");
+            Check(Confab.OffAxis(true) < Confab.OffAxis(false) / 3,
+                "and a confrontation IS square-on — the same number does the work "
+                + "twice, and the player reads a fight starting before anybody speaks",
+                $"{Confab.OffAxis(true)}deg");
+
+            // DURATION.
+            Check(Confab.Seconds(0.9, false) > Confab.Seconds(0.1, false),
+                "close contacts talk for longer");
+            Check(Confab.Seconds(0.5, true) > Confab.Seconds(0.5, false),
+                "and something worth saying quietly holds them there");
+            double sMin = 99, sMax = -1;
+            for (double t = 0; t <= 1.0001; t += 0.05)
+                foreach (bool sens in new[] { true, false })
+                {
+                    double v = Confab.Seconds(t, sens);
+                    sMin = Math.Min(sMin, v); sMax = Math.Max(sMax, v);
+                }
+            Check(sMin >= Confab.MinSeconds - 1e-9 && sMax <= Confab.MaxSeconds + 1e-9,
+                "but nobody stands in the street for a minute, and nobody exchanges a "
+                + "secret in half a second",
+                $"{sMin:0.0}..{sMax:0.0}s");
+
+            // THE POSE RISES, HOLDS AND FALLS. A pair that snaps to face
+            // each other and snaps apart is two objects being repositioned,
+            // which is exactly what it is and exactly what this is for.
+            double total = Confab.Seconds(0.6, false);
+            Check(Confab.Commitment(0, total) < 0.05 && Confab.Commitment(total, total) == 0,
+                "a confab starts and ends at nothing");
+            Check(Confab.Commitment(total * 0.5, total) > 0.95,
+                "and is fully committed in the middle",
+                $"{Confab.Commitment(total * 0.5, total):0.00}");
+            double prev = -1; bool roseThenFell = false; bool rising = true;
+            for (double t = 0; t <= total; t += total / 200)
+            {
+                double c = Confab.Commitment(t, total);
+                if (rising && c < prev - 1e-9) { rising = false; roseThenFell = true; }
+                else if (!rising && c > prev + 1e-9) { roseThenFell = false; break; }
+                prev = c;
+            }
+            Check(roseThenFell,
+                "it rises once and falls once — never flickers, which a naive min of "
+                + "two ramps can do at the crossover");
+
+            // WHERE IT IS ALLOWED TO HAPPEN. The rumour graph has no idea
+            // where anybody is standing and will cheerfully fire an exchange
+            // between two people crossing a junction.
+            Check(!Confab.WorthStopping(3.0, true, false),
+                "nobody stops to chat in the middle of the road");
+            Check(!Confab.WorthStopping(3.0, false, true),
+                "and nobody leans out of a moving car to do it either");
+            Check(!Confab.WorthStopping(40, true, true),
+                "nor crosses a district to deliver one line — a pair converging from "
+                + "opposite ends of a street reads as a fetch quest");
+            Check(Confab.WorthStopping(4.0, true, true),
+                "two people already near each other, on foot, with somewhere to stand: "
+                + "that is a conversation");
         }
 
         static void TestPhysique()

@@ -1774,6 +1774,19 @@ namespace Ledger.Game
             double aoDelta = (_aoOn >= 0 && _aoOff >= 0) ? _aoOff - _aoOn : -1;
             bool aoOk = FilmGrade.Applied > 0 && aoDelta > 0.002 && aoDelta < 0.09;
 
+            // THE STREET TALKS TO ITSELF. Rumours have passed along the
+            // contact graph since the first week and the city has shown none
+            // of it — a dozen people walking past each other in silence while
+            // the thing the game is about happens underneath.
+            //
+            // Gated at all because the staging has three ways to silently
+            // never fire: both parties already talking, nowhere off-road to
+            // stand, or a pair the mill likes that never happens to be near
+            // each other. Any of those leaves a street that looks exactly
+            // like the old one, and the only difference between "the feature
+            // is subtle" and "the feature is absent" is a number.
+            bool confabOk = _game.Gossip == null || _game.Gossip.Confabs > 0;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1819,6 +1832,7 @@ namespace Ledger.Game
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
+                ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1875,6 +1889,7 @@ namespace Ledger.Game
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
+                      $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +

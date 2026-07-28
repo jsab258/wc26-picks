@@ -179,10 +179,104 @@ namespace Ledger.Game
             _body.Phase = _gaitPhase;
         }
 
+        // ---- standing and talking to somebody ----------------------------
+        //
+        // The game's whole thesis is that the antagonist is gossip, and the
+        // street has always shown none of it: rumours pass along the contact
+        // graph every tick while a dozen people walk past each other in
+        // silence. Now that there are bodies, the exchange can be a thing you
+        // WATCH — two strangers stopping, turning in, leaning toward each
+        // other. That is the central mechanic taught without a line of UI.
+        //
+        // Every number comes from Core/Confab, which is where they are
+        // tested. This holds the state.
+        NpcWalker _talkingTo;
+        float _confabUntil, _confabStarted, _confabTotal;
+        double _confabDistance = Confab.NearMetres;
+        double _confabOffAxis = Confab.OffAxisDegrees;
+
+        public bool InConfab => _talkingTo != null && Time.time < _confabUntil;
+
+        /// Begin one. Called on both halves of a pair, by whoever noticed the
+        /// exchange — the walkers do not decide this, the gossip does.
+        public void BeginConfab(NpcWalker other, double tie, bool sensitive, bool hostile)
+        {
+            if (other == null || other == this) return;
+            _talkingTo = other;
+            _confabTotal = (float)Confab.Seconds(tie, sensitive);
+            _confabStarted = Time.time;
+            _confabUntil = Time.time + _confabTotal;
+            _confabDistance = Confab.Distance(tie, sensitive);
+            _confabOffAxis = Confab.OffAxis(hostile);
+        }
+
+        /// Where this walker wants to stand and face while talking, or false
+        /// if they are not. Returns the target the ordinary steering should
+        /// be overridden with.
+        bool ConfabTarget(Vector3 current, out Vector3 stand, out Vector3 face)
+        {
+            stand = current; face = transform.forward;
+            if (!InConfab) { _talkingTo = null; return false; }
+            var them = _talkingTo.transform.position;
+            var toThem = them - current; toThem.y = 0;
+            if (toThem.sqrMagnitude < 0.0001f) return false;
+
+            float commitment = (float)Confab.Commitment(Time.time - _confabStarted, _confabTotal);
+
+            // THE LISTENER WALKS OVER, not both. Two people converging on a
+            // point neither occupied reads as choreography, because that is
+            // something that only happens when somebody arranged it.
+            // Somebody with news stands still; somebody who wants it comes.
+            var dir = toThem.normalized;
+            stand = _approachesInConfab
+                ? them - dir * (float)_confabDistance
+                : current;
+            // Ease in, so the walk over is a walk rather than a snap.
+            stand = Vector3.Lerp(current, stand, commitment);
+
+            // Shoulders angled off the line between them, not squared up:
+            // face-on is the posture of an argument, and a street staging
+            // every conversation that way reads as one about to kick off.
+            face = Quaternion.Euler(0, (float)(_confabOffAxis * _offAxisSide), 0) * dir;
+            return true;
+        }
+
+        bool _approachesInConfab;
+        float _offAxisSide = 1f;
+
+        /// Which of the pair goes to the other, and which way each angles
+        /// off. Set once when the pair is formed so the two halves cannot
+        /// disagree — both leaning the same way puts them shoulder to
+        /// shoulder facing a wall.
+        public void SetConfabRole(bool approaches, bool leansLeft)
+        {
+            _approachesInConfab = approaches;
+            _offAxisSide = leansLeft ? -1f : 1f;
+        }
+
         public void Tick(GameTime now)
         {
             var target = TargetFor(now);
             var current = transform.position;
+
+            // A conversation outranks a schedule. Somebody who walks off
+            // mid-sentence because it is nine o'clock is the exact failure
+            // this is meant to fix.
+            if (ConfabTarget(current, out var standAt, out var faceDir))
+            {
+                var step = Vector3.MoveTowards(current, new Vector3(standAt.x, current.y, standAt.z),
+                                               MoveSpeed * 0.55f * Time.deltaTime);
+                transform.position = step;
+                if (faceDir.sqrMagnitude > 0.001f)
+                    transform.rotation = Quaternion.Slerp(transform.rotation,
+                        Quaternion.LookRotation(faceDir), 5f * Time.deltaTime);
+                // The head goes to the person they are talking to, which is
+                // what the off-axis stance leaves room for: the body is
+                // angled and the face is not.
+                if (_body != null) _body.LookAt = _talkingTo.transform;
+                DriveBody();
+                return;
+            }
 
             // The stumble resolves over a moment rather than teleporting them
             // sideways: displacement first, recovery after.

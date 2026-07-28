@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
@@ -155,6 +156,11 @@ namespace Ledger.Game
                 rounds++;
                 var events = _mill.Tick(now, Together);
                 ReportOverheard(events);
+                // The bodies, for every exchange rather than only the ones
+                // about the player. A city that talks only about you is a
+                // city with one subject, and the claim this game makes is
+                // that the mill runs whether you are in it or not.
+                StageConfabs(events);
                 OnEvents?.Invoke(events);
                 RunChecking();
             }
@@ -284,6 +290,75 @@ namespace Ledger.Game
                 _game.Economy.Prosperity, _game.Economy.PriceLevel, hurt, feud, seed);
             for (int i = 0; i < lines.Count; i++)
                 StartCoroutine(SayAfter(i == 0 ? a : b, lines[i].Text, i * 2.4f, UiTheme.Dim, 5.5f));
+        }
+
+        /// Total confabs staged. The sim gate reads it: an exchange the
+        /// player can watch is the game's central mechanic made visible, and
+        /// a staging path that quietly stops firing looks identical to a
+        /// quiet street.
+        public int Confabs { get; private set; }
+
+        /// STAGE THE BODIES for a rumour that just passed between two people
+        /// who are standing near each other.
+        ///
+        /// This is separate from `ReportOverheard` on purpose, and the
+        /// difference is the point. That one fires only for rumours about the
+        /// PLAYER, within earshot, and gives him a lead — it is a game
+        /// mechanic. This fires for ANY exchange between two visible bodies,
+        /// and gives him nothing but the sight of it. A city that only ever
+        /// talks about you is a city with one subject, and the whole claim
+        /// this game makes is that the mill runs whether you are in it or
+        /// not.
+        void StageConfabs(List<GossipEvent> events)
+        {
+            if (events == null) return;
+            int staged = 0;
+            foreach (var ev in events)
+            {
+                // Two a round at most. The mill can pass a dozen rumours in
+                // one tick and staging all of them freezes the street into a
+                // tableau of people standing in pairs, which is a stranger
+                // sight than the silence it replaced.
+                if (staged >= 2) break;
+                if (!_walkers.TryGetValue(ev.FromId, out var wa) || wa == null) continue;
+                if (!_walkers.TryGetValue(ev.ToId, out var wb) || wb == null) continue;
+                if (wa == wb || wa.InConfab || wb.InConfab) continue;
+
+                float apart = Vector3.Distance(wa.transform.position, wb.transform.position);
+                // `somewhereToStand` is a road check: the rumour graph has no
+                // idea where anybody is and will happily fire an exchange
+                // between two people crossing a junction.
+                bool clear = OffRoad(wa.transform.position) && OffRoad(wb.transform.position);
+                if (!Confab.WorthStopping(apart, true, clear)) continue;
+
+                double tie = _mill != null ? _mill.Tie(ev.FromId, ev.ToId) : 0.4;
+                bool sensitive = ev.Rumor != null && ev.Rumor.Sensitive;
+                bool hostile = ev.Contradiction;
+
+                // The LISTENER walks over. Both moving reads as choreography.
+                wa.SetConfabRole(!Confab.ListenerApproaches, leansLeft: true);
+                wb.SetConfabRole(Confab.ListenerApproaches, leansLeft: false);
+                wa.BeginConfab(wb, tie, sensitive, hostile);
+                wb.BeginConfab(wa, tie, sensitive, hostile);
+                Confabs++;
+                staged++;
+            }
+        }
+
+        /// Is there somewhere to stand here? Nobody stops to chat in the
+        /// middle of a carriageway — and the rumour graph has no idea where
+        /// anybody is standing, so it will happily pass a secret between two
+        /// people halfway across a junction.
+        ///
+        /// Measured off the street centreline the rest of the game already
+        /// uses, rather than a new notion of "road", so this cannot disagree
+        /// with the pathing about where the road is.
+        static bool OffRoad(Vector3 p)
+        {
+            if (!StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out _))
+                return true;   // no street known here: it is not a carriageway
+            double dx = p.x - sx, dz = p.z - sz;
+            return Math.Sqrt(dx * dx + dz * dz) > 3.0;
         }
 
         void ReportOverheard(List<GossipEvent> events)

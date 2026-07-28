@@ -145,6 +145,12 @@ namespace Ledger.Core
 
         public GossipMill(SocialGraph graph) { _graph = graph ?? new SocialGraph(); }
 
+        /// How strongly two people are connected, 0..1. Exposed as a
+        /// passthrough rather than by handing out the graph: callers outside
+        /// the mill want to ASK about a relationship, not to hold and
+        /// possibly mutate the thing that defines every relationship.
+        public double Tie(string a, string b) => _graph.Tie(a, b);
+
         public void Add(Gossiper g) => _agents[g.Id] = g;
 
         /// Takes somebody out of the network (roadmap M9: a resident who has
