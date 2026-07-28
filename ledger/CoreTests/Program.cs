@@ -979,6 +979,22 @@ namespace Ledger.CoreTests
             Check(wC.Dirty >= 45 + 75 && josipC.Loyalty < loyC, "empire: skimming their pay earns more and burns loyalty");
             Check(josipC.Memory.Events.Exists(ev => ev.Text.Contains("envelope")), "empire: the shorted envelope is in their book");
 
+            // A starved round can at worst cover its own envelope: below zero
+            // the wallet, the audit counter and the event text used to diverge
+            // three ways (audit 2026-07-27).
+            var (eZ, mZ, _z, josipZ) = Build(0.5, 0.4);
+            josipZ.Loyalty = 0.7;
+            eZ.RecruitByNeed(josipZ, "Josip", 0, new Wallet(1000), now);
+            eZ.Establish(eZ.RacketOf("collection"), eZ.CrewOf("josip"), now);
+            eZ.SetCut(eZ.CrewOf("josip"), "generous", mZ, now);
+            var wZ = new Wallet(0);
+            var evZ = eZ.DailyTick(new GameTime(9, 8, 0), wZ, mZ, streetFactor: 0.1);
+            Check(wZ.Dirty == 0 && eZ.TotalRacketIncome == 0,
+                "a starved generous round pays nothing and books nothing",
+                $"dirty {wZ.Dirty}, income {eZ.TotalRacketIncome}");
+            Check(!evZ.Exists(e => e.Kind == "income" && e.Amount < 0),
+                "and no round ever reports a negative dollar");
+
             // Rot completes: a skimmed need-route crew member past the breaking
             // point quits — no income that day, the round dies, hook-crew can't.
             var (eQ, mQ, _q, josipQ) = Build(0.5, 0.4);
@@ -3075,11 +3091,22 @@ namespace Ledger.CoreTests
             // Save-load.
             var act = new ActThreeState { Opened = true, OpenedDay = 20, AuditClosesDay = 26, Pp2Fired = true };
             act.Result = Ending.Quiet; act.SuccessorId = "Sam";
+            act.InspectorAskedDay = 25;   // the daily ask must survive a save (audit 2026-07-27)
             var snap = MiniJson.Serialize(act.Capture());
             var twin = new ActThreeState();
             twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(snap)));
             Check(MiniJson.Serialize(twin.Capture()) == snap, "Act III survives its own codec");
             Check(twin.Result == Ending.Quiet && twin.SuccessorId == "Sam", "including how it ended and who got it");
+            Check(twin.InspectorAskedDay == 25,
+                "the inspector's open question survives a save — his item is not destroyed by quitting");
+
+            // A Fall inside the audit gives the grace days back: the letter
+            // promised days, not calendar dates (audit 2026-07-27).
+            Check(ActThreeState.ClosesDayAfterJump(closesDay: 15, lastSeenDay: 9, nowDay: 12) == 17,
+                "a three-day fall inside the audit returns its two skipped days",
+                ActThreeState.ClosesDayAfterJump(15, 9, 12).ToString());
+            Check(ActThreeState.ClosesDayAfterJump(15, 11, 12) == 15,
+                "and an ordinary morning extends nothing");
             twin.Restore(null);
             Check(twin.Opened, "restoring nothing changes nothing");
 

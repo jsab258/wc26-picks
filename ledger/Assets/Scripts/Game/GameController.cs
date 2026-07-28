@@ -1315,16 +1315,26 @@ namespace Ledger.Game
         void TickWorldDay()
         {
             if (Now.Hour < 8 || Now.Day <= _lastWorldDay) return;
+            // Each CALENDAR day since the last tick, not one tick per call:
+            // the Fall jumps the clock three days, and those days happened to
+            // the city — purses filled three times, wounds cooled three steps,
+            // debts ran three nights. The single-step version quietly made a
+            // fall an economic freeze (audit 2026-07-27). Wounds that turned
+            // while the player was away are announced on the morning they get
+            // back, which is when they would hear about them anyway.
+            int from = _lastWorldDay < 0 ? Now.Day : _lastWorldDay + 1;
             _lastWorldDay = Now.Day;
+            for (int day = from; day <= Now.Day; day++)
+            {
+                Purses.DailyTick(day, Economy.Prosperity);
+                if (_gossip != null && _gossip.Mill != null)
+                    Debts.NightBorrowing(Purses, _gossip.Mill, new GameTime(day, 8, 0));
 
-            Purses.DailyTick(Now.Day, Economy.Prosperity);
-            if (_gossip != null && _gossip.Mill != null)
-                Debts.NightBorrowing(Purses, _gossip.Mill, Now);
-
-            // The line is a person's circumstance, so it goes out the same
-            // channel as the economy's.
-            foreach (var turned in Harm.DailyTick(Now.Day))
-                _ui?.Toast(turned, 11f);
+                // The line is a person's circumstance, so it goes out the same
+                // channel as the economy's.
+                foreach (var turned in Harm.DailyTick(day))
+                    _ui?.Toast(turned, 11f);
+            }
         }
 
         void UpdateCampaign()

@@ -107,6 +107,12 @@ namespace Ledger.Core
         /// The audit runs to a day, and that day is named in the letter. Not a
         /// timer the player watches tick — a date somebody wrote down.
         public int AuditClosesDay = -1;
+
+        /// The day the inspector last put his daily item on the table —
+        /// persisted, because saving between his ask and your answer used to
+        /// destroy that day's item: the ask was latched in a transient host
+        /// field while LastDealtDay was already saved (audit 2026-07-27).
+        public int InspectorAskedDay = -1;
         public bool AuditClosed;
         public Ending Result = Ending.None;
 
@@ -134,6 +140,14 @@ namespace Ledger.Core
         public bool LedgersMoved;
         public int LastDayLeft => Math.Max(0, LastDayBudget - LastDayActions);
         public bool IsLastDay(int day) => Opened && !AuditClosed && day >= AuditClosesDay - 1;
+
+        /// The audit's grace days survive a calendar jump: a Fall inside the
+        /// window used to eat up to three of the six days and could land the
+        /// world past the closing date, firing PP3, PP5 and CloseAudit in one
+        /// pass with the last-day offers already dead (audit 2026-07-27). The
+        /// letter promised days of grace, not calendar dates.
+        public static int ClosesDayAfterJump(int closesDay, int lastSeenDay, int nowDay) =>
+            closesDay + Math.Max(0, nowDay - lastSeenDay - 1);
         /// Who the audit was pointed at instead, and who told you about them —
         /// because the street knows who talks, and the second name is the price.
         public string DeflectedOnto, BurnedWitnessId;
@@ -552,6 +566,7 @@ namespace Ledger.Core
             { "pp1", Pp1Fired }, { "pp2", Pp2Fired }, { "pp3", Pp3Fired },
             { "pp4", Pp4Fired }, { "pp5", Pp5Fired },
             { "closesDay", AuditClosesDay }, { "closed", AuditClosed },
+            { "askedDay", InspectorAskedDay },
             { "result", Result.ToString() },
             { "successor", SuccessorId ?? "" }, { "epilogueDay", EpilogueDay },
             { "soldUp", SoldUp }, { "deflected", Deflected },
@@ -569,6 +584,7 @@ namespace Ledger.Core
             Pp1Fired = Flag(d, "pp1"); Pp2Fired = Flag(d, "pp2"); Pp3Fired = Flag(d, "pp3");
             Pp4Fired = Flag(d, "pp4"); Pp5Fired = Flag(d, "pp5");
             AuditClosesDay = MiniJson.GetInt(d, "closesDay");
+            InspectorAskedDay = d.ContainsKey("askedDay") ? MiniJson.GetInt(d, "askedDay") : -1;
             AuditClosed = Flag(d, "closed");
             var r = MiniJson.GetString(d, "result");
             Result = r == "Both" ? Ending.Both : r == "Kingdom" ? Ending.Kingdom

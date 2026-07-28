@@ -108,9 +108,19 @@ namespace Ledger.Game
 
         // ---- the act ----
 
+        int _lastAuditSeenDay = -1;
+
         void CheckActThree()
         {
             if (!Campaign.OpenMode || _gossip == null || _gossip.Mill == null) return;
+
+            // A calendar jump during the audit gives the grace days back
+            // (audit 2026-07-27) — the letter promised days, not dates.
+            if (ActThree.Opened && !ActThree.AuditClosed
+                && _lastAuditSeenDay >= 0 && Now.Day > _lastAuditSeenDay + 1)
+                ActThree.AuditClosesDay =
+                    ActThreeState.ClosesDayAfterJump(ActThree.AuditClosesDay, _lastAuditSeenDay, Now.Day);
+            _lastAuditSeenDay = Now.Day;
 
             if (ActThree.AuditClosed) { TickEpilogue(); return; }
 
@@ -178,7 +188,7 @@ namespace Ledger.Game
                 ToastLine(ActThreeState.InspectorAskText(Now.Day,
                     ActThreeState.ScopeFactor(ActThree.Cooperations, ActThree.Stonewalls)), 12f);
                 ActThree.LastDealtDay = Now.Day;   // asked; answering it is the player's move
-                _inspectorAskedDay = Now.Day;
+                ActThree.InspectorAskedDay = Now.Day;
             }
 
             // PP3 — Ossei's offer. She comes to you, once, with two days left,
@@ -258,7 +268,7 @@ namespace Ledger.Game
             ToastLine(ActThreeState.EpilogueText(index, s.SuccessorName, s), 16f);
         }
 
-        int _inspectorAskedDay = -1;
+
         NpcWalker _inspectorWalker;
 
         /// He does not walk the district. He is at the bar, at a table, from
@@ -327,8 +337,8 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
         public bool AnswerInspector(bool cooperate)
         {
             if (!ActThree.Opened || ActThree.AuditClosed || !ActThree.InspectorArrived) return false;
-            if (_inspectorAskedDay != Now.Day) return false;   // one item a day, and he has to have asked
-            _inspectorAskedDay = -1;
+            if (ActThree.InspectorAskedDay != Now.Day) return false;   // one item a day, and he has to have asked
+            ActThree.InspectorAskedDay = -1;
 
             if (cooperate)
             {
@@ -350,7 +360,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
 
         /// Has he asked for something today that is still unanswered?
         public bool InspectorWaiting => ActThree.Opened && !ActThree.AuditClosed
-            && ActThree.InspectorArrived && _inspectorAskedDay == Now.Day;
+            && ActThree.InspectorArrived && ActThree.InspectorAskedDay == Now.Day;
 
         // ---- PP5: the last day ----
 

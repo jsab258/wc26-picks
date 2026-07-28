@@ -590,6 +590,11 @@ namespace Ledger.Core
                 // Treaty terms, if you signed any (Act II's Table).
                 if (TributeShare > 0) income = (int)Math.Round(income * (1.0 - TributeShare));
                 if (SharedRacketId != null && r.Id == SharedRacketId) income = (int)Math.Round(income * 0.5);
+                // A starved round can at worst cover its own envelope. Below
+                // zero the three books diverged: the wallet silently dropped
+                // the negative, the audit's counter subtracted it, and the
+                // event reported a negative dollar figure (audit 2026-07-27).
+                if (income < 0) income = 0;
                 wallet.EarnDirty(income);
                 TotalRacketIncome += income;
                 events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
