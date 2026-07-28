@@ -32,6 +32,11 @@ namespace Ledger.Game
         /// out of range.
         readonly InputBuffer _talkBuffer = new InputBuffer();
         readonly Forgiveness _grace = new Forgiveness();
+        /// The coat takes a moment to go on, and that moment is legible.
+        readonly VerbBeat _coatVerb = new VerbBeat
+        {
+            AnticipationSeconds = 0.35, ConsequenceSeconds = 0.5, RecoverySeconds = 0.25,
+        };
 
         GameObject _ledgerPanel;
         Text _ledgerText;
@@ -1186,9 +1191,24 @@ namespace Ledger.Game
                 && Input.GetKeyDown(KeyCode.Escape)) TogglePlan();
 
             // The runner's coat — day face or night face, one key, never while typing.
+            // THE COAT IS A VERB, not a boolean (game-feel-spec.md §6).
+            //
+            // It used to flip instantly with a toast, which is the exact
+            // "instant state flip" the spec calls the hallmark of a
+            // prototype — and the coat is a MECHANIC here, the difference
+            // between being named and being a shape in the dark. Putting one
+            // on takes a moment, and the moment is the point: the wind-up is
+            // your chance to change your mind, and the rustle is what makes
+            // it a garment rather than a flag.
             if (Input.GetKeyDown(keys.Key("Coat")) && !dialogueOpen && !_keyPanel.activeSelf)
             {
+                if (_coatVerb.Begin()) Audio.Foley("cloth", 0.5f);
+            }
+            _coatVerb.Tick(Time.deltaTime);
+            if (_coatVerb.Fired)
+            {
                 _game.WearingCoat = !_game.WearingCoat;
+                Audio.Foley(_game.WearingCoat ? "coat_on" : "coat_off");
                 Toast(_game.WearingCoat
                     ? "You pull on the runner's coat. Harder to name in the dark; harder to explain in daylight."
                     : "You shrug off the coat. Just the bar owner again.", 5f);

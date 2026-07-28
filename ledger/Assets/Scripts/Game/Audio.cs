@@ -243,6 +243,54 @@ namespace Ledger.Game
                               Mathf.Clamp(weight, 0.4f, 1.4f));
         }
 
+        /// FOLEY (game-feel-spec.md §4): clothing rustle, keys, the coat
+        /// going on and coming off.
+        ///
+        /// Foley is the sound of a body existing. Its absence is never
+        /// noticed and its presence is never noticed either — which is
+        /// exactly why it works, and exactly why it gets cut. A coat that
+        /// goes on in silence is a boolean; a coat that rustles is a
+        /// garment, and in this game the coat is a MECHANIC, so it had
+        /// better feel like a thing you put on.
+        public static void Foley(string kind, float volume = 1f)
+        {
+            if (_root == null || _foot == null) return;
+            _foot.pitch = Random.Range(0.95f, 1.05f);
+            switch (kind)
+            {
+                case "coat_on":
+                    _foot.PlayOneShot(Clip("cloth_long", () => Cloth(0.55f, 0.30f)), 0.9f * volume);
+                    break;
+                case "coat_off":
+                    _foot.PlayOneShot(Clip("cloth_short", () => Cloth(0.38f, 0.45f)), 0.8f * volume);
+                    break;
+                case "keys":
+                    _foot.PlayOneShot(Clip("keys", Keys), 0.7f * volume);
+                    break;
+                default:
+                    _foot.PlayOneShot(Clip("cloth_short", () => Cloth(0.38f, 0.45f)), 0.35f * volume);
+                    break;
+            }
+        }
+
+        /// Something was knocked, brushed or dropped. `force` 0..1.
+        ///
+        /// Matched to material, because a bin and a bottle are not the same
+        /// event and a single generic "thud" is how a world announces that
+        /// nothing in it is really there.
+        public static void Impact(string material, float force = 0.6f)
+        {
+            if (_root == null || _ui == null) return;
+            force = Mathf.Clamp01(force);
+            _ui.pitch = Random.Range(0.9f, 1.1f) * (1.15f - 0.3f * force);
+            string name = material == "metal" ? "hit_metal"
+                        : material == "glass" ? "hit_glass"
+                        : material == "wood" ? "hit_wood"
+                        : "hit_soft";
+            _ui.PlayOneShot(Clip(name, () => Hit(material)), 0.25f + 0.55f * force);
+            _ui.pitch = 1f;
+        }
+
         public static void Ui(string kind)
         {
             if (_root == null || _ui == null) return;
@@ -319,6 +367,67 @@ namespace Ledger.Game
             }
             CrossfadeEnds(data, SampleRate / 8);
             return Make("engine", data);
+        }
+
+        /// Cloth: band-passed noise with a soft attack and a long-ish tail.
+        /// The soft attack is the whole difference between fabric and a
+        /// snare — a rustle has no transient, which is why noise with a
+        /// hard envelope always sounds like percussion instead.
+        static AudioClip Cloth(float seconds, float brightness)
+        {
+            int len = (int)(SampleRate * seconds);
+            var data = new float[len];
+            var rng = new System.Random(97);
+            float lp = 0, prev = 0;
+            for (int i = 0; i < len; i++)
+            {
+                float t = i / (float)len;
+                float env = Mathf.Min(1f, t / 0.18f) * Mathf.Exp(-3.2f * t);
+                float n = (float)(rng.NextDouble() * 2 - 1);
+                lp += (n - lp) * brightness;
+                float bp = lp - prev; prev = lp;         // crude band-pass
+                data[i] = bp * env * 0.45f;
+            }
+            return Make("cloth", data);
+        }
+
+        static AudioClip Keys()
+        {
+            int len = SampleRate / 3;
+            var data = new float[len];
+            var rng = new System.Random(431);
+            // Four bright transients, unevenly spaced — evenly spaced reads
+            // as a machine rather than as a bunch of keys moving.
+            int[] at = { 0, SampleRate / 26, SampleRate / 11, SampleRate / 7 };
+            foreach (var start in at)
+                for (int i = start; i < Mathf.Min(len, start + SampleRate / 22); i++)
+                {
+                    float t = (i - start) / (float)(SampleRate / 22);
+                    data[i] += (float)(rng.NextDouble() * 2 - 1) * Mathf.Exp(-26f * t) * 0.32f;
+                }
+            return Make("keys", data);
+        }
+
+        /// One impact, coloured by what it hit. Metal rings, glass is bright
+        /// and short, wood is a dull knock, soft is barely anything.
+        static AudioClip Hit(string material)
+        {
+            float decay = material == "metal" ? 5f : material == "glass" ? 14f
+                        : material == "wood" ? 22f : 34f;
+            float tone = material == "metal" ? 210f : material == "glass" ? 900f
+                       : material == "wood" ? 150f : 90f;
+            int len = (int)(SampleRate * (material == "metal" ? 0.55f : 0.22f));
+            var data = new float[len];
+            var rng = new System.Random(material.Length * 17 + 3);
+            for (int i = 0; i < len; i++)
+            {
+                float t = i / (float)SampleRate;
+                float env = Mathf.Exp(-decay * t);
+                float body = Mathf.Sin(2f * Mathf.PI * tone * t);
+                float grit = (float)(rng.NextDouble() * 2 - 1) * Mathf.Exp(-90f * t);
+                data[i] = (body * 0.55f + grit * 0.45f) * env * 0.5f;
+            }
+            return Make("hit_" + material, data);
         }
 
         public const int StepVariants = 5;

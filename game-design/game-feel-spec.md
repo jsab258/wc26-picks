@@ -82,13 +82,23 @@ This is where the biggest cheap win in the whole document lives.
   tile) **× gait × 4–6 random variants each**, so it never sounds looped.
   Currently one sound, always.
 - **Foley**: clothing rustle, keys, the coat being put on and taken off.
+  **BUILT 2026-07-28** — and the coat became a real verb at the same time,
+  with a wind-up you can change your mind during, rather than a boolean
+  with a toast attached.
 - **Reverb zones** — the bar sounds like a room, the alley sounds like an
   alley, the street sounds like outside. Nothing sells a *place* faster.
-- **Occlusion**: voices muffled through a wall or a door.
+- **Occlusion**: voices muffled through a wall or a door. **Speech only so
+  far.** General audio occlusion needs per-source 3D audio and every source
+  in the game is currently 2D — that is a real refactor, not a tweak, and
+  half-doing it would mean a muffled bin next to an unmuffled car. Named
+  here as outstanding rather than quietly counted as done.
 - **Distance filtering** on all speech: a bark at fifteen metres is
   low-passed and quiet. (This also disguises TTS engine seams — see the
   voice plan.)
-- **Impact and interaction sounds matched to material.**
+- **Impact and interaction sounds matched to material.** **BUILT
+  2026-07-28** — metal rings, glass is bright and short, wood is a dull
+  knock. A single generic thud is how a world announces that nothing in it
+  is really there.
 
 ## 5. World response **[NOW]**
 
