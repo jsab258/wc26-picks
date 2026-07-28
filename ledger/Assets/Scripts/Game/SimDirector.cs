@@ -103,6 +103,55 @@ namespace Ledger.Game
         Ending _actThreeEnding = Ending.None;
         bool _secretEverReachedDay;
         int _lastSampledHour = -1;
+
+        // HOW BUSY THE STREET ACTUALLY FEELS (Jafar, 2026-07-28: "is 700 NPC
+        // the right number? density vs kcd2?").
+        //
+        // The end-of-run near-band count was the only number we had and it is
+        // a single snapshot of one moment: two consecutive runs reported 3 and
+        // then 12, which says nothing except that the sim player happened to
+        // be somewhere quiet. Sampling hourly across nine days gives a
+        // distribution instead — and the useful question is not "how many
+        // people exist" but "how many can you see from where you are
+        // standing", which is a different number and a different knob.
+        readonly List<int> _within20 = new List<int>();
+        readonly List<int> _within8 = new List<int>();
+
+        void SampleDensity()
+        {
+            if (_player == null) return;
+            var p = _player.transform.position;
+            int near20 = 0, near8 = 0;
+            foreach (var npc in _npcs)
+            {
+                if (npc == null) continue;
+                var q = npc.transform.position;
+                float d2 = (p.x - q.x) * (p.x - q.x) + (p.z - q.z) * (p.z - q.z);
+                if (d2 <= 400f) near20++;
+                if (d2 <= 64f) near8++;
+            }
+            if (_game != null && _game.CrowdBodies != null)
+                foreach (var kv in _game.CrowdBodies)
+                {
+                    if (kv.Value == null) continue;
+                    var q = kv.Value.transform.position;
+                    float d2 = (p.x - q.x) * (p.x - q.x) + (p.z - q.z) * (p.z - q.z);
+                    if (d2 <= 400f) near20++;
+                    if (d2 <= 64f) near8++;
+                }
+            _within20.Add(near20);
+            _within8.Add(near8);
+        }
+
+        static string Dist(List<int> xs)
+        {
+            if (xs.Count == 0) return "n/a";
+            var sorted = new List<int>(xs); sorted.Sort();
+            double mean = 0; foreach (var v in xs) mean += v;
+            mean /= xs.Count;
+            return $"{mean:0.0}/{sorted[sorted.Count / 2]}/{sorted[sorted.Count - 1]}";
+        }
+
         bool _tookDayShot, _tookNightShot;
         int _shotDay = -1;
         int _waypointIndex;
@@ -545,6 +594,7 @@ namespace Ledger.Game
             if (now.Hour != _lastSampledHour)
             {
                 _lastSampledHour = now.Hour;
+                SampleDensity();
                 // Transport check must be "did talk EVER reach the day circle", not an
                 // end-of-week snapshot: disguised (0.6) sightings hop weakly and decay
                 // below the carry threshold within days — by design, not by breakage.
@@ -667,7 +717,7 @@ namespace Ledger.Game
                     // The bright pixels' own colour. A magenta error shader
                     // reads as high-red/high-blue with green near zero.
                     { "brightRgb", fp.brightRgb },
-                    { "satPct", fp.satPct }, { "satRgb", fp.satRgb },
+                    { "satPct", fp.satPct }, { "satStrength", fp.satRgb },
                 });
             }
             catch (Exception e)
@@ -719,7 +769,15 @@ namespace Ledger.Game
             // meant "no coloured light" or "coloured light plus a white UI".
             // Measuring the saturated pixels on their own says whether there
             // is real colour on screen, which is the actual art question.
-            long sc = 0, sr = 0, sg = 0, sb = 0;
+            // MEAN SATURATION, NOT MEAN COLOUR. Averaging the colour of the
+            // saturated pixels makes the same mistake one level down: eight
+            // neon hues spread round the wheel average to a muddy khaki
+            // (88,87,70 in the first run that measured it) even though every
+            // one of them is strongly coloured. Opposing hues cancel; their
+            // SATURATIONS cannot. So the honest statistic is how much of the
+            // frame is coloured and how coloured it is — two scalars, neither
+            // of which can be washed out by mixing.
+            long sc = 0; double satSum = 0;
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i];
@@ -730,16 +788,16 @@ namespace Ledger.Game
                 if (mx >= 40)
                 {
                     int mn = Math.Min(c.r, Math.Min(c.g, c.b));
-                    if ((mx - mn) / (double)mx >= 0.35)
-                    { sc++; sr += c.r; sg += c.g; sb += c.b; }
+                    double sv = (mx - mn) / (double)mx;
+                    if (sv >= 0.35) { sc++; satSum += sv; }
                 }
             }
             double brightPct = 100.0 * brightCount / px.Length;
             long bn = brightCount > 0 ? brightCount : 1;
             string brightRgb = $"{br / bn},{bg / bn},{bb / bn}";
-            long sn = sc > 0 ? sc : 1;
             double satPct = 100.0 * sc / px.Length;
-            string satRgb = $"{sr / sn},{sg / sn},{sb / sn}";
+            string satRgb = (sc > 0 ? satSum / sc : 0.0).ToString("0.00",
+                System.Globalization.CultureInfo.InvariantCulture);
             var art = new StringBuilder(cols * rows + rows + 64);
             art.Append($"\n--- render[{name}] {cols}x{rows} ascii-luma ---\n");
             for (int ry = 0; ry < rows; ry++)
@@ -772,7 +830,7 @@ namespace Ledger.Game
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             art.Append($"render[{name}] meanLuma={luma:0.000} maxLuma={maxLuma:0.000} " +
                        $"bright(>0.6)%={brightPct:0.00} meanRgb={(int)mr},{(int)mg},{(int)mb} " +
-                       $"brightRgb={brightRgb} sat(>0.35)%={satPct:0.00} satRgb={satRgb}\n");
+                       $"brightRgb={brightRgb} sat(>0.35)%={satPct:0.00} satStrength={satRgb}\n");
             Debug.Log(art.ToString());
             return (
                 luma.ToString("0.000", inv),
@@ -1463,6 +1521,9 @@ namespace Ledger.Game
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
+                      // mean/median/peak bodies within 20m and within 8m,
+                      // sampled every in-game hour across the whole run.
+                      $"seen20={Dist(_within20)} seen8={Dist(_within8)} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
