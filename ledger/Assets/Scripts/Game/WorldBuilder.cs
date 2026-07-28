@@ -60,6 +60,7 @@ namespace Ledger.Game
             BuildBar();
             BuildProps();
             BuildLamps();
+            BuildNeon();
             BuildDistrict();
             // Signs last: they read the finished network, and a rule the city
             // obeys without telling you is indistinguishable from a bug.
@@ -68,6 +69,77 @@ namespace Ledger.Game
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame
         /// colours are driven by GameController.UpdateSun; these are the static defaults.
+        /// NEON (art pass 2026-07-28). The single strongest argument that a
+        /// rain-soaked 1990 street is INVITING rather than bleak: saturated
+        /// coloured light, pooling on wet asphalt, marking the places that are
+        /// open when everything else is shut. Deliberately concentrated on the
+        /// Strip and on the bar — the two places the game wants you to walk
+        /// toward — so the colour is doing navigational work as well as mood.
+        static readonly (string place, Color colour, string word)[] NeonSigns =
+        {
+            ("marquee_club",    new Color(1.00f, 0.15f, 0.55f), "MARQUEE"),
+            ("card_rooms",      new Color(0.20f, 0.85f, 1.00f), "CARDS"),
+            ("allnight_counter",new Color(1.00f, 0.65f, 0.10f), "OPEN ALL NITE"),
+            ("strip_boarding",  new Color(0.45f, 0.35f, 1.00f), "ROOMS"),
+            ("bar_door",        new Color(1.00f, 0.35f, 0.12f), "MICKEY'S"),
+            ("bathhouse",       new Color(0.30f, 1.00f, 0.70f), "BATHS"),
+            ("gull_boarding",   new Color(1.00f, 0.75f, 0.25f), "VACANCY"),
+            ("covered_market",  new Color(0.95f, 0.90f, 0.35f), "MARKET"),
+        };
+
+        static void BuildNeon()
+        {
+            foreach (var (placeId, colour, word) in NeonSigns)
+            {
+                var place = Ledger.Core.HookMap.Get(placeId);
+                if (place == null) continue;
+                var at = new Vector3((float)place.X, 3.4f, (float)place.Z);
+
+                // The sign itself: a small emissive panel that reads as a
+                // light source even before its lamp is counted.
+                var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                panel.name = $"Neon_{placeId}";
+                panel.transform.position = at;
+                panel.transform.localScale = new Vector3(2.6f, 0.55f, 0.12f);
+                var mat = new Material(Shader.Find("Standard"));
+                mat.color = colour * 0.35f;
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", colour * 2.2f);
+                panel.GetComponent<Renderer>().sharedMaterial = mat;
+                Object.Destroy(panel.GetComponent<Collider>());
+
+                // And the pool it throws. This is the part that lands on wet
+                // asphalt and does the actual work.
+                var lampGo = new GameObject($"NeonLight_{placeId}");
+                lampGo.transform.position = at + Vector3.down * 0.4f;
+                var light = lampGo.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = colour;
+                light.range = 13f;
+                light.intensity = 2.1f;
+                _neon.Add(light);
+            }
+        }
+
+        static readonly System.Collections.Generic.List<Light> _neon =
+            new System.Collections.Generic.List<Light>();
+
+        /// Neon is a night thing, and it flickers a little because a sign in
+        /// 1990 that never flickered was a sign somebody was maintaining.
+        public static void TickNeon(bool night, float time)
+        {
+            for (int i = 0; i < _neon.Count; i++)
+            {
+                var l = _neon[i];
+                if (l == null) continue;
+                if (!night) { l.enabled = false; continue; }
+                l.enabled = true;
+                float flicker = 1f + 0.06f * Mathf.Sin(time * (3.1f + i * 0.7f))
+                                   + (i % 4 == 0 && Mathf.PerlinNoise(time * 2.3f, i) > 0.93f ? -0.5f : 0f);
+                l.intensity = 2.1f * flicker;
+            }
+        }
+
         static void ConfigureEnvironment()
         {
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;

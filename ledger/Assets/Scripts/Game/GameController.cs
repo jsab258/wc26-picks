@@ -217,6 +217,7 @@ namespace Ledger.Game
         {
             WorldBuilder.BuildBlock();
             _sun = WorldBuilder.BuildSun();
+            Weather.Ensure(this);   // rain, wetness, and the fog that follows them
 
             var player = PlayerController.Spawn(new Vector3(0, 1.2f, -8));
             _player = player;
@@ -2020,17 +2021,46 @@ namespace Ledger.Game
             _sun.transform.rotation = Quaternion.Euler(sunAngle, 35f, 0);
 
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
-            _sun.intensity = Mathf.Lerp(0.02f, 1.15f, daylight);
-            _sun.color = Color.Lerp(new Color(1f, 0.55f, 0.35f), Color.white, daylight);
+            // Rain flattens and cools the key light — an overcast sky is a big
+            // soft source, not a small hard one (art pass 2026-07-28).
+            float wet = Weather.Rain;
+            _sun.intensity = Mathf.Lerp(0.02f, 1.15f, daylight) * Mathf.Lerp(1f, 0.45f, wet);
+            _sun.color = Color.Lerp(
+                Color.Lerp(new Color(1f, 0.55f, 0.35f), Color.white, daylight),
+                new Color(0.72f, 0.78f, 0.88f), wet);
 
             // Gradient ambient (sky/equator/ground) + fog, lerped night→day. Richer than
             // a single flat ambient colour: surfaces pick up sky tint from above and a
             // warm bounce from the ground.
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.05f, 0.06f, 0.10f), new Color(0.55f, 0.62f, 0.78f), daylight);
-            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.05f, 0.05f, 0.07f), new Color(0.45f, 0.46f, 0.48f), daylight);
-            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.02f, 0.02f, 0.03f), new Color(0.22f, 0.20f, 0.18f), daylight);
-            RenderSettings.fogColor = Color.Lerp(new Color(0.04f, 0.05f, 0.08f), new Color(0.62f, 0.66f, 0.72f), daylight);
+            // A RESTRICTED PALETTE, held deliberately (stylised noir). Night is
+            // a deep blue-teal so the sodium lamps and neon read as warm
+            // against it — the contrast IS the look, and it is what keeps a
+            // rainy street inviting rather than grim.
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.045f, 0.075f, 0.11f), new Color(0.52f, 0.60f, 0.74f), daylight);
+            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.05f, 0.06f, 0.085f), new Color(0.44f, 0.45f, 0.47f), daylight);
+            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.035f, 0.03f, 0.035f), new Color(0.24f, 0.21f, 0.18f), daylight);
+            var fogNight = new Color(0.045f, 0.065f, 0.10f);
+            var fogDay = new Color(0.60f, 0.645f, 0.70f);
+            RenderSettings.fogColor = Color.Lerp(
+                Color.Lerp(fogNight, fogDay, daylight),
+                Color.Lerp(new Color(0.10f, 0.12f, 0.15f), new Color(0.58f, 0.61f, 0.64f), daylight),
+                Weather.Rain);
+
+            // Fog distance is time AND weather: the city closes in at night
+            // and in rain. Cheap mood, and it is also the draw-distance win.
+            float tight = Mathf.Clamp01((1f - daylight) * 0.55f + Weather.FogTightness);
+            RenderSettings.fogStartDistance = Mathf.Lerp(30f, 10f, tight);
+            RenderSettings.fogEndDistance = Mathf.Lerp(140f, 52f, tight);
+
+            // The sky is the fog, so the horizon never shows a seam.
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = RenderSettings.fogColor;
+            }
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
+            WorldBuilder.TickNeon(daylight < 0.35f, Time.time);
             WorldBuilder.SetWindowsLit(daylight < 0.35f); // windows warm up a touch before the street lamps
         }
     }
