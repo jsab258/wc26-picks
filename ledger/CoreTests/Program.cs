@@ -5274,31 +5274,31 @@ namespace Ledger.CoreTests
                 "and a heard line is never just an ellipsis — that is noise on the screen, not speech");
 
             // ---- and what the place does to it ----
-            Check(Acoustics.DecaySeconds(Space.Outdoors) > 0,
+            Check(Acoustics.DecaySeconds(SpaceKind.Outdoors) > 0,
                 "even a street has a tail — a zero here is why outdoor scenes sound like a booth");
-            Check(Acoustics.DecaySeconds(Space.Hall) > Acoustics.DecaySeconds(Space.Room) &&
-                  Acoustics.DecaySeconds(Space.Room) > Acoustics.DecaySeconds(Space.Alley) &&
-                  Acoustics.DecaySeconds(Space.Alley) > Acoustics.DecaySeconds(Space.Outdoors),
+            Check(Acoustics.DecaySeconds(SpaceKind.Hall) > Acoustics.DecaySeconds(SpaceKind.Room) &&
+                  Acoustics.DecaySeconds(SpaceKind.Room) > Acoustics.DecaySeconds(SpaceKind.Alley) &&
+                  Acoustics.DecaySeconds(SpaceKind.Alley) > Acoustics.DecaySeconds(SpaceKind.Outdoors),
                 "and the four spaces are ordered by how long they ring");
-            Check(Acoustics.Wetness(Space.Alley) > Acoustics.Wetness(Space.Room) &&
-                  Acoustics.DecaySeconds(Space.Alley) < Acoustics.DecaySeconds(Space.Room),
+            Check(Acoustics.Wetness(SpaceKind.Alley) > Acoustics.Wetness(SpaceKind.Room) &&
+                  Acoustics.DecaySeconds(SpaceKind.Alley) < Acoustics.DecaySeconds(SpaceKind.Room),
                 "an alley reflects MORE than a room but for LESS time — that is what narrow sounds like");
-            Check(Acoustics.RoomMetres(Space.Hall) > Acoustics.RoomMetres(Space.Room),
+            Check(Acoustics.RoomMetres(SpaceKind.Hall) > Acoustics.RoomMetres(SpaceKind.Room),
                 "pre-delay tracks how big the place is");
-            Check(Acoustics.OutsideBleed(Space.Outdoors) == 1.0 &&
-                  Acoustics.OutsideBleed(Space.Room) < 0.5,
+            Check(Acoustics.OutsideBleed(SpaceKind.Outdoors) == 1.0 &&
+                  Acoustics.OutsideBleed(SpaceKind.Room) < 0.5,
                 "and stepping through a door shuts the street out");
 
             // The alley comes free from the street network, which was
             // authored for pathfinding and turns out to describe acoustics.
-            Check(Acoustics.SpaceFor("lane", 1.0) == Space.Alley,
+            Check(Acoustics.SpaceFor("lane", 1.0) == SpaceKind.Alley,
                 "a four-metre lane between two building faces IS an alley");
-            Check(Acoustics.SpaceFor("avenue", 1.0) == Space.Outdoors &&
-                  Acoustics.SpaceFor("street", 1.0) == Space.Outdoors,
+            Check(Acoustics.SpaceFor("avenue", 1.0) == SpaceKind.Outdoors &&
+                  Acoustics.SpaceFor("street", 1.0) == SpaceKind.Outdoors,
                 "a road wide enough to drive down is not");
-            Check(Acoustics.SpaceFor("lane", 20.0) == Space.Outdoors,
+            Check(Acoustics.SpaceFor("lane", 20.0) == SpaceKind.Outdoors,
                 "and standing in a yard twenty metres off it is not either");
-            Check(Acoustics.SpaceFor(null, 0.0) == Space.Outdoors,
+            Check(Acoustics.SpaceFor(null, 0.0) == SpaceKind.Outdoors,
                 "nowhere near a street is the sky, not a room");
 
             // Every lane on the real map must classify as an alley from its
@@ -5308,7 +5308,7 @@ namespace Ledger.CoreTests
             {
                 if (e.Kind != "lane") continue;
                 lanes++;
-                if (Acoustics.SpaceFor(e.Kind, 0.5) == Space.Alley) alleys++;
+                if (Acoustics.SpaceFor(e.Kind, 0.5) == SpaceKind.Alley) alleys++;
             }
             Check(lanes > 0 && lanes == alleys,
                 "and every lane the city actually has reads as one",

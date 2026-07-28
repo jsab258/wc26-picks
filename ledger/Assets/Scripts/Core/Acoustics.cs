@@ -19,7 +19,7 @@ namespace Ledger.Core
     /// It doubles as the cover for the voice work: a bark at fifteen metres
     /// is quiet and low-passed, and a low-passed bark is a bark whose TTS
     /// seams nobody can hear. See production-plan-audio-art.md §1d.
-    public enum Space
+    public enum SpaceKind
     {
         /// The street. Almost no reverb — the sky is not a ceiling.
         Outdoors,
@@ -170,43 +170,43 @@ namespace Ledger.Core
         /// Reverb decay in seconds. Outdoors is not zero: a street between
         /// buildings has a real, short tail, and setting it to nothing is why
         /// so many outdoor scenes sound like a recording booth.
-        public static double DecaySeconds(Space s) =>
-            s == Space.Outdoors ? 0.5 :
-            s == Space.Alley ? 0.8 :
-            s == Space.Room ? 1.2 :
+        public static double DecaySeconds(SpaceKind s) =>
+            s == SpaceKind.Outdoors ? 0.5 :
+            s == SpaceKind.Alley ? 0.8 :
+            s == SpaceKind.Room ? 1.2 :
             2.6;
 
         /// How much of the signal is reflected, 0..1. The alley's trick is a
         /// SHORT decay with a HIGH wet mix — lots of reflection arriving fast
         /// — which is what makes it read as narrow rather than as large.
-        public static double Wetness(Space s) =>
-            s == Space.Outdoors ? 0.10 :
-            s == Space.Alley ? 0.45 :
-            s == Space.Room ? 0.30 :
+        public static double Wetness(SpaceKind s) =>
+            s == SpaceKind.Outdoors ? 0.10 :
+            s == SpaceKind.Alley ? 0.45 :
+            s == SpaceKind.Room ? 0.30 :
             0.55;
 
         /// Metres. Drives the pre-delay: how long before the first reflection
         /// comes back, which is the cue the ear uses to judge room size.
-        public static double RoomMetres(Space s) =>
-            s == Space.Outdoors ? 3.0 :
-            s == Space.Alley ? 4.0 :
-            s == Space.Room ? 7.0 :
+        public static double RoomMetres(SpaceKind s) =>
+            s == SpaceKind.Outdoors ? 3.0 :
+            s == SpaceKind.Alley ? 4.0 :
+            s == SpaceKind.Room ? 7.0 :
             22.0;
 
         /// Which space you are standing in, from the street network we already
         /// have. Lanes are four metres wide between two building faces, which
         /// is an alley whatever the map calls it — so the most recognisable
         /// acoustic in the game comes free from data authored for pathfinding.
-        public static Space SpaceFor(string edgeKind, double metresFromCentreline)
+        public static SpaceKind SpaceFor(string edgeKind, double metresFromCentreline)
         {
             // Well off any street: a yard, a lot, open ground. Under the sky.
-            if (edgeKind == null || metresFromCentreline > 6.0) return Space.Outdoors;
-            return edgeKind == "lane" ? Space.Alley : Space.Outdoors;
+            if (edgeKind == null || metresFromCentreline > 6.0) return SpaceKind.Outdoors;
+            return edgeKind == "lane" ? SpaceKind.Alley : SpaceKind.Outdoors;
         }
 
         /// Indoor spaces are also quieter about the outside world. Used to
         /// duck the street bed when the player steps through a door, which is
         /// the single clearest signal that they have entered somewhere.
-        public static double OutsideBleed(Space s) => s == Space.Outdoors ? 1.0 : 0.28;
+        public static double OutsideBleed(SpaceKind s) => s == SpaceKind.Outdoors ? 1.0 : 0.28;
     }
 }

@@ -27,7 +27,7 @@ namespace Ledger.Game
 
         /// Where the listener currently is. Read by anything that wants to
         /// know whether it is under a sky or between two walls.
-        public static Space Current { get; private set; } = Space.Outdoors;
+        public static SpaceKind Current { get; private set; } = SpaceKind.Outdoors;
 
         public static void Ensure(Transform ear)
         {
@@ -47,7 +47,7 @@ namespace Ledger.Game
             // "inside" and its parameters — not its geometry — carry the room.
             _zone.minDistance = 500f;
             _zone.maxDistance = 1000f;
-            Apply(Space.Outdoors, 1f);
+            Apply(SpaceKind.Outdoors, 1f);
         }
 
         void Update()
@@ -63,7 +63,7 @@ namespace Ledger.Game
                 Current = StreetMap.NearestOnStreet(p.x, p.z, out var ox, out var oz, out var edge)
                     ? Acoustics.SpaceFor(edge != null ? edge.Kind : null,
                           Mathf.Sqrt((float)((p.x - ox) * (p.x - ox) + (p.z - oz) * (p.z - oz))))
-                    : Space.Outdoors;
+                    : SpaceKind.Outdoors;
             }
 
             // Lerp rather than switch: stepping out of an alley should be a
@@ -71,7 +71,7 @@ namespace Ledger.Game
             Apply(Current, Time.deltaTime * 2.5f);
         }
 
-        void Apply(Space space, float t)
+        void Apply(SpaceKind space, float t)
         {
             float wet = (float)Acoustics.Wetness(space);
             float decay = (float)Acoustics.DecaySeconds(space);
@@ -90,7 +90,7 @@ namespace Ledger.Game
             // A narrow hard space is BRIGHT; a big soft one is not. Without
             // this every space is the same colour and only differs in length,
             // which is why generic reverb sounds like a preset.
-            _zone.roomHF = (int)Mathf.Lerp(_zone.roomHF, space == Space.Alley ? -200f : -1400f, t);
+            _zone.roomHF = (int)Mathf.Lerp(_zone.roomHF, space == SpaceKind.Alley ? -200f : -1400f, t);
         }
     }
 }

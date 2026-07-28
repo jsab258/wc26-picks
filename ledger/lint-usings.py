@@ -123,6 +123,57 @@ def check(path: pathlib.Path) -> list:
     return problems
 
 
+# ---------------------------------------------------------------------------
+# COLLISION CHECK: a Core type must not be named after a UnityEngine one.
+#
+# Neither of the other two gates can see this. lint-usings is textual, and
+# ShapeCheck compiles WITHOUT reference assemblies, so neither of them knows
+# that UnityEngine has a type called Space — only the real Unity compiler
+# does, which means the first thing that ever notices is a red CI build
+# eighteen minutes in.
+#
+# That is exactly what happened: Core got an enum called `Space`, every local
+# suite went green, and the player build died on
+#   CS0104: 'Space' is an ambiguous reference between 'Ledger.Core.Space'
+#           and 'UnityEngine.Space'
+# because every Game file carries `using UnityEngine;` AND `using Ledger.Core;`.
+#
+# The list is curated rather than complete — we cannot enumerate UnityEngine
+# from here — but it covers the names anyone would plausibly reach for when
+# naming a simulation type, which is the whole risk surface. Add to it when
+# the compiler teaches us a new one.
+ENGINE_TYPES = {
+    "Animation", "Animator", "Application", "AudioClip", "AudioSource", "Bounds",
+    "Camera", "Collider", "Collision", "Color", "Component", "Cursor", "Debug",
+    "Display", "Event", "Font", "Gradient", "Input", "Joint", "Keyframe", "Light",
+    "LightType", "Material", "Mathf", "Matrix4x4", "Mesh", "Motion", "Object",
+    "Physics", "Plane", "Pose", "Quaternion", "Random", "Range", "Ray", "Rect",
+    "RectTransform", "Renderer", "Resolution", "Resources", "Rigidbody", "Screen",
+    "Shader", "Space", "Sprite", "State", "SystemInfo", "Texture", "Time",
+    "Tooltip", "Transform", "Vector2", "Vector3", "Vector4",
+    # System, for the same reason: Core has `using System;` everywhere.
+    "Console", "Environment", "Exception", "Path", "Task", "Timer", "Type",
+}
+
+TYPE_DECL = re.compile(
+    r"^\s*public\s+(?:sealed\s+|abstract\s+|static\s+|partial\s+|readonly\s+)*"
+    r"(?:class|struct|enum|interface|record)\s+([A-Za-z_]\w*)")
+
+
+def check_collisions(path):
+    """Public Core type names that a Game file could not disambiguate."""
+    out = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return out
+    for lineno, line in enumerate(lines, 1):
+        m = TYPE_DECL.match(line)
+        if m and m.group(1) in ENGINE_TYPES:
+            out.append((lineno, m.group(1), line.strip()))
+    return out
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "ledger/Assets/Scripts")
     bad = 0
@@ -131,6 +182,13 @@ def main() -> int:
         if "/obj/" in str(path) or "/bin/" in str(path):
             continue
         files += 1
+        if path.parts[-2] == "Core":
+            for lineno, name, line in check_collisions(path):
+                bad += 1
+                print(f"{path}:{lineno}: Core type '{name}' collides with a UnityEngine/System type "
+                      f"of the same name. Every Game file carries both usings, so this is "
+                      f"CS0104 at player-build time and nothing before it can see it. "
+                      f"Rename it — '{name}Kind' matches the StanceKind convention.\n    {line}")
         for lineno, name, line in check(path):
             bad += 1
             if name.startswith("generic:"):
@@ -138,7 +196,7 @@ def main() -> int:
             else:
                 print(f"{path}:{lineno}: .{name}(...) needs 'using System.Linq;' "
                       f"or System.Linq.Enumerable.{name}(...)\n    {line}")
-    print(f"checked {files} files, {bad} missing-using error(s)")
+    print(f"checked {files} files, {bad} missing-using/collision error(s)")
     return 1 if bad else 0
 
 
