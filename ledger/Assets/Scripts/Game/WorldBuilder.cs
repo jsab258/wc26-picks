@@ -446,6 +446,21 @@ namespace Ledger.Game
                     // A rooftop water tank / AC box for texture-of-life on the skyline.
                     MakeBox($"Roof_{i}_tank", pos + new Vector3(size.x * 0.2f, size.y + 0.9f, size.z * 0.15f), new Vector3(1.2f, 1.2f, 1.2f), AssetLibrary.Metal);
                 }
+
+                // THE BULK OF THE CITY, dressed. Only the district's named
+                // places were getting clutter, which is a couple of dozen
+                // pieces across seven districts — the block perimeters are
+                // where nearly all the wall in this game actually is.
+                //
+                // Both sides, and they are different: the face pointing at
+                // the road is a frontage somebody sweeps, and the face
+                // pointing into the block is the back of it. That contrast is
+                // free — the geometry already knows which is which — and it
+                // is most of what makes a city feel like it has a front and a
+                // back rather than being extruded on all sides.
+                var outward = OutwardFrom(pos);
+                DressFacade($"B{i}", pos, size, outward, hasDoor: true, prosperity: StreetFrontProsperity);
+                DressFacade($"B{i}b", pos, size, -outward, hasDoor: false, prosperity: BackAlleyProsperity);
                 i++;
             }
         }
@@ -647,6 +662,30 @@ namespace Ledger.Game
         /// all hand-placed near the bar — so everything past Hook Street was
         /// bare geometry, which is the loudest signal there is that a place
         /// was generated rather than built.
+        /// A generic block front, with no per-place data to read. Neutral on
+        /// purpose: there is no district wealth field to consult, and picking
+        /// a number that makes one street look poorer than another WOULD be
+        /// inventing design rather than expressing it.
+        const double StreetFrontProsperity = 0.55;
+        /// The back of the same building. Nobody sweeps behind a block, and
+        /// this is the one place the difference is real rather than invented.
+        const double BackAlleyProsperity = 0.15;
+
+        /// Which way a block building faces the road: away from the centre of
+        /// its own block, snapped to the dominant axis so the wall it dresses
+        /// is a real flat face rather than a diagonal through a corner.
+        static Vector3 OutwardFrom(Vector3 pos)
+        {
+            var block = Ledger.Core.StreetMap.BlockAt(pos.x, pos.z);
+            var away = block != null
+                ? new Vector3(pos.x - (float)block.CentreX, 0, pos.z - (float)block.CentreZ)
+                : new Vector3(pos.x, 0, pos.z);
+            if (away.sqrMagnitude < 0.01f) return Vector3.forward;
+            return Mathf.Abs(away.x) >= Mathf.Abs(away.z)
+                ? new Vector3(Mathf.Sign(away.x), 0, 0)
+                : new Vector3(0, 0, Mathf.Sign(away.z));
+        }
+
         /// How kept-up a frontage is, from the ONE piece of data that
         /// actually exists about it.
         ///

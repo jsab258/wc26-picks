@@ -1582,7 +1582,7 @@ namespace Ledger.Game
                 // beautiful placements nothing ever builds is the exact shape
                 // of every other "verified in a test, absent in the game"
                 // defect this project has found.
-                ($"dressing[{WorldBuilder.Dressed}]", WorldBuilder.Dressed >= 20),
+                ($"dressing[{WorldBuilder.Dressed}]", WorldBuilder.Dressed >= 150),
                 // THE GATE NAME CARRIES ITS OWN NUMBERS. The FAILING GATES
                 // line is the only channel that reliably survives out of CI —
                 // the log tail is a fixed window that post-job cleanup fills,
