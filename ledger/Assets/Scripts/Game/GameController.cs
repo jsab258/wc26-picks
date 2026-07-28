@@ -193,6 +193,17 @@ namespace Ledger.Game
         public List<string> EllisInterviews { get; } = new List<string>();
         readonly HashSet<string> _interviewed = new HashSet<string>();
 
+        // Combat phase 3b. The register of killings, and the police pressure
+        // that follows from it. Empty in the overwhelming majority of
+        // playthroughs — a whole game can and should be finishable without
+        // ever opening it.
+        public HomicideBook Homicides { get; } = new HomicideBook();
+        readonly HashSet<string> _deadIds = new HashSet<string>();
+        public bool IsAlive(string id) => !_deadIds.Contains(id);
+        public Inquiry PoliceInquiry =>
+            _gossip?.Mill == null ? Inquiry.None : Homicides.Stage(_gossip.Mill, IsAlive);
+        Inquiry _lastInquiry = Inquiry.None;
+
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
         // demand answers — once per day each. Leashed NPCs never escalate (§6.3).
         readonly Dictionary<string, int> _confrontedDay = new Dictionary<string, int>();
@@ -1220,10 +1231,83 @@ namespace Ledger.Game
         // days, and rumors breathe again — until the heat says she's needed.
         int _osseiCalmUntilDay;
 
+        /// Somebody died at the player's hands. Rare, permanent, and the only
+        /// event in the game that cannot be undone, denied, bought off or
+        /// waited out (combat-spec §7b).
+        ///
+        /// `witnesses` is what Violence.Saw returned: everyone in range. The
+        /// ones who could actually SEE carry your name; the ones who only
+        /// heard it through a wall carry the death without the killer.
+        public void RecordKilling(string victimId, string victimName, List<FightWitness> witnesses)
+        {
+            if (string.IsNullOrEmpty(victimId) || _gossip?.Mill == null) return;
+            var k = Homicides.Record(victimId, victimName, Now.Day, Now.Hour, DistrictOfPlayer());
+            if (k == null) return;
+
+            if (witnesses != null)
+                foreach (var w in witnesses)
+                {
+                    if (w == null || w.Id == victimId) continue;
+                    if (!IsAlive(w.Id)) continue;
+                    // Through a wall you know something happened and not what.
+                    if (w.Occluded) { if (!k.KnowsOfIt.Contains(w.Id)) k.KnowsOfIt.Add(w.Id); }
+                    else if (!k.SawYouDoIt.Contains(w.Id)) k.SawYouDoIt.Add(w.Id);
+                }
+
+            // The victim stops carrying anything. This is the containment
+            // working, and it has to genuinely work or the choice is fake.
+            _deadIds.Add(victimId);
+            _gossip.Mill.Forget(victimId);
+            foreach (var n in _npcs)
+                if (n != null && n.name == victimId) { n.gameObject.SetActive(false); break; }
+
+            Homicides.FileWith(_gossip.Mill, k, Now, IsAlive);
+
+            // Everyone who watched is permanently different about you — crew
+            // included, and the crew most of all.
+            foreach (var id in k.SawYouDoIt) Watched.Saw(_gossip.Mill.Get(id), Now);
+
+            Audio.Foley("dread", 1f);
+            _ui?.Toast($"{k.VictimName} is not getting up. Somebody down the street is already walking fast.", 12f);
+            SaveNow(quiet: true);
+        }
+
+        string DistrictOfPlayer() =>
+            _player != null ? StreetMap.DistrictAt(_player.transform.position.x,
+                                                   _player.transform.position.z) : "Hook Street";
+
         void CheckOssei()
         {
             double heat = CurrentHeat;
             if (heat > ObservedPeakHeat) ObservedPeakHeat = heat;
+
+            // A body is how a detective gets assigned. From here the heat
+            // threshold is moot — she is on the street whatever the talk is
+            // doing, and she does not go calm again afterwards.
+            var inquiry = PoliceInquiry;
+            if (inquiry != _lastInquiry)
+            {
+                _lastInquiry = inquiry;
+                if (Police.SummonsEllis(inquiry))
+                {
+                    _osseiCalmUntilDay = 0;
+                    if (!EllisSpawned) SpawnOssei();
+                    _gossip.Mill.RumorHalfLifeHours =
+                        Police.RumorHalfLifeHours(inquiry, EllisSetup.PresenceRumorHalfLifeHours);
+                    string line = Police.Describe(inquiry);
+                    if (!string.IsNullOrEmpty(line)) _ui?.Toast(line, 10f);
+                }
+                // The floor, not a raise: the reason it is there does not go
+                // away, so re-applying it nightly must not compound.
+                double floor = Police.SuspicionFloor(inquiry);
+                if (floor > 0)
+                    foreach (var a in _gossip.Mill.Agents)
+                        if (a.Suspicion.Value < floor)
+                            a.Suspicion.Raise(floor - a.Suspicion.Value, "there is a body and everybody knows it");
+                return;
+            }
+            if (Police.SummonsEllis(inquiry)) return;   // no calm-down path once there is a case
+
             if (!EllisSpawned && heat >= EllisSetup.SpawnHeatThreshold) { SpawnOssei(); return; }
             if (EllisSpawned && _osseiCalmUntilDay > 0 && Now.Day > _osseiCalmUntilDay
                 && heat >= EllisSetup.SpawnHeatThreshold)
@@ -1831,6 +1915,8 @@ namespace Ledger.Game
             { "osseiInterviews", CaptureStrings(EllisInterviews) },
             { "interviewed", CaptureStrings(_interviewed) },
             { "director", Directorate.Capture() },
+            { "homicides", Homicides.ToJson() },
+            { "dead", CaptureStrings(_deadIds) },
             { "demands", CaptureDemands() },
             { "population", CapturePopulation() },
             { "access", CaptureAccess() },
@@ -1967,6 +2053,14 @@ namespace Ledger.Game
                     Directorate.Restore(MiniJson.AsObject(di));
                     _lastDirectorDay = Directorate.LastRunDay;
                 }
+                if (extra.TryGetValue("homicides", out var hk)) Homicides.FromJson(MiniJson.AsObject(hk));
+                _deadIds.Clear();
+                foreach (var o in MiniJson.GetList(extra, "dead") ?? new List<object>())
+                    if (o is string id) _deadIds.Add(id);
+                // Reloading must not re-announce a killing from three days ago:
+                // the stage is what it is, and the escalation toast fires on a
+                // CHANGE. Seed the comparison from the restored world.
+                _lastInquiry = PoliceInquiry;
                 if (extra.TryGetValue("harm", out var hm)) Harm.Restore(MiniJson.AsObject(hm));
                 if (extra.TryGetValue("purses", out var pu)) Purses.Restore(MiniJson.AsObject(pu));
                 if (extra.TryGetValue("osseiInterviews", out var oi))

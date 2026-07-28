@@ -43,6 +43,7 @@ namespace Ledger.Game
                 // The record is street KNOWLEDGE, not rumor — a leash cannot
                 // hide it and a denial cannot cut it.
                 PublicRecord = AnyoneKnowsDidTime(),
+                Hunted = Police.BarsQuietExit(PoliceInquiry),
                 EllisCaseAnswerable = ActThree.Deflected
                     || (_gossip != null && _gossip.Mill != null
                         && _gossip.Mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt),
@@ -156,7 +157,13 @@ namespace Ledger.Game
                 // Ellis can name the rackets when she has statements AND has
                 // joined the two cases — PP6 is exactly that moment.
                 bool osseiCanName = EllisSpawned && ActTwo.Pp6Fired && EllisInterviews.Count >= 2;
-                if (!ActThreeState.ShouldOpen(ActTwo.TableFired, osseiCanName,
+                // A homicide file with your name on it opens the act on its
+                // own. The audit clock is a paperwork clock and can be
+                // outlasted; this cannot, and pretending otherwise would let
+                // the player kill somebody and then simply keep their head
+                // down until the credits.
+                bool forced = Police.ForcesActThree(PoliceInquiry);
+                if (!forced && !ActThreeState.ShouldOpen(ActTwo.TableFired, osseiCanName,
                     Empire.Businesses.FindAll(b => b.Owned).Count,
                     Empire.Rackets.FindAll(r => r.Established).Count)) return;
 

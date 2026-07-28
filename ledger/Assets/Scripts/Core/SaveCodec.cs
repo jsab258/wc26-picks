@@ -118,7 +118,7 @@ namespace Ledger.Core
                     {
                         { "subj", r.Content.Subject }, { "pred", r.Content.Predicate }, { "val", r.Content.Value },
                         { "origin", r.OriginId }, { "summary", r.Summary }, { "conf", r.Confidence },
-                        { "hops", r.Hops }, { "sensitive", r.Sensitive },
+                        { "hops", r.Hops }, { "sensitive", r.Sensitive }, { "indelible", r.Indelible },
                     }).ToList() },
                 { "facts", a.Knowledge.Facts.Select(f => (object)new Dictionary<string, object>
                     {
@@ -258,6 +258,7 @@ namespace Ledger.Core
                         Content = new Fact(MiniJson.GetString(r, "subj"), MiniJson.GetString(r, "pred"), MiniJson.GetString(r, "val")),
                         OriginId = MiniJson.GetString(r, "origin"), Summary = MiniJson.GetString(r, "summary"),
                         Confidence = Num(r, "conf"), Hops = MiniJson.GetInt(r, "hops"), Sensitive = Flag(r, "sensitive"),
+                        Indelible = Flag(r, "indelible"),
                     });
                 }
                 g.Knowledge.Facts.Clear();

@@ -65,6 +65,11 @@ namespace Ledger.Core
         public bool EllisCaseAnswerable;   // her strongest lead discredited, bought or contradicted
         public bool PublicRecord;          // the street KNOWS you did time — a conviction on file
 
+        /// There is an open homicide with your name on it and the police have
+        /// stopped being patient (combat-spec §7b). Not a difficulty modifier —
+        /// it closes the one door you were allowed to walk out of.
+        public bool Hunted;
+
         // The books themselves.
         public int TotalWashed;
         public int TotalRacketIncome;
@@ -271,7 +276,13 @@ namespace Ledger.Core
             // person whose name is now on the licence. Leaving somebody holding
             // your books is the cost of the quietest door out, and the epilogue
             // is where you find out what it cost them.
-            if (s.HandedOver && s.HasReadySuccessor) list.Add(Ending.Quiet);
+            //
+            // Unless they are hunting you. Signing the licence over settles who
+            // owns a bar; it does not settle a body, and the one thing a
+            // successor cannot inherit is a homicide. This is the only place
+            // the lethality answer takes an ending off the table outright, and
+            // it takes the quietest one.
+            if (s.HandedOver && s.HasReadySuccessor && !s.Hunted) list.Add(Ending.Quiet);
 
             bool lifeSurvives = s.BestDayLifeLoyalty >= LedgerState.TrustThreshold;
             bool empireSurvives = !s.EmpireDissolved &&

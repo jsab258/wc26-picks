@@ -1,8 +1,14 @@
 # Combat — spec and plan
 
-**Status: SPEC, 2026-07-28.** Requested by Jafar: *"update combat on the
-roadmap. needs to be properly specced and planned. UI/UX needs to be high
-quality."* Nothing here is built. The consequence layer it stands on is.
+**Status: PHASES 1, 2 AND 3b BUILT, 2026-07-28.** Requested by Jafar:
+*"update combat on the roadmap. needs to be properly specced and planned.
+UI/UX needs to be high quality."*
+
+Built: `Core/Combat.cs` (the verbs, footing, stamina, reach),
+`Core/Combat.cs`'s `Violence` (who saw it), and `Core/Homicide.cs` (the
+body, the police, the crew who watched). Remaining: phase 3 (animation,
+telegraphs, hit reactions) which is blocked on characters, and phase 4
+(BalanceLab tuning) which follows it.
 
 ---
 
@@ -166,10 +172,56 @@ the bar at noon, and that difference IS the game. *~half a day.*
 **Phase 3 — Bodies and telegraphs.** Animation, the read, hit reactions,
 the guard. **Blocked on characters.** *~2 days.*
 
-**Phase 3b — The body.** A killing as a permanent, undiscreditable fact in
-the mill; police escalation on Mara Ellis; crew who saw it. **This is the
-largest genuinely new piece of work in the spec** and it is a consequence of
-the lethality answer, not of the fighting. *~2 days.*
+**Phase 3b — The body. BUILT.** `Core/Homicide.cs`, and the guards it
+needed inside the gossip mill.
+
+The design problem was never "how does killing work" — it was making the
+trade in §2 true *as arithmetic* rather than as an assertion in this
+document. Killing has to genuinely work or the choice is fake, and it has
+to cost more than it saves or the gossip game is dead. Both, at once.
+
+`HomicideBook.Pressure` is where that lands. Bodies weigh 0.4 each; the
+strongest living witness who can name you weighs up to 0.6; every witness
+after the first adds 0.25. Read the table it produces:
+
+| Situation | Pressure | Police |
+|---|---|---|
+| One body, nobody saw | 0.40 | Procedure |
+| One body, one witness through a wall | 0.76 | Investigation |
+| One body, one witness who watched | 1.00 | **Manhunt** |
+| Two bodies, nobody left alive to talk | 0.80 | Investigation |
+| Three bodies, nobody left | 1.20 | **Manhunt** |
+
+Lines three and four are the whole feature. Killing the only witness to
+your killing **really does** take the manhunt off you — it has to, or the
+player stops believing the system inside one attempt. It takes you to an
+investigation. It never takes you back to procedure, and it never takes
+you back to nothing. Do it once more and you are measurably past where the
+first body left you.
+
+**The asymmetry, enforced one machine at a time.** A `Rumor.Indelible`
+flag, and every containment tool in the game steps over it: `Age` does not
+cool it, `Discredit` refuses outright (and does not burn the once-per-story
+denial on the way past), `Bribe` and `Intimidate` are refused with their
+own outcome rather than a lie about the story having died down, a leash and
+a suppression do not stop it spreading, and it crosses every mouth on the
+street without losing a point of confidence. Fifty-four days of lying low
+does nothing to it. It also survives `StrongestSurvivingPlayerLead`, so no
+amount of managing the information landscape makes Ellis's case answerable
+once there is a body.
+
+**Ellis.** A body is how a detective gets assigned, so from Procedure up she
+is on the street whatever the talk is doing and the heat threshold stops
+mattering — and there is no calm-down path any more. Investigation forces
+Act III open, because the audit clock is a paperwork clock and this is not.
+Manhunt takes the Quiet ending off the table outright: a successor can
+inherit a licence, never a homicide.
+
+**The crew who watched** get a permanent loyalty *ceiling* rather than a
+loyalty hit — paying them well never lifts it back off — and the one who
+goes to the police is the frightened one, not the disloyal one.
+
+39 checks; 16 deliberate breaks confirmed red first.
 
 **Phase 4 — Tuning against the fiction.** Make sure violence is never the
 efficient path. This is a BalanceLab job, not a feel job: if a Monte Carlo

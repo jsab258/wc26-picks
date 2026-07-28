@@ -85,6 +85,7 @@ namespace Ledger.CoreTests
                 TestAcoustics();
                 TestCrowdOnTheStreet();
                 TestCombat();
+                TestHomicide();
                 TestPalette();
                 TestInteraction();
                 TestDirector();
@@ -5553,6 +5554,309 @@ namespace Ledger.CoreTests
             Check(eyes.Knowledge.CheckClaim(killing) == ClaimResult.Consistent,
                 "so unlike EVERY other thing in this game, it becomes hard knowledge — "
                 + "which is exactly what makes killing terrifying rather than efficient");
+        }
+
+        static void TestHomicide()
+        {
+            Console.WriteLine("The body — combat phase 3b, the price of the lethality answer:");
+            var now = new GameTime(6, 23, 0);
+
+            GossipMill Street(params string[] ids)
+            {
+                var g = new SocialGraph();
+                for (int i = 0; i < ids.Length; i++)
+                    for (int j = i + 1; j < ids.Length; j++)
+                        g.Link(ids[i], ids[j], 0.9);
+                var m = new GossipMill(g);
+                foreach (var id in ids) m.Add(Agent(id, id, "night"));
+                return m;
+            }
+
+            // ---- THE ASYMMETRY, one machine at a time ----
+            // Every containment tool in the game, aimed at a body, one by one.
+            // If any of these bite, killing is just another problem you can pay
+            // your way out of, and the entire point of the feature is gone.
+            {
+                var mill = Street("saw");
+                var book = new HomicideBook();
+                var k = book.Record("victim", "The Victim", 6, 23, "the alley");
+                k.SawYouDoIt.Add("saw");
+                book.FileWith(mill, k, now);
+
+                var held = mill.Get("saw").BestOfValue(k.TopicKey, "true");
+                Check(held != null && held.Indelible && held.Confidence >= 0.95,
+                    "a witness to a killing carries it as a fact, at certainty");
+
+                // 1. Time.
+                mill.Age(now);
+                mill.Age(new GameTime(60, 23, 0));   // fifty-four days of lying low
+                var after = mill.Get("saw").BestOfValue(k.TopicKey, "true");
+                Check(after != null && after.Confidence >= 0.95,
+                    "fifty-four days of lying low does nothing to it",
+                    after == null ? "gone" : $"{after.Confidence:0.00}");
+
+                // 2. Denial.
+                var dc = mill.Discredit(k.TopicKey, "true", now);
+                Check(dc.Outcome == DcOutcome.Indelible,
+                    "denying it is refused outright — and NOT as 'no such rumour', "
+                    + "because telling the player it died down would be a lie");
+                Check(mill.Get("saw").BestOfValue(k.TopicKey, "true").Confidence >= 0.95,
+                    "and the denial changed nothing");
+                Check(!mill.IsDiscredited(k.TopicKey),
+                    "nor did it burn the once-per-story denial on the way past");
+
+                // 3. Money.
+                mill.Get("saw").Greed = 1.0;
+                var br = mill.Bribe("saw", k.TopicKey, 100000, now);
+                Check(br.Outcome == DcOutcome.Indelible,
+                    "the greediest man on the street will not take money for it");
+                Check(mill.Get("saw").BestOfValue(k.TopicKey, "true").Confidence >= 0.95,
+                    "and he is still carrying it at certainty");
+
+                // 4. Fear.
+                mill.Get("saw").Nerve = 0.0;
+                var it = mill.Intimidate("saw", k.TopicKey, now);
+                Check(it.Outcome == DcOutcome.Indelible,
+                    "and the most frightened man on the street cannot be frightened off it");
+
+                // 5. A hook.
+                mill.Get("saw").Leashed = true;
+                mill.Get("saw").Suppressed.Add(k.TopicKey);
+                var mill2 = mill;
+                var evs = mill2.Tick(now, (x, y) => true);
+                Check(evs.Count == 0, "with nobody to tell, nothing moves");
+            }
+
+            // ---- it still SPREADS through a leash and a bribe ----
+            {
+                var mill = Street("saw", "b", "c");
+                var book = new HomicideBook();
+                var k = book.Record("victim", "The Victim", 6, 23, "the alley");
+                k.SawYouDoIt.Add("saw");
+                book.FileWith(mill, k, now);
+                mill.Get("saw").Leashed = true;
+                mill.Get("saw").Suppressed.Add(k.TopicKey);
+
+                mill.Tick(now, (x, y) => true);
+                var heard = mill.Get("b")?.BestOfValue(k.TopicKey, "true");
+                Check(heard != null,
+                    "a leashed, bribed, frightened witness tells it anyway — "
+                    + "silence is something you buy about stories, not about bodies");
+                Check(heard != null && heard.Confidence >= 0.95,
+                    "and it arrives as true as it left, with no hop decay at all",
+                    heard == null ? "gone" : $"{heard.Confidence:0.00} at {heard.Hops} hop(s)");
+                Check(mill.Get("b").Knowledge.CheckClaim(k.Fact) == ClaimResult.Consistent,
+                    "so a man who only HEARD about it can still catch you in a denial");
+            }
+
+            // ---- the contradiction still fires, which is the whole point ----
+            {
+                var mill = Street("saw", "b");
+                var book = new HomicideBook();
+                var k = book.Record("victim", "The Victim", 6, 23, "the alley");
+                k.SawYouDoIt.Add("saw");
+                book.FileWith(mill, k, now);
+                // The player looked b in the eye and said it wasn't him.
+                mill.PlayerClaims("b", new Fact("player", "killed_victim", "false"), now);
+                double before = mill.Get("b").Suspicion.Value;
+                var evs = mill.Tick(now, (x, y) => true);
+                Check(evs.Exists(e => e.ToId == "b" && e.Contradiction),
+                    "the lie is caught the moment the body reaches the man you told it to");
+                Check(mill.Get("b").Suspicion.Value > before,
+                    "and it costs, rather than being noted and dropped");
+            }
+
+            // ---- THE ARITHMETIC OF THE TRADE ----
+            // This is the part the whole feature stands or falls on. Killing a
+            // witness must genuinely work, and must never pay for itself.
+            {
+                var mill = Street("w1", "w2", "w3");
+                var book = new HomicideBook();
+                var dead = new HashSet<string>();
+                Func<string, bool> alive = id => !dead.Contains(id);
+
+                var first = book.Record("mark", "The Mark", 6, 23, "the alley");
+                first.SawYouDoIt.Add("w1");
+                book.FileWith(mill, first, now, alive);
+
+                double p1 = book.Pressure(mill, alive);
+                Check(book.Stage(mill, alive) == Inquiry.Manhunt,
+                    "one killing with one living eyewitness IS a manhunt", $"{p1:0.00}");
+
+                // So you kill the witness. It works. That has to be true or the
+                // choice is fake.
+                var second = book.Record("w1", "The Witness", 7, 2, "the yard");
+                dead.Add("w1");
+                book.FileWith(mill, second, now, alive);
+                double p2 = book.Pressure(mill, alive);
+                Check(book.Stage(mill, alive) == Inquiry.Investigation,
+                    "killing the only witness GENUINELY takes the manhunt off you — "
+                    + "if it did not, the player would stop believing the system", $"{p2:0.00}");
+                Check(p2 < p1, "the pressure really does come down", $"{p2:0.00} < {p1:0.00}");
+                Check(book.Stage(mill, alive) > Inquiry.Procedure,
+                    "and it NEVER takes you back to where one body left you");
+
+                // A third, to fix the second.
+                var third = book.Record("w2", "Another", 8, 1, "the canal");
+                dead.Add("w2");
+                book.FileWith(mill, third, now, alive);
+                Check(book.Stage(mill, alive) == Inquiry.Manhunt,
+                    "and the body you added to fix the last one puts you past where you started",
+                    $"{book.Pressure(mill, alive):0.00}");
+                Check(book.Pressure(mill, alive) > p1,
+                    "worse, measurably, than the manhunt you were solving",
+                    $"{book.Pressure(mill, alive):0.00} > {p1:0.00}");
+            }
+
+            // ---- a body nobody saw is still a case ----
+            {
+                var mill = Street("nobody");
+                var book = new HomicideBook();
+                var k = book.Record("mark", "The Mark", 6, 3, "the canal");
+                book.FileWith(mill, k, now);
+                Check(book.Stage(mill) == Inquiry.Procedure,
+                    "a killing in an empty street at three in the morning is still a homicide file");
+                Check(Police.SummonsEllis(book.Stage(mill)),
+                    "which puts Ellis on the street whatever the talk is doing");
+                Check(!Police.AsksAboutYou(book.Stage(mill)),
+                    "but she is not asking about you, because nobody can put you there");
+            }
+
+            // ---- witnesses who cannot name you still escalate ----
+            {
+                var mill = Street("heard1", "heard2");
+                var book = new HomicideBook();
+                var k = book.Record("mark", "The Mark", 6, 3, "the alley");
+                k.KnowsOfIt.Add("heard1");
+                k.KnowsOfIt.Add("heard2");
+                book.FileWith(mill, k, now);
+                Check(book.LiveWitnesses(mill).Count == 0,
+                    "someone who knows there is a body cannot testify that you made it");
+                Check(mill.Get("heard1").BestOfValue("mark.died", "violently") != null,
+                    "but they carry the death itself, as a fact");
+                Check(book.Stage(mill) == Inquiry.Procedure,
+                    "so the case opens without your name on it");
+            }
+
+            // ---- corroboration is what turns a word into a case ----
+            {
+                var one = Street("a"); var many = Street("a", "b", "c");
+                var b1 = new HomicideBook(); var b2 = new HomicideBook();
+                var k1 = b1.Record("v", "V", 6, 23, "x"); k1.SawYouDoIt.Add("a");
+                var k2 = b2.Record("v", "V", 6, 23, "x");
+                k2.SawYouDoIt.Add("a"); k2.SawYouDoIt.Add("b"); k2.SawYouDoIt.Add("c");
+                b1.FileWith(one, k1, now); b2.FileWith(many, k2, now);
+                Check(b2.Pressure(many) > b1.Pressure(one),
+                    "three people saying it is worse than one saying it",
+                    $"{b2.Pressure(many):0.00} vs {b1.Pressure(one):0.00}");
+            }
+
+            // ---- the same body twice is one body ----
+            {
+                var book = new HomicideBook();
+                book.Record("v", "V", 6, 1, "x");
+                book.Record("v", "V", 6, 1, "x");
+                Check(book.BodyCount == 1,
+                    "recording the same killing twice does not double the pressure off one act");
+            }
+
+            // ---- police consequences ----
+            Check(Police.RumorHalfLifeHours(Inquiry.Investigation, 96)
+                  > Police.RumorHalfLifeHours(Inquiry.Procedure, 96),
+                "nothing about you goes cold while she is asking your name");
+            Check(Police.RumorHalfLifeHours(Inquiry.None, 96) == 96,
+                "and with no body, the street forgets at its normal pace");
+            Check(Police.SuspicionFloor(Inquiry.Manhunt) > Police.SuspicionFloor(Inquiry.Investigation)
+                  && Police.SuspicionFloor(Inquiry.None) == 0,
+                "the suspicion floor rises with the inquiry and is zero without one");
+            Check(Police.ForcesActThree(Inquiry.Investigation) && !Police.ForcesActThree(Inquiry.Procedure),
+                "a case with your name on it cannot be waited out; an open file can");
+            Check(Police.BarsQuietExit(Inquiry.Manhunt) && !Police.BarsQuietExit(Inquiry.Investigation),
+                "and you cannot hand the bar to a successor and walk away from a manhunt");
+
+            // ---- the crew who watched ----
+            {
+                var steady = Agent("steady", "Steady", "night");
+                var nervous = Agent("nervous", "Nervous", "night");
+                steady.Nerve = 0.9; steady.Loyalty = 1.0;
+                nervous.Nerve = 0.2; nervous.Loyalty = 1.0;
+                Watched.Saw(steady, now);
+                Watched.Saw(nervous, now);
+                Check(steady.Loyalty < 1.0 && nervous.Loyalty < steady.Loyalty,
+                    "nobody who watched is quite the same, and the nervous one least of all",
+                    $"steady {steady.Loyalty:0.00} vs nervous {nervous.Loyalty:0.00}");
+
+                double ceiling = nervous.Loyalty;
+                nervous.Loyalty = 1.0;          // pay them, protect them, supply the need
+                Watched.Saw(nervous, now);
+                Check(nervous.Loyalty <= ceiling + 1e-9,
+                    "and no amount of paying them well ever lifts the ceiling back off",
+                    $"{nervous.Loyalty:0.00} vs {ceiling:0.00}");
+                int marks = nervous.Memory.Events.Count(e => e.Text.StartsWith("I watched them do it"));
+                Check(marks == 1,
+                    "held down nightly without grinding them to nothing or repeating the memory",
+                    $"{marks} memory/ies");
+
+                Check(Watched.WouldTalkToPolice(nervous) && !Watched.WouldTalkToPolice(steady),
+                    "the one who goes to the police is the frightened one, not the disloyal one");
+            }
+
+            // ---- what a body does to Act III ----
+            {
+                var mill = Street("saw");
+                var book = new HomicideBook();
+                var k = book.Record("v", "V", 6, 23, "the alley");
+                k.SawYouDoIt.Add("saw");
+                book.FileWith(mill, k, now);
+                // Every tool the player has for managing the landscape, at once.
+                mill.Get("saw").Leashed = true;
+                mill.Get("saw").Suppressed.Add(k.TopicKey);
+                mill.Discredit(k.TopicKey, "true", now);
+                Check(mill.StrongestSurvivingPlayerLead() >= LedgerState.CaseStandsAt,
+                    "a body is the one lead that cannot be managed off the table, "
+                    + "so Ellis's case stands however well you handle the street",
+                    $"{mill.StrongestSurvivingPlayerLead():0.00}");
+
+                var s = new LedgerState { HandedOver = true, HasReadySuccessor = true };
+                Check(ActThreeState.Eligible(s).Contains(Ending.Quiet),
+                    "handing the bar over is normally the quietest door out");
+                s.Hunted = true;
+                Check(!ActThreeState.Eligible(s).Contains(Ending.Quiet),
+                    "and a successor can inherit a licence but never a homicide — "
+                    + "killing takes the quiet ending off the table outright");
+            }
+
+            // ---- it survives a save ----
+            {
+                var book = new HomicideBook();
+                var k = book.Record("v", "The Victim", 6, 23, "the alley");
+                k.SawYouDoIt.Add("saw"); k.KnowsOfIt.Add("heard");
+                // Through actual JSON TEXT, not the dictionary — an int stays an
+                // int in a dictionary and becomes a double through a file, and
+                // a codec test that skips the text tests the wrong thing.
+                var back = new HomicideBook();
+                back.FromJson(MiniJson.Deserialize(MiniJson.Serialize(book.ToJson()))
+                    as System.Collections.Generic.Dictionary<string, object>);
+                var r = back.Of("v");
+                Check(back.BodyCount == 1 && r != null && r.VictimName == "The Victim"
+                      && r.Day == 6 && r.Hour == 23 && r.Where == "the alley"
+                      && r.SawYouDoIt.Contains("saw") && r.KnowsOfIt.Contains("heard"),
+                    "a killing round-trips through a save with its witnesses intact");
+            }
+            {
+                var mill = Street("saw");
+                var k = new HomicideBook().Record("v", "V", 6, 23, "x");
+                k.SawYouDoIt.Add("saw");
+                new HomicideBook().FileWith(mill, k, now);
+                var json = SaveCodec.Capture(now, new Wallet(0), new Campaign(), new PlayerKnowledge(),
+                    new SecretsBook(), new BeatBook(), mill, new DebtBook(), null);
+                var mill2 = Street("saw");
+                SaveCodec.RestoreMillAgents(json, mill2);
+                var r = mill2.Get("saw")?.BestOfValue(k.TopicKey, "true");
+                Check(r != null && r.Indelible,
+                    "and a body reloads as a body rather than as an ordinary rumour "
+                    + "that a night's sleep would wash out");
+            }
         }
 
         static void TestPalette()

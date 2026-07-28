@@ -43,6 +43,18 @@ namespace Ledger.Core
         public int Hops;           // 0 = witnessed first-hand
         public bool Sensitive;     // pertains to the player's hidden (night) life
 
+        /// A FACT, not a story. Set only by a killing (combat-spec §7b).
+        ///
+        /// Every other rumour in this game can be muddied, bought quiet,
+        /// scared quiet, held on a leash or simply left to go cold. None of
+        /// that machinery touches a corpse — Age, Discredit, Contain and the
+        /// hop decay in Tick all step over an indelible rumour. That
+        /// asymmetry against literally everything else in the mill is the
+        /// whole reason killing a witness is terrifying rather than
+        /// efficient: it works, and it is the one thing you can never take
+        /// back.
+        public bool Indelible;
+
         public string TopicKey => $"{Content.Subject}.{Content.Predicate}";
     }
 
@@ -158,7 +170,7 @@ namespace Ledger.Core
         /// saw SOMETHING but can't swear to who, and everything downstream (spread,
         /// heat, bribe prices) inherits that doubt.
         public void Witness(string witnessId, Fact content, string summary, bool sensitive, GameTime now,
-            double confidence = 1.0)
+            double confidence = 1.0, bool indelible = false)
         {
             var w = Get(witnessId);
             if (w == null) return;
@@ -171,7 +183,20 @@ namespace Ledger.Core
                 {
                     Content = content, OriginId = witnessId, Summary = summary,
                     Confidence = confidence, Hops = 0, Sensitive = sensitive,
+                    Indelible = indelible,
                 });
+            }
+            else if (indelible && !already.Indelible)
+            {
+                // Somebody who half-heard a scuffle later learns there was a
+                // body in it. The doubtful version does not survive that: it
+                // is upgraded in place, at whatever certainty the body
+                // carries, rather than sitting alongside as a live maybe.
+                already.Indelible = true;
+                already.Confidence = Math.Max(already.Confidence, confidence);
+                already.Hops = 0;
+                already.Summary = summary;
+                if (already.Confidence >= 0.95) w.Knowledge.Learn(content);
             }
             else if (confidence > already.Confidence)
             {
@@ -223,10 +248,15 @@ namespace Ledger.Core
 
                     foreach (var r in snapshot[speaker.Id])
                     {
-                        if (r.Confidence < MinConfidenceToShare) continue;
-                        if (speaker.Suppressed.Contains(r.TopicKey)) continue; // bribed/scared into silence
-                        if (speaker.Leashed && r.Content.Subject == "player") continue; // held by a hook
-                        double passed = r.Confidence * tie * HopDecay;
+                        if (r.Confidence < MinConfidenceToShare && !r.Indelible) continue;
+                        // Money and hooks buy silence about STORIES. Nobody keeps
+                        // a body to themselves because they were paid to.
+                        if (!r.Indelible && speaker.Suppressed.Contains(r.TopicKey)) continue; // bribed/scared into silence
+                        if (!r.Indelible && speaker.Leashed && r.Content.Subject == "player") continue; // held by a hook
+                        // A body arrives at the far end of the street exactly as
+                        // true as it left. Hop decay is how a story turns into a
+                        // maybe; this is not a story.
+                        double passed = r.Indelible ? r.Confidence : r.Confidence * tie * HopDecay;
                         if (passed < MinConfidenceToShare) continue;
 
                         // Don't re-tell something the listener already holds at least as
@@ -244,6 +274,7 @@ namespace Ledger.Core
                         {
                             Content = r.Content, OriginId = r.OriginId, Summary = r.Summary,
                             Confidence = passed, Hops = r.Hops + 1, Sensitive = r.Sensitive,
+                            Indelible = r.Indelible,
                         };
                         listener.Rumors.Add(heard);
                         listener.Memory.Append(new MemoryEvent(now, "heard",
@@ -269,6 +300,15 @@ namespace Ledger.Core
                             listener.Suspicion.Raise(LeakSuspicion * passed, "heard something that doesn't fit the person I thought I knew");
                             ev.Exposure = true;
                         }
+
+                        // AFTER the contradiction check, never before: an
+                        // indelible rumour arrives at certainty however many
+                        // mouths it crossed, and certainty is hard knowledge.
+                        // Learning it first would make the listener's own new
+                        // fact agree with itself and swallow the very
+                        // contradiction the killing is supposed to expose.
+                        if (heard.Indelible && heard.Confidence >= 0.95)
+                            listener.Knowledge.Learn(heard.Content);
 
                         events.Add(ev);
                     }
@@ -426,6 +466,9 @@ namespace Ledger.Core
                 return Dc(DcOutcome.AlreadyDenied, $"{n.DisplayName} is already yours. Save your money.");
             var r = n?.Best(topicKey);
             if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
+            if (r.Indelible)
+                return Dc(DcOutcome.Indelible,
+                    $"{n.DisplayName} looks at the money, and then at you, and does not take it.");
             double price = BribeBase + BribePerConfidence * r.Confidence;
             if (offer < price) return Dc(DcOutcome.CantAfford, $"They want more than {offer:0} to forget it.");
 
@@ -454,6 +497,12 @@ namespace Ledger.Core
                 return Dc(DcOutcome.AlreadyDenied, $"{n.DisplayName} already knows what you know. There is nothing left to threaten.");
             var r = n?.Best(topicKey);
             if (r == null) return Dc(DcOutcome.NoSuchRumor, $"{npcId} isn't carrying that.");
+            // Threatening a witness to a killing is the one threat that cannot
+            // work, because the thing you are threatening them with is exactly
+            // the thing they already watched you do.
+            if (r.Indelible)
+                return Dc(DcOutcome.Indelible,
+                    $"{n.DisplayName} has already seen what you do. There is nothing left to threaten them with.");
 
             if (n.Nerve <= IntimidateNerveCeiling)
             {
@@ -475,6 +524,12 @@ namespace Ledger.Core
         /// a story must be killed at its holder, with money or muscle.
         public DcResult Discredit(string topicKey, string value, GameTime now)
         {
+            // Refused BEFORE the once-per-story cap is spent, so a denial
+            // wasted on a killing does not also burn the denial you might
+            // legitimately have needed for something else on that topic.
+            if (HoldsIndelible(topicKey, value))
+                return new DcResult { Outcome = DcOutcome.Indelible, Affected = 0,
+                    Message = "There is a body. No amount of denying makes it not be there." };
             // The cap is per STORY — and two values of one topic are two
             // stories. Keyed by topic alone, denying the warehouse version
             // burned the denial for the docks version too (audit 2026-07-27).
@@ -487,9 +542,9 @@ namespace Ledger.Core
             int affected = 0;
             foreach (var a in _agents.Values)
                 foreach (var r in a.Rumors)
-                    if (r.TopicKey == topicKey && (v == null || r.Content.Value == v))
+                    if (r.TopicKey == topicKey && (v == null || r.Content.Value == v) && !r.Indelible)
                     { r.Confidence *= DiscreditFactor; affected++; }
-            foreach (var a in _agents.Values) a.Rumors.RemoveAll(r => r.Confidence < 0.03);
+            foreach (var a in _agents.Values) a.Rumors.RemoveAll(r => r.Confidence < 0.03 && !r.Indelible);
             return new DcResult { Outcome = affected > 0 ? DcOutcome.Contained : DcOutcome.NoSuchRumor, Affected = affected,
                 Message = affected > 0 ? $"Doubt spreads; {affected} telling(s) of it lose weight." : "No such story to discredit." };
         }
@@ -512,10 +567,15 @@ namespace Ledger.Core
             double best = 0;
             foreach (var a in Agents)
             {
-                if (a.Leashed) continue;
                 foreach (var r in a.Rumors)
                 {
                     if (r.Content.Subject != "player" || !r.Sensitive) continue;
+                    // A body survives every one of these. It is the one lead
+                    // that cannot be managed off the table, so no amount of
+                    // information landscaping makes Ellis's case answerable
+                    // once there is one.
+                    if (r.Indelible) return Math.Max(best, r.Confidence);
+                    if (a.Leashed) continue;
                     if (a.Suppressed.Contains(r.TopicKey)) continue;
                     if (_discredited.Contains(r.TopicKey)
                         || _discredited.Contains(r.TopicKey + "=" + (r.Content.Value ?? "").ToLowerInvariant())) continue;
@@ -587,8 +647,11 @@ namespace Ledger.Core
                     double f = Math.Pow(0.5, hrs / RumorHalfLifeHours);
                     foreach (var a in _agents.Values)
                     {
-                        foreach (var r in a.Rumors) r.Confidence *= f;
-                        a.Rumors.RemoveAll(r => r.Confidence < 0.03);
+                        // A body does not go cold the way a story does. Lying
+                        // low is the answer to talk; it is not the answer to
+                        // a corpse.
+                        foreach (var r in a.Rumors) if (!r.Indelible) r.Confidence *= f;
+                        a.Rumors.RemoveAll(r => r.Confidence < 0.03 && !r.Indelible);
                     }
                 }
             }
@@ -599,11 +662,22 @@ namespace Ledger.Core
         GameTime _lastAge;
         bool _aged;
 
+        /// Is anyone carrying this story as a FACT rather than a story?
+        public bool HoldsIndelible(string topicKey, string value = null)
+        {
+            var v = value?.ToLowerInvariant();
+            foreach (var a in _agents.Values)
+                foreach (var r in a.Rumors)
+                    if (r.Indelible && r.TopicKey == topicKey && (v == null || r.Content.Value == v))
+                        return true;
+            return false;
+        }
+
         void Contain(Gossiper n, string topicKey)
         {
             n.Suppressed.Add(topicKey);
             foreach (var r in n.Rumors)
-                if (r.TopicKey == topicKey && r.Confidence > 0.05) r.Confidence = 0.05;
+                if (r.TopicKey == topicKey && r.Confidence > 0.05 && !r.Indelible) r.Confidence = 0.05;
         }
 
         Rumor Backfire(Gossiper n, string predicate, string summary, GameTime now)
@@ -625,7 +699,11 @@ namespace Ledger.Core
         static DcResult Dc(DcOutcome o, string msg) => new DcResult { Outcome = o, Message = msg };
     }
 
-    public enum DcOutcome { NoSuchRumor, CantAfford, Contained, Backfired, AlreadyDenied }
+    /// `Indelible`: the move was refused because the thing it aimed at is a
+    /// body. Deliberately NOT NoSuchRumor — the story is very much alive, and
+    /// telling the player it "died down on its own" would be the single most
+    /// dishonest line the game could print.
+    public enum DcOutcome { NoSuchRumor, CantAfford, Contained, Backfired, AlreadyDenied, Indelible }
 
     /// The result of a damage-control move: what happened, a line to show the player,
     /// any new rumor the move created (a backfire), and how many rumors it touched.
