@@ -34,8 +34,14 @@ prison count as a managed information landscape?) → decisions-pending.md.
 **Remaining: 33 medium and ~46 low findings** — untriaged beyond severity;
 next session's docket, same test-first rule.
 
-**Sim seed trials of the pre-fix green state: 3 for 3 GREEN** (runs 81, 82,
-83). Fix-phase CI build triggered 2026-07-28 ~02:55Z.
+**Fix-phase CI build: GREEN** (run 30326027427, 2026-07-28 03:28Z). The
+in-engine run exercised the fixes for real: daysSkipped=3 — the reclaim
+extended a run past its landing for the first time; the bot lost the week,
+so the lost-week gate discounts were exercised and passed; both acts
+resolved; the save-key assertions raised nothing. One iteration was needed:
+the smoke-test rewrite first asserted absolute lock-policy reads and redded
+when another panel was legitimately open — both assertions are deltas
+against a per-panel baseline now. (Pre-fix green state: trials 81-83.)
 
 ---
 
