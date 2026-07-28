@@ -1,16 +1,41 @@
 # Audit findings — 2026-07-27 (Fable session)
 
-**Status: ALL 15 FINDER DIMENSIONS COMPLETE.** 104 findings, 160 clean checks.
-Adversarial verification is IN PROGRESS — the verify wave was twice cut off by
-the session usage limit; it is being re-run for the high and medium findings
-(low findings will instead be validated during the fix phase by the
-test-shown-to-fail-first rule, which is itself verification).
+**Status update 2026-07-28: FIX PHASE — ALL 25 HIGH FINDINGS RESOLVED.**
+104 findings, 160 clean checks from the 15-dimension sweep. The adversarial
+verify wave failed four separate ways (session limit x2, structured-output
+harness fault, then a subagent permission-handler fault that blocked every
+tool call), so verification moved into the fix phase itself, solo: every
+fix begins with the finding's failing case shown to fail (or an empirical
+probe where the claim was about a test that cannot fail), which is stronger
+verification than a verdict. Findings that were wrong would not have
+produced a failing test; all 25 produced one or were confirmed by direct
+read/probe.
 
-**Sim seed trials of the green state: 3 for 3 GREEN** (runs 81, 82, 83 —
-independent timing each). Act III resolved in-engine in each.
+**Fixed (17 distinct defects from the 25 high findings, several were
+duplicate sightings):** decision-9 street coupling (was wired to the bar's
+drayman via a null-id lookup); Director demand due-day on late fire; the
+save/load cluster (harm, purses, Ossei interviews never saved; inspector
+and summit head never respawned on load; crowd-gossiper restore ordering —
+restore is two-pass now; sim overwrote the player save); gossip re-tell
+guard value-blind (unbounded rumor growth on conflicting values); empire
+RNG seeded per-day-only (lab variance collapse — re-measured, decisions 9
+and 10 hold); CI wait-timeout mismatch; the sim reclaim that never
+reclaimed (CONFIRMED finding below — fixed via Core SimClock); lost-week
+gate miscalibration; the takings-floor tautology test; the UI smoke test's
+two self-satisfying checks + the InputLocked recompute that erased Plan and
+Phone panel locks; ledger raw-confidence figure; doorman refusal lines
+displaying zero frames; Both-ending deflect-only (act3-draft answer 3 now
+honored via GossipMill.StrongestSurvivingPlayerLead, re-measured in the
+lab).
 
-**No fixes have been made yet** — per the session plan, the audit completes
-first. One finding has survived adversarial verification so far.
+**Design question raised, not decided:** post-Fall heat laundering (does
+prison count as a managed information landscape?) → decisions-pending.md.
+
+**Remaining: 33 medium and ~46 low findings** — untriaged beyond severity;
+next session's docket, same test-first rule.
+
+**Sim seed trials of the pre-fix green state: 3 for 3 GREEN** (runs 81, 82,
+83). Fix-phase CI build triggered 2026-07-28 ~02:55Z.
 
 ---
 

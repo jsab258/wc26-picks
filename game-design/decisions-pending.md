@@ -384,6 +384,41 @@ real fork and it is yours:
 
 No action needed before you play. The city works either way.
 
+## Does prison launder the information landscape? (audit finding, 2026-07-28)
+
+**The mechanics today.** The Fall deletes every live player rumor (the street
+stops speculating — now they KNOW) and writes `did_time` into everyone's head
+as hard knowledge. But no heat consumer reads knowledge — heat is computed
+from live rumors only. So an audit that closes after a Fall reads the day
+circle's racket heat as ZERO, Act III's "managed information landscape" leg
+credits you for it, and the epilogue calls your street quiet. Three days in
+prison is mechanically the best information-management move in the game.
+
+**Why it isn't obviously wrong.** "You did the time; the ledger is settled"
+is a real position — the Fall already costs you the outfit's patience, the
+scarring, and every live lead dying is TRUE (nobody needs to speculate).
+The surviving-lead machinery added for the Both ending reads correctly here:
+a served conviction is not a live lead Ossei can take to a magistrate.
+
+**Why it smells.** A state inspector, of all people, can read a conviction
+record. The whole day circle watched you go. Crediting that player with a
+managed landscape — the same credit as someone who spent three weeks
+leashing witnesses and buying silence — flattens the act's central skill.
+
+**Options.**
+- **A. Status quo, documented.** Prison settles the books. Cheapest; the
+  Fall's other costs already price it.
+- **B. Heat floor.** Public `did_time` floors the audit's heat read (~0.3):
+  the street being certain is hotter than the street speculating. Touches
+  the epilogue too.
+- **C. Strain term (recommended).** `did_time` as street knowledge adds a
+  modest term to what the INSPECTION sees (SeenStrain), leaving heat and
+  the epilogue alone. A conviction is exactly the thing an auditor can
+  read; the street's mood is separate. Small, targeted, testable in the
+  lab before wiring.
+
+No action taken — this changes what an ending means, so it is yours.
+
 ## Standing rules honored meanwhile
 
 - Design/story/character decisions → this queue, with a recommendation,
