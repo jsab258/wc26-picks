@@ -194,7 +194,7 @@ namespace Ledger.Core
                 })
                 : Pick(seed, new[]
                 {
-                    "Marek's one. Still standing, then.",
+                    "Mickey's one. Still standing, then.",
                     "All right.",
                 });
             return new SpokenLine { SpeakerId = g.Id, Text = text, AboutPlayer = about != null, Source = about };

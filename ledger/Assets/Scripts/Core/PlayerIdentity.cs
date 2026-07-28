@@ -4,13 +4,13 @@ namespace Ledger.Core
 {
     /// Who the player is, and what this street calls them.
     ///
-    /// Open since 24 July and delegated to me on the 27th. The name is **Tomas
-    /// Vrba** — Marek's sister's boy, off the boat with one suitcase and a
+    /// Open since 24 July and delegated to me on the 27th. The name is **Tom
+    /// Novak** — Mickey's sister's boy, back in town with one suitcase and a
     /// letter.
     ///
-    /// WHY THIS ONE. It had to sit beside Sedlak, Brela, Farid, Halvard and
-    /// Danica without sounding like it came from a different game, and it had to
-    /// survive being said out loud a thousand times. Vrba is two syllables, hard
+    /// WHY THIS ONE. It had to sit beside Sedlak, Brela, Farid, Hal and
+    /// Donna without sounding like it came from a different game, and it had to
+    /// survive being said out loud a thousand times. Novak is two syllables, hard
     /// to soften, and it is a WORD (willow, in the language the docks half-speak)
     /// — which is the kind of name a city shortens without affection.
     ///
@@ -23,8 +23,8 @@ namespace Ledger.Core
     /// somebody calls you is a readout of where you stand with them:
     ///
     ///   the new owner  — they know the bar changed hands, not who you are
-    ///   Vrba           — you are a fact on this street now
-    ///   Tomas          — they have decided about you, and it was fine
+    ///   Novak           — you are a fact on this street now
+    ///   Tom          — they have decided about you, and it was fine
     ///   Toma           — two or three people, ever
     ///
     /// That gradient costs nothing, uses relationship state that already exists,
@@ -32,16 +32,16 @@ namespace Ledger.Core
     /// notice happening. A find-and-replace would have thrown that away.
     public class PlayerIdentity
     {
-        public string First = "Tomas";
+        public string First = "Tom";
         public string Diminutive = "Toma";
-        public string Surname = "Vrba";
+        public string Surname = "Novak";
         /// What you are to somebody who has not placed you yet. Deliberately the
         /// same string the whole game already used.
         public string Unplaced = "the new owner";
 
         /// The uncle. Named in the founding premise; his book of debts is the
         /// inheritance, so his name is load-bearing and lives here too.
-        public string BenefactorFirst = "Marek";
+        public string BenefactorFirst = "Mickey";
         public string BenefactorRelation = "your mother's brother";
 
         public string Full => $"{First} {Surname}";

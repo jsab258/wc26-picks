@@ -14,17 +14,17 @@ namespace Ledger.Game
         public const string Pp1CellarLine =
             "Lena's tour ends at the cellar door. She doesn't open it. \"Storeroom's nothing,\" she says, already walking. \"Mind the step.\"";
 
-        // PP2 — the first ask: the runner names Marek's compliance, so refusing
+        // PP2 — the first ask: the runner names Mickey's compliance, so refusing
         // reads as breaking HIS deal, not dodging a quest.
         public bool Pp2Fired;
         public const string Pp2RunnerLine =
-            "The runner doesn't ask. \"Marek made his drops twenty years, no reminders. Arrangements outlive men.\" Find the glow before 02:00 — or teach them who you are instead.";
+            "The runner doesn't ask. \"Mickey made his drops twenty years, no reminders. Arrangements outlive men.\" Find the glow before 02:00 — or teach them who you are instead.";
 
         // PP4 — the book under the step: fires the moment the player learns
         // lena_ledger, however they learned it. Knowledge with no innocent uses.
         public bool Pp4Fired;
         public const string Pp4LedgerPage =
-            "Under the third cellar step: Marek's real ledger. The debts. The washes. And one page in his own hand, dated the week of the fire — \"the warehouse is settled. The fire settled what the rent couldn't.\"";
+            "Under the third cellar step: Mickey's real ledger. The debts. The washes. And one page in his own hand, dated the week of the fire — \"the warehouse is settled. The fire settled what the rent couldn't.\"";
 
         // PP7 — the posture: null until answered, then winddown|takeover|refused.
         // Dialogue + a Fact every cast brain learns; mechanics are Act II's job.
@@ -48,13 +48,13 @@ namespace Ledger.Game
         /// of a debt he knows about and the player doesn't yet.
         public static string DayOneContext(string walkerName, int day) =>
             day == 1 && walkerName == "Sam"
-                ? " It is the new owner's first day; you came by early with condolences and more warmth than you can afford — your name is in Marek's book for $120 and you are fairly sure the new owner doesn't know yet."
+                ? " It is the new owner's first day; you came by early with condolences and more warmth than you can afford — your name is in Mickey's book for $120 and you are fairly sure the new owner doesn't know yet."
                 : "";
 
         // PP7's scene, shown over the won week's verdict.
         public const string PostureSceneText =
-            "Morning, day seven. Lena lays Marek's second ledger open on the counter between you — the debts, the washes, the arrangements, twenty years of it in a dead man's hand.\n\n" +
-            "\"Seven days,\" she says. \"You've seen what it is now. Marek never chose — he let the street choose for him, a week at a time, and it used him up.\"\n\n" +
+            "Morning, day seven. Lena lays Mickey's second ledger open on the counter between you — the debts, the washes, the arrangements, twenty years of it in a dead man's hand.\n\n" +
+            "\"Seven days,\" she says. \"You've seen what it is now. Mickey never chose — he let the street choose for him, a week at a time, and it used him up.\"\n\n" +
             "She turns the ledger to face you.\n\n" +
             "\"So which is it going to be?\"";
 
@@ -62,7 +62,7 @@ namespace Ledger.Game
         // is "the city opens", not "story complete".
         public const string TeaserText =
             "Lena closes the ledger and does not put it back under the step.\n\n" +
-            "\"Then you should know what this street actually is. Ruta's pawnshop moves more through its back room than we move through this till. Josip's crates walk off the docks every week and somebody else collects for it. Marek's book has pages I never showed you.\"\n\n" +
+            "\"Then you should know what this street actually is. Rita's pawnshop moves more through its back room than we move through this till. Joey's crates walk off the docks every week and somebody else collects for it. Mickey's book has pages I never showed you.\"\n\n" +
             "She sets the cellar key on the counter between you.\n\n" +
             "\"The week is over. Nobody survives this street twice. You keep books on it — or it keeps books on you.\"\n\n" +
             "<i>ACT I — THE INHERITANCE — ends here. From day 8, the city opens: two ledgers, no ceiling.</i>";

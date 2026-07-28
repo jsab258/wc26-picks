@@ -13,7 +13,7 @@ surprised you — the surprises are the yield.
 
 - **DO** play days 1–3 without touching the night life. **EXPECT** the bar
   runs, Lena teaches, the tour ends at a cellar door she doesn't open, the
-  runner's first ask reads as Marek's arrangement rather than a quest prompt.
+  runner's first ask reads as Mickey's arrangement rather than a quest prompt.
   *(Automation: PP flags fire; nobody has judged the PROSE in situ.)*
 - **DO** take the first drop bare-faced, then talk to Ada next morning.
   **EXPECT** the street's mood word moves within a day or two, and somebody
@@ -50,7 +50,7 @@ fire, not that they land at the right MOMENTS.
 - **DO** build to two arms noticing you. **EXPECT** PP1 reads as "it isn't
   one rival anymore," not as a status change.
 - **DO** let the machine's letter arrive (PP2). **EXPECT** the injunction
-  names three real options, and paying Halvard — either way — works and
+  names three real options, and paying Hal — either way — works and
   reopens the till. *(New since audit: both verbs exist now.)*
 - **DO** keep one day-life friendship above warm while running a crew, and
   never attend an evening. **EXPECT** the collision still finds you (the
@@ -63,14 +63,14 @@ fire, not that they land at the right MOMENTS.
 ## 4. Act III — the audit
 
 - **DO** open the act with an empire. **EXPECT** the letter is frightening
-  in a procedural way; Reisz sits in the bar nine-to-six and speaks in
+  in a procedural way; Reese sits in the bar nine-to-six and speaks in
   words, not numbers (counts as words, dates as dates).
-- **DO** save and reload mid-audit. **EXPECT** Reisz still exists, the
+- **DO** save and reload mid-audit. **EXPECT** Reese still exists, the
   daily item is still answerable, the closing date holds. *(Automation
   covers state; a human confirms the SCENE resumes coherently.)*
 - **DO** reach the last day with two calls and people worth calling.
   **EXPECT** "There is not time for another" lands after the second call.
-- **DO** refuse Ossei's deal in a campaign with a managed landscape (leash,
+- **DO** refuse Ellis's deal in a campaign with a managed landscape (leash,
   buy quiet, discredit). **EXPECT** "Both" is reachable the hard way.
   *(Measured at ~6% of cautious campaigns; a human should confirm it reads
   as EARNED, not lucky.)*

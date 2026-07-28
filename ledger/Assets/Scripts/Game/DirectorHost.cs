@@ -20,7 +20,7 @@ namespace Ledger.Game
     ///
     /// What the player is never shown: the pending list. Pillar §6.2 says the
     /// player sees what they believe, never ground truth — a UI panel reading
-    /// "a demand from Mirek is coming on day 14" would undo the entire game.
+    /// "a demand from Mitch is coming on day 14" would undo the entire game.
     public partial class GameController
     {
         public DirectorBook Directorate { get; } = new DirectorBook();
@@ -84,7 +84,7 @@ namespace Ledger.Game
             foreach (var c in Empire.ActiveCrew)
                 if (c.Cut == "skim") w.Ignored.Add($"{c.Name} has been on a skimmed cut since day {c.RecruitedDay}");
             foreach (var d in Debts.All)
-                if (d.Outstanding) w.Ignored.Add($"{d.Name} still owes Marek's book ${d.Amount}");
+                if (d.Outstanding) w.Ignored.Add($"{d.Name} still owes Mickey's book ${d.Amount}");
             int unhandled = Knowledge.Entries.Count(k => !k.Handled);
             if (unhandled > 0) w.Ignored.Add($"{unhandled} stories about the player are in the street and unanswered");
             foreach (var d in Demands)
@@ -109,7 +109,7 @@ namespace Ledger.Game
             if (Empire.CrewOf(name) != null) return "works for the player";
             if (Economy.Suppliers.Any(s => s.Name == name)) return "supplier";
             if (Empire.Businesses.Any(b => b.OwnerId == name)) return "runs a business on this street";
-            if (name == "Mara Ossei") return "police detective working a case on this street";
+            if (name == "Mara Ellis") return "police detective working a case on this street";
             return "lives or works on this street";
         }
 

@@ -87,7 +87,7 @@ space there is nothing. That is the ceiling we are trying to break.
    scene. Cheap for us — planning is decisions, not animation.
 6. **Access is a soft-key system** (Hitman's lesson): places and people
    have an admission price paid in standing, notoriety, dress,
-   introductions, or an appointment brokered by Halvard. The map becomes
+   introductions, or an appointment brokered by Hal. The map becomes
    socially gated rather than physically gated, and lifestyle purchases
    finally have a job.
 7. **Phones exist** (player decision 2026-07-26). Calls and messages at

@@ -105,25 +105,25 @@ namespace Ledger.Core
 
         static readonly string[] Given =
         {
-            "Milos", "Vesna", "Tibor", "Ruta", "Ferko", "Danica", "Zlatko", "Ivana", "Bojan", "Mirela",
-            "Petar", "Jelena", "Anton", "Katica", "Stjepan", "Nada", "Vlado", "Sanja", "Drago", "Ljubica",
-            "Emil", "Marta", "Josip", "Rada", "Branko", "Vera", "Slavko", "Dunja", "Radomir", "Zora",
-            "Ivo", "Milena", "Karel", "Bosa", "Nikola", "Anka", "Gojko", "Tereza", "Lazar", "Olga",
+            "Frank", "Dolores", "Ray", "Rita", "Vince", "Donna", "Walt", "Jeanie", "Curtis", "Marla",
+            "Pete", "Yolanda", "Tony", "Kathy", "Stan", "Nadine", "Wendell", "Sandy", "Doug", "Lucille",
+            "Earl", "Marcy", "Joey", "Renee", "Bruce", "Vera", "Sal", "Dawn", "Roland", "Zora",
+            "Ivan", "Millie", "Carl", "Bev", "Nick", "Angie", "Gus", "Terri", "Lonnie", "Ollie",
         };
 
         static readonly string[] Family =
         {
-            "Sedlak", "Brela", "Novak", "Kovac", "Horvat", "Marek", "Palas", "Vrban", "Zoric", "Simek",
-            "Babic", "Duric", "Grgic", "Hodak", "Ivsic", "Jukic", "Klaric", "Lovric", "Matic", "Nizic",
-            "Odak", "Peric", "Rukavina", "Salaj", "Tomic", "Uzelac", "Vukas", "Zebic", "Cvitan", "Dujmovic",
+            "Sedlak", "Brella", "Novak", "Kovacs", "Horvath", "Maddox", "Pallas", "Vaughn", "Zorich", "Simms",
+            "Babich", "Dury", "Griggs", "Hodak", "Ivers", "Jukes", "Clary", "Loveric", "Mathis", "Nizich",
+            "Odom", "Perry", "Rukavina", "Salas", "Tomic", "Uzelac", "Vukas", "Zeigler", "Cavett", "Dujmovic",
         };
 
         static readonly string[] Trades =
         {
-            "dock hand", "seamstress", "clerk", "fishmonger", "printer", "tram driver", "baker",
-            "night porter", "book-keeper", "welder", "laundress", "cab driver", "cobbler", "nurse",
-            "stevedore", "barber", "typist", "glazier", "cook", "watchman", "tailor", "carter",
-            "shop girl", "millwright", "usher", "rag man", "chandler", "ferryman", "cooper", "sign painter",
+            "dock hand", "line cook", "clerk", "mechanic", "printer", "bus driver", "baker",
+            "night janitor", "bookkeeper", "welder", "hairdresser", "cab driver", "roofer", "nurse",
+            "stevedore", "barber", "secretary", "electrician", "cook", "security guard", "waitress", "trucker",
+            "cashier", "machinist", "usher", "scrap hauler", "bartender", "ferry hand", "forklift driver", "sign painter",
         };
 
         /// Everybody in the district, deterministically. The same seed always

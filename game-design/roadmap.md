@@ -32,9 +32,9 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
    is a top-5 novelty claim and appears in no milestone. Scheduled M4.
 4. **Suspicion thresholds → behavior (§6.4).** Suspicion is a number that colors dialogue;
    the doc requires escalating behavior: probing questions → checking with others →
-   confrontation. Scheduled M4 alongside Ossei.
+   confrontation. Scheduled M4 alongside Ellis.
 5. **The investigator is already authored (§8).** The "constable at high heat" idea from
-   the M3/M4 discussion has a name: **Detective Mara Ossei** — patient, personal,
+   the M3/M4 discussion has a name: **Detective Mara Ellis** — patient, personal,
    incorruptible-so-far. Build her as written.
 6. **End-of-day ledger summary (§4).** The Persona-style day anchor (money moved, rumors
    in flight, loyalty shifts, tomorrow's dangling thread) — we have toasts only. Cheap,
@@ -75,14 +75,14 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
      heard before it spreads — which also feeds PlayerKnowledge naturally).
   7. Cost-per-hour telemetry surfaced.
 - **M4 — The other side of the street — COMPLETE 2026-07-26**: hooks v1, suspicion
-  escalation ladder, Det. Ossei (+witness interviews), save/load — PLUS the audit
+  escalation ladder, Det. Ellis (+witness interviews), save/load — PLUS the audit
   adopt-soon set: recognition barks, eavesdropping channel, debt book, response
   validator. Next stop M5 requires the player: playtest gate, purchases, HDRP, voice,
   Noor approval (drafted). Autonomous pre-M5 runway: balance-lab expansion, Tier-2
   sample ring, onboarding pass, AI-playtest hardening.
 - **M5 — Vertical slice** (doc M3): The Hook polished (HDRP swap, city pack, character
   models/Mixamo, audio+voice via ElevenLabs), 5 Tier-1 characters (Rocco, Lena, Sam, one
-  love interest — Noor or Elias, player's pick — and Ossei), 7 in-game days of Act I,
+  love interest — Noor or Elias, player's pick — and Ellis), 7 in-game days of Act I,
   output validator, onboarding. The is-this-fun gate and the demo artifact.
 - **M6 — The Open City (Empire v1) — CORE SHIPPED 2026-07-26** (approved same
   day, built during the 24h autonomous run): open mode from day 8 with
@@ -91,7 +91,7 @@ reflection (§6.1 fully honored), balance lab, full-week sim in CI.
   Dockside rival, district geometry for the full HookMap, 14 generated
   residents walking (22 NPCs), balance-lab-proven no-death-spiral economy.
   See `empire-roster.md` + `balance-findings-open.md`. Remaining M6 flesh:
-  ring-card promotions (Ferko/Ruta/Vesna/Tibor), more batch walkers +
+  ring-card promotions (Ferko/Rita/Vesna/Tibor), more batch walkers +
   businesses, deliberate outfit-independence path, Act II authoring on top.
 - **M7+ — per doc §11 M4+**: further districts/cast/acts expansion, LLM
   productization (bundled inference, cost model, offline fallback), hardening,
@@ -217,14 +217,14 @@ The gaps, in the order they are now being closed:
 
   **Legibility was the hard requirement and it held.** Nothing surfaces as
   a percentage — asserted in the tests, not just intended. Prices rising is
-  Mirek asking for more and not explaining the difference. A poorer street
+  Mitch asking for more and not explaining the difference. A poorer street
   is two regulars drinking at home.
 
-  **Suppliers are people, not rows.** Mirek the drayman and Anton the
+  **Suppliers are people, not rows.** Mitch the drayman and Tony the
   wholesaler walk the district on their own rounds, carry the economy's
   state in their own words through `ExtraContext`, and can be settled with
   — a verb the intent router picked up for free the moment its button
-  existed. Anton is the man Mirela's recruitment need has referred to since
+  existed. Tony is the man Marla's recruitment need has referred to since
   the roster was written; he now exists.
 
   **Neglect loses a supplier; a poor neighbourhood only makes him dearer.**
@@ -311,7 +311,7 @@ The gaps, in the order they are now being closed:
 
   **The player is never shown the pending list.** §6.2 says the player sees
   what they believe, never ground truth; a panel reading "a demand from
-  Mirek is coming on day 14" would undo the game.
+  Mitch is coming on day 14" would undo the game.
 
   Degrades to silence: no key, a failed call, or a refused proposal all
   produce an ordinary night. CI has no key, so the nightly pass never
@@ -468,7 +468,7 @@ The gaps, in the order they are now being closed:
 
   The living economy (M7) made the district's money finite in one direction:
   squeeze the street, the street gets poorer, the bar takes less. But every
-  COUNTERPARTY still had infinite pockets — Ruta owed $180 and produced $180
+  COUNTERPARTY still had infinite pockets — Rita owed $180 and produced $180
   on demand, out of a starving street, in one movement. That is a payout table
   wearing a person's face, which is the exact failure the rest of this project
   is built to avoid.
@@ -525,7 +525,7 @@ in this game that has been quietly lying since day one. It cannot be fought —
 only survived, deflected, or answered by choosing which life to keep.
 
 - **It opens off the world**, not off a day number: the Table answered, plus
-  either Ossei able to name the rackets or an operation too big for a bar to
+  either Ellis able to name the rackets or an operation too big for a bar to
   explain its own money. The letter names a date six days out. That date is
   the clock — the player is never shown a countdown.
 - **The strain is wrong in BOTH directions.** Launder too little and the night
@@ -538,9 +538,9 @@ only survived, deflected, or answered by choosing which life to keep.
   fires the moment somebody on the crew could genuinely hold it, which is a
   fact about how the player has treated their people.
 - **Three verbs, each in front of the person it costs something with.**
-  Halvard sells you out of it at half what it cost (fronts back to their
+  Hal sells you out of it at half what it cost (fronts back to their
   owners, rounds stopped, crew paid off — and how they take it depends on the
-  cut they were on). Ossei points the audit elsewhere, and burns by name
+  cut they were on). Ellis points the audit elsewhere, and burns by name
   whoever gave her the statement that made it possible. The successor gets it
   signed over.
 - **No ending menu, anywhere.** Each ending is a condition the world can be IN
@@ -564,7 +564,7 @@ day 9 and asserts the audit closes on an ending that is not `None`.
   Keeping anything now requires the ledger to survive being looked at, with
   two deliberate exemptions: selling up (nothing left to be in them) and
   handing over (it lands on whoever signed).
-- **The audit has a face.** Tobias Reisz, Board of Excise. Not corrupt, and
+- **The audit has a face.** Tobias Reese, Board of Excise. Not corrupt, and
   that is load-bearing rather than characterisation — an inspector with a
   price turns the ending matrix into "did you save up". One item a day for six
   days: produce it or tell him to put it in writing. The only Act III verb
@@ -697,7 +697,7 @@ the sim-bot and purse changes stand.
   seen the seven fire in a long campaign, so their PACING is unverified.
 - ~~**Act III's own gaps.**~~ ALL THREE CLOSED 2026-07-27. PP5 is a scene now
   (two calls down the M10 exchange, and reaching one is not reaching another);
-  the audit has a face in **Tobias Reisz**, Board of Excise, who sits in the
+  the audit has a face in **Tobias Reese**, Board of Excise, who sits in the
   bar from nine until six; and the ending distribution has been measured over
   400 worlds a row rather than inferred from CoreTests
   (`balance-findings-endings.md`).

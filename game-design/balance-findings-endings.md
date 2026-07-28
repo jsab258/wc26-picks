@@ -82,7 +82,7 @@ matrix should have had all along.
 
 **The inspector is completely inert for a player who never built an empire.**
 Look down the Control block: four different ways of dealing with six days of
-Tobias Reisz, and the outcome is 49.8 / 50.3 in every single one. The strain
+Tobias Reese, and the outcome is 49.8 / 50.3 in every single one. The strain
 he sees moves properly (0.84 down to 0.35) and then changes nothing, because
 with no empire there is no Kingdom and no Both to reach — Straight Life
 against Burn Both is decided on the life axis, which the audit does not touch.

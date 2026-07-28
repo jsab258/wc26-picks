@@ -37,13 +37,13 @@ namespace Ledger.Game
                 DayCircleRacketHeat = CurrentHeat,
                 // Deflection answers her case — but so does a managed
                 // information landscape: no surviving lead of testimony grade
-                // (act3-draft.md answer 3: "You CAN refuse Ossei and still
+                // (act3-draft.md answer 3: "You CAN refuse Ellis and still
                 // reach Both"). Deflected was the sole source before the
                 // audit, which made her deal compulsory for that ending.
                 // The record is street KNOWLEDGE, not rumor — a leash cannot
                 // hide it and a denial cannot cut it.
                 PublicRecord = AnyoneKnowsDidTime(),
-                OsseiCaseAnswerable = ActThree.Deflected
+                EllisCaseAnswerable = ActThree.Deflected
                     || (_gossip != null && _gossip.Mill != null
                         && _gossip.Mill.StrongestSurvivingPlayerLead() < LedgerState.CaseStandsAt),
                 TotalWashed = Wallet.TotalWashed,
@@ -153,9 +153,9 @@ namespace Ledger.Game
 
             if (!ActThree.Opened)
             {
-                // Ossei can name the rackets when she has statements AND has
+                // Ellis can name the rackets when she has statements AND has
                 // joined the two cases — PP6 is exactly that moment.
-                bool osseiCanName = OsseiSpawned && ActTwo.Pp6Fired && OsseiInterviews.Count >= 2;
+                bool osseiCanName = EllisSpawned && ActTwo.Pp6Fired && EllisInterviews.Count >= 2;
                 if (!ActThreeState.ShouldOpen(ActTwo.TableFired, osseiCanName,
                     Empire.Businesses.FindAll(b => b.Owned).Count,
                     Empire.Rackets.FindAll(r => r.Established).Count)) return;
@@ -175,7 +175,7 @@ namespace Ledger.Game
                 // Lena reads over your shoulder, because of course she does.
                 var lena = _gossip.Mill.Get("Lena");
                 lena?.Memory.Append(new MemoryEvent(Now, "observation", 0.95,
-                    "A revenue letter came for the bar. Marek got one of those once. " +
+                    "A revenue letter came for the bar. Mickey got one of those once. " +
                     "I watched him not sleep for a fortnight."));
                 return;
             }
@@ -218,9 +218,9 @@ namespace Ledger.Game
                 ActThree.InspectorAskedDay = Now.Day;
             }
 
-            // PP3 — Ossei's offer. She comes to you, once, with two days left,
+            // PP3 — Ellis's offer. She comes to you, once, with two days left,
             // and she does not come at all if she was never on the case.
-            if (!ActThree.Pp3Fired && OsseiSpawned && DaysLeftOnAudit <= 3)
+            if (!ActThree.Pp3Fired && EllisSpawned && DaysLeftOnAudit <= 3)
             {
                 ActThree.Pp3Fired = true;
                 ToastLine(ActThreeState.Pp3OsseiText, 17f);
@@ -341,7 +341,7 @@ namespace Ledger.Game
 
         /// Authored rather than generated, because Act III's whole crisis rests
         /// on this man being exactly one thing and never bending.
-        public const string InspectorCard = @"# Tobias Reisz
+        public const string InspectorCard = @"# Tobias Reese
 id: reisz
 tier: core
 
@@ -388,7 +388,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
                 // before, and she knows how that one went.
                 _gossip?.Mill?.Get("Lena")?.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
                     "They sent the excise man away with a piece of paper today. " +
-                    "Marek did that once. It did not go the way he thought it would."));
+                    "Mickey did that once. It did not go the way he thought it would."));
             }
             return true;
         }
@@ -409,7 +409,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             if (Empire.CrewOf(whoId) != null) return "Tell them to go quiet";
             var g = _gossip?.Mill?.Get(whoId);
             if (g != null && g.Circle != "night" && Empire.CrewOf(whoId) == null
-                && whoId != ActThreeState.InspectorName && whoId != "Ossei")
+                && whoId != ActThreeState.InspectorName && whoId != "Ellis")
                 return "Tell them yourself, before the street does";
             return null;
         }
@@ -435,7 +435,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
                 if (!willing) return true;
                 ActThree.LedgersMoved = true;
                 mill?.Get("Lena")?.Memory.Append(new MemoryEvent(Now, "conversation", 1.0,
-                    "I moved Marek's books the night before the inspection because they asked me to. " +
+                    "I moved Mickey's books the night before the inspection because they asked me to. " +
                     "I have thought about that evening more than any other."));
                 return true;
             }
@@ -479,7 +479,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             if (!ActThree.Opened || ActThree.AuditClosed || ActThree.SoldUp) return false;
             int raised = Empire.Dissolve(Wallet, _gossip?.Mill, Now);
             ActThree.SoldUp = true;
-            ToastLine("Halvard does it in an afternoon, for a percentage, without once asking why. " +
+            ToastLine("Hal does it in an afternoon, for a percentage, without once asking why. " +
                       $"Everything you took a year to build goes in six hours and raises ${raised}. " +
                       "The bar is a bar again, and the cellar is a cellar.", 16f);
             return true;
@@ -494,7 +494,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
         public bool Deflect()
         {
             if (!ActThree.Opened || ActThree.AuditClosed || ActThree.Deflected) return false;
-            if (!OsseiSpawned || OsseiInterviews.Count == 0) return false;
+            if (!EllisSpawned || EllisInterviews.Count == 0) return false;
             var mill = _gossip?.Mill;
             if (mill == null) return false;
 
@@ -531,12 +531,12 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             return true;
         }
 
-        /// Whoever gave Ossei her first statement about you. The one who talked
+        /// Whoever gave Ellis her first statement about you. The one who talked
         /// is the one who gets burned — never a random pick.
         Gossiper FirstInformant()
         {
-            if (OsseiInterviews.Count == 0 || _gossip?.Mill == null) return null;
-            var first = OsseiInterviews[0];
+            if (EllisInterviews.Count == 0 || _gossip?.Mill == null) return null;
+            var first = EllisInterviews[0];
             int cut = first.IndexOf(" told you:", System.StringComparison.Ordinal);
             var name = cut > 0 ? first.Substring(0, cut) : null;
             return name != null ? _gossip.Mill.Get(name) : null;

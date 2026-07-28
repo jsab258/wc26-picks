@@ -230,7 +230,7 @@ namespace Ledger.Game
             _hookBtn.onClick.AddListener(UseHook);
             _hookBtn.gameObject.SetActive(false);
 
-            // Marek's book: collection is a conversation, not a fight.
+            // Mickey's book: collection is a conversation, not a fight.
             _collectBtn = MakeButton(_dialoguePanel.transform, "Collect the debt", new Vector2(0.5f, 0), new Vector2(-250, 112), new Vector2(220, 36));
             _forgiveBtn = MakeButton(_dialoguePanel.transform, "Tear out the page", new Vector2(0.5f, 0), new Vector2(250, 112), new Vector2(220, 36));
             _collectBtn.onClick.AddListener(CollectDebt);
@@ -300,12 +300,12 @@ namespace Ledger.Game
 
             var act2 = _game.ActTwo;
 
-            // The machine's letter (PP2): while the licence hangs, Halvard is
+            // The machine's letter (PP2): while the licence hangs, Hal is
             // the man who deals with paper — both of the letter's named options
             // live in front of him. These verbs existed only as words on the
             // letter before (audit 2026-07-27): InjunctionAnswered had no
             // setter and the fee was never charged.
-            if (id == "Halvard" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
+            if (id == "Hal" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
             {
                 _empireBtnA.gameObject.SetActive(true);
                 _empireLabelA.text = $"Pay the fees properly (${ActTwoState.InjunctionFee})";
@@ -314,12 +314,12 @@ namespace Ledger.Game
                 _empireLabelB.text = $"Have him make it disappear (${ActTwoState.InjunctionFee * 2})";
                 _empireBtnB.interactable = _game.Wallet.Total >= ActTwoState.InjunctionFee * 2;
                 _empireSayA = "pay the licence fees properly, clean money, stamped receipt";
-                _empireSayB = "pay Halvard to make the licence review disappear";
+                _empireSayB = "pay Hal to make the licence review disappear";
                 return;
             }
 
-            // Halvard's brokerage (Act II PP5): reads, truces, and the room.
-            if (id == "Halvard" && act2.Pp5Fired)
+            // Hal's brokerage (Act II PP5): reads, truces, and the room.
+            if (id == "Hal" && act2.Pp5Fired)
             {
                 labelA = $"Buy a read (${ActTwoState.ReadPrice})";
                 enabledA = _game.Wallet.Total >= ActTwoState.ReadPrice;
@@ -438,7 +438,7 @@ namespace Ledger.Game
             if (!a3.Opened || a3.AuditClosed) return false;
             var e = _game.Empire;
 
-            // Reisz. Nothing to buy and nothing to threaten — the only thing on
+            // Reese. Nothing to buy and nothing to threaten — the only thing on
             // offer is how much of the business he reads.
             if (id == ActThreeState.InspectorName)
             {
@@ -453,8 +453,8 @@ namespace Ledger.Game
                 return true;
             }
 
-            // Halvard: the way out. A bad price, and he does not ask why.
-            if (id == "Halvard" && !a3.SoldUp
+            // Hal: the way out. A bad price, and he does not ask why.
+            if (id == "Hal" && !a3.SoldUp
                 && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
             {
                 _empireBtnA.gameObject.SetActive(true);
@@ -468,13 +468,13 @@ namespace Ledger.Game
                 return true;
             }
 
-            // Ossei: point it elsewhere. Only offered once she has asked, and
+            // Ellis: point it elsewhere. Only offered once she has asked, and
             // only if somebody actually told you something worth giving her.
-            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
+            if (id == "Ellis" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
             {
                 _empireBtnA.gameObject.SetActive(true);
                 _empireLabelA.text = "Give her the arm";
-                _empireBtnA.interactable = _game.OsseiInterviews.Count > 0;
+                _empireBtnA.interactable = _game.EllisInterviews.Count > 0;
                 _empireSayA = "give her the organization that has been hardest on you, with enough to make it stick";
                 _empireBtnB.gameObject.SetActive(false);
                 return true;
@@ -522,11 +522,11 @@ namespace Ledger.Game
             if (id == ActThreeState.InspectorName)
             {
                 if (!_game.AnswerInspector(cooperate: !leverage))
-                    Narrate("\"I have what I need for today,\" Reisz says, and goes back to it.");
+                    Narrate("\"I have what I need for today,\" Reese says, and goes back to it.");
                 return true;
             }
 
-            if (id == "Halvard" && !a3.SoldUp
+            if (id == "Hal" && !a3.SoldUp
                 && (e.Businesses.Exists(b => b.Owned) || e.Rackets.Exists(r => r.Established)))
             {
                 if (!leverage) _game.SellUp();
@@ -534,7 +534,7 @@ namespace Ledger.Game
                 return true;
             }
 
-            if (id == "Ossei" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
+            if (id == "Ellis" && a3.Pp3Fired && !a3.Deflected && !a3.SoldUp)
             {
                 if (!leverage && !_game.Deflect())
                     Narrate("\"I need something to point at,\" she says. \"You have not given me a name that anybody would stand behind.\"");
@@ -568,7 +568,7 @@ namespace Ledger.Game
             _game.ActTwo.ReadsBought++;
             var loudest = e.Arms[0];
             foreach (var a in e.Arms) if (a.Attention > loudest.Attention) loudest = a;
-            Narrate($"\"One imagines,\" Halvard says to the counter, \"that {loudest.HeadName}'s people are " +
+            Narrate($"\"One imagines,\" Hal says to the counter, \"that {loudest.HeadName}'s people are " +
                 $"{(loudest.Stage >= 4 ? "finished deliberating" : loudest.Stage >= 3 ? "reaching for what is yours" : loudest.Stage >= 2 ? "pricing you weekly" : "merely curious")}. " +
                 "One imagines nothing else.\"");
         }
@@ -594,16 +594,16 @@ namespace Ledger.Game
 
             if (ActThreeAct(id, leverage)) return;
 
-            if (id == "Halvard" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
+            if (id == "Hal" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
             {
                 if (!leverage)
                 {
                     // Official fees want clean money — a licensing office is the
                     // one counter in this city where the other kind is a risk.
                     if (!_game.Wallet.Spend(ActTwoState.InjunctionFee, dirtyOk: false))
-                    { Narrate("\"The office wants clean notes,\" Halvard says, without looking up. \"They always do.\""); return; }
+                    { Narrate("\"The office wants clean notes,\" Hal says, without looking up. \"They always do.\""); return; }
                     act2.InjunctionAnswered = true;
-                    Narrate("Halvard walks the fees over himself, before lunch. The stamp is dated the day the letter was. " +
+                    Narrate("Hal walks the fees over himself, before lunch. The stamp is dated the day the letter was. " +
                         "\"Paper answers paper,\" he says. The till runs again by evening.");
                 }
                 else
@@ -611,13 +611,13 @@ namespace Ledger.Game
                     if (!_game.Wallet.Spend(ActTwoState.InjunctionFee * 2, dirtyOk: true))
                     { Narrate("He does not repeat the figure."); return; }
                     act2.InjunctionAnswered = true;
-                    Narrate("Halvard folds the letter into his coat. Two days later it has never existed — no file, no fee, " +
+                    Narrate("Hal folds the letter into his coat. Two days later it has never existed — no file, no fee, " +
                         "no review. Nobody at the machine's counter remembers signing anything.");
                 }
                 return;
             }
 
-            if (id == "Halvard" && act2.Pp5Fired)
+            if (id == "Hal" && act2.Pp5Fired)
             {
                 if (!leverage)
                 {
@@ -625,7 +625,7 @@ namespace Ledger.Game
                     act2.ReadsBought++;
                     var loudest = e.Arms[0];
                     foreach (var a in e.Arms) if (a.Attention > loudest.Attention) loudest = a;
-                    Narrate($"\"One imagines,\" Halvard says to the counter, \"that {loudest.HeadName}'s people are " +
+                    Narrate($"\"One imagines,\" Hal says to the counter, \"that {loudest.HeadName}'s people are " +
                         $"{(loudest.Stage >= 4 ? "finished deliberating" : loudest.Stage >= 3 ? "reaching for what is yours" : loudest.Stage >= 2 ? "pricing you weekly" : "merely curious")}. " +
                         "One imagines nothing else.\"");
                 }
@@ -637,7 +637,7 @@ namespace Ledger.Game
                     var worst = e.Arms[0];
                     foreach (var a in e.Arms) if (a.Attention > worst.Attention) worst = a;
                     worst.Attention = System.Math.Max(0, worst.Attention - ActTwoState.TruceRelief);
-                    Narrate($"Halvard writes nothing down. Within a day, {worst.HeadName}'s people have other things to look at.");
+                    Narrate($"Hal writes nothing down. Within a day, {worst.HeadName}'s people have other things to look at.");
                 }
                 return;
             }
@@ -762,7 +762,7 @@ namespace Ledger.Game
         }
 
         /// 2–3 contextual openers from live game state — the act's threads, known
-        /// leads, tonight's beat, Marek's book. Never the only path.
+        /// leads, tonight's beat, Mickey's book. Never the only path.
         void RefreshChips()
         {
             var id = CurrentHostId();
@@ -772,7 +772,7 @@ namespace Ledger.Game
             if (id == "Noor")
                 opts.Add(("the warehouse fire", "What do you know about the warehouse fire?"));
             if (id == "Lena")
-                opts.Add(("the real books", "Marek kept more than one ledger, didn't he?"));
+                opts.Add(("the real books", "Mickey kept more than one ledger, didn't he?"));
             var lead = CurrentLead();
             if (lead != null && !lead.Handled)
                 opts.Add(("what people are saying", "What exactly are people saying about me?"));
@@ -780,24 +780,24 @@ namespace Ledger.Game
                 if (b.HostId == id && b.State == BeatState.Pending && b.Day == _game.Now.Day)
                 { opts.Add(("tonight", "About tonight. I'll do my best to be there.")); break; }
             if (_game.Debts.Of(id) != null)
-                opts.Add(("Marek's book", "Your name is in Marek's book. Talk to me about what's owed."));
+                opts.Add(("Mickey's book", "Your name is in Mickey's book. Talk to me about what's owed."));
 
             // FOLLOW THE CONVERSATION. These were a fixed list per person, so
-            // after asking about Marek the chip still said "Marek" (playtest
+            // after asking about Mickey the chip still said "Mickey" (playtest
             // 2026-07-28). Anything already asked of this person drops out, and
             // the last thing they SAID offers the obvious next question.
             var asked = AskedOf(id);
             var lastSaid = LastLineFrom(id);
             if (lastSaid != null)
             {
-                if (lastSaid.Contains("Marek") && !asked.Contains("how he died"))
+                if (lastSaid.Contains("Mickey") && !asked.Contains("how he died"))
                     opts.Insert(0, ("how he died", "You knew him. How did he actually die?"));
-                if ((lastSaid.Contains("police") || lastSaid.Contains("Ossei")) && !asked.Contains("the police"))
+                if ((lastSaid.Contains("police") || lastSaid.Contains("Ellis")) && !asked.Contains("the police"))
                     opts.Insert(0, ("the police", "Has somebody been round asking questions?"));
                 if (lastSaid.Contains("money") && !asked.Contains("the money"))
                     opts.Insert(0, ("the money", "Say plainly what you think I owe, or what you're owed."));
             }
-            opts.Add(("Marek", "Tell me about my uncle. What was he really like?"));
+            opts.Add(("Mickey", "Tell me about my uncle. What was he really like?"));
             opts.Add(("the street", "How is the street treating everyone these days?"));
             opts.RemoveAll(o => asked.Contains(o.label));
 
@@ -954,11 +954,11 @@ namespace Ledger.Game
             foreach (var d in _game.Debts.All)
                 if (d.Outstanding)
                     owed.AppendLine($"<b>{d.Name}</b> — \"{d.Note}\"  <color={UiTheme.HexCredit}><b>+${d.Amount}</b></color>" +
-                        $"\n   <color={UiTheme.HexDim}>in Marek's hand</color>");
+                        $"\n   <color={UiTheme.HexDim}>in Mickey's hand</color>");
             if (held.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>ASSETS — what you hold</b></color>\n").Append(held);
             if (owed.Length > 0)
-                sb.Append($"\n<color={UiTheme.HexDim}><b>RECEIVABLES — Marek's book</b></color>\n").Append(owed);
+                sb.Append($"\n<color={UiTheme.HexDim}><b>RECEIVABLES — Mickey's book</b></color>\n").Append(owed);
 
             // The other ledger (open mode): what the street is becoming yours.
             var e = _game.Empire;
@@ -1032,7 +1032,7 @@ namespace Ledger.Game
                     // What he is actually reading, which is the half of it the
                     // player can still change.
                     if (_game.ActThree.InspectorArrived)
-                        sb.AppendLine($"<color={UiTheme.HexDim}>Reisz: {ActThreeState.ScopeWord(ActThreeState.ScopeFactor(books.Cooperations, books.Stonewalls))}.</color>");
+                        sb.AppendLine($"<color={UiTheme.HexDim}>Reese: {ActThreeState.ScopeWord(ActThreeState.ScopeFactor(books.Cooperations, books.Stonewalls))}.</color>");
                     if (_game.ActThree.SoldUp)
                         sb.AppendLine($"<color={UiTheme.HexHeld}>There is nothing left for them to find.</color>");
                     if (_game.ActThree.Deflected)
@@ -1676,7 +1676,7 @@ namespace Ledger.Game
                 case CollectOutcome.Begged:
                     Narrate(debtor.LastLine ?? "They don't have it. They ask for a day — and mean it. Come back tomorrow."); break;
                 case CollectOutcome.Refused:
-                    Narrate("They tell you where to put Marek's old paper. By tonight, the street will hear you came squeezing."); break;
+                    Narrate("They tell you where to put Mickey's old paper. By tonight, the street will hear you came squeezing."); break;
                 default:
                     Narrate("Not today. You already asked."); break;
             }

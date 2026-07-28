@@ -13,7 +13,7 @@ namespace Ledger.Game
     ///                      the hour is the whole decision.
     ///   THE HARBOUR SAFE   hard, overlooked, and it wants hands and tools.
     ///                      Forcing it works; forcing it is heard.
-    ///   THE WAREHOUSE ROW  Marek's old ground, and the reason the case is
+    ///   THE WAREHOUSE ROW  Mickey's old ground, and the reason the case is
     ///                      open. Nobody sees anything out there. Doing it is
     ///                      not the problem; doing it is the problem.
     ///

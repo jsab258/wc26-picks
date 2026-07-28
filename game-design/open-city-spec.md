@@ -147,7 +147,7 @@ Act I polished, voiced, in HDRP. Two amendments:
    promising a story game. (Open question 2 below.)
 
 Act II authoring intentionally *follows* Empire v1: its pressure points
-fire on empire state (§8 — growth attracts the rivals and Ossei), so the
+fire on empire state (§8 — growth attracts the rivals and Ellis), so the
 sandbox must exist before the act that reacts to it is written.
 
 ## 5. Decisions (player, 2026-07-26 — spec APPROVED with amendments)

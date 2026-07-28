@@ -3,7 +3,7 @@
 Chosen as the vertical slice's love interest (player decision 2026-07-25:
 "the dangerous choice — intimacy IS exposure risk"). Approved 2026-07-26
 with all three open questions resolved: name/texture as drafted; arrival
-predates Marek's death (a month prior); romance = loyalty thresholds + 2
+predates Mickey's death (a month prior); romance = loyalty thresholds + 2
 authored beats. This card is the wiring spec.
 
 ## Card
@@ -16,7 +16,7 @@ tier: core
 ## Summary
 Staff writer at the Meridian Courier, thirty-one, covers the port district
 nobody else wants — which means she covers Hook Street. Rented the room
-above Ada's a month before Marek died. Curious the way other people are
+above Ada's a month before Mickey died. Curious the way other people are
 hungry: constantly, and a little ashamed of it. Laughs easily, forgets
 nothing.
 
@@ -34,9 +34,9 @@ always slightly embarrassed to be caught holding.
 
 ## Hard Facts
 - I write for the Meridian Courier; the port beat is mine.
-- I moved to Hook Street a month before Marek died.
+- I moved to Hook Street a month before Mickey died.
 - The warehouse fire is an open thread my editor wants dropped and I don't.
-- Marek's outfit was a story I never landed; his nephew arriving is a new one.
+- Mickey's outfit was a story I never landed; his nephew arriving is a new one.
 - I keep my sources. I have never burned one. That is the whole of my ethics.
 ```
 
@@ -55,14 +55,14 @@ always slightly embarrassed to be caught holding.
 - **Never burns sources:** she can hold the player's confessions safely —
   confiding TRUE things to her is mechanically safe and builds loyalty;
   it's the discovered-not-confessed facts that become the story.
-- **Ossei tension:** both women collect facts; Noor won't share with police
+- **Ellis tension:** both women collect facts; Noor won't share with police
   (her ethics), which sets up the M6 triangle: two investigators, one street,
   different rules.
 
 ## Decisions (player, 2026-07-26)
 
 1. Name/texture: **as drafted** (Noor Farid).
-2. Arrival: **predates Marek's death** — rented above Ada's a month before;
+2. Arrival: **predates Mickey's death** — rented above Ada's a month before;
    the street has history with her and the fire is already her open thread.
 3. Romance pacing: **loyalty thresholds + 2 authored beats.** Her loyalty
    meter is the arc; >= 0.7 engages the two-drawers suppression leash; a

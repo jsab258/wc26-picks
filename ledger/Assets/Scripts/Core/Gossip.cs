@@ -357,7 +357,7 @@ namespace Ledger.Core
                 // Heat is circulating TALK, and a leashed mouth cannot talk:
                 // every spread path (Tick, Leads, CompareNotes) guards the
                 // leash, and this read used to be the one side channel that
-                // did not — a silenced witness still spawned Ossei and seeded
+                // did not — a silenced witness still spawned Ellis and seeded
                 // "somebody has been saying things" (audit 2026-07-27).
                 if (a.Leashed) continue;
                 var bestPerTopic = new Dictionary<string, double>();
@@ -504,7 +504,7 @@ namespace Ledger.Core
         /// leashed, not bribed/scared quiet on that topic, and whose story has
         /// not been publicly discredited. This is what "managing the
         /// information landscape" cashes out to in Act III: drive this below
-        /// testimony grade and Ossei's case is answerable WITHOUT taking her
+        /// testimony grade and Ellis's case is answerable WITHOUT taking her
         /// deflection deal (act3-draft.md answer 3, wired per audit 2026-07-27
         /// — before this, Deflected was the sole source of answerability).
         public double StrongestSurvivingPlayerLead()

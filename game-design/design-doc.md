@@ -22,8 +22,8 @@ dimension, and the filters that govern scope), `roadmap.md` (live milestone plan
 
 ## 1. High concept
 
-You are **Tomas Vrba**, and you arrive alone in Meridian Bay with one suitcase and a letter:
-Marek, your mother's brother, has died and left you his bar. The bar is real. So is what came with it — a half-dead criminal
+You are **Tom Novak**, and you arrive alone in Meridian Bay with one suitcase and a letter:
+Mickey, your mother's brother, has died and left you his bar. The bar is real. So is what came with it — a half-dead criminal
 outfit: two aging loyalists, a book of uncollectable debts, and a territory the city's three
 established organizations have already begun to carve up.
 
@@ -135,7 +135,7 @@ No dark patterns: no dailies, no timers, no FOMO. Retention through curiosity an
 
 **What the city calls you.** The street learns your name rather than being told it, and what
 somebody calls you is a readout of where you stand with them: *the new owner* (they know the
-bar changed hands, not who you are) → *Vrba* (you are a fact on this street) → *Tomas* (they
+bar changed hands, not who you are) → *Novak* (you are a fact on this street) → *Tom* (they
 decided about you and it was fine) → *Toma* (two or three people, ever). The gate is knowing,
 not liking — somebody can think well of you and still not know what to call you. It is
 appended to every conversation's scene from one place rather than written into thirty cards.
@@ -290,7 +290,7 @@ happened — you will notice they paid, and that they are colder about it than t
 explains.
 
 **Legibility is a hard requirement, not a preference.** No number in this system is ever
-shown as a number. Prices rising is Mirek asking for more and not explaining the difference;
+shown as a number. Prices rising is Mitch asking for more and not explaining the difference;
 a poorer street is two regulars drinking at home. If a value cannot be said as somebody's
 circumstance, it is not surfaced at all — and that rule is asserted in the test suite rather
 than merely intended.
@@ -387,7 +387,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
 - **Act I — The Inheritance.** Arrival, the bar, discovering what it really is. Choice of
   posture (wind it down / take it over) that the game then makes hard to keep.
 - **Act II — The Squeeze.** Growth attracts the three rivals and one authored investigator,
-  Detective **Mara Ossei** — patient, personal, incorruptible-so-far. The two lives begin
+  Detective **Mara Ellis** — patient, personal, incorruptible-so-far. The two lives begin
   colliding through the gossip system; Act II's set pieces are systemic collisions the spine
   guarantees (someone from each life ends up in a room together).
 - **Act III — The Ledger Comes Due** (`act3-draft.md`; drafted, approved and wired
@@ -424,7 +424,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   Two exemptions, both the price of a door: selling up (there is nothing left to be in them)
   and handing over (the inspection lands on whoever signed).
 
-  **The audit has a face: Tobias Reisz, Board of Excise.** Not corrupt — load-bearing rather
+  **The audit has a face: Tobias Reese, Board of Excise.** Not corrupt — load-bearing rather
   than characterisation, because an inspector with a price collapses the matrix into *did you
   save up*. Not cruel either, which is the frightening part. He sits at a table in the bar
   from nine until six and does not go anywhere else. The only thing about him that moves is
@@ -448,7 +448,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
 
 **Core cast (Tier 1, sketch):** Rocco & Lena (the inherited loyalists — old muscle, older
 bookkeeper); the three rival heads (Aldous Vane / "the Widow" Sera Kest / Danny Ro); Det.
-Mara Ossei; the day-life ring: Sam (first friend, coworker), Ada (landlady, sees
+Mara Ellis; the day-life ring: Sam (first friend, coworker), Ada (landlady, sees
 everything), the love-interest options (Noor — journalist, dangerous choice; Elias —
 teacher, innocence at stake), June (uncle's estranged daughter, moral mirror), Father Emil
 (knows the uncle's real history), and the Fixer (broker between all three rivals, gossip
@@ -519,7 +519,7 @@ numbering.
 
 **Forward plan — see `roadmap.md`:** M3 (clean/dirty money + laundering, disguise,
 end-of-day summary, conflict beats), M4 (secrets-as-loot hooks, suspicion-threshold
-confrontations, Det. Ossei, save/load), M5 vertical slice (the original M3: The Hook
+confrontations, Det. Ellis, save/load), M5 vertical slice (the original M3: The Hook
 polished, 5 Tier-1 characters, 7 days of Act I, voice throughout — the is-this-fun gate),
 M6+ expansion. Not-yet-scheduled from the original sketch: day job, rackets, calendar
 slots UI, melee combat (deliberately deferred; see roadmap open items).

@@ -126,52 +126,81 @@ namespace Ledger.Game
         /// city always hums the same few bars; familiarity is the point.
         static AudioClip Score(bool night)
         {
-            int chordSeconds = night ? 12 : 8;
+            // LATE 1980s / EARLY 90s, and deliberately NOT mournful (Jafar:
+            // "can't be too depressing, has to make the player come back").
+            // A synth score with a PULSE: detuned saw pad, a sixteenth-note
+            // arpeggio that keeps the blood moving, and a sub bass on the
+            // root. Night drops the arpeggio to half time and takes the top
+            // off — the same tune after hours, not a sadder one.
+            int barSeconds = night ? 8 : 6;
             int[][] chords =
             {
-                new[] { 0, 3, 7, 14 },    // Am add9
-                new[] { -4, 0, 3, 12 },   // F
-                new[] { 3, 7, 10, 15 },   // C
-                new[] { -2, 2, 5, 12 },   // G
+                new[] { 0, 3, 7, 10 },    // Am7
+                new[] { -4, 0, 3, 7 },    // Fmaj7
+                new[] { -2, 2, 5, 9 },    // Gmaj-ish
+                new[] { 3, 7, 10, 14 },   // Cmaj add9
             };
-            int len = SampleRate * chordSeconds * chords.Length;
+            int len = SampleRate * barSeconds * chords.Length;
             var data = new float[len];
-            var rng = new System.Random(night ? 923 : 292);
-            float baseHz = night ? 110f : 220f;           // A2 / A3
-            float[] penta = { 0, 3, 5, 7, 10, 12 };       // A minor pentatonic
+            var rng = new System.Random(night ? 5150 : 808);
+            float root = night ? 55f : 110f;                   // A1 / A2
+            float[] arpSteps = { 0, 3, 7, 10, 12, 10, 7, 3 };
 
             for (int c = 0; c < chords.Length; c++)
             {
-                int start = c * chordSeconds * SampleRate;
-                int clen = chordSeconds * SampleRate;
+                int start = c * barSeconds * SampleRate;
+                int clen = barSeconds * SampleRate;
+
+                // Sub bass: the root, square-ish, the thing you feel.
+                float bassHz = root * Mathf.Pow(2f, chords[c][0] / 12f);
+                for (int i = 0; i < clen; i++)
+                {
+                    float t = i / (float)SampleRate;
+                    float env = Mathf.Min(1f, t / 0.05f) * Mathf.Min(1f, (barSeconds - t) / 0.6f);
+                    float saw = Mathf.Repeat(bassHz * t, 1f) * 2f - 1f;
+                    data[start + i] += saw * 0.045f * env;
+                }
+
+                // Detuned saw pad: two oscillators a few cents apart is the
+                // whole sound of the decade.
                 foreach (var semi in chords[c])
                 {
-                    float hz = baseHz * Mathf.Pow(2f, semi / 12f);
-                    float amp = 0.05f / chords[c].Length;
+                    float hz = root * 4f * Mathf.Pow(2f, semi / 12f);
+                    float amp = 0.028f / chords[c].Length;
                     for (int i = 0; i < clen; i++)
                     {
                         float t = i / (float)SampleRate;
-                        // slow attack, slow release: a pad, not a stab
-                        float env = Mathf.Min(1f, t / 2.5f) * Mathf.Min(1f, (chordSeconds - t) / 2.5f);
-                        data[start + i] += Mathf.Sin(2 * Mathf.PI * hz * (start / (float)SampleRate + t)) * amp * env;
+                        float env = Mathf.Min(1f, t / 1.2f) * Mathf.Min(1f, (barSeconds - t) / 1.2f);
+                        float a1 = Mathf.Repeat(hz * t, 1f) * 2f - 1f;
+                        float a2 = Mathf.Repeat(hz * 1.006f * t, 1f) * 2f - 1f;
+                        data[start + i] += (a1 + a2) * 0.5f * amp * env;
                     }
                 }
-                // the sparse line: a few pentatonic notes per chord, none at night's end
-                int notes = night ? 1 + rng.Next(2) : 2 + rng.Next(3);
-                for (int n = 0; n < notes; n++)
+
+                // The arpeggio. This is the part that makes it move.
+                int steps = night ? 8 : 16;
+                float stepLen = barSeconds / (float)steps;
+                for (int stp = 0; stp < steps; stp++)
                 {
-                    float noteHz = baseHz * 2f * Mathf.Pow(2f, penta[rng.Next(penta.Length)] / 12f);
-                    int at = start + (int)((0.5f + 0.6f * n + 0.3f * (float)rng.NextDouble()) * chordSeconds / (notes + 0.5f) * SampleRate);
-                    int nlen = (int)(SampleRate * (night ? 2.2f : 1.4f));
+                    float semi = chords[c][0] + arpSteps[stp % arpSteps.Length];
+                    float hz = root * 8f * Mathf.Pow(2f, semi / 12f);
+                    int at = start + (int)(stp * stepLen * SampleRate);
+                    int nlen = (int)(stepLen * SampleRate * 0.9f);
+                    float vel = (stp % 4 == 0 ? 1f : 0.62f) * (night ? 0.5f : 1f);
                     for (int i = 0; i < nlen && at + i < len; i++)
                     {
                         float t = i / (float)SampleRate;
-                        float env = Mathf.Min(1f, t / 0.15f) * Mathf.Exp(-t * (night ? 1.1f : 1.6f));
-                        data[at + i] += Mathf.Sin(2 * Mathf.PI * noteHz * t) * 0.035f * env;
+                        float env = Mathf.Min(1f, t / 0.008f) * Mathf.Exp(-t * 9f);
+                        float sq = Mathf.Sin(2 * Mathf.PI * hz * t) > 0 ? 1f : -1f;
+                        data[at + i] += sq * 0.016f * vel * env;
                     }
                 }
             }
-            CrossfadeEnds(data, SampleRate);
+
+            // A touch of noise, so it sounds like a machine in a room.
+            for (int i = 0; i < len; i++) data[i] += (float)(rng.NextDouble() * 2 - 1) * 0.0012f;
+
+            CrossfadeEnds(data, SampleRate / 2);
             return Make(night ? "music_night" : "music_day", data);
         }
 

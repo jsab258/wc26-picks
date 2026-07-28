@@ -136,7 +136,7 @@ namespace Ledger.Game
             var now = _game.Now;
 
             // The sim bot is careless early (bare-faced drops, so heat climbs and
-            // Ossei's spawn path gets exercised) and careful from day 3 (coated, so
+            // Ellis's spawn path gets exercised) and careful from day 3 (coated, so
             // the disguise path is exercised too). Both halves get CI coverage.
             // Careless on the first night only, careful from the second.
             //
@@ -360,7 +360,7 @@ namespace Ledger.Game
 
             // Empire v1 in CI: the moment the city opens, the bot plays one
             // beat of empire — recruit Sam by need (loyalty staged past the
-            // floor), put him on the collection round, buy Viktor's marker and
+            // floor), put him on the collection round, buy Victor's marker and
             // turn the key (nerve 0.4 folds). Day 9's close then pays the
             // racket, seeds witnesses, and wakes the rival — all on real paths.
             if (!_empireScripted && _game.Campaign.OpenMode && now.Hour >= 9)
@@ -379,7 +379,7 @@ namespace Ledger.Game
                     var shop = _game.Empire.BusinessOf("pawnshop");
                     _game.Wallet.EarnDirty(300); // the bot funds the marker
                     _game.Empire.BuyDebt(shop, _game.Wallet);
-                    _game.Empire.Squeeze(shop, m.Get("Viktor"), m, now);
+                    _game.Empire.Squeeze(shop, m.Get("Victor"), m, now);
                 }
             }
 
@@ -589,9 +589,9 @@ namespace Ledger.Game
             }
             Due("pp1", e.Arms.FindAll(a => a.Attention >= 0.25).Count >= 2, a2.Pp1Fired);
             Due("pp2", e.ArmOf("machine").Attention >= 0.5, a2.Pp2Fired);
-            Due("pp3", e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Ruta") != null, a2.Pp3Fired);
+            Due("pp3", e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Rita") != null, a2.Pp3Fired);
             Due("pp5", e.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2, a2.Pp5Fired);
-            Due("pp6", _game.OsseiSpawned && _game.OsseiInterviews.Count > 0
+            Due("pp6", _game.EllisSpawned && _game.EllisInterviews.Count > 0
                        && e.TotalRacketIncome > 0, a2.Pp6Fired);
             Due("pp7", e.Arms.Exists(a => a.Stage >= 4), a2.TableArmId != null);
             return owed;
@@ -792,9 +792,9 @@ namespace Ledger.Game
             bool disguiseWorks = !_game.AnyCoatedWitnessed ||
                 _game.MaxCoatedWitnessConf <= GameController.CoatWitnessConfidence + 0.01;
 
-            // Ossei must appear iff the street ever ran hot enough (same sampling
+            // Ellis must appear iff the street ever ran hot enough (same sampling
             // cadence as the spawn check, so the comparison cannot race).
-            bool osseiOk = _game.OsseiSpawned == (_game.ObservedPeakHeat >= OsseiSetup.SpawnHeatThreshold);
+            bool osseiOk = _game.EllisSpawned == (_game.ObservedPeakHeat >= EllisSetup.SpawnHeatThreshold);
 
             // P5 in-engine proof: capture the lived week, overlay it onto fresh
             // authored objects, and the city must match — plus the real file writes.
@@ -831,7 +831,7 @@ namespace Ledger.Game
                             saveLoadOk = false;
                     }
                 // THE SAVE MUST CARRY THE WHOLE WORLD. Injuries, purses and
-                // Ossei's interview record all existed, all round-tripped in
+                // Ellis's interview record all existed, all round-tripped in
                 // CoreTests — and none was in the save, because nothing ever
                 // asserted the game-layer wiring (audit 2026-07-27). This does:
                 // a subsystem with live state whose key is missing from the
@@ -862,7 +862,7 @@ namespace Ledger.Game
                 if (b.WindowPassed(_game.Now) && b.State == BeatState.Pending) beatsResolved = false;
             }
             // The district population (open-city-spec §3): the founding cast plus
-            // Viktor plus the generated batch must actually be walking.
+            // Victor plus the generated batch must actually be walking.
             bool populationOk = _npcs != null && _npcs.Length >= 20;
 
             // The day job (§6.6): in the open city the bot must have walked at
@@ -871,7 +871,7 @@ namespace Ledger.Game
 
             // The living economy (roadmap M7). Three things must be true after
             // nine days: the district has actually been paying its suppliers
-            // (Mirek comes weekly and takes real money), the street's own state
+            // (Mitch comes weekly and takes real money), the street's own state
             // is inside its designed band rather than having inflated away or
             // collapsed, and the whole thing survives its own codec. A campaign
             // that never squeezes should still be sitting near the neutral 1.0,
@@ -1288,12 +1288,12 @@ namespace Ledger.Game
                 { "dirtyCash", _game.Wallet.Dirty },
                 { "washed", _game.Wallet.TotalWashed },
                 { "maxCoatedWitnessConf", _game.MaxCoatedWitnessConf },
-                { "osseiSpawned", _game.OsseiSpawned },
+                { "osseiSpawned", _game.EllisSpawned },
                 { "peakHeat", _game.ObservedPeakHeat },
                 { "confrontations", _game.TotalConfrontations },
                 { "checksRun", _game.Gossip != null ? _game.Gossip.ChecksRun : 0 },
                 { "overheard", _game.Gossip != null ? _game.Gossip.Overheard : 0 },
-                { "osseiInterviews", _game.OsseiInterviews.Count },
+                { "osseiInterviews", _game.EllisInterviews.Count },
                 { "debtsOutstanding", System.Linq.Enumerable.Count(System.Linq.Enumerable.Where(_game.Debts.All, d => d.Outstanding)) },
                 { "saveLoadOk", saveLoadOk },
                 { "beats", beatStates },
@@ -1387,7 +1387,7 @@ namespace Ledger.Game
                       $"patience={camp.OutfitPatience:0.00} takings={_game.TotalTakings} " +
                       $"witnesses={_game.NightWitnesses} knownLeads={_game.Knowledge.Count} " +
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
-                      $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.OsseiSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
+                      $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.EllisSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
                       $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +

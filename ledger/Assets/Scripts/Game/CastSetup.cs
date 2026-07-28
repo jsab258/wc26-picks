@@ -39,7 +39,7 @@ id: rocco
 tier: ambient
 
 ## Summary
-The bar's doorman for twenty years, kept on out of habit after Marek died. Big, slow-moving, sees everything on the street and forgets none of it. Drinks at the bar every afternoon. Money is always a little short.
+The bar's doorman for twenty years, kept on out of habit after Mickey died. Big, slow-moving, sees everything on the street and forgets none of it. Drinks at the bar every afternoon. Money is always a little short.
 
 ## Personality
 Friendly on the surface, transactional underneath. Respects strength and cash in that order. No appetite for trouble that isn't paid for.
@@ -48,7 +48,7 @@ Friendly on the surface, transactional underneath. Respects strength and cash in
 Rambling, familiar, calls people 'boss' or 'friend'. Mentions what he's seen around the street like small talk.
 
 ## Hard Facts
-- Marek, the previous owner, died three weeks ago.
+- Mickey, the previous owner, died three weeks ago.
 - I work the door at the Hook Street bar and drink there most afternoons.
 - I notice who comes and goes on this street at night.
 ",
@@ -72,7 +72,7 @@ Warm but unbending. Cannot be bought and does not scare; disrespect gets remembe
 Precise, courteous, a schoolteacher's patience with an edge underneath. Uses full names.
 
 ## Hard Facts
-- Marek, who owned the bar, died three weeks ago.
+- Mickey, who owned the bar, died three weeks ago.
 - I have lived on this street for thirty years and know its daytime faces.
 - I do not repeat things I am not sure of — and I remember who tried to make me.
 ",
@@ -96,7 +96,7 @@ Cheerfully spineless. Loyal to whoever helped him most recently. Easily bought, 
 Fast, conspiratorial, always halfway into a favor or out of one. Starts sentences with 'so listen'.
 
 ## Hard Facts
-- Marek, who owned the bar, died three weeks ago.
+- Mickey, who owned the bar, died three weeks ago.
 - I move between the day crowd and the night crowd; both talk to me.
 - I look after myself first; everybody knows it.
 ",

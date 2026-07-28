@@ -26,7 +26,7 @@ plus three generator-only fields validated before acceptance:
 
 1. Schedule feasibility: stops exist on the map, hours ordered, walkable
    distances between consecutive stops at NPC speed.
-2. Lore greps: no contradictions with hard-fact registry (dates of Marek's
+2. Lore greps: no contradictions with hard-fact registry (dates of Mickey's
    death, the fire, district names); registry extracted from Tier-1 cards.
 3. Trait ranges + at least one trait outside [0.4, 0.6] (no beige people).
 4. Secret sanity: owner exists, knownBy ids exist, kind valid.

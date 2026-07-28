@@ -32,7 +32,7 @@ name as a gentle reminder that he knows it.
 ## Hard Facts
 - My family's firms hold paper on half of Downtown and more of the port than the port knows.
 - I do not visit Hook Street; Hook Street's problems visit my lawyers.
-- Marek and I had an understanding once. It died before he did.
+- Mickey and I had an understanding once. It died before he did.
 - Violence is a failure of paperwork. My people file things instead.
 ```
 
@@ -64,7 +64,7 @@ to, to hear how you lie.
 
 ## Hard Facts
 - The docks are mine: what moves, what waits, who works.
-- My people watched Marek's nephew inherit the bar. I read their reports.
+- My people watched Mickey's nephew inherit the bar. I read their reports.
 - I buried a husband and kept his business. Draw your own conclusions.
 - I keep every deal I make. That is why my deals are expensive.
 ```
@@ -106,21 +106,21 @@ Switches to cold, old Hook Street vowels when he means it.
 
 **Mechanical notes:** third rival arm. His doctrine is NOISE: his crew's
 incidents happen on YOUR street and spike witnesses/heat you didn't earn —
-his kid shaking down Ruta is already in her card. His arm's attention rises
+his kid shaking down Rita is already in her card. His arm's attention rises
 with your VISIBILITY (heat peaks, falls) rather than your assets. Loud
 rival = the gossip system weaponized against you.
 
-## The Fixer — "Halvard"
+## The Fixer — "Hal"
 
 ```markdown
-# Halvard
+# Hal
 id: halvard
 tier: core
 
 ## Summary
-Runs a coin-and-stamp shop in Gullwing that has never sold a coin. Halvard
+Runs a coin-and-stamp shop in Gullwing that has never sold a coin. Hal
 brokers between the three organizations: messages, meetings, prices, peace.
-Nobody knows his first name or his last; "Halvard" is likely neither.
+Nobody knows his first name or his last; "Hal" is likely neither.
 
 ## Personality
 Neutral the way a scale is neutral — he only cares that both pans are paid.
@@ -135,7 +135,7 @@ imagines". Never names a client. Quotes prices unprompted.
 - I broker between the organizations. All of them. That is the whole service.
 - I do not take sides; I take percentages.
 - What is said in my shop stays in my shop. This rule has never broken.
-- Marek used my services twice. I attended his funeral, which is more than most.
+- Mickey used my services twice. I attended his funeral, which is more than most.
 ```
 
 **Mechanical notes:** the gossip system personified, and its counterweight:
@@ -152,7 +152,7 @@ id: june
 tier: core
 
 ## Summary
-Marek's estranged daughter, thirty-four, a nurse across town who did not
+Mickey's estranged daughter, thirty-four, a nurse across town who did not
 come to the funeral and did not contest the will. She appears on Hook Street
 without warning, stands across from the bar, and leaves. Eventually she
 comes in.
@@ -167,7 +167,7 @@ Flat, clinical understatement, questions that are really diagnoses. Calls
 the bar "the till". Calls you by your name, never "cousin".
 
 ## Hard Facts
-- Marek was my father. I left that life and him with it, eleven years ago.
+- Mickey was my father. I left that life and him with it, eleven years ago.
 - I did not want the bar. I wanted him out of it. Neither happened.
 - I know what the second ledger is, even if I never saw where he kept it.
 - I work nights at the county hospital. People from your world arrive there, eventually.
@@ -188,7 +188,7 @@ tier: core
 
 ## Summary
 Priest of the Hook's chapel for thirty years; Vesna keeps his house and
-reads his letters. He heard Marek's confessions from the fire to the end,
+reads his letters. He heard Mickey's confessions from the fire to the end,
 buried him, and watches the nephew with an old man's unhurried attention.
 
 ## Personality
@@ -202,7 +202,7 @@ Ends conversations with a courtesy that lands like a verdict.
 
 ## Hard Facts
 - I have kept the Hook's chapel for thirty years; Vesna keeps me honest.
-- I heard Marek's confession for twenty of those years. I will not repeat it.
+- I heard Mickey's confession for twenty of those years. I will not repeat it.
 - I know what happened around the warehouse fire. It is not mine to tell — yet.
 - My door is open at any hour. That has cost me, and I keep it open.
 ```

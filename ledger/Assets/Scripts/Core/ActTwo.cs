@@ -28,7 +28,7 @@ namespace Ledger.Core
         public string TableAnswer;      // accept | defy | counter
         public bool TableFired => TableAnswer != null;
 
-        // Halvard's brokerage (PP5): one truce per act, reads priced per use.
+        // Hal's brokerage (PP5): one truce per act, reads priced per use.
         public bool TruceSpent;
         public int ReadsBought;
         public const int ReadPrice = 150;
@@ -54,7 +54,7 @@ namespace Ledger.Core
 
         public const string Pp2LetterText =
             "Cream paper, hand-delivered: Vane, Holt & Partners give notice that the bar's licence is 'under review'. " +
-            "The till stays shut to the public until it is answered. Pay the fees, have Halvard make it disappear, or wait it out.";
+            "The till stays shut to the public until it is answered. Pay the fees, have Hal make it disappear, or wait it out.";
 
         public const string Pp3KidText =
             "The Strip kid does it properly this time: a stall over, a fire barrel tipped, glass across the walk, " +
@@ -65,7 +65,7 @@ namespace Ledger.Core
             "A coin-and-stamp shop by the ferry. A person might hear things there, for a percentage.";
 
         public const string Pp6CaseText =
-            "Ossei has stopped asking about the fire. She asks about rounds now — who collects, on what nights, " +
+            "Ellis has stopped asking about the fire. She asks about rounds now — who collects, on what nights, " +
             "for whom. Two cases became one case, and it has your street's name on it.";
 
         /// PP4's fallback staging, for the player who never sits down to an
@@ -103,7 +103,7 @@ namespace Ledger.Core
                 return armId == "dockside" ? "\"No.\" She looks at you a long moment, unoffended, recalculating. \"Then we'll see what the street is worth to you.\""
                     : armId == "machine" ? "You decline, politely. He is politer. The letters will not stop now; they will multiply."
                     : "You tell Danny to keep off your street. He laughs, and the laugh goes cold halfway through, in old Hook Street vowels.";
-            return armId == "dockside" ? "You put your own number on the table and it holds. She almost smiles. \"Marek never counted that fast.\""
+            return armId == "dockside" ? "You put your own number on the table and it holds. She almost smiles. \"Mickey never counted that fast.\""
                 : armId == "machine" ? "You counter with something his firm would rather not see filed. A pause. \"Let us call the matter closed.\""
                 : "You match Danny's noise with your own standing, and he folds it into a joke — but he folds.";
         }

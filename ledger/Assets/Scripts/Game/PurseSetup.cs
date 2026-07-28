@@ -32,7 +32,7 @@ namespace Ledger.Game
             {
                 OwnerId = "Sam", Name = "Sam",
                 Weekly = 60, Ceiling = 95, Cash = 45,
-                PatronId = "Danica",
+                PatronId = "Donna",
             });
 
             // Rocco: the door has been good to him and he owes almost nothing.
@@ -44,38 +44,38 @@ namespace Ledger.Game
                 PatronId = null,
             });
 
-            // Danica: the one with money on this street, and therefore the one
+            // Donna: the one with money on this street, and therefore the one
             // everybody's debts eventually route through.
             Purses.Add(new Purse
             {
-                OwnerId = "Danica", Name = "Danica",
+                OwnerId = "Donna", Name = "Donna",
                 Weekly = 220, Ceiling = 520, Cash = 380,
                 PatronId = null,
             });
 
-            // Ruta's pawnshop: a till, and a till is never as full as a shop
-            // looks. She can go to Halvard, which is exactly the arrangement
+            // Rita's pawnshop: a till, and a till is never as full as a shop
+            // looks. She can go to Hal, which is exactly the arrangement
             // that makes a pawnbroker somebody else's instrument.
             Purses.Add(new Purse
             {
-                OwnerId = "Ruta", Name = "Ruta",
+                OwnerId = "Rita", Name = "Rita",
                 Weekly = 190, Ceiling = 300, Cash = 120,
-                PatronId = "Halvard",
+                PatronId = "Hal",
             });
 
             Purses.Add(new Purse
             {
-                OwnerId = "Halvard", Name = "Halvard",
+                OwnerId = "Hal", Name = "Hal",
                 Weekly = 400, Ceiling = 900, Cash = 640,
                 PatronId = null,
             });
 
-            // Viktor: everything is in the shop and none of it is in the drawer.
+            // Victor: everything is in the shop and none of it is in the drawer.
             Purses.Add(new Purse
             {
-                OwnerId = "Viktor", Name = "Viktor",
+                OwnerId = "Victor", Name = "Victor",
                 Weekly = 110, Ceiling = 160, Cash = 55,
-                PatronId = "Ruta",
+                PatronId = "Rita",
             });
 
             // Lena and Ada work for wages and keep almost nothing to hand. They

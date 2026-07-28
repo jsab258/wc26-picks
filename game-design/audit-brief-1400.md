@@ -104,7 +104,7 @@ pacing — the seven fire correctly and nobody has watched them space out.
 **One thing to look for specifically when you do play it.** Re-reading the
 whole ending matrix after decision 10 turned up something nobody had noticed:
 **the inspector is completely inert for a player who never built an empire.**
-Four different ways of handling six days of Tobias Reisz, and the Control
+Four different ways of handling six days of Tobias Reese, and the Control
 plan's outcome is 49.8 / 50.3 in every one of them. The strain he sees moves
 properly and then changes nothing, because with no empire there is no Kingdom
 and no Both to reach.
@@ -316,7 +316,7 @@ order feeding game state. If runs are not reproducible, every number in
 
 **6. What else the Fall silently empties.** `RunTheFall` clears EVERY rumor
 about the player, by design — that is what broke the car gate. Audit every
-consumer of the mill (Ossei's case, hooks, leads, Act III's `OsseiCaseAnswerable`)
+consumer of the mill (Ellis's case, hooks, leads, Act III's `EllisCaseAnswerable`)
 for whether a post-Fall read still means anything.
 
 **7. Everything else.** Core/Game boundary, the codec, the economy's inputs,

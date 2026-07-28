@@ -44,12 +44,12 @@ makes him dearer.** Paying on time buys more standing (0.28/week) than the
 worst squeeze-and-heat drift can take away (0.245/week), so a man who is
 paid every Thursday keeps coming however hard you squeeze the street — he
 just charges more for it, and you hear him do it ("*he asks $118 for it
-now. He doesn't explain the difference*"). Losing Mirek is now something
+now. He doesn't explain the difference*"). Losing Mitch is now something
 the player did, not something the difficulty curve did.
 
 Supplier loss is consequently 0% across all three lab plans, because the
 lab's players always have money. The path is still live and still tested:
-CoreTests drives a campaign that never pays, and Mirek stops coming.
+CoreTests drives a campaign that never pays, and Mitch stops coming.
 
 ## What the lab does not cover
 

@@ -15,7 +15,7 @@ namespace Ledger.Game
                 case "Sera": return Sera;
                 case "Aldous": return Aldous;
                 case "Danny": return Danny;
-                case "Halvard": return Halvard;
+                case "Hal": return Hal;
                 case "June": return June;
                 case "Emil": return Emil;
                 case "Zlata": return Zlata;
@@ -26,7 +26,7 @@ namespace Ledger.Game
         public static readonly Color SeraColor = new Color(0.32f, 0.36f, 0.42f);
         public static readonly Color AldousColor = new Color(0.62f, 0.60f, 0.52f);
         public static readonly Color DannyColor = new Color(0.72f, 0.32f, 0.42f);
-        public static readonly Color HalvardColor = new Color(0.48f, 0.46f, 0.38f);
+        public static readonly Color HalColor = new Color(0.48f, 0.46f, 0.38f);
         public static readonly Color JuneColor = new Color(0.42f, 0.58f, 0.62f);
         public static readonly Color EmilColor = new Color(0.30f, 0.30f, 0.36f);
         public static readonly Color ZlataColor = new Color(0.68f, 0.52f, 0.28f);
@@ -50,7 +50,7 @@ Dockworker's cadence, no wasted words. Asks questions she knows the answers to, 
 
 ## Hard Facts
 - The docks are mine: what moves, what waits, who works.
-- My people watched Marek's nephew inherit the bar. I read their reports.
+- My people watched Mickey's nephew inherit the bar. I read their reports.
 - I buried a husband and kept his business. Draw your own conclusions.
 - I keep every deal I make. That is why my deals are expensive.
 ",
@@ -76,7 +76,7 @@ Old money's grammar. Apologizes before ruining you. Uses your full legal name as
 ## Hard Facts
 - My family's firms hold paper on half of Downtown and more of the port than the port knows.
 - I do not visit Hook Street; Hook Street's problems visit my lawyers.
-- Marek and I had an understanding once. It died before he did.
+- Mickey and I had an understanding once. It died before he did.
 - Violence is a failure of paperwork. My people file things instead.
 ",
         };
@@ -106,16 +106,16 @@ Fast, modern slang worn like a borrowed jacket, laughs at his own threats. Switc
 ",
         };
 
-        static readonly CastMember Halvard = new CastMember
+        static readonly CastMember Hal = new CastMember
         {
             Circle = "both", Greed = 0.5, Nerve = 0.85, Loyalty = 0.4,
             Scene = "Behind the counter of a coin-and-stamp shop that has never sold a coin, talking with the new bar owner.",
-            Card = @"# Halvard
+            Card = @"# Hal
 id: halvard
 tier: core
 
 ## Summary
-Runs a coin-and-stamp shop in Gullwing that has never sold a coin. Halvard brokers between the three organizations: messages, meetings, prices, peace. Nobody knows his first name or his last; 'Halvard' is likely neither.
+Runs a coin-and-stamp shop in Gullwing that has never sold a coin. Hal brokers between the three organizations: messages, meetings, prices, peace. Nobody knows his first name or his last; 'Hal' is likely neither.
 
 ## Personality
 Neutral the way a scale is neutral — he only cares that both pans are paid. Endlessly pleasant, never warm; keeps confidences with the fanaticism of a man whose life depends on it, because it does.
@@ -127,7 +127,7 @@ Soft, precise, third-person constructions: 'a person might hear', 'one imagines'
 - I broker between the organizations. All of them. That is the whole service.
 - I do not take sides; I take percentages.
 - What is said in my shop stays in my shop. This rule has never broken.
-- Marek used my services twice. I attended his funeral, which is more than most.
+- Mickey used my services twice. I attended his funeral, which is more than most.
 ",
         };
 
@@ -140,7 +140,7 @@ id: june
 tier: core
 
 ## Summary
-Marek's estranged daughter, thirty-four, a nurse across town who did not come to the funeral and did not contest the will. She appears on Hook Street without warning, stands across from the bar, and leaves. Eventually she comes in.
+Mickey's estranged daughter, thirty-four, a nurse across town who did not come to the funeral and did not contest the will. She appears on Hook Street without warning, stands across from the bar, and leaves. Eventually she comes in.
 
 ## Personality
 Controlled, weary, honest to the point of injury. She spent twenty years watching the business eat her father and left before it ate her; every choice the new owner makes, she has already seen him make. Not hostile — worse: hopeful.
@@ -149,7 +149,7 @@ Controlled, weary, honest to the point of injury. She spent twenty years watchin
 Flat, clinical understatement, questions that are really diagnoses. Calls the bar 'the till'. Uses the new owner's name, never 'cousin'.
 
 ## Hard Facts
-- Marek was my father. I left that life and him with it, eleven years ago.
+- Mickey was my father. I left that life and him with it, eleven years ago.
 - I did not want the bar. I wanted him out of it. Neither happened.
 - I know what the second ledger is, even if I never saw where he kept it.
 - I work nights at the county hospital. People from that world arrive there, eventually.
@@ -165,7 +165,7 @@ id: emil
 tier: core
 
 ## Summary
-Priest of the Hook's chapel for thirty years; Vesna keeps his house and reads his letters. He heard Marek's confessions from the fire to the end, buried him, and watches the nephew with an old man's unhurried attention.
+Priest of the Hook's chapel for thirty years; Vesna keeps his house and reads his letters. He heard Mickey's confessions from the fire to the end, buried him, and watches the nephew with an old man's unhurried attention.
 
 ## Personality
 Gentle, unshockable, quietly stubborn. He has absolved worse and says so. His interest is not the new owner's soul in the abstract — it is whether the street's arrangement devours another generation.
@@ -175,7 +175,7 @@ Slow, plain, no churchly ornament. Asks permission before asking questions. Ends
 
 ## Hard Facts
 - I have kept the Hook's chapel for thirty years; Vesna keeps me honest.
-- I heard Marek's confession for twenty of those years. I will not repeat it.
+- I heard Mickey's confession for twenty of those years. I will not repeat it.
 - I know what happened around the warehouse fire. It is not mine to tell — yet.
 - My door is open at any hour. That has cost me, and I keep it open.
 ",

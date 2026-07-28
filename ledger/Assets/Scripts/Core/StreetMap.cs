@@ -108,7 +108,7 @@ namespace Ledger.Core
         ///
         /// The market quarter is the better district for THIS game, which is why
         /// the correction was worth making rather than shrugging at. A cash
-        /// economy is exactly where finite purses and Marek's book of debts bite
+        /// economy is exactly where finite purses and Mickey's book of debts bite
         /// hardest: everybody here settles in notes, nobody's money is in a bank,
         /// and "what can you actually lay hands on today" is the question the
         /// whole street lives by.

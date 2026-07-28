@@ -37,11 +37,11 @@ takings (not the fronts') for two days unless answered — pay the fee,
 or ask the Fixer to make it disappear, or eat the loss. Introduces Aldous
 by proxy: you never see him; you see paper with his firm's letterhead.
 
-**PP3 — The Kid (fires: New crew attention ≥ 0.5, or Ruta recruited).**
-Danny's kid escalates from taxing Ruta to a loud incident ON your street —
+**PP3 — The Kid (fires: New crew attention ≥ 0.5, or Rita recruited).**
+Danny's kid escalates from taxing Rita to a loud incident ON your street —
 a smashed stall, a fire barrel, witnesses everywhere: +heat you didn't
 earn. Counterplay through built verbs: lean on the kid (nerve check), pay
-him off, recruit Ruta and the problem becomes hers to end, or take it to
+him off, recruit Rita and the problem becomes hers to end, or take it to
 the Fixer for a price.
 
 **PP4 — Two Lives, One Room (fires: any day-life loyalty ≥ 0.65 AND crew
@@ -53,19 +53,19 @@ and what they carry comes from live state. Whatever you choose, both
 worlds SAW each other; suspicion and questions follow through the mill.
 
 **PP5 — The Broker's Shop (fires: two arms ≥ 0.5, or player seeks him).**
-Halvard opens for business: buy true reads of any arm's state, buy a
+Hal opens for business: buy true reads of any arm's state, buy a
 meeting with a head, or buy one truce per act. The gossip war gets a
 storefront.
 
-**PP6 — The Second Case (fires: Ossei present AND any racket witness
+**PP6 — The Second Case (fires: Ellis present AND any racket witness
 statement taken).**
-Ossei connects tonight's street to the warehouse fire — one case now.
+Ellis connects tonight's street to the warehouse fire — one case now.
 Authored: her interview of Lena or Noor (Noor refuses, and TELLS you she
-refused — the triangle tightens). Ossei's questions start naming the
+refused — the triangle tightens). Ellis's questions start naming the
 rackets, not just the drops.
 
 **PP7 — The Table (fires: any arm reaches stage 4 / attention 0.9).**
-The act's summit, routed through Halvard: a sit-down with that arm's head
+The act's summit, routed through Hal: a sit-down with that arm's head
 — Sera's dockside arithmetic, Aldous's courteous ruin, or Danny's
 grinning volatility. Offer on the table per doctrine (tribute % / a legal
 leash on the fronts / a joint racket you don't control). Accept, defy, or
@@ -75,7 +75,7 @@ posture, becomes a Fact the street learns.
 
 ## Authoring budget
 
-Seven text moments + three arm-doctrine event sets + Halvard's shop verbs
+Seven text moments + three arm-doctrine event sets + Hal's shop verbs
 + the PP4 doorway machinery (one new beat type: "interrupted evening").
 The heads exist as cards (batch 2); their arms are systems. Estimated 2-3
 sessions of build+writing, each PP with a fired/not-fired sim criterion.
@@ -89,7 +89,7 @@ sessions of build+writing, each PP with a fired/not-fired sim criterion.
    feel real, small enough to build tonight.
 2. **PP4 interruption target** — fire on the HIGHEST-loyalty day-life
    evening (maximum sting, recommended) vs. random among eligible.
-3. **The truce price** — Halvard's one-per-act truce: flat heavy cash
+3. **The truce price** — Hal's one-per-act truce: flat heavy cash
    (recommended: $600, simple) vs. a favor debt (a hook HE holds on you —
    spicier, more systems).
 4. **Act II ending condition** — PP7 resolved = act complete (recommended

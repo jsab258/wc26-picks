@@ -25,16 +25,16 @@ namespace Ledger.Game
         {
             var gates = new List<Gate>();
 
-            // Halvard's back room at the ferry. Neutral ground, and the way in
+            // Hal's back room at the ferry. Neutral ground, and the way in
             // is that somebody says your name for you — or, failing that, that
             // you look like nobody worth stopping.
-            gates.Add(new Gate("backroom", "the back room at the ferry", "Halvard's man")
+            gates.Add(new Gate("backroom", "the back room at the ferry", "Hal's man")
                 {
                     Refusal = "\"Private tonight.\" He does not move, and does not look at you again.",
                 }
-                .WithKey(new AccessKey(KeyKind.Introduction, who: "Halvard")
+                .WithKey(new AccessKey(KeyKind.Introduction, who: "Hal")
                     .Reads("He hears whose name you say and steps aside without a word.",
-                           "Halvard would have to speak for you, and Halvard speaks for very few people."))
+                           "Hal would have to speak for you, and Hal speaks for very few people."))
                 .WithKey(new AccessKey(KeyKind.Standing, 40, who: "dockside")
                     .Reads("He knows who you run with. Tonight that is enough.",
                            "You would need to stand better with the docks than you do."))

@@ -1,6 +1,6 @@
 # LEDGER — How to Play (prototype build)
 
-You inherited your uncle Marek's bar on Hook Street — and the half-dead
+You inherited your uncle Mickey's bar on Hook Street — and the half-dead
 criminal arrangement that came with it. Everyone on the street is simulated:
 they keep schedules, remember everything you say, and talk to each other.
 Your two lives stay apart only as long as the street can't compare notes.
@@ -60,7 +60,7 @@ person and cool only if nobody feeds them. The till washes $120/day of
 dirty money — hoard more and Lena starts counting.
 
 Talk your way through it: pay people off, lean on them, plant doubt, learn
-their secrets (loyalty opens mouths), collect or forgive Marek's debts,
+their secrets (loyalty opens mouths), collect or forgive Mickey's debts,
 honor invitations — the street protects people it likes. Two mornings in a
 row of a hostile street ends you; so does exhausting the outfit's patience.
 
@@ -99,8 +99,8 @@ The empire verbs appear in conversation:
   with inspectors and letters that cost clean money. The New crew watches
   how loud your street is, and answers with noise you didn't make but will
   be blamed for.
-- **Whose people are whose.** Josip and Ferko answer to the Dockside;
-  Tibor's customs stamp belongs to the machine; the New crew counts Ruta
+- **Whose people are whose.** Joey and Ferko answer to the Dockside;
+  Tibor's customs stamp belongs to the machine; the New crew counts Rita
   as theirs. Recruiting any of them is poaching, and it is noticed.
 
 Press L. Two books. Keep them both, or choose which one survives.

@@ -22,7 +22,7 @@ namespace Ledger.Game
             var skim = new Secret
             {
                 Id = "rocco_skim", OwnerId = "Rocco", Kind = SecretKind.Criminal,
-                Summary = "he has skimmed the door take for twenty years — Marek knew, and let it ride.",
+                Summary = "he has skimmed the door take for twenty years — Mickey knew, and let it ride.",
             };
             skim.KnownBy.Add("Lena"); // the bookkeeper always knew where the shortfall went
             book.Add(skim);
@@ -49,40 +49,40 @@ namespace Ledger.Game
             var ledger = new Secret
             {
                 Id = "lena_ledger", OwnerId = "Lena", Kind = SecretKind.Criminal,
-                Summary = "where she hides Marek's real ledger — under the third cellar step, behind the loose brick.",
+                Summary = "where she hides Mickey's real ledger — under the third cellar step, behind the loose brick.",
             };
             ledger.KnownBy.Add("Rocco"); // he carried the strongbox down those stairs once
             book.Add(ledger);
 
-            // Empire v1 leverage (from the generated batch, promoted with Viktor):
+            // Empire v1 leverage (from the generated batch, promoted with Victor):
             // the acquisition routes need secrets worth a shop.
             book.Add(new Secret
             {
-                Id = "viktor_skim", OwnerId = "Viktor", Kind = SecretKind.Shameful,
+                Id = "viktor_skim", OwnerId = "Victor", Kind = SecretKind.Shameful,
                 Summary = "he skims a little off every appraisal to cover a gambling debt his wife doesn't know about.",
-            }); // nobody else knows; only Viktor himself can let it slip
+            }); // nobody else knows; only Victor himself can let it slip
 
             var scale = new Secret
             {
-                Id = "mirela_scale", OwnerId = "Mirela", Kind = SecretKind.Shameful,
+                Id = "mirela_scale", OwnerId = "Marla", Kind = SecretKind.Shameful,
                 Summary = "she shorts the scale for regulars she dislikes, and has for years.",
             };
             scale.KnownBy.Add("Sam"); // Sam has watched her thumb for years
             book.Add(scale);
 
             // The promoted ring (district build-out): each secret is the door
-            // to something — Ruta's is the fencing line itself.
+            // to something — Rita's is the fencing line itself.
             var cab = new Secret
             {
                 Id = "ferko_flat", OwnerId = "Ferko", Kind = SecretKind.Shameful,
                 Summary = "he sleeps in the cab — the flat went to a card table two winters ago.",
             };
-            cab.KnownBy.Add("Josip");
+            cab.KnownBy.Add("Joey");
             book.Add(cab);
 
             book.Add(new Secret
             {
-                Id = "ruta_fence", OwnerId = "Ruta", Kind = SecretKind.Criminal,
+                Id = "ruta_fence", OwnerId = "Rita", Kind = SecretKind.Criminal,
                 Summary = "she fences dock pilferage through the pawnshop's back room, crate by crate.",
             }); // nobody else knows — she is that careful
 
@@ -97,7 +97,7 @@ namespace Ledger.Game
                 Id = "tibor_count", OwnerId = "Tibor", Kind = SecretKind.Shameful,
                 Summary = "he waves friends' cargo through without tickets and doctors the count after.",
             };
-            count.KnownBy.Add("Ruta"); // of course she knows
+            count.KnownBy.Add("Rita"); // of course she knows
             book.Add(count);
 
             return book;

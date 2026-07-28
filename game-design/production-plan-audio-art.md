@@ -66,8 +66,8 @@ directed from the simulation.
 
 ### 1c. THE QUESTIONS I NEED ANSWERED
 
-1. **Setting and accent.** The names are Slavic (Zlatko, Vesna, Ruta,
-   Josip) but the writing is English. Is this a fictional Eastern European
+1. **Setting and accent.** The names are Slavic (Zlatko, Vesna, Rita,
+   Joey) but the writing is English. Is this a fictional Eastern European
    port, an émigré quarter in an English-speaking city, or somewhere
    unnamed? **This matters more than the model choice** — non-native
    accents are the single thing current TTS does least convincingly. If

@@ -88,7 +88,7 @@ namespace Ledger.Game
                 // the model uses the right name without anybody hand-writing it
                 // into thirty character cards. Somebody who has not placed you
                 // still says "the new owner"; somebody who has decided about you
-                // says Tomas. The player gets to notice that change happening,
+                // says Tom. The player gets to notice that change happening,
                 // which is the whole point of having a name in this game.
                 scene += " " + _game.AddressLine(Card.Id);
                 if (OnTheLine)

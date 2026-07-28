@@ -121,7 +121,7 @@ Four phases. Each is playable on its own; the order is by immersion-per-hour.
   rather than standing at a waypoint. The market sells, the docks load.
 
 ### M15.3 — The interface disappears (design + UI work)
-- **The ledger becomes Marek's actual book**, a prop on the bar counter you
+- **The ledger becomes Mickey's actual book**, a prop on the bar counter you
   walk to and open. Not an L-key panel.
 - **Toasts die.** Every one becomes either a spoken line, a world event, or a
   line in the book you chose to open.

@@ -120,14 +120,14 @@ whoever they were standing next to.
 Act III's audit had no face, which was its biggest gap: the letter arrived,
 the date passed, and the books were read offstage by nobody.
 
-**Built as Tobias Reisz, Board of Excise, nineteen years.** Fifty-ish, grey,
+**Built as Tobias Reese, Board of Excise, nineteen years.** Fifty-ish, grey,
 the sort of man who is already sitting down when you notice he came in. Not
 corrupt — and that is load-bearing rather than characterisation, because an
 inspector with a price collapses the ending matrix into "did you save up".
 Not cruel either: he explains each step because the procedure requires it,
 and says "of course" when you refuse him.
 
-Taken on the same basis as Tomas Vrba (*"0 — you choose a name"*). Say the
+Taken on the same basis as Tom Novak (*"0 — you choose a name"*). Say the
 word and he becomes somebody else; nothing but the name and the card moves.
 
 ### 9. ~~The rackets are the last infinite pocket~~ — ANSWERED: **couple it**. Built 2026-07-27.
@@ -251,8 +251,8 @@ roughly a coin flip instead of a certainty.
 for whenever you surface, in the order I'd want them answered:)*
 
 0. **~~The protagonist has no name.~~ ANSWERED 2026-07-27 — delegated to me.**
-   He is **Tomas Vrba**, Marek's sister's boy, off the boat with a suitcase
-   and a letter. Vrba sits beside Sedlak, Brela and Farid without sounding
+   He is **Tom Novak**, Mickey's sister's boy, off the boat with a suitcase
+   and a letter. Novak sits beside Sedlak, Brela and Farid without sounding
    imported, it is two syllables and hard to soften, and it is a word
    (willow) — the kind of name a city shortens without affection.
 
@@ -266,8 +266,8 @@ for whenever you surface, in the order I'd want them answered:)*
    | | |
    |---|---|
    | the new owner | they know the bar changed hands, not who you are |
-   | Vrba | you are a fact on this street now |
-   | Tomas | they decided about you, and it was fine |
+   | Novak | you are a fact on this street now |
+   | Tom | they decided about you, and it was fine |
    | Toma | two or three people, ever |
 
    Appended to every conversation's scene, so the model uses the right one
@@ -297,8 +297,8 @@ for whenever you surface, in the order I'd want them answered:)*
      Rocco's toast (day 5), make your drops in the coat.
    - Day 7: answer Lena's question over the true books. Then press SPACE.
    - In the open city: talk to Sam (sort what he needs, put him on the
-     collection round), find Viktor (buy his marker with dirty cash, then
-     turn the key), then talk to Ruta once the shop is yours — her line is
+     collection round), find Victor (buy his marker with dirty cash, then
+     turn the key), then talk to Rita once the shop is yours — her line is
      the best money on the street. Press L: THE TWO BOOKS.
    - Watch what the Dockside arm does about it. Try skimming someone's
      envelope for a few days and read their memory file (F1) after.
@@ -398,7 +398,7 @@ prison is mechanically the best information-management move in the game.
 is a real position — the Fall already costs you the outfit's patience, the
 scarring, and every live lead dying is TRUE (nobody needs to speculate).
 The surviving-lead machinery added for the Both ending reads correctly here:
-a served conviction is not a live lead Ossei can take to a magistrate.
+a served conviction is not a live lead Ellis can take to a magistrate.
 
 **Why it smells.** A state inspector, of all people, can read a conviction
 record. The whole day circle watched you go. Crediting that player with a
@@ -472,7 +472,7 @@ realism. Say the word and I will spec exact candidates and prices rather
 than buying anything.
 
 **Also needs you eventually:** M15.3 deletes the ledger panel and the
-toasts in favour of Marek's actual book as a prop. That removes things
+toasts in favour of Mickey's actual book as a prop. That removes things
 that currently "work", so I will not do it until you have seen M15.1-2.
 
 ## Standing rules honored meanwhile

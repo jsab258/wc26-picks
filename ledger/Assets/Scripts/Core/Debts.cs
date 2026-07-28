@@ -6,7 +6,7 @@ namespace Ledger.Core
 {
     public enum CollectOutcome { Paid, PaidPart, Begged, Refused, Nothing }
 
-    /// One line in Marek's book of uncollectable debts (the founding premise's
+    /// One line in Mickey's book of uncollectable debts (the founding premise's
     /// inheritance). Collection is social, not violent: whether they pay, beg, or
     /// dig in is decided by who they are — and pressing people has a price.
     public class Debtor
@@ -14,7 +14,7 @@ namespace Ledger.Core
         public string Id;         // gossiper id
         public string Name;
         public int Amount;
-        public string Note;       // what the money was for, in Marek's hand
+        public string Note;       // what the money was for, in Mickey's hand
         /// What the last collection actually produced, and what it left behind.
         /// Read by the UI so the line it prints is the truth rather than the ask.
         public int LastPaid { get; private set; }
@@ -57,7 +57,7 @@ namespace Ledger.Core
                 {
                     // Willing and empty. That is a beg, and it is a truthful one.
                     g.Memory.Append(new MemoryEvent(now, "conversation", 0.55,
-                        $"The new owner came for Marek's ${Amount} and I had nothing to give them. " +
+                        $"The new owner came for Mickey's ${Amount} and I had nothing to give them. " +
                         "I have never been so glad of a drawer nobody can argue with."));
                     return CollectOutcome.Begged;
                 }
@@ -70,7 +70,7 @@ namespace Ledger.Core
                     // them earns you. They stood there and counted it out.
                     g.Loyalty = Math.Clamp(g.Loyalty - 0.09, 0, 1);
                     g.Memory.Append(new MemoryEvent(now, "conversation", 0.7,
-                        $"Gave the new owner every coin in the place — ${paid} — against Marek's book. " +
+                        $"Gave the new owner every coin in the place — ${paid} — against Mickey's book. " +
                         $"Still ${Amount} short and they know where I live."));
                     return CollectOutcome.PaidPart;
                 }
@@ -78,23 +78,23 @@ namespace Ledger.Core
                 Collected = true;
                 g.Loyalty = Math.Clamp(g.Loyalty - 0.05, 0, 1);
                 g.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
-                    $"Paid the new owner what I owed Marek. ${paid}. It stung, but fair is fair."));
+                    $"Paid the new owner what I owed Mickey. ${paid}. It stung, but fair is fair."));
                 return CollectOutcome.Paid;
             }
             if (g.Nerve <= 0.5)
             {
                 g.Memory.Append(new MemoryEvent(now, "conversation", 0.5,
-                    $"The new owner asked about Marek's ${Amount}. I begged a day. I don't have it."));
+                    $"The new owner asked about Mickey's ${Amount}. I begged a day. I don't have it."));
                 return CollectOutcome.Begged;
             }
             g.Loyalty = Math.Clamp(g.Loyalty - 0.1, 0, 1);
             g.Memory.Append(new MemoryEvent(now, "observation", 0.7,
-                $"The new owner came collecting Marek's old paper. I told them where to put it."));
+                $"The new owner came collecting Mickey's old paper. I told them where to put it."));
             if (mill != null && !g.Holds("player.debt_collecting", "true"))
                 g.Rumors.Add(new Rumor
                 {
                     Content = new Fact("player", "debt_collecting", "true"), OriginId = g.Id,
-                    Summary = "the new owner came collecting Marek's old debts, hard",
+                    Summary = "the new owner came collecting Mickey's old debts, hard",
                     Confidence = 0.7, Hops = 0, Sensitive = false,
                 });
             return CollectOutcome.Refused;
@@ -107,7 +107,7 @@ namespace Ledger.Core
             Forgiven = true;
             g.Loyalty = Math.Clamp(g.Loyalty + 0.15, 0, 1);
             g.Memory.Append(new MemoryEvent(now, "conversation", 0.8,
-                $"The new owner tore my page out of Marek's book. ${Amount}, gone like that. I won't forget it."));
+                $"The new owner tore my page out of Mickey's book. ${Amount}, gone like that. I won't forget it."));
             return true;
         }
 
@@ -150,7 +150,7 @@ namespace Ledger.Core
                 var lender = mill?.Get(patron);
                 if (g != null)
                     g.Memory.Append(new MemoryEvent(now, "conversation", 0.75,
-                        $"Went to {lender?.DisplayName ?? patron} and asked for money, because of Marek's book " +
+                        $"Went to {lender?.DisplayName ?? patron} and asked for money, because of Mickey's book " +
                         "and the person who bought it. I will be paying for that asking longer than for the money."));
                 if (lender != null)
                     lender.Memory.Append(new MemoryEvent(now, "conversation", 0.6,

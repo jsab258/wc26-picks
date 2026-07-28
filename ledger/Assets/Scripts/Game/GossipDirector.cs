@@ -59,40 +59,40 @@ namespace Ledger.Game
             graph.Link("Ada", "Lena", 0.6);
             graph.Link("Ada", "Sam", 0.5);
             // Tier-2 sample ring, live pair: the vendor and the dock hand.
-            graph.Link("Mirela", "Ada", 0.5);
-            graph.Link("Mirela", "Sam", 0.4);
-            graph.Link("Josip", "Rocco", 0.6);
-            graph.Link("Josip", "Sam", 0.3);
+            graph.Link("Marla", "Ada", 0.5);
+            graph.Link("Marla", "Sam", 0.4);
+            graph.Link("Joey", "Rocco", 0.6);
+            graph.Link("Joey", "Sam", 0.3);
             // Noor hears everything (cast-noor-draft.md): the street's best
             // listener — talk reaches her fast, and her card compels her to ask.
             graph.Link("Noor", "Ada", 0.7);
             graph.Link("Noor", "Sam", 0.6);
             graph.Link("Noor", "Lena", 0.5);
             graph.Link("Noor", "Rocco", 0.5);
-            graph.Link("Noor", "Mirela", 0.4);
-            // Viktor (batch promotion): the pawnbroker's ties from his card.
-            graph.Link("Viktor", "Lena", 0.4);
-            graph.Link("Viktor", "Sam", 0.5);
+            graph.Link("Noor", "Marla", 0.4);
+            // Victor (batch promotion): the pawnbroker's ties from his card.
+            graph.Link("Victor", "Lena", 0.4);
+            graph.Link("Victor", "Sam", 0.5);
             // The promoted ring's ties: the district's working relationships.
-            graph.Link("Ferko", "Josip", 0.5);
+            graph.Link("Ferko", "Joey", 0.5);
             graph.Link("Ferko", "Sam", 0.4);
-            graph.Link("Ruta", "Viktor", 0.6);  // the back room
-            graph.Link("Ruta", "Josip", 0.4);
-            graph.Link("Ruta", "Tibor", 0.4);
+            graph.Link("Rita", "Victor", 0.6);  // the back room
+            graph.Link("Rita", "Joey", 0.4);
+            graph.Link("Rita", "Tibor", 0.4);
             graph.Link("Vesna", "Ada", 0.5);
-            graph.Link("Vesna", "Mirela", 0.4);
-            graph.Link("Tibor", "Josip", 0.4);
+            graph.Link("Vesna", "Marla", 0.4);
+            graph.Link("Tibor", "Joey", 0.4);
             // Tier-1 batch 2: the chapel hears everything, dispatch hears the
             // rest, and the broker keeps deliberately thin ties to everyone.
             graph.Link("June", "Lena", 0.5);
             graph.Link("June", "Emil", 0.45);
             graph.Link("Emil", "Vesna", 0.7);   // she keeps his house and reads his letters
             graph.Link("Emil", "Ada", 0.6);
-            graph.Link("Zlata", "Josip", 0.5);
+            graph.Link("Zlata", "Joey", 0.5);
             graph.Link("Zlata", "Ferko", 0.45);
             graph.Link("Zlata", "Sam", 0.4);
-            graph.Link("Halvard", "Sam", 0.3);
-            graph.Link("Halvard", "Ruta", 0.3);
+            graph.Link("Hal", "Sam", 0.3);
+            graph.Link("Hal", "Rita", 0.3);
             // The generated batch's connections — links to residents who aren't
             // walking yet simply stay dormant until they do.
             foreach (var (a, b, w) in Tier2Batch.GraphLinks()) graph.Link(a, b, w);

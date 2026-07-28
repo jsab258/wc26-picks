@@ -7,7 +7,7 @@ namespace Ledger.Core
     ///
     /// The living economy made the district's money finite in one direction —
     /// squeeze the street, the street gets poorer, your bar takes less. But
-    /// every counterparty still had infinite pockets: Ruta owed $180 and
+    /// every counterparty still had infinite pockets: Rita owed $180 and
     /// produced $180 on demand, out of a starving street, in one movement. That
     /// is a payout table wearing a person's face.
     ///

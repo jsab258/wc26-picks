@@ -22,7 +22,7 @@ namespace Ledger.Tier2Gen
     static class Program
     {
         // Ids that already exist in the game; generated connections and knownBy
-        // must resolve to these or to cards in the same run. Ossei is deliberately
+        // must resolve to these or to cards in the same run. Ellis is deliberately
         // absent — the police have no friends here.
         static readonly string[] ExistingCast =
         {
@@ -65,7 +65,7 @@ namespace Ledger.Tier2Gen
             var accepted = new List<Dictionary<string, object>>();
             var takenIds = new HashSet<string>(ExistingCast);
             var takenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                { "Rocco", "Ada", "Sam", "Lena", "Noor", "Josip", "Mirela", "Marek", "Mara" };
+                { "Rocco", "Ada", "Sam", "Lena", "Noor", "Joey", "Marla", "Mickey", "Mara" };
             var usedOccupations = new HashSet<string>();
             var lastFailures = new List<string>();
             int calls = 0, maxCalls = Math.Max(6, count / perCall * 3);
@@ -143,7 +143,7 @@ namespace Ledger.Tier2Gen
             var sb = new StringBuilder();
             sb.AppendLine("You generate Tier-2 character cards for LEDGER, a crime/social sim set in the Hook district — the old-port quarter of Meridian Bay. Working-class, cash economy, everyone knows everyone's business.");
             sb.AppendLine();
-            sb.AppendLine("HARD CANON (never contradict): Marek, who owned the Hook Street bar, died three weeks ago; his nephew just inherited the bar. The old warehouse on warehouse row burned about a year ago and the case is still open. Existing people: Lena (the bar's bookkeeper, 31 years), Rocco (the doorman), Ada (retired schoolteacher on the apartment steps), Sam (street go-between), Noor (Meridian Courier reporter, rooms above Ada's), Mirela (vegetable stall), Josip (dock hand).");
+            sb.AppendLine("HARD CANON (never contradict): Mickey, who owned the Hook Street bar, died three weeks ago; his nephew just inherited the bar. The old warehouse on warehouse row burned about a year ago and the case is still open. Existing people: Lena (the bar's bookkeeper, 31 years), Rocco (the doorman), Ada (retired schoolteacher on the apartment steps), Sam (street go-between), Noor (Meridian Courier reporter, rooms above Ada's), Marla (vegetable stall), Joey (dock hand).");
             sb.AppendLine();
             sb.AppendLine("Every card must be a small, grounded life with MECHANICAL INDIVIDUALITY: one concrete skill, access, or connection that could matter to a player building either an honest life or a quiet criminal outfit. No colorful lunatics, no assassins, no masterminds. Secrets are ordinary-sized and shameful or quietly criminal.");
             sb.AppendLine();

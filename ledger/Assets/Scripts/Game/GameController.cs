@@ -84,7 +84,7 @@ namespace Ledger.Game
             _shiftMarker != null ? (Vector3?)_shiftMarker.transform.position
             : _dispatchMarker != null ? (Vector3?)_dispatchMarker.transform.position : null;
         public SecretsBook HooksBook { get; } = SecretsSetup.Build();
-        // Marek's book of uncollectable debts (design-doc §1: part of the inheritance).
+        // Mickey's book of uncollectable debts (design-doc §1: part of the inheritance).
         public DebtBook Debts { get; } = new DebtBook();
         /// What everybody on this street can actually lay hands on (roadmap M13).
         /// Willing is not the same as able, and the difference is a conversation.
@@ -94,7 +94,7 @@ namespace Ledger.Game
         /// a thing that has happened to you.
         public HarmBook Harm { get; } = new HarmBook();
         /// The player's name, and the gradient of what people call them
-        /// (decided 2026-07-27, delegated by Jafar). Tomas Vrba.
+        /// (decided 2026-07-27, delegated by Jafar). Tom Novak.
         public PlayerIdentity Me { get; } = new PlayerIdentity();
 
         /// The sentence appended to every conversation's scene telling the model
@@ -180,17 +180,17 @@ namespace Ledger.Game
         int _lastReflectedDay;
         int _lastAgedHour = -1;
 
-        // Detective Ossei (design-doc §8): spawns once the street's talk gets loud
+        // Detective Ellis (design-doc §8): spawns once the street's talk gets loud
         // enough to reach a precinct desk; while she works it, rumors refuse to die.
-        public bool OsseiSpawned { get; private set; }
+        public bool EllisSpawned { get; private set; }
         public double ObservedPeakHeat { get; private set; }
         ConversationHost _ossei;
         NpcWalker _osseiWalker;
 
         // §6.5: heat is what witnesses actually saw AND TOLD. When a first-hand
-        // witness crosses Ossei's path, she interviews them — unless their silence
+        // witness crosses Ellis's path, she interviews them — unless their silence
         // was bought or leashed first. The race the whole game is about.
-        public List<string> OsseiInterviews { get; } = new List<string>();
+        public List<string> EllisInterviews { get; } = new List<string>();
         readonly HashSet<string> _interviewed = new HashSet<string>();
 
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
@@ -241,18 +241,18 @@ namespace Ledger.Game
                 (new GameTime(0, 21, 0), new Vector3(-12, 0, -14)),
             }));
 
-            _npcs.Add(NpcWalker.Spawn("Mirela", new Color(0.8f, 0.6f, 0.3f), new[]
+            _npcs.Add(NpcWalker.Spawn("Marla", new Color(0.8f, 0.6f, 0.3f), new[]
             {
                 (new GameTime(0, 8, 0), new Vector3(10, 0, -14)),  // market stall
                 (new GameTime(0, 18, 0), new Vector3(-12, 0, 14)), // home
             }));
-            _npcs.Add(NpcWalker.Spawn("Josip", new Color(0.35f, 0.45f, 0.5f), new[]
+            _npcs.Add(NpcWalker.Spawn("Joey", new Color(0.35f, 0.45f, 0.5f), new[]
             {
                 (new GameTime(0, 6, 0), new Vector3(18, 0, 14)),   // docks
                 (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(3, 0, -1)),
                 (new GameTime(0, 23, 0), new Vector3(16, 0, 12)),  // home by the water
             }));
-            _npcs.Add(NpcWalker.Spawn("Viktor", new Color(0.6f, 0.5f, 0.3f), new[]
+            _npcs.Add(NpcWalker.Spawn("Victor", new Color(0.6f, 0.5f, 0.3f), new[]
             {
                 (new GameTime(0, 9, 0), new Vector3(-28, 0, -6)),  // his shop, now standing
                 (new GameTime(0, 13, 0), new Vector3(10, 0, -14)), // errands at the market corner
@@ -267,7 +267,7 @@ namespace Ledger.Game
                 (new GameTime(0, 18, 0), new Vector3(0, 0, -8)),    // trawling the crossing for fares
                 (new GameTime(0, 23, 0), new Vector3(24, 0, -10)),  // sleeps in the cab
             }));
-            _npcs.Add(NpcWalker.Spawn("Ruta", new Color(0.5f, 0.35f, 0.45f), new[]
+            _npcs.Add(NpcWalker.Spawn("Rita", new Color(0.5f, 0.35f, 0.45f), new[]
             {
                 (new GameTime(0, 10, 0), new Vector3(-28, 0, -6)),  // the pawnshop back room
                 (new GameTime(0, 15, 0), new Vector3(18, 0, 14)),   // the docks, collecting
@@ -309,7 +309,7 @@ namespace Ledger.Game
                 (new GameTime(0, 17, 0), DispatchBoard),
                 (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(4, 0, 2)), // one drink, loudly
             }));
-            _npcs.Add(NpcWalker.Spawn("Halvard", CastTier1.HalvardColor, new[]
+            _npcs.Add(NpcWalker.Spawn("Hal", CastTier1.HalColor, new[]
             {
                 (new GameTime(0, 10, 0), new Vector3(31, 0, 21)),   // the coin shop that sells no coins
                 (new GameTime(0, 19, 0), new Vector3(31, 0, 21)),
@@ -321,13 +321,13 @@ namespace Ledger.Game
             foreach (var w in Tier2Batch.SpawnWalkers()) _npcs.Add(w);
             foreach (var s in Tier2Batch.Secrets()) HooksBook.Add(s);
 
-            // The suppliers walk (roadmap M7). They are not table rows: Mirek
+            // The suppliers walk (roadmap M7). They are not table rows: Mitch
             // comes on Thursdays whether you are awake or not, and knows to the
             // day when he was last paid.
-            SpawnSupplier("drayman", SupplierCast.MirekCard, SupplierCast.MirekColor,
-                SupplierCast.MirekSchedule, "On his round along Hook Street, talking with the bar's new owner.");
-            SpawnSupplier("wholesaler", SupplierCast.AntonCard, SupplierCast.AntonColor,
-                SupplierCast.AntonSchedule, "At the market corner, talking with the bar's new owner.");
+            SpawnSupplier("drayman", SupplierCast.MitchCard, SupplierCast.MitchColor,
+                SupplierCast.MitchSchedule, "On his round along Hook Street, talking with the bar's new owner.");
+            SpawnSupplier("wholesaler", SupplierCast.TonyCard, SupplierCast.TonyColor,
+                SupplierCast.TonySchedule, "At the market corner, talking with the bar's new owner.");
 
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
@@ -373,7 +373,7 @@ namespace Ledger.Game
                 sb.Append($"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week on Hook Street. ");
                 sb.Append($"Talk about the new owner around the street is {StreetWord(CurrentHeat)}.");
                 if (Now.Day <= 2) sb.Append(" You have only just met the new owner.");
-                if (OsseiSpawned) sb.Append(NoorSetup.OsseiContextLine); // PP6: two collectors, different rules
+                if (EllisSpawned) sb.Append(NoorSetup.EllisContextLine); // PP6: two collectors, different rules
                 if (Campaign.OpenMode && Empire.Rival.Stage >= 2)
                     sb.Append(" You have heard the Dockside organization is taxing the new owner's street — protection, on Hook Street, in this day and age. That is a story, and you are pulling at it the way you pull at the fire.");
                 if (ActOne.NoorDrawersBroken) sb.Append(NoorSetup.DrawerBrokenLine);
@@ -431,8 +431,8 @@ namespace Ledger.Game
             _beatSpots["tea"] = new Vector3(-14, 0, 12); // her apartment steps
             Beats.Add(new Beat
             {
-                Id = "toast", HostId = "Rocco", Title = "A drink for Marek", Day = 5, StartHour = 22, EndHour = 24,
-                InviteText = "Rocco, quiet at the door: \"I never drank to Marek proper. Not once since we buried him. Tonight I do. Sit with me, boss — ten o'clock, my front step.\"",
+                Id = "toast", HostId = "Rocco", Title = "A drink for Mickey", Day = 5, StartHour = 22, EndHour = 24,
+                InviteText = "Rocco, quiet at the door: \"I never drank to Mickey proper. Not once since we buried him. Tonight I do. Sit with me, boss — ten o'clock, my front step.\"",
             });
             // His home stoop, not the bar door: attendance must be a deliberate trip,
             // never a side effect of walking out of your own bar.
@@ -597,7 +597,7 @@ namespace Ledger.Game
 
         void CheckOsseiInterviews()
         {
-            if (!OsseiSpawned || _osseiWalker == null || _gossip == null || _gossip.Mill == null) return;
+            if (!EllisSpawned || _osseiWalker == null || _gossip == null || _gossip.Mill == null) return;
             foreach (var npc in _npcs)
             {
                 if (npc == null || npc == _osseiWalker) continue;
@@ -610,7 +610,7 @@ namespace Ledger.Game
                     if (r.Hops != 0 || r.Content.Subject != "player") continue;
                     if (g.Suppressed.Contains(r.TopicKey)) continue; // bought silence holds, even against her
                     if (!_interviewed.Add(npc.DisplayName + "|" + r.TopicKey)) continue;
-                    OsseiInterviews.Add($"{npc.DisplayName} told you: {r.Summary}");
+                    EllisInterviews.Add($"{npc.DisplayName} told you: {r.Summary}");
                     g.Memory.Append(new MemoryEvent(Now, "conversation", 0.8,
                         $"The detective asked me straight. I told her what I saw: {r.Summary}"));
                     if (_ossei != null) _ossei.Memory.Append(new MemoryEvent(Now, "conversation", 0.85,
@@ -657,7 +657,7 @@ namespace Ledger.Game
 
             // PP3 — the kid, properly, outside your door. Real witnesses.
             if (!ActTwo.Pp3Fired &&
-                (e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Ruta") != null))
+                (e.ArmOf("newcrew").Attention >= 0.5 || e.CrewOf("Rita") != null))
             {
                 ActTwo.Pp3Fired = true;
                 foreach (var a in _gossip.Mill.Agents)
@@ -707,7 +707,7 @@ namespace Ledger.Game
             }
 
             // PP6 — two cases become one case.
-            if (!ActTwo.Pp6Fired && OsseiSpawned && OsseiInterviews.Count > 0
+            if (!ActTwo.Pp6Fired && EllisSpawned && EllisInterviews.Count > 0
                 && e.TotalRacketIncome > 0)
             {
                 ActTwo.Pp6Fired = true;
@@ -724,7 +724,7 @@ namespace Ledger.Game
                 {
                     ActTwo.TableArmId = summit.Id;
                     SpawnHead(summit.Id, summit.HeadName);
-                    ToastLine($"Halvard's message is one line: {summit.HeadName} will see you. The coin shop, when you're ready.", 13f);
+                    ToastLine($"Hal's message is one line: {summit.HeadName} will see you. The coin shop, when you're ready.", 13f);
                 }
             }
         }
@@ -759,7 +759,7 @@ namespace Ledger.Game
                 "Had to fetch them out of somebody's front room tonight. They didn't like it. Neither did whoever was pouring."));
         }
 
-        /// An organization's head comes to the room Halvard arranged. They are
+        /// An organization's head comes to the room Hal arranged. They are
         /// NOT in the gossip mill — heads don't stand on corners trading talk;
         /// they arrive, they are answered, and the street hears about it after.
         readonly HashSet<string> _headsSpawned = new HashSet<string>();
@@ -835,7 +835,7 @@ namespace Ledger.Game
             if (member == null) return;
             var color = shortName == "Sera" ? CastTier1.SeraColor
                 : shortName == "Aldous" ? CastTier1.AldousColor : CastTier1.DannyColor;
-            // Halvard's back room, by the ferry: neutral ground, as arranged.
+            // Hal's back room, by the ferry: neutral ground, as arranged.
             var walker = NpcWalker.Spawn(shortName, color, new[]
             {
                 (new GameTime(0, 9, 0), new Vector3(29, 0, 22)),
@@ -903,7 +903,7 @@ namespace Ledger.Game
                 _dispatchMarker = null;
                 _shiftStop = 0;
                 _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
-                ToastLine("Zlata drops the satchel into your arms mid-sentence. \"Market corner first, and don't let Mirela feed you, you'll never leave. Back before dark.\"", 10f);
+                ToastLine("Zlata drops the satchel into your arms mid-sentence. \"Market corner first, and don't let Marla feed you, you'll never leave. Back before dark.\"", 10f);
             }
 
             if (_shiftMarker != null)
@@ -981,7 +981,7 @@ namespace Ledger.Game
                     ActOne.Pp4Fired = true;
                     ToastLine(ActOneState.Pp4LedgerPage, 14f);
                     _lena?.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
-                        "The new owner knows where Marek's real ledger is now. All of it. Even the page about the warehouse."));
+                        "The new owner knows where Mickey's real ledger is now. All of it. Even the page about the warehouse."));
                 }
             }
 
@@ -1084,9 +1084,9 @@ namespace Ledger.Game
             // The talk is over — it's public record now; the old liabilities settle.
             foreach (var k in Knowledge.Entries) Knowledge.MarkHandled(k.HolderId, k.TopicKey);
 
-            // Ossei got her arrest. For a few days the pressure eases; rumors
+            // Ellis got her arrest. For a few days the pressure eases; rumors
             // (there are none about you left anyway) age at street speed.
-            if (OsseiSpawned)
+            if (EllisSpawned)
             {
                 _osseiCalmUntilDay = Now.Day + 4;
                 _gossip.Mill.RumorHalfLifeHours = 96;
@@ -1105,7 +1105,7 @@ namespace Ledger.Game
 
         /// PP7: the player says out loud which life they're choosing. Dialogue +
         /// a Fact every cast brain learns (player decision 2026-07-26); mechanics
-        /// are Act II's job. Ossei is excluded — the answer travels as street
+        /// are Act II's job. Ellis is excluded — the answer travels as street
         /// talk, and this street does not talk to police on purpose.
         public void AnswerPosture(string choice)
         {
@@ -1126,8 +1126,8 @@ namespace Ledger.Game
 
         string BarkFor(string name)
         {
-            if (name == "Ossei")
-                return OsseiSpawned ? "Ossei watches you pass. She doesn't pretend otherwise." : null;
+            if (name == "Ellis")
+                return EllisSpawned ? "Ellis watches you pass. She doesn't pretend otherwise." : null;
             var g = _gossip.Mill.Get(name);
             if (g == null) return null;
             if (g.Leashed) return $"{name} finds somewhere else to look as you pass.";
@@ -1164,23 +1164,23 @@ namespace Ledger.Game
         {
             double heat = CurrentHeat;
             if (heat > ObservedPeakHeat) ObservedPeakHeat = heat;
-            if (!OsseiSpawned && heat >= OsseiSetup.SpawnHeatThreshold) { SpawnOssei(); return; }
-            if (OsseiSpawned && _osseiCalmUntilDay > 0 && Now.Day > _osseiCalmUntilDay
-                && heat >= OsseiSetup.SpawnHeatThreshold)
+            if (!EllisSpawned && heat >= EllisSetup.SpawnHeatThreshold) { SpawnOssei(); return; }
+            if (EllisSpawned && _osseiCalmUntilDay > 0 && Now.Day > _osseiCalmUntilDay
+                && heat >= EllisSetup.SpawnHeatThreshold)
             {
                 _osseiCalmUntilDay = 0;
                 if (_gossip != null && _gossip.Mill != null)
-                    _gossip.Mill.RumorHalfLifeHours = OsseiSetup.PresenceRumorHalfLifeHours;
+                    _gossip.Mill.RumorHalfLifeHours = EllisSetup.PresenceRumorHalfLifeHours;
                 _ui?.Toast("The tan coat is back at the market corner, unhurried as ever. The street's stories stop dying young again.", 9f);
             }
         }
 
         void SpawnOssei()
         {
-            if (OsseiSpawned) return;
-            OsseiSpawned = true;
+            if (EllisSpawned) return;
+            EllisSpawned = true;
 
-            var walker = NpcWalker.Spawn("Ossei", OsseiSetup.Color, new[]
+            var walker = NpcWalker.Spawn("Ellis", EllisSetup.Color, new[]
             {
                 (new GameTime(0, 9, 0), new Vector3(10, 0, -14)),   // market corner, listening
                 (new GameTime(0, 12, 0), WorldBuilder.BarDoor + new Vector3(3, 0, 2)),
@@ -1191,7 +1191,7 @@ namespace Ledger.Game
             _npcs.Add(walker); // she walks and talks; she is NOT added to the gossip mill
             _osseiWalker = walker;
             _ossei = walker.gameObject.AddComponent<ConversationHost>();
-            _ossei.Initialize(this, OsseiSetup.CardMarkdown, null, null);
+            _ossei.Initialize(this, EllisSetup.CardMarkdown, null, null);
             _ossei.SceneContext = "On Hook Street, unhurried, notebook in hand, talking with the new bar owner.";
             _ossei.ExtraContext = () =>
             {
@@ -1200,11 +1200,11 @@ namespace Ledger.Game
                 // She has been interviewing the street: she knows what the loudest
                 // stories ARE (not whether they're true) and probes around them.
                 var leads = _gossip != null && _gossip.Mill != null ? _gossip.Mill.Leads("player") : null;
-                if (OsseiInterviews.Count > 0)
+                if (EllisInterviews.Count > 0)
                 {
                     sb.Append("Witness statements you hold: ");
-                    for (int i = System.Math.Max(0, OsseiInterviews.Count - 2); i < OsseiInterviews.Count; i++)
-                        sb.Append($"\"{OsseiInterviews[i]}\" ");
+                    for (int i = System.Math.Max(0, EllisInterviews.Count - 2); i < EllisInterviews.Count; i++)
+                        sb.Append($"\"{EllisInterviews[i]}\" ");
                 }
                 if (leads != null && leads.Count > 0)
                 {
@@ -1219,7 +1219,7 @@ namespace Ledger.Game
 
             // Her presence keeps stories alive: people retell what officials keep asking about.
             if (_gossip != null && _gossip.Mill != null)
-                _gossip.Mill.RumorHalfLifeHours = OsseiSetup.PresenceRumorHalfLifeHours;
+                _gossip.Mill.RumorHalfLifeHours = EllisSetup.PresenceRumorHalfLifeHours;
 
             _ui?.Toast("A stranger is working Hook Street. Tan coat, level voice, takes her time. Asks about you.", 10f);
         }
@@ -1248,7 +1248,7 @@ namespace Ledger.Game
             if (_gossip == null || _gossip.Mill == null || _player == null || _ui == null) return;
             foreach (var npc in _npcs)
             {
-                if (npc == null || npc.DisplayName == "Ossei") continue;
+                if (npc == null || npc.DisplayName == "Ellis") continue;
                 var g = _gossip.Mill.Get(npc.DisplayName);
                 if (g == null || g.Leashed) continue;
                 if (g.Suspicion.Level != SuspicionLevel.Confronting) continue;
@@ -1534,7 +1534,7 @@ namespace Ledger.Game
             {
                 _jobPostedDay = Now.Day;
                 SpawnJobMarker(DropPoints[Now.Day % DropPoints.Length]);
-                // PP2 — the first ask is authored: the runner names Marek's
+                // PP2 — the first ask is authored: the runner names Mickey's
                 // compliance, so refusal reads as breaking HIS deal.
                 if (!ActOne.Pp2Fired)
                 {
@@ -1768,7 +1768,7 @@ namespace Ledger.Game
             { "economy", Economy.Capture() },
             { "harm", Harm.Capture() },
             { "purses", Purses.Capture() },
-            { "osseiInterviews", CaptureStrings(OsseiInterviews) },
+            { "osseiInterviews", CaptureStrings(EllisInterviews) },
             { "interviewed", CaptureStrings(_interviewed) },
             { "director", Directorate.Capture() },
             { "demands", CaptureDemands() },
@@ -1778,7 +1778,7 @@ namespace Ledger.Game
             { "dayjob", Job.Capture() },
             { "acttwo", ActTwo.Capture() },
             { "actthree", CaptureActThree() },
-            { "wearingCoat", WearingCoat }, { "osseiSpawned", OsseiSpawned },
+            { "wearingCoat", WearingCoat }, { "osseiSpawned", EllisSpawned },
             { "totalTakings", TotalTakings }, { "lastTakings", LastTakings },
             { "nightWitnesses", NightWitnesses }, { "anyCoatedWitnessed", AnyCoatedWitnessed },
             { "maxCoatedWitnessConf", MaxCoatedWitnessConf }, { "totalConfrontations", TotalConfrontations },
@@ -1911,9 +1911,9 @@ namespace Ledger.Game
                 if (extra.TryGetValue("purses", out var pu)) Purses.Restore(MiniJson.AsObject(pu));
                 if (extra.TryGetValue("osseiInterviews", out var oi))
                 {
-                    OsseiInterviews.Clear();
+                    EllisInterviews.Clear();
                     foreach (var o in MiniJson.AsList(oi) ?? new List<object>())
-                        if (o is string line) OsseiInterviews.Add(line);
+                        if (o is string line) EllisInterviews.Add(line);
                 }
                 if (extra.TryGetValue("interviewed", out var iv))
                 {
@@ -1933,7 +1933,7 @@ namespace Ledger.Game
                 if (extra.TryGetValue("dayjob", out var dj)) Job.Restore(MiniJson.AsObject(dj));
                 if (extra.TryGetValue("acttwo", out var a2)) ActTwo.Restore(MiniJson.AsObject(a2));
                 // People who existed before the save must exist after the load.
-                // Ossei always had this (below); the summit head and the
+                // Ellis always had this (below); the summit head and the
                 // inspector did not, which soft-locked the Table and froze the
                 // audit on any mid-act reload (audit 2026-07-27) — the verbs
                 // they carry are only reachable by talking to them.

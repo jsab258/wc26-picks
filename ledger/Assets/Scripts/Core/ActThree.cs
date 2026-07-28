@@ -62,7 +62,7 @@ namespace Ledger.Core
 
         // The information landscape.
         public double DayCircleRacketHeat; // how firmly the day circle holds it
-        public bool OsseiCaseAnswerable;   // her strongest lead discredited, bought or contradicted
+        public bool EllisCaseAnswerable;   // her strongest lead discredited, bought or contradicted
         public bool PublicRecord;          // the street KNOWS you did time — a conviction on file
 
         // The books themselves.
@@ -87,7 +87,7 @@ namespace Ledger.Core
         public const double FactThreshold = 0.5;
 
         /// Testimony grade: a surviving lead at or above this stands up in
-        /// front of a magistrate, below it Ossei's case is answerable without
+        /// front of a magistrate, below it Ellis's case is answerable without
         /// her deal (act3-draft.md answer 3).
         public const double CaseStandsAt = 0.5;
         /// Above this, a relationship counts as surviving.
@@ -158,7 +158,7 @@ namespace Ledger.Core
         public const int DaysOfGrace = 6;
 
         /// The act opens when the Table has been answered AND one of the two
-        /// ledgers has become undeniable: Ossei can name the rackets, or the
+        /// ledgers has become undeniable: Ellis can name the rackets, or the
         /// empire is too big for the bar to explain its own money.
         public static bool ShouldOpen(bool tableAnswered, bool osseiCanName, int businessesOwned,
             int racketsEstablished) =>
@@ -241,7 +241,7 @@ namespace Ledger.Core
             // the best information-management move in the game (audit
             // 2026-07-28; decided by recommendation, delegated by Jafar).
             if (s.PublicRecord) seen *= 1.15;
-            if (s.OsseiCaseAnswerable) seen *= 0.7;
+            if (s.EllisCaseAnswerable) seen *= 0.7;
             // What is not in the cellar cannot be read out of it. Deliberately
             // the single largest movement any one action makes, because it is
             // the last day, it costs a whole call, and it is only available to
@@ -277,7 +277,7 @@ namespace Ledger.Core
             bool empireSurvives = !s.EmpireDissolved &&
                 (s.BusinessesOwned > 0 || s.RacketsEstablished > 0);
             bool landscapeManaged = s.DayCircleRacketHeat < LedgerState.FactThreshold
-                                     && s.OsseiCaseAnswerable;
+                                     && s.EllisCaseAnswerable;
 
             // THE BOOKS HAVE TO HOLD.
             //
@@ -382,15 +382,15 @@ namespace Ledger.Core
                        "where they have always been. She does not offer to walk you through them. You have not earned that, " +
                        "and she is not pretending otherwise.";
             if (loyalty < LedgerState.TrustThreshold)
-                return "\"They'll want the ledgers,\" Lena says. \"The real ones are where Marek left them.\" " +
+                return "\"They'll want the ledgers,\" Lena says. \"The real ones are where Mickey left them.\" " +
                        "She tells you that much and stops, and the stopping is deliberate.";
-            return "Lena puts the kettle on, which she has not done since Marek died. Then she takes you through it, " +
+            return "Lena puts the kettle on, which she has not done since Mickey died. Then she takes you through it, " +
                    "month by month, in the flat voice of somebody who has been waiting years to be asked. " +
                    $"By the end you know exactly where the lie holds and exactly where it does not: {StrainWord(strain)}.";
         }
 
         public const string Pp3OsseiText =
-            "Ossei does not arrest anybody. She sets a name on the table — not yours — and explains, without " +
+            "Ellis does not arrest anybody. She sets a name on the table — not yours — and explains, without " +
             "any pleasure in it, that an audit finds whatever it is pointed at. Give her the arm that has been " +
             "hardest on you, with enough to make it stick, and it will be pointed elsewhere.\n\n" +
             "Everything you would hand her came from somebody who told you. The street knows who talks.";
@@ -411,15 +411,15 @@ namespace Ledger.Core
         /// requires him to explain it, and who is not interested in you as a
         /// person at all. Everybody else in this game can be talked around.
         /// He cannot, and the only thing you can move is how much he looks at.
-        public const string InspectorName = "Tobias Reisz";
+        public const string InspectorName = "Tobias Reese";
 
         public const string InspectorArrivesText =
             "He is at the bar at ten past nine with a case and a folding rule, and he introduces himself " +
-            "twice — once to you and once to Lena, in the same words. Tobias Reisz, Board of Excise. " +
+            "twice — once to you and once to Lena, in the same words. Tobias Reese, Board of Excise. " +
             "He asks where he may sit, and then he asks whether the light is always this poor.";
 
         public static string InspectorAskText(int day, double scope) =>
-            $"Reisz has an item for today and he says it out loud, the way he says everything: " +
+            $"Reese has an item for today and he says it out loud, the way he says everything: " +
             $"{ScopeWord(scope)}. He will want it before he leaves.";
 
         public const string CooperateText =
@@ -462,7 +462,7 @@ namespace Ledger.Core
         public const int LastDayBudget = 2;
 
         public static string LastDayLenaText(bool willing) => willing
-            ? "\"They're in the cellar and they're in Marek's hand,\" Lena says. \"Give me until four.\" " +
+            ? "\"They're in the cellar and they're in Mickey's hand,\" Lena says. \"Give me until four.\" " +
               "She does not ask what happens to her if somebody notices, and you do not offer to tell her."
             : "Lena listens to the whole of it. Then she says that the books are where they have always been, " +
               "and that she has a daughter, and that those two facts are the same answer.";
@@ -515,7 +515,7 @@ namespace Ledger.Core
               "is true what they used to say about this place, and you get to tell the truth."
             : "The inspection takes an afternoon. There was never anything in the books, because you never put " +
               "anything in them — and the whole of what that cost you is invisible, which is the point. " +
-              "Marek's people drifted off to other people's rounds. The street decided you were nobody in " +
+              "Mickey's people drifted off to other people's rounds. The street decided you were nobody in " +
               "particular. You have a bar, and the hours are bad, and everybody who knew you when you arrived " +
               "still knows you.";
 

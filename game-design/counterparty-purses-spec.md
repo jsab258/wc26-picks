@@ -8,7 +8,7 @@ The living economy (M7) made the district's money finite in one direction:
 squeezing the street lowers prosperity, prosperity lowers what your bar takes.
 That half is real and the balance lab proves it.
 
-But every *counterparty* still has infinite pockets. Ruta owes $180 and Ruta
+But every *counterparty* still has infinite pockets. Rita owes $180 and Rita
 pays $180, in one movement, whenever you ask. The street can be starving and
 the man in front of you still produces the exact sum from nowhere. That is a
 payout table wearing a person's face, and it is the same failure the rest of

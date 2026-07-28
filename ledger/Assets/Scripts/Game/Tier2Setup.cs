@@ -4,7 +4,7 @@ namespace Ledger.Game
 {
     /// The Tier-2 sample ring: six ambient cards hand-written IN the pipeline
     /// template (game-design/tier2-pipeline-spec.md) to prove its fields before
-    /// any batch generation. Only Mirela and Josip walk the street today (scene
+    /// any batch generation. Only Marla and Joey walk the street today (scene
     /// cost); the other four are data awaiting the district build-out. Validator
     /// rules honored by hand: schedules on real map spots, traits with at least
     /// one non-beige value, secrets with kinds and knowers, no orphan nodes.
@@ -14,11 +14,11 @@ namespace Ledger.Game
         {
             switch (name)
             {
-                case "Mirela": return Mirela;
-                case "Josip": return Josip;
-                case "Viktor": return Viktor;
+                case "Marla": return Marla;
+                case "Joey": return Joey;
+                case "Victor": return Victor;
                 case "Ferko": return Ferko;
-                case "Ruta": return Ruta;
+                case "Rita": return Rita;
                 case "Vesna": return Vesna;
                 case "Tibor": return Tibor;
                 default: return null;
@@ -28,11 +28,11 @@ namespace Ledger.Game
         // secret: shameful — she shorts the scale for regulars she dislikes (knownBy: Sam)
         // need: her supplier cheats her; she wants someone to lean on him
         // connections: Ada 0.5, Sam 0.4
-        static readonly CastMember Mirela = new CastMember
+        static readonly CastMember Marla = new CastMember
         {
             Circle = "day", Greed = 0.55, Nerve = 0.35, Loyalty = 0.4,
             Scene = "At her market stall, weighing vegetables, talking with the new bar owner.",
-            Card = @"# Mirela
+            Card = @"# Marla
 id: mirela
 tier: ambient
 
@@ -46,7 +46,7 @@ Brisk, funny, keeps a running tally of favors in her head. Respects anyone who p
 Market patter — short, loud, price-shaped. Softens only mid-transaction.
 
 ## Hard Facts
-- Marek, who owned the bar, died three weeks ago; he bought onions from me for twenty years.
+- Mickey, who owned the bar, died three weeks ago; he bought onions from me for twenty years.
 - My stall is at the market corner every day from eight.
 - My produce supplier shorts my crates and thinks I don't count.
 ",
@@ -55,11 +55,11 @@ Market patter — short, loud, price-shaped. Softens only mid-transaction.
         // secret: criminal — he moves crates past the customs count for pocket money (knownBy: Rocco)
         // need: his daughter needs a reference for a Downtown job
         // connections: Rocco 0.6, Sam 0.3
-        static readonly CastMember Josip = new CastMember
+        static readonly CastMember Joey = new CastMember
         {
             Circle = "night", Greed = 0.7, Nerve = 0.45, Loyalty = 0.35,
             Scene = "On the docks between shifts, talking with the new bar owner.",
-            Card = @"# Josip
+            Card = @"# Joey
 id: josip
 tier: ambient
 
@@ -73,7 +73,7 @@ Slow to warm, loyal once bought a drink. Complains about the harbormaster to any
 Few words, half of them about tides or overtime. Laughs like a winch.
 
 ## Hard Facts
-- Marek, who owned the bar, died three weeks ago.
+- Mickey, who owned the bar, died three weeks ago.
 - I work the docks; Rocco and I go back twenty years.
 - My daughter is smarter than this street and I mean to get her off it.
 ",
@@ -86,16 +86,16 @@ Few words, half of them about tides or overtime. Laughs like a winch.
         // connections: Lena 0.4, Sam 0.5
         // Schedule walks the built street until the district build-out gives
         // the pawnshop geometry; his shop exists in the books either way.
-        static readonly CastMember Viktor = new CastMember
+        static readonly CastMember Victor = new CastMember
         {
             Circle = "day", Greed = 0.7, Nerve = 0.4, Loyalty = 0.4,
             Scene = "On his rounds between the market corner and the bar, always mid-calculation, talking with the new bar owner.",
-            Card = @"# Viktor
+            Card = @"# Victor
 id: viktor
 tier: ambient
 
 ## Summary
-Viktor has run the pawnshop on the corner for twenty-two years and can name the story behind half the jewelry in the Hook. He keeps a ledger of every deal, official and otherwise, tucked behind a false panel in his counter.
+Victor has run the pawnshop on the corner for twenty-two years and can name the story behind half the jewelry in the Hook. He keeps a ledger of every deal, official and otherwise, tucked behind a false panel in his counter.
 
 ## Personality
 He is shrewd and endlessly transactional, treating every conversation like a negotiation he intends to win. Underneath the haggling he's anxious, always doing sums in his head.
@@ -114,7 +114,7 @@ He talks in numbers and counteroffers, rarely finishing a sentence without namin
         // The rest of the ring, promoted with the district build-out. Their
         // secrets live in SecretsSetup; their needs in EmpireSetup.
 
-        // secret: shameful — sleeps in his cab, lost the flat to cards (knownBy: Josip)
+        // secret: shameful — sleeps in his cab, lost the flat to cards (knownBy: Joey)
         // need: a big fare he can brag about
         static readonly CastMember Ferko = new CastMember
         {
@@ -136,17 +136,17 @@ Racetrack patter — odds, sure things, almosts. Calls every destination 'two mi
 ## Hard Facts
 - I drive the only night cab in the Hook; the rank is mine.
 - I see who moves around this district after dark, and where they get out.
-- Josip and I go back; we talk when the docks let him go.
+- Joey and I go back; we talk when the docks let him go.
 ",
         };
 
         // secret: criminal — fences dock pilferage through the pawnshop back room (knownBy: nobody)
         // need: someone to scare off the New crew kid shaking her down
-        static readonly CastMember Ruta = new CastMember
+        static readonly CastMember Rita = new CastMember
         {
             Circle = "both", Greed = 0.8, Nerve = 0.6, Loyalty = 0.25,
             Scene = "In and out of the pawnshop's back door with a canvas bag, talking with the new bar owner.",
-            Card = @"# Ruta
+            Card = @"# Rita
 id: ruta
 tier: ambient
 
@@ -160,7 +160,7 @@ All business, allergic to sentiment. Prices everything, including favors and peo
 Short. Numbers where words would do. Ends conversations by walking away mid-sentence.
 
 ## Hard Facts
-- I do business between the docks and Viktor's pawnshop; ask no further.
+- I do business between the docks and Victor's pawnshop; ask no further.
 - Some Strip kid has been taxing my rounds lately, and it is becoming a problem.
 - I know what moves through this district and what it's worth, to the crown.
 ",
@@ -192,7 +192,7 @@ Soft, unhurried, full of blessings that carry edges. Asks after your mother even
 ",
         };
 
-        // secret: shameful — waves through friends without tickets and doctors the count (knownBy: Ruta)
+        // secret: shameful — waves through friends without tickets and doctors the count (knownBy: Rita)
         // need: cover for the audit week
         static readonly CastMember Tibor = new CastMember
         {
@@ -214,7 +214,7 @@ Over-explains. Starts answers with 'strictly speaking'. Laughs at things that ar
 ## Hard Facts
 - I work the customs shed; my stamp moves cargo, strictly speaking.
 - There is an audit coming, there is always an audit coming.
-- Ruta and I understand each other; I won't say more than that.
+- Rita and I understand each other; I won't say more than that.
 ",
         };
     }

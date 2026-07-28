@@ -524,7 +524,7 @@ namespace Ledger.CoreTests
             // other version — the cap is per story told, not per topic name.
             var g3 = new SocialGraph();
             var m3 = new GossipMill(g3);
-            m3.Add(new Gossiper("tomas", "Tomas", new MemoryStore("tomas"), new KnowledgeBase(), new SuspicionTracker(), "day"));
+            m3.Add(new Gossiper("tomas", "Tom", new MemoryStore("tomas"), new KnowledgeBase(), new SuspicionTracker(), "day"));
             m3.Witness("tomas", new Fact("player", "location_d2", "warehouse"), "warehouse, he says", true, now, 0.8);
             m3.Get("tomas").Rumors.Add(new Rumor
             {
@@ -553,7 +553,7 @@ namespace Ledger.CoreTests
         static void TestSurvivingLead()
         {
             Console.WriteLine("Act III — the case against you is whatever survives:");
-            // act3-draft.md answer 3: refusing Ossei can still reach Both, but
+            // act3-draft.md answer 3: refusing Ellis can still reach Both, but
             // only through the information landscape. That cashes out here: her
             // case rests on the strongest SURVIVING lead — the best sensitive
             // player rumor whose holder is not leashed, not paid quiet on the
@@ -951,9 +951,9 @@ namespace Ledger.CoreTests
             (EmpireBook, GossipMill, Gossiper, Gossiper) Build(double ownerNerve, double ownerLoyalty)
             {
                 var mill = new GossipMill(new SocialGraph());
-                var owner = new Gossiper("ruta", "Ruta", new MemoryStore("ruta"), new KnowledgeBase(),
+                var owner = new Gossiper("ruta", "Rita", new MemoryStore("ruta"), new KnowledgeBase(),
                     new SuspicionTracker(), "both", 0.8, ownerNerve, ownerLoyalty);
-                var mate = new Gossiper("josip", "Josip", new MemoryStore("josip"), new KnowledgeBase(),
+                var mate = new Gossiper("josip", "Joey", new MemoryStore("josip"), new KnowledgeBase(),
                     new SuspicionTracker(), "night", 0.7, 0.45, 0.35);
                 mill.Add(owner); mill.Add(mate);
                 var e = new EmpireBook();
@@ -976,7 +976,7 @@ namespace Ledger.CoreTests
                 var (eS, mS, _oS, jS) = Build(0.5, 0.4);
                 eS.Seed = seed;
                 jS.Loyalty = 0.9;
-                eS.RecruitByNeed(jS, "Josip", 50, new Wallet(1000), now);
+                eS.RecruitByNeed(jS, "Joey", 50, new Wallet(1000), now);
                 eS.Establish(eS.RacketOf("collection"), eS.CrewOf("josip"), now);
                 var bits = "";
                 for (int d = 9; d < 29; d++)
@@ -991,13 +991,13 @@ namespace Ledger.CoreTests
             {
                 var (eC1, mC1, _c1, jC1) = Build(0.5, 0.4);
                 jC1.Loyalty = 0.9;
-                eC1.RecruitByNeed(jC1, "Josip", 50, new Wallet(1000), now);
+                eC1.RecruitByNeed(jC1, "Joey", 50, new Wallet(1000), now);
                 eC1.Establish(eC1.RacketOf("collection"), eC1.CrewOf("josip"), now);
                 var wC1 = new Wallet(0);
                 eC1.DailyTick(new GameTime(9, 8, 0), wC1, mC1, streetFactor: 0.01);
                 var (eC2, mC2, _c2, jC2) = Build(0.5, 0.4);
                 jC2.Loyalty = 0.9;
-                eC2.RecruitByNeed(jC2, "Josip", 50, new Wallet(1000), now);
+                eC2.RecruitByNeed(jC2, "Joey", 50, new Wallet(1000), now);
                 eC2.Establish(eC2.RacketOf("collection"), eC2.CrewOf("josip"), now);
                 var wC2 = new Wallet(0);
                 eC2.DailyTick(new GameTime(9, 8, 0), wC2, mC2, streetFactor: 99.0);
@@ -1054,9 +1054,9 @@ namespace Ledger.CoreTests
             var (e5, m5, _5, josip5) = Build(0.5, 0.4);
             var w5 = new Wallet(500);
             josip5.Loyalty = 0.2; // a stranger: one favor is not a yes
-            Check(!e5.RecruitByNeed(josip5, "Josip", 100, w5, now) && josip5.Loyalty > 0.35 && w5.Clean == 400,
+            Check(!e5.RecruitByNeed(josip5, "Joey", 100, w5, now) && josip5.Loyalty > 0.35 && w5.Clean == 400,
                 "empire: supplying a need lands the favor before the yes");
-            Check(e5.RecruitByNeed(josip5, "Josip", 100, w5, now) && e5.CrewOf("josip") != null
+            Check(e5.RecruitByNeed(josip5, "Joey", 100, w5, now) && e5.CrewOf("josip") != null
                 && e5.CrewOf("josip").Route == "need", "empire: past the floor, the need route ends in a yes");
 
             var (e6, m6, _6, josip6) = Build(0.5, 0.4);
@@ -1106,7 +1106,7 @@ namespace Ledger.CoreTests
             e8.Rival.Attention = 0.8;
             e8.Rival.Stage = 2;
             josip8.Loyalty = 0.7;
-            e8.Crew.Add(new CrewMember { Id = "josip", Name = "Josip", Route = "need", Competence = 0.6, RecruitedDay = 8 });
+            e8.Crew.Add(new CrewMember { Id = "josip", Name = "Joey", Route = "need", Competence = 0.6, RecruitedDay = 8 });
             var ev8 = e8.DailyTick(new GameTime(14, 8, 0), new Wallet(100), m8);
             Check(e8.CrewOf("josip") != null && josip8.Loyalty > 0.7,
                 "empire: a loyal crew member reports the poach instead");
@@ -1115,7 +1115,7 @@ namespace Ledger.CoreTests
             // skimming their envelope is free money on a fuse they can hear.
             var (eC, mC, _c, josipC) = Build(0.5, 0.4);
             josipC.Loyalty = 0.5;
-            eC.RecruitByNeed(josipC, "Josip", 50, new Wallet(100), now);
+            eC.RecruitByNeed(josipC, "Joey", 50, new Wallet(100), now);
             var rkC = eC.RacketOf("collection");
             eC.Establish(rkC, eC.CrewOf("josip"), now);
             eC.SetCut(eC.CrewOf("josip"), "generous", mC, now);
@@ -1134,7 +1134,7 @@ namespace Ledger.CoreTests
             // three ways (audit 2026-07-27).
             var (eZ, mZ, _z, josipZ) = Build(0.5, 0.4);
             josipZ.Loyalty = 0.7;
-            eZ.RecruitByNeed(josipZ, "Josip", 0, new Wallet(1000), now);
+            eZ.RecruitByNeed(josipZ, "Joey", 0, new Wallet(1000), now);
             eZ.Establish(eZ.RacketOf("collection"), eZ.CrewOf("josip"), now);
             eZ.SetCut(eZ.CrewOf("josip"), "generous", mZ, now);
             var wZ = new Wallet(0);
@@ -1149,7 +1149,7 @@ namespace Ledger.CoreTests
             // point quits — no income that day, the round dies, hook-crew can't.
             var (eQ, mQ, _q, josipQ) = Build(0.5, 0.4);
             josipQ.Loyalty = 0.5;
-            eQ.RecruitByNeed(josipQ, "Josip", 50, new Wallet(100), now);
+            eQ.RecruitByNeed(josipQ, "Joey", 50, new Wallet(100), now);
             var rkQ = eQ.RacketOf("collection");
             eQ.Establish(rkQ, eQ.CrewOf("josip"), now);
             eQ.SetCut(eQ.CrewOf("josip"), "skim", mQ, now);
@@ -1168,7 +1168,7 @@ namespace Ledger.CoreTests
 
             // Winning a quitter back revives their record — one person, one line.
             josipQ.Loyalty = 0.4;
-            Check(eQ.RecruitByNeed(josipQ, "Josip", 50, new Wallet(100), now)
+            Check(eQ.RecruitByNeed(josipQ, "Joey", 50, new Wallet(100), now)
                 && eQ.Crew.FindAll(c => c.Id == "josip").Count == 1
                 && eQ.CrewOf("josip") != null && eQ.CrewOf("josip").Cut == "fair",
                 "empire: re-recruiting revives the record, never duplicates it");
@@ -1177,7 +1177,7 @@ namespace Ledger.CoreTests
             var (e10, m10, ruta10, josip10) = Build(0.5, 0.4);
             e10.Rackets.Add(new Racket { Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4, RequiresBusinessId = "pawnshop" });
             josip10.Loyalty = 0.5;
-            e10.RecruitByNeed(josip10, "Josip", 50, new Wallet(100), now);
+            e10.RecruitByNeed(josip10, "Joey", 50, new Wallet(100), now);
             var fence = e10.RacketOf("fencing");
             Check(!e10.Establish(fence, e10.CrewOf("josip"), now), "empire: no fencing line without the shop");
             e10.BuyClean(e10.BusinessOf("pawnshop"), new Wallet(1000), ruta10, now);
@@ -1227,7 +1227,7 @@ namespace Ledger.CoreTests
             josipP.Loyalty = 0.5;
             double standBefore = eP.ArmOf("dockside").Standing;
             double attnBefore = eP.ArmOf("dockside").Attention;
-            eP.RecruitByNeed(josipP, "Josip", 50, new Wallet(100), now);
+            eP.RecruitByNeed(josipP, "Joey", 50, new Wallet(100), now);
             Check(eP.CrewOf("josip") != null && !eP.ArmOf("dockside").Members.Contains("josip"),
                 "allegiance: recruiting their man takes him off their roster");
             Check(eP.ArmOf("dockside").Standing < standBefore && eP.ArmOf("dockside").Attention > attnBefore,
@@ -1307,7 +1307,7 @@ namespace Ledger.CoreTests
                 "act2: taking Sera's terms costs a share and buys quiet");
             var wT = new Wallet(0);
             josip1.Loyalty = 0.6;
-            e1.RecruitByNeed(josip1, "Josip", 0, wT, new GameTime(14, 12, 0));
+            e1.RecruitByNeed(josip1, "Joey", 0, wT, new GameTime(14, 12, 0));
             e1.Establish(e1.RacketOf("collection"), e1.CrewOf("josip"), new GameTime(14, 12, 0));
             e1.DailyTick(new GameTime(15, 8, 0), wT, m1);
             Check(wT.Dirty == 53, "act2: the tribute comes off every round (60 -> 53)");
@@ -1331,7 +1331,7 @@ namespace Ledger.CoreTests
             var (eI, mI, _i, josipI) = BuildEmpireFixture();
             josipI.Loyalty = 0.7;
             var wI = new Wallet(0);
-            eI.RecruitByNeed(josipI, "Josip", 0, wI, new GameTime(14, 12, 0));
+            eI.RecruitByNeed(josipI, "Joey", 0, wI, new GameTime(14, 12, 0));
             eI.Establish(eI.RacketOf("collection"), eI.CrewOf("josip"), new GameTime(14, 12, 0));
             eI.DailyTick(new GameTime(15, 8, 0), wI, mI);
             eI.DailyTick(new GameTime(16, 8, 0), wI, mI);
@@ -1375,9 +1375,9 @@ namespace Ledger.CoreTests
         static (EmpireBook, GossipMill, Gossiper, Gossiper) BuildEmpireFixture()
         {
             var mill = new GossipMill(new SocialGraph());
-            var ruta = new Gossiper("ruta", "Ruta", new MemoryStore("ruta"), new KnowledgeBase(),
+            var ruta = new Gossiper("ruta", "Rita", new MemoryStore("ruta"), new KnowledgeBase(),
                 new SuspicionTracker(), "both", 0.8, 0.6, 0.25);
-            var josip = new Gossiper("josip", "Josip", new MemoryStore("josip"), new KnowledgeBase(),
+            var josip = new Gossiper("josip", "Joey", new MemoryStore("josip"), new KnowledgeBase(),
                 new SuspicionTracker(), "night", 0.7, 0.45, 0.35);
             mill.Add(ruta); mill.Add(josip);
             var e = new EmpireBook();
@@ -1499,7 +1499,7 @@ namespace Ledger.CoreTests
             Check(mill.Leads("player").All(l => l.HolderId != "rocco"), "a leashed holder is no longer a lead");
 
             // Leash silences only player talk — other subjects still travel.
-            mill.Witness("rocco", new Fact("marek", "debt", "unpaid"), "Marek died owing the docks", false, now);
+            mill.Witness("rocco", new Fact("marek", "debt", "unpaid"), "Mickey died owing the docks", false, now);
             mill.Tick(now.AddMinutes(60));
             Check(lena.Holds("marek.debt", "unpaid"), "a leash does not silence talk about other people");
 
@@ -1545,7 +1545,7 @@ namespace Ledger.CoreTests
 
             var book2 = new BeatBook();
             var rocco = new Gossiper("Rocco", "Rocco", new MemoryStore("rocco"), new KnowledgeBase(), new SuspicionTracker(), "night", 0.6, 0.5, 0.6);
-            book2.Add(new Beat { Id = "toast", HostId = "Rocco", Title = "A drink for Marek", Day = 5, StartHour = 22, EndHour = 24 });
+            book2.Add(new Beat { Id = "toast", HostId = "Rocco", Title = "A drink for Mickey", Day = 5, StartHour = 22, EndHour = 24 });
             Check(book2.ResolveLapsed(_ => rocco, new GameTime(5, 23, 0)).Count == 0, "no lapse while the window is still open");
             double rBefore = rocco.Loyalty;
             var lapsed = book2.ResolveLapsed(_ => rocco, new GameTime(6, 0, 0));
@@ -2156,7 +2156,7 @@ namespace Ledger.CoreTests
 
             foreach (KeyKind kind in Enum.GetValues(typeof(KeyKind)))
             {
-                var gate = new Gate("room", "the room", "Halvard");
+                var gate = new Gate("room", "the room", "Hal");
                 gate.WithKey(new AccessKey(kind, 10, who: "dockside", dress: "plain"));
                 var r = Doors.Try(gate, StateFor(kind));
                 Check(r.Allowed, $"{kind} can actually open a door", kind.ToString());
@@ -2522,7 +2522,7 @@ namespace Ledger.CoreTests
             var e = new Economy();
             e.Suppliers.Add(new Supplier
             {
-                Id = "drayman", Name = "Mirek", Goods = "the drink",
+                Id = "drayman", Name = "Mitch", Goods = "the drink",
                 ServesBusinessId = null, PricePerWeek = 90,
             });
             e.Suppliers.Add(new Supplier
@@ -2701,7 +2701,7 @@ namespace Ledger.CoreTests
             var flush = new Wallet(100000);
             Check(lost.MakeAmends(mirek, flush, new GameTime(41, 9, 0), out var fixedLine) && !mirek.Refusing,
                 "paying what he asks brings him back");
-            Check(fixedLine.Contains("Mirek"), "and it is said as a person, not a status change");
+            Check(fixedLine.Contains("Mitch"), "and it is said as a person, not a status change");
             Check(!lost.MakeAmends(mirek, flush, new GameTime(42, 9, 0), out _),
                 "and there is nothing to fix twice");
 
@@ -3059,7 +3059,7 @@ namespace Ledger.CoreTests
             Func<string, string, bool> nobody = (who, where) => false;
 
             // No line at all.
-            var nowhere = book.Ring("customs_shed", "Halvard", noon, everyone);
+            var nowhere = book.Ring("customs_shed", "Hal", noon, everyone);
             Check(nowhere.Result == CallResult.NoLine, "some places still expect you to walk");
 
             // Out of hours the bell rings in an empty room.
@@ -3093,7 +3093,7 @@ namespace Ledger.CoreTests
             var rocco = new Gossiper("Rocco", "Rocco", null, null, null, "night", 0.5, 0.5, 0.6);
             mill.Add(rocco);
             int memories = rocco.Memory.Events.Count, rumors = rocco.Rumors.Count;
-            Check(book.LeaveMessage(wrongPerson, mill, "player", "Tell her Vrba called about the delivery.", noon),
+            Check(book.LeaveMessage(wrongPerson, mill, "player", "Tell her Novak called about the delivery.", noon),
                 "you can leave word with whoever answered");
             Check(rocco.Memory.Events.Count > memories, "and they remember taking it");
             Check(rocco.Rumors.Count > rumors, "and it enters the mill as talk, because that is what a message is");
@@ -3110,7 +3110,7 @@ namespace Ledger.CoreTests
             Check(!book.ReachableNow("Lena", new GameTime(3, 4, 0), everyone),
                 "and cannot at four in the morning");
             Check(!book.ReachableNow("Lena", noon, lenaOut), "or when she simply is not there");
-            Check(!book.ReachableNow("Halvard", noon, everyone), "somebody with no line is never on one");
+            Check(!book.ReachableNow("Hal", noon, everyone), "somebody with no line is never on one");
             Check(book.LinesFor("Sam").Count == 1 && book.LinesFor("nobody").Count == 0,
                 "you can ask what numbers somebody might be on");
 
@@ -3152,7 +3152,7 @@ namespace Ledger.CoreTests
             // The act opens on state, never on a date.
             Check(!ActThreeState.ShouldOpen(false, true, 3, 3), "Act III waits for the Table to be answered");
             Check(ActThreeState.ShouldOpen(true, true, 0, 0),
-                "then opens when Ossei can name the rackets");
+                "then opens when Ellis can name the rackets");
             Check(ActThreeState.ShouldOpen(true, false, 2, 1),
                 "or when the empire is too big for the bar to explain its own money");
             Check(!ActThreeState.ShouldOpen(true, false, 1, 1), "a small operation is still deniable");
@@ -3220,25 +3220,25 @@ namespace Ledger.CoreTests
             var both = Kingdom();
             both.BestDayLifeLoyalty = 0.8;
             both.DayCircleRacketHeat = 0.2;
-            both.OsseiCaseAnswerable = true;
+            both.EllisCaseAnswerable = true;
             Check(ActThreeState.Resolve(both) == Ending.Both, "manage every mouth on the street and you keep both");
 
             var loud = Kingdom();
-            loud.BestDayLifeLoyalty = 0.8; loud.DayCircleRacketHeat = 0.9; loud.OsseiCaseAnswerable = true;
+            loud.BestDayLifeLoyalty = 0.8; loud.DayCircleRacketHeat = 0.9; loud.EllisCaseAnswerable = true;
             Check(ActThreeState.Resolve(loud) != Ending.Both,
                 "but not if the day circle holds the rackets as fact", ActThreeState.Resolve(loud).ToString());
 
             var unanswered = Kingdom();
             unanswered.BestDayLifeLoyalty = 0.8; unanswered.DayCircleRacketHeat = 0.2;
-            unanswered.OsseiCaseAnswerable = false;
+            unanswered.EllisCaseAnswerable = false;
             Check(ActThreeState.Resolve(unanswered) != Ending.Both,
-                "and not with Ossei's case still standing", ActThreeState.Resolve(unanswered).ToString());
+                "and not with Ellis's case still standing", ActThreeState.Resolve(unanswered).ToString());
 
             // The Quiet Ending outranks everything, because it is the only one
             // you cannot arrive at by accident.
             var quiet = Kingdom();
             quiet.BestDayLifeLoyalty = 0.8; quiet.DayCircleRacketHeat = 0.2;
-            quiet.OsseiCaseAnswerable = true;
+            quiet.EllisCaseAnswerable = true;
             quiet.HasReadySuccessor = true; quiet.HandedOver = true; quiet.SuccessorName = "Sam";
             Check(ActThreeState.Eligible(quiet).Contains(Ending.Both), "several endings can be live at once");
             Check(ActThreeState.Resolve(quiet) == Ending.Quiet, "and handing it over outranks keeping it");
@@ -3373,7 +3373,7 @@ namespace Ledger.CoreTests
             {
                 BusinessesOwned = 1, RacketsEstablished = 1, CrewCount = 2,
                 BestDayLifeLoyalty = 0.6, DayCircleRacketHeat = 0.3,
-                OsseiCaseAnswerable = false,
+                EllisCaseAnswerable = false,
                 TotalWashed = 900, TotalRacketIncome = 1000, BarTakingsToDate = 3000,
                 HasReadySuccessor = true,
             };
@@ -3413,9 +3413,9 @@ namespace Ledger.CoreTests
             // Heat only decides anything where Both is otherwise live — it is
             // one of the two halves of "the information landscape was managed",
             // and the other half is the deflection.
-            Reads("DayCircleRacketHeat", w => w.OsseiCaseAnswerable = true,
+            Reads("DayCircleRacketHeat", w => w.EllisCaseAnswerable = true,
                 w => w.DayCircleRacketHeat = 0.95);
-            Reads("OsseiCaseAnswerable", null, w => w.OsseiCaseAnswerable = true);
+            Reads("EllisCaseAnswerable", null, w => w.EllisCaseAnswerable = true);
             Reads("TotalWashed", null, w => w.TotalWashed = 0, w => w.TotalWashed = 9000);
             Reads("TotalRacketIncome", null, w => w.TotalRacketIncome = 9000);
             Reads("BarTakingsToDate", null, w => w.BarTakingsToDate = 1);
@@ -3449,7 +3449,7 @@ namespace Ledger.CoreTests
             {
                 var baseline = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400 };
                 var moved = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, LedgersMoved = true };
-                var pointed = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, OsseiCaseAnswerable = true };
+                var pointed = new LedgerState { TotalRacketIncome = 2000, TotalWashed = 200, BarTakingsToDate = 400, EllisCaseAnswerable = true };
                 double easeMoved = ActThreeState.SeenStrain(baseline) - ActThreeState.SeenStrain(moved);
                 double easePointed = ActThreeState.SeenStrain(baseline) - ActThreeState.SeenStrain(pointed);
                 Check(easeMoved > easePointed + 1e-9,
@@ -3487,14 +3487,14 @@ namespace Ledger.CoreTests
         static void TestBooksMustHold()
         {
             // A player who did everything else right: big empire, a friend who
-            // still counts them, the street quiet, Ossei answered — and books
+            // still counts them, the street quiet, Ellis answered — and books
             // that describe a business which does not exist.
             LedgerState Ruinous()
             {
                 var s = Kingdom();
                 s.BestDayLifeLoyalty = 0.8;
                 s.DayCircleRacketHeat = 0.2;
-                s.OsseiCaseAnswerable = true;
+                s.EllisCaseAnswerable = true;
                 s.TotalWashed = 0;            // every coin of racket income unexplained
                 s.TotalRacketIncome = 4000;
                 return s;
@@ -3515,7 +3515,7 @@ namespace Ledger.CoreTests
             // that it should not be reachable on a first playthrough.
             var mitigated = Ruinous();
             mitigated.Cooperations = 5;
-            mitigated.OsseiCaseAnswerable = true;
+            mitigated.EllisCaseAnswerable = true;
             Check(ActThreeState.SeenStrain(mitigated) < LedgerState.BooksHoldThreshold,
                 "handling it well does save ruinous books from being read",
                 ActThreeState.SeenStrain(mitigated).ToString("0.00"));
@@ -3615,7 +3615,7 @@ namespace Ledger.CoreTests
                 var s = Kingdom();
                 s.BestDayLifeLoyalty = 0.2;      // the life is already gone
                 s.DayCircleRacketHeat = 0.8;
-                s.OsseiCaseAnswerable = false;   // no deflection easing it
+                s.EllisCaseAnswerable = false;   // no deflection easing it
                 s.TotalWashed = 1000; s.TotalRacketIncome = 3000; s.BarTakingsToDate = 9000;
                 s.Cooperations = coop; s.Stonewalls = stone;
                 return s;
@@ -3637,7 +3637,7 @@ namespace Ledger.CoreTests
             // Pointing the case elsewhere also eases what gets read — they do
             // not look as hard at a business they have stopped suspecting.
             var deflected = Marginal(0, 0);
-            deflected.OsseiCaseAnswerable = true;
+            deflected.EllisCaseAnswerable = true;
             Check(ActThreeState.SeenStrain(deflected) < bare,
                 "and a case pointed elsewhere is a case read less carefully");
 
@@ -3731,13 +3731,13 @@ namespace Ledger.CoreTests
             var e = new EmpireBook();
             e.Businesses.Add(new Business
             {
-                Id = "shop", Name = "shop", OwnerId = "Ruta", AskPrice = 400,
+                Id = "shop", Name = "shop", OwnerId = "Rita", AskPrice = 400,
                 CleanIncomePerDay = 20, LaunderPerDay = 60, Owned = true, AcquiredVia = "clean",
             });
             e.Rackets.Add(new Racket { Id = "collection", Name = "rounds", Established = true, RunnerId = "Sam" });
             e.Crew.Add(new CrewMember { Id = "Sam", Name = "Sam", Assignment = "collection", Cut = "skim" });
             e.Crew.Add(new CrewMember { Id = "Rocco", Name = "Rocco", Cut = "generous" });
-            foreach (var id in new[] { "Ruta", "Sam", "Rocco" })
+            foreach (var id in new[] { "Rita", "Sam", "Rocco" })
                 mill.Add(new Gossiper(id, id, new MemoryStore(id), new KnowledgeBase(), new SuspicionTracker())
                     { Loyalty = 0.6 });
 
@@ -3753,7 +3753,7 @@ namespace Ledger.CoreTests
             // §6.5 rule holding right up to the last day.
             Check(mill.Get("Rocco").Loyalty > mill.Get("Sam").Loyalty,
                 "a fair cut is remembered kindly even when the job ends");
-            Check(mill.Get("Ruta").Memory.Events.Count > 0, "and the seller remembers who sold back at a loss");
+            Check(mill.Get("Rita").Memory.Events.Count > 0, "and the seller remembers who sold back at a loss");
         }
 
         // ---------------------------------------------------------------
@@ -3764,16 +3764,16 @@ namespace Ledger.CoreTests
         {
             Console.WriteLine("Identity — the street learns your name:");
             var me = new PlayerIdentity();
-            Check(me.Full == "Tomas Vrba", "the protagonist has a name at last", me.Full);
-            Check(me.BenefactorFirst == "Marek", "and the uncle who left him the bar is still Marek");
+            Check(me.Full == "Tom Novak", "the protagonist has a name at last", me.Full);
+            Check(me.BenefactorFirst == "Mickey", "and the uncle who left him the bar is still Mickey");
 
             // THE DESIGN DECISION. "The new owner" was never a placeholder — it
             // is what people call you before they know you, and this is a game
             // about being known. So it survives, as the bottom of a gradient.
             Check(me.AddressBy(knowsName: false, closeness: 1.0) == "the new owner",
                 "somebody who has not placed you calls you the new owner, however much they like you");
-            Check(me.AddressBy(true, 0.1) == "Vrba", "once they know you, you are a fact on this street");
-            Check(me.AddressBy(true, 0.5) == "Tomas", "people who decided about you use your name");
+            Check(me.AddressBy(true, 0.1) == "Novak", "once they know you, you are a fact on this street");
+            Check(me.AddressBy(true, 0.5) == "Tom", "people who decided about you use your name");
             Check(me.AddressBy(true, 0.9) == "Toma", "and two or three people, ever, use the short one");
 
             // The gate is knowing, not liking — someone can think well of you
@@ -3783,7 +3783,7 @@ namespace Ledger.CoreTests
 
             // Talk travels further than acquaintance: a rumor can carry your
             // surname into mouths that never met you.
-            Check(me.InTalk(true) == "Vrba" && me.InTalk(false) == "the new owner",
+            Check(me.InTalk(true) == "Novak" && me.InTalk(false) == "the new owner",
                 "a name gets around a district ahead of the person");
 
             // From a real person.
@@ -3792,7 +3792,7 @@ namespace Ledger.CoreTests
             Check(!PlayerIdentity.KnowsName(stranger), "somebody who has never noticed you does not know your name");
             Check(me.AddressBy(stranger) == "the new owner", "and calls you what the street calls you");
             stranger.Memory.Append(new MemoryEvent(new GameTime(1, 9, 0), "conversation", 0.5,
-                "Talked to the one who took over Marek's place."));
+                "Talked to the one who took over Mickey's place."));
             Check(PlayerIdentity.KnowsName(stranger), "one memory of you is enough to learn it");
             Check(me.AddressBy(stranger) == "Toma", "and a friend uses the short one", me.AddressBy(stranger));
             Check(me.AddressBy((Gossiper)null) == "the new owner", "asking about nobody is safe");
@@ -3955,7 +3955,7 @@ namespace Ledger.CoreTests
             Console.WriteLine("Purses — willing is not the same as able:");
             var book = new PurseBook();
             book.Add(new Purse { OwnerId = "sam", Name = "Sam", Weekly = 60, Ceiling = 95, Cash = 45, PatronId = "danica" });
-            book.Add(new Purse { OwnerId = "danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
+            book.Add(new Purse { OwnerId = "danica", Name = "Donna", Weekly = 220, Ceiling = 520, Cash = 380 });
 
             // THE POINT OF THE WHOLE SYSTEM: you get what is there, never more.
             var part = book.Take("sam", 120, day: 1);
@@ -4077,8 +4077,8 @@ namespace Ledger.CoreTests
 
             // Overnight, the emptied debtor goes to whoever they have.
             purses.Of("sam").PatronId = "danica";
-            purses.Add(new Purse { OwnerId = "danica", Name = "Danica", Weekly = 220, Ceiling = 520, Cash = 380 });
-            mill.Add(new Gossiper("danica", "Danica", null, null, null, "day", 0.5, 0.5, 0.5));
+            purses.Add(new Purse { OwnerId = "danica", Name = "Donna", Weekly = 220, Ceiling = 520, Cash = 380 });
+            mill.Add(new Gossiper("danica", "Donna", null, null, null, "day", 0.5, 0.5, 0.5));
             int memoriesBefore = sam.Memory.Events.Count;
             var went = debts.NightBorrowing(purses, mill, new GameTime(3, 2, 0));
             Check(went.Count == 1 && went[0] == "sam", "the man you emptied goes and asks somebody");
@@ -4446,11 +4446,11 @@ namespace Ledger.CoreTests
         /// The back room at the ferry: four ways in, each costing something else.
         static Gate BackRoom()
         {
-            var g = new Gate("backroom", "the back room at the ferry", "Halvard's man")
+            var g = new Gate("backroom", "the back room at the ferry", "Hal's man")
             {
                 Refusal = "\"Private tonight,\" he says, and does not move.",
             };
-            g.WithKey(new AccessKey(KeyKind.Introduction, who: "Halvard"));
+            g.WithKey(new AccessKey(KeyKind.Introduction, who: "Hal"));
             g.WithKey(new AccessKey(KeyKind.Standing, 40, who: "dockside"));
             g.WithKey(new AccessKey(KeyKind.Payment, 60));
             g.WithKey(new AccessKey(KeyKind.Dress, dress: "plain"));
@@ -4472,8 +4472,8 @@ namespace Ledger.CoreTests
             // Four ways in, each independently sufficient. This is the law of
             // multiple solutions, enforced structurally rather than remembered.
             var introduced = new AccessState { Dress = "coat", Money = 0, Hour = 21 };
-            introduced.Introductions.Add("Halvard");
-            Check(Doors.Try(gate, introduced).Allowed, "a word from Halvard is enough");
+            introduced.Introductions.Add("Hal");
+            Check(Doors.Try(gate, introduced).Allowed, "a word from Hal is enough");
 
             var standing = new AccessState { Dress = "coat", Money = 0, Hour = 21 };
             standing.Standing["dockside"] = 0.5;
@@ -4488,7 +4488,7 @@ namespace Ledger.CoreTests
             // The cheapest key held wins. A player holding both an introduction
             // and sixty dollars must not silently spend the sixty dollars.
             var both = new AccessState { Dress = "coat", Money = 100, Hour = 21 };
-            both.Introductions.Add("Halvard");
+            both.Introductions.Add("Hal");
             var chose = Doors.Try(gate, both);
             Check(chose.Allowed && chose.Used.Kind == KeyKind.Introduction,
                 "a free way in is taken over a costly one", chose.Used.Kind.ToString());
@@ -4615,7 +4615,7 @@ namespace Ledger.CoreTests
         {
             var s = new OperationState { Heat = 0.2, Nerve = 0.5, Coated = true };
             s.Competence["Sam"] = 0.6;  s.Loyalty["Sam"] = 0.8;
-            s.Competence["Josip"] = 0.7; s.Loyalty["Josip"] = 0.7;
+            s.Competence["Joey"] = 0.7; s.Loyalty["Joey"] = 0.7;
             s.Competence["Ada"] = 0.15;  s.Loyalty["Ada"] = 0.9;
             return s;
         }
@@ -4643,7 +4643,7 @@ namespace Ledger.CoreTests
             Check(forced < baseline, "forcing it is more likely to work than doing it quietly");
 
             double withHands = Operations.Read(
-                new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 }.Bringing("Josip"),
+                new OperationPlan("x") { Approach = Approach.Quiet, Hour = 23 }.Bringing("Joey"),
                 Warehouse(), state).Risk;
             Check(withHands < baseline, "bringing a competent man helps");
 
@@ -4702,7 +4702,7 @@ namespace Ledger.CoreTests
             var daylight = Operations.Read(new OperationPlan("x") { Approach = Approach.Forced, Hour = 12 }, Warehouse(), bare);
             Check(daylight.Worry.Contains("daylight"), "so is a bad hour", daylight.Worry);
             var crowded = Operations.Read(
-                new OperationPlan("x") { Hour = 3 }.Bringing("Sam", "Josip", "Ada", "Sam"), Warehouse(), Steady());
+                new OperationPlan("x") { Hour = 3 }.Bringing("Sam", "Joey", "Ada", "Sam"), Warehouse(), Steady());
             Check(crowded.Worry.Contains("Four people"),
                 "and a plan with too many people in it names the crowd as the problem", crowded.Worry);
 
@@ -4959,9 +4959,9 @@ namespace Ledger.CoreTests
             var w = new WorldSnapshot { Day = day, Heat = 0.5, Street = "tight, prices up" };
             w.People.Add(new WorldPerson("Lena", "bookkeeper", 0.6, 0.55, "counts money she can't explain"));
             w.People.Add(new WorldPerson("Sam", "crew", 0.35, 0.2, "has been skimmed three weeks running"));
-            w.People.Add(new WorldPerson("Mirek", "supplier", 0.4, 0.1, "owed for two deliveries"));
+            w.People.Add(new WorldPerson("Mitch", "supplier", 0.4, 0.1, "owed for two deliveries"));
             w.People.Add(new WorldPerson("Sera Kest", "rival head", 0.1, 0.6));
-            w.Ignored.Add("Mirek has not been paid since day 4");
+            w.Ignored.Add("Mitch has not been paid since day 4");
             w.Recent.Add("the collection round paid out every night this week");
             return w;
         }
@@ -4985,10 +4985,10 @@ namespace Ledger.CoreTests
             var w = SampleWorld();
 
             // A pressure the state justifies, naming people who exist.
-            var ok = d.Validate("{\"kind\":\"demand\",\"who\":\"Mirek\",\"day\":14,\"hour\":9,\"amount\":180," +
-                "\"line\":\"Mirek came by early and said he would like the money for the last two loads.\"," +
-                "\"because\":\"Mirek has not been paid since day 4\"}", w);
-            Check(ok.Kind == Pressures.Demand && ok.Who == "Mirek" && ok.Amount == 180, "a justified demand is scheduled");
+            var ok = d.Validate("{\"kind\":\"demand\",\"who\":\"Mitch\",\"day\":14,\"hour\":9,\"amount\":180," +
+                "\"line\":\"Mitch came by early and said he would like the money for the last two loads.\"," +
+                "\"because\":\"Mitch has not been paid since day 4\"}", w);
+            Check(ok.Kind == Pressures.Demand && ok.Who == "Mitch" && ok.Amount == 180, "a justified demand is scheduled");
             Check(ok.FireDay == 14 && ok.IsSomething, "and it has a day");
 
             // The boundary. A person who does not exist cannot be given a pressure.
@@ -5053,7 +5053,7 @@ namespace Ledger.CoreTests
             Check(!d.ShouldRun(w, w.Day - 1), "and not the night after it last did");
             Check(d.ShouldRun(w, w.Day - 5), "but does again once enough has happened");
             var busy = SampleWorld();
-            busy.InFlight.Add("a demand from Mirek on day 14");
+            busy.InFlight.Add("a demand from Mitch on day 14");
             busy.InFlight.Add("a meeting on day 15");
             Check(!d.ShouldRun(busy, -1), "and never stacks a third pressure onto two already coming");
             Check(!d.ShouldRun(new WorldSnapshot { Day = 5 }, -1), "an empty world gives it nothing to read");
@@ -5074,12 +5074,12 @@ namespace Ledger.CoreTests
             Check(book.InFlightLines().Count == 2, "and both report themselves as in flight");
             Check(book.Due(new GameTime(13, 9, 0)).Count == 0, "nothing is due before its day");
             var due = book.Due(new GameTime(14, 9, 0));
-            Check(due.Count == 1 && due[0].Who == "Mirek", "the day's pressure comes due");
+            Check(due.Count == 1 && due[0].Who == "Mitch", "the day's pressure comes due");
             Check(book.Due(new GameTime(14, 23, 0)).Count == 0, "and comes due exactly once, however often it is polled");
             Check(book.Pending.Count == 1, "the rest waits its turn");
 
             book.LastRunDay = 12;
-            book.History.Add("Mirek asked for his money.");
+            book.History.Add("Mitch asked for his money.");
             var twin = new DirectorBook();
             twin.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(book.Capture()))));
             Check(twin.Pending.Count == 1 && twin.Pending[0].Kind == Pressures.Meeting, "a scheduled pressure survives a save");

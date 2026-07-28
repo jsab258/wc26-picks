@@ -1,7 +1,7 @@
 # LEDGER AI playtest report (fake mode)
 
 ## 1. Memory within a session
-> **You:** Hi. I'm Viktor, Marek's nephew. I just got in from Rotterdam this morning.
+> **You:** Hi. I'm Victor, Mickey's nephew. I just got in from Rotterdam this morning.
 > **Lena:** Hm. Noted.
 >
 > **You:** I used to fix boat engines for a living, believe it or not.
@@ -104,7 +104,7 @@
 - ✅ the squeeze context reaches the system prompt
 - ✅ his memory of the signing is retrieved into the prompt
 - ✅ guardrails survive alongside the empire context
-> **You:** Morning, Viktor. How's my shop?
+> **You:** Morning, Victor. How's my shop?
 > **Lena:** Hm. Noted.
 >
 - ✅ the recruit is funded and joins

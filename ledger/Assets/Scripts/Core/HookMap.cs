@@ -35,7 +35,7 @@ namespace Ledger.Core
             P("crossing",        "the crossing",               0,  -8, "corner"),
 
             // The district (planned; geometry in the build-out).
-            P("pawnshop",        "Ruta's pawnshop",          -28,  -6, "business", true),
+            P("pawnshop",        "Rita's pawnshop",          -28,  -6, "business", true),
             P("chapel",          "Father Emil's chapel",     -34,  10, "landmark", true),
             P("ferry_stop",      "the ferry stop",            30,  18, "landmark", true),
             P("cab_rank",        "the cab rank",              24, -10, "corner",   true),
@@ -56,7 +56,7 @@ namespace Ledger.Core
             //
             // Every one of these is somewhere money changes hands in NOTES, which
             // is the point of putting the district here at all: this is where
-            // finite purses and Marek's book bite hardest, because nobody on this
+            // finite purses and Mickey's book bite hardest, because nobody on this
             // street keeps their money anywhere you could subpoena it.
             P("covered_market",  "the covered market",         -6, 102, "landmark", true),
             P("weighhouse",      "the weighhouse",            -22, 104, "business", true),

@@ -15,13 +15,13 @@ namespace Ledger.Game
 
             e.Businesses.Add(new Business
             {
-                Id = "pawnshop", Name = "pawnshop", OwnerId = "Viktor", PlaceId = "pawnshop",
+                Id = "pawnshop", Name = "pawnshop", OwnerId = "Victor", PlaceId = "pawnshop",
                 AskPrice = 900, DebtPrice = 250, SecretId = "viktor_skim",
                 CleanIncomePerDay = 60, LaunderPerDay = 80,
             });
             e.Businesses.Add(new Business
             {
-                Id = "stall", Name = "market stall", OwnerId = "Mirela", PlaceId = "market_corner",
+                Id = "stall", Name = "market stall", OwnerId = "Marla", PlaceId = "market_corner",
                 AskPrice = 500, DebtPrice = 0, SecretId = "mirela_scale",
                 CleanIncomePerDay = 40, LaunderPerDay = 30,
             });
@@ -34,7 +34,7 @@ namespace Ledger.Game
             });
             e.Businesses.Add(new Business
             {
-                Id = "bakery", Name = "corner bakery", OwnerId = "Danica", PlaceId = "bakery",
+                Id = "bakery", Name = "corner bakery", OwnerId = "Donna", PlaceId = "bakery",
                 AskPrice = 550, DebtPrice = 150, SecretId = "danica_batch",
                 CleanIncomePerDay = 45, LaunderPerDay = 25,
             });
@@ -47,7 +47,7 @@ namespace Ledger.Game
             {
                 Id = "protection", Name = "protection round", IncomePerDay = 80, BaseRisk = 0.5,
             });
-            // Ruta's line: the best pay on the street, and it needs the shop —
+            // Rita's line: the best pay on the street, and it needs the shop —
             // no fencing without a front to move it through.
             e.Rackets.Add(new Racket
             {
@@ -58,9 +58,9 @@ namespace Ledger.Game
             // The organizations are made of people who already walk this street
             // (§6.5). Recruiting any of them is poaching, with consequences —
             // and every one of them has a card, a need, and a secret already.
-            e.ArmOf("dockside").Members.AddRange(new[] { "Josip", "Ferko" });
+            e.ArmOf("dockside").Members.AddRange(new[] { "Joey", "Ferko" });
             e.ArmOf("machine").Members.Add("Tibor");   // the stamp in the customs shed
-            e.ArmOf("newcrew").Members.Add("Ruta");    // the kid taxes her; Danny counts her as his
+            e.ArmOf("newcrew").Members.Add("Rita");    // the kid taxes her; Danny counts her as his
 
             return e;
         }
@@ -74,16 +74,16 @@ namespace Ledger.Game
             {
                 case "Sam":
                     cost = 120; line = "Sam's need has always been simple: cash, counted twice."; return true;
-                case "Josip":
+                case "Joey":
                     cost = 100; line = "A letter on good paper, a name Downtown: his daughter gets her interview."; return true;
-                case "Mirela":
+                case "Marla":
                     cost = 150; line = "You send someone to have a word with her supplier. The crates arrive full weight from now on."; return true;
-                case "Viktor":
-                    cost = 200; line = "You quietly clear a slice of Viktor's gambling marker."; return true;
+                case "Victor":
+                    cost = 200; line = "You quietly clear a slice of Victor's gambling marker."; return true;
                 case "Ferko":
                     cost = 80; line = "You hire Ferko's cab for a week, paid up front — the fare he'll be retelling for a year."; return true;
-                case "Ruta":
-                    cost = 150; line = "Someone has a word with the Strip kid who's been taxing Ruta's rounds. He finds other rounds."; return true;
+                case "Rita":
+                    cost = 150; line = "Someone has a word with the Strip kid who's been taxing Rita's rounds. He finds other rounds."; return true;
                 case "Vesna":
                     cost = 60; line = "Vesna's nephew gets steady shifts at the bar, and nobody asks him anything."; return true;
                 case "Tibor":

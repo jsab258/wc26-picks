@@ -9,7 +9,7 @@ skeleton, and authored meaning lays over it. Every pressure point fires on
 CONDITIONS. No dates, no timers.
 
 **Act III opens** when the Table has been answered (Act II's PP7) AND one of
-the two ledgers has become undeniable — Ossei's case is strong enough to name
+the two ledgers has become undeniable — Ellis's case is strong enough to name
 the rackets, or the empire is large enough that the bar cannot explain its own
 money. The question Act I asked was *what did you inherit*. Act II asked *how
 big can this get before the lives touch*. Act III asks the only question left:
@@ -44,7 +44,7 @@ case the player's last decisions choose between them.
 
 | | **Empire survives** | **Empire lost** |
 |---|---|---|
-| **Life survives** | **Both** — hardest. Requires the information landscape actively managed: the day circle must not hold the rackets as fact, and Ossei's case must be answerable. | **The Straight Life** — you give up the business to keep the people. |
+| **Life survives** | **Both** — hardest. Requires the information landscape actively managed: the day circle must not hold the rackets as fact, and Ellis's case must be answerable. | **The Straight Life** — you give up the business to keep the people. |
 | **Life lost** | **The Kingdom** — you keep everything you built and nobody is left who knew you before it. | **Burn Both** — the ledger takes it all. |
 
 And the fifth, which is the one the design doc calls out specially and the one
@@ -64,7 +64,7 @@ Deliberately expressed in state the game already tracks, so none of this is a
 new subsystem:
 
 - **Both** — day-circle heat about the rackets below the fact threshold, AND
-  Ossei's case answerable (her strongest lead discredited, bought, or
+  Ellis's case answerable (her strongest lead discredited, bought, or
   contradicted), AND at least one day-life relationship still above trust.
   Very hard. Should be rare and should feel earned rather than lucky.
 - **The Kingdom** — empire intact, every day-life loyalty below trust or
@@ -101,7 +101,7 @@ the project stated as a mechanic. If her loyalty is low she says less; if she
 has been skimmed or lied to, she says almost nothing and is not lying about
 why.
 
-**PP3 — Ossei's Offer (fires: Ossei's case strength above the naming
+**PP3 — Ellis's Offer (fires: Ellis's case strength above the naming
 threshold).**
 She does not arrest anybody. She offers a trade, in her own voice: somebody
 else. Give her the arm that has been hardest on you — Sera's dockside, the
@@ -161,7 +161,7 @@ answer themselves.**
    second one is for.
 2. **The Quiet Ending's epilogue is watch-only.** No verbs. Three days, and
    you are not in charge of them.
-3. **You CAN refuse Ossei and still reach "Both"** — but only through the
+3. **You CAN refuse Ellis and still reach "Both"** — but only through the
    information landscape. That makes refusing her the hardest and most
    interesting line in the act, which is the point of allowing it.
 

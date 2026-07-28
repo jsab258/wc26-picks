@@ -16,13 +16,13 @@ route through the generation pipeline rather than being cut.
 
 ### Witnesses report crimes to authority  `KCD2` · cost M · domain simulation
 - **What:** An NPC who witnesses a crime actively seeks out a guard and files a report, which triggers a bounded investigation rather than instant omniscient pursuit.
-- **LEDGER mapping:** Today drop witnesses feed ambient gossip and statistical heat. Add a directed edge: witness facts about drops route toward cop-nodes and into Detective Ossei's markdown memory on schedule intersection, with the mill's existing hop delay. Heat becomes literally 'what witnesses actually saw and told' (§6.5's own words). Counterplay is the existing verbs — pay off or intimidate the witness during the hop window, before the report lands.
-- **Why:** M4 builds Ossei anyway; this makes her knowledge memory-backed instead of heat-meter-backed, honoring claim #2 and P2. It also creates the race-against-the-hop tension the gossip mill was built to deliver — the player watching the Ledger UI wondering whether the witness has talked yet is the game's core fantasy, aimed at the law.
+- **LEDGER mapping:** Today drop witnesses feed ambient gossip and statistical heat. Add a directed edge: witness facts about drops route toward cop-nodes and into Detective Ellis's markdown memory on schedule intersection, with the mill's existing hop delay. Heat becomes literally 'what witnesses actually saw and told' (§6.5's own words). Counterplay is the existing verbs — pay off or intimidate the witness during the hop window, before the report lands.
+- **Why:** M4 builds Ellis anyway; this makes her knowledge memory-backed instead of heat-meter-backed, honoring claim #2 and P2. It also creates the race-against-the-hop tension the gossip mill was built to deliver — the player watching the Ledger UI wondering whether the witness has talked yet is the game's core fantasy, aimed at the law.
 
 ### Police search AI (last-known-position, canvassing)  `GTA5` · cost M · domain simulation
 - **What:** Police search intelligently around the player's last known position, canvassing the area rather than tracking the player psychically.
-- **LEDGER mapping:** Invert it into Ossei-as-agent-in-the-gossip-graph: her AI is a retrieval policy — visit the drop site, schedule interviews with NPCs whose memory files hold relevant facts, corroborate (raising heat exactly the way the mill already computes corroborating heat), confront on threshold. Player counterplay targets her sources, not her: discredit a witness before her interview lands, plant a counter-story she will retrieve, spend a hook on someone in her chain.
-- **Why:** The best adopt in this domain. It is cheap because the mill already stores who-knows-what — Ossei is a gossip node with agency. It turns M4's scheduled Ossei from a heat-triggered appearance into claim #2 made antagonist-shaped, and 'police AI as fact-collection instead of radius-search' is a genuine inversion of the GTA form that only LEDGER's architecture can do. She must obey the same rule as everyone: she acts on what her memory file contains, never on ground truth.
+- **LEDGER mapping:** Invert it into Ellis-as-agent-in-the-gossip-graph: her AI is a retrieval policy — visit the drop site, schedule interviews with NPCs whose memory files hold relevant facts, corroborate (raising heat exactly the way the mill already computes corroborating heat), confront on threshold. Player counterplay targets her sources, not her: discredit a witness before her interview lands, plant a counter-story she will retrieve, spend a hook on someone in her chain.
+- **Why:** The best adopt in this domain. It is cheap because the mill already stores who-knows-what — Ellis is a gossip node with agency. It turns M4's scheduled Ellis from a heat-triggered appearance into claim #2 made antagonist-shaped, and 'police AI as fact-collection instead of radius-search' is a genuine inversion of the GTA form that only LEDGER's architecture can do. She must obey the same rule as everyone: she acts on what her memory file contains, never on ground truth.
 
 ### Conspicuousness and carried evidence (bloody/dirty clothing)  `KCD2` · cost S · domain simulation
 - **What:** The player's appearance state — blood, dirt, dress quality — changes how NPCs perceive, trust, and comment on them.
@@ -61,8 +61,8 @@ route through the generation pipeline rather than being cut.
 
 ### Diegetic UI minimalism — no floating meters  `KCD2` · cost S · domain presentation
 - **What:** KCD2 ships near-zero HUD: no floating markers or bars; state is read from the world and from menus framed as period objects.
-- **LEDGER mapping:** Lock as a UI constitution before M4 adds suspicion thresholds, hooks, and Ossei: suspicion is never a visible number or icon over a head — you read it in the LLM's performance (probing questions, cooled tone) and in loyal-NPC warnings; hooks and leads surface only in the Ledger book; no minimap rumor pings. The Ledger UI stays the single aggregation point and it is already belief-only, never ground truth.
-- **Why:** Directly protects claims 1 and 2: floating suspicion meters would reduce LLM characters back to bars-with-faces and leak ground truth the doc explicitly forbids. The cost is a written principle plus restraint, but the timing is urgent — M4 (thresholded confrontations, Ossei, hooks) is exactly when a lazy debug meter becomes shipped UI. Cheapest feature on this list per unit of identity.
+- **LEDGER mapping:** Lock as a UI constitution before M4 adds suspicion thresholds, hooks, and Ellis: suspicion is never a visible number or icon over a head — you read it in the LLM's performance (probing questions, cooled tone) and in loyal-NPC warnings; hooks and leads surface only in the Ledger book; no minimap rumor pings. The Ledger UI stays the single aggregation point and it is already belief-only, never ground truth.
+- **Why:** Directly protects claims 1 and 2: floating suspicion meters would reduce LLM characters back to bars-with-faces and leak ground truth the doc explicitly forbids. The cost is a written principle plus restraint, but the timing is urgent — M4 (thresholded confrontations, Ellis, hooks) is exactly when a lazy debug meter becomes shipped UI. Cheapest feature on this list per unit of identity.
 
 ### Ambient street chatter as the literal gossip mill  `genre-generic` · cost M · domain presentation
 - **What:** GTA5-style pedestrian chatter, upgraded: overheard NPC conversations whose content is the actual simulation state.
@@ -81,7 +81,7 @@ route through the generation pipeline rather than being cut.
 
 ### Multi-system quest solutions  `KCD2` · cost S · domain narrative-encounters
 - **What:** Every quest is solvable through several independent systems — persuade, bribe, steal, fight, reputation.
-- **LEDGER mapping:** An authoring rule for conflict beats and M4's Ossei confrontations: every beat must accept at least three shipped verbs (bribe/intimidate/discredit/lie-low/confess/plant doubt) plus one knowledge solve — a previously learned secret spent as a hook trumps the trait check.
+- **LEDGER mapping:** An authoring rule for conflict beats and M4's Ellis confrontations: every beat must accept at least three shipped verbs (bribe/intimidate/discredit/lie-low/confess/plant doubt) plus one knowledge solve — a previously learned secret spent as a hook trumps the trait check.
 - **Why:** LEDGER already owns the verb set and the trait-gated resolution; KCD2's lesson here is discipline, not machinery. The mandatory knowledge-solve is what turns claim #3 (secrets are loot) from a system into felt progression — the confrontation you breeze past because of what you learned on day 2 — and it costs authoring rules, not code.
 
 ### Camp-companion ambient dialogue (the bar as camp)  `RDR2` · cost M · domain narrative-encounters
@@ -97,7 +97,7 @@ route through the generation pipeline rather than being cut.
 ### NPC-initiated encounters  `RDR2` · cost M · domain narrative-encounters
 - **What:** Characters seek the player out on their own initiative to confront, warn, or invite.
 - **LEDGER mapping:** Give M4's suspicion thresholds (probe → verify → confront) and loyalty warnings a body: past a threshold, the NPC's schedule spawns a seek-player task and the scene happens on their timing at your location — suspicion stops being a number and starts walking through your door.
-- **Why:** It's the physicalization of section 6.4 already scheduled for M4, and the strongest dread mechanic the game can own: Detective Ossei sitting at your bar unannounced is claim #2's set-piece, generated rather than scripted. GTA5 did this with phone nags; LEDGER can do it with feet and schedules.
+- **Why:** It's the physicalization of section 6.4 already scheduled for M4, and the strongest dread mechanic the game can own: Detective Ellis sitting at your bar unannounced is claim #2's set-piece, generated rather than scripted. GTA5 did this with phone nags; LEDGER can do it with feet and schedules.
 
 ## Adopt at the vertical slice
 
@@ -153,7 +153,7 @@ route through the generation pipeline rather than being cut.
 
 ### Consequences that surface days later  `KCD2` · cost M · domain narrative-encounters
 - **What:** Actions trigger delayed follow-ups — steal from a merchant and guards question you a day later; kindness returns as a gift.
-- **LEDGER mapping:** 'Consequence beats': conflict beats whose fire conditions are elapsed-days plus mill/hook state — the witness you bribed on day 2 returns for more on day 5, the man you discredited tells his version to Ossei — using the existing beat-trigger machinery plus a day-offset condition that queries the mill.
+- **LEDGER mapping:** 'Consequence beats': conflict beats whose fire conditions are elapsed-days plus mill/hook state — the witness you bribed on day 2 returns for more on day 5, the man you discredited tells his version to Ellis — using the existing beat-trigger machinery plus a day-offset condition that queries the mill.
 - **Why:** The slice's 7 days of Act I live or die on day-6 payoffs of day-2 choices; this makes claim #1 legible (memory-forever means the bill arrives late) and it's cheap because the mill already stores the who/what/when. Author 6-10 of these for the slice — they are the difference between a week and seven disconnected days.
 
 ### Stranger arcs across chapters  `RDR2` · cost M · domain narrative-encounters
@@ -190,7 +190,7 @@ route through the generation pipeline rather than being cut.
 
 ### Protection racket as operating loop  `genre-generic` · cost L · domain economy-activities
 - **What:** Collect regular payments from local businesses in exchange for security against rivals and misfortune.
-- **LEDGER mapping:** Each protected shopkeeper is a named individual paying out of fear or earned loyalty (§6.5's distinction), collections are calendar obligations competing for P1 time slots, a rival leaning on your street is an attack on relationships not map paint (§7 territory-is-social), and protected shopkeepers are witness nodes whose disposition decides what reaches Ossei.
+- **LEDGER mapping:** Each protected shopkeeper is a named individual paying out of fear or earned loyalty (§6.5's distinction), collections are calendar obligations competing for P1 time slots, a rival leaning on your street is an attack on relationships not map paint (§7 territory-is-social), and protected shopkeepers are witness nodes whose disposition decides what reaches Ellis.
 - **Why:** This should be the first racket built post-slice: §6.5 already sketches it, it scales the week campaign's street into a territory made of individuals (claims 4 and 5), and failing to actually protect someone creates the grievance-to-defection chain claim 5 needs. Later than M5 only because the slice must stay one bar deep — Risk 1 discipline.
 
 ### Crew cuts & payroll  `GTA5` · cost M · domain economy-activities
@@ -222,8 +222,8 @@ route through the generation pipeline rather than being cut.
 
 ### Jail / pillory punishment chain  `KCD2` · cost M · domain simulation
 - **What:** Getting caught leads to sentencing: time-skipped jail terms and public pillory shame that NPCs witness and remember.
-- **LEDGER mapping:** LEDGER's version is not a jail sim but 'taken in for questioning' — an Ossei confrontation beat (M4 threshold ladder) that consumes time slots (P1's actual currency), injects a high-confidence fact ('Ossei pulled him in') into the mill, and spikes suspicion across the honest life. The pillory needs no building: the gossip mill IS the pillory.
-- **Why:** Losing hours is the one punishment LEDGER can make sting without combat or a game-over, and the reputational fallout rides entirely on built systems. But a literal jail (cells, sentences, world-ticks-without-you, escape content) serves no claim and adds a whole sim mode — cut the form, keep the cost. This also gives Ossei a mid-tier consequence between probing questions and the exposure fuse, which the escalation ladder currently lacks.
+- **LEDGER mapping:** LEDGER's version is not a jail sim but 'taken in for questioning' — an Ellis confrontation beat (M4 threshold ladder) that consumes time slots (P1's actual currency), injects a high-confidence fact ('Ellis pulled him in') into the mill, and spikes suspicion across the honest life. The pillory needs no building: the gossip mill IS the pillory.
+- **Why:** Losing hours is the one punishment LEDGER can make sting without combat or a game-over, and the reputational fallout rides entirely on built systems. But a literal jail (cells, sentences, world-ticks-without-you, escape content) serves no claim and adds a whole sim mode — cut the form, keep the cost. This also gives Ellis a mid-tier consequence between probing questions and the exposure fuse, which the escalation ladder currently lacks.
 
 ### Regional reputation meter  `KCD2` · cost S · domain simulation
 - **What:** A numeric per-region standing accumulated from deeds, adjusting prices, greetings, and guard tolerance in that region.
@@ -282,7 +282,7 @@ route through the generation pipeline rather than being cut.
 
 ### Business raid & defense events  `GTA5` · cost M · domain economy-activities
 - **What:** Owned businesses periodically get attacked or raided, forcing defense responses and resupply.
-- **LEDGER mapping:** Raids become social events with provenance: a cop raid on your den fires only because a specific witness's testimony reached Ossei through the mill's hop chain, a rival lean-on targets a specific shopkeeper whose fear flipped — every raid has a findable source the player can trace in the Ledger UI and answer with the existing damage-control verbs.
+- **LEDGER mapping:** Raids become social events with provenance: a cop raid on your den fires only because a specific witness's testimony reached Ellis through the mill's hop chain, a rival lean-on targets a specific shopkeeper whose fear flipped — every raid has a findable source the player can trace in the Ledger UI and answer with the existing damage-control verbs.
 - **Why:** GTA's random-timer raids violate the no-hard-timers rule (§4) and would read as dice rolls; sourced raids are the payoff of claims 1-2 — the sim already tracks who saw what and who told whom, so consequence events must be legible outputs of it, never RNG. Needs rackets to exist first, so post-slice by dependency.
 
 ### Radio-while-driving, remapped to the street-as-radio  `GTA5` · cost M · domain space-traversal
