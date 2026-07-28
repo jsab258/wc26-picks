@@ -287,8 +287,8 @@ namespace Ledger.Game
             var flat = new Vector3((float)_loco.VelocityX, 0, (float)_loco.VelocityZ);
             if (flat.sqrMagnitude > 0.0001f) flat.Normalize();
 
-            _body.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
-            var target = new Vector3((float)_body.X, (float)_body.Y, (float)_body.Z);
+            _rig.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
+            var target = new Vector3((float)_rig.X, (float)_rig.Y, (float)_rig.Z);
 
             // Head bob is applied to the CAMERA, not the body, and is small.
             // This is the line between "alive" and "seasick".
@@ -307,7 +307,7 @@ namespace Ledger.Game
 
             _camera.transform.position = desired;
             _camera.transform.LookAt(target);
-            _camera.fieldOfView = (float)_body.Fov;
+            _camera.fieldOfView = (float)_rig.Fov;
         }
 
         /// YOU ARE NOT A GHOST (game-feel-spec.md §5).
@@ -384,7 +384,7 @@ namespace Ledger.Game
         public void ResumeCamera()
         {
             var pivot = transform.position + Vector3.up * 1.5f;
-            _body.Place(pivot.x, pivot.y, pivot.z);
+            _rig.Place(pivot.x, pivot.y, pivot.z);
         }
     }
 }

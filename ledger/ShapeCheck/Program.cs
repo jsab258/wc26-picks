@@ -131,20 +131,40 @@ var inherited = new HashSet<string>
     // 2026-07-27).
 };
 
-// THE ONE FALSE-POSITIVE CLASS the BCL references introduce, and it is
-// clean enough to filter exactly.
+// Members a MonoBehaviour or Component INHERITS. On one of our own types
+// these read as missing, because the base does not resolve.
 //
-// Our own MonoBehaviours resolve as types (we declare them) but their BASE
-// does not, so every inherited member — `transform`, `gameObject`,
-// `StartCoroutine` — reads as missing. The receiver type named in the
-// message is therefore one of OUR types, and dropping those keeps precisely
-// the diagnostics that motivated the references: `'object' does not contain
-// a definition for 'TryGetValue'` names a BCL type and survives.
+// This list is the difference between a filter that works and one that
+// hides real bugs, and it was written the hard way: the first version of
+// this check dropped EVERY CS1061 whose receiver was one of our types, and
+// forty minutes later a bad rename put `_body.Follow(...)` — a CameraRig
+// call on a CharacterRig — straight past it and into a red Windows build.
+// Roslyn had the answer and the filter threw it away.
 //
-// Anything with an error type in it ("?") is also dropped: it means a Unity
-// type leaked into the expression and the diagnostic is noise about that
-// rather than about our code.
-static bool AboutOurOwnUnresolvedBase(Diagnostic d, HashSet<string> ourTypes)
+// So the suppression is now scoped to the members that are genuinely
+// unresolvable rather than to the whole type. A missing member that is NOT
+// on this list is a real error on our own class and is reported.
+var unityInherited = new HashSet<string>
+{
+    "transform", "gameObject", "enabled", "tag", "name", "hideFlags",
+    "isActiveAndEnabled", "useGUILayout", "runInEditMode", "destroyCancellationToken",
+    "StartCoroutine", "StopCoroutine", "StopAllCoroutines",
+    "GetComponent", "GetComponents", "GetComponentInChildren", "GetComponentsInChildren",
+    "GetComponentInParent", "GetComponentsInParent", "TryGetComponent",
+    "Invoke", "InvokeRepeating", "CancelInvoke", "IsInvoking",
+    "SendMessage", "SendMessageUpwards", "BroadcastMessage",
+    "CompareTag", "GetInstanceID", "Equals", "GetHashCode", "ToString",
+};
+
+// THE FALSE-POSITIVE CLASSES the BCL references introduce, filtered as
+// narrowly as each one allows.
+//
+// Anything with an error type in it ("?") or a Unity type name is dropped:
+// Roslyn could not resolve it, so whatever it concluded is not a judgement
+// to act on. Our own types are dropped ONLY for the inherited members
+// above — see the note there for what a broader filter cost.
+static bool AboutOurOwnUnresolvedBase(Diagnostic d, HashSet<string> ourTypes,
+                                      HashSet<string> unityInherited)
 {
     var msg = d.GetMessage();
     if (msg.Contains("'?'") || msg.Contains("(?") || msg.Contains(", ?") || msg.Contains("?,")) return true;
@@ -153,6 +173,25 @@ static bool AboutOurOwnUnresolvedBase(Diagnostic d, HashSet<string> ourTypes)
     // trust. A method group converting to a UnityAction is the common case
     // and it compiles perfectly well upstairs.
     if (msg.Contains("UnityEngine.") || msg.Contains("TMPro.")) return true;
+    // CS1061 names the type first and the MISSING MEMBER second. Suppress
+    // only when that member is one a Component inherits.
+    if (d.Id == "CS1061")
+    {
+        var quoted = new List<string>();
+        int at = 0;
+        while (true)
+        {
+            int a = msg.IndexOf('\'', at);
+            if (a < 0) break;
+            int b = msg.IndexOf('\'', a + 1);
+            if (b < 0) break;
+            quoted.Add(msg.Substring(a + 1, b - a - 1));
+            at = b + 1;
+        }
+        bool ourReceiver = quoted.Count > 0 && ourTypes.Contains(quoted[0]);
+        bool inheritedMember = quoted.Count > 1 && unityInherited.Contains(quoted[1]);
+        return ourReceiver && inheritedMember;
+    }
     foreach (var t in ourTypes)
         if (msg.Contains("'" + t + "'")) return true;
     return false;
@@ -217,7 +256,7 @@ foreach (var d in compilation.GetDiagnostics())
     // and they are the only ones that can be about a type whose base we
     // cannot see. Filtered here rather than removed from `interesting`, so
     // the syntax half of the list keeps its old, unconditional behaviour.
-    if (semantic.Contains(d.Id) && AboutOurOwnUnresolvedBase(d, ourTypes)) continue;
+    if (semantic.Contains(d.Id) && AboutOurOwnUnresolvedBase(d, ourTypes, unityInherited)) continue;
     bad++;
     var span = d.Location.GetLineSpan();
     Console.WriteLine($"{span.Path}:{span.StartLinePosition.Line + 1}: {d.Id}: {d.GetMessage()}");
