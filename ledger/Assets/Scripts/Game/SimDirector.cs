@@ -73,6 +73,11 @@ namespace Ledger.Game
         /// vehicle gate only means anything if a drop was SEEN after that.
         int _witnessesWhenCarArrived = -1;
         double _harmCapabilityAtInjury = 1.0;
+        // Sampled at the day-8 close, BEFORE the fall: the wound's still-there
+        // and gone-bad claims are about days 4-8, and the fall's jump now
+        // heals through days 10-12 as designed (the world-day fix), so
+        // asserting "still hurting" at day 13 red a healthy build.
+        bool _harmSampled, _harmStillHurt, _harmTurned, _harmFeudLive, _harmFeudBlocks;
         bool _planStaged, _planRan;
         bool _dayJobStaged;
         bool _openModeForced;
@@ -217,6 +222,16 @@ namespace Ledger.Game
                 _game.Harm.Treat(seen, null, now.Day);   // no wallet: the sim is proving the mechanism
                 _game.Harm.Flare("Sam", "Sam", "Rocco", "Rocco", now.Day, heat: 0.7);
                 _harmCapabilityAtInjury = _game.Harm.Capability("Sam", now.Day);
+            }
+
+            if (_harmStaged && !_harmSampled && now.Day >= 8 && now.Hour >= 9)
+            {
+                _harmSampled = true;
+                var hurts8 = _game.Harm.Hurts("Sam", now.Day);
+                _harmStillHurt = hurts8.Count > 0;
+                foreach (var i in hurts8) if (i.WentBad) _harmTurned = true;
+                _harmFeudLive = _game.Harm.FeudBetween("Sam", "Rocco") != null;
+                _harmFeudBlocks = !_game.Harm.WillWorkTogether("Sam", "Rocco");
             }
 
             // THE CLOCK CAN JUMP, AND THE SIM MUST NOT PAY FOR IT. The Fall puts
@@ -999,23 +1014,19 @@ namespace Ledger.Game
             bool harmOk = true;
             if (SimMode.Days >= 6)
             {
-                var samHurts = _game.Harm.Hurts("Sam", _game.Now.Day);
-                bool stillHurt = samHurts.Count > 0;
-                bool turned = false;
-                foreach (var i in samHurts) if (i.WentBad) turned = true;
+                bool stillHurt = _harmSampled && _harmStillHurt;
+                bool turned = _harmSampled && _harmTurned;
                 bool roccoFine = true;
                 foreach (var i in _game.Harm.All)
                     if (i.PersonId == "Rocco" && i.WentBad) roccoFine = false;
-                var feud = _game.Harm.FeudBetween("Sam", "Rocco");
-
                 harmOk = _harmStaged
-                    && stillHurt                                        // days later, still carrying it
-                    && turned                                           // and it got worse for being ignored
+                    && stillHurt                                        // days later, still carrying it (sampled day 8)
+                    && turned                                           // and it got worse for being ignored (sampled day 8)
                     && roccoFine                                        // while the treated one did not
                     && _game.Harm.ScarsOf("Sam") >= 1                   // the count does not heal
                     && _harmCapabilityAtInjury < 1.0                    // it cost him something
-                    && feud != null                                     // and the feud is still standing
-                    && !_game.Harm.WillWorkTogether("Sam", "Rocco");    // which is a scheduling problem
+                    && _harmFeudLive                                    // the feud stood while both were around (sampled day 8)
+                    && _harmFeudBlocks;                                 // and it was a scheduling problem (sampled day 8)
             }
 
             // The exchange is real if it is not always the same answer. Over
@@ -1050,13 +1061,23 @@ namespace Ledger.Game
             // timing ones report, because CI hardware is weather.
             int walkerCount = 0;
             foreach (var w in FindObjectsByType<NpcWalker>(FindObjectsSortMode.None)) walkerCount++;
-            int millCount = mill != null ? System.Linq.Enumerable.Count(mill.Agents) : 0;
+            int millCount = 0, crowdMill = 0;
+            if (mill != null)
+                foreach (var a in mill.Agents)
+                {
+                    millCount++;
+                    if (a.Id != null && a.Id.Length > 1 && a.Id[0] == 'r' && char.IsDigit(a.Id[1])) crowdMill++;
+                }
             long heapMb = System.GC.GetTotalMemory(false) / (1024 * 1024);
             double avgMs = _frames > 0 ? _frameSum / _frames * 1000.0 : 0;
-            // Walkers: the crowd cap plus every AUTHORED walker that can exist
-            // at once (cast, heads, inspector). Mill: the mid cap plus cast.
-            bool budgetsOk = walkerCount <= GameController.CrowdWalkerCap + 40
-                && millCount <= GameController.CrowdMillCap + 60;
+            // Gate on the DESIGN CAPS directly: the crowd's walkers and the
+            // crowd's mill agents against their own ceilings. Totals are
+            // reported, never gated — the authored cast grows by design (heads
+            // spawn at PP7, the inspector at the audit), and a guessed
+            // total-ceiling red a healthy build (run 30335994335: 42 authored
+            // walkers against my invented "+40 headroom").
+            bool budgetsOk = _game.CrowdWalkerCount <= GameController.CrowdWalkerCap
+                && crowdMill <= GameController.CrowdMillCap;
 
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
@@ -1358,7 +1379,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} millAgents={millCount} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +

@@ -52,6 +52,8 @@ namespace Ledger.Game
         public const float RebandSeconds = 3f;
 
         readonly Dictionary<string, NpcWalker> _crowdWalkers = new Dictionary<string, NpcWalker>();
+        /// The crowd's live walker count, for the sim's budget gate (P5).
+        public int CrowdWalkerCount => _crowdWalkers.Count;
         float _nextReband;
         /// The day the current talk about the player started circulating, for
         /// the ambient reach calculation. -1 when the street is quiet.

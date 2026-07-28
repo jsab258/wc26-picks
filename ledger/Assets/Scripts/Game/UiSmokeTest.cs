@@ -60,7 +60,18 @@ namespace Ledger.Game
             // asserts what a panel SAYS"): each panel must show the words this
             // world state requires, read back off the live Text components.
             Check(reports, "ledger", _ledgerPanel, RefreshLedger,
-                () => AllWords(_ledgerPanel).Contains("LIABILITIES") && AllWords(_ledgerPanel).Contains("THE STREET"));
+                () =>
+                {
+                    var words = AllWords(_ledgerPanel);
+                    // THE STREET section exists exactly when the renderer's own
+                    // condition holds — the walk runs on day 2, before any
+                    // empire, and requiring it unconditionally redded a healthy
+                    // build (run 30335994335).
+                    var e = _game.Empire;
+                    bool anyEmpire = _game.Campaign.OpenMode &&
+                        (e.Businesses.Exists(b => b.Owned || b.DebtHeld) || e.Crew.Count > 0 || e.Rival.Stage > 0);
+                    return words.Contains("LIABILITIES") && (!anyEmpire || words.Contains("THE STREET"));
+                });
             Check(reports, "dialogue", _dialoguePanel, null,
                 () => _input != null && _historyText != null);
             Check(reports, "apiKey", _keyPanel, null,
