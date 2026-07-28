@@ -6902,6 +6902,24 @@ namespace Ledger.CoreTests
                 + "walk — otherwise a street of similar strides breathes in time",
                 $"r = {giCorr:0.000}");
 
+            // AND THE HEAD IS ACTUALLY VARIED. It is the first thing a viewer
+            // looks at and the last place they expect two strangers to match,
+            // so a head model that computes a range and then puts the same
+            // cap on everybody is the one place this would be noticed
+            // immediately.
+            int bare = 0, cropped = 0, capped = 0;
+            for (int i = 0; i < 4000; i++)
+            {
+                double w = Physique.For("person" + i).Headwear;
+                if (w <= 0.18) bare++;
+                else if (w > 0.72) capped++;
+                else cropped++;
+            }
+            Check(bare > 400 && cropped > 1500 && capped > 500,
+                "a street has bare heads, hair and caps in real proportions rather than "
+                + "one of them and a rounding error",
+                $"bare {bare} hair {cropped} cap {capped}");
+
             // Salting must actually separate. Two salts of one name landing
             // adjacent is how "independent" draws end up correlated in the
             // first place.

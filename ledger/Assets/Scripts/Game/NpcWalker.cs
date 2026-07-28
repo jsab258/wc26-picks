@@ -229,23 +229,44 @@ namespace Ledger.Game
             // their stance would otherwise have them do. Nobody ignores being
             // shoved, and a stance ladder that let them is a ladder the
             // player would immediately catch out.
-            if (_player != null && Time.time < _staredUntil)
+            // WITH THE HEAD, NOT THE FEET, now that there is a head.
+            //
+            // Every version of this until now turned the whole body to face
+            // you, because a capsule has no other way to look at anything.
+            // That reads as squaring up: it is the posture of somebody about
+            // to start something, applied to a stranger who has merely
+            // clocked you. In a game whose antagonist is gossip that is
+            // precisely the wrong signal — being NOTICED and being CONFRONTED
+            // are different rungs of the same ladder and were rendering
+            // identically.
+            //
+            // `Rig.LookSplit` distributes the turn down chest, neck and head,
+            // and `MustTurnBody` decides when somebody has to come round
+            // because their neck cannot get there. So the body turns when a
+            // person would actually turn, and otherwise they just look.
+            bool wantsToLook = false;
+            if (_player != null && Time.time < _staredUntil) wantsToLook = true;
+            else if (_player != null && !moving)
+            {
+                float gaze = (float)StreetVoice.GazeMetres(Stance);
+                var toYou = _player.position - current; toYou.y = 0;
+                wantsToLook = gaze > 0.5f && toYou.sqrMagnitude > 0.04f
+                              && toYou.magnitude <= gaze;
+            }
+
+            if (_body != null) _body.LookAt = wantsToLook ? _player : null;
+
+            // The body still comes round for the two cases where a person
+            // would: when their neck has run out, and when they are staring
+            // at you rather than glancing.
+            if (wantsToLook && (_body == null || _body.MustTurn
+                                || Time.time < _staredUntil))
             {
                 var at = _player.position - transform.position; at.y = 0;
                 if (at.sqrMagnitude > 0.01f)
                     transform.rotation = Quaternion.Slerp(transform.rotation,
-                        Quaternion.LookRotation(at), 9f * Time.deltaTime);
-            }
-            else if (_player != null && !moving)
-            {
-                float gaze = (float)StreetVoice.GazeMetres(Stance);
-                if (gaze > 0.5f)
-                {
-                    var toYou = _player.position - current; toYou.y = 0;
-                    if (toYou.sqrMagnitude > 0.04f && toYou.magnitude <= gaze)
-                        transform.rotation = Quaternion.Slerp(transform.rotation,
-                            Quaternion.LookRotation(toYou), 3.5f * Time.deltaTime);
-                }
+                        Quaternion.LookRotation(at),
+                        (Time.time < _staredUntil ? 9f : 3.5f) * Time.deltaTime);
             }
 
             // A NAME IS NOT A NAMEPLATE. Every walker used to carry its name in

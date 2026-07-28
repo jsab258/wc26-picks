@@ -40,6 +40,12 @@ namespace Ledger.Core
         /// visible here — a street of people breathing in time.
         public double IdlePhase;
 
+        /// 0..1. What is on top of this person's head — nothing, cropped
+        /// hair, a full head of it, a cap. The head is where a viewer looks
+        /// first and where they least expect two strangers to match, so it
+        /// buys more separation per box than anywhere else on the body.
+        public double Headwear;
+
         /// Which leg carries an injury when one is carried. Fixed per person,
         /// so somebody hurt on Tuesday is still limping on the same side on
         /// Friday.
@@ -83,6 +89,7 @@ namespace Ledger.Core
                 HeadScale = 0.93 + 0.14 * k,
                 Gait = 0.85 + 0.32 * g,
                 IdlePhase = Fraction(name, 7),
+                Headwear = Fraction(name, 8),
                 BadLegIsLeft = Fraction(name, 5) < 0.5,
             };
         }

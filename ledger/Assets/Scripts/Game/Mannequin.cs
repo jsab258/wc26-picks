@@ -138,6 +138,34 @@ namespace Ledger.Game
             // matters here more than anywhere, because the look-split is the
             // most visible thing the rig does.
             Box(Head, "Face", new Vector3(0, 0.03f, 0.09f), new Vector3(0.05f, 0.05f, 0.06f), skinMat);
+            // EYES. Two dark boxes, and between them and the nose a viewer
+            // can tell where somebody is looking from across a street — which
+            // is the entire currency of a game about being noticed. Nothing
+            // else on this body earns its two draw calls so cheaply.
+            var eyeMat = Mat(new Color(0.10f, 0.09f, 0.09f));
+            Box(Head, "EyeL", new Vector3(-0.042f, 0.055f, 0.083f),
+                new Vector3(0.030f, 0.020f, 0.020f), eyeMat);
+            Box(Head, "EyeR", new Vector3(0.042f, 0.055f, 0.083f),
+                new Vector3(0.030f, 0.020f, 0.020f), eyeMat);
+
+            // AND WHATEVER IS ON TOP. Bare, cropped, a full head of hair, or
+            // a cap — one box whose height and depth come from the physique.
+            // Two strangers matching from the neck down is ordinary; matching
+            // from the neck up is what makes a crowd read as duplicated.
+            double wear = Shape.Headwear;
+            if (wear > 0.18)
+            {
+                var hairMat = Mat(HairColour(wear));
+                float tall = 0.03f + 0.055f * (float)wear;
+                Box(Head, "Hair", new Vector3(0, 0.145f - tall * 0.25f, -0.005f),
+                    new Vector3(0.185f, tall, 0.195f), hairMat);
+                // A peak, on the ones with the most on their head. It is a
+                // cap, and it changes the silhouette more than the colour of
+                // anything ever will.
+                if (wear > 0.72)
+                    Box(Head, "Peak", new Vector3(0, 0.135f - tall * 0.25f, 0.115f),
+                        new Vector3(0.175f, 0.018f, 0.09f), hairMat);
+            }
 
             (LThigh, LShin, LFoot) = Leg("L", -HipHalfWidth, clothMat, skinMat);
             (RThigh, RShin, RFoot) = Leg("R", HipHalfWidth, clothMat, skinMat);
@@ -235,6 +263,16 @@ namespace Ledger.Game
             Destroy(probe);
             _meshes[type] = m;
             return m;
+        }
+
+        /// Hair, from the same number that decided how much of it there is.
+        /// Dark to fair across the range, because deriving it from a separate
+        /// draw would just be another thing to keep uncorrelated for no gain.
+        static Color HairColour(double wear)
+        {
+            float t = Mathf.Clamp01((float)((wear - 0.18) / 0.82));
+            return Color.Lerp(new Color(0.10f, 0.08f, 0.07f),
+                              new Color(0.55f, 0.45f, 0.30f), t);
         }
 
         static Material Mat(Color c)
