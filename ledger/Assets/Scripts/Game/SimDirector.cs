@@ -687,7 +687,7 @@ namespace Ledger.Game
         // property the whole adaptive-score design rests on.
         int _scoreSamples;
         double _scoreEnergyRange;
-        double _scoreCalmestEnergy = -1, _scoreCalmestHeat, _scoreHottestEnergy = -1, _scoreHottestHeat = -1;
+        double _scoreCalmUnease = -1, _scoreCalmestHeat, _scoreHotUnease = -1, _scoreHottestHeat = -1;
         double _scoreMinE = double.MaxValue, _scoreMaxE = double.MinValue;
 
         void SampleScore()
@@ -703,10 +703,21 @@ namespace Ledger.Game
             _scoreEnergyRange = _scoreMaxE - _scoreMinE;
             // Tracked against the HEAT that produced them rather than against
             // the extremes of energy, or the comparison is circular.
-            if (_scoreCalmestEnergy < 0 || heat < _scoreCalmestHeat)
-            { _scoreCalmestHeat = heat; _scoreCalmestEnergy = e; }
-            if (_scoreHottestEnergy < 0 || heat > _scoreHottestHeat)
-            { _scoreHottestHeat = heat; _scoreHottestEnergy = e; }
+            // UNEASE, not total energy. Energy also moves with the hour —
+            // the pulse is damped at night — so the hottest-heat sample and
+            // the calmest-heat sample can land on opposite sides of dusk and
+            // the comparison says nothing about heat at all. Unease answers
+            // to exposure and to nothing else, which makes it the one layer
+            // this gate can read cleanly.
+            //
+            // Caught before the gate ever reported, by asking what ELSE moves
+            // the number being compared. The same question the fog test
+            // needed and did not get.
+            double unease = Audio.StemGain(MusicLayer.Unease);
+            if (_scoreCalmUnease < 0 || heat < _scoreCalmestHeat)
+            { _scoreCalmestHeat = heat; _scoreCalmUnease = unease; }
+            if (_scoreHotUnease < 0 || heat > _scoreHottestHeat)
+            { _scoreHottestHeat = heat; _scoreHotUnease = unease; }
         }
 
         void Shot(string name)
@@ -1543,7 +1554,7 @@ namespace Ledger.Game
             // design rests on — quieter under pressure, not louder.
             bool scoreOk = Audio.ScoreRunning && _scoreSamples >= 2
                 && _scoreEnergyRange > 0.05
-                && (_scoreHottestEnergy < 0 || _scoreHottestEnergy <= _scoreCalmestEnergy + 1e-6);
+                && (_scoreHotUnease < 0 || _scoreHotUnease >= _scoreCalmUnease - 1e-6);
 
             // Every gate, by name, so a failure says WHICH one.
             //
@@ -1620,8 +1631,8 @@ namespace Ledger.Game
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
-                      $"calmE={_scoreCalmestEnergy:0.00}@heat{_scoreCalmestHeat:0.00} " +
-                      $"hotE={_scoreHottestEnergy:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
+                      $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
+                      $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
                       $"verdict={camp.Verdict} pass={pass}");
             // Last line in the log, on purpose: whatever else scrolls past, this
