@@ -43,7 +43,7 @@ namespace Ledger.Game
         /// like one that is running and doing nothing.
         public static int Applied { get; private set; }
 
-        Material _mat;
+        Material _mat, _ao;
         RenderTexture _bloomA, _bloomB;
         Camera _cam;
 
@@ -74,11 +74,26 @@ namespace Ledger.Game
             }
             _mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
 
-            // AMBIENT OCCLUSION needs depth AND normals, and this one line is
-            // what makes `_CameraDepthNormalsTexture` exist at all. Without
-            // it the AO pass samples a texture Unity never rendered and
-            // returns a uniform grey — which looks like a shader bug and is
-            // a missing request.
+            // AMBIENT OCCLUSION, in its OWN material off its own shader.
+            //
+            // `Shader.isSupported` is per-shader, not per-pass, so while the
+            // AO passes lived in the grade shader a compile error in either
+            // of them would have disabled grain, vignette, bloom and the
+            // tonemap along with them. This class's own header says an art
+            // effect that can break the picture must never be able to — and
+            // a newer, riskier effect sharing its compilation unit is
+            // exactly that risk, one level down.
+            //
+            // Now AO can fail entirely and the frame is merely un-occluded.
+            var aoShader = Shader.Find("Hidden/LedgerAo");
+            if (aoShader != null && aoShader.isSupported)
+                _ao = new Material(aoShader) { hideFlags = HideFlags.HideAndDontSave };
+
+            // Depth AND normals, and this one line is what makes
+            // `_CameraDepthNormalsTexture` exist at all. Without it the AO
+            // pass samples a texture Unity never rendered and returns a
+            // uniform grey — which looks like a shader bug and is a missing
+            // request.
             if (_cam != null) _cam.depthTextureMode |= DepthTextureMode.DepthNormals;
         }
 
@@ -134,23 +149,23 @@ namespace Ledger.Game
             // detail anyway. Full res would cost four times as much to
             // produce an image the next pass erases.
             RenderTexture aoA = null, aoB = null;
-            if (AmbientOcclusion && _cam != null)
+            if (AmbientOcclusion && _cam != null && _ao != null)
             {
                 int aw = Mathf.Max(2, src.width / 2), ah = Mathf.Max(2, src.height / 2);
                 aoA = RenderTexture.GetTemporary(aw, ah, 0, RenderTextureFormat.R8);
                 aoB = RenderTexture.GetTemporary(aw, ah, 0, RenderTextureFormat.R8);
-                _mat.SetFloat("_AoRadius", (float)LightModel.AoRadiusMetres);
-                _mat.SetVector("_AoTexelSize", new Vector4(1f / aw, 1f / ah, aw, ah));
+                _ao.SetFloat("_AoRadius", (float)LightModel.AoRadiusMetres);
+                _ao.SetVector("_AoTexelSize", new Vector4(1f / aw, 1f / ah, aw, ah));
                 // The projection matrix, so the AO pass can turn a UV back
                 // into a view-space ray. Taken from the camera rather than
                 // assumed, because a changed FOV would otherwise silently
                 // scale the sampling radius.
-                _mat.SetMatrix("_AoProj", _cam.projectionMatrix);
-                Graphics.Blit(src, aoA, _mat, 3);            // pass 3: occlusion
-                _mat.SetVector("_Dir", new Vector4(1f / aw, 0, 0, 0));
-                Graphics.Blit(aoA, aoB, _mat, 4);            // pass 4: blur X, edge-aware
-                _mat.SetVector("_Dir", new Vector4(0, 1f / ah, 0, 0));
-                Graphics.Blit(aoB, aoA, _mat, 4);            // pass 4: blur Y
+                _ao.SetMatrix("_AoProj", _cam.projectionMatrix);
+                Graphics.Blit(src, aoA, _ao, 0);             // occlusion
+                _ao.SetVector("_Dir", new Vector4(1f / aw, 0, 0, 0));
+                Graphics.Blit(aoA, aoB, _ao, 1);             // blur X, edge-aware
+                _ao.SetVector("_Dir", new Vector4(0, 1f / ah, 0, 0));
+                Graphics.Blit(aoB, aoA, _ao, 1);             // blur Y
                 _mat.SetTexture("_AoTex", aoA);
                 _mat.SetFloat("_AoStrength",
                     (float)LightModel.AoStrength(night, Weather.Rain));
