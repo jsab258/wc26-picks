@@ -138,11 +138,66 @@ Benchmark v5 is rebuilt around that:
 - **eleven** available opt-in as a paid ceiling reference, so "is local good
   enough" is answered against a real upper bound rather than an argument.
 
-**Still open, pending the next run:** whether any local engine takes
-direction. If none does, the fallback is not "pay more" — it is to buy
-direction structurally: generate 2–3 takes per line and pick, use distinct
-voices per emotional register, and lean on the distance filtering and
-occlusion in the game-feel spec to hide the seams.
+### 1e. BENCHMARK RESULT #2 — kokoro passes on speed, fails on direction
+
+| engine | audio | median RTF | direction | verdict |
+|---|---|---|---|---|
+| kokoro | yes | **0.33 on CPU** | *"grave and bored are exactly the same"* | fast enough to be live; cannot be directed |
+| piper | yes | 0.04 | none | the floor, already judged |
+| chatterbox | **no** | — | — | `TypeError: 'NoneType' object is not callable` on load |
+| xtts | **no** | — | — | `ModuleNotFoundError: torch` — my installer bug |
+
+**Kokoro's result was predicted and is worth stating plainly: it has no
+input for emotion, so it was never going to pass.** The bench marks it
+`directable = False`. The only lever available was pace, and pace alone is
+not direction. So it fails the headline test for the same structural reason
+piper does.
+
+What kokoro DID prove is the speed case, and that is not nothing. **0.33 RTF
+on a CPU with no GPU at all** is inside the live-dialogue budget, and on a
+GPU it would be several times faster. That makes kokoro a real candidate for
+the channel where direction matters least — anonymous crowd ambience, where
+the point is that the street is talking, not what any one person feels.
+
+**Two of the four engines have still never run**, and both failures are
+mine to fix rather than findings about the engines:
+
+- **xtts** died with a bare `ModuleNotFoundError: torch` after pip exited 0.
+  The install had failed and `--quiet` hid the reason. The benchmark now
+  verifies every install by importing the engine's own module, and re-runs
+  pip loudly when that fails. An install is not finished until the thing it
+  installed can be imported.
+- **chatterbox** loaded its models — all 3.2 GB of them downloaded — and then
+  threw `TypeError: 'NoneType' object is not callable`. Not diagnosable from
+  the summary line; the traceback is on disk and is the next thing to read.
+
+### 1f. THE IDEA THAT CHANGES WHAT "DIRECTABLE" MEANS
+
+Two engines are down to one testable property between them, so this is worth
+saying before the next run rather than after.
+
+**A cloning engine does not need an emotion dial, because the reference clip
+IS the direction.** XTTS and chatterbox both copy the delivery of whatever
+audio they are given. Feed a grave reference and the line comes out grave.
+
+That reframes the whole benchmark. Cloning was listed here as the answer to
+the pre-generated/live seam; it is also a second, entirely different route
+to direction — and the one that does not depend on a model exposing a
+parameter some maintainer might remove.
+
+It scales, too, which is the part that makes it practical: the game knows
+the mood of every line it will ever produce, and there are only a handful of
+moods. Five minutes of reference audio per character covers thousands of
+barks. The bench now looks for `lena.wav`, `lena.grave.wav` and
+`lena.bored.wav` and picks by the same stage direction the scalar engines
+get, so the headline BORED-vs-GRAVE test becomes a real A/B for cloning
+engines as well.
+
+**Still open:** whether any local engine takes direction by either route. If
+none does, the fallback is not "pay more" — it is to buy direction
+structurally: generate 2–3 takes per line and pick, use distinct voices per
+emotional register, and lean on the distance filtering and occlusion already
+built in `Core/Acoustics.cs` to hide the seams.
 
 ---
 
@@ -302,6 +357,34 @@ feels "finished" versus "a prototype."
 audio libraries and a fully voiced bark bank.** The recurring TTS cost for
 live dialogue is the real strategic decision, and it points hard at a local
 model or a tiered approach.
+
+### REVISED 2026-07-28 — THIS SUPERSEDES THE TABLE ABOVE
+
+Jafar: *"budget is definitely too much. how far can we get with 100–200?"*
+Answer: most of the way, if we buy only what cannot be built or found free.
+Every number above this line is the unconstrained estimate and is kept only
+so the trade-offs stay visible. **The binding plan is this one.**
+
+| Item | Low | High | How it got cheap |
+|---|---|---|---|
+| Characters — modular stylised, on sale | $30 | $80 | Synty-class packs are ~70% off several times a year; wait for one |
+| Locomotion controller | $0 | $0 | Hand-built on the momentum already in `Core/Feel.cs` |
+| Animations — Mixamo | $0 | $0 | Free |
+| Look-at IK — Unity Animation Rigging | $0 | $0 | Free package, and the one that makes the gaze system read |
+| Environment / props | $0 | $40 | Kenney + Poly Haven CC0 first; buy only what is missing |
+| Audio libraries | $0 | $25 | freesound + we already synthesise most of it |
+| Bark voice generation, one-time | $40 | $120 | Or **$0** on a local engine — the benchmark decides this |
+| **Revised total** | **~$70** | **~$265** | |
+
+Two things to hold onto when reading any figure in this document:
+
+1. **Scope must be stated with the number.** The ~$150–300 in §2 is the
+   character-and-animation stack ALONE, written before this revision. The
+   ~$70–265 here is EVERYTHING. Quoting one against the other is comparing
+   a part to the whole, and I have already done that once.
+2. **The bark line is the only genuinely uncertain one**, and it collapses
+   to zero if a local engine clears the quality bar. That is what the TTS
+   benchmark is for.
 
 **The honest caveat:** buying assets does not make a game look coherent.
 Art direction and integration do, and that is my time, not money. The

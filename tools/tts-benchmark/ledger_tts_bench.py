@@ -64,7 +64,7 @@ from pathlib import Path
 
 # Bumped on every change. Printed at startup so a stale copy in the Downloads
 # folder announces itself instead of reproducing an old failure exactly.
-VERSION = "2026-07-28.5  (one venv per engine, kokoro+xtts actually load, chatterbox added)"
+VERSION = "2026-07-28.6  (installs are verified, not assumed; mood refs; locked-file retry)"
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "ledger-tts-out"
@@ -171,6 +171,18 @@ def has_nvidia():
 
 def write_wav(path, samples, rate):
     path.parent.mkdir(parents=True, exist_ok=True)
+    # A wav still open in an audio player is locked on Windows, and losing a
+    # whole case because you were listening to the last run's copy is absurd.
+    if path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            for n in range(2, 20):
+                alt = path.with_name(f"{path.stem}_{n}{path.suffix}")
+                if not alt.exists():
+                    say(f"    ({path.name} was open elsewhere — wrote {alt.name})")
+                    path = alt
+                    break
     try:
         import numpy as np
         a = samples
@@ -220,12 +232,36 @@ def device():
 
 
 def refs_dir():
+    """Reference clips for the cloning engines, keyed by stem.
+
+    THE IDEA THAT MAKES CLONING A DIRECTION MECHANISM. A cloning model has
+    no exaggeration dial, so it looks undirectable — but it copies the
+    delivery of whatever it is given, which means the reference clip IS the
+    direction. Drop `lena.wav`, `lena.grave.wav` and `lena.bored.wav` and a
+    clone engine can be told how to say a line after all, using the same
+    stage direction the scalar engines get.
+
+    That matters because the game knows the mood of every line it will ever
+    generate, and there are only a handful of moods — so this scales to
+    thousands of barks off five minutes of reference audio.
+    """
     d = HERE / "refs"
     out = {}
     if d.exists():
         for f in sorted(d.glob("*.wav")):
             out[f.stem] = str(f)
     return out
+
+
+def ref_for(refs, voice, direction):
+    """Best available clip: mood-matched first, plain voice second."""
+    if not refs:
+        return None
+    i = intensity(direction)
+    mood = "grave" if i >= 0.7 else "bored" if i <= 0.3 else None
+    if mood and f"{voice}.{mood}" in refs:
+        return refs[f"{voice}.{mood}"]
+    return refs.get(voice)
 
 
 def allow_full_torch_load():
@@ -254,6 +290,7 @@ class Kokoro:
     # bundled espeak-ng so Windows needs no MSI. Leaving it out is why kokoro
     # installs cleanly and then refuses to run.
     pkgs = ("kokoro>=0.9.4", "misaki[en]", "soundfile", "numpy", "huggingface_hub")
+    probe = "kokoro"          # importable == installed
     directable = False
     MAP = {"lena": "af_heart", "mara": "af_bella", "crowd_f": "af_sarah",
            "rocco": "am_michael", "crowd_m": "am_adam"}
@@ -287,6 +324,7 @@ class Chatterbox:
     name = "chatterbox"
     note = "explicit EXAGGERATION control + zero-shot cloning. The answer to piper's flat affect."
     pkgs = ("chatterbox-tts",)
+    probe = "chatterbox.tts"          # importable == installed
     directable = True
 
     def load(self):
@@ -301,7 +339,7 @@ class Chatterbox:
     def synth(self, text, voice, direction):
         i = intensity(direction)
         kw = {}
-        ref = self.refs.get(voice)
+        ref = ref_for(self.refs, voice, direction)
         if ref:
             kw["audio_prompt_path"] = ref
         try:
@@ -321,6 +359,7 @@ class XTTS:
     name = "xtts"
     note = "voice CLONING. If its clones hold up, the pre-generated/live seam disappears."
     pkgs = ("coqui-tts",)   # the maintained fork; the abandoned "TTS" caps out below py3.12
+    probe = "TTS.api"          # importable == installed
     directable = False
 
     # xtts_v2 ships ~58 studio speakers, so this runs with NO reference clips
@@ -355,7 +394,7 @@ class XTTS:
         return order[(idx * 7) % len(order)]
 
     def synth(self, text, voice, direction):
-        ref = self.refs.get(voice)
+        ref = ref_for(self.refs, voice, direction)
         if ref:
             return self.tts.tts(text=text, speaker_wav=ref, language="en"), 24000
         sp = self.speaker_for(voice)
@@ -368,6 +407,7 @@ class Piper:
     name = "piper"
     note = "CPU-only, very fast, lower ceiling. THE CONTROL CASE (already judged: too synthetic)."
     pkgs = ("piper-tts",)
+    probe = "piper"          # importable == installed
     directable = False
 
     VOICE_URL = ("https://huggingface.co/rhasspy/piper-voices/resolve/main/"
@@ -418,6 +458,7 @@ class Eleven:
     name = "eleven"
     note = "PAID reference (opt-in). Calibrates how far local actually is from the ceiling."
     pkgs = ("elevenlabs",)
+    probe = "elevenlabs"          # importable == installed
     directable = False
     opt_in = True
 
@@ -482,6 +523,8 @@ def run_engine(engine, quick):
         detail = traceback.format_exc()
         (outdir / "error.txt").write_text(detail, encoding="utf-8")
         say(f"  ! could not load: {type(e).__name__}: {e}")
+        for line in detail.strip().splitlines()[-6:]:
+            say(f"    | {line}")
         say(f"    full traceback -> {outdir / 'error.txt'}")
         result["error"] = f"{type(e).__name__}: {e}"
         (outdir / "result.json").write_text(json.dumps(result), encoding="utf-8")
@@ -580,14 +623,34 @@ def ensure_venv(engine, assume_yes):
             say(f"  ! could not create the venv: {e}")
             return None
 
-    def pip(*args):
-        return subprocess.call([str(py), "-m", "pip", "install", "--quiet", *args])
+    def pip(*args, quiet=True):
+        cmd = [str(py), "-m", "pip", "install", *(["--quiet"] if quiet else []), *args]
+        return subprocess.call(cmd)
 
     pip("--upgrade", "pip", "wheel")
     say(f"  installing {' '.join(engine.pkgs)} ... (this is the slow part)")
-    if pip(*engine.pkgs) != 0:
-        say(f"  ! pip failed for {engine.name}; skipping it")
-        return None
+    code = pip(*engine.pkgs)
+
+    # TRUST NOTHING. pip exited 0 for coqui-tts and left the environment
+    # without torch in it, so the engine failed later with a bare
+    # ModuleNotFoundError and the actual resolution failure was invisible —
+    # --quiet had swallowed it. An install is not finished until the thing
+    # it was supposed to install can be imported.
+    probe = subprocess.run([str(py), "-c", f"import {engine.probe}"],
+                           capture_output=True, text=True)
+    if code != 0 or probe.returncode != 0:
+        say(f"  ! {engine.name} did not install cleanly. Re-running pip loudly so the")
+        say(f"    real reason is on screen rather than hidden behind --quiet:")
+        pip(*engine.pkgs, quiet=False)
+        probe = subprocess.run([str(py), "-c", f"import {engine.probe}"],
+                               capture_output=True, text=True)
+        if probe.returncode != 0:
+            tail = (probe.stderr or "").strip().splitlines()[-3:]
+            say(f"  ! still cannot 'import {engine.probe}':")
+            for t in tail:
+                say(f"      {t}")
+            return None
+        say(f"  the retry fixed it — carrying on.")
 
     # If there is an NVIDIA card, make sure torch can actually see it. pip's
     # default wheel on Windows is CPU-only, which turns a 0.2 RTF into a 5.0
