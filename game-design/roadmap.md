@@ -744,21 +744,25 @@ systems prototype into a product. They run in PARALLEL with the design
 milestones rather than after them, because several get harder the longer
 they are deferred (save versioning especially).
 
-- **P1 — Front end** (tonight): main menu, new game / continue, options
-  (audio / video / gameplay), key rebinding, pause menu, quit. The game
-  currently boots straight into play and cannot be exited cleanly.
+- ~~**P1 — Front end**~~ DONE (2026-07-26/27, entry never struck): main
+  menu, new game/continue + slot copies, one OptionsScreen shared with the
+  pause menu, rebinding (completeness now smoke-asserted), pause, quit.
 - ~~**P2 — Save robustness**~~ DONE 2026-07-28: version field + migration
   (2026-07-27), atomic write-then-swap with .bak, corruption recovery with
   quarantine and an in-fiction line, three rotating manual copies ("Keep a
   copy" / "Open the copy — day N"), Continue opens the newest save, and a
   new game no longer burns the player's snapshots. The sim asserts the
   backup line exists after a second write.
-- **P3 — Audio** (tonight, procedural first): music, ambience, footsteps,
-  doors, UI feedback, mixer. The game is silent. Procedural/synthesised
-  sources first via the AssetLibrary pattern, so purchased or recorded
-  audio drops in later with no code change — exactly how textures work.
-- **P4 — Accessibility**: subtitle sizing, colourblind-safe palette,
-  remappable input, text scaling. The no-hard-timers rule already helps.
+- **P3 — Audio** — MOSTLY DONE (entry was stale): procedural day/night
+  ambience, footsteps, traffic, UI feedback (dread/coin/door/page), and a
+  settings-driven mix all exist via the AssetLibrary pattern. STILL OPEN:
+  MUSIC — there is no score, only ambience. A composed or procedural music
+  layer is the remaining half of this entry.
+- **P4 — Accessibility** — PARTIAL: colourblind-safe palette (toggle,
+  UiTheme-wide), remappable input, and text scaling (now reaching every
+  UI font) exist. STILL OPEN: an audit against a real checklist — e.g.
+  reduced motion, input hold/toggle alternatives, readable-font option —
+  and whether dialogue needs subtitle-style presentation options at all.
 - **P5 — Performance**: KCD2-style LOD and statistical simulation for
   distant districts (doc §9, unimplemented), draw-call/memory budgets.
 - **P6 — Controller + Steam Deck.**
