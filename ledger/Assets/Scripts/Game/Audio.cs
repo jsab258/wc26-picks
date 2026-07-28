@@ -209,6 +209,12 @@ namespace Ledger.Game
         /// than a word in a status line. Rides on top of the ambience bed so
         /// it costs nothing but a gain change.
         static float _chatter;
+
+        /// How loud the street is, 0..1. Read by the acoustics model, so a
+        /// busy street genuinely makes eavesdropping harder rather than only
+        /// sounding as though it does.
+        public static float ChatterLevel => _chatter;
+
         public static void SetChatter(float level)
         {
             _chatter = Mathf.Clamp01(level);

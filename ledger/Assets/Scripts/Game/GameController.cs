@@ -224,6 +224,9 @@ namespace Ledger.Game
             // The gait reads the harm system directly, so an injury we have
             // simulated since day one finally shows up in how he walks.
             player.Game = this;
+            // The alley sounds like an alley, from the street network we
+            // already had — no acoustic volumes were authored for this.
+            RoomTone.Ensure(player.Eye != null ? player.Eye.transform : null);
 
             _npcs.Add(NpcWalker.Spawn("Rocco", new Color(0.75f, 0.3f, 0.25f), new[]
             {

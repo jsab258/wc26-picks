@@ -1,3 +1,4 @@
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -20,9 +21,39 @@ namespace Ledger.Game
         Transform _follow;
         Color _base;
 
+        /// EARSHOT IS NOT A RADIUS (game-feel-spec.md §4, Acoustics).
+        ///
+        /// This used to be a hard cut: inside six metres you read the line in
+        /// full, outside it you saw nothing. Both halves are wrong. Half-
+        /// hearing a sentence is not the same as hearing it quietly, and a
+        /// distant line rendered at full text in a smaller font tells the
+        /// player they have perfect ears and only bad eyes.
+        ///
+        /// So the line is now filtered through what the listener could
+        /// actually have got: distance, whether a wall is in the way, and how
+        /// loud the street is. Words drop out; the gaps are ellipses. It is a
+        /// better hook than certainty ever was, because a sentence with a
+        /// hole in it makes you walk closer — which is the entire mechanic.
         public static SpeechBubble Say(Transform speaker, string line, float seconds, Color colour)
         {
             if (speaker == null || string.IsNullOrEmpty(line)) return null;
+
+            var ear = Camera.main;
+            double clarity = 1.0;
+            if (ear != null)
+            {
+                var head = speaker.position + Vector3.up * 1.7f;
+                float metres = Vector3.Distance(ear.transform.position, head);
+                bool wall = Physics.Linecast(ear.transform.position, head, out var hit,
+                                             ~0, QueryTriggerInteraction.Ignore)
+                            && hit.transform != speaker && !hit.transform.IsChildOf(speaker);
+                clarity = Acoustics.Intelligibility(metres, wall, Audio.ChatterLevel);
+                line = Acoustics.AsHeard(line, clarity, Mathf.Abs(line.GetHashCode()) % 9973);
+                // Nothing usable came through. You heard talking, not words —
+                // and showing a bubble anyway would be the game telling you
+                // something the character did not learn.
+                if (line == null) return null;
+            }
 
             var go = new GameObject("Speech");
             go.transform.position = speaker.position + Vector3.up * 2.05f;
@@ -37,6 +68,13 @@ namespace Ledger.Game
             b._text.anchor = TextAnchor.LowerCenter;
             b._text.alignment = TextAlignment.Center;
             b._text.color = colour;
+
+            // A line you only half caught is also a line you can barely see.
+            // Fading with clarity rather than with distance means a shout
+            // through an open door still reads, and a murmur behind glass
+            // does not, which is what the ear would have told you.
+            b._base.a = Mathf.Clamp01(0.35f + 0.65f * (float)clarity);
+            b._text.color = b._base;
 
             b._until = Time.time + seconds;
             b._fadeFrom = seconds * 0.7f;

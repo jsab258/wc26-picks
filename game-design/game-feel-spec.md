@@ -148,8 +148,11 @@ should be built so it is not a rewrite.
    on capsules, no assets. (§2, §3) — **BUILT 2026-07-28.**
 2. **Footsteps by surface + reverb zones + distance filtering.** Transforms
    the *place*, and the distance filter is needed by the voice work anyway.
-   (§4) — **footstep half built** (surface + variants + gait weight);
-   reverb zones, occlusion and distance filtering still open.
+   (§4) — **BUILT 2026-07-28.** Footstep surfaces and variants, a reverb
+   zone driven by which space you are standing in, distance filtering,
+   occlusion, and the model tied back into the gossip mill so how well you
+   heard something decides how sure the rumour you carry away is. See
+   `Assets/Scripts/Core/Acoustics.cs`.
 3. **Interaction grammar and door weight** — prompts that fade, doors that
    have mass, NPCs that react to being bumped. (§5, §6)
 4. **The limp.** Free characterisation from data we already have, and a

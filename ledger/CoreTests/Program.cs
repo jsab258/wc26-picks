@@ -82,6 +82,7 @@ namespace Ledger.CoreTests
                 TestOperations();
                 TestPopulation();
                 TestFeel();
+                TestAcoustics();
                 TestDirector();
                 await TestDirectorAsync();
                 await TestIntentRouterAsync();
@@ -5142,6 +5143,176 @@ namespace Ledger.CoreTests
             grace.SeenInRange(6.0);
             grace.Drop();
             Check(!grace.StillOffered(6.01), "and a dropped prompt is gone at once");
+        }
+
+        static void TestAcoustics()
+        {
+            Console.WriteLine("Acoustics — how well you heard it is how sure you get to be:");
+
+            // ---- distance ----
+            Check(Acoustics.Gain(0, Acoustics.SpeechCarry) == 1.0, "a sound at your ear is full volume");
+            double last = 1.0, rose = -1;
+            for (double m = 0.5; m <= 60; m += 0.5)
+            {
+                double g = Acoustics.Gain(m, Acoustics.SpeechCarry);
+                if (g > last && rose < 0) rose = m;
+                last = g;
+            }
+            Check(rose < 0, "volume falls off monotonically", $"rose again at {rose}m");
+            Check(last > 0 && last < 0.05,
+                "and is nearly gone across the district but never exactly zero", $"{last:0.0000}");
+            Check(Acoustics.Gain(20, Acoustics.ShoutCarry) > Acoustics.Gain(20, Acoustics.SpeechCarry),
+                "a shout carries further than a word");
+
+            // ---- the cutoff IS the distance cue ----
+            Check(Acoustics.LowPassHz(0, false) > 20000, "a sound at your ear is unfiltered");
+            Check(Acoustics.LowPassHz(30, false) < Acoustics.LowPassHz(5, false),
+                "distance eats the high end");
+            Check(Acoustics.LowPassHz(1, true) < Acoustics.LowPassHz(20, false),
+                "a wall a metre away muffles more than twenty metres of open air",
+                $"{Acoustics.LowPassHz(1, true):0} vs {Acoustics.LowPassHz(20, false):0}");
+
+            // ---- can you actually make out the words ----
+            Check(Acoustics.CanMakeOutWords(1.5, false),
+                "you can hear someone you are standing with");
+            Check(Acoustics.CanMakeOutWords(4, false),
+                "and someone at the other end of the bar");
+            Check(!Acoustics.CanMakeOutWords(20, false),
+                "but not a conversation across the street");
+            Check(!Acoustics.CanMakeOutWords(2, true),
+                "nor one through a wall you are leaning on");
+            Check(Acoustics.CanMakeOutWords(5, false, 0.0) &&
+                  !Acoustics.CanMakeOutWords(5, false, 1.0),
+                "and a loud street genuinely hides talk, rather than only sounding as if it does");
+
+            double near = Acoustics.Intelligibility(2, false);
+            double far = Acoustics.Intelligibility(9, false);
+            Check(near > far, "clarity falls with distance");
+            Check(near - Acoustics.Intelligibility(4, false) >
+                  Acoustics.Intelligibility(9, false) - Acoustics.Intelligibility(11, false),
+                "and falls fastest close in, where the meaning is");
+            Check(Acoustics.Intelligibility(100, false) == 0 &&
+                  Acoustics.Intelligibility(-5, false) <= 1.0,
+                "clarity stays inside 0..1 at absurd distances");
+
+            // ---- and what that is worth as a rumour ----
+            Check(Acoustics.OverheardConfidence(1, false) < 0.95,
+                "OVERHEARING IS NEVER KNOWLEDGE — the mill must not promote it",
+                $"{Acoustics.OverheardConfidence(1, false):0.00}");
+            Check(Acoustics.OverheardConfidence(1, false) >
+                  Acoustics.OverheardConfidence(8, false),
+                "you are surer of what you heard up close");
+            Check(Acoustics.OverheardConfidence(30, false) == 0,
+                "and carry nothing at all from across the district");
+            Check(Acoustics.OverheardConfidence(3, true) < Acoustics.OverheardConfidence(3, false),
+                "a wall makes a witness less sure");
+            double worst = -1;
+            for (double m = 0; m <= 40; m += 0.25)
+                foreach (bool wall in new[] { false, true })
+                    foreach (double noise in new[] { 0.0, 0.5, 1.0 })
+                    {
+                        double c = Acoustics.OverheardConfidence(m, wall, noise);
+                        if ((c < 0 || c > 0.9) && worst < 0) worst = m;
+                    }
+            Check(worst < 0,
+                "confidence never leaves 0..0.9 at any distance, wall or noise level",
+                $"left the range at {worst}m");
+
+            // The mill's own promotion rule is what this is protecting.
+            var earshot = Agent("witness", "Witness", "night");
+            var mill = new GossipMill(new SocialGraph());
+            mill.Add(earshot);
+            var heard = new Fact("player", "warehouse_d3", "seen");
+            mill.Witness("witness", heard, "heard him say he'd been at the warehouse",
+                true, new GameTime(3, 22, 0), Acoustics.OverheardConfidence(1.0, false));
+            Check(earshot.Best("player.warehouse_d3") != null,
+                "the closest overhearing does become a rumour");
+            Check(earshot.Knowledge.CheckClaim(heard) == ClaimResult.Unknown,
+                "but never hard knowledge — overhearing is not knowing");
+
+            // ---- the line as it was actually heard ----
+            const string spoken = "I'm telling you, he was down at the warehouse the night it went up.";
+            Check(Acoustics.AsHeard(spoken, 1.0, 1) == spoken, "up close you get the whole line");
+            Check(Acoustics.AsHeard(spoken, 0.0, 1) == null,
+                "and across the district you get no line at all, not a quiet one");
+            Check(Acoustics.AsHeard(null, 1.0, 1) == null && Acoustics.AsHeard("  ", 1.0, 1) == null,
+                "nothing spoken is nothing heard");
+
+            string half = Acoustics.AsHeard(spoken, 0.55, 7);
+            Check(half != null && half.Contains("…"),
+                "a half-heard line has holes in it", half);
+            Check(half.Length < spoken.Length, "and is shorter than what was said", half);
+            Check(half.Split(' ').Any(w => spoken.Contains(w) && w != "…"),
+                "while keeping real words, so it is a gap and not a garble", half);
+            Check(Acoustics.AsHeard(spoken, 0.55, 7) == half, "the same line heard twice is the same");
+            Check(Acoustics.AsHeard(spoken, 0.55, 8) != half,
+                "but two listeners catch different parts");
+
+            // Averaged over seeds, because any single seed can be lucky.
+            double SurvivingWords(double clarity)
+            {
+                double total = 0;
+                for (int seed = 0; seed < 200; seed++)
+                {
+                    var h = Acoustics.AsHeard(spoken, clarity, seed);
+                    total += h == null ? 0 : h.Split(' ').Count(w => w != "…");
+                }
+                return total / 200.0;
+            }
+            Check(SurvivingWords(0.8) > SurvivingWords(0.6) &&
+                  SurvivingWords(0.6) > SurvivingWords(0.35),
+                "the further away you are, the less of it you get",
+                $"{SurvivingWords(0.8):0.0} > {SurvivingWords(0.6):0.0} > {SurvivingWords(0.35):0.0}");
+
+            bool everBlank = false;
+            for (int seed = 0; seed < 500; seed++)
+            {
+                var h = Acoustics.AsHeard(spoken, 0.3, seed);
+                if (h != null && (h.Trim().Length == 0 || h.Trim() == "…")) everBlank = true;
+            }
+            Check(!everBlank,
+                "and a heard line is never just an ellipsis — that is noise on the screen, not speech");
+
+            // ---- and what the place does to it ----
+            Check(Acoustics.DecaySeconds(Space.Outdoors) > 0,
+                "even a street has a tail — a zero here is why outdoor scenes sound like a booth");
+            Check(Acoustics.DecaySeconds(Space.Hall) > Acoustics.DecaySeconds(Space.Room) &&
+                  Acoustics.DecaySeconds(Space.Room) > Acoustics.DecaySeconds(Space.Alley) &&
+                  Acoustics.DecaySeconds(Space.Alley) > Acoustics.DecaySeconds(Space.Outdoors),
+                "and the four spaces are ordered by how long they ring");
+            Check(Acoustics.Wetness(Space.Alley) > Acoustics.Wetness(Space.Room) &&
+                  Acoustics.DecaySeconds(Space.Alley) < Acoustics.DecaySeconds(Space.Room),
+                "an alley reflects MORE than a room but for LESS time — that is what narrow sounds like");
+            Check(Acoustics.RoomMetres(Space.Hall) > Acoustics.RoomMetres(Space.Room),
+                "pre-delay tracks how big the place is");
+            Check(Acoustics.OutsideBleed(Space.Outdoors) == 1.0 &&
+                  Acoustics.OutsideBleed(Space.Room) < 0.5,
+                "and stepping through a door shuts the street out");
+
+            // The alley comes free from the street network, which was
+            // authored for pathfinding and turns out to describe acoustics.
+            Check(Acoustics.SpaceFor("lane", 1.0) == Space.Alley,
+                "a four-metre lane between two building faces IS an alley");
+            Check(Acoustics.SpaceFor("avenue", 1.0) == Space.Outdoors &&
+                  Acoustics.SpaceFor("street", 1.0) == Space.Outdoors,
+                "a road wide enough to drive down is not");
+            Check(Acoustics.SpaceFor("lane", 20.0) == Space.Outdoors,
+                "and standing in a yard twenty metres off it is not either");
+            Check(Acoustics.SpaceFor(null, 0.0) == Space.Outdoors,
+                "nowhere near a street is the sky, not a room");
+
+            // Every lane on the real map must classify as an alley from its
+            // own centreline, or the whole thing is theory.
+            int lanes = 0, alleys = 0;
+            foreach (var e in StreetMap.Edges)
+            {
+                if (e.Kind != "lane") continue;
+                lanes++;
+                if (Acoustics.SpaceFor(e.Kind, 0.5) == Space.Alley) alleys++;
+            }
+            Check(lanes > 0 && lanes == alleys,
+                "and every lane the city actually has reads as one",
+                $"{alleys}/{lanes}");
         }
 
         static void TestDirector()
