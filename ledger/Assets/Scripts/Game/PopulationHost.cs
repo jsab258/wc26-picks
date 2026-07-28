@@ -130,11 +130,40 @@ namespace Ledger.Game
         /// would actually be there at this hour.
         double Distance(Resident r, Vector3 playerPos)
         {
-            bool working = Now.Hour >= r.WorkFromHour && Now.Hour < r.WorkToHour;
-            float x = working ? r.WorkX : r.HomeX;
-            float z = working ? r.WorkZ : r.HomeZ;
-            float dx = x - playerPos.x, dz = z - playerPos.z;
+            var at = WhereIs(r);
+            float dx = at.x - playerPos.x, dz = at.z - playerPos.z;
             return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+
+        /// WHERE A RESIDENT IS, in ONE place, because two answers is how the
+        /// crowd defect survives a fix.
+        ///
+        /// This is the line that caused it: it used to return home-or-work
+        /// unconditionally, and both are INSIDE BUILDINGS. The player walks on
+        /// streets, so the near band could only ever hold the two or three
+        /// people whose front doors happened to be within thirty-four metres.
+        /// Seven hundred simulated residents were putting three bodies on the
+        /// street — the CI density sampler measured 19 bodies within 20m and
+        /// only 3 of them crowd; the other sixteen were the authored cast.
+        ///
+        /// It has to be shared, because band assignment and body placement
+        /// both ask. Fixing only one would have moved people without changing
+        /// who is near, or the reverse — and either way the street would have
+        /// stayed empty while the code looked correct.
+        Vector3 WhereIs(Resident r)
+        {
+            if (Population.OutdoorPosition(r, Now.Hour, out var ox, out var oz))
+            {
+                // Snapped to the network, because a straight line from home to
+                // work runs through buildings. The streets already know where
+                // a person can walk.
+                if (StreetMap.NearestOnStreet(ox, oz, out var sx, out var sz, out _))
+                    return new Vector3((float)sx, 0, (float)sz);
+                return new Vector3((float)ox, 0, (float)oz);
+            }
+            bool working = Now.Hour >= r.WorkFromHour && Now.Hour < r.WorkToHour;
+            return working ? new Vector3(r.WorkX, 0, r.WorkZ)
+                           : new Vector3(r.HomeX, 0, r.HomeZ);
         }
 
         /// Where a crowd member is, whether or not they have a body. The mid
@@ -146,8 +175,7 @@ namespace Ledger.Game
             if (_crowdWalkers.TryGetValue(id, out var w) && w != null) return w.transform.position;
             var r = Populace != null ? Populace.ById(id) : null;
             if (r == null || r.Band == Lod.Far) return null;
-            bool working = Now.Hour >= r.WorkFromHour && Now.Hour < r.WorkToHour;
-            return working ? new Vector3(r.WorkX, 0, r.WorkZ) : new Vector3(r.HomeX, 0, r.HomeZ);
+            return WhereIs(r);
         }
 
         void ApplyBand(Resident r, double ambientReach)
@@ -238,6 +266,11 @@ namespace Ledger.Game
             var colour = Color.HSVToRGB((float)Population.StableFraction(r.Id), 0.22f, 0.45f);
             var walker = NpcWalker.Spawn(r.Name, colour, new[]
             {
+                // Their first waypoint is where they ARE, not where they
+                // sleep — otherwise a body spawns beside you on the pavement
+                // and immediately sets off for a bed across the district,
+                // which is the crowd walking away from the player forever.
+                (new GameTime(0, Now.Hour, 0), WhereIs(r)),
                 (new GameTime(0, r.WorkFromHour, 0), new Vector3(r.WorkX, 0, r.WorkZ)),
                 (new GameTime(0, r.WorkToHour, 0), new Vector3(r.HomeX, 0, r.HomeZ)),
             });

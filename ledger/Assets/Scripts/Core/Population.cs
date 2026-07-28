@@ -283,6 +283,82 @@ namespace Ledger.Core
         /// hour, so somebody who is out stays out rather than flickering, and
         /// biased to the working day: mornings and evenings move, small hours
         /// do not (playtest 2026-07-28).
+        /// WHERE A RESIDENT ACTUALLY IS at this hour.
+        ///
+        /// THE CROWD DEFECT, found by the density sampler on 2026-07-28: the
+        /// sim reported 19 bodies within 20 metres and only THREE of them
+        /// were crowd residents. The other sixteen were the authored cast.
+        /// Seven hundred simulated people were contributing almost nothing to
+        /// the street.
+        ///
+        /// The cause was not the population number, the LOD caps, or the
+        /// spawn logic — all of which were fine. It was that a resident's
+        /// position was always their home or their workplace, both of which
+        /// are INSIDE BUILDINGS. The player walks on streets. So the near
+        /// band could only ever contain the two or three people whose front
+        /// doors happened to be within thirty-four metres, and the entire
+        /// crowd was permanently indoors.
+        ///
+        /// Real people are on the street because they are BETWEEN two
+        /// places. So an outdoor resident is placed along the line from home
+        /// to work, at a stable per-person-per-hour fraction — which puts
+        /// them on the routes the streets already follow, spreads them out
+        /// rather than clumping them at doors, and moves them hour to hour
+        /// without needing a pathfinder.
+        ///
+        /// Returns false when they are indoors, and the caller should use
+        /// home or work as before.
+        /// How long one trip across the city lasts. Three hours is generous
+        /// for a walk and deliberately so: it is the presence window, and a
+        /// short one puts us back to people blinking in and out.
+        public const int TripHours = 3;
+
+        public static bool OutdoorPosition(Resident r, int hour, out double x, out double z)
+        {
+            x = z = 0;
+            if (r == null) return false;
+            // Presence is decided for the whole block, off the hour the block
+            // STARTS, so it cannot change underneath somebody mid-walk.
+            int blockStart = (((hour % 24) + 24) % 24) / TripHours * TripHours;
+            if (!OutdoorsAt(r, blockStart)) return false;
+
+            int h = ((hour % 24) + 24) % 24;
+            // A TRIP, not an hourly coin flip.
+            //
+            // The first version re-rolled presence every hour, and a test
+            // caught what that means: somebody outdoors at one o'clock and
+            // indoors at two does not walk home, they VANISH — and reappear
+            // somewhere else an hour later. That is the "characters appearing
+            // suddenly" complaint from the first playtest, reintroduced
+            // through a different door.
+            //
+            // So a trip spans a block of hours. Presence is decided once for
+            // the block, and within it the walk advances from one end of the
+            // route to the other. Continuous while it lasts, which is what
+            // stops a street of people from flickering.
+            int block = h / TripHours;
+            unchecked
+            {
+                // A different mix from OutdoorsAt's, or where somebody stands
+                // would correlate with whether they are out at all, and the
+                // crowd would bunch at one end of every street.
+                int seed = r.Index * 486187739 + block * 40503 + 7;
+                seed ^= seed >> 15; seed *= 668265263; seed ^= seed >> 13;
+                double along = (seed & 0x7FFFFFF) / (double)0x8000000;
+                // Which direction they are walking is also fixed for the
+                // trip, so half the crowd is going the other way.
+                bool outbound = (seed & 0x8000000) == 0;
+                double through = ((h % TripHours) + along) / TripHours;
+                double t = outbound ? through : 1.0 - through;
+                // Kept off both ends: at 0 or 1 they are standing in a
+                // doorway again, which is the thing this exists to fix.
+                t = 0.15 + 0.70 * t;
+                x = r.HomeX + (r.WorkX - r.HomeX) * t;
+                z = r.HomeZ + (r.WorkZ - r.HomeZ) * t;
+            }
+            return true;
+        }
+
         public static bool OutdoorsAt(Resident r, int hour)
         {
             if (r == null) return false;

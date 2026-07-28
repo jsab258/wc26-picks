@@ -83,6 +83,7 @@ namespace Ledger.CoreTests
                 TestPopulation();
                 TestFeel();
                 TestAcoustics();
+                TestCrowdOnTheStreet();
                 TestPalette();
                 TestInteraction();
                 TestDirector();
@@ -5315,6 +5316,95 @@ namespace Ledger.CoreTests
             Check(lanes > 0 && lanes == alleys,
                 "and every lane the city actually has reads as one",
                 $"{alleys}/{lanes}");
+        }
+
+        static void TestCrowdOnTheStreet()
+        {
+            Console.WriteLine("The crowd is on the street, not inside the walls:");
+
+            var pop = Population.Generate(700, 1234, new[] { "the Hook", "Copper Row", "Downtown" });
+            Check(pop.Residents.Count == 700, "seven hundred residents");
+
+            // THE DEFECT, reproduced as a measurement. Home and work are both
+            // inside buildings, so if position is always one of them, almost
+            // nobody is ever near a street — which is exactly what the CI
+            // density sampler found: 19 bodies within 20m, only 3 of them
+            // crowd.
+            int outdoors = 0, atADoor = 0;
+            foreach (var r in pop.Residents)
+            {
+                if (!Population.OutdoorPosition(r, 13, out var x, out var z)) continue;
+                outdoors++;
+                bool onHome = Math.Abs(x - r.HomeX) < 0.001 && Math.Abs(z - r.HomeZ) < 0.001;
+                bool onWork = Math.Abs(x - r.WorkX) < 0.001 && Math.Abs(z - r.WorkZ) < 0.001;
+                if (onHome || onWork) atADoor++;
+            }
+            Check(outdoors > 40,
+                "a good fraction of the city is outdoors at one in the afternoon",
+                $"{outdoors}/700");
+            Check(atADoor == 0,
+                "and NONE of them are standing in their own doorway — which is where "
+                + "every one of them used to be",
+                $"{atADoor} still at a door");
+
+            // Indoors must still be indoors, or the whole day/night rhythm goes.
+            int outAt3am = 0;
+            foreach (var r in pop.Residents)
+                if (Population.OutdoorPosition(r, 3, out _, out _)) outAt3am++;
+            Check(outAt3am < outdoors / 2,
+                "and far fewer are out at three in the morning", $"{outAt3am} vs {outdoors}");
+
+            // Stable within an hour: a person who teleports every frame is
+            // worse than one standing in a wall.
+            var sample = pop.Residents[42];
+            Population.OutdoorPosition(sample, 13, out var x1, out var z1);
+            Population.OutdoorPosition(sample, 13, out var x2, out var z2);
+            Check(x1 == x2 && z1 == z2, "where somebody stands does not flicker within the hour");
+
+            // But it MOVES across hours, or the street is a diorama of
+            // statues.
+            int moved = 0;
+            foreach (var r in pop.Residents)
+            {
+                if (!Population.OutdoorPosition(r, 13, out var ax, out var az)) continue;
+                if (!Population.OutdoorPosition(r, 14, out var bx, out var bz)) continue;
+                if (Math.Abs(ax - bx) > 0.5 || Math.Abs(az - bz) > 0.5) moved++;
+            }
+            Check(moved > 50,
+                "and everybody out at both hours has MOVED between them — a street of "
+                + "statues is not a crowd", $"{moved} moved");
+
+            // The thing the first version got wrong, now asserted: presence
+            // must not flicker. Somebody outdoors at 13:00 and indoors at
+            // 14:00 does not walk home, they vanish — which is the "characters
+            // appearing suddenly" complaint reintroduced through another door.
+            int flickered = 0, outAt13 = 0;
+            foreach (var r in pop.Residents)
+            {
+                bool a = Population.OutdoorPosition(r, 13, out _, out _);
+                bool b = Population.OutdoorPosition(r, 14, out _, out _);
+                if (a) outAt13++;
+                if (a != b) flickered++;
+            }
+            Check(outAt13 > 40 && flickered == 0,
+                "and NOBODY blinks out of existence between one hour and the next",
+                $"{flickered} of {outAt13} flickered");
+
+            // Being out must not correlate with WHERE you stand, or the crowd
+            // bunches at one end of every street.
+            double lowHalf = 0, total = 0;
+            foreach (var r in pop.Residents)
+            {
+                if (!Population.OutdoorPosition(r, 13, out var px, out _)) continue;
+                double span = r.WorkX - r.HomeX;
+                if (Math.Abs(span) < 1) continue;
+                double t = (px - r.HomeX) / span;
+                total++;
+                if (t < 0.5) lowHalf++;
+            }
+            Check(total > 20 && lowHalf / total > 0.25 && lowHalf / total < 0.75,
+                "and the outdoor crowd spreads along the route rather than bunching",
+                $"{lowHalf / Math.Max(1, total):0.00} in the near half");
         }
 
         static void TestPalette()
