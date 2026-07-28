@@ -67,11 +67,19 @@ namespace Ledger.Game
             }
 
             var ready = ReadySuccessor();
-            s.HasReadySuccessor = ready != null || ActThree.SuccessorId != null;
-            if (ActThree.SuccessorId != null)
+            // The NAMED successor is judged as a person too, on the closing
+            // morning: still here, not departed. "SuccessorId != null" alone
+            // collapsed Quiet's guard to HandedOver — a burned or departed
+            // successor still resolved Quiet with self-contradicting text
+            // (audit 2026-07-27). Handing over to somebody who then left is
+            // exactly a hand-over that failed.
+            var named = ActThree.SuccessorId != null
+                ? Empire.Crew.Find(c => c.Id == ActThree.SuccessorId && !c.Departed) : null;
+            s.HasReadySuccessor = ready != null || named != null;
+            if (named != null)
             {
-                s.SuccessorId = ActThree.SuccessorId;
-                s.SuccessorName = Empire.Crew.Find(c => c.Id == ActThree.SuccessorId)?.Name ?? ActThree.SuccessorId;
+                s.SuccessorId = named.Id;
+                s.SuccessorName = named.Name;
             }
             else if (ready != null) { s.SuccessorId = ready.Id; s.SuccessorName = ready.Name; }
             return s;

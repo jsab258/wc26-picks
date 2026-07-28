@@ -285,8 +285,27 @@ namespace Ledger.Game
             // the person it costs something with — never on a menu.
             if (ActThreeButtons(id)) return;
 
-            // Halvard's brokerage (Act II PP5): reads, truces, and the room.
             var act2 = _game.ActTwo;
+
+            // The machine's letter (PP2): while the licence hangs, Halvard is
+            // the man who deals with paper — both of the letter's named options
+            // live in front of him. These verbs existed only as words on the
+            // letter before (audit 2026-07-27): InjunctionAnswered had no
+            // setter and the fee was never charged.
+            if (id == "Halvard" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
+            {
+                _empireBtnA.gameObject.SetActive(true);
+                _empireLabelA.text = $"Pay the fees properly (${ActTwoState.InjunctionFee})";
+                _empireBtnA.interactable = _game.Wallet.Clean >= ActTwoState.InjunctionFee;
+                _empireBtnB.gameObject.SetActive(true);
+                _empireLabelB.text = $"Have him make it disappear (${ActTwoState.InjunctionFee * 2})";
+                _empireBtnB.interactable = _game.Wallet.Total >= ActTwoState.InjunctionFee * 2;
+                _empireSayA = "pay the licence fees properly, clean money, stamped receipt";
+                _empireSayB = "pay Halvard to make the licence review disappear";
+                return;
+            }
+
+            // Halvard's brokerage (Act II PP5): reads, truces, and the room.
             if (id == "Halvard" && act2.Pp5Fired)
             {
                 labelA = $"Buy a read (${ActTwoState.ReadPrice})";
@@ -506,7 +525,12 @@ namespace Ledger.Game
 
             if (_game.LastDayOffer(id) != null)
             {
-                if (!leverage && !_game.SpendLastDay(id)) Narrate(ActThreeState.LastDaySpentText);
+                // The "no time for another" line lands as the CODA of the final
+                // call — its old site required SpendLastDay to fail while the
+                // offer existed in the same frame, which is impossible, so the
+                // authored line had never displayed (audit 2026-07-27).
+                if (!leverage && _game.SpendLastDay(id) && _game.ActThree.LastDayLeft <= 0)
+                    Narrate(ActThreeState.LastDaySpentText);
                 return true;
             }
             return false;
@@ -534,6 +558,29 @@ namespace Ledger.Game
             var act2 = _game.ActTwo;
 
             if (ActThreeAct(id, leverage)) return;
+
+            if (id == "Halvard" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
+            {
+                if (!leverage)
+                {
+                    // Official fees want clean money — a licensing office is the
+                    // one counter in this city where the other kind is a risk.
+                    if (!_game.Wallet.Spend(ActTwoState.InjunctionFee, dirtyOk: false))
+                    { Narrate("\"The office wants clean notes,\" Halvard says, without looking up. \"They always do.\""); return; }
+                    act2.InjunctionAnswered = true;
+                    Narrate("Halvard walks the fees over himself, before lunch. The stamp is dated the day the letter was. " +
+                        "\"Paper answers paper,\" he says. The till runs again by evening.");
+                }
+                else
+                {
+                    if (!_game.Wallet.Spend(ActTwoState.InjunctionFee * 2, dirtyOk: true))
+                    { Narrate("He does not repeat the figure."); return; }
+                    act2.InjunctionAnswered = true;
+                    Narrate("Halvard folds the letter into his coat. Two days later it has never existed — no file, no fee, " +
+                        "no review. Nobody at the machine's counter remembers signing anything.");
+                }
+                return;
+            }
 
             if (id == "Halvard" && act2.Pp5Fired)
             {

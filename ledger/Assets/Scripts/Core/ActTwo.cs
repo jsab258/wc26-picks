@@ -68,6 +68,16 @@ namespace Ledger.Core
             "Ossei has stopped asking about the fire. She asks about rounds now — who collects, on what nights, " +
             "for whom. Two cases became one case, and it has your street's name on it.";
 
+        /// PP4's fallback staging, for the player who never sits down to an
+        /// evening: the collision comes to the bar instead (act2-draft: the
+        /// GUARANTEED collision — loyalty and a crew are the trigger, not
+        /// attendance). Authored per audit 2026-07-27; the condition existed
+        /// only in the design doc before.
+        public const string Pp4DoorstepText =
+            "It happens at your own bar, which is worse. One of your people comes through the front door like a " +
+            "dropped glass — night business, said plainly, in front of the one person whose good opinion you were " +
+            "still keeping separate. The room does not go quiet. It goes attentive.";
+
         public const string Pp4CollisionText =
             "A knock, at the wrong door, at the worst hour. One of your people is on the step with something that " +
             "cannot wait until morning — and behind you, at the table, the person you were being tonight is listening.";

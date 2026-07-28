@@ -666,6 +666,35 @@ namespace Ledger.Game
             }
 
             // PP5 — the broker opens for business.
+            // PP4's guarantee (act2-draft: "fires: any day-life loyalty >= 0.65
+            // AND crew >= 1; the guaranteed collision"). The staged version
+            // fires when an honored evening is attended; this is the fallback
+            // for the player who never sits down — the collision comes to the
+            // bar at night instead. The documented condition existed nowhere in
+            // code before (audit 2026-07-27).
+            if (!ActTwo.Pp4Fired && Now.Hour >= 21)
+            {
+                var crewMember = e.Crew.Find(c => !c.Departed);
+                Gossiper fond = null;
+                foreach (var a in _gossip.Mill.Agents)
+                    if (a.Circle == "day" && e.CrewOf(a.Id) == null && a.Loyalty >= 0.65
+                        && (fond == null || a.Loyalty > fond.Loyalty)) fond = a;
+                if (crewMember != null && fond != null)
+                {
+                    ActTwo.Pp4Fired = true;
+                    ToastLine(ActTwoState.Pp4DoorstepText, 14f);
+                    fond.Suspicion.Raise(0.18, "one of the new owner's people burst in on night business");
+                    fond.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
+                        $"I was at the bar, at ease for once, and {crewMember.Name} came through the door with " +
+                        "night business written all over them. Whatever it was, it could not wait until morning."));
+                    _gossip.Mill.Witness(fond.Id, new Fact("player", $"night_business_d{Now.Day}", "seen"),
+                        $"{crewMember.Name} burst into the bar after dark with something for the new owner that could not wait",
+                        true, Now, 0.85);
+                    _gossip.Mill.Get(crewMember.Id)?.Memory.Append(new MemoryEvent(Now, "observation", 0.8,
+                        "Had to walk night business straight into the bar tonight. The whole room saw me do it."));
+                }
+            }
+
             if (!ActTwo.Pp5Fired && e.Arms.FindAll(a => a.Attention >= 0.5).Count >= 2)
             {
                 ActTwo.Pp5Fired = true;
@@ -1223,6 +1252,21 @@ namespace Ledger.Game
         /// person who thinks best of you asks for an evening. Without this the
         /// honest life simply stops after day 7, and Act II's collision has
         /// nothing to interrupt.
+        /// The person a beat's HostId names, for the player's eyes: a crowd
+        /// resident's id is "r0123" and must never reach a toast (audit
+        /// 2026-07-27).
+        string HostName(string hostId) => _gossip?.Mill?.Get(hostId)?.DisplayName ?? hostId;
+
+        /// The walker a beat's host is standing in: cast walkers go by display
+        /// name (their id IS their name), promoted crowd residents by resident
+        /// id. Matching DisplayName against a crowd id made every generated
+        /// evening with a promoted resident unattendable (audit 2026-07-27).
+        NpcWalker WalkerForHost(string hostId)
+        {
+            foreach (var n in _npcs) if (n != null && n.DisplayName == hostId) return n;
+            return _crowdWalkers.TryGetValue(hostId, out var w) ? w : null;
+        }
+
         void OfferEvening()
         {
             if (!Campaign.OpenMode || _gossip == null || _gossip.Mill == null) return;
@@ -1258,7 +1302,7 @@ namespace Ledger.Game
 
             // Lapsed windows resolve to skipped — people remember.
             foreach (var missed in Beats.ResolveLapsed(id => _gossip.Mill.Get(id), Now))
-                _ui?.Toast($"You never went. {missed.HostId} will remember that.");
+                _ui?.Toast($"You never went. {HostName(missed.HostId)} will remember that.");
 
             var open = Beats.Open(Now);
             if (open == null || _beatMarkerId != open.Id)
@@ -1273,9 +1317,10 @@ namespace Ledger.Game
             // Generated evenings have no authored spot: use the host's own
             // doorstep, wherever the day has left them standing.
             if (!_beatSpots.ContainsKey(open.Id))
-                foreach (var npc in _npcs)
-                    if (npc != null && npc.DisplayName == open.HostId)
-                    { _beatSpots[open.Id] = npc.transform.position; break; }
+            {
+                var hostWalker = WalkerForHost(open.HostId);
+                if (hostWalker != null) _beatSpots[open.Id] = hostWalker.transform.position;
+            }
 
             if (_beatMarker == null && _beatSpots.TryGetValue(open.Id, out var spot))
             {
@@ -1293,7 +1338,7 @@ namespace Ledger.Game
                     Destroy(_beatMarker);
                     _beatMarker = null;
                     _beatMarkerId = null;
-                    _ui?.Toast($"{open.Title}. You stayed a while. {open.HostId} will remember this.", 8f);
+                    _ui?.Toast($"{open.Title}. You stayed a while. {HostName(open.HostId)} will remember this.", 8f);
                     FireCollision(open);
                 }
             }
@@ -1616,7 +1661,7 @@ namespace Ledger.Game
         {
             foreach (var b in Beats.All)
             {
-                if (b.HostId != walkerName) continue;
+                if (b.HostId != walkerName && HostName(b.HostId) != walkerName) continue;
                 if (b.State == BeatState.Pending && b.Day == Now.Day && _beatInvited.Contains(b.Id))
                     return $" You have invited the new owner to {b.Title.ToLowerInvariant()} tonight at {b.StartHour}:00 and you hope they come.";
                 if (b.State == BeatState.Attended)
