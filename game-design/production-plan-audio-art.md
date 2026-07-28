@@ -560,3 +560,77 @@ With those four, I can produce a specific shopping list with named products
 and current prices for approval, and start on the free work immediately —
 lighting/fog/palette, game feel, look-at rigging, and the offline bark
 generation pipeline, none of which need a purchase.
+
+
+---
+
+## §2b. THE BARK BANK — steps 1 and 2, BUILT 2026-07-28
+
+### Step 1: enumeration, and why it is a program rather than a document
+
+**The list of things this street can say is not a design document. It is a
+property of the code.** `Core/StreetVoice.cs` branches on real state, and
+every branch it can reach is a slot that needs lines. A hand-written list of
+those slots is wrong the day somebody adds a branch.
+
+So `ledger/BarkGen` walks the actual state space — every combination of
+confidence, nerve, loyalty, greed, suspicion, leash, coat, hour, prosperity,
+price level, injury and feud — drives the real `StreetVoice` functions with
+it, and reports what came out. `dotnet run --project BarkGen` writes
+`game-design/barks.json`.
+
+Three things fell out of that which a written list could not have given.
+
+**1. The repetition figure, which was damning.** Not "does this slot have
+lines" but *how many seconds of play before the player hears one twice*,
+computed from the schedulers that actually speak them. Every slot in the
+game repeated inside ninety seconds. The ambient family — the one a player
+hears most, one exchange every thirteen seconds on a busy street — repeated
+inside **twenty-six**.
+
+**2. Reachability.** No stance on the ladder turned out to be unreachable,
+which is worth knowing and was not knowable before.
+
+**3. The pairing bug, which no line count could see.** Openers and replies
+were chosen with `seed` and `seed + 1` from banks of equal length, so
+opener[i] was *always* followed by reply[i+1]. Fourteen banks of fourteen
+produced **fourteen fixed conversations, not a hundred and ninety-six**, and
+writing more lines would never have changed it.
+
+That third one is the argument for having built the enumerator *before*
+writing the lines. It also caught my first two attempts at fixing it:
+`seed * 7 + 3` was **worse** than the bug (seven divides fourteen, so the
+replies collapsed to two), and `seed * 97` was no better (both indices were
+functions of one number, and a bijection is a bijection however prime you
+make it). The actual fix is a second independent input, and there was an
+obvious one sitting there: **the person answering.** The same remark now
+gets a different answer from a different neighbour, which is what it should
+have been doing all along. Hashed with FNV-1a rather than
+`string.GetHashCode`, which is randomised per process on .NET Core and would
+have made the same save produce different conversations on every launch.
+
+### Step 2: generation
+
+Banks taken from 2–4 lines to **fourteen per slot**, 24 slots. 58 lines →
+420, and 126+ distinct *conversations* per band rather than 14.
+
+The writing rule for the ambient family, which is most of it: **deliberately
+ordinary.** Nothing in `Ambient` is about the player, and the moment a line
+reaches for interest it stops being a city and starts being a stage set with
+something to tell you. Weather, a wound that will not heal, the landlord,
+Thursday.
+
+Fourteen is a cap rather than a target. Past that the answer is to vary the
+*state* that picks the band, not to write a fifteenth way of saying "cold
+one" — and BarkGen now reports a slot at its cap as done rather than
+flagging it forever, because a warning that never clears trains people to
+ignore it.
+
+### Step 3: curation — JAFAR'S
+
+Read `game-design/barks.json` (or just the banks in `StreetVoice.cs`). Cut
+anything that sounds like a video game. The bar is whether you could hear it
+through a wall on a real street and not notice it was written.
+
+Voicing waits on the reference clips (`tools/voice-fetch/`), and at ~6 RTF
+on this hardware the whole bank is one overnight run.

@@ -454,6 +454,74 @@ namespace Ledger.CoreTests
                 "a hot street is a loud street");
             Check(StreetVoice.ChatterLevel(0.9, 0) < 0.01, "an empty one is quiet whatever is being said elsewhere");
             Check(StreetVoice.AmbientEverySeconds(0.5, 1) > 1e9, "one person alone does not hold a conversation");
+
+            // ---- BANK DEPTH, and the pairing (BarkGen, 2026-07-28) ----
+            //
+            // These numbers came out of an enumerator rather than out of a
+            // design document, and that is the point: the list of things this
+            // street can say is a property of the code, so it is measured
+            // rather than asserted. What it measured first was that EVERY
+            // slot in the game repeated inside ninety seconds, and the
+            // ambient ones — the family a player hears most — inside thirty.
+
+            var lineBank = new HashSet<string>();
+            var pairBank = new HashSet<string>();
+            for (int seed = 0; seed < 400; seed++)
+            {
+                var a = Agent("a" + (seed % 7), "A", "day");
+                var b = Agent("b" + (seed % 11), "B", "day");
+                var two = StreetVoice.Ambient(a, b, new GameTime(4, 13, 0),
+                    0.6, 1.0, false, false, seed);
+                if (two.Count != 2) continue;
+                lineBank.Add(two[0].Text);
+                pairBank.Add(two[0].Text + "||" + two[1].Text);
+            }
+            Check(lineBank.Count >= 14,
+                "the most-heard line family in the game has a real bank behind it",
+                $"{lineBank.Count} openers");
+            // The one a line count cannot see. Two banks of fourteen welded
+            // together by `seed + 1` give FOURTEEN conversations, not a
+            // hundred and ninety-six, and writing more lines never fixes it.
+            Check(pairBank.Count > lineBank.Count * 3,
+                "and the reply is not welded to the opener — the same remark "
+                + "gets a different answer from a different neighbour",
+                $"{pairBank.Count} conversations from {lineBank.Count} openers");
+
+            // Determinism, which the fix could easily have cost. The replier's
+            // identity is hashed into the choice, and string.GetHashCode is
+            // randomised per process on .NET Core — a save would have
+            // produced different conversations on every launch.
+            var once = StreetVoice.Ambient(Agent("x", "X", "day"), Agent("y", "Y", "day"),
+                new GameTime(4, 13, 0), 0.6, 1.0, false, false, 11);
+            var twice = StreetVoice.Ambient(Agent("x", "X", "day"), Agent("y", "Y", "day"),
+                new GameTime(4, 13, 0), 0.6, 1.0, false, false, 11);
+            Check(once[0].Text == twice[0].Text && once[1].Text == twice[1].Text,
+                "the same state says the same words, every run — hashed by FNV "
+                + "rather than by a per-process-randomised GetHashCode");
+
+            var recog = new HashSet<string>();
+            for (int seed = 0; seed < 400; seed++)
+            {
+                var line = StreetVoice.Recognition(Agent("g", "G", "day"), null,
+                    StanceKind.Refuses, seed);
+                if (line != null) recog.Add(line.Text);
+            }
+            Check(recog.Count >= 14,
+                "a refusal you walk past does not become one of two sentences",
+                $"{recog.Count}");
+
+            var telling = new HashSet<string>();
+            for (int seed = 0; seed < 400; seed++)
+            {
+                var r2 = new Rumor { Content = new Fact("player", "x", "y"),
+                    Summary = "the new owner was at the warehouse", Confidence = 0.9 };
+                var two = StreetVoice.Exchange(r2, Agent("f", "F", "day"),
+                    Agent("t" + (seed % 11), "T", "day"), seed);
+                if (two.Count == 2) telling.Add(two[0].Text);
+            }
+            Check(telling.Count >= 14,
+                "and neither does somebody telling you what they saw",
+                $"{telling.Count}");
         }
 
         static void TestDistrictPulse()
