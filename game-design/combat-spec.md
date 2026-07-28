@@ -42,7 +42,12 @@ opportunities.
 
 - **NOT a win condition.** You cannot punch your way to owning the street.
   The moment violence is the efficient solution, the gossip game is dead and
-  we have made a worse brawler.
+  we have made a worse brawler. **Note the tension with the lethality answer,
+  because it is real:** killing a witness genuinely does solve that
+  witness. The resolution is not to make it fail — it is that the SECOND
+  problem is always larger than the first. Violence has to work and cost more
+  than it saves, which is a harder thing to balance than violence that simply
+  does not work.
 - **NOT empowering.** Tom Novak runs a bar. He is not a fighter, and the
   moment-to-moment should feel dangerous and slightly out of control. If the
   player feels *good* at fighting, the fiction and the systems both break.
@@ -69,6 +74,13 @@ one where the player mashes.
 | **Shove** | Create distance, break a grab, knock someone off a doorway | Cheap, non-injuring, and the de-escalation tool |
 | **Guard** | Absorb rather than avoid. Reduces harm, does not remove it | Cannot guard forever; a held guard becomes a grab |
 | **Back off** | Leave. Explicitly a verb, explicitly viable | The best option in most fights, and the game should say so |
+
+A sixth verb follows from the lethality answer and is deliberately NOT in
+the table above, because it is not a combat move: **finishing** somebody who
+is already down. Separated on purpose — it should never be something that
+happens in the flow of a scuffle, it should be a decision made in the quiet
+afterwards, with the person on the ground and the street watching. That is
+the beat the whole game is built to make heavy.
 
 **Guns are out of scope for this spec.** The agency model staged violence as
 melee-then-guns; melee has to prove it earns its place first, and a gun in
@@ -154,27 +166,81 @@ the bar at noon, and that difference IS the game. *~half a day.*
 **Phase 3 — Bodies and telegraphs.** Animation, the read, hit reactions,
 the guard. **Blocked on characters.** *~2 days.*
 
+**Phase 3b — The body.** A killing as a permanent, undiscreditable fact in
+the mill; police escalation on Mara Ellis; crew who saw it. **This is the
+largest genuinely new piece of work in the spec** and it is a consequence of
+the lethality answer, not of the fighting. *~2 days.*
+
 **Phase 4 — Tuning against the fiction.** Make sure violence is never the
 efficient path. This is a BalanceLab job, not a feel job: if a Monte Carlo
 run says fighting wins, the design is wrong regardless of how it plays.
 *~1 day.*
 
-## 7. OPEN DECISIONS — Jafar's
+## 7. DECISIONS — ANSWERED by Jafar, 2026-07-28
 
-1. **Does the player ever start a fight, or only finish one?** My
-   recommendation: **both, but starting one is always a mistake the systems
-   punish.** The alternative — pure self-defence — is cleaner and safer but
-   removes intimidation as a tool, and intimidation is genuinely part of this
-   world.
-2. **Can anyone die?** Recommendation: **no, not by the player's hand, not
-   in melee.** A death would dominate the gossip system so completely that
-   nothing else would matter for the rest of the run, and the whole game
-   would become one story. Deaths can happen in the fiction, off-screen,
-   authored.
-3. **Guns at all?** Recommendation: **not in this scope**, revisit after
-   melee ships.
-4. **Auto-resolve option?** Recommendation: **yes**, and treat it as
-   accessibility rather than difficulty.
+| Question | Answer |
+|---|---|
+| On-screen readout | **Diegetic + heavy feedback now**, *"might need minimal hud later on"* |
+| Who swings first | **Both.** *"should also be possible to kill witnesses for example. consequences, yes (cops?) but violence is a part of our crime world and a legit tool"* |
+| Lethality | **Yes, rarely and permanently** |
+| Guns | **Out of scope for now** |
+
+### 7a. THE LETHALITY ANSWER IS BETTER THAN MY RECOMMENDATION, and I want to
+### say why rather than just comply
+
+I argued for no deaths on the grounds that one would dominate the gossip
+system so completely that nothing else would matter. That was protecting the
+simulation from a shock it should be built to absorb.
+
+**In a game whose antagonist is gossip, killing a witness is the most
+on-theme violent act available.** It WORKS — the rumour stops, the person
+who saw you cannot tell anyone — and it creates a far worse problem than the
+one it solved. That is precisely the trade this entire game is about, and it
+is a better version of the design than the one I proposed.
+
+So the concern does not disappear; it becomes the specification.
+
+### 7b. WHAT A BODY DOES, which is now the most important part of this spec
+
+A killing is not damage. It is a permanent change of game state, and it must
+be modelled as one:
+
+- **A body is a fact that cannot be discredited.** Every other rumour in this
+  game can be muddied, contradicted, suppressed or left to decay. The
+  discredit mechanics, the leashes, the confidence decay — none of them touch
+  a corpse. This is the one input the gossip mill must treat as absolute, and
+  that asymmetry is what makes it terrifying rather than efficient.
+- **It solves the immediate problem completely.** Whoever saw you is gone.
+  The design must be honest about this or the choice is fake — if killing a
+  witness does not actually stop the rumour, the player will notice
+  immediately and stop believing the whole system.
+- **It brings police, which is a new pressure track.** Mara Ellis already
+  exists as an inspector who never threatens. A killing escalates her from
+  procedure to investigation, and she is the one character in the game
+  equipped to carry that. *This is genuinely new work and I am not going to
+  pretend otherwise.*
+- **Who ELSE saw.** Acoustics and the gossip mill already answer "who was in
+  earshot" precisely. Killing one witness where three were present is the
+  mechanism by which this spirals, and it needs no new system at all.
+- **The crew know.** A recruit who watched you do it carries it, and loyalty
+  is already modelled. Nobody who saw it is ever quite the same about you.
+- **Rare and permanent.** No undo, no forgiveness track, and it should be
+  possible to complete a whole playthrough having never done it.
+
+### 7c. Consequences for the UI answer
+
+Diegetic-plus-heavy-feedback now, and **architected so a minimal HUD is a
+settings toggle rather than a rewrite.** That means the readout values —
+stamina, threat, incoming telegraph — exist as data from day one regardless
+of whether anything draws them. Building "no HUD" as an absence would make
+adding one later a retrofit; building it as a renderer that is currently
+switched off makes it a Tuesday.
+
+### 7d. Still mine to decide, and I am deciding it
+
+**Auto-resolve for accessibility: yes.** Timing-based combat excludes people,
+and this is the same fight at a different tempo rather than a difficulty
+setting.
 
 ## 8. The risk worth naming
 

@@ -760,10 +760,22 @@ already is — and `HarmBook.LooksLike` has returned exactly this since it was
 written and nothing has ever displayed it. Same principle as M15: the
 simulation IS the interface.
 
-**Four decisions are Jafar's** and are in the spec: whether the player can
-start fights, whether anyone can die (recommend no), guns (recommend not in
-scope), and an auto-resolve option (recommend yes, as accessibility rather
-than difficulty).
+**All four decisions ANSWERED by Jafar 2026-07-28.** Player can start
+fights; **killing witnesses is possible, rare and permanent** ("violence is
+a part of our crime world and a legit tool"); guns out of scope for now;
+readout diegetic-plus-heavy-feedback with a minimal HUD kept possible later.
+
+The lethality answer overruled my recommendation and improved the design.
+In a game whose antagonist is gossip, killing a witness is the most on-theme
+violent act available: it WORKS — the rumour stops — and it creates a far
+worse problem than the one it solved, which is the trade this whole game is
+about. My objection was protecting the simulation from a shock it should be
+built to absorb, so the objection became the specification instead: **a body
+is the one fact in this game that cannot be discredited**, and that asymmetry
+against every other rumour is what makes it terrifying rather than efficient.
+It adds a phase — police escalation on Mara Ellis, the crew who watched —
+which is the largest genuinely new work in the spec and comes from the
+lethality answer rather than from the fighting.
 
 **The risk, named rather than discovered later:** combat is the single
 easiest way to ruin this game. It is the most familiar verb in the medium,
