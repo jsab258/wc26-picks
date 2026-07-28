@@ -614,6 +614,7 @@ namespace Ledger.Game
 
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
+            SampleScore();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
 
@@ -680,6 +681,34 @@ namespace Ledger.Game
         /// the build machine has no GPU/display, and ScreenCapture silently
         /// produces nothing there. This path works on a software device and
         /// writes the file synchronously so we know immediately if it failed.
+        // The live score, sampled hourly. Two things are recorded: whether
+        // the mix MOVED at all across the run, and whether the calmest and
+        // hottest moments came out the right way round — which is the one
+        // property the whole adaptive-score design rests on.
+        int _scoreSamples;
+        double _scoreEnergyRange;
+        double _scoreCalmestEnergy = -1, _scoreCalmestHeat, _scoreHottestEnergy = -1, _scoreHottestHeat = -1;
+        double _scoreMinE = double.MaxValue, _scoreMaxE = double.MinValue;
+
+        void SampleScore()
+        {
+            if (!Audio.ScoreRunning) return;
+            var mix = new double[MusicModel.Layers];
+            for (int i = 0; i < mix.Length; i++) mix[i] = Audio.StemGain((MusicLayer)i);
+            double e = MusicModel.Energy(mix);
+            double heat = _game.CurrentHeat;
+            _scoreSamples++;
+            if (e < _scoreMinE) _scoreMinE = e;
+            if (e > _scoreMaxE) _scoreMaxE = e;
+            _scoreEnergyRange = _scoreMaxE - _scoreMinE;
+            // Tracked against the HEAT that produced them rather than against
+            // the extremes of energy, or the comparison is circular.
+            if (_scoreCalmestEnergy < 0 || heat < _scoreCalmestHeat)
+            { _scoreCalmestHeat = heat; _scoreCalmestEnergy = e; }
+            if (_scoreHottestEnergy < 0 || heat > _scoreHottestHeat)
+            { _scoreHottestHeat = heat; _scoreHottestEnergy = e; }
+        }
+
         void Shot(string name)
         {
             var path = $"sim-out/shot_{name}.png";
@@ -1501,6 +1530,15 @@ namespace Ledger.Game
                 { lightingOk = false; lightingWhy.Add($"greyNight:{nightSat:0.00}%"); }
             }
 
+            // THE SCORE, GATED. Computing the right mix in a test proves the
+            // curves; it does not prove the audio graph ever heard about it.
+            // What is asserted is that the stems exist, that they MOVED
+            // across the run, and that the mix obeyed the rule the whole
+            // design rests on — quieter under pressure, not louder.
+            bool scoreOk = Audio.ScoreRunning && _scoreSamples >= 2
+                && _scoreEnergyRange > 0.05
+                && (_scoreHottestEnergy < 0 || _scoreHottestEnergy <= _scoreCalmestEnergy + 1e-6);
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1522,7 +1560,7 @@ namespace Ledger.Game
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
                 ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
-                ("lighting", lightingOk),
+                ("lighting", lightingOk), ("score", scoreOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1575,6 +1613,9 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
+                      $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
+                      $"calmE={_scoreCalmestEnergy:0.00}@heat{_scoreCalmestHeat:0.00} " +
+                      $"hotE={_scoreHottestEnergy:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
                       $"verdict={camp.Verdict} pass={pass}");
             // Last line in the log, on purpose: whatever else scrolls past, this

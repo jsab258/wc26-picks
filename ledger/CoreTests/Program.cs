@@ -88,6 +88,7 @@ namespace Ledger.CoreTests
                 TestHomicide();
                 TestPalette();
                 TestLightModel();
+                TestMusicModel();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -6116,6 +6117,152 @@ namespace Ledger.CoreTests
             Check(Math.Abs(a30 - a240) < 1e-3,
                 "the street wets at the same rate at 30fps and 240",
                 $"{a30:0.0000} vs {a240:0.0000}");
+        }
+
+        static void TestMusicModel()
+        {
+            Console.WriteLine("Adaptive score — the music as an instrument of the simulation:");
+
+            double[] Calm() => MusicModel.Mix(new ScoreState());
+            double G(double[] m, MusicLayer l) => m[(int)l];
+
+            var calm = Calm();
+            Check(G(calm, MusicLayer.Bed) > 0.9, "an ordinary street has its pad");
+            Check(G(calm, MusicLayer.Pulse) > 0.9, "and its pulse — a night going to plan");
+            Check(G(calm, MusicLayer.Unease) == 0 && G(calm, MusicLayer.Dread) == 0,
+                "and nothing on top of it");
+
+            // ---- THE RULE THE WHOLE FILE EXISTS FOR ----
+            //
+            // As exposure rises the score LOSES instruments. Most games do
+            // the opposite — a stinger and a wall of strings — and a stinger
+            // says "something dramatic is happening" where a room going quiet
+            // says "everybody here already knows". The second is far more
+            // frightening and it is what this street would actually do.
+            var talked = MusicModel.Mix(new ScoreState { Heat = 0.85 });
+            Check(MusicModel.Energy(talked) < MusicModel.Energy(calm),
+                "AS EXPOSURE RISES THE SCORE GETS QUIETER, not louder — the room "
+                + "going quiet is the signal, and it is the opposite of a stinger",
+                $"{MusicModel.Energy(talked):0.00} vs {MusicModel.Energy(calm):0.00}");
+            bool monotoneDown = true;
+            double prevEnergy = 1e9;
+            for (double h = 0; h <= 1.0001; h += 0.05)
+            {
+                double e = MusicModel.Energy(MusicModel.Mix(new ScoreState { Heat = h }));
+                if (e > prevEnergy + 1e-9) monotoneDown = false;
+                prevEnergy = e;
+            }
+            Check(monotoneDown,
+                "and it never gets louder at any point on the way up, so the player "
+                + "can learn to read it rather than guess");
+
+            // The pulse is the tell, and it goes FIRST.
+            Check(G(talked, MusicLayer.Pulse) < G(calm, MusicLayer.Pulse) * 0.2,
+                "the arpeggio is the first thing to leave — a player who has heard it "
+                + "drop out twice will feel the third time before they know why",
+                $"{G(talked, MusicLayer.Pulse):0.00}");
+            Check(G(talked, MusicLayer.Unease) > 0.5, "and something takes its place, thinly");
+            Check(G(talked, MusicLayer.Bed) < G(calm, MusicLayer.Bed),
+                "even the pad thins out at the top of the range");
+            Check(MusicModel.RoomHasGoneQuiet(talked),
+                "which is a NAMED STATE, because it is the moment the design wants the "
+                + "player to learn to dread");
+            Check(!MusicModel.RoomHasGoneQuiet(calm), "and an ordinary night is not it");
+
+            // ---- TALK AND DANGER ARE DIFFERENT AXES ----
+            // You can be completely exposed and perfectly safe, and the score
+            // has to be able to say so.
+            var exposedSafe = MusicModel.Mix(new ScoreState { Heat = 1.0 });
+            var quietDanger = MusicModel.Mix(new ScoreState { Heat = 0.0, Police = Inquiry.Manhunt });
+            Check(G(exposedSafe, MusicLayer.Dread) == 0,
+                "being talked about is not danger, and the dread layer does not confuse them");
+            Check(G(quietDanger, MusicLayer.Dread) > 0.9,
+                "a manhunt is danger even on a street that has said nothing");
+            Check(G(quietDanger, MusicLayer.Unease) == 0,
+                "so the two layers keep meaning one thing each");
+
+            var proc = MusicModel.Mix(new ScoreState { Police = Inquiry.Procedure });
+            var inv = MusicModel.Mix(new ScoreState { Police = Inquiry.Investigation });
+            var hunt = MusicModel.Mix(new ScoreState { Police = Inquiry.Manhunt });
+            Check(G(proc, MusicLayer.Dread) < G(inv, MusicLayer.Dread)
+                  && G(inv, MusicLayer.Dread) < G(hunt, MusicLayer.Dread),
+                "and it rises with the inquiry, in the order the inquiry escalates");
+
+            Check(G(MusicModel.Mix(new ScoreState { Cornered = true }), MusicLayer.Dread) > 0.3,
+                "somebody squaring up in front of you is its own kind of danger");
+
+            // The audit clock is a pressure the score should carry.
+            var early = MusicModel.Mix(new ScoreState { DaysLeftOnAudit = 6 });
+            var last = MusicModel.Mix(new ScoreState { DaysLeftOnAudit = 0 });
+            Check(G(last, MusicLayer.Dread) > G(early, MusicLayer.Dread),
+                "the last day of the audit sounds like the last day of the audit");
+
+            // ---- CONVERSATION ----
+            var talking = MusicModel.Mix(new ScoreState { InConversation = true });
+            Check(G(talking, MusicLayer.Bed) > 0 && G(talking, MusicLayer.Bed) < G(calm, MusicLayer.Bed),
+                "the score gets UNDER a conversation rather than stopping for it — a hard "
+                + "cut to silence tells the player a cutscene has started",
+                $"{G(talking, MusicLayer.Bed):0.00}");
+
+            // ---- MIX HYGIENE ----
+            bool inRange = true, noDust = true;
+            foreach (double h in new[] { 0.0, 0.3, 0.6, 0.9, 1.0 })
+            foreach (double l in new[] { 0.0, 0.5, 1.0 })
+            foreach (var pol in new[] { Inquiry.None, Inquiry.Procedure, Inquiry.Investigation, Inquiry.Manhunt })
+            foreach (bool corner in new[] { false, true })
+            foreach (bool conv in new[] { false, true })
+            {
+                var m = MusicModel.Mix(new ScoreState
+                {
+                    Heat = h, StrongestLead = l, Police = pol, Cornered = corner,
+                    InConversation = conv, Night = 0.5,
+                });
+                foreach (var v in m)
+                {
+                    if (v < 0 || v > 1) inRange = false;
+                    if (v > 0 && v < MusicModel.Floor) noDust = false;
+                }
+            }
+            Check(inRange, "every layer stays in range across the whole state space");
+            Check(noDust,
+                "and nothing is left at an inaudible 2% — a pad you cannot hear is not "
+                + "atmosphere, it is a mix problem you cannot debug");
+
+            Check(MusicModel.Mix(null) != null, "a null state is silence rather than a crash");
+
+            // ---- SETTLING ----
+            var live = new double[MusicModel.Layers];
+            var target = MusicModel.Mix(new ScoreState { Heat = 0.9 });
+            for (int i = 0; i < 60; i++) MusicModel.Settle(live, target, 1.0 / 60.0);
+            Check(Math.Abs(live[(int)MusicLayer.Unease] - target[(int)MusicLayer.Unease]) > 0.05,
+                "a second of settling does not get you there — music that snaps between "
+                + "states is worse than no music");
+            for (int i = 0; i < 60 * 30; i++) MusicModel.Settle(live, target, 1.0 / 60.0);
+            Check(Math.Abs(live[(int)MusicLayer.Unease] - target[(int)MusicLayer.Unease]) < 0.01,
+                "but it does arrive");
+
+            // Dread is allowed to be the one thing that gets your attention.
+            var a = new double[MusicModel.Layers];
+            var b = new double[MusicModel.Layers];
+            var toDread = new double[] { 0, 0, 1, 1 };
+            for (int i = 0; i < 30; i++) MusicModel.Settle(a, toDread, 1.0 / 60.0);
+            Check(a[(int)MusicLayer.Dread] > a[(int)MusicLayer.Unease],
+                "dread arrives faster than unease does",
+                $"{a[(int)MusicLayer.Dread]:0.000} vs {a[(int)MusicLayer.Unease]:0.000}");
+            var leaving = new double[] { 0, 0, 1, 1 };
+            for (int i = 0; i < 30; i++) MusicModel.Settle(leaving, b, 1.0 / 60.0);
+            Check(leaving[(int)MusicLayer.Dread] > 1 - a[(int)MusicLayer.Dread],
+                "and leaves at the ordinary pace, so it does not snap off the moment "
+                + "the danger passes");
+
+            // Frame-rate independence, held to the same standard as everything else.
+            var f30 = new double[MusicModel.Layers];
+            var f240 = new double[MusicModel.Layers];
+            for (int i = 0; i < 30; i++) MusicModel.Settle(f30, target, 1.0 / 30.0);
+            for (int i = 0; i < 240; i++) MusicModel.Settle(f240, target, 1.0 / 240.0);
+            Check(Math.Abs(f30[(int)MusicLayer.Unease] - f240[(int)MusicLayer.Unease]) < 1e-3,
+                "the score settles at the same rate at 30fps and 240",
+                $"{f30[(int)MusicLayer.Unease]:0.0000} vs {f240[(int)MusicLayer.Unease]:0.0000}");
         }
 
         static void TestPalette()

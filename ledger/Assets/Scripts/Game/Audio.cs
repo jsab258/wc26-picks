@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -217,6 +218,170 @@ namespace Ledger.Game
             // middle and dusk sounds like a hole in the audio.
             _ambience.volume = bed * Mathf.Cos(night * Mathf.PI * 0.5f);
             _ambienceNight.volume = bed * Mathf.Sin(night * Mathf.PI * 0.5f);
+        }
+
+        // ---- ADAPTIVE SCORE (Core/MusicModel) ------------------------------
+        //
+        // Four stems, playing at once, SAMPLE-ALIGNED, each faded
+        // independently. The fixed day/night pair was wallpaper; this is the
+        // score doing the one job nothing else can — telling a player who is
+        // looking somewhere else that the street has turned.
+        //
+        // The rule, from MusicModel and worth repeating where the audio
+        // actually happens: AS EXPOSURE RISES THE SCORE LOSES INSTRUMENTS.
+        // The arpeggio dropping out is the signal. A stinger says "something
+        // dramatic is happening"; a room going quiet says "everybody here
+        // already knows".
+        static AudioSource[] _stems;
+        static readonly double[] _stemGain = new double[MusicModel.Layers];
+
+        public static void SetScore(ScoreState state, float dt)
+        {
+            if (_root == null || state == null) return;
+            if (_stems == null)
+            {
+                _stems = new AudioSource[MusicModel.Layers];
+                // Started on the SAME frame from the same length of audio, so
+                // the stems stay in phase for the whole session. Starting them
+                // lazily as they are first needed would drift them apart and
+                // the chords would smear.
+                for (int i = 0; i < MusicModel.Layers; i++)
+                {
+                    var layer = (MusicLayer)i;
+                    _stems[i] = Make("Stem_" + layer, loop: true);
+                    _stems[i].clip = Clip("music_stem_" + layer, () => Stem(layer));
+                    _stems[i].volume = 0f;
+                    _stems[i].Play();
+                }
+                // The single fixed track is retired the moment stems exist —
+                // two scores playing over each other is the worst possible
+                // outcome and would be nearly impossible to diagnose by ear.
+                if (_music != null) { _music.Stop(); _music.clip = null; }
+            }
+
+            var target = MusicModel.Mix(state);
+            MusicModel.Settle(_stemGain, target, dt);
+
+            var s = GameSettings.Current;
+            float master = 0.30f * s.MasterVolume * s.MusicVolume;
+            for (int i = 0; i < _stems.Length; i++)
+                if (_stems[i] != null) _stems[i].volume = (float)_stemGain[i] * master;
+        }
+
+        /// Live mix, for the sim to assert against.
+        public static double StemGain(MusicLayer l) =>
+            _stems == null ? 0 : _stemGain[(int)l];
+        public static bool ScoreRunning => _stems != null;
+
+        /// One stem. Every layer is the SAME four bars at the same tempo and
+        /// in the same key, so any subset of them is a coherent piece of
+        /// music — which is the entire discipline of writing stems, and the
+        /// reason a layer can drop out mid-bar without it sounding broken.
+        static AudioClip Stem(MusicLayer layer)
+        {
+            const int barSeconds = 6;
+            int[][] chords =
+            {
+                new[] { 0, 3, 7, 10 },    // Am7
+                new[] { -4, 0, 3, 7 },    // Fmaj7
+                new[] { -2, 2, 5, 9 },    // Gmaj-ish
+                new[] { 3, 7, 10, 14 },   // Cmaj add9
+            };
+            int len = SampleRate * barSeconds * chords.Length;
+            var data = new float[len];
+            const float root = 110f;
+            float[] arpSteps = { 0, 3, 7, 10, 12, 10, 7, 3 };
+            var rng = new System.Random(1988 + (int)layer);
+
+            for (int c = 0; c < chords.Length; c++)
+            {
+                int start = c * barSeconds * SampleRate;
+                int clen = barSeconds * SampleRate;
+
+                if (layer == MusicLayer.Bed)
+                {
+                    // Detuned saw pad: two oscillators a few cents apart is
+                    // the whole sound of the decade.
+                    foreach (var semi in chords[c])
+                    {
+                        float hz = root * 4f * Mathf.Pow(2f, semi / 12f);
+                        float amp = 0.055f / chords[c].Length;
+                        for (int i = 0; i < clen; i++)
+                        {
+                            float t = i / (float)SampleRate;
+                            float env = Mathf.Min(1f, t / 1.2f) * Mathf.Min(1f, (barSeconds - t) / 1.2f);
+                            float a1 = Mathf.Repeat(hz * t, 1f) * 2f - 1f;
+                            float a2 = Mathf.Repeat(hz * 1.006f * t, 1f) * 2f - 1f;
+                            data[start + i] += (a1 + a2) * 0.5f * amp * env;
+                        }
+                    }
+                }
+                else if (layer == MusicLayer.Pulse)
+                {
+                    // Sub bass — the thing you feel rather than hear.
+                    float bassHz = root * Mathf.Pow(2f, chords[c][0] / 12f);
+                    for (int i = 0; i < clen; i++)
+                    {
+                        float t = i / (float)SampleRate;
+                        float env = Mathf.Min(1f, t / 0.05f) * Mathf.Min(1f, (barSeconds - t) / 0.6f);
+                        data[start + i] += (Mathf.Repeat(bassHz * t, 1f) * 2f - 1f) * 0.085f * env;
+                    }
+                    // And the arpeggio that keeps the blood moving.
+                    const int steps = 16;
+                    float stepLen = barSeconds / (float)steps;
+                    for (int stp = 0; stp < steps; stp++)
+                    {
+                        float semi = chords[c][0] + arpSteps[stp % arpSteps.Length];
+                        float hz = root * 8f * Mathf.Pow(2f, semi / 12f);
+                        int at = start + (int)(stp * stepLen * SampleRate);
+                        int nlen = (int)(stepLen * SampleRate * 0.9f);
+                        float vel = stp % 4 == 0 ? 1f : 0.62f;
+                        for (int i = 0; i < nlen && at + i < len; i++)
+                        {
+                            float t = i / (float)SampleRate;
+                            float env = Mathf.Min(1f, t / 0.008f) * Mathf.Exp(-t * 9f);
+                            float sq = Mathf.Sin(2 * Mathf.PI * hz * t) > 0 ? 1f : -1f;
+                            data[at + i] += sq * 0.030f * vel * env;
+                        }
+                    }
+                }
+                else if (layer == MusicLayer.Unease)
+                {
+                    // A high detuned drone on the MINOR SECOND above the
+                    // root. It is in the key and it does not belong, which is
+                    // exactly what being talked about feels like — nothing you
+                    // can point at, and you cannot stop hearing it.
+                    float hz = root * 8f * Mathf.Pow(2f, (chords[c][0] + 1) / 12f);
+                    for (int i = 0; i < clen; i++)
+                    {
+                        float t = i / (float)SampleRate;
+                        float env = Mathf.Min(1f, t / 2.4f) * Mathf.Min(1f, (barSeconds - t) / 2.4f);
+                        // Slow beating between the two, so it breathes rather
+                        // than sitting there as a test tone.
+                        float a1 = Mathf.Sin(2 * Mathf.PI * hz * t);
+                        float a2 = Mathf.Sin(2 * Mathf.PI * hz * 1.004f * t);
+                        data[start + i] += (a1 + a2) * 0.5f * 0.030f * env;
+                    }
+                }
+                else // Dread
+                {
+                    // A sub swell an octave under the bass, rising through
+                    // the bar. Felt more than heard, and it does not resolve.
+                    float hz = root * 0.5f * Mathf.Pow(2f, chords[c][0] / 12f);
+                    for (int i = 0; i < clen; i++)
+                    {
+                        float t = i / (float)SampleRate;
+                        float swell = t / barSeconds;
+                        float env = swell * swell * Mathf.Min(1f, (barSeconds - t) / 0.8f);
+                        data[start + i] += Mathf.Sin(2 * Mathf.PI * hz * t) * 0.095f * env;
+                        // A breath of noise on top, filtered by being tiny.
+                        data[start + i] += (float)(rng.NextDouble() * 2 - 1) * 0.004f * env;
+                    }
+                }
+            }
+
+            CrossfadeEnds(data, SampleRate / 2);
+            return Make("music_stem_" + layer, data);
         }
 
         /// The score steps back while people talk — dialogue is the game's

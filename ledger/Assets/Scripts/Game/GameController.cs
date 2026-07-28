@@ -1289,6 +1289,38 @@ namespace Ledger.Game
             SaveNow(quiet: true);
         }
 
+        /// What the score is allowed to know (Core/MusicModel). Small on
+        /// purpose: a score that reads twenty variables is a score nobody can
+        /// predict, and a player who cannot predict the music cannot learn to
+        /// read it.
+        ScoreState ScoreNow()
+        {
+            var st = new ScoreState
+            {
+                Heat = CurrentHeat,
+                Night = NightAmount,
+                Police = PoliceInquiry,
+                InConversation = _ui != null && _ui.InConversation,
+            };
+            if (_gossip?.Mill != null)
+                st.StrongestLead = _gossip.Mill.StrongestSurvivingPlayerLead();
+            if (ActThree.Opened && !ActThree.AuditClosed)
+                st.DaysLeftOnAudit = System.Math.Max(0, ActThree.AuditClosesDay - Now.Day);
+            // Somebody in sight who will not deal with you. Read off the
+            // bodies rather than off the mill, because what matters here is
+            // whether the player can SEE them.
+            foreach (var n in _npcs)
+            {
+                if (n == null || !n.isActiveAndEnabled) continue;
+                if (n.Stance < StanceKind.Refuses) continue;
+                if (_player == null) continue;
+                if (Vector3.Distance(n.transform.position, _player.transform.position) > 12f) continue;
+                st.Cornered = true;
+                break;
+            }
+            return st;
+        }
+
         string DistrictOfPlayer() =>
             _player != null ? StreetMap.DistrictAt(_player.transform.position.x,
                                                    _player.transform.position.z) : "Hook Street";
@@ -2219,6 +2251,7 @@ namespace Ledger.Game
             // Light and sound off the SAME number, so dusk cannot arrive at
             // two different times.
             if (Audio.Ready) Audio.SetDaylight(NightAmount);
+            if (Audio.Ready) Audio.SetScore(ScoreNow(), Time.deltaTime);
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;

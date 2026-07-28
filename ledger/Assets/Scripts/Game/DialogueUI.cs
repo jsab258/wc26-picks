@@ -1432,6 +1432,10 @@ namespace Ledger.Game
             OpenDialogue(host);
         }
 
+        /// Whether a conversation is open. The score reads this to get UNDER
+        /// the talking rather than stopping for it.
+        public bool InConversation => _current != null;
+
         void OpenDialogue(ConversationHost host)
         {
             Audio.DuckMusic(true);
