@@ -19,7 +19,7 @@ namespace Ledger.Game
     {
         public const int SampleRate = 44100;
 
-        static AudioSource _ambience, _ui, _foot, _traffic;
+        static AudioSource _ambience, _ui, _foot, _traffic, _music;
         static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
         static GameObject _root;
         static bool _night;
@@ -32,6 +32,7 @@ namespace Ledger.Game
             _root = new GameObject("Audio");
             Object.DontDestroyOnLoad(_root);
             _ambience = Make("Ambience", loop: true);
+            _music = Make("Music", loop: true);
             _ui = Make("UI", loop: false);
             _foot = Make("Foot", loop: false);
             _traffic = Make("Traffic", loop: true);
@@ -55,6 +56,7 @@ namespace Ledger.Game
             if (_root == null) return;
             var s = GameSettings.Current;
             if (_ambience != null) _ambience.volume = 0.35f * s.MasterVolume * s.MusicVolume;
+            if (_music != null) _music.volume = 0.22f * s.MasterVolume * s.MusicVolume * (_ducked ? 0.35f : 1f);
             if (_ui != null) _ui.volume = 0.6f * s.MasterVolume * s.SfxVolume;
             if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume;
             // The traffic bed's own volume is driven per-frame by proximity; the
@@ -94,6 +96,82 @@ namespace Ledger.Game
             _night = night;
             _ambience.clip = Clip(night ? "ambience_night" : "ambience_day", () => Ambience(night));
             _ambience.Play();
+            if (_music != null)
+            {
+                _music.clip = Clip(night ? "music_night" : "music_day", () => Score(night));
+                _music.Play();
+            }
+        }
+
+        /// The score steps back while people talk — dialogue is the game's
+        /// instrument and the music knows it (P3).
+        static bool _ducked;
+        public static void DuckMusic(bool talking)
+        {
+            if (_ducked == talking) return;
+            _ducked = talking;
+            ApplyVolumes();
+        }
+
+        /// P3's missing half: a score, synthesised once and cached — and like
+        /// every clip here, a drop-in wav with the same name simply wins.
+        ///
+        /// Composition, not wallpaper: a slow aeolian progression
+        /// (i – VI – III – VII in A minor) under a sparse pentatonic line, all
+        /// sines with slow attacks, quiet enough to sit UNDER the ambience
+        /// rather than on top of it. Night is the same music with the lights
+        /// off: down an octave, half the melody, longer chords — the day's
+        /// tune remembered rather than played. Deterministic seed, so the
+        /// city always hums the same few bars; familiarity is the point.
+        static AudioClip Score(bool night)
+        {
+            int chordSeconds = night ? 12 : 8;
+            int[][] chords =
+            {
+                new[] { 0, 3, 7, 14 },    // Am add9
+                new[] { -4, 0, 3, 12 },   // F
+                new[] { 3, 7, 10, 15 },   // C
+                new[] { -2, 2, 5, 12 },   // G
+            };
+            int len = SampleRate * chordSeconds * chords.Length;
+            var data = new float[len];
+            var rng = new System.Random(night ? 923 : 292);
+            float baseHz = night ? 110f : 220f;           // A2 / A3
+            float[] penta = { 0, 3, 5, 7, 10, 12 };       // A minor pentatonic
+
+            for (int c = 0; c < chords.Length; c++)
+            {
+                int start = c * chordSeconds * SampleRate;
+                int clen = chordSeconds * SampleRate;
+                foreach (var semi in chords[c])
+                {
+                    float hz = baseHz * Mathf.Pow(2f, semi / 12f);
+                    float amp = 0.05f / chords[c].Length;
+                    for (int i = 0; i < clen; i++)
+                    {
+                        float t = i / (float)SampleRate;
+                        // slow attack, slow release: a pad, not a stab
+                        float env = Mathf.Min(1f, t / 2.5f) * Mathf.Min(1f, (chordSeconds - t) / 2.5f);
+                        data[start + i] += Mathf.Sin(2 * Mathf.PI * hz * (start / (float)SampleRate + t)) * amp * env;
+                    }
+                }
+                // the sparse line: a few pentatonic notes per chord, none at night's end
+                int notes = night ? 1 + rng.Next(2) : 2 + rng.Next(3);
+                for (int n = 0; n < notes; n++)
+                {
+                    float noteHz = baseHz * 2f * Mathf.Pow(2f, penta[rng.Next(penta.Length)] / 12f);
+                    int at = start + (int)((0.5f + 0.6f * n + 0.3f * (float)rng.NextDouble()) * chordSeconds / (notes + 0.5f) * SampleRate);
+                    int nlen = (int)(SampleRate * (night ? 2.2f : 1.4f));
+                    for (int i = 0; i < nlen && at + i < len; i++)
+                    {
+                        float t = i / (float)SampleRate;
+                        float env = Mathf.Min(1f, t / 0.15f) * Mathf.Exp(-t * (night ? 1.1f : 1.6f));
+                        data[at + i] += Mathf.Sin(2 * Mathf.PI * noteHz * t) * 0.035f * env;
+                    }
+                }
+            }
+            CrossfadeEnds(data, SampleRate);
+            return Make(night ? "music_night" : "music_day", data);
         }
 
         public static void Footstep()

@@ -1330,6 +1330,7 @@ namespace Ledger.Game
 
         void OpenDialogue(ConversationHost host)
         {
+            Audio.DuckMusic(true);
             _current = host;
             // A loyal-enough carrier admits what they hold the moment you sit down.
             var walker = host.GetComponent<NpcWalker>();
@@ -1344,6 +1345,7 @@ namespace Ledger.Game
 
         void CloseDialogue()
         {
+            Audio.DuckMusic(false);
             // Hanging up ends the call. If this is not cleared, the next
             // face-to-face conversation would still be told nobody can see
             // anybody, which is the sort of stale flag that produces a
