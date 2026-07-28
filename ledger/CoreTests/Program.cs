@@ -90,6 +90,7 @@ namespace Ledger.CoreTests
                 TestLightModel();
                 TestMusicModel();
                 TestRig();
+                TestTypography();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -6464,6 +6465,144 @@ namespace Ledger.CoreTests
             Check(Rig.Limp(0.2, true, 0.2).stanceScale < Rig.Limp(0.7, true, 0.2).stanceScale,
                 "a worse injury is a worse limp, from the SAME capability number the "
                 + "audio uses — a limp you can hear but not see is worse than neither");
+        }
+
+        static void TestTypography()
+        {
+            Console.WriteLine("Typography — the interface has a colour language and no type language:");
+
+            // ---- THE SCALE ----
+            Check(Typography.Body == 16, "the reading size is 16", $"{Typography.Body}");
+            Check(Typography.Micro < Typography.Small && Typography.Small < Typography.Body
+                  && Typography.Body < Typography.Lede && Typography.Lede < Typography.Title
+                  && Typography.Title < Typography.Display && Typography.Display < Typography.Hero,
+                "and every named step is strictly bigger than the one below it");
+            // The property that decides whether a scale communicates at all.
+            bool distinct = true;
+            for (int step = -2; step < 4; step++)
+                if (Typography.Size(step + 1) - Typography.Size(step) < 2) distinct = false;
+            Check(distinct,
+                "adjacent steps are unmistakably different — a scale whose neighbours "
+                + "look similar communicates no hierarchy and is worse than no scale, "
+                + "because it costs discipline and buys nothing");
+            Check(Typography.Size(-40) >= 8 && Typography.Size(40) <= 96,
+                "and it clamps at both ends rather than producing a 0pt or a 900pt");
+
+            // ---- RHYTHM ----
+            Check(Typography.Space(1) == 8 && Typography.Space(0.5) == 4 && Typography.Space(3) == 24,
+                "every gap is a multiple of eight, which is the whole of why "
+                + "professional layouts feel calm");
+            Check(Typography.Space(-5) == 0, "and a negative gap is no gap rather than a nonsense");
+            Check(Typography.LineHeight(Typography.Body) > Typography.LineHeight(Typography.Hero),
+                "body text gets more leading than a headline — a headline at 1.5 looks "
+                + "disconnected and a paragraph at 1.1 is unreadable, and using one "
+                + "number for both is the most common spacing mistake there is",
+                $"{Typography.LineHeight(Typography.Body):0.00} vs {Typography.LineHeight(Typography.Hero):0.00}");
+
+            // ---- MEASURE ----
+            Check(!Typography.MeasureIsReadable(1100, Typography.Body),
+                "an 1100px column of 16pt prose is far too wide — past about 75 "
+                + "characters the eye loses the start of the next line on the return "
+                + "sweep, and this game's dialogue panels are wide and full of prose");
+            Check(Typography.MeasureIsReadable(Typography.MaxWidthPixels(Typography.Body) - 1,
+                                               Typography.Body),
+                "and the width the scale recommends is inside the readable band");
+            Check(!Typography.MeasureIsReadable(120, Typography.Body),
+                "too narrow breaks the rhythm of reading just as badly");
+            Check(!Typography.MeasureIsReadable(500, 0), "a zero size is not readable, it is a bug");
+
+            // ---- CONTRAST, which is the part nobody does ----
+            Check(Math.Abs(Typography.Contrast(1, 1, 1, 0, 0, 0) - 21.0) < 0.01,
+                "black on white is 21:1, the top of the scale",
+                $"{Typography.Contrast(1, 1, 1, 0, 0, 0):0.00}");
+            Check(Math.Abs(Typography.Contrast(0.5, 0.5, 0.5, 0.5, 0.5, 0.5) - 1.0) < 1e-9,
+                "and a colour on itself is 1:1");
+            Check(Math.Abs(Typography.Contrast(1, 1, 1, 0, 0, 0)
+                           - Typography.Contrast(0, 0, 0, 1, 1, 1)) < 1e-9,
+                "the ratio does not care which is the foreground");
+
+            // THE GAMMA STEP, which is the whole reason to compute this
+            // rather than eyeball it. Doing luminance on raw sRGB — the
+            // obvious mistake — overstates dark-pair contrast badly, and dark
+            // pairs are exactly where this interface lives.
+            double naive = (0.2126 * 0.25 + 0.7152 * 0.25 + 0.0722 * 0.25);
+            Check(Typography.Luminance(0.25, 0.25, 0.25) < naive * 0.6,
+                "luminance is gamma-expanded, not a raw weighted sum — the raw version "
+                + "overstates the contrast of dark pairs, which is the range this "
+                + "game's panels live in",
+                $"{Typography.Luminance(0.25, 0.25, 0.25):0.0000} vs naive {naive:0.0000}");
+            Check(Typography.Luminance(0, 0, 0) == 0 && Math.Abs(Typography.Luminance(1, 1, 1) - 1) < 1e-9,
+                "and it still pins black at 0 and white at 1");
+            Check(Typography.Luminance(0, 1, 0) > Typography.Luminance(1, 0, 0)
+                  && Typography.Luminance(1, 0, 0) > Typography.Luminance(0, 0, 1),
+                "green reads brighter than red and red brighter than blue, as an eye does");
+
+            Check(Typography.MeetsAa(4.6, Typography.Body) && !Typography.MeetsAa(4.4, Typography.Body),
+                "body text needs 4.5:1");
+            Check(Typography.MeetsAa(3.1, Typography.Title) && !Typography.MeetsAa(2.9, Typography.Title),
+                "and large text is allowed 3:1, which is the standard, not a rounding");
+
+            // ---- THE REAL PALETTE, MEASURED ----
+            // Colours copied from UiTheme rather than imported, because Core
+            // cannot see the Unity layer — and if they drift apart the check
+            // below stops describing the real interface, so they are named
+            // here loudly enough that a reader notices.
+            (double r, double g, double b) Hex(int v) =>
+                (((v >> 16) & 0xFF) / 255.0, ((v >> 8) & 0xFF) / 255.0, (v & 0xFF) / 255.0);
+            var panel = Hex(0x101514);
+            var ink = Hex(0xe6ece8);
+            var dim = Hex(0x93a09a);
+            var credit = Hex(0x4fc98c);
+            var debit = Hex(0xe05252);
+            var amber = Hex(0xffa636);
+
+            double C((double r, double g, double b) f, (double r, double g, double b) bg) =>
+                Typography.Contrast(f.r, f.g, f.b, bg.r, bg.g, bg.b);
+
+            Check(Typography.MeetsAa(C(ink, panel), Typography.Body),
+                "INK on panel clears AA for body text", $"{C(ink, panel):0.00}:1");
+            Check(Typography.MeetsAa(C(dim, panel), Typography.Body),
+                "and so does DIM, which is the one a designer's eye always lets through",
+                $"{C(dim, panel):0.00}:1");
+            Check(Typography.MeetsAa(C(credit, panel), Typography.Body),
+                "credit green is readable, not just visible", $"{C(credit, panel):0.00}:1");
+            Check(Typography.MeetsAa(C(debit, panel), Typography.Body),
+                "and so is debit red", $"{C(debit, panel):0.00}:1");
+            Check(Typography.MeetsAa(C(amber, panel), Typography.Body),
+                "and the street's amber", $"{C(amber, panel):0.00}:1");
+
+            // The colourblind-safe pair has to clear the same bar, or the
+            // accessibility option trades one barrier for another.
+            var cbCredit = Hex(0x4aa3e0);
+            var cbDebit = Hex(0xe08a30);
+            Check(Typography.MeetsAa(C(cbCredit, panel), Typography.Body)
+                  && Typography.MeetsAa(C(cbDebit, panel), Typography.Body),
+                "AND SO DOES THE COLOURBLIND-SAFE PAIR — an accessibility option that "
+                + "trades a hue problem for a contrast problem has helped nobody",
+                $"{C(cbCredit, panel):0.00}:1 / {C(cbDebit, panel):0.00}:1");
+
+            // ---- THE LIFT ----
+            var tooDark = (r: 0.18, g: 0.20, b: 0.19);
+            Check(!Typography.MeetsAa(C(tooDark, panel), Typography.Body),
+                "a near-panel grey fails, as it should");
+            double lift = Typography.LiftToMeet(tooDark.r, tooDark.g, tooDark.b,
+                                                panel.r, panel.g, panel.b, Typography.Body);
+            Check(lift > 1.0, "and the fix is a lift");
+            var lifted = (r: Math.Min(1, tooDark.r * lift), g: Math.Min(1, tooDark.g * lift),
+                          b: Math.Min(1, tooDark.b * lift));
+            Check(Typography.MeetsAa(C(lifted, panel), Typography.Body),
+                "which clears the bar", $"{C(lifted, panel):0.00}:1");
+            // A MULTIPLIER, not a colour: brightening keeps the hue, and
+            // shifting toward white throws the palette away one fix at a time.
+            double hueBefore = tooDark.r / Math.Max(1e-9, tooDark.g);
+            double hueAfter = lifted.r / Math.Max(1e-9, lifted.g);
+            Check(Math.Abs(hueBefore - hueAfter) < 0.02,
+                "WITHOUT CHANGING THE HUE — shifting a colour toward white to fix "
+                + "contrast throws the design away one fix at a time",
+                $"{hueBefore:0.000} vs {hueAfter:0.000}");
+            Check(Typography.LiftToMeet(ink.r, ink.g, ink.b, panel.r, panel.g, panel.b,
+                                        Typography.Body) == 1.0,
+                "and a colour that already passes is left completely alone");
         }
 
         static void TestPalette()

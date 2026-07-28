@@ -59,9 +59,9 @@ namespace Ledger.Game
             _root.transform.SetParent(_canvas, false);
             Stretch(_root);
 
-            var title = Label(_root.transform, "L E D G E R", new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(900, 90), 64, TextAnchor.MiddleCenter);
+            var title = Label(_root.transform, "L E D G E R", new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(900, 96), Typography.Size(6), TextAnchor.MiddleCenter);
             title.color = UiTheme.Ink;
-            var sub = Label(_root.transform, "Your two lives are two accounts.", new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(900, 40), 20, TextAnchor.MiddleCenter);
+            var sub = Label(_root.transform, "Your two lives are two accounts.", new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(900, 40), Typography.Lede, TextAnchor.MiddleCenter);
             sub.color = UiTheme.Dim;
 
             var hasSave = SaveSlots.HasAny();
@@ -109,9 +109,9 @@ namespace Ledger.Game
             MenuButton(_root.transform, "Quit", new Vector2(0.5f, 0.5f), new Vector2(0, -128), new Vector2(360, 52))
                 .onClick.AddListener(Quit);
 
-            _saveNote = Label(_root.transform, SaveSlots.Describe(), new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(1100, 30), 15, TextAnchor.LowerCenter);
+            _saveNote = Label(_root.transform, SaveSlots.Describe(), new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(1100, 30), Typography.Small, TextAnchor.LowerCenter);
             _saveNote.color = UiTheme.Dim;
-            Label(_root.transform, "Conversations are live — press F2 in game to enter an Anthropic API key.", new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(1100, 28), 14, TextAnchor.LowerCenter)
+            Label(_root.transform, "Conversations are live — press F2 in game to enter an Anthropic API key.", new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(1100, 28), Typography.Small, TextAnchor.LowerCenter)
                 .color = UiTheme.Dim;
 
             // Present, not faded in: the menu IS the boot screen, and fading
@@ -194,7 +194,7 @@ namespace Ledger.Game
             go.transform.SetParent(parent, false);
             go.AddComponent<Image>().color = UiTheme.ButtonBg;
             Place(go, anchor, offset, size);
-            Label(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 19, TextAnchor.MiddleCenter);
+            Label(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, Typography.Body, TextAnchor.MiddleCenter);
             return go.AddComponent<Button>();
         }
 

@@ -92,7 +92,7 @@ namespace Ledger.Game
             var s = GameSettings.Current;
 
             Label(_optionsPanel.transform, "O P T I O N S", new Vector2(0.5f, 1), new Vector2(0, -22),
-                new Vector2(700, 34), 22, TextAnchor.UpperCenter).color = UiTheme.Dim;
+                new Vector2(700, 38), Typography.Title, TextAnchor.UpperCenter).color = UiTheme.Dim;
 
             float y = -90;
             MenuSlider(_optionsPanel.transform, "Master volume", y, s.MasterVolume,
@@ -117,7 +117,7 @@ namespace Ledger.Game
             // say so rather than letting the player wonder why the slider looks
             // broken. Honest beats clever.
             Label(_optionsPanel.transform, "Text size applies to screens opened after this one.",
-                new Vector2(0.5f, 1), new Vector2(0, y - 6), new Vector2(660, 26), 14,
+                new Vector2(0.5f, 1), new Vector2(0, y - 6), new Vector2(660, 26), Typography.Small,
                 TextAnchor.UpperCenter).color = UiTheme.Dim;
             y -= 42;
 
@@ -134,9 +134,9 @@ namespace Ledger.Game
         {
             _keysPanel = Panel(_canvas, "Controls", new Vector2(680, 640));
             Label(_keysPanel.transform, "C O N T R O L S", new Vector2(0.5f, 1), new Vector2(0, -22),
-                new Vector2(620, 34), 22, TextAnchor.UpperCenter).color = UiTheme.Dim;
+                new Vector2(620, 38), Typography.Title, TextAnchor.UpperCenter).color = UiTheme.Dim;
             Label(_keysPanel.transform, "WASD moves. Shift runs. Click an action to rebind it.",
-                new Vector2(0.5f, 1), new Vector2(0, -58), new Vector2(620, 28), 15,
+                new Vector2(0.5f, 1), new Vector2(0, -58), new Vector2(620, 28), Typography.Small,
                 TextAnchor.UpperCenter).color = UiTheme.Dim;
 
             // Driven from the bindings themselves. The hardcoded version had
@@ -146,7 +146,7 @@ namespace Ledger.Game
             {
                 var a = action;
                 Label(_keysPanel.transform, a, new Vector2(0, 1), new Vector2(60, y),
-                    new Vector2(260, 32), 18, TextAnchor.MiddleLeft);
+                    new Vector2(260, 32), Typography.Body, TextAnchor.MiddleLeft);
                 var btn = MenuButton(_keysPanel.transform, GameSettings.Current.Key(a).ToString(),
                     new Vector2(1, 1), new Vector2(-60, y - 4), new Vector2(220, 38));
                 _keyLabels[a] = btn.GetComponentInChildren<Text>();

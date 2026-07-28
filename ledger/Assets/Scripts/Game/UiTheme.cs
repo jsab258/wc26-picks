@@ -1,3 +1,4 @@
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -34,6 +35,32 @@ namespace Ledger.Game
         /// TextScalePercent, saved it, reloaded it — and nothing ever multiplied
         /// a font size by it. Every MakeText in the game now goes through here,
         /// so the control reaches the thing it names.
+        // THE TYPE SCALE (Core/Typography). Sizes across the panels were 14,
+        // 15, 18, 19, 22, 24, 64 — arbitrary numbers chosen one at a time,
+        // which is what makes a competent interface look amateur even when
+        // every individual screen is fine. Hierarchy comes from a SYSTEM or
+        // it does not come at all.
+        //
+        // Each one already carries the accessibility scaling, so a call site
+        // asks for a ROLE and gets the right number for this player.
+        public static int Micro   => Scaled(Typography.Micro);
+        public static int Small   => Scaled(Typography.Small);
+        public static int Body    => Scaled(Typography.Body);
+        public static int Lede    => Scaled(Typography.Lede);
+        public static int Title   => Scaled(Typography.Title);
+        public static int Display => Scaled(Typography.Display);
+        public static int Hero    => Scaled(Typography.Hero);
+
+        /// Eight-point rhythm. Every margin and gap is a multiple of it.
+        public static int Space(double units) => Typography.Space(units);
+
+        /// The widest a column of prose may be at a given size before the eye
+        /// starts losing the return sweep. Panels are laid out to fixed
+        /// widths here, so this is what keeps a wide one from becoming a
+        /// hundred-character line.
+        public static float MaxProseWidth(int points) =>
+            (float)Typography.MaxWidthPixels(points);
+
         public static int Scaled(int basePoints) =>
             UnityEngine.Mathf.Clamp(
                 UnityEngine.Mathf.RoundToInt(basePoints * GameSettings.Current.TextScalePercent / 100f),

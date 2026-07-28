@@ -98,7 +98,7 @@ namespace Ledger.Game
         void BuildPausePanel()
         {
             _pausePanel = MakePanel(_canvas, "Pause", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520, 540));
-            var t = MakeText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(460, 36), 24, TextAnchor.UpperCenter);
+            var t = MakeText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(460, 40), Typography.Title, TextAnchor.UpperCenter);
             t.text = "P A U S E D";
             t.color = UiTheme.Dim;
 
@@ -144,7 +144,7 @@ namespace Ledger.Game
             var quit = MakeButton(_pausePanel.transform, "Save and quit to desktop", new Vector2(0.5f, 1), new Vector2(0, -390), new Vector2(320, 48));
             quit.onClick.AddListener(() => { _game.SaveNow(quiet: true); MainMenu.Quit(); });
 
-            MakeText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(460, 30), 15, TextAnchor.LowerCenter)
+            MakeText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(460, 30), Typography.Small, TextAnchor.LowerCenter)
                 .text = "The city keeps its state. Everything you did is in the save.";
         }
 
@@ -192,14 +192,14 @@ namespace Ledger.Game
 
             _canvas = canvasGo.transform;
             // The street layer: sodium amber on the world HUD, cold ink in the books.
-            _clockText = MakeText(canvasGo.transform, "Clock", new Vector2(1, 1), new Vector2(-20, -20), new Vector2(360, 40), 26, TextAnchor.UpperRight);
-            _statusText = MakeText(canvasGo.transform, "Status", new Vector2(1, 1), new Vector2(-20, -54), new Vector2(640, 30), 18, TextAnchor.UpperRight);
+            _clockText = MakeText(canvasGo.transform, "Clock", new Vector2(1, 1), new Vector2(-20, -20), new Vector2(360, 42), Typography.Display, TextAnchor.UpperRight);
+            _statusText = MakeText(canvasGo.transform, "Status", new Vector2(1, 1), new Vector2(-20, -54), new Vector2(640, 30), Typography.Body, TextAnchor.UpperRight);
             _statusText.color = UiTheme.Dim;
-            _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(1000, 36), 21, TextAnchor.MiddleCenter);
+            _toastText = MakeText(canvasGo.transform, "Toast", new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(UiTheme.MaxProseWidth(Typography.Lede), 38), Typography.Lede, TextAnchor.MiddleCenter);
             _toastText.color = UiTheme.AmberSoft;
-            _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), 22, TextAnchor.MiddleCenter);
+            _promptText = MakeText(canvasGo.transform, "Prompt", new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(800, 36), Typography.Lede, TextAnchor.MiddleCenter);
             _promptText.color = UiTheme.Amber;
-            var help = MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), 16, TextAnchor.UpperLeft);
+            var help = MakeText(canvasGo.transform, "Help", new Vector2(0, 1), new Vector2(20, -20), new Vector2(700, 32), Typography.Body, TextAnchor.UpperLeft);
             help.text = "WASD move    Shift run    E talk    C coat    L ledger    J plan    T phone    F car    F2 key    Esc close";
             help.color = UiTheme.Dim;
 
@@ -217,9 +217,16 @@ namespace Ledger.Game
         void BuildDialoguePanel(Transform parent)
         {
             _dialoguePanel = MakePanel(parent, "Dialogue", new Vector2(0.5f, 0), new Vector2(0, 120), new Vector2(900, 420));
-            _titleText = MakeText(_dialoguePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(860, 30), 22, TextAnchor.UpperCenter);
+            _titleText = MakeText(_dialoguePanel.transform, "Title", new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(860, 34), Typography.Title, TextAnchor.UpperCenter);
             _titleText.color = UiTheme.Amber; // a person, not a page — street warmth
-            _historyText = MakeText(_dialoguePanel.transform, "History", new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(860, 280), 18, TextAnchor.LowerLeft);
+            // MEASURE. This column was 860px of 18pt prose — ninety-five
+            // characters a line, well past the point where the eye starts
+            // losing the start of the next one on the return sweep. It is
+            // also the panel the player reads the most words in, so it was
+            // the worst place in the game for it. The PANEL keeps its width
+            // because the buttons need it; the PROSE does not.
+            float prose = UiTheme.MaxProseWidth(Typography.Body);
+            _historyText = MakeText(_dialoguePanel.transform, "History", new Vector2(0.5f, 1), new Vector2(0, -52), new Vector2(prose, 280), Typography.Body, TextAnchor.LowerLeft);
 
             // The placeholder is the only onboarding the router gets: a player who
             // never learns they can say the thing instead of hunting for its button
