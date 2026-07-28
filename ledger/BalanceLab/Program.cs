@@ -486,8 +486,8 @@ namespace Ledger.BalanceLab
                               $"above {LedgerState.BooksHoldThreshold:0.00} you keep nothing.");
             Console.WriteLine("  Quiet is absent by construction: handing over is a deliberate act " +
                               "and the lab bot never reaches for it.");
-            Console.WriteLine("  The first three rows CANNOT produce Both — it requires the case pointed " +
-                              "elsewhere. Read the fourth row for whether Both is reachable at all.");
+            Console.WriteLine("  Both without deflect is the information-landscape road (act3-draft answer 3): " +
+                              "reachable, and roughly half the rate of taking her deal — refusing is the hardest line, as approved.");
         }
 
         static void PlanActions(OpenPlan plan, EmpireBook e, GossipMill mill, Wallet wallet, GameTime now)
