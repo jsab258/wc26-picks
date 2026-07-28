@@ -39,6 +39,10 @@ import time
 import wave
 from pathlib import Path
 
+# Bumped on every change. Printed at startup so a stale copy in the Downloads
+# folder announces itself instead of reproducing an old failure exactly.
+VERSION = "2026-07-28.4  (clean-venv bootstrap, piper API drift, real errors)"
+
 OUT = Path(__file__).parent / "ledger-tts-out"
 
 # --------------------------------------------------------------- the lines
@@ -437,7 +441,7 @@ def main():
                     help="install into the current Python instead of a private venv")
     a = ap.parse_args()
 
-    say("LEDGER TTS benchmark")
+    say(f"LEDGER TTS benchmark   v{VERSION}")
     say(f"python {sys.version.split()[0]}{'  (private venv)' if in_venv() else ''}")
     say(f"output: {OUT}")
 
