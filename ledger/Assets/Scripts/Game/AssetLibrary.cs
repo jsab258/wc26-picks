@@ -101,6 +101,12 @@ namespace Ledger.Game
             };
             mat.SetFloat("_Glossiness", 0.16f);
             mat.SetFloat("_Metallic", 0f);
+            // GPU INSTANCING. These materials exist almost entirely to be
+            // worn by bodies, and a body is thirteen boxes — so a street of
+            // forty people is five hundred draws of the same two meshes in
+            // the same handful of colours, which is the exact case
+            // instancing was built for. One flag.
+            mat.enableInstancing = true;
             _flat[key] = mat;
             return mat;
         }

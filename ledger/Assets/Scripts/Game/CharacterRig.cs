@@ -29,6 +29,7 @@ namespace Ledger.Game
         Transform _lFoot, _rFoot;
         Transform _lThigh, _lShin, _rThigh, _rShin;
         Transform _lUpperArm, _lForearm, _rUpperArm, _rForearm;
+        Mannequin _mannequin;
         /// True once there is a skeleton to pose, from EITHER source.
         bool _posed;
 
@@ -119,6 +120,7 @@ namespace Ledger.Game
                 _rThigh = man.RThigh; _rShin = man.RShin;
                 _lUpperArm = man.LUpperArm; _lForearm = man.LForearm;
                 _rUpperArm = man.RUpperArm; _rForearm = man.RForearm;
+                _mannequin = man;
                 LegLength = Mannequin.ThighLength + Mannequin.ShinLength;
                 // This person's own stride and their own bad leg. A crowd
                 // where everybody limps on the left is a crowd with one
@@ -195,7 +197,11 @@ namespace Ledger.Game
                 _solvedShown = _solved;
                 _solved = 0;
             }
-            if (!ShouldSolve()) return;
+            bool near = ShouldSolve();
+            // The small pieces go with the solve. Same distance, one check,
+            // and it keeps the two from disagreeing about what "far" means.
+            if (_mannequin != null) _mannequin.SetDetail(near);
+            if (!near) return;
             _solved++;
 
             var (pitch, roll) = Rig.Lean(AccelMetresPerSecSq, TurnDegreesPerSec, Speed);

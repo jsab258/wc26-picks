@@ -167,10 +167,15 @@ namespace Ledger.Game
                         new Vector3(0.175f, 0.018f, 0.09f), hairMat);
             }
 
+            foreach (var n in new[] { "Face", "EyeL", "EyeR", "Hair", "Peak" })
+                MarkDetail(Head, n);
+
             (LThigh, LShin, LFoot) = Leg("L", -HipHalfWidth, clothMat, skinMat);
             (RThigh, RShin, RFoot) = Leg("R", HipHalfWidth, clothMat, skinMat);
             (LUpperArm, LForearm) = Arm("L", -ShoulderHalfWidth, clothMat, skinMat);
             (RUpperArm, RForearm) = Arm("R", ShoulderHalfWidth, clothMat, skinMat);
+            MarkDetail(LForearm, "Hand");
+            MarkDetail(RForearm, "Hand");
         }
 
         (Transform, Transform, Transform) Leg(string side, float x, Material cloth, Material skin)
@@ -213,6 +218,54 @@ namespace Ledger.Game
         /// directly and rotating THAT is the usual mistake and it makes every
         /// limb pivot around its own centre, which reads as a body coming
         /// apart.
+        /// The small pieces — eyes, nose, hands, hair, feet. Switched off at
+        /// distance.
+        ///
+        /// NOT THE LIMBS. The temptation with a body made of boxes is to cull
+        /// from the outside in, and that is backwards: at fifty metres the
+        /// arms and legs are what make a figure read as a person walking, and
+        /// the nose is four pixels. Cut the pixels nobody can resolve and
+        /// keep the ones doing the work.
+        readonly System.Collections.Generic.List<GameObject> _detail
+            = new System.Collections.Generic.List<GameObject>();
+        bool _detailOn = true;
+
+        public void SetDetail(bool on)
+        {
+            if (on == _detailOn) return;
+            _detailOn = on;
+            foreach (var go in _detail) if (go != null) go.SetActive(on);
+
+            // AND THE SHADOW GOES TOO, past the same distance. A figure
+            // thirty-five metres off is four pixels of shadow on a pavement
+            // nobody is looking at, and it costs the same shadow-map draws as
+            // the person standing next to the player. This is where most of
+            // the saving is: it is forty walkers, not the two nearby.
+            var mode = on ? UnityEngine.Rendering.ShadowCastingMode.On
+                          : UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (_casters.Count == 0)
+                foreach (var r in GetComponentsInChildren<MeshRenderer>(true))
+                    if (r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.On)
+                        _casters.Add(r);
+            foreach (var r in _casters) if (r != null) r.shadowCastingMode = mode;
+        }
+        readonly System.Collections.Generic.List<MeshRenderer> _casters
+            = new System.Collections.Generic.List<MeshRenderer>();
+
+        void MarkDetail(Transform parent, string name)
+        {
+            var child = parent.Find(name);
+            if (child != null) _detail.Add(child.gameObject);
+        }
+
+        /// Which pieces are part of the silhouette. Everything else is
+        /// detail that lands inside a shadow something larger already cast.
+        static bool Casts(string name) =>
+            name == "Torso" || name == "Pelvis" || name == "Skull"
+            || name == "ThighMesh" || name == "ShinMesh"
+            || name == "UpperArmMesh" || name == "ForearmMesh"
+            || name == "Hair";
+
         static Transform Joint(string name, Transform parent, Vector3 localPos)
         {
             var go = new GameObject(name);
@@ -237,7 +290,27 @@ namespace Ledger.Game
             go.transform.localPosition = pos;
             go.transform.localScale = size;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            // A BODY CASTS ONE SILHOUETTE, not thirteen.
+            //
+            // Every piece casting its own shadow is thirteen extra draws per
+            // person into the shadow map, and the ones it buys are invisible:
+            // a nose and two eyes cast onto a face that is already in shadow
+            // from the skull in front of them. Only the masses cast — torso,
+            // pelvis, head, and the four limb segments — which is the whole
+            // readable silhouette for a bit over half the cost.
+            //
+            // Chosen after a CI sim run took eighty percent longer the day
+            // bodies landed. On a runner with no GPU the shadow pass is the
+            // dominant cost and thirteen small casters per walker is the
+            // whole of it.
+            r.shadowCastingMode = Casts(name)
+                ? UnityEngine.Rendering.ShadowCastingMode.On
+                : UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = true;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.BlendProbes;
         }
 
         /// The primitive meshes, borrowed ONCE.
