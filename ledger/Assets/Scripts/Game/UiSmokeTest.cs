@@ -33,9 +33,10 @@ namespace Ledger.Game
             public string Name;
             public bool Opened, HadWords, Closed, GaveBackControl;
             public bool LockHonored = true;   // locking panels only: the policy saw it while open
-            public bool Ok => Opened && HadWords && Closed && GaveBackControl && LockHonored;
+            public bool Says = true;          // the panel SAYS what this world state requires
+            public bool Ok => Opened && HadWords && Closed && GaveBackControl && LockHonored && Says;
             public override string ToString() =>
-                $"{Name}:{(Ok ? "ok" : $"open={Opened} words={HadWords} closed={Closed} control={GaveBackControl} lock={LockHonored}")}";
+                $"{Name}:{(Ok ? "ok" : $"open={Opened} words={HadWords} closed={Closed} control={GaveBackControl} lock={LockHonored} says={Says}")}";
         }
 
         /// Walk every panel. Called by the sim; harmless in a real session, but
@@ -54,12 +55,50 @@ namespace Ledger.Game
             // reads live-rendered content rather than build-time chrome — a
             // renderer that throws or writes nothing is a red bar now (audit
             // 2026-07-27).
-            Check(reports, "ledger", _ledgerPanel, RefreshLedger);
-            Check(reports, "dialogue", _dialoguePanel);
-            Check(reports, "apiKey", _keyPanel);
-            Check(reports, "pause", _pausePanel);
-            Check(reports, "plan", _planPanel, RefreshPlan);
-            Check(reports, "phone", _phonePanel, RefreshPhone);
+            // CONTENT predicates close the roadmap's named gap ("nothing
+            // asserts what a panel SAYS"): each panel must show the words this
+            // world state requires, read back off the live Text components.
+            Check(reports, "ledger", _ledgerPanel, RefreshLedger,
+                () => AllWords(_ledgerPanel).Contains("LIABILITIES") && AllWords(_ledgerPanel).Contains("THE STREET"));
+            Check(reports, "dialogue", _dialoguePanel, null,
+                () => _input != null && _historyText != null);
+            Check(reports, "apiKey", _keyPanel, null,
+                () => AllWords(_keyPanel).Contains("Anthropic"));
+            Check(reports, "pause", _pausePanel, null,
+                () => AllWords(_pausePanel).Contains("Resume") && AllWords(_pausePanel).Contains("Save"));
+            Check(reports, "plan", _planPanel, () =>
+            {
+                // Seed the way TogglePlan does, so the refresh renders a real
+                // plan rather than early-returning on a bot with none.
+                if (_game != null && _game.Plan == null)
+                {
+                    OperationTarget first = null;
+                    foreach (var t in _game.OpenTargets) { first = t; break; }
+                    _game.Plan = new OperationPlan(first != null ? first.Id : null) { Hour = 23 };
+                }
+                RefreshPlan();
+            }, () => AllWords(_planPanel).Replace(" ", "").Contains("PLANNING"));
+            Check(reports, "phone", _phonePanel, RefreshPhone,
+                () => AllWords(_phonePanel).Contains("Hang up"));
+
+            // The rebind screen, which is where this file's founding bug lived:
+            // six rows against nine listened-for actions. Every action the game
+            // listens for must be ON the screen, and nothing else.
+            var opt = new PanelReport { Name = "rebinds" };
+            reports.Add(opt);
+            try
+            {
+                var screen = OptionsScreen.Show();
+                opt.Opened = OptionsScreen.Open;
+                opt.HadWords = true;
+                var listed = new HashSet<string>(screen.ListedActions);
+                var listening = new HashSet<string>(GameSettings.Current.Keys.Keys);
+                opt.Says = listed.SetEquals(listening);
+                screen.Close();
+                opt.Closed = !OptionsScreen.Open;
+                opt.GaveBackControl = true;
+            }
+            catch { opt.Opened = false; }
 
             // Whatever the walk did, the player must end it able to move. This
             // is the assertion the whole file is for.
@@ -67,7 +106,8 @@ namespace Ledger.Game
             return reports;
         }
 
-        void Check(List<PanelReport> into, string name, GameObject panel, System.Action refresh = null)
+        void Check(List<PanelReport> into, string name, GameObject panel,
+            System.Action refresh = null, System.Func<bool> says = null)
         {
             var r = new PanelReport { Name = name };
             into.Add(r);
@@ -90,6 +130,8 @@ namespace Ledger.Game
             if (refresh != null)
                 try { refresh(); } catch { refreshOk = false; }
             r.HadWords = refreshOk && HasVisibleWords(panel);
+            if (says != null)
+                try { r.Says = says(); } catch { r.Says = false; }
 
             // A panel that takes the screen must also take the controls — and
             // it must do so through the ONE policy Update() re-derives the lock
@@ -110,6 +152,16 @@ namespace Ledger.Game
             r.GaveBackControl = AnyPanelDemandsInput() == lockedBefore;
 
             if (wasOpen) panel.SetActive(true);
+        }
+
+        /// Every visible word in the panel, joined — the content predicates
+        /// read the panel the way a player would: off what is rendered.
+        static string AllWords(GameObject panel)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var t in panel.GetComponentsInChildren<Text>(includeInactive: true))
+                if (!string.IsNullOrWhiteSpace(t.text)) sb.Append(t.text).Append('\n');
+            return sb.ToString();
         }
 
         /// Does anything in here actually say something? A panel of empty labels

@@ -160,7 +160,13 @@ namespace Ledger.Game
             _keysPanel.SetActive(false);
         }
 
-        void Close()
+        /// Everything the rebind screen currently lists — the smoke test
+        /// compares this against the actions the game listens for, because the
+        /// hardcoded version once drifted to six rows against nine actions
+        /// (the founding bug of the UI test file).
+        public IReadOnlyCollection<string> ListedActions => _keyLabels.Keys;
+
+        public void Close()
         {
             GameSettings.Current.Save();
             Open = false;

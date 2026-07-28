@@ -1029,7 +1029,10 @@ namespace Ledger.Game
                     if (r.Ok) panelsOk++;
                     else { panelsBad++; badPanels.Add(r.ToString()); }
                 }
-            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 5;
+            // Seven now: six panels plus the rebind screen — and the floor
+            // asserts the COUNT so a silently missing report reds the build
+            // rather than shrinking the walk (audit 2026-07-27 pattern).
+            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7;
 
             bool accessOk = _game.Gates.Count > 0;
             foreach (var gate in _game.Gates)
