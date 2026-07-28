@@ -81,6 +81,7 @@ namespace Ledger.CoreTests
                 TestAccess();
                 TestOperations();
                 TestPopulation();
+                TestFeel();
                 TestDirector();
                 await TestDirectorAsync();
                 await TestIntentRouterAsync();
@@ -4964,6 +4965,183 @@ namespace Ledger.CoreTests
             w.Ignored.Add("Mitch has not been paid since day 4");
             w.Recent.Add("the collection round paid out every night this week");
             return w;
+        }
+
+        static void TestFeel()
+        {
+            Console.WriteLine("Feel — momentum, camera lag, and the limp:");
+
+            // ---- momentum: you accelerate, you do not teleport ----
+            var loc = new Locomotion();
+            loc.Step(0, 1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(loc.Speed > 0.01 && loc.Speed < Locomotion.WalkSpeed * 0.5,
+                "one frame of full input does not reach walking speed",
+                $"speed {loc.Speed:0.00} after 16ms");
+
+            for (int i = 0; i < 60; i++) loc.Step(0, 1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(Math.Abs(loc.Speed - Locomotion.WalkSpeed) < 0.01,
+                "a second of input reaches walking speed", $"speed {loc.Speed:0.000}");
+
+            double peak = 0;
+            var accel = new Locomotion();
+            for (int i = 0; i < 300; i++)
+            {
+                accel.Step(0, 1, Locomotion.WalkSpeed, 1.0 / 60.0);
+                peak = Math.Max(peak, accel.Speed);
+            }
+            Check(peak <= Locomotion.WalkSpeed + 1e-9,
+                "acceleration from rest never overshoots the top speed", $"peak {peak:0.0000}");
+
+            // ---- and you settle out of a stop ----
+            loc.Step(0, 0, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(loc.Speed > 0.1, "letting go does not stop you dead", $"speed {loc.Speed:0.00}");
+            double before = loc.Speed;
+            for (int i = 0; i < 60; i++) loc.Step(0, 0, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(loc.Speed == 0, "but you do come to a complete stop", $"from {before:0.00}");
+            Check(loc.Decel > loc.Accel, "stopping is quicker than starting, as bodies are");
+
+            // ---- reversal costs a moment ----
+            var rev = new Locomotion();
+            for (int i = 0; i < 60; i++) rev.Step(0, 1, Locomotion.RunSpeed, 1.0 / 60.0);
+            double atSpeed = rev.Speed;
+            bool passedThroughZero = false;
+            for (int i = 0; i < 60; i++)
+            {
+                rev.Step(0, -1, Locomotion.RunSpeed, 1.0 / 60.0);
+                if (rev.Speed < atSpeed * 0.15) passedThroughZero = true;
+            }
+            Check(passedThroughZero,
+                "a full reversal passes through a stop rather than mirroring instantly");
+
+            // ---- a body cannot pivot instantly ----
+            var turn = new Locomotion { FacingDegrees = 0 };
+            turn.Step(0, -1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(Math.Abs(Feel.DeltaAngle(turn.FacingDegrees, 180)) > 150,
+                "one frame turns only a fraction of a 180", $"facing {turn.FacingDegrees:0.0}");
+            for (int i = 0; i < 60; i++) turn.Step(0, -1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(Math.Abs(Feel.DeltaAngle(turn.FacingDegrees, 180)) < 0.001,
+                "and arrives exactly, without spinning past", $"facing {turn.FacingDegrees:0.000}");
+
+            Check(Math.Abs(Feel.DeltaAngle(350, 10) - 20) < 1e-9,
+                "turning takes the short way round the wrap point",
+                $"{Feel.DeltaAngle(350, 10)}");
+            Check(Math.Abs(Feel.MoveTowardsAngle(350, 10, 5) - 355) < 1e-9,
+                "a limited turn across the wrap point still goes the short way");
+
+            // ---- frame-rate independence: the whole point of doing this in maths ----
+            var slow = new Locomotion();
+            var fast = new Locomotion();
+            for (int i = 0; i < 30; i++) slow.Step(0.7, 0.7, Locomotion.RunSpeed, 1.0 / 30.0);
+            for (int i = 0; i < 240; i++) fast.Step(0.7, 0.7, Locomotion.RunSpeed, 1.0 / 240.0);
+            Check(Math.Abs(slow.Speed - fast.Speed) < 1e-9,
+                "the same second of input gives the same speed at 30fps and 240fps",
+                $"{slow.Speed:0.000000} vs {fast.Speed:0.000000}");
+
+            double a30 = Feel.Approach(0, 1, 9, 1.0 / 30.0);
+            double a240 = 0;
+            for (int i = 0; i < 8; i++) a240 = Feel.Approach(a240, 1, 9, 1.0 / 240.0);
+            Check(Math.Abs(a30 - a240) < 1e-12,
+                "camera lag is exactly frame-rate independent, not approximately",
+                $"{a30:0.000000000} vs {a240:0.000000000}");
+
+            // ---- run to walk decelerates rather than snapping ----
+            var slowdown = new Locomotion();
+            for (int i = 0; i < 120; i++) slowdown.Step(0, 1, Locomotion.RunSpeed, 1.0 / 60.0);
+            slowdown.Step(0, 1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(slowdown.Speed > Locomotion.WalkSpeed,
+                "releasing run does not snap you to walking speed",
+                $"speed {slowdown.Speed:0.00}");
+            for (int i = 0; i < 60; i++) slowdown.Step(0, 1, Locomotion.WalkSpeed, 1.0 / 60.0);
+            Check(Math.Abs(slowdown.Speed - Locomotion.WalkSpeed) < 0.01,
+                "but it does arrive at walking speed");
+
+            // ---- the camera follows; it is not welded on ----
+            var rig = new CameraRig();
+            rig.Place(0, 2, 0);
+            Check(rig.Fov == rig.BaseFov, "a placed camera starts at the resting FOV");
+            rig.Follow(4, 2, 0, 0, 0, 0, 1.0 / 60.0);
+            Check(rig.X > 0 && rig.X < 4,
+                "the camera lags a jump in the target", $"x {rig.X:0.00}");
+            for (int i = 0; i < 240; i++) rig.Follow(4, 2, 0, 0, 0, 0, 1.0 / 60.0);
+            Check(Math.Abs(rig.X - 4) < 0.01 && rig.X <= 4.0000001,
+                "and settles onto it without overshooting", $"x {rig.X:0.0000}");
+
+            var fresh = new CameraRig();
+            fresh.Follow(50, 2, 50, 0, 0, 0, 1.0 / 60.0);
+            Check(fresh.X == 50 && fresh.Z == 50,
+                "an unplaced camera snaps instead of sweeping across the city");
+
+            var tp = new CameraRig();
+            tp.Place(0, 2, 0);
+            tp.Follow(0, 2, 400, 0, 0, 0, 1.0 / 60.0);
+            Check(tp.Z == 400,
+                "a teleport is cut to, not flown to — no spring across the city",
+                $"z {tp.Z:0.00}");
+            tp.Follow(0, 2, 403, 0, 0, 0, 1.0 / 60.0);
+            Check(tp.Z > 400 && tp.Z < 403,
+                "but a large real movement still springs", $"z {tp.Z:0.00}");
+
+            var fov = new CameraRig();
+            fov.Place(0, 2, 0);
+            for (int i = 0; i < 600; i++) fov.Follow(0, 2, 0, 1.0, 0, 1, 1.0 / 60.0);
+            Check(Math.Abs(fov.Fov - (fov.BaseFov + fov.FovGain)) < 0.01,
+                "FOV opens up at full effort", $"fov {fov.Fov:0.00}");
+            Check(Math.Abs(fov.AheadZ - fov.LookAheadMetres) < 0.01,
+                "and the frame leads you into where you are going",
+                $"ahead {fov.AheadZ:0.00}");
+            for (int i = 0; i < 600; i++) fov.Follow(0, 2, 0, 0.0, 0, 1, 1.0 / 60.0);
+            Check(Math.Abs(fov.Fov - fov.BaseFov) < 0.01, "and closes again when you stop");
+            Check(Math.Abs(fov.AheadZ) < 0.01, "and stops leading");
+
+            // ---- the limp: rhythm, not speed ----
+            Check(Gait.StrideFor(0, 0) == Gait.StrideFor(1, 0),
+                "a healthy walk is symmetrical");
+            double good = Gait.StrideFor(0, 0.8), bad = Gait.StrideFor(1, 0.8);
+            Check(good > bad, "an injured one is not: the good leg carries");
+            Check(Math.Abs((good + bad) - 2 * Gait.StrideMetres) < 1e-9,
+                "but a pair of steps covers exactly the ground two healthy ones would",
+                $"{good:0.000} + {bad:0.000}");
+            Check(Gait.StrideFor(0, 0.9) - Gait.StrideFor(1, 0.9) >
+                  Gait.StrideFor(0, 0.3) - Gait.StrideFor(1, 0.3),
+                "and the worse the injury, the more lopsided the walk");
+            Check(Gait.StrideFor(1, 5.0) > 0,
+                "a severity above 1 still produces a forward step, not a backward one");
+
+            Check(Gait.SpeedFactor(0) == 1.0, "an unhurt player moves at full speed");
+            Check(Gait.SpeedFactor(1.0) < Gait.SpeedFactor(0.3),
+                "and a hurt one is slower the worse it is");
+            Check(Gait.SpeedFactor(5.0) >= 0.55,
+                "but is never reduced to something unplayable",
+                $"{Gait.SpeedFactor(5.0):0.00}");
+            Check(Math.Abs(Gait.SeverityFromCapability(0.6) - 0.4) < 1e-9,
+                "severity reads straight off the harm system's capability");
+
+            Check(Gait.StepWeight(0, 0.8) > Gait.StepWeight(1, 0.8),
+                "a limping step lands harder on the good leg");
+            Check(Gait.StepWeight(0, 0) == Gait.StepWeight(1, 0),
+                "and evenly when unhurt");
+            Check(Gait.BobAmplitude(1.0) > Gait.BobAmplitude(0.0) &&
+                  Gait.BobAmplitude(1.0) < 0.06,
+                "head bob scales with effort and stays well short of seasick");
+
+            // ---- input buffering and forgiveness ----
+            var buf = new InputBuffer();
+            buf.Press(10.0);
+            Check(buf.Consume(10.1), "a press just before the action was legal still counts");
+            Check(!buf.Consume(10.11), "but only once");
+            buf.Press(20.0);
+            Check(!buf.Consume(20.5), "a press older than the window is forgotten");
+            buf.Press(30.0);
+            buf.Clear();
+            Check(!buf.Consume(30.01), "and a cleared buffer fires nothing");
+
+            var grace = new Forgiveness();
+            grace.SeenInRange(5.0);
+            Check(grace.StillOffered(5.2), "a prompt survives a step out of range");
+            Check(!grace.StillOffered(5.9), "but not indefinitely");
+            grace.SeenInRange(6.0);
+            grace.Drop();
+            Check(!grace.StillOffered(6.01), "and a dropped prompt is gone at once");
         }
 
         static void TestDirector()

@@ -215,11 +215,26 @@ namespace Ledger.Game
             ApplyVolumes();
         }
 
-        public static void Footstep()
+        /// GAME FEEL §4: footsteps by surface × gait × several variants, so it
+        /// never sounds looped. One clip with a random pitch — which is what
+        /// this was — is the sound every player has learned to stop hearing.
+        ///
+        /// `weight` comes from the gait: a limping step lands harder on the
+        /// good leg, which is what actually sells an injury through
+        /// headphones, before any model exists to show it.
+        static int _stepVariant;
+        public static void Footstep(float weight = 1f, float wet = 0f)
         {
             if (_root == null || _foot == null) return;
-            _foot.pitch = Random.Range(0.92f, 1.08f);
-            _foot.PlayOneShot(Clip("step", Step));
+            // Cycle rather than randomise, so the same variant cannot land
+            // twice running — the thing that makes randomness sound cheap.
+            _stepVariant = (_stepVariant + 1 + Random.Range(0, 3)) % StepVariants;
+            int v = _stepVariant;
+            bool splash = wet > 0.35f && Random.value < wet;
+            string name = (splash ? "step_wet" : "step") + v;
+            _foot.pitch = Random.Range(0.94f, 1.06f) / Mathf.Max(0.6f, weight);
+            _foot.PlayOneShot(Clip(name, () => Step(v, splash)),
+                              Mathf.Clamp(weight, 0.4f, 1.4f));
         }
 
         public static void Ui(string kind)
@@ -300,18 +315,35 @@ namespace Ledger.Game
             return Make("engine", data);
         }
 
-        static AudioClip Step()
+        public const int StepVariants = 5;
+
+        /// Each variant is a different seed AND a slightly different decay, so
+        /// they differ in shape rather than only in noise. A wet step keeps
+        /// ringing after the heel lands — that tail is the whole difference
+        /// between "asphalt" and "asphalt in the rain", and it costs a filter.
+        static AudioClip Step(int variant, bool wet)
         {
-            int len = SampleRate / 12;
+            int len = wet ? SampleRate / 7 : SampleRate / 12;
             var data = new float[len];
-            var rng = new System.Random(5);
+            var rng = new System.Random(5 + variant * 31 + (wet ? 977 : 0));
+            float decay = (wet ? 8.5f : 14f) + variant * 0.7f;
+            float lp = 0, hp = 0;
             for (int i = 0; i < len; i++)
             {
                 float t = i / (float)len;
-                float env = Mathf.Exp(-14f * t);
-                data[i] = (float)(rng.NextDouble() * 2 - 1) * env * 0.5f;
+                float env = Mathf.Exp(-decay * t);
+                float n = (float)(rng.NextDouble() * 2 - 1);
+                if (wet)
+                {
+                    // Band-passed noise with a longer tail reads as a splash;
+                    // broadband with a hard decay reads as a dry heel.
+                    lp += (n - lp) * 0.45f;
+                    hp = lp - hp * 0.15f;
+                    data[i] = hp * env * 0.55f;
+                }
+                else data[i] = n * env * 0.5f;
             }
-            return Make("step", data);
+            return Make(wet ? "step_wet" + variant : "step" + variant, data);
         }
 
         static AudioClip Page()

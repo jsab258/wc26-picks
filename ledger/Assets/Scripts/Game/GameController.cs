@@ -221,6 +221,9 @@ namespace Ledger.Game
 
             var player = PlayerController.Spawn(new Vector3(0, 1.2f, -8));
             _player = player;
+            // The gait reads the harm system directly, so an injury we have
+            // simulated since day one finally shows up in how he walks.
+            player.Game = this;
 
             _npcs.Add(NpcWalker.Spawn("Rocco", new Color(0.75f, 0.3f, 0.25f), new[]
             {

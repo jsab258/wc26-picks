@@ -99,6 +99,9 @@ namespace Ledger.Game
             _camera = cam;
             Occupied = true;
             Speed = 0f;
+            // The walking camera widens its FOV with speed; the car must not
+            // inherit whatever it happened to be at when he opened the door.
+            cam.fieldOfView = 60f;
             driver.gameObject.SetActive(false);
             Audio.Ui("door");
         }
@@ -118,6 +121,7 @@ namespace Ledger.Game
                 spot.y = here.y + 0.9f;
                 _driver.transform.position = spot;
                 _driver.gameObject.SetActive(true);
+                _driver.ResumeCamera();   // resume the spring from the kerb
             }
             Audio.Ui("door");
             _driver = null;

@@ -22,6 +22,18 @@ feels. It is also the thing that most reliably separates "prototype" from
 The uncomfortable truth: **you can fix 70% of "this feels cheap" without a
 single art asset.** We have done none of it.
 
+**Update 2026-07-28 — the first pass is in.** Momentum, turn radius, camera
+spring, speed-linked FOV, look-ahead, camera collision, head bob, the limp,
+surface-aware footstep variants, input buffering and forgiveness windows all
+exist. The maths lives in `Assets/Scripts/Core/Feel.cs` rather than in a
+MonoBehaviour, and is covered by 44 checks in CoreTests — because every one
+of these is invisible in a screenshot and obvious in the hands, which is the
+worst possible combination for a system with no tests. Eight deliberate
+regressions (instant velocity, welded camera, frame-rate-dependent lag, a
+limp that changes speed, a turret turn, a buffer that never expires, decel
+slower than accel, a camera that sweeps on teleport) were each reintroduced
+and each caught.
+
 ---
 
 ## 1. Input and response **[NOW]**
@@ -133,14 +145,18 @@ should be built so it is not a rewrite.
 ## What I would build first, in order
 
 1. **Camera craft + movement momentum.** Biggest felt change per hour, works
-   on capsules, no assets. (§2, §3)
+   on capsules, no assets. (§2, §3) — **BUILT 2026-07-28.**
 2. **Footsteps by surface + reverb zones + distance filtering.** Transforms
    the *place*, and the distance filter is needed by the voice work anyway.
-   (§4)
+   (§4) — **footstep half built** (surface + variants + gait weight);
+   reverb zones, occlusion and distance filtering still open.
 3. **Interaction grammar and door weight** — prompts that fade, doors that
    have mass, NPCs that react to being bumped. (§5, §6)
 4. **The limp.** Free characterisation from data we already have, and a
    perfect demonstration of the whole "stage it, don't show it" principle.
+   — **BUILT 2026-07-28**, and it needed no model: a limp is an ASYMMETRY,
+   so the alternating stride length and the heavier footfall on the good leg
+   carry it entirely through sound and cadence.
 5. **Transitions**, especially the Fall.
 
 Then everything in **[MODELS]** the moment the character purchase lands.
