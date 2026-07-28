@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -27,6 +28,19 @@ var interesting = new HashSet<string>
     "CS0759", // partial method without implementation
     "CS8112", // local function never used / must have body
     "CS1002", "CS1513", "CS1519", "CS1022", // syntax, kept for completeness
+    // Real semantics, available only since the BCL references were added.
+    // Every one of these is a question about a type Roslyn can actually see;
+    // anything involving a Unity type has an error-typed receiver and is
+    // suppressed by the compiler before it reaches here.
+    "CS1061", // no such member on a known type  <- the List<object> bug
+    "CS1503", // argument type mismatch          <- its two follow-on errors
+    "CS0029", // cannot implicitly convert
+    "CS1929", // extension method needs a different receiver type
+    // CS0019 (operator not applicable) was tried and removed the same
+    // minute: in this codebase it is almost always about Unity's own maths
+    // types — `Vector3? == null` is perfectly legal C# and reads as an error
+    // only because Vector3 does not resolve. It bought nothing and cost two
+    // false positives, which is how a checker gets ignored.
 };
 
 var trees = new List<SyntaxTree>();
@@ -52,8 +66,39 @@ foreach (var t in trees)
                 ourTypes.Add(dd.Identifier.Text); break;
         }
 
+// THE BCL, and nothing else. Added 2026-07-28 after a second Unity-only
+// compile error in one night that no local check could see: iterating a
+// List<object> as if it were a dictionary. `object.TryGetValue` is a
+// question purely about BCL types, and with no references at all Roslyn
+// cannot even ask it.
+//
+// The reason this does not drown the output in Unity noise: Roslyn does not
+// report cascading member errors on an ERROR-TYPED receiver. `transform` is
+// unresolvable, so `transform.position` produces one CS0103 (already
+// discarded) and no CS1061 — while `someObject.TryGetValue` has a receiver
+// whose type IS known, and reports. The references buy exactly the
+// diagnostics that involve no Unity type and nothing else.
+var bcl = new List<MetadataReference>();
+foreach (var name in new[]
+         {
+             "System.Private.CoreLib", "System.Runtime", "System.Collections",
+             "System.Linq", "System.Console", "System.Text.RegularExpressions",
+         })
+{
+    try
+    {
+        var asm = System.Reflection.Assembly.Load(name);
+        if (!string.IsNullOrEmpty(asm.Location)) bcl.Add(MetadataReference.CreateFromFile(asm.Location));
+    }
+    catch (Exception) { /* a missing BCL facade costs coverage, never the run */ }
+}
+
+// The ids that exist only because of the references above, so the filter
+// below applies to them and to nothing that was already being checked.
+var semantic = new HashSet<string> { "CS1061", "CS1503", "CS0029", "CS1929" };
+
 var compilation = CSharpCompilation.Create("UnityLayerCheck", trees,
-    references: null,
+    references: bcl,
     options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
 // CS0103 ("the name X does not exist") is the diagnostic this checker was
@@ -85,6 +130,33 @@ var inherited = new HashSet<string>
     // miss, the exact thing the comment above promises cannot happen (audit
     // 2026-07-27).
 };
+
+// THE ONE FALSE-POSITIVE CLASS the BCL references introduce, and it is
+// clean enough to filter exactly.
+//
+// Our own MonoBehaviours resolve as types (we declare them) but their BASE
+// does not, so every inherited member — `transform`, `gameObject`,
+// `StartCoroutine` — reads as missing. The receiver type named in the
+// message is therefore one of OUR types, and dropping those keeps precisely
+// the diagnostics that motivated the references: `'object' does not contain
+// a definition for 'TryGetValue'` names a BCL type and survives.
+//
+// Anything with an error type in it ("?") is also dropped: it means a Unity
+// type leaked into the expression and the diagnostic is noise about that
+// rather than about our code.
+static bool AboutOurOwnUnresolvedBase(Diagnostic d, HashSet<string> ourTypes)
+{
+    var msg = d.GetMessage();
+    if (msg.Contains("'?'") || msg.Contains("(?") || msg.Contains(", ?") || msg.Contains("?,")) return true;
+    // Any Unity type ANYWHERE in the message: Roslyn cannot resolve it, so
+    // whatever it concluded about the conversion is not a judgement we can
+    // trust. A method group converting to a UnityAction is the common case
+    // and it compiles perfectly well upstairs.
+    if (msg.Contains("UnityEngine.") || msg.Contains("TMPro.")) return true;
+    foreach (var t in ourTypes)
+        if (msg.Contains("'" + t + "'")) return true;
+    return false;
+}
 
 static bool MissingTypeName(Diagnostic d, out string name)
 {
@@ -141,6 +213,11 @@ foreach (var d in compilation.GetDiagnostics())
     bool missingOurType = d.Id == "CS0246" && MissingTypeName(d, out var typeName)
                           && ourTypes.Contains(typeName);
     if (!interesting.Contains(d.Id) && !missingLocal && !missingOurType) continue;
+    // The semantic ids only became askable when the BCL references landed,
+    // and they are the only ones that can be about a type whose base we
+    // cannot see. Filtered here rather than removed from `interesting`, so
+    // the syntax half of the list keeps its old, unconditional behaviour.
+    if (semantic.Contains(d.Id) && AboutOurOwnUnresolvedBase(d, ourTypes)) continue;
     bad++;
     var span = d.Location.GetLineSpan();
     Console.WriteLine($"{span.Path}:{span.StartLinePosition.Line + 1}: {d.Id}: {d.GetMessage()}");

@@ -1507,8 +1507,14 @@ namespace Ledger.Game
             var lightingWhy = new List<string>();
             {
                 double dayLuma = -1, nightLuma = -1, nightSat = -1;
-                foreach (var shot in _screenshots)
+                foreach (var entry in _screenshots)
                 {
+                    // _screenshots is List<object> because MiniJson wants it
+                    // that way. Iterating it as a dictionary compiles fine in
+                    // a syntax-only check and fails in Unity, which is where
+                    // this cost twenty minutes.
+                    var shot = entry as Dictionary<string, object>;
+                    if (shot == null) continue;
                     string nm = shot.TryGetValue("path", out var pv) ? (pv as string ?? "") : "";
                     double luma = ShotNum(shot, "meanLuma");
                     // NEVER A BLACK FRAME and NEVER A BLOWN ONE. These two
