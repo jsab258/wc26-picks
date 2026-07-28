@@ -54,6 +54,14 @@ namespace Ledger.Core
     /// markdown so memories can be inspected, debugged, and hand-edited.
     public class MemoryStore
     {
+        /// A long campaign must not grow a brain without bound (audit
+        /// 2026-07-27): past this cap the weakest events from the OLDER half
+        /// give way in blocks, so the day that mattered survives a thousand
+        /// ordinary hours. Generous on purpose — pruning is for scale, not
+        /// for forgetting.
+        public const int MaxEvents = 600;
+        const int PruneTo = 500;
+
         public string CharacterId { get; }
         public List<string> Beliefs { get; } = new List<string>();
         public List<MemoryEvent> Events { get; } = new List<MemoryEvent>();
@@ -70,7 +78,36 @@ namespace Ledger.Core
         public void Append(MemoryEvent e)
         {
             Events.Add(e);
-            Save();
+            if (Events.Count > MaxEvents)
+            {
+                Prune();
+                Save();          // structure changed: full rewrite
+            }
+            else if (!AppendToFile(e)) Save();
+        }
+
+        /// Drop the lowest-importance events from the older half until the
+        /// list is back to PruneTo. Recency shields the newer half entirely.
+        void Prune()
+        {
+            int half = Events.Count / 2;
+            var oldHalf = Events.GetRange(0, half);
+            oldHalf.Sort((x, y) => x.Importance.CompareTo(y.Importance));
+            int toDrop = Events.Count - PruneTo;
+            var doomed = new HashSet<MemoryEvent>(oldHalf.GetRange(0, Math.Min(toDrop, oldHalf.Count)));
+            Events.RemoveAll(doomed.Contains);
+        }
+
+        /// Events are the file's last section, so a new one can ride an O(1)
+        /// file append instead of rewriting the whole markdown — the rewrite
+        /// made every remembered hour cost all the hours before it (audit
+        /// 2026-07-27). Returns false when a full save is needed instead.
+        bool AppendToFile(MemoryEvent e)
+        {
+            if (_filePath == null) return true;      // in-memory store: nothing to write
+            if (!File.Exists(_filePath)) return false;
+            try { File.AppendAllText(_filePath, e.ToLine() + "\n"); return true; }
+            catch { return false; }
         }
 
         public void ReplaceBeliefs(IEnumerable<string> beliefs)

@@ -40,6 +40,7 @@ namespace Ledger.CoreTests
                 TestConflictingValuesStayBounded();
                 TestSimClockReclaim();
                 TestSurvivingLead();
+                TestGossipRepairs();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -369,6 +370,65 @@ namespace Ledger.CoreTests
             mill.Witness("rocco", new Fact("player", "location_d2_evening", "warehouse"),
                 "the new owner was at the warehouse the night of the fire", true, new GameTime(3, 20, 0));
             return (mill, witness, day);
+        }
+
+        static void TestGossipRepairs()
+        {
+            Console.WriteLine("Gossip — medium-audit repairs (2026-07-28):");
+            var now = new GameTime(4, 20, 0);
+
+            // A clearer second look must strengthen a doubtful first one. Witness
+            // used to drop a repeat sighting of the same topic+value on the floor.
+            var g1 = new SocialGraph();
+            var m1 = new GossipMill(g1);
+            m1.Add(new Gossiper("ada", "Ada", new MemoryStore("ada"), new KnowledgeBase(), new SuspicionTracker(), "day"));
+            m1.Witness("ada", new Fact("player", "night_walk_d4", "seen"), "someone in a coat, maybe him", true, now, 0.5);
+            m1.Witness("ada", new Fact("player", "night_walk_d4", "seen"), "him, no question this time", true, now, 0.9);
+            Check(Math.Abs(m1.Get("ada").Best("player.night_walk_d4").Confidence - 0.9) < 1e-9,
+                "a clear second sighting strengthens a doubtful first one",
+                m1.Get("ada").Best("player.night_walk_d4").Confidence.ToString("0.00"));
+            Check(m1.Get("ada").Rumors.Count == 1, "without duplicating the story");
+
+            // Heat is circulating TALK. A leashed holder cannot talk — every
+            // spread path guards the leash, and the heat read must agree.
+            var g2 = new SocialGraph();
+            var m2 = new GossipMill(g2);
+            var held = new Gossiper("mira", "Mira", new MemoryStore("mira"), new KnowledgeBase(), new SuspicionTracker(), "day");
+            m2.Add(held);
+            m2.Witness("mira", new Fact("player", "drop_d3", "seen"), "she saw the drop", true, now, 0.9);
+            held.Leashed = true;
+            Check(m2.DayCircleHeat() < 1e-9,
+                "a leashed mouth adds no heat — the street cannot hear what she cannot say",
+                m2.DayCircleHeat().ToString("0.00"));
+
+            // Denying one VERSION of a story does not burn the denial for the
+            // other version — the cap is per story told, not per topic name.
+            var g3 = new SocialGraph();
+            var m3 = new GossipMill(g3);
+            m3.Add(new Gossiper("tomas", "Tomas", new MemoryStore("tomas"), new KnowledgeBase(), new SuspicionTracker(), "day"));
+            m3.Witness("tomas", new Fact("player", "location_d2", "warehouse"), "warehouse, he says", true, now, 0.8);
+            m3.Get("tomas").Rumors.Add(new Rumor
+            {
+                Content = new Fact("player", "location_d2", "docks"), OriginId = "tomas",
+                Summary = "or the docks", Confidence = 0.8, Hops = 0, Sensitive = true,
+            });
+            var d1 = m3.Discredit("player.location_d2", "warehouse", now);
+            var d2 = m3.Discredit("player.location_d2", "docks", now);
+            Check(d1.Outcome != DcOutcome.AlreadyDenied && d2.Outcome != DcOutcome.AlreadyDenied,
+                "each version of a story buys its own denial", $"{d1.Outcome}/{d2.Outcome}");
+            Check(m3.Discredit("player.location_d2", "docks", now).Outcome == DcOutcome.AlreadyDenied,
+                "and repeating the same denial is still priced in");
+
+            // Memory is bounded on a long campaign: the weakest old events give
+            // way, the strong ones survive, and the cap is generous.
+            var mem = new MemoryStore("longtimer");
+            mem.Append(new MemoryEvent(new GameTime(1, 9, 0), "observation", 0.95, "the day the bar changed hands"));
+            for (int i = 0; i < 900; i++)
+                mem.Append(new MemoryEvent(new GameTime(2 + i / 20, 9, 0), "ambient", 0.15, $"an ordinary hour {i}"));
+            Check(mem.Events.Count <= MemoryStore.MaxEvents,
+                "a lifetime of ordinary hours stays bounded", mem.Events.Count.ToString());
+            Check(mem.Events.Exists(e => e.Text.Contains("changed hands")),
+                "while the day that mattered is never the one forgotten");
         }
 
         static void TestSurvivingLead()

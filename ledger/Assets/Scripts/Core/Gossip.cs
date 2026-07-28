@@ -164,13 +164,23 @@ namespace Ledger.Core
             if (w == null) return;
             confidence = Math.Clamp(confidence, 0.0, 1.0);
             if (confidence >= 0.95) w.Knowledge.Learn(content); // only certainty becomes hard knowledge
-            if (!w.Holds(content.Subject + "." + content.Predicate, content.Value))
+            var already = w.BestOfValue(content.Subject + "." + content.Predicate, content.Value);
+            if (already == null)
             {
                 w.Rumors.Add(new Rumor
                 {
                     Content = content, OriginId = witnessId, Summary = summary,
                     Confidence = confidence, Hops = 0, Sensitive = sensitive,
                 });
+            }
+            else if (confidence > already.Confidence)
+            {
+                // A clearer second look strengthens a doubtful first one. This
+                // used to drop the repeat on the floor, so no later sighting
+                // could ever firm up an early maybe (audit 2026-07-27).
+                already.Confidence = confidence;
+                already.Hops = 0;
+                already.Summary = summary;
             }
             w.Memory.Append(new MemoryEvent(now, "observation", sensitive ? 0.9 : 0.6,
                 confidence >= 0.95 ? $"I saw it myself: {summary}"
@@ -344,6 +354,12 @@ namespace Ledger.Core
             foreach (var a in _agents.Values)
             {
                 if (a.Circle != "day") continue;
+                // Heat is circulating TALK, and a leashed mouth cannot talk:
+                // every spread path (Tick, Leads, CompareNotes) guards the
+                // leash, and this read used to be the one side channel that
+                // did not — a silenced witness still spawned Ossei and seeded
+                // "somebody has been saying things" (audit 2026-07-27).
+                if (a.Leashed) continue;
                 var bestPerTopic = new Dictionary<string, double>();
                 foreach (var r in a.Rumors)
                     if (r.Sensitive && (!bestPerTopic.TryGetValue(r.TopicKey, out var b) || r.Confidence > b))
@@ -459,7 +475,12 @@ namespace Ledger.Core
         /// a story must be killed at its holder, with money or muscle.
         public DcResult Discredit(string topicKey, string value, GameTime now)
         {
-            if (!_discredited.Add(topicKey))
+            // The cap is per STORY — and two values of one topic are two
+            // stories. Keyed by topic alone, denying the warehouse version
+            // burned the denial for the docks version too (audit 2026-07-27).
+            // Old saves hold bare topic keys; those still read as denied.
+            var capKey = value == null ? topicKey : topicKey + "=" + value.ToLowerInvariant();
+            if (_discredited.Contains(topicKey) || !_discredited.Add(capKey))
                 return new DcResult { Outcome = DcOutcome.AlreadyDenied, Affected = 0,
                     Message = "The street has already heard your denials about that; repeating them changes nothing." };
             var v = value?.ToLowerInvariant();
@@ -496,7 +517,8 @@ namespace Ledger.Core
                 {
                     if (r.Content.Subject != "player" || !r.Sensitive) continue;
                     if (a.Suppressed.Contains(r.TopicKey)) continue;
-                    if (_discredited.Contains(r.TopicKey)) continue;
+                    if (_discredited.Contains(r.TopicKey)
+                        || _discredited.Contains(r.TopicKey + "=" + (r.Content.Value ?? "").ToLowerInvariant())) continue;
                     if (r.Confidence > best) best = r.Confidence;
                 }
             }
