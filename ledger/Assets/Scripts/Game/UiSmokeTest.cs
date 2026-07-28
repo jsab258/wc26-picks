@@ -71,6 +71,15 @@ namespace Ledger.Game
 
             bool wasOpen = panel.activeSelf;
 
+            // The baseline is the rest of the UI without this panel: the walk
+            // can run while another panel is legitimately open (the bot mid-
+            // dialogue; the key panel in a keyless CI run), so the assertions
+            // below are DELTAS against this, not absolute reads — the first
+            // absolute version redded the whole gate the moment anything else
+            // was open (build 30323848380).
+            panel.SetActive(false);
+            bool lockedBefore = AnyPanelDemandsInput();
+
             panel.SetActive(true);
             r.Opened = panel.activeInHierarchy;
             r.HadWords = HasVisibleWords(panel);
@@ -87,11 +96,11 @@ namespace Ledger.Game
             panel.SetActive(false);
             r.Closed = !panel.activeSelf;
 
-            // The panel is shut; the player must have their hands back — read
-            // from the policy, never written first. The old version assigned
-            // InputLocked=false and then asserted !InputLocked, a check that
-            // could not fail (audit 2026-07-27).
-            r.GaveBackControl = !AnyPanelDemandsInput();
+            // Closing the panel must return the lock policy to its baseline —
+            // read from the policy, never written first. The old version
+            // assigned InputLocked=false and then asserted !InputLocked, a
+            // check that could not fail (audit 2026-07-27).
+            r.GaveBackControl = AnyPanelDemandsInput() == lockedBefore;
 
             if (wasOpen) panel.SetActive(true);
         }
