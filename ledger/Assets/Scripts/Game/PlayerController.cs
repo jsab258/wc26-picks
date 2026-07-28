@@ -143,6 +143,10 @@ namespace Ledger.Game
                     want = forward * Input.GetAxisRaw("Vertical") + right * Input.GetAxisRaw("Horizontal");
                     if (want.sqrMagnitude > 1f) want.Normalize();
                     running = Input.GetKey(KeyCode.LeftShift);
+                    // Recorded for the framing, which yields to ANY of it.
+                    _lastMoveInput = want.magnitude;
+                    _lastLookInput = Mathf.Abs(Input.GetAxis("Mouse X"))
+                                   + Mathf.Abs(Input.GetAxis("Mouse Y"));
                 }
 
                 // A hurt man is slower. Bounded in Core, because a player who
@@ -217,6 +221,12 @@ namespace Ledger.Game
         // class, and ShapeCheck caught the collision locally in a second
         // rather than twenty minutes into a Windows runner.
         CharacterRig _body;
+
+        /// The framing state for an authored beat. Public so whoever fires
+        /// the beat can start it — GameController for the Fall and the
+        /// pressure points, ActThreeHost for the audit.
+        public readonly FramedBeat Beat = new FramedBeat();
+        float _lastMoveInput, _lastLookInput;
         float _lastSpeed, _lastFacing;
 
         void DriveRig(float speed, float severity, float dt)
@@ -287,8 +297,23 @@ namespace Ledger.Game
             var flat = new Vector3((float)_loco.VelocityX, 0, (float)_loco.VelocityZ);
             if (flat.sqrMagnitude > 0.0001f) flat.Normalize();
 
+            // CINEMATIC FRAMING (Core/Framing). An authored beat gets a
+            // short push-in and a held frame, and the player takes it back
+            // the moment they touch anything. No cutscene: this game's whole
+            // position is that the simulation IS the interface, and a camera
+            // that is taken away has stopped being that.
+            Beat.Tick(dt, _lastMoveInput, _lastLookInput);
             _rig.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
             var target = new Vector3((float)_rig.X, (float)_rig.Y, (float)_rig.Z);
+            if (Beat.Authority > 0.001)
+            {
+                // Pull the camera in ALONG ITS OWN LINE rather than moving it
+                // to a composed position: the rig has already solved
+                // collision and lag, and overriding its position would throw
+                // both away for the duration of the beat.
+                float k = (float)(1.0 - (1.0 - Beat.PushScale) * Beat.Authority);
+                target = pivot + (target - pivot) * k;
+            }
 
             // Head bob is applied to the CAMERA, not the body, and is small.
             // This is the line between "alive" and "seasick".

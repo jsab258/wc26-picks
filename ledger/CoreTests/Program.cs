@@ -91,6 +91,7 @@ namespace Ledger.CoreTests
                 TestMusicModel();
                 TestRig();
                 TestTypography();
+                TestFraming();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -6603,6 +6604,155 @@ namespace Ledger.CoreTests
             Check(Typography.LiftToMeet(ink.r, ink.g, ink.b, panel.r, panel.g, panel.b,
                                         Typography.Body) == 1.0,
                 "and a colour that already passes is left completely alone");
+        }
+
+        static void TestFraming()
+        {
+            Console.WriteLine("Cinematic framing — direction without a cutscene:");
+
+            // ---- COMPOSITION ----
+            Check(Math.Abs(Framing.SubjectX(true) - Framing.LeftThird) < 1e-9
+                  && Math.Abs(Framing.SubjectX(false) - Framing.RightThird) < 1e-9,
+                "a subject sits on the third BEHIND them, so the space they face into is "
+                + "in frame — space behind the head with the face against the edge is the "
+                + "commonest amateur error and reads as wrong to people who cannot say why");
+            Check(Framing.SubjectX(true) != 0.5 && Framing.SubjectX(false) != 0.5,
+                "and never dead centre, which is the grammar of a webcam");
+
+            Check(Framing.Headroom(ShotSize.Close) < Framing.Headroom(ShotSize.Medium)
+                  && Framing.Headroom(ShotSize.Medium) < Framing.Headroom(ShotSize.Wide),
+                "headroom TIGHTENS as the shot tightens — a close-up framed with wide-shot "
+                + "headroom strands a face at the bottom with a wall above it",
+                $"{Framing.Headroom(ShotSize.Close):0.000} / {Framing.Headroom(ShotSize.Medium):0.000} / {Framing.Headroom(ShotSize.Wide):0.000}");
+            Check(Framing.Distance(ShotSize.Close) < Framing.Distance(ShotSize.Wide),
+                "and the camera is closer for a closer shot, which is the only part of "
+                + "this anybody gets right by accident");
+
+            // Close is deliberately hard to reach.
+            Check(Framing.SizeFor(0.5, true) == ShotSize.Medium, "an ordinary beat is a medium");
+            Check(Framing.SizeFor(0.9, true) == ShotSize.Close, "and only the heaviest gets a close");
+            Check(Framing.SizeFor(1.0, false) == ShotSize.Wide,
+                "a beat about the WORLD is wide however heavy it is");
+            int closes = 0;
+            for (double w = 0; w <= 1.0001; w += 0.05)
+                if (Framing.SizeFor(w, true) == ShotSize.Close) closes++;
+            Check(closes <= 5,
+                "and a close is rare across the whole range — a game that pushes in on "
+                + "everything has taught the player that pushing in means nothing, and "
+                + "then cannot push in on the one moment that needed it",
+                $"{closes} of 21");
+
+            // ---- THE 180-DEGREE LINE ----
+            // Two people at (0,0) and (4,0). The line is the x axis.
+            double ax = 0, az = 0, bx = 4, bz = 0;
+            Check(Framing.SideOfLine(ax, az, bx, bz, 2, 3) > 0
+                  && Framing.SideOfLine(ax, az, bx, bz, 2, -3) < 0,
+                "the two sides of the line have opposite sign");
+            Check(Framing.WouldCrossTheLine(ax, az, bx, bz, 2, 3, 2, -3),
+                "MOVING ACROSS IT IS A CROSSING — the speakers appear to swap places and "
+                + "the viewer loses who is where, which is disorienting in a way nobody "
+                + "can articulate and everybody feels");
+            Check(!Framing.WouldCrossTheLine(ax, az, bx, bz, 2, 3, 6, 1),
+                "and moving anywhere on the same side is not");
+            Check(!Framing.WouldCrossTheLine(ax, az, bx, bz, 2, 0, 2, 3),
+                "a camera standing ON the line has no side to keep, so it can move off "
+                + "without crossing — otherwise a camera exactly between two speakers "
+                + "could never move at all");
+            Check(Math.Abs(Framing.SideOfLine(ax, az, bx, bz, 2, 0)) < 1e-9,
+                "and the line itself is zero");
+
+            // ---- THE PUSH ----
+            Check(Framing.Push(0) == 1.0, "a push starts where the camera already was");
+            Check(Framing.Push(Framing.PushSeconds) < 1.0, "and ends closer");
+            Check(Framing.Push(99) >= 1.0 - Framing.MaxPushFraction - 1e-9,
+                "never travelling further than the cap, however long it runs");
+            Check(Framing.MaxPushFraction < 0.2,
+                "AND THE CAP IS SMALL — a push you notice is a cutscene; a push you feel "
+                + "is direction", $"{Framing.MaxPushFraction:0.00}");
+            Check(Framing.Push(0.2) - Framing.Push(0.4) > Framing.Push(1.2) - Framing.Push(1.4),
+                "it moves most at the start and settles, which is how a dolly behaves and "
+                + "the opposite of a lerp");
+
+            // ---- THE HOLD ----
+            Check(Framing.HoldSeconds(1.0) > Framing.HoldSeconds(0.0),
+                "a heavier beat is held longer");
+            Check(Framing.HoldSeconds(1.0) <= Framing.MaxHoldSeconds
+                  && Framing.HoldSeconds(5.0) <= Framing.MaxHoldSeconds,
+                "but never past the cap — the held beat does the most work and is the "
+                + "first thing cut, and a camera that holds too long has taken the "
+                + "controls away rather than emphasised anything");
+
+            // ---- THE RULE THAT KEEPS IT A GAME ----
+            var beat = new FramedBeat();
+            Check(beat.Begin(0.9, true), "a beat starts");
+            Check(!beat.Begin(0.9, true), "and does not start twice over itself");
+            Check(beat.Size == ShotSize.Close && beat.Authority == 1.0, "owning the camera");
+
+            for (int i = 0; i < 30; i++) beat.Tick(1.0 / 60.0);
+            Check(beat.Running && beat.PushScale < 1.0, "half a second in, it is pushing");
+
+            // ANY input ends it, immediately.
+            beat.Tick(1.0 / 60.0, moveMagnitude: 0.9);
+            double after = beat.Authority;
+            Check(after < 1.0,
+                "and the player touching the stick starts handing it back THAT FRAME — "
+                + "a camera that argues for even a third of a second is the difference "
+                + "between direction and being handled",
+                $"{after:0.00}");
+            // AND TOUCHING IT AGAIN DOES NOT BUY THE CAMERA MORE TIME.
+            // The first version of this check released the stick and ticked
+            // quietly, which cannot distinguish the bug: the defect is that a
+            // SECOND cancel restarts the yield clock, so a player who keeps
+            // nudging the stick keeps the framing alive — the exact opposite
+            // of what nudging it should do.
+            for (int i = 0; i < 3; i++) beat.Tick(1.0 / 60.0);
+            double midYield = beat.Authority;
+            beat.Tick(1.0 / 60.0, moveMagnitude: 0.9);
+            Check(beat.Authority < midYield,
+                "AND TOUCHING IT AGAIN DOES NOT BUY THE CAMERA MORE TIME — a yield clock "
+                + "that restarts on every nudge means fighting the camera keeps it, which "
+                + "is the most infuriating version of this feature there is",
+                $"{beat.Authority:0.000} vs {midYield:0.000}");
+            Check(beat.Authority < after, "and it is still on its way out, not back");
+
+            int done = 0;
+            for (int i = 0; i < 600; i++) { beat.Tick(1.0 / 60.0); if (beat.Done) done++; }
+            Check(done == 1, "it reports finishing exactly once", $"{done}");
+            Check(!beat.Running && beat.Authority == 0 && beat.PushScale == 1.0,
+                "and leaves the camera exactly as it found it");
+
+            // An uninterrupted beat runs its length and lets go by itself.
+            var quiet = new FramedBeat();
+            quiet.Begin(0.5, true);
+            double total = quiet.Total;
+            int ticks = 0;
+            while (quiet.Running && ticks < 6000) { quiet.Tick(1.0 / 60.0); ticks++; }
+            Check(Math.Abs(ticks / 60.0 - total) < 0.05,
+                "an uninterrupted beat runs its own length and no longer",
+                $"{ticks / 60.0:0.00}s vs {total:0.00}s");
+
+            var slow = new FramedBeat();
+            slow.Begin(1.0, true);
+            int doneSlow = 0;
+            for (int i = 0; i < 10; i++) { slow.Tick(3.0); if (slow.Done) doneSlow++; }
+            Check(doneSlow == 1,
+                "and a frame longer than the whole beat still gives exactly one ending");
+
+            var never = new FramedBeat();
+            int spurious = 0;
+            for (int i = 0; i < 60; i++) { never.Tick(1.0 / 60.0); if (never.Done) spurious++; }
+            Check(spurious == 0, "a beat that never began never ends");
+            never.Cancel();
+            Check(!never.Running, "and cancelling one that is not running is not a crash");
+
+            // Frame-rate independence, same standard as everything else.
+            var f30 = new FramedBeat(); var f240 = new FramedBeat();
+            f30.Begin(0.5, true); f240.Begin(0.5, true);
+            for (int i = 0; i < 30; i++) f30.Tick(1.0 / 30.0);
+            for (int i = 0; i < 240; i++) f240.Tick(1.0 / 240.0);
+            Check(Math.Abs(f30.PushScale - f240.PushScale) < 1e-9,
+                "the push travels the same distance at 30fps and 240",
+                $"{f30.PushScale:0.0000} vs {f240.PushScale:0.0000}");
         }
 
         static void TestPalette()

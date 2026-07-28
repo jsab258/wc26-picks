@@ -222,7 +222,41 @@ namespace Ledger.Game
         public PlayerController Player => _player;
         public Vector3? ActiveJobPos => _jobMarker != null ? (Vector3?)_jobMarker.transform.position : null;
 
-        public void ToastLine(string line, float seconds = 6f) => _ui?.Toast(line, seconds);
+        /// An authored beat, said out loud AND framed.
+        ///
+        /// Hooked here because this is the one funnel every authored moment
+        /// already goes through — the pressure points, Ellis's offer, the
+        /// audit opening. No new call sites, and a beat that forgets to ask
+        /// for framing cannot exist.
+        ///
+        /// The WEIGHT comes from how long the line asks to be held, which the
+        /// writing already declares: an ordinary note takes six seconds and
+        /// the audit opening takes thirteen. That is the author saying how
+        /// much this matters, in a number that was already there.
+        public void ToastLine(string line, float seconds = 6f)
+        {
+            _ui?.Toast(line, seconds);
+            // Under a curtain there is nothing to frame, and a push-in on
+            // black is a push-in nobody sees.
+            if (ScreenCurtain.Busy || _player == null || SimMode.Days > 0) return;
+            double weight = Feel.Clamp01((seconds - 6f) / 10.0);
+            _player.Beat.Begin(weight, SomebodyInShot());
+        }
+
+        /// Is there a person close enough for this to be a shot about them?
+        /// A beat with nobody in frame is about the street, and the street
+        /// gets a wide.
+        bool SomebodyInShot()
+        {
+            if (_player == null) return false;
+            foreach (var n in _npcs)
+            {
+                if (n == null || !n.isActiveAndEnabled) continue;
+                if (Vector3.Distance(n.transform.position, _player.transform.position) <= 10f)
+                    return true;
+            }
+            return false;
+        }
 
         /// Quit to the main menu, under black. The city goes away and the menu
         /// arrives at the moment nothing is visible — tearing both down on the
