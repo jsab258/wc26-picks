@@ -615,6 +615,7 @@ namespace Ledger.Game
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
             SampleScore();
+            SampleReflections();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
 
@@ -689,6 +690,32 @@ namespace Ledger.Game
         double _scoreEnergyRange;
         double _scoreCalmUnease = -1, _scoreCalmestHeat, _scoreHotUnease = -1, _scoreHottestHeat = -1;
         double _scoreMinE = double.MaxValue, _scoreMaxE = double.MinValue;
+
+        // ---- WET REFLECTIONS ----
+        //
+        // The model is tested; what is NOT testable in Core is whether the
+        // probe ever ran, and — the part that actually costs frame time —
+        // whether it ran far LESS often than every frame. A refresh-gating
+        // bug is invisible in a screenshot and invisible in a correctness
+        // test: the picture looks right either way and the only symptom is
+        // six extra camera passes a frame. So the gate counts.
+        int _reflWetFrames, _reflDryFrames;
+        float _reflMaxStrength;
+        int _reflStartRefreshes = -1;
+
+        void SampleReflections()
+        {
+            if (_reflStartRefreshes < 0) _reflStartRefreshes = WetReflections.Refreshes;
+            if (WetReflections.Strength > 0)
+            {
+                _reflWetFrames++;
+                if (WetReflections.Strength > _reflMaxStrength)
+                    _reflMaxStrength = WetReflections.Strength;
+            }
+            else _reflDryFrames++;
+        }
+
+        int ReflRefreshes => Math.Max(0, WetReflections.Refreshes - Math.Max(0, _reflStartRefreshes));
 
         void SampleScore()
         {
@@ -1556,6 +1583,21 @@ namespace Ledger.Game
                 && _scoreEnergyRange > 0.05
                 && (_scoreHotUnease < 0 || _scoreHotUnease >= _scoreCalmUnease - 1e-6);
 
+            // THE REFLECTIONS, GATED on all three things that can be wrong
+            // independently of each other:
+            //
+            //   it never ran          — the probe is wired to nothing;
+            //   it never stopped      — a dry street is paying for a mirror;
+            //   it ran every frame    — the distance gate is not gating.
+            //
+            // The last one is the reason this gate exists at all. The first
+            // two show up in a picture; a probe re-rendering on every one of
+            // several thousand wet frames looks EXACTLY like a correctly
+            // gated one and costs six extra camera passes a frame to do it.
+            bool reflOk = _reflWetFrames > 0 && _reflDryFrames > 0
+                && ReflRefreshes > 0
+                && ReflRefreshes < _reflWetFrames / 4;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1594,6 +1636,8 @@ namespace Ledger.Game
                 ($"score[running={Audio.ScoreRunning} n={_scoreSamples} " +
                  $"range={_scoreEnergyRange:0.000} calm={_scoreCalmUnease:0.00}@{_scoreCalmestHeat:0.00} " +
                  $"hot={_scoreHotUnease:0.00}@{_scoreHottestHeat:0.00}]", scoreOk),
+                ($"reflect[wet={_reflWetFrames} dry={_reflDryFrames} " +
+                 $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -1647,6 +1691,8 @@ namespace Ledger.Game
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
                       $"dressed={WorldBuilder.Dressed} " +
+                      $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
+                      $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +

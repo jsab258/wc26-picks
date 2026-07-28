@@ -6177,6 +6177,49 @@ namespace Ledger.CoreTests
                 + "rained half an hour after it stopped",
                 $"dried {soaked - drying:0.000} vs wetted {wetting:0.000}");
 
+            // ---- REFLECTIONS ----
+            Check(LightModel.ReflectionStrength(0.0, 1.0) == 0,
+                "a dry street reflects nothing, and is not charged for the privilege");
+            Check(LightModel.ReflectionStrength(1.0, 1.0) > LightModel.ReflectionStrength(1.0, 0.0),
+                "a wet street at NIGHT reflects more than the same road at noon — the "
+                + "reflection is there either way and at noon the sky is brighter than "
+                + "anything in it",
+                $"{LightModel.ReflectionStrength(1.0, 1.0):0.00} vs {LightModel.ReflectionStrength(1.0, 0.0):0.00}");
+            Check(LightModel.ReflectionStrength(1.0, 1.0) > LightModel.ReflectionStrength(0.4, 1.0),
+                "and wetter reflects more than damp");
+            Check(LightModel.ReflectionStrength(5, 5) <= 1.0 && LightModel.ReflectionStrength(-3, -3) >= 0,
+                "bounded at both ends however it is called");
+
+            // WHERE THE GATE SITS, pinned with literals rather than with the
+            // constant it guards — a test written against the constant moves
+            // with it and cannot see it move. Both misses in the first break
+            // run were dead-code breaks (the outer Clamp01 already zeroes
+            // below the gate and clamps above), so the guard and the input
+            // clamp could each be deleted with the suite still green. What
+            // was actually untested was the THRESHOLD: raise it to 0.5 and a
+            // rain-slicked street goes matte with every check still passing.
+            Check(LightModel.ReflectionStrength(0.30, 1.0) > 0.05,
+                "a merely damp street still catches the lights — the gate is for a road "
+                + "with nothing on it, not for one it has just finished raining on",
+                $"{LightModel.ReflectionStrength(0.30, 1.0):0.000}");
+            Check(LightModel.ReflectionStrength(0.10, 1.0) == 0,
+                "and a road that is barely misted is still dry as far as the probe is "
+                + "concerned, because the alternative is paying for a reflection nobody "
+                + "can see");
+
+            // THE INSIGHT: staleness is DISTANCE, not time.
+            Check(!LightModel.ShouldRefreshReflection(0, 0.5, 1.0),
+                "a player standing still is looking at a reflection that is already "
+                + "correct, and refreshing it on a timer pays every second for nothing");
+            Check(LightModel.ShouldRefreshReflection(9, 0.1, 1.0),
+                "but one who has run down the street is looking at one that is wrong");
+            Check(LightModel.ShouldRefreshReflection(0, 9, 1.0),
+                "and a floor in seconds catches the player spinning on the spot, who "
+                + "covers no distance and changes the entire view");
+            Check(!LightModel.ShouldRefreshReflection(99, 99, 0),
+                "with nothing to reflect, nothing is resampled at all — which is the "
+                + "whole point of gating it");
+
             // Frame-rate independence, same standard as everything else here.
             double a30 = 0, a240 = 0;
             for (int i = 0; i < 30; i++) a30 = LightModel.Wetness(a30, 1.0, 1.0 / 30.0);

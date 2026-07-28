@@ -205,6 +205,69 @@ namespace Ledger.Core
             return Feel.Clamp01(Feel.Approach(current, target, k, seconds));
         }
 
+        // ---- reflections ---------------------------------------------------
+
+        /// HOW MUCH THE WORLD SHOULD SHOW UP IN THE GROUND.
+        ///
+        /// Wet asphalt with high smoothness and nothing to reflect is just a
+        /// shiny black surface — the specular highlight from a lamp, and
+        /// nothing else. What makes a rainy street read is the NEON AND THE
+        /// BUILDINGS appearing in it, upside down and broken up. That needs
+        /// something sampling the surroundings, and something sampling the
+        /// surroundings costs frames.
+        ///
+        /// So it is gated on being visible: a dry street in daylight gets
+        /// none of it, because there is nothing to see and it would be paid
+        /// for anyway.
+        /// Below this a road counts as dry. ONE constant, used by both the
+        /// early-out and the curve, because the two started as separate
+        /// literals that happened to agree — and a break run proved that
+        /// meant neither could be tested. Move the guard alone and the curve
+        /// still returns zero; move the curve alone and the guard still
+        /// returns zero. Each half silently covered for the other, so the
+        /// threshold that decides whether a rained-on street looks wet was
+        /// the one number here nothing could see change.
+        public const double DryBelow = 0.12;
+
+        /// (The early-out itself is a PERF skip, not a correctness gate — the
+        /// curve clamps to zero below the threshold anyway, so deleting the
+        /// `if` leaves every check green. It is there to avoid asking a probe
+        /// to resample a dry road, and it stays.)
+
+        public static double ReflectionStrength(double wetness, double night)
+        {
+            double w = Feel.Clamp01(wetness);
+            if (w < DryBelow) return 0;
+            // Night matters as much as wet: the same road reflects the same
+            // amount at noon and nobody notices, because the sky is brighter
+            // than anything in the reflection.
+            return Feel.Clamp01((w - DryBelow) / (1 - DryBelow)) * (0.35 + 0.65 * Feel.Clamp01(night));
+        }
+
+        /// HOW OFTEN TO RESAMPLE, and the insight worth having: staleness is
+        /// a function of HOW FAR YOU HAVE MOVED, not of how long it has been.
+        ///
+        /// A player standing still is looking at a reflection that is exactly
+        /// correct and will stay correct, so refreshing it on a timer is
+        /// paying every second for nothing. A player running down a street is
+        /// looking at one that is wrong by a metre a frame. Distance is the
+        /// thing that actually invalidates it.
+        ///
+        /// Returns metres of travel between refreshes.
+        public const double ReflectionMetresPerRefresh = 6.0;
+
+        /// And a floor in seconds, so a player spinning on the spot — which
+        /// covers no distance and changes the whole view — still gets one.
+        public const double ReflectionMaxStaleSeconds = 4.0;
+
+        public static bool ShouldRefreshReflection(double metresSince, double secondsSince,
+                                                   double strength)
+        {
+            if (strength <= 0) return false;
+            return metresSince >= ReflectionMetresPerRefresh
+                || secondsSince >= ReflectionMaxStaleSeconds;
+        }
+
         // ---- shadows ------------------------------------------------------
 
         /// Shadow distance for a STREET rather than a landscape. Unity's

@@ -289,6 +289,11 @@ namespace Ledger.Game
             // The alley sounds like an alley, from the street network we
             // already had — no acoustic volumes were authored for this.
             RoomTone.Ensure(player.Eye != null ? player.Eye.transform : null);
+            // The wet road only reflects when there is something to reflect,
+            // and only re-renders when the player has actually gone
+            // somewhere. Follows the body rather than the eye so that looking
+            // around does not drag the probe with it.
+            WetReflections.Ensure(player.transform);
             // Grain, vignette and bloom. Fails closed to an unfiltered image
             // if the shader is missing, because an art effect that can break
             // the picture must never be able to.
