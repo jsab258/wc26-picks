@@ -695,6 +695,12 @@ namespace Ledger.Game
         /// one here, this reads the place's own Kind, which is real: a
         /// landmark is kept up, a corner shelter is not. Noted in the roadmap
         /// as a data gap rather than papered over.
+        static double ProsperityOf(string kind) =>
+            kind == "landmark" ? 0.70
+            : kind == "business" ? 0.50
+            : kind == "home" ? 0.35
+            : 0.20;
+
         /// WHERE THE DETAIL IS SPENT (the-gap.md §4, the scope call).
         ///
         /// Seven districts of graybox exist and content volume is the one row
@@ -723,11 +729,6 @@ namespace Ledger.Game
             Ledger.Core.Dressing.DetailAt(
                 Ledger.Core.Dressing.NearestCore(p.x, p.z, DenseCores));
 
-        static double ProsperityOf(string kind) =>
-            kind == "landmark" ? 0.70
-            : kind == "business" ? 0.50
-            : kind == "home" ? 0.35
-            : 0.20;
 
         static void DressFacade(string id, Vector3 centre, Vector3 size, Vector3 outward,
                                 bool hasDoor, double prosperity)
