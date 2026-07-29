@@ -8056,6 +8056,19 @@ namespace Ledger.CoreTests
                 "as is a pair of frames that are not the same size — comparing them "
                 + "pixel by pixel would be comparing two different places");
 
+            // Reflections add light where occlusion removes it, and the
+            // two gates must not drift apart about what "changed" means.
+            var reflected = Make((x, y) => y > H - CreaseRows - 1 ? 0.40 + CreaseDrop : 0.40);
+            var (rFrac, rRise) = ImageStats.Brightened(reflected, lit, ImageStats.QuantisationStep);
+            Check(Math.Abs(rFrac - creaseFraction) < 1e-9 && Math.Abs(rRise - CreaseDrop) < 1e-9,
+                "brightening is the same measurement the other way up, so a reflection on "
+                + "wet ground is read exactly as occlusion in a crease is",
+                $"{100 * rFrac:0.0}% by {rRise:0.0000}");
+            var (wrongWay, _) = ImageStats.Brightened(occluded, lit, ImageStats.QuantisationStep);
+            Check(wrongWay == 0,
+                "and a frame that only got darker has brightened nothing — the argument "
+                + "order is the direction, which is why this is a forward and not a copy");
+
             // ---- DEGENERATE ----
             Check(ImageStats.LocalSpread(null, W) == 0 && ImageStats.LocalSpread(new double[0], W) == 0,
                 "no image is no spread rather than a crash");

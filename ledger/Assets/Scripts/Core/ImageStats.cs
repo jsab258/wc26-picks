@@ -130,6 +130,17 @@ namespace Ledger.Core
             return n > 0 ? (n / (double)with.Length, sum / n) : (0.0, 0.0);
         }
 
+        /// The same measurement the other way up.
+        ///
+        /// Deliberately a two-line forward rather than a copy with the
+        /// subtraction flipped: a reflection ADDS light to wet ground exactly
+        /// as occlusion takes it out of creases, and the two gates should not
+        /// be able to drift apart in their idea of what "changed" means. The
+        /// argument order IS the direction.
+        public static (double fraction, double meanRise) Brightened(
+            double[] with, double[] without, double epsilon) =>
+            Darkened(without, with, epsilon);
+
         /// What per-pixel noise of amplitude `sigma` ADDS to the local spread.
         ///
         /// Two independent samples differ with variance 2σ², so the expected

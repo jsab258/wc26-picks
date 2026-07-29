@@ -97,9 +97,28 @@ namespace Ledger.Game
             _lastRenderedAt = new Vector3(float.NaN, 0, 0);
         }
 
+        /// A/B switch for the sim, and a PROPERTY so it applies on the spot.
+        /// The light-shaft version of this was a plain field read by
+        /// LateUpdate, which meant a probe that set it false and true inside
+        /// one Update never disabled anything and cheerfully reported that
+        /// the shafts contributed nothing.
+        public static bool Enabled
+        {
+            get => _enabled;
+            set
+            {
+                if (_enabled == value) return;
+                _enabled = value;
+                if (_instance != null && _instance._probe != null && !value)
+                    _instance._probe.enabled = false;
+            }
+        }
+        static bool _enabled = true;
+
         void LateUpdate()
         {
             if (_probe == null) return;
+            if (!_enabled) { _probe.enabled = false; return; }
 
             Strength = (float)LightModel.ReflectionStrength(
                 SceneLighting.Wetness, GameController.NightAmount);

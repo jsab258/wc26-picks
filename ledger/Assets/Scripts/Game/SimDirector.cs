@@ -1040,6 +1040,7 @@ namespace Ledger.Game
 
         double _aoSpread = -1, _grainSpread = -1;
         double _aoFraction = -1, _aoDrop = -1;
+        double _reflFraction = -1, _reflRise = -1;
 
         void MeasureAoOnce(int sample)
         {
@@ -1066,6 +1067,20 @@ namespace Ledger.Game
             FilmGrade.Vignette = false;
             var noVig = FrameShot(cam);
             FilmGrade.Vignette = true;
+
+            // REFLECTIONS, and this was the last render gate that could pass
+            // with the effect switched off. `reflOk` proved the probe woke
+            // up, refreshed, and was rate-limited — all true of a probe whose
+            // contribution to the image is nothing. A reflection ADDS light
+            // to wet ground, so it is read exactly as occlusion is, upside
+            // down.
+            WetReflections.Enabled = false;
+            var noRefl = FrameShot(cam);
+            WetReflections.Enabled = true;
+            var (rFrac, rRise) = ImageStats.Brightened(all.Luma, noRefl.Luma,
+                                                       ImageStats.QuantisationStep);
+            _reflFraction = rFrac;
+            _reflRise = rRise;
 
             // Keep the BEST-EVIDENCED sample rather than the last, and
             // record how far the samples disagreed. A gate reading the last
@@ -2141,6 +2156,19 @@ namespace Ledger.Game
                 && ReflRefreshes > 0
                 && ReflRefreshes < _reflWetFrames / 4;
 
+            // AND SOMETHING IS ACTUALLY REFLECTED. Everything above is true
+            // of a probe that woke, refreshed on schedule, obeyed its rate
+            // limit and contributed not one pixel to the image.
+            //
+            // Reported rather than gated on this run. The A/B is taken at
+            // 21:00 and the road is only wet when it has been raining, so a
+            // dry evening would fail a gate for being pointed somewhere
+            // honest — the same trap the occlusion measurement was written to
+            // avoid. What the run reports is whether it was wet at the time
+            // and what the probe was worth if so; one reading turns it into a
+            // gate conditioned on wetness.
+            bool reflSeen = _reflFraction > 0.002 && _reflRise > 0.004;
+
             // Bodies exist, their legs move through a real cycle, and the
             // rig does NOT solve for everyone at once. The knee spread is
             // the load-bearing part: a rig bound to a body it never drives
@@ -2442,6 +2470,8 @@ namespace Ledger.Game
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
+                      $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
+                      $"reflSeen={reflSeen} reflWetAtAb={SceneLighting.Wetness:0.00} " +
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +

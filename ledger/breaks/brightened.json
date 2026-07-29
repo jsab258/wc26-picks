@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Brightened is a copy with its own subtraction, so the two gates can drift apart",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            Darkened(without, with, epsilon);",
+    "new": "            Darkened(with, without, epsilon);"
+  }
+]
