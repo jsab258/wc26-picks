@@ -6222,6 +6222,59 @@ namespace Ledger.CoreTests
                 "night is still LIFTED - a player who cannot see the street is not "
                 + "experiencing atmosphere, they are experiencing a bug report");
 
+            // ---- THE VIGNETTE, WHICH WAS DELETING THE CORNERS ----
+            //
+            // Authored at 0.34 by day and 0.50 at night, never applied to a
+            // frame because the post stack never ran. Those put the corners
+            // at 10% of centre and at EXACTLY ZERO respectively — a black
+            // frame border, not a vignette, halving the mean luminance of
+            // every image in the game.
+
+            Check(LightModel.VignetteAt(0, 0) == 1.0 && LightModel.VignetteAt(0, 1) == 1.0,
+                "the middle of the frame is never touched, day or night");
+            foreach (double n in new[] { 0.0, 0.5, 1.0 })
+            {
+                double corner = LightModel.VignetteAt(0.5, n);
+                Check(corner > 0.5 && corner < 0.85,
+                    $"and a corner is dimmed but plainly still there (night {n:0.0}) — "
+                    + "a vignette pulls the eye inward, it does not crop the frame",
+                    $"{corner:0.000} of centre");
+                Check(Math.Abs(corner - LightModel.VignetteCorner(n)) < 1e-9,
+                    $"the shader parameter is solved from the corner we asked for, so "
+                    + $"the number in the source is the one you can have an opinion "
+                    + $"about (night {n:0.0})",
+                    $"asked {LightModel.VignetteCorner(n):0.000}, get {corner:0.000}");
+            }
+            Check(LightModel.VignetteAt(0.5, 1) < LightModel.VignetteAt(0.5, 0),
+                "night closes in a little more than day, which was the original intent "
+                + "and survives at a tenth of the original strength");
+
+            bool vigMonotone = true;
+            double vigPrev = 2;
+            for (double dd = 0; dd <= 0.5001; dd += 0.005)
+            {
+                double v = LightModel.VignetteAt(dd, 0.5);
+                if (v > vigPrev + 1e-9) vigMonotone = false;
+                vigPrev = v;
+            }
+            Check(vigMonotone, "and it darkens outward without ever brightening again");
+
+            // THE WHOLE FRAME, not just the corners. This is the number that
+            // actually moved: mean luminance across the image.
+            double meanFactor = 0; int samples = 0;
+            for (double x = -0.5; x <= 0.5; x += 0.02)
+                for (double y = -0.5; y <= 0.5; y += 0.02)
+                {
+                    meanFactor += LightModel.VignetteAt(x * x + y * y, 0);
+                    samples++;
+                }
+            meanFactor /= samples;
+            Check(meanFactor > 0.80,
+                "the vignette costs the frame under a fifth of its light overall — the "
+                + "authored version cost roughly half, which is why noon rendered at "
+                + "0.088 mean luma when the ungraded scene was 0.168",
+                $"mean factor {meanFactor:0.000}");
+
             // ---- AMBIENT OCCLUSION ----
             //
             // The last cheap win: untextured geometry reads flat because

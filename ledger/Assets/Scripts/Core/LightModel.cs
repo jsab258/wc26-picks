@@ -45,10 +45,66 @@ namespace Ledger.Core
         public static double Exposure(double night, double rain = 0)
         {
             night = Feel.Clamp01(night);
-            // Rain takes light out of the sky in the day and puts it back at
-            // night, because everything wet reflects the lamps.
-            double e = 1.0 + 0.55 * night - 0.15 * rain * (1 - night) + 0.10 * rain * night;
-            return Feel.Clamp(e, 0.7, 1.8);
+            // THE NIGHT LIFT WAS 0.55 AND IT HAD NEVER BEEN APPLIED TO
+            // ANYTHING. The post stack was attached to a child of the camera
+            // and never ran, so this number was authored, reasoned about, and
+            // never once looked at. The first frame it touched came out
+            // BRIGHTER at midnight than at midday — 0.099 against 0.088 in
+            // CI — which is the one thing a night must not be.
+            //
+            // It is 0.10 now, and the argument for the original is what
+            // changed rather than the argument for lifting at all: this
+            // street has three hundred and sixty light shafts and lamps down
+            // every road. THE LAMPS DO THE LIFTING. An aperture opened far
+            // enough to rescue an unlit street is far too much for a lit one,
+            // and it was sized for a street that no longer exists.
+            double e = 1.0 + 0.10 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;
+            return Feel.Clamp(e, 0.7, 1.25);
+        }
+
+        // ---- the vignette --------------------------------------------------
+
+        /// THE CORNERS WERE GOING TO ZERO. Not dimmed — zero.
+        ///
+        /// The shader computes `v = 1 - dot(d,d) * V * 4` and multiplies by
+        /// `v*v`, where `d` is the offset from centre and reaches 0.5 squared
+        /// at a corner. With the authored V of 0.34 by day that put the
+        /// corners at 10% of centre; at night V rose to 0.50 and put them at
+        /// EXACTLY NOTHING. That is a black frame border, not a vignette, and
+        /// it halved the mean luminance of every frame in the game.
+        ///
+        /// Same root cause as the exposure above: authored while the post
+        /// stack was dead, so nobody — including me — had ever seen it.
+        ///
+        /// Stated here as the CORNER FACTOR, which is the thing anybody
+        /// actually has an opinion about, with the shader parameter derived
+        /// from it. A number expressed as "how dark are the corners" can be
+        /// argued with; one expressed as a coefficient inside a quadratic
+        /// cannot.
+        public const double VignetteCornerDay = 0.72;
+        public const double VignetteCornerNight = 0.62;
+
+        /// The corner brightness we want, 0..1 of centre.
+        public static double VignetteCorner(double night) =>
+            Mix(VignetteCornerDay, VignetteCornerNight, Feel.Clamp01(night));
+
+        /// The shader's `_Vignette`, solved from the corner we asked for.
+        ///
+        /// At a corner `dot(d,d)` is 0.5, so `v = 1 - 2V` and the applied
+        /// factor is `v*v`. Inverting: `V = (1 - sqrt(corner)) / 2`.
+        public static double VignetteParam(double night)
+        {
+            double v = Math.Sqrt(Feel.Clamp01(VignetteCorner(night)));
+            return Feel.Clamp((1.0 - v) / 2.0, 0, 0.49);
+        }
+
+        /// What the shader will actually multiply by, at squared-radius `dd`
+        /// from centre (0 at the middle, 0.5 at a corner). Mirrors the shader
+        /// exactly so the test is testing the shipped arithmetic.
+        public static double VignetteAt(double dd, double night)
+        {
+            double v = Feel.Clamp01(1.0 - Feel.Clamp(dd, 0, 0.5) * VignetteParam(night) * 4.0);
+            return v * v;
         }
 
         // ---- the sky ------------------------------------------------------

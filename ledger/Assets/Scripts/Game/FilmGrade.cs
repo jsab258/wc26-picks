@@ -137,7 +137,13 @@ namespace Ledger.Game
             // to hide banding in a dark sky.
             float night = GameController.NightAmount;
             float grain = (0.020f + 0.045f * night + 0.020f * Weather.Rain) * s.GrainAmount;
-            float vignette = 0.34f + 0.16f * night;
+            // FROM CORE, where it is stated as "how dark are the corners"
+            // and tested. The 0.34/0.16 that used to live here put the
+            // corners at 10% of centre by day and at exactly zero at night —
+            // a black frame border rather than a vignette — and halved the
+            // mean luminance of every frame. It had never been applied to an
+            // image, because until tonight this class never ran.
+            float vignette = (float)LightModel.VignetteParam(night);
 
             // BLOOM: downsample, blur, add back. Two small textures rather
             // than a chain — at this scale the extra passes buy nothing you
