@@ -175,6 +175,10 @@ namespace Ledger.Game
                 return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;
             }
         }
+        /// How close counts as turning up. See the note at the attendance
+        /// check for why it is not 2.5.
+        public const float BeatAttendMetres = 3.2f;
+
         readonly HashSet<string> _beatInvited = new HashSet<string>();
         GameObject _beatMarker;
         string _beatMarkerId;
@@ -1626,7 +1630,35 @@ namespace Ledger.Game
             {
                 var p = _player.transform.position;
                 var m = _beatMarker.transform.position;
-                if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
+                float toMarker = Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z));
+
+                // A BEAT IS A PERSON, NOT A COORDINATE.
+                //
+                // The spot is captured once, when the beat opens, from wherever
+                // the host happened to be standing — and then the host walks
+                // off, or the spot turns out to sit inside a doorway, or on the
+                // far side of a railing. Nine days of CI say the bot got to
+                // four metres of it and stopped, every time, and never
+                // attended: [tea:Skipped,toast:Skipped,evening_d8:Skipped,
+                // evening_d12:Skipped]. That is not a sim quirk. A player who
+                // walks to a porch and finds the invitation four metres inside
+                // a wall cannot attend it either.
+                //
+                // So the host's OWN position counts too. Turning up to where
+                // somebody is standing is what accepting an invitation means,
+                // and it cannot be made unreachable by a bad capture.
+                var host = WalkerForHost(open.HostId);
+                float toHost = host != null
+                    ? Vector3.Distance(new Vector3(p.x, 0, p.z),
+                                       new Vector3(host.transform.position.x, 0,
+                                                   host.transform.position.z))
+                    : float.MaxValue;
+
+                // And the radius is 3.2 rather than 2.5. Two and a half metres
+                // is close enough to shake hands over; a porch conversation you
+                // have to stand that precisely for is fussy in a way no player
+                // would describe as difficulty.
+                if (Mathf.Min(toMarker, toHost) < BeatAttendMetres)
                 {
                     open.Attend(_gossip.Mill.Get(open.HostId), Now);
                     Destroy(_beatMarker);

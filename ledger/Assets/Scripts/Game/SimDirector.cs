@@ -630,7 +630,14 @@ namespace Ledger.Game
             // that beat's window closes, whatever happened. One evening is
             // what the beats gate asks for; the other eight go to the job.
             var openBeat = _game.Beats.Open(_game.Now);
-            if (openBeat != null && _beatBotTried == null) _beatBotTried = openBeat.Id;
+            // One beat at a time, and a fresh attempt once that one's window
+            // has closed. Committing to the first beat forever meant that if
+            // `tea` happened to be unreachable the bot never tried `toast`,
+            // `evening_d8` or `evening_d12` either — four skipped beats out
+            // of one bad spot. Bounded by "until one is attended", not by
+            // "until the first attempt".
+            if (openBeat == null) _beatBotTried = null;
+            else if (_beatBotTried == null) _beatBotTried = openBeat.Id;
             foreach (var b in _game.Beats.All)
                 if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
             bool chasing = !_botAttendedABeat && openBeat != null && openBeat.Id == _beatBotTried;
