@@ -25,3 +25,8 @@ tools/tts-benchmark/ledger-tts-out/
 
 # Python scratch.
 __pycache__/
+
+# Scratch from the deliberate-break runner. It restores via atexit, but a
+# hard kill can leave one behind and a backup of a source file must never
+# be mistaken for source.
+*.breakbak
