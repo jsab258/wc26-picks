@@ -89,12 +89,49 @@ jobs:
         timeout-minutes: 15
         shell: pwsh
         run: |
+          # TO A FILE, not to the console.
+          #
+          # `-logFile -` streams the whole Unity log through the step, and a
+          # compile error lands thousands of lines before the end of it. The
+          # step log is a fixed ~4KB tail, so the one thing worth reading is
+          # always the first thing evicted: a build broke on CS0104 and the
+          # log showed nothing but licence deactivation.
+          New-Item -ItemType Directory -Force build-log | Out-Null
           & "$env:UNITY_EDITOR_PATH" -quit -batchmode -nographics `
             -projectPath ledger `
             -buildTarget Win64 `
             -executeMethod Ledger.EditorTools.CiBuild.BuildWindows `
-            -logFile - | Out-Host
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            -logFile build-log/unity.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # The compiler errors, and nothing else. Same principle as the sim
+            # verdict below: when a step fails, print the actionable half
+            # LAST so it survives whatever fills the window afterwards.
+            Write-Host "=== compile errors ==="
+            $errs = Select-String -Path build-log/unity.log `
+              -Pattern 'error CS|Compilation failed|error:' |
+              ForEach-Object { $_.Line } | Select-Object -First 40
+            if ($errs) { $errs | ForEach-Object { Write-Host $_ } }
+            else { Get-Content build-log/unity.log -Tail 60 }
+            if ($env:GITHUB_STEP_SUMMARY) {
+              "## LEDGER build failed" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+              '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+              if ($errs) { $errs | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
+              else { Get-Content build-log/unity.log -Tail 60 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
+              '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+            exit $code
+          }
+          # SHADER ERRORS TOO. They do not fail the build, and the whole
+          # post stack is shaders now — one that fails to compile makes
+          # `isSupported` false and the effect silently stops existing.
+          $shaderErrs = Select-String -Path build-log/unity.log `
+            -Pattern 'Shader error|Shader warning in' |
+            ForEach-Object { $_.Line } | Select-Object -First 20
+          if ($shaderErrs) {
+            Write-Host "=== shader diagnostics ==="
+            $shaderErrs | ForEach-Object { Write-Host $_ }
+          }
 
       - name: Run game simulation (9 in-game days — the week, the verdict, and the open city)
         shell: pwsh
