@@ -857,6 +857,7 @@ namespace Ledger.Game
         // ---- ambient occlusion, measured against its own absence ----
         bool _tookAoPair;
         double _aoOn = -1, _aoOff = -1;
+        double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
 
         void MeasureAo()
         {
@@ -867,14 +868,113 @@ namespace Ledger.Game
             // street is correctly almost nothing, and measuring THAT would
             // give a difference of zero and a gate that fails for being
             // pointed somewhere honest.
-            double on = FrameLuma(cam);
+            var all = FrameShot(cam);
+
             FilmGrade.AmbientOcclusion = false;
-            double off = FrameLuma(cam);
+            var noAo = FrameShot(cam);
             FilmGrade.AmbientOcclusion = true;
-            _aoOn = on;
-            _aoOff = off;
-            Debug.Log($"SimDirector: ao a/b on={on:0.0000} off={off:0.0000} "
-                      + $"delta={off - on:0.0000} applied={FilmGrade.Applied}");
+
+            FilmGrade.Bloom = false;
+            var noBloom = FrameShot(cam);
+            FilmGrade.Bloom = true;
+
+            FilmGrade.Grain = false;
+            var noGrain = FrameShot(cam);
+            FilmGrade.Grain = true;
+
+            FilmGrade.Vignette = false;
+            var noVig = FrameShot(cam);
+            FilmGrade.Vignette = true;
+
+            _aoOn = all.Mean;
+            _aoOff = noAo.Mean;
+            _bloomDelta = all.Bright - noBloom.Bright;
+            _grainDelta = all.Variance - noGrain.Variance;
+            // A vignette makes the corners darker RELATIVE to the centre, so
+            // the ratio must FALL when it is on. Comparing absolute corner
+            // brightness would have been fooled by anything that changed the
+            // whole frame.
+            _vigOn = all.EdgeRatio;
+            _vigOff = noVig.EdgeRatio;
+            Debug.Log($"SimDirector: post a/b ao={all.Mean:0.0000}/{noAo.Mean:0.0000} "
+                      + $"bloomBright={all.Bright:0.0000}/{noBloom.Bright:0.0000} "
+                      + $"grainVar={all.Variance:0.00000}/{noGrain.Variance:0.00000} "
+                      + $"vigEdge={all.EdgeRatio:0.000}/{noVig.EdgeRatio:0.000}");
+        }
+
+        /// One rendered frame, reduced to the three numbers the post gates
+        /// need. THREE, because the three effects do different things and a
+        /// single ruler cannot see all of them:
+        ///
+        ///   mean       — occlusion darkens, so this is its ruler.
+        ///   bright     — bloom SPREADS highlights without moving the mean
+        ///                much, so the fraction of bright pixels is its ruler.
+        ///   variance   — grain is signed noise. It barely moves the mean at
+        ///                all, by construction; local spread is the only
+        ///                thing that changes.
+        ///   edgeRatio  — corner brightness over centre brightness, which is
+        ///                precisely and only what a vignette does.
+        ///
+        /// Reaching for mean luminance for all four would have found the
+        /// occlusion and quietly passed the other three, which is the same
+        /// mistake as measuring total energy for the score gate and the fog
+        /// ratio against the wrong colour. Check the ruler.
+        struct FrameStats
+        {
+            public double Mean, Bright, Variance, EdgeRatio;
+        }
+
+        FrameStats FrameShot(Camera cam)
+        {
+            var st = new FrameStats();
+            RenderTexture rt = null;
+            Texture2D tex = null;
+            var prevTarget = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+            try
+            {
+                rt = new RenderTexture(640, 360, 24, RenderTextureFormat.ARGB32);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                tex.Apply();
+                var px = tex.GetPixels();
+                if (px.Length == 0) return st;
+
+                double sum = 0, sumSq = 0, bright = 0;
+                double centre = 0, corner = 0;
+                int centreN = 0, cornerN = 0;
+                int w = tex.width, h = tex.height;
+                for (int i = 0; i < px.Length; i++)
+                {
+                    var c = px[i];
+                    double l = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+                    sum += l; sumSq += l * l;
+                    if (l > 0.6) bright++;
+                    // Where in the frame, for the vignette ruler.
+                    double x = (i % w) / (double)w - 0.5;
+                    double y = (i / w) / (double)h - 0.5;
+                    double dd = x * x + y * y;
+                    if (dd < 0.02) { centre += l; centreN++; }
+                    else if (dd > 0.36) { corner += l; cornerN++; }
+                }
+                st.Mean = sum / px.Length;
+                st.Variance = sumSq / px.Length - st.Mean * st.Mean;
+                st.Bright = bright / px.Length;
+                st.EdgeRatio = (centreN > 0 && cornerN > 0 && centre > 1e-6)
+                    ? (corner / cornerN) / (centre / centreN) : 1.0;
+                return st;
+            }
+            catch (Exception e) { _errors.Add("FrameShot: " + e.Message); return st; }
+            finally
+            {
+                cam.targetTexture = prevTarget;
+                RenderTexture.active = prevActive;
+                if (tex != null) UnityEngine.Object.Destroy(tex);
+                if (rt != null) rt.Release();
+            }
         }
 
         /// Mean luminance of one rendered frame, without writing a file.
@@ -1828,6 +1928,24 @@ namespace Ledger.Game
             // that lesson: an effect existing is not an effect running.
             bool postOk = FilmGrade.Frames > 0;
 
+            // AND EACH EFFECT ON ITS OWN RULER. `postOk` proves the stack
+            // runs; these prove each effect inside it reaches pixels, which
+            // is a separate claim and the one that has already gone wrong.
+            //
+            // Every threshold here is a FLOOR ON BEING PRESENT, not a tuning
+            // target. They say "this did something measurable", not "this did
+            // the right amount" — nobody can judge the right amount from a
+            // number, and a gate that pretends otherwise becomes an argument
+            // with the art direction every time it is touched.
+            bool bloomOk = _bloomDelta > 0.0005;
+            bool grainOk = _grainDelta > 0.00002;
+            // The ratio must FALL when the vignette is on: corners darker
+            // relative to centre. Comparing absolute corner brightness would
+            // be fooled by anything that changed the whole frame — including
+            // the exposure change that shipped alongside this.
+            bool vigOk = _vigOn >= 0 && _vigOff >= 0 && _vigOn < _vigOff * 0.95;
+
+
             // THE STREET TALKS TO ITSELF. Rumours have passed along the
             // contact graph since the first week and the city has shown none
             // of it — a dozen people walking past each other in silence while
@@ -1915,6 +2033,9 @@ namespace Ledger.Game
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
+                ($"bloom[bright+{_bloomDelta:0.0000}]", bloomOk),
+                ($"grain[var+{_grainDelta:0.00000}]", grainOk),
+                ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
@@ -1976,6 +2097,7 @@ namespace Ledger.Game
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
+                      $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +

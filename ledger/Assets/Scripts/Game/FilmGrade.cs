@@ -126,6 +126,15 @@ namespace Ledger.Game
         /// drop the effect rather than the frame rate.
         public static bool AmbientOcclusion = true;
 
+        /// PER-EFFECT SWITCHES, for the A/B gates.
+        ///
+        /// Not options and not quality settings — these exist so the sim can
+        /// render one frame with an effect and one without and compare. That
+        /// is the only check that has ever caught a post effect not reaching
+        /// pixels, and it caught the whole stack being dead the first time it
+        /// ran. Every effect here now has one.
+        public static bool Grain = true, Vignette = true, Bloom = true;
+
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
             Frames++;
@@ -160,9 +169,9 @@ namespace Ledger.Game
             Graphics.Blit(_bloomB, _bloomA, _mat, 2);        // pass 2: blur Y
 
             _mat.SetTexture("_BloomTex", _bloomA);
-            _mat.SetFloat("_Bloom", 0.55f + 0.35f * night);
-            _mat.SetFloat("_Grain", grain);
-            _mat.SetFloat("_Vignette", vignette);
+            _mat.SetFloat("_Bloom", Bloom ? 0.55f + 0.35f * night : 0f);
+            _mat.SetFloat("_Grain", Grain ? grain : 0f);
+            _mat.SetFloat("_Vignette", Vignette ? vignette : 0f);
             // The aperture opens at night and closes in daylight rain, from
             // the same curve the scene lighting uses.
             _mat.SetFloat("_Exposure", (float)Ledger.Core.LightModel.Exposure(night, Weather.Rain));
