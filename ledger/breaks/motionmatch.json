@@ -1,0 +1,68 @@
+[
+  {
+    "name": "no per-dimension normalisation -- metres, unit vectors and m/s compared raw",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "                _scale[d] = sd > 1e-6 ? 1.0 / sd : 1.0;",
+    "new": "                _scale[d] = 1.0;"
+  },
+  {
+    "name": "pose outweighs trajectory -- moves beautifully, ignores the stick",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "        public const double TrajectoryWeight = 1.0;\n        public const double PoseWeight = 0.42;",
+    "new": "        public const double TrajectoryWeight = 0.42;\n        public const double PoseWeight = 1.0;"
+  },
+  {
+    "name": "foot velocity weighted below foot position -- nothing sees foot sliding",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "        public const double FootVelocityWeight = 1.6;",
+    "new": "        public const double FootVelocityWeight = 0.5;"
+  },
+  {
+    "name": "playback runs off the end of one clip into the next -- valid index, unrelated motion",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "            return _clip[index + 1] == _clip[index] ? index + 1 : -1;",
+    "new": "            return index + 1;"
+  },
+  {
+    "name": "search every frame -- the cadence IS the commitment",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "        public const double SearchIntervalSeconds = 0.1;",
+    "new": "        public const double SearchIntervalSeconds = 0.0;"
+  },
+  {
+    "name": "no hysteresis -- leaves a good clip for one a hundredth of a percent better",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "        public const double JumpMargin = 0.12;",
+    "new": "        public const double JumpMargin = 0.0;"
+  },
+  {
+    "name": "REAL BUG 1: the query leaves the foot-velocity channels at zero",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "            for (int i = 0; i < 6; i++)\n                q[MotionFeature.FootVel + i] = (q[MotionFeature.FootPos + i] - prev[i]) * 30.0;",
+    "new": "            for (int i = 0; i < 6; i++)\n                q[MotionFeature.FootVel + i] = 0;"
+  },
+  {
+    "name": "REAL BUG 2: frame 0 of every clip differences backwards into nothing, so it reads as standing still",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "            double before = frame > 0 ? (frame - 1) / SampleRate : t;\n            double after = frame > 0 ? t : (frame + 1) / SampleRate;\n            Velocities(speed, before, after, into);",
+    "new": "            if (frame > 0) Velocities(speed, (frame - 1) / SampleRate, t, into);"
+  },
+  {
+    "name": "REAL BUG 3: advance one corpus frame per tick, so a 30fps corpus plays at 2x on a 60fps frame",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "                _playhead += dt * _sampleRate;",
+    "new": "                _playhead += 1.0;"
+  },
+  {
+    "name": "REAL BUG 4: cost staying at the integer index, charging the matcher for its own stepping error",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "                double staying = _db.CostBetween(Index, _playhead, query);",
+    "new": "                double staying = _db.Cost(Index, query);"
+  },
+  {
+    "name": "the pose distance includes the trajectory channels, so a clip change reads as a pose change",
+    "file": "Assets/Scripts/Core/MotionMatch.cs",
+    "old": "            for (int d = MotionFeature.FootPos; d < MotionFeature.Length; d++)\n            {\n                double diff = (fa[d] - fb[d]) * _scale[d];",
+    "new": "            for (int d = 0; d < MotionFeature.Length; d++)\n            {\n                double diff = (fa[d] - fb[d]) * _scale[d];"
+  }
+]

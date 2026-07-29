@@ -617,10 +617,37 @@ namespace Ledger.Game
             // needs exercised. After that the errand outranks the invitation
             // again, which is also what a player with a business to run
             // would do.
-            var beatSpot = _botAttendedABeat ? null : _game.OpenBeatSpot;
-            if (!_botAttendedABeat)
-                foreach (var b in _game.Beats.All)
-                    if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
+            // BOUNDED BY THE WINDOW, NOT BY SUCCESS. The previous version
+            // stopped diverting once a beat was Attended — a condition that
+            // never became true, so the bot walked to a porch every evening
+            // for nine days and never went back to work. `beats` and
+            // `verdictSane` both failed, and they were one bug: an escape
+            // hatch that only opens if the thing you are trying works is not
+            // an escape hatch.
+            //
+            // Now it commits to the FIRST open beat it sees and gives up when
+            // that beat's window closes, whatever happened. One evening is
+            // what the beats gate asks for; the other eight go to the job.
+            var openBeat = _game.Beats.Open(_game.Now);
+            if (openBeat != null && _beatBotTried == null) _beatBotTried = openBeat.Id;
+            foreach (var b in _game.Beats.All)
+                if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
+            bool chasing = !_botAttendedABeat && openBeat != null && openBeat.Id == _beatBotTried;
+            var beatSpot = chasing ? _game.OpenBeatSpot : null;
+
+            // AND SAY WHY IF IT MISSES. Attendance needs the player within
+            // 2.5m of the marker; a run that reports "no beat attended" and
+            // nothing else cannot distinguish "never went" from "went and
+            // stood two and a half metres away".
+            if (chasing && beatSpot.HasValue && now.Hour != _lastBeatChaseHour)
+            {
+                _lastBeatChaseHour = now.Hour;
+                var here = _player.transform.position;
+                float d = Vector2.Distance(new Vector2(here.x, here.z),
+                                           new Vector2(beatSpot.Value.x, beatSpot.Value.z));
+                if (d < _beatClosestApproach) _beatClosestApproach = d;
+                Debug.Log($"SimDirector: chasing beat {openBeat.Id} at {now.Hour:00}:00, {d:0.0}m away");
+            }
             var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
@@ -659,7 +686,12 @@ namespace Ledger.Game
             SampleBodies();
             SampleMix();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
-            if (!_tookNightShot && now.Hour == 23) { _tookNightShot = true; Shot($"day{now.Day}_night"); }
+            if (!_tookNightShot && now.Hour == 23)
+            {
+                _tookNightShot = true;
+                MeasureNightLight();
+                Shot($"day{now.Day}_night");
+            }
             // ONE A/B, ONCE. The only way to prove an image effect reaches
             // pixels is to render the same frame without it and compare —
             // everything else proves the code ran, which is not the same
@@ -898,6 +930,50 @@ namespace Ledger.Game
         bool _tookAoPair;
         double _aoOn = -1, _aoOff = -1;
         double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
+
+        double _nightFull = -1, _nightNoShafts = -1, _nightRaw = -1, _nightNoBloom = -1;
+        string _beatBotTried;
+        int _lastBeatChaseHour = -1;
+        float _beatClosestApproach = 9999f;
+
+        /// WHERE IS THE NIGHT LIGHT COMING FROM. Asked once, in-engine,
+        /// instead of guessed at across twenty-five-minute build cycles.
+        ///
+        /// `nightNotDarker` says the 23:00 frame is twice as bright as noon,
+        /// and there are at least four candidates: the ambient bands, three
+        /// hundred and sixty additive volumetric cones, the bloom pass, and
+        /// the exposure lift the grade applies for night legibility. A single
+        /// mean luminance cannot separate them, and a screenshot of a scene
+        /// that has all four cannot either — which is the same lesson the
+        /// ambient-occlusion A/B taught at the cost of a dead post stack.
+        ///
+        /// So: render the same frame four ways and log the decomposition.
+        void MeasureNightLight()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            _nightFull = FrameShot(cam).Mean;
+
+            LightShaft.Enabled = false;
+            // A frame, so LateUpdate has run and the renderers are actually off.
+            _nightNoShafts = FrameShot(cam).Mean;
+            LightShaft.Enabled = true;
+
+            FilmGrade.Bloom = false;
+            _nightNoBloom = FrameShot(cam).Mean;
+            FilmGrade.Bloom = true;
+
+            FilmGrade.Bypass = true;
+            _nightRaw = FrameShot(cam).Mean;
+            FilmGrade.Bypass = false;
+
+            Debug.Log($"SimDirector: night light full={_nightFull:0.0000} "
+                      + $"noShafts={_nightNoShafts:0.0000} noBloom={_nightNoBloom:0.0000} "
+                      + $"ungraded={_nightRaw:0.0000} "
+                      + $"(shafts contribute {_nightFull - _nightNoShafts:0.0000}, "
+                      + $"bloom {_nightFull - _nightNoBloom:0.0000}, "
+                      + $"the grade {_nightFull - _nightRaw:0.0000})");
+        }
 
         void MeasureAo()
         {
@@ -2193,6 +2269,9 @@ namespace Ledger.Game
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
+                      $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
+                      $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +
+                      $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +

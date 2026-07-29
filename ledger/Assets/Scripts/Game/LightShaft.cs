@@ -82,13 +82,19 @@ namespace Ledger.Game
             if (_mat != null) Destroy(_mat);
         }
 
+        /// A/B switch for the sim's light-attribution probe. Three hundred
+        /// and sixty volumetric cones are additive geometry, and the question
+        /// "is the night frame bright because of the shafts?" cannot be
+        /// answered by looking at a screenshot of a scene that has them.
+        public static bool Enabled = true;
+
         void LateUpdate()
         {
             if (_mat == null || _light == null) return;
 
             // A shaft only exists if its lamp is on. This also means the whole
             // effect switches with the day/night cycle for free.
-            bool on = _light.enabled && _light.isActiveAndEnabled;
+            bool on = Enabled && _light.enabled && _light.isActiveAndEnabled;
             if (_renderer.enabled != on) _renderer.enabled = on;
             if (!on) return;
 

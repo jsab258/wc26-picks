@@ -135,10 +135,16 @@ namespace Ledger.Game
         /// ran. Every effect here now has one.
         public static bool Grain = true, Vignette = true, Bloom = true;
 
+        /// Pass the frame straight through — no tonemap, no exposure, no
+        /// anything. For the sim's light-attribution probe: "is the night
+        /// frame bright before the grade touches it, or because of it?" is
+        /// the first question to ask and there was no way to ask it.
+        public static bool Bypass = false;
+
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
             Frames++;
-            if (_mat == null) { Graphics.Blit(src, dst); return; }
+            if (Bypass || _mat == null) { Graphics.Blit(src, dst); return; }
 
             var s = GameSettings.Current;
             // NIGHT AND RAIN PUSH THE STOCK. More grain when there is less

@@ -96,6 +96,7 @@ namespace Ledger.CoreTests
                 TestRig();
                 TestTypography();
                 TestFraming();
+                TestMotionMatching();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -7837,6 +7838,462 @@ namespace Ledger.CoreTests
                 $"{FramedBeat.Begun - before}");
             counted.Abort();
             Check(FramedBeat.Begun == before + 1, "and aborting does not un-count it");
+        }
+
+        static void TestMotionMatching()
+        {
+            Console.WriteLine("Motion matching — the corpus is a purchase, everything around it is not:");
+
+            var corpus = new SyntheticCorpus();
+            var db = MotionDatabase.Build(corpus);
+            Check(db.Count == corpus.ClipCount * corpus.FrameCount(0),
+                "the corpus flattens into a searchable pile of frames",
+                $"{db.Count} frames over {corpus.ClipCount} clips");
+
+            // ---- NORMALISATION, which is the difference between a matcher
+            // ---- that works and one that cannot be debugged ----
+            //
+            // The feature mixes metres, unit vectors and metres per second. A
+            // raw squared distance over that is not a distance between
+            // motions, it is a distance dominated by whichever channel has
+            // the biggest units — and the authored weights then multiply
+            // numbers already orders of magnitude apart.
+            double widest = 0, narrowest = double.MaxValue;
+            for (int d = 0; d < MotionFeature.Length; d++)
+            {
+                double s = db.Scale(d);
+                if (s <= 0 || double.IsNaN(s) || double.IsInfinity(s))
+                    { widest = double.NaN; break; }
+                if (s > widest) widest = s;
+                if (s < narrowest) narrowest = s;
+            }
+            Check(!double.IsNaN(widest) && widest / narrowest > 3.0,
+                "and the channels really are on wildly different scales — this is not a "
+                + "theoretical hazard, it is the actual spread in this corpus",
+                $"{widest / narrowest:0.0}x between the widest and narrowest");
+
+            // Prove the normaliser did its job: rescale each dimension by its
+            // own scale and the spread should be gone.
+            {
+                var mean = new double[MotionFeature.Length];
+                var var2 = new double[MotionFeature.Length];
+                for (int i = 0; i < db.Count; i++)
+                {
+                    var f = FeatureOf(corpus, db, i);
+                    for (int d = 0; d < MotionFeature.Length; d++) mean[d] += f[d] * db.Scale(d);
+                }
+                for (int d = 0; d < MotionFeature.Length; d++) mean[d] /= db.Count;
+                for (int i = 0; i < db.Count; i++)
+                {
+                    var f = FeatureOf(corpus, db, i);
+                    for (int d = 0; d < MotionFeature.Length; d++)
+                    {
+                        double x = f[d] * db.Scale(d) - mean[d];
+                        var2[d] += x * x;
+                    }
+                }
+                bool unit = true;
+                for (int d = 0; d < MotionFeature.Length; d++)
+                {
+                    double sd = Math.Sqrt(var2[d] / db.Count);
+                    // A dimension that never varies is left at unit scale on
+                    // purpose — dividing by its zero deviation is a NaN — so
+                    // a standard deviation of exactly 0 is correct, not a
+                    // failure.
+                    if (sd > 1e-6 && Math.Abs(sd - 1.0) > 1e-6) unit = false;
+                }
+                Check(unit,
+                    "after normalisation every channel that varies has unit spread, so the "
+                    + "authored weights mean what they say rather than being swamped by units");
+            }
+
+            // ---- RESPONSIVENESS BEATS BEAUTY ----
+            //
+            // Two candidates: one that goes where we asked with an awkward
+            // pose, one with a lovely pose going the wrong way. A matcher
+            // that prefers the second is the classic "character moves
+            // beautifully and ignores the stick".
+            double trajW = 0, poseW = 0;
+            for (int d = 0; d < MotionFeature.Length; d++)
+                if (d < MotionFeature.FootPos) trajW += MotionFeature.GroupWeight(d);
+                else poseW += MotionFeature.GroupWeight(d);
+            Check(trajW > poseW,
+                "the trajectory half outweighs the pose half — a player forgives an ugly "
+                + "step and does not forgive a character that will not turn",
+                $"{trajW:0.00} vs {poseW:0.00}");
+            Check(MotionFeature.GroupWeight(MotionFeature.FootVel)
+                  > MotionFeature.GroupWeight(MotionFeature.FootPos),
+                "and foot VELOCITY outweighs foot position — foot sliding comes from "
+                + "cutting to a frame whose foot is travelling when ours is planted, and "
+                + "matching velocity is the only term that sees it");
+
+            // ---- THE SEARCH FINDS WHAT IT SHOULD ----
+            //
+            // Ask for exactly the motion of a known clip and the best frame
+            // must come from that clip. If this fails nothing else matters.
+            int walkStraight = -1;
+            for (int c = 0; c < corpus.ClipCount; c++)
+                if (Math.Abs(corpus.SpeedOf(c) - 1.4) < 1e-9 && Math.Abs(corpus.TurnOf(c)) < 1e-9)
+                    walkStraight = c;
+            Check(walkStraight >= 0, "the corpus contains a straight walk");
+
+            var straight = SyntheticCorpus.Query(1.4, 0, 0.25, 1.4);
+            int hit = db.Nearest(straight, out double hitCost);
+            Check(hit >= 0 && db.ClipOf(hit) == walkStraight,
+                "asking for a straight walk at walking pace returns a frame OF the straight "
+                + "walk at walking pace",
+                $"clip {db.ClipOf(hit)} (speed {corpus.SpeedOf(db.ClipOf(hit)):0.0}, "
+                + $"turn {corpus.TurnOf(db.ClipOf(hit)):0}) cost {hitCost:0.0000}");
+
+            var turning = SyntheticCorpus.Query(1.4, 90, 0.25, 1.4);
+            int turnHit = db.Nearest(turning, out _);
+            Check(turnHit >= 0 && corpus.TurnOf(db.ClipOf(turnHit)) > 40,
+                "and asking to turn hard returns a frame that turns hard — the query is "
+                + "reaching the trajectory channels rather than being drowned by the pose",
+                $"turn {corpus.TurnOf(db.ClipOf(turnHit)):0}deg/s");
+
+            var still = SyntheticCorpus.Query(0, 0, 0, 0);
+            int stillHit = db.Nearest(still, out _);
+            Check(stillHit >= 0 && corpus.SpeedOf(db.ClipOf(stillHit)) < 0.5,
+                "and standing still finds standing still rather than the slowest walk",
+                $"speed {corpus.SpeedOf(db.ClipOf(stillHit)):0.0}");
+
+            // ---- CLIPS DO NOT RUN INTO EACH OTHER ----
+            //
+            // The database is one flat array, so the last frame of clip 3
+            // sits immediately before the first frame of clip 4 — unrelated
+            // motion recorded an hour apart. The index is perfectly valid,
+            // which is why this bug survives code review.
+            int boundary = -1;
+            for (int i = 0; i + 1 < db.Count; i++)
+                if (db.ClipOf(i) != db.ClipOf(i + 1)) { boundary = i; break; }
+            Check(boundary >= 0, "the corpus has clip boundaries to fall off");
+            Check(db.Next(boundary) < 0,
+                "and playback stops at one rather than falling into the next clip — the "
+                + "array index is valid, the motion is not, and a character that teleports "
+                + "between poses at clip boundaries is the result");
+            Check(db.Next(boundary - 1) == boundary,
+                "while mid-clip playback advances normally");
+            Check(db.Next(db.Count - 1) < 0, "and the very last frame goes nowhere");
+
+            // ---- THE CADENCE AND THE MARGIN ----
+            var matcher = new MotionMatcher(db, corpus.SampleRate);
+            matcher.Tick(1.0 / 60.0, straight);
+            Check(matcher.Index >= 0 && matcher.Searches == 1,
+                "the first tick searches, because there is nothing to continue");
+
+            // Walking in a straight line for a second.
+            //
+            // THE QUERY'S POSE HALF HAS TO ADVANCE WITH THE BODY. The first
+            // version of this held the stride phase frozen at 0.25 while the
+            // matcher played forward, so the cost of staying where we were
+            // climbed every frame by construction and it jumped nine times.
+            // That was the test walking a character whose legs never moved,
+            // not a matcher that twitches — a live query reads the pose the
+            // body is actually in, which is the pose it is being played into.
+            double phase = 0.25;
+            double stridePeriod = 0.62 - 0.05 * 1.4;
+            int startIndex = matcher.Index;
+            for (int i = 0; i < 60; i++)
+            {
+                phase += (1.0 / 60.0) / stridePeriod;
+                matcher.Tick(1.0 / 60.0, SyntheticCorpus.Query(1.4, 0, phase, 1.4));
+            }
+            Check(matcher.Searches <= 12,
+                "a second of walking searches about ten times, not sixty — the cadence IS "
+                + "the commitment, and searching every frame is what makes a matcher "
+                + "chatter, because the best frame for this instant is a different one "
+                + "every instant and none of them get to play",
+                $"{matcher.Searches} searches in 61 frames");
+            // AND IT DOES NOT TWITCH — but jump COUNT is the wrong ruler for
+            // that, which cost an hour to learn.
+            //
+            // The first version asserted `Jumps <= 2` and saw nine. The nine
+            // were real and they were all harmless: the corpus holds several
+            // frames at the same point in the stride, and hopping between two
+            // of them changes nothing on screen because the pose is
+            // identical. A twitch is a jump that lands on a DIFFERENT pose,
+            // so the thing to measure is the pose discontinuity, not the
+            // number of jumps.
+            //
+            // Chasing the count first did find two genuine defects — the
+            // query left the foot-velocity channels at zero, and every clip's
+            // frame 0 had zero velocity for a body that was not standing
+            // still — so the wrong ruler was not wasted. It just could not
+            // say when it was finished.
+            // CALIBRATE THE THRESHOLD BEFORE ASSERTING IT. 0.05 was a number
+            // invented with no scale behind it, in weighted-normalised units
+            // nobody has an intuition for. The units that mean something are
+            // the corpus's own: one frame of ordinary playback is by
+            // definition invisible, and two frames picked at random from
+            // different clips is by definition a pop.
+            double stepPop = 0, randomPop = 0;
+            {
+                int n = 0;
+                for (int i = 0; i + 1 < db.Count && n < 400; i++)
+                {
+                    if (db.Next(i) < 0) continue;
+                    stepPop += db.PoseDistance(i, i + 1); n++;
+                }
+                stepPop /= Math.Max(1, n);
+                n = 0;
+                for (int i = 0; i < 400; i++)
+                {
+                    int a = (i * 7919) % db.Count, b = (i * 104729 + 31) % db.Count;
+                    randomPop += db.PoseDistance(a, b); n++;
+                }
+                randomPop /= Math.Max(1, n);
+            }
+            Check(randomPop > stepPop * 20,
+                "one frame of ordinary playback and two frames picked at random are orders "
+                + "of magnitude apart, so pose distance can tell a cut from a continuation",
+                $"step {stepPop:0.00000}, random {randomPop:0.000}");
+            Check(matcher.WorstJumpPop < randomPop * 0.25,
+                "no jump changes the pose enough to see — the corpus has many frames at "
+                + "the same point in the stride and moving between them is free",
+                $"worst pop {matcher.WorstJumpPop:0.0000} against {randomPop:0.000} for an "
+                + $"unrelated cut and {stepPop:0.00000} for a single step");
+            var clipsSeen = new HashSet<int>();
+            for (int i = 0; i < 60; i++)
+            {
+                phase += (1.0 / 60.0) / stridePeriod;
+                matcher.Tick(1.0 / 60.0, SyntheticCorpus.Query(1.4, 0, phase, 1.4));
+                clipsSeen.Add(db.ClipOf(matcher.Index));
+            }
+            Check(clipsSeen.Count == 1,
+                "and a steady walk stays in ONE clip rather than oscillating between "
+                + "several — which is what chatter actually looks like, and what the jump "
+                + "count was a poor proxy for",
+                $"{clipsSeen.Count} clips");
+            Check(matcher.Index != startIndex,
+                "and it is playing FORWARD through the corpus rather than sitting on one "
+                + "frame — a matcher pinned to a single frame also reports zero jumps, "
+                + "which is the same reading for the opposite failure");
+
+            // And when the query really changes, it does move.
+            int before = matcher.Jumps;
+            for (int i = 0; i < 60; i++)
+            {
+                phase += (1.0 / 60.0) / stridePeriod;
+                matcher.Tick(1.0 / 60.0, SyntheticCorpus.Query(1.4, 90, phase, 1.4));
+            }
+            Check(matcher.Jumps > before,
+                "but a genuinely different request DOES move it — hysteresis that never "
+                + "yields is just a state machine with one state",
+                $"{matcher.Jumps - before} jumps after the turn was asked for");
+            Check(corpus.TurnOf(db.ClipOf(matcher.Index)) > 0,
+                "and it moved to a clip that turns the way we asked",
+                $"turn {corpus.TurnOf(db.ClipOf(matcher.Index)):0}deg/s");
+
+            // ---- THE FOUR THINGS THE BREAK RUN FOUND NOTHING PINNING ----
+            //
+            // Every one of these was already correct in the code and every
+            // one could be reverted with all tests green. Three of them are
+            // defects I had actually hit and fixed an hour earlier, which is
+            // the uncomfortable part: fixing a bug is not the same as
+            // preventing it, and a fix nothing tests is a fix that comes back.
+
+            // 1. THE MARGIN. Emergent chatter checks did not pin it, because
+            // the corpus is well-behaved enough to look fine without it. So
+            // ask it directly: given a candidate barely better than staying,
+            // stay.
+            {
+                var m = new MotionMatcher(db, corpus.SampleRate);
+                m.Tick(1.0 / 60.0, straight);
+                int held = m.Index;
+                // Run a full cadence of ticks with the query the current
+                // frame already answers well. Nothing should move but the
+                // playhead.
+                double ph2 = db.FrameOf(held) / corpus.SampleRate / stridePeriod;
+                int movedClip = 0;
+                for (int i = 0; i < 12; i++)
+                {
+                    ph2 += (1.0 / 60.0) / stridePeriod;
+                    m.Tick(1.0 / 60.0, SyntheticCorpus.Query(1.4, 0, ph2, 1.4));
+                    if (db.ClipOf(m.Index) != db.ClipOf(held)) movedClip++;
+                }
+                Check(movedClip == 0,
+                    "a candidate that is only marginally better does not get the jump — "
+                    + "without the margin the matcher abandons a perfectly good clip on "
+                    + "every search, and the body twitches while walking in a straight line",
+                    $"{movedClip} ticks spent outside the clip it started in");
+
+                // AND THE SAME WALK WITH THE MARGIN OFF JUMPS MORE. Asserting
+                // `JumpMargin > 0` would be a check written against the
+                // constant it is meant to pin — it moves with the number and
+                // survives setting it to 1e-12. Run the walk twice instead.
+                var greedy = new MotionMatcher(db, corpus.SampleRate) { Margin = 0 };
+                var patient = new MotionMatcher(db, corpus.SampleRate);
+                double ph3 = 0.25;
+                for (int i = 0; i < 240; i++)
+                {
+                    var q = SyntheticCorpus.Query(1.4, 0, ph3, 1.4);
+                    greedy.Tick(1.0 / 60.0, q);
+                    patient.Tick(1.0 / 60.0, q);
+                    ph3 += (1.0 / 60.0) / stridePeriod;
+                }
+                Check(patient.Jumps < greedy.Jumps,
+                    "and four seconds of the same straight walk moves the body around the "
+                    + "corpus less with the margin than without it",
+                    $"{patient.Jumps} jumps with the margin, {greedy.Jumps} without");
+            }
+
+            // 2. NO FRAME OF A MOVING CLIP MAY READ AS STANDING STILL.
+            // Differencing frame 0 backwards leaves it with zero velocity
+            // everywhere, which is not missing data — it is the exact feature
+            // vector of a body at rest, one per clip, scattered through the
+            // corpus like potholes.
+            {
+                var f0 = new double[MotionFeature.Length];
+                bool anyDead = false;
+                for (int c = 0; c < corpus.ClipCount; c++)
+                {
+                    if (corpus.SpeedOf(c) < Rig.StillBelowMetresPerSec) continue;
+                    corpus.Feature(c, 0, f0);
+                    double v = 0;
+                    for (int d = MotionFeature.FootVel; d < MotionFeature.HipVel; d++)
+                        v += Math.Abs(f0[d]);
+                    if (v < 1e-9) anyDead = true;
+                }
+                Check(!anyDead,
+                    "every frame of a moving clip has moving feet — a frame with zero "
+                    + "velocity is not an unknown, it is a body standing still, and a "
+                    + "query with a planted foot finds those holes irresistible");
+            }
+
+            // 3. PLAYBACK IS BETWEEN FRAMES, so the cost of staying must be
+            // measured there. Charging the matcher at the integer index bills
+            // it for up to a frame of phase error it created itself by
+            // stepping in integers — it jumps to fix it and lands between two
+            // frames again.
+            {
+                int mid = -1;
+                for (int i = 0; i < db.Count; i++)
+                    if (db.ClipOf(i) == walkStraight && db.FrameOf(i) == 10) { mid = i; break; }
+                Check(mid >= 0, "a mid-clip frame to sit between");
+                double halfPhase = (10.5 / corpus.SampleRate) / stridePeriod;
+                var between = SyntheticCorpus.Query(1.4, 0, halfPhase, 1.4);
+                double atFrame = db.Cost(mid, between);
+                double atHalf = db.CostBetween(mid, 0.5, between);
+                Check(atHalf < atFrame,
+                    "a playhead halfway between two frames costs less measured there than "
+                    + "measured at the frame behind it — otherwise the matcher pays for "
+                    + "its own stepping and jumps to correct an error it will immediately "
+                    + "re-create",
+                    $"{atHalf:0.00000} between vs {atFrame:0.00000} at the index");
+                Check(db.CostBetween(mid, 0, between) == db.Cost(mid, between),
+                    "and a playhead exactly on a frame is that frame");
+
+                // AND THE MATCHER ACTUALLY USES IT. `CostBetween` having the
+                // right property is a different claim from the matcher
+                // calling it — a break that swapped the call site for
+                // `Cost` left every other check in this file green.
+                var walker = new MotionMatcher(db, corpus.SampleRate);
+                double ph4 = 0.25;
+                double stayCost = -1, indexCost = -1, fracThen = -1;
+                for (int i = 0; i < 200 && stayCost < 0; i++)
+                {
+                    ph4 += (1.0 / 60.0) / stridePeriod;
+                    var q = SyntheticCorpus.Query(1.4, 0, ph4, 1.4);
+                    int searchesBefore = walker.Searches;
+                    walker.Tick(1.0 / 60.0, q);
+                    // Only a search that chose to STAY leaves Index and the
+                    // playhead where the comparison was made, so the integer
+                    // cost can be recomputed against the same frame.
+                    if (walker.Searches > searchesBefore && searchesBefore > 0
+                        && !walker.Jumped && walker.Fraction > 0.01)
+                    {
+                        stayCost = walker.LastStayCost;
+                        indexCost = db.Cost(walker.Index, q);
+                        fracThen = walker.Fraction;
+                    }
+                }
+                Check(stayCost >= 0,
+                    "a search happened with playback genuinely between two frames",
+                    $"fraction {fracThen:0.000}");
+                Check(stayCost < indexCost,
+                    "and the matcher judged continuing AT THE PLAYHEAD rather than at the "
+                    + "frame behind it — a break that swapped the call site for the "
+                    + "integer-index cost left every other check in this file green",
+                    $"{stayCost:0.00000} at the playhead vs {indexCost:0.00000} at the index");
+            }
+
+            // 4. POSE DISTANCE MUST NOT SEE THE TRAJECTORY. Two frames at the
+            // same point in the stride, same speed, different turn rate, are
+            // the same pose — `Rig.LegSwing` does not know which way you are
+            // going. If pose distance counts the trajectory channels it calls
+            // those two a pop, and the measure stops being able to tell a
+            // visible cut from a change of intent.
+            {
+                int a = -1, b = -1;
+                for (int c = 0; c < corpus.ClipCount; c++)
+                {
+                    if (Math.Abs(corpus.SpeedOf(c) - 1.4) > 1e-9) continue;
+                    if (Math.Abs(corpus.TurnOf(c)) < 1e-9) a = c;
+                    else if (corpus.TurnOf(c) > 40) b = c;
+                }
+                Check(a >= 0 && b >= 0, "two clips at the same speed, turning differently");
+                int fa = -1, fb = -1;
+                for (int i = 0; i < db.Count; i++)
+                {
+                    if (db.FrameOf(i) != 15) continue;
+                    if (db.ClipOf(i) == a) fa = i;
+                    if (db.ClipOf(i) == b) fb = i;
+                }
+                Check(db.PoseDistance(fa, fb) < stepPop,
+                    "the same stride phase at the same speed is the same POSE however "
+                    + "differently the body is travelling — pose distance that counts the "
+                    + "trajectory cannot tell a visible cut from a change of intent",
+                    $"{db.PoseDistance(fa, fb):0.00000} against {stepPop:0.00000} for one "
+                    + "frame of playback");
+            }
+
+            // ---- THE BLEND ----
+            Check(MotionMatcher.BlendOut(0) == 1.0 && MotionMatcher.BlendOut(10) == 0.0,
+                "the blend runs from all of the old offset to none of it");
+            double a1 = MotionMatcher.BlendOut(0.01) - MotionMatcher.BlendOut(0.02);
+            double a2 = MotionMatcher.BlendOut(0.10) - MotionMatcher.BlendOut(0.11);
+            Check(a1 < a2,
+                "easing in at both ends rather than linearly — a correction that starts "
+                + "at full speed is a snap with extra steps",
+                $"{a1:0.0000} at the start vs {a2:0.0000} in the middle");
+
+            // ---- DEGENERATE CASES ----
+            var empty = MotionDatabase.Build(new EmptyCorpus());
+            Check(empty.Count == 0, "an empty corpus builds");
+            int none = empty.Nearest(straight, out _);
+            Check(none < 0, "and searching it finds nothing rather than throwing");
+            var idle = new MotionMatcher(empty, 30);
+            idle.Tick(1.0 / 60.0, straight);
+            Check(idle.Index < 0 && !idle.Jumped,
+                "and a matcher with no corpus is inert rather than a crash — the licensed "
+                + "corpus is not bought yet and this is exactly the state the game would "
+                + "ship in if it were wired today");
+
+            // ---- DETERMINISM ----
+            var db2 = MotionDatabase.Build(new SyntheticCorpus());
+            int hit2 = db2.Nearest(straight, out double cost2);
+            Check(hit2 == hit && Math.Abs(cost2 - hitCost) < 1e-12,
+                "and the whole thing is deterministic, like everything else here");
+        }
+
+        /// Re-derives a frame's raw feature. The database keeps its own copy
+        /// private on purpose — a caller that can mutate the searched vectors
+        /// can silently invalidate the normalisation — so the test asks the
+        /// corpus again rather than being handed the internals.
+        static double[] FeatureOf(IMotionCorpus corpus, MotionDatabase db, int i)
+        {
+            var f = new double[MotionFeature.Length];
+            corpus.Feature(db.ClipOf(i), db.FrameOf(i), f);
+            return f;
+        }
+
+        class EmptyCorpus : IMotionCorpus
+        {
+            public int ClipCount => 0;
+            public double SampleRate => 30;
+            public int FrameCount(int clip) => 0;
+            public void Feature(int clip, int frame, double[] into) { }
         }
 
         static void TestDressing()
