@@ -762,3 +762,55 @@ cost nothing.
 **§8/§17 — nothing in the fiction changed.** No character, place, act or
 ending was altered. The work was the layer between the writing and the
 screen, which is exactly where this document said the gap was.
+
+## 20. THE FRAMING, CORRECTED (2026-07-29)
+
+The phrase *"the antagonist is gossip"* has been load-bearing in this
+document and in every design argument built on it. It is a good slogan and
+it became a straitjacket — it was being used to argue that anything which
+was not social was decoration.
+
+**Corrected, by Jafar:**
+
+> *"You're basing everything on gossip alone. That's not the entire game or
+> it shouldn't be. It's a crime game, so violence and weapons should be a
+> huge part of it. And the gossip and characters talking is just to make it
+> better, more realistic, more relatable, more immersive… But that doesn't
+> mean it's a text game which is just based on dialogue and combat and
+> everything else doesn't play a role."*
+
+So the statement of what this game is, replacing §2's framing wherever the
+two disagree:
+
+> **LEDGER is a crime game in a city that perceives, reacts and remembers.**
+>
+> Violence, weapons and the physical business of committing crimes are core
+> pillars. What distinguishes them from the same verbs in other crime games
+> is that every act is perceived PARTIALLY, by people with real sight and
+> hearing, who then behave differently, tell each other, and remember.
+
+Neither half survives alone. A crime game with a thin reaction layer is
+something we cannot out-produce; a reaction layer with nothing to react to
+is a chat simulator. **The value is entirely in the join.**
+
+### What this changes concretely
+
+**The pipeline was upside down.** Gossip is not the foundation, it is the
+fourth stage of one:
+
+    PERCEPTION -> OBSERVATION -> REACTION -> MEMORY & TALK
+
+Stages 3 and 4 are this project's strongest work. **Stages 1 and 2 barely
+exist** — there is no vision model, no NPC hearing, and no notion of a
+witness having learned only PART of what happened. That is the gap, and
+`weapons-spec.md` proposes closing it.
+
+**The reference point is KCD2's reactivity**, named by Jafar as the most
+immersive thing about it: NPCs who react to what you do, including things
+that are not crimes.
+
+**A consequence for the art and audio work already done:** the lighting
+model computes a light level everywhere, at every hour, and no NPC has ever
+read it. Whether a man is standing under a lamp or in a doorway is already
+known to the renderer and unknown to the city. Perception makes weeks of
+existing work load-bearing rather than decorative.

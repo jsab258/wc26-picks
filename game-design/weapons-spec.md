@@ -1,365 +1,361 @@
-# WEAPONS, CARRYING AND ACQUISITION — proposal
+# PERCEPTION, WEAPONS AND VIOLENCE — proposal v2
 
 **Status: PROPOSAL. Nothing built. Awaiting Jafar's approval.**
-Written 2026-07-29, after: *"we have to build it properly from the start…
-you need to really think through this one thoroughly… research other games…
-then propose it, and then I'll approve."*
-
-Standing quality bar for this and everything after it: **as close to the
-best games in the genre as our limits allow.** Where a limit binds, this
-document names it rather than quietly designing around it.
+v1 written 2026-07-29 and **rejected the same day, correctly.** v2 rewritten
+against the correction.
 
 ---
 
-## 0. What was already decided, so it is not re-opened
+## 0. WHAT V1 GOT WRONG, because the error is the useful part
 
-From `combat-spec.md` §7, answered 2026-07-28, and this proposal obeys all
-of it:
+v1's spine was *"a weapon is not a damage value, it is a fact about you that
+other people can know."*
 
-| | |
+That sentence is true and it is not sufficient. Building on it alone turned a
+crime game into a reputation game with knives in it. It deleted the entire
+tactical layer — the moment-to-moment question of **who can see me, who can
+hear me, and which tool works from here** — and replaced it with a
+bookkeeping question about what people believe afterwards.
+
+Jafar's correction, and it resets the design:
+
+> *"the most immersive thing about KCD2 is the NPCs, how they react to you
+> and what happens in the world depending on your actions… you could have a
+> pistol and make a loud noise and everybody hears you and sees a person
+> dropping. Or a pistol with a silencer, then they don't hear the shot but
+> they see someone dropping. Or they see you pulling a gun but don't see who
+> drops, or they see the whole thing… You're basing everything on gossip
+> alone. That's not the entire game… It's a crime game, so violence and
+> weapons should be a huge part of it."*
+
+**The pipeline was backwards.** Gossip is not the foundation; it is the
+*fourth* stage of one. The foundation is perception.
+
+```
+  PERCEPTION  →  OBSERVATION  →  REACTION  →  MEMORY & TALK
+  can they      what exactly     what do they   what does the
+  see/hear it?  did they learn?  do about it?   street know later?
+```
+
+LEDGER's existing strength is stages 3 and 4. **Stages 1 and 2 barely exist**,
+and they are where the immersion Jafar is describing actually comes from.
+
+---
+
+## 1. WHAT THIS GAME IS — restated
+
+The old framing — *"the antagonist is gossip"* — is a good slogan that became
+a straitjacket. Corrected:
+
+> **LEDGER is a crime game in a city that perceives, reacts and remembers.**
+>
+> Violence and weapons are a core pillar, not a footnote. What makes them
+> matter more here than in other crime games is that every act is *witnessed
+> partially* by people with real senses, who then behave differently, tell
+> each other, and remember.
+
+Neither half is decoration. A crime game with a thin reaction layer is GTA;
+a reaction layer with no crime in it is a chat simulator. The whole value is
+the join.
+
+This supersedes the framing in `design-doc.md` §2 and `agency-model.md`'s
+*"violence is seen"* clause — which was right, but was being read as *"and
+that is all violence is."*
+
+---
+
+## 2. RESEARCH — what four systems teach, and what we take
+
+### Thief: The Dark Project — light and sound as the central mechanic
+
+The first game to build play on light and sound rather than combat. The
+**light gem** gives constant feedback on how visible you are, computed from
+the light level at your position. Surfaces change how loud you are — carpet
+and grass mute footsteps enough to run up behind someone; tile and metal
+give you away. ([Thief Wiki — Light Gem](https://thief.fandom.com/wiki/Light_Gem),
+[Immersive Sim Wiki](http://immersivesim.wikidot.com/game:thief))
+
+**We take: light level as a first-class input to being seen.** We already
+have a full time-of-day and lamp model — `LightModel`, night amount, 360
+light shafts, wet reflections. **We have been rendering that light for weeks
+and no NPC has ever used it.** A man standing under a lamp is more visible
+than a man ten metres away in a doorway, and we already know both numbers.
+
+### Splinter Cell / general stealth AI — graduated states, not binary
+
+Detection builds over time inside a vision cone rather than firing instantly;
+cones have bands — unaware, aware-of-movement, fully aware. Hearing radius
+**scales with the agent's alert state**, so an already-nervous person hears
+more, which produces escalation without a state machine.
+([Game Developer — Splinter Cell: Blacklist stealth AI](https://www.gamedeveloper.com/design/bringing-balance-to-stealth-ai-in-splinter-cell-blacklist),
+[Stealth game sight cones](https://www.dailygamedesigns.com/games/134-stealth-game-sight-cones/))
+
+**We take: graduated detection and alert-scaled hearing.** Never a binary
+"spotted".
+
+### Hitman — the crime and the criminal are separate observations
+
+The distinction that matters most for us: *"the crime can be witnessed —
+your target can be seen dying — without you being spotted."* Suppressors do
+not make a shot silent; **they shrink the radius in which it is heard**, and
+a second shot inside a minute is treated as a gunshot rather than a
+curiosity. NPCs investigate noises.
+([Hitman Wiki — Alert Levels](https://hitman.fandom.com/wiki/Alert_Levels),
+[Witness mechanics](https://www.hitmanforum.com/t/witnesses-mechanics/21574),
+[Game Informer — Hitman 3 guide](https://gameinformer.com/feature/2021/01/24/hitman-3-beginners-guide-essential-tips-to-become-a-silent-assassin))
+
+**We take: the act and the actor are two different facts,** and suppression
+is a radius, not a mute button. This is precisely Jafar's example.
+
+### Kingdom Come: Deliverance 2 — the world reacts to everything, not just crime
+
+NPCs remember hostility and theft; they follow daily routines; and reactions
+fire on things that are not crimes at all — being drunk in daylight, walking
+around undressed. The reactivity is broad, not just a wanted meter.
+([Game Rant — KCD2 reactive systems](https://gamerant.com/kingdom-come-deliverance-2-reactive-system-dialogue-evil-crime-npc-replay/),
+[KCD2 NPC guide](https://kingdomcomedeliverance2.wiki.fextralife.com/NPCs))
+
+**We take: the reaction layer is not a crime subsystem.** The same perception
+model that notices a knife should notice a bloodstain, a man running at
+night, a fight, or somebody standing where they should not be.
+
+---
+
+## 3. THE FOUNDATION — `Core/Perception`
+
+The system everything else needs and we do not have.
+
+### 3.1 Vision
+
+Per person, per frame-ish (throttled by distance — we already LOD walkers):
+
+| Input | Source |
 |---|---|
-| Who swings first | **Both** — the player can start it |
-| Lethality | **Yes, rarely and permanently** |
-| Readout | Diegetic + heavy feedback, architected so a minimal HUD is a toggle |
-| Auto-resolve | Yes, for accessibility |
+| **Cone** | Facing + FOV. Peripheral band detects motion only |
+| **Range** | Falls off; identification range is much shorter than detection range |
+| **Occlusion** | Line of sight. `Acoustics` already does occlusion raycasts |
+| **Light level** | `LightModel` + lamp proximity + night amount. **Already computed** |
+| **Motion** | Running is far more visible than standing still |
+| **Time in cone** | Detection accumulates; a glance is not a look |
 
-New, 2026-07-29: **violence is a verb, killing included, weapons gated
-fists → knives → guns later, built properly from the start.**
+Output is not a boolean. It is a **confidence that this person is being
+seen**, and separately **whether they can be identified** — which is where
+the runner's coat, distance and darkness already earn their keep.
 
----
+### 3.2 Hearing
 
-## 1. THE SPINE — one sentence, and everything else derives from it
+Every noteworthy event emits a **sound event**: position, loudness, kind.
 
-> **A weapon is not a damage value. It is a fact about you that other
-> people can know.**
+- Radius derives from loudness. `Core/Mixing.Reach` already maps a bus to a
+  distance in metres — the same idea, reusable.
+- **Occluded by walls**, attenuated by rain and by the street bed. `Acoustics`
+  exists and does this for the player's ears; it needs to serve NPC ears too.
+- **Radius scales with alert state.** A calm man ignores a bang two streets
+  away; a frightened one hears a footstep behind him.
+- Hearing gives **direction and distance, not identity.** You hear a shot;
+  you do not hear who fired it. That asymmetry is the entire design space.
 
-This is the only framing under which a weapon system belongs in LEDGER at
-all. Our antagonist is gossip; our best-tested system is a per-person
-belief network with confidence, decay, contradiction and suppression. A
-weapon that is only a stat is a foreign object in that game. A weapon that
-is *a thing people find out about you* is native to it.
+### 3.3 What this buys immediately, before any weapon exists
 
-So every weapon in this design carries four social properties before it
-carries a single combat one:
+- People notice you loitering.
+- People notice you running at night.
+- Someone standing under a lamp is seen from across the street; the same
+  person in a doorway is not.
+- A shout draws heads. A door slam draws heads.
 
-| Property | The question it answers |
-|---|---|
-| **Concealment** | Can it be found on you, and by whom? |
-| **Legibility** | What does carrying it say about the man carrying it? |
-| **Escalation** | What does drawing it do to a scene before it touches anyone? |
-| **Provenance** | Where did it come from, and who can trace it back? |
-
-Combat stats — reach, speed, lethality — are secondary and largely already
-written in `Core/Combat`.
-
----
-
-## 2. What other games do, and what we take
-
-Researched rather than recalled. Four systems, four different lessons.
-
-### Hitman — items are socially legible, not just tools
-
-Frisking (pat-down) and metal detectors make the question "what are you
-carrying" a first-class mechanic, with a nuanced ontology: coins,
-fibrewire and lockpicks pass, tools do not; a dropped briefcase provokes
-the same reaction as a dropped firearm. Players learn to test items by
-drawing them near NPCs and watching the suspicion meter spike.
-([Hitman Wiki — Frisking](https://hitman.fandom.com/wiki/Frisking),
-[Steam discussion — prohibited items](https://steamcommunity.com/app/236870/discussions/0/357288572124057455/))
-
-**We take:** the frisk, and the idea that concealability is a per-item
-property with social consequences. **We leave:** the item-taxonomy puzzle.
-We will have three or four weapons, not forty.
-
-### Kingdom Come: Deliverance — reputation changes how often you are searched
-
-A drawn weapon gets you confronted by NPCs. Reputation determines whether
-guards search you, whether they chase minor crimes, and how warmly
-townsfolk treat you.
-([KCD Wiki — Reputation](https://kingdom-come-deliverance.fandom.com/wiki/Reputation),
-[Crime and reputation](https://kingdomcomedeliverance-archive.fandom.com/wiki/Crime_and_reputation))
-
-**We take:** standing gates the frisk. We already have standing and heat —
-a man the street trusts does not get patted down at the door.
-**We leave:** a global reputation number. Ours is per-person and better.
-
-### Red Dead Redemption 2 — witnesses who can or cannot identify you
-
-Witnesses are marked and colour-coded: white means they saw it but cannot
-name you, red means they can. A bandana or mask reduces identification.
-Weapons must be holstered to surrender.
-([RDR2 Wiki — Wanted System](https://www.rdr2.org/wiki/wanted-system/),
-[GamesRadar — bounty and wanted level](https://www.gamesradar.com/red-dead-redemption-2-bounty-and-wanted-level/))
-
-**We take:** the saw-it / can-name-you split — **and we already have both
-halves.** `Violence.Saw` records witnesses; the runner's coat already
-exists as a disguise that degrades identification. This is the closest fit
-of the four and costs us almost nothing.
-
-### Inventory design generally — do not add weight unless weight is the game
-
-The consensus is unambiguous: encumbrance is worth having only when
-resource management is part of the core loop; otherwise skip it. Slot
-systems flatten meaningful differences (a rocket launcher and a potato
-occupy one slot each); weight systems add granularity at the cost of
-fiddliness. Many games hybridise.
-([ResetEra discussion](https://www.resetera.com/threads/do-you-prefer-a-weight-system-or-inventory-slots.847011/),
-[Bio Break — does inventory weight help immersion](https://biobreak.wordpress.com/2020/05/19/does-inventory-weight-help-rpg-immersion/))
-
-**We take:** the negative result. **LEDGER has no encumbrance and no
-inventory grid.** Carrying capacity is not our core loop and a Tetris bag
-would be a different game wearing our fiction.
+**That is the KCD2 feeling, and none of it requires violence.** It is worth
+building for its own sake.
 
 ---
 
-## 3. THE CARRY MODEL — three places, no screen
+## 4. OBSERVATION — the layer that makes weapons interesting
 
-Not an inventory. **Three locations, and the interesting one is the middle.**
+The user's insight, formalised. When something happens, each person nearby
+gets **one of these**, not a shared "saw it" flag:
 
-| Where | What it means |
-|---|---|
-| **At the bar** | Everything you own that you did not bring. Safe, and searchable by anyone who gets inside. |
-| **On you** | What you chose when you walked out of the door. Concealed or not. |
-| **In hand** | Drawn. Visible to everyone. A social act, not a combat one. |
-
-**The decision the player makes is at the door, not in a menu.** Leaving
-the bar with a knife is the same shape of decision as putting on the
-runner's coat — which already exists, is already a soft key, and already
-carries social cost. We are extending an established verb, not inventing a
-screen.
-
-**No weight. No slots. No grid.** You can carry one weapon and the ordinary
-contents of a man's pockets. If a second weapon ever matters we will
-revisit, and I doubt it will.
-
-**Why this is right for us:** the whole design pressure in LEDGER is toward
-*fewer, heavier decisions*. An inventory screen converts one heavy decision
-(am I the kind of man who goes out armed tonight?) into twenty light ones.
-
----
-
-## 4. THE WEAPONS
-
-Three tiers, and the third is architecture-only for now.
-
-### Tier 1 — hands. Always available.
-
-Fists are not a weapon, they are the absence of one. No concealment
-problem, lowest escalation, rarely lethal (the existing `Harm` model
-already produces injuries, not corpses, from unarmed exchanges).
-
-**Design purpose:** fists are the control case. Every escalation above them
-should feel like a decision the player made, and they can only feel that
-way if there is a floor that costs nothing.
-
-### Tier 2 — the knife. THE tier that matters, and it is nearly free.
-
-**Acquisition is diegetic and costs nothing: you own a bar with a
-kitchen.** Tom Novak does not need a black market to find a knife; he needs
-to decide to put one in his coat. That single fact removes an entire
-economy from Phase 1 and is better fiction than any shop.
-
-| Property | Value |
-|---|---|
-| Concealment | High — under a coat, found only by a frisk |
-| Legibility | Severe. Drawing one says *this is not a fight, this is an attempt* |
-| Escalation | Maximum. A knife turns a scuffle into a thing people remember |
-| Provenance | **Yours.** It came from your kitchen and can be traced to you |
-
-That last row is the design. **A knife from your own bar is evidence with
-your name on it** — which is the most LEDGER-shaped property a weapon could
-possibly have, and it arrives for free from the fiction.
-
-### Tier 3 — guns. ARCHITECTURE NOW, CONTENT LATER.
-
-`combat-spec.md` argues guns change the fiction from *a man in trouble* to
-*a man with a gun*, and I still think that is true. But Jafar is right that
-building for them later is how you end up rewriting.
-
-**So: the model carries `Range`, `Loudness` and `Draw time` from day one,
-and no gun exists.** A pistol becomes a data row plus an animation, not a
-system. Concretely, the axes below are in the type from the first commit:
-
-- `Reach` — fists 0.8m, knife 1.0m, pistol 20m+
-- `Loudness` — how far the *event* travels. A punch is heard by the street;
-  a shot is heard by the district. This one number is what makes a gun a
-  different game, and having it present but unused costs nothing.
-- `Draw` — seconds to bring into hand from concealment. The knife's is
-  short; a coat pocket is not a holster.
-- `Lethality` — probability band, feeding the existing `Harm`/`Homicide`
-  split.
-
-**I am not proposing we build a gun. I am proposing we never have to
-retrofit one.**
-
----
-
-## 5. ACQUISITION — three routes, and each one is a gossip event
-
-The rule: **acquiring a weapon must create information about you.** A shop
-that silently increments a counter is the failure mode.
-
-| Route | Cost | The information it creates |
+| Observation | What they know | Typical cause |
 |---|---|---|
-| **Owned** (kitchen) | Free | None — but the object is traceable to you |
-| **Bought** (a named person) | Money + a favour | *Someone knows you went looking.* The seller is a person with a memory, a loyalty and a price for their silence |
-| **Taken** (off someone you beat) | A fight | *Someone lost it.* They can recognise it later, and so can their friends |
+| **Full** | The act, the actor, the victim | Close, lit, facing it |
+| **Act, no actor** | Someone was killed; no idea by whom | Saw the drop from across the street; suppressed shot |
+| **Actor, no act** | Tom drew a weapon; did not see what happened | Line of sight broken at the wrong moment |
+| **Sound only** | A shot, a scream, a struggle — direction and distance | Loud weapon behind a wall |
+| **Aftermath** | Found a body, blood, a broken door | Arrived later |
+| **Flight** | Saw someone running from where it happened | The most common real-world witness |
 
-This is deliberately the same shape as the existing `Access` soft-key
-system: you do not "have" a weapon the way you have an item, you have a
-relationship with how you got it.
+Each becomes a different `Fact` with different confidence — and the existing
+gossip mill, contradiction and discredit systems consume them unchanged.
+**This is the join between the tactical and social layers, and it is the
+single most valuable thing in this document.**
 
-**Phase 1 only needs the first row.** Buying and taking are Phase 3.
-
-**Not proposed:** random world loot. Finding a knife in a crate is the
-single fastest way to make the object meaningless, and meaninglessness is
-the thing we are most trying to avoid.
-
----
-
-## 6. THE FRISK — where carrying gets its teeth
-
-`Core/Access` already models doors as soft keys with a doorman, a refusal
-line and conditions. Carrying extends it by one condition.
-
-- Some rooms search you. The card room, Ellis's station, anywhere that
-  matters.
-- **Standing and heat gate the search**, KCD-style: a man the street trusts
-  walks in; a man it is talking about gets patted down.
-- Being caught carrying is not a fail state. It is a **refusal with a
-  memory** — the doorman now knows something, and the doorman talks.
-
-This is the mechanism that makes "am I carrying tonight?" a real question
-rather than a free buff. It also costs us very little: the door system,
-the refusal lines and the gossip propagation all already exist.
+It also produces the drama automatically: two witnesses with *different*
+partial observations who compare notes and assemble something closer to the
+truth than either had. We already have `CompareNotes`. It has never had
+partial information to work with.
 
 ---
 
-## 7. DRAWING — the loud act, and it is not the swing
+## 5. WEAPONS — a table of perception profiles
 
-From `combat-spec.md`, **square up** is already a verb whose cost is that
-witnesses start paying attention *before anything lands*. Drawing a weapon
-is that same beat with a much larger radius and a permanent memory.
+Now weapons are a genuine tactical choice, because they differ along the
+axes the world actually senses.
 
-- Drawing is visible at conversational distance and beyond.
-- Everyone in `Violence.Saw` range records it, whether or not it is used.
-- **A drawn knife that is never used is still a fact about you**, and one
-  that cannot be discredited by the usual means because several people saw
-  the same thing.
+| Weapon | Noise | Reach | Speed | Victim cries out | Body | Concealable |
+|---|---|---|---|---|---|---|
+| **Fists** | Struggle — moderate, close | 0.8m | slow | yes, throughout | rarely | n/a |
+| **Knife** | Quiet act | 1.0m | fast | yes, briefly | yes | yes |
+| **Wire** | **Silent** | contact, from behind | slow | **no** | yes | yes |
+| **Pistol** | **Loud — district** | 20m+ | instant | no | yes | poorly |
+| **Suppressed pistol** | Quiet — one room | 20m+ | instant | no | yes | poorly |
+| **Improvised** (bottle, bar) | Loud impact | 1.2m | medium | yes | rarely | no |
 
-**This is where most of the play is**, and it is why the system is worth
-building. The interesting decisions are draw / don't draw and carry / don't
-carry — not which of six blades has better DPS.
+Read across the rows and the choices are real, and they are *situational*
+rather than a power ladder:
 
----
+- **Crowded street, must be done now** → suppressed pistol. They see a man
+  drop and have no idea where it came from. *Act, no actor* for everyone.
+- **Alone with him in a back room** → knife. Fast, quiet, but he cries out and
+  anyone in the next room gets *sound only*.
+- **He must not make a sound and you have time** → wire. Requires being
+  unseen AND behind him. Catastrophic if interrupted mid-way.
+- **You want it heard** → pistol. Sometimes the point of violence is the
+  message, and this game should let you send it.
+- **You do not want to kill anybody** → fists. Loud, messy, leaves a living
+  witness who is now your enemy.
 
-## 8. THE MURDER WEAPON — the part I have not seen done well elsewhere
-
-If killing is permanent and a body is a fact that cannot be discredited
-(`combat-spec.md` §7b), then **the object that did it is physical evidence
-and should behave like it.**
-
-- A weapon used in a killing gains provenance: it is *the* knife now.
-- Ellis's investigation ladder can look for it. She already escalates
-  procedure → investigation → manhunt.
-- **Disposal becomes a verb** — the river, the furnace in the cellar,
-  burying it. Each has a cost and each can be *seen*, which folds it
-  straight back into the witness system.
-- Keeping it is the lazy option and the dangerous one. Getting rid of it is
-  a scene, at night, that somebody might watch.
-
-I flag this as the highest-value single idea in this document. It uses only
-systems we already have, it is dramatically strong, and it is the sort of
-thing this game can do that a bigger-budget crime game usually cannot,
-because their gossip layer is thin and ours is the whole point.
+**Note what is absent: damage numbers.** No weapon is *better*. The pistol is
+not an upgrade over the knife; it is louder and works at range. That is how
+this stays a crime game rather than becoming a power fantasy.
 
 ---
 
-## 9. WHAT I AM DELIBERATELY NOT PROPOSING
+## 6. REACTION — what people DO, which is where immersion lives
 
-Stated so approving this is not accidentally approving them.
+Graduated, per person, driven by their own observation and temperament
+(`Gossiper` already has nerve and greed):
 
-- **No inventory screen, grid or weight.** §3.
-- **No durability or repair.** Ours is a two-week story; a knife does not
-  wear out in two weeks, and it adds maintenance chores to a game about
-  people.
-- **No crafting.** Wrong genre, wrong protagonist.
-- **No weapon progression or upgrades.** A knife should not get better.
-  Character progress in LEDGER is social, not martial, and a stat ladder
-  would quietly argue the opposite.
-- **No hotbar or quick-swap.** You have hands or you have a knife.
-- **No random loot.** §5.
-- **No gun content.** §4.
+1. **Notice** — head turns. Free, constant, and the thing that makes a street
+   feel alive.
+2. **Investigate** — walks toward a noise. The single highest-value behaviour
+   in the whole system: it turns one sound into a moving problem.
+3. **Alarm** — shouts. Which is itself a loud sound event, so alarm
+   propagates through the same hearing system. **Panic is emergent, not
+   scripted.**
+4. **Flee** — runs. Nerve decides.
+5. **Fetch the law** — goes to find Ellis. We have her, and she has a ladder.
+6. **Intervene** — rare, high-nerve, and it should be genuinely dangerous.
 
-Every one of these is a thing a normal crime game would have. Each is left
-out because it would move the centre of gravity away from the street.
-
----
-
-## 10. PHASING — each phase is playable and provable on its own
-
-Following the project's established pattern: Core-first where the logic
-belongs there, a sim gate per phase that proves the claim in-engine.
-
-**Phase 1 — carry and draw (no acquisition, no economy).**
-`Core/Carry`: the three places, concealment, legibility, draw time. The
-kitchen knife. Drawing is seen and remembered. Sim gate: a weapon is
-carried, drawn, witnessed, and the witness's belief about the player
-changes.
-
-**Phase 2 — the frisk.** One condition added to `Core/Access`, gated on
-standing and heat. Sim gate: the same door admits an unarmed player and
-refuses an armed one, and the doorman remembers.
-
-**Phase 3 — acquisition.** Bought and taken, each creating its information.
-Sim gate: buying a weapon creates a person who knows, and that knowledge
-travels.
-
-**Phase 4 — the murder weapon.** Provenance, disposal, Ellis looking for
-it. Sim gate: a killing produces a traceable object; disposal removes the
-trace and can itself be witnessed.
-
-**Phase 5 (only if Phases 1–4 feel right) — guns as content.** Data rows
-against axes that already exist.
-
-**The kill switch, restated from `combat-spec.md` §8:** if Phase 1 and 2
-land and it still feels like a distraction from the gossip game, the
-correct decision is to stop and leave violence as something that happens
-*to* you. This document does not change that.
+Bodies are discovered by whoever walks past next, which means **time and
+routes matter** — an alley at 3am buys you hours; the market at noon buys
+you seconds.
 
 ---
 
-## 11. THE RISK, NAMED
+## 7. WHAT ALREADY EXISTS, AND WHAT IS GENUINELY NEW
 
-Combat is the easiest way to ruin this game — it is the most familiar verb
-in the medium and it will pull effort toward itself. Weapons multiply that
-risk, because weapons are the most *collectible*-feeling thing a game can
-have, and collecting is exactly the wrong instinct here.
+Being honest about cost, because this is a large proposal.
 
-The mitigation is the whole of §9: keep the object count tiny, refuse every
-mechanic that rewards accumulation, and make the interesting question
-social rather than tactical.
+**Exists and is reusable:**
+- `Acoustics` — occlusion, space kinds, wetness. Currently player-ears only.
+- `Mixing.Reach` — loudness → metres, per bus.
+- `LightModel` + the whole lighting pass — light level anywhere, any hour.
+- `Violence.Saw`, `KillingConfidence`, `Notoriety`, `HomicideBook`, `Police`.
+- `Core/Combat` phases 1–4, tuned.
+- Gossip mill: facts, confidence, decay, contradiction, `CompareNotes`.
+- Walkers with facing, routines, nerve, and now bodies that turn their heads.
+- The runner's coat as an identification-degrader.
 
-**If the player ever asks "which knife is best" instead of "should I take
-one", the design has failed** — and that sentence is the acceptance test
-for the entire system.
+**Genuinely new:**
+- `Core/Perception` — vision cones with light and occlusion; hearing with
+  loudness and alert scaling. **The big one.**
+- `Core/Observation` — partial witness outcomes.
+- Reaction behaviours: investigate, alarm-propagation, flee, fetch.
+- The weapon table and its verbs.
+- Body discovery by passers-by.
+- Performance: perception for ~50 visible walkers, throttled by distance.
+  This is the main technical risk and it is a real one.
 
 ---
 
-## 12. WHAT I NEED FROM YOU
+## 8. PHASING — each phase playable, provable, and useful alone
 
-Approve, amend, or reject. Specifically:
+**Phase 1 — perception, no weapons.** Vision cones with light and occlusion;
+hearing with loudness. NPCs notice, turn, and investigate noises. **Ship
+this and play it even if weapons never follow** — it is the KCD2 feeling and
+it stands on its own. Sim gate: a walker in light is detected at greater
+range than one in shadow; a sound behind a wall is not heard.
 
-1. **The spine (§1)** — weapons as social facts rather than stats. Everything
-   else hangs off this.
-2. **No inventory screen, no weight (§3)** — the biggest structural call.
-3. **The kitchen knife as Phase-1 acquisition (§4)** — free, diegetic, and
-   traceable to you.
-4. **The murder weapon (§8)** — the highest-value idea here, and the most
-   new work.
-5. **Guns: axes now, content later (§4)** — confirms your "properly from the
-   start" without building a shooter.
+**Phase 2 — observation and reaction.** Partial observations become facts;
+alarm propagates as sound; flee and fetch-the-law. Sim gate: one event
+produces *different* observations for differently-placed witnesses, and
+`CompareNotes` assembles more truth than either held.
 
-If §1 and §3 are right, the rest is detail I can carry. If either is wrong,
-tell me now, because everything below them is built on top.
+**Phase 3 — melee.** Fists and knife against the existing combat model.
+Carrying and the frisk (v1 §6 survives intact). Sim gate: a knife killing
+in an empty alley leaves no witness; the same killing in a market does.
+
+**Phase 4 — the murder weapon.** Provenance, disposal as a verb that can
+itself be witnessed, Ellis looking for the object. *(Kept from v1 — it
+survives the rewrite unchanged and I still think it is the best single idea
+here.)*
+
+**Phase 5 — firearms.** Pistol and suppressed pistol, which is where the
+perception model finally pays off in full. Deliberately last: it is the
+loudest change to the fiction and the easiest thing to get wrong.
+
+---
+
+## 9. WHAT I STILL RECOMMEND AGAINST
+
+Reduced from v1, because several of v1's refusals were over-cautious.
+
+- **No inventory grid or weight.** Still. The decision is *what did I bring
+  tonight*, made at the door. Carrying two or three things is fine; managing
+  a bag is a different game.
+- **No weapon durability, crafting or upgrades.** A pistol should not level
+  up. Progression here is access, information and standing.
+- **No random world loot.** Weapons come from places that make sense.
+- **No damage numbers or health bars.** Consistent with `combat-spec.md` §4.
+
+**Withdrawn from v1:** the claim that guns change the fiction too much to
+build. They change it a great deal, which is why they are Phase 5 — but the
+perception system is what makes a gun interesting rather than a win button,
+and with it in place a gun is a *tool with a huge noise radius* rather than
+an escalation of damage.
+
+---
+
+## 10. THE RISK, RESTATED HONESTLY
+
+v1 said combat was the easiest way to ruin this game. That was overstated in
+one direction and I want to correct it rather than repeat it.
+
+**The real risk is building a perception system that is too coarse to be
+fair.** Stealth-adjacent systems live or die on whether the player can
+predict them. If a player cannot tell why they were seen, the system feels
+broken no matter how sophisticated it is — which is exactly why Thief put a
+light gem on the screen.
+
+So: **feedback is not optional here.** The player must be able to read their
+own visibility and noise. `combat-spec.md` §7c already committed to readout
+values existing as data whether or not anything draws them; this extends
+that to visibility and loudness from day one.
+
+The second risk is performance, and §7 names it.
+
+---
+
+## 11. WHAT I NEED FROM YOU
+
+1. **The reframing in §1** — crime game in a city that perceives and
+   remembers; violence a core pillar; gossip the consequence layer rather
+   than the foundation. This replaces the old "antagonist is gossip"
+   framing in `design-doc.md`.
+2. **Perception first, weapons second (§8 Phase 1)** — build senses before
+   tools, and ship the senses alone if you like them.
+3. **The observation table (§4)** — the six partial outcomes. This is the
+   join, and if the shape is wrong everything above it is wrong.
+4. **The weapon table (§5)** — situational rather than a power ladder, and
+   whether the six rows are the right six.
+5. **Guns at Phase 5** rather than never.
+
+If §1 and §4 are right, the rest is detail I can carry.
