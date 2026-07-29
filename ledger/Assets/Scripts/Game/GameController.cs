@@ -186,7 +186,15 @@ namespace Ledger.Game
                 // This is also the better game: the invitation is to meet
                 // somebody, and if they have moved you go where they are.
                 var host = WalkerForHost(open.HostId);
-                if (host != null) return host.transform.position;
+                if (host != null)
+                {
+                    // And they stand still while the invitation is open. See
+                    // NpcWalker.WaitingAsHost — a host who keeps walking is
+                    // an invitation that runs away from anyone who accepts it.
+                    host.WaitingAsHost = true;
+                    _waitingHost = host;
+                    return host.transform.position;
+                }
                 return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;
             }
         }
@@ -197,6 +205,17 @@ namespace Ledger.Game
         /// which is how three separate fixes were aimed at the wrong half of
         /// the problem.
         public bool HasBeatMarker => _beatMarker != null;
+
+        /// Released when the window closes, so being stood up costs the host
+        /// an evening of standing there rather than the rest of the game.
+        NpcWalker _waitingHost;
+
+        void ReleaseWaitingHost()
+        {
+            if (_waitingHost == null) return;
+            _waitingHost.WaitingAsHost = false;
+            _waitingHost = null;
+        }
 
         /// How close counts as turning up. See the note at the attendance
         /// check for why it is not 2.5.
@@ -1633,6 +1652,9 @@ namespace Ledger.Game
                 // a different beat than the one it stands for.
                 if (_beatMarker != null) { Destroy(_beatMarker); _beatMarker = null; }
                 _beatMarkerId = null;
+                // The host gets their evening back the moment the invitation
+                // is no longer open — whether it was attended or stood up.
+                ReleaseWaitingHost();
                 if (open == null) return;
             }
             // Generated evenings have no authored spot: use the host's own
@@ -1684,6 +1706,7 @@ namespace Ledger.Game
                 if (Mathf.Min(toMarker, toHost) < BeatAttendMetres)
                 {
                     open.Attend(_gossip.Mill.Get(open.HostId), Now);
+                    ReleaseWaitingHost();
                     Destroy(_beatMarker);
                     _beatMarker = null;
                     _beatMarkerId = null;

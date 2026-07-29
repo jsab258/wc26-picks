@@ -197,6 +197,11 @@ namespace Ledger.Game
 
         public bool InConfab => _talkingTo != null && Time.time < _confabUntil;
 
+        /// Set by GameController while this walker is the host of an open
+        /// beat. Cleared the moment the window closes, so a host who was
+        /// stood up goes back to their evening.
+        public bool WaitingAsHost { get; set; }
+
         /// Begin one. Called on both halves of a pair, by whoever noticed the
         /// exchange — the walkers do not decide this, the gossip does.
         /// `aboutPlayer` is a parameter rather than a property set beforehand
@@ -304,6 +309,19 @@ namespace Ledger.Game
         {
             var target = TargetFor(now);
             var current = transform.position;
+
+            // A HOST WAITS. Ada's invitation says "I'll wait up"; Rocco says
+            // "my front step". They then walked their patrol route all
+            // evening, and the player — who moves at about the same speed —
+            // spent ninety in-game minutes in a tail chase that closed to
+            // nine and a half metres and never any nearer. Four fixes went
+            // at the marker, the radius and the bot's budget before it became
+            // clear the invitation was walking away from whoever accepted it.
+            //
+            // This is a writing bug wearing a pathfinding costume: the text
+            // promises somebody standing still, and only the text was doing
+            // that.
+            if (WaitingAsHost) return;
 
             // A conversation outranks a schedule. Somebody who walks off
             // mid-sentence because it is nine o'clock is the exact failure
