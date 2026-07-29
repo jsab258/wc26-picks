@@ -235,6 +235,7 @@ namespace Ledger.Game
                 _uiPanels = _game.Ui.SmokeTestPanels();
                 foreach (var r in _uiPanels)
                     if (!r.Ok) Debug.LogWarning($"UI smoke: {r}");
+                MeasureGlyphs();
             }
 
             // The exchange in CI (roadmap M10). Once a day the bot rings two
@@ -975,6 +976,40 @@ namespace Ledger.Game
                       + $"the grade {_nightFull - _nightRaw:0.0000})");
         }
 
+        int _labels = -1, _labelsBlank = -1, _labelsFontless = -1;
+
+        /// DID A SINGLE GLYPH ACTUALLY DRAW.
+        ///
+        /// The panel smoke test proves every panel opens, says something and
+        /// gives the controls back. All three are true of a panel whose font
+        /// failed to resolve and which therefore renders as an empty
+        /// rectangle — the text is in the component, the component is in the
+        /// scene, and nothing is on screen. That is the exact shape of the
+        /// post stack sitting dead for months under checks that were all
+        /// individually true.
+        ///
+        /// It matters more here than it looks. `UiTheme.LoadFont` asks the OS
+        /// for Segoe UI, falls back to Arial, then to Unity's built-in — so
+        /// the font that resolves depends on the MACHINE, and CI is a machine
+        /// nobody has looked at the screen of.
+        ///
+        /// `preferredWidth` is the ruler because it is computed from the
+        /// glyphs the font actually produced. A label with text and a
+        /// preferred width of zero laid out nothing.
+        void MeasureGlyphs()
+        {
+            _labels = 0; _labelsBlank = 0; _labelsFontless = 0;
+            foreach (var t in FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None))
+            {
+                if (t == null || string.IsNullOrEmpty(t.text)) continue;
+                _labels++;
+                if (t.font == null) { _labelsFontless++; continue; }
+                if (t.preferredWidth <= 0.01f) _labelsBlank++;
+            }
+            Debug.Log($"SimDirector: glyphs labels={_labels} fontless={_labelsFontless} "
+                      + $"blank={_labelsBlank}");
+        }
+
         void MeasureAo()
         {
             _tookAoPair = true;
@@ -1659,7 +1694,12 @@ namespace Ledger.Game
             // Seven now: six panels plus the rebind screen — and the floor
             // asserts the COUNT so a silently missing report reds the build
             // rather than shrinking the walk (audit 2026-07-27 pattern).
-            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7;
+            // AND THE TEXT RENDERED. Opening, speaking and closing are all
+            // true of a panel whose font did not resolve and which draws an
+            // empty rectangle — and the font this game gets depends on which
+            // machine it is running on.
+            bool glyphsOk = _labels > 0 && _labelsFontless == 0 && _labelsBlank == 0;
+            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7 && glyphsOk;
 
             // P5 BUDGETS. The deterministic ones gate (caps are design
             // numbers, so exceeding them is a leak, not a slow machine); the
@@ -2176,7 +2216,9 @@ namespace Ledger.Game
                 ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
                 ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
-                ("harm", harmOk), ("phones", phonesOk), ("ui", uiOk), ("budgets", budgetsOk),
+                ("harm", harmOk), ("phones", phonesOk),
+                ($"ui[labels={_labels} fontless={_labelsFontless} blank={_labelsBlank}]", uiOk),
+                ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
                 // The streets must actually be dressed. A model that computes
@@ -2255,6 +2297,7 @@ namespace Ledger.Game
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
+                      $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       // mean/median/peak bodies within 20m and within 8m,
