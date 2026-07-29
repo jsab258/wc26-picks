@@ -636,11 +636,25 @@ namespace Ledger.Game
             // `evening_d8` or `evening_d12` either — four skipped beats out
             // of one bad spot. Bounded by "until one is attended", not by
             // "until the first attempt".
+            //
+            // AND ONLY WHEN THERE IS NO WORK OUTSTANDING. Retrying every
+            // window cost the run its jobs — 4 done fell to 2, missed rose to
+            // 4, and the campaign lost outright — because the invitation kept
+            // outranking the errand. That is the same greedy mistake as the
+            // first version, one level up: bounding the number of ATTEMPTS
+            // does not bound the time they take.
+            //
+            // The errand always wins now, and the porch gets whatever is
+            // left. Which is also what somebody with a business to run would
+            // do, and it makes the beat something the player chooses at a
+            // cost rather than something the bot does instead of working.
+            bool workOutstanding = _game.ActiveJobPos.HasValue || _game.DayJobTargetPos.HasValue;
             if (openBeat == null) _beatBotTried = null;
-            else if (_beatBotTried == null) _beatBotTried = openBeat.Id;
+            else if (_beatBotTried == null && !workOutstanding) _beatBotTried = openBeat.Id;
             foreach (var b in _game.Beats.All)
                 if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
-            bool chasing = !_botAttendedABeat && openBeat != null && openBeat.Id == _beatBotTried;
+            bool chasing = !_botAttendedABeat && !workOutstanding
+                           && openBeat != null && openBeat.Id == _beatBotTried;
             var beatSpot = chasing ? _game.OpenBeatSpot : null;
 
             // AND SAY WHY IF IT MISSES. Attendance needs the player within
@@ -924,14 +938,30 @@ namespace Ledger.Game
                 float v = Audio.StemVolume((MusicLayer)i);
                 if (v < 0) { _stemsUnbound++; continue; }
                 if (v > _stemVolumeMax) _stemVolumeMax = v;
-                // The engine value is the model value times the master
-                // volume, so dividing it back out is the only way to compare
-                // them without the settings looking like a mismatch.
-                double master = GameSettings.Current.MasterVolume * GameSettings.Current.MusicVolume;
-                if (master > 0.01)
+
+                // PROPORTIONALITY, NOT EQUALITY, and the first version got
+                // this wrong in the most instructive way.
+                //
+                // It divided the engine volume by MasterVolume * MusicVolume
+                // and expected the model gain back. But `Audio` scales by
+                // `0.30f * MasterVolume * MusicVolume` — the score's own bed
+                // level — so the gate reported a drift of 0.7 and failed a
+                // score that was working perfectly. I had guessed at the
+                // scaling instead of reading it.
+                //
+                // Copying the 0.30 here would be the OTHER mistake this
+                // project keeps making: a check written against the constant
+                // it is meant to pin, which moves the day somebody retunes
+                // the music bed. What the gate actually cares about is that
+                // the engine tracks the model — so measure the ratio and
+                // require it to be the SAME ratio for every layer and every
+                // sample. That holds for any bed level and breaks the moment
+                // one stem stops following its gain.
+                if (mix[i] > 0.05)
                 {
-                    double drift = Math.Abs(v / master - mix[i]);
-                    if (drift > _stemDrift) _stemDrift = drift;
+                    double ratio = v / mix[i];
+                    if (ratio < _stemRatioMin) _stemRatioMin = ratio;
+                    if (ratio > _stemRatioMax) _stemRatioMax = ratio;
                 }
             }
             float busMusic = Audio.BusVolume(Bus.Music);
@@ -1077,7 +1107,10 @@ namespace Ledger.Game
         double _reflFraction = -1, _reflRise = -1;
         float _stemVolumeMax = -1f, _busMusicMax = -1f, _busMusicMin = 9f;
         int _stemsUnbound;
-        double _stemDrift;
+        double _stemRatioMin = double.MaxValue, _stemRatioMax = 0;
+        double StemRatioSpread =>
+            _stemRatioMax > 0 && _stemRatioMin < double.MaxValue
+                ? _stemRatioMax / _stemRatioMin : -1;
 
         void MeasureAoOnce(int sample)
         {
@@ -2344,13 +2377,13 @@ namespace Ledger.Game
                 && _busMusicMax > 0 && _busMusicMax - _busMusicMin > 0.01;
 
             // THE SCORE IS AUDIBLE, not merely computed. `_stemsUnbound`
-            // counts samples where a layer had no AudioSource at all, and
-            // `_stemDrift` is the largest gap between what the model asked
-            // for and what Unity was told, once the master volume is divided
-            // back out. Both zero is the only reading that means the score
-            // the tests describe is the score that plays.
+            // counts samples where a layer had no AudioSource at all, and the
+            // ratio spread is how much the engine-to-model ratio varied
+            // across every layer and every sample. One ratio for all of them
+            // means Unity is playing the mix the tests describe, whatever bed
+            // level the score is scaled to.
             bool scoreAudible = _stemVolumeMax > 0.001f && _stemsUnbound == 0
-                                && _stemDrift < 0.02;
+                                && StemRatioSpread > 0 && StemRatioSpread < 1.02;
 
             // DRESSING, and the measurement changed with the scope call.
             //
@@ -2459,7 +2492,7 @@ namespace Ledger.Game
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
                  $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
                 ($"scoreAudible[peak={_stemVolumeMax:0.000} unbound={_stemsUnbound} " +
-                 $"drift={_stemDrift:0.0000}]", scoreAudible),
+                 $"ratio={_stemRatioMin:0.000}..{_stemRatioMax:0.000}]", scoreAudible),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -2533,7 +2566,8 @@ namespace Ledger.Game
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +
-                      $"stemDrift={_stemDrift:0.0000} scoreAudible={scoreAudible} " +
+                      $"stemRatio={_stemRatioMin:0.000}..{_stemRatioMax:0.000} " +
+                      $"scoreAudible={scoreAudible} " +
                       $"busMusic={_busMusicMin:0.000}..{_busMusicMax:0.000} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
