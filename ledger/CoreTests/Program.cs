@@ -7773,6 +7773,70 @@ namespace Ledger.CoreTests
             Check(Math.Abs(f30.PushScale - f240.PushScale) < 1e-9,
                 "the push travels the same distance at 30fps and 240",
                 $"{f30.PushScale:0.0000} vs {f240.PushScale:0.0000}");
+
+            // ---- ABORT, and why it is not Cancel ----
+            //
+            // The sim renders measured frames and the lighting gates read their
+            // luminance. A push-in halfway through one moves the number, so the
+            // director stops the framing before it shoots. It cannot use
+            // Cancel: that is the PLAYER taking the camera back and deliberately
+            // hands over across YieldSeconds, which means the framing is still
+            // partly in charge for the next quarter second — i.e. still moving
+            // the camera during the frame that had to be uncomposed.
+            var shot = new FramedBeat();
+            shot.Begin(1.0, true);
+            for (int i = 0; i < 40; i++) shot.Tick(1.0 / 60.0);
+            Check(shot.Running && shot.PushScale < 1.0, "a beat is mid-push");
+
+            var yielding = new FramedBeat();
+            yielding.Begin(1.0, true);
+            for (int i = 0; i < 40; i++) yielding.Tick(1.0 / 60.0);
+            yielding.Cancel();
+            yielding.Tick(1.0 / 60.0);
+            Check(yielding.Running && yielding.PushScale < 1.0,
+                "CANCEL leaves the camera composed for a moment longer, on purpose",
+                $"authority {yielding.Authority:0.00}, push {yielding.PushScale:0.000}");
+
+            shot.Abort();
+            Check(!shot.Done,
+                "an aborted beat does not report DONE — Done means the beat finished and "
+                + "downstream fires the once-only ending on it; a beat killed to take a "
+                + "screenshot did not finish and must not pay out");
+            Check(!shot.Running && shot.Authority == 0 && shot.PushScale == 1.0,
+                "ABORT hands the camera back on the same tick and completely — the one "
+                + "case with no player to jolt, and the frame about to be measured must "
+                + "be the ordinary gameplay framing or the reading is of the camera "
+                + "move rather than of the light",
+                $"push {shot.PushScale:0.000}");
+
+            // AND IT MUST STAY BACK. An abort that leaves the beat resumable is
+            // worse than none: the director shoots a clean frame and the push
+            // picks up again from where it was, so the beat plays twice.
+            int afterAbort = 0;
+            for (int i = 0; i < 120; i++) { shot.Tick(1.0 / 60.0); if (shot.Done) afterAbort++; }
+            Check(!shot.Running && shot.PushScale == 1.0 && afterAbort == 0,
+                "and stays back — no resumed push, and no Done arriving late for a beat "
+                + "nobody is waiting on");
+            Check(shot.Begin(0.5, true), "a fresh beat may start afterwards");
+
+            // ---- THE COUNTER THE SIM GATE READS ----
+            //
+            // A camera layer that never runs looks exactly like one with nothing
+            // to frame, and that is precisely how this one sat switched off in
+            // the sim for months. The gate needs a number that only moves when a
+            // beat really started.
+            int before = FramedBeat.Begun;
+            var counted = new FramedBeat();
+            counted.Begin(0.5, true);
+            Check(FramedBeat.Begun == before + 1, "a beat that begins is counted");
+            counted.Begin(0.5, true);
+            Check(FramedBeat.Begun == before + 1,
+                "and a Begin REFUSED because one is already running is not — otherwise "
+                + "the gate can be satisfied by a caller that never once got a beat to "
+                + "run, which is the failure it exists to catch",
+                $"{FramedBeat.Begun - before}");
+            counted.Abort();
+            Check(FramedBeat.Begun == before + 1, "and aborting does not un-count it");
         }
 
         static void TestDressing()

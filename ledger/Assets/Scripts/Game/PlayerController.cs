@@ -230,6 +230,10 @@ namespace Ledger.Game
         /// the beat can start it — GameController for the Fall and the
         /// pressure points, ActThreeHost for the audit.
         public readonly FramedBeat Beat = new FramedBeat();
+
+        /// The smallest follow-distance fraction the framing has ever pulled
+        /// the camera to. 1 means it never pulled at all.
+        public static float TightestFraming = 1f;
         float _lastMoveInput, _lastLookInput;
         float _lastSpeed, _lastFacing;
 
@@ -317,6 +321,13 @@ namespace Ledger.Game
                 // both away for the duration of the beat.
                 float k = (float)(1.0 - (1.0 - Beat.PushScale) * Beat.Authority);
                 target = pivot + (target - pivot) * k;
+                // The tightest the camera was ever actually pulled in, for the
+                // sim gate. `Begun > 0` only proves a beat STARTED; this is
+                // the one number that proves the push reached the camera, and
+                // it stays at exactly 1 if this branch never runs. Counting
+                // starts rather than measuring effect is precisely how the
+                // post stack sat dead for months.
+                if (k < TightestFraming) TightestFraming = k;
             }
 
             // Head bob is applied to the CAMERA, not the body, and is small.

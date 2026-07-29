@@ -208,6 +208,7 @@ namespace Ledger.Core
             Authority = 1.0;
             PushScale = 1.0;
             Done = false;
+            Begun++;
             return true;
         }
 
@@ -220,6 +221,31 @@ namespace Ledger.Core
             if (!Running || _cancelledAt >= 0) return;
             _cancelledAt = _t;
         }
+
+        /// STOP NOW, with no yield at all.
+        ///
+        /// Distinct from `Cancel`, which is the PLAYER taking the camera back
+        /// and deliberately hands over across `YieldSeconds` — a hard snap
+        /// there would be its own jolt. This is for the one case where there
+        /// is no player and no jolt to avoid: the simulation about to render
+        /// a measured frame, which must be the ordinary gameplay framing and
+        /// not a composed one.
+        ///
+        /// It exists because the alternative was the framing being switched
+        /// off in the sim entirely, which is how it went months without ever
+        /// executing in a verified build.
+        public void Abort()
+        {
+            _t = -1;
+            _cancelledAt = -1;
+            Authority = 0;
+            PushScale = 1.0;
+            Done = false;
+        }
+
+        /// How many beats have begun. The sim gate reads it: a camera layer
+        /// that never runs looks exactly like one with nothing to frame.
+        public static int Begun { get; private set; }
 
         public void Tick(double dt, double moveMagnitude = 0, double lookMagnitude = 0)
         {

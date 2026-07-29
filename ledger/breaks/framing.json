@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Abort is just Cancel -- hands over across YieldSeconds instead of on the tick",
+    "file": "Assets/Scripts/Core/Framing.cs",
+    "old": "        public void Abort()\n        {\n            _t = -1;\n            _cancelledAt = -1;\n            Authority = 0;\n            PushScale = 1.0;\n            Done = false;\n        }",
+    "new": "        public void Abort()\n        {\n            Cancel();\n        }"
+  },
+  {
+    "name": "Abort leaves the beat resumable -- the push picks up again after the shot",
+    "file": "Assets/Scripts/Core/Framing.cs",
+    "old": "            _t = -1;\n            _cancelledAt = -1;\n            Authority = 0;\n            PushScale = 1.0;\n            Done = false;\n        }\n\n        /// How many beats have begun.",
+    "new": "            _cancelledAt = -1;\n            Authority = 0;\n            PushScale = 1.0;\n            Done = false;\n        }\n\n        /// How many beats have begun."
+  },
+  {
+    "name": "Abort forgets to release the push scale",
+    "file": "Assets/Scripts/Core/Framing.cs",
+    "old": "            Authority = 0;\n            PushScale = 1.0;\n            Done = false;\n        }\n\n        /// How many beats have begun.",
+    "new": "            Authority = 0;\n            Done = false;\n        }\n\n        /// How many beats have begun."
+  },
+  {
+    "name": "Abort reports DONE -- downstream fires a once-only ending for a beat that never finished",
+    "file": "Assets/Scripts/Core/Framing.cs",
+    "old": "            Authority = 0;\n            PushScale = 1.0;\n            Done = false;\n        }\n\n        /// How many beats have begun.",
+    "new": "            Authority = 0;\n            PushScale = 1.0;\n            Done = true;\n        }\n\n        /// How many beats have begun."
+  },
+  {
+    "name": "Begun counts attempts, not starts -- a caller that never gets one running satisfies the gate",
+    "file": "Assets/Scripts/Core/Framing.cs",
+    "old": "            if (Running) return false;\n            Weight = Feel.Clamp01(weight);",
+    "new": "            Begun++;\n            if (Running) return false;\n            Weight = Feel.Clamp01(weight);"
+  }
+]

@@ -256,7 +256,18 @@ namespace Ledger.Game
             _ui?.Toast(line, seconds);
             // Under a curtain there is nothing to frame, and a push-in on
             // black is a push-in nobody sees.
-            if (ScreenCurtain.Busy || _player == null || SimMode.Days > 0) return;
+            // `SimMode.Days > 0` used to be in this condition, and it meant
+            // the entire cinematic layer had never executed in a verified
+            // build — Push, HoldSeconds, Authority, the shot sizes, the
+            // 180-degree rule, none of it. The reason was real: a push-in
+            // part-way through a measured screenshot would move the luminance
+            // the lighting gate reads.
+            //
+            // But that is an argument for suppressing framing AROUND A
+            // SCREENSHOT, not for switching it off for the whole run. The sim
+            // aborts any live beat before it renders, which is a smaller
+            // exclusion and leaves the layer covered.
+            if (ScreenCurtain.Busy || _player == null) return;
             double weight = Feel.Clamp01((seconds - 6f) / 10.0);
             _player.Beat.Begin(weight, SomebodyInShot());
         }

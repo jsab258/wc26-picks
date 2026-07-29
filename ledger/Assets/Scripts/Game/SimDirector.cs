@@ -966,6 +966,13 @@ namespace Ledger.Game
 
         FrameStats FrameShot(Camera cam)
         {
+            // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
+            // in the sim now — it never used to, which is why the whole
+            // cinematic layer went months without executing in a verified
+            // build — but a push-in part-way through a measured render moves
+            // the luminance the lighting gate reads. Aborting is a smaller
+            // exclusion than switching the layer off for the run.
+            if (_game != null && _game.Player != null) _game.Player.Beat.Abort();
             var st = new FrameStats();
             RenderTexture rt = null;
             Texture2D tex = null;
@@ -1050,6 +1057,13 @@ namespace Ledger.Game
 
         void Shot(string name)
         {
+            // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
+            // in the sim now — it never used to, which is why the whole
+            // cinematic layer went months without executing in a verified
+            // build — but a push-in part-way through a measured render moves
+            // the luminance the lighting gate reads. Aborting is a smaller
+            // exclusion than switching the layer off for the run.
+            if (_game != null && _game.Player != null) _game.Player.Beat.Abort();
             var path = $"sim-out/shot_{name}.png";
             var cam = Camera.main;
             if (cam == null) { _errors.Add("Shot: no main camera"); return; }
@@ -2044,6 +2058,29 @@ namespace Ledger.Game
                 // stripping, and a bare street is worse than a sparse one.
                 && perFar > 0.2;
 
+            // THE CINEMATIC LAYER RAN. `Core/Framing` is push, hold,
+            // authority, shot size and the 180-degree rule, and until tonight
+            // none of it had ever executed in a verified build: the trigger
+            // carried `SimMode.Days > 0` in its guard, so the sim — the only
+            // thing that runs this game end to end — was the one context
+            // where framing was off.
+            //
+            // Same shape as the beats gate it sits next to. A layer that
+            // never runs is indistinguishable from one with nothing to frame,
+            // and only a count can tell them apart.
+            // AND IT REACHED THE CAMERA. `Begun > 0` on its own is a
+            // presence check wearing a counter's clothes: a beat can start,
+            // never be ticked, and satisfy it. `TightestFraming` is the
+            // smallest fraction the camera was actually pulled to and sits at
+            // exactly 1 if the push branch never executed, so the two
+            // together say the layer ran AND did something.
+            //
+            // The bot is walking for most of the sim, so nearly every beat is
+            // cancelled on its first tick and yields over 0.28s — the push
+            // that survives that is a couple of percent, not the full 14. The
+            // threshold is set to catch "never moved", not to grade the move.
+            bool framingOk = FramedBeat.Begun > 0 && PlayerController.TightestFraming < 0.999f;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -2090,6 +2127,7 @@ namespace Ledger.Game
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
+                ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[bright+{_bloomDelta:0.0000}]", bloomOk),
                 ($"grain[var+{_grainDelta:0.00000}]", grainOk),
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
@@ -2154,6 +2192,7 @@ namespace Ledger.Game
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
+                      $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
