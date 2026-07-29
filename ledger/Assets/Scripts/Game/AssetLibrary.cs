@@ -167,6 +167,34 @@ namespace Ledger.Game
         }
         static float _wetness = -1f;
 
+        /// POSITIVE CONTROL for the reflection A/B.
+        ///
+        /// Switching the probe off measured a change of exactly zero on a
+        /// road at 0.90 wetness, and there are two very different reasons
+        /// that could happen: the probe is not reaching the shading at all,
+        /// or wet specular contributes nothing worth seeing in the first
+        /// place. A single toggle cannot tell those apart, and guessing
+        /// between them is a build cycle each.
+        ///
+        /// So: force the smoothness of every wet surface to zero. That
+        /// removes the specular term by a route that cannot fail to work —
+        /// it is a material property the shader reads directly, with no probe
+        /// mechanics in between. If THIS moves the frame and switching the
+        /// probe off does not, the answer is that the probe is not the thing
+        /// lighting the road.
+        public static void DefeatWetSpecular(bool defeat)
+        {
+            if (!_initialized) return;
+            foreach (var name in WetSurfaces)
+            {
+                if (!_materials.TryGetValue(name, out var mat) || mat == null) continue;
+                var spec = SurfaceSpec.For(name);
+                mat.SetFloat("_Glossiness", defeat
+                    ? 0f
+                    : (float)LightModel.Smoothness(spec.Smoothness, _wetness));
+            }
+        }
+
         /// Ground the rain lands on. Walls and roofs are deliberately absent —
         /// a vertical brick face does not pool water, and wetting everything
         /// uniformly is the other half of why rainy scenes read as plastic.

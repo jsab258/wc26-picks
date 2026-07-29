@@ -1105,6 +1105,7 @@ namespace Ledger.Game
         double _aoSpread = -1, _grainSpread = -1;
         double _aoFraction = -1, _aoDrop = -1;
         double _reflFraction = -1, _reflRise = -1;
+        double _specFraction = -1, _specRise = -1;
         float _stemVolumeMax = -1f, _busMusicMax = -1f, _busMusicMin = 9f;
         int _stemsUnbound;
         double _stemRatioMin = double.MaxValue, _stemRatioMax = 0;
@@ -1151,6 +1152,25 @@ namespace Ledger.Game
                                                        ImageStats.QuantisationStep);
             _reflFraction = rFrac;
             _reflRise = rRise;
+
+            // THE POSITIVE CONTROL. Flattening the smoothness of every wet
+            // surface removes the specular term by a route with no probe
+            // mechanics in it. If this moves the frame and the probe toggle
+            // above does not, the probe is not what is lighting the road —
+            // and if NEITHER moves it, wet specular is contributing nothing
+            // and the whole effect is decorative.
+            //
+            // Two toggles because one cannot distinguish those, and each
+            // guess costs a twenty-five minute build.
+            AssetLibrary.DefeatWetSpecular(true);
+            var noSpec = FrameShot(cam);
+            AssetLibrary.DefeatWetSpecular(false);
+            var (sFrac, sChange) = ImageStats.Brightened(all.Luma, noSpec.Luma,
+                                                         ImageStats.QuantisationStep);
+            var (sDarker, _) = ImageStats.Darkened(all.Luma, noSpec.Luma,
+                                                   ImageStats.QuantisationStep);
+            _specFraction = sFrac + sDarker;
+            _specRise = sChange;
 
             // Keep the BEST-EVIDENCED sample rather than the last, and
             // record how far the samples disagreed. A gate reading the last
@@ -2559,6 +2579,7 @@ namespace Ledger.Game
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
                       $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
                       $"reflSeen={reflSeen} reflWetAtAb={SceneLighting.Wetness:0.00} " +
+                      $"specHit={100 * _specFraction:0.00} specRise={_specRise:0.0000} " +
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +

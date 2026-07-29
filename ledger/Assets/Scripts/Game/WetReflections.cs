@@ -109,8 +109,25 @@ namespace Ledger.Game
             {
                 if (_enabled == value) return;
                 _enabled = value;
-                if (_instance != null && _instance._probe != null && !value)
+                if (_instance == null || _instance._probe == null) return;
+                if (!value)
+                {
+                    // BOTH, and the intensity is the one that matters.
+                    // Disabling a realtime probe stops it UPDATING; the
+                    // renderers keep sampling the cubemap it last produced,
+                    // so `enabled = false` alone can leave the reflection
+                    // fully in the frame and report that the probe
+                    // contributes nothing. That is the third time tonight an
+                    // A/B has measured its own inertness and called it a
+                    // result.
+                    _instance._probe.intensity = 0f;
                     _instance._probe.enabled = false;
+                }
+                else
+                {
+                    _instance._probe.enabled = true;
+                    _instance._probe.intensity = Strength;
+                }
             }
         }
         static bool _enabled = true;
