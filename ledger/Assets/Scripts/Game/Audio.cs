@@ -285,6 +285,32 @@ namespace Ledger.Game
         /// Live mix, for the sim to assert against.
         public static double StemGain(MusicLayer l) =>
             _stems == null ? 0 : _stemGain[(int)l];
+
+        /// WHAT UNITY IS ACTUALLY PLAYING, which is a different claim.
+        ///
+        /// `StemGain` returns the number this file computed. Delete the line
+        /// that pushes it onto the AudioSource and it keeps returning exactly
+        /// the same numbers, the score gate keeps passing, and the game is
+        /// silent. That is the shape that let the entire post stack sit dead
+        /// for months — every check was of the model, and the model was fine.
+        ///
+        /// Reading the volume back off the engine is the audio equivalent of
+        /// asking a label for its laid-out width instead of its text.
+        public static float StemVolume(MusicLayer l) =>
+            _stems == null || _stems[(int)l] == null ? -1f : _stems[(int)l].volume;
+
+        /// The same question for the buses the duck actually moves.
+        public static float BusVolume(Bus b)
+        {
+            switch (b)
+            {
+                case Bus.Music: return _music != null ? _music.volume : -1f;
+                case Bus.Ambience: return _ambience != null ? _ambience.volume : -1f;
+                case Bus.Foley: return _foot != null ? _foot.volume : -1f;
+                case Bus.Ui: return _ui != null ? _ui.volume : -1f;
+                default: return -1f;
+            }
+        }
         public static bool ScoreRunning => _stems != null;
 
         /// One stem. Every layer is the SAME four bars at the same tempo and

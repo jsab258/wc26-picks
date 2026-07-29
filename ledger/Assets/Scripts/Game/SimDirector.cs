@@ -906,6 +906,33 @@ namespace Ledger.Game
             if (!Audio.ScoreRunning) return;
             var mix = new double[MusicModel.Layers];
             for (int i = 0; i < mix.Length; i++) mix[i] = Audio.StemGain((MusicLayer)i);
+
+            // AND WHAT UNITY IS ACTUALLY PLAYING. `StemGain` is the number
+            // this game computed; `StemVolume` is the one on the AudioSource.
+            // Delete the assignment between them and every score check still
+            // passes, over silence — the same way every FilmGrade check
+            // passed while the post stack was detached from the camera.
+            for (int i = 0; i < mix.Length; i++)
+            {
+                float v = Audio.StemVolume((MusicLayer)i);
+                if (v < 0) { _stemsUnbound++; continue; }
+                if (v > _stemVolumeMax) _stemVolumeMax = v;
+                // The engine value is the model value times the master
+                // volume, so dividing it back out is the only way to compare
+                // them without the settings looking like a mismatch.
+                double master = GameSettings.Current.MasterVolume * GameSettings.Current.MusicVolume;
+                if (master > 0.01)
+                {
+                    double drift = Math.Abs(v / master - mix[i]);
+                    if (drift > _stemDrift) _stemDrift = drift;
+                }
+            }
+            float busMusic = Audio.BusVolume(Bus.Music);
+            if (busMusic >= 0)
+            {
+                if (busMusic > _busMusicMax) _busMusicMax = busMusic;
+                if (busMusic < _busMusicMin) _busMusicMin = busMusic;
+            }
             double e = MusicModel.Energy(mix);
             double heat = _game.CurrentHeat;
             _scoreSamples++;
@@ -1041,6 +1068,9 @@ namespace Ledger.Game
         double _aoSpread = -1, _grainSpread = -1;
         double _aoFraction = -1, _aoDrop = -1;
         double _reflFraction = -1, _reflRise = -1;
+        float _stemVolumeMax = -1f, _busMusicMax = -1f, _busMusicMin = 9f;
+        int _stemsUnbound;
+        double _stemDrift;
 
         void MeasureAoOnce(int sample)
         {
@@ -2299,7 +2329,21 @@ namespace Ledger.Game
             // The duck has to have gone down AND come back. Either
             // extreme alone is a mix that is broken in a way nobody would
             // notice until they played it.
-            bool mixOk = _mixDuckMax > 0.25 && _mixDuckMin < 0.05;
+            bool mixOk = _mixDuckMax > 0.25 && _mixDuckMin < 0.05
+                // AND THE DUCK REACHED THE ENGINE. Everything above is the
+                // control signal — the number the mixer decided on. The music
+                // bus's own volume has to have moved with it, or the mix is a
+                // simulation of a mix.
+                && _busMusicMax > 0 && _busMusicMax - _busMusicMin > 0.01;
+
+            // THE SCORE IS AUDIBLE, not merely computed. `_stemsUnbound`
+            // counts samples where a layer had no AudioSource at all, and
+            // `_stemDrift` is the largest gap between what the model asked
+            // for and what Unity was told, once the master volume is divided
+            // back out. Both zero is the only reading that means the score
+            // the tests describe is the score that plays.
+            bool scoreAudible = _stemVolumeMax > 0.001f && _stemsUnbound == 0
+                                && _stemDrift < 0.02;
 
             // DRESSING, and the measurement changed with the scope call.
             //
@@ -2405,7 +2449,10 @@ namespace Ledger.Game
                  $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
-                ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00}]", mixOk),
+                ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
+                 $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
+                ($"scoreAudible[peak={_stemVolumeMax:0.000} unbound={_stemsUnbound} " +
+                 $"drift={_stemDrift:0.0000}]", scoreAudible),
             };
             var failed = new List<string>();
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
@@ -2478,6 +2525,9 @@ namespace Ledger.Game
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
+                      $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +
+                      $"stemDrift={_stemDrift:0.0000} scoreAudible={scoreAudible} " +
+                      $"busMusic={_busMusicMin:0.000}..{_busMusicMax:0.000} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
