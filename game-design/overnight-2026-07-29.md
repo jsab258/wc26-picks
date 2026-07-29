@@ -23,8 +23,11 @@ whether a green Windows CI run has confirmed it yet.
 | 12 | AO split into its own shader so it cannot break the grade | pending |
 | 13 | **The post stack had never run at all** — found and fixed | pending |
 | 14 | Exposure tied to the night it compensates for | n/a (Core) |
+| 15 | The cinematic camera had never run in a verified build | pending |
+| 16 | Motion matching, built against a corpus we do not own | n/a (Core) |
+| 17 | A break-run harness, after losing work to two ad-hoc ones | n/a (tooling) |
 
-Core checks went 2060 → 2169.
+Core checks went 2060 → 2239.
 
 ## The one that matters most
 
@@ -191,12 +194,92 @@ Plus a budget on how many sounds may speak at once — stealing from the
 ten incoherent sources at 0.3 make about 0.95, not 3.0, and adding them
 linearly is why crowds clip.
 
+## The second thing that had never run
+
+`FilmGrade` was the first. The cinematic framing layer was the second, and
+it was hiding in plain sight for the same reason: **the sim is the only
+thing that runs this game end to end, and the trigger carried
+`SimMode.Days > 0` in its guard.** Push, hold, authority, shot sizes, the
+180-degree rule — `Core/Framing` is fully tested and none of the wiring to
+it had ever executed.
+
+The stated reason was sound. A push-in part-way through a measured
+screenshot moves the luminance the lighting gates read. But that is an
+argument for suppressing framing *around a screenshot*, not for the whole
+run, and the smaller exclusion costs one method: `Abort()` — stop on this
+tick, no yield — called immediately before each render.
+
+The gate needed two numbers. `Begun > 0` proves a beat started and nothing
+more; a beat that starts and is never ticked satisfies it. The second is
+the smallest fraction the camera was actually pulled to, which stays at
+exactly 1 if the push never reached it.
+
+## Motion matching, and the second use of the §3b lesson
+
+The animation section closes with a note that three items were parked
+behind acquisitions and at least one deserved the same treatment. The mocap
+licence was that item.
+
+`Core/MotionMatch` is the whole runtime and `IMotionCorpus` is the seam;
+`SyntheticCorpus` implements it out of `Rig` today. **It does not improve
+the animation** — matching against motion `Rig` generated cannot produce
+motion better than `Rig`, and no amount of search invents mocap. What it
+does is find the integration bugs now. Four of them, none needing a single
+mocap frame:
+
+- The query left the foot-velocity channels at zero. They carry the
+  heaviest weight in the feature, so every search came back pointing at a
+  body that had stopped moving.
+- Frame 0 of each clip differenced backwards into nothing, giving one frame
+  per clip the exact feature vector of a person standing still. A query with
+  a planted foot found those holes irresistible.
+- Playback advanced one frame per tick, running a 30fps corpus at 2x.
+- Continuation was costed at the integer frame index while playback sits
+  *between* frames, so the matcher paid for its own stepping error, jumped
+  to correct it, and landed between two frames again.
+
+## And the ruler was wrong twice more
+
+**Jump count is not a quality measure.** The first chatter check asserted
+"at most two jumps" and saw nine. All nine were harmless: a corpus holds
+many frames at the same point in the stride and hopping between them
+changes nothing on screen. A twitch is a jump that lands on a *different*
+pose. Chasing the wrong number did find two of the four defects above, so
+it was not wasted — it just could not say when it was finished.
+
+Then the replacement threshold was a number invented out of nothing, in
+weighted-normalised units nobody has an intuition for. It is calibrated
+against the corpus's own scale now: one frame of ordinary playback is by
+definition invisible, two frames from different clips is by definition a
+cut, and they are three orders of magnitude apart.
+
+That is eight times this session.
+
+## The harness, and why it is committed now
+
+Two ad-hoc break scripts cost real work — one took SIGPIPE before its
+restore and left a deliberate break in the tree, and one restored with
+`shutil.copy2`, which preserves mtime, so the restored file looked older
+than the objects built from the broken one and MSBuild handed the next run
+the **broken binary against correct-looking source**. Twenty minutes of
+staring at code that was already right.
+
+`ledger/breakrun.py` restores on every exit path and never preserves mtime.
+It also refuses to run against a red baseline, because if the tests are
+already failing then every break "goes red" and none of it is evidence.
+
+Sixteen breaks across tonight's two features. Five survived the first pass
+and every survivor was a check that could not fail — **three of them
+covering defects fixed an hour earlier.** Fixing a bug is not the same as
+preventing it.
+
 ## Still needing you
 
 Two things, and that is the whole list:
 
 - **Fifteen minutes of listening** to pick the bark voices (two commands).
-- **A mocap licence**, $100–1000, if we want motion matching. Everything
-  short of that is done.
+- **A mocap licence**, $100–1000, if we want motion matching. The matcher
+  itself is now built and tested, so this is a purchase with a working
+  system waiting behind it rather than one that starts a project.
 
 Nothing has been bought, and nothing will be without you.

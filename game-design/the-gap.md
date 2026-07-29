@@ -122,7 +122,30 @@ LAFAN1, 100STYLE) are largely **non-commercial licences**. That is a
 purchasing decision, not something clever code routes around.
 
 Commercially licensed libraries do exist in the **$100–1000** range, which is
-affordable and worth doing. Motion matching itself I can build.
+affordable and worth doing.
+
+> **Updated 2026-07-29 — the matcher is built, and the corpus is now the
+> only part that is a purchase.** `Core/MotionMatch` is the whole runtime:
+> feature layout, per-dimension normalisation, trajectory-over-pose cost
+> weighting, the search cadence, the jump margin, the clip-boundary rule and
+> the inertial blend. `IMotionCorpus` is the seam. `SyntheticCorpus`
+> implements it today out of `Rig`'s analytic walk.
+>
+> **What that does not buy.** Matching against motion `Rig` generated cannot
+> produce motion better than `Rig`. There is no version of this where search
+> invents mocap. The animation score does not move.
+>
+> **What it does buy** is that the day the licence is bought, the work is
+> writing one class that samples the clips — not meeting seven integration
+> bugs at once in a system with no working baseline. Four of those bugs are
+> already found and fixed: a query that left the foot-velocity channels at
+> zero, a per-clip frame with the feature vector of a body standing still,
+> playback that ran a 30fps corpus at double speed, and a continuation cost
+> measured at the wrong point. None of them needed mocap to find.
+>
+> That is the §3b lesson applied a second time, and it now has two data
+> points: **when a dependency is somebody else's to satisfy, build the thing
+> behind it against a stand-in you control.**
 
 ### 3c. AUDIO — where AI gives a genuine 100× advantage
 
@@ -154,7 +177,7 @@ Depth over breadth, every time, for a team this size.
 | 3 | ~~Characters +~~ **procedural animation layers** | huge | low-med | **done without the download** — bodies, walk cycle, idle, gaze |
 | 4 | Set dressing density on 2–3 districts | big | med | asset packs |
 | 5 | Music — adaptive layers off real state | med | low | me |
-| 6 | Motion matching on a licensed corpus | big | med | a purchase |
+| 6 | Motion matching on a licensed corpus | big | med | **runtime done** — the corpus is the purchase |
 | 7 | UI typography and iconography pass | med | v.low | me |
 | 8 | Cinematic framing for the authored beats | med | low | me |
 
@@ -164,7 +187,9 @@ to the limit of what code can do, and the Mixamo download now **upgrades** it
 rather than unblocking it.
 
 **What is actually left needing you:** item 2's fifteen-minute listening pass,
-and item 6's mocap licence. That is the whole list.
+and item 6's mocap licence. That is the whole list — and item 6 is now a
+purchase with a working system behind it rather than a purchase that starts
+a project.
 
 ## 6. Rough budget
 
