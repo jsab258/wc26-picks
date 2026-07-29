@@ -6222,6 +6222,35 @@ namespace Ledger.CoreTests
                 "night is still LIFTED - a player who cannot see the street is not "
                 + "experiencing atmosphere, they are experiencing a bug report");
 
+            // ---- BLOOM, WHICH BLEW THE NIGHT OUT ----
+            //
+            // Third number authored while the post stack was dead. On the
+            // first frame it was ever applied to, night came out at 0.549
+            // mean luminance against 0.159 at noon.
+
+            Check(LightModel.BloomThreshold(1) > LightModel.BloomThreshold(0),
+                "what counts as a highlight RISES at night, because the exposure does "
+                + "— a fixed threshold under a moving aperture stops meaning 'the "
+                + "lamps' and starts meaning 'half the frame'",
+                $"{LightModel.BloomThreshold(0):0.00} by day, "
+                + $"{LightModel.BloomThreshold(1):0.00} at night");
+            Check(LightModel.BloomThreshold(0) > 0.5 && LightModel.BloomThreshold(1) < 0.95,
+                "and it stays a threshold at both ends — never so low it selects the "
+                + "whole image, never so high it selects nothing");
+
+            Check(LightModel.BloomStrength(1) < LightModel.BloomStrength(0),
+                "and there is LESS bloom at night, not more: this city has three "
+                + "hundred and sixty light shafts, so the glow around a lamp is already "
+                + "geometry and blooming it again counts it twice",
+                $"{LightModel.BloomStrength(0):0.00} vs {LightModel.BloomStrength(1):0.00}");
+            double maxBloom = 0;
+            for (double n = 0; n <= 1.0001; n += 0.05)
+                maxBloom = Math.Max(maxBloom, LightModel.BloomStrength(n));
+            Check(maxBloom < 0.5 && LightModel.BloomStrength(0) > 0.1,
+                "bloom is added BEFORE the tonemap, so it compounds with everything "
+                + "else rather than replacing it — and it is still visible",
+                $"peak {maxBloom:0.00}");
+
             // ---- THE VIGNETTE, WHICH WAS DELETING THE CORNERS ----
             //
             // Authored at 0.34 by day and 0.50 at night, never applied to a

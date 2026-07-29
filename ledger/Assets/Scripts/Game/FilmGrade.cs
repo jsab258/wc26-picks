@@ -161,7 +161,11 @@ namespace Ledger.Game
             int w = Mathf.Max(2, src.width / 4), h = Mathf.Max(2, src.height / 4);
             _bloomA = RenderTexture.GetTemporary(w, h, 0, src.format);
             _bloomB = RenderTexture.GetTemporary(w, h, 0, src.format);
-            _mat.SetFloat("_Threshold", 0.62f);
+            // FROM CORE, and it moves with the night. A fixed 0.62 under an
+            // exposure that opens after dark meant the bright pass was
+            // selecting most of the frame, which is a second exposure rather
+            // than a highlight pass.
+            _mat.SetFloat("_Threshold", (float)LightModel.BloomThreshold(night));
             Graphics.Blit(src, _bloomA, _mat, 1);            // pass 1: bright pass
             _mat.SetVector("_Dir", new Vector4(1f / w, 0, 0, 0));
             Graphics.Blit(_bloomA, _bloomB, _mat, 2);        // pass 2: blur X
@@ -169,7 +173,7 @@ namespace Ledger.Game
             Graphics.Blit(_bloomB, _bloomA, _mat, 2);        // pass 2: blur Y
 
             _mat.SetTexture("_BloomTex", _bloomA);
-            _mat.SetFloat("_Bloom", Bloom ? 0.55f + 0.35f * night : 0f);
+            _mat.SetFloat("_Bloom", Bloom ? (float)LightModel.BloomStrength(night) : 0f);
             _mat.SetFloat("_Grain", Grain ? grain : 0f);
             _mat.SetFloat("_Vignette", Vignette ? vignette : 0f);
             // The aperture opens at night and closes in daylight rain, from

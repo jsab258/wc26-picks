@@ -62,6 +62,38 @@ namespace Ledger.Core
             return Feel.Clamp(e, 0.7, 1.25);
         }
 
+        // ---- bloom ----------------------------------------------------------
+
+        /// THE THIRD NUMBER AUTHORED WHILE THE POST STACK WAS DEAD, and the
+        /// one that blew the night out: 0.549 mean luminance at midnight
+        /// against 0.159 at noon, on the first frame it was ever applied to.
+        ///
+        /// Bloom is ADDED before the tonemap, so it compounds with everything
+        /// else rather than replacing it. Kept low, and — the part that is
+        /// not obvious — kept LOWER at night than by day, because this city
+        /// already has three hundred and sixty light shafts. The glow around
+        /// a lamp is geometry here. Blooming it again is counting it twice.
+        public static double BloomStrength(double night)
+        {
+            return Mix(0.34, 0.26, Feel.Clamp01(night));
+        }
+
+        /// WHAT COUNTS AS A HIGHLIGHT, and this is where the real defect was.
+        ///
+        /// The threshold was a fixed 0.62 while the exposure moves with the
+        /// hour. Open the aperture and more of the image crosses any fixed
+        /// line — so at night a threshold meant to catch "the lamps" was
+        /// catching lamps, wet road, shafts, windows and most of the sky. A
+        /// bright pass that selects half the frame is not a bright pass, it
+        /// is a second exposure.
+        ///
+        /// It rises with the night so that it keeps meaning the same thing:
+        /// the top few percent of the image, whatever the aperture is doing.
+        public static double BloomThreshold(double night)
+        {
+            return Mix(0.62, 0.88, Feel.Clamp01(night));
+        }
+
         // ---- the vignette --------------------------------------------------
 
         /// THE CORNERS WERE GOING TO ZERO. Not dimmed — zero.

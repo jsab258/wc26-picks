@@ -63,6 +63,7 @@ namespace Ledger.Game
         bool _finished;
         bool _forcedLedgerLearn;
         bool _forcedFall;
+        bool _botAttendedABeat;
         bool _empireScripted;
         bool _directorStaged, _directorFired;
         bool _harmStaged;
@@ -603,7 +604,23 @@ namespace Ledger.Game
             // Beats are an evening window and drops are night; the design note
             // on Beat says a determined player can thread both. This bot is
             // now determined.
-            var beatSpot = _game.OpenBeatSpot;
+            // ONE BEAT, THEN BACK TO WORK.
+            //
+            // Diverting whenever a beat was open cost the run its
+            // `verdictSane` gate: the bot stood on a porch through the
+            // evening instead of returning to the bar, so nights stopped
+            // being closed and JobsDone+JobsMissed never reached the count
+            // that gate requires. The gate was right and my change was
+            // greedy.
+            //
+            // One is all the beats gate asks for and all the authored path
+            // needs exercised. After that the errand outranks the invitation
+            // again, which is also what a player with a business to run
+            // would do.
+            var beatSpot = _botAttendedABeat ? null : _game.OpenBeatSpot;
+            if (!_botAttendedABeat)
+                foreach (var b in _game.Beats.All)
+                    if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
             var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
