@@ -648,13 +648,30 @@ namespace Ledger.Game
             // left. Which is also what somebody with a business to run would
             // do, and it makes the beat something the player chooses at a
             // cost rather than something the bot does instead of working.
-            bool workOutstanding = _game.ActiveJobPos.HasValue || _game.DayJobTargetPos.HasValue;
+            // BOUNDED BY A BUDGET, which is the third shape of this and the
+            // one that works.
+            //
+            // "Until it succeeds" never opened, so the bot loitered for nine
+            // days. "One window then give up" cost all four beats to one bad
+            // spot. "Only when no work is outstanding" never fired at all —
+            // there is ALWAYS a job or a parcel, so beatTried came back
+            // `none` and the authored path still never ran.
+            //
+            // A time budget cannot fail in any of those ways. Ninety in-game
+            // minutes across nine days is an hour and a half the errand can
+            // afford, it is spent on whichever beat is open when the bot has
+            // it, and when it runs out the job has the bot back for good.
+            const double BeatBudgetMinutes = 90;
             if (openBeat == null) _beatBotTried = null;
-            else if (_beatBotTried == null && !workOutstanding) _beatBotTried = openBeat.Id;
+            else if (_beatBotTried == null && _beatChaseMinutes < BeatBudgetMinutes)
+                _beatBotTried = openBeat.Id;
             foreach (var b in _game.Beats.All)
                 if (b.State == BeatState.Attended) { _botAttendedABeat = true; break; }
-            bool chasing = !_botAttendedABeat && !workOutstanding
+            bool chasing = !_botAttendedABeat && _beatChaseMinutes < BeatBudgetMinutes
                            && openBeat != null && openBeat.Id == _beatBotTried;
+            // In-game minutes, not real ones, so the budget means the same
+            // thing however fast the sim is running the clock.
+            if (chasing) _beatChaseMinutes += Time.deltaTime * _game.MinutesPerRealSecond;
             var beatSpot = chasing ? _game.OpenBeatSpot : null;
 
             // AND SAY WHY IF IT MISSES. Attendance needs the player within
@@ -1003,6 +1020,7 @@ namespace Ledger.Game
 
         double _nightFull = -1, _nightNoShafts = -1, _nightRaw = -1, _nightNoBloom = -1;
         string _beatBotTried;
+        double _beatChaseMinutes;
         int _lastBeatChaseHour = -1;
         float _beatClosestApproach = 9999f;
 
@@ -2605,6 +2623,7 @@ namespace Ledger.Game
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
                       $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
+                      $"beatChaseMins={_beatChaseMinutes:0} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +
                       $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
