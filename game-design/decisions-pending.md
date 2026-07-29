@@ -6,7 +6,24 @@ Answered items move to the decision log in `process.md`.
 Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
 as answerable options — the doc is the record, the chat is the interface.
 
-## NEEDS YOU — is violence a verb? (2026-07-29)
+## ~~is violence a verb?~~ ANSWERED 2026-07-29 — YES, and it needs a weapon system
+
+> *"That's an easy decision. So on question one, yes. Can also kill,
+> obviously. And then question two, weapon. Yes. We need different weapons.
+> So, yes, fists, and then knives, and then later on we said we'll look at
+> guns. So we have to build it properly from the start."*
+
+Also: an inventory, and acquisition by buying / stealing / finding.
+Researched and proposed in **`weapons-spec.md`** — awaiting approval, and
+nothing is built until it is approved.
+
+The standing quality bar was restated at the same time and applies to
+everything from here: **as close to the best games in the genre as our
+limits allow.**
+
+The original framing is kept below because the reasoning is the record.
+
+## (original) NEEDS YOU — is violence a verb? (2026-07-29)
 
 **Nothing calls `Core/Combat`.** Not one line outside the file references
 `Fighter`, `Blow`, `Footing` or `Resolve`, and `GameController.RecordKilling`
