@@ -6180,6 +6180,47 @@ namespace Ledger.CoreTests
                 + "rained half an hour after it stopped",
                 $"dried {soaked - drying:0.000} vs wetted {wetting:0.000}");
 
+            // ---- EXPOSURE MUST NOT UNDO THE NIGHT ----
+            //
+            // Two curves that are each correct alone and wrong together, and
+            // nothing tied them: the ambient bands make night about 0.77x as
+            // bright as noon, and `Exposure` lifts night by 1.55x to keep the
+            // street legible. Multiply them and NIGHT COMES OUT BRIGHTER THAN
+            // DAY - the tonemap sees more light at midnight than at midday.
+            //
+            // It went unnoticed because the post stack was attached to a
+            // child of the camera and never ran, so the exposure was never
+            // applied to anything at all. The moment that was fixed, this
+            // became a rendering bug. Tying the two curves together here
+            // means neither can be tuned into contradicting the other again.
+            foreach (double rain in new[] { 0.0, 0.5, 1.0 })
+            {
+                double dayScene = (BandLuma(LightModel.SkyColour(0, rain))
+                                   + BandLuma(LightModel.HorizonColour(0, rain))
+                                   + BandLuma(LightModel.GroundColour(0, rain))) / 3;
+                double nightScene = (BandLuma(LightModel.SkyColour(1, rain))
+                                     + BandLuma(LightModel.HorizonColour(1, rain))
+                                     + BandLuma(LightModel.GroundColour(1, rain))) / 3;
+                double dayLit = LightModel.Aces(dayScene * LightModel.Exposure(0, rain));
+                double nightLit = LightModel.Aces(nightScene * LightModel.Exposure(1, rain));
+                // 0.45, not the 0.88 this started at. The real margin is
+                // 0.23 — night renders at under a quarter of day — so a bound
+                // at 0.88 had four times more headroom than the property it
+                // was guarding and would have sat green through an exposure
+                // lift twice too strong. A test with that much slack states a
+                // requirement without enforcing one.
+                Check(nightLit < dayLit * 0.45,
+                    $"after exposure and the tonemap, night is still clearly darker than "
+                    + $"day (rain {rain:0.0}) - a lift that fully compensates the dark is "
+                    + "a lift that has deleted the night",
+                    $"night {nightLit:0.000} vs day {dayLit:0.000} "
+                    + $"(scene {nightScene / dayScene:0.00}x, exposure "
+                    + $"{LightModel.Exposure(1, rain) / LightModel.Exposure(0, rain):0.00}x)");
+            }
+            Check(LightModel.Exposure(1, 0) > LightModel.Exposure(0, 0),
+                "night is still LIFTED - a player who cannot see the street is not "
+                + "experiencing atmosphere, they are experiencing a bug report");
+
             // ---- AMBIENT OCCLUSION ----
             //
             // The last cheap win: untextured geometry reads flat because
@@ -6845,6 +6886,10 @@ namespace Ledger.CoreTests
                 + "difference between a walking spine and a crate with legs",
                 $"pelvis {turn.pelvisYaw:0.0} chest {turn.chestYaw:0.0}");
         }
+
+        /// Relative luminance of one ambient band, for the exposure check.
+        static double BandLuma((double r, double g, double b) c) =>
+            0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
 
         static void TestMixing()
         {
