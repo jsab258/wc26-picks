@@ -1,4 +1,4 @@
-# PERCEPTION, WEAPONS AND VIOLENCE — spec v3, APPROVED
+# PERCEPTION, WEAPONS AND VIOLENCE — spec v4, APPROVED
 
 **Status: APPROVED IN FULL, 2026-07-29. Cleared to build.** *"approved."*
 
@@ -29,10 +29,16 @@ governing it.
   audio rather than by animation**, plus an explicit accessibility marker,
   because betting the most important feedback in the game on the weakest asset
   we own was the right thing to be challenged on.
-- **v3 (this) — APPROVED IN FULL.** No content change from v2.2; the status
+- v3 (2026-07-29) — **APPROVED IN FULL.** No content change from v2.2; the status
   and §12 are rewritten as a record of what was approved rather than a list of
   asks, and §13 states the two assumptions I am proceeding on and the two
   things from Jafar that would make the work materially better.
+- **v4 (this)** — a cold audit of v3 found fourteen gaps (§14), including a
+  straight contradiction between §4.4 and §6.2. All fourteen are resolved in
+  §§15–18: the ghost is now restricted, **symmetry** and **arrest** are
+  approved and specified, the victim perceives, accidents are constrained,
+  and the document finally has **numbers, a performance design, a persistence
+  schema, a lab and an estimate.**
 
 ---
 
@@ -465,6 +471,10 @@ dramatic moment this system can produce and it costs nothing to detect —
 both perception records already exist. §6 gives it the one deliberate piece
 of presentation in the whole design.
 
+**And the two right-hand cells are the only ones that produce a ghost** (§6.2,
+as restricted in v4). The left-hand column — where you were seen and did not
+know it — deliberately gives the player nothing. That silence is the feature.
+
 ### 4.5 The delivery window — a witness is a deadline
 
 Straight from RDR2, and it converts the minutes after a crime into play.
@@ -631,6 +641,25 @@ These use places we have already built, they need no new weapon art, and they
 are **thematically exact for Tom Novak** — a man who runs a bar and is not a
 killer, right up until a stairwell solves a problem for him. This family alone
 does more for the felt size of the arsenal than five more pistols would.
+
+**Three constraints, added in v4 (audit finding D), because unqualified this
+family ends the design.** §11 worried that the threat verb might solve
+everything and nobody asked the same question here: if the stairs always work,
+the optimal player never touches a weapon again.
+
+1. **It needs position and privacy that most situations do not offer.** He has
+   to be at the top of the stairs, near the rail, beside the road — and you
+   have to be alone with him there. It is opportunistic, not a plan you can
+   always execute.
+2. **Being seen doing it is the worst observation in the game.** There is no
+   ambiguity in a push: no weapon, no struggle, no argument to point at. A
+   *Full* slot set on an accident is more damning than one on a stabbing.
+3. **A suspicious death still gets a coroner.** An accident converts a manhunt
+   into an inquest, not into nothing — and an inquest is a slow, quiet, very
+   LEDGER kind of pressure. Two accidents around one man is itself a pattern.
+
+BalanceLab proves it, the way `RunViolenceLab` proved the kill-the-witness
+trade rather than asserting it.
 
 #### Family 7 — Kit, which is not weapons and decides whether any of it works
 
@@ -811,13 +840,23 @@ were noticed, the channels are not redundant and one of them is decoration.
 This is checkable in a playtest and it is on the QA matrix rather than in a
 designer's hope.
 
-**What they think they know — the ghost, and this is the idea I would defend
-hardest in the whole document.**
+**What they think they know — the ghost, RESTRICTED (v4, audit finding A).**
 
-Conviction leaves a silhouette where the enemy believes you are. Ours leaves
-**a silhouette of what the witness believes, drawn from the actual belief
-record** — and because our witnesses hold slots and rungs rather than a
-position, the ghost can show *the shape of their misunderstanding*:
+v3 showed this for every witness, which quietly destroyed §4.4's *"quiet
+horror case"*: if the ghost always appears, being seen without knowing it
+cannot exist. **The ghost now appears only when the awareness was mutual —
+only when Tom saw them see him** (§4.4, the two right-hand cells).
+
+That makes it honest as well as compatible. It is no longer a readout of
+another person's mind, which Tom has no right to; it is a picture of a thing
+the character actually experienced — you caught her eye, so you know roughly
+what she got. **When you are seen and do not notice, there is no ghost and no
+warning at all**, and the first you hear of it is a rumour three days later.
+
+Within that restriction it works as designed. Conviction leaves a silhouette
+where the enemy believes you are; ours shows *the shape of their
+misunderstanding*, because our witnesses hold slots and rungs rather than a
+position:
 
 - They only got rung 1 → the ghost is **a coat with no face**.
 - They got the act but not the actor → the ghost stands over the victim and
@@ -831,6 +870,10 @@ It appears for a moment as you break away, and never again. It is the
 observation model made visible, it costs almost nothing on top of the data
 we would already be keeping, and I am not aware of another game that shows
 the *content* of a witness's belief rather than its location.
+
+**It is not a legibility channel.** §6.2's four channels cover *being
+noticed*, which the player is owed. What a witness concluded is not owed, and
+the restriction above is what keeps the dread in the design.
 
 **The standoff gets the one flourish.** When mutual awareness closes (§4.4,
 bottom-right), the street audio ducks for about four tenths of a second and
@@ -962,7 +1005,16 @@ you seconds.
 - `Mixing.Reach` — loudness → metres, per bus. And the ambient bed, which is
   what masking needs.
 - `LightModel` + the lighting pass — light level anywhere, any hour.
-- `Violence.Saw`, `KillingConfidence`, `Notoriety`, `HomicideBook`, `Police`.
+- `Notoriety`, `HomicideBook`, `Police` — reusable unchanged.
+- `Violence.Saw` and `KillingConfidence` — **NOT reusable, and v3 was wrong to
+  list them as such** (audit finding E). The observation model replaces what
+  they do, and leaving both would give the build two systems deciding who saw
+  a killing. Disposition, fixed before Phase 2: `Violence.Saw` becomes a thin
+  adapter over `Core/Observation`, `KillingConfidence` is *derived* from slots
+  and rungs rather than computed separately, and a test asserts the old path
+  has no remaining callers. This project has already lost a night to a system
+  that was built, correct and attached to nothing; two live systems doing the
+  same job is the same bug with the sign flipped.
 - `Core/Combat` phases 1–4, tuned.
 - Gossip mill: facts, confidence, decay, contradiction, `CompareNotes`.
 - Walkers with facing, routines, nerve, gaze and head-turn.
@@ -989,9 +1041,28 @@ you seconds.
 
 **Phase 1 — perception, no weapons.** Vision with light and occlusion;
 hearing with loudness and masking. NPCs notice, turn, and investigate.
-**Ship this and play it even if weapons never follow.** Sim gate: a walker in
-light is detected at greater range than one in shadow; a sound behind a wall
-is not heard; a sound under the ambient floor is not heard.
+**Ship this and play it even if weapons never follow.**
+
+*Machinery gate:* a walker in light is detected at greater range than one in
+shadow; a sound behind a wall is not heard; a sound under the ambient floor is
+not heard.
+
+***Behaviour* gate, added in v4 (audit finding J), and this is the one that
+matters.** v3 tested only the machinery, which means a green Phase 1 could
+have shipped a city that computes perfectly and reacts to nothing — this
+project's signature failure mode. So the reactions to non-crimes ship *in*
+Phase 1 rather than waiting for Phase 2, and the gate asserts behaviour:
+
+- **Loitering** under a lamp for thirty seconds produces at least one person
+  who looks and one who remarks on it.
+- **Running at night** in a residential street turns heads that walking does
+  not.
+- **A slammed door** at 3am brings somebody to a window; the same slam at noon
+  does not.
+- **Standing where you should not be** — behind a counter, in a yard — is
+  noticed faster than standing on the pavement.
+
+That list *is* §3.3's promise, and until it is green Phase 1 is not done.
 
 **Phase 1b — legibility, alongside it.** The vignette response and the noise
 ring. Small, and it goes in *with* Phase 1 rather than after, because a
@@ -1031,7 +1102,12 @@ fiction and the easiest thing to get wrong.
    solves everything, we have built a different game. It needs the
    call-the-bluff and escalate outcomes to have real teeth, and BalanceLab is
    where that gets proven rather than asserted.
-5. **Scope.** This is the largest single proposal in the project. Phase 1 is
+5. **Accidents becoming the dominant strategy.** Same shape as risk 4 and
+   missed until the v4 audit. Constrained in §5.2 Family 6; proven in the lab.
+6. **Facing not being readable**, which is the condition Jafar attached to the
+   symmetry rule. §15.1 states the rule against what we can actually render
+   and gives it a measurable gate rather than an assurance.
+7. **Scope.** This is the largest single proposal in the project. Phase 1 is
    the hedge: it is worth playing on its own, and if it is not, we stop.
 
 ---
@@ -1275,22 +1351,346 @@ fights.
 
 ### Summary
 
-| | Finding | Severity | Who decides |
+**All fourteen resolved in v4.** Both calls came back approved — symmetry
+*"ok provided our characters/models and animations can handle that"*, and
+arrest *"ok"*. The condition on symmetry is answered with a measurement rather
+than an assurance in §15.1.
+
+| | Finding | Resolved in |
+|---|---|---|
+| A | Ghost contradicts the dread | §6.2 — ghost restricted to mutual awareness only |
+| B | Nothing is predictive | §15.1 — symmetry, with a silhouette gate and a named fallback |
+| C | The victim is not modelled | §15.3 — the target perceives; the survivor is the worst witness |
+| D | Accidents may dominate | §5.2 Family 6 — three constraints; risk 5; lab scenario |
+| E | Two witness systems | §9 — `Violence.Saw` becomes an adapter, `KillingConfidence` derived |
+| F | No numbers | §16 — vision, hearing and time tables |
+| G | Performance undesigned | §17.1 — Near band only, 6Hz staggered, 1.2ms budget with a gate |
+| H | Persistence unmentioned | §17.2 — schema per phase, not after |
+| I | No acute police response | §15.2 — arrest, no chase |
+| J | Phase 1 gate misses the point | §10 — a behaviour gate, and non-crime reactions ship in Phase 1 |
+| K | Blood unspecified | §15.4 |
+| L | The frisk unspecified | §15.5 |
+| M | Memory does not change | §15.6 — accuracy falls, confidence rises |
+| N | No estimates, no lab | §18 — ~16 days, and `RunPerceptionLab` |
+
+---
+
+## 15. THE RULES THAT WERE MISSING — resolutions to the audit
+
+### 15.1 Symmetry — the planning rule. **APPROVED, with a condition**
+
+> *"1. ok provided our characters/models and animations can handle that."*
+
+Audit finding B: every device in v3 was reactive. Nothing let the player judge
+a doorway *before* committing, and stealth-adjacent play is planning.
+
+**The rule: if you can tell he is facing you, he can see you.**
+
+**And Jafar's condition is the whole problem, so it gets answered rather than
+promised.** We cannot render eyes. There are no faces in this game and there
+may never be. "See his eyes" is a rule the art cannot carry, so the rule is
+stated against the one thing we *can* render at distance — **orientation** —
+and then three things are done to make orientation legible instead of hoping:
+
+1. **Heads turn further and slower than they really would.** Standard
+   animation exaggeration. A head at 40° of yaw reads in silhouette; a head at
+   12° does not. The gaze system already turns heads; the values change, not
+   the code.
+2. **The head is the one part of the mannequin allowed a front.** A hat brim,
+   a hair block, a collar — something whose silhouette differs front-to-back.
+   Thirteen boxes cannot show a face and do not need to; they need an
+   asymmetric head, which is one box.
+3. **The body commits.** Someone genuinely looking at you turns their
+   shoulders, not just their neck. Torso yaw is a much larger silhouette
+   change than head yaw and it reads at twice the distance.
+
+**The gate, because a condition without a measurement is an assurance.**
+Render a walker at the ranges that matter — 8m, 18m, 35m — at the game's
+darkest playable light, facing toward and facing away, and measure the
+difference between the two silhouettes with `ImageStats`. **If front and back
+are not measurably distinguishable at 18m, the rule cannot carry the design**
+and we say so rather than shipping an unfair system.
+
+**The fallback if that gate fails**, and it is a real plan rather than a
+shrug: the **survey verb** — stand still, hold a key, and attention sharpens
+and sound directions resolve. It costs a moment of time, adds no HUD, and it
+works at any fidelity because it is not asking the player to read a
+silhouette. v3 listed it as an alternative; v4 makes it the designated
+fallback, chosen by a measurement rather than by argument.
+
+**What symmetry buys, and why it is worth the constraint.** It makes the
+camera the planning tool with no interface at all: you look at the street, and
+looking *is* the mechanic. It costs one line in `how-to-play.md`. And it binds
+the camera and the vision model together permanently — if the vision cone and
+what the camera shows ever disagree, the rule becomes a lie and the system
+becomes unfair. That is the price, it is on record, and there is a gate for it
+too: **the vision model and the rendered facing must be asserted equal**, not
+independently maintained.
+
+### 15.2 Caught in the act — **ARREST, NO CHASE. APPROVED**
+
+Audit finding I: `Police` runs a ladder measured in days, and v3 added acts a
+constable can watch happen and then said nothing about the next sixty seconds.
+
+**Arrest.** A constable with a *Full* or *Actor* observation of you closes,
+and being taken is the outcome. Not a health bar, not a fight — a hand on your
+arm, the street watching, and everything that was in your coat now in a drawer
+at the station.
+
+**No chase**, and this is a refusal rather than an omission. A foot chase is a
+different genre, it would be the least distinguished thing in the game, and it
+would teach the player that violence is an action sequence. **Running is still
+allowed and it still works** — but it works through the systems that already
+exist: you get away because he did not identify you, because the street was
+busy, because you had somewhere to be. Not because you outran him around a
+corner.
+
+**What arrest connects to, all of it already built:**
+
+- Everything you were carrying is now catalogued. A knife is a conversation; a
+  pistol is a different conversation.
+- Provenance (§7.4) becomes the interrogation: *where did you get it.*
+- The prison decision already on record in `decisions-pending.md` governs what
+  it does to the information landscape.
+- **You were seen being taken**, which is itself an event with witnesses. Half
+  the street watched Tom Novak get walked to a car.
+
+**The escape hatch is social, not athletic:** a constable who cannot identify
+you has nothing to arrest, which puts the whole weight back on §4.2's ladder
+where it belongs.
+
+### 15.3 The victim is a person who perceives — audit finding C
+
+v3 was player → target → witnesses throughout. The target has senses too, and
+**the most dangerous witness in this game is the man you failed to kill**:
+close, lit, facing you, and with every reason in the world to talk.
+
+- The target runs the same perception and observation model as anybody else,
+  with one bias: **being attacked guarantees rung 3 and usually rung 4.** He
+  was looking right at you.
+- He can see it coming — which is what "against a ready, armed man" in §5.3
+  actually means, and it is now a perception result rather than a table entry.
+- He can run, and a fleeing target is a *delivering witness* (§4.5) who also
+  happens to be the victim. That is the tensest chase in the design and it
+  needs no chase mechanic — he is going somewhere and you know where.
+- **He can survive.** `combat-spec.md` already models injury, healing, wounds
+  turning bad, treatment and feuds; the survivor arrives fully built and has
+  never been connected to anything.
+- Treatment plants a second witness, which `HarmBook` already does: a doctor
+  who can place a knife wound on a Tuesday.
+
+This is the strongest argument in the document that killing costs more than it
+saves, and v3 did not contain it.
+
+### 15.4 Blood — audit finding K
+
+Promised in three places, specified in none.
+
+- **It appears** on the actor for edged, ligature-with-struggle and improvised
+  weapons; never for firearms, the cosh, or an accident.
+- **It is rung-2 evidence** — a distinguishing mark, exactly like the limp.
+  Not proof of anything; a thing people can describe.
+- **It is noticed by light and proximity**, through the same vision model.
+  A stain reads at conversational distance under a lamp and not at all across
+  a dark street. Nobody spots it at 20m at 3am, and everybody spots it in the
+  bar.
+- **It persists until you deal with it**, and dealing with it is the point:
+  washing takes time and a place, changing needs a second coat you thought to
+  bring (§5.2, Family 7), and getting rid of the old one is a disposal that can
+  be witnessed like any other (§7.4).
+- **Who sees it matters more than that it exists.** Blood noticed by a stranger
+  is a rumour. Blood noticed by the woman you are seeing is a scene.
+
+The KCD2 lesson holds: one violent minute should cost three in-game days, and
+this is the cheapest possible way to buy that.
+
+### 15.5 The frisk — audit finding L
+
+§7.2 claimed the *carrying* row matters more than the *reach* row and then
+gave the mechanism three sentences.
+
+- **Who can:** a constable at any point once you are a person of interest;
+  a doorman at a place that has one; one of the outfits, as a demonstration;
+  Ellis, as a conversation rather than a search.
+- **On what trigger:** never at random. It follows suspicion, a place with a
+  rule, or someone deciding to make a point.
+- **Refusing is an answer.** It is not a crime and it is not free — refusing a
+  doorman means not going in, refusing a constable is itself something people
+  saw you do.
+- **Concealment belongs to the object AND the coat.** A switchblade is
+  concealable in anything; a sawn-off is concealable in nothing; the coat
+  moves everything one step. This is why Family 7 is not padding.
+- **Found is worse than used.** A clean knife found on you the night after a
+  stabbing on your street is not evidence of anything and will convict you
+  socially anyway. That asymmetry is the whole reason the loadout decision at
+  the door has teeth.
+
+### 15.6 Memory hardens as it decays — audit finding M
+
+The mill ages facts. It does not model the thing eyewitnesses are notorious
+for: **accuracy falls while confidence rises.**
+
+A hesitant *"I think it was a big man in a long coat"* becomes, after a week
+of telling it, a certain *"it was Tom Novak."* The rung can climb without a
+single new observation, purely from retelling and from what the teller already
+believed (§4.6's familiarity bias).
+
+- It is true, it is free drama, and it makes `Discredit` genuinely interesting
+  — attacking a hardened memory is attacking someone's certainty rather than
+  their honesty.
+- It gives **time pressure in the other direction**: a witness left alone gets
+  *more* dangerous, not less, which is a much better clock than decay alone.
+- And it lets the player be destroyed by something that never happened, which
+  §4.6 already argued the story wants.
+
+---
+
+## 16. CALIBRATION — the first numbers, audit finding F
+
+v3 contained **no figures at all**, in a project whose standing lesson is
+*check the ruler before the reading*. Without a table the implementation
+invents everything and there is nothing to check it against.
+
+**These are first guesses. Every one of them will move.** The point is that
+each has a reason and a gate, so it moves *from* somewhere.
+
+### 16.1 Vision
+
+| Quantity | First value | Why |
+|---|---|---|
+| Full cone | 120° total | Human-ish; wide enough that hiding behind someone's shoulder is not trivial |
+| Acuity band | inner 60° | Outside it, motion only — Blacklist's band model |
+| Detection range, clear daylight | 40m | You can tell a person is there across a street and not much further |
+| Rung 1, silhouette | ≤ 35m | Build and coat read almost as far as presence does |
+| Rung 2, a mark | ≤ 18m | A limp is a gait, so it reads further than a scar |
+| Rung 3, a face | ≤ 8m | Deliberately short. Faces are close-range |
+| **Rung 4, recognition** | **≤ 25m** | **Further than a face**, because you know how a friend walks. The single most characteristic number in the table |
+| Light multiplier | day 1.0 · under a lamp 0.7 · unlit street 0.25 · doorway 0.12 | Multiplies every range above. `LightModel` already returns this |
+| Notice time | 0.35s in the acuity band | A glance is not a look |
+| Identification time | 1.2s continuous | Recognition is slower than detection |
+| Motion | running ×2.0 · walking ×1.0 · still ×0.5 | Stillness is a tactic |
+
+### 16.2 Hearing
+
+Loudness in dB-like units; the audible radius doubles every 6 units above the
+local ambient floor, capped at 250m.
+
+| Ambient floor | Value |
+|---|---|
+| Residential street, 3am | 25 |
+| Daytime street | 45 |
+| Market at noon | 58 |
+| The bar on a busy night | 68 |
+| Heavy rain, outdoors | +12 to any of the above |
+
+| Event | Loudness |
+|---|---|
+| Footstep, walking | 20 |
+| Door slam | 55 |
+| Shout | 65 |
+| Bottle smashing | 70 |
+| Wire | — |
+| Suppressed .22 | 62 |
+| .38 snub | 100 |
+
+Read the two tables together and Jafar's own example falls straight out: a
+suppressed .22 in a busy bar (62 vs 68) **carries nowhere**; the same shot in
+a residential street at 3am (62 vs 25) **carries the length of it**. Nobody
+has to be told this; you learn it by living in the city.
+
+Alert state multiplies the listener's effective floor downward by up to 8
+units — the frightened man who hears a footstep.
+
+### 16.3 Time
+
+| Quantity | First value |
+|---|---|
+| Delivery walk, typical | 2–9 minutes, real routes, real speeds |
+| Frightened witness | runs, and picks the nearest destination |
+| Unsure witness | sits with it 20–90 minutes first |
+| Body discovery, alley at 3am | hours |
+| Body discovery, market at noon | under a minute |
+| Standoff beat (§6.2) | 0.4s duck, once per event |
+| Memory hardening (§15.6) | rung +1 per ~4 retellings, confidence +0.1 per retelling |
+
+---
+
+## 17. PERFORMANCE AND PERSISTENCE — audit findings G and H
+
+### 17.1 Performance, designed rather than acknowledged
+
+v3 said *"throttled by distance"* three times and never mentioned the
+Near / Mid / Far band model this project already has.
+
+- **Only the Near band perceives.** Mid-band residents carry and pass talk
+  without bodies, which is tested and works; giving three thousand people
+  vision cones would cost the frame and buy nothing the mill does not already
+  produce. This is assumption 1 in §13, made concrete.
+- **Vision recomputes at ~6Hz, staggered**, not every frame for everyone. A
+  head turning a sixth of a second late is invisible; sixty cone tests a frame
+  is not.
+- **Hearing is event-driven and therefore nearly free.** Sounds are rare;
+  there is no per-frame cost at all, just a radius test against the Near band
+  when something happens.
+- **Occlusion is the expensive part**, so it is the last test rather than the
+  first: cone, then range, then light, then — only if all three pass — a ray.
+- **Budget: 1.2ms per frame for all perception at 60fps**, with a gate that
+  fails the build when the sim exceeds it. A number nobody has measured on
+  real hardware, which is exactly why it needs a gate rather than a hope.
+
+### 17.2 Persistence, which v3 never mentioned once
+
+New durable state, and the obvious case — **saving while a witness is halfway
+through a delivery walk** — had no answer:
+
+| State | Persisted as |
+|---|---|
+| Observation records | Slot set, rungs, certainty, willingness, per witness per event |
+| In-flight deliveries | Destination, progress, and the deadline they are walking toward |
+| Mutual-awareness pairs | Both halves, because the ghost depends on it |
+| Carried objects | What is on you, what is at home |
+| Provenance | Per weapon instance, permanently |
+| Blood and cleanliness | With the timestamp it was acquired |
+| Alert states | Per person, decaying |
+
+The machinery exists — atomic writes, backups, slots, all built and tested.
+This is schema work, and it goes in **with** each phase rather than after it,
+because a save format retrofitted is a save format broken.
+
+---
+
+## 18. COST AND THE LAB — audit finding N
+
+Every other spec in this project costs its phases and gets a lab scenario.
+The largest one had neither.
+
+| Phase | Core | Unity / wiring | Total |
 |---|---|---|---|
-| A | Ghost contradicts the dread | **Design flaw** | Me, unless you disagree with the fix |
-| B | Nothing is predictive | **Design gap** | **NEEDS A CALL** |
-| C | The victim is not modelled | **Design gap** | Me |
-| D | Accidents may dominate | **Balance risk** | Me, proven in the lab |
-| E | Two witness systems | **Integration** | Me |
-| F | No numbers | Spec gap | Me |
-| G | Performance undesigned | Spec gap | Me |
-| H | Persistence unmentioned | Spec gap | Me |
-| I | No acute police response | **Design gap** | **NEEDS A CALL** |
-| J | Phase 1 gate misses the point | Verification | Me |
-| K | Blood unspecified | Thin | Me |
-| L | The frisk unspecified | Thin | Me |
-| M | Memory does not change | Missed opportunity | Me |
-| N | No estimates, no lab | Planning | Me |
+| 1 — perception + non-crime reactions | ~2 days | ~1 day | **~3 days** |
+| 1b — legibility | ~0.5 day | ~1 day | **~1.5 days** |
+| 2 — observation, reaction, the ghost | ~2.5 days | ~1 day | **~3.5 days** |
+| 3 — melee, carry, blood, the frisk | ~2 days | ~1.5 days | **~3.5 days** |
+| 4 — the murder weapon, acquisition, accidents | ~2 days | ~1 day | **~3 days** |
+| 5 — firearms | ~1 day | ~0.5 day | **~1.5 days** |
+
+**~16 days of build**, and the estimate is honest about being the largest
+single feature in the project. Phase 1 and 1b are the hedge and they are four
+and a half of those days.
+
+**`RunPerceptionLab`**, in BalanceLab, answering the questions no unit test
+can:
+
+- Across a hundred randomised events, **what is the distribution of slot
+  sets**? If 80% are *Full*, the perception model is too generous and the
+  partial-witness design does nothing.
+- **How often does the optimal player reach for an accident?** If it is most
+  of the time, §5.2's three constraints are not enough (risk 5).
+- **How often does brandishing end it?** Same question, risk 4.
+- **What does a week look like after one killing**, by weapon — witnesses,
+  deliveries intercepted, police ladder reached, quiet endings still available.
+  `RunViolenceLab` already produces exactly this shape of table.
+- **Does the survivor dominate?** If failing to kill is always worse than
+  never trying, §15.3 has been tuned into a trap rather than a choice.
 
 ---
 

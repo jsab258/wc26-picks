@@ -1041,3 +1041,22 @@ no crime.
 **Assumptions on record** (spec §13): perception runs for events the player is
 party to rather than for all three thousand residents, and Phase 1 goes to a
 playtest alone.
+
+**Post-approval audit (spec §14) found fourteen gaps; all are resolved in
+spec v4 §§15–18.** Four change the plan above:
+
+- **Non-crime reactions move into Phase 1**, and Phase 1 now has a *behaviour*
+  gate — loitering draws a look and a remark, running at night turns heads a
+  walk does not, a 3am door slam brings somebody to a window. The old gate
+  tested detection ranges, which would have let a city that computes perfectly
+  and reacts to nothing go green.
+- **The ghost is restricted to mutual awareness only**, because showing it for
+  every witness destroyed the case where you are seen and never know it.
+- **Two approved additions:** symmetry as the planning rule — *if you can tell
+  he is facing you, he can see you*, gated on a silhouette measurement at 18m
+  with the survey verb as the designated fallback — and **arrest with no
+  chase** when a constable watches you do it.
+- **`Violence.Saw` and `KillingConfidence` are superseded, not reused.**
+
+**Estimate: ~16 days** (spec §18). Phase 1 + 1b is 4.5 of them and is the
+hedge. `RunPerceptionLab` lands with Phase 2.
