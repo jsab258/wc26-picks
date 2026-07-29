@@ -1039,6 +1039,7 @@ namespace Ledger.Game
         }
 
         double _aoSpread = -1, _grainSpread = -1;
+        double _aoFraction = -1, _aoDrop = -1;
 
         void MeasureAoOnce(int sample)
         {
@@ -1070,6 +1071,15 @@ namespace Ledger.Game
             // record how far the samples disagreed. A gate reading the last
             // of three is still reading one sample; the spread is the number
             // that says whether any of them mean anything.
+            // MEASURED WHERE IT LANDED, not averaged over the frame it
+            // correctly did not touch. Occlusion darkens creases — a few
+            // percent of a street — so the global mean divides its result by
+            // the twenty parts of the image that were never in shadow, and a
+            // working pass reads as 0.0014 against a floor of 0.002.
+            var (aoFrac, aoDrop) = ImageStats.Darkened(all.Luma, noAo.Luma,
+                                                       ImageStats.QuantisationStep);
+            _aoFraction = aoFrac;
+            _aoDrop = aoDrop;
             double aoD = noAo.Mean - all.Mean;
             double grainD = all.LocalSpread - noGrain.LocalSpread;
             if (sample == 0)
@@ -1125,6 +1135,11 @@ namespace Ledger.Game
         struct FrameStats
         {
             public double Mean, Bright, Variance, EdgeRatio, LocalSpread;
+            /// The frame itself, kept so two renders can be compared pixel by
+            /// pixel. A local effect cannot be measured by any single number
+            /// summarising the whole image — that was the occlusion gate's
+            /// mistake, and no choice of summary statistic fixes it.
+            public double[] Luma;
         }
 
         FrameStats FrameShot(Camera cam)
@@ -1181,6 +1196,7 @@ namespace Ledger.Game
                 // wrong way outright. Proved in CoreTests on one image where
                 // the two statistics disagree about the sign.
                 st.LocalSpread = ImageStats.LocalSpread(luma, w);
+                st.Luma = luma;
                 st.Bright = bright / px.Length;
                 st.EdgeRatio = (centreN > 0 && cornerN > 0 && centre > 1e-6)
                     ? (corner / cornerN) / (centre / centreN) : 1.0;
@@ -2156,7 +2172,20 @@ namespace Ledger.Game
             // characteristic failure of screen-space occlusion and the reason
             // this has an upper bound at all.
             double aoDelta = (_aoOn >= 0 && _aoOff >= 0) ? _aoOff - _aoOn : -1;
-            bool aoOk = FilmGrade.Applied > 0 && aoDelta > 0.002 && aoDelta < 0.09;
+            // THE PAIR, NOT THE MEAN. `fraction` is how much of the frame the
+            // pass reached and `drop` is how hard it hit there, and both
+            // failures need a number to be visible: near-zero fraction means
+            // it never ran, near-total means it is not occlusion at all but
+            // an exposure change wearing its coat.
+            //
+            // The bounds are geometric rather than tuned. A street frame is
+            // creases, contacts and doorways — comfortably over half a
+            // percent of the image and nothing like half of it — and unlike
+            // the old global-mean floor these do not need retuning every time
+            // the amount of geometry in shot changes.
+            bool aoOk = FilmGrade.Applied > 0
+                        && _aoFraction > 0.005 && _aoFraction < 0.50
+                        && _aoDrop > 0.004;
 
             // AND THAT THE GRADE RAN AT ALL, which is a different claim and
             // the one that actually mattered.
@@ -2345,7 +2374,7 @@ namespace Ledger.Game
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
-                 $"range={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000}]", aoOk),
+                 $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00}]", mixOk),
@@ -2412,6 +2441,7 @@ namespace Ledger.Game
                       $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
+                      $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +

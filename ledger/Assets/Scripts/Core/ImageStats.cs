@@ -85,6 +85,51 @@ namespace Ledger.Core
         public static double Luma(double r, double g, double b) =>
             0.299 * r + 0.587 * g + 0.114 * b;
 
+        /// How much of the frame an effect DARKENED, and by how much where
+        /// it did.
+        ///
+        /// THE GLOBAL MEAN IS THE WRONG RULER FOR A LOCAL EFFECT, and the
+        /// arithmetic says so plainly. Ambient occlusion darkens creases —
+        /// where a wall meets the ground, under a sill, inside a doorway —
+        /// which is a few percent of a street frame. Occlusion working
+        /// perfectly, dropping those pixels by a very visible 0.03, moves the
+        /// mean of the WHOLE frame by 0.03 x 0.05 = 0.0015.
+        ///
+        /// CI reported 0.0014 against a floor of 0.002 and called it a
+        /// failure. That reading is not a broken effect; it is what a working
+        /// one looks like through a statistic that divides its result by the
+        /// twenty parts of the image it was never supposed to touch. The
+        /// floor was tuned on a scene with a different amount of geometry in
+        /// it, and would need retuning for every scene forever.
+        ///
+        /// Splitting it in two fixes that, and says more. `fraction` is how
+        /// much of the frame the effect reached — near zero means it did not
+        /// run, near one means it is not an occlusion pass but an exposure
+        /// change wearing one. `meanDrop` is how hard it hit where it landed,
+        /// undiluted by everywhere it correctly did nothing.
+        ///
+        /// `epsilon` exists because the frames are read back as 8-bit, so
+        /// pixels differ by ±1/255 for no reason at all. Anything smaller
+        /// than a quantisation step is not a measurement.
+        public const double QuantisationStep = 1.0 / 255.0;
+
+        public static (double fraction, double meanDrop) Darkened(
+            double[] with, double[] without, double epsilon)
+        {
+            if (with == null || without == null || with.Length == 0
+                || with.Length != without.Length) return (0, 0);
+            double sum = 0;
+            int n = 0;
+            for (int i = 0; i < with.Length; i++)
+            {
+                double drop = without[i] - with[i];
+                if (drop <= epsilon) continue;
+                sum += drop;
+                n++;
+            }
+            return n > 0 ? (n / (double)with.Length, sum / n) : (0.0, 0.0);
+        }
+
         /// What per-pixel noise of amplitude `sigma` ADDS to the local spread.
         ///
         /// Two independent samples differ with variance 2σ², so the expected

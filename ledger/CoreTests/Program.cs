@@ -7993,6 +7993,69 @@ namespace Ledger.CoreTests
                 $"{ImageStats.LocalSpread(ramp, W):0.000000} against {withWrap:0.000000} "
                 + "if the wrap is counted");
 
+            // ---- AND THE SAME MISTAKE IN THE OCCLUSION GATE ----
+            //
+            // Occlusion darkens creases: a few percent of a street frame. The
+            // effect working perfectly, dropping those pixels by a very
+            // visible amount, barely moves the mean of the whole frame —
+            // because the mean divides the result by the ninety-five parts of
+            // the image it was never supposed to touch.
+            // Derived from the construction rather than typed in: the first
+            // version asserted five percent of a frame whose creases were
+            // three rows of forty-eight, which is six and a quarter, and the
+            // check failed on its own rounding rather than on anything about
+            // the statistic.
+            const int CreaseRows = 3;
+            const double CreaseDrop = 0.03;
+            double creaseFraction = CreaseRows / (double)H;
+            var lit = Make((x, y) => 0.40);
+            var occluded = Make((x, y) => y < CreaseRows ? 0.40 - CreaseDrop : 0.40);
+            double meanShift = ImageStats.Mean(lit) - ImageStats.Mean(occluded);
+            Check(Math.Abs(meanShift - CreaseDrop * creaseFraction) < 1e-9,
+                "occlusion at full strength on a few percent of a frame moves the global "
+                + "mean by the drop TIMES the fraction — which is a number about the size "
+                + "of the one CI reported and called a failure",
+                $"{meanShift:0.00000} from a {CreaseDrop:0.00} drop over "
+                + $"{100 * creaseFraction:0.0}% of the frame");
+
+            var (frac, drop) = ImageStats.Darkened(occluded, lit, ImageStats.QuantisationStep);
+            Check(Math.Abs(frac - creaseFraction) < 1e-9,
+                "measured as a FRACTION it says how much of the frame the effect reached",
+                $"{100 * frac:0.0}%");
+            Check(Math.Abs(drop - CreaseDrop) < 1e-9,
+                "and the drop where it landed is the real 0.03, undiluted by everywhere it "
+                + "correctly did nothing — twenty times the signal, on the same two frames",
+                $"{drop:0.0000} against a global shift of {meanShift:0.00000} — "
+                + $"{drop / meanShift:0.0} times the signal on the same two frames");
+
+            // AND IT MUST NOT COUNT WHAT GOT BRIGHTER. An occlusion pass only
+            // subtracts light. A statistic that takes the magnitude of the
+            // difference would report a frame where half went up and half
+            // went down as a strong result, which is the signature of an
+            // exposure change rather than occlusion.
+            var mixed = Make((x, y) => y < H / 2 ? 0.40 - 0.03 : 0.40 + 0.03);
+            var (mixedFrac, _) = ImageStats.Darkened(mixed, lit, ImageStats.QuantisationStep);
+            Check(Math.Abs(mixedFrac - 0.5) < 0.02,
+                "half a frame darkened reads as half, not all — brightening is not "
+                + "occlusion however large it is");
+
+            // QUANTISATION. The frames come back 8-bit, so pixels differ by
+            // a step for no reason. Anything under one is not a measurement.
+            var jitter = Make((x, y) => 0.40 - ((x + y) % 2) * (0.6 / 255.0));
+            var (jFrac, _) = ImageStats.Darkened(jitter, lit, ImageStats.QuantisationStep);
+            Check(jFrac == 0,
+                "and sub-quantisation differences are not counted at all — half the frame "
+                + "off by less than one 8-bit step is read-back noise, not an effect");
+
+            var (zeroFrac, zeroDrop) = ImageStats.Darkened(lit, lit, ImageStats.QuantisationStep);
+            Check(zeroFrac == 0 && zeroDrop == 0, "an effect that changed nothing measures as nothing");
+            var (nullFrac, _) = ImageStats.Darkened(null, lit, 0.001);
+            Check(nullFrac == 0, "and a missing frame is zero rather than a crash");
+            var (mismatchFrac, _) = ImageStats.Darkened(new double[4], lit, 0.001);
+            Check(mismatchFrac == 0,
+                "as is a pair of frames that are not the same size — comparing them "
+                + "pixel by pixel would be comparing two different places");
+
             // ---- DEGENERATE ----
             Check(ImageStats.LocalSpread(null, W) == 0 && ImageStats.LocalSpread(new double[0], W) == 0,
                 "no image is no spread rather than a crash");

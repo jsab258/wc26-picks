@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Darkened counts brightening too -- an exposure change reads as occlusion",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "                double drop = without[i] - with[i];\n                if (drop <= epsilon) continue;\n                sum += drop;",
+    "new": "                double drop = without[i] - with[i];\n                if (drop < 0) drop = -drop;\n                if (drop <= epsilon) continue;\n                sum += drop;"
+  },
+  {
+    "name": "the drop is averaged over the WHOLE frame -- the dilution this exists to remove",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            return n > 0 ? (n / (double)with.Length, sum / n) : (0.0, 0.0);",
+    "new": "            return n > 0 ? (n / (double)with.Length, sum / with.Length) : (0.0, 0.0);"
+  },
+  {
+    "name": "no quantisation floor -- 8-bit read-back jitter counts as an effect",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "                if (drop <= epsilon) continue;",
+    "new": "                if (drop <= 0) continue;"
+  },
+  {
+    "name": "mismatched frame sizes are compared anyway",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            if (with == null || without == null || with.Length == 0\n                || with.Length != without.Length) return (0, 0);",
+    "new": "            if (with == null || without == null || with.Length == 0) return (0, 0);"
+  },
+  {
+    "name": "the quantisation step is a half-step, so sub-pixel jitter survives it",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "        public const double QuantisationStep = 1.0 / 255.0;",
+    "new": "        public const double QuantisationStep = 0.5 / 255.0;"
+  }
+]
