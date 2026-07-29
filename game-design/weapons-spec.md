@@ -1,4 +1,4 @@
-# PERCEPTION, WEAPONS AND VIOLENCE — proposal v2.1
+# PERCEPTION, WEAPONS AND VIOLENCE — proposal v2.2
 
 **Status: PROPOSAL. Nothing built.**
 
@@ -7,11 +7,22 @@
   **APPROVED**, guns at the last phase **APPROVED**. §4 (observation) and §5
   (weapons) sent back: *"seems a bit shallow at first glance. think about it
   in more detail and check other high quality games."*
-- **v2.1 (this) — §4 and §5 rebuilt from the ground up, and a new §6 on feel
+- v2.1 (2026-07-29) — §4 and §5 rebuilt from the ground up; new §6 on feel
   and legibility, which is what *"it has to be EXCEPTIONALLY GOOD from a game
-  feel and UI/UX pov"* actually requires and which v2 gestured at in one
-  paragraph.** New §7 answers the acquisition question — buy, steal, find —
-  which was in the original brief and which v2 did not answer.
+  feel and UI/UX pov"* actually requires; new §7 answering the acquisition
+  question the original brief asked and v2 did not. Verdicts: **§4.5 the
+  delivery window APPROVED**, **§6 approved in general**, **§7 approved**.
+  Two sent back:
+  - *"7 feels too few and low budget. think and research some more"* → §5
+  - *"[attention] feels not explicit enough and depends a lot on how clearly
+    we model and animate characters. alternative ideas?"* → §6.2
+- **v2.2 (this)** — **§5 is now seven families, ~16 carried objects, the
+  environment as a weapon family of its own, and kit** — the Hitman argument
+  that accidents and world objects expand a small arsenal further than more
+  guns do. **§6.2's attention readout is now four redundant channels led by
+  audio rather than by animation**, plus an explicit accessibility marker,
+  because betting the most important feedback in the game on the weakest asset
+  we own was the right thing to be challenged on.
 
 ---
 
@@ -527,67 +538,153 @@ never fire it.
 **And it is reversible in exactly one direction.** You can always escalate
 from threat to act. You can never un-draw.
 
-### 5.2 The table
+### 5.2 The roster is families and objects, not a list of seven
 
-Ten columns, because six was the shallowness. Nothing here is a damage
-number.
+v2.1 offered seven rows. Jafar: *"7 feels too few and low budget."* Correct,
+and the fix is not "add three more knives" — it is that a small team makes an
+arsenal feel large the way **Hitman** does: a modest set of *carried* weapons,
+a much larger set of *objects in the world*, and a category of kill that uses
+no weapon at all. Blood Money's accident system is the canonical example —
+pushing a man over a rail expands the perceived arsenal far more than another
+pistol does. ([Hitman Wiki — Staged Accident](https://hitman.fandom.com/wiki/Staged_Accident),
+[Weapons](https://hitman.fandom.com/wiki/Weapons_(Feature)))
 
-| | **Fists** | **Cosh** | **Knife** | **Bottle / bar** | **Wire** | **Pistol** | **Suppressed pistol** |
+For comparison, Mafia II — a bigger team, a similar setting — shipped roughly
+fifteen firearms and almost no melee.
+([Mafia Wiki](https://mafiagame.fandom.com/wiki/Weapons_in_Mafia_II),
+[IMFDB](https://www.imfdb.org/wiki/Mafia_II)) We should not try to beat that on
+gun count. We should beat it on **what each object means**, and win on breadth
+by counting the things Mafia II did not have: the environment, and the kit.
+
+**Seven families. Around sixteen carryable objects, plus the world.**
+
+#### Family 1 — Hands (2)
+
+| | Notes |
+|---|---|
+| **Fists** | Loses to a ready man. Loud, slow, public, and it leaves him alive |
+| **Brass knuckles** | Era-correct, pocket-sized, innocent-looking. Turns fists from *loses* into *wins fast* — and marks the face, so the man you left alive is walking evidence |
+
+#### Family 2 — Blunt (4)
+
+| | Notes |
+|---|---|
+| **Cosh / blackjack** | The reliable non-lethal. Leaves bruising a doctor can read |
+| **Bottle** | Everywhere, innocent until swung, breaks — then you are holding a stub and bleeding |
+| **Bar / tyre iron / pipe** | A world object, not carried. Heavy, lethal by accident more than intent |
+| **Baseball bat** | Carryable, *not* concealable. **A man walking down Hook Street with a bat has already said something**, and that is its real use |
+
+#### Family 3 — Edged (4), and they are genuinely different
+
+| | Notes |
+|---|---|
+| **Switchblade** | Small, concealable, fast. Unreliable through a winter coat |
+| **Kitchen knife** | Found in every building in the game. **Untraceable by being ordinary** — a knife that came from the victim's own kitchen has no provenance to follow |
+| **Ice pick** | Historically the mob's own tool: cheap, needs no permit, and explains itself if found on you. Leaves a wound a hurried coroner can miss ([Deadliest Warrior Wiki](https://deadliestwarrior.fandom.com/wiki/Ice_Pick), [National Crime Syndicate](https://nationalcrimesyndicate.com/top-5-weapons-used-mob/)) |
+| **Straight razor** | Terrifying to *brandish* and poor at killing. Exists almost entirely for §5.1 |
+
+#### Family 4 — Ligature (2)
+
+| | Notes |
+|---|---|
+| **Wire / garrote** | Silent, from behind, cannot be aborted |
+| **Cord, belt, scarf** | The improvised version. Same profile, slower, worse, and always to hand |
+
+#### Family 5 — Firearms (5), **Phase 5**
+
+Small calibres, because that is what this fiction actually used: the .22, the
+.32 and the .38 snub were the mob's working guns, and most were thrown away
+within the hour. ([GunMag Warehouse — Guns of the Mob](https://gunmagwarehouse.com/blog/guns-of-the-mob-the-most-popular-firearms-used-by-the-mafia/))
+
+| | Notes |
+|---|---|
+| **.22 target pistol** | Quiet for a gun, small, and **contemptuous** — a .22 to the back of the head says *this was a job*, and the street reads it that way |
+| **.38 snub revolver** | The everyman's gun. **Leaves no casing**, because revolvers do not eject — a real forensic difference at zero art cost |
+| **.45 automatic** | Loud, war surplus, **throws brass onto the pavement** that Ellis can find and tie to the weapon |
+| **Suppressed .22** | The quiet one. A radius, not a mute button |
+| **Sawn-off shotgun** | Not concealable, one use, one message, and no taking it back |
+
+**The revolver-versus-automatic distinction is the kind of depth that costs
+nothing and pays forever.** Choosing the snub because it leaves nothing behind
+is a real decision made with real knowledge, and it never needs a tutorial.
+
+#### Family 6 — The environment, and this is where the roster stops being a list
+
+**An accident is the only violence in this game that produces no crime.** The
+observation model returns *Aftermath* with the wrong content: a man fell down
+the stairs. Nobody is looking for anybody.
+
+Stairs and railings. A window. The dock. A road and a moving car. Fire. Water.
+The machinery in the back of a workshop. A bad drink and a long walk home.
+
+These use places we have already built, they need no new weapon art, and they
+are **thematically exact for Tom Novak** — a man who runs a bar and is not a
+killer, right up until a stairwell solves a problem for him. This family alone
+does more for the felt size of the arsenal than five more pistols would.
+
+#### Family 7 — Kit, which is not weapons and decides whether any of it works
+
+Gloves. A second coat, to change into. A bag. A car. A torch. A bottle of
+something, to make a man slow and talkative. Keys and the access they buy.
+
+This is what makes the loadout-at-the-door decision (§7.1) interesting: **the
+best answer is often not another weapon.**
+
+### 5.3 The columns — thirteen axes, and this is where the depth actually is
+
+Every carried object is scored on all of these. Sixteen objects × thirteen
+axes is a far bigger design space than a longer list of guns, and none of it
+is a damage number.
+
+| Axis | Why it matters |
+|---|---|
+| **Noise made** | Feeds hearing directly |
+| **What can mask it** | Rain, a crowd, a jukebox, traffic — the schedule becomes tactical |
+| **Reach** | 0.8m to 20m+ |
+| **Time to ready** | The draw is a commitment and it is seen |
+| **Can it be aborted?** | The wire cannot. Everything else can |
+| **Victim cries out** | The difference between one witness and four |
+| **Against a ready, armed man** | Most of the roster says *lose*. Tom runs a bar |
+| **Leaves a body** | Or does not — the cosh and the knuckles |
+| **What it leaves at the scene** | Wound signature, brass, glass, nothing |
+| **What it leaves on you** | Blood on a coat is a problem at 9am |
+| **Carrying it** | Innocent, concealable, damning, impossible to explain |
+| **Provenance** | Bought and traceable, or a kitchen knife nobody can follow |
+| **How it fails** | The character of the weapon, and the column v2 was missing |
+
+Worked examples, so the table is not abstract:
+
+| Weapon | Noise | Ready | Abort | Cries out | On you | At the scene | Fails by |
 |---|---|---|---|---|---|---|---|
-| **Noise made** | Moderate, scuffle | Low thud | Low | **Loud impact + glass** | **None** | **Very loud — district** | Low — one room |
-| **What can mask it** | A busy street | Almost anything | Almost anything | A crowd, barely | n/a | **Rain no; a truck, briefly; almost nothing** | Rain, a bar, traffic |
-| **Reach** | 0.8m | 1.0m | 1.0m | 1.2m | Contact, **from behind** | 20m+ | 20m+ |
-| **Time to ready** | None | ~1s from a coat | ~1s | Grab from the world | ~2s, both hands | ~1.5s, and **visible** | ~1.5s, visible |
-| **Can you abort?** | Yes, freely | Yes | Yes, until it lands | Yes | **No — mid-way is catastrophic** | Yes, but the draw was seen | Yes, but the draw was seen |
-| **Victim cries out** | Yes, throughout | Once, short | Yes, briefly | Yes | **No** | No | No |
-| **Against a ready, armed man** | **Loses** | Loses | Even, and both get hurt | Poor | **Impossible** | Wins | Wins |
-| **Leaves a body** | Rarely | Rarely — **the reliable non-lethal** | Yes | Rarely | Yes | Yes | Yes |
-| **What it leaves behind** | Your face, and their memory | Bruising a doctor can read | **Wound signature, blood, and an object** | Glass, and blood — yours too | A mark on the neck; nothing else | **A casing, a wound, and a very loud memory** | A casing, a wound, no memory of a bang |
-| **On you afterwards** | Knuckles, torn coat | Nothing | **Blood on your clothes** | **Blood, probably yours** | Nothing | Nothing visible | Nothing visible |
-| **Carrying it** | n/a | Concealable, and innocent if found | Concealable, **and damning if found** | Innocent until used | Concealable, and **impossible to explain** | **Cannot be concealed well** | Cannot be concealed well |
-| **Fails by** | Losing, in public, slowly | Not going down first time | Him getting a hand on it | Breaking; then you hold a stub | Him getting a hand under it | **Missing, and now everyone is coming** | Missing, quietly |
+| **Fists** | Scuffle | — | Freely | Throughout | Knuckles | Your face in his memory | Losing, in public, slowly |
+| **Cosh** | Low thud | ~1s | Yes | Once | Nothing | Bruising a doctor reads | Not dropping him first time |
+| **Ice pick** | Low | ~1s | Until it lands | Briefly | Blood | A wound that reads as something else | His hand getting to it |
+| **Wire** | **None** | ~2s, both hands | **No** | **No** | Nothing | A mark on the neck | His hand getting under it |
+| **.38 snub** | **Very loud** | ~1.5s, seen | Yes, but the draw was seen | No | Nothing | **No casing** | Missing, and now everyone is coming |
+| **.45 auto** | **Very loud** | ~1.5s, seen | Same | No | Nothing | **Brass on the pavement** | Same, plus evidence |
+| **Suppressed .22** | One room | ~1.5s, seen | Same | No | Nothing | A casing, no memory of a bang | Missing, quietly |
+| **Stairs** | A fall | — | Until you touch him | Once | Nothing | **A man who fell down the stairs** | Him surviving it |
 
-### 5.3 Read the columns, because the columns are the design
+### 5.4 Situations, which is how a player actually thinks
 
-- **Nothing is strictly better.** The pistol has the worst noise, the worst
-  concealment and the worst trace. The wire is silent and cannot be aborted.
-  The cosh is the safest and cannot solve a man who is coming for you.
-- **The failure-mode row is the character of each weapon**, and it is what v2
-  was missing entirely. The knife is not "a better fist"; it is a tool whose
-  failure is a struggle over a blade in which either of you may die.
-- **"On you afterwards" is a whole second act.** Blood on your coat at 1am is
-  a problem at 9am, in the bar, in front of someone who loves you. Washing,
-  changing and burning clothes become verbs, and every one of them can be
-  witnessed. This is the KCD2 lesson and it is nearly free.
-- **"What can mask it" makes the clock and the weather tactical.** Choosing
-  the suppressed pistol *because it is raining* is exactly the kind of
-  decision this game should be made of.
-- **Tom is not a fighter.** `combat-spec.md` §2 is explicit and this table
-  keeps faith with it: against a ready, armed man, four of the seven rows say
-  *lose*.
-
-### 5.4 Situations, which is how a player will actually think
-
-- **Crowded street, must be now** → suppressed pistol. He drops; nobody knows
-  where it came from. *Victim + Aftermath* for everyone, and no actor slot at
-  all.
-- **Alone with him in a back room, during a busy night at the bar** → knife.
-  He cries out; the jukebox eats it. Masking is the whole reason this works.
-- **He must not make a sound and you have time** → wire. Requires unseen and
-  behind. Catastrophic if interrupted.
-- **You want it heard** → pistol. Sometimes the point of violence is the
-  message, and the game should let you send it.
-- **He must stop and he must not die** → cosh. The reliable non-lethal, and
-  the one that leaves a man who *knows*.
+- **Crowded street, must be now** → suppressed .22. He drops; nobody knows
+  where it came from. *Victim + Aftermath* for everyone, no actor slot at all.
+- **Alone with him in the back room, on a busy night** → any knife. He cries
+  out; the jukebox eats it. Masking is the entire reason this works.
+- **It must never be a crime at all** → the stairs.
+- **It must not be traceable to you** → his own kitchen knife, left there.
+- **It must leave nothing at the scene** → the snub, not the automatic.
+- **You want it heard** → the .45, or the sawn-off. Sometimes the point of
+  violence is the message.
+- **He must stop and must not die** → cosh, or knuckles.
 - **You do not want this to happen at all** → brandish, and let him decide.
 
 ### 5.5 What stays out
 
 No damage numbers, no health bars, no durability, no crafting, no upgrades —
-consistent with `combat-spec.md` §4. **No rifles or shotguns**: they are not
-carryable, not concealable, and not this story.
-
----
+consistent with `combat-spec.md` §4. **No rifles, no automatic weapons.** A
+Thompson is a different genre; this game tops out at a sawn-off, and it should
+feel like too much when it happens.
 
 ## 6. FEEL AND LEGIBILITY — the section the quality bar demands
 
@@ -647,14 +744,62 @@ and then the player stops needing it — which is the mark of good feedback.
 This is Chaos Theory's ambient bar converted into something a third-person
 game can show without a HUD.
 
-**Attention — on the person, never on the HUD.**
-No exclamation marks, no eye icons. A person who has noticed you **looks at
-you**, and holds it longer than a glance. We already built head-turn and
-gaze. Escalation is legible because they *walk toward the thing* — v2 §6's
-"investigate" is the highest-value behaviour in the design partly because it
-is self-explaining. If a player cannot tell the difference between a glance
-and a look, this feature is broken, and that is a playtest question rather
-than a spec question.
+**Attention — four redundant channels, and audio carries it, not animation.**
+
+v2.1 said *"a person who has noticed you looks at you"* and left it there.
+Jafar, correctly: *"feels not explicit enough and depends a lot on how clearly
+we model and animate characters."* That is the right objection. Our bodies are
+thirteen boxes; faces do not exist; a held look versus a glance is exactly the
+read that capsules cannot deliver. Betting the most important feedback in the
+game on the weakest thing we own is how this fails.
+
+So the primary channel is **sound**, which is the strongest thing we own — we
+have a voice engine, generated barks, spatial audio, an ambient bed per space
+and adaptive music stems that already run. And there are **four channels, made
+deliberately redundant: any two of them should be enough.**
+
+**1. The street goes quiet — and this is the best idea in the section.**
+The exact inverse of masking (§3.2), for free, from the same system.
+Conversation near you stops. The jukebox keeps playing; the voices around it
+do not. A crowd going quiet is the most recognisable "you have been noticed"
+signal a human being knows, it is *more* frightening than any icon, it needs
+**zero animation**, and we already model the ambient bed per space and already
+generate NPC-to-NPC speech. It also runs backwards: **the street resuming is
+how the player learns the event is over**, which is the other thing
+stealth-adjacent games are chronically bad at communicating.
+
+**2. Barks — the person says something.** `BarkGen` and the voice engine
+exist. *"Hoy."* A hushed *"that's him."* Thief did this in 1998 and it is
+still the standard, because a bark carries **state and direction at once** —
+direction free from spatial audio, which is the answer to the objection that
+purely diegetic feedback fails behind you.
+
+**3. Behaviour break — the motion changes, which reads at any fidelity.**
+Not a facial expression. A walker who was walking **stops**. A pair who were
+talking **turn**. The eye detects a change in motion far better than it reads
+a face, so this channel works on boxes today and gets *better* when characters
+land rather than depending on them. Escalation stays self-explaining because
+an investigating NPC **walks toward the thing**.
+
+**4. One music stem.** We built adaptive layers driven by real state and they
+are running in the build. A single low stem enters when someone's attention is
+genuinely on you, and nothing else in the mix is allowed to do that. It is an
+emotional channel rather than an informational one, and it is the one players
+read fastest.
+
+**And an explicit marker, in accessibility, off by default.** Stated up front
+rather than retrofitted, per `combat-spec.md` §4. Three of the four channels
+above are audio, so hearing loss disables the system almost entirely — the
+honest answer is an optional small eye at the frame edge, RDR2-style, **white
+when they cannot identify you and filled when they can**, rather than
+pretending the diegetic version serves everybody. It is a presentation option,
+not a difficulty setting.
+
+**The test that keeps this honest:** play a scene with the sound off, and play
+it with the picture off. If either pass leaves the player unable to tell they
+were noticed, the channels are not redundant and one of them is decoration.
+This is checkable in a playtest and it is on the QA matrix rather than in a
+designer's hope.
 
 **What they think they know — the ghost, and this is the idea I would defend
 hardest in the whole document.**
@@ -883,37 +1028,34 @@ fiction and the easiest thing to get wrong.
 
 ## 12. WHAT I NEED FROM YOU
 
-Approved already and not reopened: the §1 reframing, perception before
-weapons, and guns at the last phase.
+**Approved and closed:** the §1 reframing · perception before weapons · guns
+at the last phase · **§4.5 the delivery window** · **§6 in general** ·
+**§7 acquisition and carry**.
 
-Now:
+**Still open:**
 
-1. **§4 — observation as slots + rungs + willingness + awareness + the
-   delivery window.** Specifically: is **rung 4, recognition by people who
-   know you**, the right thing to make the centre of it? I think it is the
-   one mechanic here no other crime game can do, and it makes your social
-   circle into a liability, which is the game.
-2. **§4.5 — the delivery window.** A witness is a person walking somewhere
-   for a few minutes, and you can follow, pay, threaten or kill them before
-   they arrive. It is the biggest single addition since v2 and it turns the
-   minutes after a crime into play.
-3. **§5 — the weapon table**, and in particular **§5.1, threat as the primary
-   use.** Seven rows, thirteen columns, no damage numbers, four of the seven
-   losing to a ready armed man. Are these the right seven?
-4. **§6 — the legibility design**: no meters, vignette for visibility, one
-   ring for noise, attention read off people, and **the ghost showing what a
-   witness believes rather than where you are.** This is where the UI/UX bar
-   gets met or missed, and the ghost is the piece I would defend hardest.
-5. **§7 — acquisition and carry**: a coat rather than a grid, the decision
-   made at the door, and four routes in (a supplier who is a character,
-   theft from someone who notices, taken off a body, and exactly one authored
-   find in Mickey's bar). No random loot.
+1. **§4 — observation as slots + rungs + willingness + awareness.**
+   Specifically: is **rung 4, recognition by people who know you**, the right
+   thing to make the centre of it? It is the one mechanic here no other crime
+   game can build, and it turns your social circle into a liability, which is
+   the game. *(Sent back as "I don't get it" — explained in chat 2026-07-29.)*
+2. **§5.2 — the roster, rebuilt.** Seven families, ~16 carried objects, and
+   two additions that matter more than the count: **the environment as a
+   family of its own** (an accident is the only violence that produces no
+   crime), and **kit** (gloves, a second coat, a car). Plus the forensic
+   distinctions the era gives us free — a revolver leaves no casing, an
+   automatic throws brass, a kitchen knife has no provenance to trace.
+3. **§6.2 — attention as four redundant channels**, led by sound rather than
+   animation: the street going quiet, barks, behaviour breaks (motion change,
+   which reads on boxes), one music stem, and an optional accessibility
+   marker. Any two should be enough, and the sound-off / picture-off test goes
+   on the QA matrix.
 
-If §4 and §6 are right, everything else is detail I can carry.
+Everything else is detail I can carry.
 
 ---
 
-*Sources consulted for v2.1, beyond those cited inline in v2:*
+*Sources consulted for v2.1 and v2.2, beyond those cited inline in v2:*
 [Splinter Cell Stealth Meter](https://splintercell.fandom.com/wiki/Stealth_Meter) ·
 [Splinter Cell stealth / Conviction](https://splintercell.fandom.com/wiki/Stealth) ·
 [Conviction](https://en.wikipedia.org/wiki/Tom_Clancy%27s_Splinter_Cell:_Conviction) ·
@@ -933,4 +1075,11 @@ If §4 and §6 are right, everything else is detail I can carry.
 [KCD2 crimes](https://patchcrazy.co.uk/crimes-guide-in-kingdom-come-deliverance-2/) ·
 [KCD cleanliness](https://kingdom-come-deliverance.fandom.com/wiki/Cleanliness) ·
 [AC and social stealth](https://www.gamedeveloper.com/design/why-assassin-s-creed-series-isn-t-social-stealth-and-what-to-do-about-that-) ·
-[Revival of social stealth](https://www.gamesradar.com/inside-the-revival-of-social-stealth-games/)
+[Revival of social stealth](https://www.gamesradar.com/inside-the-revival-of-social-stealth-games/) ·
+[Hitman staged accidents](https://hitman.fandom.com/wiki/Staged_Accident) ·
+[Hitman weapons](https://hitman.fandom.com/wiki/Weapons_(Feature)) ·
+[Mafia II weapons](https://mafiagame.fandom.com/wiki/Weapons_in_Mafia_II) ·
+[Mafia II on IMFDB](https://www.imfdb.org/wiki/Mafia_II) ·
+[Guns of the Mob](https://gunmagwarehouse.com/blog/guns-of-the-mob-the-most-popular-firearms-used-by-the-mafia/) ·
+[Top weapons used by the mob](https://nationalcrimesyndicate.com/top-5-weapons-used-mob/) ·
+[Ice pick](https://deadliestwarrior.fandom.com/wiki/Ice_Pick)

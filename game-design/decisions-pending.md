@@ -24,12 +24,14 @@ is approved.
 | The reframing — crime game in a city that perceives and remembers | **APPROVED** |
 | Perception first, weapons second | **APPROVED** |
 | Guns at the last phase rather than never | **APPROVED** |
-| The observation model | Sent back as *"a bit shallow"* → rebuilt in **v2.1 §4** |
-| The weapon table | Sent back → rebuilt in **v2.1 §5**, and threat-as-a-verb added |
-| Feel and legibility (new, demanded by the quality bar) | **v2.1 §6** — open |
-| Acquisition and carry (in the original brief, unanswered by v2) | **v2.1 §7** — open |
+| The delivery window — a witness is a person walking somewhere to tell someone | **APPROVED** |
+| Feel and legibility in general | **APPROVED** |
+| Acquisition and carry — a coat not a grid, four social routes in | **APPROVED** |
+| The observation model | Rebuilt in v2.1 §4; sent back as *"I don't get it"*, explained in chat — **open** |
+| The weapon roster | *"7 feels too few and low budget"* → rebuilt in **v2.2 §5.2** as seven families, ~16 objects, the environment, and kit — **open** |
+| How the player knows they were noticed | *"depends a lot on how clearly we model and animate characters"* → rebuilt in **v2.2 §6.2** as four redundant channels led by audio — **open** |
 
-Five points open, listed in `weapons-spec.md` §12.
+Three points open, listed in `weapons-spec.md` §12.
 
 The standing quality bar was restated at the same time and applies to
 everything from here: **as close to the best games in the genre as our
