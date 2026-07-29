@@ -122,11 +122,14 @@ namespace Ledger.Game
                     // result.
                     _instance._probe.intensity = 0f;
                     _instance._probe.enabled = false;
+                    Unpublish();
                 }
                 else
                 {
                     _instance._probe.enabled = true;
                     _instance._probe.intensity = Strength;
+                    _instance.Publish();
+                    RenderSettings.reflectionIntensity = Strength;
                 }
             }
         }
@@ -143,6 +146,12 @@ namespace Ledger.Game
                       SceneLighting.Wetness, GameController.NightAmount)
                 : 0f;
 
+            // The strength reaches the shading through the scene's
+            // reflection intensity now, not the probe's own — a custom
+            // reflection texture does not carry the probe's intensity with
+            // it, so setting only that was half the reason nothing showed.
+            RenderSettings.reflectionIntensity = Strength;
+
             if (Strength <= 0f)
             {
                 // Dry. Off completely — not rendered at zero intensity, which
@@ -151,6 +160,7 @@ namespace Ledger.Game
                 {
                     _probe.enabled = false;
                     _lastRenderedAt = new Vector3(float.NaN, 0, 0);
+                    Unpublish();
                 }
                 _metresSince = _secondsSince = 0f;
                 return;
@@ -192,6 +202,41 @@ namespace Ledger.Game
             _metresSince = _secondsSince = 0f;
             _probe.RenderProbe();
             Refreshes++;
+            Publish();
+        }
+
+        /// PUBLISH THE CAPTURE AS THE SCENE'S REFLECTION, rather than relying
+        /// on probe-volume containment.
+        ///
+        /// This is the fix for a probe that woke, refreshed, obeyed its rate
+        /// limit and contributed exactly zero pixels. A renderer only samples
+        /// a reflection probe when its BOUNDS sit inside the probe's box, and
+        /// the road is a small number of very large meshes — bounds far
+        /// bigger than a 48-metre box, so Unity blended them to the skybox
+        /// instead and the probe lit nothing at all.
+        ///
+        /// Diagnosed rather than guessed: killing the probe changed 0.00% of
+        /// the frame while flattening the wet surfaces' smoothness changed
+        /// 33%. So wet specular was doing plenty of work and none of it was
+        /// coming from here — the shine was direct lamp specular, and the
+        /// actual reflections, which are the entire point of the feature,
+        /// were absent.
+        void Publish()
+        {
+            var tex = _probe != null ? _probe.realtimeTexture : null;
+            if (tex == null) return;
+            RenderSettings.defaultReflectionMode =
+                UnityEngine.Rendering.DefaultReflectionMode.Custom;
+            RenderSettings.customReflectionTexture = tex;
+        }
+
+        /// Hand the sky back. A dry road reflecting a cubemap of a rained-on
+        /// street is worse than one reflecting nothing.
+        static void Unpublish()
+        {
+            RenderSettings.defaultReflectionMode =
+                UnityEngine.Rendering.DefaultReflectionMode.Skybox;
+            RenderSettings.reflectionIntensity = 1f;
         }
     }
 }

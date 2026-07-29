@@ -172,6 +172,21 @@ namespace Ledger.Game
             {
                 var open = Beats.Open(Now);
                 if (open == null) return null;
+
+                // THE HOST IF THERE IS ONE, the stored spot otherwise.
+                //
+                // Some beats carry hand-authored coordinates rather than a
+                // captured walker position, and an authored point can sit
+                // inside a doorway, behind a railing, or on the wrong side of
+                // a wall — nine days of CI got no closer than eleven metres
+                // to one and never attended a single beat. A host walker is
+                // standing somewhere a person can walk to, by construction,
+                // because they walked there.
+                //
+                // This is also the better game: the invitation is to meet
+                // somebody, and if they have moved you go where they are.
+                var host = WalkerForHost(open.HostId);
+                if (host != null) return host.transform.position;
                 return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;
             }
         }
