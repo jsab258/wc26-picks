@@ -1106,6 +1106,7 @@ namespace Ledger.Game
         double _aoFraction = -1, _aoDrop = -1;
         double _reflFraction = -1, _reflRise = -1;
         double _specFraction = -1, _specRise = -1;
+        double _presetFraction = -1;
         float _stemVolumeMax = -1f, _busMusicMax = -1f, _busMusicMin = 9f;
         int _stemsUnbound;
         double _stemRatioMin = double.MaxValue, _stemRatioMax = 0;
@@ -1162,6 +1163,27 @@ namespace Ledger.Game
             //
             // Two toggles because one cannot distinguish those, and each
             // guess costs a twenty-five minute build.
+            // DOES THE GRAPHICS PRESET DO ANYTHING. A performance setting
+            // that changes no pixels is the same failure as an effect that
+            // never runs, wearing the opposite coat — and it is worse in one
+            // way, because a player turns it down, sees nothing improve, and
+            // concludes the game is simply slow.
+            //
+            // Low against High: no shafts, short shadows, no reflections,
+            // less body detail. If that renders the same frame, the whole
+            // preset is a label.
+            int wasDetail = GameSettings.Current.Detail;
+            GameSettings.Current.Detail = (int)DetailLevel.Low;
+            SceneLighting.ApplyQuality();
+            var lowFrame = FrameShot(cam);
+            GameSettings.Current.Detail = wasDetail;
+            SceneLighting.ApplyQuality();
+            var (dDark, _) = ImageStats.Darkened(lowFrame.Luma, all.Luma,
+                                                 ImageStats.QuantisationStep);
+            var (dBright, _) = ImageStats.Brightened(lowFrame.Luma, all.Luma,
+                                                     ImageStats.QuantisationStep);
+            _presetFraction = dDark + dBright;
+
             AssetLibrary.DefeatWetSpecular(true);
             var noSpec = FrameShot(cam);
             AssetLibrary.DefeatWetSpecular(false);
@@ -2259,6 +2281,16 @@ namespace Ledger.Game
             // gate conditioned on wetness.
             bool reflSeen = _reflFraction > 0.002 && _reflRise > 0.004;
 
+            // THE GRAPHICS PRESET IS NOT A LABEL. Low turns off the shafts,
+            // shortens the shadows, drops the reflections and thins the
+            // bodies — if the frame comes back identical, none of that
+            // reached the renderer and the slider is a lie told to somebody
+            // whose machine is struggling.
+            //
+            // A twentieth of the frame is a deliberately low bar. It is
+            // asking "did anything happen", not grading the saving.
+            bool presetOk = _presetFraction > 0.05;
+
             // Bodies exist, their legs move through a real cycle, and the
             // rig does NOT solve for everyone at once. The knee spread is
             // the load-bearing part: a rig bound to a body it never drives
@@ -2511,6 +2543,7 @@ namespace Ledger.Game
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
                  $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
+                ($"preset[low vs high changes {100 * _presetFraction:0.0}% of the frame]", presetOk),
                 ($"scoreAudible[peak={_stemVolumeMax:0.000} unbound={_stemsUnbound} " +
                  $"ratio={_stemRatioMin:0.000}..{_stemRatioMax:0.000}]", scoreAudible),
             };
@@ -2580,6 +2613,7 @@ namespace Ledger.Game
                       $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
                       $"reflSeen={reflSeen} reflWetAtAb={SceneLighting.Wetness:0.00} " +
                       $"specHit={100 * _specFraction:0.00} specRise={_specRise:0.0000} " +
+                      $"presetHit={100 * _presetFraction:0.00} presetOk={presetOk} " +
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +

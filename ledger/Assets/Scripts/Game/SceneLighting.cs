@@ -76,6 +76,7 @@ namespace Ledger.Game
             QualitySettings.shadowDistance =
                 (float)Ledger.Core.Detail.ShadowDistance(
                     Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+            LightShaft.ApplyPreset();
         }
 
         void LateUpdate()

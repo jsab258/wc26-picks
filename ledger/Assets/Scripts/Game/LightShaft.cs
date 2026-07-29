@@ -120,6 +120,24 @@ namespace Ledger.Game
         }
         static bool _enabled = true;
 
+        /// Push the current graphics preset onto every shaft now.
+        ///
+        /// Without this the preset only takes effect on the next LateUpdate,
+        /// which means the options slider appears to do nothing for a frame
+        /// and — worse — the sim's own A/B would switch the preset, render,
+        /// and measure no change, then report that the setting is
+        /// decorative. That mistake has been made three times tonight with
+        /// three different toggles, so this one is applied on the spot.
+        public static void ApplyPreset()
+        {
+            bool want = _enabled && PresetDistance > 0;
+            foreach (var s in _all)
+            {
+                if (s == null || s._renderer == null || s._light == null) continue;
+                s._renderer.enabled = want && s._light.enabled && s._light.isActiveAndEnabled;
+            }
+        }
+
         void LateUpdate()
         {
             if (_mat == null || _light == null) return;
