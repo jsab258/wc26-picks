@@ -96,21 +96,36 @@ jobs:
           # step log is a fixed ~4KB tail, so the one thing worth reading is
           # always the first thing evicted: a build broke on CS0104 and the
           # log showed nothing but licence deactivation.
+          # TEE IT. Do not redirect it.
+          #
+          # `-logFile build-log/unity.log` looked obviously right and broke
+          # the build outright: Unity exited non-zero in four seconds without
+          # ever writing the file, and every run after that failed for this
+          # reason while I bisected C# that was never wrong. The instrument
+          # broke the thing it was measuring and then hid that it had.
+          #
+          # `-logFile -` is the form that works, so keep it and tee the
+          # stream to a file for the greps below. `Out-Null` stops it
+          # flooding the step log, which was the whole point of moving it
+          # off the console in the first place.
           New-Item -ItemType Directory -Force build-log | Out-Null
           & "$env:UNITY_EDITOR_PATH" -quit -batchmode -nographics `
             -projectPath ledger `
             -buildTarget Win64 `
             -executeMethod Ledger.EditorTools.CiBuild.BuildWindows `
-            -logFile build-log/unity.log
+            -logFile - | Tee-Object -FilePath build-log/unity.log | Out-Null
           $code = $LASTEXITCODE
           if ($code -ne 0) {
             # The compiler errors, and nothing else. Same principle as the sim
             # verdict below: when a step fails, print the actionable half
             # LAST so it survives whatever fills the window afterwards.
             Write-Host "=== compile errors ==="
-            $errs = Select-String -Path build-log/unity.log `
-              -Pattern 'error CS|Compilation failed|error:' |
-              ForEach-Object { $_.Line } | Select-Object -First 40
+            $errs = @()
+            if (Test-Path build-log/unity.log) {
+              $errs = Select-String -Path build-log/unity.log `
+                -Pattern 'error CS|Compilation failed|error:' |
+                ForEach-Object { $_.Line } | Select-Object -First 40
+            }
             if ($errs) { $errs | ForEach-Object { Write-Host $_ } }
             else { Get-Content build-log/unity.log -Tail 60 }
             if ($env:GITHUB_STEP_SUMMARY) {
@@ -125,9 +140,12 @@ jobs:
           # SHADER ERRORS TOO. They do not fail the build, and the whole
           # post stack is shaders now — one that fails to compile makes
           # `isSupported` false and the effect silently stops existing.
-          $shaderErrs = Select-String -Path build-log/unity.log `
-            -Pattern 'Shader error|Shader warning in' |
-            ForEach-Object { $_.Line } | Select-Object -First 20
+          $shaderErrs = @()
+          if (Test-Path build-log/unity.log) {
+            $shaderErrs = Select-String -Path build-log/unity.log `
+              -Pattern 'Shader error|Shader warning in' |
+              ForEach-Object { $_.Line } | Select-Object -First 20
+          }
           if ($shaderErrs) {
             Write-Host "=== shader diagnostics ==="
             $shaderErrs | ForEach-Object { Write-Host $_ }
