@@ -66,15 +66,32 @@ where I immediately found three keybindings that could not be rebound.
 panel, assert nothing traps the player and no panel is empty. Cheap, catches
 the class of bug I just found, and does not need a UI test framework.
 
-### 4. Which district next, and how many
+### 4. ~~Which district next, and how many~~ — OVERTAKEN by events, and the two docs disagreed (2026-07-29)
 
-Two of seven exist. Ironside is referenced by the population generator and the
-research notes as though it is real.
+**All seven now exist as graybox** (M14 built Downtown, The Strip, Fairview and
+Gullwing). So the original question — "build a third" — was answered while
+nobody updated this entry, and `the-gap.md` §4 asks the opposite one: with
+content volume the row on the comparison table that *cannot* be closed,
+spreading a fixed budget of detail across seven districts buys seven thin ones.
 
-**RECOMMEND: build Ironside next and stop at three for now.** It is the one the
-code already half-believes in, it is the doc's "places without witnesses" which
-is directly useful to night work, and three districts is enough to prove the
-district system without spending the whole runway on geography.
+**DONE, by recommendation:** stopped building geography and made detail
+*concentrate*. Two dense cores — Hook, where the whole first week happens, and
+Copper Row, because the writing already leans on it — with everything else
+thinning by distance to a **floor rather than to nothing**. A bare street is
+worse than a sparse one, and the whole argument for concentrating is that the
+far places still have to read as places.
+
+A distance ramp, deliberately not a per-district multiplier: a street where
+clutter stops dead at a boundary the player cannot see reads as a bug, and is
+more damaging than the uniform sparseness it replaced.
+
+**If you want a different pair of dense districts, it is two coordinates in
+`WorldBuilder.DenseCores`.** That is the whole knob.
+
+*Superseded recommendation, for the record: build Ironside next and stop at
+three. Ironside is still referenced by the population generator as though it
+were real, which remains true and is now a writing loose end rather than a
+build one.*
 
 ### 5. The sim bot's carelessness
 
