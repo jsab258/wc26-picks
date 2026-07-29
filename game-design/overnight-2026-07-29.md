@@ -273,6 +273,69 @@ and every survivor was a check that could not fail — **three of them
 covering defects fixed an hour earlier.** Fixing a bug is not the same as
 preventing it.
 
+## Three gates that were measuring the wrong thing
+
+Found by asking, of every render gate, *would this still pass with the
+effect switched off?* — the only useful generalisation from the two dead
+layers above. It turned up something worse than gates that could not fail:
+gates that could not tell which way the effect went.
+
+**The grain gate said "local spread" in its own comment and computed
+global variance.** Global variance of a night street is the sky against the
+lamps. Grain's contribution is a rounding error on it — and then the
+reading went *negative*, which is the part that gives it away. Additive
+noise cannot reduce spread. Grain clamped at black can: half the pixels in
+a night frame sit near zero, negative grain on them is cut off and positive
+grain is not, so the noise lifts the blacks toward the middle and reduces
+the variance it was meant to raise. Not a shrunken effect. A ruler reading
+the sign backwards, for months, while passing.
+
+The replacement is the statistic the comment always described: the mean
+squared difference between horizontally adjacent pixels. Smooth things have
+almost none of it however bright they are; per-pixel noise has a great deal
+by definition. The decisive test is one image, one grain pass, two rulers —
+global variance falls, local spread rises.
+
+**The occlusion gate diluted a local effect across a global average.**
+Occlusion darkens creases: a few percent of a street. A very visible 0.03
+drop over 6% of a frame moves the mean of the whole frame by 0.0018. CI
+reported 0.0014 against a floor of 0.002 and called it a failure — and that
+reading is what a *correct* pass looks like through a statistic that
+divides its result by the ninety-odd parts of the image it was never
+supposed to touch. Worse, the floor was tuned on a scene with a particular
+amount of geometry in shot, so it needed retuning every time the camera
+moved.
+
+Now: what fraction of the frame the pass reached, and how hard it hit
+there. Both halves catch a different failure — near-zero fraction means it
+never ran; near-total means it is not occlusion but an exposure change
+wearing its coat.
+
+**And the probe I wrote to diagnose the third one measured nothing.**
+`LightShaft.Enabled` was a plain field read by `LateUpdate`, and the probe
+set it false and true again inside a single `Update` — so `LateUpdate` never
+saw the false and not one shaft was ever switched off. `nightNoShafts` was
+a second copy of `nightFull`. An instrument that cannot affect what it
+measures is useless; one that can, invisibly, is worse, because it also
+looks like good news.
+
+**Thresholds are derived now, not tuned.** Uniform noise of amplitude *a*
+has standard deviation *a*/√3 and adds 2σ² to the neighbour difference, so
+the grain floor follows from the amount the shader was asked for. The
+occlusion bounds are geometric: a street is comfortably more than half a
+percent creases and nothing like half. A floor nobody can derive gets
+lowered when it starts failing, which is how a gate stops being one.
+
+## One reading that is not a bug, so nobody chases it
+
+`hotUnease` read 0.11 at heat 0.92 in one run and 1.00 at heat 0.97 in the
+next, which looks like a near-vertical knee in the music. It is not. The
+unease layer is a smoothed gain and the sim samples it at the instant of
+peak heat, so a heat spike that has only just happened reads low while a
+sustained one reads settled. The curve is linear from 0.2 to 0.8 exposure
+and does exactly what it says. The pairing in the log is a weak label, not
+a defect.
+
 ## Still needing you
 
 Two things, and that is the whole list:
