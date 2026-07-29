@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Soon only ever returns the open beat -- no lead time, six real seconds to cross a district",
+    "file": "Assets/Scripts/Core/Beat.cs",
+    "old": "            foreach (var b in _beats)\n            {\n                if (b.State != BeatState.Pending || b.Day != now.Day) continue;\n                int until = b.StartHour - now.Hour;\n                if (until > 0 && until <= leadHours) return b;\n            }\n            return null;",
+    "new": "            return null;"
+  },
+  {
+    "name": "the lead has no upper bound, so the player walks over eight hours early",
+    "file": "Assets/Scripts/Core/Beat.cs",
+    "old": "                if (until > 0 && until <= leadHours) return b;",
+    "new": "                if (until > 0) return b;"
+  },
+  {
+    "name": "Soon ignores the day, so tonight's invitation pulls on every night",
+    "file": "Assets/Scripts/Core/Beat.cs",
+    "old": "                if (b.State != BeatState.Pending || b.Day != now.Day) continue;",
+    "new": "                if (b.State != BeatState.Pending) continue;"
+  },
+  {
+    "name": "Soon returns beats already attended, so an accepted invitation still pulls",
+    "file": "Assets/Scripts/Core/Beat.cs",
+    "old": "                if (b.State != BeatState.Pending || b.Day != now.Day) continue;\n                int until = b.StartHour - now.Hour;",
+    "new": "                if (b.Day != now.Day) continue;\n                int until = b.StartHour - now.Hour;"
+  }
+]

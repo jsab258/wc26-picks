@@ -170,7 +170,11 @@ namespace Ledger.Game
         {
             get
             {
-                var open = Beats.Open(Now);
+                // Looks AHEAD, so somebody who means to go sets off in time.
+                // The window is two hours and the sim's clock runs at twenty
+                // game-minutes a real second, which makes it six real seconds
+                // — not a walk, a teleport requirement.
+                var open = Beats.Soon(Now, 3);
                 if (open == null) return null;
 
                 // THE HOST IF THERE IS ONE, the stored spot otherwise.
@@ -188,11 +192,15 @@ namespace Ledger.Game
                 var host = WalkerForHost(open.HostId);
                 if (host != null)
                 {
-                    // And they stand still while the invitation is open. See
-                    // NpcWalker.WaitingAsHost — a host who keeps walking is
-                    // an invitation that runs away from anyone who accepts it.
-                    host.WaitingAsHost = true;
-                    _waitingHost = host;
+                    // They stand still once the invitation is OPEN — not
+                    // during the lead-in, because Ada freezing at seven for a
+                    // ten o'clock tea is its own kind of wrong. Before then
+                    // she is simply somewhere to head towards.
+                    if (open.InWindow(Now))
+                    {
+                        host.WaitingAsHost = true;
+                        _waitingHost = host;
+                    }
                     return host.transform.position;
                 }
                 return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;

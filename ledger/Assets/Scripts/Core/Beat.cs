@@ -73,6 +73,32 @@ namespace Ledger.Core
         public Beat Open(GameTime now) =>
             _beats.FirstOrDefault(b => b.State == BeatState.Pending && b.InWindow(now));
 
+        /// The beat that is open now OR opens within `leadHours`.
+        ///
+        /// A PLAYER LEAVES EARLY, and until now nothing modelled that. The
+        /// invitation goes out in the morning and the window is a couple of
+        /// hours in the evening — which is generous for somebody who set off
+        /// at half past, and impossible for somebody who only starts walking
+        /// when the window opens and has to cross a district.
+        ///
+        /// It is what made the CI bot look like it could not path: the sim
+        /// runs at twenty game-minutes a real second, so a two-hour evening
+        /// window is SIX REAL SECONDS of walking. Nobody crosses Hook Street
+        /// in six seconds. The beat was unreachable by arithmetic, not by
+        /// geometry, and four fixes went into the geometry first.
+        public Beat Soon(GameTime now, int leadHours)
+        {
+            var open = Open(now);
+            if (open != null) return open;
+            foreach (var b in _beats)
+            {
+                if (b.State != BeatState.Pending || b.Day != now.Day) continue;
+                int until = b.StartHour - now.Hour;
+                if (until > 0 && until <= leadHours) return b;
+            }
+            return null;
+        }
+
         /// Close out any pending beat whose window has passed. Returns those skipped
         /// this call so the caller can narrate them.
         public List<Beat> ResolveLapsed(Func<string, Gossiper> host, GameTime now)

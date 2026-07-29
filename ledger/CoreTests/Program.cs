@@ -95,6 +95,7 @@ namespace Ledger.CoreTests
                 TestMusicModel();
                 TestRig();
                 TestTypography();
+                TestBeatLeadTime();
                 TestFraming();
                 TestImageStats();
                 TestDetail();
@@ -7660,6 +7661,53 @@ namespace Ledger.CoreTests
             Check(Typography.LiftToMeet(ink.r, ink.g, ink.b, panel.r, panel.g, panel.b,
                                         Typography.Body) == 1.0,
                 "and a colour that already passes is left completely alone");
+        }
+
+        static void TestBeatLeadTime()
+        {
+            Console.WriteLine("Beats — a player leaves early, and nothing modelled that:");
+
+            var book = new BeatBook();
+            book.Add(new Beat { Id = "tea", HostId = "Ada", Day = 3, StartHour = 22, EndHour = 24 });
+
+            var open = new GameTime { Day = 3, Hour = 22 };
+            Check(book.Open(open) != null, "the window is open at ten");
+            Check(book.Soon(open, 3) != null, "and Soon agrees while it is open");
+
+            // THE CASE THAT COST FOUR FIXES. The sim runs at twenty
+            // game-minutes a real second, so this two-hour window is SIX REAL
+            // SECONDS of walking. Nobody crosses a district in six seconds —
+            // the beat was unreachable by arithmetic, and every fix went into
+            // the geometry.
+            var evening = new GameTime { Day = 3, Hour = 20 };
+            Check(book.Open(evening) == null, "at eight the window has not opened");
+            Check(book.Soon(evening, 3) != null,
+                "but somebody who means to go is already walking — two hours of lead is "
+                + "an evening to a player and ten real seconds to the simulation, and "
+                + "without it the only way to arrive is to start there");
+
+            var afternoon = new GameTime { Day = 3, Hour = 14 };
+            Check(book.Soon(afternoon, 3) == null,
+                "and they do not set off eight hours early — a lead that long is not "
+                + "punctuality, it is a character with nothing else to do");
+
+            Check(book.Soon(new GameTime { Day = 2, Hour = 22 }, 3) == null,
+                "nor the night before");
+            Check(book.Soon(new GameTime { Day = 4, Hour = 20 }, 3) == null,
+                "nor the night after");
+
+            // A beat already dealt with is not somewhere to walk to.
+            var attended = new BeatBook();
+            var b2 = new Beat { Id = "toast", HostId = "Rocco", Title = "A drink for Mickey",
+                                Day = 5, StartHour = 22, EndHour = 24 };
+            attended.Add(b2);
+            b2.Attend(new Gossiper("rocco", "Rocco", new MemoryStore("rocco"),
+                                   new KnowledgeBase(), new SuspicionTracker(), "night"),
+                      new GameTime { Day = 5, Hour = 22 });
+            Check(b2.State == BeatState.Attended, "an attended beat records itself as such");
+            Check(attended.Soon(new GameTime { Day = 5, Hour = 20 }, 3) == null,
+                "and an invitation already accepted is not still pulling the player "
+                + "across town");
         }
 
         static void TestFraming()
