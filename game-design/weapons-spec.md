@@ -425,6 +425,15 @@ identification is the most useful thing a witness can have:
 | 3 | *"I'd know him again."* | Face seen, close and lit, but a stranger |
 | 4 | *"That's Tom. Runs the bar on Hook Street."* | **Recognition** — and this is ours alone |
 
+**The ladder is not monotonic, and that is deliberate** (clarified in the v4
+review pass, where the word *ladder* was found to be misleading). Rung 3 is a
+face at 8m; rung 4 is recognition at 25m. **An acquaintance therefore reaches
+rung 4 without ever passing through rung 3**, and a stranger tops out at 3 no
+matter how close they get. They are two different things — *how much detail
+can you describe* and *can you put a name to it* — and only the second one
+needs a relationship. A stranger at arm's length still cannot tell anyone who
+you are.
+
 **Rung 4 is the mechanic no AAA crime game has, and it is free to us.** A
 stranger at twenty metres in the rain gets rung 1. Your neighbour, at the
 same twenty metres in the same rain, gets rung 4 — because she has known you
@@ -1384,7 +1393,17 @@ than an assurance in §15.1.
 Audit finding B: every device in v3 was reactive. Nothing let the player judge
 a doorway *before* committing, and stealth-adjacent play is planning.
 
-**The rule: if you can tell he is facing you, he can see you.**
+**The rule: if you can tell he is facing you, and you are in light, he can
+see you.**
+
+**Both halves, because the review pass caught the first version
+over-promising.** *"If he is facing you, he can see you"* is false in the dark
+— which is the condition most of this game happens in — because the vision
+model multiplies every range by light level. So the rule is two readings the
+player already has: **his facing**, off his silhouette, and **their own
+exposure**, off the vignette (§6.2). Neither is new interface. The rule is
+that those two things, together, are the whole answer — there is no hidden
+third factor.
 
 **And Jafar's condition is the whole problem, so it gets answered rather than
 promised.** We cannot render eyes. There are no faces in this game and there
@@ -1572,12 +1591,20 @@ each has a reason and a gate, so it moves *from* somewhere.
 
 ### 16.2 Hearing
 
-Loudness in dB-like units; the audible radius doubles every 6 units above the
-local ambient floor, capped at 250m.
+Loudness in dB-like units. **The audible radius is**
 
-| Ambient floor | Value |
+```
+    r = 1.5m × 2^((L − A) / 8),  capped at 250m
+    inaudible when L ≤ A
+```
+
+where `L` is the event's loudness and `A` is **the ambient floor at the
+listener** — not at the source, which is what lets a shot inside a loud bar be
+heard by the quiet street outside once occlusion has taken its cut.
+
+| Ambient floor at the listener | Value |
 |---|---|
-| Residential street, 3am | 25 |
+| Residential street, 3am | 15 |
 | Daytime street | 45 |
 | Market at noon | 58 |
 | The bar on a busy night | 68 |
@@ -1585,7 +1612,8 @@ local ambient floor, capped at 250m.
 
 | Event | Loudness |
 |---|---|
-| Footstep, walking | 20 |
+| Footstep, walking | 25 |
+| Footstep, running | 38 |
 | Door slam | 55 |
 | Shout | 65 |
 | Bottle smashing | 70 |
@@ -1593,10 +1621,28 @@ local ambient floor, capped at 250m.
 | Suppressed .22 | 62 |
 | .38 snub | 100 |
 
-Read the two tables together and Jafar's own example falls straight out: a
-suppressed .22 in a busy bar (62 vs 68) **carries nowhere**; the same shot in
-a residential street at 3am (62 vs 25) **carries the length of it**. Nobody
-has to be told this; you learn it by living in the city.
+**These numbers are the second draft, not the first.** The v4 review pass
+caught the first set putting a walking footstep at 20 against a 3am floor of
+25, which made footsteps *inaudible in a silent street* — flatly contradicting
+§3.2's own example of the frightened man who hears a footstep behind him. The
+corrected pair gives 3.6m, which is about right for a man who is listening.
+
+Worked, so the table can be checked rather than trusted:
+
+| Event | Where | Carries |
+|---|---|---|
+| Walking footstep | residential, 3am | **3.6m** — behind you, and only if he is listening |
+| Walking footstep | daytime street | **nothing** |
+| Suppressed .22 | the bar, busy | **nothing** |
+| Suppressed .22 | residential, 3am | **86m** — the length of the street |
+| .38 snub | daytime street | **177m** |
+| Shout | market at noon | **2.2m** — which is why shouting in a market does not work |
+
+**And this replaces the noise column in §5.2**, which described loudness in
+absolute terms — *"one room"*, *"district"* — a habit left over from v2 that
+contradicts the entire relative model. A suppressed pistol is not a
+one-room weapon; it is a one-room weapon *in a bar* and an eighty-metre weapon
+*at 3am*. The prose was wrong and the table is right.
 
 Alert state multiplies the listener's effective floor downward by up to 8
 units — the frightened man who hears a footstep.
