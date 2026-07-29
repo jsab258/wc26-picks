@@ -1,6 +1,11 @@
-# PERCEPTION, WEAPONS AND VIOLENCE — proposal v2.2
+# PERCEPTION, WEAPONS AND VIOLENCE — spec v3, APPROVED
 
-**Status: PROPOSAL. Nothing built.**
+**Status: APPROVED IN FULL, 2026-07-29. Cleared to build.** *"approved."*
+
+This is now the spec for the largest single feature in the project. It
+supersedes `combat-spec.md` §0's framing of violence as deferred, and
+`agency-model.md`'s *"violence is seen"* clause is folded into §1 rather than
+governing it.
 
 - v1 (2026-07-29) — **rejected the same day, correctly.**
 - v2 (2026-07-29) — §1 reframing **APPROVED**, §2 perception-before-weapons
@@ -17,13 +22,17 @@
     we model and animate characters. alternative ideas?"* → §6.2
   - §4 and §7 — *"I don't get it, explain"*. Explained in chat 2026-07-29;
     both still open.
-- **v2.2 (this)** — **§5 is now seven families, ~16 carried objects, the
+- v2.2 (2026-07-29) — **§5 is now seven families, ~16 carried objects, the
   environment as a weapon family of its own, and kit** — the Hitman argument
   that accidents and world objects expand a small arsenal further than more
   guns do. **§6.2's attention readout is now four redundant channels led by
   audio rather than by animation**, plus an explicit accessibility marker,
   because betting the most important feedback in the game on the weakest asset
   we own was the right thing to be challenged on.
+- **v3 (this) — APPROVED IN FULL.** No content change from v2.2; the status
+  and §12 are rewritten as a record of what was approved rather than a list of
+  asks, and §13 states the two assumptions I am proceeding on and the two
+  things from Jafar that would make the work materially better.
 
 ---
 
@@ -1027,37 +1036,52 @@ fiction and the easiest thing to get wrong.
 
 ---
 
-## 12. WHAT I NEED FROM YOU
+## 12. THE APPROVAL RECORD
 
-**Approved and closed:** the §1 reframing · perception before weapons · guns
-at the last phase · **§4.5 the delivery window** · **§6 in general**.
+Everything in this document is approved. Kept as a record of what was asked
+and what changed, because the corrections are the reason it is any good.
 
-**Still open:**
+| Point | Verdict | What the challenge changed |
+|---|---|---|
+| §1 — crime game in a city that perceives, reacts and remembers | **APPROVED** (v2) | Replaced *"the antagonist is gossip"*, which had become a straitjacket |
+| §3 — perception before weapons; Phase 1 shippable alone | **APPROVED** (v2) | — |
+| §5 — firearms exist, at the last phase | **APPROVED** (v2) | Withdrew v1's refusal to build guns at all |
+| §4.5 — the delivery window | **APPROVED** (v2.1) | The addition that turns the minutes after a crime into play |
+| §6 — legibility in general | **APPROVED** (v2.1) | — |
+| §4 — slots, rungs, willingness, awareness | **APPROVED** (v3) | *"a bit shallow"* → replaced six invented labels with a generator; recognition by people who know you became the centre |
+| §5 — the roster | **APPROVED** (v3) | *"7 feels too few and low budget"* → seven families, ~16 carried objects, **the environment as a family of its own**, and kit |
+| §6.2 — how the player knows they were noticed | **APPROVED** (v3) | *"depends a lot on how clearly we model and animate characters"* → four redundant channels led by **audio**, plus an accessibility marker |
+| §7 — acquisition and carry | **APPROVED** (v3) | *"I don't get it"* → separated *what is on you tonight* from *where it came from*; provenance is what makes Phase 4 work |
 
-1. **§4 — observation as slots + rungs + willingness + awareness.**
-   Specifically: is **rung 4, recognition by people who know you**, the right
-   thing to make the centre of it? It is the one mechanic here no other crime
-   game can build, and it turns your social circle into a liability, which is
-   the game. *(Sent back as "I don't get it" — explained in chat 2026-07-29.)*
-2. **§5.2 — the roster, rebuilt.** Seven families, ~16 carried objects, and
-   two additions that matter more than the count: **the environment as a
-   family of its own** (an accident is the only violence that produces no
-   crime), and **kit** (gloves, a second coat, a car). Plus the forensic
-   distinctions the era gives us free — a revolver leaves no casing, an
-   automatic throws brass, a kitchen knife has no provenance to trace.
-3. **§7 — acquisition and carry.** A coat rather than a grid; the loadout
-   decided at the door before you know what the night holds; four routes in,
-   all of them social — a supplier who is a character with a memory, theft
-   from someone who notices it is gone, taken off a body, and exactly one
-   authored find in Mickey's bar. No random loot.
-   *(Sent back as "I don't get it" — explained in chat 2026-07-29.)*
-4. **§6.2 — attention as four redundant channels**, led by sound rather than
-   animation: the street going quiet, barks, behaviour breaks (motion change,
-   which reads on boxes), one music stem, and an optional accessibility
-   marker. Any two should be enough, and the sound-off / picture-off test goes
-   on the QA matrix.
+## 13. BEFORE THE FIRST LINE — assumptions and asks
 
-Everything else is detail I can carry.
+**Nothing blocks Phase 1.** It is Core work plus Unity wiring, no purchases,
+no accounts, no assets. Two assumptions are stated here rather than discovered
+in the diff:
+
+1. **Perception is computed for events the player is party to, not for the
+   whole city.** Two NPCs seeing each other across a market does not run a
+   vision cone; the Mid band's gossip mill already handles NPC-to-NPC
+   information without bodies, and it is tested. Extending sight and hearing
+   to all three thousand residents would cost the frame budget and buy
+   almost nothing the mill does not already produce. Revisit if it ever feels
+   like the world only reacts when the player is looking.
+2. **Phase 1 ships to a playtest on its own**, before observation and before
+   any weapon exists, per §10 — a street that notices you is worth playing
+   and worth judging by itself. If it is not good on its own, that is the
+   cheapest possible moment to find out.
+
+**Two things from Jafar that would materially improve the work**, neither
+blocking:
+
+- **The F1 frame-rate number**, once, from anywhere in the current build.
+  Perception for ~50 visible walkers is the main technical risk in this
+  document (§11.3) and CI has no GPU, so the throttling design is currently
+  being chosen against a number nobody has ever measured.
+- **The voice listening pass**, ~15 minutes with `1 LISTEN.bat`. Two of the
+  four attention channels in §6.2 are voice — barks, and the street going
+  quiet. They can be built and gated with placeholder audio; they cannot be
+  *judged* without real voices.
 
 ---
 

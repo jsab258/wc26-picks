@@ -17,21 +17,16 @@ Also: an inventory, and acquisition by buying / stealing / finding.
 Researched and proposed in **`weapons-spec.md`**. Nothing is built until it
 is approved.
 
-**Approval state, 2026-07-29:**
+**APPROVED IN FULL, 2026-07-29** — *"approved."* The spec is `weapons-spec.md`
+v3 and the plan is `roadmap.md` M16. It took three rejections to get there and
+each one changed the design: the framing was backwards in v1, the observation
+model was six invented labels in v2, the roster was too thin and the attention
+readout leaned on animation we do not have in v2.1. The approval record with
+what each challenge changed is in spec §12.
 
-| Point | State |
-|---|---|
-| The reframing — crime game in a city that perceives and remembers | **APPROVED** |
-| Perception first, weapons second | **APPROVED** |
-| Guns at the last phase rather than never | **APPROVED** |
-| The delivery window — a witness is a person walking somewhere to tell someone | **APPROVED** |
-| Feel and legibility in general | **APPROVED** |
-| The observation model | Rebuilt in v2.1 §4; sent back as *"I don't get it"*, explained in chat — **open** |
-| The weapon roster | *"7 feels too few and low budget"* → rebuilt in **v2.2 §5.2** as seven families, ~16 objects, the environment, and kit — **open** |
-| Acquisition and carry — a coat not a grid, four social routes in | Sent back as *"I don't get it"*, explained in chat — **open** |
-| How the player knows they were noticed | *"depends a lot on how clearly we model and animate characters"* → rebuilt in **v2.2 §6.2** as four redundant channels led by audio — **open** |
-
-Four points open, listed in `weapons-spec.md` §12.
+Two assumptions are on record in spec §13 rather than buried in the diff:
+perception runs for events the player is party to rather than for all three
+thousand residents, and Phase 1 ships to a playtest on its own.
 
 The standing quality bar was restated at the same time and applies to
 everything from here: **as close to the best games in the genre as our

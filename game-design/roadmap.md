@@ -992,3 +992,52 @@ and a probe that alters the result beside it is not a probe.
 **Still outstanding, and all three are Jafar's:** the voice listening pass
 (one-click launchers now in `tools/voice-fetch`), the Mixamo download
 (free, and the real animation item), and the violence decision below.
+
+## M16 — PERCEPTION, WEAPONS AND VIOLENCE (approved 2026-07-29)
+
+`weapons-spec.md` v3, **approved in full**. The largest single feature in the
+project, and it changes the game's framing: LEDGER is a crime game in a city
+that perceives, reacts and remembers — gossip is the consequence layer, not
+the foundation.
+
+This supersedes M11's deferral of violence and closes the *"is violence a
+verb"* question in `decisions-pending.md`.
+
+**Phase 1 — perception, no weapons.** Vision with cone, range, occlusion,
+light level and motion; hearing with loudness, occlusion, **ambient masking**
+and alert scaling. NPCs notice, turn, and investigate. Ships to a playtest on
+its own. *Gates: a walker in light is detected further than one in shadow; a
+sound behind a wall is not heard; a sound under the ambient floor is not
+heard.*
+
+**Phase 1b — legibility, alongside Phase 1, not after.** The vignette
+response to light level, the one-frame noise ring at the true audible radius,
+and the four attention channels (street goes quiet, barks, behaviour break,
+music stem) plus the optional accessibility marker. *Gates: the vignette
+measurably changes with light level via `ImageStats`; the ring radius equals
+the acoustic model's radius, asserted against the model rather than a copied
+constant.*
+
+**Phase 2 — observation and reaction.** Slots, the five-rung identification
+ladder, certainty vs willingness, mutual awareness, the delivery window, and
+the witness ghost. Alarm propagates as sound; flee, deliver, fetch. *Gates:
+the five claims in spec §4.7 — including that the same witness at the same
+distance reaches rung 4 for an acquaintance and rung 1 for a stranger, and
+that the ghost matches the belief record rather than the player's true
+position.*
+
+**Phase 3 — melee and carry.** Hands, blunt, edged, ligature. Brandish as a
+verb. Carry, concealment, the frisk, blood on clothes. *Gate: the same
+killing leaves no witness in an empty alley, several in a market, and none
+in the back room of a busy bar.*
+
+**Phase 4 — the murder weapon and the environment.** Provenance, the four
+acquisition routes, disposal as a witnessable verb, Ellis looking for the
+object — and accidents, which are the only violence in the game that produce
+no crime.
+
+**Phase 5 — firearms.** Deliberately last.
+
+**Assumptions on record** (spec §13): perception runs for events the player is
+party to rather than for all three thousand residents, and Phase 1 goes to a
+playtest alone.
