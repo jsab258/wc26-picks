@@ -228,12 +228,24 @@ namespace Ledger.Game
         /// walks up have told him they were talking about him, that they know
         /// he can see them, and that they would rather he had not heard —
         /// which no interface could say, and two people stopping does.
+        /// Counted for the sim gate, and counted in PAIRS of numbers because
+        /// the claim is conditional. "Some pairs hushed" is not the design —
+        /// the design is that a pair discussing the fish price keeps talking
+        /// while he walks straight through them, which is exactly what makes
+        /// the ones who DON'T mean something. A run where every pair hushed
+        /// is a proximity trigger, and a proximity trigger is what this is
+        /// not; both failures need a number to be visible.
+        public static int HushWalkBys { get; private set; }
+        public static int Hushes { get; private set; }
+
         void CheckHush()
         {
             if (_hushing || _talkingTo == null || _player == null) return;
             float d = Vector3.Distance(transform.position, _player.position);
+            if (d <= (float)Confab.HushRadiusMetres) HushWalkBys++;
             if (!Confab.ShouldHush(_confabAboutPlayer, d, _confabTie)) return;
             _hushing = true;
+            Hushes++;
             // They finish the word. A pair that cuts out the frame he crosses
             // a line is a trigger, and a trigger is what this is not.
             _confabUntil = Mathf.Min(_confabUntil, Time.time + (float)Confab.HushSeconds);

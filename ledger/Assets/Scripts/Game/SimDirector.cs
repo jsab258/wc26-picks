@@ -2146,6 +2146,23 @@ namespace Ledger.Game
             // is subtle" and "the feature is absent" is a number.
             bool confabOk = _game.Gossip == null || _game.Gossip.Confabs > 0;
 
+            // AND THE HUSH, WHICH IS THE PART THAT IS ACTUALLY THIS GAME.
+            // `Confabs > 0` says the street talks to itself. It says nothing
+            // about the moment the whole system exists for: a pair breaking
+            // off as he walks up, which tells him they were talking about
+            // him, that they know he can see them, and that they would rather
+            // he had not heard.
+            //
+            // Reported rather than gated, for now. The hush needs a rumour
+            // ABOUT THE PLAYER to be live in a pair standing within four and
+            // a half metres of a bot that is walking a fixed errand route,
+            // and I do not yet know how often nine days produces that. A gate
+            // I cannot predict the value of is a gate that fails for being
+            // pointed somewhere honest — the mistake the ambient-occlusion
+            // measurement was written to avoid. One run tells me; then it
+            // gates.
+            int hushBy = NpcWalker.HushWalkBys, hushed = NpcWalker.Hushes;
+
             // The duck has to have gone down AND come back. Either
             // extreme alone is a mix that is broken in a way nobody would
             // notice until they played it.
@@ -2318,6 +2335,7 @@ namespace Ledger.Game
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
+                      $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
