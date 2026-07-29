@@ -695,6 +695,34 @@ namespace Ledger.Game
         /// one here, this reads the place's own Kind, which is real: a
         /// landmark is kept up, a corner shelter is not. Noted in the roadmap
         /// as a data gap rather than papered over.
+        /// WHERE THE DETAIL IS SPENT (the-gap.md §4, the scope call).
+        ///
+        /// Seven districts of graybox exist and content volume is the one row
+        /// on the comparison table that cannot be closed. Spreading a fixed
+        /// budget of detail across seven districts buys seven thin ones; the
+        /// strategy doc's answer is to stop building geography and make two
+        /// or three of them dense.
+        ///
+        /// This is that answer, and it is a list of two coordinates. Hook is
+        /// the opening district and where the whole first week happens.
+        /// Copper Row is the second because it is the one the writing already
+        /// leans on. Everything else thins with distance, to a floor rather
+        /// than to nothing — a bare street is worse than a sparse one.
+        ///
+        /// Deliberately NOT a district lookup. A per-district multiplier
+        /// puts a seam at every boundary, and a street where clutter stops
+        /// dead at a line the player cannot see reads as a bug.
+        static readonly (double x, double z)[] DenseCores =
+        {
+            (0, 0),          // Hook Street and the bar — the first week
+            (-120, 95),      // Copper Row
+        };
+
+        /// How densely to dress a wall at this position.
+        public static double DetailAt(Vector3 p) =>
+            Ledger.Core.Dressing.DetailAt(
+                Ledger.Core.Dressing.NearestCore(p.x, p.z, DenseCores));
+
         static double ProsperityOf(string kind) =>
             kind == "landmark" ? 0.70
             : kind == "business" ? 0.50
@@ -711,8 +739,13 @@ namespace Ledger.Game
             var a = faceCentre - along * half;
             var b = faceCentre + along * half;
 
+            bool nearCore = Ledger.Core.Dressing.NearestCore(
+                faceCentre.x, faceCentre.z, DenseCores) <= NearCoreMetres;
+            if (nearCore) FacadesNear++; else FacadesFar++;
+
             foreach (var d in Ledger.Core.Dressing.Facade(a.x, a.z, b.x, b.z,
-                                                          prosperity, !hasDoor, hasDoor))
+                                                          prosperity, !hasDoor, hasDoor,
+                                                          DetailAt(faceCentre)))
             {
                 var at = new Vector3((float)d.X, 0, (float)d.Z);
                 float sc = (float)d.Scale;
@@ -749,12 +782,26 @@ namespace Ledger.Game
                         break;
                 }
                 Dressed++;
+                if (nearCore) DressedNear++; else DressedFar++;
             }
         }
 
         /// How many pieces of clutter the city put down. Read by the sim, so
         /// "the streets are dressed" is a measured claim rather than a hope.
         public static int Dressed;
+
+        /// PIECES AND FACADES, split by whether they are near a dense core.
+        ///
+        /// The total alone stopped being the right measurement the moment
+        /// detail started concentrating: thinning the far districts LOWERS it
+        /// by design, so a floor on the total now fails for the feature
+        /// working. What the concentration actually claims is that a wall in
+        /// Hook carries more than an identical wall at the edge of the map,
+        /// and that is pieces PER FACADE on each side of the ramp.
+        public static int DressedNear, DressedFar;
+        public static int FacadesNear, FacadesFar;
+        /// Within this of a core counts as "in a dense district" for the gate.
+        public const double NearCoreMetres = 110;
 
         public static Light BuildSun()
         {

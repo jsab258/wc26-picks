@@ -81,10 +81,67 @@ namespace Ledger.Core
         /// probability got swamped by the cap and both came out identical
         /// again — 5 vs 5, one number better than 7 vs 7 and just as wrong.
         public static int BudgetFor(double lengthMetres, double prosperity = 0.5,
-                                    bool alley = false)
+                                    bool alley = false, double detail = 1.0)
         {
-            double slots = lengthMetres / MetresPerPiece * Density(prosperity, alley);
+            double slots = lengthMetres / MetresPerPiece * Density(prosperity, alley)
+                           * Feel.Clamp01(detail);
             return (int)Feel.Clamp(Math.Floor(slots), 0, MaxPerFacade);
+        }
+
+        // ---- WHERE THE DETAIL GOES (the-gap.md §4, the scope call) ---------
+
+        /// Seven districts of graybox exist. The strategy doc says stop
+        /// building geography and make two or three of them DENSE, because
+        /// content volume is the one row on the comparison table that cannot
+        /// be closed and spreading a fixed budget of detail over seven
+        /// districts buys seven thin ones.
+        ///
+        /// This is that call, expressed as arithmetic rather than as a
+        /// deletion. Nothing is removed; detail CONCENTRATES.
+        ///
+        /// AND IT FALLS OFF SMOOTHLY, which is the part worth getting right.
+        /// The obvious implementation is a per-district multiplier, and it
+        /// produces a seam: a street where clutter stops dead at a boundary
+        /// the player cannot see reads as a bug, and is more damaging than
+        /// uniform sparseness would have been. A distance ramp has no
+        /// boundary to notice.
+
+        /// Metres over which detail thins from full to floor.
+        public const double DetailFalloffMetres = 260;
+
+        /// What a district gets when it is far outside the dense core. Not
+        /// zero: an empty street is worse than a sparse one, and the whole
+        /// argument for concentrating is that the far places still have to
+        /// read as places.
+        public const double DetailFloor = 0.34;
+
+        /// How densely to dress a facade, from how far it is from the nearest
+        /// place worth spending on.
+        public static double DetailAt(double metresFromDenseCore)
+        {
+            double d = Math.Max(0, metresFromDenseCore);
+            double t = Feel.Clamp01(d / DetailFalloffMetres);
+            // Smoothstep rather than linear: a linear ramp is still visible
+            // as a gradient if you walk along it, and the eye is far better
+            // at spotting a constant rate of change than a curved one.
+            double eased = t * t * (3 - 2 * t);
+            return 1.0 - (1.0 - DetailFloor) * eased;
+        }
+
+        /// Distance to the nearest of several dense cores. Nearest, not
+        /// summed — two dense districts either side of a poor one should not
+        /// quietly make the poor one dense as well.
+        public static double NearestCore(double x, double z, (double x, double z)[] cores)
+        {
+            if (cores == null || cores.Length == 0) return 0;
+            double best = double.MaxValue;
+            foreach (var c in cores)
+            {
+                double dx = x - c.x, dz = z - c.z;
+                double d = Math.Sqrt(dx * dx + dz * dz);
+                if (d < best) best = d;
+            }
+            return best;
         }
 
         /// How far clutter sits from the wall it leans on.
@@ -141,7 +198,8 @@ namespace Ledger.Core
         /// out in the roadway, which is both correct and the thing that
         /// makes a naive scatter look wrong.
         public static List<Dressed> Facade(double ax, double az, double bx, double bz,
-                                           double prosperity, bool alley, bool hasDoor)
+                                           double prosperity, bool alley, bool hasDoor,
+                                           double detail = 1.0)
         {
             var placed = new List<Dressed>();
             double dx = bx - ax, dz = bz - az;
@@ -152,7 +210,7 @@ namespace Ledger.Core
             double nx = dz, nz = -dx;
             double facing = Feel.HeadingDegrees(nx, nz);
 
-            int budget = BudgetFor(length, prosperity, alley);
+            int budget = BudgetFor(length, prosperity, alley, detail);
             if (budget <= 0) return placed;
             // The per-slot roll now chooses WHERE along the wall rather than
             // how many — the budget decides how many, and this decides which

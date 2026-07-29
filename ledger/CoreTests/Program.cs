@@ -64,6 +64,7 @@ namespace Ledger.CoreTests
                 TestPhysique();
                 TestConfab();
                 TestMixing();
+                TestDetailBudget();
                 TestResponseParsing();
                 TestIntentLexical();
                 TestIntentValidation();
@@ -6890,6 +6891,86 @@ namespace Ledger.CoreTests
         /// Relative luminance of one ambient band, for the exposure check.
         static double BandLuma((double r, double g, double b) c) =>
             0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+
+        static void TestDetailBudget()
+        {
+            Console.WriteLine("Detail concentration - the scope call as arithmetic:");
+
+            // Seven districts of graybox exist and content volume is the one
+            // row on the comparison table that cannot be closed. Spreading a
+            // fixed detail budget over seven districts buys seven thin ones.
+            Check(Dressing.DetailAt(0) >= 0.999,
+                "a street in the dense core gets everything");
+            Check(Dressing.DetailAt(9999) <= Dressing.DetailFloor + 1e-9
+                  && Dressing.DetailFloor > 0.2,
+                "and the far edge of the city is thinned but NEVER emptied - an empty "
+                + "street is worse than a sparse one, and the whole argument for "
+                + "concentrating is that the far places still read as places",
+                $"floor {Dressing.DetailFloor:0.00}");
+
+            // NO SEAM. The obvious implementation is a per-district
+            // multiplier, and a street where clutter stops dead at a boundary
+            // the player cannot see reads as a bug — worse than the uniform
+            // sparseness it replaced.
+            double worstJump = 0;
+            double prev = Dressing.DetailAt(0);
+            for (double d = 1; d <= Dressing.DetailFalloffMetres * 1.5; d += 1)
+            {
+                double v = Dressing.DetailAt(d);
+                worstJump = Math.Max(worstJump, Math.Abs(v - prev));
+                prev = v;
+            }
+            Check(worstJump < 0.01,
+                "detail never steps - the largest change across any single metre of "
+                + "street is imperceptible, so there is no boundary to notice",
+                $"worst {worstJump:0.0000} per metre");
+
+            // Smoothstep, not linear: a constant rate of change is itself
+            // visible when you walk along it.
+            double nearRate = Dressing.DetailAt(0) - Dressing.DetailAt(20);
+            double midRate = Dressing.DetailAt(120) - Dressing.DetailAt(140);
+            Check(midRate > nearRate * 3,
+                "and it thins slowly at the edge of the core and fastest in the middle "
+                + "of the ramp, because the eye catches a CONSTANT rate of change far "
+                + "more readily than a curved one",
+                $"near {nearRate:0.0000} vs mid {midRate:0.0000}");
+
+            // Monotone: walking away from the core never gets you more stuff.
+            bool monotone = true;
+            prev = 9;
+            for (double d = 0; d <= 600; d += 2)
+            {
+                double v = Dressing.DetailAt(d);
+                if (v > prev + 1e-9) monotone = false;
+                prev = v;
+            }
+            Check(monotone, "walking away from a dense district never adds clutter");
+
+            // NEAREST core, not summed. Two dense districts either side of a
+            // poor one must not quietly make the poor one dense too.
+            var cores = new[] { (0.0, 0.0), (400.0, 0.0) };
+            Check(Math.Abs(Dressing.NearestCore(200, 0, cores) - 200) < 1e-9,
+                "a street between two dense districts is measured to the nearer one, "
+                + "not credited with both",
+                $"{Dressing.NearestCore(200, 0, cores):0.0}m");
+            Check(Dressing.NearestCore(390, 0, cores) < 20,
+                "and standing next to one is close, whichever one it is");
+            Check(Dressing.NearestCore(5, 5, null) == 0,
+                "with no cores declared, everywhere is core - so this cannot silently "
+                + "strip the whole city if the list is never populated");
+
+            // AND IT REACHES THE BUDGET. A concentration model that computes
+            // a beautiful curve nothing spends against is the same defect as
+            // a dressing model that places nothing.
+            int dense = Dressing.BudgetFor(60, 0.3, false, Dressing.DetailAt(0));
+            int far = Dressing.BudgetFor(60, 0.3, false, Dressing.DetailAt(9999));
+            Check(dense > far && far > 0,
+                "the same wall carries more in a dense district than at the edge of the "
+                + "map, and still carries something",
+                $"{dense} vs {far} pieces");
+            Check(Dressing.BudgetFor(60, 0.3, false) == dense,
+                "and the default is full detail, so every existing caller is unchanged");
+        }
 
         static void TestMixing()
         {

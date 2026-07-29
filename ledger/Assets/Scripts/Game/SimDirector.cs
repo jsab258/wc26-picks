@@ -1846,6 +1846,29 @@ namespace Ledger.Game
             // notice until they played it.
             bool mixOk = _mixDuckMax > 0.25 && _mixDuckMin < 0.05;
 
+            // DRESSING, and the measurement changed with the scope call.
+            //
+            // A floor on the TOTAL was right while every district got the
+            // same detail. Concentrating it into two dense cores lowers the
+            // total by design, so that floor would now fail for the feature
+            // working — the classic way a gate outlives the thing it was
+            // measuring and starts arguing with it.
+            //
+            // What concentration actually claims is that a wall in Hook
+            // carries more than an identical wall at the edge of the map. So:
+            // pieces PER FACADE on each side of the ramp, plus a much lower
+            // floor on the total that still catches "nothing was placed".
+            double perNear = WorldBuilder.FacadesNear > 0
+                ? (double)WorldBuilder.DressedNear / WorldBuilder.FacadesNear : 0;
+            double perFar = WorldBuilder.FacadesFar > 0
+                ? (double)WorldBuilder.DressedFar / WorldBuilder.FacadesFar : 0;
+            bool dressingOk = WorldBuilder.Dressed >= 90
+                && WorldBuilder.FacadesNear > 0 && WorldBuilder.FacadesFar > 0
+                && perNear > perFar * 1.25
+                // ...and the far city is still dressed. Concentrating is not
+                // stripping, and a bare street is worse than a sparse one.
+                && perFar > 0.2;
+
             // Every gate, by name, so a failure says WHICH one.
             //
             // Getting this out of CI used to mean reading a job log that the
@@ -1872,7 +1895,9 @@ namespace Ledger.Game
                 // beautiful placements nothing ever builds is the exact shape
                 // of every other "verified in a test, absent in the game"
                 // defect this project has found.
-                ($"dressing[{WorldBuilder.Dressed}]", WorldBuilder.Dressed >= 150),
+                ($"dressing[{WorldBuilder.Dressed} near={WorldBuilder.DressedNear}/"
+                 + $"{WorldBuilder.FacadesNear} far={WorldBuilder.DressedFar}/"
+                 + $"{WorldBuilder.FacadesFar}]", dressingOk),
                 // THE GATE NAME CARRIES ITS OWN NUMBERS. The FAILING GATES
                 // line is the only channel that reliably survives out of CI —
                 // the log tail is a fixed window that post-job cleanup fills,
@@ -1947,7 +1972,7 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
-                      $"dressed={WorldBuilder.Dressed} " +
+                      $"dressed={WorldBuilder.Dressed} perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
