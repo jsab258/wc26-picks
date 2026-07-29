@@ -70,7 +70,20 @@ namespace Ledger.Core
             // lighting pass was for; opening the aperture on top of that is
             // paying twice for light we already have, and it costs the one
             // property a night must keep.
-            double e = 1.0 - 0.08 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;
+            // AND THE DAY OPENS UP, which is the half I missed first time.
+            //
+            // Stopping night down brought it from 0.137 to 0.117 — and noon
+            // was 0.117 too. Dead equal. The reading that matters is not that
+            // the night was too bright, it is that a MIDDAY street and a
+            // MIDNIGHT one were being exposed identically, which no camera
+            // and no eye has ever done. Crushing the night further would have
+            // hidden that behind a number that passed.
+            //
+            // So the aperture now moves in both directions around noon, and
+            // the gap between them is the thing being asserted rather than
+            // either end.
+            double e = 1.0 + 0.12 * (1 - night) - 0.08 * night
+                       - 0.15 * rain * (1 - night) + 0.06 * rain * night;
             return Feel.Clamp(e, 0.7, 1.25);
         }
 

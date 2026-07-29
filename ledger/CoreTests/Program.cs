@@ -6061,6 +6061,19 @@ namespace Ledger.CoreTests
             Check(LightModel.Exposure(1.0) > 0.85,
                 "but not so far that an unlit corner goes to nothing — this is a stop, "
                 + "not a fade");
+
+            // AND THE GAP IS THE CLAIM, not the ordering. Night came out
+            // exactly equal to noon once the stop-down landed — 0.117 against
+            // 0.117 — which an ordering check calls a near miss and a
+            // photographer calls impossible. A midday street and a midnight
+            // one exposed identically is the actual defect, and only a margin
+            // can see it.
+            double dayNightStops = LightModel.Exposure(0.0) / LightModel.Exposure(1.0);
+            Check(dayNightStops > 1.15,
+                "and noon is exposed a clear step above midnight — an ordering check "
+                + "passes on a hair, and two frames a hair apart is a day and a night "
+                + "that look the same",
+                $"{dayNightStops:0.000}x");
             Check(LightModel.Exposure(0, 1) < LightModel.Exposure(0, 0),
                 "an overcast day loses light");
             Check(LightModel.Exposure(1, 1) > LightModel.Exposure(1, 0),
