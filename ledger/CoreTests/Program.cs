@@ -6045,10 +6045,22 @@ namespace Ledger.CoreTests
             Check(LightModel.Aces(3.0) > LightModel.Aces(1.5),
                 "and a hotter light is still brighter, rather than flattening to one value");
 
-            // ---- EXPOSURE: night is LIFTED ----
-            Check(LightModel.Exposure(1.0) > LightModel.Exposure(0.0),
-                "night opens the aperture — a player who cannot see the street is "
-                + "not experiencing atmosphere, they are experiencing a bug report");
+            // ---- EXPOSURE: night STOPS DOWN, and that is the third revision ----
+            //
+            // 0.55 was sized for an unlit street, 0.10 for one with light
+            // shafts, and this one also has wet asphalt that really reflects
+            // the lamps — measurably, into fourteen percent of a night frame,
+            // as of this morning. Every version of this number was authored
+            // against a street with less light in it than the street has now.
+            Check(LightModel.Exposure(1.0) < LightModel.Exposure(0.0),
+                "night stops the aperture DOWN, because the lamps and their reflections "
+                + "are doing the lifting — opening up on top of them pays twice for light "
+                + "the scene already has, and costs the one property a night must keep",
+                $"{LightModel.Exposure(1.0):0.000} at night against "
+                + $"{LightModel.Exposure(0.0):0.000} by day");
+            Check(LightModel.Exposure(1.0) > 0.85,
+                "but not so far that an unlit corner goes to nothing — this is a stop, "
+                + "not a fade");
             Check(LightModel.Exposure(0, 1) < LightModel.Exposure(0, 0),
                 "an overcast day loses light");
             Check(LightModel.Exposure(1, 1) > LightModel.Exposure(1, 0),
@@ -6222,9 +6234,16 @@ namespace Ledger.CoreTests
                     + $"(scene {nightScene / dayScene:0.00}x, exposure "
                     + $"{LightModel.Exposure(1, rain) / LightModel.Exposure(0, rain):0.00}x)");
             }
-            Check(LightModel.Exposure(1, 0) > LightModel.Exposure(0, 0),
-                "night is still LIFTED - a player who cannot see the street is not "
-                + "experiencing atmosphere, they are experiencing a bug report");
+            // The street stays legible at night WITHOUT the aperture, which
+            // is the claim that replaces the old one. The tonemapped night
+            // scene must still land somewhere a player can read — it is just
+            // the lamps and their reflections doing it now rather than a
+            // wider aperture applied to everything including the dark.
+            Check(LightModel.Aces(0.35 * LightModel.Exposure(1, 0)) > 0.08,
+                "a lit night surface is still legible with the aperture stopped down — "
+                + "a player who cannot see the street is not experiencing atmosphere, "
+                + "they are experiencing a bug report",
+                $"{LightModel.Aces(0.35 * LightModel.Exposure(1, 0)):0.000}");
 
             // ---- BLOOM, WHICH BLEW THE NIGHT OUT ----
             //

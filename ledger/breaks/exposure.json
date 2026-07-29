@@ -1,0 +1,14 @@
+[
+  {
+    "name": "night opens the aperture again -- paying twice for light the lamps now provide",
+    "file": "Assets/Scripts/Core/LightModel.cs",
+    "old": "            double e = 1.0 - 0.08 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;",
+    "new": "            double e = 1.0 + 0.10 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;"
+  },
+  {
+    "name": "the night stop-down goes too far and an unlit corner disappears",
+    "file": "Assets/Scripts/Core/LightModel.cs",
+    "old": "            double e = 1.0 - 0.08 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;\n            return Feel.Clamp(e, 0.7, 1.25);",
+    "new": "            double e = 1.0 - 0.60 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;\n            return Feel.Clamp(e, 0.1, 1.25);"
+  }
+]

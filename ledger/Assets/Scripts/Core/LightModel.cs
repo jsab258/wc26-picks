@@ -52,13 +52,25 @@ namespace Ledger.Core
             // BRIGHTER at midnight than at midday — 0.099 against 0.088 in
             // CI — which is the one thing a night must not be.
             //
-            // It is 0.10 now, and the argument for the original is what
-            // changed rather than the argument for lifting at all: this
-            // street has three hundred and sixty light shafts and lamps down
-            // every road. THE LAMPS DO THE LIFTING. An aperture opened far
-            // enough to rescue an unlit street is far too much for a lit one,
-            // and it was sized for a street that no longer exists.
-            double e = 1.0 + 0.10 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;
+            // It went 0.55 -> 0.10 -> BELOW ZERO, and each step was the same
+            // argument applied to a street with more real light in it than
+            // the last time anyone measured.
+            //
+            // 0.55 was sized for an unlit street. 0.10 was sized for a street
+            // with three hundred and sixty light shafts. This one also has
+            // wet asphalt that genuinely reflects the lamps — the reflection
+            // probe lit nothing at all until this morning, and now puts
+            // measurable light back into fourteen percent of a night frame.
+            // Night came out BRIGHTER than noon again, 0.137 against 0.131,
+            // and the aperture was the only thing left holding it up.
+            //
+            // So it stops down at night now rather than opening up. THE LAMPS
+            // DO THE LIFTING, and they finally reflect. A night street lit by
+            // its own lamps and their reflections is the thing the whole
+            // lighting pass was for; opening the aperture on top of that is
+            // paying twice for light we already have, and it costs the one
+            // property a night must keep.
+            double e = 1.0 - 0.08 * night - 0.15 * rain * (1 - night) + 0.06 * rain * night;
             return Feel.Clamp(e, 0.7, 1.25);
         }
 
