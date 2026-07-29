@@ -942,3 +942,53 @@ they are deferred (save versioning especially).
   highest-risk item in the entire project and the one needing you earliest.
 
 Rule reaffirmed from §2: if a feature serves none of the five novelty claims, it is cut.
+
+## BUILD STATE — 2026-07-29 13:11Z, GREEN
+
+Run 30453392188, commit `96f95e2`. `no failing gates`, `pass=True`. The
+first fully green Windows build the project has produced, and the one to
+play.
+
+**Shipped since the 28th:**
+
+| | Work | Where |
+|---|---|---|
+| Bodies | 13-box mannequin in a real joint hierarchy; proportions, stride, idle phase and head varied per person off their name | `Game/Mannequin`, `Core/Physique` |
+| Motion matching | Feature layout, normalisation, cost weighting, search cadence, jump margin, clip boundaries, inertial blend — against a stand-in corpus | `Core/MotionMatch` |
+| Confabs + the hush | Pairs stop and talk; they break off when the player walks up, and only if it was about him | `Core/Confab`, `Game/NpcWalker` |
+| The mix | Asymmetric ducking, per-bus depth, voice budgets, incoherent crowd summing | `Core/Mixing` |
+| Wet reflections | Probe capture published as the scene reflection — see the note below | `Game/WetReflections` |
+| Graphics presets | Three stops; the crowd is deliberately the last thing cut | `Core/Detail`, Options → Graphics |
+| Frame readout | Typical and worst-of-3s on F1, because CI has no GPU and cannot produce the number | `Core/FrameRate` |
+| Image statistics | Local spread, darkened/brightened fractions — the rulers three render gates should always have used | `Core/ImageStats` |
+
+**FIVE SYSTEMS WERE FOUND BUILT AND NOT RUNNING.** The post-processing
+stack (attached to a child of the camera, so `OnRenderImage` never fired).
+The cinematic camera (switched off in the sim by its own guard). The
+authored beats (never attended in any verified run). `StemGain` (returned
+the mixer's number, not the AudioSource's). The reflection probe (refreshed
+142 times a run and lit nothing — a renderer only samples a probe when its
+bounds sit inside the probe's box, and the road's meshes dwarf it).
+
+Each was built, tested, correct, and connected to nothing. **The
+generalisation, which now has a name in `the-gap.md`: an A/B is only a
+measurement if the thing it switches is switched by the time the frame is
+drawn.**
+
+**And four gates were measuring the wrong quantity** — grain (global
+variance, which clamping at black can drive the wrong way outright),
+occlusion (a global mean diluting a local effect), bloom (a global
+bright-pixel count that collapses when the camera is not facing a lamp),
+and the beat approach distance (sampled once per in-game hour, so it could
+not see a close pass). Thresholds are derived from first principles now
+rather than tuned until green.
+
+**Suspicion becomes behaviour, verified.** `checks` and `confronts` read
+zero on every run this project had ever produced, because nothing pushed a
+tracker past 0.50/0.80. Staged on day ten in the open city — deliberately
+after the week is decided, because staging it on day six tipped the verdict
+and a probe that alters the result beside it is not a probe.
+
+**Still outstanding, and all three are Jafar's:** the voice listening pass
+(one-click launchers now in `tools/voice-fetch`), the Mixamo download
+(free, and the real animation item), and the violence decision below.
