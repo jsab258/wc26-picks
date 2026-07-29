@@ -157,6 +157,24 @@ namespace Ledger.Game
         // both if you're quick, or choose whose memory of you matters more tonight.
         public BeatBook Beats { get; } = new BeatBook();
         readonly Dictionary<string, Vector3> _beatSpots = new Dictionary<string, Vector3>();
+
+        /// Where the currently open beat is, if there is one and we know the
+        /// spot. The sim reads this to walk the bot there.
+        ///
+        /// Exposed because of what CI was reporting: every authored beat came
+        /// back Skipped, every run, and the gate passed — it only ever asked
+        /// that no beat was left PENDING, and a skipped beat is resolved. So
+        /// four hand-written scenes and the whole cinematic framing layer
+        /// built on them had never executed in-engine, and nothing said so.
+        public Vector3? OpenBeatSpot
+        {
+            get
+            {
+                var open = Beats.Open(Now);
+                if (open == null) return null;
+                return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;
+            }
+        }
         readonly HashSet<string> _beatInvited = new HashSet<string>();
         GameObject _beatMarker;
         string _beatMarkerId;

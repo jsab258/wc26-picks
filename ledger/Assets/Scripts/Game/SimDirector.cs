@@ -583,8 +583,31 @@ namespace Ledger.Game
             // Drive the player around the block to exercise movement and camera —
             // except when the outfit's drop is open: then head straight for it, so the
             // night-job completion path (pay, witnesses, patience) runs in-engine.
+            // AN OPEN BEAT OUTRANKS THE ERRAND, and this is a behaviour
+            // change to the bot rather than a gate change.
+            //
+            // Every run reported beats=[tea:Skipped,toast:Skipped,...] and
+            // passed, because the gate asked only that nothing was left
+            // Pending and a Skipped beat is resolved. The bot prioritised
+            // drops and never once walked to a porch, so four authored scenes
+            // — and `Core/Framing`, the whole cinematic layer built on top of
+            // them — had never run in-engine. Nothing was broken; nothing was
+            // being executed.
+            //
+            // Attending is proximity to the marker, so the fix is to send the
+            // bot there rather than to call Attend directly: calling it would
+            // exercise the beat and skip the marker, the distance test and the
+            // collision that fires off the back of it, which is most of what
+            // there is to get wrong.
+            //
+            // Beats are an evening window and drops are night; the design note
+            // on Beat says a determined player can thread both. This bot is
+            // now determined.
+            var beatSpot = _game.OpenBeatSpot;
             var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
-            var target = job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
+            var target = beatSpot.HasValue
+                ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
+                : job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
             _player.AutoMoveTarget = target;
             if (!job.HasValue &&
                 Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
@@ -1295,12 +1318,29 @@ namespace Ledger.Game
             // windows should read Skipped (with the loyalty cost applied), never
             // linger Pending. A beat still in the future may legitimately be Pending.
             bool beatsResolved = true;
+            int beatsAttended = 0, beatsSkipped = 0;
             var beatStates = new List<object>();
             foreach (var b in _game.Beats.All)
             {
                 beatStates.Add($"{b.Id}:{b.State}");
                 if (b.WindowPassed(_game.Now) && b.State == BeatState.Pending) beatsResolved = false;
+                if (b.State == BeatState.Attended) beatsAttended++;
+                else if (b.State == BeatState.Skipped) beatsSkipped++;
             }
+            // AND AT LEAST ONE MUST ACTUALLY HAPPEN.
+            //
+            // "Nothing left Pending" was the whole test, and a Skipped beat
+            // satisfies it — so a run in which the player attended nothing,
+            // ever, was indistinguishable from one in which the authored
+            // content worked. Every CI run for months read
+            // [tea:Skipped,toast:Skipped,evening_d8:Skipped,evening_d12:Skipped]
+            // and passed.
+            //
+            // Skipping still has to be POSSIBLE — standing someone up is a
+            // real choice with a real loyalty cost, and a gate demanding every
+            // beat be attended would be asserting the player has no options.
+            // One is the claim: the path exists and runs.
+            beatsResolved = beatsResolved && beatsAttended >= 1;
             // The district population (open-city-spec §3): the founding cast plus
             // Victor plus the generated batch must actually be walking.
             bool populationOk = _npcs != null && _npcs.Length >= 20;
@@ -2091,7 +2131,7 @@ namespace Ledger.Game
                       $"seen20={Dist(_within20)} seen8={Dist(_within8)} " +
                       $"near={(_game.Populace != null ? _game.Populace.CountIn(Lod.Near) : 0)} " +
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
-                      $"beats=[{string.Join(",", beatStates)}] " +
+                      $"beats=[{string.Join(",", beatStates)}] attended={beatsAttended} skipped={beatsSkipped} " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
                       $"dressed={WorldBuilder.Dressed} perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
