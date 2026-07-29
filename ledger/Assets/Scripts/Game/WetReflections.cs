@@ -137,8 +137,11 @@ namespace Ledger.Game
             if (_probe == null) return;
             if (!_enabled) { _probe.enabled = false; return; }
 
-            Strength = (float)LightModel.ReflectionStrength(
-                SceneLighting.Wetness, GameController.NightAmount);
+            Strength = Ledger.Core.Detail.Reflections(
+                          Ledger.Core.Detail.Parse(GameSettings.Current.Detail))
+                ? (float)LightModel.ReflectionStrength(
+                      SceneLighting.Wetness, GameController.NightAmount)
+                : 0f;
 
             if (Strength <= 0f)
             {

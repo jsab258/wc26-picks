@@ -169,6 +169,13 @@ namespace Ledger.Game
         /// people nobody can see the legs of.
         public const float SolveWithinMetres = 34f;
 
+        /// The same distance, from the graphics preset. `SolveWithinMetres`
+        /// stays as the High value it always was, so a default install
+        /// behaves exactly as it did before presets existed.
+        public static float DetailWithinMetres =>
+            (float)Ledger.Core.Detail.BodyDetailDistance(
+                Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+
         /// How many rigs solved on the last frame, for the perf gate. A
         /// distance cull that quietly stops culling is invisible until the
         /// frame time moves, and by then it is somebody else's bug.
@@ -186,7 +193,8 @@ namespace Ledger.Game
             float dx = transform.position.x - cam.transform.position.x;
             float dy = transform.position.y - cam.transform.position.y;
             float dz = transform.position.z - cam.transform.position.z;
-            return dx * dx + dy * dy + dz * dz <= SolveWithinMetres * SolveWithinMetres;
+            float r = DetailWithinMetres;
+            return dx * dx + dy * dy + dz * dz <= r * r;
         }
 
         void LateUpdate()

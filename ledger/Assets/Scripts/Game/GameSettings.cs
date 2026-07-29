@@ -20,6 +20,9 @@ namespace Ledger.Game
         /// number of people cannot tolerate, and an art choice that makes
         /// somebody unable to play is not an art choice.
         public float GrainAmount = 1.0f;
+        /// Graphics preset. See Core/Detail for what each level gives up and
+        /// why the crowd is not what gets cut.
+        public int Detail = (int)Ledger.Core.Detail.Default;
         public bool ShowOdds = true;            // qualitative reads before risky moves
 
         /// Rebindable actions. Names are what the help line prints.
@@ -57,6 +60,7 @@ namespace Ledger.Game
                 { "master", MasterVolume }, { "music", MusicVolume }, { "sfx", SfxVolume },
                 { "textScale", TextScalePercent }, { "colourblind", ColourblindSafe },
                 { "sensitivity", MouseSensitivity }, { "grain", GrainAmount },
+                { "detail", Detail },
                 { "showOdds", ShowOdds },
                 { "keys", keys },
             });
@@ -76,6 +80,7 @@ namespace Ledger.Game
                 s.ColourblindSafe = root.TryGetValue("colourblind", out var cb) && cb is bool b && b;
                 s.MouseSensitivity = Num(root, "sensitivity", s.MouseSensitivity);
                 s.GrainAmount = Num(root, "grain", s.GrainAmount);
+                s.Detail = (int)Num(root, "detail", s.Detail);
                 s.ShowOdds = !root.TryGetValue("showOdds", out var so) || !(so is bool sb) || sb;
                 var keys = MiniJson.GetObject(root, "keys");
                 if (keys != null)

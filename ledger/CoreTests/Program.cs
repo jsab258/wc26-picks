@@ -97,6 +97,7 @@ namespace Ledger.CoreTests
                 TestTypography();
                 TestFraming();
                 TestImageStats();
+                TestDetail();
                 TestMotionMatching();
                 TestDressing();
                 TestInteraction();
@@ -7839,6 +7840,91 @@ namespace Ledger.CoreTests
                 $"{FramedBeat.Begun - before}");
             counted.Abort();
             Check(FramedBeat.Begun == before + 1, "and aborting does not un-count it");
+        }
+
+        static void TestDetail()
+        {
+            Console.WriteLine("Graphics detail — three presets, and what they refuse to give up:");
+
+            var levels = new[] { DetailLevel.Low, DetailLevel.Medium, DetailLevel.High };
+
+            // ---- EVERY STEP DOWN IS GENUINELY CHEAPER ----
+            //
+            // Not a relabelling. A preset menu where "Low" costs the same as
+            // "High" in the thing that actually dominates is worse than no
+            // menu, because the player turns it down, sees nothing improve,
+            // and concludes the game is simply slow.
+            bool ordered = true, strictly = true;
+            for (int i = 1; i < levels.Length; i++)
+            {
+                if (Detail.CostIndex(levels[i]) <= Detail.CostIndex(levels[i - 1])) ordered = false;
+                if (Detail.CostIndex(levels[i]) - Detail.CostIndex(levels[i - 1]) < 0.05) strictly = false;
+            }
+            Check(ordered, "each level up costs more than the one below it");
+            Check(strictly,
+                "and by a real margin at every step — a preset that changes the label and "
+                + "not the frame rate teaches the player the menu does nothing",
+                $"{Detail.CostIndex(DetailLevel.Low):0.00} / "
+                + $"{Detail.CostIndex(DetailLevel.Medium):0.00} / "
+                + $"{Detail.CostIndex(DetailLevel.High):0.00}");
+
+            // ---- THE EXPENSIVE THING GOES FIRST ----
+            Check(Detail.ShaftDistance(DetailLevel.Low) == 0,
+                "Low drops the light shafts entirely — three hundred and sixty volumetric "
+                + "cones is the most expensive thing in the scene and the lamps still glow "
+                + "without them");
+            Check(Detail.ShaftDistance(DetailLevel.Medium) > 0
+                  && Detail.ShaftDistance(DetailLevel.Medium) < Detail.ShaftDistance(DetailLevel.High),
+                "and Medium shortens them rather than removing them, so the look survives "
+                + "one step down");
+
+            // ---- AND THE CROWD IS PROTECTED ----
+            //
+            // Halving the crowd is the biggest single frame-time win here and
+            // it is the one that must not be taken. A street emptied for
+            // frame rate is not a cheaper LEDGER, it is a different and worse
+            // game — this one is about being surrounded by people who know
+            // things about you.
+            foreach (var d in levels)
+                Check(Detail.CrowdFraction(d) >= 0.7,
+                    $"{d} keeps most of the crowd — someone on weak hardware loses the wet "
+                    + "asphalt, not the witnesses",
+                    $"{100 * Detail.CrowdFraction(d):0}%");
+            Check(Detail.CrowdFraction(DetailLevel.Low) < Detail.CrowdFraction(DetailLevel.High),
+                "though it does thin a little, because a saving refused entirely is a "
+                + "principle rather than a setting");
+
+            // The crowd must not be where the saving comes from. If it were,
+            // the protection above would be decorative — a promise in a
+            // comment that the numbers quietly break.
+            double crowdShare = 0.12 * (Detail.CrowdFraction(DetailLevel.High)
+                                        - Detail.CrowdFraction(DetailLevel.Low));
+            double total = Detail.CostIndex(DetailLevel.High) - Detail.CostIndex(DetailLevel.Low);
+            Check(crowdShare < total * 0.15,
+                "and the crowd is a small share of what Low actually saves — the saving "
+                + "comes from the look, which is the claim this whole ordering makes",
+                $"{100 * crowdShare / total:0.0}% of the difference");
+
+            // ---- SHADOWS NEVER GO TO NOTHING ----
+            foreach (var d in levels)
+                Check(Detail.ShadowDistance(d) > 10,
+                    $"{d} keeps real shadows — a city with none does not look cheap, it "
+                    + "looks broken, because objects stop being attached to the ground");
+
+            // ---- IT SAYS WHAT IT COSTS ----
+            foreach (var d in levels)
+                Check(!string.IsNullOrEmpty(Detail.Describes(d)) && Detail.Describes(d).Length > 10,
+                    $"{d} says what it gives up rather than only naming itself — \"Low\" "
+                    + "tells a player nothing they can act on");
+            Check(Detail.Describes(DetailLevel.Low) != Detail.Describes(DetailLevel.High),
+                "and the descriptions differ, which a copy-paste would not");
+
+            // ---- PARSING IS TOTAL ----
+            Check(Detail.Parse(-5) == DetailLevel.Low && Detail.Parse(0) == DetailLevel.Low
+                  && Detail.Parse(1) == DetailLevel.Medium && Detail.Parse(2) == DetailLevel.High
+                  && Detail.Parse(99) == DetailLevel.High,
+                "any integer from a settings file lands on a real level — a corrupt value "
+                + "must not leave the game with no graphics settings at all");
         }
 
         static void TestImageStats()

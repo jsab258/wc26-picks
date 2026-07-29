@@ -52,11 +52,30 @@ namespace Ledger.Game
             // A street, not a landscape. Unity's default spends the cascade
             // budget on ground nobody looks at and leaves soft mush on the
             // person standing three metres away.
-            QualitySettings.shadowDistance = (float)LightModel.ShadowDistanceMetres;
+            // Shadow distance comes from the graphics preset, floored by
+            // nothing — Core/Detail already refuses to take it to zero,
+            // because a city with no shadows reads as broken rather than as
+            // cheap.
             QualitySettings.shadowCascades = 4;
             QualitySettings.shadowProjection = ShadowProjection.StableFit;
             QualitySettings.shadowResolution = ShadowResolution.High;
             QualitySettings.softParticles = true;
+            ApplyQuality();
+        }
+
+        /// Everything the graphics preset controls that lives in Unity's own
+        /// quality settings. Public and idempotent so the options screen can
+        /// call it the moment the slider moves — a graphics setting that
+        /// needs a restart to show anything cannot be tuned against the frame
+        /// rate it exists to fix.
+        public static void ApplyQuality()
+        {
+            // Floored by nothing here: Core/Detail already refuses to take
+            // shadows to zero, because a city with none reads as broken
+            // rather than as cheap.
+            QualitySettings.shadowDistance =
+                (float)Ledger.Core.Detail.ShadowDistance(
+                    Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
         }
 
         void LateUpdate()

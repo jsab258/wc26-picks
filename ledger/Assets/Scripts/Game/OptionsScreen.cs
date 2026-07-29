@@ -108,6 +108,29 @@ namespace Ledger.Game
                 Mathf.InverseLerp(80, 150, s.TextScalePercent),
                 v => s.TextScalePercent = Mathf.RoundToInt(Mathf.Lerp(80, 150, v))); y -= 64;
 
+            // GRAPHICS, as a three-stop slider rather than a panel of dials.
+            // The label says what the level GIVES UP, because "Low" tells a
+            // player nothing they can act on and "no light shafts, short
+            // shadows" tells them exactly what they are buying with their
+            // frame rate.
+            _detailNote = Label(_optionsPanel.transform,
+                Ledger.Core.Detail.Describes(Ledger.Core.Detail.Parse(s.Detail)),
+                new Vector2(0.5f, 1), new Vector2(0, y - 34), new Vector2(660, 26),
+                Typography.Small, TextAnchor.UpperCenter);
+            _detailNote.color = UiTheme.Dim;
+            MenuSlider(_optionsPanel.transform, "Graphics", y, s.Detail / 2f,
+                v =>
+                {
+                    s.Detail = Mathf.RoundToInt(Mathf.Clamp01(v) * 2f);
+                    var level = Ledger.Core.Detail.Parse(s.Detail);
+                    if (_detailNote != null) _detailNote.text = Ledger.Core.Detail.Describes(level);
+                    // Applied on the spot. A graphics setting that needs a
+                    // restart to show anything is a setting the player cannot
+                    // tune against their own frame rate, which is the entire
+                    // point of it being here.
+                    SceneLighting.ApplyQuality();
+                }); y -= 84;
+
             MenuToggle(_optionsPanel.transform, "Colourblind-safe colours", y, s.ColourblindSafe,
                 v => { s.ColourblindSafe = v; UiTheme.SetColourblind(v); }); y -= 48;
             MenuToggle(_optionsPanel.transform, "Show the odds before risky moves", y, s.ShowOdds,
@@ -275,6 +298,8 @@ namespace Ledger.Game
             Label(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 19, TextAnchor.MiddleCenter);
             return go.AddComponent<Button>();
         }
+
+        Text _detailNote;
 
         void MenuSlider(Transform parent, string label, float y, float value, System.Action<float> onChange)
         {

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Low cuts the crowd instead of the look -- a street emptied for frame rate",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "            d == DetailLevel.Low ? 0.75\n            : d == DetailLevel.Medium ? 0.9\n            : 1.0;",
+    "new": "            d == DetailLevel.Low ? 0.35\n            : d == DetailLevel.Medium ? 0.7\n            : 1.0;"
+  },
+  {
+    "name": "Low is a relabelling -- same shafts, no saving",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "            d == DetailLevel.Low ? 0\n            : d == DetailLevel.Medium ? 55\n            : 95;",
+    "new": "            d == DetailLevel.Low ? 95\n            : d == DetailLevel.Medium ? 95\n            : 95;"
+  },
+  {
+    "name": "shadows go to zero at Low -- objects stop being attached to the ground",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "            d == DetailLevel.Low ? 22\n            : d == DetailLevel.Medium ? 45",
+    "new": "            d == DetailLevel.Low ? 0\n            : d == DetailLevel.Medium ? 45"
+  },
+  {
+    "name": "the descriptions are a copy-paste, so the menu says nothing",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "                ? \"No light shafts or reflections, short shadows. The street stays busy.\"\n            : d == DetailLevel.Medium\n                ? \"Shorter light shafts and shadows. Reflections kept.\"\n                : \"Everything on.\";",
+    "new": "                ? \"Everything on.\"\n            : d == DetailLevel.Medium\n                ? \"Everything on.\"\n                : \"Everything on.\";"
+  },
+  {
+    "name": "a corrupt settings value leaves the game with no level at all",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "            i <= 0 ? DetailLevel.Low : i == 1 ? DetailLevel.Medium : DetailLevel.High;",
+    "new": "            (DetailLevel)i;"
+  },
+  {
+    "name": "Medium drops shafts entirely, so the look does not survive one step down",
+    "file": "Assets/Scripts/Core/Detail.cs",
+    "old": "            : d == DetailLevel.Medium ? 55\n            : 95;",
+    "new": "            : d == DetailLevel.Medium ? 0\n            : 95;"
+  }
+]

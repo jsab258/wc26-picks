@@ -30,6 +30,13 @@ namespace Ledger.Game
         /// than the fade would make visible and it is pure cost.
         public const float DrawDistance = 95f;
 
+        /// From the graphics preset. Zero at Low, which switches the whole
+        /// effect off — it is the most expensive thing in the scene and the
+        /// first thing a preset should be allowed to take.
+        public static float PresetDistance =>
+            (float)Ledger.Core.Detail.ShaftDistance(
+                Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+
         public static void Attach(Light light, float intensity = 1f)
         {
             if (light == null) return;
@@ -119,7 +126,8 @@ namespace Ledger.Game
 
             // A shaft only exists if its lamp is on. This also means the whole
             // effect switches with the day/night cycle for free.
-            bool on = _enabled && _light.enabled && _light.isActiveAndEnabled;
+            bool on = _enabled && PresetDistance > 0
+                      && _light.enabled && _light.isActiveAndEnabled;
             if (_renderer.enabled != on) _renderer.enabled = on;
             if (!on) return;
 
