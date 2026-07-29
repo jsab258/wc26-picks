@@ -208,6 +208,27 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          # THE COMPILE ERRORS FIRST, because a build that never produced a
+          # player has no verdict to print and the reason is what you came
+          # for. The Build player step prints these too and it is not enough:
+          # everything after it — the skipped sim, two uploads, licence
+          # deactivation, git cleanup — refills the tail before anyone reads
+          # it. Twice tonight a build died on one line of C# and the log
+          # showed nothing but licence deactivation.
+          #
+          # This step is last and nothing runs after it. That is the whole
+          # reason it exists, and it was only ever wired to the sim.
+          if (Test-Path build-log/unity.log) {
+            $ce = Select-String -Path build-log/unity.log `
+              -Pattern 'error CS|Compilation failed' |
+              ForEach-Object { $_.Line } | Select-Object -First 25
+            if ($ce) {
+              Write-Host "=== COMPILE ERRORS ==="
+              $ce | ForEach-Object { Write-Host $_ }
+              Write-Host "======================"
+            }
+          }
+
           $lines = @()
           if (Test-Path sim-run/player.log) {
             $lines = Get-Content sim-run/player.log |
