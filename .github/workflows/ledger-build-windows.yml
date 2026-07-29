@@ -243,7 +243,7 @@ jobs:
           $keys  = ""
           if ($done) {
             $keys = (($done -split " ") | Where-Object {
-              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseSecs|beatMarker|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic|checks|confronts|confrontTarget|suspicionActs)="
+              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseSecs|beatMarker|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic|bloomHit|bloomRise|bloomLit|checks|confronts|confrontTarget|suspicionActs)="
             }) -join " "
           }
           Write-Host "=== LEDGER VERDICT ==="

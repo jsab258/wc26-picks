@@ -1186,7 +1186,17 @@ namespace Ledger.Game
             // Day six: late enough that the mill has real content and the
             // player has a history, early enough to leave room for the
             // consequences to travel.
-            if (now.Day < 6 || _npcs == null) return;
+            // DAY TEN, IN THE OPEN CITY — not day six.
+            //
+            // Staging it inside the campaign week changed the week. Raising
+            // one person to 0.85 suspicion on day six is a real event with
+            // real consequences, and it tipped the verdict: verdictSane went
+            // red on the very run that first fired a confrontation. A probe
+            // that alters the outcome measured beside it is not a probe.
+            //
+            // After day eight the week is already decided, so the ambush
+            // proves the wiring without voting on the ending.
+            if (now.Day < 10 || _npcs == null) return;
 
             // The nearest walker who is not Ellis — the confrontation needs
             // them within four metres, and picking somebody already standing
@@ -1229,6 +1239,7 @@ namespace Ledger.Game
         double _reflFraction = -1, _reflRise = -1;
         double _specFraction = -1, _specRise = -1;
         double _presetFraction = -1;
+        double _bloomFraction = -1, _bloomRise = -1, _bloomHadHighlights = -1;
         float _stemVolumeMax = -1f, _busMusicMax = -1f, _busMusicMin = 9f;
         int _stemsUnbound;
         double _stemRatioMin = double.MaxValue, _stemRatioMax = 0;
@@ -1349,6 +1360,17 @@ namespace Ledger.Game
             _aoOn = all.Mean;
             _aoOff = noAo.Mean;
             _bloomDelta = all.Bright - noBloom.Bright;
+            // WHERE IT ACTS, like the occlusion pass. Bloom spreads
+            // highlights, so the pixels it touches are the ones beside
+            // something bright — a small and very specific part of the frame.
+            // The bright-pixel FRACTION is a global count and collapses to
+            // nothing whenever the camera happens not to be looking at a
+            // lamp, which is how a working bloom came back at +0.0002.
+            var (bFrac, bRise) = ImageStats.Brightened(all.Luma, noBloom.Luma,
+                                                       ImageStats.QuantisationStep);
+            _bloomFraction = bFrac;
+            _bloomRise = bRise;
+            _bloomHadHighlights = all.Bright;
             _grainDelta = grainD;
             // A vignette makes the corners darker RELATIVE to the centre, so
             // the ratio must FALL when it is on. Comparing absolute corner
@@ -2486,7 +2508,13 @@ namespace Ledger.Game
             // the right amount" — nobody can judge the right amount from a
             // number, and a gate that pretends otherwise becomes an argument
             // with the art direction every time it is touched.
-            bool bloomOk = _bloomDelta > 0.0005;
+            // AND ONLY WHEN THERE IS SOMETHING TO BLOOM. A frame with no
+            // highlights has nothing for the pass to spread, and failing the
+            // gate for that is failing it for being pointed somewhere honest
+            // — the trap the occlusion measurement was written to avoid.
+            bool bloomMeasurable = _bloomHadHighlights > 0.01;
+            bool bloomOk = !bloomMeasurable
+                           || (_bloomFraction > 0.005 && _bloomRise > 0.004);
             // THE FLOOR IS DERIVED, not tuned until it went green.
             //
             // Grain is uniform noise of amplitude `a`, so its standard
@@ -2664,7 +2692,8 @@ namespace Ledger.Game
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
-                ($"bloom[bright+{_bloomDelta:0.0000}]", bloomOk),
+                ($"bloom[hit={100 * _bloomFraction:0.00}% rise={_bloomRise:0.0000} " +
+                 $"lit={100 * _bloomHadHighlights:0.0}%]", bloomOk),
                 ($"grain[local+{_grainDelta:0.0000000} floor={grainFloor:0.0000000} " +
                  $"spread={_grainSpread:0.0000000}]", grainOk),
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
@@ -2744,7 +2773,9 @@ namespace Ledger.Game
                       $"beatChaseSecs={_beatChaseSeconds:0} beatMarker={_beatMarkerSeen} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +
                       $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
-                      $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
+                      $"bloomD={_bloomDelta:0.0000} bloomHit={100 * _bloomFraction:0.00} " +
+                      $"bloomRise={_bloomRise:0.0000} bloomLit={100 * _bloomHadHighlights:0.0} " +
+                      $"grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
                       $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
