@@ -25,9 +25,22 @@ figure in the logs comes from a software rasteriser and means nothing. The
 sim reports ~300ms a frame; on real hardware it might be 3ms or it might be
 30. I have no way to find out.
 
-If it is bad, the two things most likely responsible are the 362 volumetric
-light shafts and the shadow pass on the bodies, both of which have cheap
-dials. Tell me the number and roughly what is on screen and I can act on it.
+**Press F1.** The debug panel now leads with frames per second, the worst
+frame in the last three seconds, and which graphics preset is active. Two
+numbers rather than one on purpose: an average hides exactly the stalls
+that make a game feel bad, and thirty seconds at 120fps with four 200ms
+hitches in it averages beautifully and is horrible to play. If the two
+numbers are far apart the panel says HITCHING, which is a different
+complaint from "slow" and has a different fix.
+
+**And there is a dial now**, in Options → Graphics. Three stops, and the
+label tells you what each one gives up rather than just naming itself.
+Low drops the light shafts and reflections and shortens the shadows; it
+deliberately does **not** empty the street, because a city with no people
+in it is not a cheaper version of this game, it is a different and worse
+one. If Low is much faster than High, the look is your bottleneck and I
+have things to try. If it makes no difference, it is something else and
+that is useful too.
 
 ## What to look at, in rough order of how much it tells me
 
@@ -60,11 +73,14 @@ never run.
 
 ## What I already know is wrong or unproven
 
-- **Reflections may contribute nothing visible.** The gate says the probe
-  wakes, refreshes and obeys its rate limit, and also that removing it
-  changes not one pixel of the frame. I have an experiment in the next build
-  to find out which end is broken. If the wet road looks flat rather than
-  reflective, that is this.
+- **Reflections were contributing nothing, and now I know why.** The probe
+  refreshed perfectly and lit nothing: a renderer only samples a reflection
+  probe when its bounds sit inside the probe's box, and the road is a few
+  very large meshes whose bounds dwarf it, so Unity blended them to the sky
+  instead. The shine you could see was direct lamp specular, not
+  reflections. A fix is in the build you will be playing — so the question
+  for you is simply whether lamps and neon show up **in** the wet road, or
+  whether it is just shiny.
 - **Nobody has ever attended an authored beat in a verified run.** Fixed
   twice this morning; unconfirmed as I write.
 - **Combat exists and is deliberately unwired.** Violence is deferred by
@@ -81,6 +97,9 @@ it is any good.
 
 Specifically:
 
+0. **The F1 numbers**, once, wherever you happen to be standing. That is
+   the single most valuable thing in this list because it is the only one I
+   cannot get any other way.
 1. **Does the street feel like a place?** Not "does it look good" — whether
    it feels like somewhere people live.
 2. **Did you ever feel watched, or talked about?** That is the entire
