@@ -1460,6 +1460,17 @@ namespace Ledger.Game
         /// the talking rather than stopping for it.
         public bool InConversation => _current != null;
 
+        /// Walk away. What Escape does, reachable from code.
+        ///
+        /// The simulation needs it: a confrontation FORCES a conversation
+        /// open, and a panel left up would sit over every screenshot for the
+        /// rest of the run — which would take the lighting gates down with
+        /// it and look like an art regression rather than an unclosed window.
+        public void CloseConversation()
+        {
+            if (_current != null) CloseDialogue();
+        }
+
         void OpenDialogue(ConversationHost host)
         {
             Audio.DuckMusic(true);

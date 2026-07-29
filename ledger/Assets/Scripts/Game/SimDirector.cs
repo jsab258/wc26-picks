@@ -727,6 +727,8 @@ namespace Ledger.Game
                 Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
                 _waypointIndex = (_waypointIndex + 1) % Waypoints.Length;
 
+            StageConfrontation(now);
+
             // Hourly NPC sample.
             if (now.Hour != _lastSampledHour)
             {
@@ -1143,6 +1145,76 @@ namespace Ledger.Game
         /// not a lower threshold. It is that the frame pair is not controlled
         /// and the gate has been passing by luck.
         const int AoSamples = 3;
+
+        bool _confrontStaged;
+        float _confrontOpenedAt = -1f;
+        string _confrontTarget;
+
+        /// THE SOCIAL SIMULATION'S LAST UNRUN BRANCH.
+        ///
+        /// Every run reported `checks=0 confronts=0`. Suspicion becoming
+        /// BEHAVIOUR — somebody comparing notes about you with a neighbour,
+        /// somebody stepping into your path — needs a tracker above 0.50 and
+        /// 0.80 respectively, and nine days of a bot doing careful drops
+        /// never gets anybody there. So the two things this game is most
+        /// about had never once executed in a verified build, for the same
+        /// reason the beats hadn't: nothing in the sim ever produced the
+        /// precondition.
+        ///
+        /// WHAT IS STAGED AND WHAT IS NOT. The precondition is staged — one
+        /// person's suspicion is raised through the real `Raise` API, with a
+        /// real reason, on the person who already believes the most. What is
+        /// NOT staged is the response: whether the ladder reads as
+        /// Confronting, whether the ambush fires, whether they compare notes
+        /// with somebody standing near them, whether a conversation opens.
+        /// That is the code under test and none of it is touched here.
+        ///
+        /// It is the same split the empire, Director, operations and Act III
+        /// staging already use, and the reason is the same — the accumulation
+        /// is tested in Core against a clock we control, and the sim exists to
+        /// prove the wiring downstream of it.
+        void StageConfrontation(GameTime now)
+        {
+            // Close a forced conversation a moment after it opens. A panel
+            // left up would sit over every screenshot for the rest of the run.
+            if (_confrontOpenedAt > 0 && Time.time - _confrontOpenedAt > 1.5f)
+            {
+                _game.Ui?.CloseConversation();
+                _confrontOpenedAt = -1f;
+            }
+            if (_confrontStaged || _game.Gossip == null || _game.Gossip.Mill == null) return;
+            // Day six: late enough that the mill has real content and the
+            // player has a history, early enough to leave room for the
+            // consequences to travel.
+            if (now.Day < 6 || _npcs == null) return;
+
+            // The nearest walker who is not Ellis — the confrontation needs
+            // them within four metres, and picking somebody already standing
+            // there tests the ambush without needing a second navigation
+            // system to get the bot to them.
+            NpcWalker nearest = null;
+            float best = float.MaxValue;
+            foreach (var n in _npcs)
+            {
+                if (n == null || n.DisplayName == "Ellis") continue;
+                var g0 = _game.Gossip.Mill.Get(n.DisplayName);
+                if (g0 == null || g0.Leashed) continue;
+                float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                if (d < best) { best = d; nearest = n; }
+            }
+            if (nearest == null || best > 3.5f) return;
+
+            var g = _game.Gossip.Mill.Get(nearest.DisplayName);
+            double need = 0.85 - g.Suspicion.Value;
+            if (need > 0)
+                g.Suspicion.Raise(need,
+                    "counted the takings twice and the second number was the one that left");
+            _confrontStaged = true;
+            _confrontTarget = nearest.DisplayName;
+            _confrontOpenedAt = Time.time;
+            Debug.Log($"SimDirector: staged a confrontation with {_confrontTarget} at "
+                      + $"{best:0.0}m, suspicion now {g.Suspicion.Value:0.00}");
+        }
 
         void MeasureAo()
         {
@@ -2451,6 +2523,16 @@ namespace Ledger.Game
             // is subtle" and "the feature is absent" is a number.
             bool confabOk = _game.Gossip == null || _game.Gossip.Confabs > 0;
 
+            // SUSPICION BECOMES BEHAVIOUR. `checks` is somebody comparing
+            // notes about you with a neighbour; `confronts` is somebody
+            // stepping into your path. Both read zero on every run this
+            // project has ever produced, because nothing ever pushed a
+            // tracker past the levels they need — so the two things the game
+            // is most about were as unrun as the beats were.
+            bool suspicionActs = _game.Gossip != null
+                                 && _game.Gossip.ChecksRun > 0
+                                 && _game.TotalConfrontations > 0;
+
             // AND THE HUSH, WHICH IS THE PART THAT IS ACTUALLY THIS GAME.
             // `Confabs > 0` says the street talks to itself. It says nothing
             // about the moment the whole system exists for: a pair breaking
@@ -2590,6 +2672,9 @@ namespace Ledger.Game
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
                  $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
+                ($"suspicionActs[checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} " +
+                 $"confronts={_game.TotalConfrontations} staged={_confrontTarget ?? "none"}]",
+                 suspicionActs),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
                  $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
@@ -2609,6 +2694,7 @@ namespace Ledger.Game
                       $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty} washed={_game.Wallet.TotalWashed} " +
                       $"coatConf={_game.MaxCoatedWitnessConf:0.00} ossei={_game.EllisSpawned} peakHeat={_game.ObservedPeakHeat:0.00} " +
                       $"checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} confronts={_game.TotalConfrontations} " +
+                      $"confrontTarget={_confrontTarget ?? "none"} suspicionActs={suspicionActs} " +
                       $"saveLoad={saveLoadOk} actOne={actOneOk} pp4={_game.ActOne.Pp4Fired} posture={_game.ActOne.Posture} " +
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
