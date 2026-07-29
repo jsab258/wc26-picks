@@ -1071,7 +1071,7 @@ namespace Ledger.Game
             // of three is still reading one sample; the spread is the number
             // that says whether any of them mean anything.
             double aoD = noAo.Mean - all.Mean;
-            double grainD = all.Variance - noGrain.Variance;
+            double grainD = all.LocalSpread - noGrain.LocalSpread;
             if (sample == 0)
             {
                 _aoDeltaMin = _aoDeltaMax = aoD;
@@ -1101,7 +1101,7 @@ namespace Ledger.Game
                       + $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000}");
             Debug.Log($"SimDirector: post a/b ao={all.Mean:0.0000}/{noAo.Mean:0.0000} "
                       + $"bloomBright={all.Bright:0.0000}/{noBloom.Bright:0.0000} "
-                      + $"grainVar={all.Variance:0.00000}/{noGrain.Variance:0.00000} "
+                      + $"grainLocal={all.LocalSpread:0.0000000}/{noGrain.LocalSpread:0.0000000} "
                       + $"vigEdge={all.EdgeRatio:0.000}/{noVig.EdgeRatio:0.000}");
         }
 
@@ -1124,7 +1124,7 @@ namespace Ledger.Game
         /// ratio against the wrong colour. Check the ruler.
         struct FrameStats
         {
-            public double Mean, Bright, Variance, EdgeRatio;
+            public double Mean, Bright, Variance, EdgeRatio, LocalSpread;
         }
 
         FrameStats FrameShot(Camera cam)
@@ -1157,10 +1157,12 @@ namespace Ledger.Game
                 double centre = 0, corner = 0;
                 int centreN = 0, cornerN = 0;
                 int w = tex.width, h = tex.height;
+                var luma = new double[px.Length];
                 for (int i = 0; i < px.Length; i++)
                 {
                     var c = px[i];
-                    double l = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+                    double l = ImageStats.Luma(c.r, c.g, c.b);
+                    luma[i] = l;
                     sum += l; sumSq += l * l;
                     if (l > 0.6) bright++;
                     // Where in the frame, for the vignette ruler.
@@ -1172,6 +1174,13 @@ namespace Ledger.Game
                 }
                 st.Mean = sum / px.Length;
                 st.Variance = sumSq / px.Length - st.Mean * st.Mean;
+                // THE RULER THE GRAIN GATE ALWAYS CLAIMED TO USE. Its own
+                // comment said "local spread is the only thing that changes"
+                // and then it read global variance, which is dominated by sky
+                // against lamps and which clamping at black can drive the
+                // wrong way outright. Proved in CoreTests on one image where
+                // the two statistics disagree about the sign.
+                st.LocalSpread = ImageStats.LocalSpread(luma, w);
                 st.Bright = bright / px.Length;
                 st.EdgeRatio = (centreN > 0 && cornerN > 0 && centre > 1e-6)
                     ? (corner / cornerN) / (centre / centreN) : 1.0;
@@ -2177,7 +2186,22 @@ namespace Ledger.Game
             // number, and a gate that pretends otherwise becomes an argument
             // with the art direction every time it is touched.
             bool bloomOk = _bloomDelta > 0.0005;
-            bool grainOk = _grainDelta > 0.00002;
+            // THE FLOOR IS DERIVED, not tuned until it went green.
+            //
+            // Grain is uniform noise of amplitude `a`, so its standard
+            // deviation is a/sqrt(3) and it adds 2*sigma^2 to the mean
+            // squared difference between neighbours. The shader asks for
+            // roughly 0.02 by day rising to 0.065 at night and in rain; the
+            // A/B runs at 21:00, so take the day figure and keep a wide
+            // margin for the clamping at black that eats part of it.
+            //
+            // A threshold that follows from the amount the shader was asked
+            // for can be defended the day it starts failing. A constant
+            // nobody can derive gets lowered instead, which is how a gate
+            // stops being one.
+            const double GrainAmplitude = 0.020;
+            double grainFloor = ImageStats.SpreadFromNoise(GrainAmplitude / Math.Sqrt(3.0)) * 0.25;
+            bool grainOk = _grainDelta > grainFloor;
             // The ratio must FALL when the vignette is on: corners darker
             // relative to centre. Comparing absolute corner brightness would
             // be fooled by anything that changed the whole frame — including
@@ -2316,7 +2340,8 @@ namespace Ledger.Game
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[bright+{_bloomDelta:0.0000}]", bloomOk),
-                ($"grain[var+{_grainDelta:0.00000} spread={_grainSpread:0.00000}]", grainOk),
+                ($"grain[local+{_grainDelta:0.0000000} floor={grainFloor:0.0000000} " +
+                 $"spread={_grainSpread:0.0000000}]", grainOk),
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +

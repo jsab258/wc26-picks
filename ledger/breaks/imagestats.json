@@ -1,0 +1,38 @@
+[
+  {
+    "name": "local spread differences across the row boundary -- one pair per row spanning the whole image",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "                if ((i + 1) % stride == 0) continue;   // would wrap to the next row\n",
+    "new": ""
+  },
+  {
+    "name": "local spread uses global variance instead -- the defect this file exists to correct",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            double sum = 0;\n            int n = 0;\n            for (int i = 0; i + 1 < luma.Length; i++)\n            {\n                if ((i + 1) % stride == 0) continue;   // would wrap to the next row\n                double d = luma[i + 1] - luma[i];\n                sum += d * d;\n                n++;\n            }\n            return n > 0 ? sum / n : 0;",
+    "new": "            return Variance(luma);"
+  },
+  {
+    "name": "the noise-to-spread formula drops the factor of two -- the derived floor doubles",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "        public static double SpreadFromNoise(double sigma) => 2.0 * sigma * sigma;",
+    "new": "        public static double SpreadFromNoise(double sigma) => sigma * sigma;"
+  },
+  {
+    "name": "local spread takes the absolute difference rather than the square -- no longer a variance",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "                double d = luma[i + 1] - luma[i];\n                sum += d * d;",
+    "new": "                double d = luma[i + 1] - luma[i];\n                sum += d < 0 ? -d : d;"
+  },
+  {
+    "name": "an empty image returns something rather than nothing",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            if (luma == null || stride < 2 || luma.Length < 2) return 0;",
+    "new": "            if (luma == null || luma.Length < 2) return 0;"
+  },
+  {
+    "name": "global variance loses its floor and can report negative from rounding",
+    "file": "Assets/Scripts/Core/ImageStats.cs",
+    "old": "            return Math.Max(0, sumSq / luma.Length - mean * mean);",
+    "new": "            return sumSq / luma.Length - mean * mean;"
+  }
+]

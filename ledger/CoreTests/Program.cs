@@ -96,6 +96,7 @@ namespace Ledger.CoreTests
                 TestRig();
                 TestTypography();
                 TestFraming();
+                TestImageStats();
                 TestMotionMatching();
                 TestDressing();
                 TestInteraction();
@@ -7838,6 +7839,187 @@ namespace Ledger.CoreTests
                 $"{FramedBeat.Begun - before}");
             counted.Abort();
             Check(FramedBeat.Begun == before + 1, "and aborting does not un-count it");
+        }
+
+        static void TestImageStats()
+        {
+            Console.WriteLine("Image statistics — the grain gate measured the wrong thing:");
+
+            const int W = 64, H = 48;
+            double[] Make(Func<int, int, double> f)
+            {
+                var a = new double[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                        a[y * W + x] = Feel.Clamp01(f(x, y));
+                return a;
+            }
+
+            // A night street, roughly: a dark smooth sky over most of it with
+            // a few bright lamps. Lots of GLOBAL contrast, almost no local.
+            var street = Make((x, y) =>
+            {
+                double sky = 0.04 + 0.05 * (y / (double)H);
+                bool lamp = (x % 21 == 10) && y > H * 0.55 && y < H * 0.62;
+                return lamp ? 0.95 : sky;
+            });
+
+            // Deterministic per-pixel noise, amplitude ±sigma.
+            double[] Grainy(double[] src, double sigma, int salt)
+            {
+                var a = new double[src.Length];
+                for (int i = 0; i < src.Length; i++)
+                {
+                    // A cheap deterministic hash, so the test does not depend
+                    // on a random source and cannot pass or fail by luck.
+                    uint h = (uint)(i * 2654435761u + salt * 2246822519u);
+                    h ^= h >> 15; h *= 2246822519u; h ^= h >> 13;
+                    double u = (h % 100000) / 100000.0 * 2 - 1;
+                    a[i] = Feel.Clamp01(src[i] + u * sigma);
+                }
+                return a;
+            }
+
+            double sigma = 0.05;
+            var grainy = Grainy(street, sigma, 7);
+
+            // ---- THE RULER THAT WAS BEING USED ----
+            double vClean = ImageStats.Variance(street);
+            double vGrainy = ImageStats.Variance(grainy);
+            // The claim is a RATIO, not a magnitude. "Global variance is
+            // large" needs a number I would have had to invent; "the thing
+            // the gate was trying to see is a rounding error on the thing it
+            // was measuring" is the actual defect and needs none.
+            var flat = Make((x, y) => 0.05);
+            Check(vClean > ImageStats.Variance(flat) * 20,
+                "a night street has real global contrast — sky against lamps",
+                $"{vClean:0.00000} against {ImageStats.Variance(flat):0.00000} for a flat frame");
+            // NO CLAIM HERE THAT GRAIN IS SMALL AGAINST GLOBAL VARIANCE,
+            // though it is on the real frame. Grain adds a fixed amount to
+            // global variance and the scene supplies the rest, so the ratio
+            // is a property of the SCENE — and a toy street simple enough to
+            // write down is far smoother than a rained-on city with three
+            // hundred lamps in it. Asserting the ratio here would be
+            // asserting something about this test's own drawing.
+            //
+            // The disqualifying defect does not need it. A statistic that
+            // moves the wrong way is unusable whatever its magnitude, and
+            // that is provable on an image of two flat halves:
+
+            // AND IT CAN MOVE THE WRONG WAY. Half a night frame sits near
+            // black, where negative grain is clamped off and positive grain
+            // is not, so the noise lifts the blacks toward the middle and
+            // REDUCES the spread it was supposed to raise. That is not a
+            // shrunken effect. That is a ruler reading backwards, and it is
+            // exactly what CI reported: var+-0.00094.
+            var dark = Make((x, y) => 0.005);
+            double darkDelta = ImageStats.Variance(Grainy(dark, sigma, 3)) - ImageStats.Variance(dark);
+            Check(darkDelta > 0,
+                "on a near-black frame clamping makes global variance RISE from nothing");
+            var mid = Make((x, y) => x < W / 2 ? 0.0 : 0.9);
+            double midDelta = ImageStats.Variance(Grainy(mid, sigma, 5)) - ImageStats.Variance(mid);
+            Check(midDelta < 0,
+                "and on a frame that is half black and half bright it FALLS — additive "
+                + "noise reducing spread, which is impossible for the effect and routine "
+                + "for this statistic once the clamp is involved",
+                $"{midDelta:0.00000}");
+
+            // ---- THE RULER THAT SHOULD HAVE BEEN ----
+            double sClean = ImageStats.LocalSpread(street, W);
+            double sGrainy = ImageStats.LocalSpread(grainy, W);
+            Check(sGrainy > sClean,
+                "LOCAL spread rises when grain is added, because per-pixel noise is the "
+                + "only thing that lives at the scale it measures",
+                $"{sClean:0.000000} -> {sGrainy:0.000000}");
+
+            // THE WHOLE FINDING, ON ONE IMAGE. Same frame, same grain, two
+            // rulers, opposite answers: the statistic the gate was using says
+            // the noise removed detail, and the statistic it should have been
+            // using says it added some. Only one of those can be true of
+            // additive noise, and it is not the one that shipped.
+            var midGrainy = Grainy(mid, sigma, 5);
+            double midLocal = ImageStats.LocalSpread(midGrainy, W) - ImageStats.LocalSpread(mid, W);
+            Check(midDelta < 0 && midLocal > 0,
+                "and on the frame where global variance FELL, local spread rose — one image, "
+                + "one grain pass, and the two rulers disagree about the sign",
+                $"global {midDelta:0.00000}, local +{midLocal:0.000000}");
+
+            // AND IT IS BLIND TO THE THINGS THAT WERE DROWNING THE SIGNAL.
+            var brighter = Make((x, y) => 0.30 + 0.05 * (y / (double)H));
+            var darker = Make((x, y) => 0.05 + 0.05 * (y / (double)H));
+            Check(Math.Abs(ImageStats.LocalSpread(brighter, W)
+                           - ImageStats.LocalSpread(darker, W)) < 1e-9,
+                "the same gradient six times brighter has the same local spread — exposure, "
+                + "which moved every frame this project renders, cannot fake this number");
+
+            // ---- AND THE THRESHOLD IS DERIVED, NOT GUESSED ----
+            //
+            // Two independent samples differ with variance 2 sigma-squared, so
+            // that is exactly what noise adds. A threshold that follows from
+            // the grain amount the shader was asked for can be defended when
+            // it starts failing; a tuned constant cannot.
+            double predicted = ImageStats.SpreadFromNoise(sigma / Math.Sqrt(3.0));
+            double measured = sGrainy - sClean;
+            // TIGHT, because the arithmetic is exact. A 0.5x-to-2x band was
+            // the first version and it survived a break that dropped the
+            // factor of two out of the formula outright — a check loose
+            // enough to accept double the right answer is not pinning the
+            // derivation it exists to pin.
+            Check(measured > predicted * 0.92 && measured < predicted * 1.08,
+                "and the rise matches what the arithmetic says noise of that amplitude must "
+                + "add, to within a few percent — so the gate's floor can be derived from "
+                + "the grain the shader was asked for rather than tuned until it went green",
+                $"predicted {predicted:0.000000}, measured {measured:0.000000}, "
+                + $"ratio {measured / predicted:0.000}");
+
+            // ---- THE ROW-WRAP TRAP ----
+            //
+            // The last pixel of one row and the first of the next are on
+            // opposite edges of the image. Differencing them measures nothing
+            // and, on a frame with any left-to-right gradient, measures it
+            // loudly.
+            var ramp = Make((x, y) => x / (double)W);
+            double withWrap = 0;
+            {
+                int n = 0;
+                for (int i = 0; i + 1 < ramp.Length; i++)
+                { double d = ramp[i + 1] - ramp[i]; withWrap += d * d; n++; }
+                withWrap /= n;
+            }
+            Check(ImageStats.LocalSpread(ramp, W) < withWrap * 0.5,
+                "row ends are not differenced against the next row's start — on a "
+                + "left-to-right ramp that one pair per row is the whole width of the "
+                + "image and swamps everything real",
+                $"{ImageStats.LocalSpread(ramp, W):0.000000} against {withWrap:0.000000} "
+                + "if the wrap is counted");
+
+            // ---- DEGENERATE ----
+            Check(ImageStats.LocalSpread(null, W) == 0 && ImageStats.LocalSpread(new double[0], W) == 0,
+                "no image is no spread rather than a crash");
+            Check(ImageStats.LocalSpread(new[] { 0.5, 0.5 }, 1) == 0,
+                "and a one-pixel-wide image has no horizontal neighbours at all");
+
+            // A ZERO STRIDE IS A DIVISION BY ZERO, not a wrong answer, and
+            // the guard against it survived a break run because nothing
+            // called it with one. Zero width is what a failed ReadPixels
+            // hands back.
+            bool threw = false;
+            try { ImageStats.LocalSpread(new[] { 0.1, 0.2, 0.3 }, 0); }
+            catch (Exception) { threw = true; }
+            Check(!threw, "a zero-width image is answered rather than thrown at");
+
+            // AND VARIANCE HAS A FLOOR THAT IS ACTUALLY REACHED. E[l^2]-E[l]^2
+            // on a near-constant image comes out very slightly NEGATIVE in
+            // binary floating point — measured at -8e-15 on a hundred
+            // thousand samples — and a variance a caller may take a square
+            // root of must not be able to do that.
+            var almostFlat = new double[100000];
+            for (int i = 0; i < almostFlat.Length; i++)
+                almostFlat[i] = 0.5 + 1e-9 * ((i * 2654435761u % 1000) / 1000.0);
+            Check(ImageStats.Variance(almostFlat) >= 0,
+                "a near-constant image has variance at or above zero rather than a rounding "
+                + "error below it",
+                $"{ImageStats.Variance(almostFlat):0.###############e+0}");
         }
 
         static void TestMotionMatching()
