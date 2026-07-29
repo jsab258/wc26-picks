@@ -690,8 +690,12 @@ namespace Ledger.Game
             if (!_tookNightShot && now.Hour == 23)
             {
                 _tookNightShot = true;
-                MeasureNightLight();
+                // THE SHOT FIRST. Belt and braces on top of the immediate
+                // restore in LightShaft.Enabled: the frame that gets saved
+                // and gated is taken before any A/B has touched the scene,
+                // so no future probe added here can quietly darken it.
                 Shot($"day{now.Day}_night");
+                MeasureNightLight();
             }
             // ONE A/B, ONCE. The only way to prove an image effect reaches
             // pixels is to render the same frame without it and compare —
@@ -931,6 +935,7 @@ namespace Ledger.Game
         bool _tookAoPair;
         double _aoOn = -1, _aoOff = -1;
         double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
+        double _aoDeltaMin, _aoDeltaMax, _grainDeltaMin, _grainDeltaMax;
 
         double _nightFull = -1, _nightNoShafts = -1, _nightRaw = -1, _nightNoBloom = -1;
         string _beatBotTried;
@@ -1010,9 +1015,33 @@ namespace Ledger.Game
                       + $"blank={_labelsBlank}");
         }
 
+        /// REPEATED, because a single A/B pair cannot tell a small effect
+        /// from a noisy ruler.
+        ///
+        /// Grain came back with a NEGATIVE variance delta — additive noise
+        /// that reduced local spread, which is not a thing that can happen —
+        /// and occlusion came in at 0.0014 against a floor of 0.002. Both are
+        /// small signals sitting near a hard threshold, and one sample of
+        /// each cannot say whether the effect shrank or the measurement is
+        /// jittering. Three pairs, reported with their spread, can.
+        ///
+        /// If the spread turns out to be wider than the signal, the answer is
+        /// not a lower threshold. It is that the frame pair is not controlled
+        /// and the gate has been passing by luck.
+        const int AoSamples = 3;
+
         void MeasureAo()
         {
             _tookAoPair = true;
+            var cam = Camera.main;
+            if (cam == null) return;
+            for (int i = 0; i < AoSamples; i++) MeasureAoOnce(i);
+        }
+
+        double _aoSpread = -1, _grainSpread = -1;
+
+        void MeasureAoOnce(int sample)
+        {
             var cam = Camera.main;
             if (cam == null) return;
             // Night, and a frame with geometry in it: occlusion on an empty
@@ -1037,16 +1066,39 @@ namespace Ledger.Game
             var noVig = FrameShot(cam);
             FilmGrade.Vignette = true;
 
+            // Keep the BEST-EVIDENCED sample rather than the last, and
+            // record how far the samples disagreed. A gate reading the last
+            // of three is still reading one sample; the spread is the number
+            // that says whether any of them mean anything.
+            double aoD = noAo.Mean - all.Mean;
+            double grainD = all.Variance - noGrain.Variance;
+            if (sample == 0)
+            {
+                _aoDeltaMin = _aoDeltaMax = aoD;
+                _grainDeltaMin = _grainDeltaMax = grainD;
+            }
+            else
+            {
+                if (aoD < _aoDeltaMin) _aoDeltaMin = aoD;
+                if (aoD > _aoDeltaMax) _aoDeltaMax = aoD;
+                if (grainD < _grainDeltaMin) _grainDeltaMin = grainD;
+                if (grainD > _grainDeltaMax) _grainDeltaMax = grainD;
+            }
+            _aoSpread = _aoDeltaMax - _aoDeltaMin;
+            _grainSpread = _grainDeltaMax - _grainDeltaMin;
+
             _aoOn = all.Mean;
             _aoOff = noAo.Mean;
             _bloomDelta = all.Bright - noBloom.Bright;
-            _grainDelta = all.Variance - noGrain.Variance;
+            _grainDelta = grainD;
             // A vignette makes the corners darker RELATIVE to the centre, so
             // the ratio must FALL when it is on. Comparing absolute corner
             // brightness would have been fooled by anything that changed the
             // whole frame.
             _vigOn = all.EdgeRatio;
             _vigOff = noVig.EdgeRatio;
+            Debug.Log($"SimDirector: post a/b [{sample}] aoD={aoD:0.00000} grainD={grainD:0.00000} "
+                      + $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000}");
             Debug.Log($"SimDirector: post a/b ao={all.Mean:0.0000}/{noAo.Mean:0.0000} "
                       + $"bloomBright={all.Bright:0.0000}/{noBloom.Bright:0.0000} "
                       + $"grainVar={all.Variance:0.00000}/{noGrain.Variance:0.00000} "
@@ -2264,10 +2316,11 @@ namespace Ledger.Game
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[bright+{_bloomDelta:0.0000}]", bloomOk),
-                ($"grain[var+{_grainDelta:0.00000}]", grainOk),
+                ($"grain[var+{_grainDelta:0.00000} spread={_grainSpread:0.00000}]", grainOk),
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
-                 $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
+                 $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
+                 $"range={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00}]", mixOk),
@@ -2334,6 +2387,9 @@ namespace Ledger.Game
                       $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
+                      $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
+                      $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
+                      $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +

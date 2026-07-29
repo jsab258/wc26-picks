@@ -86,7 +86,32 @@ namespace Ledger.Game
         /// and sixty volumetric cones are additive geometry, and the question
         /// "is the night frame bright because of the shafts?" cannot be
         /// answered by looking at a screenshot of a scene that has them.
-        public static bool Enabled = true;
+        ///
+        /// THE SETTER APPLIES IMMEDIATELY, and the first version did not.
+        /// It was a plain field read by `LateUpdate`, so turning the shafts
+        /// back on took effect on the NEXT frame — and the probe runs, then
+        /// the night screenshot is taken, in the same one. The saved night
+        /// frame was rendered with three hundred and sixty light cones
+        /// missing, `nightNotDarker` went green for the wrong reason, and the
+        /// grain and occlusion A/Bs that share the hour started measuring a
+        /// darker street than the game has.
+        ///
+        /// An instrument that changes the thing it measures is worse than no
+        /// instrument, because it also looks like good news.
+        public static bool Enabled
+        {
+            get => _enabled;
+            set
+            {
+                if (_enabled == value) return;
+                _enabled = value;
+                foreach (var s in _all)
+                    if (s != null && s._renderer != null)
+                        s._renderer.enabled = value && s._light != null
+                                               && s._light.enabled && s._light.isActiveAndEnabled;
+            }
+        }
+        static bool _enabled = true;
 
         void LateUpdate()
         {
@@ -94,7 +119,7 @@ namespace Ledger.Game
 
             // A shaft only exists if its lamp is on. This also means the whole
             // effect switches with the day/night cycle for free.
-            bool on = Enabled && _light.enabled && _light.isActiveAndEnabled;
+            bool on = _enabled && _light.enabled && _light.isActiveAndEnabled;
             if (_renderer.enabled != on) _renderer.enabled = on;
             if (!on) return;
 
