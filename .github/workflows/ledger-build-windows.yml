@@ -208,27 +208,6 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          # THE COMPILE ERRORS FIRST, because a build that never produced a
-          # player has no verdict to print and the reason is what you came
-          # for. The Build player step prints these too and it is not enough:
-          # everything after it — the skipped sim, two uploads, licence
-          # deactivation, git cleanup — refills the tail before anyone reads
-          # it. Twice tonight a build died on one line of C# and the log
-          # showed nothing but licence deactivation.
-          #
-          # This step is last and nothing runs after it. That is the whole
-          # reason it exists, and it was only ever wired to the sim.
-          if (Test-Path build-log/unity.log) {
-            $ce = Select-String -Path build-log/unity.log `
-              -Pattern 'error CS|Compilation failed' |
-              ForEach-Object { $_.Line } | Select-Object -First 25
-            if ($ce) {
-              Write-Host "=== COMPILE ERRORS ==="
-              $ce | ForEach-Object { Write-Host $_ }
-              Write-Host "======================"
-            }
-          }
-
           $lines = @()
           if (Test-Path sim-run/player.log) {
             $lines = Get-Content sim-run/player.log |
@@ -268,4 +247,23 @@ jobs:
             '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
+
+          # AND THE COMPILE ERRORS LAST OF ALL, three lines at most.
+          #
+          # Printed first, they were still buried: post-job cleanup is six
+          # kilobytes of licence deactivation and git config unwinding, and
+          # the log API hands back a window smaller than that. Position is
+          # the only lever, and last is the only position that works.
+          #
+          # Three lines because the first error is the one that matters and
+          # every line after it competes with the first for the window. Two
+          # builds died on one line of C# that nothing ever showed me.
+          if (Test-Path build-log/unity.log) {
+            $ce = Select-String -Path build-log/unity.log -Pattern 'error CS' |
+              ForEach-Object { $_.Line } | Select-Object -First 3
+            if ($ce) {
+              Write-Host "=== COMPILE ==="
+              $ce | ForEach-Object { Write-Host $_ }
+            }
           }
