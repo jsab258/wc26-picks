@@ -1,0 +1,32 @@
+[
+  {
+    "name": "time-weighted smoothing again -- a 200ms stall counts as twenty-four good frames",
+    "file": "Assets/Scripts/Core/FrameRate.cs",
+    "old": "                int n = _countA + _countB;\n                return n > 0 ? (_sumA + _sumB) / n : 0;",
+    "new": "                double total = _sumA + _sumB;\n                return total > 0 ? (_sumA * _sumA + _sumB * _sumB) / total : 0;"
+  },
+  {
+    "name": "the worst frame latches forever, so one load stall poisons the session",
+    "file": "Assets/Scripts/Core/FrameRate.cs",
+    "old": "            if (dt >= _worst || _worstAge >= WindowSeconds)",
+    "new": "            if (dt >= _worst)"
+  },
+  {
+    "name": "NaN and negative deltas are accepted and poison the readout",
+    "file": "Assets/Scripts/Core/FrameRate.cs",
+    "old": "            if (!(dt > 0)) return;     // catches zero, negative AND NaN",
+    "new": "            if (dt == 0) return;"
+  },
+  {
+    "name": "Hitching compares against a fixed number rather than this machine's typical frame",
+    "file": "Assets/Scripts/Core/FrameRate.cs",
+    "old": "        public bool Hitching => _worst > Mean * 3.0 && _worst > 0.033;",
+    "new": "        public bool Hitching => _worst > 0.033;"
+  },
+  {
+    "name": "the bucket phase offset is never established, so both roll over together",
+    "file": "Assets/Scripts/Core/FrameRate.cs",
+    "old": "            if (!_started) { _started = true; _ageB = WindowSeconds / 2; }",
+    "new": "            if (!_started) { _started = true; }"
+  }
+]

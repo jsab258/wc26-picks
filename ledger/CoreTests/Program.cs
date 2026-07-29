@@ -98,6 +98,7 @@ namespace Ledger.CoreTests
                 TestFraming();
                 TestImageStats();
                 TestDetail();
+                TestFrameRate();
                 TestMotionMatching();
                 TestDressing();
                 TestInteraction();
@@ -7925,6 +7926,118 @@ namespace Ledger.CoreTests
                   && Detail.Parse(99) == DetailLevel.High,
                 "any integer from a settings file lands on a real level — a corrupt value "
                 + "must not leave the game with no graphics settings at all");
+        }
+
+        static void TestFrameRate()
+        {
+            Console.WriteLine("Frame readout — the average is the number that lies:");
+
+            var steady = new FrameRate();
+            for (int i = 0; i < 600; i++) steady.Tick(1.0 / 60.0);
+            Check(Math.Abs(steady.Fps - 60) < 1.5,
+                "a steady 60 reads as 60", $"{steady.Fps:0.0}");
+            Check(!steady.Hitching, "and a steady frame is not hitching");
+
+            // THE CASE THE AVERAGE CANNOT SEE. Thirty seconds at 120fps with
+            // four 200ms stalls in it averages beautifully and is horrible to
+            // play — the stalls ARE the experience, and a readout showing
+            // only the mean would report this frame as better than the
+            // steady 60 above.
+            var hitchy = new FrameRate();
+            for (int i = 0; i < 600; i++)
+            {
+                hitchy.Tick(i % 150 == 149 ? 0.2 : 1.0 / 120.0);
+            }
+            Check(hitchy.Fps > steady.Fps,
+                "a frame that stalls four times a second still averages BETTER than a "
+                + "steady sixty — which is exactly why the mean alone is not a measure of "
+                + "whether a game feels smooth",
+                $"{hitchy.Fps:0.0} against {steady.Fps:0.0}");
+            Check(hitchy.Hitching && !steady.Hitching,
+                "and only the second number tells them apart",
+                $"worst {hitchy.WorstMs:0} ms vs {steady.WorstMs:0} ms");
+
+            // THE WORST MUST DECAY. A worst-ever reading is wrong for the
+            // rest of the session after one stall during load, and a number
+            // nobody trusts is a number nobody reads.
+            var recovered = new FrameRate();
+            recovered.Tick(0.5);
+            for (int i = 0; i < 600; i++) recovered.Tick(1.0 / 60.0);
+            Check(recovered.WorstMs < 30,
+                "a single stall does not haunt the readout forever — it ages out of the "
+                + "window, which is what makes it worth looking at",
+                $"{recovered.WorstMs:0.0} ms");
+
+            // FRAME-RATE INDEPENDENT SETTLING, like everything else here: the
+            // reading must converge at the same rate in seconds whatever the
+            // frame rate feeding it.
+            var slow = new FrameRate();
+            var fast = new FrameRate();
+            for (int i = 0; i < 30; i++) slow.Tick(1.0 / 30.0);     // one second
+            for (int i = 0; i < 240; i++) fast.Tick(1.0 / 240.0);   // one second
+            double slowSettle = Math.Abs(slow.MeanMs - 1000.0 / 30.0);
+            double fastSettle = Math.Abs(fast.MeanMs - 1000.0 / 240.0);
+            Check(slowSettle < 0.01 && fastSettle < 0.01,
+                "and a steady stream reads exactly right at 30fps and at 240 alike — a "
+                + "frame-count mean has no settling error to argue about",
+                $"{slowSettle:0.0000} / {fastSettle:0.0000} ms from target");
+
+            var idle = new FrameRate();
+            idle.Tick(0);
+            idle.Tick(-1);
+            idle.Tick(double.NaN);
+            Check(idle.Fps == 0 && idle.WorstMs == 0,
+                "and a paused or malformed frame contributes nothing");
+
+            // AND IT MUST NOT POISON A READOUT THAT WAS ALREADY WORKING.
+            // Checking a fresh instance cannot see the failure: a NaN summed
+            // into an empty accumulator still compares false everywhere and
+            // reads as zero. The defect is a NaN landing in a RUNNING
+            // average, after which every number on the panel is NaN for the
+            // rest of the session.
+            var poisoned = new FrameRate();
+            for (int i = 0; i < 120; i++) poisoned.Tick(1.0 / 60.0);
+            poisoned.Tick(double.NaN);
+            poisoned.Tick(-0.5);
+            for (int i = 0; i < 10; i++) poisoned.Tick(1.0 / 60.0);
+            Check(Math.Abs(poisoned.Fps - 60) < 1.5 && !double.IsNaN(poisoned.MeanMs),
+                "a malformed frame arriving mid-session leaves the reading intact — one "
+                + "NaN in a running average is every number on the panel, forever",
+                $"{poisoned.Fps:0.0} fps");
+
+            // THE WINDOW MUST NOT COLLAPSE. A single bucket reset on a timer
+            // drops to one sample the instant it rolls over, so with any
+            // variance in frame time the number leaps to whatever frame
+            // happened to land next.
+            var jumpy = new FrameRate();
+            double worstDeviation = 0;
+            double trueMean = (0.005 + 0.050) / 2;
+            for (int i = 0; i < 2000; i++)
+            {
+                jumpy.Tick(i % 2 == 0 ? 0.005 : 0.050);
+                if (i > 200)
+                {
+                    double dev = Math.Abs(jumpy.MeanMs / 1000.0 - trueMean) / trueMean;
+                    if (dev > worstDeviation) worstDeviation = dev;
+                }
+            }
+            Check(worstDeviation < 0.2,
+                "and the reading never leaps as the window rolls over — two buckets kept half "
+                + "a window out of phase, so whichever has just emptied, the other still "
+                + "carries a full reading",
+                $"worst deviation {100 * worstDeviation:0.0}%");
+
+            // HITCHING IS RELATIVE TO THIS MACHINE. A steady twenty frames a
+            // second is slow, and slow is not the same complaint as hitching
+            // — flagging it would tell somebody on weak hardware that their
+            // stalls are the problem when their problem is a flat low
+            // ceiling, which sends them after the wrong setting.
+            var slowSteady = new FrameRate();
+            for (int i = 0; i < 600; i++) slowSteady.Tick(0.050);
+            Check(!slowSteady.Hitching,
+                "a steadily slow machine is not reported as hitching — slow and stuttering "
+                + "are different complaints with different fixes",
+                $"{slowSteady.Fps:0} fps, worst {slowSteady.WorstMs:0} ms");
         }
 
         static void TestImageStats()

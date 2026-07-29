@@ -1073,8 +1073,15 @@ namespace Ledger.Game
             _ledgerText.text = sb.ToString();
         }
 
+        /// Ticked every frame whether the panel is open or not, so the
+        /// number is already meaningful the moment somebody presses F1 rather
+        /// than starting from nothing three seconds after they look.
+        FrameRate _frames;
+
         void Update()
         {
+            _frames.Tick(Time.unscaledDeltaTime);
+
             var now = _game.Now;
             var money = _game.Wallet.Dirty > 0
                 ? $"${_game.Wallet.Clean} <color={UiTheme.HexAmber}>+ ${_game.Wallet.Dirty} dirty</color>"
@@ -1238,7 +1245,17 @@ namespace Ledger.Game
             // F1 shows the brain of whoever you're talking to (or standing near).
             var debugHost = _current ?? _nearest ?? (_hosts.Count > 0 ? _hosts[0] : null);
             if (_debugPanel.activeSelf && debugHost != null && Time.frameCount % 30 == 0)
-                _debugText.text = debugHost.DebugReport() +
+                _debugText.text =
+                    // FRAME RATE FIRST, because it is the one number CI
+                    // genuinely cannot produce — the runner has no GPU, so
+                    // every timing this project has ever recorded came from a
+                    // software rasteriser. The first person to play it is the
+                    // first real measurement, and they can only report what
+                    // they can read.
+                    _frames.Line()
+                    + (_frames.Hitching ? "   <-- HITCHING" : "")
+                    + $"   [graphics: {Ledger.Core.Detail.Describes(Ledger.Core.Detail.Parse(GameSettings.Current.Detail))}]\n\n"
+                    + debugHost.DebugReport() +
                     (_game.Gossip != null ? "\n\n" + _game.Gossip.StatusLine() : "") +
                     "\n\n" + _game.PurseStatusLine() +
                     "\n\n" + _game.PhoneStatusLine();
