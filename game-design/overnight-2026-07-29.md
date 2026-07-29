@@ -21,8 +21,10 @@ whether a green Windows CI run has confirmed it yet.
 | 10 | A frame-time gate, which nothing had | pending |
 | 11 | The mix: ducking that does not pump, voice budgets, crowd summing | pending |
 | 12 | AO split into its own shader so it cannot break the grade | pending |
+| 13 | **The post stack had never run at all** — found and fixed | pending |
+| 14 | Exposure tied to the night it compensates for | n/a (Core) |
 
-Core checks went 2060 → 2165.
+Core checks went 2060 → 2169.
 
 ## The one that matters most
 
@@ -120,6 +122,36 @@ to one clock reads as a chorus line and cannot be unseen.
    golden ratio gets no nearer than half a unit.
 
 Check the ruler before the reading. That is five times this session.
+
+## The biggest thing found tonight, and it was found by accident
+
+`FilmGrade` — grain, vignette, bloom, exposure, the ACES tonemap — was
+attached to a **child GameObject parented under the camera**. `OnRenderImage`
+is only delivered to a component on the GameObject that *has* the Camera. So
+the entire post stack has never executed a single frame since it was written.
+The component sat in the scene, correctly built, doing nothing.
+
+**Nothing caught it because every check was of the model.** The curves are
+tested in `Core/LightModel`. The shader compiled. The material was built. The
+component existed. Every one of those was true, and not one of them was the
+claim being made.
+
+The check that found it was the ambient-occlusion A/B — written four features
+later, for a completely different purpose: proving that a *subtle* effect was
+not invisible, by rendering one frame with it and one without. It reported
+`ao[applied=0 on=0.1827 off=0.1827]` on its first run and the cause turned out
+to have nothing to do with occlusion.
+
+That is the argument for A/B gates over presence gates, made by accident and
+at some cost: **an effect existing is not an effect running, and a screenshot
+of a scene that looks plausible cannot tell you which.** There is now a frame
+counter on `OnRenderImage` so this exact class of failure fails loudly.
+
+It also surfaced a second defect that could not have existed before: exposure
+lifts night by 1.55× to keep the street legible, and nothing tied that to how
+much the ambient bands darken at night. If the lift ever exceeds the
+darkening, the tonemap sees more light at midnight than at midday and the
+night is simply gone. The two curves are now checked against each other.
 
 ## What went wrong, and what it cost
 
