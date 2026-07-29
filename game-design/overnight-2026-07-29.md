@@ -326,6 +326,58 @@ occlusion bounds are geometric: a street is comfortably more than half a
 percent creases and nothing like half. A floor nobody can derive gets
 lowered when it starts failing, which is how a gate stops being one.
 
+## The cleanest example of the whole pattern
+
+Saved for last because it is the tidiest. The wet-road reflection probe
+woke on schedule, refreshed 142 times over 1280 wet frames, obeyed its
+rate limit exactly, and reported healthy numbers to a gate that checked
+every one of those things. It contributed **zero pixels to the image.**
+
+The gate was not weak. It proved everything it claimed. It simply never
+claimed the one thing that mattered.
+
+Finding out which end was broken needed two toggles rather than one,
+because "switching the probe off changes nothing" has two very different
+explanations — the probe is not reaching the shading, or wet specular is
+worth nothing anyway — and each guess costs a twenty-five minute build. So
+one run measured both: the probe (0.00% of the frame) and a positive
+control that flattens the wet surfaces' smoothness by a route with no
+probe mechanics in it at all (33.22%, by 0.26).
+
+Unambiguous. Wet specular was doing a great deal and none of it came from
+the probe. The shine on the road was direct lamp specular; the actual
+reflections — the point of the entire feature — were absent.
+
+**The mechanism is worth writing down.** A renderer only samples a
+reflection probe when its BOUNDS sit inside the probe's box, and the road
+is a small number of very large meshes. Their bounds dwarf a 48-metre box,
+so Unity blended them to the skybox instead. Publishing the capture as the
+scene's reflection removes the containment question; and the strength has
+to travel through `RenderSettings.reflectionIntensity`, because a custom
+reflection texture does not carry the probe's own intensity with it.
+
+## And the trap that appeared five times
+
+Every one of these was an A/B that measured its own inertness:
+
+1. `LightShaft.Enabled` — a plain field read by `LateUpdate`, set false and
+   true again inside one `Update`, so nothing was ever switched off.
+2. The reflection probe — `enabled = false` stops a realtime probe
+   UPDATING; the renderers keep sampling the cubemap it last produced.
+3. The graphics preset — read inside `LateUpdate` for the same reason as 1,
+   caught before it shipped rather than after.
+4. `StemGain` — returned the number the mixer computed, not the one on the
+   AudioSource.
+5. The panel smoke test — a panel opens, speaks and closes whether or not a
+   single glyph rendered.
+
+The generalisation, and it is worth more than any of the five: **an A/B is
+only a measurement if the thing it switches is switched by the time the
+frame is drawn.** Everything that reads its state one frame later, or
+holds a cached copy, or lives on the far side of an engine boundary, will
+quietly report that the effect does nothing — which is indistinguishable
+from good news.
+
 ## One reading that is not a bug, so nobody chases it
 
 `hotUnease` read 0.11 at heat 0.92 in one run and 1.00 at heat 0.97 in the
