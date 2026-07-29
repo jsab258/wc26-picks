@@ -248,6 +248,56 @@ def check_core_using(path: pathlib.Path, core_names: set) -> list:
     return out
 
 
+# Names that exist in BOTH System and UnityEngine. A file carrying both
+# usings and referring to any of them bare is CS0104 — and this is the
+# hardest of the three to see coming, because the file compiles fine right
+# up until somebody adds `using System;` for one call to Math.Abs.
+#
+# Which is exactly what happened: `using System;` went onto Audio.cs, which
+# has used bare `Object.DontDestroyOnLoad` and `Random.Range` since it was
+# written. ShapeCheck could not see it — its Unity stubs have no
+# UnityEngine.Object or UnityEngine.Random for System's to collide with —
+# and the failure surfaced as an eighteen-second Unity build with the error
+# already scrolled out of the log window.
+# ONLY THESE TWO, and getting the list right matters more than having one.
+#
+# The first version also listed Debug and Array and immediately reported
+# fourteen files that compile perfectly. `using System;` imports the System
+# NAMESPACE, not System.Diagnostics — so there is no `System.Debug` for
+# UnityEngine.Debug to collide with, and `System.Array` has no UnityEngine
+# counterpart at all. Only Object and Random genuinely exist in both.
+#
+# A gate that flags working code is a gate people switch off, which is worse
+# than not having one. This file already carries that lesson once, from the
+# multi-line verbatim strings a few functions down.
+AMBIGUOUS = ("Object", "Random")
+SYSTEM_USING = re.compile(r"^\s*using\s+System\s*;", re.MULTILINE)
+ENGINE_USING = re.compile(r"^\s*using\s+UnityEngine\s*;", re.MULTILINE)
+
+
+def check_ambiguous(path: pathlib.Path) -> list:
+    """Bare uses of a name that both System and UnityEngine define, in a file
+    that imports both namespaces."""
+    out = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return out
+    if not (SYSTEM_USING.search(text) and ENGINE_USING.search(text)):
+        return out
+    code = scrub(text)
+    lines = code.splitlines()
+    for name in AMBIGUOUS:
+        # `Name.` or `Name)` or `Name ` used as a type — but NOT when it is
+        # already qualified (`System.Object`, `UnityEngine.Random`) and not
+        # when it is part of a longer identifier (`RandomWalk`, `_object`).
+        pat = re.compile(r"(?<![.\w])" + name + r"\s*\.")
+        for lineno, line in enumerate(lines, 1):
+            if pat.search(line):
+                out.append((lineno, name, line.strip()))
+    return out
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "ledger/Assets/Scripts")
     core_names = core_type_names(root)
@@ -272,6 +322,13 @@ def main() -> int:
                       f"of the same name. Every Game file carries both usings, so this is "
                       f"CS0104 at player-build time and nothing before it can see it. "
                       f"Rename it — '{name}Kind' matches the StanceKind convention.\n    {line}")
+        for lineno, name, line in check_ambiguous(path):
+            bad += 1
+            print(f"{path}:{lineno}: bare '{name}.' with BOTH 'using System;' and "
+                  f"'using UnityEngine;' — CS0104, because both namespaces define "
+                  f"{name}. Drop 'using System;' and spell out System.Math etc, or "
+                  f"qualify this use. ShapeCheck cannot see it: its Unity stubs have "
+                  f"no UnityEngine.{name} to collide with.\n    {line}")
         for lineno, name, line in check(path):
             bad += 1
             if name.startswith("generic:"):

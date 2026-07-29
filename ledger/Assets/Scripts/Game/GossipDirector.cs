@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
@@ -371,7 +370,7 @@ namespace Ledger.Game
             if (!StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out _))
                 return true;   // no street known here: it is not a carriageway
             double dx = p.x - sx, dz = p.z - sz;
-            return Math.Sqrt(dx * dx + dz * dz) > 3.0;
+            return System.Math.Sqrt(dx * dx + dz * dz) > 3.0;
         }
 
         void ReportOverheard(List<GossipEvent> events)

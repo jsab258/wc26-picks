@@ -1,4 +1,7 @@
-using System;
+// NO `using System;` HERE, deliberately. This file uses bare `Object.`
+// and `Random.`, which resolve to UnityEngine's — and importing System
+// makes both ambiguous with System.Object and System.Random (CS0104).
+// Adding it cost a build; `System.Math` is spelled out below instead.
 using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
@@ -434,7 +437,7 @@ namespace Ledger.Game
             // hear. ApplyVolumes touches every AudioSource in the game and
             // running it every frame for a change of 0.0001 is a cost for
             // nothing.
-            if (Math.Abs(_duck - before) > 0.002) ApplyVolumes();
+            if (System.Math.Abs(_duck - before) > 0.002) ApplyVolumes();
         }
 
         /// P3's missing half: a score, synthesised once and cached — and like
