@@ -43,16 +43,39 @@ namespace Ledger.Game
         /// like one that is running and doing nothing.
         public static int Applied { get; private set; }
 
+        /// Frames on which the grade ran AT ALL.
+        ///
+        /// Separate from `Applied`, and added the night the AO gate revealed
+        /// that `OnRenderImage` had never once been called: attached to a
+        /// child of the camera instead of the camera, this whole class was a
+        /// component sitting in a scene doing nothing, and every check passed
+        /// because every check was of the model rather than of the picture.
+        /// One counter makes that failure impossible to have again.
+        public static int Frames { get; private set; }
+
         Material _mat, _ao;
         RenderTexture _bloomA, _bloomB;
         Camera _cam;
 
+        /// ON THE CAMERA'S OWN GAMEOBJECT. Not a child of it.
+        ///
+        /// `OnRenderImage` is only delivered to components attached to the
+        /// GameObject that HAS the Camera. This class used to be added to a
+        /// child transform parented under the camera — which looks tidy,
+        /// keeps the hierarchy clean, and means the entire post stack never
+        /// executed a single frame. Grain, vignette, bloom, the exposure and
+        /// the ACES tonemap have all been dead since they were written.
+        ///
+        /// Nothing caught it because nothing ever asserted that post reached
+        /// PIXELS. Every check was of the model — the curves are tested in
+        /// `Core/LightModel`, the shader compiled, the material built, the
+        /// component existed. The first check that rendered one frame with an
+        /// effect and one without found it immediately, and it was written
+        /// for ambient occlusion, four features later.
         public static void Ensure(Camera cam)
         {
             if (_instance != null || cam == null) return;
-            var go = new GameObject("FilmGrade");
-            go.transform.SetParent(cam.transform, false);
-            _instance = go.AddComponent<FilmGrade>();
+            _instance = cam.gameObject.AddComponent<FilmGrade>();
             _instance._cam = cam;
             // HDR, or the tonemap has nothing to map: without it the frame
             // buffer clips at 1.0 BEFORE the curve ever sees it, and the
@@ -105,6 +128,7 @@ namespace Ledger.Game
 
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
+            Frames++;
             if (_mat == null) { Graphics.Blit(src, dst); return; }
 
             var s = GameSettings.Current;

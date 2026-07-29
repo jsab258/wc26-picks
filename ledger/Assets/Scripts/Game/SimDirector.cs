@@ -1810,6 +1810,24 @@ namespace Ledger.Game
             double aoDelta = (_aoOn >= 0 && _aoOff >= 0) ? _aoOff - _aoOn : -1;
             bool aoOk = FilmGrade.Applied > 0 && aoDelta > 0.002 && aoDelta < 0.09;
 
+            // AND THAT THE GRADE RAN AT ALL, which is a different claim and
+            // the one that actually mattered.
+            //
+            // The A/B above reported ao[applied=0 on=0.1827 off=0.1827] and
+            // the cause was not ambient occlusion: `FilmGrade` was attached
+            // to a CHILD of the camera, and `OnRenderImage` is only delivered
+            // to a component on the GameObject that has the Camera. Grain,
+            // vignette, bloom, exposure and the ACES tonemap had never
+            // executed a single frame.
+            //
+            // Nothing caught it for months because every check was of the
+            // MODEL — the curves are tested in Core, the shader compiled, the
+            // material built, the component existed in the scene. The first
+            // check that rendered one frame with an effect and one without
+            // found it in a single run. This counter is the cheap version of
+            // that lesson: an effect existing is not an effect running.
+            bool postOk = FilmGrade.Frames > 0;
+
             // THE STREET TALKS TO ITSELF. Rumours have passed along the
             // contact graph since the first week and the city has shown none
             // of it — a dozen people walking past each other in silence while
@@ -1871,6 +1889,7 @@ namespace Ledger.Game
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
+                ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
@@ -1931,6 +1950,7 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
+                      $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
