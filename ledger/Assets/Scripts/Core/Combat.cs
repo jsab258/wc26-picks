@@ -15,6 +15,33 @@ namespace Ledger.Core
     /// stop — or the choice is fake and the player notices inside one
     /// attempt. So violence must work and cost more than it saves, which is
     /// harder to balance than violence that simply does not work.
+    // ============================================================
+    // DORMANT ON PURPOSE. Do not "fix" this by wiring it in.
+    //
+    // Nothing outside this file references Fighter, Blow, Footing,
+    // Resolve or BlowResult. That is not the accident it looks like:
+    // `GameController` states the decision plainly — "violence is
+    // deferred as a thing you DO and present as a thing that has
+    // happened to you" (roadmap M11) — and the half that IS live is
+    // `HarmBook`, which carries injuries, feuds and capability loss and
+    // reports green in every CI run.
+    //
+    // Written down because from the outside this is INDISTINGUISHABLE
+    // from the other kind. On 2026-07-29 an audit found the entire post
+    // stack had never executed a single frame — built, tested, correct,
+    // attached to nothing — and the same audit landed here next. One was
+    // a bug that had been invisible for months; this is a decision. The
+    // only difference is a sentence in a different file, and a sentence
+    // in a different file is not where a decision this consequential
+    // should live.
+    //
+    // What exists here is complete and tuned: phases 1, 2, 3b and 4,
+    // with the stamina, guard and footing numbers retuned after a fight
+    // lab found mashing won 76% of fights. It is ready. It is waiting on
+    // a design call that is the player's to make, and it is logged in
+    // decisions-pending.md as such.
+    // ============================================================
+
     public enum Blow
     {
         /// Not an attack. A stance change everyone can see.

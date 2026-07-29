@@ -6,6 +6,42 @@ Answered items move to the decision log in `process.md`.
 Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
 as answerable options — the doc is the record, the chat is the interface.
 
+## NEEDS YOU — is violence a verb? (2026-07-29)
+
+**Nothing calls `Core/Combat`.** Not one line outside the file references
+`Fighter`, `Blow`, `Footing` or `Resolve`, and `GameController.RecordKilling`
+— the entry point that files a killing with the gossip mill and starts the
+police inquiry — is never called by anything.
+
+**I am fairly sure this is deliberate and I have not changed it.**
+`GameController` says so: *"violence is deferred as a thing you DO and present
+as a thing that has happened to you"* (roadmap M11). The half that is live is
+`HarmBook` — injuries, feuds, capability loss — and it reports green in every
+CI run (`injuries=2 feuds=1 harmOk=True`).
+
+I raise it because I found it during an audit that had, an hour earlier, found
+the entire post-processing stack had never executed a single frame: built,
+tested, correct, attached to nothing. **From the outside those two look
+identical.** One was a months-old bug; this is a decision. That is too thin a
+margin to leave to a comment in an unrelated file, so the decision is now
+stated at the top of `Core/Combat.cs` as well.
+
+What is sitting there, finished: phases 1, 2, 3b and 4, with stamina, guard
+and footing retuned after a fight lab found that mashing won 76% of fights and
+took the least damage. Plus `Violence.Saw` for witnesses, `KillingConfidence`,
+`Notoriety`, and `Homicide`'s procedure/investigation/manhunt ladder.
+
+**RECOMMEND: leave it dormant for now, and decide it against a playtest rather
+than against a build.** The game's whole claim is that the antagonist is
+gossip; a punch button is the single fastest way to teach a player otherwise,
+and no amount of simulation will tell you whether it cheapens the thing. It is
+a few hours of wiring whenever you want it — the expensive half is already
+written and tuned.
+
+If you do want it, say so and it goes in with a sim gate that proves a fight
+resolves and a witness files a rumour, the same way every other system here is
+proved.
+
 ## Open now — 2026-07-27, six decisions
 
 Ordered by how much they block. 1 and 2 are blocking real work right now;
