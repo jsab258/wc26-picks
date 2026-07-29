@@ -1085,6 +1085,215 @@ blocking:
 
 ---
 
+## 14. AUDIT OF THIS DOCUMENT — 2026-07-29, after approval
+
+Read cold, looking for holes, at Jafar's request. Fourteen findings. Four of
+them are design problems rather than gaps, and one is a straight contradiction
+between two things this document is proud of.
+
+Nothing here reopens the approval. Items marked **NEEDS A CALL** change
+something Jafar approved and should not be resolved by me alone.
+
+### A. The ghost contradicts the dread — **the worst finding, and it is real**
+
+§4.4 calls the case where *neither of you knows* **"the quiet horror case"**
+and treats not knowing as a feature. §6.2 then shows the player a ghost of
+what the witness believes.
+
+**If the ghost always appears, the quiet horror case cannot exist.** The two
+best ideas in the document cancel each other out and no version of this
+document noticed.
+
+**Fix, and it improves both:** the ghost appears **only when Tom saw them see
+him** — the two right-hand cells of §4.4. It becomes not a readout but *the
+representation of a thing the character actually experienced*: you caught his
+eye, so you know what he got. When you were seen and did not notice, **there
+is no ghost and no warning**, and the first you hear of it is a rumour three
+days later. That is the horror, preserved, and it also removes the fictional
+cheat of showing the player another person's mind.
+
+**Consequence:** the ghost stops being a general legibility device, so §6.2
+loses a channel it was leaning on. That is correct — legibility should cover
+*being noticed* (four channels, all preserved) rather than *what they
+concluded*, which the player has no right to know.
+
+### B. Nothing here is predictive — the player can plan nothing — **NEEDS A CALL**
+
+Every device in §6 is **reactive**: it tells you that you were seen, that a
+noise carried, that someone is walking to tell somebody. Thief's light gem is
+**prospective** — it tells you your state *before* you commit.
+
+**Stealth-adjacent play is planning, and this document gives the player
+nothing to plan with.** The vignette covers *am I lit*, and that is the only
+forward-looking signal in eighty pages. There is nothing for *could that man
+see this doorway* or *would a shot here reach the market*.
+
+Three options:
+
+1. **Symmetry, stated as a rule the player can learn:** if you can see his
+   eyes, he can see you. Zero interface, one sentence in the how-to-play, and
+   it makes the camera the planning tool. **Recommended.**
+2. **A survey verb** — hold a key to stand still and study the street;
+   attention channels sharpen, sounds are labelled by direction. Diegetic,
+   costs a moment of time, no HUD.
+3. Cones drawn on the ground. Legible, and completely wrong for this game.
+
+Option 1 is nearly free and is the one I would build. It needs a call because
+it constrains the camera and the vision model to agree, forever.
+
+### C. The victim is not a person in this document
+
+The whole spec is player → target → witnesses. **The target perceives too**,
+and the document never says so. He can see you coming, run, fight, scream,
+**survive**, recognise you, and become the most dangerous witness in the game:
+the one who was close, lit, facing you, and has every reason to talk.
+
+`combat-spec.md` already models injury, feuds and capability loss, so the
+survivor is half-built. It is not referenced here once.
+
+**Fix:** the target runs the same perception and observation model as any
+witness, with a bias — being attacked guarantees rung 3 and usually rung 4.
+"He lived" becomes the loudest possible outcome, which is exactly right for a
+game where killing is meant to cost more than it saves.
+
+### D. Accidents may be the dominant strategy — **the risk §11 missed**
+
+§11.4 worries that the threat verb solves everything. Nobody asked the same
+question about Family 6. **"The only violence that produces no crime"** is a
+sentence that, unqualified, ends the design: if the stairs always work, the
+optimal player never touches a weapon again.
+
+**Fix, three constraints:** an accident needs *position and privacy* that most
+situations do not offer; **being seen doing it is worse than any other
+observation** because the act reads as unambiguous murder; and a suspicious
+death still gets a coroner, so it converts a manhunt into an inquest rather
+than into nothing. BalanceLab proves it the way `RunViolenceLab` proved the
+kill-the-witness trade.
+
+### E. Two competing witness systems — **an integration ambiguity, and this project has been bitten by exactly this**
+
+§9 lists `Violence.Saw` and `KillingConfidence` as *"exists and is
+reusable"*. They are not reusable — the observation model **replaces** what
+they do. Left as it stands, the build ends up with two systems deciding who
+saw a killing, and the project has already lost a night to a system that was
+built, correct and attached to nothing.
+
+**Fix:** state the disposition explicitly before Phase 2 starts.
+`Violence.Saw` becomes a thin adapter over `Core/Observation` or it is
+deleted; `KillingConfidence` is derived from slots and rungs rather than
+computed separately. Written down now, checked by a test that the old path
+has no callers.
+
+### F. No numbers anywhere, in a document whose project motto is *check the ruler before the reading*
+
+Detection range, identification range, FOV, peripheral band width, seconds of
+accumulation, the ambient floor in dB-equivalents, how far a .38 carries, how
+long a delivery walk takes. **Not one figure appears in this spec**, so the
+first implementation will invent them all and there will be nothing to check
+it against.
+
+**Fix:** a calibration table before Phase 1 — first-guess values, each with
+the reason it was chosen and the gate that would catch it being wrong. They
+will all move. The point is that they move *from* somewhere.
+
+### G. The performance risk is named three times and designed nowhere
+
+*"Throttled by distance"* is the entire mitigation for the #3 risk, and the
+project already has a Near / Mid / Far band model that this document never
+mentions.
+
+**Fix:** say it concretely — only the Near band perceives; vision recomputes
+on a staggered schedule rather than every frame for everyone; hearing is
+event-driven and therefore nearly free; a stated millisecond budget with a
+gate that fails the build when it is exceeded. This is cheap to specify and
+expensive to retrofit.
+
+### H. Persistence is never mentioned once
+
+New durable state: observation records, in-flight witnesses mid-delivery,
+carried objects, provenance, blood on clothes, mutual-awareness pairs.
+**Saving mid-delivery and reloading is an obvious case and the document is
+silent on it.** The project has atomic saves, backups and slots, so the
+machinery exists; the schema work does not.
+
+### I. There is no acute response — what happens the moment a constable sees you — **NEEDS A CALL**
+
+`Police` has procedure → investigation → manhunt, which is a *slow* ladder
+measured in days. This document adds acts that a policeman can watch happen,
+and then says nothing about the next sixty seconds. Is there a chase? An
+arrest? Can the player be taken? We have a prison system and a decision on
+record about what prison does to the information landscape, and none of it is
+wired to being caught in the act.
+
+**Recommendation: yes to arrest, no to a chase.** A foot chase is a different
+game and we would do it badly. Being taken — with the street watching, and
+everything you were carrying now in a drawer at the station — is both cheaper
+and more in keeping. But it is a real design decision and it belongs to Jafar.
+
+### J. Phase 1's gate does not test Phase 1's promise
+
+§3.3 promises the KCD2 feeling *before any weapon exists* — people noticing
+you loiter, noticing you run at night, heads turning at a slammed door. **The
+Phase 1 gate in §10 tests only detection ranges and occlusion**, which is the
+machinery, not the experience. A green Phase 1 could therefore ship a city
+that computes perfectly and reacts to nothing, and that failure mode is this
+project's signature.
+
+**Fix:** Phase 1's gate asserts a *behaviour* — loitering under a lamp for
+thirty seconds produces at least one person who looks and one who comments —
+and the reactions to non-crimes ship *in* Phase 1 rather than in Phase 2.
+
+### K. Blood and cleanliness are half a sentence
+
+Listed as new, used as a weapon-table column, never specified: how long it
+lasts, what removes it, who notices it and at what light level, whether it is
+rung-2 identification evidence, and what a coat in a bin does. It is one of
+the cheapest good ideas here and it is currently a promise.
+
+### L. The frisk is three sentences and it is the entire cost of carrying
+
+Who can frisk, on what trigger, what a refusal costs, what happens when
+something is found, and whether concealment is a property of the object, the
+coat, or both. §7.2 asserts that this row matters more than reach and then
+does not define it.
+
+### M. Witness memory does not change with time, and real memory does
+
+The mill ages *facts*. It does not model the thing that makes eyewitnesses
+notorious: **accuracy falls while confidence rises**, and a hesitant
+identification hardens into a certain one after a week of telling the story.
+That is free drama, it is true, and it would make `Discredit` far more
+interesting.
+
+### N. No estimates, and no lab
+
+Every other spec in this project costs its phases and gets a BalanceLab
+scenario. This one, the largest, has neither. Phase 1 cannot be scheduled
+against anything, and there is no `RunPerceptionLab` to answer whether the
+tuning is sane — which is how `RunViolenceLab` caught mashing winning 76% of
+fights.
+
+### Summary
+
+| | Finding | Severity | Who decides |
+|---|---|---|---|
+| A | Ghost contradicts the dread | **Design flaw** | Me, unless you disagree with the fix |
+| B | Nothing is predictive | **Design gap** | **NEEDS A CALL** |
+| C | The victim is not modelled | **Design gap** | Me |
+| D | Accidents may dominate | **Balance risk** | Me, proven in the lab |
+| E | Two witness systems | **Integration** | Me |
+| F | No numbers | Spec gap | Me |
+| G | Performance undesigned | Spec gap | Me |
+| H | Persistence unmentioned | Spec gap | Me |
+| I | No acute police response | **Design gap** | **NEEDS A CALL** |
+| J | Phase 1 gate misses the point | Verification | Me |
+| K | Blood unspecified | Thin | Me |
+| L | The frisk unspecified | Thin | Me |
+| M | Memory does not change | Missed opportunity | Me |
+| N | No estimates, no lab | Planning | Me |
+
+---
+
 *Sources consulted for v2.1 and v2.2, beyond those cited inline in v2:*
 [Splinter Cell Stealth Meter](https://splintercell.fandom.com/wiki/Stealth_Meter) ·
 [Splinter Cell stealth / Conviction](https://splintercell.fandom.com/wiki/Stealth) ·
