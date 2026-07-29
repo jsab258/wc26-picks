@@ -5,6 +5,17 @@ Written as it happened. Everything here is on
 and the ShapeCheck/lint gates before each push; the in-engine column says
 whether a green Windows CI run has confirmed it yet.
 
+> **GREEN, 12:18 UTC 29 July — run 30449664349, commit 6439af3.** `no
+> failing gates`, `pass=True`. Every item below is now confirmed in-engine
+> rather than pending: reflections lighting the wet road (`reflSeen=True`),
+> occlusion measured where it lands (`aoHit=10.6% aoDrop=0.0125`), grain
+> positive and repeatable, the post stack running (`postFrames`), the
+> cinematic camera pulling in (`framingPush=0.86`), 36 UI labels with none
+> blank, the score audible on the AudioSource rather than in the model, the
+> graphics preset changing 24% of the frame, and an authored beat finally
+> attended — `beatClosest=1.7m` against a 3.2m radius, on six real seconds
+> of walking.
+
 ## What shipped
 
 | | Work | In-engine |
