@@ -11,11 +11,12 @@
   and legibility, which is what *"it has to be EXCEPTIONALLY GOOD from a game
   feel and UI/UX pov"* actually requires; new §7 answering the acquisition
   question the original brief asked and v2 did not. Verdicts: **§4.5 the
-  delivery window APPROVED**, **§6 approved in general**, **§7 approved**.
-  Two sent back:
+  delivery window APPROVED**, **§6 approved in general**. Three sent back:
   - *"7 feels too few and low budget. think and research some more"* → §5
   - *"[attention] feels not explicit enough and depends a lot on how clearly
     we model and animate characters. alternative ideas?"* → §6.2
+  - §4 and §7 — *"I don't get it, explain"*. Explained in chat 2026-07-29;
+    both still open.
 - **v2.2 (this)** — **§5 is now seven families, ~16 carried objects, the
   environment as a weapon family of its own, and kit** — the Hitman argument
   that accidents and world objects expand a small arsenal further than more
@@ -1029,8 +1030,7 @@ fiction and the easiest thing to get wrong.
 ## 12. WHAT I NEED FROM YOU
 
 **Approved and closed:** the §1 reframing · perception before weapons · guns
-at the last phase · **§4.5 the delivery window** · **§6 in general** ·
-**§7 acquisition and carry**.
+at the last phase · **§4.5 the delivery window** · **§6 in general**.
 
 **Still open:**
 
@@ -1045,7 +1045,13 @@ at the last phase · **§4.5 the delivery window** · **§6 in general** ·
    crime), and **kit** (gloves, a second coat, a car). Plus the forensic
    distinctions the era gives us free — a revolver leaves no casing, an
    automatic throws brass, a kitchen knife has no provenance to trace.
-3. **§6.2 — attention as four redundant channels**, led by sound rather than
+3. **§7 — acquisition and carry.** A coat rather than a grid; the loadout
+   decided at the door before you know what the night holds; four routes in,
+   all of them social — a supplier who is a character with a memory, theft
+   from someone who notices it is gone, taken off a body, and exactly one
+   authored find in Mickey's bar. No random loot.
+   *(Sent back as "I don't get it" — explained in chat 2026-07-29.)*
+4. **§6.2 — attention as four redundant channels**, led by sound rather than
    animation: the street going quiet, barks, behaviour breaks (motion change,
    which reads on boxes), one music stem, and an optional accessibility
    marker. Any two should be enough, and the sound-off / picture-off test goes
