@@ -123,6 +123,13 @@ namespace Ledger.Game
                     _instance._probe.intensity = 0f;
                     _instance._probe.enabled = false;
                     Unpublish();
+                    // AND ALL THE WAY OFF. `Unpublish` hands the sky back at
+                    // full strength, which is right when the road simply
+                    // dries out — but for the A/B it would measure "our
+                    // cubemap versus the skybox" while claiming to measure
+                    // what the feature contributes. Zero is the honest other
+                    // side of that comparison.
+                    RenderSettings.reflectionIntensity = 0f;
                 }
                 else
                 {
