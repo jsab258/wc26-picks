@@ -805,6 +805,16 @@ exist** — there is no vision model, no NPC hearing, and no notion of a
 witness having learned only PART of what happened. That is the gap, and
 `weapons-spec.md` proposes closing it.
 
+**Partial observation is now a generator rather than a list** (`weapons-spec.md`
+v2.1 §4): an act has seven perceivable slots, identification runs on a
+separate five-rung ladder, believing something and being willing to say it
+are different values, and a witness is a **deadline** — a person walking
+somewhere to tell someone, interceptable until they arrive. The rung that
+matters most is recognition: **the same distance and the same light identify
+you to your neighbour and not to a stranger**, which is a mechanic that
+requires the acquaintance graph this project already has and that no other
+crime game is in a position to build.
+
 **The reference point is KCD2's reactivity**, named by Jafar as the most
 immersive thing about it: NPCs who react to what you do, including things
 that are not crimes.

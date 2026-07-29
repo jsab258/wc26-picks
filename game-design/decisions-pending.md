@@ -14,8 +14,22 @@ as answerable options — the doc is the record, the chat is the interface.
 > guns. So we have to build it properly from the start."*
 
 Also: an inventory, and acquisition by buying / stealing / finding.
-Researched and proposed in **`weapons-spec.md`** — awaiting approval, and
-nothing is built until it is approved.
+Researched and proposed in **`weapons-spec.md`**. Nothing is built until it
+is approved.
+
+**Approval state, 2026-07-29:**
+
+| Point | State |
+|---|---|
+| The reframing — crime game in a city that perceives and remembers | **APPROVED** |
+| Perception first, weapons second | **APPROVED** |
+| Guns at the last phase rather than never | **APPROVED** |
+| The observation model | Sent back as *"a bit shallow"* → rebuilt in **v2.1 §4** |
+| The weapon table | Sent back → rebuilt in **v2.1 §5**, and threat-as-a-verb added |
+| Feel and legibility (new, demanded by the quality bar) | **v2.1 §6** — open |
+| Acquisition and carry (in the original brief, unanswered by v2) | **v2.1 §7** — open |
+
+Five points open, listed in `weapons-spec.md` §12.
 
 The standing quality bar was restated at the same time and applies to
 everything from here: **as close to the best games in the genre as our
