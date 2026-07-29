@@ -678,14 +678,29 @@ namespace Ledger.Game
             // 2.5m of the marker; a run that reports "no beat attended" and
             // nothing else cannot distinguish "never went" from "went and
             // stood two and a half metres away".
-            if (chasing && beatSpot.HasValue && now.Hour != _lastBeatChaseHour)
+            // EVERY FRAME, NOT EVERY HOUR. The hourly sample reported a
+            // closest approach of ten metres for three runs running, and an
+            // hourly sample simply cannot see a bot that walks past the spot
+            // between two ticks of the clock. Three fixes have now been aimed
+            // at a number that was never measuring what it claimed — the
+            // ruler again, and this time it cost three build cycles.
+            if (chasing && beatSpot.HasValue)
             {
-                _lastBeatChaseHour = now.Hour;
                 var here = _player.transform.position;
                 float d = Vector2.Distance(new Vector2(here.x, here.z),
                                            new Vector2(beatSpot.Value.x, beatSpot.Value.z));
                 if (d < _beatClosestApproach) _beatClosestApproach = d;
-                Debug.Log($"SimDirector: chasing beat {openBeat.Id} at {now.Hour:00}:00, {d:0.0}m away");
+                // Separately: is there a marker to attend at all? Attendance
+                // is gated on the marker existing, so "never got close" and
+                // "got close to a beat with no marker" are different failures
+                // that have been reading identically.
+                if (_game.HasBeatMarker) _beatMarkerSeen = true;
+                if (now.Hour != _lastBeatChaseHour)
+                {
+                    _lastBeatChaseHour = now.Hour;
+                    Debug.Log($"SimDirector: chasing beat {openBeat.Id} at {now.Hour:00}:00, "
+                              + $"{d:0.0}m away, marker={_game.HasBeatMarker}");
+                }
             }
             var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = beatSpot.HasValue
@@ -1023,6 +1038,7 @@ namespace Ledger.Game
         double _beatChaseMinutes;
         int _lastBeatChaseHour = -1;
         float _beatClosestApproach = 9999f;
+        bool _beatMarkerSeen;
 
         /// WHERE IS THE NIGHT LIGHT COMING FROM. Asked once, in-engine,
         /// instead of guessed at across twenty-five-minute build cycles.
@@ -2623,7 +2639,7 @@ namespace Ledger.Game
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
                       $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
-                      $"beatChaseMins={_beatChaseMinutes:0} " +
+                      $"beatChaseMins={_beatChaseMinutes:0} beatMarker={_beatMarkerSeen} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +
                       $"nightNoBloom={_nightNoBloom:0.0000} nightUngraded={_nightRaw:0.0000} " +
                       $"bloomD={_bloomDelta:0.0000} grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +

@@ -243,7 +243,7 @@ jobs:
           $keys  = ""
           if ($done) {
             $keys = (($done -split " ") | Where-Object {
-              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseMins|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic)="
+              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseMins|beatMarker|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic)="
             }) -join " "
           }
           Write-Host "=== LEDGER VERDICT ==="

@@ -190,6 +190,14 @@ namespace Ledger.Game
                 return _beatSpots.TryGetValue(open.Id, out var spot) ? spot : (Vector3?)null;
             }
         }
+        /// Whether an invitation is currently on screen to walk up to.
+        ///
+        /// Attendance is gated on the marker existing, so a run that never
+        /// creates one and a run that never reaches one report identically —
+        /// which is how three separate fixes were aimed at the wrong half of
+        /// the problem.
+        public bool HasBeatMarker => _beatMarker != null;
+
         /// How close counts as turning up. See the note at the attendance
         /// check for why it is not 2.5.
         public const float BeatAttendMetres = 3.2f;
