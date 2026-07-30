@@ -30,3 +30,10 @@ __pycache__/
 # hard kill can leave one behind and a backup of a source file must never
 # be mistaken for source.
 *.breakbak
+
+# Mixamo harvest — the token is a live credential and the harvest is ~1GB.
+# Neither belongs in git; the picks under ledger/Assets/Characters do.
+mixamo_token.txt
+ledger-mixamo/
+tools/mixamo-pick/animations/
+characters_available.txt
