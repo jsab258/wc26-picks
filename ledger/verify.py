@@ -69,6 +69,37 @@ def lint():
     return m.group(2) == "0", "%s lint errors" % m.group(2)
 
 
+def stale_anchors():
+    """Every break's anchor, checked for a single exact match.
+
+    NEARLY FREE, and it finds the thing a break run reports as a survivor and
+    nobody looks twice at. An anchor whose source has moved on matches zero
+    times, so the break never runs — and `breakrun.py` counts that as a
+    survivor in a list of survivors, which is where it goes to die.
+
+    Sweeping all of them after the harness fix found three, in specs nobody
+    had reason to suspect: two in `exposure` where the aperture line gained a
+    daytime term, one in `perception` where a literal 0.35 became
+    `StillBelow`. Both changes were right; the specs had simply rotted around
+    them. That is three checks the project believed it had."""
+    import json
+    bad = []
+    for spec in sorted((ROOT / "breaks").glob("*.json")):
+        try:
+            entries = json.loads(spec.read_text(encoding="utf-8"))
+        except ValueError as e:                       # noqa: BLE001
+            bad.append("%s unparseable: %s" % (spec.name, e))
+            continue
+        for i, b in enumerate(entries):
+            src = ROOT / b["file"]
+            n = src.read_text(encoding="utf-8").count(b["old"]) if src.exists() else 0
+            if n != 1:
+                bad.append("%s[%d] matches %dx" % (spec.name, i, n))
+    if bad:
+        return False, "STALE ANCHORS: " + "; ".join(bad[:4])
+    return True, "0 stale anchors"
+
+
 def breaks(spec):
     path = ROOT / "breaks" / (spec if spec.endswith(".json") else spec + ".json")
     if not path.exists():
@@ -91,7 +122,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, core_tests):
+    for fn in (lint, shape, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)
