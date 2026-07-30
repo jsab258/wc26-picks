@@ -5622,6 +5622,33 @@ namespace Ledger.CoreTests
                 "and four thousand walkers reach every one of them, not three",
                 string.Join(",", used.OrderBy(v => v)));
 
+            // THE CROSS-LANGUAGE CONTRACT. The generator is Python and the
+            // game is C#; there is no shared runtime, so the rule is stated
+            // twice and pinned by these exact vectors — the same four are
+            // asserted in `tools/voice-fetch/voice_bank.py`. A drift on
+            // either side goes red on both with the same numbers instead of
+            // the bank silently orphaning itself.
+            var vectors = new (string voice, string text, string name, int seed)[]
+            {
+                ("rocco", "He was at the yard on Tuesday.", "rocco/df92fd5e", 1603468638),
+                ("lena", "He was at the yard on Tuesday.", "lena/1d5782f8", 492274424),
+                ("crowd_m1", "Evening.", "crowd_m1/953df5cc", 356382156),
+                // Outside the basic plane: TWO UTF-16 units here and one
+                // Python character there. A naive port of this file passes
+                // every other vector and fails only on this one, which is
+                // exactly why it is a vector.
+                ("rocco", "Told you \U0001F600 nothing.", "rocco/f278f6c6", 1920530118),
+            };
+            foreach (var v in vectors)
+            {
+                Check(VoiceBank.ClipName(v.voice, v.text) == v.name,
+                    $"vector {v.voice} names {v.name} — the Python generator computes this too",
+                    VoiceBank.ClipName(v.voice, v.text));
+                Check(VoiceBank.Seed(v.voice, v.text) == v.seed,
+                    $"vector {v.voice} seeds {v.seed}",
+                    VoiceBank.Seed(v.voice, v.text).ToString());
+            }
+
             Check(VoiceBank.SeedFor("a line") == VoiceBank.SeedFor("a  line") &&
                   VoiceBank.SeedFor("a line") >= 0,
                 "the elision seed is stable and non-negative — it used to be "
