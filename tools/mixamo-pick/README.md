@@ -63,6 +63,13 @@ instead, rather than quietly harvesting two characters nobody chose.
 
 ---
 
+## Just want the newest files? `UPDATE.bat`
+
+It pulls and does nothing else. Every other script here pulls *and* then does
+something — SETUP launches a harvest, FASTER re-tunes the harvester, PUSH
+pushes — so "I only want the latest version" had no answer, and "you need to
+pull to get the thing that pulls" came up three times in one afternoon.
+
 ## After the first harvest: `REPICK.bat`
 
 The first pick ran against clip names guessed from memory. The harvest
