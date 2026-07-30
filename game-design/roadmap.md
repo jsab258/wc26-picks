@@ -1261,7 +1261,7 @@ answered five questions:
 | `control=17.8%` | the A/B is not blind, so the zeros are real |
 | `ringNoMaterial=4` | **a runtime `LineRenderer` has no material in this build.** `sharedMaterial` is null. My comment insisted it "ships with the component and therefore cannot be stripped" |
 | `sprites` == `default` to 4 dp | assigning `Sprites/Default` changed *nothing*, because `Shader.Find` returns null for it — it is not in the build |
-| `particles=0.0000` | that one *is* in the build and draws nothing |
+| ~~`particles=0.0000`~~ | **this reading was wrong and I have withdrawn it** — see below |
 | `transformZ=0.0000` vs billboard `0.7279` | **my reading of `LineAlignment.TransformZ` was backwards.** The paper derivation was wrong and only a rendered frame caught it |
 
 So the ring now has **`Assets/Resources/LedgerRing.shader`** — unlit, because a
@@ -1284,3 +1284,40 @@ scene for the next arm's renders, drawing its circle in the same place — every
 arm after the first was reading through the one before it. Probes are now
 switched off before being destroyed. **A diagnostic that can mislead is worse
 than none, because it is believed.**
+
+**AND ONE FINDING ABOVE IS WITHDRAWN, because it came from that broken sweep.**
+I wrote that `Legacy Shaders/Particles/Alpha Blended` "is in the build and draws
+nothing". With the probes fixed, the green run reports
+`sprites=0.7018 particles=0.7018 none=0.7018` — all three identical, which is the
+signature of all three falling back to *no material at all*. So the correct
+reading is simpler: **neither built-in shader is in this build**, and a
+null-material line renderer draws something anyway (0.70% of the frame, almost
+certainly the magenta error shader). `Hidden/LedgerRing` measures 1.2344%, nearly
+double, and is what the game uses.
+
+Worth stating because it is the same mistake twice in one night: I drew a
+confident conclusion from an instrument I had not yet checked. The instrument was
+the thing at fault both times.
+
+### M16 BUILD STATE — 2026-07-30 13:19Z, **GREEN, and this time the ring is in it**
+
+Run 30544776454 (`fdea294`): **no failing gates, pass=True.**
+
+```
+perceptionOk=True  perceptionWhy=ok
+ringsDrawn=4  slamDrewRing=True  ringNoMaterial=0  ringPaintUsed=Hidden/LedgerRing
+ringSeen=1.2344%  ringRise=0.4496   ringControl=17.3637
+looks=861  loiterLooks=11  nightRunLooks=9  sounds=1102  investigations=77
+slamInvestigations=21  standoffs=41  litRange=37.7m  darkRange=23.4m  hushPeak=0.99
+aoRounds=3  presetHit=14.74 (was 0.00)  reflHit=5.13  specHit=33.52
+meanFrame=292.87ms  perfOk=True  lastDay=13
+```
+
+**The three-evening fix worked, and the size of the effect is the evidence.**
+`presetHit` went from 0.00% to 14.74%, `reflHit` from 0.00 to 5.13, `specHit`
+from 0.00 to 33.52 — with the thresholds untouched. Three gates had been reading
+one instant of one evening, and the instant was often uninformative.
+
+**Phase 1 and Phase 1b of `weapons-spec.md` are done.** The city sees, hears,
+notices, investigates, and can be read without a HUD. Phases 2–5 remain, and
+none of the arsenal is on a button yet.

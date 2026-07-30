@@ -1085,6 +1085,7 @@ namespace Ledger.Game
         const int AoRounds = 3;
         int _aoRounds;
         int _lastAoDay = -99;
+        bool _spreadSeeded;
         double _aoOn = -1, _aoOff = -1;
         double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
         double _aoDeltaMin, _aoDeltaMax, _grainDeltaMin, _grainDeltaMax;
@@ -1851,8 +1852,20 @@ namespace Ledger.Game
             if (aoFrac > _aoFraction) { _aoFraction = aoFrac; _aoDrop = aoDrop; }
             double aoD = noAo.Mean - all.Mean;
             double grainD = all.LocalSpread - noGrain.LocalSpread;
-            if (sample == 0)
+            // THE FIRST SAMPLE EVER, not the first of each round — which is a
+            // bug I introduced an hour ago by adding rounds. `sample` is the
+            // INNER loop index, so it is 0 once per evening and the range reset
+            // itself every time, leaving a "spread" that described only the last
+            // round. The run reported aoRange=0.00124..0.00124 from nine samples
+            // across three separate nights, which is not a number anybody should
+            // believe.
+            //
+            // Nothing gates on the spread, which is exactly why it was worth
+            // fixing immediately: an ungated number that looks like evidence is
+            // the kind of thing that gets quoted later.
+            if (!_spreadSeeded)
             {
+                _spreadSeeded = true;
                 _aoDeltaMin = _aoDeltaMax = aoD;
                 _grainDeltaMin = _grainDeltaMax = grainD;
             }
