@@ -1191,6 +1191,8 @@ namespace Ledger.Game
         // and counts what happened to the player.
         bool _loiterStaged, _nightRunStaged, _slamStaged;
         float _slamAt = -1f;
+        bool _loiterApproaching;
+        Vector3 _loiterTarget;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
         bool? _ringOk;
         float _loiterUntil = -1f, _nightRunUntil = -1f;
@@ -1205,16 +1207,25 @@ namespace Ledger.Game
             // value — a street that went quiet for two seconds and recovered
             // is the whole effect, and a sample at the end of the run would
             // find it back at nothing.
+            // THE CROWD COUNTS TOO. `_npcs` is the named cast, and counting only
+            // them made "how many people are near you" an answer about the story
+            // rather than about the street — which is wrong for a hush, whose
+            // whole subject is how much noise a crowd was making.
             int attending = 0, present = 0;
-            if (_npcs != null)
-                foreach (var n in _npcs)
-                {
-                    if (n == null) continue;
-                    if (Vector3.Distance(n.transform.position, _player.transform.position)
-                        > Perceivers.NearBandMetres) continue;
-                    present++;
-                    if (n.AttendingPlayer) attending++;
-                }
+            NpcWalker nearest = null;
+            float nearestDist = float.MaxValue;
+            void Consider(NpcWalker n)
+            {
+                if (n == null) return;
+                float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                if (d < nearestDist) { nearestDist = d; nearest = n; }
+                if (d > Perceivers.NearBandMetres) return;
+                present++;
+                if (n.AttendingPlayer) attending++;
+            }
+            if (_npcs != null) foreach (var n in _npcs) Consider(n);
+            if (_game != null && _game.CrowdBodies != null)
+                foreach (var kv in _game.CrowdBodies) Consider(kv.Value);
             Perceivers.Attending = attending;
             Perceivers.PresentNearby = present;
             double hush = Notice.HushFraction(attending, present);
@@ -1273,18 +1284,35 @@ namespace Ledger.Game
             // — which would make this gate flaky rather than strict, and a
             // flaky gate is worse than no gate because it teaches people to
             // re-run.
-            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 19 && present >= 1)
+            // GO AND FIND AN AUDIENCE. The first version waited for somebody to
+            // already be within forty-five metres at those hours and it never
+            // fired once in a nine-day run — the bot's evening waypoints and the
+            // cast's evening schedules simply do not coincide. A probe that has
+            // to be lucky is not a probe, so this one WALKS to the nearest
+            // person and then stands still.
+            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 19 && nearest != null)
             {
-                _loiterStaged = true;
-                // CAST, and the reason is worth a line: Core is double
-                // throughout and the Unity layer is float throughout, so every
-                // constant that crosses the boundary needs one. Nothing local
-                // catches this — ShapeCheck is a Roslyn shape pass, not a
-                // compile, and CoreTests never sees the Game layer. CI is the
-                // only compiler this half of the project has.
-                _loiterUntil = Time.time + (float)Notice.LoiterSeconds + 2f;
-                _looksBeforeLoiter = Perceivers.Looks;
-                Debug.Log($"SimDirector: staging a loiter, {present} people nearby");
+                _loiterApproaching = true;
+                _loiterTarget = nearest.transform.position;
+            }
+            if (_loiterApproaching)
+            {
+                target = _loiterTarget;
+                if (nearestDist <= 8f)
+                {
+                    _loiterApproaching = false;
+                    _loiterStaged = true;
+                    // CAST, and the reason is worth a line: Core is double
+                    // throughout and the Unity layer is float throughout, so
+                    // every constant crossing that boundary needs one. Nothing
+                    // local catches it — ShapeCheck is a shape pass, not a
+                    // compile — so CI is the only compiler this half has.
+                    _loiterUntil = Time.time + (float)Notice.LoiterSeconds + 2f;
+                    _looksBeforeLoiter = Perceivers.Looks;
+                    Debug.Log($"SimDirector: staging a loiter beside "
+                              + $"{nearest.DisplayName} at {nearestDist:0.0}m, "
+                              + $"{present} people within the near band");
+                }
             }
             if (_loiterUntil > 0)
             {
@@ -1310,7 +1338,8 @@ namespace Ledger.Game
             // night rather than the next one. A door slam at 3am carries about
             // forty-eight metres in a silent street, which is the arithmetic
             // rather than a hope.
-            if (!_slamStaged && now.Day >= 10 && now.Hour >= 1 && now.Hour <= 5 && present >= 1)
+            if (!_slamStaged && now.Day >= 10 && now.Hour >= 1 && now.Hour <= 5
+                && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
                 _slamStaged = true;
                 _investigationsBeforeSlam = Perceivers.NoiseInvestigations;

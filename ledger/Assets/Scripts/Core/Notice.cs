@@ -67,7 +67,11 @@ namespace Ledger.Core
             if (weaponVisible) return Notable.WeaponVisible;
             if (bloodVisible) return Notable.BloodOnClothes;
             if (whereTheyShouldNotBe) return Notable.WhereYouShouldNotBe;
-            if (speed >= 3.2 && nightAmount >= NightAmountForRunning) return Notable.RunningAtNight;
+            // Derived, not typed. `Perception.RunningThreshold` comes from
+            // `Locomotion`, so this cannot disagree with what the player's legs
+            // actually do — which it did, badly, when it was a literal 3.2.
+            if (speed >= Perception.RunningThreshold && nightAmount >= NightAmountForRunning)
+                return Notable.RunningAtNight;
             if (secondsStationaryInView >= LoiterSeconds) return Notable.Loitering;
             return Notable.None;
         }
@@ -121,16 +125,29 @@ namespace Ledger.Core
         /// Not linear. Two people out of forty falling silent is a real,
         /// noticeable hole in a room's sound, so the curve is steep early and
         /// then saturates — total silence is reserved for total attention.
+        /// A CROWD IS NEEDED FOR A CROWD TO GO QUIET, and the first version
+        /// forgot to say so: with one person nearby and that person looking at
+        /// you, `attending / present` is 1.0 and the whole street fell silent.
+        /// The CI run reported a peak hush of exactly 1.00, which is the number
+        /// telling you the model has no idea how many people are there.
+        ///
+        /// Below this many people the effect is scaled down by how far short of
+        /// a crowd it is — two people falling quiet in a market is a hole in the
+        /// sound, and two people falling quiet on an empty street is just two
+        /// people, because there was nothing to stop.
+        public const int CrowdFloor = 8;
+
         public static double HushFraction(int attending, int present)
         {
             if (present <= 0 || attending <= 0) return 0.0;
             double share = Feel.Clamp01((double)attending / present);
+            double crowd = Feel.Clamp01((double)present / CrowdFloor);
             // The exponent is above one, not below it. The first draft had
             // 0.45, which is the shape that SATURATES early — it made two
             // people out of forty a 2% change, inaudible, when the whole point
             // is that a small hole in a room's sound is the thing you notice.
             // Caught by a test asserting two-of-forty is audible.
-            return Feel.Clamp01(1.0 - Math.Pow(1.0 - share, 4.0));
+            return Feel.Clamp01((1.0 - Math.Pow(1.0 - share, 4.0)) * crowd);
         }
 
         /// The ambient floor after the hush, which is what closes the loop:

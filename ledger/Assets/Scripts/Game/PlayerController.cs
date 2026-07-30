@@ -203,7 +203,14 @@ namespace Ledger.Game
         /// reads as an injury without being told.
         void Footsteps(float speed, float severity, float dt)
         {
-            if (SimMode.Days != 0 || !_cc.isGrounded || speed < 0.15f)
+            // SIM MODE SKIPS THE SOUND, NOT THE STEP — and getting that
+            // backwards cost a build's worth of evidence. The perception event
+            // was added inside this function, whose first line used to return
+            // early for the whole of sim mode, so the CI run reported zero
+            // sounds emitted and every hearing gate with it. Audio is skipped
+            // in the sim because there is nothing to listen with; a footstep is
+            // still a footstep and the city should hear it.
+            if (!_cc.isGrounded || speed < 0.15f)
             {
                 _sinceStep = (float)Gait.StrideMetres * 0.6f;  // land promptly on moving off
                 return;
@@ -212,22 +219,26 @@ namespace Ledger.Game
             float stride = (float)Gait.StrideFor(_footfall, severity);
             if (_sinceStep < stride) return;
             _sinceStep -= stride;
-            Audio.Footstep((float)Gait.StepWeight(_footfall, severity), Weather.Wetness);
+            bool audible = SimMode.Days == 0;
+            if (audible)
+                Audio.Footstep((float)Gait.StepWeight(_footfall, severity), Weather.Wetness);
             // AND THE SAME STEP AS A THING PEOPLE CAN HEAR. The audio layer has
             // played footsteps for weeks and no NPC has ever heard one — which
             // is the same shape of gap as the lighting model nobody read. A
             // walk carries about three metres in a silent street and nothing at
             // all in a daytime one; running carries far enough to matter.
             Perceivers.Emit(transform.position,
-                            speed >= 3.2f ? Perception.LoudFootstepRun
-                                          : Perception.LoudFootstepWalk,
+                            speed >= (float)Perception.RunningThreshold
+                                ? Perception.LoudFootstepRun
+                                : Perception.LoudFootstepWalk,
                             "footstep");
             // AND THE PUDDLE ANSWERS (§5). A wet street that makes a wet
             // sound and shows nothing is half an effect — the eye goes
             // looking for what it just heard. Only on a genuinely wet street,
             // and not every step, because a splash under every footfall reads
             // as wading rather than as walking on wet ground.
-            if (Weather.Wetness > 0.45f && Random.value < Weather.Wetness * 0.45f)
+            if (audible && Weather.Wetness > 0.45f
+                && Random.value < Weather.Wetness * 0.45f)
                 Splash(transform.position);
             _footfall++;
         }

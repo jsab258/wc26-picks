@@ -68,17 +68,39 @@ namespace Ledger.Core
         /// detection, because recognising is harder than spotting.
         public const double IdentifySeconds = 1.2;
 
+        /// THE GAME'S OWN SPEEDS, not a human being's.
+        ///
+        /// The first version of this file put "running" at 3.2 m/s, which is
+        /// roughly a real person's jog and is BELOW this game's walk —
+        /// `Locomotion.WalkSpeed` is 4.0 and `RunSpeed` is 7.0. The result was
+        /// that walking down the street at night registered as running, and the
+        /// sim reported two hundred and seven notices for it in a run where
+        /// nobody ran once.
+        ///
+        /// The numbers were checked against reality instead of against the
+        /// project, and the project's copy was in the next folder. So they are
+        /// derived now rather than typed, and there is nothing left to drift.
+        public static double WalkPace => Locomotion.WalkSpeed;
+        public static double RunPace => Locomotion.RunSpeed;
+
+        /// Halfway between a walk and a run is where one becomes the other.
+        public static double RunningThreshold => (WalkPace + RunPace) / 2.0;
+
+        /// Below this somebody is standing about rather than moving.
+        public const double StillBelow = 0.35;
+
         /// How fast attention accrues by what the subject is doing. Stillness
         /// is a tactic and running is a confession.
         public static double MotionFactor(double metresPerSecond)
         {
-            if (metresPerSecond <= 0.05) return 0.5;     // standing still
-            if (metresPerSecond >= 3.2) return 2.0;      // running
-            // Walk sits at 1.0 and the ends interpolate, so there is no cliff
-            // where slowing from a jog to a fast walk halves your exposure.
-            return metresPerSecond <= 1.4
-                ? 0.5 + 0.5 * (metresPerSecond - 0.05) / 1.35
-                : 1.0 + 1.0 * (metresPerSecond - 1.4) / 1.8;
+            if (metresPerSecond <= 0.05) return 0.5;             // standing still
+            if (metresPerSecond >= RunPace) return 2.0;          // flat out
+            // A walk sits at exactly 1.0 and the ends interpolate, so there is
+            // no cliff where slowing from a jog to a fast walk halves your
+            // exposure.
+            return metresPerSecond <= WalkPace
+                ? 0.5 + 0.5 * (metresPerSecond - 0.05) / (WalkPace - 0.05)
+                : 1.0 + 1.0 * (metresPerSecond - WalkPace) / (RunPace - WalkPace);
         }
 
         /// Where an angle off the observer's facing falls. Returns 1.0 in the
@@ -109,14 +131,17 @@ namespace Ledger.Core
         /// ray is the expensive test and cone/range/light reject most cases.
         public static bool InSight(double metres, double degreesOffAxis,
                                    double lightLevel, bool occluded,
-                                   double subjectSpeed = 1.4)
+                                   double subjectSpeed = -1)
         {
             if (occluded) return false;
+            // Default to a walking subject rather than to a magic 1.4 that was
+            // not this game's walk either.
+            if (subjectSpeed < 0) subjectSpeed = WalkPace;
             double w = ConeWeight(degreesOffAxis);
             if (w <= 0) return false;
             // The peripheral band is motion-only. A still subject at the edge
             // of vision is not seen, however lit they are.
-            if (w < 1.0 && subjectSpeed < 0.35) return false;
+            if (w < 1.0 && subjectSpeed < StillBelow) return false;
             return metres <= DetectRangeMetres * LightFactor(lightLevel);
         }
 

@@ -27,6 +27,17 @@ namespace Ledger.Game
         /// How long before the same person can produce another one.
         public const float PerPersonCooldown = 25f;
 
+        /// AND A GLOBAL FLOOR, because per-person was not enough. The first CI
+        /// run fired this two hundred and ninety-two times in nine days — with
+        /// forty-two walkers, a twenty-five-second per-person cooldown still
+        /// allows a beat every few seconds from somebody new. That is a tic, and
+        /// a flourish that happens every few seconds is not a flourish, it is
+        /// the ambient state of the game.
+        ///
+        /// Twelve seconds between ANY two, which caps it at roughly one a
+        /// minute in the worst case and leaves it feeling like an event.
+        public const float GlobalCooldown = 12f;
+
         /// How much tighter the frame closes at the peak of the beat, as a
         /// fraction of the corner brightness. Small — this is a held breath,
         /// not a vignette wipe.
@@ -64,6 +75,7 @@ namespace Ledger.Game
             LastAwareness = a;
             if (a != Awareness.Standoff) return;
             if (string.IsNullOrEmpty(who)) return;
+            if (Time.time - _firedAt < GlobalCooldown) return;
             if (_lastPerPerson.TryGetValue(who, out var last)
                 && Time.time - last < PerPersonCooldown) return;
 

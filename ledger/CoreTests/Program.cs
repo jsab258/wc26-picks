@@ -8547,12 +8547,27 @@ namespace Ledger.CoreTests
             // has to be real or the motion column is decoration.
             var running = new Perception.Attention();
             var still = new Perception.Attention();
-            running.Tick(0.2, true, 1.0, Perception.MotionFactor(4.0), 1);
+            // AT THIS GAME'S SPEEDS, not a person's. 4.0 is the WALK here, and
+            // passing it as "running" is the exact mistake that had the city
+            // reporting two hundred night-run notices in a run where nobody ran.
+            running.Tick(0.2, true, 1.0, Perception.MotionFactor(Perception.RunPace), 1);
             still.Tick(0.2, true, 1.0, Perception.MotionFactor(0.0), 1);
             Check(running.Noticed && !still.Noticed,
                   "attention: running is noticed in the time standing still is not");
-            Check(Math.Abs(Perception.MotionFactor(1.4) - 1.0) < 1e-9,
-                  "attention: a walk is the unit");
+            Check(Math.Abs(Perception.MotionFactor(Perception.WalkPace) - 1.0) < 1e-9,
+                  "attention: a walk is the unit — whatever this game's walk is",
+                  $"{Perception.MotionFactor(Perception.WalkPace):0.000}");
+            // The two thresholds must bracket the game's own pair, or the
+            // classification disagrees with the legs.
+            Check(Perception.RunningThreshold > Perception.WalkPace
+                  && Perception.RunningThreshold < Perception.RunPace,
+                  "attention: 'running' sits between this game's walk and its run",
+                  $"{Perception.WalkPace} < {Perception.RunningThreshold} < {Perception.RunPace}");
+            Check(Notice.What(0, Perception.WalkPace, 1.0, false, false, false) == Notable.None,
+                  "notice: WALKING at night is not running at night");
+            Check(Notice.What(0, Perception.RunPace, 1.0, false, false, false)
+                  == Notable.RunningAtNight,
+                  "notice: and running at night is");
 
             // Attention FADES rather than resetting, so stepping in and out of
             // a doorway cannot be used to pump the system back to zero.
@@ -8904,11 +8919,14 @@ namespace Ledger.CoreTests
         static void TestNotice()
         {
             // Running at 3am is a statement; the same run at noon is a run.
-            Check(Notice.What(0, 4.0, nightAmount: 1.0, false, false, false) == Notable.RunningAtNight,
+            // SPEEDS FROM `Locomotion`, because 4.0 is this game's WALK and the
+            // literal that used to be here made every night walk a sprint.
+            double run = Perception.RunPace, walk = Perception.WalkPace;
+            Check(Notice.What(0, run, nightAmount: 1.0, false, false, false) == Notable.RunningAtNight,
                   "notice: running at night is noteworthy");
-            Check(Notice.What(0, 4.0, nightAmount: 0.0, false, false, false) == Notable.None,
+            Check(Notice.What(0, run, nightAmount: 0.0, false, false, false) == Notable.None,
                   "notice: the same run at noon is nothing");
-            Check(Notice.What(0, 1.4, nightAmount: 1.0, false, false, false) == Notable.None,
+            Check(Notice.What(0, walk, nightAmount: 1.0, false, false, false) == Notable.None,
                   "notice: walking at night is nothing either");
 
             // Loitering, with crossing a street free.
@@ -8918,9 +8936,9 @@ namespace Ledger.CoreTests
                   "notice: waiting eight seconds is not");
 
             // Priority order: the street reacts to the loudest thing about you.
-            Check(Notice.What(60, 4.0, 1.0, true, true, true) == Notable.WeaponVisible,
+            Check(Notice.What(60, run, 1.0, true, true, true) == Notable.WeaponVisible,
                   "notice: a visible weapon beats everything else about you");
-            Check(Notice.What(60, 4.0, 1.0, true, true, false) == Notable.BloodOnClothes,
+            Check(Notice.What(60, run, 1.0, true, true, false) == Notable.BloodOnClothes,
                   "notice: and blood beats trespass");
 
             // Interest scales with the dark for running, and not for the rest.
@@ -8947,6 +8965,18 @@ namespace Ledger.CoreTests
             Check(few > 0.05, "hush: two people out of forty is an audible hole", $"{few:0.000}");
             Check(few < 0.4, "hush: but it is not silence", $"{few:0.000}");
             Check(Notice.HushFraction(40, 40) > 0.95, "hush: everybody watching is silence");
+            // A CROWD IS NEEDED FOR A CROWD TO GO QUIET. One person nearby who
+            // looks at you used to silence the entire street — the CI run
+            // reported a peak hush of exactly 1.00, which is a number telling
+            // you the model cannot count.
+            Check(Notice.HushFraction(1, 1) < 0.25,
+                  "hush: one person looking at you is not the street falling silent",
+                  $"{Notice.HushFraction(1, 1):0.00}");
+            Check(Notice.HushFraction(2, 2) < Notice.HushFraction(8, 8),
+                  "hush: two people going quiet is less than eight going quiet");
+            Check(Notice.HushFraction(8, 8) > 0.9,
+                  "hush: and a real crowd all watching still reaches silence",
+                  $"{Notice.HushFraction(8, 8):0.00}");
             Check(Notice.HushFraction(10, 40) > Notice.HushFraction(5, 40),
                   "hush: more attention is more quiet");
             Check(Notice.HushFraction(5, 0) == 0, "hush: an empty street cannot go quieter");
