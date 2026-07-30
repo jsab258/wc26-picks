@@ -1,0 +1,185 @@
+{
+  "guard": {
+    "tier": "A",
+    "found": "Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "\\bfight(ing)? idle\\b"
+  },
+  "strike": {
+    "tier": "A",
+    "found": "Cross Punch_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bcross punch\\b"
+  },
+  "shove": {
+    "tier": "A",
+    "found": "Push_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bpush(ing)?\\b"
+  },
+  "take_hit": {
+    "tier": "A",
+    "found": "Standing React Small From Front_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding react small from front\\b"
+  },
+  "stagger": {
+    "tier": "A",
+    "found": "Standing React Large Gut_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding react large\\b"
+  },
+  "knockdown": {
+    "tier": "A",
+    "found": "Knocked Out_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bknocked out\\b"
+  },
+  "get_up": {
+    "tier": "A",
+    "found": "Stand Up_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstand(ing)? up\\b"
+  },
+  "draw_reach": {
+    "tier": "A",
+    "found": "Draw Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "\\bdraw(ing)? sword\\b"
+  },
+  "draw_holster": {
+    "tier": "A",
+    "found": "Sheath Sword 1_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bsheath(e|ing)? sword\\b"
+  },
+  "idle": {
+    "tier": "A",
+    "found": "Breathing Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bbreathing idle\\b"
+  },
+  "walk": {
+    "tier": "A",
+    "found": "Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^walking\\b"
+  },
+  "run": {
+    "tier": "A",
+    "found": "Running_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^running\\b"
+  },
+  "turn_left": {
+    "tier": "B",
+    "found": "Standing Turn Left 90_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding turn left 90\\b"
+  },
+  "turn_right": {
+    "tier": "B",
+    "found": "Standing Turn Right 90_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding turn right 90\\b"
+  },
+  "look_around": {
+    "tier": "B",
+    "found": "Look Around_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\blook(ing)? around\\b"
+  },
+  "talk": {
+    "tier": "B",
+    "found": "Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^talking\\b"
+  },
+  "greet": {
+    "tier": "B",
+    "found": "Standing Greeting_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding greeting\\b"
+  },
+  "flinch": {
+    "tier": "B",
+    "found": "Terrified_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "\\bterrified\\b"
+  },
+  "hands_up": {
+    "tier": "B",
+    "found": null,
+    "tried": [
+      "\\bsurrender\\b",
+      "\\bhands up\\b",
+      "\\barms up\\b"
+    ]
+  },
+  "back_away": {
+    "tier": "B",
+    "found": "Walk Backward_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bwalk(ing)? backward"
+  },
+  "walk_start": {
+    "tier": "B",
+    "found": "Catwalk Walk Start Turn 180 Left_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bwalk(ing)? start\\b"
+  },
+  "walk_stop": {
+    "tier": "B",
+    "found": "Catwalk Walk Stop_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bwalk(ing)? stop\\b"
+  },
+  "sit": {
+    "tier": "C",
+    "found": "Sitting Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bsitting idle\\b"
+  },
+  "lean": {
+    "tier": "C",
+    "found": "Leaning_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "\\blean(ing)?\\b"
+  },
+  "drink": {
+    "tier": "C",
+    "found": "Drinking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bdrink(ing)?\\b"
+  },
+  "smoke": {
+    "tier": "C",
+    "found": "Smoking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bsmok(e|ing)\\b"
+  },
+  "work_counter": {
+    "tier": "C",
+    "found": "Typing_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "\\btyping\\b"
+  },
+  "collapse": {
+    "tier": "C",
+    "found": "Dying_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bdying\\b"
+  },
+  "fall_stairs": {
+    "tier": "C",
+    "found": "Falling Down_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "\\bfalling down\\b"
+  },
+  "lie_still": {
+    "tier": "C",
+    "found": "Lying Down_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\blying\\b"
+  }
+}
