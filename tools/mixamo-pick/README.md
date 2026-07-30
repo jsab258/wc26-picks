@@ -34,7 +34,7 @@ close. Maybe ninety seconds.
 | 3 | sets the thread count (2 by default, or whatever `threads.txt` says) |
 | 4 | **pins the character list to two bodies** |
 | 5 | runs the harvest — resumable, so closing the window costs nothing |
-| 6 | picks the ~30 clips the game needs, commits them, pushes to the branch |
+| 6 | picks the ~30 clips the game needs, then hands to `PUSH.bat` to commit and push |
 
 ### Step 4 is the one that matters
 
@@ -104,6 +104,13 @@ seconds a clip at 2 threads, so two characters is roughly 9 hours. Close the
 window, double-click `FASTER.bat`, then `GO.bat` again: one character instead
 of two and 5 threads instead of 2 brings it to under two hours, and nothing
 already downloaded is repeated.
+
+**"Author identity unknown"** — git will not make a commit until it knows who
+you are. `PUSH.bat` now asks once, sets it globally, and never asks again.
+
+**The push was rejected: "fetch first"** — your copy is behind the remote.
+`PUSH.bat` rebases before pushing, so just run it again. The harvest does not
+need repeating; that is why pushing is its own file.
 
 **Everything else** — send me the last twenty lines of the window.
 

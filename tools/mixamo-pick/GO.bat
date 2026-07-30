@@ -174,22 +174,16 @@ python "%SCRIPTS%pick_animations.py" --harvest "%MH%\animations" --out "%REPO%\l
 
 echo.
 echo  Pushing...
-pushd "%REPO%"
-git add "ledger/Assets/Characters"
-git commit -m "Mixamo drop: characters and animation clips"
-if errorlevel 1 echo  Nothing new to commit.
-REM  REBASE ONTO THE REMOTE BEFORE PUSHING. Two hours will have passed
-REM  since the harvest started and I will almost certainly have pushed
-REM  something in the meantime; a push from behind is rejected outright.
-git pull --rebase origin claude/game-dev-ai-automation-2h67ix
-if errorlevel 1 echo  Rebase hit a snag - the push below may fail. Send me the output.
-git push origin HEAD:claude/game-dev-ai-automation-2h67ix
-if errorlevel 1 echo  Push failed. The clips are safe on disk - send me the output.
-popd
+call "%SCRIPTS%PUSH.bat"
 
+REM  THIS BOX USED TO SAY "and pushed" WHETHER OR NOT IT HAD. The first
+REM  real run printed it directly under a rejected push and a failed
+REM  commit. An unconditional success message is not a message.
 echo.
 echo  ==================================================================
-echo   Done. The clips are in ledger\Assets\Characters and pushed.
+echo   Harvest and pick complete. The clips are in
+echo   ledger\Assets\Characters - whether they reached GitHub is what
+echo   PUSH.bat said just above, not what this box says.
 echo   The full harvest stays at %HARVEST% - delete it whenever.
 echo  ==================================================================
 pause
