@@ -725,3 +725,46 @@ the same overnight batch. One engine.
   AND spelled out in chat.
 - Purchases/keys/accounts → never without you; now also: as late as possible.
 - Model/config → unchanged unless you ask.
+
+---
+
+## OPEN — the voice corpus is wrong for this game *(2026-07-30, needs your call)*
+
+> *"legit bad quality, strong accents... overall bad audio quality and accents"*
+
+**This is not a bug.** The gender and duplicate faults were mine and are fixed.
+What is left is the corpus itself, and it is a choice I made badly.
+
+**Common Voice** is crowd-recorded: laptop microphones, kitchens, and a
+majority-non-native English speaker base. I chose it for CONSENT — every
+contributor donated their voice specifically to build speech technology, which
+is the rule I set and still hold to. I never weighed it for SUITABILITY, and a
+1930s dockside city cannot be cast from that pool.
+
+### Shipped regardless of what you choose
+
+- **Accent filter.** Rows carry an `accents` field; anything outside a set we
+  can use is now skipped. Rows with no accent recorded are still allowed, or
+  we would throw away most of the corpus.
+- **Measured quality screening.** Every assembled candidate is scored for
+  clipping, dead air and level, and anything below the floor never reaches the
+  page. Verified: hard-clipped 0.00, mostly-silence 0.09, far-too-quiet 0.50,
+  clean 1.00, floor 0.55. Candidates are ordered best-measured first.
+
+That removes the unusable. It cannot manufacture a Boston accent that is not
+in the corpus.
+
+### The three real options
+
+| | what it gets | what it costs |
+|---|---|---|
+| **A. VCTK** *(recommended)* | 110 English speakers recorded in a studio at Edinburgh, labelled for gender AND accent — English, Scottish, Irish, American. Clean, close-mic'd, consistent. Speakers recorded specifically for speech-technology research, so the consent rule holds | one afternoon of rework; a smaller pool, so some characters may share a timbre |
+| **B. Stay on Common Voice, screened** | no further work | the pool is what it is. Occasional good ones, mostly not |
+| **C. A commercial voice library** | professional voices, chosen from a curated catalogue rather than fished out of a corpus | **a purchase and an account, both yours.** Ongoing cost, and it moves us off one engine |
+
+**Recommendation: A.** It is the only option that fixes the actual complaint —
+recording quality and accent — without spending your money, and VCTK's consent
+story is as good as Common Voice's. If A disappoints, C is the honest next
+step and I would rather reach it having tried A than having guessed.
+
+**Not started.** Say which and I will build it.

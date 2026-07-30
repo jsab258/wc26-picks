@@ -349,11 +349,61 @@ def ensure_venv(assume_yes, core_only=False):
     return py
 
 
+def audio_quality(mono):
+    """Score a mono clip 0..1 on things that make a reference unusable.
+
+    A cloner inherits everything about its reference: hiss, clipping, room,
+    and dead air. "Legit bad quality" was an accurate description of what a
+    corpus of laptop microphones offers when nothing screens it, and no amount
+    of listening should be spent on a clip that measurement can reject.
+
+    Three cheap measures, all of which a human hears immediately:
+      * CLIPPING - samples pinned at the rail. Distortion is unrecoverable.
+      * DEAD AIR - the fraction that is near-silence. A ten-second reference
+        that is half silence is a five-second reference.
+      * LEVEL    - RMS. Too quiet means the noise floor comes up with it when
+        the clip is normalised.
+    """
+    import numpy as np
+    if mono is None or len(mono) == 0:
+        return 0.0
+    x = np.abs(np.asarray(mono, dtype=np.float32))
+    peak = float(x.max()) or 1e-9
+    clipped = float((x >= 0.98).mean())
+    quiet = float((x < 0.02 * peak).mean())
+    rms = float(np.sqrt(np.mean(np.square(np.asarray(mono, dtype=np.float32)))))
+
+    score = 1.0
+    score -= min(1.0, clipped * 40.0)     # 2.5% clipped is a write-off
+    score -= max(0.0, (quiet - 0.35) * 2.0)
+    if rms < 0.02:
+        score -= 0.5
+    elif rms < 0.05:
+        score -= 0.2
+    return max(0.0, min(1.0, score))
+
+
+# The bar a candidate must clear to be offered at all. Set to reject the
+# obviously broken rather than to grade the merely ordinary — taste is the
+# listener's job, distortion is not.
+QUALITY_FLOOR = 0.55
+
+
 # ---------------------------------------------------------------------------
 # fetching (runs INSIDE the venv, via --worker)
 # ---------------------------------------------------------------------------
 
 CV_DATASET = "fsicoli/common_voice_17_0"   # ungated mirror; same CC0 clips
+
+# ACCENTS WE CAN USE. Common Voice English is majority non-native, and a
+# 1930s dockside city cannot be cast from a pool where most voices carry an
+# accent from somewhere the game does not contain. Rows carry an `accents`
+# field; when it is present and says something we cannot use, skip.
+#
+# Empty accent is ALLOWED rather than rejected — a great many rows have no
+# accent recorded, and rejecting them would throw away most of the corpus.
+ACCENTS_WANTED = ("united states", "england", "canadian", "australian",
+                  "irish", "scottish", "new zealand", "american")
 LIBRITTS_DATASET = "blabble-io/libritts_r"
 
 
@@ -413,6 +463,9 @@ def fetch(source, cast, candidates, out_dir):
             if spec.get("gender") and g and g != spec["gender"]:
                 return False
             if spec.get("age") and a and a not in spec["age"]:
+                return False
+            acc = (row.get("accents") or row.get("accent") or "").strip().lower()
+            if acc and not any(w in acc for w in ACCENTS_WANTED):
                 return False
             # A row with no metadata at all is not a match — it is an
             # unknown, and filling a shortlist with unknowns is the same as
@@ -557,14 +610,29 @@ def fetch(source, cast, candidates, out_dir):
                 bank.append(mono)
                 joined = assemble(bank)
                 if joined is not None:
-                    w["done"].append((speaker, normalise(joined)))
+                    clip_ = normalise(joined)
+                    q = audio_quality(clip_)
+                    if q < QUALITY_FLOOR:
+                        # Measured as unusable — clipped, mostly silence, or
+                        # too quiet to normalise without lifting the hiss with
+                        # it. Dropped before anybody spends a minute on it, and
+                        # the speaker is released so somebody else can have
+                        # them if they are the only one left.
+                        w["rejected"] = w.get("rejected", 0) + 1
+                        del w["banked"][speaker]
+                        claimed.pop(speaker, None)
+                        break
+                    w["done"].append((speaker, clip_, q))
                     del w["banked"][speaker]
                 break   # one character per row; sharing a voice defeats casting
 
     made = {}
     for cid, w in wanted.items():
         files = []
-        for i, (speaker, samples) in enumerate(w["done"][:candidates], 1):
+        # BEST FIRST. The listener's time is the scarce thing, so the clip
+        # that measured cleanest is candidate 01.
+        ranked = sorted(w["done"], key=lambda d: -d[2])
+        for i, (speaker, samples, _q) in enumerate(ranked[:candidates], 1):
             p = out_dir / cid / f"candidate-{i:02d}.wav"
             write_wav(p, samples)
             files.append(dict(n=i, file=f"{cid}/candidate-{i:02d}.wav",
