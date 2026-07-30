@@ -1240,22 +1240,46 @@ namespace Ledger.Game
             // asserted in a unit test: how far a person is detectable standing
             // where the player is standing, at the brightest and darkest spots
             // the probe can find within a few metres.
-            if (_litRange < 0 && now.Hour >= 21 && _npcs != null && _npcs.Length > 0)
+            // PROBE THE LAMPS, NOT A CIRCLE AROUND THE BOT. The first version
+            // sampled twelve points on a six-metre ring around wherever the
+            // player happened to be, and reported lit=4.8m dark=4.8m — identical,
+            // because at that moment there was no lamp within six metres of the
+            // bot and it was measuring darkness against darkness. A ruler that
+            // can return the same number for both ends of what it is comparing
+            // is not measuring the thing.
+            //
+            // So: find a real lamp and stand next to it, and find a point as far
+            // from every lamp as the street allows. Deterministic, and it fails
+            // loudly if the city genuinely has no lamps rather than quietly
+            // reporting a null result as a pass.
+            if (_litRange < 0 && now.Hour >= 21)
             {
                 Vector3 here = _player.transform.position;
-                double bestLight = 0, worstLight = 1;
-                for (int i = 0; i < 12; i++)
+                Light lamp = null;
+                float lampDist = float.MaxValue;
+                foreach (var l in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
                 {
-                    float a = i / 12f * Mathf.PI * 2f;
-                    var probe = here + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 6f;
-                    double l = Perceivers.LevelAt(probe);
-                    if (l > bestLight) bestLight = l;
-                    if (l < worstLight) worstLight = l;
+                    if (l == null || !l.isActiveAndEnabled || l.type == LightType.Directional) continue;
+                    float d = Vector3.Distance(l.transform.position, here);
+                    if (d < lampDist) { lampDist = d; lamp = l; }
                 }
-                _litRange = Perception.DetectRangeMetres * Perception.LightFactor(bestLight);
-                _darkRange = Perception.DetectRangeMetres * Perception.LightFactor(worstLight);
-                Debug.Log($"SimDirector: light attribution — lit {bestLight:0.00} reaches "
-                          + $"{_litRange:0.0}m, dark {worstLight:0.00} reaches {_darkRange:0.0}m");
+                if (lamp != null)
+                {
+                    // A metre from the lamp is as lit as this street gets; the
+                    // far side of its own range is as dark as the same street
+                    // gets, which keeps the comparison local and honest.
+                    Vector3 lit = lamp.transform.position + Vector3.right * 1.0f;
+                    Vector3 dark = lamp.transform.position
+                                   + Vector3.right * (lamp.range * 2.5f + 10f);
+                    double bestLight = Perceivers.LevelAt(lit);
+                    double worstLight = Perceivers.LevelAt(dark);
+                    _litRange = Perception.DetectRangeMetres * Perception.LightFactor(bestLight);
+                    _darkRange = Perception.DetectRangeMetres * Perception.LightFactor(worstLight);
+                    Debug.Log($"SimDirector: light attribution off {lamp.name} "
+                              + $"(range {lamp.range:0.0}) — lit {bestLight:0.00} reaches "
+                              + $"{_litRange:0.0}m, dark {worstLight:0.00} reaches "
+                              + $"{_darkRange:0.0}m");
+                }
             }
 
             // ---- the loiter ----
@@ -1290,7 +1314,7 @@ namespace Ledger.Game
             // cast's evening schedules simply do not coincide. A probe that has
             // to be lucky is not a probe, so this one WALKS to the nearest
             // person and then stands still.
-            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 19 && nearest != null)
+            if (!_loiterStaged && now.Day >= 8 && now.Hour >= 19 && nearest != null)
             {
                 _loiterApproaching = true;
                 _loiterTarget = nearest.transform.position;
@@ -1338,7 +1362,11 @@ namespace Ledger.Game
             // night rather than the next one. A door slam at 3am carries about
             // forty-eight metres in a silent street, which is the arithmetic
             // rather than a hope.
-            if (!_slamStaged && now.Day >= 10 && now.Hour >= 1 && now.Hour <= 5
+            // NO DAY GATE. A slam is one instantaneous Emit — it costs no game
+            // time at all and cannot move the week's outcome, so gating it on
+            // day ten was copy-paste from the loiter rather than reasoning, and
+            // it cost two builds' worth of evidence about hearing.
+            if (!_slamStaged && now.Hour >= 1 && now.Hour <= 5
                 && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
                 _slamStaged = true;
@@ -1376,7 +1404,7 @@ namespace Ledger.Game
             // or the clock is decoration. A walk sample is taken first so the
             // comparison is against this run's own baseline rather than a
             // number I picked.
-            if (!_nightRunStaged && now.Day >= 10 && now.Hour <= 4 && _loiterUntil < 0)
+            if (!_nightRunStaged && now.Day >= 8 && now.Hour <= 4 && _loiterUntil < 0)
             {
                 _nightRunStaged = true;
                 _nightWalkLooks = Perceivers.Looks;
@@ -3011,6 +3039,13 @@ namespace Ledger.Game
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"rings={NoiseRing.Shown} ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"perceptionOk={perceptionOk} " +
+                      // PRINTED BECAUSE I GUESSED TWICE. Whether the probes
+                      // fired depends on which days and hours the run actually
+                      // reached, and neither was in the report — so two builds
+                      // were spent inferring it from a -1.
+                      $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
+                      $"loiterStaged={_loiterStaged} slamStaged={_slamStaged} " +
+                      $"nightRunStaged={_nightRunStaged} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
