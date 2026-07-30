@@ -9324,6 +9324,33 @@ namespace Ledger.CoreTests
                   "blood: a stranger is a rumour, someone who loves you is a scene",
                   $"{stranger:0.00} vs {lover:0.00}");
 
+            // ---- the weapon table is the ONLY source of a deed's facts ----
+            var wire = Arsenal.Get("wire");
+            var wireDeed = Observe.DeedFor(wire, "e", "player", "tony");
+            Check(wireDeed.Loudness == wire.Loudness
+                  && wireDeed.VictimCriesOut == wire.VictimCriesOut
+                  && wireDeed.LeavesBody == wire.LeavesBody,
+                  "deed: the perceptible facts come from the weapon, not from a call site");
+            Check(!wireDeed.IsAccident, "deed: a wire is not an accident");
+
+            var stairsDeed = Observe.DeedFor(Arsenal.Get("stairs"), "e", "player", "tony");
+            Check(stairsDeed.IsAccident, "deed: the stairs are");
+            // AN ACCIDENT HAS NO DRAW, and that is most of why it reads as an
+            // accident — there is nothing for anybody to see appearing.
+            Check(!stairsDeed.WeaponDrawn, "deed: and there is nothing to see appearing");
+            Check(Observe.DeedFor(Arsenal.Get("switchblade"), "e", "a", "b").WeaponDrawn,
+                  "deed: a switchblade is drawn, and that is a slot somebody can fill");
+            Check(!Observe.DeedFor(Arsenal.Get("fists"), "e", "a", "b").WeaponDrawn,
+                  "deed: fists are not drawn either — nothing appears");
+
+            // The silent case, end to end: a wire in a lit street with a
+            // witness twenty metres away who knows him.
+            var silentWitness = Observe.Resolve(wireDeed,
+                Vantage.Both("w", 20, 1.0, familiarity: 0.9,
+                             ambientFloor: Perception.AmbientDaytimeStreet));
+            Check(!silentWitness.Has(Slot.Act) || silentWitness.Has(Slot.Victim),
+                  "deed: a silent killing is seen or not at all, never merely heard");
+
             // ---- provenance ----
             var bought = Traces.Acquire("i1", "switchblade", Traces.Origin.Bought, "kass");
             Check(bought.Origin == Traces.Origin.Bought && bought.FromWhom == "kass",

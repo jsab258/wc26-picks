@@ -187,6 +187,38 @@ namespace Ledger.Core
 
     public static class Observe
     {
+        /// BUILD A DEED FROM A WEAPON, so the perceptible facts of an act come
+        /// from the weapon table and nowhere else.
+        ///
+        /// EXISTS TO CLOSE A HOLE RATHER THAN TO SAVE TYPING. Without it the
+        /// Unity layer has to hand `Resolve` a loudness, a cries-out flag and a
+        /// leaves-a-body flag, which means those three numbers get typed out a
+        /// second time at every call site — and this project has already
+        /// watched a wet-road threshold drift apart from its own copy. One
+        /// source, and the source is `Arsenal`.
+        public static Deed DeedFor(Weapon w, string eventId, string actorId,
+                                   string victimId, bool actorFled = false,
+                                   bool hadPrecursor = false)
+        {
+            if (w == null) return new Deed { EventId = eventId, ActorId = actorId,
+                                            VictimId = victimId };
+            return new Deed
+            {
+                EventId = eventId,
+                ActorId = actorId,
+                VictimId = victimId,
+                Loudness = w.Loudness,
+                VictimCriesOut = w.VictimCriesOut,
+                // An accident has no draw — there is nothing to see appearing,
+                // which is most of why it reads as an accident.
+                WeaponDrawn = w.Family != Family.Environment && w.ReadySeconds > 0,
+                ActorFled = actorFled,
+                LeavesBody = w.LeavesBody,
+                HadPrecursor = hadPrecursor,
+                IsAccident = Arsenal.IsAccident(w),
+            };
+        }
+
         /// THE GENERATOR. One event, one vantage, one slot set.
         ///
         /// Each slot is filled by its own test, which is the point — nothing
