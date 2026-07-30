@@ -108,6 +108,7 @@ namespace Ledger.CoreTests
                 TestArsenal();
                 TestReaction();
                 TestTraces();
+                TestCoat();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -9409,6 +9410,105 @@ namespace Ledger.CoreTests
             Traces.Dispose(watched, "somewhere else", seen: false);
             Check(watched.DisposedWhere == "the canal" && watched.DisposalWitnessed,
                   "disposal: you cannot un-dispose or re-dispose an object");
+        }
+
+
+        /// THE COAT — spec §7.1 and §7.2. Not an inventory: the whole point is
+        /// that something has to be left behind.
+        static void TestCoat()
+        {
+            var coat = new Coat();
+            var knife = Traces.Acquire("k", "kitchenknife", Traces.Origin.Ordinary, null);
+            var cosh = Traces.Acquire("c", "cosh", Traces.Origin.Bought, "kass");
+            var blade = Traces.Acquire("b", "switchblade", Traces.Origin.Bought, "kass");
+            var bat = Traces.Acquire("t", "bat", Traces.Origin.Bought, "kass");
+            var sawn = Traces.Acquire("s", "sawnoff", Traces.Origin.Taken, "joey");
+
+            Check(coat.Take(knife) && coat.OnMe.Count == 1, "coat: one knife goes with you");
+            Check(coat.Take(cosh), "coat: and a cosh");
+            Check(coat.Take(knife) == false, "coat: you cannot take the same thing twice");
+
+            var full = new Coat();
+            full.Take(blade);
+            full.Take(cosh);
+            Check(!full.Take(Traces.Acquire("i", "icepick", Traces.Origin.Ordinary, null)),
+                  "coat: two things plus a damning one does not fit");
+
+            var innocents = new Coat();
+            innocents.Take(Traces.Acquire("i2", "icepick", Traces.Origin.Ordinary, null));
+            innocents.Take(Traces.Acquire("b2", "bottle", Traces.Origin.Ordinary, null));
+            Check(innocents.Take(Traces.Acquire("k2", "kitchenknife", Traces.Origin.Ordinary, null)),
+                  "coat: three innocent things do");
+
+            var loud = new Coat();
+            Check(loud.Take(bat), "coat: a bat can be carried");
+            Check(!loud.Take(sawn), "coat: but not alongside a sawn-off");
+            Check(loud.Take(Traces.Acquire("k3", "kitchenknife", Traces.Origin.Ordinary, null)),
+                  "coat: a bat in your hand and a knife in your coat is a real loadout");
+
+            // THE DECISION ONLY EXISTS WHILE SOMETHING MUST BE LEFT BEHIND.
+            var choice = new Coat();
+            choice.Store(blade); choice.Store(cosh);
+            choice.Store(Traces.Acquire("x", "icepick", Traces.Origin.Ordinary, null));
+            choice.Store(Traces.Acquire("y", "razor", Traces.Origin.Bought, "kass"));
+            Check(!choice.CanTakeEverything, "coat: four things will not all fit");
+            Check(choice.IsAChoice, "coat: which is what makes it a decision at the door");
+
+            var trivial = new Coat();
+            trivial.Store(knife);
+            Check(trivial.CanTakeEverything && !trivial.IsAChoice,
+                  "coat: with one object there is nothing to decide");
+
+            var carried = new Coat();
+            carried.Take(blade);
+            carried.Store(blade);
+            Check(carried.OnMe.Count == 0 && carried.AtHome.Count == 1,
+                  "coat: what you leave at home is not on you");
+
+            // ---- the frisk ----
+            Check(!Coat.MayFrisk(Coat.Frisker.Constable, suspicion: 0.1,
+                                 placeHasARule: false, makingAPoint: false),
+                  "frisk: never at random");
+            Check(Coat.MayFrisk(Coat.Frisker.Constable, 0.6, false, false),
+                  "frisk: a constable may once you are a person of interest");
+            Check(Coat.MayFrisk(Coat.Frisker.Doorman, 0.0, placeHasARule: true, makingAPoint: false),
+                  "frisk: a doorman may where the place has a rule");
+            Check(!Coat.MayFrisk(Coat.Frisker.Doorman, 0.9, false, false),
+                  "frisk: and not where it does not, however suspicious you are");
+            Check(Coat.MayFrisk(Coat.Frisker.Outfit, 0, false, makingAPoint: true),
+                  "frisk: the outfits do it to make a point");
+            Check(Coat.MayFrisk(Coat.Frisker.Ellis, 0.3, false, false)
+                  && !Coat.MayFrisk(Coat.Frisker.Constable, 0.3, false, false),
+                  "frisk: Ellis asks before anybody would search");
+
+            Check(Coat.IfYouRefuse(Coat.Frisker.Doorman) == Coat.Refusal.NotGoingIn,
+                  "frisk: refuse the doorman and you are not going in");
+            Check(Coat.IfYouRefuse(Coat.Frisker.Constable) == Coat.Refusal.SomethingPeopleSaw,
+                  "frisk: refuse a constable and the street watched you do it");
+            Check(Coat.IfYouRefuse(Coat.Frisker.Outfit) == Coat.Refusal.MakesItWorse,
+                  "frisk: refuse the outfit and it is worse than the search");
+
+            var damning = new Coat();
+            damning.Take(blade);
+            var innocent = new Coat();
+            innocent.Take(Traces.Acquire("k4", "kitchenknife", Traces.Origin.Ordinary, null));
+            Check(damning.WorstFind() > innocent.WorstFind(),
+                  "frisk: a switchblade is worse to be caught with than a kitchen knife");
+            Check(innocent.WorstFind() == 0, "frisk: and a kitchen knife is nothing at all");
+            Check(new Coat().WorstFind() == 0, "frisk: an empty coat is nothing");
+
+            Check(damning.CostIfFound(streetHeat: 0.9) > damning.CostIfFound(0.0),
+                  "frisk: the same knife costs more on a street that is already talking");
+            Check(damning.CostIfFound(0.0) > 0,
+                  "frisk: and it is never free even on a quiet one");
+
+            var used = Traces.Acquire("u", "switchblade", Traces.Origin.Bought, "kass");
+            Traces.Used(used, "killed", "tony");
+            var carryingIt = new Coat();
+            carryingIt.Take(used);
+            Check(carryingIt.CarryingSomethingUsed(),
+                  "frisk: a weapon with a killing in its history is a different order of problem");
+            Check(!damning.CarryingSomethingUsed(), "frisk: a clean one is not");
         }
 
         static void TestMotionMatching()
