@@ -24,6 +24,15 @@ namespace Ledger.Game
         public bool InputLocked; // dialogue UI sets this while typing
         public Vector3? AutoMoveTarget; // sim mode drives the player via waypoints
 
+        /// Sim mode only: make the auto-driven player RUN rather than walk.
+        ///
+        /// Exists so the Phase 1 behaviour gate can prove the thing it claims
+        /// — that running at night turns heads a walk does not. Without it the
+        /// bot walks everywhere and the claim could only be asserted at the
+        /// Core level, which is the difference between a system that is built
+        /// and a system that runs.
+        public bool AutoMoveRun;
+
         /// Set by GameController at spawn. Only read for the injury that
         /// drives the limp, so a null one simply means an unhurt walk.
         public GameController Game;
@@ -131,6 +140,7 @@ namespace Ledger.Game
                     if (far > 0.001f) want /= far;
                     want *= Mathf.Clamp01(far / 2f);
                     _yaw += 20f * dt; // slow camera sweep for varied screenshots
+                    running = AutoMoveRun;
                 }
                 else
                 {
@@ -234,6 +244,15 @@ namespace Ledger.Game
         /// The smallest follow-distance fraction the framing has ever pulled
         /// the camera to. 1 means it never pulled at all.
         public static float TightestFraming = 1f;
+
+        /// HOW FAST THE PLAYER IS MOVING, for anyone who needs it and is not
+        /// the player. `Core/Perception` scales how fast attention accrues by
+        /// motion — running is a confession and stillness is a tactic — and
+        /// every walker in the Near band needs the number every sixth of a
+        /// second. Published once here rather than found by fifty walkers
+        /// each doing their own lookup.
+        public static float CurrentSpeed { get; private set; }
+
         float _lastMoveInput, _lastLookInput;
         float _lastSpeed, _lastFacing;
 
@@ -243,6 +262,10 @@ namespace Ledger.Game
             if (_body == null || dt <= 0) return;
 
             _body.Speed = speed;
+            CurrentSpeed = speed;
+            // The visibility readout, from the same function the NPCs read so
+            // the two can never disagree (FilmGrade.LitAmount).
+            FilmGrade.LitAmount = (float)Perceivers.LevelAt(transform.position);
             // Acceleration and turn rate MEASURED rather than passed through
             // from input: the locomotion model has momentum, so what the
             // player asked for and what the body is doing are different

@@ -134,6 +134,86 @@ namespace Ledger.Game
         Vector3 _stagger;
         float _staredUntil;
 
+        // ---- perception (spec §17.1: ~6Hz, staggered, Near band only) ----
+        Perception.Attention _attention;
+        float _nextPerceptionAt;
+        float _lastPerceptionAt;
+        float _stationaryFor;
+        bool _attendingNow;
+        /// Set once per walker so the whole crowd does not evaluate on the
+        /// same frame. Without it the cost is a spike every sixth of a second
+        /// rather than a flat line, which is the same amount of work and a
+        /// much worse frame time.
+        float _phase = -1f;
+
+        /// Returns whether this walker's attention is currently on the player.
+        ///
+        /// Every accrual is multiplied by the real elapsed time rather than
+        /// counted per evaluation, because this runs at 6Hz and the notice
+        /// threshold is in seconds. Counting ticks would make being spotted
+        /// depend on the tick rate — the FrameRate bug, one system over.
+        bool TickPerception(Vector3 current)
+        {
+            if (_phase < 0f) _phase = Random.value / Perceivers.VisionHz;
+            if (Time.time < _nextPerceptionAt) return _attendingNow;
+            float dt = _lastPerceptionAt <= 0 ? 1f / Perceivers.VisionHz
+                                              : Time.time - _lastPerceptionAt;
+            _lastPerceptionAt = Time.time;
+            _nextPerceptionAt = Time.time + 1f / Perceivers.VisionHz + _phase * 0.1f;
+
+            var to = _player.position - current; to.y = 0;
+            float metres = to.magnitude;
+            if (metres > Perceivers.NearBandMetres)
+            {
+                _attention.Tick(dt, false, 0, 0, 0);
+                return _attendingNow = false;
+            }
+
+            double light = Perceivers.LevelAt(_player.position);
+            double offAxis = Perceivers.OffAxis(transform, _player.position);
+            float speed = PlayerController.CurrentSpeed;
+
+            // Cone, range and light first; the ray only if all three pass.
+            bool inSight = Perception.InSight(metres, offAxis, light,
+                                              occluded: false, subjectSpeed: speed);
+            if (inSight && Perceivers.Occluded(current, _player.position)) inSight = false;
+
+            _stationaryFor = speed < 0.1f ? _stationaryFor + dt : 0f;
+            var notable = Notice.What(_stationaryFor, speed, GameController.NightAmount,
+                                      whereTheyShouldNotBe: false,
+                                      bloodVisible: false, weaponVisible: false);
+            // A noteworthy person is noticed FASTER through the same
+            // accumulator rather than through a second code path.
+            double pull = 1.0 + Notice.Interest(notable, GameController.NightAmount);
+
+            int rung = Perception.IdRung(metres, light, familiarity: 0.5,
+                                         hasDistinguishingMark: false);
+            bool wasAttending = _attendingNow;
+            _attention.Tick(dt, inSight, Perception.ConeWeight(offAxis),
+                            Perception.MotionFactor(speed) * pull, rung);
+            _attendingNow = _attention.Noticed;
+
+            if (_attendingNow && !wasAttending)
+            {
+                Perceivers.Looks++;
+                if (notable == Notable.Loitering) Perceivers.LoiterNotices++;
+                if (notable == Notable.RunningAtNight) Perceivers.NightRunNotices++;
+                if (Notice.WorthRemarking(notable, Nerve, GameController.NightAmount))
+                    Perceivers.Remarks++;
+            }
+            return _attendingNow;
+        }
+
+        /// Whether this walker's attention is currently on the player. Read by
+        /// the hush, which needs a count of attending people per frame and
+        /// must not re-run anybody's perception to get it.
+        public bool AttendingPlayer => _attendingNow;
+
+        /// Nerve, for whether they say something rather than only look. The
+        /// crowd's walkers do not all have a `Gossiper` behind them, so this
+        /// defaults to the middle of the range rather than pretending.
+        public float Nerve = 0.5f;
+
         public void Bumped(Vector3 fromPlayer, float relativeSpeed)
         {
             var kind = Bumps.Classify(relativeSpeed);
@@ -416,6 +496,15 @@ namespace Ledger.Game
                 wantsToLook = gaze > 0.5f && toYou.sqrMagnitude > 0.04f
                               && toYou.magnitude <= gaze;
             }
+
+            // PERCEPTION, and it is deliberately OR-ed with the stance gaze
+            // above rather than replacing it. The stance ladder answers "how
+            // does this person feel about you", which is a social question and
+            // still the right one; this answers "can they physically see you
+            // from there, in this light, at this hour", which nothing in the
+            // project has ever asked. A man under a lamp is looked at from
+            // across the street and the same man in a doorway is not.
+            if (_player != null && TickPerception(current)) wantsToLook = true;
 
             if (_body != null) _body.LookAt = wantsToLook ? _player : null;
 

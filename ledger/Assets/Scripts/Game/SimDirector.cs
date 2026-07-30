@@ -728,6 +728,8 @@ namespace Ledger.Game
                 _waypointIndex = (_waypointIndex + 1) % Waypoints.Length;
 
             StageConfrontation(now);
+            StagePerception(now, ref target);
+            _player.AutoMoveTarget = target;
 
             // Hourly NPC sample.
             if (now.Hour != _lastSampledHour)
@@ -1173,6 +1175,121 @@ namespace Ledger.Game
         /// staging already use, and the reason is the same — the accumulation
         /// is tested in Core against a clock we control, and the sim exists to
         /// prove the wiring downstream of it.
+        // ---- PHASE 1 BEHAVIOUR PROBE (weapons-spec.md §10) ----------------
+        //
+        // THE MACHINERY GATE IS NOT THE POINT. "A lit walker is detected
+        // further than a shadowed one" can be green in a city that computes
+        // perfectly and reacts to nothing, which is exactly the failure this
+        // project keeps producing — a post stack that never executed a frame,
+        // a cinematic camera behind a guard, five systems built and not
+        // running. So this stages the two behaviours §3.3 actually promises
+        // and counts what happened to the player.
+        bool _loiterStaged, _nightRunStaged;
+        float _loiterUntil = -1f, _nightRunUntil = -1f;
+        int _looksBeforeLoiter, _looksBeforeRun;
+        int _loiterLooks = -1, _nightRunLooks = -1, _nightWalkLooks = -1;
+        double _hushPeak;
+        double _litRange = -1, _darkRange = -1;
+
+        void StagePerception(GameTime now, ref Vector3 target)
+        {
+            // The hush is read every tick because its PEAK is the interesting
+            // value — a street that went quiet for two seconds and recovered
+            // is the whole effect, and a sample at the end of the run would
+            // find it back at nothing.
+            int attending = 0, present = 0;
+            if (_npcs != null)
+                foreach (var n in _npcs)
+                {
+                    if (n == null) continue;
+                    if (Vector3.Distance(n.transform.position, _player.transform.position)
+                        > Perceivers.NearBandMetres) continue;
+                    present++;
+                    if (n.AttendingPlayer) attending++;
+                }
+            Perceivers.Attending = attending;
+            Perceivers.PresentNearby = present;
+            double hush = Notice.HushFraction(attending, present);
+            if (hush > _hushPeak) _hushPeak = hush;
+
+            // LIGHT ATTRIBUTION, measured in the real scene rather than
+            // asserted in a unit test: how far a person is detectable standing
+            // where the player is standing, at the brightest and darkest spots
+            // the probe can find within a few metres.
+            if (_litRange < 0 && now.Hour == 23 && _npcs != null && _npcs.Length > 0)
+            {
+                Vector3 here = _player.transform.position;
+                double bestLight = 0, worstLight = 1;
+                for (int i = 0; i < 12; i++)
+                {
+                    float a = i / 12f * Mathf.PI * 2f;
+                    var probe = here + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 6f;
+                    double l = Perceivers.LevelAt(probe);
+                    if (l > bestLight) bestLight = l;
+                    if (l < worstLight) worstLight = l;
+                }
+                _litRange = Perception.DetectRangeMetres * Perception.LightFactor(bestLight);
+                _darkRange = Perception.DetectRangeMetres * Perception.LightFactor(worstLight);
+                Debug.Log($"SimDirector: light attribution — lit {bestLight:0.00} reaches "
+                          + $"{_litRange:0.0}m, dark {worstLight:0.00} reaches {_darkRange:0.0}m");
+            }
+
+            // ---- the loiter ----
+            //
+            // Thirty real seconds of standing still, once, in an eleven-minute
+            // run. It costs about five percent of the sim and it is the only
+            // way to prove the claim rather than assert it: `Notice.What` needs
+            // real accumulated stationary time, and shortening the threshold
+            // for the test would be testing a different game.
+            if (!_loiterStaged && now.Day >= 3 && now.Hour >= 20 && now.Hour <= 23 && present >= 1)
+            {
+                _loiterStaged = true;
+                _loiterUntil = Time.time + Notice.LoiterSeconds + 2f;
+                _looksBeforeLoiter = Perceivers.Looks;
+                Debug.Log($"SimDirector: staging a loiter, {present} people nearby");
+            }
+            if (_loiterUntil > 0)
+            {
+                if (Time.time < _loiterUntil)
+                {
+                    // Stand still. Holding the target AT the player is how the
+                    // bot stops without touching the locomotion.
+                    target = _player.transform.position;
+                }
+                else
+                {
+                    _loiterLooks = Perceivers.Looks - _looksBeforeLoiter;
+                    _loiterUntil = -1f;
+                    Debug.Log($"SimDirector: loiter over, {_loiterLooks} heads turned, "
+                              + $"{Perceivers.LoiterNotices} of them for loitering");
+                }
+            }
+
+            // ---- running at night ----
+            //
+            // The same action at two different hours has to read differently
+            // or the clock is decoration. A walk sample is taken first so the
+            // comparison is against this run's own baseline rather than a
+            // number I picked.
+            if (!_nightRunStaged && now.Day >= 4 && now.Hour == 2 && _loiterUntil < 0)
+            {
+                _nightRunStaged = true;
+                _nightWalkLooks = Perceivers.Looks;
+                _nightRunUntil = Time.time + 12f;
+                _looksBeforeRun = Perceivers.Looks;
+                _player.AutoMoveRun = true;
+                Debug.Log("SimDirector: staging a night run");
+            }
+            if (_nightRunUntil > 0 && Time.time >= _nightRunUntil)
+            {
+                _nightRunLooks = Perceivers.Looks - _looksBeforeRun;
+                _nightRunUntil = -1f;
+                _player.AutoMoveRun = false;
+                Debug.Log($"SimDirector: night run over, {_nightRunLooks} heads turned, "
+                          + $"{Perceivers.NightRunNotices} of them for running");
+            }
+        }
+
         void StageConfrontation(GameTime now)
         {
             // Close a forced conversation a moment after it opens. A panel
@@ -2650,6 +2767,9 @@ namespace Ledger.Game
             // an artifact from a host the sandbox cannot reach. The one line
             // worth having was the one that never survived. Now it is printed
             // last, alone, and only when something is wrong.
+            bool perceptionOk = Perceivers.Looks >= 1 && _loiterLooks >= 1
+                                && _litRange > _darkRange;
+
             var gates = new (string name, bool ok)[]
             {
                 ("noErrors", _errors.Count == 0), ("npcsMoved", npcsMoved),
@@ -2710,8 +2830,20 @@ namespace Ledger.Game
                 ($"preset[low vs high changes {100 * _presetFraction:0.0}% of the frame]", presetOk),
                 ($"scoreAudible[peak={_stemVolumeMax:0.000} unbound={_stemsUnbound} " +
                  $"ratio={_stemRatioMin:0.000}..{_stemRatioMax:0.000}]", scoreAudible),
+                // PHASE 1 IS NOT DONE UNTIL THE CITY REACTS. Three claims,
+                // each of which a city that computes perfectly and reacts to
+                // nothing would fail: somebody actually turned their head at
+                // the player during the run, the staged loiter drew at least
+                // one of them, and a lit spot is detectable further than a
+                // dark one MEASURED IN THE SCENE rather than in a unit test.
+                ($"perception[looks={Perceivers.Looks} remarks={Perceivers.Remarks} " +
+                 $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
+                 $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
+                 $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
+                 perceptionOk),
             };
             var failed = new List<string>();
+
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
             bool pass = failed.Count == 0;
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +

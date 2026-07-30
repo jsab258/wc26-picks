@@ -103,6 +103,8 @@ namespace Ledger.CoreTests
                 TestMotionMatching();
                 TestPerception();
                 TestObservation();
+                TestNotice();
+                TestExposureReadout();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -8834,6 +8836,128 @@ namespace Ledger.CoreTests
             var carried = mill.Get("w1").Best("player.killed");
             Check(carried != null && !carried.Indelible,
                   "hardening: a hardened FALSE accusation stays discreditable");
+        }
+
+
+        /// NOTICE — the non-crime reactions, which are what make Phase 1 worth
+        /// playing before a single weapon exists. The audit moved these
+        /// forward precisely because a Phase 1 gated on detection ranges could
+        /// have shipped a city that computes perfectly and reacts to nothing.
+        /// THE VISIBILITY READOUT — spec §6.2. The frame carries it, so the
+        /// checks are on the arithmetic the shader will actually run.
+        static void TestExposureReadout()
+        {
+            double night = 0.9;
+            double lit = LightModel.VignetteCornerLit(night, 1.0);
+            double dark = LightModel.VignetteCornerLit(night, 0.0);
+            Check(lit > dark, "readout: lit opens the frame, shadow closes it",
+                  $"{lit:0.000} vs {dark:0.000}");
+
+            // It has to be SMALL. A readout that shows up in a screenshot is a
+            // HUD with extra steps, and it would fight a wet-asphalt night the
+            // art pass spent a week on.
+            double swing = (lit - dark) / LightModel.VignetteCorner(night);
+            Check(swing > 0.05 && swing < 0.35,
+                  "readout: the swing is felt, not seen", $"{swing:0.000}");
+
+            // And it has to be REAL — measurable at the corner, which is what
+            // the ImageStats A/B gate will assert on a rendered frame.
+            double cornerLit = LightModel.VignetteAt(0.5, night);
+            Check(cornerLit > 0 && cornerLit < 1, "readout: the corner is darkened at all",
+                  $"{cornerLit:0.000}");
+            Check(Math.Abs(LightModel.VignetteParamLit(night, 0.5)
+                           - LightModel.VignetteParam(night)) < 0.02,
+                  "readout: half-lit sits on the plain curve, so nothing shifts at neutral");
+
+            // Monotonic, because a readout that reverses anywhere is worse
+            // than no readout.
+            double prev = -1;
+            for (int i = 0; i <= 10; i++)
+            {
+                double c = LightModel.VignetteCornerLit(night, i / 10.0);
+                Check(c > prev, $"readout: monotonic at light {i / 10.0:0.0}", $"{c:0.0000}");
+                prev = c;
+            }
+
+            var (r, b) = LightModel.TemperatureFor(1.0);
+            var (r2, b2) = LightModel.TemperatureFor(0.0);
+            Check(b > 1 && r < 1, "readout: exposed reads cooler");
+            Check(b2 < 1 && r2 > 1, "readout: hidden reads warmer");
+            Check(Math.Abs(b - 1) < 0.02, "readout: and the tint is under two percent",
+                  $"{b:0.0000}");
+            var (rn, bn) = LightModel.TemperatureFor(0.5);
+            Check(Math.Abs(rn - 1) < 1e-9 && Math.Abs(bn - 1) < 1e-9,
+                  "readout: half-lit is exactly neutral");
+        }
+
+        static void TestNotice()
+        {
+            // Running at 3am is a statement; the same run at noon is a run.
+            Check(Notice.What(0, 4.0, nightAmount: 1.0, false, false, false) == Notable.RunningAtNight,
+                  "notice: running at night is noteworthy");
+            Check(Notice.What(0, 4.0, nightAmount: 0.0, false, false, false) == Notable.None,
+                  "notice: the same run at noon is nothing");
+            Check(Notice.What(0, 1.4, nightAmount: 1.0, false, false, false) == Notable.None,
+                  "notice: walking at night is nothing either");
+
+            // Loitering, with crossing a street free.
+            Check(Notice.What(31, 0, 0, false, false, false) == Notable.Loitering,
+                  "notice: half a minute standing about is loitering");
+            Check(Notice.What(8, 0, 0, false, false, false) == Notable.None,
+                  "notice: waiting eight seconds is not");
+
+            // Priority order: the street reacts to the loudest thing about you.
+            Check(Notice.What(60, 4.0, 1.0, true, true, true) == Notable.WeaponVisible,
+                  "notice: a visible weapon beats everything else about you");
+            Check(Notice.What(60, 4.0, 1.0, true, true, false) == Notable.BloodOnClothes,
+                  "notice: and blood beats trespass");
+
+            // Interest scales with the dark for running, and not for the rest.
+            Check(Notice.Interest(Notable.RunningAtNight, 1.0)
+                  > Notice.Interest(Notable.RunningAtNight, 0.5),
+                  "notice: running is more alarming the darker it is");
+            Check(Notice.Interest(Notable.WeaponVisible, 0) > Notice.Interest(Notable.Loitering, 0),
+                  "notice: a weapon pulls harder than loitering");
+            Check(Notice.Interest(Notable.None, 1.0) == 0, "notice: nothing pulls nothing");
+
+            // Nerve decides whether they say something or only look — which is
+            // channel 2 of the four, and the one that turns "I think he saw
+            // me" into certainty.
+            Check(Notice.WorthRemarking(Notable.WeaponVisible, nerve: 0.8),
+                  "notice: a bold neighbour remarks on a weapon");
+            Check(!Notice.WorthRemarking(Notable.Loitering, nerve: 0.1),
+                  "notice: a timid one says nothing about loitering");
+            Check(!Notice.WorthRemarking(Notable.None, nerve: 1.0),
+                  "notice: nobody remarks on nothing");
+
+            // ---- the street going quiet ----
+            Check(Notice.HushFraction(0, 40) == 0, "hush: nobody watching, nothing changes");
+            double few = Notice.HushFraction(2, 40);
+            Check(few > 0.05, "hush: two people out of forty is an audible hole", $"{few:0.000}");
+            Check(few < 0.4, "hush: but it is not silence", $"{few:0.000}");
+            Check(Notice.HushFraction(40, 40) > 0.95, "hush: everybody watching is silence");
+            Check(Notice.HushFraction(10, 40) > Notice.HushFraction(5, 40),
+                  "hush: more attention is more quiet");
+            Check(Notice.HushFraction(5, 0) == 0, "hush: an empty street cannot go quieter");
+
+            // THE LOOP CLOSES, and this is the part I did not design so much as
+            // discover: a street that has gone quiet because it is watching you
+            // is a street in which your next sound carries FURTHER. Being
+            // noticed makes you louder.
+            double loud = Perception.AmbientBarBusy;
+            double hushed = Notice.FlooredBy(loud, Notice.HushFraction(30, 40));
+            Check(hushed < loud, "hush: attention drops the ambient floor", $"{hushed:0.0}");
+            double before = Perception.AudibleRadius(Perception.LoudSuppressed22, loud);
+            double after = Perception.AudibleRadius(Perception.LoudSuppressed22, hushed);
+            Check(before == 0 && after > 0,
+                  "hush: a shot the busy bar would have eaten is heard once the bar goes quiet",
+                  $"{before:0.0} -> {after:0.0}");
+
+            // The floor under the floor: rain and traffic do not stop for you.
+            Check(Notice.FlooredBy(Perception.AmbientNight3am, 1.0) > 0,
+                  "hush: total attention still leaves a world making noise");
+            Check(Notice.FlooredBy(Perception.AmbientMarketNoon, 0) == Perception.AmbientMarketNoon,
+                  "hush: no attention leaves the floor exactly where it was");
         }
 
         static void TestMotionMatching()

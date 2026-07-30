@@ -135,6 +135,17 @@ namespace Ledger.Game
         /// ran. Every effect here now has one.
         public static bool Grain = true, Vignette = true, Bloom = true;
 
+        /// How lit the player currently is, 0..1 — set by the game each frame
+        /// from the same `Perceivers.LevelAt` the NPCs read.
+        ///
+        /// ONE SOURCE, TWO CONSUMERS, and that is deliberate: the symmetry
+        /// rule promises the player that what they can read off the frame and
+        /// what the city can see are the same fact. Two independently
+        /// maintained numbers would make the promise a lie the first time they
+        /// drifted, and this project has already watched a threshold drift
+        /// apart from its own copy once.
+        public static float LitAmount = 1f;
+
         /// Pass the frame straight through — no tonemap, no exposure, no
         /// anything. For the sim's light-attribution probe: "is the night
         /// frame bright before the grade touches it, or because of it?" is
@@ -158,7 +169,11 @@ namespace Ledger.Game
             // a black frame border rather than a vignette — and halved the
             // mean luminance of every frame. It had never been applied to an
             // image, because until tonight this class never ran.
-            float vignette = (float)LightModel.VignetteParam(night);
+            // THE FRAME BREATHES WITH THE LIGHT ON THE PLAYER, not just with
+            // the hour. This is the whole of the visibility readout: no icon,
+            // no meter, no word "detected" anywhere. Step under a lamp and the
+            // corners lift; step into a doorway and they close in.
+            float vignette = (float)LightModel.VignetteParamLit(night, LitAmount);
 
             // BLOOM: downsample, blur, add back. Two small textures rather
             // than a chain — at this scale the extra passes buy nothing you

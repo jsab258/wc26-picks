@@ -155,6 +155,59 @@ namespace Ledger.Core
             return Feel.Clamp((1.0 - v) / 2.0, 0, 0.49);
         }
 
+        // ---- EXPOSURE AS A READOUT (weapons-spec.md §6.2) -----------------
+        //
+        // THE ONE PROSPECTIVE SIGNAL THE PLAYER GETS, and the reason it lives
+        // here rather than in a HUD: Tom Novak runs a bar, he does not have an
+        // interface, and a stealth-adjacent system the player cannot predict
+        // is not immersive, it is unfair. Thief put a gem on the screen for a
+        // reason and we cannot.
+        //
+        // So the frame itself carries it. Lit and exposed: the vignette OPENS
+        // and the image cools very slightly. In shadow: it CLOSES and warms.
+        // Sub-threshold in a screenshot, learnable inside an hour of play, and
+        // it never once says the word "detected".
+        //
+        // Deliberately small. Conviction went to full desaturation, which is
+        // the loud version of this idea; ours is about a tenth as strong
+        // because it has to coexist with a wet-asphalt night the art pass
+        // spent a week on.
+
+        /// How much the corner darkening moves with exposure, as a fraction of
+        /// the base corner. Small enough to be invisible in a still frame and
+        /// large enough that `ImageStats` can prove it happened.
+        public const double VignetteLightSwing = 0.10;
+
+        /// The corner brightness given both the hour AND how lit the player
+        /// is. `lightOnPlayer` is the same 0..1 the perception model uses, so
+        /// the two halves of the symmetry rule come from one source rather
+        /// than from two numbers that can drift apart.
+        public static double VignetteCornerLit(double night, double lightOnPlayer)
+        {
+            double baseCorner = VignetteCorner(night);
+            // Lit -> corners lift (the frame opens). Dark -> corners close in.
+            double swing = VignetteLightSwing * (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0);
+            return Feel.Clamp(baseCorner * (1.0 + swing), 0.35, 0.95);
+        }
+
+        public static double VignetteParamLit(double night, double lightOnPlayer)
+        {
+            double v = Math.Sqrt(Feel.Clamp01(VignetteCornerLit(night, lightOnPlayer)));
+            return Feel.Clamp((1.0 - v) / 2.0, 0, 0.49);
+        }
+
+        /// Colour temperature nudge, as a multiplier on the red and blue
+        /// channels. Exposed cools; hidden warms. Under one percent, which is
+        /// under the threshold at which anyone consciously notices a tint and
+        /// well over the threshold at which they feel one.
+        public const double TemperatureSwing = 0.008;
+
+        public static (double r, double b) TemperatureFor(double lightOnPlayer)
+        {
+            double t = (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0) * TemperatureSwing;
+            return (1.0 - t, 1.0 + t);   // lit: less red, more blue
+        }
+
         /// What the shader will actually multiply by, at squared-radius `dd`
         /// from centre (0 at the middle, 0.5 at a corner). Mirrors the shader
         /// exactly so the test is testing the shipped arithmetic.
