@@ -21,6 +21,7 @@ Nothing is deleted and nothing is moved. The harvest stays where it is.
 """
 
 import argparse
+import glob
 import json
 import os
 import re
@@ -197,6 +198,19 @@ def main():
         _flat, stem, path = hit
         dest_dir = os.path.join(out, tier)
         os.makedirs(dest_dir, exist_ok=True)
+
+        # ONE CLIP PER SLOT, ALWAYS. Files are named `{slot}__{clip}.fbx`, so
+        # when a slot's answer changes — as four did the moment the real
+        # catalogue replaced my guesses — the new file lands beside the old one
+        # under a different name and the slot silently has two clips in it.
+        # Unity would import both and the wrong one is as likely to play as the
+        # right one. Clear the slot first.
+        for old_file in glob.glob(os.path.join(out, "*", f"{slot}__*.fbx")):
+            if os.path.basename(old_file) != f"{slot}__{stem}.fbx":
+                os.remove(old_file)
+                print(f"  replaced  [{tier}] {slot:14s} -- removed "
+                      f"{os.path.basename(old_file)}")
+
         dest = os.path.join(dest_dir, f"{slot}__{stem}.fbx")
         shutil.copy2(path, dest)
         copied += 1
