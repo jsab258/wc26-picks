@@ -1,0 +1,86 @@
+[
+  {
+    "name": "the coat becomes a bag, so nothing has to be left behind",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            if (!Arsenal.Fits(CarriedWeapons, w)) return false;",
+    "new": "            if (false) return false;"
+  },
+  {
+    "name": "the same object can be taken twice, so two knives are one knife",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            if (it == null || it.Disposed || _onMe.Contains(it)) return false;",
+    "new": "            if (it == null || it.Disposed) return false;"
+  },
+  {
+    "name": "storing something leaves it on you as well",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            _onMe.Remove(it);\n            if (!_atHome.Contains(it)) _atHome.Add(it);",
+    "new": "            if (!_atHome.Contains(it)) _atHome.Add(it);"
+  },
+  {
+    "name": "the loadout is a choice even when everything fits",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "        public bool IsAChoice => _atHome.Count > 0 && !CanTakeEverything;",
+    "new": "        public bool IsAChoice => _atHome.Count > 0;"
+  },
+  {
+    "name": "everything always fits, so the door decision disappears",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "                return Arsenal.Fits(all.Take(all.Count - 1), all[all.Count - 1]);",
+    "new": "                return true;"
+  },
+  {
+    "name": "a constable frisks at random",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "                case Frisker.Constable: return suspicion >= 0.4;",
+    "new": "                case Frisker.Constable: return true;"
+  },
+  {
+    "name": "a doorman frisks on suspicion rather than on the place's rule",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "                case Frisker.Doorman: return placeHasARule;",
+    "new": "                case Frisker.Doorman: return suspicion >= 0.4;"
+  },
+  {
+    "name": "Ellis waits as long as anybody else, so the conversation stops coming first",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "                case Frisker.Ellis: return suspicion >= 0.25;",
+    "new": "                case Frisker.Ellis: return suspicion >= 0.4;"
+  },
+  {
+    "name": "the outfits stop frisking to make a point",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "                case Frisker.Outfit: return makingAPoint;",
+    "new": "                case Frisker.Outfit: return false;"
+  },
+  {
+    "name": "refusing costs the same whoever asked",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            who == Frisker.Doorman ? Refusal.NotGoingIn\n          : who == Frisker.Constable ? Refusal.SomethingPeopleSaw\n          : who == Frisker.Outfit ? Refusal.MakesItWorse\n          : Refusal.SomethingPeopleSaw;",
+    "new": "            Refusal.SomethingPeopleSaw;"
+  },
+  {
+    "name": "the frisk reports the least incriminating thing on you rather than the worst",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            CarriedWeapons.Select(Arsenal.FriskCost).DefaultIfEmpty(0).Max();",
+    "new": "            CarriedWeapons.Select(Arsenal.FriskCost).DefaultIfEmpty(0).Min();"
+  },
+  {
+    "name": "being found with something costs the same on a quiet street and a talking one",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            Feel.Clamp01(WorstFind() * (0.45 + 0.9 * Feel.Clamp01(streetHeat)));",
+    "new": "            Feel.Clamp01(WorstFind());"
+  },
+  {
+    "name": "being found with something is free on a quiet street",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "            Feel.Clamp01(WorstFind() * (0.45 + 0.9 * Feel.Clamp01(streetHeat)));",
+    "new": "            Feel.Clamp01(WorstFind() * Feel.Clamp01(streetHeat));"
+  },
+  {
+    "name": "a weapon with a killing in its history is just another knife",
+    "file": "Assets/Scripts/Core/Coat.cs",
+    "old": "        public bool CarryingSomethingUsed() => _onMe.Any(i => i.UsedInAKilling);",
+    "new": "        public bool CarryingSomethingUsed() => false;"
+  }
+]

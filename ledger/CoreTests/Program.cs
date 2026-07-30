@@ -9496,6 +9496,16 @@ namespace Ledger.CoreTests
                   "frisk: a switchblade is worse to be caught with than a kitchen knife");
             Check(innocent.WorstFind() == 0, "frisk: and a kitchen knife is nothing at all");
             Check(new Coat().WorstFind() == 0, "frisk: an empty coat is nothing");
+            // TWO THINGS, ONE INNOCENT. Every coat above held a single object,
+            // so Max and Min were the same number and a break run that reported
+            // the LEAST incriminating thing on you survived. A frisk finds the
+            // worst thing in the coat, not the average and not the best.
+            var mixed = new Coat();
+            mixed.Take(Traces.Acquire("m1", "kitchenknife", Traces.Origin.Ordinary, null));
+            mixed.Take(Traces.Acquire("m2", "switchblade", Traces.Origin.Bought, "kass"));
+            Check(mixed.WorstFind() == Arsenal.FriskCost(Arsenal.Get("switchblade")),
+                  "frisk: a kitchen knife does not excuse the switchblade beside it",
+                  $"{mixed.WorstFind():0.00}");
 
             Check(damning.CostIfFound(streetHeat: 0.9) > damning.CostIfFound(0.0),
                   "frisk: the same knife costs more on a street that is already talking");
