@@ -143,6 +143,109 @@ namespace Ledger.Game
             return seen.Count;
         }
 
+        // ---- THE DELIVERY WINDOW ------------------------------------------
+        //
+        // §4.7's fourth claim: a witness intercepted before delivery leaves NO
+        // trace in the mill; the same witness intercepted a minute later
+        // leaves an indelible one. That gap is the mechanic the whole phase
+        // exists for — the player can follow, talk, pay, threaten, help or
+        // kill, and every one of those is itself an act somebody else can
+        // observe.
+        //
+        // `Core/Delivery` owns the timing and the once-only arrival. This
+        // owns the list, the ticking, and the one thing Core must not know:
+        // that arriving means filing into the gossip mill.
+
+        public static readonly List<Delivery> InFlight = new List<Delivery>();
+
+        public static int Started { get; private set; }
+        public static int Arrived { get; private set; }
+        public static int Interceptions { get; private set; }
+
+        /// Below this nobody carries it anywhere. An observation of nothing
+        /// is not a thing to report, and a witness who will not speak is the
+        /// best lever in the design rather than a failure of the model.
+        public const double TellsAtWillingness = 0.5;
+
+        public static void ResetDeliveries()
+        {
+            InFlight.Clear();
+            Started = Arrived = Interceptions = 0;
+        }
+
+        /// Everybody who got something and will say it starts walking.
+        ///
+        /// `walkMinutesFor` is how long this witness needs to reach the place
+        /// they are taking it to — real pathing distance, supplied by the
+        /// caller, because the map belongs to the game and this file is the
+        /// window rather than the route.
+        public static int Dispatch(IEnumerable<Observation> observations,
+                                   string destinationId,
+                                   System.Func<Observation, double> walkMinutesFor,
+                                   System.Func<Observation, double> nerveOf = null)
+        {
+            int began = 0;
+            foreach (var o in observations)
+            {
+                if (o == null || o.Empty) continue;
+                if (o.Willingness < TellsAtWillingness) continue;
+                double nerve = nerveOf != null ? nerveOf(o) : 0.5;
+                InFlight.Add(Delivery.Begin(o.WitnessId, destinationId,
+                                            walkMinutesFor(o), nerve, o.Willingness));
+                began++;
+                Started++;
+            }
+            return began;
+        }
+
+        /// Advance every delivery by `minutes` of game time, and file the ones
+        /// that arrive.
+        ///
+        /// INDELIBLE ON ARRIVAL, which is the sharp edge of claim 4 and the
+        /// reason the window matters at all: once it is told to somebody whose
+        /// job is to remember, nothing the player does afterwards takes it
+        /// back. Before arrival, an interception leaves the mill untouched —
+        /// not a weakened rumour, not a doubt. Nothing.
+        public static int Tick(double minutes, GossipMill mill, GameTime now,
+                               System.Func<Delivery, Fact> factFor,
+                               System.Func<Delivery, string> summaryFor)
+        {
+            if (minutes <= 0 || InFlight.Count == 0) return 0;
+            int arrived = 0;
+            for (int i = InFlight.Count - 1; i >= 0; i--)
+            {
+                var d = InFlight[i];
+                if (!d.Tick(minutes))
+                {
+                    if (!d.InFlight) InFlight.RemoveAt(i);
+                    continue;
+                }
+                arrived++;
+                Arrived++;
+                if (mill != null && factFor != null)
+                    mill.Witness(d.DestinationId, factFor(d), summaryFor?.Invoke(d),
+                                 sensitive: true, now: now, confidence: 0.9, indelible: true);
+                InFlight.RemoveAt(i);
+            }
+            return arrived;
+        }
+
+        /// Paid, threatened, talked round, or killed — and it only works
+        /// before they get there. Returns false when they already arrived,
+        /// which is the answer the player has to live with.
+        public static bool Intercept(string witnessId)
+        {
+            for (int i = 0; i < InFlight.Count; i++)
+            {
+                if (InFlight[i].WitnessId != witnessId) continue;
+                if (!InFlight[i].Intercept()) return false;
+                InFlight.RemoveAt(i);
+                Interceptions++;
+                return true;
+            }
+            return false;
+        }
+
         /// The best identification anybody got, 0..4. Reported rather than
         /// gated on: a street where nobody is close enough to reach rung 4 is
         /// a legitimate outcome and sometimes the interesting one.
