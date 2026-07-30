@@ -45,7 +45,11 @@ namespace Ledger.Game
         {
             double daylight = 1.0 - Mathf.Clamp01(GameController.NightAmount);
 
-            if (Time.time - _lampsRefreshedAt > 5f)
+            // Lamps do not move, so this only needs to catch the world being
+            // built and the odd one being switched. Every five seconds meant a
+            // FindObjectsByType over a scene with three hundred and sixty
+            // lights twelve times a minute for a list that almost never changes.
+            if (Time.time - _lampsRefreshedAt > 20f)
             {
                 _lamps.Clear();
                 foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
@@ -193,6 +197,31 @@ namespace Ledger.Game
         /// able to stop being told — the same reasoning as the accessibility
         /// marker in §6.2, pointed the other way.
         public static bool RingsEnabled = true;
+
+        /// HOW LIT THE PLAYER IS, computed ONCE PER FRAME.
+        ///
+        /// `LevelAt` walks every lamp in the scene, and with three hundred and
+        /// sixty light shafts that list is long. Every walker was calling it
+        /// with the SAME argument — the player's position — on every perception
+        /// tick, so twenty-two walkers at 6Hz meant twenty-two identical sweeps
+        /// of a few hundred lights, more than a hundred times a second, for one
+        /// number.
+        ///
+        /// It is also the same number `FilmGrade.LitAmount` needs, which makes
+        /// caching it here the third instance of the rule this system keeps
+        /// running into: one fact, one source. The symmetry rule promises the
+        /// player that what they read off the frame and what the city can see
+        /// are the same thing, and that can only stay true if there is one of it.
+        public static double PlayerLight { get; private set; } = 1.0;
+        static int _playerLightFrame = -1;
+
+        public static double RefreshPlayerLight(Vector3 at)
+        {
+            if (_playerLightFrame == Time.frameCount) return PlayerLight;
+            _playerLightFrame = Time.frameCount;
+            PlayerLight = LevelAt(at);
+            return PlayerLight;
+        }
 
         /// Set once by the game so `Emit` can size the ring against the
         /// player's own ambient floor without every emitter passing it in.

@@ -169,7 +169,9 @@ namespace Ledger.Game
                 return _attendingNow = false;
             }
 
-            double light = Perceivers.LevelAt(_player.position);
+            // The cached per-frame value, not a fresh sweep of every lamp in
+            // the city for a number twenty-one other walkers just computed.
+            double light = Perceivers.PlayerLight;
             double offAxis = Perceivers.OffAxis(transform, _player.position);
             float speed = PlayerController.CurrentSpeed;
 
@@ -206,8 +208,7 @@ namespace Ledger.Game
             // ordering principle as putting the ray last inside `InSight`.
             if (_attendingNow)
                 Standoff.Consider(DisplayName, true,
-                                  Standoff.PlayerCanRead(_player, transform,
-                                                         Perceivers.LevelAt(current)));
+                                  Standoff.PlayerCanRead(_player, transform, light));
 
             if (_attendingNow && !wasAttending)
             {

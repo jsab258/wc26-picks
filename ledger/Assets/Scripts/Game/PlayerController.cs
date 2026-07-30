@@ -274,7 +274,7 @@ namespace Ledger.Game
             CurrentSpeed = speed;
             // The visibility readout, from the same function the NPCs read so
             // the two can never disagree (FilmGrade.LitAmount).
-            FilmGrade.LitAmount = (float)Perceivers.LevelAt(transform.position);
+            FilmGrade.LitAmount = (float)Perceivers.RefreshPlayerLight(transform.position);
             // Acceleration and turn rate MEASURED rather than passed through
             // from input: the locomotion model has momentum, so what the
             // player asked for and what the body is doing are different
