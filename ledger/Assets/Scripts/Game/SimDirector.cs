@@ -1605,16 +1605,20 @@ namespace Ledger.Game
                 if (probe != null)
                 {
                     probe.LineEnabled = false;
-                    var without = FrameShot(cam);
+                    var withoutRing = FrameShot(cam);
                     probe.LineEnabled = true;
-                    var with = FrameShot(cam);
+                    var withRing = FrameShot(cam);
                     // `FrameShot` returns an empty struct if the render failed,
                     // and comparing two nulls would throw inside a gate rather
                     // than fail it.
-                    var (ringFrac, ringRise) = with.Luma != null && without.Luma != null
-                        ? ImageStats.Brightened(with.Luma, without.Luma,
-                                                ImageStats.QuantisationStep)
-                        : (-1.0, -1.0);
+                    double ringFrac = -1, ringRise = -1;
+                    if (withRing.Luma != null && withoutRing.Luma != null)
+                    {
+                        var seen = ImageStats.Brightened(withRing.Luma, withoutRing.Luma,
+                                                         ImageStats.QuantisationStep);
+                        ringFrac = seen.fraction;
+                        ringRise = seen.meanRise;
+                    }
                     if (ringFrac > _ringSeenFraction)
                     {
                         _ringSeenFraction = ringFrac;
