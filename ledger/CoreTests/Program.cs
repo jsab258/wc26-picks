@@ -106,6 +106,7 @@ namespace Ledger.CoreTests
                 TestNotice();
                 TestExposureReadout();
                 TestArsenal();
+                TestReaction();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -9133,6 +9134,124 @@ namespace Ledger.CoreTests
                   "arsenal: and the length of a street at 3am");
             Check(Perception.AudibleRadius(Arsenal.Get("wire").Loudness, night) == 0,
                   "arsenal: the wire carries nothing anywhere, ever");
+        }
+
+
+        /// THE REACTION LADDER and the two things the audit added — arrest
+        /// with no chase, and the victim as a person who perceives.
+        static void TestReaction()
+        {
+            // Severity comes from the SLOTS, so two people at one killing who
+            // saw different amounts do not react identically.
+            var full = new Observation { Slots = Slot.Act | Slot.Victim | Slot.Actor };
+            var soundOnly = new Observation { Slots = Slot.Act };
+            var nothing = new Observation();
+            Check(Reaction.Severity(full) > Reaction.Severity(soundOnly),
+                  "reaction: seeing it is worse than hearing it");
+            Check(Reaction.Severity(nothing) == 0, "reaction: nothing is nothing");
+
+            // Curiosity is the default and fear is the exception, which is
+            // what makes a street feel like people rather than a burglar alarm.
+            Check(Reaction.Decide(0.5, nerve: 0.7, dutiful: 0.3, willingness: 0.8,
+                                  sawABody: false, alreadyAlarmed: false)
+                  == Reacted.Investigate,
+                  "reaction: a steady person walks toward a noise");
+            Check(Reaction.Decide(0.6, nerve: 0.1, dutiful: 0.3, willingness: 0.8, false, false)
+                  == Reacted.Flee, "reaction: a timid one runs from the same noise");
+            Check(Reaction.Decide(0.1, 0.5, 0.5, 0.5, false, false) == Reacted.Notice,
+                  "reaction: a small thing is only a turned head");
+            Check(Reaction.Decide(0.0, 0.5, 0.5, 0.5, false, false) == Reacted.Ignore,
+                  "reaction: and nothing at all is ignored");
+
+            // A body changes the shape of it, and temperament decides which way.
+            Check(Reaction.Decide(0.9, nerve: 0.1, dutiful: 0.9, willingness: 0.9,
+                                  sawABody: true, alreadyAlarmed: false) == Reacted.Flee,
+                  "reaction: a frightened person at a body runs, however dutiful");
+            Check(Reaction.Decide(0.9, 0.6, dutiful: 0.9, willingness: 0.9, true, false)
+                  == Reacted.FetchTheLaw, "reaction: a dutiful one goes for Ellis");
+            Check(Reaction.Decide(0.9, 0.6, dutiful: 0.2, willingness: 0.9, true, false)
+                  == Reacted.Deliver, "reaction: a talker goes to tell somebody");
+            Check(Reaction.Decide(0.9, 0.6, dutiful: 0.2, willingness: 0.1, true, false)
+                  == Reacted.Alarm, "reaction: somebody who will not talk shouts instead");
+            Check(Reaction.Decide(1.0, nerve: 0.95, dutiful: 0.2, willingness: 0.5,
+                                  sawABody: true, alreadyAlarmed: true) == Reacted.Intervene,
+                  "reaction: intervening needs a body, real nerve AND somebody already shouting");
+
+            // PANIC IS EMERGENT. Alarm is the only reaction that makes a noise,
+            // and it makes the same noise everything else in the game makes —
+            // so it spreads through the hearing model rather than through a
+            // propagation system nobody can tune.
+            Check(Reaction.LoudnessOf(Reacted.Alarm) == Perception.LoudShout,
+                  "reaction: an alarm IS a shout, not a special case");
+            foreach (Reacted r in Enum.GetValues(typeof(Reacted)))
+                if (r != Reacted.Alarm)
+                    Check(Reaction.LoudnessOf(r) == 0, $"reaction: {r} is silent");
+            // And it reaches people: a shout at 3am carries across a street.
+            Check(Perception.Heard(40, Reaction.LoudnessOf(Reacted.Alarm),
+                                   Perception.AmbientNight3am),
+                  "reaction: which means one frightened person wakes the street");
+
+            // ---- arrest, no chase ----
+            var constableSawIt = new Observation
+            { Slots = Slot.Act | Slot.Victim | Slot.Actor, Rung = 4, AccusedId = "player" };
+            var constableSawAShape = new Observation
+            { Slots = Slot.Act | Slot.Actor, Rung = 1 };
+            Check(Reaction.Confront(constableSawIt, playerResists: false) == Reaction.Lawful.Arrest,
+                  "law: a constable who can place you takes you");
+            Check(Reaction.Confront(constableSawAShape, false) == Reaction.Lawful.NothingToArrest,
+                  "law: one who saw a shape has nothing to arrest");
+            Check(Reaction.Confront(null, false) == Reaction.Lawful.NothingToArrest,
+                  "law: and one who saw nothing certainly does not");
+
+            // The escape hatch is SOCIAL, not athletic — which is the whole
+            // reason there is no chase. Being unidentifiable is the mechanic.
+            Check(Reaction.Confront(constableSawAShape, playerResists: true)
+                  == Reaction.Lawful.NothingToArrest,
+                  "law: resisting an arrest that was never going to happen is nothing");
+
+            // Resisting is allowed and it is the worst outcome available.
+            Check(Reaction.Confront(constableSawIt, playerResists: true)
+                  == Reaction.Lawful.ResistedArrest, "law: you may resist");
+            Check(Reaction.ResistPressure > 1.0,
+                  "law: and it costs more than the arrest it avoided");
+            Check(Reaction.CataloguesYourCoat(Reaction.Lawful.Arrest)
+                  && Reaction.IsPublicEvent(Reaction.Lawful.Arrest),
+                  "law: everything in your coat is catalogued, and the street watched");
+            Check(!Reaction.CataloguesYourCoat(Reaction.Lawful.NothingToArrest),
+                  "law: nothing is catalogued if nothing happened");
+
+            // ---- the survivor, which the spec did not contain until the audit ----
+            var deed = new Deed
+            { EventId = "e", ActorId = "player", VictimId = "tony",
+              WeaponDrawn = true, ActorFled = true, LeavesBody = true };
+
+            var lived = Reaction.AsVictim(deed, "tony", familiarityWithActor: 0.8, survived: true);
+            Check(lived.NamesSomebody && lived.Rung == 4 && lived.AccusedId == "player",
+                  "survivor: the man you failed to kill names you");
+            Check(lived.Has(Slot.Act) && lived.Has(Slot.Victim) && lived.Has(Slot.Actor)
+                  && lived.Has(Slot.Draw),
+                  "survivor: and he got every part of it, because he was looking right at you");
+            Check(lived.Certainty > 0.9 && lived.Willingness > 0.8,
+                  "survivor: he is certain and he wants to talk");
+
+            var strangerLived = Reaction.AsVictim(deed, "tony", 0.0, survived: true);
+            Check(strangerLived.Rung == 3 && strangerLived.AccusedId == null,
+                  "survivor: a stranger you attacked would know you again, and cannot name you");
+
+            // A dead man is not a witness, stated in code, because the whole
+            // trade in combat-spec §2 turns on killing genuinely working.
+            var died = Reaction.AsVictim(deed, "tony", 0.8, survived: false);
+            Check(died.Empty && died.Rung == 0 && died.AccusedId == null,
+                  "survivor: a dead man is not a witness — the trade has to be real");
+
+            // The fleeing victim is a delivering witness, which is the tensest
+            // chase in the design and needs no chase mechanic.
+            Check(Reaction.IsFleeingVictim(lived, Reacted.Flee),
+                  "survivor: a man running from you is a deadline with a name");
+            Check(!Reaction.IsFleeingVictim(died, Reacted.Flee),
+                  "survivor: a dead one is not");
+            Check(!Reaction.IsFleeingVictim(lived, Reacted.Notice),
+                  "survivor: standing there staring at you is not a delivery");
         }
 
         static void TestMotionMatching()
