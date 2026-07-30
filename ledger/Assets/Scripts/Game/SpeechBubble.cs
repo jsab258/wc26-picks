@@ -34,7 +34,30 @@ namespace Ledger.Game
         /// loud the street is. Words drop out; the gaps are ellipses. It is a
         /// better hook than certainty ever was, because a sentence with a
         /// hole in it makes you walk closer — which is the entire mechanic.
-        public static SpeechBubble Say(Transform speaker, string line, float seconds, Color colour)
+        /// SPEAKING IS A SOUND, and until now it was not.
+        ///
+        /// Every spoken line in the game funnels through here — the ambient
+        /// exchange, the recognition line, the delayed reply — so this is where
+        /// the city gets told, for the same reason the noise ring lives inside
+        /// `Perceivers.Emit`: no call site should be able to speak without the
+        /// street being able to hear it. Wiring it at the three call sites
+        /// instead would mean the fourth one, written next month, is silent.
+        ///
+        /// Loudness is a real argument rather than a constant because the
+        /// difference between two people talking and one of them calling across
+        /// a pavement is exactly the difference the masking model exists to
+        /// express: at 3am both carry, at noon only the second does.
+        public static SpeechBubble Say(Transform speaker, string line, float seconds,
+                                       Color colour, double loudness)
+        {
+            if (speaker != null)
+                Perceivers.Emit(speaker.position, loudness, "speech");
+            return SayQuietly(speaker, line, seconds, colour);
+        }
+
+        /// The bubble with no sound — for anything that is written rather than
+        /// said. Named so that using it is a decision.
+        public static SpeechBubble SayQuietly(Transform speaker, string line, float seconds, Color colour)
         {
             if (speaker == null || string.IsNullOrEmpty(line)) return null;
 

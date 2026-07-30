@@ -1,0 +1,20 @@
+[
+  {
+    "name": "a mutter is as loud as a remark, so quiet conversation carries across a daytime street",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "        public const double LoudConversation = 42.0;",
+    "new": "        public const double LoudConversation = 58.0;"
+  },
+  {
+    "name": "a remark is as quiet as a mutter, deleting the channel that tells you that you were noticed",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "        public const double LoudRemark = 58.0;",
+    "new": "        public const double LoudRemark = 42.0;"
+  },
+  {
+    "name": "a remark is louder than a shout, so the ladder inverts",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "        public const double LoudRemark = 58.0;",
+    "new": "        public const double LoudRemark = 70.0;"
+  }
+]

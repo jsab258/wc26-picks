@@ -8523,6 +8523,54 @@ namespace Ledger.CoreTests
                   > fs3am,
                   "hearing: a frightened man hears the footstep further away");
 
+            // ---- speech is a sound ----
+            //
+            // Barks were not routed through any of this. The audit's first
+            // finding: a person SHOUTING could not be overheard, could not
+            // mask, and did not carry further at 3am than at noon, in a game
+            // that models all three for a footstep.
+            double convNoon = Perception.AudibleRadius(Perception.LoudConversation,
+                                                       Perception.AmbientDaytimeStreet);
+            double conv3am = Perception.AudibleRadius(Perception.LoudConversation,
+                                                      Perception.AmbientNight3am);
+            Check(convNoon == 0,
+                  "speech: two people muttering at noon carry nothing across a street");
+            Check(conv3am > 10,
+                  "speech: the same two at 3am carry across it", $"{conv3am:0.0}m");
+
+            double remarkNoon = Perception.AudibleRadius(Perception.LoudRemark,
+                                                         Perception.AmbientDaytimeStreet);
+            Check(remarkNoon > 0,
+                  "speech: a remark carries in daylight where a mutter does not",
+                  $"{remarkNoon:0.0}m");
+            Check(Perception.LoudRemark < Perception.LoudShout,
+                  "speech: remarking is not shouting");
+            Check(Perception.LoudConversation < Perception.LoudRemark,
+                  "speech: and muttering is not remarking");
+
+            // The bar swallows a remark. That is the whole masking model
+            // applied to the voice channel rather than a rule written for it.
+            Check(Perception.AudibleRadius(Perception.LoudRemark,
+                                           Perception.AmbientBarBusy) == 0,
+                  "speech: a remark in a busy bar reaches nobody");
+            // And a wall costs speech what it costs everything else.
+            Check(Perception.AudibleRadius(Perception.LoudRemark,
+                      Perception.AmbientNight3am, occluded: true)
+                  < Perception.AudibleRadius(Perception.LoudRemark,
+                      Perception.AmbientNight3am) * 0.25,
+                  "speech: a remark through a wall is most of its range gone");
+            // A shout on a quiet street outranges a remark, which outranges a
+            // mutter, at every hour. Ordering rather than three magic numbers.
+            foreach (var floor in new[] { Perception.AmbientNight3am,
+                                          Perception.AmbientDaytimeStreet })
+            {
+                Check(Perception.AudibleRadius(Perception.LoudShout, floor)
+                      >= Perception.AudibleRadius(Perception.LoudRemark, floor)
+                      && Perception.AudibleRadius(Perception.LoudRemark, floor)
+                      >= Perception.AudibleRadius(Perception.LoudConversation, floor),
+                      $"speech: shout >= remark >= mutter at floor {floor:0}");
+            }
+
             // ---- the ring's draw rule ----
             //
             // THIS IS A REGRESSION SUITE BEFORE IT IS ANYTHING ELSE. The first

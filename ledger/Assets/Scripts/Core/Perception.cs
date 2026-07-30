@@ -252,6 +252,27 @@ namespace Ledger.Core
         public const double WallAttenuation = 22.0;
 
         /// Base radius and the doubling interval. `r = Base * 2^((L-A)/Div)`.
+        // ---- SPEECH IS A SOUND, which it was not until now -------------
+        //
+        // `Perceivers` and `NpcWalker` contained no reference to barks at all.
+        // Everything below — masking, occlusion, audible radius — existed and a
+        // person SHOUTING was routed through none of it: a bark could not be
+        // overheard by a third party, could not mask the player's own noise,
+        // and did not carry further at three in the morning than at noon.
+        //
+        // Three levels, because a game that models a hush going through a crowd
+        // has to know the difference between two people talking and one of them
+        // saying something to a stranger across a pavement.
+        //
+        // Conversation is BELOW the daytime street floor of 45 on purpose: two
+        // people talking quietly at noon are genuinely inaudible from across the
+        // road, and become audible at 3am when the floor drops to 15. That falls
+        // out of the masking model rather than being special-cased, which is the
+        // whole reason speech belongs in these units.
+        public const double LoudConversation = 42.0;
+        /// Said TO somebody who is not standing next to you.
+        public const double LoudRemark = 58.0;
+
         public const double AudibleBaseMetres = 1.5;
         public const double AudibleDivisor = 8.0;
         public const double AudibleCapMetres = 250.0;

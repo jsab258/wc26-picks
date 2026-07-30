@@ -190,7 +190,11 @@ namespace Ledger.Game
         System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay, Color colour, float hold)
         {
             if (delay > 0) yield return new WaitForSeconds(delay);
-            if (who != null) SpeechBubble.Say(who.transform, line, hold, colour);
+            // Conversational: two people at arm's length. Inaudible across a
+            // daytime street, and carrying at three in the morning.
+            if (who != null)
+                SpeechBubble.Say(who.transform, line, hold, colour,
+                                 Perception.LoudConversation);
         }
 
         /// M15.2 — WHO IS PERCEIVING YOU, and how. Recomputed on a slow
@@ -251,8 +255,15 @@ namespace Ledger.Game
                 _lastBark[g.Id] = Time.time;
                 var line = StreetVoice.Recognition(g, strongest, stance, _game.Now.Day * 7 + _game.Now.Hour);
                 if (line != null)
+                    // A REMARK, not a conversation. This is somebody saying
+                    // something about the player across a gap, which is exactly
+                    // the line §6.2 counts as one of the four channels telling
+                    // you that you have been noticed — so it has to carry
+                    // further than two people muttering to each other, and it
+                    // has to be overhearable by a third party.
                     SpeechBubble.Say(w.transform, line.Text, 5f,
-                        stance >= StanceKind.Refuses ? UiTheme.Debit : UiTheme.AmberSoft);
+                        stance >= StanceKind.Refuses ? UiTheme.Debit : UiTheme.AmberSoft,
+                        Perception.LoudRemark);
             }
         }
 
