@@ -781,3 +781,61 @@ proposing this. It is **late-analog — the eighties and nineties**, per the
 design doc's first line. That is not a cosmetic slip: it moves the casting
 brief from period-transatlantic toward ordinary modern speech, which makes
 VCTK a better fit than it looked, not a worse one.
+
+---
+
+## OPEN — non-verbal voice has to come from somewhere else *(2026-07-30 night, needs your call)*
+
+Voice audit item 3, and it is here rather than in a Phase 3 ticket **because
+it has lead time**.
+
+Grunts, pain, exertion, the intake of breath before a swing, the sound
+somebody makes when they are hit. **A cloner turns text into speech; it does
+not produce any of these**, and no amount of prompting gets them out of it.
+Chatterbox is the right engine for dialogue and simply cannot do this job.
+
+Phase 3 is the fight. A fight in which nobody makes a sound reads as a puppet
+show — it is the single fastest way for combat to feel cheap, and no amount
+of animation covers it.
+
+| | what it gets | what it costs |
+|---|---|---|
+| **A. A human-effort foley library** *(recommended)* | professionally recorded exertion, impact and pain sets, consistent and usable immediately | **a purchase, your account.** Roughly $30–80 for a decent set. Licence terms need reading once |
+| **B. Record them ourselves** | free, exactly the performances we want, and no licence question at all | a real afternoon, a quiet room, and somebody willing to be hit repeatedly into a microphone |
+| **C. A generative audio model** | no purchase, no session | **unproven for this.** Effort sounds are short, transient and brutally easy to get wrong, and I would rather not discover that during Phase 3 |
+
+**Recommendation: A.** It is the only option that is both certain and quick,
+and it is the smallest purchase on the project's list by a wide margin. B is
+genuinely good and I would take it if you fancy an afternoon of it — the
+results are usually better than a library because they are cast for the
+character. C is the one I would not pick.
+
+---
+
+## OPEN — is cloning a donor's voice inside the consent rule? *(2026-07-30 night)*
+
+The rule I have held through three corpus changes: clips come only from
+corpora whose contributors **donated their voices to build speech
+technology**, and no identifiable public figures, ever.
+
+Cloning is arguably within that — building speech technology is exactly what
+a Common Voice contributor signed up for — and arguably not what any of them
+pictured. Nobody is identifiable in the output. No public figure is used.
+
+**Recommendation: proceed.** But this is *your* call to make explicitly
+rather than mine to keep assuming, which is the whole reason it is written
+down. If you would rather not, option C above (a commercial voice library
+with cleared rights) becomes the route for dialogue as well as for effort
+sounds, and it is a purchase.
+
+---
+
+## Small, and genuinely trivial — 50 Hz or 60 Hz? *(2026-07-30 night)*
+
+The new telephone audio has mains hum under the line noise, which is what
+stops a phone bed sounding like a filter rather than like a telephone. The
+frequency is the one number in the audio layer that says which side of an
+ocean this city is on, and nobody has ever decided.
+
+**Recommendation: 50 Hz**, which is what is in there now. It is one constant
+in `Audio.LineBed` and flipping it is a ten-second change.

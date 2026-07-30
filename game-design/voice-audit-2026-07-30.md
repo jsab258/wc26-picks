@@ -22,6 +22,37 @@ genuinely absent, ranked by what it costs to find out late.
 
 ---
 
+## STATUS, 2026-07-30 night
+
+| # | Gap | State |
+|---|---|---|
+| 1 | Barks are not sounds | **DONE** — `Perception.LoudConversation/LoudRemark`, routed through `SpeechBubble.Say` |
+| 2 | The telephone sounds like the room | **DONE** — `Acoustics` 300–3400 band, four line kinds, `CanPlaceTheVoice`, `Bleed`; `Audio.OpenLine` |
+| 3 | Non-verbal voice | **NEEDS JAFAR** — a purchase; see `decisions-pending.md` |
+| 4 | Deaf players get nothing | **DONE** — `Core/Captions` + `CaptionBar`, gated in the sim |
+| 5 | Same character, same voice next week | **DONE** — `VoiceBank` naming + seed, mirrored in Python and pinned by shared vectors |
+| 6 | Voices do not change with state | open, after the above |
+| 7 | No voice bus | **DONE** — Voice source, own fader, distance filter |
+| 8 | Lip sync | deferred **in writing**, which was the ask |
+
+Two things surfaced while closing these that were not in the original eight,
+and both are worse than most of what was:
+
+**The crowd pool is six voices.** Not a number anybody chose for the street
+— it is how many "crowd" entries the casting sheet happens to fund. Six is
+thin: the ear picks a repeat out of a busy street inside a minute. The fix
+is casting, not code.
+
+**The casting sheet and the game roster do not use the same names.** The
+sheet has `kest`, `vesna`, `marla`; the game's gossipers include `sera`,
+`aldous`, `danny`, `halvard`, `june`, `zlata`. Some are one person under two
+names and some are people nobody has cast. Unknown ids fall through to a
+crowd voice rather than throwing, so the symptom is a named character
+quietly sounding like a passer-by rather than a crash. **This is a casting
+task somebody has to actually sit down and do.**
+
+---
+
 ## 1. Barks are not sounds *(cheapest to fix now, worst to fix later)*
 
 `Perceivers.cs` and `NpcWalker.cs` contain no reference to barks at all. The

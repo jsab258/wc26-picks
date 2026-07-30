@@ -1346,3 +1346,85 @@ one instant of one evening, and the instant was often uninformative.
 **Phase 1 and Phase 1b of `weapons-spec.md` are done.** The city sees, hears,
 notices, investigates, and can be read without a HUD. Phases 2–5 remain, and
 none of the arsenal is on a button yet.
+
+### M16.2 — THE VOICE AUDIT, closed except the parts that are purchases (2026-07-30 night)
+
+Jafar, after the accent oversight: *"what else in the world of speech/voices
+did we miss?"* Eight gaps were written up. Five are now built, one is
+deferred in writing, one is a purchase and one is a decision.
+
+**Items 2, 5 and 7 turned out to be one piece of work.** The voice bus had
+been fully described in `Core/Mixing` since the day it was written — reach,
+budget, duck depth, protection rule — and connected to no AudioSource at
+all. Speech in this game was text in a bubble. Wiring it needed a filename;
+a filename needs a naming rule; a naming rule that survives regeneration
+*is* determinism. Three audit items, one commit.
+
+The telephone got the treatment its milestone always implied: the ITU
+300–3400 band, a handset resonance, four line kinds, and two things that are
+mechanics rather than decoration — **you cannot place a voice on a bad
+line**, which is why anonymous calls work in every crime story ever written,
+and **the caller's room comes down the wire**, so a hall behind Ellis tells
+you which building he is standing in with no dialogue written for it.
+
+**Item 4 was the sharpest, because it was a hole in a spec I wrote.** §6.2
+gives four redundant channels for "you have been noticed" and calls the
+redundancy the point. Three are audio. "Subtitles-first" renders exactly one
+of them, because subtitles are for what was *said* and nobody subtitles a
+room going silent. So for a deaf player the four channels were one.
+`Core/Captions` + `CaptionBar` closes it, wired at `Perceivers.Emit` for the
+same reason the noise ring lives there, and **gated**: `perceptionOk` now
+requires the caption channel to have carried.
+
+#### The three things that went wrong, and they are the useful part
+
+**The caption bar was dead on arrival and looked wired.** Two of its three
+channels are POLLED in `Update` rather than pushed, and the only thing that
+created the object was `Show()`. A hush could never have appeared. Exactly
+the ring's failure — a system built, plausible, and never once running —
+caught this time before the build rather than after four of them.
+
+**`breakrun.py` had been lying, and only a two-file spec could show it.** It
+reverted the file the next break touched and not the others, so break N
+stayed applied while break N+1 ran and the reported failure belonged to the
+previous defect. Every spec until now was single-file. It reads as
+mislabelling and is not: a defect still in the tree can be caught by the
+previous round's check instead of its own, turning a SURVIVED into a RED —
+the instrument claiming coverage it does not have, in the harness whose only
+job is to prove coverage is real. **Third time this month the instrument was
+the thing at fault.**
+
+It paid for itself immediately. With it fixed, a break that drops the good
+handset below the elision threshold SURVIVED — the check tested a single
+seed and drew a lucky one. And `breaks/notice.json`, the other two-file
+spec, turned out to have two stale anchors that had not been exercised in
+some time while the tally quietly counted them as survivors.
+
+**I asserted a crowd pool of twenty-four voices with a confident argument
+for it.** The casting sheet funds six. Twenty-four would have named files
+nobody was ever going to generate. Six is thin and is now written down as
+thin, because the fix is casting, not a larger constant.
+
+#### Still open
+
+- **Non-verbal voice (item 3)** — grunts, pain, exertion. A cloner cannot
+  make these at all. Phase 3 needs them and it has lead time. A purchase,
+  so it is Jafar's: `decisions-pending.md`.
+- **The casting sheet and the game roster use different names.** `kest` vs
+  `sera`, and several gossipers nobody has cast. Unknown ids fall through to
+  a crowd voice rather than throwing, so the symptom is a named character
+  quietly sounding like a passer-by. A casting task.
+- Items 6 and 8 — state-modified voice, lip sync — after the above.
+
+### macOS — compiled for the first time (2026-07-30 night)
+
+Never once built. No platform `#if` anywhere, no `.exe` assumption, nothing
+in the way — which is precisely the sort of "should work" this project keeps
+catching itself saying. `CiBuild` now takes a target and there is a macOS
+job. Compile-only: the sim gates are green on Windows and paying macOS
+runner rates for a second copy of them buys nothing.
+
+Controller support is a real but contained job, checked rather than assumed:
+zero `OnGUI` (all four UI files are uGUI Canvas, so the EventSystem focus
+model already applies) and 27 `Input.*` calls across six files. The work is
+moving those onto an action map, not a rewrite.
