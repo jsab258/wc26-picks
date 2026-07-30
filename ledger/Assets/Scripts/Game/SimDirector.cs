@@ -780,7 +780,28 @@ namespace Ledger.Game
             // everything else proves the code ran, which is not the same
             // claim and is exactly the gap every "verified in a test, absent
             // in the game" defect in this project has lived in.
-            if (!_tookAoPair && now.Day >= 3 && now.Hour == 21) MeasureAo();
+            // ON MORE THAN ONE NIGHT, and that is the fix for the last red gate
+            // rather than a tweak to it.
+            //
+            // `AoSamples = 3` looked like three samples and was one: the loop
+            // runs three times inside a SINGLE frame, so all three see the same
+            // camera in the same place looking at the same street. The comment
+            // below it promises to "keep the BEST-EVIDENCED sample rather than
+            // the last" and there was only ever one to choose from.
+            //
+            // That is why `preset` has been red at 0.0%, 2.5% and 3.2% and green
+            // at 6.9% across four otherwise identical builds: whether switching
+            // the graphics preset moves 5% of the frame depends entirely on
+            // whether the camera happened to be facing a street with shafts and
+            // wet road in it at 21:00 on day three. One instant of one evening
+            // was deciding four render gates.
+            if (_aoRounds < AoRounds && now.Day >= 3 && now.Hour == 21
+                && now.Day != _lastAoDay)
+            {
+                _aoRounds++;
+                _lastAoDay = now.Day;
+                MeasureAo();
+            }
 
             if (now.Day >= _endDay) Finish();
         }
@@ -1053,7 +1074,17 @@ namespace Ledger.Game
         }
 
         // ---- ambient occlusion, measured against its own absence ----
+        /// Whether the render A/B ever ran at all. Now only a fact about the
+        /// run rather than the thing gating it — `_aoRounds` does that — but kept
+        /// because "the probe never fired" and "the probe fired and found
+        /// nothing" are the two readings this project most often confuses.
         bool _tookAoPair;
+        /// How many separate EVENINGS the render A/B has run on. Three, because
+        /// the thing being averaged out is where the camera was standing, and
+        /// one more night is far cheaper than one more red build.
+        const int AoRounds = 3;
+        int _aoRounds;
+        int _lastAoDay = -99;
         double _aoOn = -1, _aoOff = -1;
         double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
         double _aoDeltaMin, _aoDeltaMax, _grainDeltaMin, _grainDeltaMax;
@@ -1754,8 +1785,17 @@ namespace Ledger.Game
             WetReflections.Enabled = true;
             var (rFrac, rRise) = ImageStats.Brightened(all.Luma, noRefl.Luma,
                                                        ImageStats.QuantisationStep);
-            _reflFraction = rFrac;
-            _reflRise = rRise;
+            // THE BEST OF THE ROUNDS, NOT THE LAST — which is what the comment
+            // at the bottom of this function has always claimed and what only
+            // the occlusion and grain numbers actually did.
+            //
+            // This is not a weakened gate. The claim is "toggling this changes
+            // the image", and a night where it moved seven percent of the pixels
+            // PROVES that; a later night with the camera facing a plain wall does
+            // not unprove it. Taking the maximum is the correct estimator for
+            // "does this effect ever do anything", and taking the last was
+            // simply a bug wearing the clothes of a measurement.
+            if (rFrac > _reflFraction) { _reflFraction = rFrac; _reflRise = rRise; }
 
             // THE POSITIVE CONTROL. Flattening the smoothness of every wet
             // surface removes the specular term by a route with no probe
@@ -1785,7 +1825,7 @@ namespace Ledger.Game
                                                  ImageStats.QuantisationStep);
             var (dBright, _) = ImageStats.Brightened(lowFrame.Luma, all.Luma,
                                                      ImageStats.QuantisationStep);
-            _presetFraction = dDark + dBright;
+            _presetFraction = Math.Max(_presetFraction, dDark + dBright);
 
             AssetLibrary.DefeatWetSpecular(true);
             var noSpec = FrameShot(cam);
@@ -1794,8 +1834,8 @@ namespace Ledger.Game
                                                          ImageStats.QuantisationStep);
             var (sDarker, _) = ImageStats.Darkened(all.Luma, noSpec.Luma,
                                                    ImageStats.QuantisationStep);
-            _specFraction = sFrac + sDarker;
-            _specRise = sChange;
+            if (sFrac + sDarker > _specFraction)
+            { _specFraction = sFrac + sDarker; _specRise = sChange; }
 
             // Keep the BEST-EVIDENCED sample rather than the last, and
             // record how far the samples disagreed. A gate reading the last
@@ -1808,8 +1848,7 @@ namespace Ledger.Game
             // working pass reads as 0.0014 against a floor of 0.002.
             var (aoFrac, aoDrop) = ImageStats.Darkened(all.Luma, noAo.Luma,
                                                        ImageStats.QuantisationStep);
-            _aoFraction = aoFrac;
-            _aoDrop = aoDrop;
+            if (aoFrac > _aoFraction) { _aoFraction = aoFrac; _aoDrop = aoDrop; }
             double aoD = noAo.Mean - all.Mean;
             double grainD = all.LocalSpread - noGrain.LocalSpread;
             if (sample == 0)
@@ -3300,6 +3339,7 @@ namespace Ledger.Game
                       $"ringTransformZ={100 * _ringSeenTransformZ:0.0000} " +
                       $"ringControl={100 * _controlSeen:0.0000} " +
                       $"ringPaintUsed={NoiseRing.PaintUsed} " +
+                      $"aoRounds={_aoRounds} aoRan={_tookAoPair} " +
                       $"perceptionWhy={PerceptionWhy()} " +
                       $"perceptionOk={perceptionOk} " +
                       // PRINTED BECAUSE I GUESSED TWICE. Whether the probes
