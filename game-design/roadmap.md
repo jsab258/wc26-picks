@@ -1100,3 +1100,46 @@ on it and one of them is combat.**
 A neutral male and female body each is enough to start; the procedural
 mannequin rig was built against capsules precisely so a Mixamo skeleton drops
 straight onto it.
+
+### M16 BUILD STATE — 2026-07-30, overnight
+
+**Phases 1, 1b, 2-Core, 3-Core and 5-Core are built.** 2578 CoreTests checks
+(from 2299 at the start of the night), 83 deliberate breaks across five new
+spec files, all confirmed red.
+
+| File | What it is | Breaks |
+|---|---|---|
+| `Core/Perception.cs` | Vision with cone, range, light, motion and time-in-cone; hearing with loudness, **ambient masking**, occlusion and alert scaling; the five-rung identification ladder; the symmetry rule | 15 |
+| `Core/Observation.cs` | Seven slots, separate actor/victim sightlines, certainty vs willingness, mutual awareness, the delivery window, hardening, misattribution | 19 |
+| `Core/Notice.cs` | Non-crime reactions, and **the street going quiet** | 15 |
+| `Core/Reaction.cs` | The ladder, alarm as a sound event, arrest with no chase, the survivor | 15 |
+| `Core/Arsenal.cs` | Nineteen objects, seven families, brandish, carry, the frisk | 18 |
+| `Core/Traces.cs` | Blood, and provenance/disposal | 16 |
+| `Game/Perceivers.cs` | The bridge, and the frame budget |  |
+| `LightModel` additions | The visibility readout — the vignette breathes with the light on the player | in `notice.json` |
+| `BalanceLab.RunPerceptionLab` | The distribution nobody had measured |  |
+
+**Three things the night established that were not in the spec:**
+
+1. **`Vantage` needed separate sightlines for the actor and the victim.** A
+   test asserting four witnesses produce four different slot sets got three,
+   because one distance and one light level for "the event" makes
+   *act-no-actor* unreachable — which is Jafar's own headline example. `Sight`
+   was split off mid-build.
+2. **A street that has gone quiet because it is watching you is a street where
+   your next sound carries further.** Being noticed makes you louder. That
+   fell out of putting masking and the hush on one number and is asserted.
+3. **Nothing local compiles the Game layer.** A `double` Core constant landing
+   in a `float` Unity field cost a build. `lint-usings.py` now has a CS0266
+   rule that catches it in three seconds.
+
+**Measured, not asserted** (`RunPerceptionLab`): partial observation is the
+common case — sound-only 27%, nothing 27%, act-no-actor 21%, aftermath 12%,
+**full 4.8%**. Somebody can name the player at 4% of events by day and 1.3% at
+night, so **darkness cuts naming by 4.6x**. Accidents are available in 12.5%
+of situations and brandishing produces Comply only 6.5% of the time, so
+neither of the two dominance risks in spec §11 is realised.
+
+**Not yet built:** NPCs walking toward a noise (hearing is in Core and not yet
+driving behaviour), the noise ring, the witness ghost, melee verbs against the
+new model, acquisition UI, firearms.
