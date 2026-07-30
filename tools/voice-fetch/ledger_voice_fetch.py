@@ -11,7 +11,7 @@ brief printed above its players. You listen and type numbers. Nothing else.
 
 Options (all optional):
     --who lena,rocco        just these characters
-    --candidates 5          how many voices to offer per character (default 4)
+    --candidates 8          how many voices to offer per character (default 6)
     --source libritts       fallback corpus if Common Voice is unreachable
     --selftest              prove the assembly logic with no network at all
     --install               after you have filled in picks.txt: build the
@@ -290,7 +290,15 @@ def seconds_of(path):
 # numpy. Making a self-test wait on a 400MB dataset stack is how a self-test
 # stops being run.
 CORE_PKGS = ["numpy"]
-FETCH_PKGS = ["datasets>=3", "soundfile", "librosa"]
+# PINNED BELOW 3 DELIBERATELY. v3 dropped dataset loading scripts, which
+# killed the only Common Voice mirror we can reach without a gated licence —
+# and Common Voice is the route with GENDER and AGE on every row. Pinning
+# >=3 was me choosing the version that cannot load the corpus I chose, and
+# the cost was 19 shortlists filtered by nothing.
+#
+# v2 also decodes audio without torchcodec, so this removes the two-gigabyte
+# PyTorch dependency as a side effect rather than as a workaround.
+FETCH_PKGS = ["datasets>=2.19,<3", "huggingface_hub<1.0", "soundfile", "librosa"]
 PKGS = CORE_PKGS + FETCH_PKGS
 
 
@@ -305,6 +313,15 @@ def ensure_venv(assume_yes, core_only=False):
     need = CORE_PKGS if core_only else PKGS
     probe_import = "import numpy" if core_only else "import numpy, datasets, soundfile"
     py = venv_python()
+    # THE STAMP RECORDS WHAT WAS INSTALLED, not merely that something was.
+    # A stamp saying "ok" cannot notice that the required versions changed, so
+    # a pin added here would never reach a machine that had already built the
+    # environment — the fix would ship and nothing would happen.
+    spec = "\n".join(need)
+    if stamp.exists() and py.exists() and stamp.read_text().strip() != spec.strip():
+        print("  dependencies changed since this environment was built; rebuilding")
+        shutil.rmtree(VENV, ignore_errors=True)
+        py = venv_python()
     if stamp.exists() and py.exists():
         # Re-probe every cached environment rather than trusting the stamp.
         # A stamp that outlives a broken install is how a fixed bug keeps
@@ -328,7 +345,7 @@ def ensure_venv(assume_yes, core_only=False):
         subprocess.run([str(py), "-m", "pip", "install", "-q", "--upgrade", "pip"], check=True)
     subprocess.run([str(py), "-m", "pip", "install", "-q", *need], check=True)
     subprocess.run([str(py), "-c", probe_import], check=True)
-    stamp.write_text("ok\n")
+    stamp.write_text(spec + "\n")
     return py
 
 
@@ -453,6 +470,7 @@ def fetch(source, cast, candidates, out_dir):
         print("        every brief sees every speaker and the filtering is")
         print("        entirely your ears. Judge against the brief.")
 
+    claimed = {}          # speaker -> the character who owns them
     seen_rows = 0
     for row in ds:
         seen_rows += 1
@@ -494,10 +512,24 @@ def fetch(source, cast, candidates, out_dir):
             continue
         mono = resample(np.asarray(arr, dtype=np.float32).reshape(-1), rate)
 
+        # ONE SPEAKER, ONE CHARACTER. Without this every character banks the
+        # same speaker from the same row — and on a corpus with no metadata,
+        # where `matches` is true for everyone, that means all nineteen
+        # shortlists come out nearly identical. Which is exactly what
+        # happened: "a lot of them have the same voice".
+        #
+        # The first unfilled character to want a speaker claims them, and no
+        # one else may bank them afterwards.
+        owner = claimed.get(speaker)
         for cid, w in wanted.items():
             if len(w["done"]) >= candidates:
                 continue
+            if owner is not None and owner != cid:
+                continue
             if speaker in w["banked"] or matches(row, w["spec"]):
+                if owner is None:
+                    claimed[speaker] = cid
+                    owner = cid
                 bank = w["banked"].setdefault(speaker, [])
                 if len(bank) > 12:
                     continue
@@ -759,7 +791,7 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--who", default="")
-    ap.add_argument("--candidates", type=int, default=4)
+    ap.add_argument("--candidates", type=int, default=6)
     ap.add_argument("--source", default="commonvoice",
                     choices=["commonvoice", "libritts"])
     ap.add_argument("--selftest", action="store_true")
