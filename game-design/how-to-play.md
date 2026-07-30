@@ -103,4 +103,26 @@ The empire verbs appear in conversation:
   Tibor's customs stamp belongs to the machine; the New crew counts Rita
   as theirs. Recruiting any of them is poaching, and it is noticed.
 
+## The street can see you, and there is no meter for it
+
+**If you can tell he is facing you, and you are in light, he can see you.**
+That is the whole rule, and there is nothing else — no gauge, no cone drawn on
+the ground, and no hidden third factor. Read his shoulders and read your own
+frame: lit, and the corners of the picture lift; in shadow, they close in.
+
+Light decides how far. Under a lamp you are seen across the road; ten metres
+away in a doorway you are not.
+
+**How well somebody knows you decides whether they can name you.** A stranger
+at twenty metres sees a man in a coat. Your neighbour, at the same twenty
+metres, sees *you*. The dangerous witness is rarely the closest one.
+
+**Noise depends on the hour.** A footstep at three in the morning carries about
+three metres and the same footstep at noon carries nothing — the street's own
+racket hides you, so rain is cover and a quiet street is not. When you make a
+sound, a ring shows how far it actually went. Watch it a few times and you will
+stop needing it.
+
+And somebody will walk toward it.
+
 Press L. Two books. Keep them both, or choose which one survives.
