@@ -1,0 +1,92 @@
+[
+  {
+    "name": "severity ignores the slots, so two witnesses at one killing react identically",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            if (o.Has(Slot.Act)) s += 0.30;",
+    "new": "            s += 0.30;"
+  },
+  {
+    "name": "everybody flees, so curiosity stops being the default and the street becomes an alarm",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            if (severity >= 0.45 && nerve > 0.4) return Reacted.Investigate;",
+    "new": "            if (severity >= 0.45) return Reacted.Flee;"
+  },
+  {
+    "name": "a frightened person at a body stays and does their duty",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                if (nerve < 0.3) return Reacted.Flee;",
+    "new": "                if (false) return Reacted.Flee;"
+  },
+  {
+    "name": "duty stops mattering, so nobody ever fetches Ellis",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                if (dutiful > 0.55) return Reacted.FetchTheLaw;",
+    "new": "                if (false) return Reacted.FetchTheLaw;"
+  },
+  {
+    "name": "willingness stops mattering at a body, so the silent witness talks anyway",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                if (willingness > 0.4) return Reacted.Deliver;",
+    "new": "                return Reacted.Deliver;"
+  },
+  {
+    "name": "intervening needs neither a body nor anybody already shouting",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                if (alreadyAlarmed && nerve > 0.85 && severity >= 0.9) return Reacted.Intervene;",
+    "new": "                if (nerve > 0.85) return Reacted.Intervene;"
+  },
+  {
+    "name": "every reaction makes a noise, so panic propagates from a turned head",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            r == Reacted.Alarm ? AlarmLoudness : 0.0;",
+    "new": "            r == Reacted.Ignore ? 0.0 : AlarmLoudness;"
+  },
+  {
+    "name": "an alarm is quieter than a shout, so it stops travelling through the hearing model",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "        public const double AlarmLoudness = Perception.LoudShout;",
+    "new": "        public const double AlarmLoudness = 20.0;"
+  },
+  {
+    "name": "a constable who saw a shape can arrest you, deleting the social escape hatch",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            bool canPlaceYou = constablesView.Has(Slot.Actor) && constablesView.Rung >= 4;",
+    "new": "            bool canPlaceYou = constablesView.Has(Slot.Actor);"
+  },
+  {
+    "name": "resisting is free, so the worst outcome in the game costs nothing",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "        public const double ResistPressure = 1.15;",
+    "new": "        public const double ResistPressure = 1.0;"
+  },
+  {
+    "name": "an arrest does not catalogue your coat, so provenance never becomes an interrogation",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            outcome == Lawful.Arrest || outcome == Lawful.ResistedArrest;",
+    "new": "            false;"
+  },
+  {
+    "name": "a stranger you attacked can name you, deleting the recognition ladder from the victim",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                Rung = familiarityWithActor >= Perception.RecognitionFamiliarity ? 4 : 3,",
+    "new": "                Rung = 4,"
+  },
+  {
+    "name": "a dead man is still a witness, which breaks the trade the whole design rests on",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            if (!survived) { o.Slots = Slot.None; o.Rung = 0; o.AccusedId = null; o.Certainty = 0; }",
+    "new": "            if (false) { o.Slots = Slot.None; }"
+  },
+  {
+    "name": "the survivor does not want to talk, so failing to kill costs nothing",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "                Willingness = 0.9,",
+    "new": "                Willingness = 0.1,"
+  },
+  {
+    "name": "a man standing and staring counts as a delivery in progress",
+    "file": "Assets/Scripts/Core/Reaction.cs",
+    "old": "            && (what == Reacted.Flee || what == Reacted.Deliver || what == Reacted.FetchTheLaw);",
+    "new": "            && true;"
+  }
+]

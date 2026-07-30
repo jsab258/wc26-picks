@@ -9150,6 +9150,15 @@ namespace Ledger.CoreTests
             Check(Reaction.Severity(full) > Reaction.Severity(soundOnly),
                   "reaction: seeing it is worse than hearing it");
             Check(Reaction.Severity(nothing) == 0, "reaction: nothing is nothing");
+            // A CASE WITHOUT THE ACT SLOT, because both cases above have it and
+            // a break that made Act unconditional survived them: seeing
+            // somebody hurry away is not the same as hearing the blow.
+            var flightOnly = new Observation { Slots = Slot.Flight };
+            Check(Reaction.Severity(flightOnly) < 0.25,
+                  "reaction: somebody hurrying away is barely anything",
+                  $"{Reaction.Severity(flightOnly):0.00}");
+            Check(Reaction.Severity(flightOnly) < Reaction.Severity(soundOnly),
+                  "reaction: and it is less than hearing the blow itself");
 
             // Curiosity is the default and fear is the exception, which is
             // what makes a street feel like people rather than a burglar alarm.
@@ -9177,6 +9186,16 @@ namespace Ledger.CoreTests
             Check(Reaction.Decide(1.0, nerve: 0.95, dutiful: 0.2, willingness: 0.5,
                                   sawABody: true, alreadyAlarmed: true) == Reacted.Intervene,
                   "reaction: intervening needs a body, real nerve AND somebody already shouting");
+            // ALL THREE CONDITIONS, each removed in turn. A break that reduced
+            // this to nerve alone survived, because no test had ever asked a
+            // brave person what they do at a body nobody has shouted about.
+            Check(Reaction.Decide(1.0, nerve: 0.95, dutiful: 0.2, willingness: 0.5,
+                                  sawABody: true, alreadyAlarmed: false) != Reacted.Intervene,
+                  "reaction: nobody wades in before anybody has raised the alarm",
+                  $"{Reaction.Decide(1.0, 0.95, 0.2, 0.5, true, false)}");
+            Check(Reaction.Decide(0.5, nerve: 0.95, dutiful: 0.2, willingness: 0.5,
+                                  sawABody: false, alreadyAlarmed: true) != Reacted.Intervene,
+                  "reaction: nor into something that is not a body");
 
             // PANIC IS EMERGENT. Alarm is the only reaction that makes a noise,
             // and it makes the same noise everything else in the game makes —

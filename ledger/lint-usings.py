@@ -298,6 +298,55 @@ def check_ambiguous(path: pathlib.Path) -> list:
     return out
 
 
+# --- CS0266: a Core double landing in a Unity float ---------------------------
+#
+# ADDED AFTER IT COST A BUILD. Core is double throughout and the Unity layer is
+# float throughout, so every constant that crosses the boundary needs a cast.
+# `_loiterUntil = Time.time + Notice.LoiterSeconds + 2f;` is nineteen minutes of
+# CI to discover and three seconds to catch here — nothing else in the local
+# toolchain compiles the Game layer at all. CoreTests never sees it and
+# ShapeCheck is a shape pass with no reference assemblies.
+#
+# Deliberately narrow: only assignments to a name this file declares as `float`,
+# only when the right-hand side names a Core class, only when there is no cast.
+# A rule with false positives is a rule people learn to ignore.
+CORE_CLASSES = ("Notice", "Perception", "Observe", "Reaction", "Traces", "Arsenal",
+                "LightModel", "Feel", "Acoustics", "Detail", "Mixing", "Locomotion",
+                "Gait", "Bumps", "StreetVoice", "Framing", "ImageStats")
+
+FLOAT_DECL = re.compile(r'\bfloat\s+(_?[A-Za-z]\w*)\s*(?:=|;|,)')
+CAST_OK = re.compile(r'\(\s*float\s*\)')
+
+
+def check_double_to_float(path):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    floats = set(FLOAT_DECL.findall(text))
+    # Properties too: `public static float X { get; ... }`
+    floats.update(re.findall(r'\bfloat\s+(_?[A-Za-z]\w*)\s*\{', text))
+    if not floats:
+        return
+    for lineno, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("//") or stripped.startswith("///"):
+            continue
+        # ONLY COMPLETE, SINGLE-LINE ASSIGNMENTS. A multi-line expression shows
+        # this rule half a right-hand side, and half an expression is exactly
+        # where a false positive comes from — the first version flagged an
+        # object initialiser whose ternary continued on the next line.
+        if not stripped.endswith(";"):
+            continue
+        m = re.match(r'\s*(?:[\w.]+\.)?(_?[A-Za-z]\w*)\s*(?:\+|-|\*|/)?=\s*(.+)$', line)
+        if not m:
+            continue
+        name, rhs = m.group(1), m.group(2)
+        if name not in floats or CAST_OK.search(rhs):
+            continue
+        for cls in CORE_CLASSES:
+            if re.search(r'\b' + cls + r'\.[A-Z]\w*', rhs):
+                yield lineno, cls, line.rstrip()
+                break
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "ledger/Assets/Scripts")
     core_names = core_type_names(root)
@@ -329,6 +378,14 @@ def main() -> int:
                   f"{name}. Drop 'using System;' and spell out System.Math etc, or "
                   f"qualify this use. ShapeCheck cannot see it: its Unity stubs have "
                   f"no UnityEngine.{name} to collide with.\n    {line}")
+        if path.parts[-2] != "Core":
+            for lineno, cls, line in check_double_to_float(path):
+                bad += 1
+                print(f"{path}:{lineno}: a float is being assigned an expression "
+                      f"containing Core '{cls}.' with no (float) cast — CS0266 at "
+                      f"player-build time. Core is double and the Unity layer is "
+                      f"float; nothing local compiles this file, so CI is nineteen "
+                      f"minutes away.\n    {line}")
         for lineno, name, line in check(path):
             bad += 1
             if name.startswith("generic:"):

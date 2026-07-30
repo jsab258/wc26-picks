@@ -1211,6 +1211,11 @@ namespace Ledger.Game
             Perceivers.PresentNearby = present;
             double hush = Notice.HushFraction(attending, present);
             if (hush > _hushPeak) _hushPeak = hush;
+            // One owner for the peak. `Perceivers.PeakHush` existed and nothing
+            // wrote to it, which is the exact shape of the five systems this
+            // project found built and not running — a public field with no
+            // writer is a bug waiting to be discovered by somebody reading it.
+            if (hush > Perceivers.PeakHush) Perceivers.PeakHush = hush;
 
             // LIGHT ATTRIBUTION, measured in the real scene rather than
             // asserted in a unit test: how far a person is detectable standing
@@ -1244,7 +1249,13 @@ namespace Ledger.Game
             if (!_loiterStaged && now.Day >= 3 && now.Hour >= 20 && now.Hour <= 23 && present >= 1)
             {
                 _loiterStaged = true;
-                _loiterUntil = Time.time + Notice.LoiterSeconds + 2f;
+                // CAST, and the reason is worth a line: Core is double
+                // throughout and the Unity layer is float throughout, so every
+                // constant that crosses the boundary needs one. Nothing local
+                // catches this — ShapeCheck is a Roslyn shape pass, not a
+                // compile, and CoreTests never sees the Game layer. CI is the
+                // only compiler this half of the project has.
+                _loiterUntil = Time.time + (float)Notice.LoiterSeconds + 2f;
                 _looksBeforeLoiter = Perceivers.Looks;
                 Debug.Log($"SimDirector: staging a loiter, {present} people nearby");
             }
