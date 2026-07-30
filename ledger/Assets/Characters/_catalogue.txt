@@ -5,6 +5,7 @@ Acknowledging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Action Idle To Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Action Idle To Fight Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Action Idle To Standing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Administering Cpr_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Aerial Evade_2dee24f8-3b49-48af-b735-c6377509eaac
 Aerial Evade_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Agony_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -18,18 +19,23 @@ Aiming_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Aiming Gun_2dee24f8-3b49-48af-b735-c6377509eaac
 Aiming Gun_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Air Squat_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Air Squat Bent Arms_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Angry_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Angry_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Angry Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Angry Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Angry Point_2dee24f8-3b49-48af-b735-c6377509eaac
+Angry Point_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Annoyed Head Shake_2dee24f8-3b49-48af-b735-c6377509eaac
 Annoyed Head Shake_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Arm Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Arm Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Arm Stretching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Arm Stretching_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Armada_2dee24f8-3b49-48af-b735-c6377509eaac
 Armada_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Armada To Esquiva_2dee24f8-3b49-48af-b735-c6377509eaac
+Armada To Esquiva_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Arms Hip Hop Dance_2dee24f8-3b49-48af-b735-c6377509eaac
 Arms Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ascending Stairs_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -85,16 +91,19 @@ Baseball Walk Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bash_2dee24f8-3b49-48af-b735-c6377509eaac
 Bash_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bashful_2dee24f8-3b49-48af-b735-c6377509eaac
+Bashful_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Batter On Deck_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bayonet Stab_2dee24f8-3b49-48af-b735-c6377509eaac
 Bayonet Stab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bboy Hip Hop Move_2dee24f8-3b49-48af-b735-c6377509eaac
 Bboy Hip Hop Move_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Bboy Hip Hop Move_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Bboy Pose To Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bboy Uprock_2dee24f8-3b49-48af-b735-c6377509eaac
 Bboy Uprock_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bboy Uprock Start_2dee24f8-3b49-48af-b735-c6377509eaac
 Bboy Uprock Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Bboy Uprock Start_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Beckoning_2dee24f8-3b49-48af-b735-c6377509eaac
 Beckoning_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Being Carried_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -104,21 +113,28 @@ Being Cocky_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Being Electrocuted_2dee24f8-3b49-48af-b735-c6377509eaac
 Being Electrocuted_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Being Strangled_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Belly Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bellydancing_2dee24f8-3b49-48af-b735-c6377509eaac
+Bellydancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bencao_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bicep Curl_2dee24f8-3b49-48af-b735-c6377509eaac
+Bicep Curl_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bicycle Crunch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Body Blow_2dee24f8-3b49-48af-b735-c6377509eaac
 Big Body Blow_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Hit To Head_2dee24f8-3b49-48af-b735-c6377509eaac
 Big Hit To Head_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Jump_2dee24f8-3b49-48af-b735-c6377509eaac
+Big Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Kidney Hit_2dee24f8-3b49-48af-b735-c6377509eaac
 Big Kidney Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Rib Hit_2dee24f8-3b49-48af-b735-c6377509eaac
+Big Rib Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Big Side Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Big Stomach Hit_2dee24f8-3b49-48af-b735-c6377509eaac
 Big Stomach Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Block_2dee24f8-3b49-48af-b735-c6377509eaac
+Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Block With Rifle_2dee24f8-3b49-48af-b735-c6377509eaac
 Block With Rifle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Blocking_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -132,6 +148,7 @@ Body Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Body Jab Cross_2dee24f8-3b49-48af-b735-c6377509eaac
 Body Jab Cross_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Booty Hip Hop Dance_2dee24f8-3b49-48af-b735-c6377509eaac
+Booty Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bored_2dee24f8-3b49-48af-b735-c6377509eaac
 Bored_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Bouncing Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -142,8 +159,10 @@ Box Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Box Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Box Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Box Walk Arc_2dee24f8-3b49-48af-b735-c6377509eaac
+Box Walk Arc_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Boxing_2dee24f8-3b49-48af-b735-c6377509eaac
 Boxing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Boxing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Braced Hang_2dee24f8-3b49-48af-b735-c6377509eaac
 Braced Hang_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Braced Hang Drop_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -156,6 +175,7 @@ Braced Hang Hop Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Braced Hang Hop Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Braced Hang Shimmy_2dee24f8-3b49-48af-b735-c6377509eaac
 Braced Hang Shimmy_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Braced Hang To Crouch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Braced To Free Hang_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance 1990_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance 1990_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -168,8 +188,10 @@ Breakdance Footwork 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Footwork 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Footwork 3_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Footwork To Freeze_2dee24f8-3b49-48af-b735-c6377509eaac
+Breakdance Footwork To Freeze_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Footwork To Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Footwork To Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Breakdance Freeze Var 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Freeze Var 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Freeze Var 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Freeze Var 3_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -180,6 +202,7 @@ Breakdance Freezes_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Ready_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Ready_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Swipes_2dee24f8-3b49-48af-b735-c6377509eaac
+Breakdance Swipes_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Uprock_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Uprock_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Uprock To Ground_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -190,10 +213,12 @@ Breakdance Uprock Var 1 Start_2dee24f8-3b49-48af-b735-c6377509eaac
 Breakdance Uprock Var 1 Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Breakdance Uprock Var 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Breathing Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Breathing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Brooklyn Uprock_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Brutal Assassination_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Brutal To Happy Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Brutal To Happy Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Burpee_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Burpee End_2dee24f8-3b49-48af-b735-c6377509eaac
 Burpee End_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Burpee Start_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -208,11 +233,14 @@ Can Can_2dee24f8-3b49-48af-b735-c6377509eaac
 Can Can_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Capoeira_2dee24f8-3b49-48af-b735-c6377509eaac
 Capoeira_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Capoeira_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Cards_2dee24f8-3b49-48af-b735-c6377509eaac
 Cards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Carrying_2dee24f8-3b49-48af-b735-c6377509eaac
 Carrying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Carrying Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cartwheel_2dee24f8-3b49-48af-b735-c6377509eaac
+Cartwheel_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Casting Spell_2dee24f8-3b49-48af-b735-c6377509eaac
 Casting Spell_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Idle 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -226,6 +254,7 @@ Catwalk Idle To Twist R_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Idle To Walk Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Idle To Walk Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Idle To Walk Forward Crossed_2dee24f8-3b49-48af-b735-c6377509eaac
+Catwalk Idle To Walk Forward Crossed_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Idle To Walk Forward HighKnees_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Idle Twist L_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Idle Twist L_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -246,6 +275,7 @@ Catwalk Twist L To Twist R_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Twist L To Walk 180_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Twist L To Walk 180_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Twist R To Twist L_2dee24f8-3b49-48af-b735-c6377509eaac
+Catwalk Twist R To Twist L_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Twist R To Walk 180_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Twist R To Walk 180_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -256,6 +286,7 @@ Catwalk Walk Forward 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Forward 02_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Forward 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Forward 03_2dee24f8-3b49-48af-b735-c6377509eaac
+Catwalk Walk Forward 03_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Forward Arc 90L_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -286,6 +317,7 @@ Catwalk Walk Stop Twist R_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Stop Twist R_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Turn 180 Tight_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Turn 180 Tight_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Catwalk Walk Turn 180 Tight_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Catwalk Walk Turn 180 Tight L_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Turn 180 Tight L_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walk Turn 180 Tight R_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -297,6 +329,7 @@ Catwalk Walk Turn 180 Wide R_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walk Turn 180 Wide R_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Catwalk Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Catwalk Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Cautious Backward Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Center Block_2dee24f8-3b49-48af-b735-c6377509eaac
 Center Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Change Direction_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -320,6 +353,7 @@ Cheering While Sitting_2dee24f8-3b49-48af-b735-c6377509eaac
 Cheering While Sitting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Chicken Dance_2dee24f8-3b49-48af-b735-c6377509eaac
 Chicken Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Chip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Circle Crunch_2dee24f8-3b49-48af-b735-c6377509eaac
 Circle Crunch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Clapping_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -328,10 +362,12 @@ Clean And Jerk_2dee24f8-3b49-48af-b735-c6377509eaac
 Clean And Jerk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Climbing_2dee24f8-3b49-48af-b735-c6377509eaac
 Climbing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Climbing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Climbing A Rope_2dee24f8-3b49-48af-b735-c6377509eaac
 Climbing A Rope_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Climbing Down_2dee24f8-3b49-48af-b735-c6377509eaac
 Climbing Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Climbing Down Wall_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Climbing Ladder_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Climbing To Top_2dee24f8-3b49-48af-b735-c6377509eaac
 Climbing To Top_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -355,17 +391,22 @@ Counting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cover Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Cover Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cover To Stand_2dee24f8-3b49-48af-b735-c6377509eaac
+Cover To Stand_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Cover To Stand_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Cow Milking_2dee24f8-3b49-48af-b735-c6377509eaac
 Cow Milking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crawl Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
 Crawl Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crawl Backwards In Prone_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crawl Forward_2dee24f8-3b49-48af-b735-c6377509eaac
+Crawl Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crawling_2dee24f8-3b49-48af-b735-c6377509eaac
 Crawling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Crawling Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crazy Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Crazy Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cross Jumps_2dee24f8-3b49-48af-b735-c6377509eaac
+Cross Jumps_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cross Jumps Rotation_2dee24f8-3b49-48af-b735-c6377509eaac
 Cross Jumps Rotation_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Cross Punch_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -383,8 +424,11 @@ Crouch Idle 03 Looking Over_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Idle 03 Looking Over_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Crouch Look Around Corner_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Crouch Rapid Fire_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Run Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Run Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Crouch Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Stop Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Stop Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Strafe Run Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -403,6 +447,7 @@ Crouch Torch Idle 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Torch Idle 02_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Torch Idle 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Torch To Standing Torch Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Crouch Torch To Standing Torch Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Torch Turn Left 90_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Torch Turn Left 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Torch Turn Right 90_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -419,6 +464,7 @@ Crouch Turn Left 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Turn Right 90_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Turn Right 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Turn To Stand_2dee24f8-3b49-48af-b735-c6377509eaac
+Crouch Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walk Back_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Walk Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walk Backwards Stop_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -430,8 +476,10 @@ Crouch Walk Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walk Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Walk Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walk Strafe Left_2dee24f8-3b49-48af-b735-c6377509eaac
+Crouch Walk Strafe Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walk Strafe Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Walk Strafe Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Crouch Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouch Walking Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouch Walking Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouched Run_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -456,6 +504,7 @@ Crouching Turn 90 Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crouching Turn 90 Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Crouching Turn 90 Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Crying_2dee24f8-3b49-48af-b735-c6377509eaac
+Crying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dancing Maraschino Step_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -470,6 +519,7 @@ Death Crouching Headshot Front_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Death From Back Headshot_2dee24f8-3b49-48af-b735-c6377509eaac
 Death From Back Headshot_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Death From Front Headshot_2dee24f8-3b49-48af-b735-c6377509eaac
+Death From Front Headshot_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Death From Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Death From Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Death From The Back_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -481,6 +531,7 @@ Defeat_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Defeat Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Defeat Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Defeated_2dee24f8-3b49-48af-b735-c6377509eaac
+Defeated_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Defender_2dee24f8-3b49-48af-b735-c6377509eaac
 Defender_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Descending Stairs_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -507,8 +558,10 @@ Dodge While Sitting_2dee24f8-3b49-48af-b735-c6377509eaac
 Dodge While Sitting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dodging_2dee24f8-3b49-48af-b735-c6377509eaac
 Dodging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Dodging Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dodging Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Dodging Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Dodging Right_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Double Dagger Stab_2dee24f8-3b49-48af-b735-c6377509eaac
 Double Dagger Stab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Double Leg Takedown - Attacker_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -516,6 +569,7 @@ Double Leg Takedown - Attacker_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Double Leg Takedown - Victim_2dee24f8-3b49-48af-b735-c6377509eaac
 Double Leg Takedown - Victim_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Draw A Great Sword 1_2dee24f8-3b49-48af-b735-c6377509eaac
+Draw A Great Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Draw A Great Sword 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Draw Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Draw Sword 2_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -535,6 +589,7 @@ Drop To Freehang_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dropping_2dee24f8-3b49-48af-b735-c6377509eaac
 Dropping_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Drunk Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Drunk Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Drunk Idle Variation_2dee24f8-3b49-48af-b735-c6377509eaac
 Drunk Idle Variation_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Drunk Run Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -547,6 +602,7 @@ Drunk Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Drunk Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Drunk Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Drunk Walk Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Drunk Walking Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dual Weapon Combo_2dee24f8-3b49-48af-b735-c6377509eaac
 Dual Weapon Combo_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ducking_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -557,10 +613,13 @@ Dwarf Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Dwarf Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Dying_2dee24f8-3b49-48af-b735-c6377509eaac
 Dying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Dying_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Dying Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
+Dying Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Edge Slip_2dee24f8-3b49-48af-b735-c6377509eaac
 Edge Slip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Elbow Punch_2dee24f8-3b49-48af-b735-c6377509eaac
+Elbow Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Elbow Punching_2dee24f8-3b49-48af-b735-c6377509eaac
 Elbow Punching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Elbow Uppercut Combo_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -571,6 +630,7 @@ Emerging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 End Bicycle Sit Up_2dee24f8-3b49-48af-b735-c6377509eaac
 End Bicycle Sit Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 End Plank_2dee24f8-3b49-48af-b735-c6377509eaac
+End Plank_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Entering Car_2dee24f8-3b49-48af-b735-c6377509eaac
 Entering Car_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Entering Code_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -586,6 +646,7 @@ Esquiva 4_2dee24f8-3b49-48af-b735-c6377509eaac
 Esquiva 4_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Esquiva 5_2dee24f8-3b49-48af-b735-c6377509eaac
 Evading A Threat_2dee24f8-3b49-48af-b735-c6377509eaac
+Evading A Threat_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Excited_2dee24f8-3b49-48af-b735-c6377509eaac
 Excited_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Exiting Car_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -598,6 +659,7 @@ Fall A Land To Standing Idle 02_2dee24f8-3b49-48af-b735-c6377509eaac
 Fall A Land To Standing Idle 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fall A Loop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fall B Land To Standing Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Fall B Land To Standing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fall B Loop_2dee24f8-3b49-48af-b735-c6377509eaac
 Fall B Loop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fall Flat_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -606,6 +668,7 @@ Fallen Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Fallen Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Falling_2dee24f8-3b49-48af-b735-c6377509eaac
 Falling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Falling_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Falling Back Death_2dee24f8-3b49-48af-b735-c6377509eaac
 Falling Back Death_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Falling Down_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -619,6 +682,7 @@ Falling Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Falling Into Pool_2dee24f8-3b49-48af-b735-c6377509eaac
 Falling Into Pool_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Falling To Landing_2dee24f8-3b49-48af-b735-c6377509eaac
+Falling To Landing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Falling To Roll_2dee24f8-3b49-48af-b735-c6377509eaac
 Falling To Roll_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fast Run_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -631,6 +695,7 @@ Female Dance Pose_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Dance Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Dynamic Pose_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Dynamic Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Female Dynamic Pose_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Female Laying Pose_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Laying Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Locomotion Pose_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -641,7 +706,9 @@ Female Sitting Pose_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Sitting Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Standing Pose_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Standing Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Female Standing Pose_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac
+Female Start Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Stop And Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Stop And Start Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Stop Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -649,12 +716,14 @@ Female Tough Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Tough Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Female Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Female Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Femme Peek Around Corner_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Fight Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fight Idle To Action Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fight Idle To Standing Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Fight Idle To Standing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fighting Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Fighting Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Finding_2dee24f8-3b49-48af-b735-c6377509eaac
 Finding_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fire Rifle_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -663,19 +732,23 @@ Fireball_2dee24f8-3b49-48af-b735-c6377509eaac
 Fireball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Firing Rifle_2dee24f8-3b49-48af-b735-c6377509eaac
 Firing Rifle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Firing Rifle_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Fishing Cast_2dee24f8-3b49-48af-b735-c6377509eaac
 Fishing Cast_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fishing Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Fishing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fist Fight A_2dee24f8-3b49-48af-b735-c6377509eaac
 Fist Fight A_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Fist Fight B_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Fist Pump_2dee24f8-3b49-48af-b735-c6377509eaac
 Fist Pump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Flair_2dee24f8-3b49-48af-b735-c6377509eaac
 Flair_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Flair_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Flip Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Flip Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Floating_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Floating_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Flying_2dee24f8-3b49-48af-b735-c6377509eaac
 Flying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Flying Back Death_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -693,6 +766,7 @@ Football Catch_2dee24f8-3b49-48af-b735-c6377509eaac
 Football Catch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Football Hike_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Football Stance_2dee24f8-3b49-48af-b735-c6377509eaac
+Football Stance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Forward Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Forward Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Free Hang Hop Left_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -700,6 +774,7 @@ Free Hang Hop Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Free Hang Hop Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Free Hang Hop Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Free Hang To Braced_2dee24f8-3b49-48af-b735-c6377509eaac
+Free Hang To Braced_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Freehang Climb_2dee24f8-3b49-48af-b735-c6377509eaac
 Freehang Climb_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Freehang Drop_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -707,8 +782,11 @@ Freehang Drop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Frisbee Throw_2dee24f8-3b49-48af-b735-c6377509eaac
 Frisbee Throw_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Front Flip_2dee24f8-3b49-48af-b735-c6377509eaac
+Front Flip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Front Raises_2dee24f8-3b49-48af-b735-c6377509eaac
 Front Raises_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Front Twist Flip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Gaming_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Gangnam Style_2dee24f8-3b49-48af-b735-c6377509eaac
 Gangnam Style_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Gathering Objects_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -721,6 +799,7 @@ Getting Hit Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
 Getting Hit Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Getting Smashed_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Getting Thrown_2dee24f8-3b49-48af-b735-c6377509eaac
+Getting Thrown_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Getting Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Getting Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Backward_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -729,8 +808,10 @@ Ginga Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Sideways 1_2dee24f8-3b49-48af-b735-c6377509eaac
 Ginga Sideways 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Sideways 2_2dee24f8-3b49-48af-b735-c6377509eaac
+Ginga Sideways 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Sideways To Au_2dee24f8-3b49-48af-b735-c6377509eaac
 Ginga Sideways To Au_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Ginga Variation 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Variation 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Ginga Variation 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ginga Variation 3_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -758,12 +839,14 @@ Goalkeeper Placing Ball_2dee24f8-3b49-48af-b735-c6377509eaac
 Goalkeeper Placing Ball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Goalkeeper Scoop_2dee24f8-3b49-48af-b735-c6377509eaac
 Goalkeeper Scoop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Goalkeeper Scoop_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Goalkeeper Sidestep_2dee24f8-3b49-48af-b735-c6377509eaac
 Goalkeeper Sidestep_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Golf Bad Shot_2dee24f8-3b49-48af-b735-c6377509eaac
 Golf Bad Shot_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Golf Chip_2dee24f8-3b49-48af-b735-c6377509eaac
 Golf Chip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Golf Chip_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Golf Drive_2dee24f8-3b49-48af-b735-c6377509eaac
 Golf Drive_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Golf Drive Setup_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -787,13 +870,16 @@ Golf Tee Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Goofy Running_2dee24f8-3b49-48af-b735-c6377509eaac
 Goofy Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grab And Put Back Rifle_2dee24f8-3b49-48af-b735-c6377509eaac
+Grab And Put Back Rifle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grab And Slam_2dee24f8-3b49-48af-b735-c6377509eaac
 Grab And Slam_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Grab Rifle And Put Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grab Rifle From Back_2dee24f8-3b49-48af-b735-c6377509eaac
 Grab Rifle From Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grab Rifle From Behind Shoulder_2dee24f8-3b49-48af-b735-c6377509eaac
 Grab Rifle From Behind Shoulder_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grab Rifle From The Side_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Grab Rifle From The Side_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Grab Rifle From The Side And Put Back_2dee24f8-3b49-48af-b735-c6377509eaac
 Grab Rifle From The Side And Put Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Grabbing Ammo_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -811,6 +897,7 @@ Great Sword Casting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Crouching_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Crouching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword High Spin Attack_2dee24f8-3b49-48af-b735-c6377509eaac
+Great Sword High Spin Attack_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Impact_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -826,8 +913,10 @@ Great Sword Run_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Slash_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Slash_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Great Sword Slide Attack_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Strafe_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Strafe_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Great Sword Strafe_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Great Sword Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Great Sword Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Great Sword Walk_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -838,6 +927,7 @@ Guitar Playing_2dee24f8-3b49-48af-b735-c6377509eaac
 Guitar Playing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Gunplay_2dee24f8-3b49-48af-b735-c6377509eaac
 Gunplay_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Hand Raising_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hands Forward Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Hands Forward Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hanging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -849,10 +939,12 @@ Happy Hand Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Happy Hand Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Happy Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Happy Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Happy Idle_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Happy Right Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Happy Right Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Happy Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Happy Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Happy Walk Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Happy Walk Forward Arc Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Happy Walk Forward Arc Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hard Head Nod_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -862,6 +954,7 @@ Hard Landing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Harvesting_2dee24f8-3b49-48af-b735-c6377509eaac
 Harvesting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Head Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
+Head Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Head Hit_2dee24f8-3b49-48af-b735-c6377509eaac
 Head Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Head Nod Yes_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -871,21 +964,26 @@ Head Spinning_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Headbutt_2dee24f8-3b49-48af-b735-c6377509eaac
 Headbutt_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Header_2dee24f8-3b49-48af-b735-c6377509eaac
+Header_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Header Soccerball_2dee24f8-3b49-48af-b735-c6377509eaac
 Header Soccerball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Header Soccerball_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Headspin End_2dee24f8-3b49-48af-b735-c6377509eaac
 Headspin End_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Headspin Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Heavy Weapon Swing_2dee24f8-3b49-48af-b735-c6377509eaac
 Heavy Weapon Swing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Hell Slammer A_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hell Slammer B_2dee24f8-3b49-48af-b735-c6377509eaac
 Hell Slammer B_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Helping Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hiding_2dee24f8-3b49-48af-b735-c6377509eaac
 Hiding_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hiding Grab_2dee24f8-3b49-48af-b735-c6377509eaac
 Hiding Grab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hip Hop Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 Hip Hop Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Hip Hop Dancing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Hit By Car_2dee24f8-3b49-48af-b735-c6377509eaac
 Hit By Car_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hit On Back Of Head_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -902,6 +1000,7 @@ Hit Reaction_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hit To Body_2dee24f8-3b49-48af-b735-c6377509eaac
 Hit To Body_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hit To Head_2dee24f8-3b49-48af-b735-c6377509eaac
+Hit To Head_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hit To Side Of Body_2dee24f8-3b49-48af-b735-c6377509eaac
 Hit To The Legs_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hokey Pokey_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -929,6 +1028,7 @@ Hostage Situation Idle - Hostage_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Hostage Situation Idle - Villain_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 House Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 House Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+House Dancing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Hurricane Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Hurricane Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Idle_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -959,6 +1059,7 @@ Illegal Knee_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Backwards Turn Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Backwards Turn Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Hurting Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Injured Hurting Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Jog_2dee24f8-3b49-48af-b735-c6377509eaac
 Injured Jog_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -968,13 +1069,16 @@ Injured Run Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Run Backwards Left Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Injured Run Backwards Left Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Run Backwards Right Turn_2dee24f8-3b49-48af-b735-c6377509eaac
+Injured Run Backwards Right Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Run Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Injured Run Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Run Left Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Injured Run Left Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Run Right Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Standing Jump_2dee24f8-3b49-48af-b735-c6377509eaac
+Injured Standing Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Stumble Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Injured Stumble Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Turn Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Injured Turn Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Injured Turn Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1030,8 +1134,10 @@ Jostled Passenger_2dee24f8-3b49-48af-b735-c6377509eaac
 Jostled Passenger_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Joyful Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Joyful Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Joyful Jump_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Jump Attack_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump Away_2dee24f8-3b49-48af-b735-c6377509eaac
 Jump Away_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump Backward_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1043,6 +1149,7 @@ Jump Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump From Wall_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump Loop_2dee24f8-3b49-48af-b735-c6377509eaac
 Jump Loop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Jump Over_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump Push Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Jump Push Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jump To Freehang_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1054,10 +1161,12 @@ Jumping_2dee24f8-3b49-48af-b735-c6377509eaac
 Jumping_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jumping Down_2dee24f8-3b49-48af-b735-c6377509eaac
 Jumping Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Jumping Down_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Jumping Jacks_2dee24f8-3b49-48af-b735-c6377509eaac
 Jumping Jacks_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jumping Out Of A Plane_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jumping Over Into Combat_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Jumping Rope_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jumping To Hanging_2dee24f8-3b49-48af-b735-c6377509eaac
 Jumping To Hanging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Jumping Up_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1068,16 +1177,20 @@ Kick Soccerball_2dee24f8-3b49-48af-b735-c6377509eaac
 Kick Soccerball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kick To The Groin_2dee24f8-3b49-48af-b735-c6377509eaac
 Kick To The Groin_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Kick To The Groin_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Kick Up Soccerball_2dee24f8-3b49-48af-b735-c6377509eaac
 Kick Up Soccerball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kicking_2dee24f8-3b49-48af-b735-c6377509eaac
 Kicking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kicking Out_2dee24f8-3b49-48af-b735-c6377509eaac
 Kicking Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Kidney Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kip Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Kip Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kiss_2dee24f8-3b49-48af-b735-c6377509eaac
 Kiss_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Kiss_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Knee Jab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Knee Jabs To Uppercut_2dee24f8-3b49-48af-b735-c6377509eaac
 Knee Jabs To Uppercut_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Knee Kick Lead_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1096,15 +1209,18 @@ Kneeling Inspecting_2dee24f8-3b49-48af-b735-c6377509eaac
 Kneeling Inspecting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Kneeling Pointing_2dee24f8-3b49-48af-b735-c6377509eaac
 Kneeling Pointing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Kneeling Pointing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Knife Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Knife Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Knock Off Assailant_2dee24f8-3b49-48af-b735-c6377509eaac
 Knock Off Assailant_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Knocked Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Knocked Out_2dee24f8-3b49-48af-b735-c6377509eaac
 Knocked Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Knocked Unconscious_2dee24f8-3b49-48af-b735-c6377509eaac
 Knocked Unconscious_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Landing_2dee24f8-3b49-48af-b735-c6377509eaac
+Landing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laughing_2dee24f8-3b49-48af-b735-c6377509eaac
 Laughing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laying_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1115,6 +1231,7 @@ Laying Hand Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laying Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Laying Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laying Mild Cough_2dee24f8-3b49-48af-b735-c6377509eaac
+Laying Mild Cough_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laying Moaning_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Laying Nodding_2dee24f8-3b49-48af-b735-c6377509eaac
 Laying Nodding_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1144,8 +1261,10 @@ Left Strafe_2dee24f8-3b49-48af-b735-c6377509eaac
 Left Strafe_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Left Strafe Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Left Strafe Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Left Strafe Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Left Strafe Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Left Strafe Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Left Strafing Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Left Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Left Turn 45_2dee24f8-3b49-48af-b735-c6377509eaac
 Left Turn 45_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1156,6 +1275,7 @@ Leg Sweep_2dee24f8-3b49-48af-b735-c6377509eaac
 Leg Sweep_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Lengthy Head Nod_2dee24f8-3b49-48af-b735-c6377509eaac
 Lengthy Head Nod_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Lifting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Lifting Object_2dee24f8-3b49-48af-b735-c6377509eaac
 Lifting Object_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Light Hit To Head_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1186,16 +1306,19 @@ Looking Around_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Looking Behind_2dee24f8-3b49-48af-b735-c6377509eaac
 Looking Behind_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Looking Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Looking Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Looking Through Files Low_2dee24f8-3b49-48af-b735-c6377509eaac
 Looking Through Files Low_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Loser_2dee24f8-3b49-48af-b735-c6377509eaac
 Loser_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Low Crawl_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Lower Pistol_2dee24f8-3b49-48af-b735-c6377509eaac
 Lower Pistol_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Lying Down_2dee24f8-3b49-48af-b735-c6377509eaac
 Lying Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Macaco Side_2dee24f8-3b49-48af-b735-c6377509eaac
 Macaco Side_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Macarena Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Magic Heal_2dee24f8-3b49-48af-b735-c6377509eaac
 Magic Heal_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Magic Spell Casting_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1219,6 +1342,7 @@ Male Standing Pose_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Martelo 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Martelo 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Martelo 3_2dee24f8-3b49-48af-b735-c6377509eaac
+Martelo 3_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Martelo Do Chau_2dee24f8-3b49-48af-b735-c6377509eaac
 Martelo Do Chau_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Martelo Do Chau Sem Mao_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1267,14 +1391,20 @@ Mutant Left Turn 45_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Right Turn 45_2dee24f8-3b49-48af-b735-c6377509eaac
 Mutant Right Turn 45_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Mutant Right Turn 45_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Mutant Right Turn 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Roaring_2dee24f8-3b49-48af-b735-c6377509eaac
+Mutant Roaring_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Run_2dee24f8-3b49-48af-b735-c6377509eaac
 Mutant Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Swiping_2dee24f8-3b49-48af-b735-c6377509eaac
+Mutant Swiping_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Mutant Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Mutant Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Neck Stretching_2dee24f8-3b49-48af-b735-c6377509eaac
+Neck Stretching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Nervously Look Around_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Nervously Look Around_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Neutral Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ninja Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Ninja Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1289,6 +1419,7 @@ Northern Soul Spin Combo_2dee24f8-3b49-48af-b735-c6377509eaac
 Northern Soul Spin Combo_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Offensive Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Old Man Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Old Man Idle_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Old Man Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Old Man Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 One Hand Club Combo_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1300,6 +1431,7 @@ Open Door Outwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Opening_2dee24f8-3b49-48af-b735-c6377509eaac
 Opening_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Opening A Filing Cabinet_2dee24f8-3b49-48af-b735-c6377509eaac
+Opening A Filing Cabinet_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Opening A Lid_2dee24f8-3b49-48af-b735-c6377509eaac
 Opening A Lid_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Opening Door Inwards_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1313,13 +1445,16 @@ Outward Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Overhead Squat_2dee24f8-3b49-48af-b735-c6377509eaac
 Overhead Squat_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pacing And Talking On A Phone_2dee24f8-3b49-48af-b735-c6377509eaac
+Pacing And Talking On A Phone_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Paddling_2dee24f8-3b49-48af-b735-c6377509eaac
 Paddling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pain Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
+Patting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Petting_2dee24f8-3b49-48af-b735-c6377509eaac
 Petting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Petting Animal_2dee24f8-3b49-48af-b735-c6377509eaac
 Petting Animal_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Petting Animal_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Piano Playing_2dee24f8-3b49-48af-b735-c6377509eaac
 Piano Playing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pick Fruit_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1330,6 +1465,7 @@ Picking At Shirt_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Picking Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Picking Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Picking Up Object_2dee24f8-3b49-48af-b735-c6377509eaac
+Picking Up Object_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pike Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pilot Flips Switches_2dee24f8-3b49-48af-b735-c6377509eaac
 Pilot Flips Switches_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1354,6 +1490,7 @@ Pistol Run Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pistol Run Backward Arc_2dee24f8-3b49-48af-b735-c6377509eaac
 Pistol Run Backward Arc_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pistol Stand To Kneel_2dee24f8-3b49-48af-b735-c6377509eaac
+Pistol Stand To Kneel_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pistol Start_2dee24f8-3b49-48af-b735-c6377509eaac
 Pistol Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pistol Strafe_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1375,6 +1512,7 @@ Plank_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Plant A Plant_2dee24f8-3b49-48af-b735-c6377509eaac
 Plant A Plant_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Playing Drums_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Playing Drums_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Playing The Violin_2dee24f8-3b49-48af-b735-c6377509eaac
 Playing The Violin_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Plotting_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1382,12 +1520,15 @@ Plotting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pointing_2dee24f8-3b49-48af-b735-c6377509eaac
 Pointing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pointing Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Pointing Forward_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Pointing Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Pointing Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pontera_2dee24f8-3b49-48af-b735-c6377509eaac
 Pontera_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Pouting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Praying_2dee24f8-3b49-48af-b735-c6377509eaac
 Praying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Praying_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Prone Backwards Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Prone Backwards Stop_2dee24f8-3b49-48af-b735-c6377509eaac
 Prone Backwards Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1408,6 +1549,7 @@ Prone Right Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Prone Roll_2dee24f8-3b49-48af-b735-c6377509eaac
 Prone Roll_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Prone To Crouch Transition_2dee24f8-3b49-48af-b735-c6377509eaac
+Prone To Crouch Transition_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pull Heavy Object_2dee24f8-3b49-48af-b735-c6377509eaac
 Pull Heavy Object_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Pull Heavy Object Start_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1446,6 +1588,7 @@ Put Back Rifle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Put Back Rifle Behind Shoulder_2dee24f8-3b49-48af-b735-c6377509eaac
 Put Back Rifle Behind Shoulder_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Putting Down_2dee24f8-3b49-48af-b735-c6377509eaac
+Putting Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Quad Punch_2dee24f8-3b49-48af-b735-c6377509eaac
 Quad Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Quarterback Pass_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1462,6 +1605,7 @@ Quick Roll To Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Quick Steps_2dee24f8-3b49-48af-b735-c6377509eaac
 Quick Steps_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rallying_2dee24f8-3b49-48af-b735-c6377509eaac
+Rallying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rapping_2dee24f8-3b49-48af-b735-c6377509eaac
 Rapping_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rasteira 1_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1473,8 +1617,10 @@ Reaching Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Reaching Out_2dee24f8-3b49-48af-b735-c6377509eaac
 Reaching Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Reacting_2dee24f8-3b49-48af-b735-c6377509eaac
+Reacting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Reaction_2dee24f8-3b49-48af-b735-c6377509eaac
 Reaction_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Reaction_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Ready Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Ready Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Receive_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1490,11 +1636,15 @@ Receive Uppercut To The Face_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Receiver Catch_2dee24f8-3b49-48af-b735-c6377509eaac
 Receiver Catch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Receiving A Big Uppercut_2dee24f8-3b49-48af-b735-c6377509eaac
+Receiving A Big Uppercut_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Receiving An Uppercut_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Receiving Cpr_2dee24f8-3b49-48af-b735-c6377509eaac
 Receiving Cpr_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rejected_2dee24f8-3b49-48af-b735-c6377509eaac
 Rejected_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Release Hostage - Hostage_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Release Hostage - Villain_2dee24f8-3b49-48af-b735-c6377509eaac
+Release Hostage - Villain_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Relieved Sigh_2dee24f8-3b49-48af-b735-c6377509eaac
 Relieved Sigh_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Reload_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1503,10 +1653,12 @@ Reloading_2dee24f8-3b49-48af-b735-c6377509eaac
 Reloading_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Removing Driver_2dee24f8-3b49-48af-b735-c6377509eaac
 Removing Driver_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Removing Driver_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Restrain_2dee24f8-3b49-48af-b735-c6377509eaac
 Restrain_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Revealing Dice_2dee24f8-3b49-48af-b735-c6377509eaac
 Revealing Dice_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Rib Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Aim To Down_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Aim To Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Aim To Kneel_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1517,6 +1669,7 @@ Rifle Backward Run To Stop_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Backward Run To Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Backward Walk To Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Block_2dee24f8-3b49-48af-b735-c6377509eaac
+Rifle Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Crouch Backward Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Crouch Backward Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Crouch Idle To Walk_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1550,6 +1703,7 @@ Rifle Kneel Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Kneel To Aim_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Kneel To Aim_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Kneel To Prone_2dee24f8-3b49-48af-b735-c6377509eaac
+Rifle Kneel To Prone_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Kneel To Stand_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Kneel To Stand_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Prone Hit Reaction_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1560,11 +1714,13 @@ Rifle Pull Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Punch_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Put Away_2dee24f8-3b49-48af-b735-c6377509eaac
+Rifle Put Away_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Rubbing Eyes_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Rubbing Eyes_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Run_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Run To Dying_2dee24f8-3b49-48af-b735-c6377509eaac
+Rifle Run To Dying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Run To Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rifle Shielding Face_2dee24f8-3b49-48af-b735-c6377509eaac
 Rifle Shielding Face_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1601,6 +1757,7 @@ Right Turn 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Roar_2dee24f8-3b49-48af-b735-c6377509eaac
 Roar_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Robot Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Robot Hip Hop Dance_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Rockin' Shackle A_2dee24f8-3b49-48af-b735-c6377509eaac
 Rockin' Shackle A_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rockin' Shackle B_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1611,10 +1768,12 @@ Roll Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Roll Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rope Climb_2dee24f8-3b49-48af-b735-c6377509eaac
 Rope Climb_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Rope Swinging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Roundhouse Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Roundhouse Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Rumba Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 Rumba Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Rumba Dancing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Rummaging_2dee24f8-3b49-48af-b735-c6377509eaac
 Rummaging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1654,11 +1813,13 @@ Run Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run Strafing Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run To Dive_2dee24f8-3b49-48af-b735-c6377509eaac
 Run To Dive_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Run To Flip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run To Rolling_2dee24f8-3b49-48af-b735-c6377509eaac
 Run To Rolling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run To Stop_2dee24f8-3b49-48af-b735-c6377509eaac
 Run To Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Run With Sword_2dee24f8-3b49-48af-b735-c6377509eaac
+Run With Sword_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Running_2dee24f8-3b49-48af-b735-c6377509eaac
 Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Running Arc_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1669,6 +1830,7 @@ Running Backward Arc_2dee24f8-3b49-48af-b735-c6377509eaac
 Running Backward Arc_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Running Crawl_2dee24f8-3b49-48af-b735-c6377509eaac
 Running Crawl_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Running Dive Roll_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Running Forward Flip_2dee24f8-3b49-48af-b735-c6377509eaac
 Running Forward Flip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Running Jump_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1709,24 +1871,30 @@ Scary Clown Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Scary Clown Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Scissor Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Scissor Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Searching Files High_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Searching Pockets_2dee24f8-3b49-48af-b735-c6377509eaac
 Searching Pockets_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Seated Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Seated Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sending Fax_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shake Fist_2dee24f8-3b49-48af-b735-c6377509eaac
+Shake Fist_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shake Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shaking Dice_2dee24f8-3b49-48af-b735-c6377509eaac
 Shaking Dice_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shaking Hands 1_2dee24f8-3b49-48af-b735-c6377509eaac
 Shaking Hands 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shaking Hands 2_2dee24f8-3b49-48af-b735-c6377509eaac
+Shaking Hands 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shaking Head No_2dee24f8-3b49-48af-b735-c6377509eaac
 Shaking Head No_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shaking It Off_2dee24f8-3b49-48af-b735-c6377509eaac
 Shaking It Off_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sheath A Great Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sheath A Great Sword 2_2dee24f8-3b49-48af-b735-c6377509eaac
+Sheath A Great Sword 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sheath Sword 1_2dee24f8-3b49-48af-b735-c6377509eaac
+Sheath Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sheath Sword 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Sheath Sword 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sheathing Sword_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1738,8 +1906,10 @@ Shooting Arrow_2dee24f8-3b49-48af-b735-c6377509eaac
 Shooting Arrow_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shooting Gun_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shooting Pistol_2dee24f8-3b49-48af-b735-c6377509eaac
+Shooting Pistol_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shopping Cart Dance_2dee24f8-3b49-48af-b735-c6377509eaac
 Shopping Cart Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Short Left Side Step_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Short Right Side Step_2dee24f8-3b49-48af-b735-c6377509eaac
 Short Right Side Step_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Short Step Forward_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1753,6 +1923,7 @@ Shove Reaction_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shoved_2dee24f8-3b49-48af-b735-c6377509eaac
 Shoved_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shoved Reaction With Spin_2dee24f8-3b49-48af-b735-c6377509eaac
+Shoved Reaction With Spin_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Shrugging_2dee24f8-3b49-48af-b735-c6377509eaac
 Shrugging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Shuffling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1762,7 +1933,9 @@ Side Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Side Step_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Silly Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 Silly Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Silly Dancing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Singing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Singing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Single Step Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Single Step Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sit To Stand_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1770,11 +1943,15 @@ Sit To Stand_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sit To Type_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sitting_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Sitting And Pointing_2dee24f8-3b49-48af-b735-c6377509eaac
+Sitting And Pointing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Angry_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Angry_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Clap_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Clap_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sitting Clap_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Sitting Dazed_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Disapproval_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Disapproval_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Disbelief_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1790,12 +1967,14 @@ Sitting Gun Motion_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Laughing_2dee24f8-3b49-48af-b735-c6377509eaac
+Sitting Laughing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Sitting Rubbing Arm_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Rubbing Arm_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Swinging Weapon_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Swinging Weapon_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Talking_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sitting Thumbs Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Victory_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Victory_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sitting Weapon Grab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1804,6 +1983,7 @@ Sitting Yell_2dee24f8-3b49-48af-b735-c6377509eaac
 Sitting Yell_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Situp To Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Situp To Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Situps_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Skateboarding_2dee24f8-3b49-48af-b735-c6377509eaac
 Skateboarding_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Skinning Test_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1815,6 +1995,8 @@ Sleeping Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Slide Hip Hop Dance_2dee24f8-3b49-48af-b735-c6377509eaac
 Slide Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Slide Hip Hop Walk_2dee24f8-3b49-48af-b735-c6377509eaac
+Slide Hip Hop Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Slipping_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Slow Jog_2dee24f8-3b49-48af-b735-c6377509eaac
 Slow Jog_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Slow Jog Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1825,16 +2007,20 @@ Smash_2dee24f8-3b49-48af-b735-c6377509eaac
 Smash_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Smoking_2dee24f8-3b49-48af-b735-c6377509eaac
 Smoking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Snake Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Snatch_2dee24f8-3b49-48af-b735-c6377509eaac
 Snatch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sneak Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Sneak Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sneaking Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Soccer Header_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Soccer Header_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Soccer Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Soccer Pass_2dee24f8-3b49-48af-b735-c6377509eaac
 Soccer Pass_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Soccer Penalty Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Soccer Penalty Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Soccer Spin_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Soccer Tackle_2dee24f8-3b49-48af-b735-c6377509eaac
 Soccer Tackle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Soccer Trip_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1845,8 +2031,10 @@ Speedbag_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Spell Cast_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Spell Casting_2dee24f8-3b49-48af-b735-c6377509eaac
 Spell Casting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Spin Flip Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Spin In Place_2dee24f8-3b49-48af-b735-c6377509eaac
 Spin In Place_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Spinning_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Spit Reaction_2dee24f8-3b49-48af-b735-c6377509eaac
 Spit Reaction_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sprint_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1855,6 +2043,7 @@ Sprint Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sprint Backward Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Sprint Backward Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sprint Backward Right_2dee24f8-3b49-48af-b735-c6377509eaac
+Sprint Backward Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sprint Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Sprint Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sprint Forward Left_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1878,6 +2067,7 @@ Stable Sword Outward Slash_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stall Soccerball_2dee24f8-3b49-48af-b735-c6377509eaac
 Stall Soccerball_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stand_2dee24f8-3b49-48af-b735-c6377509eaac
+Stand_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stand Cover To Look_2dee24f8-3b49-48af-b735-c6377509eaac
 Stand Cover To Look_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stand To Cover_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1892,6 +2082,7 @@ Stand To Sit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stand Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Stand Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standard Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standard Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standard Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Standard Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 1H Cast Spell 01_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1899,11 +2090,13 @@ Standing 1H Cast Spell 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 1H Magic Attack 01_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 1H Magic Attack 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 1H Magic Attack 02_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing 1H Magic Attack 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 1H Magic Attack 03_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 2H Cast Spell 01_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 2H Cast Spell 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Area Attack 01_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing 2H Magic Area Attack 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Area Attack 02_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 2H Magic Area Attack 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Attack 01_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1913,6 +2106,7 @@ Standing 2H Magic Attack 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Attack 03_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 2H Magic Attack 03_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Attack 04_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing 2H Magic Attack 04_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing 2H Magic Attack 05_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing 2H Magic Attack 05_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1931,6 +2125,7 @@ Standing Aim Walk Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Aim Walk Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Aim Walk Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Aim Walk Right_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Aim Walk Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Arguing_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Arguing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Block_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1948,6 +2143,7 @@ Standing Clap_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Cover To Cover_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Cover Turn_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Cover Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standing Cover Turn_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Standing Death Backward 01_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Death Backward 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Death Forward 01_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -1958,6 +2154,7 @@ Standing Death Left 01_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Death Left 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Death Left 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Death Right 01_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Death Right 01_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Death Right 02_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Death Right 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Disarm Bow_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -1967,6 +2164,7 @@ Standing Disarm Underarm_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Dive Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Dodge Backward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Dodge Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standing Dodge Backward_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Standing Dodge Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Dodge Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Dodge Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2003,6 +2201,7 @@ Standing Idle To Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Idle To Fight Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standing Jump_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Standing Jump Running_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Jump Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Jump Running Landing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2018,6 +2217,7 @@ Standing Melee Attack Backhand_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Attack Downward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Melee Attack Downward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Attack Horizontal_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Melee Attack Horizontal_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Attack Kick Ver. 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Attack Kick Ver. 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Melee Attack Kick Ver. 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2029,13 +2229,16 @@ Standing Melee Combo Attack Ver. 3_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Kick_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Melee Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Punch_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Melee Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Melee Run Jump Attack_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Melee Run Jump Attack_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Death Backward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Death Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Death Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Death Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Death Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Death Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standing React Death Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Large From Back_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Large From Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Large From Front_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2052,7 +2255,9 @@ Standing React Small From Front 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Small From Front_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Small From Front_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Small From Headshot_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing React Small From Headshot_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Small From Left_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing React Small From Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing React Small From Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing React Small From Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Run Back_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2070,6 +2275,7 @@ Standing Sprint Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Taunt Battlecry_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Taunt Battlecry_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Taunt Chest Thump_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Taunt Chest Thump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Thumbs Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Thumbs Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing To Crouch_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2097,6 +2303,7 @@ Standing Torch Jump Running To Standing Idle_2dee24f8-3b49-48af-b735-c6377509eaa
 Standing Torch Jump Running To Standing Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Light Torch_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Light Torch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Standing Torch Light Torch_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Standing Torch Light Torch From Fire_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Light Torch From Wall_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Melee Attack 01_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2105,6 +2312,7 @@ Standing Torch Melee Attack 02_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Melee Attack 03_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Melee Attack 03_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Melee Attack 04_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Torch Melee Attack 04_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Melee Attack 05_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Melee Attack 05_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Melee Attack Stab_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2114,6 +2322,7 @@ Standing Torch Run Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Run Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Run Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Run Forward Stop_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Torch Run Forward Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Run Forward Stop At Edge_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Run Forward Stop At Edge_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Run Left_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2125,6 +2334,7 @@ Standing Torch Turn Left 180_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Turn Left 90_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Turn Left 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Turn Right 180_2dee24f8-3b49-48af-b735-c6377509eaac
+Standing Torch Turn Right 180_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Turn Right 90_2dee24f8-3b49-48af-b735-c6377509eaac
 Standing Torch Turn Right 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Standing Torch Walk Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2167,6 +2377,7 @@ Start Jumping Jacks_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Start Plank_2dee24f8-3b49-48af-b735-c6377509eaac
 Start Plank_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Start Swinging_2dee24f8-3b49-48af-b735-c6377509eaac
+Start Swinging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Start Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Start Walking Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2177,6 +2388,8 @@ Step Backward_2dee24f8-3b49-48af-b735-c6377509eaac
 Step Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Step Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stepping Backward_2dee24f8-3b49-48af-b735-c6377509eaac
+Stepping Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Stepping Backward_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Stepping Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Stepping Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stepping Left_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2198,8 +2411,11 @@ Strafe Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Strafe Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strafe Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Strafe Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Strafe Right Stop_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strafing_2dee24f8-3b49-48af-b735-c6377509eaac
 Strafing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Strafing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Strafing Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strangling_2dee24f8-3b49-48af-b735-c6377509eaac
 Strangling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strike Foward Jog_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2207,23 +2423,28 @@ Strike Foward Jog_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stroke Hand Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Stroke Hand Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stroke Nodding_2dee24f8-3b49-48af-b735-c6377509eaac
+Stroke Nodding_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stroke Shaking Head_2dee24f8-3b49-48af-b735-c6377509eaac
 Stroke Shaking Head_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stroke Shrugging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strong Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
+Strong Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Struck In Head_2dee24f8-3b49-48af-b735-c6377509eaac
 Struck In Head_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Strut Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Strut Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stumble Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Stumbling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Stunned_2dee24f8-3b49-48af-b735-c6377509eaac
 Stunned_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Stylish Flip_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sumo High Pull_2dee24f8-3b49-48af-b735-c6377509eaac
 Sumo High Pull_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Superhuman Choke Lift_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Surprise Uppercut_2dee24f8-3b49-48af-b735-c6377509eaac
 Surprise Uppercut_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Surprised_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Swagger Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Swatting Bugs_2dee24f8-3b49-48af-b735-c6377509eaac
 Swatting Bugs_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sweep Fall_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2233,8 +2454,11 @@ Swimming To Edge_2dee24f8-3b49-48af-b735-c6377509eaac
 Swimming To Edge_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Swing Dancing_2dee24f8-3b49-48af-b735-c6377509eaac
 Swing Dancing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Swing Dancing_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Swing Into Wall_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Swing To Land_2dee24f8-3b49-48af-b735-c6377509eaac
 Swing To Land_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Swing To Land_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Swinging_2dee24f8-3b49-48af-b735-c6377509eaac
 Swinging_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield 180 Turn_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2246,10 +2470,12 @@ Sword And Shield Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Block Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Sword And Shield Block Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Casting_2dee24f8-3b49-48af-b735-c6377509eaac
+Sword And Shield Casting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Crouch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Crouch Block_2dee24f8-3b49-48af-b735-c6377509eaac
 Sword And Shield Crouch Block_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Crouch Block Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Sword And Shield Crouch Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Crouching_2dee24f8-3b49-48af-b735-c6377509eaac
 Sword And Shield Crouching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Death_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2261,7 +2487,9 @@ Sword And Shield Impact_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Jump_2dee24f8-3b49-48af-b735-c6377509eaac
 Sword And Shield Jump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Kick_2dee24f8-3b49-48af-b735-c6377509eaac
+Sword And Shield Kick_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Power Up_2dee24f8-3b49-48af-b735-c6377509eaac
+Sword And Shield Power Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Run_2dee24f8-3b49-48af-b735-c6377509eaac
 Sword And Shield Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Sword And Shield Slash_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2282,9 +2510,11 @@ Taken Hostage - Villain_2dee24f8-3b49-48af-b735-c6377509eaac
 Taken Hostage - Villain_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Taking A Pill_2dee24f8-3b49-48af-b735-c6377509eaac
 Taking A Pill_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Taking Cover_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Taking Cover Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Taking Item_2dee24f8-3b49-48af-b735-c6377509eaac
 Taking Item_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Taking Punch_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Talking_2dee24f8-3b49-48af-b735-c6377509eaac
 Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Talking At Watercooler_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2297,22 +2527,27 @@ Talking Phone Pacing_2dee24f8-3b49-48af-b735-c6377509eaac
 Talking Phone Pacing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Taunt_2dee24f8-3b49-48af-b735-c6377509eaac
 Taunt_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Taunt_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Taunt Gesture_2dee24f8-3b49-48af-b735-c6377509eaac
 Taunt Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Teeter_2dee24f8-3b49-48af-b735-c6377509eaac
 Teeter_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Teeter Transition_2dee24f8-3b49-48af-b735-c6377509eaac
 Teeter Transition_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Telling A Secret_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Tender Placement_2dee24f8-3b49-48af-b735-c6377509eaac
 Tender Placement_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Terrified_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Texting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Texting And Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Texting And Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Texting While Standing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thankful_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thinking_2dee24f8-3b49-48af-b735-c6377509eaac
+Thinking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thoughtful Head Nod_2dee24f8-3b49-48af-b735-c6377509eaac
 Thoughtful Head Nod_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Thoughtful Head Shake_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Threatening_2dee24f8-3b49-48af-b735-c6377509eaac
 Threatening_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thriller Idle_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2323,14 +2558,17 @@ Thriller Part 2_2dee24f8-3b49-48af-b735-c6377509eaac
 Thriller Part 2_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thriller Part 3_2dee24f8-3b49-48af-b735-c6377509eaac
 Thriller Part 3_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Thriller Part 3_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Thriller Part 4_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Throw_2dee24f8-3b49-48af-b735-c6377509eaac
 Throw_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Throw Grenade_2dee24f8-3b49-48af-b735-c6377509eaac
 Throw Grenade_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Throw In_2dee24f8-3b49-48af-b735-c6377509eaac
+Throw In_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Throw Object_2dee24f8-3b49-48af-b735-c6377509eaac
 Throw Object_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Throwing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Throwing Dice_2dee24f8-3b49-48af-b735-c6377509eaac
 Throwing Dice_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Thrust Slash_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2358,6 +2596,7 @@ Turn Left 45 Degrees_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Turn Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Turn Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Turn Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Turn To Knocked Unconscious_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Turn To Running_2dee24f8-3b49-48af-b735-c6377509eaac
 Turn To Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Turning_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2369,6 +2608,7 @@ Turning Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Turning Right 90 Degrees_2dee24f8-3b49-48af-b735-c6377509eaac
 Turning Right 90 Degrees_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Tut Hip Hop Dance_2dee24f8-3b49-48af-b735-c6377509eaac
+Tut Hip Hop Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Twist Dance_2dee24f8-3b49-48af-b735-c6377509eaac
 Twist Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Two Cycle Sprint_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2415,6 +2655,8 @@ Unarmed Turn Right 90_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Unarmed Walk Back_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Unarmed Walk Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Unarmed Walk Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Unarmed Walk Forward_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
+Uppercut_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Uppercut Jab_2dee24f8-3b49-48af-b735-c6377509eaac
 Uppercut Jab_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Upward Rifle Butt Strike_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2423,6 +2665,7 @@ Upward Thrust_2dee24f8-3b49-48af-b735-c6377509eaac
 Upward Thrust_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Using A Fax Machine_2dee24f8-3b49-48af-b735-c6377509eaac
 Using A Fax Machine_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Using A Fax Machine_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Using A Filing Cabinet_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Using An Inhaler_2dee24f8-3b49-48af-b735-c6377509eaac
 Vampiric Bite_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2456,6 +2699,7 @@ Walk Crouching Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Backward Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Crouching Backward Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Backward Right_2dee24f8-3b49-48af-b735-c6377509eaac
+Walk Crouching Backward Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Forward_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Crouching Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Forward Left_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2463,9 +2707,11 @@ Walk Crouching Forward Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Forward Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Crouching Forward Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Left_2dee24f8-3b49-48af-b735-c6377509eaac
+Walk Crouching Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Crouching Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Crouching Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Forward_2dee24f8-3b49-48af-b735-c6377509eaac
+Walk Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Forward Arc_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Forward Arc Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Forward Arc Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2475,10 +2721,12 @@ Walk Forward Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Forward Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk In Circle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Left_2dee24f8-3b49-48af-b735-c6377509eaac
+Walk Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk Strafe Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Strafe Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Walk Strafe Left_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Walk Strafe Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walk Strafe Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walk To Stop_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2493,6 +2741,7 @@ Walking_2dee24f8-3b49-48af-b735-c6377509eaac
 Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Arc Left_2dee24f8-3b49-48af-b735-c6377509eaac
 Walking Arc Left_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Walking Backward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Backward Arc Right_2dee24f8-3b49-48af-b735-c6377509eaac
 Walking Backward Arc Right_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Backwards_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2500,6 +2749,7 @@ Walking Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Hit Reaction_2dee24f8-3b49-48af-b735-c6377509eaac
 Walking Hit Reaction_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Left Turn_2dee24f8-3b49-48af-b735-c6377509eaac
+Walking Left Turn_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking To Dying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Turn 180_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Walking Up The Stairs_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2532,6 +2782,7 @@ Whatever Gesture_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Wheelbarrow Dump_2dee24f8-3b49-48af-b735-c6377509eaac
 Wheelbarrow Dump_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Wheelbarrow Idle_2dee24f8-3b49-48af-b735-c6377509eaac
+Wheelbarrow Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Wheelbarrow Walk_2dee24f8-3b49-48af-b735-c6377509eaac
 Wheelbarrow Walk_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Wheelbarrow Walk Turn_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2555,6 +2806,7 @@ Yelling Out_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Yelling While Standing_2dee24f8-3b49-48af-b735-c6377509eaac
 Yelling While Standing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Ymca Dance_2dee24f8-3b49-48af-b735-c6377509eaac
+Ymca Dance_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Agonizing_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Agonizing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Attack_2dee24f8-3b49-48af-b735-c6377509eaac
@@ -2564,16 +2816,20 @@ Zombie Biting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Crawl_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Crawl_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Death_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Zombie Dying_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Headbutt_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Zombie Idle_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Zombie Kicking_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Kicking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Neck Bite_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Punching_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Punching_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Zombie Punching_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Zombie Reaction Hit_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Reaction Hit_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Zombie Run_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Running_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Scratch Idle_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Scratch Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
@@ -2582,6 +2838,7 @@ Zombie Scream_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Stand Up_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Stand Up_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Stumbling_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
+Zombie Stumbling_7f3f4e32-2b70-4c69-9a3d-0bdac6188241
 Zombie Transition_2dee24f8-3b49-48af-b735-c6377509eaac
 Zombie Transition_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493
 Zombie Turn_2dee24f8-3b49-48af-b735-c6377509eaac

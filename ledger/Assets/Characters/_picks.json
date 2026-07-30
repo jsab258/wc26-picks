@@ -2,8 +2,44 @@
   "guard": {
     "tier": "A",
     "found": "Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "\\bfight(ing)? idle\\b"
+    "exact": true,
+    "pattern": "\\bfight idle\\b"
+  },
+  "guard_enter": {
+    "tier": "A",
+    "found": "Standing Idle To Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding idle to fight idle\\b"
+  },
+  "guard_exit": {
+    "tier": "A",
+    "found": "Fight Idle To Standing Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bfight idle to standing idle\\b"
+  },
+  "block_start": {
+    "tier": "A",
+    "found": "Standing Block Start_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "\\bstanding block start\\b"
+  },
+  "block_hold": {
+    "tier": "A",
+    "found": "Standing Block Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding block idle\\b"
+  },
+  "block_end": {
+    "tier": "A",
+    "found": "Standing Block End_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "\\bstanding block end\\b"
+  },
+  "block_broken": {
+    "tier": "A",
+    "found": "Standing Block React Large_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bstanding block react large\\b"
   },
   "strike": {
     "tier": "A",
@@ -11,11 +47,23 @@
     "exact": true,
     "pattern": "\\bcross punch\\b"
   },
+  "strike_alt": {
+    "tier": "A",
+    "found": "Body Jab Cross_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bbody jab cross\\b"
+  },
   "shove": {
     "tier": "A",
     "found": "Push_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bpush(ing)?\\b"
+    "pattern": "^push\\b"
+  },
+  "shoved": {
+    "tier": "A",
+    "found": "Shove Reaction_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bshove reaction\\b"
   },
   "take_hit": {
     "tier": "A",
@@ -43,15 +91,21 @@
   },
   "draw_reach": {
     "tier": "A",
-    "found": "Draw Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "found": "Unarmed Equip Underarm_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
-    "pattern": "\\bdraw(ing)? sword\\b"
+    "pattern": "\\bunarmed equip underarm\\b"
   },
   "draw_holster": {
     "tier": "A",
     "found": "Sheath Sword 1_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bsheath(e|ing)? sword\\b"
+    "pattern": "\\bsheath sword 1\\b"
+  },
+  "draw_gun": {
+    "tier": "A",
+    "found": "Drawing Gun_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bdrawing gun\\b"
   },
   "idle": {
     "tier": "A",
@@ -87,7 +141,7 @@
     "tier": "B",
     "found": "Look Around_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\blook(ing)? around\\b"
+    "pattern": "^look around\\b"
   },
   "talk": {
     "tier": "B",
@@ -103,18 +157,15 @@
   },
   "flinch": {
     "tier": "B",
-    "found": "Terrified_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "found": "Scared_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bterrified\\b"
+    "pattern": "^scared\\b"
   },
   "hands_up": {
     "tier": "B",
-    "found": null,
-    "tried": [
-      "\\bsurrender\\b",
-      "\\bhands up\\b",
-      "\\barms up\\b"
-    ]
+    "found": "Defeat_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "^defeat\\b"
   },
   "back_away": {
     "tier": "B",
@@ -134,6 +185,18 @@
     "exact": true,
     "pattern": "\\bwalk(ing)? stop\\b"
   },
+  "stairs_up": {
+    "tier": "B",
+    "found": "Ascending Stairs_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bascending stairs\\b"
+  },
+  "stairs_down": {
+    "tier": "B",
+    "found": "Descending Stairs_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bdescending stairs\\b"
+  },
   "sit": {
     "tier": "C",
     "found": "Sitting Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
@@ -144,42 +207,42 @@
     "tier": "C",
     "found": "Leaning_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": false,
-    "pattern": "\\blean(ing)?\\b"
+    "pattern": "^leaning\\b"
   },
   "drink": {
     "tier": "C",
     "found": "Drinking_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bdrink(ing)?\\b"
+    "pattern": "^drinking\\b"
   },
   "smoke": {
     "tier": "C",
     "found": "Smoking_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bsmok(e|ing)\\b"
+    "pattern": "^smoking\\b"
   },
   "work_counter": {
     "tier": "C",
-    "found": "Typing_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "\\btyping\\b"
+    "found": "Bartending_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bbartending\\b"
   },
   "collapse": {
     "tier": "C",
     "found": "Dying_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bdying\\b"
+    "pattern": "^dying\\b"
   },
   "fall_stairs": {
     "tier": "C",
-    "found": "Falling Down_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "\\bfalling down\\b"
+    "found": "Falling From Losing Balance_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "\\bfalling from losing balance\\b"
   },
   "lie_still": {
     "tier": "C",
     "found": "Lying Down_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\blying\\b"
+    "pattern": "\\blying down\\b"
   }
 }
