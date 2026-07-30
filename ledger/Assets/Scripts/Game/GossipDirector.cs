@@ -225,6 +225,11 @@ namespace Ledger.Game
             _nextStance = Time.time + 1.5f;
             var player = _game.Player;
             if (player == null) return;
+            // Perceivers needs the player to size the noise ring against the
+            // player's own ambient floor. Bound here because this is already
+            // the place that hands the player to every walker, and a second
+            // binding site is a second thing that can be forgotten.
+            Perceivers.BindPlayer(player.transform);
 
             foreach (var (w, g) in LiveBodies())
             {

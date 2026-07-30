@@ -161,6 +161,18 @@ namespace Ledger.Game
         // a person turns toward one noise and not toward four. A queue would
         // buy precision nobody can perceive and cost a per-walker cursor.
 
+        /// The noise ring, which can be turned off. It is a teaching device
+        /// rather than a HUD, and a player who has learned the model should be
+        /// able to stop being told — the same reasoning as the accessibility
+        /// marker in §6.2, pointed the other way.
+        public static bool RingsEnabled = true;
+
+        /// Set once by the game so `Emit` can size the ring against the
+        /// player's own ambient floor without every emitter passing it in.
+        static Transform _player;
+        static float _lastRingAt = -999f;
+        public static void BindPlayer(Transform player) => _player = player;
+
         public static Vector3 LastSoundAt;
         public static double LastSoundLoudness;
         public static string LastSoundKind;
@@ -183,6 +195,24 @@ namespace Ledger.Game
             LastSoundKind = kind;
             LastSoundTime = Time.time;
             SoundsEmitted++;
+
+            // AND SHOW IT, once, at the true radius. Drawn here rather than at
+            // every call site so no emitter can make a sound the player is not
+            // told about — which is the same argument as FilmGrade reading the
+            // same LevelAt the NPCs read: one fact, one source.
+            // NEVER TWO AT ONCE. Running at night emits a footstep loud
+            // enough to draw a ring roughly every half-second, and a stack of
+            // overlapping circles is unreadable — which would make the one
+            // device teaching the hearing model into the thing obscuring it.
+            // One ring at a time, so the newest is always the whole picture.
+            if (RingsEnabled && _player != null
+                && Time.time - _lastRingAt >= NoiseRing.LifeSeconds)
+            {
+                _lastRingAt = Time.time;
+                bool occluded = Occluded(_player.position, at);
+                NoiseRing.Show(at, loudness, occluded,
+                               AmbientFloorAt(_player.position, PresentNearby));
+            }
         }
 
         public static bool SoundIsFresh => Time.time - LastSoundTime < SoundFreshSeconds;
