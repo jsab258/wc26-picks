@@ -36,6 +36,29 @@ namespace Ledger.Game
         const int Segments = 64;
 
         static Material _mat;
+        static bool _matTried;
+
+        /// SHADER LOOKUP CAN FAIL IN A BUILT PLAYER, and that is the whole
+        /// reason this is a function with a guard rather than two lines in
+        /// `Build`. A shader no material in any scene references gets stripped
+        /// from the build, `Shader.Find` returns null, and `new Material(null)`
+        /// throws — which for this class would mean an exception on every sound
+        /// the game makes. The editor would never show it.
+        ///
+        /// So: try once, and if there is nothing to draw with, draw nothing.
+        /// A missing ring is a missing teaching aid; an exception per footstep
+        /// is a broken game.
+        static Material Mat()
+        {
+            if (_matTried) return _mat;
+            _matTried = true;
+            var shader = Shader.Find("Sprites/Default")
+                         ?? Shader.Find("Unlit/Color")
+                         ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended");
+            if (shader != null) _mat = new Material(shader);
+            return _mat;
+        }
+
         float _born;
         float _radius;
         LineRenderer _line;
@@ -52,6 +75,7 @@ namespace Ledger.Game
         {
             double r = Perception.AudibleRadius(loudness, ambientFloorAtPlayer, occluded);
             if (r < MinRadiusMetres) return;
+            if (Mat() == null) return;      // nothing to draw with; draw nothing
 
             var go = new GameObject("NoiseRing");
             go.transform.position = at + Vector3.up * 0.04f;   // just off the road
@@ -74,15 +98,7 @@ namespace Ledger.Game
             _line.receiveShadows = false;
             _line.alignment = LineAlignment.TransformZ;
 
-            if (_mat == null)
-            {
-                // Unlit and additive: it reads on wet asphalt at night, which
-                // is the surface it will nearly always be drawn on, and it
-                // cannot pick up the lamp specular the road has.
-                var shader = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color");
-                _mat = new Material(shader);
-            }
-            _line.material = _mat;
+            _line.material = Mat();
 
             for (int i = 0; i < Segments; i++)
             {
