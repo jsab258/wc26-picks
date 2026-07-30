@@ -141,9 +141,18 @@ namespace Ledger.Game
             // lighting uses, so the quiet hours and the dark hours agree.
             double floor = Mathf.Lerp((float)Perception.AmbientDaytimeStreet,
                                       (float)Perception.AmbientNight3am, night);
-            // A crowd is its own ambient bed, and this is the number that makes
-            // the market and the bar into cover.
-            floor += Mathf.Clamp(peopleNearby * 1.6f, 0f, 23f);
+            // A crowd is its own ambient bed — but the base floors ALREADY
+            // describe a street with people on it, so this is the amount by
+            // which an unusually busy one exceeds a normal one, not the whole
+            // contribution of the crowd.
+            //
+            // The first version added up to twenty-three units for people
+            // within forty-five metres, which on a normal night street with
+            // twenty walkers in view took the floor from 15 to 38 and then rain
+            // took it past 48 — loud enough to swallow a slammed door at three
+            // in the morning. That is not masking, it is double-counting: the
+            // crowd was being charged once in the base figure and again here.
+            floor += Mathf.Clamp(peopleNearby * 0.9f, 0f, 8f);
             if (Weather.Rain > 0.15f)
                 floor += Perception.AmbientRainAdds * Mathf.Clamp01(Weather.Rain);
             return floor;

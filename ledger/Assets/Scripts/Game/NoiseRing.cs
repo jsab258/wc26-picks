@@ -90,20 +90,26 @@ namespace Ledger.Game
                                 double ambientFloorAtPlayer)
         {
             double r = Perception.AudibleRadius(loudness, ambientFloorAtPlayer, occluded);
-            if (r < MinRadiusMetres) return;
 
-            // THE MEASUREMENT IS RECORDED EVEN IF NOTHING CAN BE DRAWN, and the
-            // split matters: "the radius equals the model" and "a circle
-            // appeared on screen" are two different claims, and conflating them
-            // meant a stripped shader would report as a broken hearing model.
-            // Gate on the arithmetic; report the drawing separately.
+            // THE MEASUREMENT IS RECORDED FIRST, BEFORE EITHER REASON NOT TO
+            // DRAW. Two cycles were lost to having it second.
+            //
+            // The claim being gated is "the radius the ring uses equals the
+            // model's radius", and that is checkable for ANY radius. Whether it
+            // clears the six-metre draw threshold is a presentation choice, and
+            // whether a material exists is a build detail. Recording after
+            // either of those made a legitimately quiet street — where nothing
+            // is loud enough to be worth drawing — read as a broken hearing
+            // model. Which is exactly backwards: a quiet street proving nothing
+            // carries is the model working.
             LastRadius = r;
             LastLoudness = loudness;
             LastFloor = ambientFloorAtPlayer;
             LastOccluded = occluded;
             Sized++;
 
-            if (Mat() == null) return;      // nothing to draw with; draw nothing
+            if (r < MinRadiusMetres) return;   // true, and not worth drawing
+            if (Mat() == null) return;         // nothing to draw with
             Shown++;
 
             var go = new GameObject("NoiseRing");
