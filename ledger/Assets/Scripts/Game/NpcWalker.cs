@@ -199,8 +199,15 @@ namespace Ledger.Game
             // already exists, and it is the difference between a witness you
             // know about and one you do not — which §4.4 calls the quiet horror
             // case and deliberately gives the player nothing for.
-            Standoff.Consider(DisplayName, _attendingNow,
-                              Standoff.PlayerCanRead(_player, transform, Perceivers.LevelAt(current)));
+            // ONLY WHEN THEY ARE ACTUALLY LOOKING. The standoff needs both
+            // halves, and `_attendingNow` is the cheap one — checking the
+            // player's side first would spend a raycast per walker per tick on
+            // the overwhelming majority who have not noticed anything. Same
+            // ordering principle as putting the ray last inside `InSight`.
+            if (_attendingNow)
+                Standoff.Consider(DisplayName, true,
+                                  Standoff.PlayerCanRead(_player, transform,
+                                                         Perceivers.LevelAt(current)));
 
             if (_attendingNow && !wasAttending)
             {
@@ -234,6 +241,13 @@ namespace Ledger.Game
 
             float metres = Vector3.Distance(current, Perceivers.LastSoundAt);
             double floor = Perceivers.AmbientFloorAt(current, Perceivers.PresentNearby);
+            // CHEAP TEST FIRST. If it would not reach even through open air,
+            // there is nothing a wall can change and the raycast is wasted —
+            // and most sounds do not reach most people, so this is the common
+            // case rather than a corner of it.
+            if (!Perception.Heard(metres, Perceivers.LastSoundLoudness, floor,
+                                  occluded: false, alertness: _alertness))
+                return;
             bool occluded = Perceivers.Occluded(current, Perceivers.LastSoundAt);
             if (!Perception.Heard(metres, Perceivers.LastSoundLoudness, floor, occluded, _alertness))
                 return;

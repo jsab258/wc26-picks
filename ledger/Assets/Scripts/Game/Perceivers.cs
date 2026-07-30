@@ -28,6 +28,10 @@ namespace Ledger.Game
         /// and buy nothing the mill does not already produce.
         public const float NearBandMetres = 45f;
 
+        /// Shared hit buffer for `Occluded`. Sixteen is generous for a line
+        /// across a street; the overflow case is handled rather than ignored.
+        static readonly RaycastHit[] _hits = new RaycastHit[16];
+
         static readonly List<Light> _lamps = new List<Light>();
         static float _lampsRefreshedAt = -999f;
 
@@ -79,15 +83,28 @@ namespace Ledger.Game
             // capsule collider on the subject would otherwise occlude the
             // subject, which is the kind of bug that makes a whole system
             // look mysteriously broken.
-            var hits = Physics.RaycastAll(a, d / len, len, ~0, QueryTriggerInteraction.Ignore);
-            foreach (var h in hits)
+            // NON-ALLOCATING, and on this budget that is not a micro-
+            // optimisation. This runs up to three times per walker per tick —
+            // vision, hearing and the standoff — which at twenty-two walkers
+            // and 6Hz is around four hundred raycasts a second. `RaycastAll`
+            // returns a fresh array every call, so the allocating version was
+            // handing the collector four hundred arrays a second for a system
+            // whose whole budget is 1.2ms.
+            int n = Physics.RaycastNonAlloc(a, d / len, _hits, len, ~0,
+                                            QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
             {
+                var h = _hits[i];
                 if (h.collider == null) continue;
                 if (h.collider.GetComponentInParent<NpcWalker>() != null) continue;
                 if (h.collider.GetComponentInParent<PlayerController>() != null) continue;
                 return true;
             }
-            return false;
+            // A full buffer means there may be more hits we did not see. Erring
+            // toward OCCLUDED is the safe direction: a missed wall makes the
+            // city see through buildings, which is unfair, and a phantom wall
+            // only makes somebody miss you.
+            return n >= _hits.Length;
         }
 
         /// THE AMBIENT FLOOR where this person is standing, which is what makes
