@@ -1058,5 +1058,45 @@ spec v4 §§15–18.** Four change the plan above:
   chase** when a constable watches you do it.
 - **`Violence.Saw` and `KillingConfidence` are superseded, not reused.**
 
-**Estimate: ~16 days** (spec §18). Phase 1 + 1b is 4.5 of them and is the
-hedge. `RunPerceptionLab` lands with Phase 2.
+**Estimate: ~17 days** (spec §18, plus the lab and the facing art). Phase 1 +
+1b is 4.5 of them and is the hedge. `RunPerceptionLab` lands with Phase 2.
+
+### M16.0 — THE MIXAMO DROP. **JAFAR'S TASK, and it is a real dependency**
+
+Free, no account of mine, no purchase: Jafar downloads the characters and the
+animation set from Mixamo and hands them over. Recorded here as a milestone
+item rather than a footnote because **two things in this project are blocked
+on it and one of them is combat.**
+
+**Why it matters, specifically:**
+
+1. **Combat.** `combat-spec.md` §6 Phase 3 has been explicitly blocked on
+   characters since it was written — *"a swing on a capsule cannot be read,
+   and an unreadable telegraph makes a timing system into a coin flip."*
+   Telegraphs, hit reactions and the guard are the whole feel of a fight and
+   none of them can be judged on boxes. This is the gate on melee, not the
+   Core work, which is already built and tuned.
+2. **The draw.** Weapons spec §6.3 calls it *"the most important animation in
+   the game"* — one second, visible to everyone in a cone, and it cannot be
+   taken back. Everything social about weapons hangs off it.
+3. **Facing, and therefore the symmetry rule.** Spec §15.1 is designed to work
+   on thirteen boxes at Tier 1 so Phase 1 is not blocked — but real heads,
+   necks, shoulders and turn-in-place clips are what make it comfortable
+   rather than marginal. **The silhouette gate is the acceptance test for the
+   drop.**
+
+**What is wanted, in rough priority:**
+
+| | Clips |
+|---|---|
+| **Locomotion** | idle, walk, run, **turn-in-place (L/R)**, start/stop |
+| **Attention** | look-around, head/aim offsets, standing conversation, listen |
+| **Reaction** | flinch, startle, back-away, hands-up |
+| **Combat** *(unblocks combat Phase 3)* | guard, strike, shove, stagger, take-hit, knockdown, get-up |
+| **The draw** | reach-to-coat, present, holster |
+| **Life** | sit, lean, work-at-counter, drink, smoke |
+| **The end** | collapse, fall-down-stairs, lie-still |
+
+A neutral male and female body each is enough to start; the procedural
+mannequin rig was built against capsules precisely so a Mixamo skeleton drops
+straight onto it.

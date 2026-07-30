@@ -1,4 +1,4 @@
-# PERCEPTION, WEAPONS AND VIOLENCE — spec v4, APPROVED
+# PERCEPTION, WEAPONS AND VIOLENCE — spec v5, APPROVED, BUILDING
 
 **Status: APPROVED IN FULL, 2026-07-29. Cleared to build.** *"approved."*
 
@@ -1406,10 +1406,27 @@ that those two things, together, are the whole answer — there is no hidden
 third factor.
 
 **And Jafar's condition is the whole problem, so it gets answered rather than
-promised.** We cannot render eyes. There are no faces in this game and there
-may never be. "See his eyes" is a rule the art cannot carry, so the rule is
-stated against the one thing we *can* render at distance — **orientation** —
-and then three things are done to make orientation legible instead of hoping:
+promised.**
+
+**Correction, v5.** v4 said *"there are no faces in this game and there may
+never be."* **That was wrong and Jafar corrected it:** Mixamo characters and
+animations are a planned, funded-at-zero-cost dependency, and downloading them
+is **his task, not mine.** They are a roadmap item (M16.0), not a hope. The
+rule below is therefore designed to a **two-tier standard**:
+
+- **Tier 1, today, on thirteen boxes.** The rule must work now, or Phase 1 is
+  blocked on an asset drop and the whole *"ship perception on its own"* hedge
+  collapses.
+- **Tier 2, when the characters land.** Facing becomes trivially readable — a
+  real head, a real neck, real shoulders, and turn-in-place animation. The
+  same gate reruns and should pass by a much wider margin.
+
+**The silhouette gate below is therefore also the acceptance test for the
+Mixamo drop**, which is a better use of it than checking a box.
+
+We still cannot render eyes at Tier 1, so the rule is stated against the one
+thing that reads at distance in both tiers — **orientation** — and three
+things make orientation legible rather than hoped for:
 
 1. **Heads turn further and slower than they really would.** Standard
    animation exaggeration. A head at 40° of yaw reads in silhouette; a head at
@@ -1430,8 +1447,15 @@ difference between the two silhouettes with `ImageStats`. **If front and back
 are not measurably distinguishable at 18m, the rule cannot carry the design**
 and we say so rather than shipping an unfair system.
 
-**The fallback if that gate fails**, and it is a real plan rather than a
-shrug: the **survey verb** — stand still, hold a key, and attention sharpens
+**Tier 2 changes the numbers, not the design.** With real characters the head
+has a face, the neck and shoulders separate, and Mixamo's turn-in-place clips
+give the body a genuine commit rather than a slerp. Expect the 18m threshold
+to become comfortable and 35m to become possible. **Nothing in the rule
+changes** — which is the point of writing it against orientation rather than
+against faces.
+
+**The fallback if that gate fails at Tier 1**, and it is a real plan rather
+than a shrug: the **survey verb** — stand still, hold a key, and attention sharpens
 and sound directions resolve. It costs a moment of time, adds no HUD, and it
 works at any fidelity because it is not asking the player to read a
 silhouette. v3 listed it as an alternative; v4 makes it the designated
@@ -1473,6 +1497,19 @@ corner.
   it does to the information landscape.
 - **You were seen being taken**, which is itself an event with witnesses. Half
   the street watched Tom Novak get walked to a car.
+
+**Resisting is allowed, and it is the worst outcome in the game** (v5; Jafar:
+*"resist arrest: ok"*). Not disallowed, not soft-failed — permitted, and
+catastrophic. A fight with a constable in public is an unambiguous *Full*
+observation for everybody on the street, with the one person present whose
+word carries by default. It converts a survivable arrest into a manhunt, it is
+the fastest route to the worst ending in the game, and **the game will not
+warn you.** The prompt says the same thing it always says.
+
+That is the correct shape for it: the option has to exist, because a game
+where the law is unresistable is not a crime game — and it has to be a
+mistake, because Tom Novak fighting a policeman is a man ending his own life
+in ninety seconds.
 
 **The escape hatch is social, not athletic:** a constable who cannot identify
 you has nothing to arrest, which puts the whole weight back on §4.2's ladder
@@ -1561,6 +1598,19 @@ believed (§4.6's familiarity bias).
   *more* dangerous, not less, which is a much better clock than decay alone.
 - And it lets the player be destroyed by something that never happened, which
   §4.6 already argued the story wants.
+
+**The interaction with `Rumor.Indelible`, resolved (v5, second-pass finding;
+Jafar: "hardening: agree").** Homicide facts are indelible and `Discredit`
+refuses them outright. If a *hardened false* memory inherited that, being
+wrongly accused would become unanswerable, and §4.6's best idea would turn
+into a punishment.
+
+**The rule: hardening raises confidence; it never confers indelibility.**
+Indelible is a property of *a body existing*, not of anybody's certainty. So a
+false accusation can harden all the way to rung 4 and remain fully
+discreditable — you are arguing with a person's confidence rather than with a
+corpse. And the asymmetry stays intact in the direction that matters: a true
+homicide rumour is still beyond every containment tool in the game.
 
 ---
 
