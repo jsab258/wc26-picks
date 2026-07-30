@@ -105,6 +105,7 @@ namespace Ledger.CoreTests
                 TestObservation();
                 TestNotice();
                 TestExposureReadout();
+                TestArsenal();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -8958,6 +8959,163 @@ namespace Ledger.CoreTests
                   "hush: total attention still leaves a world making noise");
             Check(Notice.FlooredBy(Perception.AmbientMarketNoon, 0) == Perception.AmbientMarketNoon,
                   "hush: no attention leaves the floor exactly where it was");
+        }
+
+
+        /// THE WEAPON TABLE — `weapons-spec.md` §5. The checks that matter are
+        /// the ones asserting there is NO power ladder, because that is the
+        /// property the whole design rests on and the easiest one to lose.
+        static void TestArsenal()
+        {
+            Check(Arsenal.All.Count >= 16, "arsenal: sixteen or more objects, plus the world",
+                  $"{Arsenal.All.Count}");
+            Check(Arsenal.All.Select(w => w.Id).Distinct().Count() == Arsenal.All.Count,
+                  "arsenal: no duplicate ids");
+            foreach (Family f in Enum.GetValues(typeof(Family)))
+                if (f != Family.Kit)
+                    Check(Arsenal.Of(f).Any(), $"arsenal: the {f} family is populated");
+
+            // NO POWER LADDER. Four of the carried things lose outright to a
+            // ready armed man, because Tom Novak runs a bar. If this ever
+            // drops to zero somebody has turned this into a power fantasy.
+            int lose = Arsenal.All.Count(w => !w.BeatsAReadyMan && w.Family != Family.Environment
+                                              && w.Family != Family.Kit);
+            Check(lose >= 4, "arsenal: most of the roster loses to a ready armed man", $"{lose}");
+
+            // The pistol is not an upgrade over the knife; it is louder.
+            var knife = Arsenal.Get("kitchenknife");
+            var snub = Arsenal.Get("snub38");
+            Check(snub.Loudness > knife.Loudness && snub.Concealment > knife.Concealment,
+                  "arsenal: the gun is louder and harder to explain, not 'better'");
+
+            // THE FORENSIC DISTINCTION THAT COSTS NOTHING: a revolver leaves
+            // no casing and an automatic throws brass.
+            Check(!snub.Trace.Contains("casing") && !snub.Trace.Contains("brass"),
+                  "arsenal: the revolver leaves nothing on the ground", snub.Trace);
+            Check(Arsenal.Get("auto45").Trace.Contains("brass"),
+                  "arsenal: the automatic does");
+
+            // Untraceable by being ordinary.
+            Check(knife.Anonymous && !knife.Purchasable,
+                  "arsenal: a kitchen knife has no provenance to follow");
+            Check(!Arsenal.Get("switchblade").Anonymous,
+                  "arsenal: a switchblade came from somebody");
+
+            // The wire cannot be aborted, and nothing else shares that.
+            var abortless = Arsenal.All.Where(w => !w.CanAbort).ToList();
+            Check(abortless.Count == 2 && abortless.All(w => w.Family == Family.Ligature),
+                  "arsenal: only the ligatures are one-way once begun",
+                  string.Join(",", abortless.Select(w => w.Id)));
+            Check(Arsenal.Get("wire").Loudness == 0 && !Arsenal.Get("wire").VictimCriesOut,
+                  "arsenal: the wire is the only silent kill");
+
+            // The bat's whole use is that it CANNOT be hidden.
+            Check(Arsenal.Get("bat").Concealment == Concealment.Impossible,
+                  "arsenal: a man walking with a bat has already said something");
+
+            // Failure modes are the character of each object, so every carried
+            // thing must have one.
+            foreach (var w in Arsenal.All)
+                Check(w.Fails != FailureMode.None, $"arsenal: {w.Id} can go wrong");
+
+            // ---- accidents, and the three constraints that stop them winning ----
+            var stairs = Arsenal.Get("stairs");
+            Check(Arsenal.IsAccident(stairs), "accident: the stairs are an accident");
+            Check(!Arsenal.IsAccident(knife), "accident: a knife is not");
+            Check(Arsenal.AccidentAvailable(stairs, inPosition: true, witnessesPresent: 0),
+                  "accident: alone with him at the top of the stairs, it is available");
+            Check(!Arsenal.AccidentAvailable(stairs, inPosition: true, witnessesPresent: 1),
+                  "accident: with one person watching, it is NOT");
+            Check(!Arsenal.AccidentAvailable(stairs, inPosition: false, witnessesPresent: 0),
+                  "accident: and it needs the position, not just the privacy");
+            Check(Arsenal.SeenAccidentPenalty > 1.0,
+                  "accident: being seen doing it is worse than being seen doing anything else");
+            Check(stairs.Fails == FailureMode.HeSurvivesIt,
+                  "accident: and the failure is a man who knows exactly what you did");
+
+            // ---- the threat, which is the main use ----
+            var pistol = Arsenal.Get("snub38");
+            Check(Arsenal.Brandish(pistol, targetNerve: 0.1, targetArmed: false,
+                                   targetIsOutfit: false, inPublic: false,
+                                   reputationForViolence: 0.8) == Arsenal.Threat.Comply,
+                  "threat: a frightened man alone with a gun complies");
+            Check(Arsenal.Brandish(pistol, 0.1, false, false, inPublic: true, 0.8)
+                  == Arsenal.Threat.FleeScreaming,
+                  "threat: the same man in the street runs, screaming — which is a sound event");
+            // A GUN IS A GUN. The first version of this check expected a bold
+            // man to call the bluff on a pistol, and the model disagreed —
+            // rightly. Nerve buys you composure in front of a gun, not
+            // contempt for it. Calling the bluff belongs to the objects that
+            // depend on believing the man holding them.
+            Check(Arsenal.Brandish(pistol, 0.9, false, false, false, 0.8)
+                  == Arsenal.Threat.Freeze,
+                  "threat: a bold man freezes rather than calling a gun",
+                  $"{Arsenal.Brandish(pistol, 0.9, false, false, false, 0.8)}");
+            Check(Arsenal.Brandish(Arsenal.Get("cosh"), 0.9, false, false, false, 0.2)
+                  == Arsenal.Threat.CallTheBluff,
+                  "threat: a bold man DOES call a cosh held by a nobody");
+            Check(Arsenal.Brandish(pistol, 0.1, targetArmed: true, targetIsOutfit: false,
+                                   inPublic: false, reputationForViolence: 0.9)
+                  == Arsenal.Threat.Escalate,
+                  "threat: an armed man escalates, whatever you are holding");
+            Check(Arsenal.Brandish(pistol, 0.5, false, targetIsOutfit: true, false, 0.9)
+                  == Arsenal.Threat.Escalate,
+                  "threat: so does one of the outfits");
+
+            // REPUTATION IS HALF THE MENACE. A man who has never hurt anybody
+            // holding a razor is a man holding a razor.
+            var razor = Arsenal.Get("razor");
+            var known = Arsenal.Brandish(razor, 0.45, false, false, false, 0.95);
+            var unknown = Arsenal.Brandish(razor, 0.45, false, false, false, 0.0);
+            Check(known != unknown, "threat: who is holding it changes what happens",
+                  $"{known} vs {unknown}");
+            Check(known == Arsenal.Threat.Comply && unknown == Arsenal.Threat.Freeze,
+                  "threat: the same razor complies for a known man and only freezes for a barman",
+                  $"{known} vs {unknown}");
+            // And a genuinely bold man calls a barman holding a razor, which
+            // is the humiliating public outcome the design wants to exist.
+            Check(Arsenal.Brandish(razor, 0.7, false, false, false, 0.0)
+                  == Arsenal.Threat.CallTheBluff,
+                  "threat: nerve beats a weapon nobody believes you would use");
+
+            // The one-way door.
+            Check(!Arsenal.CanUndraw(), "threat: you can never un-draw");
+
+            // ---- carry: a coat, not a grid ----
+            Check(Arsenal.Fits(new Weapon[0], knife), "carry: one knife fits");
+            Check(Arsenal.Fits(new[] { Arsenal.Get("cosh") }, knife), "carry: two things fit");
+            Check(!Arsenal.Fits(new[] { Arsenal.Get("cosh"), Arsenal.Get("icepick"),
+                                        Arsenal.Get("razor") }, knife),
+                  "carry: four does not");
+            Check(!Arsenal.Fits(new[] { Arsenal.Get("bat") }, Arsenal.Get("sawnoff")),
+                  "carry: you cannot hide two things that cannot be hidden");
+            Check(Arsenal.Fits(new[] { Arsenal.Get("bat") }, knife),
+                  "carry: a bat in your hand and a knife in your coat is a real loadout");
+            Check(Arsenal.Fits(new[] { Arsenal.Get("icepick"), Arsenal.Get("bottle") },
+                               Arsenal.Get("kitchenknife")),
+                  "carry: three innocent things fit");
+            Check(!Arsenal.Fits(new[] { Arsenal.Get("switchblade"), Arsenal.Get("cosh") },
+                                Arsenal.Get("icepick")),
+                  "carry: three does not once one of them is damning");
+
+            // Found is worse than used.
+            Check(Arsenal.FriskCost(Arsenal.Get("switchblade")) > Arsenal.FriskCost(knife),
+                  "frisk: a switchblade costs more to be caught with than a kitchen knife");
+            Check(Arsenal.FriskCost(Arsenal.Get("icepick")) == 0,
+                  "frisk: an ice pick explains itself");
+            Check(Arsenal.FriskCost(Arsenal.Get("sawnoff")) >= 1.0,
+                  "frisk: and nothing explains a sawn-off");
+
+            // ---- the table agrees with the hearing model ----
+            // Jafar's example, straight out of two systems written a day apart
+            // and never compared until this line.
+            double bar = Perception.AmbientBarBusy, night = Perception.AmbientNight3am;
+            Check(Perception.AudibleRadius(Arsenal.Get("supp22").Loudness, bar) == 0,
+                  "arsenal: the suppressed .22 carries nothing in a busy bar");
+            Check(Perception.AudibleRadius(Arsenal.Get("supp22").Loudness, night) > 50,
+                  "arsenal: and the length of a street at 3am");
+            Check(Perception.AudibleRadius(Arsenal.Get("wire").Loudness, night) == 0,
+                  "arsenal: the wire carries nothing anywhere, ever");
         }
 
         static void TestMotionMatching()
