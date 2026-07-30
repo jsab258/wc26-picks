@@ -73,9 +73,13 @@ be played yet:
   a button.** Deliberate: the plan ships senses first and judges them alone.
 - **The witness ghost is not in.** The thing that shows you what somebody
   believes is designed and tested in Core and has no visual yet.
-- **No noise ring.** The one-frame circle showing how far a sound actually
-  carried is next. Until then the hearing model is invisible except through
-  behaviour.
+- **The noise ring is built, verified, and not visible.** The one-frame circle
+  showing how far a sound carried computes the right radius — CI asserts it
+  against the acoustic model rather than against a copied number — and it never
+  actually draws in the built player. Almost certainly the sprite shader being
+  stripped from the build. So **the hearing model is currently invisible except
+  through behaviour**: you will see somebody walk toward a sound, and you will
+  not see how far it went. Top of the fix list.
 - **Barks are still silent**, so when somebody notices you they will not say
   anything. That is still the fifteen minutes of listening I need from you, and
   it now costs more than it did yesterday: two of the four channels that tell

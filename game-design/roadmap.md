@@ -1143,3 +1143,47 @@ neither of the two dominance risks in spec §11 is realised.
 **Not yet built:** NPCs walking toward a noise (hearing is in Core and not yet
 driving behaviour), the noise ring, the witness ghost, melee verbs against the
 new model, acquisition UI, firearms.
+
+### M16 BUILD STATE — 2026-07-30 08:44Z, **GREEN**
+
+Run 30526392229 (`de7d5a9`): **no failing gates, pass=True.** Thirty-odd gates,
+including the new perception one, which a city that computes perfectly and reacts
+to nothing cannot pass.
+
+```
+looks=817  loiterLooks=15 loiterNotices=1  nightRunLooks=4 nightRunNotices=4
+sounds=1170  investigations=17  slamInvestigations=17  standoffs=43
+litRange=37.7m  darkRange=23.4m  hushPeak=0.99
+ringsSized=660  ringOk=True  perceptionWhy=ok
+lastDay=13  meanFrame=286.32ms  perfOk=True  pass=True
+```
+
+**ONE CAVEAT INSIDE THE GREEN, stated because "green" must not imply more than
+it says.** `ringsDrawn=0` against `ringsSized=660`: the noise ring's arithmetic
+is verified — the radius it would use equals the model's, asserted against the
+model rather than a copied constant — and **the circle has still never appeared
+on screen in a built player.** The likely cause is the sprite shader being
+stripped from the build, which is a rendering problem rather than a perception
+one, and separating the two claims is what made that legible instead of looking
+like a broken hearing model. It is the top follow-up: one of the two legibility
+devices is currently invisible.
+
+**What eight builds cost, and what they bought.** Every failure was mine and
+each one was a different species:
+
+| | |
+|---|---|
+| A `double` Core constant in a `float` Unity field | nothing local compiles the Game layer; there is a lint rule for it now |
+| Sound emission behind a sim-mode early return | the sim could never see a footstep; hearing read as zero by construction |
+| "Running" hard-coded at 3.2 m/s | this game's WALK is 4.0 — every night walk registered as a sprint |
+| Standoff per-person cooldown only | 292 beats in nine days; a flourish that often is the ambient state |
+| Hush dividing attending by present | one person nearby silenced the whole street |
+| Probes waiting for an audience | never fired once; they now walk to somebody |
+| A stale lamp cache | two views of one set; light attribution measured darkness against darkness |
+| `BindPlayer` called from a path the sim never runs | the ring had no player to size against |
+| The crowd charged twice in the ambient floor | a 3am slam came out quieter than the street it was slammed on |
+
+**And two reds that were not mine.** `verdictSane` and the
+preset/reflection/specular trio both recovered with no change from me —
+stochastic, and both would have been damaged by "fixing" them. Declining to
+weaken a gate to change its colour was the right call twice.
