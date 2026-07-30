@@ -1,0 +1,80 @@
+[
+ {
+  "name": "direction collapses to four arcs, so 'behind' spans a hundred and eighty degrees",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            int arc = (int)Math.Floor((b + 22.5) / 45.0) % 8;",
+  "new": "            int arc = ((int)Math.Floor((b + 45.0) / 90.0) % 4) * 2;"
+ },
+ {
+  "name": "an arc STARTS at its name instead of being centred on it -- straight ahead reads as 'ahead right'",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            int arc = (int)Math.Floor((b + 22.5) / 45.0) % 8;",
+  "new": "            int arc = (int)Math.Floor(b / 45.0) % 8;"
+ },
+ {
+  "name": "a negative bearing falls off the end of the table",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (b < 0) b += 360.0;",
+  "new": "            if (b < 0) b = 0;"
+ },
+ {
+  "name": "loudness flattens -- a slam and a scuff read as the same line",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (db >= Perception.LoudShout) return \"loud\";",
+  "new": "            if (db >= Perception.LoudShout) return \"faint\";"
+ },
+ {
+  "name": "the ordinary case gets marked too, so the marking stops meaning anything",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (db >= Perception.LoudConversation) return \"\";",
+  "new": "            if (db >= Perception.LoudConversation) return \"ordinary\";"
+ },
+ {
+  "name": "THE CAPTION BECOMES AN X-RAY -- a sound the player could not have heard is printed anyway",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (audibleRadius <= 0 || metres > audibleRadius) return null;",
+  "new": "            if (audibleRadius < 0) return null;"
+ },
+ {
+  "name": "a sound masked to nothing by the street is captioned regardless",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (audibleRadius <= 0 || metres > audibleRadius) return null;",
+  "new": "            if (metres > audibleRadius) return null;"
+ },
+ {
+  "name": "an unknown kind prints its own internal id at the player",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "                default: return null;\n            }\n        }",
+  "new": "                default: return kind;\n            }\n        }"
+ },
+ {
+  "name": "the caption drops the direction, which is the one thing hearing would have given free",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "                 ? \"[\" + loud + \" \" + what + \" — \" + where + \"]\"\n                 : \"[\" + what + \" — \" + where + \"]\";",
+  "new": "                 ? \"[\" + loud + \" \" + what + \"]\"\n                 : \"[\" + what + \"]\";"
+ },
+ {
+  "name": "captions appear at the 'speech' level too -- somebody who asked for subtitles gets sound captions",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (level != CaptionLevel.SpeechAndSound) return null;\n            if (string.IsNullOrEmpty(kind)) return null;",
+  "new": "            if (level == CaptionLevel.Off) return null;\n            if (string.IsNullOrEmpty(kind)) return null;"
+ },
+ {
+  "name": "the hush never clears, so the player is told they were noticed and never told it passed",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            if (alreadyShown && hush <= HushClearBelow) return \"[the street picks up again]\";",
+  "new": "            if (false) return \"[the street picks up again]\";"
+ },
+ {
+  "name": "the hysteresis goes, so a street sitting on the line flickers between the two captions forever",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "        public const double HushClearBelow = 0.12;",
+  "new": "        public const double HushClearBelow = 0.35;"
+ },
+ {
+  "name": "the music channel goes silent for a deaf player, dropping §6.2 to two channels",
+  "file": "Assets/Scripts/Core/Captions.cs",
+  "old": "            : entering ? \"[the music turns]\" : null;",
+  "new": "            : null;"
+ }
+]

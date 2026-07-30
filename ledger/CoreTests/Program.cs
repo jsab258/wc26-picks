@@ -5713,9 +5713,18 @@ namespace Ledger.CoreTests
                 + "the same information in another sense, not more of it");
             Check(Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 40) != null,
                 "and one you could have heard is");
+            // AT ZERO METRES, which is the case the `radius <= 0` half of the
+            // guard actually exists for. A break run proved the first version
+            // of this check useless: it asked at five metres, where the OTHER
+            // half (`metres > radius`) already returns null, so removing the
+            // masking guard changed nothing and the break survived. The
+            // reachable case is your own footstep at noon — a sound at your
+            // feet that the street has masked out entirely.
+            Check(Captions.ForSound(both, "footstep", Perception.LoudFootstepWalk, 0, 0, 0) == null,
+                "a sound MASKED TO NOTHING is silent to the captions even at zero metres — "
+                + "the whole masking model reused, not a distance check wearing its hat");
             Check(Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 0) == null,
-                "a sound with no audible radius at all — masked by the street — is silent "
-                + "to the captions too, which is the whole masking model reused");
+                "and one out past a zero radius is silent too");
 
             var cap = Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 40);
             Check(cap.StartsWith("[") && cap.EndsWith("]"), "a caption is bracketed", cap);
