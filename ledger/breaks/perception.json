@@ -1,0 +1,92 @@
+[
+  {
+    "name": "light is ignored, so a man in a doorway is as visible as one under a lamp",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            return metres <= DetectRangeMetres * LightFactor(lightLevel);",
+    "new": "            return metres <= DetectRangeMetres;"
+  },
+  {
+    "name": "the peripheral band gets full acuity, so nothing can ever stand at the edge of vision",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (a <= FovDegrees / 2) return 0.35;",
+    "new": "            if (a <= FovDegrees / 2) return 1.0;"
+  },
+  {
+    "name": "a still subject in the peripheral band is seen, deleting stillness as a tactic",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (w < 1.0 && subjectSpeed < 0.35) return false;",
+    "new": "            if (false) return false;"
+  },
+  {
+    "name": "the ladder is made monotonic, so a stranger at arm's length can name you",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (familiarity >= RecognitionFamiliarity && metres <= Rung4RecogniseMetres * f)\n                best = 4;",
+    "new": "            if (metres <= Rung4RecogniseMetres * f) best = 4;"
+  },
+  {
+    "name": "recognition range is clamped to face range, deleting the whole acquaintance mechanic",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "        public const double Rung4RecogniseMetres = 25.0;",
+    "new": "        public const double Rung4RecogniseMetres = 8.0;"
+  },
+  {
+    "name": "a face is read from behind, so turning your back stops mattering",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (faceToward && metres <= Rung3FaceMetres * f) best = 3;",
+    "new": "            if (metres <= Rung3FaceMetres * f) best = 3;"
+  },
+  {
+    "name": "loudness is absolute -- the ambient floor is dropped and masking dies",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (l <= ambientFloor) return 0.0;\n            double r = AudibleBaseMetres * Math.Pow(2.0, (l - ambientFloor) / AudibleDivisor);",
+    "new": "            double r = AudibleBaseMetres * Math.Pow(2.0, l / AudibleDivisor);"
+  },
+  {
+    "name": "a wall scales the radius instead of subtracting from loudness, so occlusion stops composing with masking",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            double l = loudness - (occluded ? WallAttenuation : 0.0);",
+    "new": "            double l = loudness;"
+  },
+  {
+    "name": "the walking footstep goes back to the first draft, silent in a silent street",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "        public const double LoudFootstepWalk = 25.0;",
+    "new": "        public const double LoudFootstepWalk = 20.0;"
+  },
+  {
+    "name": "alert state does nothing, so fear stops sharpening hearing",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            ambientFloor - AlertFloorDrop * Feel.Clamp01(alertness);",
+    "new": "            ambientFloor;"
+  },
+  {
+    "name": "attention counts samples instead of seconds -- notice time becomes tick-rate dependent",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "                _seconds += dt * coneWeight * motionFactor;",
+    "new": "                _seconds += 0.05 * coneWeight * motionFactor;"
+  },
+  {
+    "name": "looking away resets attention, so a doorway pumps the system back to zero",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "                    _seconds = Math.Max(0, _seconds - dt * 0.6);",
+    "new": "                    _seconds = 0;"
+  },
+  {
+    "name": "motion is ignored, so running is as quiet as standing still",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "                _seconds += dt * coneWeight * motionFactor;\n\n                if (_seconds >= IdentifySeconds && rungIfIdentified > _rung)",
+    "new": "                _seconds += dt * coneWeight;\n\n                if (_seconds >= IdentifySeconds && rungIfIdentified > _rung)"
+  },
+  {
+    "name": "symmetry promises past the distance facing can be read",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (!FacingIsReadable(metres, youAreLit)) return false;   // cannot tell",
+    "new": "            if (false) return false;"
+  },
+  {
+    "name": "the dt guard is dropped, so a NaN frame poisons attention forever",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "                if (!(dt > 0)) return;                  // catches zero, negative, NaN",
+    "new": "                if (dt == 0) return;"
+  }
+]

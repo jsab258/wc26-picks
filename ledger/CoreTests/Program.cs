@@ -101,6 +101,7 @@ namespace Ledger.CoreTests
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
+                TestPerception();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -8375,6 +8376,186 @@ namespace Ledger.CoreTests
                 "a near-constant image has variance at or above zero rather than a rounding "
                 + "error below it",
                 $"{ImageStats.Variance(almostFlat):0.###############e+0}");
+        }
+
+
+        /// PERCEPTION — `weapons-spec.md` §16, and the point of these checks is
+        /// that the spec's own worked examples are asserted rather than
+        /// admired. The first draft of the hearing table made footsteps
+        /// inaudible in a silent street and nothing would have caught it.
+        static void TestPerception()
+        {
+            // ---- the cone ----
+            Check(Perception.ConeWeight(0) == 1.0, "perception: dead ahead is full acuity");
+            Check(Perception.ConeWeight(-25) == 1.0, "perception: cone is symmetric");
+            Check(Perception.ConeWeight(45) > 0 && Perception.ConeWeight(45) < 1.0,
+                  "perception: 45 degrees off is peripheral, not full",
+                  $"{Perception.ConeWeight(45)}");
+            Check(Perception.ConeWeight(75) == 0.0, "perception: outside the fov is nothing");
+
+            // The peripheral band is motion-only, and that is a tactic rather
+            // than a technicality: standing still at the edge of vision works.
+            Check(!Perception.InSight(6, 50, 1.0, false, subjectSpeed: 0.0),
+                  "perception: still subject in the peripheral band is not seen");
+            Check(Perception.InSight(6, 50, 1.0, false, subjectSpeed: 1.4),
+                  "perception: the same subject walking IS seen");
+
+            // ---- light ----
+            double lit = Perception.LightFactor(1.0), doorway = Perception.LightFactor(0.0);
+            Check(lit == 1.0, "perception: full light is unity");
+            Check(doorway > 0 && doorway < 0.2,
+                  "perception: a doorway is a big cut but never zero", $"{doorway}");
+            Check(Perception.LightFactor(0.25) < Perception.LightFactor(0.5)
+                  && Perception.LightFactor(0.5) < Perception.LightFactor(0.9),
+                  "perception: light factor is monotonic");
+
+            // THE PHASE 1 CLAIM, asserted: a lit walker is detected further
+            // away than one in shadow. This is the machinery gate in §10.
+            Check(Perception.InSight(30, 0, 1.0, false), "perception: 30m in daylight is seen");
+            Check(!Perception.InSight(30, 0, 0.15, false),
+                  "perception: the same 30m in near-dark is NOT seen");
+
+            // Occlusion beats everything, including standing under a lamp.
+            Check(!Perception.InSight(2, 0, 1.0, true), "perception: a wall beats two metres");
+
+            // ---- the identification ladder ----
+            // A stranger can never be named, at any distance. This is the
+            // check that would fail if somebody 'fixed' the ladder to be
+            // monotonic, which is the most likely future mistake in this file.
+            Check(Perception.IdRung(0.5, 1.0, familiarity: 0.0, hasDistinguishingMark: true) == 3,
+                  "perception: a stranger at arm's length tops out at rung 3");
+            Check(Perception.IdRung(20, 1.0, familiarity: 0.9, hasDistinguishingMark: false) == 4,
+                  "perception: an acquaintance at 20m is NAMED");
+            Check(Perception.IdRung(20, 1.0, familiarity: 0.0, hasDistinguishingMark: false) == 1,
+                  "perception: a stranger at the same 20m is a silhouette");
+            // The asymmetry that makes the double life bite.
+            Check(Perception.IdRung(20, 1.0, 0.9, false) > Perception.IdRung(20, 1.0, 0.0, false),
+                  "perception: the dangerous witness is the one who knows you");
+            // A mark reads further than a face, and survives them walking away.
+            Check(Perception.IdRung(14, 1.0, 0.0, true) == 2,
+                  "perception: a limp at 14m is rung 2");
+            Check(Perception.IdRung(6, 1.0, 0.0, true, faceToward: false) == 2,
+                  "perception: a face turned away does not reach rung 3");
+            Check(Perception.IdRung(6, 1.0, 0.0, true, faceToward: true) == 3,
+                  "perception: the same distance facing you does");
+            // Darkness collapses the whole ladder.
+            Check(Perception.IdRung(20, 0.1, 0.9, true) < 4,
+                  "perception: darkness takes the name off an acquaintance at 20m");
+
+            // ---- symmetry, the one prospective signal ----
+            Check(Perception.SymmetryPredictsSeen(10, 0, 1.0, false),
+                  "symmetry: facing you, lit, ten metres — he sees you");
+            Check(!Perception.SymmetryPredictsSeen(10, 0, 0.05, false),
+                  "symmetry: the same geometry in the dark does not");
+            // Beyond the readable distance the rule says "you cannot tell"
+            // rather than "you are safe" — the promise is that there is no
+            // hidden factor, and it can only be kept where facing is legible.
+            Check(!Perception.SymmetryPredictsSeen(30, 0, 1.0, false),
+                  "symmetry: past facing-readable range the rule declines to promise");
+            Check(Perception.FacingIsReadable(17, 1.0) && !Perception.FacingIsReadable(19, 1.0),
+                  "symmetry: facing is readable to 18m in full light");
+
+            // ---- hearing: the six worked cases from spec §16.2 ----
+            double fs3am = Perception.AudibleRadius(Perception.LoudFootstepWalk,
+                                                    Perception.AmbientNight3am);
+            Check(fs3am > 3.0 && fs3am < 4.5,
+                  "hearing: a footstep at 3am carries about 3.6m", $"{fs3am:0.00}");
+            Check(Perception.AudibleRadius(Perception.LoudFootstepWalk,
+                                           Perception.AmbientDaytimeStreet) == 0,
+                  "hearing: the same footstep in a daytime street carries nothing");
+            Check(Perception.AudibleRadius(Perception.LoudSuppressed22,
+                                           Perception.AmbientBarBusy) == 0,
+                  "hearing: a suppressed .22 in a busy bar carries NOTHING");
+            double sup3am = Perception.AudibleRadius(Perception.LoudSuppressed22,
+                                                     Perception.AmbientNight3am);
+            Check(sup3am > 70 && sup3am < 100,
+                  "hearing: the same shot at 3am carries the length of the street",
+                  $"{sup3am:0.0}");
+            double snub = Perception.AudibleRadius(Perception.LoudSnub38,
+                                                   Perception.AmbientDaytimeStreet);
+            Check(snub > 150 && snub < 200, "hearing: a .38 in daylight carries ~177m",
+                  $"{snub:0.0}");
+            double shout = Perception.AudibleRadius(Perception.LoudShout,
+                                                    Perception.AmbientMarketNoon);
+            Check(shout > 1.5 && shout < 3.0,
+                  "hearing: shouting in a market is nearly useless", $"{shout:0.00}");
+
+            // THE MASKING CLAIM ITSELF: the same weapon, two places, and the
+            // quiet one is the dangerous one. This inverts the intuition every
+            // other game teaches and it is the reason the system exists.
+            Check(sup3am > 20 * Perception.AudibleRadius(Perception.LoudSuppressed22,
+                                                         Perception.AmbientMarketNoon),
+                  "hearing: masking makes the QUIET place the loud one");
+
+            // Rain is cover, and it is on a real weather clock.
+            Check(Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am)
+                  > Perception.AudibleRadius(Perception.LoudDoorSlam,
+                                             Perception.AmbientNight3am + Perception.AmbientRainAdds),
+                  "hearing: rain shortens everything");
+
+            // A wall subtracts from loudness rather than scaling radius, so it
+            // composes with masking instead of fighting it.
+            Check(Perception.AudibleRadius(Perception.LoudShout, Perception.AmbientNight3am, occluded: true)
+                  < Perception.AudibleRadius(Perception.LoudShout, Perception.AmbientNight3am) * 0.2,
+                  "hearing: a wall costs most of the radius");
+            Check(!Perception.Heard(40, Perception.LoudShout, Perception.AmbientNight3am, occluded: true),
+                  "hearing: a shout behind a wall does not reach 40m");
+            Check(Perception.Heard(40, Perception.LoudShout, Perception.AmbientNight3am),
+                  "hearing: the same shout with no wall does");
+
+            // Alert scaling: escalation with no state machine.
+            Check(Perception.AudibleRadius(Perception.LoudFootstepWalk,
+                      Perception.EffectiveFloor(Perception.AmbientNight3am, 1.0))
+                  > fs3am,
+                  "hearing: a frightened man hears the footstep further away");
+
+            // ---- the accumulator ----
+            // TIME-WEIGHTED, NOT SAMPLE-COUNTED. Two tick rates must reach
+            // NoticeSeconds at the same wall-clock moment or notice time is
+            // frame-rate dependent — the FrameRate bug, one system over.
+            var fast = new Perception.Attention();
+            var slow = new Perception.Attention();
+            for (int i = 0; i < 60; i++) fast.Tick(1.0 / 60, true, 1.0, 1.0, 4);   // 60Hz
+            for (int i = 0; i < 6; i++) slow.Tick(1.0 / 6, true, 1.0, 1.0, 4);     // 6Hz
+            Check(Math.Abs(fast.Seconds - slow.Seconds) < 1e-9,
+                  "attention: 60Hz and 6Hz accrue identically",
+                  $"{fast.Seconds:0.0000} vs {slow.Seconds:0.0000}");
+
+            var a = new Perception.Attention();
+            a.Tick(0.2, true, 1.0, 1.0, 4);
+            Check(!a.Noticed, "attention: a fifth of a second is a glance");
+            a.Tick(0.2, true, 1.0, 1.0, 4);
+            Check(a.Noticed && !a.Identified, "attention: 0.4s is a look, not a name");
+            a.Tick(1.0, true, 1.0, 1.0, 4);
+            Check(a.Identified && a.Rung == 4, "attention: 1.4s in the open names you");
+
+            // Running doubles the rate; standing still halves it. The tactic
+            // has to be real or the motion column is decoration.
+            var running = new Perception.Attention();
+            var still = new Perception.Attention();
+            running.Tick(0.2, true, 1.0, Perception.MotionFactor(4.0), 1);
+            still.Tick(0.2, true, 1.0, Perception.MotionFactor(0.0), 1);
+            Check(running.Noticed && !still.Noticed,
+                  "attention: running is noticed in the time standing still is not");
+            Check(Math.Abs(Perception.MotionFactor(1.4) - 1.0) < 1e-9,
+                  "attention: a walk is the unit");
+
+            // Attention FADES rather than resetting, so stepping in and out of
+            // a doorway cannot be used to pump the system back to zero.
+            var fade = new Perception.Attention();
+            fade.Tick(1.0, true, 1.0, 1.0, 4);
+            double held = fade.Seconds;
+            fade.Tick(0.5, false, 0, 0, 0);
+            Check(fade.Seconds > 0 && fade.Seconds < held,
+                  "attention: looking away fades rather than resets", $"{fade.Seconds:0.00}");
+
+            // NaN and zero dt are the two inputs a real frame loop will hand
+            // this on its worst day.
+            var junk = new Perception.Attention();
+            junk.Tick(double.NaN, true, 1.0, 1.0, 4);
+            junk.Tick(0, true, 1.0, 1.0, 4);
+            junk.Tick(-1, true, 1.0, 1.0, 4);
+            Check(junk.Seconds == 0 && !junk.Noticed, "attention: NaN, zero and negative dt do nothing");
         }
 
         static void TestMotionMatching()
