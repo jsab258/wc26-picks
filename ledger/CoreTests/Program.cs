@@ -8981,6 +8981,13 @@ namespace Ledger.CoreTests
             int lose = Arsenal.All.Count(w => !w.BeatsAReadyMan && w.Family != Family.Environment
                                               && w.Family != Family.Kit);
             Check(lose >= 4, "arsenal: most of the roster loses to a ready armed man", $"{lose}");
+            // A COUNT IS TOO LOOSE. A break run that promoted one knife to
+            // beating a ready armed man survived this check, because ten
+            // others still lost. Name them: these five are the ones whose
+            // losing IS the design, and each is individually asserted.
+            foreach (var id in new[] { "fists", "switchblade", "kitchenknife", "icepick", "razor" })
+                Check(!Arsenal.Get(id).BeatsAReadyMan,
+                      $"arsenal: {id} loses to a man who is ready and armed");
 
             // The pistol is not an upgrade over the knife; it is louder.
             var knife = Arsenal.Get("kitchenknife");
@@ -9103,6 +9110,16 @@ namespace Ledger.CoreTests
                   "frisk: a switchblade costs more to be caught with than a kitchen knife");
             Check(Arsenal.FriskCost(Arsenal.Get("icepick")) == 0,
                   "frisk: an ice pick explains itself");
+            // FOUR RUNGS, ORDERED. Checking only the ends let a break run
+            // flatten the middle one to zero and survive — concealable was
+            // never compared against anything.
+            Check(Arsenal.FriskCost(Arsenal.Get("kitchenknife"))
+                  < Arsenal.FriskCost(Arsenal.Get("cosh"))
+                  && Arsenal.FriskCost(Arsenal.Get("cosh"))
+                     < Arsenal.FriskCost(Arsenal.Get("switchblade"))
+                  && Arsenal.FriskCost(Arsenal.Get("switchblade"))
+                     < Arsenal.FriskCost(Arsenal.Get("sawnoff")),
+                  "frisk: innocent < concealable < damning < impossible, all four distinct");
             Check(Arsenal.FriskCost(Arsenal.Get("sawnoff")) >= 1.0,
                   "frisk: and nothing explains a sawn-off");
 

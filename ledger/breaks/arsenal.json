@@ -1,0 +1,110 @@
+[
+  {
+    "name": "the roster becomes a power ladder -- everything beats a ready armed man",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                VictimCriesOut = true, BeatsAReadyMan = false, LeavesBody = true,\n                MarksYou = true, Trace = \"a wound signature, and blood\",\n                Concealment = Concealment.Damning, Fails = FailureMode.HeGetsAHandOnIt,\n                Purchasable = true, Anonymous = false },",
+    "new": "                VictimCriesOut = true, BeatsAReadyMan = true, LeavesBody = true,\n                MarksYou = true, Trace = \"a wound signature, and blood\",\n                Concealment = Concealment.Damning, Fails = FailureMode.HeGetsAHandOnIt,\n                Purchasable = true, Anonymous = false },"
+  },
+  {
+    "name": "the revolver throws brass, deleting the forensic distinction",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                MarksYou = false, Trace = \"a wound, and nothing on the ground\",",
+    "new": "                MarksYou = false, Trace = \"brass on the pavement, and a wound\","
+  },
+  {
+    "name": "the kitchen knife becomes traceable, so ordinariness stops being cover",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                Concealment = Concealment.Innocent, Fails = FailureMode.HeGetsAHandOnIt,\n                // UNTRACEABLE BY BEING ORDINARY. Every building in the game has\n                // one, so a knife from the victim's own kitchen has no\n                // provenance to follow at all.\n                Purchasable = false, Anonymous = true },",
+    "new": "                Concealment = Concealment.Innocent, Fails = FailureMode.HeGetsAHandOnIt,\n                Purchasable = true, Anonymous = false },"
+  },
+  {
+    "name": "the wire can be aborted halfway, removing the one commitment in the roster",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                Loudness = 0, ReachMetres = 0.5, ReadySeconds = 2.0, CanAbort = false,",
+    "new": "                Loudness = 0, ReachMetres = 0.5, ReadySeconds = 2.0, CanAbort = true,"
+  },
+  {
+    "name": "the wire makes a noise, so nothing in the game is silent",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            new Weapon { Id = \"wire\", Name = \"wire\", Family = Family.Ligature,\n                Loudness = 0,",
+    "new": "            new Weapon { Id = \"wire\", Name = \"wire\", Family = Family.Ligature,\n                Loudness = 30,"
+  },
+  {
+    "name": "the bat becomes concealable, deleting the only weapon whose use is being seen",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                Concealment = Concealment.Impossible, Fails = FailureMode.HeStaysUp,\n                Purchasable = true, Anonymous = false },",
+    "new": "                Concealment = Concealment.Concealable, Fails = FailureMode.HeStaysUp,\n                Purchasable = true, Anonymous = false },"
+  },
+  {
+    "name": "an accident works with somebody watching",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            => IsAccident(w) && inPosition && witnessesPresent == 0;",
+    "new": "            => IsAccident(w) && inPosition;"
+  },
+  {
+    "name": "an accident needs no position, so the stairs are always available",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "        public static bool AccidentAvailable(Weapon w, bool inPosition, int witnessesPresent)\n            => IsAccident(w) && inPosition && witnessesPresent == 0;",
+    "new": "        public static bool AccidentAvailable(Weapon w, bool inPosition, int witnessesPresent)\n            => IsAccident(w) && witnessesPresent == 0;"
+  },
+  {
+    "name": "being seen pushing a man downstairs costs no more than being seen stabbing one",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "        public const double SeenAccidentPenalty = 1.35;",
+    "new": "        public const double SeenAccidentPenalty = 1.0;"
+  },
+  {
+    "name": "an armed target no longer escalates, so brandishing solves everything",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            if (targetArmed || targetIsOutfit) return Threat.Escalate;",
+    "new": "            if (false) return Threat.Escalate;"
+  },
+  {
+    "name": "reputation stops mattering, so a barman with a razor is as frightening as a killer",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                * (0.55 + 0.65 * Feel.Clamp01(reputationForViolence)));",
+    "new": "                * 1.2);"
+  },
+  {
+    "name": "nobody ever calls the bluff, so the humiliating public outcome disappears",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            if (nerve > menace + 0.20) return Threat.CallTheBluff;",
+    "new": "            if (false) return Threat.CallTheBluff;"
+  },
+  {
+    "name": "fleeing and complying swap, so a frightened man screams in private and complies in the street",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            if (menace > nerve + 0.35) return inPublic ? Threat.FleeScreaming : Threat.Comply;",
+    "new": "            if (menace > nerve + 0.35) return inPublic ? Threat.Comply : Threat.FleeScreaming;"
+  },
+  {
+    "name": "you can un-draw, which removes the one-way door the whole verb turns on",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "        public static bool CanUndraw() => false;",
+    "new": "        public static bool CanUndraw() => true;"
+  },
+  {
+    "name": "the coat becomes a bag -- everything fits",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            return list.Count <= cap;",
+    "new": "            return true;"
+  },
+  {
+    "name": "a damning object no longer costs a slot",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "            int cap = list.All(w => w.Concealment != Concealment.Damning)\n                      ? CoatCapacityIfOneIsSmall : CoatCapacity;",
+    "new": "            int cap = CoatCapacityIfOneIsSmall;"
+  },
+  {
+    "name": "two unhideable objects can be carried together",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                return list.Count(w => w.Concealment == Concealment.Impossible) == 1\n                       && list.Count <= 2;",
+    "new": "                return list.Count <= 2;"
+  },
+  {
+    "name": "being frisked costs the same whatever is found on you",
+    "file": "Assets/Scripts/Core/Arsenal.cs",
+    "old": "                case Concealment.Concealable: return 0.35;",
+    "new": "                case Concealment.Concealable: return 0.0;"
+  }
+]
