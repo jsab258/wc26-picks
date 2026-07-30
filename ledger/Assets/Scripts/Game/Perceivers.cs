@@ -137,6 +137,16 @@ namespace Ledger.Game
         {
             Looks = Remarks = LoiterNotices = NightRunNotices = NoiseInvestigations = 0;
             PeakHush = 0;
+            // AND THE SOUND STATE, which the first version of this method
+            // missed while the perception gate was already reading
+            // SoundsEmitted. A reset that clears some of a class's counters is
+            // worse than no reset at all, because the ones it forgets look
+            // deliberate.
+            SoundsEmitted = 0;
+            LastSoundTime = -999f;
+            LastSoundLoudness = 0;
+            LastSoundKind = null;
+            _lastRingAt = -999f;
         }
 
         /// Currently-attending walkers, maintained by `NpcWalker` so the hush

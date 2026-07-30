@@ -169,6 +169,11 @@ namespace Ledger.Game
             _game.MinutesPerRealSecond = SimMinutesPerRealSecond;
             System.IO.Directory.CreateDirectory("sim-out");
             Application.logMessageReceived += OnLog;
+            // Counters are per-run or they are meaningless. Both of these
+            // reset methods existed and neither had a caller, which is the
+            // dead-field smell one file over from where PeakHush had it.
+            Perceivers.ResetCounters();
+            Standoff.Reset();
             _npcs = UnityEngine.Object.FindObjectsByType<NpcWalker>(FindObjectsSortMode.None);
             foreach (var npc in _npcs) _startPositions[npc.DisplayName] = npc.transform.position;
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
