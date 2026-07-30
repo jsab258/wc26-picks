@@ -1245,6 +1245,15 @@ namespace Ledger.Game
         /// instantaneous Emit) and turns the ring claim from luck into a fact.
         int _slams;
         int _lastSlamDay = -99;
+
+        /// PHASE 2. How many evenings stage a deed, and what the witnesses
+        /// made of it. Four, on four separate days, for the same reason the
+        /// ambient-occlusion probe needed three: one sample of one street is
+        /// one arrangement of people, and "four witnesses produce four slot
+        /// sets" is a claim about arrangements.
+        int _deedsStaged, _lastDeedDay = -99;
+        const int DeedsWanted = 4;
+        int _deedSlotSets, _deedWitnesses, _deedBestRung;
         const int SlamsWanted = 4;
         /// Did a slam actually put a circle on the ground? Checked in the same
         /// frame as the Emit, because `Show` is synchronous — so this is the
@@ -1481,6 +1490,38 @@ namespace Ledger.Game
                           + $" — ring {NoiseRing.LastSkip} at {NoiseRing.LastRadius:0.0}m"
                           + $" (floor {NoiseRing.LastFloor:0.0}, occluded={NoiseRing.LastOccluded})");
             }
+            // A DEED, STAGED, so `Witnesses` is exercised rather than merely
+            // written. §4.7's five claims are all about witnessing a violent
+            // act, and Phase 3 is what puts a weapon on a button — so until
+            // then the only way to find out whether the geometry produces
+            // different vantages on a real street is for the run to stage one.
+            //
+            // This is not a fake result standing in for a real one. The deed
+            // is synthetic; every number the witnesses are judged on —
+            // position, facing, light on the actor, light on the victim, walls
+            // — is the live world. What it measures is exactly the half
+            // CoreTests cannot: whether the street produces varied vantages,
+            // or whether four people in a city all resolve identically because
+            // something upstream is handing them the same geometry.
+            if (_deedsStaged < DeedsWanted && now.Day != _lastDeedDay
+                && nearest != null && nearestDist <= Perceivers.NearBandMetres)
+            {
+                _deedsStaged++;
+                _lastDeedDay = now.Day;
+                var weapon = Arsenal.Get("cosh");
+                var deed = Observe.DeedFor(weapon, $"sim-deed-{_deedsStaged}",
+                                           "player", nearest.DisplayName,
+                                           actorFled: false, hadPrecursor: true);
+                Witnesses.Resolve(deed, _player.transform, nearest.transform.position);
+                int distinct = Witnesses.DistinctSlotSets();
+                if (distinct > _deedSlotSets) _deedSlotSets = distinct;
+                if (Witnesses.Saw > _deedWitnesses) _deedWitnesses = Witnesses.Saw;
+                if (Witnesses.BestRung() > _deedBestRung) _deedBestRung = Witnesses.BestRung();
+                Debug.Log($"SimDirector: staged deed #{_deedsStaged} "
+                          + $"({Witnesses.Considered} considered, {Witnesses.Saw} got something, "
+                          + $"{distinct} distinct slot sets, best rung {Witnesses.BestRung()})");
+            }
+
             // THE RING IS THE MODEL, asserted rather than assumed. Comparing
             // the drawn radius against `AudibleRadius` recomputed from the same
             // inputs catches the whole class of bug where a visual quietly
@@ -3366,6 +3407,13 @@ namespace Ledger.Game
                       // has more than one cause, and the hush is the one that
                       // dies quietly because it is polled rather than pushed.
                       $"captions={_captionsShown} captionHushes={_captionHushes} " +
+                      // PHASE 2. `deedSlotSets` is the §4.7 claim that only a
+                      // running street can answer: one event, witnesses at
+                      // different positions, DIFFERENT slot sets. One means
+                      // everybody resolved identically, which would say
+                      // something upstream is handing them the same geometry.
+                      $"deeds={_deedsStaged} deedWitnesses={_deedWitnesses} " +
+                      $"deedSlotSets={_deedSlotSets} deedBestRung={_deedBestRung} " +
                       $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
                       // ITEMISED, because `drawn=0` had three possible causes
                       // and I picked the wrong one out loud. `small` is the
