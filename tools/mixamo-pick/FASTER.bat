@@ -66,10 +66,17 @@ echo        ...confirmed.
 
 echo.
 echo  ------------------------------------------------------------
-echo   Done. Now double-click GO.bat again - it will pick up where
-echo   it left off and should finish in around two hours.
+echo   Done. What to run next depends on where you are:
 echo.
-echo   The 5 is remembered in threads.txt, so re-running GO.bat as
-echo   often as you like will keep it rather than reset it.
+echo   HARVEST NOT FINISHED YET  ->  GO.bat
+echo       picks up where it left off, ~2 hours from cold.
+echo.
+echo   HARVEST ALREADY FINISHED  ->  PUSH.bat
+echo       do NOT run GO.bat again. It restarts the whole flow and
+echo       re-walks 2,500 clips to skip nearly all of them. The clips
+echo       are already picked; only the push is outstanding.
+echo.
+echo   The 5 threads are remembered in threads.txt, so re-running
+echo   GO.bat keeps the setting rather than resetting it.
 echo  ------------------------------------------------------------
 pause
