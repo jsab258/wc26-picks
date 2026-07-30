@@ -174,6 +174,11 @@ namespace Ledger.Game
             // no meter, no word "detected" anywhere. Step under a lamp and the
             // corners lift; step into a doorway and they close in.
             float vignette = (float)LightModel.VignetteParamLit(night, LitAmount);
+            // THE STANDOFF, and it is the only thing other than the light that
+            // is allowed to touch this number. Four tenths of a second of the
+            // frame closing in, once per person, for the moment somebody meets
+            // your eye and you both know it.
+            vignette += Standoff.FrameTighten * Standoff.Curve * vignette;
 
             // BLOOM: downsample, blur, add back. Two small textures rather
             // than a chain — at this scale the extra passes buy nothing you

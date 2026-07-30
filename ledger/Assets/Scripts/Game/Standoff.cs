@@ -1,0 +1,112 @@
+using UnityEngine;
+using Ledger.Core;
+
+namespace Ledger.Game
+{
+    /// THE ONE DELIBERATE FLOURISH — `weapons-spec.md` §6.2 and §4.4.
+    ///
+    /// Mutual awareness has four states and the bottom-right one is a scene
+    /// rather than a flag: **he has seen you, and he knows that you know.** It
+    /// is the single most dramatic thing the perception model can produce and
+    /// it costs nothing to detect, because both halves of the record already
+    /// exist — `NpcWalker.AttendingPlayer` is one, and whether the walker is in
+    /// front of the player inside facing-readable range is the other.
+    ///
+    /// FOUR TENTHS OF A SECOND. Not slow motion, not a cutscene, no sting: the
+    /// street audio ducks and the frame tightens, once, and then it is over.
+    /// Used for exactly this and nothing else, so it never becomes wallpaper —
+    /// the moment a second thing borrows it, it stops meaning anything.
+    ///
+    /// AND ONLY ONCE PER PERSON. Eye contact with the same man twice in a
+    /// minute is not two events, and re-firing on every glance would turn the
+    /// most dramatic beat in the design into a stutter.
+    public static class Standoff
+    {
+        public const float BeatSeconds = 0.4f;
+
+        /// How long before the same person can produce another one.
+        public const float PerPersonCooldown = 25f;
+
+        /// How much tighter the frame closes at the peak of the beat, as a
+        /// fraction of the corner brightness. Small — this is a held breath,
+        /// not a vignette wipe.
+        public const float FrameTighten = 0.12f;
+
+        static float _firedAt = -999f;
+        static readonly System.Collections.Generic.Dictionary<string, float> _lastPerPerson
+            = new System.Collections.Generic.Dictionary<string, float>();
+
+        public static int Beats;
+        public static Awareness LastAwareness = Awareness.NeitherKnows;
+
+        public static bool Running => Time.time - _firedAt < BeatSeconds;
+
+        /// 0 at rest, 1 at the peak of the beat, back to 0. Read by the grade.
+        public static float Curve
+        {
+            get
+            {
+                float t = (Time.time - _firedAt) / BeatSeconds;
+                if (t < 0 || t > 1) return 0;
+                // Fast in, slow out: the catch of breath is the sharp part.
+                return t < 0.25f ? t / 0.25f : 1f - (t - 0.25f) / 0.75f;
+            }
+        }
+
+        /// Evaluate one walker. `theySeeYou` is their attention record;
+        /// `youSeeThem` is whether they are in front of you and close enough
+        /// that their facing is readable — the same predicate the symmetry rule
+        /// promises the player (§15.1), so the beat can never fire for
+        /// something the player had no way to perceive.
+        public static void Consider(string who, bool theySeeYou, bool youSeeThem)
+        {
+            var a = Observe.AwarenessOf(youSeeThem, theySeeYou);
+            LastAwareness = a;
+            if (a != Awareness.Standoff) return;
+            if (string.IsNullOrEmpty(who)) return;
+            if (_lastPerPerson.TryGetValue(who, out var last)
+                && Time.time - last < PerPersonCooldown) return;
+
+            _lastPerPerson[who] = Time.time;
+            _firedAt = Time.time;
+            Beats++;
+            // The bed gets out of the way, using the duck that already exists
+            // rather than a second volume system — `DuckForOverheard` is the
+            // harder of the two ducks and this is the same kind of moment: a
+            // thing you were not meant to be part of.
+            Audio.DuckForOverheard(true);
+        }
+
+        /// Release the duck when the beat is over. Called once a frame.
+        public static void Step()
+        {
+            if (!Running && Time.time - _firedAt < BeatSeconds + 0.5f)
+                Audio.DuckForOverheard(false);
+        }
+
+        /// Whether the player is looking at this walker closely enough for the
+        /// symmetry rule to hold — in front of the camera, within the distance
+        /// at which a facing reads, and not through a wall.
+        public static bool PlayerCanRead(Transform player, Transform them, double lightOnThem)
+        {
+            if (player == null || them == null) return false;
+            Vector3 to = them.position - player.position; to.y = 0;
+            float metres = to.magnitude;
+            if (!Perception.FacingIsReadable(metres, lightOnThem)) return false;
+            var cam = Camera.main;
+            Vector3 fwd = cam != null ? cam.transform.forward : player.forward;
+            fwd.y = 0;
+            if (Vector3.Angle(fwd, to) > Perception.AcuityDegrees / 2) return false;
+            return !Perceivers.Occluded(player.position, them.position);
+        }
+
+        /// For the sim report, and so a break run has something to read.
+        public static void Reset()
+        {
+            Beats = 0;
+            _firedAt = -999f;
+            _lastPerPerson.Clear();
+            LastAwareness = Awareness.NeitherKnows;
+        }
+    }
+}

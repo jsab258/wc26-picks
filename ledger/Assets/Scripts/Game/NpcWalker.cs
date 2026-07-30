@@ -195,6 +195,13 @@ namespace Ledger.Game
                             Perception.MotionFactor(speed) * pull, rung);
             _attendingNow = _attention.Noticed;
 
+            // MUTUAL AWARENESS. Costs one predicate on top of a record that
+            // already exists, and it is the difference between a witness you
+            // know about and one you do not — which §4.4 calls the quiet horror
+            // case and deliberately gives the player nothing for.
+            Standoff.Consider(DisplayName, _attendingNow,
+                              Standoff.PlayerCanRead(_player, transform, Perceivers.LevelAt(current)));
+
             if (_attendingNow && !wasAttending)
             {
                 Perceivers.Looks++;

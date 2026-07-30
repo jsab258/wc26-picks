@@ -2879,6 +2879,8 @@ namespace Ledger.Game
                  $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
                  $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                  $"slamInvestigations={_slamInvestigations} " +
+                 $"standoffs={Standoff.Beats} awareness={Standoff.LastAwareness} " +
+                 $"rings={Perceivers.SoundsEmitted} " +
                  $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
                  perceptionOk),
             };

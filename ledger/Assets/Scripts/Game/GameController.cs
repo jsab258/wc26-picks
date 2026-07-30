@@ -2410,6 +2410,11 @@ namespace Ledger.Game
             // frame of the same mix. Was a boolean that snapped the music to
             // 35% and back, which breathes audibly on every line.
             if (Audio.Ready) Audio.StepMix(Time.deltaTime);
+            // Release the standoff duck when its beat is over. Stepped here
+            // because this is already the one place per frame that advances the
+            // mix, and a second driver for one envelope is how a duck gets
+            // stuck open.
+            Standoff.Step();
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;
