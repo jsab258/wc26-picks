@@ -208,5 +208,159 @@ namespace Ledger.Core
         /// duck the street bed when the player steps through a door, which is
         /// the single clearest signal that they have entered somewhere.
         public static double OutsideBleed(SpaceKind s) => s == SpaceKind.Outdoors ? 1.0 : 0.28;
+
+        // ---- THE SECOND CHANNEL: what a telephone does to a voice ----------
+        //
+        // The phone is not decoration. design-doc calls it "the second
+        // channel" and it has its own milestone; `PhoneBook` already models
+        // the SOCIAL half of it — FidelityOnTheLine, how much less you learn
+        // down a wire than face to face. What did not exist anywhere in the
+        // project was the ACOUSTIC half. A voice on the phone was
+        // sample-identical to the same voice standing in the room, which
+        // throws away the mechanic's entire identity: the one sound every
+        // player on earth can identify inside half a second, rendered as if
+        // the handset were not there.
+        //
+        // Everything below is the same shape as the distance model above —
+        // constants a mixer can read, no DSP — and the Game layer turns it
+        // into filters.
+
+        /// The passband of a telephone, and these are not invented numbers:
+        /// 300–3400 Hz is the ITU voice channel, the thing the whole world's
+        /// telephony was built to carry and the reason a phone sounds like a
+        /// phone. Everything below 300 takes the chest out of a voice;
+        /// everything above 3400 takes the sibilance, which is where most of
+        /// the consonants live.
+        public const double TelephoneLowHz = 300.0;
+        public const double TelephoneHighHz = 3400.0;
+
+        /// A handset is a small hard cavity held against a face, and it rings
+        /// — a broad peak in the low mids that is as much of the "phone"
+        /// signature as the band limit is. Without it a band-passed voice
+        /// sounds like a voice through a wall rather than like a telephone.
+        public const double HandsetResonanceHz = 1400.0;
+        public const double HandsetResonanceQ = 1.6;
+
+        /// What kind of line you are on, worst to best. Which one you get is
+        /// a fact about the fiction — who is calling, from where — and it is
+        /// the whole reason this is an enum and not a float.
+        public enum LineKind
+        {
+            /// A phone in a place you own, on a line you pay for.
+            Handset,
+            /// A callbox on a street. Coins, traffic behind it, and worse
+            /// carbon in the mouthpiece.
+            PayPhone,
+            /// Trunk call. Thin, delayed, and slightly the wrong speed.
+            LongDistance,
+            /// Wet junction box, bad exchange, somebody on an extension.
+            BadLine,
+        }
+
+        /// The best clarity this line can deliver — the ceiling that distance
+        /// never gets to raise.
+        ///
+        /// A GOOD LINE IS DELIBERATELY ABOVE `Verbatim`. The temptation is to
+        /// put every phone call under the elision threshold because a real
+        /// telephone genuinely is less intelligible than a face; the result
+        /// would be that every line of the game's second core mechanic
+        /// arrives with a hole in it, and a mechanic that is annoying every
+        /// time is not a mechanic. So the good handset is clean text with a
+        /// telephone's SOUND, and the degradation is spent where it means
+        /// something — the callbox, the trunk, the bad junction.
+        public static double LineClarity(LineKind line)
+        {
+            switch (line)
+            {
+                case LineKind.Handset: return 0.94;
+                case LineKind.PayPhone: return 0.80;
+                case LineKind.LongDistance: return 0.68;
+                default: return 0.45;              // BadLine
+            }
+        }
+
+        /// Hiss and hum on the wire, 0..1. Not a fault to be minimised — it
+        /// is the floor the voice sits on, and a phone call with a silent
+        /// background is the single most obvious tell that nobody treated it.
+        public static double LineNoise(LineKind line)
+        {
+            switch (line)
+            {
+                case LineKind.Handset: return 0.06;
+                case LineKind.PayPhone: return 0.14;
+                case LineKind.LongDistance: return 0.22;
+                default: return 0.40;
+            }
+        }
+
+        /// DISTANCE DOES NOT EXIST ON A LINE, and this exists to say so out
+        /// loud where somebody would otherwise reach for `Intelligibility`.
+        /// A caller two hundred miles away and a caller in the next street
+        /// arrive at the same volume; that is what a telephone IS. The
+        /// street noise at the LISTENER's end still applies, because that is
+        /// in the room with their ear, and the noise at the caller's end
+        /// arrives as `Bleed` below.
+        public static double LineIntelligibility(LineKind line,
+                                                 double listenerNoise = 0.0)
+        {
+            double clarity = LineClarity(line);
+            clarity *= 1.0 - 0.35 * Feel.Clamp01(listenerNoise);
+            // Half the weight the in-room model gives street noise: a handset
+            // is pressed to the ear and shields it, which is why people put a
+            // finger in the other one and why it works.
+            return Feel.Clamp01(clarity);
+        }
+
+        /// WHOSE VOICE WAS THAT — the mechanic the band limit buys us.
+        ///
+        /// Recognising a familiar voice leans on exactly what 300–3400 Hz
+        /// throws away: the top octave where breath and sibilance live, and
+        /// the bottom where the chest is. This is why anonymous calls work in
+        /// every crime story ever written, and it is free here.
+        ///
+        /// `familiarity` is 0..1 — a stranger, an acquaintance, your brother.
+        public static bool CanPlaceTheVoice(LineKind line, double familiarity)
+        {
+            double needed;
+            switch (line)
+            {
+                case LineKind.Handset: needed = 0.35; break;
+                case LineKind.PayPhone: needed = 0.55; break;
+                case LineKind.LongDistance: needed = 0.70; break;
+                default: needed = 0.95; break;     // BadLine: near enough never
+            }
+            return Feel.Clamp01(familiarity) >= needed;
+        }
+
+        /// HOW MUCH OF THE CALLER'S ROOM COMES DOWN THE WIRE.
+        ///
+        /// The best detail available to a game whose subject is knowing where
+        /// people are: a jukebox behind Ellis tells you which bar he is
+        /// standing in, and nobody had to write a line of dialogue saying so.
+        /// A hall bleeds most — its reverb is long enough to survive the
+        /// band limit — and a room bleeds least, which is why an empty office
+        /// sounds like nowhere.
+        ///
+        /// Scaled by the line, because a bad junction buries the room along
+        /// with everything else.
+        public static double Bleed(SpaceKind caller, LineKind line)
+        {
+            double room;
+            switch (caller)
+            {
+                case SpaceKind.Hall: room = 0.55; break;
+                case SpaceKind.Outdoors: room = 0.45; break;
+                case SpaceKind.Alley: room = 0.30; break;
+                default: room = 0.20; break;       // Room
+            }
+            return Feel.Clamp01(room * (1.0 - 0.6 * LineNoise(line)));
+        }
+
+        /// The line as the person on the other end of a telephone heard it —
+        /// the same elision `AsHeard` does in a room, driven by the wire
+        /// instead of by metres. A good handset returns the line whole.
+        public static string AsHeardOnTheLine(string line, LineKind kind,
+                                              double listenerNoise, int seed) =>
+            AsHeard(line, LineIntelligibility(kind, listenerNoise), seed);
     }
 }

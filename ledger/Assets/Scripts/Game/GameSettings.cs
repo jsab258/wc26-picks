@@ -12,6 +12,13 @@ namespace Ledger.Game
         public float MasterVolume = 0.8f;
         public float MusicVolume = 0.5f;
         public float SfxVolume = 0.8f;
+        /// SPEECH GETS ITS OWN FADER, and it is the one most likely to be
+        /// moved. Voice sat on the sfx slider, which meant a player who
+        /// wanted footsteps quieter got dialogue quieter too — and the
+        /// reverse, which is worse, because turning speech up to hear it
+        /// brings the whole street up with it. Defaults high: it is the
+        /// channel everything else is authored to get out of the way of.
+        public float VoiceVolume = 0.95f;
         public int TextScalePercent = 100;      // 80..150, accessibility
         public bool ColourblindSafe;            // swaps the credit/debit hues
         public float MouseSensitivity = 1.0f;
@@ -58,6 +65,7 @@ namespace Ledger.Game
             return MiniJson.Serialize(new Dictionary<string, object>
             {
                 { "master", MasterVolume }, { "music", MusicVolume }, { "sfx", SfxVolume },
+                { "voice", VoiceVolume },
                 { "textScale", TextScalePercent }, { "colourblind", ColourblindSafe },
                 { "sensitivity", MouseSensitivity }, { "grain", GrainAmount },
                 { "detail", Detail },
@@ -76,6 +84,10 @@ namespace Ledger.Game
                 s.MasterVolume = Num(root, "master", s.MasterVolume);
                 s.MusicVolume = Num(root, "music", s.MusicVolume);
                 s.SfxVolume = Num(root, "sfx", s.SfxVolume);
+                // Absent in every settings file written before speech had a
+                // bus, so the default has to survive the round trip rather
+                // than silently reading as zero and muting all dialogue.
+                s.VoiceVolume = Num(root, "voice", s.VoiceVolume);
                 s.TextScalePercent = root.ContainsKey("textScale") ? MiniJson.GetInt(root, "textScale") : s.TextScalePercent;
                 s.ColourblindSafe = root.TryGetValue("colourblind", out var cb) && cb is bool b && b;
                 s.MouseSensitivity = Num(root, "sensitivity", s.MouseSensitivity);

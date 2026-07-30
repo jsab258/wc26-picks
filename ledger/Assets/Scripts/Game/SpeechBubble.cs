@@ -48,18 +48,20 @@ namespace Ledger.Game
         /// a pavement is exactly the difference the masking model exists to
         /// express: at 3am both carry, at noon only the second does.
         public static SpeechBubble Say(Transform speaker, string line, float seconds,
-                                       Color colour, double loudness)
+                                       Color colour, double loudness, string speakerId = null)
         {
             if (speaker != null)
                 Perceivers.Emit(speaker.position, loudness, "speech");
-            return SayQuietly(speaker, line, seconds, colour);
+            return SayQuietly(speaker, line, seconds, colour, speakerId);
         }
 
         /// The bubble with no sound — for anything that is written rather than
         /// said. Named so that using it is a decision.
-        public static SpeechBubble SayQuietly(Transform speaker, string line, float seconds, Color colour)
+        public static SpeechBubble SayQuietly(Transform speaker, string line, float seconds,
+                                              Color colour, string speakerId = null)
         {
             if (speaker == null || string.IsNullOrEmpty(line)) return null;
+            string spoken = line;
 
             var ear = Camera.main;
             double clarity = 1.0;
@@ -71,7 +73,23 @@ namespace Ledger.Game
                                              ~0, QueryTriggerInteraction.Ignore)
                             && hit.transform != speaker && !hit.transform.IsChildOf(speaker);
                 clarity = Acoustics.Intelligibility(metres, wall, Audio.ChatterLevel);
-                line = Acoustics.AsHeard(line, clarity, Mathf.Abs(line.GetHashCode()) % 9973);
+
+                // AND IT IS ALSO A SOUND YOU HEAR, not only a caption. The
+                // bank does not exist yet, so this asks for a recording that
+                // is almost always absent — deliberately, and counted, so the
+                // day the bank lands nothing needs wiring and until then the
+                // silence is a measurement rather than an assumption.
+                Audio.Speak(VoiceBank.ClipName(
+                                VoiceBank.VoiceFor(speakerId ?? speaker.name, VoiceBank.Cast),
+                                spoken),
+                            metres, wall, Audio.ChatterLevel);
+
+                // A STABLE SEED, not `string.GetHashCode()`. That is
+                // randomised per process in modern .NET and stable in Unity's
+                // runtime only by accident of which runtime it is — so the
+                // same line half-heard would drop different words after an
+                // engine update, for no reason anybody could trace.
+                line = Acoustics.AsHeard(line, clarity, VoiceBank.SeedFor(spoken) % 9973);
                 // Nothing usable came through. You heard talking, not words —
                 // and showing a bubble anyway would be the game telling you
                 // something the character did not learn.

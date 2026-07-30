@@ -101,6 +101,12 @@ namespace Ledger.Game
                 v => { s.MusicVolume = v; Audio.ApplyVolumes(); }); y -= 58;
             MenuSlider(_optionsPanel.transform, "Sound", y, s.SfxVolume,
                 v => { s.SfxVolume = v; Audio.ApplyVolumes(); }); y -= 58;
+            // Speech has its own fader because it is the one people move. It
+            // used to ride on "Sound", so turning footsteps down took the
+            // dialogue with them, and turning dialogue up brought the whole
+            // street with it.
+            MenuSlider(_optionsPanel.transform, "Voice", y, s.VoiceVolume,
+                v => { s.VoiceVolume = v; Audio.ApplyVolumes(); }); y -= 58;
             MenuSlider(_optionsPanel.transform, "Mouse sensitivity", y,
                 Mathf.InverseLerp(0.2f, 3f, s.MouseSensitivity),
                 v => s.MouseSensitivity = Mathf.Lerp(0.2f, 3f, v)); y -= 58;

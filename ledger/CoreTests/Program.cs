@@ -87,6 +87,7 @@ namespace Ledger.CoreTests
                 TestPopulation();
                 TestFeel();
                 TestAcoustics();
+                TestVoiceBank();
                 TestCrowdOnTheStreet();
                 TestCombat();
                 TestHomicide();
@@ -5409,6 +5410,221 @@ namespace Ledger.CoreTests
             Check(lanes > 0 && lanes == alleys,
                 "and every lane the city actually has reads as one",
                 $"{alleys}/{lanes}");
+
+            TestTelephone();
+        }
+
+        /// The second channel had a social model and no acoustic one — a voice
+        /// on the phone was sample-identical to the same voice in the room.
+        static void TestTelephone()
+        {
+            Console.WriteLine("The telephone — the mechanic that had no sound of its own:");
+
+            Check(Acoustics.TelephoneLowHz == 300 && Acoustics.TelephoneHighHz == 3400,
+                "the passband is the ITU voice channel, not a number somebody liked");
+            Check(Acoustics.TelephoneHighHz < Acoustics.LowPassHz(0, false),
+                "and it is narrower than a voice in the room, which is the whole point",
+                $"{Acoustics.TelephoneHighHz:0} vs {Acoustics.LowPassHz(0, false):0}");
+            Check(Acoustics.HandsetResonanceHz > Acoustics.TelephoneLowHz &&
+                  Acoustics.HandsetResonanceHz < Acoustics.TelephoneHighHz,
+                "the handset's ring sits INSIDE the band, or it would be filtered away");
+
+            var kinds = new[] { Acoustics.LineKind.Handset, Acoustics.LineKind.PayPhone,
+                                Acoustics.LineKind.LongDistance, Acoustics.LineKind.BadLine };
+            for (int i = 1; i < kinds.Length; i++)
+            {
+                Check(Acoustics.LineClarity(kinds[i]) < Acoustics.LineClarity(kinds[i - 1]),
+                    $"{kinds[i]} is a worse line than {kinds[i - 1]}");
+                Check(Acoustics.LineNoise(kinds[i]) > Acoustics.LineNoise(kinds[i - 1]),
+                    $"and a noisier one");
+            }
+            foreach (var k in kinds)
+                Check(Acoustics.LineNoise(k) > 0,
+                    $"no line is silent behind the voice — {k} would be the tell that nobody treated it");
+
+            // THE DESIGN DECISION, asserted rather than left in a comment: a
+            // good handset must clear the elision threshold, or every line of
+            // a core mechanic arrives with a hole in it.
+            const string said = "He was at the yard on Tuesday and he paid cash for it.";
+            // EVERY SEED, not one. A single seed passes by luck at a clarity
+            // just under the threshold — a break run that dropped the handset
+            // from 0.94 to 0.84 survived this check when it tested seed 3
+            // alone, which is the check being decorative.
+            int wholeLine = 0;
+            for (int seed = 0; seed < 300; seed++)
+                if (Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.Handset, 0.0, seed) == said)
+                    wholeLine++;
+            Check(wholeLine == 300,
+                "A GOOD HANDSET GIVES YOU THE WHOLE LINE, every time — it sounds like a "
+                + "phone, it is not a puzzle",
+                $"{wholeLine}/300");
+            Check(Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.BadLine, 0.0, 3) != said,
+                "and a bad junction is where the degradation gets spent");
+            Check(Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.BadLine, 0.0, 3)?.Contains("…")
+                  != false,
+                "with holes in it, not a quieter version of it");
+
+            // Distance does not exist on a line, and that is not an oversight.
+            Check(Acoustics.LineIntelligibility(Acoustics.LineKind.Handset) ==
+                  Acoustics.LineIntelligibility(Acoustics.LineKind.Handset),
+                "a caller two hundred miles away arrives at the same clarity as one next door");
+            Check(Acoustics.LineIntelligibility(Acoustics.LineKind.Handset, 1.0) <
+                  Acoustics.LineIntelligibility(Acoustics.LineKind.Handset, 0.0),
+                "but a loud room at the LISTENER's end still costs, because that is in with their ear");
+            Check(Acoustics.LineIntelligibility(Acoustics.LineKind.Handset, 1.0) >
+                  Acoustics.Intelligibility(0, false, 1.0),
+                "and costs LESS than in the room — a handset shields the ear, which is why "
+                + "people put a finger in the other one",
+                $"{Acoustics.LineIntelligibility(Acoustics.LineKind.Handset, 1.0):0.00} vs "
+                + $"{Acoustics.Intelligibility(0, false, 1.0):0.00}");
+            foreach (var k in kinds)
+                foreach (var n in new[] { 0.0, 0.5, 1.0, 4.0, -1.0 })
+                    Check(Acoustics.LineIntelligibility(k, n) >= 0 &&
+                          Acoustics.LineIntelligibility(k, n) <= 1,
+                        $"clarity stays inside 0..1 for {k} at noise {n}");
+
+            // WHOSE VOICE WAS THAT — the mechanic the band limit buys.
+            Check(!Acoustics.CanPlaceTheVoice(Acoustics.LineKind.PayPhone, 0.4),
+                "a callbox hides an acquaintance, which is why anonymous calls work in every crime story");
+            Check(Acoustics.CanPlaceTheVoice(Acoustics.LineKind.Handset, 0.4),
+                "the same person on your own line does not get to be anonymous");
+            Check(!Acoustics.CanPlaceTheVoice(Acoustics.LineKind.BadLine, 0.9),
+                "and a bad junction hides even somebody you know well");
+            Check(Acoustics.CanPlaceTheVoice(Acoustics.LineKind.BadLine, 1.0),
+                "though a voice you know perfectly still comes through — never say never");
+            for (int i = 1; i < kinds.Length; i++)
+            {
+                // Monotone in the line: a worse line never makes somebody
+                // EASIER to place.
+                bool better = Acoustics.CanPlaceTheVoice(kinds[i - 1], 0.72);
+                bool worse = Acoustics.CanPlaceTheVoice(kinds[i], 0.72);
+                Check(!(worse && !better), $"{kinds[i]} never places a voice {kinds[i - 1]} could not");
+            }
+
+            // THE ROOM BEHIND THE CALLER. A jukebox behind Ellis tells you
+            // which bar he is in, and nobody wrote a line of dialogue for it.
+            Check(Acoustics.Bleed(SpaceKind.Hall, Acoustics.LineKind.Handset) >
+                  Acoustics.Bleed(SpaceKind.Room, Acoustics.LineKind.Handset),
+                "a hall comes down the wire and an office does not — which is why an empty "
+                + "office sounds like nowhere");
+            Check(Acoustics.Bleed(SpaceKind.Hall, Acoustics.LineKind.BadLine) <
+                  Acoustics.Bleed(SpaceKind.Hall, Acoustics.LineKind.Handset),
+                "and a bad junction buries the room along with everything else");
+            foreach (SpaceKind s in Enum.GetValues(typeof(SpaceKind)))
+                foreach (var k in kinds)
+                    Check(Acoustics.Bleed(s, k) > 0 && Acoustics.Bleed(s, k) < 1,
+                        $"bleed from {s} on a {k} is a real fraction");
+        }
+
+        /// Audit item 5: the same character must sound the same next week.
+        static void TestVoiceBank()
+        {
+            Console.WriteLine("The voice bank — a name a generator and a game can both compute:");
+
+            // THE HASH IS THE PROMISE. If this ever changes, every file in
+            // the bank is orphaned at once and the symptom is every voice in
+            // the game vanishing for no traceable reason. Pinned to literals
+            // so a "harmless" refactor of the hash cannot pass silently.
+            Check(VoiceBank.Hash("") == 2166136261u, "FNV-1a's offset basis, unchanged");
+            Check(VoiceBank.Hash("a") == 0xe40c292cu, "and its published value for \"a\"",
+                $"{VoiceBank.Hash("a"):x8}");
+            Check(VoiceBank.Hash("rocco") == VoiceBank.Hash("rocco"),
+                "the same string hashes the same inside one process");
+            Check(VoiceBank.Hash("rocco") != VoiceBank.Hash("rocca"),
+                "and one letter apart is a different clip");
+
+            Check(VoiceBank.Normalise("  two   words \n") == "two words",
+                "whitespace is collapsed — a line that gained a double space in an "
+                + "edit must not orphan its recording");
+            Check(VoiceBank.Normalise("No") != VoiceBank.Normalise("NO"),
+                "but CASE IS KEPT, because capitals change how an engine reads a line");
+
+            const string said = "He was at the yard on Tuesday.";
+            Check(VoiceBank.ClipName("rocco", said) == VoiceBank.ClipName("rocco", "  He was at the yard on Tuesday.  "),
+                "a re-indented line is the same recording");
+            Check(VoiceBank.ClipName("rocco", said) != VoiceBank.ClipName("lena", said),
+                "two people saying the same words are two recordings");
+            Check(VoiceBank.ClipName("rocco", said).StartsWith("rocco/"),
+                "the voice is the folder, so a recast is a directory nobody has to reindex",
+                VoiceBank.ClipName("rocco", said));
+            Check(VoiceBank.ClipName("rocco", said).Length == "rocco/".Length + 8,
+                "and the name is the voice plus eight hex digits, nothing else",
+                VoiceBank.ClipName("rocco", said));
+            Check(VoiceBank.ClipName(null, said) == null &&
+                  VoiceBank.ClipName("rocco", "   ") == null &&
+                  VoiceBank.ClipName("rocco", null) == null,
+                "an unspeakable line gets NO plausible-looking path — the one way this "
+                + "goes wrong is a caller trusting a name for a clip that cannot exist");
+
+            // No collisions across the whole enumerated bark bank, which is
+            // the only test of a hash that means anything.
+            var names = new HashSet<string>();
+            int lines = 0, collisions = 0;
+            foreach (var voice in VoiceBank.Cast)
+                for (int i = 0; i < 400; i++)
+                {
+                    var text = $"Line number {i} about the warehouse on Tuesday, more or less.";
+                    lines++;
+                    if (!names.Add(VoiceBank.ClipName(voice, text))) collisions++;
+                }
+            Check(collisions == 0, "no two lines in a bank of thousands share a filename",
+                $"{collisions} collisions in {lines}");
+
+            // Determinism: the seed is the name.
+            Check(VoiceBank.Seed("rocco", said) == VoiceBank.Seed("rocco", said),
+                "the same line seeds the same take — regenerate the bank and nobody drifts");
+            Check(VoiceBank.Seed("rocco", said) != VoiceBank.Seed("lena", said),
+                "and two voices are two takes");
+            foreach (var voice in VoiceBank.Cast)
+                Check(VoiceBank.Seed(voice, said) >= 0,
+                    $"{voice}'s seed is non-negative — half the RNGs here reject a negative");
+
+            // Casting.
+            Check(VoiceBank.VoiceFor("rocco", VoiceBank.Cast) == "rocco",
+                "a cast member IS their voice");
+            var walker = VoiceBank.VoiceFor("resident_8817", VoiceBank.Cast);
+            Check(walker != null && walker.StartsWith("crowd_"),
+                "and everybody else draws a crowd voice", walker);
+            Check(VoiceBank.VoiceFor("resident_8817", VoiceBank.Cast) == walker,
+                "the same walker sounds like the same person every time you pass them");
+            Check(VoiceBank.VoiceFor("resident_8817", VoiceBank.Cast, true).StartsWith("crowd_m") &&
+                  VoiceBank.VoiceFor("resident_8817", VoiceBank.Cast, false).StartsWith("crowd_f"),
+                "a caller who knows the speaker's gender gets a voice that matches it");
+            // AND THE GENDERED PATHS MUST SPREAD TOO. Checking only the
+            // PREFIX passes when every man on the street is crowd_m1, which
+            // is the actual defect worth catching — a break run proved the
+            // first version of this test slept through exactly that.
+            var men = new HashSet<string>();
+            var women = new HashSet<string>();
+            for (int i = 0; i < 4000; i++)
+            {
+                men.Add(VoiceBank.VoiceFor("resident_" + i, VoiceBank.Cast, true));
+                women.Add(VoiceBank.VoiceFor("resident_" + i, VoiceBank.Cast, false));
+            }
+            Check(men.Count == VoiceBank.PoolMasculine.Length &&
+                  women.Count == VoiceBank.PoolFeminine.Length,
+                "and four thousand of each reach every voice of their own gender, not one",
+                $"{men.Count} masculine, {women.Count} feminine");
+            Check(VoiceBank.VoiceFor(null, VoiceBank.Cast) == null,
+                "and nobody speaking has no voice");
+
+            // THE POOL IS THIN, and the test says the number rather than
+            // asserting a comfortable one. Six crowd voices is what the
+            // casting sheet funds; if that changes, this changes with it.
+            Check(VoiceBank.PoolVoices == 6,
+                "six crowd voices — thin for a street, and the fix is casting, not a constant",
+                $"{VoiceBank.PoolVoices}");
+            var used = new HashSet<string>();
+            for (int i = 0; i < 4000; i++)
+                used.Add(VoiceBank.VoiceFor("resident_" + i, VoiceBank.Cast));
+            Check(used.Count == VoiceBank.PoolVoices,
+                "and four thousand walkers reach every one of them, not three",
+                string.Join(",", used.OrderBy(v => v)));
+
+            Check(VoiceBank.SeedFor("a line") == VoiceBank.SeedFor("a  line") &&
+                  VoiceBank.SeedFor("a line") >= 0,
+                "the elision seed is stable and non-negative — it used to be "
+                + "string.GetHashCode(), which is randomised per process in modern .NET");
         }
 
         static void TestCrowdOnTheStreet()

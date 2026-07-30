@@ -187,14 +187,15 @@ namespace Ledger.Game
             Audio.DuckForOverheard(false);
         }
 
-        System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay, Color colour, float hold)
+        System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay,
+                                                Color colour, float hold, string speakerId = null)
         {
             if (delay > 0) yield return new WaitForSeconds(delay);
             // Conversational: two people at arm's length. Inaudible across a
             // daytime street, and carrying at three in the morning.
             if (who != null)
                 SpeechBubble.Say(who.transform, line, hold, colour,
-                                 Perception.LoudConversation);
+                                 Perception.LoudConversation, speakerId);
         }
 
         /// M15.2 — WHO IS PERCEIVING YOU, and how. Recomputed on a slow
@@ -263,7 +264,7 @@ namespace Ledger.Game
                     // has to be overhearable by a third party.
                     SpeechBubble.Say(w.transform, line.Text, 5f,
                         stance >= StanceKind.Refuses ? UiTheme.Debit : UiTheme.AmberSoft,
-                        Perception.LoudRemark);
+                        Perception.LoudRemark, g.Id);
             }
         }
 
@@ -309,7 +310,8 @@ namespace Ledger.Game
             var lines = StreetVoice.Ambient(ga, gb, _game.Now,
                 _game.Economy.Prosperity, _game.Economy.PriceLevel, hurt, feud, seed);
             for (int i = 0; i < lines.Count; i++)
-                StartCoroutine(SayAfter(i == 0 ? a : b, lines[i].Text, i * 2.4f, UiTheme.Dim, 5.5f));
+                StartCoroutine(SayAfter(i == 0 ? a : b, lines[i].Text, i * 2.4f, UiTheme.Dim, 5.5f,
+                                        lines[i].SpeakerId));
         }
 
         /// Total confabs staged. The sim gate reads it: an exchange the
@@ -410,7 +412,8 @@ namespace Ledger.Game
                     var w = i == 0 ? wa : wb;
                     // The reply lands a beat after the telling, the way a
                     // conversation does.
-                    StartCoroutine(SayAfter(w, spoken[i].Text, i * 2.1f, UiTheme.AmberSoft, 6.5f));
+                    StartCoroutine(SayAfter(w, spoken[i].Text, i * 2.1f, UiTheme.AmberSoft, 6.5f,
+                                            spoken[i].SpeakerId));
                 }
                 Audio.Ui("page");   // the sound of the street noticing you
                 // AND THE STREET GETS OUT OF THE WAY. This is the one moment

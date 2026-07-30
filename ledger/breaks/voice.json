@@ -1,0 +1,68 @@
+[
+ {
+  "name": "the FNV offset basis shifts by one -- a change that looks like a typo and orphans the entire bank",
+  "file": "Assets/Scripts/Core/VoiceBank.cs",
+  "old": "                uint h = 2166136261u;",
+  "new": "                uint h = 2166136262u;"
+ },
+ {
+  "name": "Normalise lowercases, so 'NO' and 'no' collapse to one recording",
+  "file": "Assets/Scripts/Core/VoiceBank.cs",
+  "old": "                sb.Append(ch);",
+  "new": "                sb.Append(char.ToLowerInvariant(ch));"
+ },
+ {
+  "name": "an unspeakable line gets a plausible-looking path instead of null",
+  "file": "Assets/Scripts/Core/VoiceBank.cs",
+  "old": "            if (string.IsNullOrEmpty(voiceId) || t.Length == 0) return null;\n            return voiceId + \"/\" + Hash(voiceId + Sep + t).ToString(\"x8\");",
+  "new": "            return voiceId + \"/\" + Hash(voiceId + Sep + t).ToString(\"x8\");"
+ },
+ {
+  "name": "the crowd pool collapses to one voice per gender -- every man on the street shares a throat",
+  "file": "Assets/Scripts/Core/VoiceBank.cs",
+  "old": "            if (masculine == true) return PoolMasculine[h % (uint)PoolMasculine.Length];",
+  "new": "            if (masculine == true) return PoolMasculine[0];"
+ },
+ {
+  "name": "the seed goes negative, which half the RNGs in this project reject",
+  "file": "Assets/Scripts/Core/VoiceBank.cs",
+  "old": "            return (int)(Hash(voiceId + Sep + t) & 0x7fffffff);",
+  "new": "            return (int)Hash(voiceId + Sep + t);"
+ },
+ {
+  "name": "a good handset drops below the elision threshold -- every phone line arrives with a hole in it",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "                case LineKind.Handset: return 0.94;",
+  "new": "                case LineKind.Handset: return 0.84;"
+ },
+ {
+  "name": "the telephone passband widens to full range, so a call sounds like the room",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "        public const double TelephoneHighHz = 3400.0;",
+  "new": "        public const double TelephoneHighHz = 24000.0;"
+ },
+ {
+  "name": "the line goes silent behind the voice -- the tell that nobody treated it",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "                case LineKind.Handset: return 0.06;",
+  "new": "                case LineKind.Handset: return 0.0;"
+ },
+ {
+  "name": "a bad junction stops hiding a voice you barely know",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "                default: needed = 0.95; break;     // BadLine: near enough never",
+  "new": "                default: needed = 0.30; break;     // BadLine: near enough never"
+ },
+ {
+  "name": "the caller's room stops coming down the wire, so every call is from nowhere",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "                case SpaceKind.Hall: room = 0.55; break;",
+  "new": "                case SpaceKind.Hall: room = 0.20; break;"
+ },
+ {
+  "name": "a handset stops shielding the ear, so a loud room costs as much on the phone as in it",
+  "file": "Assets/Scripts/Core/Acoustics.cs",
+  "old": "            clarity *= 1.0 - 0.35 * Feel.Clamp01(listenerNoise);",
+  "new": "            clarity *= 1.0 - 0.85 * Feel.Clamp01(listenerNoise);"
+ }
+]

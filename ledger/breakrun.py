@@ -95,6 +95,25 @@ def revert(path):
     os.utime(path, None)
 
 
+def revert_all():
+    """EVERY file, not only the one the next break happens to touch.
+
+    This used to be `revert(path)` for the single file about to be broken,
+    which is correct for a spec whose breaks all live in one file — and every
+    spec in this project did, until `breaks/voice.json` spanned Acoustics and
+    VoiceBank. Then break N in one file stayed applied while break N+1 ran in
+    the other, so the reported failure belonged to the PREVIOUS defect and the
+    verdict named the wrong one.
+
+    It reads as a cosmetic mislabelling and is not. A break whose defect is
+    still in the tree from a previous round can be caught by that round's
+    check rather than its own, which turns a SURVIVED into a RED — the
+    instrument reporting coverage it does not have, in the harness whose only
+    job is to prove coverage is real."""
+    for p in _backups:
+        revert(p)
+
+
 def run_tests(project):
     p = subprocess.run(["dotnet", "run", "--project", project, "-c", "Release", "--nologo"],
                        cwd=ROOT, capture_output=True, text=True)
@@ -124,7 +143,7 @@ def main():
     survivors = 0
     for b in spec:
         path = os.path.join(ROOT, b["file"])
-        revert(path)
+        revert_all()
         text = open(path).read()
         n = text.count(b["old"])
         if n != 1:

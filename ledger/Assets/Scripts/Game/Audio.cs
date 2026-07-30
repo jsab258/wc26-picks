@@ -25,6 +25,9 @@ namespace Ledger.Game
         public const int SampleRate = 44100;
 
         static AudioSource _ambience, _ui, _foot, _traffic, _music;
+        /// The voice bus, and the two halves of the telephone: `_phone` is the
+        /// speech that arrives down the wire, `_line` is the wire itself.
+        static AudioSource _voice, _phone, _line;
         static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
         static GameObject _root;
         static bool _night;
@@ -41,6 +44,15 @@ namespace Ledger.Game
             _ui = Make("UI", loop: false);
             _foot = Make("Foot", loop: false);
             _traffic = Make("Traffic", loop: true);
+            // SPEECH GETS ITS OWN SOURCES. Everything above ducks for the
+            // voice bus and there was no voice bus — `Core/Mixing` has had a
+            // reach, a budget, a duck depth and a protection rule for
+            // `Bus.Voice` since the day it was written, and nothing in the
+            // game was ever on it.
+            _voice = Make("Voice", loop: false);
+            _phone = Make("Phone", loop: false);
+            _line = Make("Line", loop: true);
+            BuildTelephoneFilters();
             ApplyVolumes();
             SetNight(false);
         }
@@ -75,6 +87,17 @@ namespace Ledger.Game
             if (_music != null) _music.volume = 0.22f * s.MasterVolume * s.MusicVolume * dMus;
             if (_ui != null) _ui.volume = 0.6f * s.MasterVolume * s.SfxVolume;
             if (_foot != null) _foot.volume = 0.35f * s.MasterVolume * s.SfxVolume * dFol;
+            // VOICE DOES NOT DUCK FOR ITSELF — `Mixing.DuckDepth(Bus.Voice)`
+            // is zero, and multiplying by it is here so the shape of this
+            // block stays honest rather than because the number does work.
+            float dVox = (float)Mixing.Gain(Bus.Voice, _duck, _overhearing);
+            if (_voice != null) _voice.volume = 0.85f * s.MasterVolume * s.VoiceVolume * dVox;
+            // The wire is quieter than the person on it, always. A line bed
+            // that competes with the speech is the mistake this whole
+            // treatment exists to avoid.
+            if (_phone != null) _phone.volume = 0.85f * s.MasterVolume * s.VoiceVolume * dVox;
+            if (_line != null)
+                _line.volume = _lineBedGain * 0.30f * s.MasterVolume * s.VoiceVolume;
             // The traffic bed's own volume is driven per-frame by proximity; the
             // settings only scale the ceiling it is allowed to reach.
             _trafficCeiling = 0.30f * s.MasterVolume * s.SfxVolume * dAmb;
@@ -654,6 +677,226 @@ namespace Ledger.Game
                 case "dread": _ui.PlayOneShot(Clip("dread", Dread)); break;
                 default: _ui.PlayOneShot(Clip("tick", Tick)); break;
             }
+        }
+
+        // ---- THE VOICE BUS -------------------------------------------------
+        //
+        // Audit item 7. `Core/Mixing` has described `Bus.Voice` since it was
+        // written — a reach of fourteen metres, a budget of four, a duck
+        // depth of zero because it is the thing everything else ducks FOR,
+        // and a protection rule so an authored line never loses its slot to a
+        // footstep. None of it was connected to an AudioSource. Speech in
+        // this game was text in a bubble.
+
+        static AudioLowPassFilter _voiceLp, _phoneLp, _lineLp;
+        static AudioHighPassFilter _phoneHp, _lineHp;
+        static float _lineBedGain;
+
+        /// How many `Speak` calls found no clip in the bank. Zero is not the
+        /// goal — the bank does not exist yet — but a number that never moves
+        /// while the game is talking means the wire is not connected, and
+        /// that is the failure this whole session has been about.
+        public static int SpeechPlayed { get; private set; }
+        public static int SpeechMissing { get; private set; }
+
+        public static void ResetSpeechCounters() { SpeechPlayed = 0; SpeechMissing = 0; }
+
+        static void BuildTelephoneFilters()
+        {
+            if (_voice != null)
+                _voiceLp = _voice.gameObject.AddComponent<AudioLowPassFilter>();
+            if (_phone != null)
+            {
+                _phoneLp = _phone.gameObject.AddComponent<AudioLowPassFilter>();
+                _phoneHp = _phone.gameObject.AddComponent<AudioHighPassFilter>();
+            }
+            if (_line != null)
+            {
+                _lineLp = _line.gameObject.AddComponent<AudioLowPassFilter>();
+                _lineHp = _line.gameObject.AddComponent<AudioHighPassFilter>();
+            }
+            // The band is the same one Core states, applied in one place.
+            SetBand(_phoneLp, _phoneHp);
+            SetBand(_lineLp, _lineHp);
+            if (_voiceLp != null) _voiceLp.cutoffFrequency = 22000f;
+        }
+
+        static void SetBand(AudioLowPassFilter lp, AudioHighPassFilter hp)
+        {
+            if (lp != null) lp.cutoffFrequency = (float)Acoustics.TelephoneHighHz;
+            if (hp != null) hp.cutoffFrequency = (float)Acoustics.TelephoneLowHz;
+        }
+
+        /// Somebody said something out loud, in the room, at `metres`.
+        ///
+        /// Returns false when the bank has no clip for that line — which is
+        /// today's normal answer and is reported rather than swallowed. The
+        /// duck still happens either way: the mix should behave the same
+        /// whether or not the recording exists, or the day the bank lands the
+        /// whole street will change balance for reasons nobody can trace.
+        public static bool Speak(string clipName, float metres = 0f,
+                                 bool occluded = false, float streetNoise = 0f)
+        {
+            if (_root == null || _voice == null) return false;
+            double reach = Mixing.Reach(Bus.Voice);
+            if (metres > reach) { SpeechMissing++; return false; }
+
+            // The distance IS the filter. A quiet sound that is still bright
+            // reads as a small sound nearby, not a loud one far away.
+            if (_voiceLp != null)
+                _voiceLp.cutoffFrequency = (float)Acoustics.LowPassHz(metres, occluded);
+
+            var clip = VoiceClip(clipName);
+            if (clip == null) { SpeechMissing++; return false; }
+
+            float gain = (float)Mixing.Attenuate(Bus.Voice, metres);
+            gain *= 1f - 0.35f * Mathf.Clamp01(streetNoise);
+            _voice.PlayOneShot(clip, Mathf.Clamp01(gain));
+            SpeechPlayed++;
+            return true;
+        }
+
+        /// Speech that arrives down a wire. Same bank, different treatment,
+        /// and the treatment is the mechanic.
+        public static bool SpeakOnTheLine(string clipName, Acoustics.LineKind kind)
+        {
+            if (_root == null || _phone == null) return false;
+            var clip = VoiceClip(clipName);
+            if (clip == null) { SpeechMissing++; return false; }
+            // DISTANCE DOES NOT APPLY. A caller two hundred miles away and a
+            // caller in the next street arrive at the same level; that is
+            // what a telephone is, and it is stated in `Acoustics` so nobody
+            // reaches for the metres model here by reflex.
+            _phone.PlayOneShot(clip, (float)Acoustics.LineClarity(kind));
+            SpeechPlayed++;
+            return true;
+        }
+
+        /// The bank lives under its own folder because it is the one set of
+        /// assets that will be produced by a generator rather than by hand,
+        /// and mixing it in with the foley makes both harder to replace.
+        static AudioClip VoiceClip(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            if (Cache.TryGetValue("voice/" + name, out var cached)) return cached;
+            AudioClip clip = null;
+            try
+            {
+                var path = System.IO.Path.Combine(Application.streamingAssetsPath,
+                                                  "Audio", "Voice", name + ".wav");
+                if (System.IO.File.Exists(path)) clip = LoadWav(path, name);
+            }
+            catch (System.Exception) { /* no bank yet is the normal case */ }
+            // NO SYNTHESISED PLACEHOLDER. A generated mouth-noise stand-in is
+            // a design decision nobody has made, and a bad one taken by
+            // default is exactly the shape of mistake this audit was written
+            // about. Silence, counted, until the bank exists.
+            Cache["voice/" + name] = clip;
+            return clip;
+        }
+
+        // ---- THE SECOND CHANNEL --------------------------------------------
+        //
+        // Audit item 2. The phone had a social model — `PhoneBook` damps what
+        // you learn down a wire — and no sound of its own at all. A voice on
+        // the telephone was sample-identical to the same voice standing in
+        // the room, which throws away the identity of a mechanic that has its
+        // own milestone.
+
+        static bool _lineOpen;
+
+        public static bool LineIsOpen => _lineOpen;
+
+        /// Pick the handset up. `callerSpace` is the room the OTHER person is
+        /// standing in, and it is the best detail available to a game about
+        /// knowing where people are: a hall behind Ellis tells you which
+        /// building he is in and nobody wrote a line of dialogue for it.
+        public static void OpenLine(Acoustics.LineKind kind,
+                                    SpaceKind callerSpace = SpaceKind.Room)
+        {
+            if (_root == null || _line == null) return;
+            _lineOpen = true;
+            _lineBedGain = (float)(Acoustics.LineNoise(kind) +
+                                   0.6 * Acoustics.Bleed(callerSpace, kind));
+            _line.clip = Clip("line_" + kind + "_" + callerSpace,
+                              () => LineBed(kind, callerSpace));
+            _line.loop = true;
+            _line.Play();
+            ApplyVolumes();
+        }
+
+        public static void CloseLine()
+        {
+            _lineOpen = false;
+            _lineBedGain = 0f;
+            if (_line != null) _line.Stop();
+            ApplyVolumes();
+        }
+
+        /// The wire itself: hiss inside the voice band, the caller's room
+        /// arriving as a dulled wash of it, and mains hum underneath.
+        ///
+        /// The hum is the one part deliberately OUTSIDE the 300–3400 band,
+        /// because it is not coming down the line — it is induced in the
+        /// earpiece against your head, and a phone bed built entirely inside
+        /// the passband sounds like a filter rather than like a telephone.
+        static AudioClip LineBed(Acoustics.LineKind kind, SpaceKind callerSpace)
+        {
+            int len = SampleRate * 4;                       // a 4-second loop
+            var data = new float[len];
+            // Seeded per line kind and room, so the same call always sounds
+            // the same — determinism is audit item 5 and it starts here.
+            var rng = new System.Random(((int)kind + 1) * 977 + (int)callerSpace * 31);
+            float noise = (float)Acoustics.LineNoise(kind);
+            float bleed = (float)Acoustics.Bleed(callerSpace, kind);
+
+            // Two one-pole filters make a crude band-pass, which is exactly
+            // what a carbon mouthpiece is.
+            float lp = 0f, hp = 0f;
+            // Cutoffs as one-pole coefficients at this sample rate.
+            float kLow = 1f - Mathf.Exp(-2f * Mathf.PI * (float)Acoustics.TelephoneHighHz / SampleRate);
+            float kHigh = 1f - Mathf.Exp(-2f * Mathf.PI * (float)Acoustics.TelephoneLowHz / SampleRate);
+
+            // The handset's ring, as a resonator the noise is fed through.
+            // Unity's built-in filters have no peaking EQ, so the peak that
+            // makes a band-passed voice read as a TELEPHONE rather than as a
+            // voice through a wall is baked in here, at the sample level,
+            // where we own every number.
+            float r = Mathf.Exp(-Mathf.PI * (float)Acoustics.HandsetResonanceHz
+                                / ((float)Acoustics.HandsetResonanceQ * SampleRate));
+            float theta = 2f * Mathf.PI * (float)Acoustics.HandsetResonanceHz / SampleRate;
+            float a1 = -2f * r * Mathf.Cos(theta), a2 = r * r;
+            float y1 = 0f, y2 = 0f;
+
+            const float MainsHz = 50f;   // the one number here that says which
+                                         // side of an ocean the city is on, and
+                                         // nobody has decided; it is a knob.
+            for (int i = 0; i < len; i++)
+            {
+                float t = i / (float)SampleRate;
+                float n = (float)(rng.NextDouble() * 2 - 1);
+                lp += (n - lp) * kLow;
+                hp += (lp - hp) * kHigh;
+                float banded = lp - hp;                    // 300..3400
+
+                float res = banded - a1 * y1 - a2 * y2;
+                y2 = y1; y1 = res;
+                banded += res * 0.28f * (1f - r);
+
+                // The caller's room: the same noise, slower, which is what a
+                // reverberant space sounds like once the wire has taken the
+                // top off it.
+                float wash = Mathf.Sin(2f * Mathf.PI * 0.37f * t)
+                           * Mathf.Sin(2f * Mathf.PI * 0.11f * t);
+
+                float hum = Mathf.Sin(2f * Mathf.PI * MainsHz * t) * 0.35f
+                          + Mathf.Sin(2f * Mathf.PI * MainsHz * 2f * t) * 0.12f;
+
+                data[i] = banded * (0.55f + 0.45f * bleed * (0.5f + 0.5f * wash)) * noise
+                        + hum * noise * 0.20f;
+            }
+            CrossfadeEnds(data, SampleRate / 4);
+            return Make("line_" + kind + "_" + callerSpace, data);
         }
 
         /// A drop-in pack wins; otherwise synthesise once and cache.

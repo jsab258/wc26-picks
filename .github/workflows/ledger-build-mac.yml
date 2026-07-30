@@ -1,0 +1,119 @@
+name: LEDGER macOS build
+
+# DOES IT COMPILE ON A MAC — that is the entire question this answers.
+#
+# Nothing in Assets/Scripts is Windows-specific: no platform `#if`, no `.exe`
+# assumption, no Win32 API, built-in render pipeline and one custom unlit
+# shader. So macOS "should" work, and "should" is the exact shape of claim
+# this project has spent a week catching itself making. The only way it
+# becomes a fact is to run the compiler on a mac.
+#
+# NO SIMULATION STEP, deliberately. The nine-day sim and every pixel gate
+# runs on Windows and takes twenty-odd minutes; macOS runners bill at ten
+# times the rate of Linux, so paying for a second copy of a gate that is
+# already green buys nothing. What is NOT already covered is whether the
+# thing links and produces a .app, and that is what runs here.
+#
+# TRIGGERED NARROWLY. `workflow_dispatch` only fires for workflows on the
+# DEFAULT branch, and this lives on a feature branch — the dispatch API
+# answers 404, which reads like the file is missing rather than like it is in
+# the wrong place. So there is a push trigger, scoped to the two files that
+# can change the answer, rather than to the whole script tree: a mac build on
+# every commit would burn the minutes allowance for a result that almost
+# never differs.
+on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    paths:
+      - ".github/workflows/ledger-build-mac.yml"
+      - "ledger/Assets/Editor/CiBuild.cs"
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+        with:
+          persist-credentials: false
+
+      # Both cheap checks first, same as the Windows job: they run in seconds
+      # and they catch the errors that would otherwise cost a Unity install
+      # to discover.
+      - name: Lint (missing usings)
+        timeout-minutes: 1
+        run: python3 ledger/lint-usings.py ledger/Assets/Scripts
+
+      - name: Shape check (Unity layer)
+        timeout-minutes: 6
+        run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts
+
+      - name: Install Unity
+        timeout-minutes: 30
+        uses: buildalon/unity-setup@v2
+        with:
+          version-file: ledger/ProjectSettings/ProjectVersion.txt
+          build-targets: StandaloneOSX
+
+      - name: Activate Unity license
+        timeout-minutes: 2
+        uses: buildalon/activate-unity-license@v2
+        with:
+          license: Personal
+          username: ${{ secrets.UNITY_EMAIL }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Build player
+        timeout-minutes: 20
+        run: |
+          set -o pipefail
+          mkdir -p build-log
+          # `-logFile -` and tee, for the reason the Windows job documents at
+          # length: redirecting to a file makes Unity exit in four seconds
+          # without ever writing it.
+          "$UNITY_EDITOR_PATH" -quit -batchmode -nographics \
+            -projectPath ledger \
+            -buildTarget OSXUniversal \
+            -executeMethod Ledger.EditorTools.CiBuild.BuildMac \
+            -logFile - | tee build-log/unity.log > /dev/null
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "=== compile errors ==="
+            grep -E 'error CS|Compilation failed|error:' build-log/unity.log | head -40 \
+              || tail -60 build-log/unity.log
+            exit $code
+          fi
+          grep -E 'Shader error|Shader warning in' build-log/unity.log | head -20 || true
+
+      # A BUILD THAT SUCCEEDS AND PRODUCES NOTHING is the failure mode worth
+      # guarding: BuildPipeline can report Succeeded for a target whose
+      # module is missing and leave an empty directory behind.
+      - name: Verify the .app exists
+        run: |
+          app=ledger/build/LEDGER-mac/LEDGER.app
+          test -d "$app" || { echo "no .app at $app"; exit 1; }
+          test -x "$app/Contents/MacOS/LEDGER" || {
+            echo "=== .app has no executable ==="; find "$app" -maxdepth 3 | head -40; exit 1; }
+          echo "built: $(du -sh "$app" | cut -f1)"
+
+      - uses: actions/upload-artifact@v4
+        timeout-minutes: 10
+        if: always()
+        with:
+          name: LEDGER-macOS
+          path: ledger/build/LEDGER-mac
+          retention-days: 14
+
+      - name: Verdict
+        if: always()
+        run: |
+          echo "=== LEDGER macOS VERDICT ==="
+          if [ -d ledger/build/LEDGER-mac/LEDGER.app ]; then
+            echo "macOS builds. $(du -sh ledger/build/LEDGER-mac/LEDGER.app | cut -f1)"
+          else
+            echo "macOS did NOT build"
+            grep -E 'error CS' build-log/unity.log | head -3 || true
+          fi
+          echo "==========================="

@@ -12,7 +12,21 @@ namespace Ledger.EditorTools
     {
         const string ScenePath = "Assets/Scenes/Boot.unity";
 
-        public static void BuildWindows()
+        public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64,
+                                                   "build/LEDGER/LEDGER.exe");
+
+        /// MACOS, WHICH HAS NEVER BEEN COMPILED.
+        ///
+        /// Nothing in `Assets/Scripts` is Windows-specific — no platform
+        /// `#if`, no `.exe` assumption, no Win32 API — so a mac build ought
+        /// to work. "Ought to" is precisely the class of claim this project
+        /// keeps catching itself making, and the only way to turn it into a
+        /// fact is to run the compiler. That is all this is: a proof, not a
+        /// shipping pipeline. Signing and notarisation need an Apple
+        /// Developer ID, which is a purchase and therefore Jafar's.
+        public static void BuildMac() => Build(BuildTarget.StandaloneOSX, "build/LEDGER-mac/LEDGER.app");
+
+        static void Build(BuildTarget target, string outputPath)
         {
             if (!System.IO.File.Exists(ScenePath))
             {
@@ -27,8 +41,8 @@ namespace Ledger.EditorTools
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },
-                locationPathName = "build/LEDGER/LEDGER.exe",
-                target = BuildTarget.StandaloneWindows64,
+                locationPathName = outputPath,
+                target = target,
                 options = BuildOptions.None,
             };
 
