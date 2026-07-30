@@ -1,12 +1,19 @@
 # LEDGER — the Mixamo drop
 
-## Double-click `GO.bat`. That is the whole thing.
+## Never done this before? Download **`SETUP.bat`** and double-click it.
 
-> **Run it from inside your `wc26-picks` clone** — `tools\mixamo-pick\GO.bat`.
-> It needs the two Python files that sit beside it. If you run a copy saved on
-> its own (from Downloads, say) it will now look in the usual places a clone
-> lands and tell you exactly what to do if it cannot find one, rather than
-> failing four steps later with a path error the way the first version did.
+That is the only file you need. It puts the project on your PC, then hands
+straight over to the harvest. If git or Python are missing it stops and tells
+you which one and where to get it, rather than failing halfway through.
+
+## Already have the project on your PC?
+
+Double-click `tools\mixamo-pick\GO.bat` from inside it.
+
+> It needs the two Python files that sit beside it. A copy run on its own —
+> from Downloads, say — will now look in the usual places a clone lands and
+> tell you what to do if it cannot find one, rather than failing four steps
+> later with a path error the way the first version did.
 
 It opens Mixamo, tells you how to get a token, opens Notepad for you to paste
 it, and then does everything else unattended. Come back in a couple of hours
