@@ -535,7 +535,15 @@ def fetch(source, cast, candidates, out_dir):
         last = None
         for name in VCTK_DATASETS:
             try:
-                ds = load_dataset(name, split="train", streaming=True)
+                # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
+                # VCTK mirrors are script-backed, so without this `datasets`
+                # asks "Do you wish to run the custom code? [y/N]" — and a CI
+                # runner cannot answer a prompt, so every id declined itself.
+                try:
+                    ds = load_dataset(name, split="train", streaming=True,
+                                      trust_remote_code=True)
+                except TypeError:
+                    ds = load_dataset(name, split="train", streaming=True)
                 break
             except Exception as e:              # noqa: BLE001 - try the next id
                 last = e
@@ -586,6 +594,13 @@ def fetch(source, cast, candidates, out_dir):
     for name, opener in routes:
         try:
             ds, key_speaker, key_audio, matches = opener()
+            # AND PULL ONE ROW BEFORE BELIEVING IT. `load_dataset(streaming=True)`
+            # is lazy: it returns happily and fails on first access. The run
+            # before this printed "source: vctk" and then died fetching a row,
+            # so the log named a corpus that had never produced anything —
+            # a success message for work that had not happened, which is the
+            # same fault this project has now fixed in four other places.
+            next(iter(ds))
             used = name
             print(f"  source: {name}")
             break
