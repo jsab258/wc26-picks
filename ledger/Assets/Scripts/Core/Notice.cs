@@ -139,6 +139,14 @@ namespace Ledger.Core
 
         public static double HushFraction(int attending, int present)
         {
+            // `present <= 0` is DEAD for correctness and kept anyway, proved
+            // by a break run rather than assumed either way: with nobody on
+            // the street `crowd` below is already zero, so the whole
+            // expression is zero however loudly the share divides. What it
+            // actually buys is not having to reason about `attending / 0`
+            // producing an infinity that then gets clamped — behaviour that
+            // is correct by IEEE and horrible to rely on in a line somebody
+            // will edit later.
             if (present <= 0 || attending <= 0) return 0.0;
             double share = Feel.Clamp01((double)attending / present);
             double crowd = Feel.Clamp01((double)present / CrowdFloor);

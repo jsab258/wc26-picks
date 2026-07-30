@@ -1,92 +1,92 @@
 [
-  {
-    "name": "running at noon is as noteworthy as running at 3am, so the clock stops mattering",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            if (speed >= 3.2 && nightAmount >= NightAmountForRunning) return Notable.RunningAtNight;",
-    "new": "            if (speed >= 3.2) return Notable.RunningAtNight;"
-  },
-  {
-    "name": "waiting eight seconds counts as loitering, so standing anywhere is suspicious",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "        public const double LoiterSeconds = 30.0;",
-    "new": "        public const double LoiterSeconds = 5.0;"
-  },
-  {
-    "name": "the priority order inverts, so loitering outranks a drawn weapon",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            if (weaponVisible) return Notable.WeaponVisible;\n            if (bloodVisible) return Notable.BloodOnClothes;",
-    "new": "            if (secondsStationaryInView >= LoiterSeconds) return Notable.Loitering;\n            if (bloodVisible) return Notable.BloodOnClothes;"
-  },
-  {
-    "name": "running is equally alarming at dusk and at 3am",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "                case Notable.RunningAtNight: return Feel.Clamp(0.35 + 0.45 * nightAmount, 0, 1);",
-    "new": "                case Notable.RunningAtNight: return 0.6;"
-  },
-  {
-    "name": "nerve stops deciding whether anybody says anything -- everyone remarks",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            => n != Notable.None && Interest(n, nightAmount) * (0.35 + 0.9 * Feel.Clamp01(nerve)) >= 0.45;",
-    "new": "            => n != Notable.None;"
-  },
-  {
-    "name": "the hush curve saturates early again, so two people falling silent is inaudible",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            return Feel.Clamp01(1.0 - Math.Pow(1.0 - share, 4.0));",
-    "new": "            return Feel.Clamp01(1.0 - Math.Pow(1.0 - share, 0.45));"
-  },
-  {
-    "name": "the hush is linear, so a small hole in a room's sound reads as nothing",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            double share = Feel.Clamp01((double)attending / present);",
-    "new": "            double share = Feel.Clamp01((double)attending / present) * 0.25;"
-  },
-  {
-    "name": "attention does not drop the ambient floor, so the street going quiet stops mattering",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            double drop = (ambientFloor - Irreducible) * Feel.Clamp01(hush);",
-    "new": "            double drop = 0;"
-  },
-  {
-    "name": "the hush can silence the world entirely, rain and traffic included",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            const double Irreducible = 12.0;",
-    "new": "            const double Irreducible = 0.0;"
-  },
-  {
-    "name": "an empty street still goes quiet",
-    "file": "Assets/Scripts/Core/Notice.cs",
-    "old": "            if (present <= 0 || attending <= 0) return 0.0;",
-    "new": "            if (attending <= 0) return 0.0;"
-  },
-  {
-    "name": "the exposure readout stops moving with the light on the player",
-    "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "            double swing = VignetteLightSwing * (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0);",
-    "new": "            double swing = 0;"
-  },
-  {
-    "name": "the readout is loud enough to see in a screenshot",
-    "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "        public const double VignetteLightSwing = 0.10;",
-    "new": "        public const double VignetteLightSwing = 0.60;"
-  },
-  {
-    "name": "the readout runs backwards -- lit closes the frame",
-    "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "            return Feel.Clamp(baseCorner * (1.0 + swing), 0.35, 0.95);",
-    "new": "            return Feel.Clamp(baseCorner * (1.0 - swing), 0.35, 0.95);"
-  },
-  {
-    "name": "half-lit is no longer neutral, so the readout shifts the whole image at rest",
-    "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "            double t = (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0) * TemperatureSwing;",
-    "new": "            double t = Feel.Clamp01(lightOnPlayer) * TemperatureSwing;"
-  },
-  {
-    "name": "exposed reads warmer instead of cooler",
-    "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "            return (1.0 - t, 1.0 + t);   // lit: less red, more blue",
-    "new": "            return (1.0 + t, 1.0 - t);"
-  }
+ {
+  "name": "running at noon is as noteworthy as running at 3am, so the clock stops mattering",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            if (speed >= Perception.RunningThreshold && nightAmount >= NightAmountForRunning)\n                return Notable.RunningAtNight;",
+  "new": "            if (speed >= Perception.RunningThreshold)\n                return Notable.RunningAtNight;"
+ },
+ {
+  "name": "waiting eight seconds counts as loitering, so standing anywhere is suspicious",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "        public const double LoiterSeconds = 30.0;",
+  "new": "        public const double LoiterSeconds = 5.0;"
+ },
+ {
+  "name": "the priority order inverts, so loitering outranks a drawn weapon",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            if (weaponVisible) return Notable.WeaponVisible;\n            if (bloodVisible) return Notable.BloodOnClothes;",
+  "new": "            if (secondsStationaryInView >= LoiterSeconds) return Notable.Loitering;\n            if (bloodVisible) return Notable.BloodOnClothes;"
+ },
+ {
+  "name": "running is equally alarming at dusk and at 3am",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "                case Notable.RunningAtNight: return Feel.Clamp(0.35 + 0.45 * nightAmount, 0, 1);",
+  "new": "                case Notable.RunningAtNight: return 0.6;"
+ },
+ {
+  "name": "nerve stops deciding whether anybody says anything -- everyone remarks",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            => n != Notable.None && Interest(n, nightAmount) * (0.35 + 0.9 * Feel.Clamp01(nerve)) >= 0.45;",
+  "new": "            => n != Notable.None;"
+ },
+ {
+  "name": "the hush curve saturates early again, so two people falling silent is inaudible",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            return Feel.Clamp01((1.0 - Math.Pow(1.0 - share, 4.0)) * crowd);",
+  "new": "            return Feel.Clamp01((1.0 - Math.Pow(1.0 - share, 0.45)) * crowd);"
+ },
+ {
+  "name": "the hush is linear, so a small hole in a room's sound reads as nothing",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            double share = Feel.Clamp01((double)attending / present);",
+  "new": "            double share = Feel.Clamp01((double)attending / present) * 0.25;"
+ },
+ {
+  "name": "attention does not drop the ambient floor, so the street going quiet stops mattering",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            double drop = (ambientFloor - Irreducible) * Feel.Clamp01(hush);",
+  "new": "            double drop = 0;"
+ },
+ {
+  "name": "the hush can silence the world entirely, rain and traffic included",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            const double Irreducible = 12.0;",
+  "new": "            const double Irreducible = 0.0;"
+ },
+ {
+  "name": "an empty street still goes quiet -- the crowd factor is what actually stops it, not the guard",
+  "file": "Assets/Scripts/Core/Notice.cs",
+  "old": "            double crowd = Feel.Clamp01((double)present / CrowdFloor);",
+  "new": "            double crowd = 1.0;"
+ },
+ {
+  "name": "the exposure readout stops moving with the light on the player",
+  "file": "Assets/Scripts/Core/LightModel.cs",
+  "old": "            double swing = VignetteLightSwing * (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0);",
+  "new": "            double swing = 0;"
+ },
+ {
+  "name": "the readout is loud enough to see in a screenshot",
+  "file": "Assets/Scripts/Core/LightModel.cs",
+  "old": "        public const double VignetteLightSwing = 0.10;",
+  "new": "        public const double VignetteLightSwing = 0.60;"
+ },
+ {
+  "name": "the readout runs backwards -- lit closes the frame",
+  "file": "Assets/Scripts/Core/LightModel.cs",
+  "old": "            return Feel.Clamp(baseCorner * (1.0 + swing), 0.35, 0.95);",
+  "new": "            return Feel.Clamp(baseCorner * (1.0 - swing), 0.35, 0.95);"
+ },
+ {
+  "name": "half-lit is no longer neutral, so the readout shifts the whole image at rest",
+  "file": "Assets/Scripts/Core/LightModel.cs",
+  "old": "            double t = (Feel.Clamp01(lightOnPlayer) * 2.0 - 1.0) * TemperatureSwing;",
+  "new": "            double t = Feel.Clamp01(lightOnPlayer) * TemperatureSwing;"
+ },
+ {
+  "name": "exposed reads warmer instead of cooler",
+  "file": "Assets/Scripts/Core/LightModel.cs",
+  "old": "            return (1.0 - t, 1.0 + t);   // lit: less red, more blue",
+  "new": "            return (1.0 + t, 1.0 - t);"
+ }
 ]
