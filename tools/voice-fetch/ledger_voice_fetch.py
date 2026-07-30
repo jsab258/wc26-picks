@@ -969,7 +969,7 @@ def main():
     ap.add_argument("--who", default="")
     ap.add_argument("--candidates", type=int, default=6)
     ap.add_argument("--source", default="commonvoice",
-                    choices=["commonvoice", "libritts"])
+                    choices=["vctk", "commonvoice", "libritts"])
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--install", action="store_true")
     ap.add_argument("--yes", action="store_true")

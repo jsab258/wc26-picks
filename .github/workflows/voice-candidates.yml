@@ -58,9 +58,16 @@ jobs:
         working-directory: tools/voice-fetch
         run: |
           set -o pipefail
-          ARGS="--yes --candidates ${{ inputs.candidates }}"
-          if [ -n "${{ inputs.source }}" ]; then ARGS="$ARGS --source ${{ inputs.source }}"; fi
-          if [ -n "${{ inputs.who }}" ]; then ARGS="$ARGS --who ${{ inputs.who }}"; fi
+          # DEFAULTS IN THE SHELL, not only in the workflow_dispatch block.
+          # On a `push` event `inputs.*` are EMPTY STRINGS — the defaults
+          # declared above apply to manual runs only — so the first CI run
+          # died instantly on `--candidates ` with no value.
+          CANDIDATES="${{ inputs.candidates }}"; CANDIDATES="${CANDIDATES:-6}"
+          SOURCE="${{ inputs.source }}"
+          WHO="${{ inputs.who }}"
+          ARGS="--yes --candidates $CANDIDATES"
+          if [ -n "$SOURCE" ]; then ARGS="$ARGS --source $SOURCE"; fi
+          if [ -n "$WHO" ]; then ARGS="$ARGS --who $WHO"; fi
           echo "running: python ledger_voice_fetch.py $ARGS"
           python ledger_voice_fetch.py $ARGS 2>&1 | tee fetch.log
 
