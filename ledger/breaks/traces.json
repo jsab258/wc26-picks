@@ -1,0 +1,98 @@
+[
+  {
+    "name": "a gun marks you with blood, so choosing one stops meaning anything",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "        public static bool Marks(Weapon w) => w != null && w.MarksYou;",
+    "new": "        public static bool Marks(Weapon w) => w != null;"
+  },
+  {
+    "name": "blood is noticed across a street, so the walk home stops being safe",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            double range = Notice.BloodNoticeMetres\n                           * Perception.LightFactor(lightLevel)\n                           * (0.6 + 0.4 * Feel.Clamp01(s.Strength));",
+    "new": "            double range = 40.0;"
+  },
+  {
+    "name": "blood is noticed in the dark, so light stops mattering to it",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "                           * Perception.LightFactor(lightLevel)\n                           * (0.6 + 0.4 * Feel.Clamp01(s.Strength));",
+    "new": "                           * (0.6 + 0.4 * Feel.Clamp01(s.Strength));"
+  },
+  {
+    "name": "a stain fades away entirely, so waiting replaces dealing with it",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "        public const double StainFloor = 0.45;",
+    "new": "        public const double StainFloor = 0.0;"
+  },
+  {
+    "name": "a stain never dulls at all, so a week-old smear is as fresh as the minute it happened",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            double dried = 1.0 - 0.55 * Feel.Clamp01(s.AgeMinutes / (12 * 60));",
+    "new": "            double dried = 1.0;"
+  },
+  {
+    "name": "washing needs no water and no privacy",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            if (s == null || !hasWaterAndPrivacy || minutesSpent < WashMinutes) return false;",
+    "new": "            if (s == null) return false;"
+  },
+  {
+    "name": "washing is instant",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "        public const double WashMinutes = 25;",
+    "new": "        public const double WashMinutes = 0;"
+  },
+  {
+    "name": "who sees the blood stops mattering, so a stranger is as bad as somebody who loves you",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "             : Feel.Clamp01(s.Strength) * (0.3 + 1.2 * Feel.Clamp01(familiarity));",
+    "new": "             : Feel.Clamp01(s.Strength);"
+  },
+  {
+    "name": "an ordinary object keeps the seller, so a kitchen knife becomes traceable after all",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            if (w != null && w.Anonymous && origin == Origin.Bought) origin = Origin.Ordinary;",
+    "new": "            if (false) origin = Origin.Ordinary;"
+  },
+  {
+    "name": "an ordinary object is as traceable as a bought one",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "                case Origin.Ordinary: return 0.05;",
+    "new": "                case Origin.Ordinary: return 0.85;"
+  },
+  {
+    "name": "a gun off a body is as traceable as one bought from a named man",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "                case Origin.Taken: return 0.45;",
+    "new": "                case Origin.Taken: return 0.85;"
+  },
+  {
+    "name": "history is overwritten rather than appended, so the object forgets",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            it.History.Add($\"{what}:{onWhom}\");",
+    "new": "            it.History.Clear(); it.History.Add($\"{what}:{onWhom}\");"
+  },
+  {
+    "name": "a witnessed disposal costs nothing, so getting rid of it is always right",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            if (it.DisposalWitnessed) return Math.Max(0.5, Traceability(it));",
+    "new": "            if (it.DisposalWitnessed) return 0.0;"
+  },
+  {
+    "name": "disposal erases the seller's memory too",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            return Traceability(it) * 0.35;",
+    "new": "            return 0.0;"
+  },
+  {
+    "name": "an unused weapon is as much of a case as one used in a killing",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            if (!it.Disposed) return it.UsedInAKilling ? Traceability(it) : Traceability(it) * 0.3;",
+    "new": "            if (!it.Disposed) return Traceability(it);"
+  },
+  {
+    "name": "an object can be disposed of twice, so the first record is overwritten",
+    "file": "Assets/Scripts/Core/Traces.cs",
+    "old": "            if (it == null || it.Disposed) return;",
+    "new": "            if (it == null) return;"
+  }
+]
