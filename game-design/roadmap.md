@@ -1190,11 +1190,14 @@ weaken a gate to change its colour was the right call twice.
 
 ### M16.1 — THE RING, AND THE GUESS I MADE ABOUT IT
 
-**STATUS: fixed in code, awaiting a build.** Everything below is a diagnosis and
-a change, not yet a verified outcome — the numbers that would settle it
-(`slamDrewRing`, `ringSeen`) come from the run dispatched against `271207e`.
-Written down now because the diagnosis is worth keeping either way; this heading
-gets updated with the verdict, whichever way it goes.
+**STATUS: the ring is on screen, and the perception gate is green.** Run
+30540250029 (`8f0a8ca`): `perceptionWhy=ok perceptionOk=True`, with
+`ringSeen=1.4006%` of the frame changed at a mean rise of 0.38,
+`ringPaintUsed=Hidden/LedgerRing`, `slamDrewRing=True`, `ringNoMaterial=0`.
+
+**It took THREE bugs, not two, and I was wrong about the cause twice.** Below is
+the whole sequence, kept because the wrong answers cost more than the right one
+and are the more useful record.
 
 The caveat above says the likely cause was the sprite shader being stripped from
 the build. **That was a guess and it was wrong.** There were two bugs, neither of
@@ -1243,3 +1246,41 @@ is what let me tell the wrong story with a straight face. **The lesson is the
 project's oldest one in a new costume: check the ruler before the reading.** A
 counter that goes up when a `GameObject` is constructed is a ruler for
 construction, not for visibility, and I read it as though it were both.
+
+**Bug three — there was no material at all, and that killed both fixes.** With
+the cooldown and the geometry corrected the circle was still invisible, and the
+gate said `ringSeen=0.0000%`: not approximately nothing, *exactly* nothing, which
+is a different and much more informative number.
+
+At that point I stopped guessing and made the sim measure every candidate in one
+run — three materials, two layouts, and a positive control. That single build
+answered five questions:
+
+| measured | verdict |
+|---|---|
+| `control=17.8%` | the A/B is not blind, so the zeros are real |
+| `ringNoMaterial=4` | **a runtime `LineRenderer` has no material in this build.** `sharedMaterial` is null. My comment insisted it "ships with the component and therefore cannot be stripped" |
+| `sprites` == `default` to 4 dp | assigning `Sprites/Default` changed *nothing*, because `Shader.Find` returns null for it — it is not in the build |
+| `particles=0.0000` | that one *is* in the build and draws nothing |
+| `transformZ=0.0000` vs billboard `0.7279` | **my reading of `LineAlignment.TransformZ` was backwards.** The paper derivation was wrong and only a rendered frame caught it |
+
+So the ring now has **`Assets/Resources/LedgerRing.shader`** — unlit, because a
+lit circle in a 3am street is a black circle; vertex-coloured, so the fade rides
+on the LineRenderer's own gradient; alpha blended; `ZTest Always` like the light
+shafts. It lives in `Resources` because everything in `Resources` is in the
+player by definition, which is the actual reason the grade and the shafts work
+where a built-in shader name does not.
+
+**Two things worth keeping about the method rather than the bug.**
+
+*One measured build beats five guessed ones.* Each hypothesis costs half an hour
+of CI. Testing four at once, with a control, cost the same half hour and settled
+all of them — including two facts I would have got wrong by reasoning.
+
+*The sweep had a bug of its own, and the numbers exposed it.* `None` measured
+0.7279% running first and 0.0000% running fourth, from identical code. `Destroy`
+is deferred to the end of the frame, so each destroyed probe was still in the
+scene for the next arm's renders, drawing its circle in the same place — every
+arm after the first was reading through the one before it. Probes are now
+switched off before being destroyed. **A diagnostic that can mislead is worse
+than none, because it is believed.**

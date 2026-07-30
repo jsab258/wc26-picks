@@ -1610,7 +1610,23 @@ namespace Ledger.Game
                 var down = ImageStats.Darkened(on.Luma, off.Luma, ImageStats.QuantisationStep);
                 return (up.fraction + down.fraction, up.meanRise);
             }
-            finally { UnityEngine.Object.Destroy(probe.gameObject); }
+            finally
+            {
+                // SWITCHED OFF BEFORE IT IS DESTROYED, and this is a real bug
+                // rather than tidiness. `Destroy` is DEFERRED to the end of the
+                // frame, so a probe that has been destroyed is still in the
+                // scene for every later render in that same frame — including
+                // the next arm of this sweep, which draws its circle in the very
+                // same place. The second arm then toggles a line over pixels the
+                // first arm has already lit and measures almost nothing.
+                //
+                // That is exactly what the numbers showed: `None` measured
+                // 0.7279% when it ran first and 0.0000% when it ran fourth, for
+                // identical code. The first arm of each frame was clean and
+                // every arm after it was reading through the previous one.
+                probe.LineEnabled = false;
+                UnityEngine.Object.Destroy(probe.gameObject);
+            }
         }
 
         /// THE POSITIVE CONTROL: a plain quad three metres in front of the
@@ -1642,7 +1658,16 @@ namespace Ledger.Game
                 var down = ImageStats.Darkened(on.Luma, off.Luma, ImageStats.QuantisationStep);
                 return up.fraction + down.fraction;
             }
-            finally { UnityEngine.Object.Destroy(go); }
+            finally
+            {
+                // Hidden before it is destroyed, for the reason above: a
+                // deferred `Destroy` leaves a two-metre quad in front of the
+                // camera for the rest of the frame, and everything measured
+                // after it in this function would have been looking at a wall.
+                var mr2 = go.GetComponent<MeshRenderer>();
+                if (mr2 != null) mr2.enabled = false;
+                UnityEngine.Object.Destroy(go);
+            }
         }
 
         void MeasureAoOnce(int sample)
