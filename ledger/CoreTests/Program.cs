@@ -8523,6 +8523,65 @@ namespace Ledger.CoreTests
                   > fs3am,
                   "hearing: a frightened man hears the footstep further away");
 
+            // ---- the ring's draw rule ----
+            //
+            // THIS IS A REGRESSION SUITE BEFORE IT IS ANYTHING ELSE. The first
+            // build of the noise ring shipped green with the circle having never
+            // once appeared, because the rule lived in the Unity layer where
+            // nothing compiles it and the gate only checked its radius.
+            //
+            // The bug in one sentence: a flat cooldown on every ring MEASURED,
+            // so a footstep far too quiet to draw still spent it and the loud
+            // sounds the device exists for arrived inside the shadow.
+            double quietFloor = Perception.AmbientNight3am;
+            double runR = Perception.AudibleRadius(Perception.LoudFootstepRun, quietFloor);
+            double slamR = Perception.AudibleRadius(Perception.LoudDoorSlam, quietFloor);
+            double walkR = Perception.AudibleRadius(Perception.LoudFootstepWalk, quietFloor);
+
+            Check(Perception.RingDraw(walkR, Perception.LoudFootstepWalk, -1, 999)
+                  == Perception.RingVerdict.TooSmall,
+                  "ring: a walking footstep at 3am is real and not worth a circle",
+                  $"{walkR:0.00}m");
+            Check(Perception.RingDraw(runR, Perception.LoudFootstepRun, -1, 999)
+                  == Perception.RingVerdict.Draw,
+                  "ring: running at 3am is worth a circle", $"{runR:0.00}m");
+
+            // THE BUG ITSELF. A run footstep draws, and two tenths of a second
+            // later a door slams. The slam MUST take the screen.
+            Check(Perception.RingDraw(slamR, Perception.LoudDoorSlam,
+                                      Perception.LoudFootstepRun, 0.2)
+                  == Perception.RingVerdict.Draw,
+                  "ring: a slam preempts a footstep's ring rather than waiting for it",
+                  $"slam {slamR:0.00}m vs run {runR:0.00}m");
+            // And the same sound does NOT redraw immediately, or a run holds a
+            // permanent halo and the device becomes wallpaper.
+            Check(Perception.RingDraw(runR, Perception.LoudFootstepRun,
+                                      Perception.LoudFootstepRun, 0.2)
+                  == Perception.RingVerdict.Shadowed,
+                  "ring: a footstep does not redraw over its own ring");
+            Check(Perception.RingDraw(runR, Perception.LoudFootstepRun,
+                                      Perception.LoudFootstepRun,
+                                      Perception.RingRepeatQuietSeconds + 0.01)
+                  == Perception.RingVerdict.Draw,
+                  "ring: after the quiet gap the same sound pulses again");
+            // Size beats everything. A preempting sound that carries nowhere
+            // still draws nothing — otherwise a gunshot in a loud bar would put
+            // a two-metre circle on the floor and call it information.
+            Check(Perception.RingDraw(
+                      Perception.AudibleRadius(Perception.LoudSnub38, Perception.AmbientBarBusy),
+                      Perception.LoudSnub38, Perception.LoudFootstepWalk, 0.1)
+                  != Perception.RingVerdict.TooSmall,
+                  "ring: a revolver in a busy bar still carries far enough to draw");
+            Check(Perception.RingDraw(2.0, Perception.LoudSnub38, -1, 999)
+                  == Perception.RingVerdict.TooSmall,
+                  "ring: loudness never overrides the size floor");
+            // The first sound of a run, with nothing ever drawn, must draw.
+            // `lastDrawnLoudness = -1` is the never-drawn sentinel and getting
+            // its sign wrong would silence the very first ring of every session.
+            Check(Perception.RingDraw(runR, Perception.LoudFootstepRun, -1, 0)
+                  == Perception.RingVerdict.Draw,
+                  "ring: the first ring of a session draws with no history");
+
             // ---- the accumulator ----
             // TIME-WEIGHTED, NOT SAMPLE-COUNTED. Two tick rates must reach
             // NoticeSeconds at the same wall-clock moment or notice time is

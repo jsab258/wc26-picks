@@ -1,0 +1,26 @@
+[
+  {
+    "name": "the cooldown is asked before the loudness, which is the bug that shipped -- a footstep swallows a slam",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (loudness >= lastDrawnLoudness + RingPreemptBy) return RingVerdict.Draw;\n            return secondsSinceDrawn >= RingRepeatQuietSeconds\n                 ? RingVerdict.Draw : RingVerdict.Shadowed;",
+    "new": "            if (secondsSinceDrawn < RingRepeatQuietSeconds) return RingVerdict.Shadowed;\n            return RingVerdict.Draw;"
+  },
+  {
+    "name": "nothing is ever shadowed, so running at night holds a permanent halo",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            return secondsSinceDrawn >= RingRepeatQuietSeconds\n                 ? RingVerdict.Draw : RingVerdict.Shadowed;",
+    "new": "            return RingVerdict.Draw;"
+  },
+  {
+    "name": "the size floor is dropped, so a two-metre circle round your own shoes counts as information",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (radius < RingMinRadiusMetres) return RingVerdict.TooSmall;",
+    "new": "            if (radius < 0) return RingVerdict.TooSmall;"
+  },
+  {
+    "name": "the never-drawn sentinel is mishandled, silencing the first ring of every session",
+    "file": "Assets/Scripts/Core/Perception.cs",
+    "old": "            if (loudness >= lastDrawnLoudness + RingPreemptBy) return RingVerdict.Draw;",
+    "new": "            if (lastDrawnLoudness >= 0 && loudness >= lastDrawnLoudness + RingPreemptBy) return RingVerdict.Draw;"
+  }
+]

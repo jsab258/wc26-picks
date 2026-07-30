@@ -195,7 +195,8 @@ namespace Ledger.Game
             LastSoundTime = -999f;
             LastSoundLoudness = 0;
             LastSoundKind = null;
-            _lastRingAt = -999f;
+            // Including the ring's own counters, for the same reason.
+            NoiseRing.Reset();
         }
 
         /// Currently-attending walkers, maintained by `NpcWalker` so the hush
@@ -254,7 +255,6 @@ namespace Ledger.Game
         /// Set once by the game so `Emit` can size the ring against the
         /// player's own ambient floor without every emitter passing it in.
         static Transform _player;
-        static float _lastRingAt = -999f;
         public static void BindPlayer(Transform player) => _player = player;
 
         public static Vector3 LastSoundAt;
@@ -284,19 +284,17 @@ namespace Ledger.Game
             // every call site so no emitter can make a sound the player is not
             // told about — which is the same argument as FilmGrade reading the
             // same LevelAt the NPCs read: one fact, one source.
-            // NEVER TWO AT ONCE. Running at night emits a footstep loud
-            // enough to draw a ring roughly every half-second, and a stack of
-            // overlapping circles is unreadable — which would make the one
-            // device teaching the hearing model into the thing obscuring it.
-            // One ring at a time, so the newest is always the whole picture.
-            if (RingsEnabled && _player != null
-                && Time.time - _lastRingAt >= NoiseRing.LifeSeconds)
-            {
-                _lastRingAt = Time.time;
-                bool occluded = Occluded(_player.position, at);
-                NoiseRing.Show(at, loudness, occluded,
+            // NEVER TWO AT ONCE — and that rule now lives in `NoiseRing`, next
+            // to the state it needs. It used to live here as a flat cooldown on
+            // every SIZING, which is why the ring never once appeared: a
+            // footstep that was far too quiet to draw still spent the cooldown,
+            // so the sounds worth a circle kept arriving inside a footstep's
+            // shadow. The emitter's job is to report the sound; deciding which
+            // sound owns the screen is presentation, and it needs to know what
+            // was last DRAWN, which is knowledge this class never had.
+            if (RingsEnabled && _player != null)
+                NoiseRing.Show(at, loudness, Occluded(_player.position, at),
                                AmbientFloorAt(_player.position, PresentNearby));
-            }
         }
 
         public static bool SoundIsFresh => Time.time - LastSoundTime < SoundFreshSeconds;

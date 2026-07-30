@@ -275,6 +275,61 @@ namespace Ledger.Core
             return Math.Min(r, AudibleCapMetres);
         }
 
+        // ---------------------------------------------------------------
+        // WHETHER TO DRAW THE RING — the rule, kept where it can be tested
+        // ---------------------------------------------------------------
+        //
+        // The noise ring itself is a `MonoBehaviour` and cannot be. Its
+        // DECISION is arithmetic over four numbers and absolutely can be, and
+        // the first version of that decision lived in the Unity layer where
+        // nothing local compiles it — so a rule that threw away every ring the
+        // device existed to show sat green in CI for a full build, because the
+        // gate checked the radius and never asked whether anything was drawn.
+        //
+        // This is the fourth time this project has learned that the fix for an
+        // untestable rule is to move the rule rather than to look harder at it.
+
+        /// Below this a ring is true and not worth drawing: a footstep that
+        /// carries three metres in a silent street is a circle round your own
+        /// shoes.
+        public const double RingMinRadiusMetres = 6.0;
+
+        /// How much louder a sound must be to take the screen from one already
+        /// on it. Roughly the gap between a walk and a run, so a run does not
+        /// flicker against its own footsteps and a door slam interrupts either.
+        public const double RingPreemptBy = 10.0;
+
+        /// How long a sound no louder than the last one drawn must wait. Without
+        /// this, running at 3am — where every footstep genuinely carries eleven
+        /// metres — would hold a circle round the player continuously, which is
+        /// accurate and is wallpaper.
+        public const double RingRepeatQuietSeconds = 3.0;
+
+        public enum RingVerdict
+        {
+            /// Real, and smaller than it is worth drawing.
+            TooSmall,
+            /// A ring is already saying this, or something louder is.
+            Shadowed,
+            /// Put it on the ground.
+            Draw,
+        }
+
+        /// `lastDrawnLoudness` is the loudness of the ring last actually DRAWN,
+        /// negative if none ever was; `secondsSinceDrawn` counts from that draw.
+        ///
+        /// THE ORDER OF THE TWO CLAUSES IS THE BUG. Asking "has the last ring
+        /// finished?" before "is this one louder?" is what lets a footstep
+        /// swallow a gunshot, and it is the exact shape the first version had.
+        public static RingVerdict RingDraw(double radius, double loudness,
+                                          double lastDrawnLoudness, double secondsSinceDrawn)
+        {
+            if (radius < RingMinRadiusMetres) return RingVerdict.TooSmall;
+            if (loudness >= lastDrawnLoudness + RingPreemptBy) return RingVerdict.Draw;
+            return secondsSinceDrawn >= RingRepeatQuietSeconds
+                 ? RingVerdict.Draw : RingVerdict.Shadowed;
+        }
+
         /// An alert listener hears more. Not a separate state machine — the
         /// floor drops, so the SAME arithmetic produces escalation. A calm man
         /// ignores a bang two streets away; a frightened one hears a footstep.

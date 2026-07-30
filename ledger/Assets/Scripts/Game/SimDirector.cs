@@ -1189,12 +1189,27 @@ namespace Ledger.Game
         // a cinematic camera behind a guard, five systems built and not
         // running. So this stages the two behaviours §3.3 actually promises
         // and counts what happened to the player.
-        bool _loiterStaged, _nightRunStaged, _slamStaged;
+        bool _loiterStaged, _nightRunStaged;
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
         bool? _ringOk;
+
+        /// THE SLAM IS NO LONGER A ONE-SHOT, and the reason is the whole of last
+        /// night's remaining bug. One slam in thirteen days meant one chance for
+        /// the ring to draw, and the ring's cooldown gave that one chance a coin
+        /// flip. A probe that fires once and can be silently robbed is not
+        /// evidence; four on four separate nights costs nothing (a slam is one
+        /// instantaneous Emit) and turns the ring claim from luck into a fact.
+        int _slams;
+        int _lastSlamDay = -99;
+        const int SlamsWanted = 4;
+        /// Did a slam actually put a circle on the ground? Checked in the same
+        /// frame as the Emit, because `Show` is synchronous — so this is the
+        /// drawn ring itself answering, not an inference from a counter.
+        bool _slamDrewRing;
+        int _ringsShownBeforeSlam;
 
         /// Which perception sub-claims are failing, by name. Empty when green.
         string PerceptionWhy()
@@ -1205,7 +1220,17 @@ namespace Ledger.Game
             if (!(_litRange > _darkRange)) why.Add("light");
             if (Perceivers.SoundsEmitted < 1) why.Add("no-sounds");
             if (_slamInvestigations < 1) why.Add("slam");
-            if (_ringOk != true) why.Add("ring");
+            if (_ringOk != true) why.Add("ring-radius");
+            // AND THAT IT DREW. The old gate asserted the ring's arithmetic and
+            // called that "the ring", so a build in which the circle never once
+            // appeared on screen passed it. Verified-and-invisible is the exact
+            // failure this project keeps shipping, and the only cure is a gate
+            // that reads the drawing rather than the maths behind it.
+            if (!_slamDrewRing) why.Add("ring-drawn");
+            // AND THE PIXELS. "Drawn" means a GameObject exists; this means the
+            // player can see it. They are not the same claim and the difference
+            // between them was a circle standing on its edge.
+            if (!(_ringSeenFraction >= RingSeenFloor)) why.Add("ring-onscreen");
             return why.Count == 0 ? "ok" : string.Join("+", why);
         }
         float _loiterUntil = -1f, _nightRunUntil = -1f;
@@ -1385,15 +1410,21 @@ namespace Ledger.Game
             // time at all and cannot move the week's outcome, so gating it on
             // day ten was copy-paste from the loiter rather than reasoning, and
             // it cost two builds' worth of evidence about hearing.
-            if (!_slamStaged && now.Hour >= 1 && now.Hour <= 5
+            if (_slams < SlamsWanted && now.Day != _lastSlamDay
+                && now.Hour >= 1 && now.Hour <= 5
                 && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
-                _slamStaged = true;
+                _slams++;
+                _lastSlamDay = now.Day;
                 _investigationsBeforeSlam = Perceivers.NoiseInvestigations;
+                _ringsShownBeforeSlam = NoiseRing.Shown;
                 Perceivers.Emit(_player.transform.position, Perception.LoudDoorSlam, "slam");
+                if (NoiseRing.Shown > _ringsShownBeforeSlam) _slamDrewRing = true;
                 _slamAt = Time.time;
-                Debug.Log($"SimDirector: slammed a door, {present} people nearby, "
-                          + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m");
+                Debug.Log($"SimDirector: slammed a door #{_slams}, {present} people nearby, "
+                          + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m"
+                          + $" — ring {NoiseRing.LastSkip} at {NoiseRing.LastRadius:0.0}m"
+                          + $" (floor {NoiseRing.LastFloor:0.0}, occluded={NoiseRing.LastOccluded})");
             }
             // THE RING IS THE MODEL, asserted rather than assumed. Comparing
             // the drawn radius against `AudibleRadius` recomputed from the same
@@ -1412,9 +1443,15 @@ namespace Ledger.Game
 
             if (_slamAt > 0 && Time.time - _slamAt > 4f)
             {
-                _slamInvestigations = Perceivers.NoiseInvestigations - _investigationsBeforeSlam;
+                // THE BEST OF THE FOUR, not the last of them. Overwriting would
+                // let a slam on an empty street erase the evidence from one on a
+                // busy one, which is a probe that gets weaker the more often it
+                // runs — the opposite of the point.
+                int walked = Perceivers.NoiseInvestigations - _investigationsBeforeSlam;
+                _slamInvestigations = Math.Max(_slamInvestigations, walked);
                 _slamAt = -1f;
-                Debug.Log($"SimDirector: {_slamInvestigations} people walked toward the slam");
+                Debug.Log($"SimDirector: {walked} people walked toward the slam "
+                          + $"(best so far {_slamInvestigations})");
             }
 
             // ---- running at night ----
@@ -1516,6 +1553,23 @@ namespace Ledger.Game
             _stemRatioMax > 0 && _stemRatioMin < double.MaxValue
                 ? _stemRatioMax / _stemRatioMin : -1;
 
+        /// Twelve metres: big enough that its near arc is unmistakably in frame
+        /// and small enough that the line is several pixels wide at that
+        /// distance. A district-sized circle would be a hairline forty metres
+        /// away and a room-sized one would be under the camera.
+        const double RingProbeRadius = 12.0;
+
+        /// Fraction of the frame the ring brightened, and by how much. Negative
+        /// until measured — a gate that cannot tell "not measured" from "measured
+        /// zero" is the trap the loiter probe fell into.
+        double _ringSeenFraction = -1, _ringSeenRise = -1;
+
+        /// FORTY-SIX PIXELS OF A 640x360 FRAME. Set to catch "nothing at all"
+        /// rather than to grade the drawing: a twelve-metre ring should come in
+        /// an order of magnitude above this, and if it lands just over the line
+        /// that is itself worth knowing.
+        const double RingSeenFloor = 0.0002;
+
         void MeasureAoOnce(int sample)
         {
             var cam = Camera.main;
@@ -1525,6 +1579,53 @@ namespace Ledger.Game
             // give a difference of zero and a gate that fails for being
             // pointed somewhere honest.
             var all = FrameShot(cam);
+
+            // ---- THE NOISE RING, ON SCREEN OR NOT ----
+            //
+            // The one thing the last build could not tell me. `ringsDrawn` counts
+            // circles CONSTRUCTED, and a `LineRenderer` standing upright with its
+            // ribbon aimed at the road constructs perfectly and draws nothing a
+            // player can see. So: render this frame with the ring's renderer off,
+            // render it again with the renderer on, and count the pixels that got
+            // brighter. Same ruler as occlusion and reflections.
+            //
+            // Rendered IMMEDIATELY on either side of the toggle rather than
+            // across two game frames, because "an A/B is only a measurement if
+            // the thing it switches is switched by the time the frame is drawn"
+            // — which this project has now paid for twice.
+            // MEASURED EVERY SAMPLE AND THE BEST ONE KEPT, not latched on the
+            // first. One render could catch the player in a doorway with the
+            // circle behind a wall, and a single unlucky sample latching zero
+            // would fail a gate about the ring for a reason that is about the
+            // street. Same policy as the occlusion sampler above.
+            if (_player != null)
+            {
+                var probe = NoiseRing.ForVerification(_player.transform.position,
+                                                      RingProbeRadius);
+                if (probe != null)
+                {
+                    probe.LineEnabled = false;
+                    var without = FrameShot(cam);
+                    probe.LineEnabled = true;
+                    var with = FrameShot(cam);
+                    // `FrameShot` returns an empty struct if the render failed,
+                    // and comparing two nulls would throw inside a gate rather
+                    // than fail it.
+                    var (ringFrac, ringRise) = with.Luma != null && without.Luma != null
+                        ? ImageStats.Brightened(with.Luma, without.Luma,
+                                                ImageStats.QuantisationStep)
+                        : (-1.0, -1.0);
+                    if (ringFrac > _ringSeenFraction)
+                    {
+                        _ringSeenFraction = ringFrac;
+                        _ringSeenRise = ringRise;
+                    }
+                    UnityEngine.Object.Destroy(probe.gameObject);
+                    Debug.Log($"SimDirector: ring on screen — {100 * ringFrac:0.0000}% of "
+                              + $"pixels brighter by {ringRise:0.0000} "
+                              + $"({RingProbeRadius:0}m circle at the player's feet)");
+                }
+            }
 
             FilmGrade.AmbientOcclusion = false;
             var noAo = FrameShot(cam);
@@ -2931,7 +3032,15 @@ namespace Ledger.Game
                                 // been drawn at the model's radius. A ring
                                 // nobody drew and a ring drawn at the wrong size
                                 // read identically from a distance.
-                                && _ringOk == true;
+                                //
+                                // THIS COMMENT WAS TRUE OF THE INTENTION AND
+                                // FALSE OF THE CODE for one whole build: only
+                                // `_ringOk` was here, and it compares a radius
+                                // against the model without asking whether
+                                // anything was ever put on screen. It passed
+                                // green with `ringsDrawn=0`. Both halves now.
+                                && _ringOk == true && _slamDrewRing
+                                && _ringSeenFraction >= RingSeenFloor;
 
             var gates = new (string name, bool ok)[]
             {
@@ -3006,6 +3115,10 @@ namespace Ledger.Game
                  $"slamInvestigations={_slamInvestigations} " +
                  $"standoffs={Standoff.Beats} awareness={Standoff.LastAwareness} " +
                  $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
+                 $"ringSmall={NoiseRing.SkippedSmall} ringShadowed={NoiseRing.SkippedShadowed} " +
+                 $"ringNoMaterial={NoiseRing.SkippedNoMaterial} ringMax={NoiseRing.MaxRadius:0.0} " +
+                 $"slamDrewRing={_slamDrewRing} slams={_slams} " +
+                 $"ringSeen={100 * _ringSeenFraction:0.0000}% rise={_ringSeenRise:0.0000} " +
                  $"ringOk={_ringOk} why={PerceptionWhy()} " +
                  $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
                  perceptionOk),
@@ -3062,7 +3175,18 @@ namespace Ledger.Game
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
+                      // ITEMISED, because `drawn=0` had three possible causes
+                      // and I picked the wrong one out loud. `small` is the
+                      // model working, `shadowed` is the presentation rule, and
+                      // `noMaterial` is the only one that means the build is
+                      // broken. `ringMax` says whether anything loud enough to
+                      // draw ever happened at all.
+                      $"ringSmall={NoiseRing.SkippedSmall} ringShadowed={NoiseRing.SkippedShadowed} " +
+                      $"ringNoMaterial={NoiseRing.SkippedNoMaterial} " +
+                      $"ringMax={NoiseRing.MaxRadius:0.0} ringLastSkip={NoiseRing.LastSkip} " +
                       $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
+                      $"slamDrewRing={_slamDrewRing} " +
+                      $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"perceptionWhy={PerceptionWhy()} " +
                       $"perceptionOk={perceptionOk} " +
                       // PRINTED BECAUSE I GUESSED TWICE. Whether the probes
@@ -3070,7 +3194,7 @@ namespace Ledger.Game
                       // reached, and neither was in the report — so two builds
                       // were spent inferring it from a -1.
                       $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
-                      $"loiterStaged={_loiterStaged} slamStaged={_slamStaged} " +
+                      $"loiterStaged={_loiterStaged} slams={_slams} " +
                       $"nightRunStaged={_nightRunStaged} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
