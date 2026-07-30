@@ -63,6 +63,7 @@ namespace Ledger.SimHarness
                 await ScenarioEmpire();
                 await ScenarioRouter();
                 await ScenarioDirector();
+                ScenarioPerception();
                 ScenarioBudget();
             }
             catch (Exception ex)
@@ -736,6 +737,152 @@ namespace Ledger.SimHarness
                 var q = await live.ProposeAsync(calm);
                 CheckLive("live: a street with nothing wrong gets a quiet night", !q.IsSomething, q.ToString());
             }
+        }
+
+
+        /// M16: THE JOIN, end to end and against the REAL gossip mill.
+        ///
+        /// CoreTests proves each half. This proves the thing between them,
+        /// which is the claim the whole design rests on: two people who each
+        /// saw PART of a killing, put in a room, assemble something closer to
+        /// the truth than either of them held. `CompareNotes` has existed since
+        /// the mill was written and has never had partial information to work
+        /// with, so this is the first time it has been asked the question it
+        /// was built for.
+        static void ScenarioPerception()
+        {
+            Section("15. Perception: two half-witnesses make one whole accusation");
+            var now = new GameTime(4, 2, 0);
+
+            // A knife in a lane at two in the morning, and the two witnesses
+            // are COMPLEMENTARY rather than one being a subset of the other.
+            // The first version of this scenario had Ada see everything, so
+            // Victor added nothing and `AssemblesMore` correctly said no — the
+            // scenario was wrong, not the model. Complementary is the case the
+            // design is actually about.
+            //
+            // Ada is at the mouth of the lane: she sees him draw and she sees
+            // him go, and the killing itself happens behind a jutting wall, so
+            // she never sees the blow and — a knife at 3am carrying five metres
+            // through nothing, and nothing at all through a wall — never hears
+            // it either.
+            //
+            // Victor is above, across the street: he watches Tony fall and the
+            // man who did it is a shape in an unlit doorway.
+            var knife = Arsenal.Get("kitchenknife");
+            var deed = Observe.DeedFor(knife, "lane-killing", "player", "tony",
+                                       actorFled: true, hadPrecursor: true);
+
+            var ada = Observe.Resolve(deed, new Vantage
+            {
+                WitnessId = "ada",
+                ToActor = Sight.At(5, 0.85),            // close, lit, and she knows him
+                ToVictim = Sight.At(7, 0.85, 0, occluded: true),   // behind the wall
+                Familiarity = 0.9,
+                AmbientFloor = Perception.AmbientNight3am,
+                FaceToward = true, SecondsWatching = 3.0,
+            });
+            var victor = Observe.Resolve(deed, new Vantage
+            {
+                WitnessId = "victor",
+                ToVictim = Sight.At(9, 0.5),
+                ToActor = Sight.At(26, 0.10),          // a shape in a doorway
+                Familiarity = 0.7,                      // and it does not help him
+                AmbientFloor = Perception.AmbientNight3am,
+                FaceToward = false, SecondsWatching = 2.0,
+            });
+
+            Check("Ada names him", ada.NamesSomebody, ada.Label() + " rung " + ada.Rung);
+            // SHE HEARS HIM CRY OUT THROUGH THE WALL. The assertion here was
+            // originally "never saw the blow", and it failed — correctly. A
+            // kitchen knife makes the victim cry out, and a cry at 3am carries
+            // seventeen metres even after a wall takes twenty-two off it. So
+            // Ada knows something happened and has no idea what fell over,
+            // which is a better beat than the one I wrote.
+            Check("she hears him cry out through the wall", ada.Has(Slot.Act), ada.Label());
+            Check("and never sees who fell", !ada.Has(Slot.Victim), ada.Label());
+            Check("Victor saw a man fall and cannot say who did it",
+                victor.Has(Slot.Victim) && !victor.NamesSomebody,
+                victor.Label() + " rung " + victor.Rung);
+            Check("their accounts are genuinely different", ada.Slots != victor.Slots,
+                $"{ada.Slots} vs {victor.Slots}");
+            Check("and together they hold more than either did",
+                Observe.AssemblesMore(ada, victor), $"{Observe.Combine(ada, victor)}");
+            Check("which is a killing with a name on it that neither of them witnessed",
+                (Observe.Combine(ada, victor) & (Slot.Act | Slot.Victim | Slot.Actor))
+                    == (Slot.Act | Slot.Victim | Slot.Actor),
+                $"{Observe.Combine(ada, victor)}");
+
+            // THE WEAPON CHOICE, end to end. The same geometry with a wire
+            // gives Ada nothing at all to hear: silent, and the victim never
+            // cries out. That is the entire argument for the weapon table
+            // being perception profiles rather than damage values, and it is
+            // two lines to prove.
+            var wireDeed = Observe.DeedFor(Arsenal.Get("wire"), "lane-quiet",
+                                           "player", "tony", actorFled: true);
+            var adaQuiet = Observe.Resolve(wireDeed, new Vantage
+            {
+                WitnessId = "ada",
+                ToActor = Sight.At(5, 0.85),
+                ToVictim = Sight.At(7, 0.85, 0, occluded: true),
+                Familiarity = 0.9,
+                AmbientFloor = Perception.AmbientNight3am,
+                FaceToward = true, SecondsWatching = 3.0,
+            });
+            Check("with a wire instead, she hears nothing at all",
+                !adaQuiet.Has(Slot.Act), adaQuiet.Label());
+            Check("though she still sees him leave, which is its own problem",
+                adaQuiet.Has(Slot.Flight) && adaQuiet.NamesSomebody, adaQuiet.Label());
+
+            // Now put both into the real mill, at the confidence their own
+            // observations earned, and let them talk over the counter.
+            var graph = new SocialGraph();
+            graph.Link("ada", "victor", 0.8);
+            var mill = new GossipMill(graph);
+            mill.Add(new Gossiper("ada", "Ada", new MemoryStore("ada"), new KnowledgeBase(),
+                new SuspicionTracker(), "day"));
+            mill.Add(new Gossiper("victor", "Victor", new MemoryStore("victor"),
+                new KnowledgeBase(), new SuspicionTracker(), "day"));
+
+            mill.Witness("ada", new Fact("player", "killed", "tony"),
+                "saw the whole thing in the lane", true, now,
+                confidence: ada.Certainty, indelible: true);
+            mill.Witness("victor", new Fact("tony", "died", "the lane"),
+                "watched a man go down in the lane and never saw who", true, now,
+                confidence: victor.Certainty, indelible: true);
+
+            var adaG = mill.Get("ada");
+            var vicG = mill.Get("victor");
+            Check("Ada's account is filed at less than certainty",
+                adaG.Best("player.killed").Confidence < 0.95,
+                $"{adaG.Best("player.killed").Confidence:0.00}");
+            Check("and it is indelible anyway, because there is a body",
+                adaG.Best("player.killed").Indelible);
+
+            mill.Tick(now.AddMinutes(45));
+            Check("Victor hears the name he never saw",
+                vicG.Holds("player.killed", "tony"));
+
+            // THE DELIVERY WINDOW, at integration level: intercepted before
+            // arrival leaves nothing behind, and one minute later leaves
+            // something nothing in the game can remove.
+            var early = Delivery.Begin("ada", "ellis", walkMinutes: 7,
+                                       nerve: 0.6, willingness: 1.0);
+            Check("a witness on her way is not yet a fact", early.InFlight && !early.Arrived);
+            Check("and intercepting her works", early.Intercept());
+
+            var late = Delivery.Begin("ada", "ellis", 7, 0.6, 1.0);
+            Check("left alone she arrives", late.Tick(8));
+            Check("and then it is too late", !late.Intercept());
+
+            // Hardening: a week of Victor telling it turns his shape into a
+            // name, and the name comes from what he already believed.
+            for (int i = 0; i < 16; i++) Observe.Retell(victor, expectedId: "nikos");
+            Check("Victor's shape hardens into a name he never actually saw",
+                victor.Rung == 4 && victor.AccusedId == "nikos",
+                $"rung {victor.Rung} -> {victor.AccusedId}");
+            Check("but it never becomes certainty", victor.Certainty <= 0.94,
+                $"{victor.Certainty:0.00}");
         }
 
         static void ScenarioBudget()

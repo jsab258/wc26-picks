@@ -137,12 +137,31 @@
 - ✅ nothing is due before its day
 - ✅ the day's pressure comes due
 - ✅ and exactly once, however often it is polled
+## 15. Perception: two half-witnesses make one whole accusation
+- ✅ Ada names him
+- ✅ she hears him cry out through the wall
+- ✅ and never sees who fell
+- ✅ Victor saw a man fall and cannot say who did it
+- ✅ their accounts are genuinely different
+- ✅ and together they hold more than either did
+- ✅ which is a killing with a name on it that neither of them witnessed
+- ✅ with a wire instead, she hears nothing at all
+- ✅ though she still sees him leave, which is its own problem
+- ✅ Ada's account is filed at less than certainty
+- ✅ and it is indelible anyway, because there is a body
+- ✅ Victor hears the name he never saw
+- ✅ a witness on her way is not yet a fact
+- ✅ and intercepting her works
+- ✅ left alone she arrives
+- ✅ and then it is too late
+- ✅ Victor's shape hardens into a name he never actually saw
+- ✅ but it never becomes certainty
 ## 6. Cost and latency
 - Total estimated cost of this playtest: $0.0315 across 25 calls
 - NPC reply latency ms — median 0, max 33
 - ✅ cost tracking recorded calls
 
-## Result: 71 passed, 0 deterministic failure(s)
+## Result: 89 passed, 0 deterministic failure(s)
 
 ```
 claude-sonnet-5: 19 calls, 7600 in / 380 out tokens
