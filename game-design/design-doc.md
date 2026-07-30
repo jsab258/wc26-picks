@@ -47,6 +47,15 @@ Claims we make explicitly, so every design decision can be tested against them:
    can do this; it is the heart of the game.
 3. **Secrets are loot.** What you know about people — and what they know about you — is the
    primary currency and progression system (CK3 hooks × Outer Wilds knowledge-progression).
+3b. **Recognition, not detection** (added 2026-07-30, M16 Phase 1 built). Every crime game
+   asks whether a witness saw you. Ours asks **which parts they got, and whether they can
+   put a name to it** — seven perceivable slots and a five-rung identification ladder, where
+   the top rung is *recognition* and needs a relationship rather than a distance. At twenty
+   metres in the rain a stranger sees a shape and **your neighbour sees you.** That requires
+   a three-thousand-person acquaintance graph with real familiarity in it, which is why no
+   AAA crime game is in a position to build it, and it inverts the tactics: the dangerous
+   witness is not the closest one, it is the one who knows you. Measured in `RunPerceptionLab`:
+   partial observation is 95% of outcomes, and darkness cuts naming by 4.6x.
 4. **A living city at honest scale.** Thousands of residents (3000 as of M9, 2026-07-26),
    any of whom can be promoted by attention into a full character. Almost none of them are
    simulated at any moment, and the design is honest about that: a **Near** band walks the
