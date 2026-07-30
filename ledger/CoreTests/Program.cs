@@ -8450,14 +8450,21 @@ namespace Ledger.CoreTests
                   "perception: darkness takes the name off an acquaintance at 20m");
 
             // ---- symmetry, the one prospective signal ----
-            Check(Perception.SymmetryPredictsSeen(10, 0, 1.0, false),
-                  "symmetry: facing you, lit, ten metres — he sees you");
-            Check(!Perception.SymmetryPredictsSeen(10, 0, 0.05, false),
-                  "symmetry: the same geometry in the dark does not");
+            Check(Perception.SymmetryPredictsSeen(10, 0, 1.0, 1.0, false),
+                  "symmetry: facing you, both lit, ten metres — he sees you");
+            Check(!Perception.SymmetryPredictsSeen(10, 0, 0.05, 1.0, false),
+                  "symmetry: you in the dark and him in the light — he does not");
+            // THE CASE THE ONE-LIGHT VERSION GOT WRONG, and the reason the rule
+            // takes two: you under a lamp reading a man in an unlit doorway. You
+            // cannot tell which way he is facing, so the rule must decline to
+            // promise rather than tell you he can see you.
+            Check(!Perception.SymmetryPredictsSeen(10, 0, lightOnYou: 1.0,
+                                                  lightOnThem: 0.03, occluded: false),
+                  "symmetry: you cannot read a facing you cannot see");
             // Beyond the readable distance the rule says "you cannot tell"
             // rather than "you are safe" — the promise is that there is no
             // hidden factor, and it can only be kept where facing is legible.
-            Check(!Perception.SymmetryPredictsSeen(30, 0, 1.0, false),
+            Check(!Perception.SymmetryPredictsSeen(30, 0, 1.0, 1.0, false),
                   "symmetry: past facing-readable range the rule declines to promise");
             Check(Perception.FacingIsReadable(17, 1.0) && !Perception.FacingIsReadable(19, 1.0),
                   "symmetry: facing is readable to 18m in full light");

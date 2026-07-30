@@ -168,14 +168,26 @@ namespace Ledger.Core
         public static bool FacingIsReadable(double metres, double lightLevel) =>
             metres <= FacingReadableMetres * LightFactor(lightLevel);
 
-        /// The rule itself, as the player will learn it. `youAreLit` is the
-        /// same number the vignette responds to, so the two halves of the
-        /// promise come from one source.
+        /// The rule itself, as the player will learn it.
+        ///
+        /// TWO LIGHTS, NOT ONE, and the first version got this wrong in the one
+        /// signal the player is actually promised. Reading his facing needs
+        /// light on HIM; his seeing you needs light on YOU. Collapsing them into
+        /// a single number makes the rule lie in the case that matters most —
+        /// you standing under a lamp reading a man who is in a dark doorway,
+        /// where you cannot tell which way he is facing and the model would have
+        /// said you could. Same mistake in the same shape as one distance for
+        /// the actor and the victim, found by re-reading rather than by a test.
+        ///
+        /// `lightOnYou` is the number the vignette responds to, so that half of
+        /// the promise still comes from one source.
         public static bool SymmetryPredictsSeen(double metres, double degreesOffAxis,
-                                                double youAreLit, bool occluded)
+                                                double lightOnYou, double lightOnThem,
+                                                bool occluded)
         {
-            if (!FacingIsReadable(metres, youAreLit)) return false;   // cannot tell
-            return InSight(metres, degreesOffAxis, youAreLit, occluded);
+            // Cannot tell which way he is facing → the rule declines to promise.
+            if (!FacingIsReadable(metres, lightOnThem)) return false;
+            return InSight(metres, degreesOffAxis, lightOnYou, occluded);
         }
 
         // ---------------------------------------------------------------

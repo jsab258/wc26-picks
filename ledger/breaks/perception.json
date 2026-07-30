@@ -80,7 +80,7 @@
   {
     "name": "symmetry promises past the distance facing can be read",
     "file": "Assets/Scripts/Core/Perception.cs",
-    "old": "            if (!FacingIsReadable(metres, youAreLit)) return false;   // cannot tell",
+    "old": "            if (!FacingIsReadable(metres, lightOnThem)) return false;",
     "new": "            if (false) return false;"
   },
   {
