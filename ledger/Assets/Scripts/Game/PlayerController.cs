@@ -283,6 +283,14 @@ namespace Ledger.Game
 
             _body.Speed = speed;
             CurrentSpeed = speed;
+            // BIND HERE, not in GossipDirector. The noise ring needs the player
+            // to size itself against the player's own ambient floor, and it was
+            // bound from a gossip method that does not run in sim mode — so
+            // `Show` was never called at all and ringsSized came back 0 for
+            // eleven hundred sounds. A dependency registered from somewhere
+            // incidental is a dependency that is sometimes missing; the player
+            // registering itself cannot be.
+            Perceivers.BindPlayer(transform);
             // The visibility readout, from the same function the NPCs read so
             // the two can never disagree (FilmGrade.LitAmount).
             FilmGrade.LitAmount = (float)Perceivers.RefreshPlayerLight(transform.position);
