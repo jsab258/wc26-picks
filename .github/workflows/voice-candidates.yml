@@ -1,0 +1,110 @@
+name: LEDGER voice candidates
+
+# WHY THIS EXISTS, and it should have existed three listening sessions ago.
+#
+# The fetcher streams a speech corpus from HuggingFace. This project's own
+# sandbox cannot reach huggingface.co — its egress policy denies it, the same
+# way it denies mixamo.com — so I put the work on Jafar's PC: a Python
+# install, a virtual environment, a corpus stream, and a page that only opens
+# on the machine that produced it.
+#
+# A GitHub runner has open internet. It could have done every one of those
+# steps from the start, and the output can be committed so the listening
+# happens on a phone instead of at a desk. I never asked whether anything
+# other than his laptop could run it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidates:
+        description: "How many voices to offer per character"
+        required: false
+        default: "6"
+      source:
+        description: "vctk | commonvoice | libritts (blank = try in order)"
+        required: false
+        default: ""
+      who:
+        description: "Comma-separated character ids, or blank for all"
+        required: false
+        default: ""
+
+jobs:
+  candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/game-dev-ai-automation-2h67ix
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch candidates
+        working-directory: tools/voice-fetch
+        run: |
+          set -o pipefail
+          ARGS="--yes --candidates ${{ inputs.candidates }}"
+          if [ -n "${{ inputs.source }}" ]; then ARGS="$ARGS --source ${{ inputs.source }}"; fi
+          if [ -n "${{ inputs.who }}" ]; then ARGS="$ARGS --who ${{ inputs.who }}"; fi
+          echo "running: python ledger_voice_fetch.py $ARGS"
+          python ledger_voice_fetch.py $ARGS 2>&1 | tee fetch.log
+
+      # SMALL ENOUGH TO CARRY. WAV at 24kHz is about half a megabyte for
+      # eleven seconds, and a hundred-odd of those is fifty megabytes of
+      # binary in a git history for something that gets listened to once.
+      # 64kbps mono mp3 is a fifteenth of that and no worse for judging a
+      # voice — the cloner never sees these files, only Jafar's ears do.
+      - name: Compress for listening
+        working-directory: tools/voice-fetch
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
+          mkdir -p ../../voice-candidates
+          rm -rf ../../voice-candidates/*
+          cd ledger-voices-out
+          for w in */*.wav; do
+            out="../../../voice-candidates/${w%.wav}.mp3"
+            mkdir -p "$(dirname "$out")"
+            ffmpeg -loglevel error -y -i "$w" -codec:a libmp3lame -b:a 64k -ac 1 "$out"
+          done
+          cp listen.html ../../../voice-candidates/ 2>/dev/null || true
+          cd ..
+          cp fetch.log ../../voice-candidates/ 2>/dev/null || true
+
+      - name: Rewrite the page to point at the mp3s
+        run: |
+          if [ -f voice-candidates/listen.html ]; then
+            sed -i 's/\.wav"/.mp3"/g' voice-candidates/listen.html
+          fi
+          echo "candidates: $(find voice-candidates -name '*.mp3' | wc -l) clips, $(du -sh voice-candidates | cut -f1)"
+
+      - name: Commit
+        run: |
+          git config user.name "LEDGER CI"
+          git config user.email "ci@ledger.invalid"
+          git add voice-candidates
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "Voice candidates from CI ($(date -u +%Y-%m-%dT%H:%MZ))"
+            git push origin HEAD:claude/game-dev-ai-automation-2h67ix
+          fi
+
+      # AND THE LOG, because the source that actually answered is the single
+      # most useful line and the tail of a job log is where it goes to die.
+      - name: Verdict
+        if: always()
+        run: |
+          echo "=== VOICE FETCH VERDICT ==="
+          grep -E "source:|unavailable:|NOTE|rejected|fell back" tools/voice-fetch/fetch.log || echo "no source line found"
+          echo "==========================="
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-candidates
+          path: voice-candidates
