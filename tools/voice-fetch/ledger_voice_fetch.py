@@ -354,18 +354,32 @@ def fetch(source, cast, candidates, out_dir):
     for c in cast:
         wanted[c["id"]] = dict(spec=c, banked={}, done=[])
 
-    if source == "libritts":
-        ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
-                          streaming=True)
-        key_speaker, key_audio = "speaker_id", "audio"
-        def matches(row, spec):
-            # LibriTTS carries no age or gender in the row, so every brief
-            # sees every speaker and the filtering is your ears. Said out
-            # loud rather than silently pretending the filter worked.
-            return True
-    else:
-        ds = load_dataset(CV_DATASET, "en", split="train", streaming=True)
-        key_speaker, key_audio = "client_id", "audio"
+    # THREE ROUTES, TRIED IN ORDER, because the first one broke on contact
+    # and none of them can be tested from where this was written.
+    #
+    # `datasets` v3 removed support for dataset loading SCRIPTS, and the
+    # ungated Common Voice mirror is script-based — so the very first real run
+    # died on "Dataset scripts are no longer supported, but found
+    # common_voice_17_0.py" and told the user to re-run with a flag. Telling
+    # somebody to retry by hand is not a fallback, it is a to-do item.
+    #
+    #   1. Common Voice the ordinary way. Works if `datasets` is v2, and is
+    #      the route with age and gender metadata, so the shortlists are
+    #      filtered rather than merely long.
+    #   2. Common Voice via `refs/convert/parquet` — the parquet export the
+    #      Hub generates for every dataset, which has no script and therefore
+    #      no v3 problem.
+    #   3. LibriTTS-R, which is parquet-native and always loadable.
+    #
+    # Whichever wins is NAMED in the output, because a shortlist filtered by
+    # metadata and a shortlist filtered by nothing are different things and
+    # the casting notes need to say which one you were listening to.
+
+    def open_common_voice(revision=None):
+        kw = dict(split="train", streaming=True)
+        if revision:
+            kw["revision"] = revision
+        ds = load_dataset(CV_DATASET, "en", **kw)
         def matches(row, spec):
             g = (row.get("gender") or "").strip()
             a = (row.get("age") or "").strip()
@@ -377,6 +391,46 @@ def fetch(source, cast, candidates, out_dir):
             # unknown, and filling a shortlist with unknowns is the same as
             # not filtering.
             return bool(g)
+        return ds, "client_id", "audio", matches
+
+    def open_libritts():
+        ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
+                          streaming=True)
+        def matches(row, spec):
+            # LibriTTS carries no age or gender in the row, so every brief
+            # sees every speaker and the filtering is your ears. Said out
+            # loud rather than silently pretending the filter worked.
+            return True
+        return ds, "speaker_id", "audio", matches
+
+    routes = []
+    if source == "libritts":
+        routes = [("libritts", open_libritts)]
+    else:
+        routes = [
+            ("commonvoice", lambda: open_common_voice()),
+            ("commonvoice-parquet",
+             lambda: open_common_voice(revision="refs/convert/parquet")),
+            ("libritts", open_libritts),
+        ]
+
+    ds = key_speaker = key_audio = matches = None
+    used = None
+    for name, opener in routes:
+        try:
+            ds, key_speaker, key_audio, matches = opener()
+            used = name
+            print(f"  source: {name}")
+            break
+        except Exception as e:                  # noqa: BLE001 - report and try next
+            line = str(e).strip().splitlines()[0][:160]
+            print(f"  {name} unavailable: {type(e).__name__}: {line}")
+    if ds is None:
+        raise RuntimeError("no corpus could be opened; see the reasons above")
+    if used == "libritts" and source != "libritts":
+        print("  NOTE: fell back to LibriTTS. It carries no age or gender, so")
+        print("        every brief sees every speaker and the filtering is")
+        print("        entirely your ears. Judge against the brief.")
 
     seen_rows = 0
     for row in ds:
