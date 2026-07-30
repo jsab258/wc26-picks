@@ -703,6 +703,28 @@ def fetch(source, cast, candidates, out_dir):
             print("    stopping: scanned 400k rows, taking what we have")
             break
 
+        # DECIDE BEFORE DECODING. The loop used to read and resample the audio
+        # of EVERY row and only then ask whether anybody wanted that speaker —
+        # so a corpus of forty-four thousand utterances was fully decoded to
+        # fill a hundred-odd slots, and the run before this one was still going
+        # at fifty minutes against a sixty-minute cap.
+        #
+        # Metadata is already in the row. Ask first, decode second.
+        speaker = row.get(key_speaker) or ""
+        if not speaker:
+            continue
+        owner = claimed.get(speaker)
+        if owner is not None:
+            # Known speaker: only their owner can still want them.
+            w = wanted.get(owner)
+            if w is None or len(w["done"]) >= candidates:
+                continue
+        else:
+            # New speaker: does any unfilled character's brief accept them?
+            if not any(len(w["done"]) < candidates and matches(row, w["spec"])
+                       for w in wanted.values()):
+                continue
+
         audio = row.get(key_audio)
         if not audio:
             continue
@@ -727,9 +749,6 @@ def fetch(source, cast, candidates, out_dir):
                 arr = arr.mean(axis=1)
         if arr is None or not rate:
             continue
-        speaker = row.get(key_speaker) or ""
-        if not speaker:
-            continue
         mono = resample(np.asarray(arr, dtype=np.float32).reshape(-1), rate)
 
         # ONE SPEAKER, ONE CHARACTER. Without this every character banks the
@@ -740,7 +759,6 @@ def fetch(source, cast, candidates, out_dir):
         #
         # The first unfilled character to want a speaker claims them, and no
         # one else may bank them afterwards.
-        owner = claimed.get(speaker)
         for cid, w in wanted.items():
             if len(w["done"]) >= candidates:
                 continue
