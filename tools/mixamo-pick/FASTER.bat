@@ -21,6 +21,8 @@ REM ===================================================================
 
 set "MH=%USERPROFILE%\ledger-mixamo\MixamoHarvester"
 set "XBOT=2dee24f8-3b49-48af-b735-c6377509eaac"
+set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+for %%R in ("%~dp0..\..") do set "REPO=%%~fR"
 
 echo.
 echo  Speeding up the harvest
@@ -32,6 +34,17 @@ if not exist "%MH%\mixamo_harvester.py" (
   echo  Run SETUP.bat or GO.bat first.
   pause & exit /b 1
 )
+
+REM  PULL FIRST. GO.bat commits the clips and pushes them at the end,
+REM  and a push from a copy that is behind the remote is REJECTED - so a
+REM  two-hour harvest would end in an error that has nothing to do with
+REM  the harvest. Cheapest possible insurance, taken here because this is
+REM  what runs first.
+echo  [0/2] Updating the project...
+pushd "%REPO%"
+git pull origin "%BRANCH%"
+if errorlevel 1 echo  Pull failed - the push at the end may be refused. Tell me if so.
+popd
 
 echo  [1/2] Pinning to X Bot only...
 echo ["%XBOT%"]> "%MH%\characters.json"

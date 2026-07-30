@@ -176,8 +176,15 @@ echo.
 echo  Pushing...
 pushd "%REPO%"
 git add "ledger/Assets/Characters"
-git commit -m "Mixamo drop: characters and animation clips" || echo  (nothing new to commit)
-git push origin HEAD:claude/game-dev-ai-automation-2h67ix || echo  (push failed - tell me and I will sort it)
+git commit -m "Mixamo drop: characters and animation clips"
+if errorlevel 1 echo  Nothing new to commit.
+REM  REBASE ONTO THE REMOTE BEFORE PUSHING. Two hours will have passed
+REM  since the harvest started and I will almost certainly have pushed
+REM  something in the meantime; a push from behind is rejected outright.
+git pull --rebase origin claude/game-dev-ai-automation-2h67ix
+if errorlevel 1 echo  Rebase hit a snag - the push below may fail. Send me the output.
+git push origin HEAD:claude/game-dev-ai-automation-2h67ix
+if errorlevel 1 echo  Push failed. The clips are safe on disk - send me the output.
 popd
 
 echo.
