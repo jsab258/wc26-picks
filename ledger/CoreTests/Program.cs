@@ -9352,6 +9352,32 @@ namespace Ledger.CoreTests
             Check(!silentWitness.Has(Slot.Act) || silentWitness.Has(Slot.Victim),
                   "deed: a silent killing is seen or not at all, never merely heard");
 
+            // THE REPLACEMENT FOR Violence.Saw, and the reason it exists: the
+            // old path knew about distance and a wall and nothing about the
+            // weapon, so it scored a witness one metre away behind a wall at
+            // roughly a half. The observation model gives them nothing for a
+            // knife, which is correct — a quiet act behind a wall is not
+            // perceived — and that disagreement is why one of them had to go.
+            var behindAWall = Vantage.Both("w", 1.0, 1.0, 0.9, Perception.AmbientDaytimeStreet);
+            behindAWall.ToActor.Occluded = true;
+            behindAWall.ToVictim.Occluded = true;
+            var quiet = Violence.Observe(Arsenal.Get("kitchenknife"), "e", "player", "tony",
+                                         new[] { behindAWall });
+            Check(quiet.Count == 0,
+                  "violence: a knife behind a wall leaves nobody with anything");
+            Check(Violence.Confidence(1.0, occluded: true) > 0.4,
+                  "violence: where the superseded path would have scored them about a half",
+                  $"{Violence.Confidence(1.0, true):0.00}");
+
+            // And the loud case does produce a witness, through the same call.
+            var loudBehindAWall = Violence.Observe(Arsenal.Get("snub38"), "e", "player", "tony",
+                                                   new[] { behindAWall });
+            Check(loudBehindAWall.Count == 1 && loudBehindAWall[0].Label() == "sound only",
+                  "violence: a .38 through the same wall is sound only",
+                  loudBehindAWall.Count == 0 ? "nobody" : loudBehindAWall[0].Label());
+            Check(Violence.Observe(null, "e", "a", "b", null).Count == 0,
+                  "violence: no vantages, no witnesses");
+
             // ---- provenance ----
             var bought = Traces.Acquire("i1", "switchblade", Traces.Origin.Bought, "kass");
             Check(bought.Origin == Traces.Origin.Bought && bought.FromWhom == "kass",

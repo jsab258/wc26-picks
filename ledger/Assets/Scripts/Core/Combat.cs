@@ -286,6 +286,22 @@ namespace Ledger.Core
         /// gets the shout range rather than the speaking one.
         public const double SeenFrom = Acoustics.ShoutCarry;
 
+        /// SUPERSEDED BY `Core/Observation` — see `weapons-spec.md` §9 and the
+        /// v4 audit, finding E.
+        ///
+        /// This function knows about distance and a wall. It knows nothing
+        /// about light, facing, identification, the weapon, or what is already
+        /// audible where the listener stands — so it is more generous than the
+        /// truth in exactly the cases the observation model exists to fix. A
+        /// witness one metre away behind a wall scores 0.49 here and gets
+        /// NOTHING from `Observe.Resolve` when the weapon was a knife, which is
+        /// correct: a quiet act behind a wall is not perceived.
+        ///
+        /// It is kept because its tests document the older reasoning, and it
+        /// has no caller in the game — `lint-usings.py` now fails the build if
+        /// a Game-layer file calls it, so the old path cannot come back by
+        /// accident. New work uses `Violence.Observe`.
+        ///
         /// How sure a witness is about a FIGHT. Higher than for overheard
         /// speech at the same distance: you do not need to make out words to
         /// know what you are looking at.
@@ -310,6 +326,31 @@ namespace Ledger.Core
                 if (w != null && Confidence(w.Metres, w.Occluded, streetNoise) > 0.05)
                     seen.Add(w);
             return seen;
+        }
+
+        /// THE REPLACEMENT. One act, a list of vantages, one observation each.
+        ///
+        /// Everything the old path could not express is here: what the weapon
+        /// was, how lit the actor was, which way each witness was facing,
+        /// whether they know him, and what the street already sounds like.
+        public static List<Observation> Observe(Weapon weapon, string eventId,
+                                                string actorId, string victimId,
+                                                IEnumerable<Vantage> vantages,
+                                                bool actorFled = false,
+                                                bool hadPrecursor = false)
+        {
+            var outp = new List<Observation>();
+            if (vantages == null) return outp;
+            var deed = Ledger.Core.Observe.DeedFor(weapon, eventId, actorId, victimId,
+                                                   actorFled, hadPrecursor);
+            foreach (var v in vantages)
+            {
+                var o = Ledger.Core.Observe.Resolve(deed, v);
+                // Somebody who got nothing is not a witness, and putting them
+                // in the list would make every caller filter it.
+                if (!o.Empty) outp.Add(o);
+            }
+            return outp;
         }
 
         /// THE ONE FACT THAT CANNOT BE DISCREDITED.

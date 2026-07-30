@@ -347,6 +347,35 @@ def check_double_to_float(path):
                 break
 
 
+# --- superseded APIs that must not come back into the Game layer -------------
+#
+# `Violence.Confidence` and `Violence.Saw` predate `Core/Observation` and are
+# more generous than the truth in exactly the cases the newer model exists to
+# fix — they know about distance and a wall and nothing about light, facing,
+# identification or the weapon. They are kept for their tests, which document
+# the older reasoning, and they have no caller in the game.
+#
+# Two systems deciding who saw a killing is the failure this project has already
+# paid for once in the other direction (a system built, correct, and attached to
+# nothing). A grep is a crude guard and it is the right size for this: the rule
+# is not "never use these", it is "the Game layer uses the new one".
+SUPERSEDED = {
+    "Violence.Confidence": "Violence.Observe / Observe.Resolve",
+    "Violence.Saw": "Violence.Observe",
+}
+
+
+def check_superseded(path):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for lineno, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("//") or stripped.startswith("///"):
+            continue
+        for old, new in SUPERSEDED.items():
+            if old + "(" in line:
+                yield lineno, old, new, line.rstrip()
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "ledger/Assets/Scripts")
     core_names = core_type_names(root)
@@ -379,6 +408,13 @@ def main() -> int:
                   f"qualify this use. ShapeCheck cannot see it: its Unity stubs have "
                   f"no UnityEngine.{name} to collide with.\n    {line}")
         if path.parts[-2] != "Core":
+            for lineno, old, new, line in check_superseded(path):
+                bad += 1
+                print(f"{path}:{lineno}: '{old}' is superseded by '{new}' and must "
+                      f"not be called from the Game layer — it knows about distance "
+                      f"and a wall and nothing about light, facing, identification or "
+                      f"the weapon, so it is more generous than the truth. Two systems "
+                      f"deciding who saw a killing is a bug waiting to happen.\n    {line}")
             for lineno, cls, line in check_double_to_float(path):
                 bad += 1
                 print(f"{path}:{lineno}: a float is being assigned an expression "
