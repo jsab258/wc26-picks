@@ -35,6 +35,31 @@ namespace Ledger.Game
         static readonly List<Light> _lamps = new List<Light>();
         static float _lampsRefreshedAt = -999f;
 
+        /// How stale the lamp list may get.
+        ///
+        /// LAMPS TOGGLE — seventeen times over nine days in the CI run — and a
+        /// list built while a lamp was off does not contain it. That is harmless
+        /// for gameplay, where a lamp coming on a few seconds late changes
+        /// nothing anybody can perceive, and it is fatal for a ONE-SHOT
+        /// MEASUREMENT: the light-attribution probe found an active lamp with a
+        /// fresh FindObjectsByType, stood a metre from it, asked `LevelAt` how
+        /// lit that spot was, and got zero — because `LevelAt` was looking at a
+        /// cached list that did not have that lamp in it.
+        ///
+        /// Two views of the same set, disagreeing. Raising this from five
+        /// seconds to twenty made it worse, which is how it showed up.
+        public const float LampRefreshSeconds = 8f;
+
+        /// Force it. Anything taking a one-shot reading must call this first, or
+        /// it is measuring the cache rather than the city.
+        public static void RefreshLamps()
+        {
+            _lamps.Clear();
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.isActiveAndEnabled && l.type != LightType.Directional) _lamps.Add(l);
+            _lampsRefreshedAt = Time.time;
+        }
+
         /// HOW LIT IS THIS SPOT — the number `LightModel` has been computing
         /// for the renderer for weeks while no NPC ever read it.
         ///
@@ -49,13 +74,7 @@ namespace Ledger.Game
             // built and the odd one being switched. Every five seconds meant a
             // FindObjectsByType over a scene with three hundred and sixty
             // lights twelve times a minute for a list that almost never changes.
-            if (Time.time - _lampsRefreshedAt > 20f)
-            {
-                _lamps.Clear();
-                foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
-                    if (l.enabled && l.type != LightType.Directional) _lamps.Add(l);
-                _lampsRefreshedAt = Time.time;
-            }
+            if (Time.time - _lampsRefreshedAt > LampRefreshSeconds) RefreshLamps();
 
             double lamp = 0;
             foreach (var l in _lamps)

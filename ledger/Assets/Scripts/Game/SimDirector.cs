@@ -1254,6 +1254,12 @@ namespace Ledger.Game
             // reporting a null result as a pass.
             if (_litRange < 0 && now.Hour >= 21)
             {
+                // FORCE THE LAMP LIST FIRST. Without this the probe finds a live
+                // lamp with its own fresh query and then asks `LevelAt` — which
+                // answers from a cache that may predate the lamp switching on —
+                // producing lit=4.8m dark=4.8m, darkness measured against
+                // darkness. Two views of one set is the bug; one view is the fix.
+                Perceivers.RefreshLamps();
                 Vector3 here = _player.transform.position;
                 Light lamp = null;
                 float lampDist = float.MaxValue;
