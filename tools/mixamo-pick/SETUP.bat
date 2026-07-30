@@ -3,6 +3,29 @@ setlocal
 title LEDGER - setup
 
 REM ===================================================================
+REM  RUN FROM A COPY, ALWAYS. This script does a git pull, and the pull
+REM  can rewrite THIS FILE while cmd.exe is still reading it.
+REM
+REM  cmd re-reads a batch file from disk line by line, by BYTE OFFSET.
+REM  Rewrite the file mid-run and it carries on at the same offset in
+REM  the new bytes - landing mid-word, mid-block, anywhere. That is
+REM  exactly what happened: a pull rewrote 120 lines of this file and
+REM  execution resumed inside a message about installing Python,
+REM  printing 'nloads' is not recognized - the tail of a URL.
+REM
+REM  So: copy myself to TEMP and re-launch from there. git cannot touch
+REM  a file outside the repository, and the copy's bytes are frozen for
+REM  the life of the run.
+REM ===================================================================
+if /i "%~1"=="--fromtemp" goto :begin
+copy /y "%~f0" "%TEMP%\ledger-%~n0.bat" >nul
+"%TEMP%\ledger-%~n0.bat" --fromtemp
+exit /b %errorlevel%
+:begin
+
+
+
+REM ===================================================================
 REM  START HERE. This is the only file you need to download.
 REM
 REM  It puts the project on your PC, or updates it if it is already

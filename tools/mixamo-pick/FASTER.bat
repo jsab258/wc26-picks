@@ -4,6 +4,29 @@ title LEDGER - speed the harvest up
 cd /d "%~dp0"
 
 REM ===================================================================
+REM  RUN FROM A COPY, ALWAYS. This script does a git pull, and the pull
+REM  can rewrite THIS FILE while cmd.exe is still reading it.
+REM
+REM  cmd re-reads a batch file from disk line by line, by BYTE OFFSET.
+REM  Rewrite the file mid-run and it carries on at the same offset in
+REM  the new bytes - landing mid-word, mid-block, anywhere. That is
+REM  exactly what happened: a pull rewrote 120 lines of this file and
+REM  execution resumed inside a message about installing Python,
+REM  printing 'nloads' is not recognized - the tail of a URL.
+REM
+REM  So: copy myself to TEMP and re-launch from there. git cannot touch
+REM  a file outside the repository, and the copy's bytes are frozen for
+REM  the life of the run.
+REM ===================================================================
+if /i "%~1"=="--fromtemp" goto :begin
+copy /y "%~f0" "%TEMP%\ledger-%~n0.bat" >nul
+"%TEMP%\ledger-%~n0.bat" --fromtemp
+exit /b %errorlevel%
+:begin
+
+
+
+REM ===================================================================
 REM  Cuts the harvest from ~9 hours to ~1.8 by doing two things:
 REM
 REM  1. ONE CHARACTER instead of two. Mixamo rigs import into Unity as
@@ -22,7 +45,7 @@ REM ===================================================================
 set "MH=%USERPROFILE%\ledger-mixamo\MixamoHarvester"
 set "XBOT=2dee24f8-3b49-48af-b735-c6377509eaac"
 set "BRANCH=claude/game-dev-ai-automation-2h67ix"
-for %%R in ("%~dp0..\..") do set "REPO=%%~fR"
+set "REPO=%USERPROFILE%\wc26-picks"
 
 echo.
 echo  Speeding up the harvest
