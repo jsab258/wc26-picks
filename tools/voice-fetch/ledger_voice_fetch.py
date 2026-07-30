@@ -347,7 +347,9 @@ def fetch(source, cast, candidates, out_dir):
     gigabytes and we need about four minutes of it. A script that makes you
     wait for an 80GB tarball is a script you do not run.
     """
+    import io as _io
     import numpy as np
+    import soundfile as _sf
     from datasets import load_dataset
 
     wanted = {}
@@ -427,6 +429,25 @@ def fetch(source, cast, candidates, out_dir):
             print(f"  {name} unavailable: {type(e).__name__}: {line}")
     if ds is None:
         raise RuntimeError("no corpus could be opened; see the reasons above")
+
+    # DO NOT LET `datasets` DECODE THE AUDIO. Since v3 its Audio feature
+    # decodes through `torchcodec`, so a row access raises
+    #     ImportError: To support decoding audio data, please install 'torchcodec'
+    # and torchcodec means PyTorch: well over two gigabytes of wheels to turn
+    # some WAV bytes into a float array. `soundfile` is already a dependency
+    # here and does exactly that.
+    #
+    # `decode=False` hands back the raw bytes instead, which we read ourselves
+    # below. Wrapped because the cast is unavailable on some dataset shapes,
+    # and a failure here should fall through to the decoded path rather than
+    # end the run.
+    try:
+        from datasets import Audio
+        ds = ds.cast_column(key_audio, Audio(decode=False))
+        print("  audio: decoding with soundfile, not torchcodec")
+    except Exception as e:                      # noqa: BLE001 - report, continue
+        print(f"  audio: could not disable library decoding ({type(e).__name__}); "
+              f"using whatever the library returns")
     if used == "libritts" and source != "libritts":
         print("  NOTE: fell back to LibriTTS. It carries no age or gender, so")
         print("        every brief sees every speaker and the filtering is")
@@ -449,6 +470,23 @@ def fetch(source, cast, candidates, out_dir):
             continue
         arr = audio.get("array")
         rate = audio.get("sampling_rate")
+        if arr is None:
+            # The undecoded shape: raw file bytes, which soundfile reads
+            # directly. This is the normal path now that the cast above
+            # switches decoding off.
+            raw = audio.get("bytes")
+            if not raw:
+                continue
+            try:
+                arr, rate = _sf.read(_io.BytesIO(raw), dtype="float32",
+                                     always_2d=False)
+            except Exception:                   # noqa: BLE001 - one bad row
+                continue
+            arr = np.asarray(arr, dtype=np.float32)
+            if arr.ndim == 2:
+                # Average the channels rather than reshaping, which would
+                # interleave them and produce a clip at double speed.
+                arr = arr.mean(axis=1)
         if arr is None or not rate:
             continue
         speaker = row.get(key_speaker) or ""
