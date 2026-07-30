@@ -1192,6 +1192,7 @@ namespace Ledger.Game
         bool _loiterStaged, _nightRunStaged, _slamStaged;
         float _slamAt = -1f;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
+        bool? _ringOk;
         float _loiterUntil = -1f, _nightRunUntil = -1f;
         int _looksBeforeLoiter, _looksBeforeRun;
         int _loiterLooks = -1, _nightRunLooks = -1, _nightWalkLooks = -1;
@@ -1312,6 +1313,21 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: slammed a door, {present} people nearby, "
                           + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m");
             }
+            // THE RING IS THE MODEL, asserted rather than assumed. Comparing
+            // the drawn radius against `AudibleRadius` recomputed from the same
+            // inputs catches the whole class of bug where a visual quietly
+            // drifts from the system it is supposed to be showing — which is
+            // exactly what `scoreAudible` caught in the mix a day ago.
+            if (_ringOk == null && NoiseRing.Shown > 0)
+            {
+                double expect = Perception.AudibleRadius(NoiseRing.LastLoudness,
+                                                         NoiseRing.LastFloor,
+                                                         NoiseRing.LastOccluded);
+                _ringOk = Math.Abs(NoiseRing.LastRadius - expect) < 1e-9;
+                Debug.Log($"SimDirector: noise ring {NoiseRing.LastRadius:0.00}m vs "
+                          + $"model {expect:0.00}m — matches={_ringOk}");
+            }
+
             if (_slamAt > 0 && Time.time - _slamAt > 4f)
             {
                 _slamInvestigations = Perceivers.NoiseInvestigations - _investigationsBeforeSlam;
@@ -2824,7 +2840,12 @@ namespace Ledger.Game
             bool perceptionOk = Perceivers.Looks >= 1 && _loiterLooks >= 1
                                 && _litRange > _darkRange
                                 && Perceivers.SoundsEmitted >= 1
-                                && _slamInvestigations >= 1;
+                                && _slamInvestigations >= 1
+                                // The ring must have been drawn AND must have
+                                // been drawn at the model's radius. A ring
+                                // nobody drew and a ring drawn at the wrong size
+                                // read identically from a distance.
+                                && _ringOk == true;
 
             var gates = new (string name, bool ok)[]
             {
@@ -2953,6 +2974,7 @@ namespace Ledger.Game
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
+                      $"rings={NoiseRing.Shown} ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"perceptionOk={perceptionOk} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +

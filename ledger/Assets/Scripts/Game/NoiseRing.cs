@@ -35,6 +35,17 @@ namespace Ledger.Game
 
         const int Segments = 64;
 
+        /// The last ring's radius and the loudness it came from, so the sim can
+        /// assert the DRAWN circle equals the MODEL's radius rather than
+        /// trusting that it does. The lesson behind this is `scoreAudible`: the
+        /// way to check a derived number is to compare it against the thing it
+        /// derives from, never against a constant typed out a second time.
+        public static double LastRadius = -1;
+        public static double LastLoudness = -1;
+        public static double LastFloor = -1;
+        public static bool LastOccluded;
+        public static int Shown;
+
         static Material _mat;
         static bool _matTried;
 
@@ -76,6 +87,12 @@ namespace Ledger.Game
             double r = Perception.AudibleRadius(loudness, ambientFloorAtPlayer, occluded);
             if (r < MinRadiusMetres) return;
             if (Mat() == null) return;      // nothing to draw with; draw nothing
+
+            LastRadius = r;
+            LastLoudness = loudness;
+            LastFloor = ambientFloorAtPlayer;
+            LastOccluded = occluded;
+            Shown++;
 
             var go = new GameObject("NoiseRing");
             go.transform.position = at + Vector3.up * 0.04f;   // just off the road
