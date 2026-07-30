@@ -28,6 +28,13 @@ namespace Ledger.Game
             // skips the front end entirely and drops straight into the city.
             UiTheme.SetColourblind(GameSettings.Current.ColourblindSafe);
             Audio.Initialize();
+            // AND THE CAPTION BAR, here rather than lazily on the first
+            // caption. Two of the three channels it carries — the street
+            // going quiet and the music turning — are POLLED in its Update
+            // rather than pushed, so a bar that only comes into existence
+            // when something pushes to it can never show either of them. The
+            // channel would have been dead on arrival and looked wired.
+            CaptionBar.Ensure();
 
             if (SimMode.Days > 0)
             {

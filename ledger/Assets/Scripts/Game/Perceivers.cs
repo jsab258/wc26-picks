@@ -295,6 +295,29 @@ namespace Ledger.Game
             if (RingsEnabled && _player != null)
                 NoiseRing.Show(at, loudness, Occluded(_player.position, at),
                                AmbientFloorAt(_player.position, PresentNearby));
+
+            // AND IN WORDS, for a player who cannot hear it (audit item 4).
+            //
+            // Here for exactly the reason the ring is here: the emitter's job
+            // is to report the sound, and a caption wired at the call sites
+            // instead would mean the fourth emitter, written next month, is
+            // silent for deaf players and nobody would ever find out.
+            //
+            // The radius is the SAME radius the ring draws — `Captions` will
+            // not print a sound the player could not have heard, so the
+            // caption layer is the same information in another sense rather
+            // than more of it.
+            if (_player != null && CaptionBar.Level == CaptionLevel.SpeechAndSound)
+            {
+                var toSound = at - _player.position;
+                double radius = Perception.AudibleRadius(
+                    loudness, AmbientFloorAt(_player.position, PresentNearby),
+                    Occluded(_player.position, at));
+                CaptionBar.Show(Captions.ForSound(
+                    CaptionBar.Level, kind, loudness,
+                    Vector3.SignedAngle(_player.forward, toSound, Vector3.up),
+                    toSound.magnitude, radius));
+            }
         }
 
         public static bool SoundIsFresh => Time.time - LastSoundTime < SoundFreshSeconds;

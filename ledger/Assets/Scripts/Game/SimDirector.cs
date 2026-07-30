@@ -174,6 +174,15 @@ namespace Ledger.Game
             // dead-field smell one file over from where PeakHush had it.
             Perceivers.ResetCounters();
             Standoff.Reset();
+            // CAPTIONS ON FOR THE RUN. They are off by default and should be
+            // — but a channel nobody exercises is a channel nobody finds out
+            // is broken, and this one exists precisely for the players least
+            // likely to be in the room when it fails. The self-test is the
+            // only pass with the sound off that anybody is going to make
+            // every build.
+            GameSettings.Current.Captions = (int)CaptionLevel.SpeechAndSound;
+            CaptionBar.ResetCounters();
+            CaptionBar.Ensure();
             _npcs = UnityEngine.Object.FindObjectsByType<NpcWalker>(FindObjectsSortMode.None);
             foreach (var npc in _npcs) _startPositions[npc.DisplayName] = npc.transform.position;
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
@@ -1263,6 +1272,10 @@ namespace Ledger.Game
             // player can see it. They are not the same claim and the difference
             // between them was a circle standing on its edge.
             if (!(_ringSeenFraction >= RingSeenFloor)) why.Add("ring-onscreen");
+            // The same events in words. Three of §6.2's four channels are
+            // audio; captions are how any of them reach a player with the
+            // sound off, and the spec's own honesty test is that pass.
+            if (_captionsShown < 1) why.Add("captions-silent");
             return why.Count == 0 ? "ok" : string.Join("+", why);
         }
         float _loiterUntil = -1f, _nightRunUntil = -1f;
@@ -1270,6 +1283,11 @@ namespace Ledger.Game
         int _loiterLooks = -1, _nightRunLooks = -1, _nightWalkLooks = -1;
         double _hushPeak;
         double _litRange = -1, _darkRange = -1;
+
+        /// How many caption lines the run put on screen, and how many of them
+        /// were the hush — the channel with no sound to hang itself on, which
+        /// is the one most likely to be silently dead.
+        int _captionsShown, _captionHushes;
 
         void StagePerception(GameTime now, ref Vector3 target)
         {
@@ -1300,6 +1318,11 @@ namespace Ledger.Game
             Perceivers.PresentNearby = present;
             double hush = Notice.HushFraction(attending, present);
             if (hush > _hushPeak) _hushPeak = hush;
+            // Read the caption channel from the same place the hush is read,
+            // so the two can never disagree about whether the street went
+            // quiet and whether anybody was told.
+            _captionsShown = CaptionBar.Shown;
+            _captionHushes = CaptionBar.Hushes;
             // One owner for the peak. `Perceivers.PeakHush` existed and nothing
             // wrote to it, which is the exact shape of the five systems this
             // project found built and not running — a public field with no
@@ -3192,7 +3215,14 @@ namespace Ledger.Game
                                 // anything was ever put on screen. It passed
                                 // green with `ringsDrawn=0`. Both halves now.
                                 && _ringOk == true && _slamDrewRing
-                                && _ringSeenFraction >= RingSeenFloor;
+                                && _ringSeenFraction >= RingSeenFloor
+                                // AND THE SAME EVENTS IN WORDS. §6.2's
+                                // redundancy claim is only true for a deaf
+                                // player if the caption channel actually
+                                // carries — and a channel that is built and
+                                // silent reads identically to one that works
+                                // until somebody plays with the sound off.
+                                && _captionsShown >= 1;
 
             var gates = new (string name, bool ok)[]
             {
@@ -3332,6 +3362,10 @@ namespace Ledger.Game
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
+                      // ITEMISED for the same reason the ring is: "captions=0"
+                      // has more than one cause, and the hush is the one that
+                      // dies quietly because it is polled rather than pushed.
+                      $"captions={_captionsShown} captionHushes={_captionHushes} " +
                       $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
                       // ITEMISED, because `drawn=0` had three possible causes
                       // and I picked the wrong one out loud. `small` is the

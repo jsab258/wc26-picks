@@ -19,6 +19,13 @@ namespace Ledger.Game
         /// brings the whole street up with it. Defaults high: it is the
         /// channel everything else is authored to get out of the way of.
         public float VoiceVolume = 0.95f;
+        /// Captions, 0 = off, 1 = speech, 2 = speech and sounds.
+        ///
+        /// OFF BY DEFAULT, and 2 is not a "more subtitles" setting — it is
+        /// the one that makes `weapons-spec.md` §6.2's redundancy claim true
+        /// for a deaf player, because three of its four "you have been
+        /// noticed" channels are audio and only one of those is speech.
+        public int Captions;
         public int TextScalePercent = 100;      // 80..150, accessibility
         public bool ColourblindSafe;            // swaps the credit/debit hues
         public float MouseSensitivity = 1.0f;
@@ -65,7 +72,7 @@ namespace Ledger.Game
             return MiniJson.Serialize(new Dictionary<string, object>
             {
                 { "master", MasterVolume }, { "music", MusicVolume }, { "sfx", SfxVolume },
-                { "voice", VoiceVolume },
+                { "voice", VoiceVolume }, { "captions", Captions },
                 { "textScale", TextScalePercent }, { "colourblind", ColourblindSafe },
                 { "sensitivity", MouseSensitivity }, { "grain", GrainAmount },
                 { "detail", Detail },
@@ -88,6 +95,7 @@ namespace Ledger.Game
                 // bus, so the default has to survive the round trip rather
                 // than silently reading as zero and muting all dialogue.
                 s.VoiceVolume = Num(root, "voice", s.VoiceVolume);
+                s.Captions = (int)Num(root, "captions", s.Captions);
                 s.TextScalePercent = root.ContainsKey("textScale") ? MiniJson.GetInt(root, "textScale") : s.TextScalePercent;
                 s.ColourblindSafe = root.TryGetValue("colourblind", out var cb) && cb is bool b && b;
                 s.MouseSensitivity = Num(root, "sensitivity", s.MouseSensitivity);

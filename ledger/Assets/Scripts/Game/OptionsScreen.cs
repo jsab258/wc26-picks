@@ -112,7 +112,24 @@ namespace Ledger.Game
                 v => s.MouseSensitivity = Mathf.Lerp(0.2f, 3f, v)); y -= 58;
             MenuSlider(_optionsPanel.transform, "Text size", y,
                 Mathf.InverseLerp(80, 150, s.TextScalePercent),
-                v => s.TextScalePercent = Mathf.RoundToInt(Mathf.Lerp(80, 150, v))); y -= 64;
+                v => s.TextScalePercent = Mathf.RoundToInt(Mathf.Lerp(80, 150, v))); y -= 58;
+
+            // CAPTIONS, three stops, and the note says what the third one is
+            // FOR. "Speech and sounds" reads like more of the same thing; it
+            // is not — it is the setting that carries the street going quiet
+            // and the music turning, which are two of the four channels that
+            // tell you that you have been noticed and neither of which any
+            // subtitle has ever rendered.
+            _captionNote = Label(_optionsPanel.transform, CaptionNote(s.Captions),
+                new Vector2(0.5f, 1), new Vector2(0, y - 34), new Vector2(660, 26),
+                Typography.Small, TextAnchor.UpperCenter);
+            _captionNote.color = UiTheme.Dim;
+            MenuSlider(_optionsPanel.transform, "Captions", y, s.Captions / 2f,
+                v =>
+                {
+                    s.Captions = Mathf.RoundToInt(Mathf.Clamp01(v) * 2f);
+                    if (_captionNote != null) _captionNote.text = CaptionNote(s.Captions);
+                }); y -= 64;
 
             // GRAPHICS, as a three-stop slider rather than a panel of dials.
             // The label says what the level GIVES UP, because "Low" tells a
@@ -306,6 +323,17 @@ namespace Ledger.Game
         }
 
         Text _detailNote;
+        Text _captionNote;
+
+        /// What each stop actually buys, in the same spirit as the graphics
+        /// note: "Speech" tells a player nothing they can act on, and "the
+        /// street going quiet, and the music turning" tells them exactly what
+        /// the third stop is for.
+        static string CaptionNote(int level) =>
+            level <= 0 ? "off"
+            : level == 1 ? "what people say"
+            : "and the sounds that are not speech — the street going quiet, "
+              + "a door slamming behind you, the music turning";
 
         void MenuSlider(Transform parent, string label, float y, float value, System.Action<float> onChange)
         {

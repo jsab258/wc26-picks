@@ -88,6 +88,7 @@ namespace Ledger.CoreTests
                 TestFeel();
                 TestAcoustics();
                 TestVoiceBank();
+                TestCaptions();
                 TestCrowdOnTheStreet();
                 TestCombat();
                 TestHomicide();
@@ -5625,6 +5626,134 @@ namespace Ledger.CoreTests
                   VoiceBank.SeedFor("a line") >= 0,
                 "the elision seed is stable and non-negative — it used to be "
                 + "string.GetHashCode(), which is randomised per process in modern .NET");
+        }
+
+        /// Audit item 4: three of §6.2's four channels are audio, so a spec
+        /// that calls its redundancy the point was not redundant at all for a
+        /// deaf player.
+        static void TestCaptions()
+        {
+            Console.WriteLine("Captions — the channels that are sound with no words in them:");
+
+            const CaptionLevel off = CaptionLevel.Off;
+            const CaptionLevel speech = CaptionLevel.Speech;
+            const CaptionLevel both = CaptionLevel.SpeechAndSound;
+
+            // OFF IS OFF, and "Speech" must not quietly start captioning
+            // sounds — a player who asked for subtitles did not ask for this.
+            foreach (var lvl in new[] { off, speech })
+            {
+                Check(Captions.ForSound(lvl, "slam", 55, 0, 5, 40) == null,
+                    $"at {lvl}, a sound gets no caption");
+                Check(Captions.ForHush(lvl, 1.0, false) == null,
+                    $"at {lvl}, the street going quiet gets no caption");
+                Check(Captions.ForAttentionStem(lvl, true) == null,
+                    $"at {lvl}, the music turning gets no caption");
+            }
+
+            // ---- direction, which is most of the point ----
+            Check(Captions.Direction(0) == "ahead" && Captions.Direction(180) == "behind" &&
+                  Captions.Direction(90) == "right" && Captions.Direction(270) == "left",
+                "the four cardinals name themselves");
+            Check(Captions.Direction(45) == "ahead right" && Captions.Direction(225) == "behind left",
+                "and the diagonals exist — four arcs would make \"behind\" a hundred and "
+                + "eighty degrees, which is the difference between turning round and "
+                + "turning the RIGHT way");
+            // Centred on the name, not starting at it.
+            Check(Captions.Direction(20) == "ahead" && Captions.Direction(-20) == "ahead",
+                "an arc is centred on its name rather than starting at it");
+            Check(Captions.Direction(-90) == "left" && Captions.Direction(450) == "right" &&
+                  Captions.Direction(-450) == "left",
+                "and a bearing outside 0..360 still lands somewhere sensible");
+            var arcs = new HashSet<string>();
+            for (double b = -720; b <= 720; b += 0.5) arcs.Add(Captions.Direction(b));
+            Check(arcs.Count == 8, "every bearing lands in one of exactly eight arcs",
+                $"{arcs.Count}: {string.Join("|", arcs.OrderBy(a => a))}");
+
+            // ---- and how loud, because loudness is a mechanic here ----
+            Check(Captions.Loudness(Perception.LoudShout).Length > 0 &&
+                  Captions.Loudness(Perception.LoudFootstepWalk).Length > 0,
+                "a shout and a scuff are both marked");
+            Check(Captions.Loudness(Perception.LoudShout) != Captions.Loudness(Perception.LoudFootstepWalk),
+                "and marked DIFFERENTLY — flattening a slam and a scuff into one line "
+                + "throws away the mechanic the noise ring exists for");
+            Check(Captions.Loudness(Perception.LoudConversation) == "",
+                "while the ordinary case goes unmarked, so the marking means something");
+
+            // ---- the audibility gate: a caption is not an X-ray ----
+            Check(Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 60, 40) == null,
+                "A SOUND YOU COULD NOT HAVE HEARD IS NOT CAPTIONED — the caption layer is "
+                + "the same information in another sense, not more of it");
+            Check(Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 40) != null,
+                "and one you could have heard is");
+            Check(Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 0) == null,
+                "a sound with no audible radius at all — masked by the street — is silent "
+                + "to the captions too, which is the whole masking model reused");
+
+            var cap = Captions.ForSound(both, "slam", Perception.LoudDoorSlam, 180, 5, 40);
+            Check(cap.StartsWith("[") && cap.EndsWith("]"), "a caption is bracketed", cap);
+            Check(cap.Contains("behind"), "and says WHERE, always", cap);
+            Check(!cap.Contains("slam\"") && cap.Contains("door"), "in words, not identifiers", cap);
+            Check(Captions.ForSound(both, "sfx_door_03", 55, 0, 5, 40) == null &&
+                  Captions.ForSound(both, null, 55, 0, 5, 40) == null,
+                "AN UNKNOWN KIND IS SILENT rather than printing its own id at the player — "
+                + "which is how \"[sfx_door_03]\" ends up in a shipped screenshot");
+
+            // Every kind the game actually emits must have words.
+            foreach (var kind in new[] { "speech", "slam", "alarm" })
+                Check(Captions.Describe(kind) != null,
+                    $"\"{kind}\" is emitted by the game today and must have a caption");
+
+            // ---- the hush: an ABSENCE of sound, and §6.2's best idea ----
+            Check(Captions.ForHush(both, 0.9, false) != null,
+                "the street going quiet is captioned");
+            Check(Captions.ForHush(both, 0.0, false) == null,
+                "and an ordinary street is not");
+            Check(Captions.ForHush(both, 0.9, true) == null,
+                "it is not repeated once shown — a caption that re-fires every frame is a strobe");
+            Check(Captions.ForHush(both, 0.0, true) != null,
+                "AND IT RUNS BACKWARDS: the street resuming is how the player learns the "
+                + "event is over, which is the half stealth games are chronically bad at");
+            Check(Captions.ForHush(both, 0.9, false) != Captions.ForHush(both, 0.0, true),
+                "and the two directions do not read the same");
+            // Hysteresis: no band where both fire, and none where it flickers.
+            for (double h = 0; h <= 1.0; h += 0.01)
+            {
+                bool opens = Captions.ForHush(both, h, false) != null;
+                bool closes = Captions.ForHush(both, h, true) != null;
+                Check(!(opens && closes),
+                    $"at hush {h:0.00} the caption cannot both open and close");
+            }
+            Check(Captions.HushClearBelow < Captions.HushCaptionAt,
+                "the clear threshold sits below the fire threshold, so a street hovering at "
+                + "the line does not flicker between the two lines forever");
+
+            // ---- THE TEST THE SPEC ITSELF DEMANDS ----
+            //
+            // §6.2: "play a scene with the sound off... if either pass leaves
+            // the player unable to tell they were noticed, the channels are
+            // not redundant and one of them is decoration."
+            //
+            // With the sound off, channel 3 (behaviour) is visual and
+            // survives. Of the three audio channels, how many reach a deaf
+            // player? Before this file: one, via subtitles, and only when
+            // somebody happened to speak.
+            int reachable = 0;
+            if (Captions.ForHush(both, 0.9, false) != null) reachable++;          // 1
+            if (Captions.ForSound(both, "alarm", Perception.LoudShout, 90, 6, 40) != null) reachable++; // 2
+            if (Captions.ForAttentionStem(both, true) != null) reachable++;       // 4
+            Check(reachable == 3,
+                "SOUND OFF: all three audio channels reach the player, so with the visual "
+                + "channel that is four — the redundancy §6.2 claims is now true rather "
+                + "than true for hearing players",
+                $"{reachable}/3");
+            int withoutCaptions = 0;
+            if (Captions.ForHush(speech, 0.9, false) != null) withoutCaptions++;
+            if (Captions.ForSound(speech, "alarm", Perception.LoudShout, 90, 6, 40) != null) withoutCaptions++;
+            if (Captions.ForAttentionStem(speech, true) != null) withoutCaptions++;
+            Check(withoutCaptions == 0,
+                "and subtitles alone carried NONE of them — which is the hole, measured",
+                $"{withoutCaptions}/3");
         }
 
         static void TestCrowdOnTheStreet()
