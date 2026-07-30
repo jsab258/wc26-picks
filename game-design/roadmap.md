@@ -1061,6 +1061,31 @@ spec v4 §§15–18.** Four change the plan above:
 **Estimate: ~17 days** (spec §18, plus the lab and the facing art). Phase 1 +
 1b is 4.5 of them and is the hedge. `RunPerceptionLab` lands with Phase 2.
 
+### M16.0 — THE MIXAMO DROP — **DONE, 2026-07-30**
+
+**41 clips and two bodies, in the repo.** `ledger/Assets/Characters/`:
+X Bot and Y Bot as skinned T-pose meshes (verified: `Geometry 5`, `Skin 1`,
+~110-130 `Cluster` entries, ~72 bones each), and 41 animation clips sorted
+into tiers, each named `{slot}__{mixamo name}.fbx` with `_picks.json`
+recording exactly which clip answered which slot and whether it was an exact
+match or a substitute.
+
+**The catalogue is the quiet win.** `_catalogue.txt` lists all 2,589 animation
+names on the account. Every Mixamo clip name written in this document before
+today was recalled from training data rather than read; four of the first
+picks were wrong because of it and eleven useful clips were invisible to me.
+Notably a complete **Standing Block start / hold / end / react-large** set,
+which turns the guard from a state into an action, plus the fight-idle
+transitions, `Drawing Gun` for Phase 5, and stairs up and down.
+
+Two slots are honest substitutes: `hands_up` is **Defeat** because Mixamo has
+no "Surrender" and no "Hands Up" — checked in the catalogue, not assumed — and
+`lean` is **Leaning** rather than a lean-against-wall.
+
+---
+
+#### The original ask, kept for the record
+
 ### M16.0 — THE MIXAMO DROP. **JAFAR'S TASK, and it is a real dependency**
 
 Free, no account of mine, no purchase: Jafar downloads the characters and the

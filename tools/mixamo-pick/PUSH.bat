@@ -22,6 +22,13 @@ REM  a two-hour harvest should not have to be repeated to retry a push.
 REM ===================================================================
 
 set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+
+REM  WHAT TO PUSH. Defaults to the Mixamo drop, but the voice installer sets
+REM  these before calling so the same tested push serves both. Passed by
+REM  environment rather than as arguments, because %1 is already the
+REM  --fromtemp flag the TEMP relaunch uses.
+if not defined LEDGER_PUSH_PATH set "LEDGER_PUSH_PATH=ledger/Assets/Characters"
+if not defined LEDGER_PUSH_MSG set "LEDGER_PUSH_MSG=Mixamo drop: X Bot and Y Bot animation clips"
 set "REPO=%USERPROFILE%\wc26-picks"
 
 echo.
@@ -29,6 +36,7 @@ echo  LEDGER - pushing the Mixamo drop
 echo  ================================
 echo.
 echo  Repo: %REPO%
+echo  Path: %LEDGER_PUSH_PATH%
 pushd "%REPO%"
 
 REM ---- who is committing ------------------------------------------
@@ -63,14 +71,14 @@ echo  Committing as %GITEMAIL%
 echo.
 
 REM ---- commit ------------------------------------------------------
-git add "ledger/Assets/Characters"
+git add "%LEDGER_PUSH_PATH%"
 git diff --cached --quiet
 if errorlevel 1 goto :docommit
-echo  Nothing staged - the clips may already be committed. Trying the push anyway.
+echo  Nothing staged under %LEDGER_PUSH_PATH% - trying the push anyway.
 goto :dopush
 
 :docommit
-git commit -m "Mixamo drop: X Bot and Y Bot animation clips"
+git commit -m "%LEDGER_PUSH_MSG%"
 if errorlevel 1 goto :commitfailed
 echo  Committed.
 
