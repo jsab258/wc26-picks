@@ -396,7 +396,7 @@ QUALITY_FLOOR = 0.55
 CV_DATASET = "fsicoli/common_voice_17_0"   # ungated mirror; same CC0 clips
 
 # ACCENTS WE CAN USE. Common Voice English is majority non-native, and a
-# 1930s dockside city cannot be cast from a pool where most voices carry an
+# late-analog city cannot be cast from a pool where most voices carry an
 # accent from somewhere the game does not contain. Rows carry an `accents`
 # field; when it is present and says something we cannot use, skip.
 #
@@ -405,6 +405,61 @@ CV_DATASET = "fsicoli/common_voice_17_0"   # ungated mirror; same CC0 clips
 ACCENTS_WANTED = ("united states", "england", "canadian", "australian",
                   "irish", "scottish", "new zealand", "american")
 LIBRITTS_DATASET = "blabble-io/libritts_r"
+
+# VCTK: 110 English speakers recorded in a treated room at Edinburgh, each
+# labelled with gender, age and accent. Studio-clean and consistent, which is
+# what "legit bad quality, strong accents" was asking for — and the setting is
+# LATE-ANALOG, the eighties and nineties, so modern natural speech is correct
+# rather than a compromise.
+#
+# Consent holds exactly as before: VCTK speakers were recruited and recorded
+# for speech-technology research. That is the same standard that put Common
+# Voice first, not a relaxation of it.
+#
+# Several ids, tried in order, because the Hub moves datasets between
+# namespaces and this environment cannot reach it to check which one is live.
+VCTK_DATASETS = ("CSTR-Edinburgh/vctk", "vctk", "sanchit-gandhi/vctk")
+
+# VCTK accents worth casting from, matched loosely. Everything else is a real
+# accent belonging to a place this game does not contain.
+VCTK_ACCENTS = ("english", "american", "scottish", "irish", "canadian",
+                "northernirish", "welsh", "australian")
+
+
+def same_gender(row_value, spec_value):
+    """Corpora disagree about how to spell this; the game should not care.
+
+    Common Voice 17 says `male_masculine`, VCTK says `M`, LibriTTS says
+    nothing at all. Normalising in one place beats three filters that each
+    know one vocabulary — and a mismatch here does not fail loudly, it
+    silently casts Rocco as a woman, which is exactly what happened.
+    """
+    def norm(v):
+        v = (v or "").strip().lower()
+        if not v:
+            return ""
+        if v.startswith("m"):
+            return "male"
+        if v.startswith("f") or v.startswith("w"):
+            return "female"
+        return v
+    a, b = norm(row_value), norm(spec_value)
+    if not a or not b:
+        return None          # unknown — the caller decides
+    return a == b
+
+
+def age_band(value):
+    """VCTK records a number; the briefs are written in Common Voice bands."""
+    try:
+        n = int(str(value).strip())
+    except (TypeError, ValueError):
+        return ""
+    if n < 30:
+        return "twenties"
+    if n < 50:
+        return "fourties"
+    return "sixties"
 
 
 def fetch(source, cast, candidates, out_dir):
@@ -460,7 +515,10 @@ def fetch(source, cast, candidates, out_dir):
         def matches(row, spec):
             g = (row.get("gender") or "").strip()
             a = (row.get("age") or "").strip()
-            if spec.get("gender") and g and g != spec["gender"]:
+            # Through the shared normaliser, not a raw string compare: the
+            # vocabularies differ between corpora and a mismatch here is
+            # silent.
+            if spec.get("gender") and same_gender(g, spec["gender"]) is False:
                 return False
             if spec.get("age") and a and a not in spec["age"]:
                 return False
@@ -472,6 +530,34 @@ def fetch(source, cast, candidates, out_dir):
             # not filtering.
             return bool(g)
         return ds, "client_id", "audio", matches
+
+    def open_vctk():
+        last = None
+        for name in VCTK_DATASETS:
+            try:
+                ds = load_dataset(name, split="train", streaming=True)
+                break
+            except Exception as e:              # noqa: BLE001 - try the next id
+                last = e
+        else:
+            raise last or RuntimeError("no VCTK id resolved")
+
+        def matches(row, spec):
+            g = same_gender(row.get("gender") or row.get("sex"),
+                            spec.get("gender"))
+            if g is False:
+                return False
+            if g is None:
+                return False        # no gender on the row is not a match
+            acc = (row.get("accent") or row.get("accents") or "").strip().lower()
+            if acc and not any(w in acc for w in VCTK_ACCENTS):
+                return False
+            band = age_band(row.get("age"))
+            if spec.get("age") and band and band not in spec["age"]:
+                return False
+            return True
+
+        return ds, "speaker_id", "audio", matches
 
     def open_libritts():
         ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
@@ -488,6 +574,7 @@ def fetch(source, cast, candidates, out_dir):
         routes = [("libritts", open_libritts)]
     else:
         routes = [
+            ("vctk", open_vctk),
             ("commonvoice", lambda: open_common_voice()),
             ("commonvoice-parquet",
              lambda: open_common_voice(revision="refs/convert/parquet")),

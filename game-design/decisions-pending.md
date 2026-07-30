@@ -739,7 +739,7 @@ What is left is the corpus itself, and it is a choice I made badly.
 majority-non-native English speaker base. I chose it for CONSENT — every
 contributor donated their voice specifically to build speech technology, which
 is the rule I set and still hold to. I never weighed it for SUITABILITY, and a
-1930s dockside city cannot be cast from that pool.
+late-analog city cannot be cast from that pool.
 
 ### Shipped regardless of what you choose
 
@@ -767,4 +767,11 @@ recording quality and accent — without spending your money, and VCTK's consent
 story is as good as Common Voice's. If A disappoints, C is the honest next
 step and I would rather reach it having tried A than having guessed.
 
-**Not started.** Say which and I will build it.
+**CHOSEN: A, VCTK — 2026-07-30.** Built. Route order is now VCTK, then Common
+Voice, then a hard stop rather than a silent unfiltered fallback.
+
+**And a correction that belongs here.** I described the game as "1930s" while
+proposing this. It is **late-analog — the eighties and nineties**, per the
+design doc's first line. That is not a cosmetic slip: it moves the casting
+brief from period-transatlantic toward ordinary modern speech, which makes
+VCTK a better fit than it looked, not a worse one.
