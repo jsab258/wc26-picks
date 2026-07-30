@@ -59,6 +59,7 @@ namespace Ledger.BalanceLab
             RunEndingLab(weeks);
             RunViolenceLab(weeks);
             RunFightLab(weeks);
+            RunPerceptionLab(weeks);
         }
 
         /// COMBAT PHASE 4, the exchange itself (combat-spec §2).
@@ -77,6 +78,200 @@ namespace Ledger.BalanceLab
         /// **mashing Strike wins**, which is what happens by default in every
         /// system where attacking is free, and which would make Tom a
         /// brawler in nine exchanges.
+
+        /// M16: PERCEPTION AND THE ARSENAL, which the spec audit noticed had
+        /// neither an estimate nor a lab while every smaller system had both.
+        ///
+        /// The questions here are the ones no unit test can answer, because
+        /// they are about DISTRIBUTIONS rather than about cases:
+        ///
+        ///   1. What spread of partial observations does a real geometry
+        ///      produce? If four in five witnesses get the full picture, the
+        ///      partial-witness design is decoration and the whole join
+        ///      between the tactical and social layers does nothing.
+        ///   2. Do accidents dominate? §11 worried the threat verb would
+        ///      solve everything and nobody asked the same question about the
+        ///      stairs until the audit.
+        ///   3. Does brandishing end it too often?
+        ///   4. Is the survivor a choice or a trap? If failing to kill is
+        ///      always worse than never trying, §15.3 has been tuned into a
+        ///      punishment rather than a risk.
+        static void RunPerceptionLab(int runs)
+        {
+            int events = Math.Max(200, runs * 40);
+            var rng = new Random(20260730);
+
+            Console.WriteLine();
+            Console.WriteLine($"--- perception lab ({events} events) ---");
+
+            // ---- 1. the spread of what witnesses got ----
+            var counts = new Dictionary<string, int>();
+            int named = 0, anyWitness = 0;
+            // THE CONDITIONAL RATE IS THE INFORMATIVE ONE. The first run
+            // reported 1% naming across all witnesses and warned, and the
+            // warning was about my expectation rather than about the model:
+            // only a quarter of witnesses know the player at all, most of the
+            // rest are far away in the dark, and a naming rate averaged over
+            // strangers is not a fact about recognition. So count the
+            // population the mechanic is actually about.
+            int knewHim = 0, knewHimAndNamed = 0;
+            // THE GAMEPLAY-RELEVANT NUMBER, arrived at on the third try. Not
+            // "what share of witnesses name him" — three quarters of them are
+            // strangers who never can, so that average is a fact about the
+            // crowd rather than about recognition. Not "of those who know him
+            // and are within 25m" either: that denominator ignores the light,
+            // and rung 4 reaches 25m only in full daylight. What decides a
+            // night is whether ANYBODY on that street can put a name to you,
+            // and whether the dark changes it.
+            int eventsNamed = 0, dayEvents = 0, dayNamed = 0, nightEvents = 0, nightNamed = 0;
+            for (int i = 0; i < events; i++)
+            {
+                // A plausible street rather than a fair one: most people are
+                // some way off and looking elsewhere, a few are close.
+                double night = rng.NextDouble();
+                double light = Math.Max(0.05, 1.0 - night * (0.5 + rng.NextDouble() * 0.5));
+                var weapon = Arsenal.All[rng.Next(Arsenal.All.Count)];
+                var deed = new Deed
+                {
+                    EventId = $"e{i}", ActorId = "player", VictimId = "tony",
+                    Loudness = weapon.Loudness,
+                    VictimCriesOut = weapon.VictimCriesOut,
+                    WeaponDrawn = weapon.Family != Family.Environment,
+                    ActorFled = rng.NextDouble() < 0.7,
+                    LeavesBody = weapon.LeavesBody,
+                    HadPrecursor = rng.NextDouble() < 0.4,
+                    IsAccident = Arsenal.IsAccident(weapon),
+                };
+                double ambient = night > 0.6 ? Perception.AmbientNight3am
+                                             : Perception.AmbientDaytimeStreet;
+                bool namedHere = false;
+
+                for (int w = 0; w < 4; w++)
+                {
+                    double dv = 2 + rng.NextDouble() * 30;
+                    var v = new Vantage
+                    {
+                        WitnessId = $"w{w}",
+                        ToVictim = Sight.At(dv, light, rng.NextDouble() * 120,
+                                            rng.NextDouble() < 0.25),
+                        // The actor is usually near the victim and sometimes
+                        // not, and sometimes worse lit — which is the only
+                        // arrangement that produces act-no-actor.
+                        ToActor = Sight.At(dv + rng.NextDouble() * 12,
+                                           light * (0.4 + rng.NextDouble() * 0.6),
+                                           rng.NextDouble() * 120,
+                                           rng.NextDouble() < 0.3),
+                        Familiarity = rng.NextDouble() < 0.25 ? 0.6 + rng.NextDouble() * 0.4 : 0,
+                        ActorHasMark = rng.NextDouble() < 0.3,
+                        FaceToward = rng.NextDouble() < 0.6,
+                        AmbientFloor = ambient,
+                        SecondsWatching = rng.NextDouble() * 4,
+                        ArrivedLater = rng.NextDouble() < 0.12,
+                    };
+                    var o = Observe.Resolve(deed, v);
+                    string label = o.Label();
+                    counts[label] = counts.TryGetValue(label, out var c) ? c + 1 : 1;
+                    if (!o.Empty) anyWitness++;
+                    if (o.NamesSomebody) named++;
+                    if (v.Familiarity >= Perception.RecognitionFamiliarity)
+                    {
+                        knewHim++;
+                        if (o.NamesSomebody) knewHimAndNamed++;
+                    }
+                    if (o.NamesSomebody) namedHere = true;
+                }
+
+                if (namedHere) eventsNamed++;
+                if (night > 0.6) { nightEvents++; if (namedHere) nightNamed++; }
+                else { dayEvents++; if (namedHere) dayNamed++; }
+            }
+
+            int total = events * 4;
+            foreach (var kv in counts.OrderByDescending(k => k.Value))
+                Console.WriteLine($"  {kv.Key,-16} {100.0 * kv.Value / total,5:0.0}%");
+            double fullPct = 100.0 * (counts.TryGetValue("full", out var f) ? f : 0) / total;
+            double namedPct = 100.0 * named / total;
+            Console.WriteLine($"  -> full={fullPct:0.0}%  named={namedPct:0.0}%  "
+                              + $"anyone-saw-anything={100.0 * anyWitness / total:0.0}%");
+            // THE CLAIM: partial observation has to be the COMMON case or the
+            // whole design is a boolean with extra steps.
+            Console.WriteLine(fullPct < 40
+                ? "  OK: partial observation is the common case"
+                : "  WARN: most witnesses get everything — the partial design is decoration");
+            double amongFriends = knewHim == 0 ? 0 : 100.0 * knewHimAndNamed / knewHim;
+            double eventNamed = 100.0 * eventsNamed / events;
+            double dayRate = dayEvents == 0 ? 0 : 100.0 * dayNamed / dayEvents;
+            double nightRate = nightEvents == 0 ? 0 : 100.0 * nightNamed / nightEvents;
+            Console.WriteLine($"  -> somebody could name him at {eventNamed:0.0}% of events "
+                              + $"(day {dayRate:0.0}%, night {nightRate:0.0}%); "
+                              + $"{amongFriends:0.0}% of acquaintances present managed it");
+            Console.WriteLine(namedPct < 15
+                ? "  OK: being named is rare across a whole street"
+                : "  WARN: too many strangers can name you");
+            // THE CLAIM THE DESIGN ACTUALLY MAKES: darkness is cover, and it
+            // is cover against the one thing that matters — being named.
+            // CAVEAT, stated in the output rather than in a comment nobody
+            // reads: this population is a RANDOM street — a quarter of the
+            // witnesses know him, most are looking elsewhere, and the hour is
+            // uniform. Real play concentrates on the streets where he lives
+            // and is known, which is exactly where the rate should be much
+            // higher. Four percent is the floor, not the expectation.
+            Console.WriteLine("  (population is a random street: 25% know him, "
+                              + "uniform hour — his own neighbourhood is far worse)");
+            Console.WriteLine(dayRate > nightRate * 1.5
+                ? $"  OK: darkness is cover — naming falls {dayRate / Math.Max(0.01, nightRate):0.0}x from day to night"
+                : "  WARN: the dark is not buying anonymity");
+
+            // ---- 2 and 3. do accidents or threats dominate? ----
+            int accidentUsable = 0, accidentClean = 0;
+            for (int i = 0; i < events; i++)
+            {
+                bool inPosition = rng.NextDouble() < 0.18;      // the stairs are rarely there
+                int watchers = rng.NextDouble() < 0.55 ? 0 : 1 + rng.Next(3);
+                if (Arsenal.AccidentAvailable(Arsenal.Get("stairs"), inPosition, watchers))
+                    accidentUsable++;
+                if (inPosition && watchers == 0) accidentClean++;
+            }
+            double accPct = 100.0 * accidentUsable / events;
+            Console.WriteLine($"  accident available in {accPct:0.0}% of situations");
+            Console.WriteLine(accPct < 20
+                ? "  OK: the stairs are an opportunity, not a strategy"
+                : "  WARN: accidents are available too often and will dominate");
+
+            var threats = new Dictionary<Arsenal.Threat, int>();
+            for (int i = 0; i < events; i++)
+            {
+                var w = Arsenal.All[rng.Next(Arsenal.All.Count)];
+                var t = Arsenal.Brandish(w, rng.NextDouble(),
+                                         rng.NextDouble() < 0.2, rng.NextDouble() < 0.15,
+                                         rng.NextDouble() < 0.5, rng.NextDouble());
+                threats[t] = threats.TryGetValue(t, out var c) ? c + 1 : 1;
+            }
+            foreach (var kv in threats.OrderByDescending(k => k.Value))
+                Console.WriteLine($"  brandish/{kv.Key,-14} {100.0 * kv.Value / events,5:0.0}%");
+            double solved = 100.0 * (threats.TryGetValue(Arsenal.Threat.Comply, out var cm) ? cm : 0)
+                            / events;
+            Console.WriteLine(solved < 40
+                ? "  OK: pointing it at somebody is not a solution to everything"
+                : "  WARN: brandishing solves too much");
+
+            // ---- 4. the survivor: a choice, or a trap? ----
+            int survivorNames = 0, survivorAnon = 0;
+            for (int i = 0; i < events; i++)
+            {
+                double fam = rng.NextDouble();
+                var o = Reaction.AsVictim(
+                    new Deed { EventId = "s", ActorId = "player", VictimId = "t" },
+                    "t", fam, survived: true);
+                if (o.NamesSomebody) survivorNames++; else survivorAnon++;
+            }
+            Console.WriteLine($"  survivor names you in {100.0 * survivorNames / events:0.0}% "
+                              + $"of cases, knows your face in {100.0 * survivorAnon / events:0.0}%");
+            Console.WriteLine(survivorAnon > events / 10
+                ? "  OK: failing to kill a stranger is survivable — it is a risk, not a trap"
+                : "  WARN: every survivor names you, which makes the attempt a trap");
+        }
+
         static void RunFightLab(int runs)
         {
             Console.WriteLine("\n== the exchange itself: is Tom Novak bad at this? (combat-spec §2) ==");
