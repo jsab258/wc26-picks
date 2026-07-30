@@ -73,32 +73,77 @@ namespace Ledger.Game
         /// key=value verdict line.
         public static string PaintUsed = "unknown";
 
-        /// WHICH MATERIAL DRAWS THE LINE — and the reason this is an enum
-        /// rather than a line of code is that the last build measured exactly
-        /// zero changed pixels for a circle it had definitely constructed.
+        /// WHICH MATERIAL DRAWS THE LINE — and this is an enum because guessing
+        /// cost four builds and measuring cost one.
         ///
-        /// Zero is a very specific number. `Sprites/Default` blends
-        /// `One OneMinusSrcAlpha` and multiplies the vertex colour by
-        /// `_RendererColor`, a property **`SpriteRenderer` injects and nothing
-        /// else does**. At zero that blend returns the destination pixel
-        /// IDENTICALLY rather than merely darkly — which is what "not one pixel
-        /// differed by 1/255" actually looks like. A sprite shader on a
-        /// LineRenderer is a plausible mistake and it fits the measurement.
+        /// WHAT THE LAST RUN ACTUALLY ESTABLISHED, all of it measured:
+        ///   * `ringNoMaterial=4` — a `LineRenderer` created at runtime has NO
+        ///     material in this build. `sharedMaterial` is null. The comment
+        ///     below used to claim the component "already owns Unity's built-in
+        ///     line material, which ships with the component and therefore
+        ///     cannot be stripped", and that was confident and false.
+        ///   * `sprites=0.7279` against `default=0.7279`, identical to four
+        ///     decimals — assigning `Sprites/Default` changed nothing, because
+        ///     `Shader.Find` returned null for it. It is not in the build.
+        ///   * `particles=0.0000` — `Legacy Shaders/Particles/Alpha Blended` IS
+        ///     in the build and drew nothing measurable.
+        ///   * `control=17.8073` — the A/B itself sees fine, so none of the
+        ///     above is a measurement artefact.
         ///
-        /// It is still a hypothesis, and this project's rule about hypotheses
-        /// is that each one costs half an hour of CI, so all three candidates
-        /// are measured in the SAME run and the game uses the one that works.
+        /// Hence `Ledger`: this project's own shader, in `Assets/Resources`,
+        /// which is the reason the grade and the light shafts work where a
+        /// built-in name does not. The rest are kept only so the sweep can keep
+        /// reporting them — a fact that took four builds to establish should not
+        /// be re-establishable by accident.
         public enum Paint
         {
-            /// WHAT THE GAME USES. A `LineRenderer` created at runtime already
-            /// owns Unity's built-in line material — designed for this
-            /// component, reads vertex colours, cannot be stripped, and needs
-            /// no property a sprite renderer would have filled in. Assigning
-            /// nothing is the safest thing this class can do, and the previous
-            /// version overwrote it with a named shader for no gain.
-            ComponentDefault,
+            /// WHAT THE GAME USES: `Hidden/LedgerRing`, unlit, vertex-coloured,
+            /// alpha blended, and present in the player because everything in
+            /// `Assets/Resources` is.
+            Ledger,
+            /// Assign nothing and see what a null material does. Measured
+            /// 0.7279% of the frame, which means Unity draws SOMETHING — almost
+            /// certainly the magenta error shader. Visible is not the same as
+            /// correct and this is not shippable.
+            None,
             SpritesDefault,
             ParticlesAlphaBlended,
+        }
+
+        static Material _ledger;
+
+        /// Null means "leave whatever the component came with", which is now
+        /// known to be nothing at all.
+        static Material Made(Paint paint)
+        {
+            switch (paint)
+            {
+                case Paint.Ledger:
+                {
+                    if (_ledger != null) return _ledger;
+                    var ls = Shader.Find("Hidden/LedgerRing");
+                    // Cached and shared: one ring exists at a time, so one
+                    // material is all this ever needs, and the fade rides on
+                    // the LineRenderer's vertex colours rather than on the
+                    // material — which is what makes sharing safe.
+                    if (ls != null) _ledger = new Material(ls)
+                        { hideFlags = HideFlags.HideAndDontSave };
+                    return _ledger;
+                }
+                case Paint.SpritesDefault:
+                {
+                    var s = Shader.Find("Sprites/Default");
+                    return s != null ? new Material(s) : null;
+                }
+                case Paint.ParticlesAlphaBlended:
+                {
+                    var s = Shader.Find("Legacy Shaders/Particles/Alpha Blended")
+                            ?? Shader.Find("Particles/Alpha Blended");
+                    return s != null ? new Material(s) : null;
+                }
+                default:
+                    return null;
+            }
         }
 
         /// HOW THE CIRCLE IS LAID OUT — and this is an enum for the same reason
@@ -107,7 +152,9 @@ namespace Ledger.Game
         /// backwards then the fix made things worse, and I cannot look at the
         /// screen to find out.
         ///
-        /// So the shipping layout does not depend on that reading at all.
+        /// So the shipping layout does not depend on that reading at all — and
+        /// just as well, because the reading was wrong: `FlatTransformZ` measured
+        /// zero changed pixels and `FlatBillboard` measured 0.7279%.
         public enum Lay
         {
             /// SHIPPING. Vertices flat in local XZ — which is the ground plane in
@@ -117,28 +164,11 @@ namespace Ledger.Game
             /// cancel correctly.
             FlatBillboard,
             /// Vertices in local XY with a -90 rotation about X and the ribbon
-            /// aligned to the transform's Z. Correct if `TransformZ` means what I
-            /// read it to mean, measured so that I find out either way.
+            /// aligned to the transform's Z. MEASURED AT 0.0000% AND THEREFORE
+            /// WRONG — my reading of the alignment doc did not survive contact
+            /// with a rendered frame. Kept because a wrong answer that has been
+            /// paid for is worth keeping next to the right one.
             FlatTransformZ,
-        }
-
-        /// Null means "leave whatever the component came with".
-        static Material Made(Paint paint)
-        {
-            Shader s;
-            switch (paint)
-            {
-                case Paint.SpritesDefault:
-                    s = Shader.Find("Sprites/Default");
-                    break;
-                case Paint.ParticlesAlphaBlended:
-                    s = Shader.Find("Legacy Shaders/Particles/Alpha Blended")
-                        ?? Shader.Find("Particles/Alpha Blended");
-                    break;
-                default:
-                    return null;
-            }
-            return s != null ? new Material(s) : null;
         }
 
         // ---------------------------------------------------------------
@@ -292,20 +322,18 @@ namespace Ledger.Game
             var ring = go.AddComponent<NoiseRing>();
             ring._radius = (float)r;
             ring._born = Time.time;
-            ring.Build(Paint.ComponentDefault, Lay.FlatBillboard);
+            ring.Build(Paint.Ledger, Lay.FlatBillboard);
 
-            // THE MATERIAL IS CHECKED AFTER THE FACT, not before, and that is a
-            // correction. `Shader.Find` returning null does NOT mean there is
-            // nothing to draw with: a `LineRenderer` created at runtime already
-            // owns Unity's built-in line material, which ships with the
-            // component and therefore cannot be stripped. Skipping the whole
-            // ring because a named shader was missing threw away a perfectly
-            // good circle — and, worse, it made "the shader got stripped" the
-            // story I told about a bug that was really the cooldown.
+            // THE MATERIAL IS CHECKED AFTER THE FACT, and it is a real check
+            // rather than a formality. The previous version of this comment said
+            // a runtime LineRenderer "already owns Unity's built-in line
+            // material, which ships with the component and therefore cannot be
+            // stripped". CI answered that with `ringNoMaterial=4`: it is null,
+            // every time, and four rings were thrown away for it.
             //
-            // So: build it, then ask whether it actually has a material. That is
-            // the real question, it is answerable, and it is answered here
-            // rather than guessed at from a distance.
+            // Which is exactly why the check is here and why it is counted
+            // separately. A ring skipped for having nothing to draw with looks
+            // identical to a quiet street unless something says which it was.
             if (ring._line == null || ring._line.sharedMaterial == null)
             {
                 SkippedNoMaterial++;

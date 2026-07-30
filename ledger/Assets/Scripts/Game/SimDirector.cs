@@ -1574,7 +1574,8 @@ namespace Ledger.Game
         /// or this A/B cannot see anything render. A plain quad three metres in
         /// front of the camera distinguishes them in the same run, and without it
         /// I would be back to guessing at half an hour a guess.
-        double _ringSeenDefault = -1, _ringSeenSprites = -1, _ringSeenParticles = -1;
+        double _ringSeenLedger = -1, _ringSeenSprites = -1, _ringSeenParticles = -1;
+        double _ringSeenNone = -1;
         double _ringSeenTransformZ = -1;
         double _controlSeen = -1;
         bool _ringSweptOnce;
@@ -1674,9 +1675,9 @@ namespace Ledger.Game
             // street. Same policy as the occlusion sampler above.
             if (_player != null)
             {
-                var (frac, rise) = RingSeenWith(cam, NoiseRing.Paint.ComponentDefault);
+                var (frac, rise) = RingSeenWith(cam, NoiseRing.Paint.Ledger);
                 if (frac > _ringSeenFraction) { _ringSeenFraction = frac; _ringSeenRise = rise; }
-                if (frac > _ringSeenDefault) _ringSeenDefault = frac;
+                if (frac > _ringSeenLedger) _ringSeenLedger = frac;
 
                 // The two rejected candidates and the control, once. They exist
                 // to tell me WHY a zero is a zero, and once is enough for that —
@@ -1688,12 +1689,14 @@ namespace Ledger.Game
                     _ringSeenSprites = RingSeenWith(cam, NoiseRing.Paint.SpritesDefault).fraction;
                     _ringSeenParticles =
                         RingSeenWith(cam, NoiseRing.Paint.ParticlesAlphaBlended).fraction;
-                    _ringSeenTransformZ = RingSeenWith(cam, NoiseRing.Paint.ComponentDefault,
+                    _ringSeenNone = RingSeenWith(cam, NoiseRing.Paint.None).fraction;
+                    _ringSeenTransformZ = RingSeenWith(cam, NoiseRing.Paint.Ledger,
                                                        NoiseRing.Lay.FlatTransformZ).fraction;
                     _controlSeen = ControlSeen(cam);
-                    Debug.Log($"SimDirector: ring materials — default={100 * _ringSeenDefault:0.0000}% "
+                    Debug.Log($"SimDirector: ring materials — ledger={100 * _ringSeenLedger:0.0000}% "
                               + $"sprites={100 * _ringSeenSprites:0.0000}% "
                               + $"particles={100 * _ringSeenParticles:0.0000}% "
+                              + $"none={100 * _ringSeenNone:0.0000}% "
                               + $"transformZ={100 * _ringSeenTransformZ:0.0000}% "
                               + $"control={100 * _controlSeen:0.0000}%");
                 }
@@ -3191,9 +3194,10 @@ namespace Ledger.Game
                  $"ringNoMaterial={NoiseRing.SkippedNoMaterial} ringMax={NoiseRing.MaxRadius:0.0} " +
                  $"slamDrewRing={_slamDrewRing} slams={_slams} " +
                  $"ringSeen={100 * _ringSeenFraction:0.0000}% rise={_ringSeenRise:0.0000} " +
-                 $"ringPaint[default={100 * _ringSeenDefault:0.0000} " +
+                 $"ringPaint[ledger={100 * _ringSeenLedger:0.0000} " +
                  $"sprites={100 * _ringSeenSprites:0.0000} " +
                  $"particles={100 * _ringSeenParticles:0.0000} " +
+                 $"none={100 * _ringSeenNone:0.0000} " +
                  $"transformZ={100 * _ringSeenTransformZ:0.0000} " +
                  $"control={100 * _controlSeen:0.0000}] paint={NoiseRing.PaintUsed} " +
                  $"ringOk={_ringOk} why={PerceptionWhy()} " +
@@ -3264,9 +3268,10 @@ namespace Ledger.Game
                       $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"slamDrewRing={_slamDrewRing} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
-                      $"ringDefault={100 * _ringSeenDefault:0.0000} " +
+                      $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
                       $"ringParticles={100 * _ringSeenParticles:0.0000} " +
+                      $"ringNone={100 * _ringSeenNone:0.0000} " +
                       $"ringTransformZ={100 * _ringSeenTransformZ:0.0000} " +
                       $"ringControl={100 * _controlSeen:0.0000} " +
                       $"ringPaintUsed={NoiseRing.PaintUsed} " +
