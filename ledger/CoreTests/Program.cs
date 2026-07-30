@@ -107,6 +107,7 @@ namespace Ledger.CoreTests
                 TestExposureReadout();
                 TestArsenal();
                 TestReaction();
+                TestTraces();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -9252,6 +9253,116 @@ namespace Ledger.CoreTests
                   "survivor: a dead one is not");
             Check(!Reaction.IsFleeingVictim(lived, Reacted.Notice),
                   "survivor: standing there staring at you is not a delivery");
+        }
+
+
+        /// BLOOD AND PROVENANCE — spec §15.4 and §7.4, both promised in three
+        /// places and specified in none until the audit.
+        static void TestTraces()
+        {
+            // Which weapons mark you is most of the reason to choose one.
+            Check(Traces.Marks(Arsenal.Get("kitchenknife")), "blood: a knife marks you");
+            Check(!Traces.Marks(Arsenal.Get("snub38")), "blood: a gun does not");
+            Check(!Traces.Marks(Arsenal.Get("cosh")), "blood: nor does a cosh");
+            Check(!Traces.Marks(Arsenal.Get("stairs")), "blood: nor do the stairs");
+            Check(Traces.Marks(Arsenal.Get("bottle")), "blood: a bottle marks you — with your own");
+
+            // Noticed at conversational distance under a light, and not at all
+            // across a dark street. That asymmetry IS the mechanic: the walk
+            // home is safe and the bar is not.
+            var fresh = new Stain { Strength = 1.0, FromWhom = "tony" };
+            Check(Traces.Noticeable(fresh, 1.5, 1.0),
+                  "blood: obvious at conversational distance in the light");
+            Check(!Traces.Noticeable(fresh, 12, 1.0), "blood: invisible across a street");
+            Check(!Traces.Noticeable(fresh, 1.5, 0.05),
+                  "blood: and invisible at arm's length in the dark");
+
+            // It dulls and then STOPS. Dealing with it has to be a decision
+            // rather than a timer you wait out.
+            var drying = new Stain { Strength = 1.0 };
+            Traces.Age(drying, 24 * 60);
+            Check(drying.Strength <= Traces.StainFloor + 1e-9 && drying.Strength > 0.2,
+                  "blood: a day dulls it to a mark and no further", $"{drying.Strength:0.00}");
+            Traces.Age(drying, 7 * 24 * 60);
+            Check(drying.Strength >= Traces.StainFloor - 1e-9,
+                  "blood: a week does not remove it either", $"{drying.Strength:0.00}");
+            Check(Traces.CountsAsMark(drying),
+                  "blood: and it is still a rung-2 mark somebody can describe");
+
+            // Washing takes time and a place. Neither is free.
+            var washable = new Stain { Strength = 1.0 };
+            Check(!Traces.Wash(washable, 5, hasWaterAndPrivacy: true),
+                  "blood: five minutes is not washing");
+            Check(!Traces.Wash(washable, 60, hasWaterAndPrivacy: false),
+                  "blood: and an hour in the street does nothing");
+            Check(Traces.Wash(washable, Traces.WashMinutes, true) && washable.Strength == 0,
+                  "blood: water, privacy and half an hour clears it");
+
+            // WHO SEES IT MATTERS MORE THAN THAT IT EXISTS.
+            double stranger = Traces.SocialCost(fresh, familiarity: 0.0);
+            double lover = Traces.SocialCost(fresh, familiarity: 1.0);
+            Check(lover > stranger * 3,
+                  "blood: a stranger is a rumour, someone who loves you is a scene",
+                  $"{stranger:0.00} vs {lover:0.00}");
+
+            // ---- provenance ----
+            var bought = Traces.Acquire("i1", "switchblade", Traces.Origin.Bought, "kass");
+            Check(bought.Origin == Traces.Origin.Bought && bought.FromWhom == "kass",
+                  "provenance: a bought knife remembers who sold it");
+            Check(Traces.Traceability(bought) > 0.8,
+                  "provenance: and a named seller is the strongest thread in the game");
+
+            // ORDINARINESS BEATS THE TRANSACTION. A kitchen knife is
+            // untraceable whatever route it came by, because it is a property
+            // of the object rather than of the deal.
+            var ordinary = Traces.Acquire("i2", "kitchenknife", Traces.Origin.Bought, "kass");
+            Check(ordinary.Origin == Traces.Origin.Ordinary && ordinary.FromWhom == null,
+                  "provenance: a kitchen knife has no seller worth naming");
+            Check(Traces.Traceability(ordinary) < 0.1,
+                  "provenance: and nothing to follow at all");
+
+            var stolen = Traces.Acquire("i3", "snub38", Traces.Origin.Stolen, "rocco");
+            var taken = Traces.Acquire("i4", "snub38", Traces.Origin.Taken, "joey");
+            Check(Traces.Traceability(stolen) > Traces.Traceability(taken),
+                  "provenance: a theft somebody noticed beats a gun off a body");
+            Check(Traces.Traceability(bought) > Traces.Traceability(stolen),
+                  "provenance: and a seller who remembers beats both");
+
+            // History is append-only and never cleared.
+            Traces.Used(bought, "killed", "tony");
+            Check(bought.UsedInAKilling, "provenance: the object remembers the killing");
+            Check(bought.History.Count == 2, "provenance: and everything before it");
+
+            // ---- disposal, the verb that can be witnessed ----
+            double kept = Traces.ResidualRisk(bought);
+            var unseen = Traces.Acquire("i5", "switchblade", Traces.Origin.Bought, "kass");
+            Traces.Used(unseen, "killed", "tony");
+            Traces.Dispose(unseen, "the canal", seen: false);
+            Check(Traces.ResidualRisk(unseen) < kept,
+                  "disposal: getting rid of it unseen is better than keeping it",
+                  $"{Traces.ResidualRisk(unseen):0.00} vs {kept:0.00}");
+            Check(Traces.ResidualRisk(unseen) > 0,
+                  "disposal: but the man who sold it still remembers selling it");
+
+            // THE TRADE THE PLAYER MUST BE ABLE TO REASON ABOUT: a witnessed
+            // disposal is worse than having kept the thing.
+            var watched = Traces.Acquire("i6", "switchblade", Traces.Origin.Bought, "kass");
+            Traces.Used(watched, "killed", "tony");
+            Traces.Dispose(watched, "the canal", seen: true);
+            Check(Traces.ResidualRisk(watched) >= kept,
+                  "disposal: being seen doing it trades a findable weapon for a witness",
+                  $"{Traces.ResidualRisk(watched):0.00} vs {kept:0.00}");
+
+            // An unused object is a much smaller problem than a used one.
+            var clean = Traces.Acquire("i7", "switchblade", Traces.Origin.Bought, "kass");
+            Check(Traces.ResidualRisk(clean) < Traces.ResidualRisk(bought),
+                  "disposal: a knife that has done nothing is not a case");
+
+            // Disposing twice does nothing, which matters because a UI will
+            // eventually let somebody click it twice.
+            Traces.Dispose(watched, "somewhere else", seen: false);
+            Check(watched.DisposedWhere == "the canal" && watched.DisposalWitnessed,
+                  "disposal: you cannot un-dispose or re-dispose an object");
         }
 
         static void TestMotionMatching()
