@@ -64,28 +64,81 @@ namespace Ledger.Game
         public static double MaxRadius = -1;
         public static string LastSkip = "none";
 
-        static Material _mat;
-        static bool _matTried;
+        /// WHAT THE COMPONENT'S OWN MATERIAL ACTUALLY IS. One string, and it
+        /// answers the question I would otherwise ask a build for next: whether
+        /// the built-in line material alpha-blends. If it does not, the ring
+        /// renders opaque and the fade in `Update` does nothing, and it will pop
+        /// off the screen rather than fade — visible, and wrong in a way no
+        /// counter would report. Spaces stripped because this goes into a
+        /// key=value verdict line.
+        public static string PaintUsed = "unknown";
 
-        /// SHADER LOOKUP CAN FAIL IN A BUILT PLAYER, and that is the whole
-        /// reason this is a function with a guard rather than two lines in
-        /// `Build`. A shader no material in any scene references gets stripped
-        /// from the build, `Shader.Find` returns null, and `new Material(null)`
-        /// throws — which for this class would mean an exception on every sound
-        /// the game makes. The editor would never show it.
+        /// WHICH MATERIAL DRAWS THE LINE — and the reason this is an enum
+        /// rather than a line of code is that the last build measured exactly
+        /// zero changed pixels for a circle it had definitely constructed.
         ///
-        /// So: try once, and if there is nothing to draw with, draw nothing.
-        /// A missing ring is a missing teaching aid; an exception per footstep
-        /// is a broken game.
-        static Material Mat()
+        /// Zero is a very specific number. `Sprites/Default` blends
+        /// `One OneMinusSrcAlpha` and multiplies the vertex colour by
+        /// `_RendererColor`, a property **`SpriteRenderer` injects and nothing
+        /// else does**. At zero that blend returns the destination pixel
+        /// IDENTICALLY rather than merely darkly — which is what "not one pixel
+        /// differed by 1/255" actually looks like. A sprite shader on a
+        /// LineRenderer is a plausible mistake and it fits the measurement.
+        ///
+        /// It is still a hypothesis, and this project's rule about hypotheses
+        /// is that each one costs half an hour of CI, so all three candidates
+        /// are measured in the SAME run and the game uses the one that works.
+        public enum Paint
         {
-            if (_matTried) return _mat;
-            _matTried = true;
-            var shader = Shader.Find("Sprites/Default")
-                         ?? Shader.Find("Unlit/Color")
-                         ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended");
-            if (shader != null) _mat = new Material(shader);
-            return _mat;
+            /// WHAT THE GAME USES. A `LineRenderer` created at runtime already
+            /// owns Unity's built-in line material — designed for this
+            /// component, reads vertex colours, cannot be stripped, and needs
+            /// no property a sprite renderer would have filled in. Assigning
+            /// nothing is the safest thing this class can do, and the previous
+            /// version overwrote it with a named shader for no gain.
+            ComponentDefault,
+            SpritesDefault,
+            ParticlesAlphaBlended,
+        }
+
+        /// HOW THE CIRCLE IS LAID OUT — and this is an enum for the same reason
+        /// `Paint` is. My geometry fix rests on reading `LineAlignment.TransformZ`
+        /// as "the ribbon's normal is the transform's Z axis". If that reading is
+        /// backwards then the fix made things worse, and I cannot look at the
+        /// screen to find out.
+        ///
+        /// So the shipping layout does not depend on that reading at all.
+        public enum Lay
+        {
+            /// SHIPPING. Vertices flat in local XZ — which is the ground plane in
+            /// world space with no rotation whatsoever — and the ribbon
+            /// billboarded to the camera, which cannot be edge-on by
+            /// construction. Two unambiguous choices instead of two that have to
+            /// cancel correctly.
+            FlatBillboard,
+            /// Vertices in local XY with a -90 rotation about X and the ribbon
+            /// aligned to the transform's Z. Correct if `TransformZ` means what I
+            /// read it to mean, measured so that I find out either way.
+            FlatTransformZ,
+        }
+
+        /// Null means "leave whatever the component came with".
+        static Material Made(Paint paint)
+        {
+            Shader s;
+            switch (paint)
+            {
+                case Paint.SpritesDefault:
+                    s = Shader.Find("Sprites/Default");
+                    break;
+                case Paint.ParticlesAlphaBlended:
+                    s = Shader.Find("Legacy Shaders/Particles/Alpha Blended")
+                        ?? Shader.Find("Particles/Alpha Blended");
+                    break;
+                default:
+                    return null;
+            }
+            return s != null ? new Material(s) : null;
         }
 
         // ---------------------------------------------------------------
@@ -134,6 +187,7 @@ namespace Ledger.Game
             LastRadius = LastLoudness = LastFloor = -1;
             LastOccluded = false;
             LastSkip = "none";
+            PaintUsed = "unknown";
             _shownAt = -999f;
             _shownLoudness = -1;
             if (_live != null) Destroy(_live.gameObject);
@@ -171,7 +225,8 @@ namespace Ledger.Game
         /// Build a ring the gate can render twice. It does not age, does not
         /// fade and does not destroy itself, because both renders must show the
         /// same circle — an animating probe would measure its own fade.
-        public static NoiseRing ForVerification(Vector3 at, double radius)
+        public static NoiseRing ForVerification(Vector3 at, double radius,
+                                                Paint paint, Lay lay)
         {
             var go = new GameObject("NoiseRingProbe");
             go.transform.position = at + Vector3.up * 0.04f;
@@ -179,7 +234,7 @@ namespace Ledger.Game
             ring._radius = (float)radius;
             ring._born = Time.time;
             ring._probe = true;
-            ring.Build();
+            ring.Build(paint, lay);
             return ring;
         }
 
@@ -237,7 +292,7 @@ namespace Ledger.Game
             var ring = go.AddComponent<NoiseRing>();
             ring._radius = (float)r;
             ring._born = Time.time;
-            ring.Build();
+            ring.Build(Paint.ComponentDefault, Lay.FlatBillboard);
 
             // THE MATERIAL IS CHECKED AFTER THE FACT, not before, and that is a
             // correction. `Shader.Find` returning null does NOT mean there is
@@ -267,7 +322,7 @@ namespace Ledger.Game
             _live = ring;
         }
 
-        void Build()
+        void Build(Paint paint, Lay lay)
         {
             _line = gameObject.AddComponent<LineRenderer>();
             _line.useWorldSpace = false;
@@ -278,39 +333,44 @@ namespace Ledger.Game
             _line.widthMultiplier = Mathf.Clamp(_radius * 0.012f, 0.05f, 0.5f);
             _line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _line.receiveShadows = false;
-            _line.alignment = LineAlignment.TransformZ;
 
-            // ONLY IF THERE IS SOMETHING BETTER. Assigning `Mat()` unconditionally
-            // would overwrite the component's own built-in line material with
-            // null when the named shader is absent, turning a survivable miss
-            // into an invisible ring.
-            var m = Mat();
+            // ONLY IF THERE IS SOMETHING TO PUT THERE. For the shipping path
+            // this is null and the component keeps its own built-in material.
+            var m = Made(paint);
             if (m != null) _line.material = m;
 
-            // THE VERTICES GO IN THE LOCAL XY PLANE, NOT XZ, and that is the
-            // whole of a bug that would have kept this invisible even after the
-            // cooldown was fixed.
+            // THE OLD CODE HAD TWO MISTAKES THAT CANCELLED INTO NOTHING
+            // VISIBLE: vertices flat in local XZ (normal = local Y) and then a
+            // rotation of PLUS ninety about X, which stands the circle upright
+            // in the world XY plane and aims the ribbon at the road — under a
+            // comment reading "flat on the ground rather than standing up like a
+            // hoop".
             //
-            // `LineAlignment.TransformZ` means the ribbon's normal is the
-            // transform's Z axis. For a circle lying on the road that normal
-            // must point at the sky, so local +Z has to become world +Y — which
-            // is a rotation of MINUS ninety about X, and it puts the ring's own
-            // plane at local XY. The old code had the vertices flat in local XZ
-            // (so their normal was local Y) and then rotated PLUS ninety, which
-            // stood the circle upright in the world XY plane and aimed the
-            // ribbon at the ground. Two mistakes that cancel into "nothing
-            // visible", under a comment claiming the opposite.
+            // Both replacements below are laid out so that NOTHING has to
+            // cancel. `FlatBillboard` puts the vertices in local XZ, which is the
+            // ground plane with no rotation at all, and lets the ribbon face the
+            // camera, which cannot be edge-on. `FlatTransformZ` is the version
+            // that depends on my reading of the alignment doc, kept only so the
+            // sim can tell me whether that reading was right.
             //
-            // Worked through on paper because there is no way to look at it from
-            // here: R(-90° about X) maps (x, y, z) to (x, z, -y), so local
+            // Worked on paper because there is no way to look at it from here:
+            // R(-90 about X) maps (x, y, z) to (x, z, -y), so local
             // (cos a, sin a, 0) becomes world (cos a, 0, -sin a) — flat on the
             // road — and local (0, 0, 1) becomes world (0, 1, 0) — facing up.
+            bool billboard = lay == Lay.FlatBillboard;
+            _line.alignment = billboard ? LineAlignment.View : LineAlignment.TransformZ;
             for (int i = 0; i < Segments; i++)
             {
                 float a = i / (float)Segments * Mathf.PI * 2f;
-                _line.SetPosition(i, new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0) * _radius);
+                _line.SetPosition(i, billboard
+                    ? new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * _radius
+                    : new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0) * _radius);
             }
-            transform.rotation = Quaternion.Euler(-90, 0, 0);
+            transform.rotation = billboard
+                ? Quaternion.identity : Quaternion.Euler(-90, 0, 0);
+
+            if (!_probe && _line.sharedMaterial != null && _line.sharedMaterial.shader != null)
+                PaintUsed = _line.sharedMaterial.shader.name.Replace(' ', '_');
 
             // Coloured HERE as well as in `Update`, so the first frame the ring
             // is rendered on is already the right colour rather than white.

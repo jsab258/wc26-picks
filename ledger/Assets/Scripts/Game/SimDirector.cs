@@ -1559,16 +1559,90 @@ namespace Ledger.Game
         /// away and a room-sized one would be under the camera.
         const double RingProbeRadius = 12.0;
 
-        /// Fraction of the frame the ring brightened, and by how much. Negative
-        /// until measured — a gate that cannot tell "not measured" from "measured
-        /// zero" is the trap the loiter probe fell into.
+        /// Fraction of the frame the ring CHANGED — brightened plus darkened,
+        /// because a pale line can be darker than the lamp behind it and reading
+        /// only one direction is how the occlusion gate measured its own
+        /// blind spot. Negative until measured: a gate that cannot tell "not
+        /// measured" from "measured zero" is the trap the loiter probe fell into.
         double _ringSeenFraction = -1, _ringSeenRise = -1;
+
+        /// The same measurement for each candidate material, and for a positive
+        /// control that has nothing to do with the ring at all.
+        ///
+        /// THE CONTROL IS THE POINT. Last run said zero changed pixels, and that
+        /// has two completely different explanations: the ring does not render,
+        /// or this A/B cannot see anything render. A plain quad three metres in
+        /// front of the camera distinguishes them in the same run, and without it
+        /// I would be back to guessing at half an hour a guess.
+        double _ringSeenDefault = -1, _ringSeenSprites = -1, _ringSeenParticles = -1;
+        double _ringSeenTransformZ = -1;
+        double _controlSeen = -1;
+        bool _ringSweptOnce;
 
         /// FORTY-SIX PIXELS OF A 640x360 FRAME. Set to catch "nothing at all"
         /// rather than to grade the drawing: a twelve-metre ring should come in
         /// an order of magnitude above this, and if it lands just over the line
         /// that is itself worth knowing.
         const double RingSeenFloor = 0.0002;
+
+        /// How much of the frame a ring drawn with this material changes.
+        ///
+        /// BOTH DIRECTIONS. A pale line over dark asphalt brightens and the same
+        /// line across a lamp's glare darkens, and counting only one of those is
+        /// how a gate ends up measuring its own blind spot.
+        (double fraction, double rise) RingSeenWith(Camera cam, NoiseRing.Paint paint,
+                                                    NoiseRing.Lay lay = NoiseRing.Lay.FlatBillboard)
+        {
+            var probe = NoiseRing.ForVerification(_player.transform.position,
+                                                  RingProbeRadius, paint, lay);
+            if (probe == null) return (-1, -1);
+            try
+            {
+                probe.LineEnabled = false;
+                var off = FrameShot(cam);
+                probe.LineEnabled = true;
+                var on = FrameShot(cam);
+                // `FrameShot` returns an empty struct if the render failed, and
+                // comparing two nulls would throw inside a gate rather than fail it.
+                if (on.Luma == null || off.Luma == null) return (-1, -1);
+                var up = ImageStats.Brightened(on.Luma, off.Luma, ImageStats.QuantisationStep);
+                var down = ImageStats.Darkened(on.Luma, off.Luma, ImageStats.QuantisationStep);
+                return (up.fraction + down.fraction, up.meanRise);
+            }
+            finally { UnityEngine.Object.Destroy(probe.gameObject); }
+        }
+
+        /// THE POSITIVE CONTROL: a plain quad three metres in front of the
+        /// camera, with nothing of the ring in it. If this reads zero too then
+        /// the A/B itself is blind and every ring number above is meaningless —
+        /// which is a completely different repair from "the line does not draw",
+        /// and telling them apart is worth one quad.
+        double ControlSeen(Camera cam)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            try
+            {
+                var col = go.GetComponent<Collider>();
+                // Disabled rather than destroyed: `Destroy` is deferred to the
+                // end of the frame and a two-metre wall in front of the player
+                // for even one physics step is a shove nobody asked for.
+                if (col != null) col.enabled = false;
+                go.transform.position = cam.transform.position + cam.transform.forward * 3f;
+                go.transform.rotation = Quaternion.LookRotation(cam.transform.forward);
+                go.transform.localScale = new Vector3(2f, 2f, 1f);
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr == null) return -1;
+                mr.enabled = false;
+                var off = FrameShot(cam);
+                mr.enabled = true;
+                var on = FrameShot(cam);
+                if (on.Luma == null || off.Luma == null) return -1;
+                var up = ImageStats.Brightened(on.Luma, off.Luma, ImageStats.QuantisationStep);
+                var down = ImageStats.Darkened(on.Luma, off.Luma, ImageStats.QuantisationStep);
+                return up.fraction + down.fraction;
+            }
+            finally { UnityEngine.Object.Destroy(go); }
+        }
 
         void MeasureAoOnce(int sample)
         {
@@ -1600,34 +1674,28 @@ namespace Ledger.Game
             // street. Same policy as the occlusion sampler above.
             if (_player != null)
             {
-                var probe = NoiseRing.ForVerification(_player.transform.position,
-                                                      RingProbeRadius);
-                if (probe != null)
+                var (frac, rise) = RingSeenWith(cam, NoiseRing.Paint.ComponentDefault);
+                if (frac > _ringSeenFraction) { _ringSeenFraction = frac; _ringSeenRise = rise; }
+                if (frac > _ringSeenDefault) _ringSeenDefault = frac;
+
+                // The two rejected candidates and the control, once. They exist
+                // to tell me WHY a zero is a zero, and once is enough for that —
+                // paying for six extra renders on every sample would be buying
+                // the same fact three times.
+                if (!_ringSweptOnce)
                 {
-                    probe.LineEnabled = false;
-                    var withoutRing = FrameShot(cam);
-                    probe.LineEnabled = true;
-                    var withRing = FrameShot(cam);
-                    // `FrameShot` returns an empty struct if the render failed,
-                    // and comparing two nulls would throw inside a gate rather
-                    // than fail it.
-                    double ringFrac = -1, ringRise = -1;
-                    if (withRing.Luma != null && withoutRing.Luma != null)
-                    {
-                        var seen = ImageStats.Brightened(withRing.Luma, withoutRing.Luma,
-                                                         ImageStats.QuantisationStep);
-                        ringFrac = seen.fraction;
-                        ringRise = seen.meanRise;
-                    }
-                    if (ringFrac > _ringSeenFraction)
-                    {
-                        _ringSeenFraction = ringFrac;
-                        _ringSeenRise = ringRise;
-                    }
-                    UnityEngine.Object.Destroy(probe.gameObject);
-                    Debug.Log($"SimDirector: ring on screen — {100 * ringFrac:0.0000}% of "
-                              + $"pixels brighter by {ringRise:0.0000} "
-                              + $"({RingProbeRadius:0}m circle at the player's feet)");
+                    _ringSweptOnce = true;
+                    _ringSeenSprites = RingSeenWith(cam, NoiseRing.Paint.SpritesDefault).fraction;
+                    _ringSeenParticles =
+                        RingSeenWith(cam, NoiseRing.Paint.ParticlesAlphaBlended).fraction;
+                    _ringSeenTransformZ = RingSeenWith(cam, NoiseRing.Paint.ComponentDefault,
+                                                       NoiseRing.Lay.FlatTransformZ).fraction;
+                    _controlSeen = ControlSeen(cam);
+                    Debug.Log($"SimDirector: ring materials — default={100 * _ringSeenDefault:0.0000}% "
+                              + $"sprites={100 * _ringSeenSprites:0.0000}% "
+                              + $"particles={100 * _ringSeenParticles:0.0000}% "
+                              + $"transformZ={100 * _ringSeenTransformZ:0.0000}% "
+                              + $"control={100 * _controlSeen:0.0000}%");
                 }
             }
 
@@ -3123,6 +3191,11 @@ namespace Ledger.Game
                  $"ringNoMaterial={NoiseRing.SkippedNoMaterial} ringMax={NoiseRing.MaxRadius:0.0} " +
                  $"slamDrewRing={_slamDrewRing} slams={_slams} " +
                  $"ringSeen={100 * _ringSeenFraction:0.0000}% rise={_ringSeenRise:0.0000} " +
+                 $"ringPaint[default={100 * _ringSeenDefault:0.0000} " +
+                 $"sprites={100 * _ringSeenSprites:0.0000} " +
+                 $"particles={100 * _ringSeenParticles:0.0000} " +
+                 $"transformZ={100 * _ringSeenTransformZ:0.0000} " +
+                 $"control={100 * _controlSeen:0.0000}] paint={NoiseRing.PaintUsed} " +
                  $"ringOk={_ringOk} why={PerceptionWhy()} " +
                  $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
                  perceptionOk),
@@ -3191,6 +3264,12 @@ namespace Ledger.Game
                       $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"slamDrewRing={_slamDrewRing} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
+                      $"ringDefault={100 * _ringSeenDefault:0.0000} " +
+                      $"ringSprites={100 * _ringSeenSprites:0.0000} " +
+                      $"ringParticles={100 * _ringSeenParticles:0.0000} " +
+                      $"ringTransformZ={100 * _ringSeenTransformZ:0.0000} " +
+                      $"ringControl={100 * _controlSeen:0.0000} " +
+                      $"ringPaintUsed={NoiseRing.PaintUsed} " +
                       $"perceptionWhy={PerceptionWhy()} " +
                       $"perceptionOk={perceptionOk} " +
                       // PRINTED BECAUSE I GUESSED TWICE. Whether the probes
