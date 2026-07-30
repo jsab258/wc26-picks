@@ -22,6 +22,13 @@ TWO TRAPS THIS HARNESS EXISTS TO AVOID, both of which cost real work:
   deliberate break sitting in the tree. Hence atexit plus an on-disk
   backup rather than a restore at the bottom of the loop.
 
+  **atexit is not enough on its own.** `atexit` runs on a normal exit and
+  on SIGINT, and NOT on SIGTERM -- which is what `timeout` sends. A run
+  wrapped in `timeout 120` that overran left a deliberate break sitting in
+  the tree, and the next run refused to start because its own baseline was
+  red. The failure is self-diagnosing, which is the only reason it cost
+  minutes rather than an evening. Hence the explicit signal handlers below.
+
   **The restore must not preserve mtime.** `shutil.copy2` copies the
   timestamp too, so the restored file looks OLDER than the object files
   built from the broken one -- MSBuild skips the rebuild and the next test
@@ -33,6 +40,7 @@ import atexit
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -54,6 +62,25 @@ def restore_all():
 
 
 atexit.register(restore_all)
+
+
+def _restore_and_die(signum, _frame):
+    """SIGTERM and friends do NOT run atexit handlers.
+
+    `timeout 120 python3 breakrun.py ...` sends SIGTERM, Python dies without
+    unwinding, and a deliberate break stays in the working tree. Re-raising
+    with the default disposition after restoring keeps the exit status honest
+    for whatever is watching."""
+    restore_all()
+    signal.signal(signum, signal.SIG_DFL)
+    os.kill(os.getpid(), signum)
+
+
+for _sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+    try:
+        signal.signal(_sig, _restore_and_die)
+    except (ValueError, AttributeError):
+        pass        # not on this platform, or not the main thread
 
 
 def back_up(path):

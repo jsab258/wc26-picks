@@ -102,6 +102,7 @@ namespace Ledger.CoreTests
                 TestFrameRate();
                 TestMotionMatching();
                 TestPerception();
+                TestObservation();
                 TestDressing();
                 TestInteraction();
                 TestDirector();
@@ -8556,6 +8557,283 @@ namespace Ledger.CoreTests
             junk.Tick(0, true, 1.0, 1.0, 4);
             junk.Tick(-1, true, 1.0, 1.0, 4);
             Check(junk.Seconds == 0 && !junk.Noticed, "attention: NaN, zero and negative dt do nothing");
+        }
+
+
+        /// OBSERVATION — the five testable claims in `weapons-spec.md` §4.7,
+        /// asserted rather than promised. This is the join between the
+        /// tactical layer and the social one, and if the shape is wrong
+        /// everything above it is wrong.
+        static void TestObservation()
+        {
+            // One deed, and then four people standing in four different places.
+            var deed = new Deed
+            {
+                EventId = "e1", ActorId = "player", VictimId = "tony",
+                Loudness = Perception.LoudSuppressed22,
+                VictimCriesOut = false, WeaponDrawn = true, ActorFled = true,
+                LeavesBody = true, HadPrecursor = true,
+            };
+
+            Vantage At(string id, double m, double light, double fam,
+                       bool occ = false, bool mark = false, bool face = true,
+                       double ambient = Perception.AmbientDaytimeStreet,
+                       double watched = 3.0, bool later = false)
+            {
+                var v = Vantage.Both(id, m, light, fam, ambient);
+                v.ToActor.Occluded = occ; v.ToVictim.Occluded = occ;
+                v.ActorHasMark = mark; v.FaceToward = face;
+                v.SecondsWatching = watched; v.ArrivedLater = later;
+                return v;
+            }
+
+            // CLAIM 1: four witnesses, four different slot sets.
+            var close = Observe.Resolve(deed, At("close", 4, 1.0, 0.9));
+            var wall = Observe.Resolve(deed, At("wall", 6, 1.0, 0.9, occ: true));
+            var later_ = Observe.Resolve(deed, At("later", 1, 1.0, 0.9, later: true));
+
+            // THE SUPPRESSED-PISTOL CASE, and the reason `Sight` was split off
+            // `Vantage` mid-build: the victim is in the light of the market and
+            // the shooter is across the street in a doorway. One sightline for
+            // "the event" made this unreachable, and a test asserting four
+            // different slot sets got three.
+            var acrossTheStreet = new Vantage
+            {
+                WitnessId = "across",
+                ToVictim = Sight.At(9, 1.0),        // he falls, right there, lit
+                ToActor = Sight.At(24, 0.08),       // the shooter, in a doorway
+                Familiarity = 0.9,                  // even a friend cannot help here
+                AmbientFloor = Perception.AmbientMarketNoon,
+                FaceToward = true, SecondsWatching = 3.0,
+            };
+            var far = Observe.Resolve(deed, acrossTheStreet);
+
+            var sets = new[] { close.Slots, far.Slots, wall.Slots, later_.Slots };
+            Check(sets.Distinct().Count() == 4,
+                  "observation: one event, four positions, FOUR different slot sets",
+                  string.Join(" | ", sets));
+
+            Check(close.Label() == "full", "observation: close and lit gets the lot", close.Label());
+            Check(later_.Label() == "aftermath", "observation: arriving later gets the aftermath only",
+                  later_.Label());
+            Check(!later_.Has(Slot.Act) && !later_.Has(Slot.Actor),
+                  "observation: arriving later never manufactures an actor");
+
+            // JAFAR'S OWN EXAMPLE, falling out of the model rather than being
+            // written into it.
+            Check(far.Label() == "act, no actor",
+                  "observation: a man drops in the market and nobody knows who did it",
+                  far.Label());
+            Check(far.Has(Slot.Act) && far.Has(Slot.Victim),
+                  "observation: the far witness saw a man drop");
+            Check(!far.Has(Slot.Actor) && far.AccusedId == null,
+                  "observation: and got nothing at all on the shooter", $"rung {far.Rung}");
+            // The same witness, same relationship, with the shooter under a
+            // lamp instead of in a doorway. Light is the whole difference.
+            var litShooter = acrossTheStreet; litShooter.ToActor = Sight.At(24, 1.0);
+            var seen = Observe.Resolve(deed, litShooter);
+            Check(seen.Has(Slot.Actor) && seen.NamesSomebody,
+                  "observation: step the shooter into the light and he is named");
+
+            // The wall case: a suppressed .22 does not get through it, so this
+            // witness has nothing at all. Occlusion beating everything is what
+            // makes the back room work.
+            Check(wall.Empty, "observation: a suppressed shot behind a wall leaves no witness",
+                  wall.Label());
+
+            // A LOUD weapon through the same wall is a different story, and
+            // hearing gives the act without the actor.
+            var loud = deed; loud.Loudness = Perception.LoudSnub38;
+            var wallLoud = Observe.Resolve(loud, At("wall", 6, 1.0, 0.9, occ: true));
+            Check(wallLoud.Has(Slot.Act) && !wallLoud.Has(Slot.Actor),
+                  "observation: a .38 through a wall is sound only", wallLoud.Label());
+            Check(wallLoud.Label() == "sound only", "observation: and it is labelled as such",
+                  wallLoud.Label());
+
+            // CLAIM 3, at the observation level: same distance, same light,
+            // and the relationship decides whether you are named.
+            var neighbour = Observe.Resolve(deed, At("neighbour", 20, 1.0, 0.9));
+            var stranger = Observe.Resolve(deed, At("stranger", 20, 1.0, 0.0));
+            Check(neighbour.NamesSomebody && !stranger.NamesSomebody,
+                  "observation: at 20m your neighbour names you and a stranger cannot");
+            Check(neighbour.AccusedId == "player" && stranger.AccusedId == null,
+                  "observation: and only one of them has a name to give");
+
+            // CLAIM 2: two disjoint partials assemble into more than either.
+            var sawFollow = new Observation { WitnessId = "a", Slots = Slot.Precursor };
+            var foundBody = new Observation { WitnessId = "b", Slots = Slot.Aftermath };
+            Check(Observe.AssemblesMore(sawFollow, foundBody),
+                  "observation: precursor plus aftermath assembles a truth neither held");
+            Check(Observe.Combine(sawFollow, foundBody) == (Slot.Precursor | Slot.Aftermath),
+                  "observation: and the combination is exactly both");
+            Check(!Observe.AssemblesMore(close, sawFollow),
+                  "observation: a witness who saw everything learns nothing from a partial");
+
+            // The case the generator produced that the old six-item list did
+            // not contain, and the reason the list was replaced.
+            Check(sawFollow.Label() == "precursor only",
+                  "observation: 'precursor only' exists and has a name", sawFollow.Label());
+
+            // Certainty never reaches the mill's hard-knowledge threshold from
+            // a partial. Overhearing is never knowledge and neither is this.
+            Check(wallLoud.Certainty < 0.95 && close.Certainty < 0.95,
+                  "observation: no observation promotes itself into certainty",
+                  $"{close.Certainty:0.00}");
+            Check(close.Certainty > far.Certainty && far.Certainty > wallLoud.Certainty,
+                  "observation: certainty tracks how much they got");
+            // The cap has to BITE, not merely exist. A break run that raised it
+            // to 1.0 survived every check, which meant nothing had ever reached
+            // it. The best possible witness now lands exactly on the ceiling.
+            Check(Math.Abs(close.Certainty - 0.94) < 1e-9,
+                  "observation: the best possible witness is held AT the ceiling",
+                  $"{close.Certainty:0.000}");
+            // Hearing it is worth less than watching it, with the same slots.
+            Slot sameSlots = Slot.Act | Slot.Victim;
+            Check(Observe.CertaintyFor(sameSlots, 0, looked: false, heard: true)
+                  < Observe.CertaintyFor(sameSlots, 0, looked: true, heard: false),
+                  "observation: hearing it is worth less than watching it");
+
+            // A GLANCE IS NOT A LOOK. Every vantage above watched for three
+            // seconds, so a break that deleted notice time entirely survived —
+            // no test had ever passed a short one.
+            var glance = At("glance", 4, 1.0, 0.9, watched: 0.2);
+            var glanced = Observe.Resolve(deed, glance);
+            Check(!glanced.Has(Slot.Victim) && !glanced.Has(Slot.Actor),
+                  "observation: two tenths of a second sees nothing", glanced.Label());
+            Check(Observe.Resolve(deed, At("stare", 4, 1.0, 0.9, watched: 3.0)).Has(Slot.Actor),
+                  "observation: three seconds sees everything");
+
+            // SEEN, BUT NOT DESCRIBABLE. Between the detection range (40m in
+            // full light) and the silhouette range (35m) there is a band where
+            // you can tell somebody is there and cannot say one word about
+            // them. No test had ever stood in it, so a break that filled the
+            // Actor slot for anyone merely visible survived.
+            var edge = new Vantage
+            {
+                WitnessId = "edge",
+                ToVictim = Sight.At(5, 1.0),
+                ToActor = Sight.At(37, 1.0),
+                Familiarity = 0.9,
+                AmbientFloor = Perception.AmbientDaytimeStreet,
+                FaceToward = true, SecondsWatching = 3.0,
+            };
+            var edgeSeen = Observe.Resolve(deed, edge);
+            Check(edgeSeen.Rung == 0 && !edgeSeen.Has(Slot.Actor),
+                  "observation: someone you can see and cannot describe fills no actor slot",
+                  $"rung {edgeSeen.Rung} / {edgeSeen.Label()}");
+            Check(edgeSeen.Label() == "act, no actor",
+                  "observation: and it reads as act-no-actor, which is what it is",
+                  edgeSeen.Label());
+
+            // THE ACTOR'S OWN SIGHTLINE, asserted. A break that resolved the
+            // rung off the victim's line survived, because in every case above
+            // the actor was either together with the victim or invisible. Here
+            // he is visible and WORSE lit than the victim, which is the only
+            // arrangement that can tell the two lines apart.
+            var dimShooter = new Vantage
+            {
+                WitnessId = "dim",
+                ToVictim = Sight.At(5, 1.0),      // right there, lit — rung 4 material
+                ToActor = Sight.At(16, 0.35),     // visible, but a shape
+                Familiarity = 0.9,
+                AmbientFloor = Perception.AmbientDaytimeStreet,
+                FaceToward = true, SecondsWatching = 3.0,
+            };
+            var dim = Observe.Resolve(deed, dimShooter);
+            Check(dim.Has(Slot.Actor) && dim.Rung == 1 && !dim.NamesSomebody,
+                  "observation: a friend in poor light is a shape, not a name",
+                  $"rung {dim.Rung}");
+
+            // ---- willingness, which is not certainty ----
+            double talks = Observe.Willingness(nerve: 0.8, loyaltyToPlayer: 0.1,
+                                               ownSecret: 0.0, fearOfOutfit: 0.0,
+                                               sympathyForVictim: 0.8);
+            double quiet = Observe.Willingness(nerve: 0.8, loyaltyToPlayer: 0.1,
+                                               ownSecret: 0.9, fearOfOutfit: 0.0,
+                                               sympathyForVictim: 0.8);
+            Check(talks > 0.9 && talks < 1.0 && quiet < 0.25,
+                  "willingness: a witness with his own secret will not come forward — and the top does not saturate",
+                  $"{talks:0.00} vs {quiet:0.00}");
+            Check(Observe.Willingness(0.8, 0.9, 0, 0, 0.8) < talks,
+                  "willingness: loyalty buys silence");
+            Check(Observe.Willingness(0.2, 0.1, 0, 0.9, 0.8) < talks,
+                  "willingness: so does fear of the outfit");
+
+            // ---- mutual awareness, and the ghost restriction ----
+            Check(Observe.AwarenessOf(true, true) == Awareness.Standoff, "awareness: the standoff");
+            Check(Observe.AwarenessOf(false, true) == Awareness.TheyKnow, "awareness: the worst case");
+            Check(Observe.AwarenessOf(false, false) == Awareness.NeitherKnows,
+                  "awareness: the quiet horror case");
+
+            // THE FIX FROM THE AUDIT: no ghost when you never knew you were
+            // seen. If this ever passes for NeitherKnows, the best beat in the
+            // design has been quietly deleted again.
+            Check(!Observe.GhostAllowed(Awareness.NeitherKnows),
+                  "ghost: the quiet horror case gets NO warning");
+            Check(!Observe.GhostAllowed(Awareness.TheyKnow),
+                  "ghost: being seen without noticing gets no warning either");
+            Check(Observe.GhostAllowed(Awareness.Standoff) && Observe.GhostAllowed(Awareness.YouKnow),
+                  "ghost: only shown for something the character actually experienced");
+
+            // ---- CLAIM 4: the delivery window ----
+            var d = Delivery.Begin("witness", "ellis", walkMinutes: 6, nerve: 0.6, willingness: 1.0);
+            Check(d.InFlight && !d.Arrived, "delivery: a witness starts out walking");
+            Check(!d.Tick(3), "delivery: halfway is not arrival");
+            Check(d.Intercept(), "delivery: intercepted before arrival");
+            Check(!d.Arrived && !d.InFlight, "delivery: and never arrives");
+            Check(!d.Tick(100), "delivery: ticking an intercepted witness does nothing");
+
+            var d2 = Delivery.Begin("witness", "ellis", 6, 0.6, 1.0);
+            Check(d2.Tick(7), "delivery: it arrives when the walk is done");
+            Check(!d2.Tick(1), "delivery: and arrival fires exactly once");
+            Check(!d2.Intercept(), "delivery: too late to intercept an arrived witness");
+
+            // Frightened witnesses run, and an unsure one sits with it first.
+            var scared = Delivery.Begin("w", "ellis", 6, nerve: 0.1, willingness: 1.0);
+            var unsure = Delivery.Begin("w", "ellis", 6, nerve: 0.6, willingness: 0.2);
+            Check(scared.Running && scared.MinutesRemaining < 6,
+                  "delivery: the frightened one runs", $"{scared.MinutesRemaining:0.0}");
+            Check(unsure.MinutesRemaining > 30,
+                  "delivery: the unsure one sits with it", $"{unsure.MinutesRemaining:0.0}");
+
+            // ---- CLAIM 5: misattribution ----
+            bool wrongManEver = false;
+            for (int seed = 0; seed < 40; seed++)
+            {
+                var coat = new Observation { Rung = 1, Slots = Slot.Actor | Slot.Act };
+                if (Observe.Misattribute(coat, "nikos", seed) == "nikos") { wrongManEver = true; break; }
+            }
+            Check(wrongManEver, "misattribution: a silhouette in a known coat gets the wrong man named");
+            var sure = new Observation { Rung = 4, AccusedId = "player", Slots = Slot.Actor };
+            Check(Observe.Misattribute(sure, "nikos", 1) == "player",
+                  "misattribution: a certain identification is never overwritten");
+            var nothing = new Observation { Rung = 0 };
+            Check(Observe.Misattribute(nothing, "nikos", 1) == null,
+                  "misattribution: seeing nothing does not produce an accusation");
+
+            // ---- hardening: accuracy falls, confidence rises ----
+            var soft = new Observation { Slots = Slot.Act | Slot.Actor, Rung = 1, Certainty = 0.4 };
+            double c0 = soft.Certainty;
+            for (int i = 0; i < 4; i++) Observe.Retell(soft, expectedId: "nikos");
+            Check(soft.Certainty > c0, "hardening: telling it makes them surer");
+            Check(soft.Rung == 2, "hardening: and the description firms up", $"rung {soft.Rung}");
+            for (int i = 0; i < 8; i++) Observe.Retell(soft, expectedId: "nikos");
+            Check(soft.Rung == 4 && soft.AccusedId == "nikos",
+                  "hardening: a week of telling turns a coat into a NAME — and it is the wrong one");
+            Check(soft.Certainty <= 0.94,
+                  "hardening: but it never reaches hard knowledge", $"{soft.Certainty:0.00}");
+
+            // The rule that keeps §4.6 from becoming a punishment: hardening
+            // raises confidence and never confers indelibility. Indelible is a
+            // property of a body existing, not of anybody's certainty.
+            var mill = new GossipMill(new SocialGraph());
+            mill.Add(new Gossiper("w1", "Witness", null, null, null));
+            mill.Witness("w1", new Fact("player", "killed", "tony"),
+                         "saw it", true, new GameTime(1, 22, 0),
+                         confidence: soft.Certainty, indelible: false);
+            var carried = mill.Get("w1").Best("player.killed");
+            Check(carried != null && !carried.Indelible,
+                  "hardening: a hardened FALSE accusation stays discreditable");
         }
 
         static void TestMotionMatching()

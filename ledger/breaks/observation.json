@@ -1,0 +1,116 @@
+[
+  {
+    "name": "the actor is resolved off the victim's sightline, deleting the whole suppressed-pistol case",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "                o.Rung = Perception.IdRung(v.ToActor.Metres, v.ToActor.LightLevel,",
+    "new": "                o.Rung = Perception.IdRung(v.ToVictim.Metres, v.ToVictim.LightLevel,"
+  },
+  {
+    "name": "seeing the victim is taken as seeing the actor",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "                if (o.Rung >= 1) o.Slots |= Slot.Actor;",
+    "new": "                o.Slots |= Slot.Actor;"
+  },
+  {
+    "name": "hearing fills the actor slot, so a bang behind a wall names somebody",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if (seesVictim || heardAct || heardCry) o.Slots |= Slot.Act;\n            if (seesVictim) o.Slots |= Slot.Victim;",
+    "new": "            if (seesVictim || heardAct || heardCry) { o.Slots |= Slot.Act; o.Slots |= Slot.Actor; }\n            if (seesVictim) o.Slots |= Slot.Victim;"
+  },
+  {
+    "name": "arriving later also gets the act, so the body tells you what happened to it",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "                if (deed.LeavesBody || !deed.IsAccident) o.Slots |= Slot.Aftermath;",
+    "new": "                o.Slots |= Slot.Aftermath | Slot.Act | Slot.Victim;"
+  },
+  {
+    "name": "a glance counts as a look, so notice time stops meaning anything",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            bool longEnough = v.SecondsWatching >= Perception.NoticeSeconds;",
+    "new": "            bool longEnough = true;"
+  },
+  {
+    "name": "certainty is allowed to reach hard knowledge, so a partial becomes a thing somebody KNOWS",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            return Feel.Clamp(c, 0.05, 0.94);",
+    "new": "            return Feel.Clamp(c, 0.05, 1.0);"
+  },
+  {
+    "name": "hearing something counts as much as watching it",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if ((slots & Slot.Act) != 0) c += heard && !looked ? 0.20 : 0.40;",
+    "new": "            if ((slots & Slot.Act) != 0) c += 0.40;"
+  },
+  {
+    "name": "the ghost is shown for every witness, deleting the quiet horror case",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            a == Awareness.Standoff || a == Awareness.YouKnow;",
+    "new": "            true;"
+  },
+  {
+    "name": "the ghost appears when THEY saw you and you never noticed",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "        public static bool GhostAllowed(Awareness a) =>\n            a == Awareness.Standoff || a == Awareness.YouKnow;",
+    "new": "        public static bool GhostAllowed(Awareness a) =>\n            a != Awareness.NeitherKnows;"
+  },
+  {
+    "name": "a witness's own secret stops silencing them",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "                     - 0.85 * Feel.Clamp01(ownSecret)      // the strongest lever, deliberately",
+    "new": "                     - 0.0 * Feel.Clamp01(ownSecret)"
+  },
+  {
+    "name": "willingness saturates at the top again, hiding every difference above 1.0",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            double w = 0.45\n                     + 0.35 * Feel.Clamp01(nerve)\n                     + 0.35 * Feel.Clamp01(sympathyForVictim)",
+    "new": "            double w = 0.5\n                     + 0.35 * Feel.Clamp01(nerve)\n                     + 0.40 * Feel.Clamp01(sympathyForVictim)"
+  },
+  {
+    "name": "a delivery can be intercepted after it has arrived",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if (Arrived) return false;\n            Intercepted = true;",
+    "new": "            Intercepted = true;"
+  },
+  {
+    "name": "arrival fires on every tick, so one witness files the same story forever",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if (Arrived || Intercepted || !(minutes > 0)) return false;",
+    "new": "            if (Intercepted || !(minutes > 0)) return false;"
+  },
+  {
+    "name": "nobody hesitates -- an unsure witness walks straight to the police",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            double delay = willingness < 0.5 ? 20 + 70 * (1 - willingness) : 0;",
+    "new": "            double delay = 0;"
+  },
+  {
+    "name": "the frightened witness ambles",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "                MinutesRemaining = Math.Max(0.5, walkMinutes * (frightened ? 0.45 : 1.0) + delay),",
+    "new": "                MinutesRemaining = Math.Max(0.5, walkMinutes + delay),"
+  },
+  {
+    "name": "retelling never firms the description up, so memory only decays",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if (o.Retellings % RetellingsPerRung == 0 && o.Rung < 4)",
+    "new": "            if (false)"
+  },
+  {
+    "name": "hardening runs past hard knowledge, so a story told often enough becomes fact",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            o.Certainty = Feel.Clamp(o.Certainty + 0.10, 0.0, 0.94);",
+    "new": "            o.Certainty = Feel.Clamp(o.Certainty + 0.10, 0.0, 1.0);"
+  },
+  {
+    "name": "a certain identification is overwritten by expectation",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            if (o.Rung < 1 || o.Rung >= 4) return o.AccusedId;   // too little, or certain",
+    "new": "            if (o.Rung < 1) return o.AccusedId;"
+  },
+  {
+    "name": "combining observations loses the second one",
+    "file": "Assets/Scripts/Core/Observation.cs",
+    "old": "            parts.Where(p => p != null).Aggregate(Slot.None, (acc, p) => acc | p.Slots);",
+    "new": "            parts.Where(p => p != null).Select(p => p.Slots).FirstOrDefault();"
+  }
+]
