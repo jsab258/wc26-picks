@@ -767,7 +767,13 @@ recording quality and accent — without spending your money, and VCTK's consent
 story is as good as Common Voice's. If A disappoints, C is the honest next
 step and I would rather reach it having tried A than having guessed.
 
-**CHOSEN: A, VCTK — 2026-07-30.** Built. Route order is now VCTK, then Common
+**ACCENT CHOSEN: A, American base with texture at the edges — 2026-07-30.**
+Per-character `accent` field, principals all American, Vesna English, Father
+Emil Irish, crowd mixed. Table in `voice-casting.md`. Previously undecided,
+which meant the corpus filter was choosing it — about a third of VCTK is
+Scottish and it was landing at random.
+
+**CORPUS CHOSEN: A, VCTK — 2026-07-30.** Built. Route order is now VCTK, then Common
 Voice, then a hard stop rather than a silent unfiltered fallback.
 
 **And a correction that belongs here.** I described the game as "1930s" while

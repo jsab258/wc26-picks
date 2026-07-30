@@ -83,73 +83,73 @@ SAMPLE_RATE = 24000
 # ---------------------------------------------------------------------------
 
 CAST = [
-    dict(id="lena", name="LENA", tier="principal", gender="female_feminine",
+    dict(id="lena", name="LENA", tier="principal", accent="american", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Bar's bookkeeper, late 30s. Mid-low, dry, unhurried. She has "
                "known this family twenty years and is never surprised by it. "
                "WHAT MUST COME THROUGH: withheld judgement — she knows more "
                "than she says in every line. If it sounds like it is telling "
                "you everything, it is the wrong voice. Avoid bright, young, warm."),
-    dict(id="rocco", name="ROCCO", tier="principal", gender="male_masculine",
+    dict(id="rocco", name="ROCCO", tier="principal", accent="american", gender="male_masculine",
          age=("fourties", "fifties", "sixties"),
          brief="Works the door, 50s. Low, worn, slightly gravelly. Money is "
                "always a little short and it is audible. WHAT MUST COME "
                "THROUGH: decency without softness. Not a tough-guy voice — a "
                "tired one."),
-    dict(id="ellis", name="MARA ELLIS", tier="principal", gender="female_feminine",
+    dict(id="ellis", name="MARA ELLIS", tier="principal", accent="american", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Detective, 40s. Level, unhurried, PLEASANT. WHAT MUST COME "
                "THROUGH: that she never has to raise her voice. Cast against "
                "type — pick the warmest, most reasonable voice here. A cold "
                "voice makes her a villain; a courteous one makes her inevitable."),
-    dict(id="reese", name="TOBIAS REESE", tier="principal", gender="male_masculine",
+    dict(id="reese", name="TOBIAS REESE", tier="principal", accent="american", gender="male_masculine",
          age=("fourties", "fifties"),
          brief="Board of Excise, the audit's face. Precise, mid register, "
                "faintly bureaucratic. WHAT MUST COME THROUGH: that this is not "
                "personal. He is reading from a procedure and the procedure "
                "will convict you."),
-    dict(id="kest", name="SERA KEST", tier="principal", gender="female_feminine",
+    dict(id="kest", name="SERA KEST", tier="principal", accent="american", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Rival head. Controlled, harder than Lena, younger than Mara. "
                "WHAT MUST COME THROUGH: someone used to being agreed with."),
 
-    dict(id="sam", name="SAM", tier="street", gender="male_masculine",
+    dict(id="sam", name="SAM", tier="street", accent="american", gender="male_masculine",
          age=("twenties", "thirties"),
          brief="Walks the block at all hours, trades in being useful. Mid-high, "
                "quick, ingratiating, never still. THE FASTEST TALKER IN THE "
                "GAME — the voice should sound like it is already moving on to "
                "the next person."),
-    dict(id="ada", name="ADA", tier="street", gender="female_feminine",
+    dict(id="ada", name="ADA", tier="street", accent="american", gender="female_feminine",
          age=("sixties", "seventies"),
          brief="Retired schoolteacher, the street's unofficial conscience. "
                "Older, clear, precise diction. WHAT MUST COME THROUGH: that "
                "she expects to be listened to, and is usually right."),
-    dict(id="vesna", name="VESNA", tier="street", gender="female_feminine",
+    dict(id="vesna", name="VESNA", tier="street", accent="english", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Keeps house at the chapel, the quietest well of information. "
                "Soft, low volume, careful. QUIET IS THE CASTING — everything "
                "she knows arrived through a door left ajar."),
-    dict(id="marla", name="MARLA", tier="street", gender="female_feminine",
+    dict(id="marla", name="MARLA", tier="street", accent="american", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Vegetable stall at the market corner. Warm, carrying, "
                "market-pitch. The loudest woman in the cast and the most "
                "ordinary."),
-    dict(id="joey", name="JOEY", tier="street", gender="male_masculine",
+    dict(id="joey", name="JOEY", tier="street", accent="american", gender="male_masculine",
          age=("fourties", "fifties"),
          brief="Dock hand, twenty years on the water. Big, slow, plain. One "
                "daughter he would burn the port down for. SIMPLICITY IS THE "
                "CASTING — no irony in the voice at all."),
-    dict(id="rita", name="RITA", tier="street", gender="female_feminine",
+    dict(id="rita", name="RITA", tier="street", accent="american", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Left-handed, owes nobody an explanation. Blunt, flat, short. "
                "The one who ends conversations."),
-    dict(id="hal", name="HAL", tier="street", gender="male_masculine",
+    dict(id="hal", name="HAL", tier="street", accent="american", gender="male_masculine",
          age=("thirties", "fourties"),
          brief="Carries messages, meetings, prices, peace. Neutral to the "
                "point of being forgettable — DELIBERATELY THE LEAST "
                "DISTINCTIVE VOICE IN THE GAME. That is his job. If a candidate "
                "is interesting, it is wrong."),
-    dict(id="emil", name="FATHER EMIL", tier="street", gender="male_masculine",
+    dict(id="emil", name="FATHER EMIL", tier="street", accent="irish", gender="male_masculine",
          age=("sixties", "seventies"),
          brief="Older, measured, resonant. Used to being heard in a room that "
                "goes quiet for him."),
@@ -157,17 +157,17 @@ CAST = [
     # Six anonymous voices. The bar here is INVERTED: a crowd voice you can
     # recognise stops being a crowd, so the right pick is the dullest one.
     dict(id="crowd_m1", name="CROWD — male, young", tier="crowd",
-         gender="male_masculine", age=("twenties",), brief=None),
+         accent="american", gender="male_masculine", age=("twenties",), brief=None),
     dict(id="crowd_m2", name="CROWD — male, middle", tier="crowd",
-         gender="male_masculine", age=("fourties",), brief=None),
+         accent="scottish", gender="male_masculine", age=("fourties",), brief=None),
     dict(id="crowd_m3", name="CROWD — male, older", tier="crowd",
-         gender="male_masculine", age=("sixties",), brief=None),
+         accent="english", gender="male_masculine", age=("sixties",), brief=None),
     dict(id="crowd_f1", name="CROWD — female, young", tier="crowd",
-         gender="female_feminine", age=("twenties",), brief=None),
+         accent="american", gender="female_feminine", age=("twenties",), brief=None),
     dict(id="crowd_f2", name="CROWD — female, middle", tier="crowd",
-         gender="female_feminine", age=("fourties",), brief=None),
+         accent="irish", gender="female_feminine", age=("fourties",), brief=None),
     dict(id="crowd_f3", name="CROWD — female, older", tier="crowd",
-         gender="female_feminine", age=("sixties",), brief=None),
+         accent="american", gender="female_feminine", age=("sixties",), brief=None),
 ]
 
 CROWD_BRIEF = ("Anonymous. The bar here is INVERTED: they must be "
@@ -426,6 +426,50 @@ VCTK_ACCENTS = ("english", "american", "scottish", "irish", "canadian",
                 "northernirish", "welsh", "australian")
 
 
+# ACCENT, CANONICALISED. VCTK says "American", "Scottish", "NorthernIrish";
+# Common Voice says "United States English", "England English". One table, in
+# priority order, because "english" is a substring of "united states english"
+# and checking it first would make every American speaker an Englishman.
+ACCENT_ALIASES = (
+    ("american",  ("american", "united states", "us english")),
+    ("canadian",  ("canadian", "canada")),
+    ("australian", ("australian", "australia")),
+    ("scottish",  ("scottish", "scotland")),
+    ("northernirish", ("northernirish", "northern irish", "northern ireland")),
+    ("irish",     ("irish", "ireland")),
+    ("welsh",     ("welsh", "wales")),
+    ("english",   ("english", "england")),
+)
+
+
+def canon_accent(value):
+    """The canonical name for whatever this corpus calls an accent."""
+    v = (value or "").strip().lower()
+    if not v:
+        return ""
+    for canon, aliases in ACCENT_ALIASES:
+        if any(a in v for a in aliases):
+            return canon
+    return "other"
+
+
+def accent_ok(row_value, spec_value):
+    """A character with an accent gets that accent, and nothing else.
+
+    THE POINT OF THE WHOLE FIELD: an unnamed accent used to mean "whatever the
+    stream reached first", which put a Scottish voice on an American principal
+    by luck rather than by choice. If the brief names one, it is required.
+    """
+    want = (spec_value or "").strip().lower()
+    got = canon_accent(row_value)
+    if not want:
+        return got in ("american", "english", "scottish", "irish",
+                       "northernirish", "canadian", "welsh", "australian", "")
+    if not got:
+        return False        # unknown accent cannot satisfy a named one
+    return got == want
+
+
 def same_gender(row_value, spec_value):
     """Corpora disagree about how to spell this; the game should not care.
 
@@ -522,8 +566,8 @@ def fetch(source, cast, candidates, out_dir):
                 return False
             if spec.get("age") and a and a not in spec["age"]:
                 return False
-            acc = (row.get("accents") or row.get("accent") or "").strip().lower()
-            if acc and not any(w in acc for w in ACCENTS_WANTED):
+            if not accent_ok(row.get("accents") or row.get("accent"),
+                             spec.get("accent")):
                 return False
             # A row with no metadata at all is not a match — it is an
             # unknown, and filling a shortlist with unknowns is the same as
@@ -557,8 +601,8 @@ def fetch(source, cast, candidates, out_dir):
                 return False
             if g is None:
                 return False        # no gender on the row is not a match
-            acc = (row.get("accent") or row.get("accents") or "").strip().lower()
-            if acc and not any(w in acc for w in VCTK_ACCENTS):
+            if not accent_ok(row.get("accent") or row.get("accents"),
+                             spec.get("accent")):
                 return False
             band = age_band(row.get("age"))
             if spec.get("age") and band and band not in spec["age"]:
@@ -958,6 +1002,21 @@ def selftest():
     ids = [c["id"] for c in CAST]
     check(len(ids) == len(set(ids)), "every character id is unique")
     check(all(c.get("gender") for c in CAST), "every brief carries a filter")
+    check(all(c.get("accent") for c in CAST), "and an accent, chosen rather than drawn")
+    check(canon_accent("United States English") == "american"
+          and canon_accent("American") == "american",
+          "an American is an American in either corpus's vocabulary")
+    check(canon_accent("English") == "english" and canon_accent("Scottish") == "scottish",
+          "and England and Scotland are not the same place")
+    check(not accent_ok("Scottish", "american"),
+          "a Scottish speaker cannot fill an American brief")
+    check(accent_ok("NorthernIrish", "northernirish") and not accent_ok("", "irish"),
+          "an unknown accent cannot satisfy a named one")
+    _principals = [c for c in CAST if c["tier"] == "principal"]
+    check(all(c["accent"] == "american" for c in _principals),
+          "the principals share one accent, which is what makes the others texture")
+    check(len({c["accent"] for c in CAST}) >= 3,
+          "and the edges are not all the same either")
     check(all(brief_of(c) for c in CAST), "and every brief has text to judge against")
     check(len(CAST) == 19,
           "nineteen clips, not thirty-seven — moods are an exaggeration "

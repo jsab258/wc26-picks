@@ -1,5 +1,31 @@
 # Voice casting
 
+## Accent — decided 2026-07-30
+
+**American base, with the other accents as deliberate texture at the edges.**
+Chosen because the writing already sits in that register and because a city
+whose surnames run Novak, Vesna, Zlata, Farid and Ossei is a port built on
+arrivals — the non-American voices should read as *people who came from
+somewhere*, not as a lottery.
+
+Before this, accent was not written down anywhere in the project, so the
+fetcher's filter decided it by accident: roughly a third of VCTK is Scottish,
+distributed at random across the cast. Lena could come out Scottish and Rocco
+American for no reason anybody chose. It is now a per-character field
+alongside gender and age, and a brief that names an accent gets that accent
+or nothing.
+
+| | accent | why |
+|---|---|---|
+| **All five principals** | american | one register at the centre, so the edges can differ and mean something |
+| Sam, Ada, Marla, Joey, Rita, Hal | american | the street the player lives on |
+| **Vesna** | english | came from elsewhere and learned it in Britain |
+| **Father Emil** | irish | reads instantly, and a priest is where the ear expects it |
+| Crowd | american ×3, scottish, english, irish | the background is where a port city sounds like one |
+
+Change any single line of that table and re-run; nothing else needs touching.
+
+
 **Delegated by Jafar 2026-07-28** ("you decide"). Engine is **chatterbox**,
 decided on the direction test — see `production-plan-audio-art.md` §1i.
 
