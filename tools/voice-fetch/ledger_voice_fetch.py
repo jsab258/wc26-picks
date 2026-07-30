@@ -398,7 +398,15 @@ def fetch(source, cast, candidates, out_dir):
         kw = dict(split="train", streaming=True)
         if revision:
             kw["revision"] = revision
-        ds = load_dataset(CV_DATASET, "en", **kw)
+        # `datasets` 2.16 and later refuse to execute a dataset loading script
+        # unless told to, and the reachable Common Voice mirror is a script.
+        # Without this the route raises, we fall through to a corpus with no
+        # gender metadata, and nineteen briefs get filtered by nothing.
+        try:
+            ds = load_dataset(CV_DATASET, "en", trust_remote_code=True, **kw)
+        except TypeError:
+            # Older or newer versions that do not know the argument.
+            ds = load_dataset(CV_DATASET, "en", **kw)
         def matches(row, spec):
             g = (row.get("gender") or "").strip()
             a = (row.get("age") or "").strip()
@@ -465,10 +473,23 @@ def fetch(source, cast, candidates, out_dir):
     except Exception as e:                      # noqa: BLE001 - report, continue
         print(f"  audio: could not disable library decoding ({type(e).__name__}); "
               f"using whatever the library returns")
+    # AN UNFILTERED SHORTLIST IS NOT A SHORTLIST, and printing a NOTE about
+    # it was not enough. The run before this one fell through to LibriTTS,
+    # said so in one line among many, and produced nineteen gender-blind
+    # lists: Rocco a woman, Mara Ellis a man, Sam a woman. Fifteen minutes of
+    # listening spent on candidates that could not have been right.
+    #
+    # So this now STOPS. A corpus with no gender is fine for a deliberate
+    # `--source libritts`, where the operator has chosen it; it is not fine as
+    # a silent fallback from the corpus that does have gender.
     if used == "libritts" and source != "libritts":
-        print("  NOTE: fell back to LibriTTS. It carries no age or gender, so")
-        print("        every brief sees every speaker and the filtering is")
-        print("        entirely your ears. Judge against the brief.")
+        raise RuntimeError(
+            "fell back to LibriTTS, which carries no gender or age, so every "
+            "brief would be filtered by nothing -- which is how Rocco came out "
+            "a woman last time.\n"
+            "  The Common Voice failures are printed above; send them to me.\n"
+            "  To proceed anyway with ears-only filtering:\n"
+            "      python ledger_voice_fetch.py --source libritts")
 
     claimed = {}          # speaker -> the character who owns them
     seen_rows = 0
