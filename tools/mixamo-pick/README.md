@@ -63,6 +63,18 @@ instead, rather than quietly harvesting two characters nobody chose.
 
 ---
 
+## After the first harvest: `REPICK.bat`
+
+The first pick ran against clip names guessed from memory. The harvest
+produced `_catalogue.txt` — the real 2,589 — and the wants list was rebuilt
+from it. `REPICK.bat` applies that against the harvest already on your disk:
+no downloads, no token, seconds not hours. It pulls, re-picks, commits and
+pushes.
+
+Against the real catalogue it fills **41 slots with none missing**, including
+a full block start/hold/end/broken set, the fight-idle transitions, `Drawing
+Gun`, and stairs up/down — none of which I knew existed while guessing.
+
 ## One thing the harvest does NOT get you
 
 It downloads animations **without skin** — motion only, no body. The two

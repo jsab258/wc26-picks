@@ -4,12 +4,25 @@ title LEDGER - push the Mixamo drop
 cd /d "%~dp0"
 
 REM ===================================================================
+REM  RUN FROM A COPY. This script pulls, and a pull can rewrite THIS FILE
+REM  while cmd.exe is still reading it by byte offset - which produced
+REM  'nloads' is not recognized, the tail of a URL, from a script that had
+REM  been replaced underneath itself mid-run.
+REM ===================================================================
+if /i "%~1"=="--fromtemp" goto :begin
+copy /y "%~f0" "%TEMP%\ledger-%~n0.bat" >nul
+"%TEMP%\ledger-%~n0.bat" --fromtemp
+exit /b %errorlevel%
+:begin
+
+
+REM ===================================================================
 REM  Commits and pushes the picked clips. Separate from GO.bat because
 REM  a two-hour harvest should not have to be repeated to retry a push.
 REM ===================================================================
 
 set "BRANCH=claude/game-dev-ai-automation-2h67ix"
-for %%R in ("%~dp0..\..") do set "REPO=%%~fR"
+set "REPO=%USERPROFILE%\wc26-picks"
 
 echo.
 echo  LEDGER - pushing the Mixamo drop
