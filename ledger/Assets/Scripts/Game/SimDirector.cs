@@ -1253,7 +1253,20 @@ namespace Ledger.Game
             // way to prove the claim rather than assert it: `Notice.What` needs
             // real accumulated stationary time, and shortening the threshold
             // for the test would be testing a different game.
-            if (!_loiterStaged && now.Day >= 3 && now.Hour >= 20 && now.Hour <= 23 && present >= 1)
+            // DAY TEN, IN THE OPEN CITY — and this is the same lesson
+            // `StageConfrontation` already carries, learned again the hard way.
+            //
+            // The loiter freezes the player for thirty REAL seconds, and at
+            // twenty game-minutes per real second that is ten game-hours of
+            // standing still. Staged inside the campaign week it cost the bot
+            // three days of jobs, which tipped the week to LostCastOut and made
+            // `verdictSane` go red — the only failing gate in an otherwise green
+            // run. A probe that alters the outcome measured beside it is not a
+            // probe, and I wrote that sentence into this file yesterday.
+            //
+            // After day eight the week is already decided, so the same thirty
+            // seconds proves the same thing and votes on nothing.
+            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 20 && now.Hour <= 23 && present >= 1)
             {
                 _loiterStaged = true;
                 // CAST, and the reason is worth a line: Core is double
@@ -1290,7 +1303,7 @@ namespace Ledger.Game
             // night rather than the next one. A door slam at 3am carries about
             // forty-eight metres in a silent street, which is the arithmetic
             // rather than a hope.
-            if (!_slamStaged && now.Day >= 3 && now.Hour == 3 && present >= 1)
+            if (!_slamStaged && now.Day >= 11 && now.Hour == 3 && present >= 1)
             {
                 _slamStaged = true;
                 _investigationsBeforeSlam = Perceivers.NoiseInvestigations;
@@ -1312,7 +1325,7 @@ namespace Ledger.Game
             // or the clock is decoration. A walk sample is taken first so the
             // comparison is against this run's own baseline rather than a
             // number I picked.
-            if (!_nightRunStaged && now.Day >= 4 && now.Hour == 2 && _loiterUntil < 0)
+            if (!_nightRunStaged && now.Day >= 11 && now.Hour == 2 && _loiterUntil < 0)
             {
                 _nightRunStaged = true;
                 _nightWalkLooks = Perceivers.Looks;
@@ -2930,6 +2943,17 @@ namespace Ledger.Game
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
                       $"harmOk={harmOk} name={_game.Me.Full} " +
+                      // ALWAYS PRINTED, not only on failure. The gate's own
+                      // string only reaches the log when the gate is red, so a
+                      // green run told me nothing about how many heads turned —
+                      // and "it passed" is not a measurement.
+                      $"looks={Perceivers.Looks} remarks={Perceivers.Remarks} " +
+                      $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
+                      $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
+                      $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
+                      $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
+                      $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
+                      $"perceptionOk={perceptionOk} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
