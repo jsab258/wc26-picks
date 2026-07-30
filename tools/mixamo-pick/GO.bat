@@ -127,14 +127,18 @@ REM  and the first version used it, so the patch failed, printed a red
 REM  error, and the script sailed on with the default five threads.
 REM  WriteAllText works everywhere - and the result is now CHECKED,
 REM  because a silent patch failure is worse than a loud one.
-echo  [3/6] Limiting to 2 threads...
+REM  The count is READ, not hard-coded, because GO.bat is also what you
+REM  re-run to resume a harvest - so hard-coding 2 here would silently
+REM  undo FASTER.bat every single time.
+set "THREADS=2"
+if exist "%MH%\threads.txt" set /p THREADS=<"%MH%\threads.txt"
+echo  [3/6] Setting %THREADS% threads...
 powershell -NoProfile -Command ^
-  "$p='%MH%\mixamo_harvester.py'; $t=[IO.File]::ReadAllText($p); $t=$t -replace 'MAX_THREADS\s*=\s*\d+','MAX_THREADS = 2'; [IO.File]::WriteAllText($p,$t)"
-findstr /C:"MAX_THREADS = 2" "%MH%\mixamo_harvester.py" >nul
+  "$p='%MH%\mixamo_harvester.py'; $t=[IO.File]::ReadAllText($p); $t=$t -replace 'MAX_THREADS\s*=\s*\d+','MAX_THREADS = %THREADS%'; [IO.File]::WriteAllText($p,$t)"
+findstr /C:"MAX_THREADS = %THREADS%" "%MH%\mixamo_harvester.py" >nul
 if errorlevel 1 (
   echo  Could not set the thread count, and I will not pretend otherwise.
-  echo  It would run at the default 5, which is heavier on Mixamo than I
-  echo  want to be on your account. Tell me and I will sort it.
+  echo  Tell me and I will sort it.
   pause & exit /b 1
 )
 echo         ...confirmed.

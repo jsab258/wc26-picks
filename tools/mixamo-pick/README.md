@@ -31,7 +31,7 @@ close. Maybe ninety seconds.
 |---|---|
 | 1 | clones MixamoHarvester to `%USERPROFILE%\ledger-mixamo` — **outside the repo**, because the harvest is about a gigabyte and none of it belongs in git |
 | 2 | builds a Python environment and installs the dependencies |
-| 3 | drops the thread count from 5 to 2 |
+| 3 | sets the thread count (2 by default, or whatever `threads.txt` says) |
 | 4 | **pins the character list to two bodies** |
 | 5 | runs the harvest — resumable, so closing the window costs nothing |
 | 6 | picks the ~30 clips the game needs, commits them, pushes to the branch |
@@ -63,6 +63,14 @@ instead, rather than quietly harvesting two characters nobody chose.
 
 ---
 
+## One thing the harvest does NOT get you
+
+It downloads animations **without skin** — motion only, no body. The two
+character meshes are still two manual downloads from Mixamo: search **X Bot**
+and **Y Bot**, download each as *FBX for Unity*, **T-pose**, **with skin**, and
+drop them in `ledger/Assets/Characters/`. Two clicks each, and without them
+there is motion data and nothing to move.
+
 ## What comes back
 
 Under `ledger/Assets/Characters/`:
@@ -90,6 +98,12 @@ you pasted.
 
 **"I cannot find choose_characters.py"** — you are running a lone copy of
 `GO.bat`. Run it from `tools\mixamo-pick\` inside your clone.
+
+**It is going to take all night** — measured on the real thing: about 6.7
+seconds a clip at 2 threads, so two characters is roughly 9 hours. Close the
+window, double-click `FASTER.bat`, then `GO.bat` again: one character instead
+of two and 5 threads instead of 2 brings it to under two hours, and nothing
+already downloaded is repeated.
 
 **Everything else** — send me the last twenty lines of the window.
 
