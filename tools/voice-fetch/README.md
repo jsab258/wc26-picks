@@ -14,6 +14,13 @@ eleven seconds of one speaker per candidate, and opens a page with each
 character's casting brief printed above its players. The second copies your
 picks into `ledger/Assets/Voices/` with a `casting.json`.
 
+## Closed the tab by accident?
+
+`OPEN PAGE.bat`. The page is a file on disk, not a server, so nothing is lost
+and re-running `1 LISTEN.bat` would only re-stream the corpus for no reason.
+It lives at `ledger-voices-out\listen.html` if you would rather open it
+yourself.
+
 ## Why the briefs are written the way they are
 
 Chatterbox clones from about ten seconds of reference audio, so **whatever
