@@ -120,7 +120,43 @@ fire, not that they land at the right MOMENTS.
 - **DO** run the last audit day down the phone. **EXPECT** both calls work
   from a phone box, and reaching one person is not reaching another.
 
-## 9. The one-hour smoke (before any long session)
+## 9. Perception (M16 Phase 1)
+
+Everything here is verified automatically EXCEPT the three questions at the
+bottom, which are the only ones that matter and the only ones a test cannot
+answer.
+
+- **Automated, machinery:** a lit walker is detected at greater range than one
+  in shadow (measured in the scene at 23:00 by probing twelve points for the
+  brightest and darkest spots, not asserted in a unit test); a sound behind a
+  wall is not heard; a sound under the ambient floor is not heard.
+- **Automated, behaviour:** somebody's head turns toward the player during the
+  run; a staged thirty-second loiter draws at least one of them; a staged door
+  slam at 3am has somebody walk toward it. All three fire after day ten, in the
+  open city, so the probe cannot vote on the week's outcome.
+- **Automated, legibility:** the vignette measurably changes with the light on
+  the player; the noise ring's radius equals the acoustic model's rather than a
+  copied constant.
+- **DO** stand under a lamp at 3am for a minute, then stand in a doorway for a
+  minute. **EXPECT** those to feel different — heads turn in the first and not
+  the second.
+- **DO** run past somebody at night, then walk past the same person.
+  **EXPECT** a difference, with nothing said about it.
+- **DO** make a noise at 3am, then the same noise at noon. **EXPECT** the ring
+  to be much bigger at night, and somebody to come at night and nobody at noon.
+
+**The three a test cannot answer, and they are the point:**
+
+1. **Is the visibility readout findable?** After twenty minutes, did you have
+   any sense of when you were exposed? Invisible means it is not working;
+   noticing it *as an effect* means it is too strong.
+2. **Was anything unfair?** If somebody noticed you and you could not work out
+   why, that is the exact failure this whole design exists to avoid.
+3. **Sound off, then picture off.** The four attention channels are supposed to
+   be redundant — any two enough. If either pass leaves you unable to tell you
+   were noticed, one of them is decoration.
+
+## 10. The one-hour smoke (before any long session)
 
 Boot → new game → talk to Lena → take one drop → sleep → read the morning
 card → open every panel with its key → Escape out of each → pause →
