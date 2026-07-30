@@ -73,13 +73,16 @@ be played yet:
   a button.** Deliberate: the plan ships senses first and judges them alone.
 - **The witness ghost is not in.** The thing that shows you what somebody
   believes is designed and tested in Core and has no visual yet.
-- **The noise ring is built, verified, and not visible.** The one-frame circle
-  showing how far a sound carried computes the right radius — CI asserts it
-  against the acoustic model rather than against a copied number — and it never
-  actually draws in the built player. Almost certainly the sprite shader being
-  stripped from the build. So **the hearing model is currently invisible except
-  through behaviour**: you will see somebody walk toward a sound, and you will
-  not see how far it went. Top of the fix list.
+- **The noise ring: two bugs found and fixed, NOT YET CONFIRMED BY A BUILD.**
+  I wrote here that the sprite shader was almost certainly being stripped. It
+  wasn't. The ring's cooldown was spent by footsteps too quiet to draw, so the
+  loud sounds it exists for kept arriving in their shadow — and separately the
+  circle was built standing on its edge with its ribbon aimed at the road, under
+  a comment claiming the opposite. Both are fixed in code and CI now renders the
+  frame twice and counts pixels rather than counting objects, **but this line
+  will not say "fixed" until a build says so.** If you are reading this before
+  that build lands: make a loud noise at night and see whether a single circle
+  appears on the road. Either answer is useful.
 - **Barks are still silent**, so when somebody notices you they will not say
   anything. That is still the fifteen minutes of listening I need from you, and
   it now costs more than it did yesterday: two of the four channels that tell

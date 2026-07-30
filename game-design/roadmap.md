@@ -1187,3 +1187,59 @@ each one was a different species:
 preset/reflection/specular trio both recovered with no change from me —
 stochastic, and both would have been damaged by "fixing" them. Declining to
 weaken a gate to change its colour was the right call twice.
+
+### M16.1 — THE RING, AND THE GUESS I MADE ABOUT IT
+
+**STATUS: fixed in code, awaiting a build.** Everything below is a diagnosis and
+a change, not yet a verified outcome — the numbers that would settle it
+(`slamDrewRing`, `ringSeen`) come from the run dispatched against `271207e`.
+Written down now because the diagnosis is worth keeping either way; this heading
+gets updated with the verdict, whichever way it goes.
+
+The caveat above says the likely cause was the sprite shader being stripped from
+the build. **That was a guess and it was wrong.** There were two bugs, neither of
+them the shader, and the second would have kept the circle invisible even after
+the first was fixed.
+
+**Bug one — the cooldown counted the wrong thing.** Rings were rate-limited in
+`Perceivers.Emit` to one every 0.55s, and the limit was spent by every ring
+*measured*. Walking emits a footstep per stride, which at CI's 290ms frames is
+about one a frame, and each of those spent the cooldown while carrying 3.6m —
+far too little to be worth drawing. So there was always a ring's-worth of
+cooldown standing between the player and the next circle, and the sounds the
+device exists to explain arrived inside a footstep's shadow. `ringsSized=660`
+was six hundred and sixty footsteps; the one door slam in thirteen days had a
+coin-flip chance of getting through and lost it.
+
+The rule now tracks what was **drawn**, and a meaningfully louder sound preempts
+it and replaces the circle on the ground. *A footstep can never block a gunshot.*
+
+**Bug two — the circle was standing on its edge.** The vertices were built flat
+in local XZ and the transform was then rotated +90° about X, which puts the ring
+in the world XY plane and aims the ribbon at the road. The comment on that line
+read *"flat on the ground rather than standing up like a hoop"*, and the code did
+precisely the opposite. Vertices now go in local XY with a −90° rotation, worked
+through on paper because there is no way to look at it from here.
+
+**Three things changed about how this is verified**, because the previous gate
+passed a build in which the circle never once appeared:
+
+1. **The draw rule moved to Core** (`Perception.RingDraw`). It lived in the Game
+   layer, which nothing local compiles, and that is the whole reason a rule
+   discarding every worthwhile ring survived. Eight CoreTests and four break
+   specs, all four red.
+2. **`slamDrewRing`** — the slam probe fires on four separate nights instead of
+   once, and checks in the same frame whether a circle was created. A probe that
+   fires once and can be silently robbed is not evidence.
+3. **`ringSeen`** — the sim renders one frame with the ring's renderer off and
+   one with it on and counts brightened pixels, the same A/B ruler as occlusion
+   and reflections. **"Drawn" means an object exists; this means it is on
+   screen.** Those are different claims and the distance between them was a
+   circle standing on its edge.
+
+The skip reasons are also itemised now — `small` / `shadowed` / `no-material`
+mean three completely different things, and one `Shown` counter collapsing them
+is what let me tell the wrong story with a straight face. **The lesson is the
+project's oldest one in a new costume: check the ruler before the reading.** A
+counter that goes up when a `GameObject` is constructed is a ruler for
+construction, not for visibility, and I read it as though it were both.
