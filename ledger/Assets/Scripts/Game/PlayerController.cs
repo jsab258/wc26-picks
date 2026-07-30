@@ -213,6 +213,15 @@ namespace Ledger.Game
             if (_sinceStep < stride) return;
             _sinceStep -= stride;
             Audio.Footstep((float)Gait.StepWeight(_footfall, severity), Weather.Wetness);
+            // AND THE SAME STEP AS A THING PEOPLE CAN HEAR. The audio layer has
+            // played footsteps for weeks and no NPC has ever heard one — which
+            // is the same shape of gap as the lighting model nobody read. A
+            // walk carries about three metres in a silent street and nothing at
+            // all in a daytime one; running carries far enough to matter.
+            Perceivers.Emit(transform.position,
+                            speed >= 3.2f ? Perception.LoudFootstepRun
+                                          : Perception.LoudFootstepWalk,
+                            "footstep");
             // AND THE PUDDLE ANSWERS (§5). A wet street that makes a wet
             // sound and shows nothing is half an effect — the eye goes
             // looking for what it just heard. Only on a genuinely wet street,

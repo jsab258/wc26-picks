@@ -145,5 +145,46 @@ namespace Ledger.Game
         public static int PresentNearby;
 
         public static double Hush => Notice.HushFraction(Attending, PresentNearby);
+
+        // ---------------------------------------------------------------
+        // SOUND EVENTS — event-driven, and therefore nearly free
+        // ---------------------------------------------------------------
+        //
+        // Hearing costs nothing per frame. Sounds are rare, so there is no
+        // per-listener tick at all: something happens, and the listeners who
+        // are near enough find out on their next vision tick. That is the
+        // whole reason §17.1 could promise a 1.2ms budget for a system with a
+        // second sense in it.
+        //
+        // ONE SLOT, NOT A QUEUE, and it is a deliberate simplification rather
+        // than a shortcut: what matters is the loudest recent thing, because
+        // a person turns toward one noise and not toward four. A queue would
+        // buy precision nobody can perceive and cost a per-walker cursor.
+
+        public static Vector3 LastSoundAt;
+        public static double LastSoundLoudness;
+        public static string LastSoundKind;
+        public static float LastSoundTime = -999f;
+        public static int SoundsEmitted;
+
+        /// How long a sound stays worth walking toward. After this it is a
+        /// thing that happened rather than a thing happening.
+        public const float SoundFreshSeconds = 6f;
+
+        public static void Emit(Vector3 at, double loudness, string kind)
+        {
+            // A quieter sound does not overwrite a louder one that is still
+            // fresh — otherwise a footstep erases a gunshot, which is exactly
+            // backwards and is the bug this guard exists for.
+            bool fresh = Time.time - LastSoundTime < SoundFreshSeconds;
+            if (fresh && loudness < LastSoundLoudness) return;
+            LastSoundAt = at;
+            LastSoundLoudness = loudness;
+            LastSoundKind = kind;
+            LastSoundTime = Time.time;
+            SoundsEmitted++;
+        }
+
+        public static bool SoundIsFresh => Time.time - LastSoundTime < SoundFreshSeconds;
     }
 }

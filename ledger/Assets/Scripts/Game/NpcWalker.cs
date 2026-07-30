@@ -178,6 +178,8 @@ namespace Ledger.Game
                                               occluded: false, subjectSpeed: speed);
             if (inSight && Perceivers.Occluded(current, _player.position)) inSight = false;
 
+            HearLastSound(current, dt);
+
             _stationaryFor = speed < 0.1f ? _stationaryFor + dt : 0f;
             var notable = Notice.What(_stationaryFor, speed, GameController.NightAmount,
                                       whereTheyShouldNotBe: false,
@@ -202,6 +204,56 @@ namespace Ledger.Game
                     Perceivers.Remarks++;
             }
             return _attendingNow;
+        }
+
+        Vector3 _investigateAt;
+        float _investigateUntil = -1f;
+        float _lastSoundHeardAt = -999f;
+        /// Rises when something is heard and decays, which is what makes an
+        /// already-nervous person hear more — `Perception.EffectiveFloor`
+        /// takes it and drops their floor. Escalation with no state machine.
+        float _alertness;
+
+        public bool Investigating => _investigateUntil > Time.time;
+
+        /// Did this walker hear the last thing that happened, and does it care?
+        ///
+        /// Called on the vision tick rather than on a timer of its own, so
+        /// hearing genuinely costs nothing until something makes a sound.
+        void HearLastSound(Vector3 current, double dt)
+        {
+            _alertness = Mathf.Max(0f, _alertness - (float)dt * 0.08f);
+            if (!Perceivers.SoundIsFresh || Perceivers.LastSoundTime <= _lastSoundHeardAt) return;
+
+            float metres = Vector3.Distance(current, Perceivers.LastSoundAt);
+            double floor = Perceivers.AmbientFloorAt(current, Perceivers.PresentNearby);
+            bool occluded = Perceivers.Occluded(current, Perceivers.LastSoundAt);
+            if (!Perception.Heard(metres, Perceivers.LastSoundLoudness, floor, occluded, _alertness))
+                return;
+
+            _lastSoundHeardAt = Perceivers.LastSoundTime;
+            _alertness = Mathf.Min(1f, _alertness + 0.35f);
+
+            // What they DO about it is the reaction ladder's decision, not
+            // this file's. Hearing something is not the same as caring, and a
+            // timid person walking toward a gunshot would be wrong.
+            double severity = Feel.Clamp01(Perceivers.LastSoundLoudness / 100.0);
+            var what = Reaction.Decide(severity, Nerve, dutiful: 0.4,
+                                       willingness: 0.7, sawABody: false,
+                                       alreadyAlarmed: false);
+            if (what == Reacted.Investigate)
+            {
+                _investigateAt = Perceivers.LastSoundAt;
+                _investigateUntil = Time.time + 8f;
+                Perceivers.NoiseInvestigations++;
+            }
+            else if (what == Reacted.Alarm)
+            {
+                // An alarm is a shout, so it makes the same kind of event it
+                // came from. Panic propagates through the hearing model rather
+                // than through a system built for it.
+                Perceivers.Emit(current, Reaction.LoudnessOf(Reacted.Alarm), "alarm");
+            }
         }
 
         /// Whether this walker's attention is currently on the player. Read by
@@ -451,6 +503,13 @@ namespace Ledger.Game
                         target = current + away.normalized * 9f;
                 }
             }
+
+            // WALKING TOWARD A NOISE, which spec §8 calls the highest-value
+            // behaviour in the whole system — it turns one sound into a moving
+            // problem, and it explains itself to the player with no interface
+            // at all. A man coming toward the thing you just did is the
+            // clearest statement this game can make.
+            if (_investigateUntil > Time.time) target = _investigateAt;
 
             var flatTarget = new Vector3(target.x, current.y, target.z);
 

@@ -1184,7 +1184,9 @@ namespace Ledger.Game
         // a cinematic camera behind a guard, five systems built and not
         // running. So this stages the two behaviours §3.3 actually promises
         // and counts what happened to the player.
-        bool _loiterStaged, _nightRunStaged;
+        bool _loiterStaged, _nightRunStaged, _slamStaged;
+        float _slamAt = -1f;
+        int _investigationsBeforeSlam, _slamInvestigations = -1;
         float _loiterUntil = -1f, _nightRunUntil = -1f;
         int _looksBeforeLoiter, _looksBeforeRun;
         int _loiterLooks = -1, _nightRunLooks = -1, _nightWalkLooks = -1;
@@ -1274,6 +1276,29 @@ namespace Ledger.Game
                     Debug.Log($"SimDirector: loiter over, {_loiterLooks} heads turned, "
                               + $"{Perceivers.LoiterNotices} of them for loitering");
                 }
+            }
+
+            // ---- a noise, and whether anybody walks toward it ----
+            //
+            // §8 calls investigating the highest-value behaviour in the design
+            // and the Phase 1 gate did not test it, so it went in the same
+            // night rather than the next one. A door slam at 3am carries about
+            // forty-eight metres in a silent street, which is the arithmetic
+            // rather than a hope.
+            if (!_slamStaged && now.Day >= 3 && now.Hour == 3 && present >= 1)
+            {
+                _slamStaged = true;
+                _investigationsBeforeSlam = Perceivers.NoiseInvestigations;
+                Perceivers.Emit(_player.transform.position, Perception.LoudDoorSlam, "slam");
+                _slamAt = Time.time;
+                Debug.Log($"SimDirector: slammed a door, {present} people nearby, "
+                          + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m");
+            }
+            if (_slamAt > 0 && Time.time - _slamAt > 4f)
+            {
+                _slamInvestigations = Perceivers.NoiseInvestigations - _investigationsBeforeSlam;
+                _slamAt = -1f;
+                Debug.Log($"SimDirector: {_slamInvestigations} people walked toward the slam");
             }
 
             // ---- running at night ----
@@ -2779,7 +2804,9 @@ namespace Ledger.Game
             // worth having was the one that never survived. Now it is printed
             // last, alone, and only when something is wrong.
             bool perceptionOk = Perceivers.Looks >= 1 && _loiterLooks >= 1
-                                && _litRange > _darkRange;
+                                && _litRange > _darkRange
+                                && Perceivers.SoundsEmitted >= 1
+                                && _slamInvestigations >= 1;
 
             var gates = new (string name, bool ok)[]
             {
@@ -2850,6 +2877,8 @@ namespace Ledger.Game
                 ($"perception[looks={Perceivers.Looks} remarks={Perceivers.Remarks} " +
                  $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
                  $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
+                 $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
+                 $"slamInvestigations={_slamInvestigations} " +
                  $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
                  perceptionOk),
             };
