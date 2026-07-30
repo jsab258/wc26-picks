@@ -158,7 +158,7 @@
 - ✅ but it never becomes certainty
 ## 6. Cost and latency
 - Total estimated cost of this playtest: $0.0315 across 25 calls
-- NPC reply latency ms — median 0, max 33
+- NPC reply latency ms — median 0, max 36
 - ✅ cost tracking recorded calls
 
 ## Result: 89 passed, 0 deterministic failure(s)

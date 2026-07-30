@@ -1229,7 +1229,7 @@ namespace Ledger.Game
             // asserted in a unit test: how far a person is detectable standing
             // where the player is standing, at the brightest and darkest spots
             // the probe can find within a few metres.
-            if (_litRange < 0 && now.Hour == 23 && _npcs != null && _npcs.Length > 0)
+            if (_litRange < 0 && now.Hour >= 21 && _npcs != null && _npcs.Length > 0)
             {
                 Vector3 here = _player.transform.position;
                 double bestLight = 0, worstLight = 1;
@@ -1267,7 +1267,13 @@ namespace Ledger.Game
             //
             // After day eight the week is already decided, so the same thirty
             // seconds proves the same thing and votes on nothing.
-            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 20 && now.Hour <= 23 && present >= 1)
+            // A WINDOW, NOT AN HOUR. The Fall skips days in the open city and
+            // the sim reclaims them by extending the end day, so a probe pinned
+            // to one hour of one day can be jumped over entirely and never fire
+            // — which would make this gate flaky rather than strict, and a
+            // flaky gate is worse than no gate because it teaches people to
+            // re-run.
+            if (!_loiterStaged && now.Day >= 10 && now.Hour >= 19 && present >= 1)
             {
                 _loiterStaged = true;
                 // CAST, and the reason is worth a line: Core is double
@@ -1304,7 +1310,7 @@ namespace Ledger.Game
             // night rather than the next one. A door slam at 3am carries about
             // forty-eight metres in a silent street, which is the arithmetic
             // rather than a hope.
-            if (!_slamStaged && now.Day >= 11 && now.Hour == 3 && present >= 1)
+            if (!_slamStaged && now.Day >= 10 && now.Hour >= 1 && now.Hour <= 5 && present >= 1)
             {
                 _slamStaged = true;
                 _investigationsBeforeSlam = Perceivers.NoiseInvestigations;
@@ -1341,7 +1347,7 @@ namespace Ledger.Game
             // or the clock is decoration. A walk sample is taken first so the
             // comparison is against this run's own baseline rather than a
             // number I picked.
-            if (!_nightRunStaged && now.Day >= 11 && now.Hour == 2 && _loiterUntil < 0)
+            if (!_nightRunStaged && now.Day >= 10 && now.Hour <= 4 && _loiterUntil < 0)
             {
                 _nightRunStaged = true;
                 _nightWalkLooks = Perceivers.Looks;
