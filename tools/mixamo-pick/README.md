@@ -2,6 +2,12 @@
 
 ## Double-click `GO.bat`. That is the whole thing.
 
+> **Run it from inside your `wc26-picks` clone** — `tools\mixamo-pick\GO.bat`.
+> It needs the two Python files that sit beside it. If you run a copy saved on
+> its own (from Downloads, say) it will now look in the usual places a clone
+> lands and tell you exactly what to do if it cannot find one, rather than
+> failing four steps later with a path error the way the first version did.
+
 It opens Mixamo, tells you how to get a token, opens Notepad for you to paste
 it, and then does everything else unattended. Come back in a couple of hours
 and the clips will be in the repo.
@@ -75,12 +81,20 @@ and run `GO.bat` again.
 `state.json`, skips what it already has, and the token check will reuse the one
 you pasted.
 
+**"I cannot find choose_characters.py"** — you are running a lone copy of
+`GO.bat`. Run it from `tools\mixamo-pick\` inside your clone.
+
 **Everything else** — send me the last twenty lines of the window.
 
 ## An honest caveat
 
 I could not test steps 1–5 end to end: this sandbox's network policy blocks
-mixamo.com outright, and it is Linux rather than Windows. What **is** tested is
+mixamo.com outright, and it is Linux rather than Windows. The first run proved
+that immediately — two bugs, a PowerShell parameter that does not exist on
+Windows PowerShell 5.1, and an assumption that the file would be run from the
+repo. The thread-limit step now VERIFIES its own patch instead of printing an
+error and carrying on regardless, which is the same lesson the noise ring
+taught this morning at greater expense. What **is** tested is
 `pick_animations.py`, against a simulated harvest, which caught two real bugs
 before you ever saw it. The rest is written from the harvester's actual source
 rather than from assumptions about it — but the first run is the first run, and
