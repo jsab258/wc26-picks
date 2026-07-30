@@ -54,8 +54,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      # BELT AND BRACES, and they guard different failures.
+      #
+      # `--minutes 38` is the script deciding to stop and write what it has.
+      # `timeout-minutes: 45` is this step being killed if the script wedges
+      # somewhere the budget cannot see — inside a single streaming read,
+      # say. `continue-on-error` is what turns that kill into "commit the
+      # partial output" rather than "the job ends here with nothing", which
+      # is what happened three times: runs 3, 4 and 5 all died on the cap and
+      # every one produced EXACTLY ZERO clips, because the fetcher writes
+      # everything in one go at the end.
       - name: Fetch candidates
         working-directory: tools/voice-fetch
+        timeout-minutes: 45
+        continue-on-error: true
         run: |
           set -o pipefail
           # DEFAULTS IN THE SHELL, not only in the workflow_dispatch block.
@@ -65,7 +77,7 @@ jobs:
           CANDIDATES="${{ inputs.candidates }}"; CANDIDATES="${CANDIDATES:-6}"
           SOURCE="${{ inputs.source }}"
           WHO="${{ inputs.who }}"
-          ARGS="--yes --candidates $CANDIDATES"
+          ARGS="--yes --candidates $CANDIDATES --minutes 38"
           if [ -n "$SOURCE" ]; then ARGS="$ARGS --source $SOURCE"; fi
           if [ -n "$WHO" ]; then ARGS="$ARGS --who $WHO"; fi
           echo "running: python ledger_voice_fetch.py $ARGS"
@@ -78,11 +90,17 @@ jobs:
       # voice — the cloner never sees these files, only Jafar's ears do.
       - name: Compress for listening
         working-directory: tools/voice-fetch
+        if: always()
         run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
           mkdir -p ../../voice-candidates
           rm -rf ../../voice-candidates/*
+          # An empty or missing output directory is a real outcome now that
+          # the fetch can be cut short, and it must not take the job down —
+          # the verdict below is the thing worth reading in that case.
+          if [ ! -d ledger-voices-out ]; then echo "no output directory"; exit 0; fi
           cd ledger-voices-out
+          shopt -s nullglob
           for w in */*.wav; do
             out="../../../voice-candidates/${w%.wav}.mp3"
             mkdir -p "$(dirname "$out")"
@@ -93,6 +111,7 @@ jobs:
           cp fetch.log ../../voice-candidates/ 2>/dev/null || true
 
       - name: Rewrite the page to point at the mp3s
+        if: always()
         run: |
           if [ -f voice-candidates/listen.html ]; then
             sed -i 's/\.wav"/.mp3"/g' voice-candidates/listen.html
@@ -100,6 +119,7 @@ jobs:
           echo "candidates: $(find voice-candidates -name '*.mp3' | wc -l) clips, $(du -sh voice-candidates | cut -f1)"
 
       - name: Commit
+        if: always()
         run: |
           git config user.name "LEDGER CI"
           git config user.email "ci@ledger.invalid"
@@ -117,7 +137,9 @@ jobs:
         if: always()
         run: |
           echo "=== VOICE FETCH VERDICT ==="
-          grep -E "source:|unavailable:|NOTE|rejected|fell back" tools/voice-fetch/fetch.log || echo "no source line found"
+          grep -E "source:|unavailable:|NOTE|rejected|fell back|TRUNCATED|stopping:" \
+            tools/voice-fetch/fetch.log || echo "no source line found"
+          echo "clips: $(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)"
           echo "==========================="
 
       - uses: actions/upload-artifact@v4

@@ -56,6 +56,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time as _time
 import wave
 from pathlib import Path
 
@@ -506,7 +507,7 @@ def age_band(value):
     return "sixties"
 
 
-def fetch(source, cast, candidates, out_dir):
+def fetch(source, cast, candidates, out_dir, budget_minutes=0):
     """Stream a corpus and bank enough audio per speaker to make candidates.
 
     Streaming rather than downloading: Common Voice English is tens of
@@ -692,14 +693,32 @@ def fetch(source, cast, candidates, out_dir):
 
     claimed = {}          # speaker -> the character who owns them
     seen_rows = 0
+    # A WALL-CLOCK BUDGET, because the row count was never the thing that ran
+    # out. Three CI runs were killed by the job cap and every one of them
+    # produced EXACTLY NOTHING — the clips are held in memory and written in
+    # one go at the end of this function, so being killed a minute early and
+    # being killed at the start are the same outcome. Forty-five thousand
+    # rows of "we nearly had it" is worth less than eleven clips.
+    #
+    # The script now decides to stop rather than waiting to be killed, and
+    # what it has banked is written out. `deadline` of 0 means no budget.
+    started = _time.monotonic()
+    stopped_early = None
     for row in ds:
         seen_rows += 1
         if seen_rows % 2000 == 0:
             left = sum(1 for w in wanted.values() if len(w["done"]) < candidates)
-            print(f"    {seen_rows} rows scanned, {left} characters still short")
+            spent = (_time.monotonic() - started) / 60.0
+            print(f"    {seen_rows} rows scanned, {left} characters still short, "
+                  f"{spent:.1f} min spent")
         if all(len(w["done"]) >= candidates for w in wanted.values()):
             break
+        if budget_minutes and (_time.monotonic() - started) / 60.0 >= budget_minutes:
+            stopped_early = f"time: {budget_minutes} minute budget spent"
+            print(f"    stopping: {stopped_early} — writing what we have")
+            break
         if seen_rows > 400000:
+            stopped_early = "rows: scanned 400k"
             print("    stopping: scanned 400k rows, taking what we have")
             break
 
@@ -803,6 +822,16 @@ def fetch(source, cast, candidates, out_dir):
                               speaker=str(speaker)[:12],
                               seconds=round(len(samples) / float(SAMPLE_RATE), 1)))
         made[cid] = files
+
+    # AND SAY WHAT IS MISSING. A truncated run that reports the same way as a
+    # complete one is the thing that makes a half-empty listening page look
+    # like a casting problem rather than a budget one.
+    if stopped_early:
+        short = [cid for cid, f in made.items() if len(f) < candidates]
+        print(f"  TRUNCATED ({stopped_early}). "
+              f"{sum(len(f) for f in made.values())} clips written; "
+              f"{len(short)} characters short of {candidates}: "
+              + (", ".join(short[:12]) if short else "none"))
     return made
 
 
@@ -1060,6 +1089,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--who", default="")
     ap.add_argument("--candidates", type=int, default=6)
+    # WALL CLOCK, not rows. Three CI runs were killed by the job cap with
+    # nothing to show, because the clips are written in one go at the end.
+    # 0 disables it, which is right for a laptop nobody is billing.
+    ap.add_argument("--minutes", type=int, default=0,
+                    help="stop scanning after N minutes and write what is banked")
     ap.add_argument("--source", default="commonvoice",
                     choices=["vctk", "commonvoice", "libritts"])
     ap.add_argument("--selftest", action="store_true")
@@ -1108,7 +1142,7 @@ def main():
           f"{args.candidates} candidate(s) each")
     print("  this scans the corpus rather than downloading it; expect a few minutes\n")
     try:
-        made = fetch(args.source, cast, args.candidates, OUT)
+        made = fetch(args.source, cast, args.candidates, OUT, args.minutes)
     except Exception as e:
         print(f"\n  fetch failed: {type(e).__name__}: {e}")
         if args.source == "commonvoice":
