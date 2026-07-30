@@ -1195,6 +1195,19 @@ namespace Ledger.Game
         Vector3 _loiterTarget;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
         bool? _ringOk;
+
+        /// Which perception sub-claims are failing, by name. Empty when green.
+        string PerceptionWhy()
+        {
+            var why = new List<string>();
+            if (Perceivers.Looks < 1) why.Add("no-looks");
+            if (_loiterLooks < 1) why.Add("loiter");
+            if (!(_litRange > _darkRange)) why.Add("light");
+            if (Perceivers.SoundsEmitted < 1) why.Add("no-sounds");
+            if (_slamInvestigations < 1) why.Add("slam");
+            if (_ringOk != true) why.Add("ring");
+            return why.Count == 0 ? "ok" : string.Join("+", why);
+        }
         float _loiterUntil = -1f, _nightRunUntil = -1f;
         int _looksBeforeLoiter, _looksBeforeRun;
         int _loiterLooks = -1, _nightRunLooks = -1, _nightWalkLooks = -1;
@@ -1387,7 +1400,7 @@ namespace Ledger.Game
             // inputs catches the whole class of bug where a visual quietly
             // drifts from the system it is supposed to be showing — which is
             // exactly what `scoreAudible` caught in the mix a day ago.
-            if (_ringOk == null && NoiseRing.Shown > 0)
+            if (_ringOk == null && NoiseRing.Sized > 0)
             {
                 double expect = Perception.AudibleRadius(NoiseRing.LastLoudness,
                                                          NoiseRing.LastFloor,
@@ -2906,6 +2919,10 @@ namespace Ledger.Game
             // an artifact from a host the sandbox cannot reach. The one line
             // worth having was the one that never survived. Now it is printed
             // last, alone, and only when something is wrong.
+            // NAME THE CLAUSE THAT FAILED. A composite boolean tells you a gate
+            // is red and nothing else, and I have now spent three builds
+            // inferring WHICH half from the fields around it. One string, listed
+            // in the report, and the guessing stops.
             bool perceptionOk = Perceivers.Looks >= 1 && _loiterLooks >= 1
                                 && _litRange > _darkRange
                                 && Perceivers.SoundsEmitted >= 1
@@ -2988,7 +3005,8 @@ namespace Ledger.Game
                  $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                  $"slamInvestigations={_slamInvestigations} " +
                  $"standoffs={Standoff.Beats} awareness={Standoff.LastAwareness} " +
-                 $"rings={Perceivers.SoundsEmitted} " +
+                 $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
+                 $"ringOk={_ringOk} why={PerceptionWhy()} " +
                  $"hushPeak={_hushPeak:0.00} lit={_litRange:0.0}m dark={_darkRange:0.0}m]",
                  perceptionOk),
             };
@@ -3043,7 +3061,9 @@ namespace Ledger.Game
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
-                      $"rings={NoiseRing.Shown} ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
+                      $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
+                      $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
+                      $"perceptionWhy={PerceptionWhy()} " +
                       $"perceptionOk={perceptionOk} " +
                       // PRINTED BECAUSE I GUESSED TWICE. Whether the probes
                       // fired depends on which days and hours the run actually

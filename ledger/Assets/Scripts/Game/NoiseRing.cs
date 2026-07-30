@@ -44,6 +44,11 @@ namespace Ledger.Game
         public static double LastLoudness = -1;
         public static double LastFloor = -1;
         public static bool LastOccluded;
+        /// How many rings were SIZED (the model ran) and how many were actually
+        /// DRAWN (a material existed). They differ only when the shader is
+        /// missing from the build, which is a rendering problem rather than a
+        /// perception one.
+        public static int Sized;
         public static int Shown;
 
         static Material _mat;
@@ -86,12 +91,19 @@ namespace Ledger.Game
         {
             double r = Perception.AudibleRadius(loudness, ambientFloorAtPlayer, occluded);
             if (r < MinRadiusMetres) return;
-            if (Mat() == null) return;      // nothing to draw with; draw nothing
 
+            // THE MEASUREMENT IS RECORDED EVEN IF NOTHING CAN BE DRAWN, and the
+            // split matters: "the radius equals the model" and "a circle
+            // appeared on screen" are two different claims, and conflating them
+            // meant a stripped shader would report as a broken hearing model.
+            // Gate on the arithmetic; report the drawing separately.
             LastRadius = r;
             LastLoudness = loudness;
             LastFloor = ambientFloorAtPlayer;
             LastOccluded = occluded;
+            Sized++;
+
+            if (Mat() == null) return;      // nothing to draw with; draw nothing
             Shown++;
 
             var go = new GameObject("NoiseRing");
