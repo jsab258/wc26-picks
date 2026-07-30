@@ -13,7 +13,17 @@ name: LEDGER voice candidates
 # happens on a phone instead of at a desk. I never asked whether anything
 # other than his laptop could run it.
 
+# TRIGGERED BY A PUSH, NOT ONLY BY HAND. `workflow_dispatch` can only be
+# fired for workflows that exist on the DEFAULT branch, and this one lives on
+# a feature branch — the dispatch API answers 404, which reads like the file
+# is missing rather than like it is in the wrong place. A path-scoped push
+# trigger runs it from wherever it actually is.
 on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    paths:
+      - "tools/voice-fetch/**"
+      - ".github/workflows/voice-candidates.yml"
   workflow_dispatch:
     inputs:
       candidates:
