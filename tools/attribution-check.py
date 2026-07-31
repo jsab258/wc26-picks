@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Every directory of third-party content is named in THIRD-PARTY.md.
+
+WHY THIS EXISTS. The completeness audit on 2026-07-31 found no `LICENSE`, no
+credits screen and no attribution file anywhere in the project — while 19 cast
+voices are derived from a corpus licensed CC BY 4.0, which REQUIRES attribution.
+That is a licence breach waiting on a release, and it survived because nothing
+in the plan owned it and nothing in CI looked for it.
+
+A file somebody has to remember to update is a file that goes stale — the same
+argument as the reach ledger, and this project has already watched a roadmap's
+"STILL OPEN" list rot four days while reading as current. So the check is
+mechanical: an asset directory with no entry fails the build.
+
+    python3 tools/attribution-check.py
+    python3 tools/attribution-check.py --selftest
+"""
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+DOC = ROOT / "THIRD-PARTY.md"
+
+# Directories that hold content this project did not author, and the token that
+# must appear in THIRD-PARTY.md for each. Adding a new one here without adding
+# the row is what the check is for.
+WATCHED = {
+    "ledger/Assets/Characters": "Mixamo",
+    "game-design/picked-clips": "VCTK",
+    "voice-candidates": "VCTK",
+    "ledger/Assets/StreamingAssets/CityPack": "CityPack",
+}
+
+# File types that are content rather than code. A directory holding only text
+# or json is a manifest, not an asset drop.
+ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
+                  ".mp3", ".ogg", ".ttf", ".otf", ".bundle", ".obj", ".blend"}
+
+_fails = []
+
+
+def check(ok, what, got=""):
+    print(("  ok   " if ok else "  FAIL ") + what + ("" if ok else f" — {got}"))
+    if not ok:
+        _fails.append(what)
+
+
+def audit(root=None, doc=None):
+    root = root or ROOT
+    doc = doc if doc is not None else DOC
+    text = doc.read_text(encoding="utf-8") if doc.exists() else ""
+    check(bool(text), "THIRD-PARTY.md exists", "missing")
+    if not text:
+        return
+
+    for rel, token in sorted(WATCHED.items()):
+        d = root / rel
+        if not d.exists():
+            # Not yet populated. Not a failure — CityPack does not exist until
+            # M17.6 lands — but the row still has to be there waiting for it,
+            # so the obligation is recorded before the asset arrives rather
+            # than after somebody notices.
+            check(token in text,
+                  f"{rel} — attribution recorded ahead of the assets", f"no '{token}' in THIRD-PARTY.md")
+            continue
+        assets = [p for p in d.rglob("*") if p.suffix.lower() in ASSET_SUFFIXES]
+        if not assets:
+            continue
+        check(token in text,
+              f"{rel} — {len(assets)} asset file(s) attributed",
+              f"no '{token}' in THIRD-PARTY.md")
+
+    # A CC BY corpus needs its exact required wording present, not a paraphrase:
+    # "we mention VCTK somewhere" is not what the licence asks for.
+    check("CC BY 4.0" in text, "the CC BY licence is named exactly")
+    check("Centre for Speech Technology Research" in text,
+          "and the attribution text the licence requires is written out")
+
+    # UNTRACKED ASSET DIRECTORIES. The check above only knows what it was told
+    # about, which would make it useless the day somebody adds a folder — so
+    # this sweeps for asset files anywhere outside a watched directory.
+    watched_paths = [root / r for r in WATCHED]
+    stray = []
+    for p in root.rglob("*"):
+        if p.suffix.lower() not in ASSET_SUFFIXES:
+            continue
+        s = str(p)
+        if "/.git/" in s or "/node_modules/" in s or "/.venv" in s:
+            continue
+        if "/obj/" in s or "/bin/" in s or "/Library/" in s:
+            continue
+        if any(str(w) in s for w in watched_paths):
+            continue
+        stray.append(p.relative_to(root))
+    check(not stray, "no asset files live outside a directory this file knows about",
+          ", ".join(str(x) for x in stray[:5]))
+
+
+def selftest():
+    """The check, watched failing. An attribution gate that cannot go red is
+    worse than none, because it reads as compliance."""
+    import shutil
+    import tempfile
+    global _fails
+    passed = failed = 0
+
+    def expect(name, fn):
+        global _fails
+        nonlocal passed, failed
+        _fails = []
+        fn()
+        if _fails:
+            passed += 1
+            print(f"  ok   {name}")
+        else:
+            failed += 1
+            print(f"  FAIL {name} — passed on broken input")
+
+    print("attribution-check selftest\n")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        (tmp / "game-design/picked-clips").mkdir(parents=True)
+        (tmp / "game-design/picked-clips/lena.p228.mp3").write_bytes(b"x")
+
+        # 1. no attribution file at all
+        expect("a missing THIRD-PARTY.md is caught",
+               lambda: audit(tmp, tmp / "THIRD-PARTY.md"))
+
+        # 2. a file that does not name the corpus behind assets that are present
+        (tmp / "THIRD-PARTY.md").write_text("# nothing in particular\n", encoding="utf-8")
+        expect("assets with no attribution row are caught",
+               lambda: audit(tmp, tmp / "THIRD-PARTY.md"))
+
+        # 3. names the corpus but not the licence the corpus requires
+        (tmp / "THIRD-PARTY.md").write_text(
+            "VCTK Mixamo CityPack\n", encoding="utf-8")
+        expect("naming the corpus without its licence is caught",
+               lambda: audit(tmp, tmp / "THIRD-PARTY.md"))
+
+        # 4. an asset file in a directory nothing knows about
+        (tmp / "THIRD-PARTY.md").write_text(
+            "VCTK Mixamo CityPack CC BY 4.0 Centre for Speech Technology Research\n",
+            encoding="utf-8")
+        (tmp / "stray").mkdir()
+        (tmp / "stray/mystery.png").write_bytes(b"x")
+        expect("an asset in an unknown directory is caught",
+               lambda: audit(tmp, tmp / "THIRD-PARTY.md"))
+
+    _fails = []
+    print(f"\n{passed}/{passed + failed} checks go red on broken input")
+    return 1 if failed else 0
+
+
+def main():
+    if "--selftest" in sys.argv:
+        return selftest()
+    print("attribution-check — every third-party asset is accounted for\n")
+    audit()
+    print()
+    print("attribution ok" if not _fails else f"{len(_fails)} problem(s)")
+    return 1 if _fails else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

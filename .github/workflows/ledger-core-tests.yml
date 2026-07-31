@@ -5,7 +5,9 @@ on:
     paths:
       - "ledger/**"
       - "game-design/**"          # docs-check runs here, so docs must trigger it
-      - "tools/docs-check.py"
+      - "tools/*.py"
+      - "THIRD-PARTY.md"
+      - "voice-candidates/**"     # a new asset drop must re-run the attribution gate
       - ".github/workflows/ledger-core-tests.yml"
   workflow_dispatch:
 
@@ -38,6 +40,12 @@ jobs:
         run: python3 tools/shape-check.py
       - name: Shape check — the checker itself, watched failing
         run: python3 tools/shape-check.py --selftest
+      # The voice corpus is CC BY 4.0 and attribution is REQUIRED. This is a
+      # licence obligation with a build failure attached, not a courtesy.
+      - name: Attribution check (third-party assets)
+        run: |
+          python3 tools/attribution-check.py
+          python3 tools/attribution-check.py --selftest
       - name: Run core test suite
         run: dotnet run --project ledger/CoreTests -c Release
       - name: Run AI playtest (fake mode)
