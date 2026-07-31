@@ -48,7 +48,7 @@ namespace Ledger.Game
         /// of a debt he knows about and the player doesn't yet.
         public static string DayOneContext(string walkerName, int day) =>
             day == 1 && walkerName == "Sam"
-                ? " It is the new owner's first day; you came by early with condolences and more warmth than you can afford — your name is in Mickey's book for $120 and you are fairly sure the new owner doesn't know yet."
+                ? " It is the new owner's first day; you came by early with condolences and more warmth than you can afford — your name is in Mickey's book for £120 and you are fairly sure the new owner doesn't know yet."
                 : "";
 
         // PP7's scene, shown over the won week's verdict.

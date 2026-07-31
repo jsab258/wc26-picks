@@ -80,6 +80,11 @@ namespace Ledger.Core
         /// player, whatever the prompt fed the model (audit 2026-07-27).
         /// Money keeps its digits, days keep their dates — only unanchored
         /// decimal fractions are scrubbed.
+        /// What money looks like in this city. One place, because the
+        /// scrubber above and anything else that has to recognise a price
+        /// must agree — and a second copy of it is how the digits went.
+        public const char CurrencySymbol = '£';
+
         static string StripBareDecimals(string reply)
         {
             var sb = new System.Text.StringBuilder(reply.Length);
@@ -87,7 +92,15 @@ namespace Ledger.Core
             while (i < reply.Length)
             {
                 char c = reply[i];
-                if (char.IsDigit(c) && (sb.Length == 0 || (sb[sb.Length - 1] != '$' && !char.IsDigit(sb[sb.Length - 1]))))
+                // THE CURRENCY SYMBOL IS A VARIABLE, not a literal. This
+                // read `!= '$'`, so when the city became British every price
+                // the model wrote was scrubbed down to a bare "£" — the rule
+                // that exists to KEEP money's digits was deleting them,
+                // because it recognised money by a symbol the game had
+                // stopped using. Caught by the one test that asserted the
+                // behaviour rather than the spelling.
+                if (char.IsDigit(c) && (sb.Length == 0
+                    || (sb[sb.Length - 1] != CurrencySymbol && !char.IsDigit(sb[sb.Length - 1]))))
                 {
                     int j = i;
                     bool dot = false;

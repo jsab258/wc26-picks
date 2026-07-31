@@ -229,7 +229,7 @@ namespace Ledger.Core
             sb.AppendLine("WHAT YOU MAY SCHEDULE. These are the only kinds that exist:");
             sb.AppendLine($"- \"{Pressures.Rumor}\": one named person starts saying something about the player. Low confidence — it can be denied and it will fade if nobody feeds it.");
             sb.AppendLine($"- \"{Pressures.Meeting}\": two named people end up in the same place at the same hour. Use this when two parts of the player's life should collide.");
-            sb.AppendLine($"- \"{Pressures.Demand}\": one named person wants money from the player by a given day. At most ${MaxDemand}.");
+            sb.AppendLine($"- \"{Pressures.Demand}\": one named person wants money from the player by a given day. At most £{MaxDemand}.");
             sb.AppendLine($"- \"{Pressures.Schedule}\": one named person is somewhere unusual at a given hour for a few days.");
             sb.AppendLine($"- \"{Pressures.Grievance}\": one named person's feeling about the player moves, because of something specific that already happened.");
             sb.AppendLine($"- \"{Pressures.Nothing}\": nothing happens. THIS IS USUALLY CORRECT. A world that produces an event every few days is a soap opera, not a place.");

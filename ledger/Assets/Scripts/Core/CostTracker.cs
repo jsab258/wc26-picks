@@ -40,7 +40,7 @@ namespace Ledger.Core
             var sb = new System.Text.StringBuilder();
             foreach (var kv in _byModel)
                 sb.AppendLine($"{kv.Key}: {kv.Value.Calls} calls, {kv.Value.InputTokens} in / {kv.Value.OutputTokens} out tokens");
-            sb.AppendLine($"Estimated total: ${EstimateUsd():0.0000}");
+            sb.AppendLine($"Estimated total: £{EstimateUsd():0.0000}");
             return sb.ToString();
         }
     }

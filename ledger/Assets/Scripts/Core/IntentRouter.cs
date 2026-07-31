@@ -67,7 +67,7 @@ namespace Ledger.Core
         public string Id;
         /// How a person would say it, for the model: "pay them to keep quiet".
         public string Say;
-        /// Live circumstance, for the model: "costs $120; you have $340 dirty".
+        /// Live circumstance, for the model: "costs £120; you have £340 dirty".
         public string Detail;
         public readonly List<VerbArg> Args = new List<VerbArg>();
         /// Distinctive phrases that route here with no model call at all.

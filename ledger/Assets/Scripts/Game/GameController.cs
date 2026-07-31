@@ -509,7 +509,7 @@ namespace Ledger.Game
                 var thin = LastTakings < Campaign.BarBaseTakings * 0.7
                     ? " You know the takings are thin because of what people are saying about the owner." : "";
                 return $"Day {Mathf.Min(Now.Day, Campaign.SurviveDays)} of the new owner's first week. " +
-                       $"Yesterday the bar took in ${LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
+                       $"Yesterday the bar took in £{LastTakings}.{thin} {mood}{HostRevealText("Lena")}{SecretContext("Lena")}{SuspicionBehaviorText("Lena")}";
             };
             _hosts.Add(_lena);
 
@@ -968,14 +968,14 @@ namespace Ledger.Game
             int owed = Economy.DeliveryPrice(s) * s.Unpaid;
             if (!Wallet.Spend(owed, dirtyOk: true))
             {
-                line = $"{s.Name} works out what he's owed — ${owed} — and waits while you don't have it.";
+                line = $"{s.Name} works out what he's owed — £{owed} — and waits while you don't have it.";
                 return false;
             }
             s.Unpaid = 0;
             s.LastPaidDay = Now.Day;
             s.Standing = System.Math.Min(1.0, s.Standing + 0.2);
             Audio.Ui("coin");
-            line = $"You count out ${owed}. {s.Name} puts it away without looking at it, which is how you know it mattered.";
+            line = $"You count out £{owed}. {s.Name} puts it away without looking at it, which is how you know it mattered.";
             return true;
         }
 
@@ -1084,7 +1084,7 @@ namespace Ledger.Game
                     if (Job.Advance(ShiftStops.Length))
                     {
                         int pay = Job.Complete(Wallet, Now);
-                        ToastLine($"Zlata initials your sheet without looking up. \"+${pay}. You're not bad at this. Worrying, for a man with a bar.\"", 9f);
+                        ToastLine($"Zlata initials your sheet without looking up. \"+£{pay}. You're not bad at this. Worrying, for a man with a bar.\"", 9f);
                     }
                     else
                     {
@@ -1304,7 +1304,7 @@ namespace Ledger.Game
         {
             int seized = _lastSeized > 0 ? _lastSeized : Wallet.Dirty;
             return seized > 0
-                ? $"THE FALL. Three days inside. They kept the ${seized} they found — the money the books couldn't explain. The street knows now. Start from there."
+                ? $"THE FALL. Three days inside. They kept the £{seized} they found — the money the books couldn't explain. The street knows now. Start from there."
                 : "THE FALL. Three days inside. They found nothing to keep, which is the only mercy. The street knows now. Start from there.";
         }
 
@@ -1835,9 +1835,9 @@ namespace Ledger.Game
                 var line = ActTwo.BarFrozen(Now)
                     ? "The bar stays shut: the licence is under review, and the notice is taped to your own door."
                     : takings >= Campaign.BarBaseTakings
-                    ? $"Bar takings: +${takings}."
-                    : $"Bar takings: +${takings}. The talk on the street is costing you.";
-                if (washed > 0) line += $" ${washed} of night money washed through the till.";
+                    ? $"Bar takings: +£{takings}."
+                    : $"Bar takings: +£{takings}. The talk on the street is costing you.";
+                if (washed > 0) line += $" £{washed} of night money washed through the till.";
                 _ui?.Toast(line);
                 if (streetLine != null) _ui?.Toast(streetLine, 11f);
                 if (economyLine != null) _ui?.Toast(economyLine, 11f);
@@ -1966,9 +1966,9 @@ namespace Ledger.Game
                     string carNote = sawVehicle == null ? "" : $" And {sawVehicle} they can describe.";
                     _ui?.Toast(seen.Count > 0
                         ? WearingCoat
-                            ? $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw a figure in a coat.{carNote}"
-                            : $"Drop made. +${Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you — and your face.{carNote}"
-                        : $"Drop made. +${Campaign.JobPay} dirty.");
+                            ? $"Drop made. +£{Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw a figure in a coat.{carNote}"
+                            : $"Drop made. +£{Campaign.JobPay} dirty. {string.Join(" and ", seen)} saw you — and your face.{carNote}"
+                        : $"Drop made. +£{Campaign.JobPay} dirty.");
                 }
             }
         }

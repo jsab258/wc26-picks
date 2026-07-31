@@ -610,7 +610,7 @@ namespace Ledger.Core
                 wallet.EarnDirty(income);
                 TotalRacketIncome += income;
                 events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id, Amount = income,
-                    Text = $"{runner.Name} brings in ${income} off the {r.Name}." });
+                    Text = $"{runner.Name} brings in £{income} off the {r.Name}." });
 
                 // A street that cannot pay says so, once, in somebody's words —
                 // the same fourth outcome collection already has for debts.
@@ -664,7 +664,7 @@ namespace Ledger.Core
                 {
                     wallet.Spend(fee, dirtyOk: false);
                     events.Add(new EmpireEvent { Kind = "rival",
-                        Text = $"Another letter on cream paper. Answering it costs ${fee} in filings and fees. It is not meant to be affordable; it is meant to be regular." });
+                        Text = $"Another letter on cream paper. Answering it costs £{fee} in filings and fees. It is not meant to be affordable; it is meant to be regular." });
                 }
             }
             if (stageDue <= arm.Stage || arm.LastActDay == now.Day) return events;
@@ -776,7 +776,7 @@ namespace Ledger.Core
             {
                 wallet.Spend(Math.Min(Rival.ProtectionTaxPerDay, wallet.Total), dirtyOk: true);
                 events.Add(new EmpireEvent { Kind = "rival",
-                    Text = $"The Dockside arm takes its ${Rival.ProtectionTaxPerDay} off the top. Nobody asks anymore." });
+                    Text = $"The Dockside arm takes its £{Rival.ProtectionTaxPerDay} off the top. Nobody asks anymore." });
             }
             if (stageDue <= Rival.Stage) return events;
 
@@ -791,7 +791,7 @@ namespace Ledger.Core
                 case 2:
                     Rival.ProtectionTaxPerDay = 40;
                     events.Add(new EmpireEvent { Kind = "rival",
-                        Text = "Word comes down the docks: the street's rent has gone up for you, specifically. $40 a day, collected without conversation." });
+                        Text = "Word comes down the docks: the street's rent has gone up for you, specifically. £40 a day, collected without conversation." });
                     break;
                 case 3:
                 {

@@ -487,7 +487,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             int raised = Empire.Dissolve(Wallet, _gossip?.Mill, Now);
             ActThree.SoldUp = true;
             ToastLine("Hal does it in an afternoon, for a percentage, without once asking why. " +
-                      $"Everything you took a year to build goes in six hours and raises ${raised}. " +
+                      $"Everything you took a year to build goes in six hours and raises £{raised}. " +
                       "The bar is a bar again, and the cellar is a cellar.", 16f);
             return true;
         }

@@ -193,7 +193,7 @@ namespace Ledger.Game
             if (outcome == null) return;
 
             Toast(outcome.Line, 10f);
-            if (outcome.Take > 0) Toast($"+${outcome.Take}, and none of it can be spent where anyone is looking.", 8f);
+            if (outcome.Take > 0) Toast($"+£{outcome.Take}, and none of it can be spent where anyone is looking.", 8f);
             if (outcome.Witnesses > 0)
                 Toast(outcome.Witnesses == 1
                     ? "One person saw something. One is enough to start with."

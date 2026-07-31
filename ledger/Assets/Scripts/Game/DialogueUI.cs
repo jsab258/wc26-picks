@@ -337,10 +337,10 @@ namespace Ledger.Game
             if (id == "Hal" && act2.Pp2Fired && act2.BarFrozen(_game.Now))
             {
                 _empireBtnA.gameObject.SetActive(true);
-                _empireLabelA.text = $"Pay the fees properly (${ActTwoState.InjunctionFee})";
+                _empireLabelA.text = $"Pay the fees properly (£{ActTwoState.InjunctionFee})";
                 _empireBtnA.interactable = _game.Wallet.Clean >= ActTwoState.InjunctionFee;
                 _empireBtnB.gameObject.SetActive(true);
-                _empireLabelB.text = $"Have him make it disappear (${ActTwoState.InjunctionFee * 2})";
+                _empireLabelB.text = $"Have him make it disappear (£{ActTwoState.InjunctionFee * 2})";
                 _empireBtnB.interactable = _game.Wallet.Total >= ActTwoState.InjunctionFee * 2;
                 _empireSayA = "pay the licence fees properly, clean money, stamped receipt";
                 _empireSayB = "pay Hal to make the licence review disappear";
@@ -350,9 +350,9 @@ namespace Ledger.Game
             // Hal's brokerage (Act II PP5): reads, truces, and the room.
             if (id == "Hal" && act2.Pp5Fired)
             {
-                labelA = $"Buy a read (${ActTwoState.ReadPrice})";
+                labelA = $"Buy a read (£{ActTwoState.ReadPrice})";
                 enabledA = _game.Wallet.Total >= ActTwoState.ReadPrice;
-                labelB = act2.TruceSpent ? "A truce, again (he declines)" : $"Broker a truce (${ActTwoState.TrucePrice})";
+                labelB = act2.TruceSpent ? "A truce, again (he declines)" : $"Broker a truce (£{ActTwoState.TrucePrice})";
                 _empireSayA = "pay him to tell you where you stand with the three arms";
                 _empireSayB = "pay him to buy you peace with whoever is worst";
                 _empireBtnA.gameObject.SetActive(true);
@@ -396,9 +396,9 @@ namespace Ledger.Game
             if (biz != null)
             {
                 if (biz.DebtHeld) { labelA = "Turn the key (you hold the paper)"; _empireSayA = $"call in the paper you hold and take the {biz.Name}"; }
-                else if (_game.Wallet.Clean >= biz.AskPrice) { labelA = $"Buy the {biz.Name} (${biz.AskPrice} clean)"; _empireSayA = $"buy the {biz.Name} outright with clean money"; }
-                else if (biz.DebtPrice > 0) { labelA = $"Buy their marker (${biz.DebtPrice})"; _empireSayA = $"buy up the debt the {biz.Name} owes elsewhere"; }
-                else { labelA = $"Buy the {biz.Name} (${biz.AskPrice} — short)"; enabledA = false; }
+                else if (_game.Wallet.Clean >= biz.AskPrice) { labelA = $"Buy the {biz.Name} (£{biz.AskPrice} clean)"; _empireSayA = $"buy the {biz.Name} outright with clean money"; }
+                else if (biz.DebtPrice > 0) { labelA = $"Buy their marker (£{biz.DebtPrice})"; _empireSayA = $"buy up the debt the {biz.Name} owes elsewhere"; }
+                else { labelA = $"Buy the {biz.Name} (£{biz.AskPrice} — short)"; enabledA = false; }
                 if (hook != null) { labelB = $"Take the {biz.Name} (what you know)"; _empireSayB = $"use what you know on them to take the {biz.Name}"; }
             }
             else
@@ -423,9 +423,9 @@ namespace Ledger.Game
                 // they are standing there with a figure in their head.
                 else if (_game.DemandFrom(id) is GameController.OpenDemand asked)
                 {
-                    labelA = $"Give {id} the ${asked.Amount}";
+                    labelA = $"Give {id} the £{asked.Amount}";
                     enabledA = _game.PlayerCash >= asked.Amount;
-                    _empireSayA = $"pay {id} the ${asked.Amount} they asked you for";
+                    _empireSayA = $"pay {id} the £{asked.Amount} they asked you for";
                 }
                 // A supplier you owe, or one who has stopped coming (roadmap M7).
                 // Settling up outranks recruiting: the man is standing there with
@@ -439,7 +439,7 @@ namespace Ledger.Game
                 }
                 else if (crew == null && _game.TryNeedOf(id, out var cost, out _))
                 {
-                    labelA = $"Sort what they need (${cost})";
+                    labelA = $"Sort what they need (£{cost})";
                     enabledA = _game.Wallet.Total >= cost;
                     _empireSayA = "pay for the thing they need, so they owe you and come to work for you";
                     if (hook != null) { labelB = "Bring them in (what you know)"; _empireSayB = "use what you know on them so they come to work for you"; }
@@ -491,7 +491,7 @@ namespace Ledger.Game
                 _empireBtnA.interactable = true;
                 _empireSayA = "have him sell everything you own and settle with everyone, whatever it costs";
                 _empireBtnB.gameObject.SetActive(_game.ActTwo.Pp5Fired);
-                _empireLabelB.text = $"Buy a read (${ActTwoState.ReadPrice})";
+                _empireLabelB.text = $"Buy a read (£{ActTwoState.ReadPrice})";
                 _empireBtnB.interactable = _game.Wallet.Total >= ActTwoState.ReadPrice;
                 _empireSayB = "pay him to tell you where you stand with the three arms";
                 return true;
@@ -713,13 +713,13 @@ namespace Ledger.Game
                 else if (_game.Wallet.Clean >= biz.AskPrice)
                 {
                     Narrate(e.BuyClean(biz, _game.Wallet, g, _game.Now)
-                        ? $"Papers, a handshake, ${biz.AskPrice} clean. The {biz.Name} is yours, and {id} still runs the counter."
+                        ? $"Papers, a handshake, £{biz.AskPrice} clean. The {biz.Name} is yours, and {id} still runs the counter."
                         : "The clean route needs clean money. All of it.");
                 }
                 else if (biz.DebtPrice > 0)
                 {
                     Narrate(e.BuyDebt(biz, _game.Wallet)
-                        ? $"You buy {id}'s paper for ${biz.DebtPrice}. What you do with it is tomorrow's question."
+                        ? $"You buy {id}'s paper for £{biz.DebtPrice}. What you do with it is tomorrow's question."
                         : "You can't cover the marker.");
                 }
                 return;
@@ -753,7 +753,7 @@ namespace Ledger.Game
             if (_game.TryNeedOf(id, out var cost, out var line) && g != null)
             {
                 bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now);
-                Narrate($"{line} (-${cost})" + (joined
+                Narrate($"{line} (-£{cost})" + (joined
                     ? $" {id} is with you now — by choice."
                     : $" {id} owes you, and knows it. Not a yes. Yet."));
             }
@@ -900,11 +900,11 @@ namespace Ledger.Game
             bool open = _game.Campaign.OpenMode;
             _summaryTitle.text = open ? $"THE TWO BOOKS · DAY {dayClosed}" : $"CLOSING THE BOOKS · DAY {dayClosed}";
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"{(open ? "The fronts" : "Bar takings")} <color={UiTheme.HexCredit}><b>+${takings}</b></color>" +
-                (racketToday > 0 ? $"   ·   the rounds <color={UiTheme.HexAmber}><b>+${racketToday} dirty</b></color>" : "") +
-                (washed > 0 ? $"   ·   washed <color={UiTheme.HexCredit}>+${washed}</color>" : ""));
-            sb.AppendLine($"Cash <b>${clean}</b> clean" +
-                (dirty > 0 ? $"   <color={UiTheme.HexDebit}><b>− ${dirty} unwashed</b></color>" : ""));
+            sb.AppendLine($"{(open ? "The fronts" : "Bar takings")} <color={UiTheme.HexCredit}><b>+£{takings}</b></color>" +
+                (racketToday > 0 ? $"   ·   the rounds <color={UiTheme.HexAmber}><b>+£{racketToday} dirty</b></color>" : "") +
+                (washed > 0 ? $"   ·   washed <color={UiTheme.HexCredit}>+£{washed}</color>" : ""));
+            sb.AppendLine($"Cash <b>£{clean}</b> clean" +
+                (dirty > 0 ? $"   <color={UiTheme.HexDebit}><b>− £{dirty} unwashed</b></color>" : ""));
             if (open)
             {
                 var r = _game.Empire.Rival;
@@ -912,7 +912,7 @@ namespace Ledger.Game
                 {
                     0 => "hasn't looked your way",
                     1 => "has noticed you",
-                    2 => $"takes ${r.ProtectionTaxPerDay}/day off the top",
+                    2 => $"takes £{r.ProtectionTaxPerDay}/day off the top",
                     3 => "is reaching for your people",
                     _ => "is at your door",
                 };
@@ -942,9 +942,9 @@ namespace Ledger.Game
         {
             // The position line: the two kinds of money, credit against debit.
             var sb = new System.Text.StringBuilder();
-            sb.Append($"<size=26><b>${_game.Wallet.Clean}</b></size> clean");
+            sb.Append($"<size=26><b>£{_game.Wallet.Clean}</b></size> clean");
             if (_game.Wallet.Dirty > 0)
-                sb.Append($"   <color={UiTheme.HexDebit}><b>− ${_game.Wallet.Dirty} unwashed</b></color>");
+                sb.Append($"   <color={UiTheme.HexDebit}><b>− £{_game.Wallet.Dirty} unwashed</b></color>");
             sb.AppendLine();
             sb.AppendLine();
 
@@ -982,7 +982,7 @@ namespace Ledger.Game
             var owed = new System.Text.StringBuilder();
             foreach (var d in _game.Debts.All)
                 if (d.Outstanding)
-                    owed.AppendLine($"<b>{d.Name}</b> — \"{d.Note}\"  <color={UiTheme.HexCredit}><b>+${d.Amount}</b></color>" +
+                    owed.AppendLine($"<b>{d.Name}</b> — \"{d.Note}\"  <color={UiTheme.HexCredit}><b>+£{d.Amount}</b></color>" +
                         $"\n   <color={UiTheme.HexDim}>in Mickey's hand</color>");
             if (held.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>ASSETS — what you hold</b></color>\n").Append(held);
@@ -1017,7 +1017,7 @@ namespace Ledger.Game
                 foreach (var b in e.Businesses)
                 {
                     if (b.Owned)
-                        sb.AppendLine($"<b>the {b.Name}</b> — yours ({b.AcquiredVia})  <color={UiTheme.HexCredit}>+${b.CleanIncomePerDay}/day · washes ${b.LaunderPerDay}</color>");
+                        sb.AppendLine($"<b>the {b.Name}</b> — yours ({b.AcquiredVia})  <color={UiTheme.HexCredit}>+£{b.CleanIncomePerDay}/day · washes £{b.LaunderPerDay}</color>");
                     else if (b.DebtHeld)
                         sb.AppendLine($"<b>the {b.Name}</b> — you hold {b.OwnerId}'s paper  <color={UiTheme.HexHeld}>unturned</color>");
                 }
@@ -1029,7 +1029,7 @@ namespace Ledger.Game
                 {
                     0 => "hasn't looked your way",
                     1 => "has noticed you",
-                    2 => $"taxes you ${e.Rival.ProtectionTaxPerDay}/day",
+                    2 => $"taxes you £{e.Rival.ProtectionTaxPerDay}/day",
                     3 => "is reaching for your people",
                     _ => "is at your door",
                 };
@@ -1041,7 +1041,7 @@ namespace Ledger.Game
                 if (crew9.Stage > 0)
                     sb.AppendLine($"<color={UiTheme.HexDim}>The New crew {(crew9.Stage >= 4 ? "circles the block" : crew9.Stage >= 3 ? "taxes your rounds" : crew9.Stage >= 2 ? "makes noise on your street" : "tagged your wall")}.</color>");
                 if (e.TotalRacketIncome > 0)
-                    sb.AppendLine($"<color={UiTheme.HexDim}>Rounds to date: ${e.TotalRacketIncome} dirty.</color>");
+                    sb.AppendLine($"<color={UiTheme.HexDim}>Rounds to date: £{e.TotalRacketIncome} dirty.</color>");
             }
 
             // Act III: the one thing in this book that has a deadline. A date
@@ -1084,8 +1084,8 @@ namespace Ledger.Game
 
             var now = _game.Now;
             var money = _game.Wallet.Dirty > 0
-                ? $"${_game.Wallet.Clean} <color={UiTheme.HexAmber}>+ ${_game.Wallet.Dirty} dirty</color>"
-                : $"${_game.Wallet.Clean}";
+                ? $"£{_game.Wallet.Clean} <color={UiTheme.HexAmber}>+ £{_game.Wallet.Dirty} dirty</color>"
+                : $"£{_game.Wallet.Clean}";
             // Plain chrome. The em dash and the middle dot are a WRITER's
             // punctuation and they read as somebody's house style rather than
             // as a game's instrument panel (playtest 2026-07-28).
@@ -1416,8 +1416,8 @@ namespace Ledger.Game
             MakeText(_endPanel.transform, "EndReason", new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(950, 60), 22, TextAnchor.UpperCenter)
                 .text = camp.VerdictReason;
             MakeText(_endPanel.transform, "EndStats", new Vector2(0.5f, 1), new Vector2(0, -190), new Vector2(950, 50), 18, TextAnchor.UpperCenter)
-                .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   takings banked: ${_game.TotalTakings}   ·   " +
-                        $"washed: ${_game.Wallet.TotalWashed}   ·   cash: ${_game.Wallet.Clean} clean, ${_game.Wallet.Dirty} dirty";
+                .text = $"Drops made: {camp.JobsDone}   ·   missed: {camp.JobsMissed}   ·   takings banked: £{_game.TotalTakings}   ·   " +
+                        $"washed: £{_game.Wallet.TotalWashed}   ·   cash: £{_game.Wallet.Clean} clean, £{_game.Wallet.Dirty} dirty";
             if (won)
                 MakeText(_endPanel.transform, "Teaser", new Vector2(0.5f, 1), new Vector2(0, -245), new Vector2(920, 330), 17, TextAnchor.UpperLeft)
                     .text = ActOneState.TeaserText;
@@ -1618,7 +1618,7 @@ namespace Ledger.Game
             _dcRow.SetActive(lead != null);
             if (lead == null) return;
             int price = BribePriceFor(lead);
-            _payLabel.text = _game.PlayerCash >= price ? $"Pay off (${price})" : $"Pay off (${price} — short)";
+            _payLabel.text = _game.PlayerCash >= price ? $"Pay off (£{price})" : $"Pay off (£{price} — short)";
             _payBtn.interactable = _game.PlayerCash >= price;
             _leanLabel.text = "Lean on them";
             _doubtLabel.text = "Plant doubt";
@@ -1693,7 +1693,7 @@ namespace Ledger.Game
             // Bribes are the one place dirty money spends like clean — criminals take it.
             if (_game.PlayerCash < price)
             {
-                Narrate($"You'd need ${price}. You have ${_game.PlayerCash}.");
+                Narrate($"You'd need £{price}. You have £{_game.PlayerCash}.");
                 return;
             }
             var result = mill.Bribe(known.HolderId, known.TopicKey, price, _game.Now, _game.Purses);
@@ -1705,7 +1705,7 @@ namespace Ledger.Game
                 _game.Knowledge.MarkHandled(known.HolderId, known.TopicKey);
                 Audio.Ui("coin");   // it only sounds like money if money moved
             }
-            Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-${price})" : ""));
+            Narrate(result.Message + (result.Outcome == DcOutcome.Contained ? $" (-£{price})" : ""));
         }
 
         void LeanOn()
@@ -1764,13 +1764,13 @@ namespace Ledger.Game
             switch (outcome)
             {
                 case CollectOutcome.Paid:
-                    Narrate($"They count it out slowly. +${debtor.LastPaid} clean. The page closes; something else closes with it."); break;
+                    Narrate($"They count it out slowly. +£{debtor.LastPaid} clean. The page closes; something else closes with it."); break;
                 // Roadmap M13: willing is not the same as able. The line names
                 // what they COULD find and what is still on the page — never
                 // what is left in the drawer, because you did not see the drawer,
                 // you saw a person emptying it.
                 case CollectOutcome.PaidPart:
-                    Narrate($"{debtor.LastLine} +${debtor.LastPaid} clean. ${debtor.Amount} still on the page, " +
+                    Narrate($"{debtor.LastLine} +£{debtor.LastPaid} clean. £{debtor.Amount} still on the page, " +
                             "and now they know you will come back for it."); break;
                 case CollectOutcome.Begged:
                     Narrate(debtor.LastLine ?? "They don't have it. They ask for a day — and mean it. Come back tomorrow."); break;
@@ -1787,7 +1787,7 @@ namespace Ledger.Game
             var debtor = id != null ? _game.Debts.Of(id) : null;
             if (debtor == null) return;
             if (debtor.Forgive(_game.Gossip.Mill.Get(id), _game.Now))
-                Narrate($"You tear the page out where they can see it. ${debtor.Amount}, gone. They won't forget this.");
+                Narrate($"You tear the page out where they can see it. £{debtor.Amount}, gone. They won't forget this.");
         }
 
         void PlantDoubt()

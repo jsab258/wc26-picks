@@ -11,7 +11,7 @@ namespace Ledger.Game
     /// stable hash of their id, so the same person always has the same means
     /// and nobody had to write three thousand numbers.
     ///
-    /// The authored ones exist because their means are CHARACTER. Sam owes $120
+    /// The authored ones exist because their means are CHARACTER. Sam owes £120
     /// and turns over about sixty a week: that debt was never going to be one
     /// visit, and the fact that it isn't should come from who he is rather than
     /// from a difficulty curve. Rocco is comfortable and owes little, so he can
@@ -95,7 +95,7 @@ namespace Ledger.Game
             foreach (var p in Purses.All)
             {
                 if (shown++ >= 6) break;
-                sb.Append($"  {p.Name}: ${p.Cash}/{p.Ceiling}");
+                sb.Append($"  {p.Name}: £{p.Cash}/{p.Ceiling}");
                 if (p.PatronId != null) sb.Append($" (can go to {p.PatronId})");
                 if (p.TimesEmptied > 0) sb.Append($" — emptied {p.TimesEmptied}x");
                 sb.Append('\n');

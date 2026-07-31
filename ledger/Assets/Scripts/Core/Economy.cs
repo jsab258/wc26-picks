@@ -207,8 +207,8 @@ namespace Ledger.Core
                     s.Standing = Clamp(s.Standing + PaymentBuysStanding, -1, 1);
                     events.Add(new EconomyEvent("supply",
                         dearer
-                            ? $"{s.Name} brings {s.Goods} and asks ${price} for it now. He doesn't explain the difference."
-                            : $"{s.Name} brings {s.Goods} and takes ${price} for it.", price));
+                            ? $"{s.Name} brings {s.Goods} and asks £{price} for it now. He doesn't explain the difference."
+                            : $"{s.Name} brings {s.Goods} and takes £{price} for it.", price));
                 }
                 else
                 {
@@ -263,14 +263,14 @@ namespace Ledger.Core
             int price = (int)Math.Round(DeliveryPrice(s) * SupplierRecoveryPrice);
             if (wallet == null || !wallet.Spend(price, dirtyOk: true))
             {
-                line = $"{s.Name} names a figure — ${price} — and waits. You don't have it.";
+                line = $"{s.Name} names a figure — £{price} — and waits. You don't have it.";
                 return false;
             }
             s.Refusing = false;
             s.Standing = 0.1;
             s.Unpaid = 0;
             s.LastPaidDay = now.Day;
-            line = $"{s.Name} takes the ${price} without counting it. {s.Goods.Substring(0, 1).ToUpperInvariant()}{s.Goods.Substring(1)} starts arriving again on Thursday.";
+            line = $"{s.Name} takes the £{price} without counting it. {s.Goods.Substring(0, 1).ToUpperInvariant()}{s.Goods.Substring(1)} starts arriving again on Thursday.";
             return true;
         }
 

@@ -48,8 +48,8 @@ namespace Ledger.Game
                 Standing = 0.1,
             });
 
-            // Calibrated against the shipped rackets: collection $60 + protection
-            // $80 + fencing $100 = $240 at full spread, so $180 is "taking most of
+            // Calibrated against the shipped rackets: collection £60 + protection
+            // £80 + fencing £100 = £240 at full spread, so £180 is "taking most of
             // what this street has" without requiring every racket to be running.
             e.SqueezeFullAt = 180.0;
 

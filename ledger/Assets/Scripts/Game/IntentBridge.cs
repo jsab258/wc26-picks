@@ -71,7 +71,7 @@ namespace Ledger.Game
             {
                 var lead = CurrentLead();
                 ctx.Verbs.Add(new VerbSpec("pay_off", "pay them to stop repeating it",
-                        lead != null ? $"about ${BribePriceFor(lead)}; you have ${_game.PlayerCash}" : null)
+                        lead != null ? $"about £{BribePriceFor(lead)}; you have £{_game.PlayerCash}" : null)
                     .WithLexical("pay them off", "pay him off", "pay her off", "buy their silence",
                                  "buy his silence", "buy her silence", "offer them money"));
             }
@@ -99,7 +99,7 @@ namespace Ledger.Game
             {
                 var debtor = _game.Debts.Of(CurrentHostId() ?? "");
                 ctx.Verbs.Add(new VerbSpec("collect_debt", "ask them for the money they owe",
-                        debtor != null ? $"${debtor.Amount} outstanding" : null)
+                        debtor != null ? $"£{debtor.Amount} outstanding" : null)
                     .WithLexical("collect the debt", "collect what they owe", "call in the debt",
                                  "ask for my money", "want my money"));
             }
@@ -107,7 +107,7 @@ namespace Ledger.Game
             {
                 var debtor = _game.Debts.Of(CurrentHostId() ?? "");
                 ctx.Verbs.Add(new VerbSpec("forgive_debt", "cancel what they owe, in front of them",
-                        debtor != null ? $"${debtor.Amount} written off" : null)
+                        debtor != null ? $"£{debtor.Amount} written off" : null)
                     .WithLexical("tear out the page", "forgive the debt", "write it off",
                                  "forget the debt", "wipe the slate"));
             }
@@ -287,7 +287,7 @@ namespace Ledger.Game
 
             var arm = ArmFor(intent);
             string who = arm != null ? arm.HeadName + "'s people" : "the street";
-            string cost = verdict.CashSpent > 0 ? $" (-${verdict.CashSpent})" : "";
+            string cost = verdict.CashSpent > 0 ? $" (-£{verdict.CashSpent})" : "";
 
             switch (verdict.Effect)
             {

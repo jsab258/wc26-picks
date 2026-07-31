@@ -574,7 +574,7 @@ namespace Ledger.CoreTests
                 "each posture becomes its own sentence in the street's mouth");
             Check(Ledger.Game.ActOneState.PostureSummary("takeover") != Ledger.Game.ActOneState.PostureSummary("winddown"),
                 "and the street can tell them apart");
-            Check(Ledger.Game.ActOneState.DayOneContext("Sam", 1).Contains("$120"),
+            Check(Ledger.Game.ActOneState.DayOneContext("Sam", 1).Contains("£120"),
                 "Sam's first-day condolences carry the debt he knows about");
             Check(Ledger.Game.ActOneState.DayOneContext("Sam", 2) == "" && Ledger.Game.ActOneState.DayOneContext("Ada", 1) == "",
                 "and only Sam's, and only on the first day");
@@ -585,8 +585,8 @@ namespace Ledger.CoreTests
             Console.WriteLine("Response validator — no internal scalar reaches the player:");
             var v = ResponseValidator.Humanize("Your books read 0.62 exposed, whatever that means.");
             Check(!v.Contains("0.62"), "a bare decimal is scrubbed from the model's mouth", v);
-            var money = ResponseValidator.Humanize("That comes to $12.50, same as last week.");
-            Check(money.Contains("$12.50"), "money keeps its digits", money);
+            var money = ResponseValidator.Humanize("That comes to £12.50, same as last week.");
+            Check(money.Contains("£12.50"), "money keeps its digits", money);
             var date = ResponseValidator.Humanize("The inspection closes on day 14.");
             Check(date.Contains("day 14"), "and a date keeps its day", date);
         }
@@ -1211,7 +1211,7 @@ namespace Ledger.CoreTests
             Check(e8.CrewOf("josip") != null && josip8.Loyalty > 0.7,
                 "empire: a loyal crew member reports the poach instead");
 
-            // The cut, paid daily (§6.5): generosity buys loyalty at $15/day;
+            // The cut, paid daily (§6.5): generosity buys loyalty at £15/day;
             // skimming their envelope is free money on a fuse they can hear.
             var (eC, mC, _c, josipC) = Build(0.5, 0.4);
             josipC.Loyalty = 0.5;
@@ -2026,11 +2026,11 @@ namespace Ledger.CoreTests
         {
             var ctx = new IntentContext { SpeakingTo = "Rocco", Scene = "the bar, after close" };
             ctx.KnownPeople.AddRange(new[] { "Rocco", "Lena", "Sera Kest" });
-            ctx.Verbs.Add(new VerbSpec("pay_off", "pay them to keep quiet", "costs $120 dirty")
+            ctx.Verbs.Add(new VerbSpec("pay_off", "pay them to keep quiet", "costs £120 dirty")
                 .WithLexical("pay them off", "pay him off", "buy their silence"));
             ctx.Verbs.Add(new VerbSpec("lean_on", "threaten them into silence")
                 .WithLexical("lean on", "threaten"));
-            ctx.Verbs.Add(new VerbSpec("collect_debt", "collect what they owe", "$80 outstanding")
+            ctx.Verbs.Add(new VerbSpec("collect_debt", "collect what they owe", "£80 outstanding")
                 .WithLexical("collect", "collect the debt"));
             ctx.Verbs.Add(new VerbSpec("set_cut", "change what a crew member keeps")
                 .WithArg("policy", "fair", "generous", "skim")
@@ -2552,7 +2552,7 @@ namespace Ledger.CoreTests
             {
                 Kind = IntentKind.Novel, Check = Checks.Cash, CheckAmount = 400, Effect = Effects.StandingUp,
             }, state);
-            Check(!cantAfford.Passed && cantAfford.Reason.Contains("$200"), "an unaffordable cost fails and says why");
+            Check(!cantAfford.Passed && cantAfford.Reason.Contains("£200"), "an unaffordable cost fails and says why");
 
             var capped = Adjudicator.Resolve(new Intent
             {
@@ -2796,7 +2796,7 @@ namespace Ledger.CoreTests
             // was every week before this one.
             var poor = new Wallet(50);
             Check(!lost.MakeAmends(mirek, poor, new GameTime(41, 9, 0), out var refusedLine)
-                  && refusedLine.Contains("$"),
+                  && refusedLine.Contains("£"),
                 "you cannot fix it without the money, and he names the figure");
             var flush = new Wallet(100000);
             Check(lost.MakeAmends(mirek, flush, new GameTime(41, 9, 0), out var fixedLine) && !mirek.Refusing,
@@ -4603,7 +4603,7 @@ namespace Ledger.CoreTests
             var close = Doors.Try(gate, almostPaid);
             Check(!close.Allowed && close.Nearest.Kind == KeyKind.Payment,
                 "the hint names the way in you came closest to", close.Nearest.Kind.ToString());
-            Check(close.Hint.Contains("$60") && close.Hint.Contains("$58"),
+            Check(close.Hint.Contains("£60") && close.Hint.Contains("£58"),
                 "and says the figure and what you actually have", close.Hint);
 
             var almostStanding = new AccessState { Dress = "coat", Money = 0, Hour = 21 };

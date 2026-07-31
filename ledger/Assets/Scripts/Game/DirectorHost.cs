@@ -84,15 +84,15 @@ namespace Ledger.Game
             foreach (var c in Empire.ActiveCrew)
                 if (c.Cut == "skim") w.Ignored.Add($"{c.Name} has been on a skimmed cut since day {c.RecruitedDay}");
             foreach (var d in Debts.All)
-                if (d.Outstanding) w.Ignored.Add($"{d.Name} still owes Mickey's book ${d.Amount}");
+                if (d.Outstanding) w.Ignored.Add($"{d.Name} still owes Mickey's book £{d.Amount}");
             int unhandled = Knowledge.Entries.Count(k => !k.Handled);
             if (unhandled > 0) w.Ignored.Add($"{unhandled} stories about the player are in the street and unanswered");
             foreach (var d in Demands)
-                w.Ignored.Add($"{d.Who} asked for ${d.Amount} by day {d.DueDay} and has not had it");
+                w.Ignored.Add($"{d.Who} asked for £{d.Amount} by day {d.DueDay} and has not had it");
 
             // What just happened.
-            if (LastTakings >= 0) w.Recent.Add($"the bar took ${LastTakings} yesterday");
-            if (Empire.TotalRacketIncome > 0) w.Recent.Add($"the rounds have brought in ${Empire.TotalRacketIncome} in total");
+            if (LastTakings >= 0) w.Recent.Add($"the bar took £{LastTakings} yesterday");
+            if (Empire.TotalRacketIncome > 0) w.Recent.Add($"the rounds have brought in £{Empire.TotalRacketIncome} in total");
             foreach (var a in Empire.Arms)
                 if (a.Stage > 0) w.Recent.Add($"{a.HeadName}'s people are at stage {a.Stage} of taking an interest");
             foreach (var line in Directorate.History.Skip(System.Math.Max(0, Directorate.History.Count - 3)))
@@ -122,7 +122,7 @@ namespace Ledger.Game
             if (crew != null && crew.Cut == "skim") return "has been skimmed on every envelope";
             if (crew != null && crew.Cut == "generous") return "has been paid better than the work is worth";
             var debt = Debts.Of(name);
-            if (debt != null && debt.Outstanding) return $"owes the book ${debt.Amount}";
+            if (debt != null && debt.Outstanding) return $"owes the book £{debt.Amount}";
             var biz = Empire.Businesses.FirstOrDefault(b => b.OwnerId == name && b.Owned);
             if (biz != null) return $"lost the {biz.Name} to the player and still runs the counter";
             return null;
@@ -280,7 +280,7 @@ namespace Ledger.Game
                 if (g == null) continue;
                 g.Loyalty = Mathf.Clamp01((float)(g.Loyalty - 0.2));
                 g.Memory.Append(new MemoryEvent(Now, "observation", 0.85,
-                    $"I asked for ${d.Amount}. The day came and went and I did not get it, and nothing was said about it."));
+                    $"I asked for £{d.Amount}. The day came and went and I did not get it, and nothing was said about it."));
                 _ui?.Toast($"{d.Who} stopped asking. That is not the same as letting it go.", 11f);
                 Directorate.History.Add($"{d.Who}'s asking went unanswered.");
             }
@@ -331,7 +331,7 @@ namespace Ledger.Game
             if (d == null) return false;
             if (!Wallet.Spend(d.Amount, dirtyOk: true))
             {
-                line = $"{who} named ${d.Amount}. You do not have it, and you both know it.";
+                line = $"{who} named £{d.Amount}. You do not have it, and you both know it.";
                 return false;
             }
             Demands.Remove(d);
@@ -340,10 +340,10 @@ namespace Ledger.Game
             {
                 g.Loyalty = Mathf.Clamp01((float)(g.Loyalty + 0.15));
                 g.Memory.Append(new MemoryEvent(Now, "observation", 0.8,
-                    $"I asked for ${d.Amount} and it was there when I asked. That is not nothing."));
+                    $"I asked for £{d.Amount} and it was there when I asked. That is not nothing."));
             }
             Audio.Ui("coin");
-            line = $"${d.Amount}, counted out where {who} can see it. Nobody says thank you, and it still counts.";
+            line = $"£{d.Amount}, counted out where {who} can see it. Nobody says thank you, and it still counts.";
             return true;
         }
     }

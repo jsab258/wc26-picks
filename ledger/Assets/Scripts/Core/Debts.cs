@@ -42,8 +42,8 @@ namespace Ledger.Core
             if (g.Loyalty >= 0.5)
             {
                 // Willing is not the same as able. Without a purse book this is
-                // the old behaviour exactly; with one, a man who turns over $90
-                // a week cannot produce $400 because you asked nicely.
+                // the old behaviour exactly; with one, a man who turns over £90
+                // a week cannot produce £400 because you asked nicely.
                 int paid = Amount;
                 if (purses != null)
                 {
@@ -57,7 +57,7 @@ namespace Ledger.Core
                 {
                     // Willing and empty. That is a beg, and it is a truthful one.
                     g.Memory.Append(new MemoryEvent(now, "conversation", 0.55,
-                        $"The new owner came for Mickey's ${Amount} and I had nothing to give them. " +
+                        $"The new owner came for Mickey's £{Amount} and I had nothing to give them. " +
                         "I have never been so glad of a drawer nobody can argue with."));
                     return CollectOutcome.Begged;
                 }
@@ -70,21 +70,21 @@ namespace Ledger.Core
                     // them earns you. They stood there and counted it out.
                     g.Loyalty = Math.Clamp(g.Loyalty - 0.09, 0, 1);
                     g.Memory.Append(new MemoryEvent(now, "conversation", 0.7,
-                        $"Gave the new owner every coin in the place — ${paid} — against Mickey's book. " +
-                        $"Still ${Amount} short and they know where I live."));
+                        $"Gave the new owner every coin in the place — £{paid} — against Mickey's book. " +
+                        $"Still £{Amount} short and they know where I live."));
                     return CollectOutcome.PaidPart;
                 }
 
                 Collected = true;
                 g.Loyalty = Math.Clamp(g.Loyalty - 0.05, 0, 1);
                 g.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
-                    $"Paid the new owner what I owed Mickey. ${paid}. It stung, but fair is fair."));
+                    $"Paid the new owner what I owed Mickey. £{paid}. It stung, but fair is fair."));
                 return CollectOutcome.Paid;
             }
             if (g.Nerve <= 0.5)
             {
                 g.Memory.Append(new MemoryEvent(now, "conversation", 0.5,
-                    $"The new owner asked about Mickey's ${Amount}. I begged a day. I don't have it."));
+                    $"The new owner asked about Mickey's £{Amount}. I begged a day. I don't have it."));
                 return CollectOutcome.Begged;
             }
             g.Loyalty = Math.Clamp(g.Loyalty - 0.1, 0, 1);
@@ -107,7 +107,7 @@ namespace Ledger.Core
             Forgiven = true;
             g.Loyalty = Math.Clamp(g.Loyalty + 0.15, 0, 1);
             g.Memory.Append(new MemoryEvent(now, "conversation", 0.8,
-                $"The new owner tore my page out of Mickey's book. ${Amount}, gone like that. I won't forget it."));
+                $"The new owner tore my page out of Mickey's book. £{Amount}, gone like that. I won't forget it."));
             return true;
         }
 

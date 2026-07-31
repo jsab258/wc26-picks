@@ -66,7 +66,7 @@ namespace Ledger.Core
                 {
                     int cost = Math.Min(amount, MaxNovelCost);
                     if (state.Clean < cost)
-                        return Adjudication.Fail($"that takes ${cost} clean, and you have ${state.Clean}");
+                        return Adjudication.Fail($"that takes £{cost} clean, and you have £{state.Clean}");
                     return Pass(intent, cost, dirty: false);
                 }
 
@@ -74,7 +74,7 @@ namespace Ledger.Core
                 {
                     int cost = Math.Min(amount, MaxNovelCost);
                     if (state.Dirty < cost)
-                        return Adjudication.Fail($"that takes ${cost} you can't be seen with, and you have ${state.Dirty}");
+                        return Adjudication.Fail($"that takes £{cost} you can't be seen with, and you have £{state.Dirty}");
                     return Pass(intent, cost, dirty: true);
                 }
 

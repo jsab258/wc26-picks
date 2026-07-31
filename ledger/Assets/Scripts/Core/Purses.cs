@@ -7,8 +7,8 @@ namespace Ledger.Core
     ///
     /// The living economy made the district's money finite in one direction —
     /// squeeze the street, the street gets poorer, your bar takes less. But
-    /// every counterparty still had infinite pockets: Rita owed $180 and
-    /// produced $180 on demand, out of a starving street, in one movement. That
+    /// every counterparty still had infinite pockets: Rita owed £180 and
+    /// produced £180 on demand, out of a starving street, in one movement. That
     /// is a payout table wearing a person's face.
     ///
     /// A purse is what somebody can lay hands on TODAY. Not their wealth, not
@@ -106,7 +106,7 @@ namespace Ledger.Core
             var existing = Of(id);
             if (existing != null) return existing;
             double h = Population.StableFraction(id ?? "nobody");
-            int weekly = 35 + (int)Math.Round(h * 130);          // $35..$165 a week
+            int weekly = 35 + (int)Math.Round(h * 130);          // £35..£165 a week
             var p = new Purse
             {
                 OwnerId = id,
@@ -158,7 +158,7 @@ namespace Ledger.Core
             if (paid == 0)
                 result.Line = $"{p.Name} turns the drawer round so you can see into it. There is nothing in it.";
             else if (result.Short > 0)
-                result.Line = $"{p.Name} counts out everything there is and it comes to ${paid}. " +
+                result.Line = $"{p.Name} counts out everything there is and it comes to £{paid}. " +
                               "You can see there is no more, because they wanted you to see it.";
             return result;
         }

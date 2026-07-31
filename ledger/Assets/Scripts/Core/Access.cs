@@ -298,7 +298,7 @@ namespace Ledger.Core
                         ? "You would not be recognised so easily with the coat on."
                         : "The coat is the problem. In there, it is the wrong thing to be wearing.";
                 case KeyKind.Payment:
-                    return $"It would take ${k.Amount}, and you have ${s.Money}.";
+                    return $"It would take £{k.Amount}, and you have £{s.Money}.";
                 case KeyKind.After:
                     return $"Not this early. Come back {HourWord(k.Amount)}, when it is dark enough.";
                 case KeyKind.Before:
