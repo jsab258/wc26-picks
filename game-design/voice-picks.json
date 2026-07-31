@@ -2,6 +2,7 @@
   "made": "2026-07-31",
   "by": "Jafar",
   "corpus": "vctk",
+  "complete": true,
   "picks": {
     "ada": {
       "candidate": 2,
@@ -9,11 +10,23 @@
       "age": "24",
       "accent": "English"
     },
+    "crowd_f1": {
+      "candidate": 1,
+      "speaker": "p266",
+      "age": "22",
+      "accent": "Irish"
+    },
     "crowd_f2": {
       "candidate": 1,
       "speaker": "p265",
       "age": "23",
       "accent": "Scottish"
+    },
+    "crowd_f3": {
+      "candidate": 3,
+      "speaker": "p288",
+      "age": "22",
+      "accent": "Irish"
     },
     "crowd_m1": {
       "candidate": 2,
@@ -26,6 +39,12 @@
       "speaker": "p272",
       "age": "23",
       "accent": "Scottish"
+    },
+    "crowd_m3": {
+      "candidate": 4,
+      "speaker": "p292",
+      "age": "23",
+      "accent": "NorthernIrish"
     },
     "ellis": {
       "candidate": 4,
