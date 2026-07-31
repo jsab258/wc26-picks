@@ -40,6 +40,36 @@ on:
         default: ""
 
 jobs:
+  # THE PAGE IS A DELIVERABLE, SO IT GETS OPENED. Jafar reported "nothing
+  # happens when I click copy picks", and no amount of re-reading the Python
+  # that writes the HTML would have found it: the page had no viewport tag, no
+  # picking UI, a fixed bar sitting on top of the last controls, a row that
+  # cast a vote when you pressed PLAY, and — the one that killed everything —
+  # a `\n` inside a non-raw string that Python turned into a real newline,
+  # leaving the browser an unterminated literal and every control inert.
+  #
+  # Six faults, all of them invisible from the generator, all of them found in
+  # the first sixty seconds of actually loading the page at phone size. It
+  # needs no network and no corpus, so it runs on every push.
+  page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/game-dev-ai-automation-2h67ix
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install a browser
+        run: |
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+      - name: Open the listening page on a phone
+        run: |
+          cd tools/voice-fetch
+          python page_check.py
+
   # TWO MINUTES, AND IT RUNS FIRST. Run 7 streamed for forty-five minutes,
   # exited zero and banked nothing — and the one line naming the reason sat in
   # a log the API returns only the tail of. Debugging that with forty-five

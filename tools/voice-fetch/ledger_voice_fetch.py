@@ -1096,8 +1096,17 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
                         del w["banked"][speaker]
                         claimed.pop(speaker, None)
                         break
+                    # AGE AND ACCENT TRAVEL WITH THE CLIP. Age stopped being
+                    # a filter, which means the listener is now the one
+                    # weighing it — and they cannot weigh what the page does
+                    # not show them. "Does this 24-year-old read as fifty?"
+                    # is a fair question and an answerable one, but only if
+                    # the number is on screen next to the play button.
                     w["done"].append((speaker, clip_, q,
-                                      age_gap(row.get("age"), w["spec"].get("age"))))
+                                      age_gap(row.get("age"), w["spec"].get("age")),
+                                      str(row.get("age") or "?")[:12],
+                                      str(row.get("accent")
+                                          or row.get("accents") or "?")[:20]))
                     del w["banked"][speaker]
                 break   # one character per row; sharing a voice defeats casting
 
@@ -1110,11 +1119,12 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
         # recording measured. Age lost its veto (see `age_gap`) but it keeps
         # its vote, and it votes here.
         ranked = sorted(w["done"], key=lambda d: (d[3], -d[2]))
-        for i, (speaker, samples, _q, _gap) in enumerate(ranked[:candidates], 1):
+        for i, (speaker, samples, _q, gap, age, acc) in enumerate(ranked[:candidates], 1):
             p = out_dir / cid / f"candidate-{i:02d}.wav"
             write_wav(p, samples)
             files.append(dict(n=i, file=f"{cid}/candidate-{i:02d}.wav",
-                              speaker=str(speaker)[:12],
+                              speaker=str(speaker)[:12], age=age, accent=acc,
+                              onbrief=(gap == 0),
                               seconds=round(len(samples) / float(SAMPLE_RATE), 1)))
         made[cid] = files
 
@@ -1146,14 +1156,43 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
 # ---------------------------------------------------------------------------
 
 def build_page(cast, made, out_dir, source):
+    """The listening page — and it is a MOBILE page, because that is where the
+    listening actually happens.
+
+    TWO THINGS WERE WRONG WITH THE OLD ONE AND BOTH WERE INVISIBLE FROM HERE.
+
+    It had no viewport meta tag, so a phone rendered it at desktop width and
+    every control came out a third of the size of a fingertip. And it had no
+    picking UI at all — it printed "write `lena 3` in picks.txt", which is an
+    instruction you cannot follow on a phone. Jafar reported clicking "copy
+    picks" and nothing happening; there was no such button on this page to
+    click, and the one he had was from a throwaway I never folded back in.
+
+    So: radio buttons big enough to hit, picks kept in localStorage so a
+    reload on a train does not lose an hour of listening, and a copy control
+    that CANNOT silently fail — `navigator.clipboard` needs a secure context
+    and quietly rejects without one, which is precisely what "nothing happens"
+    looks like. It tries the clipboard, falls back to execCommand, and either
+    way leaves the text visible and selectable with the result said out loud.
+    """
+    picked_total = sum(len(v) for v in made.values())
     short = [c["id"] for c in cast if len(made.get(c["id"], [])) == 0]
     rows = []
     for c in cast:
         files = made.get(c["id"], [])
         players = "".join(
-            f'<div class=cand><span class=n>{f["n"]}</span>'
+            # THE AUDIO IS NOT INSIDE THE LABEL. It was, and a label
+            # activates from anywhere inside it — so tapping PLAY would have
+            # cast the vote, and every candidate you listened to would have
+            # selected itself in passing. The label now wraps the radio and
+            # its number only; the play control is a sibling.
+            f'<div class="cand{" on" if f.get("onbrief") else ""}">'
+            f'<label class=pickbox>'
+            f'<input type=radio name="pick-{c["id"]}" value="{f["n"]}">'
+            f'<span class=n>{f["n"]}</span></label>'
             f'<audio controls preload=none src="{f["file"]}"></audio>'
-            f'<span class=meta>{f["seconds"]}s</span></div>'
+            f'<span class=meta>{f["seconds"]}s &middot; age {f.get("age", "?")}'
+            f' &middot; {f.get("accent", "?")}</span></div>'
             for f in files)
         if not players:
             players = ('<p class=none>Nothing matched this brief in the rows '
@@ -1164,7 +1203,7 @@ def build_page(cast, made, out_dir, source):
     <h2>{c['name']} <code>{c['id']}</code></h2>
     <p class=brief>{brief_of(c)}</p>
     {players}
-    <p class=pick>Winner → write <code>{c['id']} N</code> in picks.txt</p>
+    <button class=clear type=button data-clear="{c['id']}">clear</button>
   </section>""")
 
     warn = ""
@@ -1173,40 +1212,187 @@ def build_page(cast, made, out_dir, source):
                 f"<code>{', '.join(short)}</code>. That is reported rather than "
                 f"quietly skipped.</p>")
 
-    html = f"""<!doctype html><meta charset=utf-8>
-<title>LEDGER — voice casting</title>
+    # RAW. The page carries JavaScript, and JavaScript carries backslashes:
+    # `join('\n')` in a normal triple-quoted string is parsed by PYTHON
+    # first, which turns it into a real newline and leaves the browser an
+    # unterminated string literal. The page then died on load with "Invalid
+    # or unexpected token" and every control on it did nothing — which is
+    # exactly the symptom that started this.
+    html = r"""<!doctype html><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>LEDGER - voice casting</title>
 <style>
- body {{ font: 16px/1.5 system-ui, sans-serif; max-width: 62rem; margin: 2rem auto;
-        padding: 0 1rem; background:#12100e; color:#e8e2d8; }}
- h1 {{ letter-spacing:.3em; font-weight:400; }}
- h2 {{ margin:0 0 .3rem; font-weight:500; }}
- code {{ color:#c9a227; }}
- section {{ border-top:1px solid #2c2822; padding:1.4rem 0; }}
- .brief {{ color:#b6ada0; margin:.2rem 0 1rem; }}
- .cand {{ display:flex; align-items:center; gap:.7rem; margin:.35rem 0; }}
- .n {{ width:1.6rem; text-align:right; color:#c9a227; }}
- .meta {{ color:#6d675e; font-size:.85rem; }}
- .pick {{ color:#6d675e; font-size:.9rem; margin:.7rem 0 0; }}
- .none, .warn {{ color:#c98b27; }}
- .how {{ background:#1a1714; padding:1rem 1.2rem; border-left:3px solid #c9a227; }}
+ :root { color-scheme: dark; }
+ /* CONTENT-BOX IS WHY THE PAGE SCROLLED SIDEWAYS. `.meta` is flex-basis
+    100% with a left indent, and under the default box model the indent is
+    added to the 100% rather than taken out of it — 394px inside a 390px
+    phone. One line, and the whole page stops overflowing. */
+ *, *::before, *::after { box-sizing: border-box; }
+ /* The bottom padding is set from the bar's real height by script; 7rem is
+    only the value before that runs. A FIXED BAR COVERS WHATEVER IS UNDER IT,
+    and this one grows when the text panel opens — driving the page in a
+    390px browser, the last character's controls were genuinely unclickable
+    because the bar was sitting on top of them. */
+ body { font: 16px/1.5 system-ui, -apple-system, sans-serif; max-width: 62rem;
+        margin: 0 auto; padding: 1.2rem 1rem 7rem; background:#12100e; color:#e8e2d8; }
+ h1 { letter-spacing:.3em; font-weight:400; font-size:1.4rem; }
+ h2 { margin:0 0 .3rem; font-weight:500; font-size:1.1rem; }
+ code { color:#c9a227; }
+ section { border-top:1px solid #2c2822; padding:1.2rem 0; }
+ .brief { color:#b6ada0; margin:.2rem 0 1rem; font-size:.95rem; }
+ /* A LABEL, NOT A DIV, so the whole row is the tap target and the radio is
+    not a 12px dot somebody has to aim at on a moving train. */
+ .cand { display:flex; align-items:center; gap:.6rem; margin:.3rem 0;
+         padding:.55rem .6rem; border-radius:.4rem; min-height:2.9rem;
+         background:#191612; border:1px solid transparent; cursor:pointer;
+         flex-wrap:wrap; }
+ .cand:has(input:checked) { border-color:#c9a227; background:#221d15; }
+ /* The tap target is the label, so it gets the padding rather than the
+    radio: a 12px dot is not something to aim at on a moving train. */
+ .pickbox { display:flex; align-items:center; gap:.5rem; flex:none;
+            padding:.5rem .4rem; margin:-.5rem 0; cursor:pointer; }
+ .cand input { width:1.35rem; height:1.35rem; accent-color:#c9a227; flex:none; }
+ .cand audio { flex:1 1 14rem; min-width:0; height:2.2rem; }
+ .n { width:1.5rem; text-align:right; color:#c9a227; flex:none; }
+ .meta { color:#6d675e; font-size:.8rem; flex:1 0 100%; padding-left:3.6rem; }
+ /* On the brief's own decade. Age no longer filters, so this is the only
+    thing that still says which candidates the brief actually asked for. */
+ .cand.on .n::after { content:"\2022"; color:#7ea36b; margin-left:.25rem; }
+ .none, .warn { color:#c98b27; }
+ .how { background:#1a1714; padding:1rem 1.2rem; border-left:3px solid #c9a227;
+        font-size:.95rem; }
+ .clear { background:none; border:1px solid #3a352d; color:#6d675e;
+          padding:.3rem .7rem; border-radius:.3rem; font-size:.8rem;
+          margin-top:.5rem; }
+ #bar { position:fixed; left:0; right:0; bottom:0; background:#1a1714;
+        border-top:1px solid #3a352d; padding:.7rem 1rem;
+        display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; }
+ #bar button { background:#c9a227; border:0; color:#12100e; font-weight:600;
+               padding:.7rem 1.1rem; border-radius:.4rem; font-size:1rem; }
+ #count { color:#b6ada0; font-size:.9rem; }
+ #said { color:#7ea36b; font-size:.9rem; }
+ #out { width:100%; min-height:5rem; background:#12100e; color:#e8e2d8;
+        border:1px solid #3a352d; border-radius:.4rem; padding:.6rem;
+        font-family:ui-monospace,monospace; font-size:.9rem; }
+ details { margin-top:.6rem; width:100%; }
 </style>
 <h1>L E D G E R</h1>
-<p>Voice casting — {sum(len(v) for v in made.values())} candidates from
-<b>{source}</b>.</p>
-{warn}
+<p>Voice casting &mdash; __TOTAL__ candidates from <b>__SOURCE__</b>.</p>
+__WARN__
 <div class=how>
-<p><b>What to do.</b> Play the candidates under each brief. Judge against the
-brief, not against which voice is nicest — whatever clip we hand the cloner
-BECOMES the character.</p>
-<p>Open <code>picks.txt</code> next to this page and write one line per
-character: <code>lena 3</code>. Skip any you are unsure about; you can run
-this again.</p>
-<p>Then: <code>python ledger_voice_fetch.py --install</code></p>
-<p>Direction is a parameter, not a second clip — the cloner's exaggeration
-control does moods, so one clip per character is the whole ask.</p>
+<p><b>What to do.</b> Play the candidates under each brief and tap the one you
+want. Judge against the brief, not against which voice is nicest &mdash;
+whatever clip we hand the cloner BECOMES the character.</p>
+<p><b>Age is a preference now, not a filter.</b> A green dot marks the
+candidates in the decade the brief asked for; everyone else is still on the
+page because a young voice can read older and the only way to know is to
+listen. The age shown is the speaker's real one.</p>
+<p>Picks are kept on this device as you go, so you can close this and come
+back. When you are done, hit <b>Copy picks</b> at the bottom and send them
+over.</p>
 </div>
-{''.join(rows)}
+__ROWS__
+<div id=bar>
+  <button type=button id=copy>Copy picks</button>
+  <span id=count></span><span id=said></span>
+  <details><summary>show / edit the text</summary>
+    <textarea id=out readonly></textarea>
+  </details>
+</div>
+<script>
+(function () {
+  var KEY = 'ledger-voice-picks';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { saved = {}; }
+
+  // Restore before wiring, so restoring does not fire the change handler
+  // once per character and write the same thing back nineteen times.
+  Object.keys(saved).forEach(function (id) {
+    var el = document.querySelector('input[name="pick-' + id + '"][value="' + saved[id] + '"]');
+    if (el) el.checked = true;
+  });
+
+  function text() {
+    return Object.keys(saved).sort().map(function (id) {
+      return id + ' ' + saved[id];
+    }).join('\n');
+  }
+  function refresh() {
+    var n = Object.keys(saved).length;
+    document.getElementById('count').textContent = n + ' picked';
+    document.getElementById('out').value = text();
+    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+  }
+
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (!t.name || t.name.indexOf('pick-') !== 0) return;
+    saved[t.name.slice(5)] = t.value;
+    refresh();
+  });
+  document.addEventListener('click', function (ev) {
+    var id = ev.target.getAttribute && ev.target.getAttribute('data-clear');
+    if (!id) return;
+    delete saved[id];
+    var el = document.querySelector('input[name="pick-' + id + '"]:checked');
+    if (el) el.checked = false;
+    refresh();
+  });
+
+  // ONE AUDIO AT A TIME. Two clips playing over each other is not a
+  // comparison, and on a phone the second one is usually an accident.
+  document.addEventListener('play', function (ev) {
+    var all = document.getElementsByTagName('audio');
+    for (var i = 0; i < all.length; i++) if (all[i] !== ev.target) all[i].pause();
+  }, true);
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var said = document.getElementById('said');
+    var body = text();
+    if (!body) { said.textContent = 'nothing picked yet'; return; }
+    var box = document.getElementById('out');
+    box.closest('details').open = true;
+
+    function manual() {
+      // LAST RESORT THAT STILL WORKS. Selecting the text means the OS copy
+      // affordance is one long-press away even when both APIs are refused,
+      // which beats a button that does nothing and says nothing.
+      box.removeAttribute('readonly');
+      box.focus(); box.setSelectionRange(0, body.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      box.setAttribute('readonly', 'readonly');
+      said.textContent = ok ? 'copied' : 'select the text above and copy it';
+    }
+    // navigator.clipboard is undefined outside a secure context and its
+    // promise rejects without one. Unhandled, that is exactly "I clicked
+    // copy picks and nothing happened".
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(body).then(function () {
+        said.textContent = 'copied';
+      }, manual);
+    } else { manual(); }
+  });
+
+  // KEEP THE BAR OFF THE CONTENT. Measured rather than guessed, and
+  // re-measured when the text panel opens, which is when it doubles in
+  // height and swallows the last section.
+  var bar = document.getElementById('bar');
+  function pad() {
+    document.body.style.paddingBottom = (bar.offsetHeight + 24) + 'px';
+  }
+  document.querySelector('#bar details').addEventListener('toggle', pad);
+  window.addEventListener('resize', pad);
+
+  refresh();
+  pad();
+})();
+</script>
 """
+    html = (html.replace("__TOTAL__", str(picked_total))
+                .replace("__SOURCE__", str(source))
+                .replace("__WARN__", warn)
+                .replace("__ROWS__", "".join(rows)))
     (out_dir / "listen.html").write_text(html, encoding="utf-8")
 
     if not PICKS.exists():
