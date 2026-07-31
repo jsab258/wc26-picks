@@ -1488,6 +1488,11 @@ namespace Ledger.Game
         string _provThread = "none";
         double _provThreadRisk;
         bool _provEllisAsking;
+        /// How empty the emptiest place the run could find actually was. Zero
+        /// is what the accident and disposal claims need; anything else is a
+        /// fact about the world rather than about the code.
+        int _emptyWatchers = -1;
+        bool _bloodStaged;
 
         /// PHASE 2's REMAINDER — the ghost, retelling, comparing notes.
         double _retellMinutes;
@@ -1994,10 +1999,25 @@ namespace Ledger.Game
             EvidenceHost.Used(unseenBlade, "killed", "a man on Copper Row");
             _provUsedShowsInHistory = seenBlade != null && seenBlade.UsedInAKilling;
 
-            // Where people are, and where they are not. Found by measuring
-            // rather than authored, exactly as the §4.7 places are.
-            Vector3 crowded = _player.transform.position, empty = _player.transform.position;
-            int most = -1; float furthest = -1f;
+            // WHERE PEOPLE ARE, AND WHERE THEY GENUINELY ARE NOT.
+            //
+            // The first version took the emptiest WALKER'S POSITION as the
+            // unwatched spot, and both disposals came back `seen=True`. Of
+            // course they did: somebody is standing at a walker's position —
+            // the walker. `SomebodyWatching` iterates every npc and that one is
+            // at distance zero with a clear line.
+            //
+            // Exactly the fault `Witnesses.Resolve` had with the victim, twelve
+            // hours apart and in a different file: a position derived FROM a
+            // person, then tested against everybody INCLUDING that person. The
+            // accident gate failed for the same reason, and worse — it uses the
+            // 40m detect range rather than disposal's 18m, so an empty spot has
+            // to be genuinely empty rather than merely quiet.
+            //
+            // So the quiet spot is now searched for and MEASURED rather than
+            // borrowed, and the run prints how empty it managed to get.
+            Vector3 crowded = _player.transform.position;
+            int most = -1;
             if (_npcs != null)
                 foreach (var n in _npcs)
                 {
@@ -2008,9 +2028,9 @@ namespace Ledger.Game
                             && Vector3.Distance(o.transform.position, n.transform.position)
                                < Perception.Rung2MarkMetres) near++;
                     if (near > most) { most = near; crowded = n.transform.position; }
-                    float lonely = Vector3.Distance(n.transform.position, _player.transform.position);
-                    if (near == 0 && lonely > furthest) { furthest = lonely; empty = n.transform.position; }
                 }
+            int emptyWatchers;
+            Vector3 empty = QuietSpot(out emptyWatchers);
 
             bool seenA = EvidenceHost.Dispose(seenBlade, "the canal", crowded, _npcs);
             bool seenB = EvidenceHost.Dispose(unseenBlade, "the canal", empty, _npcs);
@@ -2033,6 +2053,9 @@ namespace Ledger.Game
             _provEllisAsking = EvidenceHost.EllisIsAskingAboutYou(
                 _game.Homicides, _game.Gossip != null ? _game.Gossip.Mill : null);
 
+            _emptyWatchers = emptyWatchers;
+            Debug.Log($"SimDirector: quiet spot has {emptyWatchers} watcher(s) within "
+                      + $"{Perception.DetectRangeMetres:0}m — {(emptyWatchers == 0 ? "genuinely empty" : "the world had nowhere emptier")}");
             Debug.Log($"SimDirector: provenance — bought {_provBought:0.00} stolen {_provStolen:0.00} "
                       + $"taken {_provTaken:0.00} inherited {_provInherited:0.00} "
                       + $"ordinary {_provOrdinary:0.00} (stayed ordinary={_provOrdinaryStayedOrdinary}); "
@@ -2125,6 +2148,34 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: frisk — refusing a doorman is {_friskRefusalCost}; "
                           + $"a constable found {_friskFound:0.00} costing {_friskCost:0.00} "
                           + $"at heat {heat:0.00}; groundless search happened={_friskGroundlessHappened}");
+            }
+
+            // ---- and one act that actually bleeds ----
+            //
+            // THE BLOOD GATE FAILED WITH `taken=0` AND THE WEAPON IS WHY.
+            // Every staged act used a cosh, and `cosh.MarksYou` is FALSE —
+            // "firearms, the cosh and an accident do not mark you, which is
+            // most of the reason to choose them", says the file that defines
+            // it. So the gate asserted blood from the one object picked
+            // precisely because it leaves none, and it could never have passed.
+            //
+            // A razor instead, and NON-LETHAL, which is the more interesting
+            // half anyway: the target survives, so `Reaction.AsVictim` returns
+            // a real account and `IsFleeingVictim` fires — the most dangerous
+            // witness in the game, walking somewhere with a story. The §4.7
+            // places staging keeps the cosh, because those three have to be
+            // the same act as each other and that gate passes.
+            if (!_bloodStaged && nearestForThreat != null)
+            {
+                _bloodStaged = true;
+                var razor = Arsenal.Get("razor");
+                var cut = ViolenceHost.Commit(razor, _player.transform, nearestForThreat,
+                                              "sim-cut", lethal: false, now: now,
+                                              harm: _game.Harm, familiarityWithActor: 0.2);
+                Debug.Log($"SimDirector: cut {nearestForThreat.DisplayName} with a razor — "
+                          + $"marked={cut?.MarkedYou} fleeing={cut?.VictimIsFleeing} "
+                          + $"saw={cut?.SawSomething} looksLike="
+                          + $"{ViolenceHost.VictimLooksLike(_game.Harm, nearestForThreat.DisplayName, now.Day)}");
             }
 
             // ---- the threat ----
@@ -2243,6 +2294,51 @@ namespace Ledger.Game
             Debug.Log($"SimDirector: §4.7 places — alley={_placesAlley} (open {alleyOpen}), "
                       + $"market={_placesMarket} (open {marketOpen}), "
                       + $"enclosed={_placesEnclosed} (blocked {enclosedBlocked}) — {_placesWhy}");
+        }
+
+        /// A place nobody can see, found by looking rather than assumed.
+        ///
+        /// Walks outward from the crowd's centre and returns the first point
+        /// with NOBODY inside `Perception.DetectRangeMetres` with a clear line
+        /// — the wider of the two radii this is used for, so a spot that passes
+        /// here also passes the disposal test at eighteen metres.
+        ///
+        /// Reports how many watchers the best candidate had. A world too small
+        /// or too busy to contain an empty spot is a finding about the world,
+        /// and the gate should say so rather than quietly asserting the design.
+        Vector3 QuietSpot(out int watchers)
+        {
+            watchers = int.MaxValue;
+            Vector3 best = _player != null ? _player.transform.position : Vector3.zero;
+            if (_npcs == null || _npcs.Length == 0) { watchers = 0; return best; }
+
+            Vector3 centre = Vector3.zero;
+            int n = 0;
+            foreach (var w in _npcs) { if (w != null) { centre += w.transform.position; n++; } }
+            if (n == 0) { watchers = 0; return best; }
+            centre /= n;
+
+            // Eight bearings, three distances. Cheap, and it beats one offset in
+            // a direction that might walk into the next street.
+            foreach (float radius in new[] { 45f, 80f, 130f })
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = i * Mathf.PI * 2f / 8f;
+                    var at = centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * radius;
+                    int seen = 0;
+                    foreach (var w in _npcs)
+                    {
+                        if (w == null) continue;
+                        if (Vector3.Distance(w.transform.position, at)
+                            > Perception.DetectRangeMetres) continue;
+                        if (Perceivers.Occluded(w.transform.position + Vector3.up * 1.6f,
+                                                at + Vector3.up * 1.0f)) continue;
+                        seen++;
+                    }
+                    if (seen < watchers) { watchers = seen; best = at; }
+                    if (watchers == 0) return best;
+                }
+            return best;
         }
 
         /// One killing, at this person, with the player standing beside them.
@@ -4160,7 +4256,8 @@ namespace Ledger.Game
                 ($"disposal[seen={_provDisposalSeen} risk={_provRiskSeen:0.00} "
                  + $"unseen={_provDisposalUnseen} risk={_provRiskUnseen:0.00} "
                  + $"disposals={EvidenceHost.Disposed} watched={EvidenceHost.DisposalsSeen} "
-                 + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking}]",
+                 + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking} "
+                 + $"quietSpotWatchers={_emptyWatchers}]",
                  _provenanceStaged && EvidenceHost.Disposed >= 2
                  && !_provDisposalUnseen && _provRiskSeen > _provRiskUnseen),
 
@@ -4186,7 +4283,8 @@ namespace Ledger.Game
                  + $"naming={Witnesses.NamingWitnesses()} assembles={_assemblingPairs}]",
                  Witnesses.Retellings > 0),
 
-                ($"accident[inCompany={_accidentInCompany} alone={_accidentAlone}]",
+                ($"accident[inCompany={_accidentInCompany} alone={_accidentAlone} "
+                 + $"quietSpotWatchers={_emptyWatchers}]",
                  _provenanceStaged && !_accidentInCompany && _accidentAlone),
 
                 ($"killings[acts={ViolenceHost.Acts} killings={ViolenceHost.Killings} "
