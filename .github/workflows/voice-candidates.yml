@@ -26,6 +26,12 @@ on:
       - ".github/workflows/voice-candidates.yml"
   workflow_dispatch:
     inputs:
+      skip_rows:
+        description: "Start this many rows in — the stretch a previous run already claimed"
+        default: "0"
+      minutes:
+        description: "Fetch budget in minutes"
+        default: "38"
       candidates:
         description: "How many voices to offer per character"
         required: false
@@ -133,7 +139,7 @@ jobs:
   candidates:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 130
     permissions:
       contents: write
     steps:
@@ -178,7 +184,9 @@ jobs:
       - name: Fetch candidates
         id: fetch
         working-directory: tools/voice-fetch
-        timeout-minutes: 45
+        # Room for a budget larger than the default; the script's own
+        # `--minutes` is what actually stops it.
+        timeout-minutes: 110
         continue-on-error: true
         run: |
           set -o pipefail
@@ -200,7 +208,9 @@ jobs:
           # was picked or fails saying why.
           SOURCE="${{ inputs.source }}"; SOURCE="${SOURCE:-vctk}"
           WHO="${{ inputs.who }}"
-          ARGS="--yes --candidates $CANDIDATES --minutes 38"
+          MINUTES="${{ inputs.minutes }}"; MINUTES="${MINUTES:-38}"
+          SKIP="${{ inputs.skip_rows }}"; SKIP="${SKIP:-0}"
+          ARGS="--yes --candidates $CANDIDATES --minutes $MINUTES --skip-rows $SKIP"
           if [ -n "$SOURCE" ]; then ARGS="$ARGS --source $SOURCE"; fi
           if [ -n "$WHO" ]; then ARGS="$ARGS --who $WHO"; fi
           echo "running: python ledger_voice_fetch.py $ARGS"

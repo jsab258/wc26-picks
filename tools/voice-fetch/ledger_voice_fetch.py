@@ -875,7 +875,7 @@ def diagnose(source, cast, rows=60):
     return 0
 
 
-def fetch(source, cast, candidates, out_dir, budget_minutes=0):
+def fetch(source, cast, candidates, out_dir, budget_minutes=0, skip_rows=0):
     """Stream a corpus and bank enough audio per speaker to make candidates.
 
     Streaming rather than downloading: Common Voice English is tens of
@@ -983,6 +983,19 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
             "  The Common Voice failures are printed above; send them to me.\n"
             "  To proceed anyway with ears-only filtering:\n"
             "      python ledger_voice_fetch.py --source libritts")
+
+    # START PAST THE GROUND ALREADY WALKED.
+    #
+    # A targeted run for three crowd voices scanned fifty thousand rows in its
+    # full thirty-eight minutes and banked nothing at all. Not a bug and not a
+    # corpus limit: VCTK is ordered by speaker, the previous run had claimed
+    # every speaker in the first fifty thousand rows, and the budget stops at
+    # the same place every time. The unclaimed voices live PAST where the
+    # clock runs out, so re-running reads the same exhausted stretch again and
+    # comes back empty again, for as long as anybody cares to repeat it.
+    if skip_rows > 0:
+        print(f"  skipping the first {skip_rows} rows — already picked over")
+        ds = ds.skip(skip_rows)
 
     claimed = {}          # speaker -> the character who owns them
 
@@ -1878,6 +1891,9 @@ def main():
     # WALL CLOCK, not rows. Three CI runs were killed by the job cap with
     # nothing to show, because the clips are written in one go at the end.
     # 0 disables it, which is right for a laptop nobody is billing.
+    ap.add_argument("--skip-rows", type=int, default=0, dest="skip_rows",
+                    help="start this many rows into the corpus — the stretch a "
+                         "previous run already claimed every speaker from")
     ap.add_argument("--minutes", type=int, default=0,
                     help="stop scanning after N minutes and write what is banked")
     ap.add_argument("--source", default="commonvoice",
@@ -1935,6 +1951,7 @@ def main():
         for name, value in (("--candidates", args.candidates),
                             ("--source", args.source),
                             ("--who", args.who),
+                            ("--skip-rows", args.skip_rows),
                             ("--minutes", args.minutes)):
             if value not in (None, "", 0):
                 cmd += [name, str(value)]
@@ -1951,7 +1968,8 @@ def main():
           f"{args.candidates} candidate(s) each")
     print("  this scans the corpus rather than downloading it; expect a few minutes\n")
     try:
-        made, used_source = fetch(args.source, cast, args.candidates, OUT, args.minutes)
+        made, used_source = fetch(args.source, cast, args.candidates, OUT,
+                                  args.minutes, args.skip_rows)
     except Exception as e:
         print(f"\n  fetch failed: {type(e).__name__}: {e}")
         if args.source == "commonvoice":
