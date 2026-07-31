@@ -729,6 +729,17 @@ def diagnose(source, cast, rows=60):
             continue                             # keep probing, but only measure the first
         opened_name = name
 
+        # STRIDE ACROSS SPEAKERS, do not read the first N rows.
+        #
+        # VCTK is ordered BY SPEAKER, roughly four hundred utterances each.
+        # Reading sixty consecutive rows read ONE PERSON — a 23-year-old
+        # English woman — and reported "18 of 19 characters match nothing",
+        # which I nearly read as a partial corpus. It was a sample that could
+        # not see past the first speaker in a corpus sorted by speaker.
+        #
+        # Skipping ahead between reads costs nothing on a streaming dataset
+        # and is the difference between measuring a corpus and measuring
+        # whoever happens to be first in it.
         it = iter(ds)
         seen = 0
         vocab = {"gender": set(), "age": set(), "accent": set()}
@@ -740,7 +751,20 @@ def diagnose(source, cast, rows=60):
         # cannot change it. VCTK proper has 110 speakers.
         speakers = set()
         per_character = {c["id"]: 0 for c in cast}
-        for row in [first] + [r for _, r in zip(range(rows - 1), it)]:
+        sampled = [first]
+        STRIDE = 97           # coprime with any plausible utterances-per-speaker
+        try:
+            skip = 0
+            for r in it:
+                skip += 1
+                if skip % STRIDE:
+                    continue
+                sampled.append(r)
+                if len(sampled) >= rows:
+                    break
+        except Exception:                        # noqa: BLE001 - short corpus
+            pass
+        for row in sampled:
             seen += 1
             g = (row.get("gender") or row.get("sex") or "")
             a = (row.get("age") or "")
