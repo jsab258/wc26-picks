@@ -1,0 +1,9 @@
+{
+ "family": "PT Sans",
+ "why": "ships static faces, and a dependable fallback",
+ "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptsans/PT_Sans-Web-Regular.ttf",
+ "installedAs": "LedgerSans.ttf",
+ "bytes": 442960,
+ "licence": "SIL Open Font License 1.1",
+ "licenceFileShipped": true
+}

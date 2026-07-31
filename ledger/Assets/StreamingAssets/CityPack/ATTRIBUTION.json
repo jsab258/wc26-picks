@@ -1,0 +1,101 @@
+{
+ "note": "Sources for every file in this pack. THIRD-PARTY.md is the human-readable copy and both must agree; tools/citypack/pack_check.py enforces it.",
+ "surfaces": {
+  "asphalt": {
+   "assetId": "Asphalt012",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Asphalt012",
+   "resolution": "1K-JPG",
+   "file": "asphalt.jpg"
+  },
+  "brick_grey": {
+   "assetId": "Bricks023",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Bricks023",
+   "resolution": "1K-JPG",
+   "file": "brick_grey.jpg"
+  },
+  "brick_red": {
+   "assetId": "Bricks075A",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Bricks075A",
+   "resolution": "1K-JPG",
+   "file": "brick_red.jpg"
+  },
+  "concrete": {
+   "assetId": "Concrete017",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Concrete017",
+   "resolution": "1K-JPG",
+   "file": "concrete.jpg"
+  },
+  "glass": {
+   "assetId": "Facade001",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Facade001",
+   "resolution": "1K-JPG",
+   "file": "glass.jpg"
+  },
+  "kerb": {
+   "assetId": "Concrete034",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Concrete034",
+   "resolution": "1K-JPG",
+   "file": "kerb.jpg"
+  },
+  "metal": {
+   "assetId": "Metal032",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Metal032",
+   "resolution": "1K-JPG",
+   "file": "metal.jpg"
+  },
+  "plaster": {
+   "assetId": "Plaster001",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Plaster001",
+   "resolution": "1K-JPG",
+   "file": "plaster.jpg"
+  },
+  "roof": {
+   "assetId": "RoofingTiles006",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=RoofingTiles006",
+   "resolution": "1K-JPG",
+   "file": "roof.jpg"
+  },
+  "sidewalk": {
+   "assetId": "PavingStones067",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=PavingStones067",
+   "resolution": "1K-JPG",
+   "file": "sidewalk.jpg"
+  },
+  "window": {
+   "assetId": "Facade018A",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Facade018A",
+   "resolution": "1K-JPG",
+   "file": "window.jpg"
+  },
+  "wood": {
+   "assetId": "Planks011",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Planks011",
+   "resolution": "1K-JPG",
+   "file": "wood.jpg"
+  }
+ }
+}
