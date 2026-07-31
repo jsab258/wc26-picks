@@ -69,6 +69,32 @@ def lint():
     return m.group(2) == "0", "%s lint errors" % m.group(2)
 
 
+def reach():
+    """Layer 1 of the testing system: does anything actually call it.
+
+    The gap analysis that found `Brandish` 0, `MayFrisk` 0 and `Misattribute` 0
+    was done by hand, once, in an afternoon. This is it in a second, as a graph
+    walk from every Core member the Game names — so a helper called by a
+    running method counts as running, which the first version got wrong.
+
+    The ledger in `ReachCheck/allow.json` carries a typed reason per entry and
+    only counts down: wiring an API without deleting its entry fails too."""
+    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "ReachCheck"),
+                     "--", str(ROOT / "Assets" / "Scripts" / "Core"),
+                     str(ROOT / "Assets" / "Scripts" / "Game"),
+                     "--tests", str(ROOT / "CoreTests"),
+                     "--tests", str(ROOT / "SimHarness"),
+                     "--tests", str(ROOT / "BalanceLab"),
+                     "--tests", str(ROOT / "BarkGen"),
+                     "--tests", str(ROOT / "Tier2Gen"),
+                     "--allow", str(ROOT / "ReachCheck" / "allow.json")])
+    m = re.search(r"reach ok — (\d+) on the ledger", out)
+    if m:
+        return True, "%s on the reach ledger" % m.group(1)
+    m = re.search(r"reach FAILED — .*", out)
+    return False, m.group(0) if m else "reach-check did not report (build failure?)"
+
+
 def stale_anchors():
     """Every break's anchor, checked for a single exact match.
 
@@ -122,7 +148,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, stale_anchors, core_tests):
+    for fn in (lint, shape, reach, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

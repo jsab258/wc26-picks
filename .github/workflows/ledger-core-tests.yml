@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "ledger/**"
+      - "game-design/**"          # docs-check runs here, so docs must trigger it
+      - "tools/docs-check.py"
       - ".github/workflows/ledger-core-tests.yml"
   workflow_dispatch:
 
@@ -15,6 +17,19 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      # LAYER 1 — REACH. Runs here rather than on Windows because it costs a
+      # second and the Windows round trip is twenty-eight minutes; a check that
+      # tells you a feature is disconnected is worth having before the build,
+      # not after it. See `game-design/testing-system.md`.
+      - name: Reach check (built is not running)
+        run: |
+          dotnet run -c Release --project ledger/ReachCheck -- \
+            ledger/Assets/Scripts/Core ledger/Assets/Scripts/Game \
+            --tests ledger/CoreTests --tests ledger/SimHarness \
+            --tests ledger/BalanceLab --tests ledger/BarkGen --tests ledger/Tier2Gen \
+            --allow ledger/ReachCheck/allow.json
+      - name: Docs check (LIVE / SPEC / LOG)
+        run: python3 tools/docs-check.py
       - name: Run core test suite
         run: dotnet run --project ledger/CoreTests -c Release
       - name: Run AI playtest (fake mode)

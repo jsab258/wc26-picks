@@ -1,0 +1,189 @@
+{
+  "_": [
+    "THE DEBT LEDGER. Every public Core method or property that nothing in the",
+    "game reaches, with the reason it is still here. Two kinds of reason are",
+    "acceptable and no third: `WIRE:` — it is a feature that was built and",
+    "disconnected, and the entry names the milestone that connects it; and",
+    "`BY DESIGN:` — it is genuinely not the game's to call, and the entry says",
+    "who calls it instead.",
+    "",
+    "This is a ledger and not a mute button, which is a distinction this project",
+    "has got wrong before: the first guard written after a cancelled CI run",
+    "deleted 24 clips would itself have thrown away the corrected set, because it",
+    "checked whether a number went down instead of whether the thing worked. So",
+    "the rule here is that an entry is DELETED when the API is wired, an API not",
+    "listed here fails the build the moment it appears, and a reason shorter than",
+    "fifteen characters is not a reason and fails too.",
+    "",
+    "It started at 131 on 2026-07-31, the day the check was written. That number",
+    "is the honest size of `built is not running` in this codebase, and it is the",
+    "M16 phase 3 and 4 worklist as much as it is a debt."
+  ],
+  "allow": {
+    "Acoustics.OverheardConfidence": "WIRE: M16 phase 3 — a witness who hears the killing without seeing it. Pairs with Violence.KillingConfidence.",
+    "Acoustics.CanMakeOutWords": "WIRE: M16 phase 3 — whether a witness heard words or only a noise, which decides what they can retell.",
+    "Acoustics.OutsideBleed": "WIRE: M16 phase 3 — a fight in the back room of a busy pub is the §4.7 gate's third case, and this is what leaks out of it.",
+    "Acoustics.LineIntelligibility": "WIRE: M18 — the phone layer carries calls but never degrades them; PhoneBook.Damped is the same gap.",
+    "Acoustics.CanPlaceTheVoice": "WIRE: M18 — recognising who is on the line is the phone half of the ID ladder.",
+    "Acoustics.AsHeardOnTheLine": "WIRE: M18 — the render side of the two above; no caller until they have one.",
+
+    "CharacterCard.Section": "BY DESIGN: prompt-text assembly for the LLM harness. SimHarness and ConversationEngine build cards; the Unity layer never formats a prompt itself.",
+
+    "ConversationEngine.ProcessClaim": "WIRE: M19 — the player asserting something the street can then carry is the spine of `law as a tool`, and nothing in the game yet lets them make a claim.",
+
+    "Detail.CrowdFraction": "WIRE: M17 — set-dressing density has a Game caller for props and none for crowd; the crowd half was built with it and left.",
+    "Detail.CostIndex": "WIRE: M17 — the budget side of the same system.",
+    "Dressing.CableAt": "WIRE: M17 — overhead cables are authored in Dressing and drawn nowhere.",
+
+    "EmpireBook.PledgeTo": "WIRE: M19 — allegiance never shifts, which is the 45→75 gap named in the roadmap. This is the verb that shifts it.",
+    "EmpireBook.BreakWith": "WIRE: M19 — the other half of allegiance.",
+    "EmpireBook.NotePoach": "WIRE: M19 — poaching a rival's crew is a public act and the mill should carry it; the non-mill variant is what runs today.",
+
+    "Forgiveness.Drop": "BY DESIGN: input-buffer forgiveness is consumed through Forgiveness.Take on the same frame; Drop is the discard path for a buffered input the game never issues.",
+
+    "Framing.SubjectX": "WIRE: M17 — cinematic framing composes the authored beats; the thirds-placement helper is used only by the shot tests.",
+    "Framing.Headroom": "WIRE: M17 — same system.",
+    "Framing.SideOfLine": "WIRE: M17 — the 180-degree rule, computed and never consulted.",
+    "Framing.WouldCrossTheLine": "WIRE: M17 — same, and the one that would actually stop a bad cut.",
+
+    "GameTime.HoursUntil": "BY DESIGN: superseded by GameTime.MinutesUntil, which every caller uses. Delete rather than wire — kept listed so the deletion is a decision and not a drift.",
+
+    "GossipMill.PlayerClaims": "WIRE: M19 — what the player has told people, which is the record `law as a tool` accuses from.",
+    "GossipMill.IsDiscredited": "WIRE: M19 — a rumour the street stopped believing; the mill tracks it and nothing reads it.",
+
+    "HarmBook.IsHurt": "WIRE: M16 phase 3 — a hurt NPC should be visibly hurt and behave like it.",
+    "HarmBook.LooksLike": "WIRE: M16 phase 3 — the visible description of an injury, which is what a witness reports.",
+    "HarmBook.FeudsOf": "WIRE: M19 — feuds are recorded by Harm and drive nothing; they are the cheapest allegiance signal in the game.",
+    "Feud.Involves": "WIRE: M19 — helper for FeudsOf, dead for the same reason.",
+    "HarmBook.Hottest": "WIRE: M19 — which feud is worst right now, for the Director to author against.",
+
+    "HomicideBook.BodyCount": "WIRE: M16 phase 4 — notoriety and Ellis's caseload both scale off it.",
+    "HomicideBook.Killings": "WIRE: M16 phase 4 — the list behind BodyCount.",
+    "Police.AsksAboutYou": "WIRE: M16 phase 4 — Ellis coming to ask is the visible face of an investigation the sim already runs.",
+    "Watched.WouldTalkToPolice": "WIRE: M16 phase 4 — whether a witness who was got to actually talks.",
+
+    "VerbSpec.WithArg": "BY DESIGN: builder used to declare the verb table inside IntentRouter; the game consumes the table, never authors one.",
+    "Intent.Arg": "WIRE: M19 — arguments are parsed and the game only ever reads Intent.Verb, so `press a charge against X` has nowhere to put the X.",
+
+    "DoorSwing.Set": "WIRE: M17 — doors animate through DoorSwing.Step; the explicit set is used when a door is opened by something other than the player, which nothing yet is.",
+    "DoorSwing.Toggle": "WIRE: M17 — same.",
+    "DoorSwing.AtRest": "WIRE: M17 — same; the audio cue for a door finishing its swing has no trigger.",
+    "Menus.EaseOut": "WIRE: M17 — the menu transition curve; the panels use PanelFade and never the menu easing it was written for.",
+    "PanelFade.SnapOff": "WIRE: M17 — instant hide, for a panel closed by a hard cut rather than a fade.",
+    "PanelSwap.ToA": "WIRE: M17 — crossfade between two panels, built for the pause menu and never mounted.",
+    "PanelSwap.ToB": "WIRE: M17 — same.",
+    "PanelSwap.Crossing": "WIRE: M17 — same.",
+    "VerbBeat.PhaseProgress": "WIRE: M17 — how far through an interaction beat the player is, for the progress ring nothing draws yet.",
+
+    "LightModel.Aces": "BY DESIGN: the ACES tonemap runs in the shader, not on the CPU. The C# copy exists so the pixel gates can predict what the shader will produce, and the sim is its caller.",
+    "LightModel.VignetteParam": "BY DESIGN: same — the vignette is a shader uniform and this is the gate's model of it.",
+    "LightModel.VignetteAt": "BY DESIGN: same.",
+    "LightModel.TemperatureFor": "WIRE: M17 — lamp colour temperature is computed and the lights are placed with a hardcoded colour.",
+    "LightModel.Transmittance": "WIRE: M17 — fog and rain attenuation, modelled and not applied.",
+    "LightModel.ConeBrightness": "WIRE: M17 — the falloff for a lamp cone.",
+    "LightModel.AoRangeCheck": "WIRE: M17 — contact shadows; the ambient-occlusion model has no consumer in the scene.",
+    "LightModel.AoDirectRelief": "WIRE: M17 — same.",
+    "LightModel.AoMultiplier": "WIRE: M17 — same.",
+
+    "Mixing.Budget": "WIRE: M17 — the voice-count budget for simultaneous sounds. Nothing enforces it, so a busy market can start every clip it wants.",
+    "Mixing.Admit": "WIRE: M17 — same, the admission decision.",
+    "Mixing.Protected": "WIRE: M17 — same, the channels that must never be ducked.",
+    "Mixing.CrowdGain": "WIRE: M17 — same.",
+    "Mixing.Limit": "WIRE: M17 — same.",
+
+    "MotionDatabase.ClipOf": "WIRE: M17.1 — motion matching queries the database; the whole system is waiting on the Mixamo clips being imported as Humanoid.",
+    "MotionDatabase.FrameOf": "WIRE: M17.1 — same.",
+    "MotionMatcher.BlendOut": "WIRE: M17.1 — same.",
+    "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way.",
+
+    "MusicModel.RoomHasGoneQuiet": "WIRE: M17 — the music layer reacts to tension and not to a room emptying, which is the better cue of the two.",
+    "Notice.FlooredBy": "WIRE: M16 phase 3 — the minimum attention a loud event forces, which is exactly what a fight in a market should do.",
+
+    "Observation.NamesSomebody": "WIRE: M16 phase 2 — whether a witness's account names a person or only describes one.",
+    "Observe.GhostAllowed": "WIRE: M16 phase 2 — the witness ghost, the one outstanding item of the phase.",
+    "Observe.Retell": "WIRE: M16 phase 2 — a witness passing their account on, which is where observation meets the gossip mill.",
+    "Observe.AssemblesMore": "WIRE: M16 phase 2 — two partial accounts making a fuller one.",
+
+    "OperationPlan.Bringing": "WIRE: M19 — visible odds. The plan knows what you are carrying into a job and the player cannot see it.",
+
+    "Palette.Saturation": "BY DESIGN: the palette sweep is applied in the post shader; the C# model is what the pixel gates compare against.",
+    "Palette.NaiveScale": "BY DESIGN: the deliberately-wrong scaling, kept as the contrast case in the palette tests. Wiring it would be a bug.",
+
+    "Perception.SymmetryPredictsSeen": "BY DESIGN: an invariant the perception tests assert — that seeing is symmetric — rather than a function the game calls.",
+    "Perception.HeardAs": "WIRE: M16 phase 3 — how a sound is classified by somebody who did not see it. The fight makes sounds and nobody classifies them.",
+    "Attention.Identified": "WIRE: M16 phase 2 — the top of the ID ladder, reached in tests and never read by the game.",
+    "Attention.Reached": "WIRE: M16 phase 2 — same ladder.",
+
+    "PhoneBook.LinesFor": "WIRE: M18 — who can be reached at which number.",
+    "PhoneBook.ReachableNow": "WIRE: M18 — whether they would pick up at this hour.",
+    "PhoneBook.Damped": "WIRE: M18 — line quality; pairs with Acoustics.LineIntelligibility.",
+
+    "PlayerIdentity.InTalk": "WIRE: M18 — how the player refers to themselves in conversation, which changes once anybody knows them by name.",
+    "Population.InBand": "BY DESIGN: the LOD band query used by the population tests and by BalanceLab's distribution checks. The game asks for residents by district, never by band.",
+
+    "Payment.InFull": "WIRE: M19 — a debt settled completely rather than partially; the purse records it and no UI or reaction reads it.",
+    "PurseBook.CarryingUnexplained": "WIRE: M16 phase 3 — money you cannot explain is exactly what a frisk finds, and the frisk is this phase.",
+    "PurseBook.Owed": "WIRE: M19 — what is owed to you, for the debt-collection loop.",
+
+    "Reaction.Confront": "WIRE: M16 phase 3 — an NPC who saw you do it walking over. The single most visible missing reaction in the game.",
+    "Reaction.CataloguesYourCoat": "WIRE: M18 — the street reading what you wear. Named in the roadmap as the lifestyle dimension's cheapest win.",
+    "Reaction.IsPublicEvent": "WIRE: M16 phase 3 — whether a thing that just happened is public, which decides whether the crowd reacts at all.",
+    "Reaction.AsVictim": "WIRE: M16 phase 3 — how somebody behaves after being hurt.",
+    "Reaction.IsFleeingVictim": "WIRE: M16 phase 3 — same, the running case.",
+
+    "ResponseValidator.TellCount": "BY DESIGN: a measurement the LLM harness reports on generated dialogue. The game validates a response with Validate; the count is for the report.",
+
+    "Rig.TwoBone": "WIRE: M17.1 — two-bone IK for the arms. Waiting on a real skeleton; the mannequin has no arms to solve.",
+    "Rig.FootHeight": "WIRE: M17.1 — foot IK, which the roadmap's done-condition for M17.1 names explicitly.",
+    "Rig.PlantBlend": "WIRE: M17.1 — same.",
+
+    "StreetMap.AvenueClear": "WIRE: M17 — whether an avenue is unobstructed, for traffic and for the camera.",
+    "StreetMap.OnStreet": "WIRE: M17 — nearest-street lookup for placing things.",
+    "StreetMap.FullyConnected": "BY DESIGN: a map invariant the tests and the sim assert after generation. The game never re-checks connectivity at runtime.",
+
+    "Traces.Marks": "WIRE: M16 phase 3 — blood. Whether an act leaves a mark at all.",
+    "Traces.Noticeable": "WIRE: M16 phase 3 — blood at a distance and in a light level.",
+    "Traces.Wash": "WIRE: M16 phase 3 — washing it off, given water and privacy.",
+    "Traces.CountsAsMark": "WIRE: M16 phase 3 — same system.",
+    "Traces.SocialCost": "WIRE: M16 phase 3 — walking into a pub with blood on you.",
+    "Traces.Acquire": "WIRE: M16 phase 4 — the four acquisition routes, all of them social.",
+    "Traces.Traceability": "WIRE: M16 phase 4 — how far back an object can be followed. The phase's done-condition is stated in this number.",
+    "Traces.ResidualRisk": "WIRE: M16 phase 4 — what disposal leaves behind, seen or unseen.",
+    "Item.UsedInAKilling": "WIRE: M16 phase 4 — the property Ellis hunts the object by.",
+
+    "TrafficSim.AwakeCount": "BY DESIGN: an LOD measurement the sim's performance gate reads. The game does not choose how many vehicles are awake; TrafficSim does.",
+    "TrafficSim.BusLoop": "WIRE: M17 — the bus route exists and no bus is drawn following it.",
+    "TrafficSim.Ranks": "WIRE: M17 — taxi ranks, same.",
+    "TrafficSim.NearestTo": "WIRE: M17 — nearest vehicle to a point, for the collision and camera work.",
+    "Vehicle.Waiting": "WIRE: M17 — a stopped vehicle should idle differently from a moving one.",
+
+    "Typography.LineHeight": "WIRE: M17 — the type scale is computed in Core and the UI sets sizes by hand, which is how they drift apart.",
+    "Typography.MeasureIsReadable": "WIRE: M17 — line-length check for the caption bar and the panels.",
+    "Typography.Luminance": "WIRE: M17 — contrast helper.",
+    "Typography.Contrast": "WIRE: M17 — same.",
+    "Typography.MeetsAa": "WIRE: M17 — the accessibility contrast gate, which M22 names and nothing enforces.",
+    "Typography.LiftToMeet": "WIRE: M17 — the fix-up that makes a failing pair pass.",
+
+    "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not.",
+
+    "Arsenal.Brandish": "WIRE: M16 phase 3 — §5.1 says the threat is the main use of a weapon, and the game has no way to make one.",
+    "Arsenal.CanUndraw": "WIRE: M16 phase 3 — putting it away again, and whether that is still an option.",
+    "Arsenal.FriskCost": "WIRE: M16 phase 3 — what a frisk costs you when it finds something.",
+    "Arsenal.AccidentAvailable": "WIRE: M16 phase 4 — accidents, the only violence in the game that produces no crime.",
+
+    "Coat.OnMe": "WIRE: M16 phase 3 — what you are carrying.",
+    "Coat.AtHome": "WIRE: M16 phase 3 — what you left behind.",
+    "Coat.Store": "WIRE: M16 phase 3 — putting something in the coat.",
+    "Coat.Drop": "WIRE: M16 phase 3 — getting rid of it in a hurry.",
+    "Coat.IsAChoice": "WIRE: M16 phase 3 — whether carrying this was a decision the street can read.",
+    "Coat.CanTakeEverything": "WIRE: M16 phase 3 — hands and a coat, not a grid.",
+    "Coat.MayFrisk": "WIRE: M16 phase 3 — who is allowed to search you and when.",
+    "Coat.IfYouRefuse": "WIRE: M16 phase 3 — and what refusing costs.",
+    "Coat.WorstFind": "WIRE: M16 phase 3 — the worst thing on you.",
+    "Coat.CostIfFound": "WIRE: M16 phase 3 — what it costs when they find it.",
+    "Coat.CarryingSomethingUsed": "WIRE: M16 phase 3 — carrying the thing you did it with, which is the whole reason disposal matters.",
+
+    "Combat.Breathe": "WIRE: M16 phase 3 — stamina recovery between exchanges.",
+    "Violence.KillingConfidence": "WIRE: M16 phase 3 — how sure a witness is about what they saw. The §4.7 gate is stated in this number."
+  }
+}
