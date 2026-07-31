@@ -84,67 +84,67 @@ SAMPLE_RATE = 24000
 # ---------------------------------------------------------------------------
 
 CAST = [
-    dict(id="lena", name="LENA", tier="principal", accent="american", gender="female_feminine",
+    dict(id="lena", name="LENA", tier="principal", accent="english", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Bar's bookkeeper, late 30s. Mid-low, dry, unhurried. She has "
                "known this family twenty years and is never surprised by it. "
                "WHAT MUST COME THROUGH: withheld judgement — she knows more "
                "than she says in every line. If it sounds like it is telling "
                "you everything, it is the wrong voice. Avoid bright, young, warm."),
-    dict(id="rocco", name="ROCCO", tier="principal", accent="american", gender="male_masculine",
+    dict(id="rocco", name="ROCCO", tier="principal", accent="english", gender="male_masculine",
          age=("fourties", "fifties", "sixties"),
          brief="Works the door, 50s. Low, worn, slightly gravelly. Money is "
                "always a little short and it is audible. WHAT MUST COME "
                "THROUGH: decency without softness. Not a tough-guy voice — a "
                "tired one."),
-    dict(id="ellis", name="MARA ELLIS", tier="principal", accent="american", gender="female_feminine",
+    dict(id="ellis", name="MARA ELLIS", tier="principal", accent="english", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Detective, 40s. Level, unhurried, PLEASANT. WHAT MUST COME "
                "THROUGH: that she never has to raise her voice. Cast against "
                "type — pick the warmest, most reasonable voice here. A cold "
                "voice makes her a villain; a courteous one makes her inevitable."),
-    dict(id="reese", name="TOBIAS REESE", tier="principal", accent="american", gender="male_masculine",
+    dict(id="reese", name="TOBIAS REESE", tier="principal", accent="english", gender="male_masculine",
          age=("fourties", "fifties"),
          brief="Board of Excise, the audit's face. Precise, mid register, "
                "faintly bureaucratic. WHAT MUST COME THROUGH: that this is not "
                "personal. He is reading from a procedure and the procedure "
                "will convict you."),
-    dict(id="kest", name="SERA KEST", tier="principal", accent="american", gender="female_feminine",
+    dict(id="kest", name="SERA KEST", tier="principal", accent="english", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Rival head. Controlled, harder than Lena, younger than Mara. "
                "WHAT MUST COME THROUGH: someone used to being agreed with."),
 
-    dict(id="sam", name="SAM", tier="street", accent="american", gender="male_masculine",
+    dict(id="sam", name="SAM", tier="street", accent="scottish", gender="male_masculine",
          age=("twenties", "thirties"),
          brief="Walks the block at all hours, trades in being useful. Mid-high, "
                "quick, ingratiating, never still. THE FASTEST TALKER IN THE "
                "GAME — the voice should sound like it is already moving on to "
                "the next person."),
-    dict(id="ada", name="ADA", tier="street", accent="american", gender="female_feminine",
+    dict(id="ada", name="ADA", tier="street", accent="english", gender="female_feminine",
          age=("sixties", "seventies"),
          brief="Retired schoolteacher, the street's unofficial conscience. "
                "Older, clear, precise diction. WHAT MUST COME THROUGH: that "
                "she expects to be listened to, and is usually right."),
-    dict(id="vesna", name="VESNA", tier="street", accent="english", gender="female_feminine",
+    dict(id="vesna", name="VESNA", tier="street", accent="northernirish", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Keeps house at the chapel, the quietest well of information. "
                "Soft, low volume, careful. QUIET IS THE CASTING — everything "
                "she knows arrived through a door left ajar."),
-    dict(id="marla", name="MARLA", tier="street", accent="american", gender="female_feminine",
+    dict(id="marla", name="MARLA", tier="street", accent="english", gender="female_feminine",
          age=("fourties", "fifties"),
          brief="Vegetable stall at the market corner. Warm, carrying, "
                "market-pitch. The loudest woman in the cast and the most "
                "ordinary."),
-    dict(id="joey", name="JOEY", tier="street", accent="american", gender="male_masculine",
+    dict(id="joey", name="JOEY", tier="street", accent="scottish", gender="male_masculine",
          age=("fourties", "fifties"),
          brief="Dock hand, twenty years on the water. Big, slow, plain. One "
                "daughter he would burn the port down for. SIMPLICITY IS THE "
                "CASTING — no irony in the voice at all."),
-    dict(id="rita", name="RITA", tier="street", accent="american", gender="female_feminine",
+    dict(id="rita", name="RITA", tier="street", accent="scottish", gender="female_feminine",
          age=("thirties", "fourties"),
          brief="Left-handed, owes nobody an explanation. Blunt, flat, short. "
                "The one who ends conversations."),
-    dict(id="hal", name="HAL", tier="street", accent="american", gender="male_masculine",
+    dict(id="hal", name="HAL", tier="street", accent="english", gender="male_masculine",
          age=("thirties", "fourties"),
          brief="Carries messages, meetings, prices, peace. Neutral to the "
                "point of being forgettable — DELIBERATELY THE LEAST "
@@ -158,17 +158,17 @@ CAST = [
     # Six anonymous voices. The bar here is INVERTED: a crowd voice you can
     # recognise stops being a crowd, so the right pick is the dullest one.
     dict(id="crowd_m1", name="CROWD — male, young", tier="crowd",
-         accent="american", gender="male_masculine", age=("twenties",), brief=None),
+         accent="english", gender="male_masculine", age=("twenties",), brief=None),
     dict(id="crowd_m2", name="CROWD — male, middle", tier="crowd",
          accent="scottish", gender="male_masculine", age=("fourties",), brief=None),
     dict(id="crowd_m3", name="CROWD — male, older", tier="crowd",
          accent="english", gender="male_masculine", age=("sixties",), brief=None),
     dict(id="crowd_f1", name="CROWD — female, young", tier="crowd",
-         accent="american", gender="female_feminine", age=("twenties",), brief=None),
+         accent="english", gender="female_feminine", age=("twenties",), brief=None),
     dict(id="crowd_f2", name="CROWD — female, middle", tier="crowd",
-         accent="irish", gender="female_feminine", age=("fourties",), brief=None),
+         accent="scottish", gender="female_feminine", age=("fourties",), brief=None),
     dict(id="crowd_f3", name="CROWD — female, older", tier="crowd",
-         accent="american", gender="female_feminine", age=("sixties",), brief=None),
+         accent="english", gender="female_feminine", age=("sixties",), brief=None),
 ]
 
 CROWD_BRIEF = ("Anonymous. The bar here is INVERTED: they must be "
@@ -1253,9 +1253,24 @@ def selftest():
           "a Scottish speaker cannot fill an American brief")
     check(accent_ok("NorthernIrish", "northernirish") and not accent_ok("", "irish"),
           "an unknown accent cannot satisfy a named one")
+    # THE PROPERTY, NOT THE VALUE. This check was written when the base
+    # accent was American and it asserted the literal string, so when the
+    # city became British it went red for a change that was correct — while
+    # a genuinely broken map (principals split across two accents) would
+    # have passed it in the old world just as happily. Its own name says
+    # what it means to test: they SHARE one, whichever one it is.
     _principals = [c for c in CAST if c["tier"] == "principal"]
-    check(all(c["accent"] == "american" for c in _principals),
-          "the principals share one accent, which is what makes the others texture")
+    _base = {c["accent"] for c in _principals}
+    check(len(_base) == 1,
+          "the principals share one accent, which is what makes the others texture",
+          str(sorted(_base)))
+    # And that base has to be the majority of the cast, or "base" is just a
+    # word for the accent five people happen to have.
+    _all = [c["accent"] for c in CAST]
+    check(_base and _all.count(list(_base)[0]) > len(_all) / 2,
+          "and that accent is the majority of the whole cast, not just the principals",
+          "%s = %d of %d" % (list(_base)[0] if _base else "?",
+                             _all.count(list(_base)[0]) if _base else 0, len(_all)))
     check(len({c["accent"] for c in CAST}) >= 3,
           "and the edges are not all the same either")
     check(all(brief_of(c) for c in CAST), "and every brief has text to judge against")

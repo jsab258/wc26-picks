@@ -839,3 +839,38 @@ ocean this city is on, and nobody has ever decided.
 
 **Recommendation: 50 Hz**, which is what is in there now. It is one constant
 in `Audio.LineBed` and flipping it is a ten-second change.
+
+---
+
+## DECIDED — the city is British *(2026-07-31, option 1)*
+
+Faced with VCTK filling only five of nineteen briefs, three options were put
+up: change the accent direction, buy a commercial voice library, or accept a
+half-cast game. **Jafar chose option 1.**
+
+The reason it is the right call turned out not to be the one I offered it for.
+Going to look at the writing found that **the city was already British** —
+`flat` 82, `colour` 67, `shop` 41, `pavement` 29, `constable` 20, `kerb` in
+the code, and a street map reading Saltmarket, Quay Street, The Esplanade,
+Weighhouse Lane, Winter Quay, The Cut. Saltmarket is a Glasgow street. The
+American accent brief was the outlier, and holding it made the casting fight
+both the corpus and the fiction at once.
+
+Full consequence analysis: `setting-britain-2026-07-31.md`. The short of it:
+
+- **the five picks are now the wrong accent** — they were filled by the only
+  Americans in a British corpus, which is why only five filled. Recommend
+  re-casting all five and holding one American slot in reserve.
+- `$` → `£`, wide but shallow
+- **"the bar" → "the pub"**, 395 references, and an upgrade rather than a
+  rename: a pub has a landlord, regulars, last orders — the gossip engine the
+  game already runs on, and *the new owner* becomes *the new landlord*
+- **the audit becomes Customs and Excise** — a game called LEDGER whose
+  antagonist is the VAT man is period-perfect and sharper than a generic
+  inspector
+- Downtown and The Strip renamed; they are the only American names on the map
+- **50 Hz is settled** by this, and the British double-ring is free
+  authenticity for the telephone work
+
+Accent map rewritten in `tools/voice-fetch` and `voice-casting.md`: english
+base, scottish for five, northernirish for Vesna, irish for Father Emil.

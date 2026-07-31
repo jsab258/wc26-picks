@@ -234,3 +234,34 @@ decision that exists only on one phone is not a decision the project has.
 
 **Five of nineteen cast.** The remaining fourteen had no candidates to choose
 from — see `decisions-pending.md` for why and what the options are.
+
+
+---
+
+## ACCENT MAP v2 — english base (2026-07-31)
+
+Supersedes the American table above. The city is British; see
+`setting-britain-2026-07-31.md` for why and what else it changes.
+
+| character | accent |
+|---|---|
+| Lena | english |
+| Rocco | english |
+| Mara Ellis | english |
+| Tobias Reese | english |
+| Sera Kest | english |
+| Sam | scottish |
+| Ada | english |
+| Vesna | northernirish |
+| Marla | english |
+| Joey | scottish |
+| Rita | scottish |
+| Hal | english |
+| Father Emil | irish |
+| crowd m1/m3, f1/f3 | english |
+| crowd m2, f2 | scottish |
+
+**The round-1 picks are void.** Lena 01, Sam 05, Kest 05 and both crowd picks
+were filled by VCTK's American speakers — that exact filter is why only five
+of nineteen filled at all. They are kept in `voice-candidates/` until the
+replacement round lands, so there is something rather than nothing.
