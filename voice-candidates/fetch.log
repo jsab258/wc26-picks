@@ -1,0 +1,9 @@
+LEDGER voice fetcher 2026-07-28.1
+  streaming commonvoice for 19 character(s), 6 candidate(s) each
+  this scans the corpus rather than downloading it; expect a few minutes
+
+
+  fetch failed: TypeError: 'NoneType' object is not iterable
+  try:  python ledger_voice_fetch.py --source libritts
+LEDGER voice fetcher 2026-07-28.1
+  building .venv-voices ...
