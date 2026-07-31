@@ -14,9 +14,10 @@ name: LEDGER city pack
 # name, so asking a cheap question also kicked off a forty-minute fetch. The
 # `mode` input is the gate, and each job checks it.
 #
-# `workflow_dispatch` ONLY. A push must never start this — a code change that
-# triggers a download is how three separate runs ended up queued in front of the
-# one somebody was waiting on.
+# A CODE CHANGE MUST NEVER START A DOWNLOAD — three separate corpus runs once
+# ended up queued in front of the one somebody was waiting on, and one of them
+# was queued behind a run of the problem it would have fixed.
+#
 # AND IT CANNOT BE DISPATCHED FROM HERE, which cost a 404 that reads like a
 # missing file. `workflow_dispatch` only fires for workflows on the DEFAULT
 # branch; this one lives on a feature branch, so the dispatch API answers 404
