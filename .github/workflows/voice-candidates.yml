@@ -192,7 +192,10 @@ jobs:
   # which is what a code change needs to prove. Streaming forty thousand rows
   # is a thing somebody decides to do.
   candidates:
-    if: github.event_name == 'workflow_dispatch'
+    # AND NOT WHEN THE INVENTORY WAS WHAT WAS ASKED FOR. Gating on the event
+    # alone meant dispatching the metadata read also started a full 38-minute
+    # corpus fetch — the exact run the inventory exists to make unnecessary.
+    if: github.event_name == 'workflow_dispatch' && inputs.inventory != 'yes'
     runs-on: ubuntu-latest
     timeout-minutes: 130
     permissions:
