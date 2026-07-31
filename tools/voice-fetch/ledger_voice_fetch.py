@@ -494,17 +494,38 @@ def same_gender(row_value, spec_value):
     return a == b
 
 
+# Common Voice's own spelling, including its "fourties". The briefs are
+# written in this vocabulary, so this is the list they are checked against
+# rather than a second one somebody invented alongside it.
+CV_AGE_BANDS = ("teens", "twenties", "thirties", "fourties",
+                "fifties", "sixties", "seventies", "eighties", "nineties")
+
+
 def age_band(value):
-    """VCTK records a number; the briefs are written in Common Voice bands."""
+    """VCTK records a number; the briefs are written in Common Voice bands.
+
+    THE OLD VERSION COULD NOT PRODUCE "thirties" OR "fifties". It had three
+    branches — under 30, under 50, else — returning twenties, fourties and
+    sixties, so a thirty-five-year-old came back "fourties" and a fifty-five-
+    year-old came back "sixties". Two of the nine bands were unreachable, and
+    they are two the cast asks for by name: Lena is thirties, Rocco fifties.
+    Any brief naming one of them could only ever be satisfied by accident.
+
+    A decade is a decade. `n // 10` is the whole rule.
+    """
+    raw = str(value).strip().lower()
+    # Already a band — Common Voice hands these back as words, and passing
+    # one through int() was how every Common Voice age silently became "".
+    if raw in CV_AGE_BANDS:
+        return raw
     try:
-        n = int(str(value).strip())
+        n = int(raw)
     except (TypeError, ValueError):
         return ""
-    if n < 30:
-        return "twenties"
-    if n < 50:
-        return "fourties"
-    return "sixties"
+    if n < 10:
+        return ""
+    idx = min(n // 10, 9)
+    return CV_AGE_BANDS[idx - 1]
 
 
 def _routes_for(source, cast=None):
@@ -568,8 +589,24 @@ def _routes_for(source, cast=None):
                                       trust_remote_code=True)
                 except TypeError:
                     ds = load_dataset(name, split="train", streaming=True)
+                # AND PULL A ROW BEFORE BELIEVING THIS MIRROR.
+                #
+                # `load_dataset(streaming=True)` is LAZY: it returns happily
+                # without touching the network, so the first id in the list
+                # always "succeeded", `break` fired, and the other two mirrors
+                # were NEVER TRIED. The failure surfaced later, at the route
+                # level, where it read as "VCTK is unavailable" — so the
+                # corpus Jafar actually chose has never once been used, and
+                # every run silently fell through to Common Voice.
+                #
+                # This is the same lesson already written twenty lines below
+                # for the route list, applied one level down. Learning it in
+                # one place and not the other is how it stayed hidden.
+                next(iter(ds))
                 break
             except Exception as e:              # noqa: BLE001 - try the next id
+                print(f"    vctk mirror {name} failed: {type(e).__name__}: "
+                      f"{str(e).strip().splitlines()[0][:120]}")
                 last = e
         else:
             raise last or RuntimeError("no VCTK id resolved")
@@ -1224,6 +1261,31 @@ def selftest():
           "vctk is tried first, which is the corpus decision that was made")
     check(_routes_for("libritts", CAST)[0][0] == "libritts",
           "an explicit --source libritts does not silently try others first")
+
+    # AGE BANDS. The old age_band had three branches and could not return
+    # "thirties" or "fifties" at all -- two of the nine bands, and two the cast
+    # asks for by name. Every value in the vocabulary must be reachable.
+    check(age_band(35) == "thirties", "a 35-year-old is in their thirties", age_band(35))
+    check(age_band(55) == "fifties", "a 55-year-old is in their fifties", age_band(55))
+    check(age_band(22) == "twenties" and age_band(45) == "fourties"
+          and age_band(68) == "sixties", "and the rest of the decades line up")
+    _reach = {age_band(n) for n in range(10, 100)}
+    check(all(b in _reach for b in CV_AGE_BANDS[:-1]),
+          "every band below ninety is reachable from some age",
+          str(sorted(CV_AGE_BANDS[i] for i in range(len(CV_AGE_BANDS) - 1)
+                     if CV_AGE_BANDS[i] not in _reach)))
+    # Common Voice hands back WORDS, not numbers. Passing one through int() was
+    # how every Common Voice age silently became "" and stopped filtering.
+    check(age_band("thirties") == "thirties" and age_band("fifties") == "fifties",
+          "a band that arrives as a word survives the round trip")
+    check(age_band("") == "" and age_band(None) == "" and age_band("abc") == "",
+          "and an unusable age is empty rather than a wrong guess")
+    # Every age the cast asks for has to exist in the vocabulary, or the brief
+    # can never be satisfied by anything.
+    _asked = {a for c in CAST for a in (c.get("age") or ())}
+    check(_asked <= set(CV_AGE_BANDS),
+          "every age band the cast asks for is one the corpus can supply",
+          str(sorted(_asked - set(CV_AGE_BANDS))))
 
     print(f"\n{ok} passed, {fail} failed")
     return 1 if fail else 0
