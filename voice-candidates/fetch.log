@@ -1,14 +1,14 @@
 LEDGER voice fetcher 2026-07-28.1
-  streaming commonvoice for 19 character(s), 6 candidate(s) each
+  streaming vctk for 19 character(s), 6 candidate(s) each
   this scans the corpus rather than downloading it; expect a few minutes
 
-Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 196kB/s]
-Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 237kB/s]
+Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 112kB/s]
+Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 130kB/s]
     vctk mirror CSTR-Edinburgh/vctk failed: BadZipFile: File is not a zip file
-Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 107kB/s]
-Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 129kB/s]
+Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 67.8kB/s]
+Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 62.2kB/s]
     vctk mirror vctk failed: BadZipFile: File is not a zip file
-Downloading readme:   0%|          | 0.00/803 [00:00<?, ?B/s]Downloading readme: 100%|██████████| 803/803 [00:00<00:00, 24.0kB/s]
+Downloading readme:   0%|          | 0.00/803 [00:00<?, ?B/s]Downloading readme: 100%|██████████| 803/803 [00:00<00:00, 18.1kB/s]
 /usr/bin/xdg-open: 882: www-browser: not found
 /usr/bin/xdg-open: 882: links2: not found
 /usr/bin/xdg-open: 882: elinks: not found
@@ -18,50 +18,50 @@ LEDGER voice fetcher 2026-07-28.1
 xdg-open: no method available for opening '/home/runner/work/wc26-picks/wc26-picks/tools/voice-fetch/ledger-voices-out/listen.html'
   source: vctk
   audio: decoding with soundfile, not torchcodec
-    2000 rows scanned, 19 characters still short, 0.2 min spent
-    4000 rows scanned, 19 characters still short, 0.8 min spent
-    6000 rows scanned, 19 characters still short, 1.6 min spent
-    8000 rows scanned, 19 characters still short, 2.4 min spent
-    10000 rows scanned, 19 characters still short, 3.5 min spent
-    12000 rows scanned, 19 characters still short, 3.9 min spent
-    14000 rows scanned, 19 characters still short, 4.3 min spent
-    16000 rows scanned, 19 characters still short, 5.3 min spent
-    18000 rows scanned, 19 characters still short, 6.3 min spent
-    20000 rows scanned, 19 characters still short, 7.1 min spent
-    22000 rows scanned, 19 characters still short, 7.9 min spent
-    24000 rows scanned, 19 characters still short, 8.5 min spent
-    26000 rows scanned, 19 characters still short, 8.8 min spent
-    28000 rows scanned, 19 characters still short, 9.0 min spent
-    30000 rows scanned, 19 characters still short, 9.2 min spent
-    32000 rows scanned, 19 characters still short, 9.7 min spent
-    34000 rows scanned, 19 characters still short, 9.8 min spent
-    36000 rows scanned, 19 characters still short, 10.0 min spent
-    38000 rows scanned, 19 characters still short, 10.7 min spent
-    40000 rows scanned, 19 characters still short, 11.7 min spent
-    42000 rows scanned, 19 characters still short, 12.6 min spent
-    44000 rows scanned, 19 characters still short, 13.0 min spent
-    46000 rows scanned, 19 characters still short, 13.9 min spent
-    48000 rows scanned, 19 characters still short, 15.1 min spent
-    50000 rows scanned, 19 characters still short, 16.4 min spent
-    52000 rows scanned, 18 characters still short, 17.9 min spent
-    54000 rows scanned, 17 characters still short, 18.1 min spent
-    56000 rows scanned, 17 characters still short, 18.8 min spent
-    58000 rows scanned, 17 characters still short, 19.8 min spent
-    60000 rows scanned, 17 characters still short, 20.3 min spent
-    62000 rows scanned, 17 characters still short, 20.7 min spent
-    64000 rows scanned, 16 characters still short, 21.6 min spent
-    66000 rows scanned, 16 characters still short, 22.5 min spent
-    68000 rows scanned, 16 characters still short, 23.6 min spent
-    70000 rows scanned, 15 characters still short, 24.8 min spent
-    72000 rows scanned, 15 characters still short, 25.6 min spent
-    74000 rows scanned, 15 characters still short, 25.8 min spent
-    76000 rows scanned, 15 characters still short, 26.0 min spent
-    78000 rows scanned, 15 characters still short, 26.1 min spent
-    80000 rows scanned, 14 characters still short, 26.3 min spent
-    82000 rows scanned, 14 characters still short, 26.4 min spent
-    84000 rows scanned, 14 characters still short, 27.1 min spent
-    86000 rows scanned, 14 characters still short, 28.4 min spent
-    88000 rows scanned, 14 characters still short, 29.7 min spent
+    2000 rows scanned, 19 characters still short, 0.1 min spent
+    4000 rows scanned, 19 characters still short, 0.5 min spent
+    6000 rows scanned, 19 characters still short, 1.0 min spent
+    8000 rows scanned, 19 characters still short, 1.5 min spent
+    10000 rows scanned, 19 characters still short, 2.1 min spent
+    12000 rows scanned, 19 characters still short, 2.3 min spent
+    14000 rows scanned, 19 characters still short, 2.5 min spent
+    16000 rows scanned, 19 characters still short, 3.0 min spent
+    18000 rows scanned, 19 characters still short, 3.5 min spent
+    20000 rows scanned, 19 characters still short, 3.8 min spent
+    22000 rows scanned, 19 characters still short, 4.2 min spent
+    24000 rows scanned, 19 characters still short, 4.5 min spent
+    26000 rows scanned, 19 characters still short, 4.8 min spent
+    28000 rows scanned, 19 characters still short, 4.9 min spent
+    30000 rows scanned, 19 characters still short, 5.0 min spent
+    32000 rows scanned, 19 characters still short, 5.2 min spent
+    34000 rows scanned, 19 characters still short, 5.4 min spent
+    36000 rows scanned, 19 characters still short, 5.5 min spent
+    38000 rows scanned, 19 characters still short, 5.9 min spent
+    40000 rows scanned, 19 characters still short, 6.2 min spent
+    42000 rows scanned, 19 characters still short, 6.8 min spent
+    44000 rows scanned, 19 characters still short, 7.0 min spent
+    46000 rows scanned, 19 characters still short, 7.3 min spent
+    48000 rows scanned, 19 characters still short, 7.7 min spent
+    50000 rows scanned, 19 characters still short, 8.1 min spent
+    52000 rows scanned, 18 characters still short, 8.7 min spent
+    54000 rows scanned, 17 characters still short, 8.8 min spent
+    56000 rows scanned, 17 characters still short, 9.2 min spent
+    58000 rows scanned, 17 characters still short, 9.4 min spent
+    60000 rows scanned, 17 characters still short, 9.6 min spent
+    62000 rows scanned, 17 characters still short, 9.9 min spent
+    64000 rows scanned, 16 characters still short, 10.4 min spent
+    66000 rows scanned, 16 characters still short, 10.9 min spent
+    68000 rows scanned, 16 characters still short, 11.4 min spent
+    70000 rows scanned, 15 characters still short, 12.0 min spent
+    72000 rows scanned, 15 characters still short, 12.4 min spent
+    74000 rows scanned, 15 characters still short, 12.5 min spent
+    76000 rows scanned, 15 characters still short, 12.6 min spent
+    78000 rows scanned, 15 characters still short, 12.8 min spent
+    80000 rows scanned, 14 characters still short, 12.9 min spent
+    82000 rows scanned, 14 characters still short, 13.0 min spent
+    84000 rows scanned, 14 characters still short, 13.5 min spent
+    86000 rows scanned, 14 characters still short, 14.1 min spent
+    88000 rows scanned, 14 characters still short, 14.5 min spent
 
   30 candidate(s) for 5 of 19 characters
   ! nothing for: rocco, ellis, reese, ada, vesna, marla, joey, rita, hal, emil, crowd_m2, crowd_m3, crowd_f2, crowd_f3
