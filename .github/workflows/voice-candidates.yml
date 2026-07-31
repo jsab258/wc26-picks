@@ -118,7 +118,11 @@ jobs:
           # declared above apply to manual runs only — so the first CI run
           # died instantly on `--candidates ` with no value.
           CANDIDATES="${{ inputs.candidates }}"; CANDIDATES="${CANDIDATES:-6}"
-          SOURCE="${{ inputs.source }}"
+          # VCTK, BY NAME. It was chosen and it was never used — the fetcher
+          # merely tried it first and fell through to Common Voice without
+          # saying so. Naming it here means a run either uses the corpus that
+          # was picked or fails saying why.
+          SOURCE="${{ inputs.source }}"; SOURCE="${SOURCE:-vctk}"
           WHO="${{ inputs.who }}"
           ARGS="--yes --candidates $CANDIDATES --minutes 38"
           if [ -n "$SOURCE" ]; then ARGS="$ARGS --source $SOURCE"; fi

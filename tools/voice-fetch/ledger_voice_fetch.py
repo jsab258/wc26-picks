@@ -641,6 +641,16 @@ def _routes_for(source, cast=None):
 
     if source == "libritts":
         return [("libritts", open_libritts)]
+    # A NAMED CORPUS IS BINDING. Jafar chose VCTK because Common Voice
+    # sounded bad; every run after that decision silently used Common Voice
+    # anyway, because VCTK was merely FIRST in a fallback list rather than
+    # required. A night of listening candidates was generated from the corpus
+    # he had already rejected, and nothing in the output said so.
+    #
+    # The file already hard-stops on a LibriTTS fallback for precisely this
+    # reason. That rule was written for one corpus and never generalised.
+    if source == "vctk":
+        return [("vctk", open_vctk)]
     return [
         ("vctk", open_vctk),
         ("commonvoice", lambda: open_common_voice()),
@@ -844,6 +854,17 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
     # So this now STOPS. A corpus with no gender is fine for a deliberate
     # `--source libritts`, where the operator has chosen it; it is not fine as
     # a silent fallback from the corpus that does have gender.
+    # THE SAME RULE, GENERALISED. Falling back from the corpus that was
+    # chosen to one that was rejected is not a fallback, it is a substitution
+    # nobody agreed to.
+    if source and source not in ("", "auto") and used != source:
+        raise RuntimeError(
+            f"asked for {source!r} and got {used!r}. The reasons {source} did "
+            f"not open are printed above.\n"
+            f"  Nothing is written, because a shortlist from the wrong corpus "
+            f"is worse than no shortlist: it costs a listening pass to find "
+            f"out.\n"
+            f"  To accept {used!r} deliberately:  --source {used}")
     if used == "libritts" and source != "libritts":
         raise RuntimeError(
             "fell back to LibriTTS, which carries no gender or age, so every "
@@ -1286,6 +1307,15 @@ def selftest():
     check(_asked <= set(CV_AGE_BANDS),
           "every age band the cast asks for is one the corpus can supply",
           str(sorted(_asked - set(CV_AGE_BANDS))))
+
+    # A NAMED CORPUS IS BINDING, and this is the check that would have caught
+    # the whole affair: VCTK was chosen and Common Voice was used, for every run
+    # after the decision, silently.
+    check([n for n, _ in _routes_for("vctk", CAST)] == ["vctk"],
+          "--source vctk offers VCTK and nothing else to fall back to",
+          str([n for n, _ in _routes_for("vctk", CAST)]))
+    check([n for n, _ in _routes_for("commonvoice", CAST)][0] == "vctk",
+          "an unnamed preference still TRIES vctk first")
 
     print(f"\n{ok} passed, {fail} failed")
     return 1 if fail else 0
