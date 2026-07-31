@@ -4116,6 +4116,16 @@ namespace Ledger.Game
                  ViolenceHost.StainsTaken > 0
                  && (!_washTried || (_washFailedInPublic && _washWorkedAtHome))),
 
+                // M17.9 — REPORTED, NOT GATED, and the distinction is the
+                // point. The font cannot land until a CI fetch brings one
+                // (`fonts.google.com` answers 000 from the dev container), so
+                // gating on it would paint the build red for work that has not
+                // started, and a check that is red for a known reason is a
+                // check people learn to skip. What it must never do is go
+                // QUIET: a silent OS fallback is exactly how the project ended
+                // up not knowing it had no font of its own.
+                ($"font[shipped={UiTheme.UsingShippedFont} face={UiTheme.ShippedFont}]", true),
+
                 ($"threat[brandishes={ViolenceHost.Brandishes} last={ViolenceHost.LastThreat} "
                  + $"fled={ViolenceHost.ThreatsThatFled} called={ViolenceHost.ThreatsCalled} "
                  + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()} "

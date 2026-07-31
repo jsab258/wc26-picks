@@ -82,10 +82,44 @@ namespace Ledger.Game
         static Color Rgb(int rgb, float a) =>
             new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, a);
 
-        /// Segoe UI where the OS has it (every Windows target), else the engine's
-        /// built-in face. One family, weights via rich text — the Two Books way.
+        /// The name of the face this project ships, under `Assets/Resources`.
+        /// Empty until M17.9 lands one.
+        public const string ShippedFont = "LedgerSans";
+
+        /// True when the game is drawing its own typeface rather than borrowing
+        /// the machine's. Read by the sim gate, so "we ship a font" is a fact
+        /// the build checks rather than a plan somebody remembers.
+        public static bool UsingShippedFont { get; private set; }
+
+        /// A FONT THIS PROJECT SHIPS, falling back to the machine's.
+        ///
+        /// The completeness audit on 2026-07-31 found this borrowing Segoe UI
+        /// from the OS, and that is wrong in two separate ways that both look
+        /// like nothing:
+        ///
+        ///   Segoe UI is licensed by Microsoft and is not redistributable. The
+        ///   game does not redistribute it — it asks the OS for it — so this is
+        ///   legal, and it is also why THE TYPOGRAPHY DIFFERS PER MACHINE. On
+        ///   macOS and Linux it falls through to Arial or Unity's legacy face,
+        ///   so every measurement `Core/Typography` makes about line length and
+        ///   contrast is made about a font that may not be the one on screen.
+        ///
+        ///   And the credits cannot name a typeface, because there isn't one.
+        ///
+        /// The fix is a face under an open licence living in `Resources`, which
+        /// is M17.9 and needs a CI fetch: `fonts.google.com` answers 000 through
+        /// this container's proxy, exactly like every texture host. Until the
+        /// file is there this returns the borrowed font and SAYS SO — a silent
+        /// fallback is how the project ended up not knowing it had no font.
         public static Font LoadFont()
         {
+            var shipped = Resources.Load<Font>(ShippedFont);
+            if (shipped != null)
+            {
+                UsingShippedFont = true;
+                return shipped;
+            }
+            UsingShippedFont = false;
             var f = Font.CreateDynamicFontFromOSFont(new[] { "Segoe UI", "Arial" }, 18);
             return f != null ? f : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }

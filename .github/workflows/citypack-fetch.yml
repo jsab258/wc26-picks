@@ -102,6 +102,11 @@ jobs:
         run: python3 tools/citypack/fetch_textures.py --catalogue
       - name: And the per-term view
         run: python3 tools/citypack/fetch_textures.py --inventory
+      # M17.9 rides along: the font has the same problem (fonts.google.com
+      # answers 000 from the dev container) and asking costs seconds.
+      - name: What the font families offer
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_font.py --inventory
 
       - name: Commit the candidate list
         run: |
@@ -132,6 +137,7 @@ jobs:
           path: |
             tools/citypack/candidates.json
             tools/citypack/catalogue.json
+            tools/citypack/font-candidates.json
 
   fetch:
     if: >-
@@ -169,6 +175,14 @@ jobs:
         id: fetch
         run: python3 tools/citypack/fetch_textures.py --fetch
 
+      # AND THE FONT, in the same run. It is one file and one licence, it has
+      # the same blocked-host problem, and a second twenty-minute round trip to
+      # collect it would be a round trip spent on nothing.
+      - name: Fetch the typeface
+        id: font
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_font.py --fetch
+
       # THE ARTEFACT, OPENED. Square, power-of-two, non-empty, present under the
       # exact logical name the game looks up, and attributed. Every one of those
       # is invisible from the script that wrote the files.
@@ -199,6 +213,7 @@ jobs:
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
           git add ledger/Assets/StreamingAssets/CityPack
+          git add ledger/Assets/Resources/LedgerSans.* tools/citypack/font-installed.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "pack unchanged — nothing to commit"
             exit 0

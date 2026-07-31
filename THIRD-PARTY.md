@@ -68,8 +68,23 @@ latter; the FBX files are tracked because they are project inputs.
   typography differs per machine.
 - On macOS and Linux this falls through to Arial or Unity's `LegacyRuntime.ttf`.
 
-M17.9 / M22.4 replaces this with a font that ships under a licence permitting
-it. Until then the credits cannot name a typeface, because there isn't one.
+M17.9 / M22.4 replaces this with a face under the SIL Open Font Licence 1.1,
+which permits shipping inside a product. `tools/citypack/fetch_font.py` takes
+one static regular from Inter, Source Sans 3 or Roboto Condensed — in that
+order, all OFL — and **writes the licence file next to the font**, because the
+OFL requires the licence to travel with it and a copy beside the file is the
+only version of that which cannot drift from a document somebody forgot.
+
+One face, not a family: `UiTheme` uses a single family with weights done through
+rich text, so eight weights would be megabytes for nothing. A static face rather
+than a variable one, because Unity's dynamic font path does not read variable
+axes and would install cleanly while rendering one arbitrary weight.
+
+Until it lands, `UiTheme.UsingShippedFont` is false and the sim verdict prints
+it every run. Reported rather than gated — gating on a fetch that has not
+happened paints the build red for known reasons, and a check that is red for a
+known reason is a check people learn to skip. What it must never do is go
+quiet, which is exactly how the project ended up not knowing it had no font.
 
 ## Textures, props, vehicles — NOTHING YET
 
