@@ -131,14 +131,27 @@ namespace Ledger.Core
                     $"{Cap(what)}. I'd say it in front of him.",
                     $"I was there. {Cap(what)}, and that's the end of it.",
                     $"Don't look at me like that. {Cap(what)}.",
-                    $"{Cap(what)}. My own eyes, not somebody's mouth.",
+                    // FOUR OF THESE USED TO OPEN ON THE SUMMARY, which made it
+                    // six of fourteen — and a bank where nearly half the lines
+                    // begin with the same six words is a bank the ear starts
+                    // predicting. Found by the M17.4 curation pass, splitting
+                    // the enumerated banks apart and counting openings, because
+                    // the manifest's 126-line pair slots are 14 openers times 9
+                    // replies and hide it completely.
+                    //
+                    // Two are DELIBERATELY left leading with the story. At this
+                    // confidence, stating the thing flatly and letting it sit
+                    // is what certainty sounds like, and rewriting every one of
+                    // them would have cost the band its character to fix a
+                    // counting problem.
+                    $"My own eyes, not somebody's mouth. {Cap(what)}.",
                     $"You can believe what you like. {Cap(what)}.",
                     $"I've not slept right since. {Cap(what)}.",
-                    $"{Cap(what)}. I wish I hadn't seen it.",
+                    $"I wish I hadn't seen it, but I did: {what}.",
                     $"Ask me again in a year and I'll tell you the same: {what}.",
-                    $"{Cap(what)}. There's no other way to read it.",
+                    $"There's no other way to read it: {what}.",
                     $"I'm not guessing. {Cap(what)}.",
-                    $"{Cap(what)}. And nobody's done a thing about it.",
+                    $"Nobody's done a thing about it. {Cap(what)}.",
                 })
                 : r.Confidence >= 0.5 ? Pick(seed, new[]
                 {
@@ -583,18 +596,40 @@ namespace Ledger.Core
                     "I've got that thing you asked about, when you want it.",
                     "You're the fourth person to say that to me today.",
                 });
+                // SIX OF THESE USED TO ANSWER ONE SPECIFIC OPENER, and that is
+                // a defect the manifest cannot show you.
+                //
+                // `Answer()` hashes the REPLIER's id, deliberately decorrelated
+                // from which opener was drawn — so the two are picked
+                // independently and every reply has to work after every opener.
+                // The other five ambient bands are single-topic, so any reply
+                // follows any opener and the decorrelation is free. `ordinary`
+                // is not a topic, it is a catch-all: its openers are about a
+                // roof, a landlord, a mother, a market, a brother and the road.
+                //
+                // So "It held. Just about." — written for "Did the roof hold?"
+                // — landed after "Cold one." thirteen times in fourteen. Every
+                // line was well-formed, distinct and clean under `TextShape`;
+                // the pair was simply nonsense, and a player who hears two
+                // neighbours fail to have a conversation learns that the street
+                // is generated. That is the exact thing the whole system exists
+                // to avoid.
+                //
+                // Rewritten so each one follows anything a neighbour might open
+                // with. The specificity moves to the OPENER side, which is
+                // unconditioned and cannot mismatch.
                 reply = Pick(Answer(seed, b.Id), new[]
                 {
                     "Same as ever.",
-                    "Better this week, thanks for asking.",
-                    "Don't ask me about the landlord.",
-                    "If the weather holds.",
+                    "Better this week, any road.",
+                    "Don't ask. Not today.",
+                    "All being well.",
                     "Can't complain. Well. I could.",
-                    "She's asking after you, as it happens.",
+                    "Somebody was asking after you, as it happens.",
                     "Not so bad. You?",
                     "Ask me tomorrow and you'll get a different answer.",
-                    "It held. Just about.",
-                    "I'll come by for it Friday.",
+                    "Just about holding. That's the size of it.",
+                    "I'll catch you Friday, if that suits.",
                     "Getting on with it, you know.",
                     "Mustn't grumble.",
                     "There's always something, isn't there.",
