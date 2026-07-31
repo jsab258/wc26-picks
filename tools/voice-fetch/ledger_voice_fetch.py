@@ -507,6 +507,186 @@ def age_band(value):
     return "sixties"
 
 
+def _routes_for(source, cast=None):
+    """The corpus routes, in order, as (name, opener) pairs.
+
+    MODULE LEVEL SO TWO CALLERS SHARE ONE COPY. These openers used to be
+    nested inside `fetch`, which meant `diagnose` could only have reached
+    them by duplicating them — and a diagnostic that is a COPY of the thing
+    it diagnoses tells you about the copy. It has to open the corpus the same
+    way the real run does or it is theatre.
+    """
+    from datasets import load_dataset
+
+def open_common_voice(revision=None):
+    kw = dict(split="train", streaming=True)
+    if revision:
+        kw["revision"] = revision
+    # `datasets` 2.16 and later refuse to execute a dataset loading script
+    # unless told to, and the reachable Common Voice mirror is a script.
+    # Without this the route raises, we fall through to a corpus with no
+    # gender metadata, and nineteen briefs get filtered by nothing.
+    try:
+        ds = load_dataset(CV_DATASET, "en", trust_remote_code=True, **kw)
+    except TypeError:
+        # Older or newer versions that do not know the argument.
+        ds = load_dataset(CV_DATASET, "en", **kw)
+    def matches(row, spec):
+        g = (row.get("gender") or "").strip()
+        a = (row.get("age") or "").strip()
+        # Through the shared normaliser, not a raw string compare: the
+        # vocabularies differ between corpora and a mismatch here is
+        # silent.
+        if spec.get("gender") and same_gender(g, spec["gender"]) is False:
+            return False
+        if spec.get("age") and a and a not in spec["age"]:
+            return False
+        if not accent_ok(row.get("accents") or row.get("accent"),
+                         spec.get("accent")):
+            return False
+        # A row with no metadata at all is not a match — it is an
+        # unknown, and filling a shortlist with unknowns is the same as
+        # not filtering.
+        return bool(g)
+    return ds, "client_id", "audio", matches
+
+def open_vctk():
+    last = None
+    for name in VCTK_DATASETS:
+        try:
+            # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
+            # VCTK mirrors are script-backed, so without this `datasets`
+            # asks "Do you wish to run the custom code? [y/N]" — and a CI
+            # runner cannot answer a prompt, so every id declined itself.
+            try:
+                ds = load_dataset(name, split="train", streaming=True,
+                                  trust_remote_code=True)
+            except TypeError:
+                ds = load_dataset(name, split="train", streaming=True)
+            break
+        except Exception as e:              # noqa: BLE001 - try the next id
+            last = e
+    else:
+        raise last or RuntimeError("no VCTK id resolved")
+
+    def matches(row, spec):
+        g = same_gender(row.get("gender") or row.get("sex"),
+                        spec.get("gender"))
+        if g is False:
+            return False
+        if g is None:
+            return False        # no gender on the row is not a match
+        if not accent_ok(row.get("accent") or row.get("accents"),
+                         spec.get("accent")):
+            return False
+        band = age_band(row.get("age"))
+        if spec.get("age") and band and band not in spec["age"]:
+            return False
+        return True
+
+    return ds, "speaker_id", "audio", matches
+
+def open_libritts():
+    ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
+                      streaming=True)
+    def matches(row, spec):
+        # LibriTTS carries no age or gender in the row, so every brief
+        # sees every speaker and the filtering is your ears. Said out
+        # loud rather than silently pretending the filter worked.
+        return True
+    return ds, "speaker_id", "audio", matches
+
+    if source == "libritts":
+        return [("libritts", open_libritts)]
+    return [
+        ("vctk", open_vctk),
+        ("commonvoice", lambda: open_common_voice()),
+        ("commonvoice-parquet",
+         lambda: open_common_voice(revision="refs/convert/parquet")),
+        ("libritts", open_libritts),
+    ]
+
+
+def diagnose(source, cast, rows=40):
+    """Open each route, read a few rows, and say what the filter SEES.
+
+    WHY THIS EXISTS. Run 7 streamed for forty-five minutes, exited zero, and
+    banked nothing. The wall-clock budget worked exactly as designed — it
+    stopped on time and wrote what it had, and what it had was nothing. So a
+    second bug had been hiding behind the timeout the whole time, and the one
+    line that would name it sat in a log the GitHub API returns only the tail
+    of.
+
+    Debugging that with forty-five-minute round trips and an unreadable log
+    is not debugging, it is guessing with a delay. This reads FORTY ROWS and
+    prints the metadata verbatim: which route opened, what the gender, age
+    and accent fields actually contain, and — the number that matters — how
+    many of the nineteen briefs would accept each row.
+
+    A corpus that streams perfectly and matches nobody looks exactly like a
+    corpus that never opened, right up until you print this.
+    """
+    import numpy as np                          # noqa: F401 - opener needs it
+    print("=== DIAGNOSE: what the filter actually sees ===")
+    routes = _routes_for(source, cast)
+    for name, opener in routes:
+        print(f"\n--- route: {name} ---")
+        try:
+            ds, key_speaker, key_audio, matches = opener()
+        except Exception as e:                   # noqa: BLE001
+            print(f"  did not open: {type(e).__name__}: "
+                  f"{str(e).strip().splitlines()[0][:200]}")
+            continue
+        try:
+            it = iter(ds)
+            first = next(it)
+        except Exception as e:                   # noqa: BLE001
+            print(f"  opened but the first row failed: {type(e).__name__}: "
+                  f"{str(e).strip().splitlines()[0][:200]}")
+            continue
+
+        print(f"  opened. columns: {sorted(first.keys())}")
+        print(f"  speaker key: {key_speaker!r}  present: {key_speaker in first}")
+        print(f"  audio key:   {key_audio!r}  present: {key_audio in first}")
+
+        # The three fields every brief filters on, printed RAW. A mismatch
+        # here is silent: `same_gender` normalises vocabularies, and if a
+        # corpus spells gender in a way the normaliser has never seen, every
+        # row is a non-match and nothing says so.
+        accepted_any = 0
+        seen = 0
+        vocab = {"gender": set(), "age": set(), "accent": set()}
+        per_character = {c["id"]: 0 for c in cast}
+        for row in [first] + [r for _, r in zip(range(rows - 1), it)]:
+            seen += 1
+            vocab["gender"].add(str(row.get("gender") or row.get("sex") or "")[:24])
+            vocab["age"].add(str(row.get("age") or "")[:24])
+            vocab["accent"].add(str(row.get("accent") or row.get("accents") or "")[:24])
+            hit = False
+            for c in cast:
+                if matches(row, c):
+                    per_character[c["id"]] += 1
+                    hit = True
+            if hit:
+                accepted_any += 1
+
+        print(f"  read {seen} rows")
+        for field in ("gender", "age", "accent"):
+            vals = sorted(v for v in vocab[field] if v)
+            print(f"  {field:7}: {vals[:8] if vals else 'EMPTY ON EVERY ROW'}")
+        print(f"  rows accepted by at least one brief: {accepted_any}/{seen}")
+        if accepted_any == 0:
+            print("  >>> NOBODY MATCHES. The corpus streams and the filter "
+                  "rejects everything — which is indistinguishable from a "
+                  "corpus that never opened, in every log we have had.")
+        short = [cid for cid, n in per_character.items() if n == 0]
+        print(f"  characters matching nothing in {seen} rows: "
+              f"{len(short)}/{len(cast)}"
+              + (" -> " + ", ".join(short[:10]) if short else ""))
+        break                                    # the first route that opens is the one used
+    print("\n=== end diagnose ===")
+
+
 def fetch(source, cast, candidates, out_dir, budget_minutes=0):
     """Stream a corpus and bank enough audio per speaker to make candidates.
 
@@ -544,95 +724,7 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
     # metadata and a shortlist filtered by nothing are different things and
     # the casting notes need to say which one you were listening to.
 
-    def open_common_voice(revision=None):
-        kw = dict(split="train", streaming=True)
-        if revision:
-            kw["revision"] = revision
-        # `datasets` 2.16 and later refuse to execute a dataset loading script
-        # unless told to, and the reachable Common Voice mirror is a script.
-        # Without this the route raises, we fall through to a corpus with no
-        # gender metadata, and nineteen briefs get filtered by nothing.
-        try:
-            ds = load_dataset(CV_DATASET, "en", trust_remote_code=True, **kw)
-        except TypeError:
-            # Older or newer versions that do not know the argument.
-            ds = load_dataset(CV_DATASET, "en", **kw)
-        def matches(row, spec):
-            g = (row.get("gender") or "").strip()
-            a = (row.get("age") or "").strip()
-            # Through the shared normaliser, not a raw string compare: the
-            # vocabularies differ between corpora and a mismatch here is
-            # silent.
-            if spec.get("gender") and same_gender(g, spec["gender"]) is False:
-                return False
-            if spec.get("age") and a and a not in spec["age"]:
-                return False
-            if not accent_ok(row.get("accents") or row.get("accent"),
-                             spec.get("accent")):
-                return False
-            # A row with no metadata at all is not a match — it is an
-            # unknown, and filling a shortlist with unknowns is the same as
-            # not filtering.
-            return bool(g)
-        return ds, "client_id", "audio", matches
-
-    def open_vctk():
-        last = None
-        for name in VCTK_DATASETS:
-            try:
-                # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
-                # VCTK mirrors are script-backed, so without this `datasets`
-                # asks "Do you wish to run the custom code? [y/N]" — and a CI
-                # runner cannot answer a prompt, so every id declined itself.
-                try:
-                    ds = load_dataset(name, split="train", streaming=True,
-                                      trust_remote_code=True)
-                except TypeError:
-                    ds = load_dataset(name, split="train", streaming=True)
-                break
-            except Exception as e:              # noqa: BLE001 - try the next id
-                last = e
-        else:
-            raise last or RuntimeError("no VCTK id resolved")
-
-        def matches(row, spec):
-            g = same_gender(row.get("gender") or row.get("sex"),
-                            spec.get("gender"))
-            if g is False:
-                return False
-            if g is None:
-                return False        # no gender on the row is not a match
-            if not accent_ok(row.get("accent") or row.get("accents"),
-                             spec.get("accent")):
-                return False
-            band = age_band(row.get("age"))
-            if spec.get("age") and band and band not in spec["age"]:
-                return False
-            return True
-
-        return ds, "speaker_id", "audio", matches
-
-    def open_libritts():
-        ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
-                          streaming=True)
-        def matches(row, spec):
-            # LibriTTS carries no age or gender in the row, so every brief
-            # sees every speaker and the filtering is your ears. Said out
-            # loud rather than silently pretending the filter worked.
-            return True
-        return ds, "speaker_id", "audio", matches
-
-    routes = []
-    if source == "libritts":
-        routes = [("libritts", open_libritts)]
-    else:
-        routes = [
-            ("vctk", open_vctk),
-            ("commonvoice", lambda: open_common_voice()),
-            ("commonvoice-parquet",
-             lambda: open_common_voice(revision="refs/convert/parquet")),
-            ("libritts", open_libritts),
-        ]
+    routes = _routes_for(source, cast)
 
     ds = key_speaker = key_audio = matches = None
     used = None
@@ -1097,6 +1189,10 @@ def main():
     ap.add_argument("--source", default="commonvoice",
                     choices=["vctk", "commonvoice", "libritts"])
     ap.add_argument("--selftest", action="store_true")
+    # TWO MINUTES INSTEAD OF FORTY-FIVE. Opens each route, reads a few rows,
+    # and prints what the filter actually sees. See `diagnose` for why.
+    ap.add_argument("--diagnose", action="store_true",
+                    help="open the corpus, read a few rows, report what the filter sees")
     ap.add_argument("--install", action="store_true")
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--no-open", action="store_true")
@@ -1130,13 +1226,32 @@ def main():
 
     if not args.worker:
         py = ensure_venv(args.yes)
-        cmd = [str(py), str(Path(__file__).resolve()), "--worker",
-               "--candidates", str(args.candidates), "--source", args.source]
-        if args.who:
-            cmd += ["--who", args.who]
-        if args.no_open:
-            cmd += ["--no-open"]
+        # EVERY FLAG, FORWARDED. This list used to be hand-written and it
+        # silently dropped `--minutes`, so the wall-clock budget I added to
+        # stop CI runs dying with nothing NEVER REACHED THE PROCESS THAT DOES
+        # THE WORK. The parent parsed it, printed nothing, and re-executed a
+        # worker with no budget at all.
+        #
+        # That is the whole class: a hand-maintained forwarding list is a
+        # second copy of the argument spec, and the second copy is always the
+        # one that rots. Anything added to the parser from here on has to be
+        # added here too, so the ones that take a value are listed once and
+        # the flags once, rather than each being spelled out.
+        cmd = [str(py), str(Path(__file__).resolve()), "--worker"]
+        for name, value in (("--candidates", args.candidates),
+                            ("--source", args.source),
+                            ("--who", args.who),
+                            ("--minutes", args.minutes)):
+            if value not in (None, "", 0):
+                cmd += [name, str(value)]
+        for name, flag in (("--no-open", args.no_open),
+                           ("--diagnose", args.diagnose)):
+            if flag:
+                cmd += [name]
         return subprocess.run(cmd).returncode
+
+    if args.diagnose:
+        return diagnose(args.source, cast)
 
     print(f"  streaming {args.source} for {len(cast)} character(s), "
           f"{args.candidates} candidate(s) each")

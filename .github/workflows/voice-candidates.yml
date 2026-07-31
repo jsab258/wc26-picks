@@ -40,6 +40,43 @@ on:
         default: ""
 
 jobs:
+  # TWO MINUTES, AND IT RUNS FIRST. Run 7 streamed for forty-five minutes,
+  # exited zero and banked nothing — and the one line naming the reason sat in
+  # a log the API returns only the tail of. Debugging that with forty-five
+  # minute round trips is guessing with a delay.
+  #
+  # This opens the corpus, reads forty rows, and says what the filter sees.
+  # It does not gate the fetch — a diagnostic that can stop the real work is a
+  # diagnostic somebody switches off.
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/game-dev-ai-automation-2h67ix
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: What does the filter see
+        working-directory: tools/voice-fetch
+        run: |
+          set -o pipefail
+          python ledger_voice_fetch.py --yes --diagnose 2>&1 | tee diagnose.log || true
+      # INTO THE STEP SUMMARY, because the log API hands back a fixed tail and
+      # post-job cleanup fills it. This is the lesson the Windows job learned
+      # over three builds and this workflow never had.
+      - name: Report
+        if: always()
+        working-directory: tools/voice-fetch
+        run: |
+          {
+            echo "## Voice corpus diagnose"
+            echo '```'
+            tail -c 12000 diagnose.log 2>/dev/null || echo "no diagnose log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   candidates:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -128,7 +165,20 @@ jobs:
             echo "nothing changed"
           else
             git commit -m "Voice candidates from CI ($(date -u +%Y-%m-%dT%H:%MZ))"
-            git push origin HEAD:claude/game-dev-ai-automation-2h67ix
+            # THE BRANCH MOVES UNDER A FORTY-FIVE MINUTE JOB. Run 7 spent
+            # its whole budget, produced its output, and then lost the push
+            # to a non-fast-forward because six commits had landed while it
+            # streamed. Rebase and retry rather than treating the race as
+            # an error — the clips are the point, not the ancestry.
+            for attempt in 1 2 3; do
+              git fetch origin claude/game-dev-ai-automation-2h67ix || true
+              git rebase origin/claude/game-dev-ai-automation-2h67ix || git rebase --abort || true
+              if git push origin HEAD:claude/game-dev-ai-automation-2h67ix; then
+                echo "pushed on attempt $attempt"; break
+              fi
+              echo "push attempt $attempt lost the race; retrying"
+              sleep $((attempt * 5))
+            done
           fi
 
       # AND THE LOG, because the source that actually answered is the single
@@ -140,6 +190,14 @@ jobs:
           grep -E "source:|unavailable:|NOTE|rejected|fell back|TRUNCATED|stopping:" \
             tools/voice-fetch/fetch.log || echo "no source line found"
           echo "clips: $(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)"
+          {
+            echo "## Voice fetch verdict"
+            echo "clips: $(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)"
+            echo '```'
+            grep -E "source:|unavailable:|NOTE|rejected|fell back|TRUNCATED|stopping:|rows scanned" \
+              tools/voice-fetch/fetch.log | tail -40 || echo "no fetch log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "==========================="
 
       - uses: actions/upload-artifact@v4
