@@ -90,7 +90,15 @@ jobs:
       # have had no texture at all. Pulling every material id once means the
       # next question about what paving or roofing is called here is answered
       # locally in seconds instead of costing another run.
+      #
+      # `continue-on-error` on the catalogue, DELIBERATELY. The first attempt
+      # died mid-walk and the shell's `-e` took the whole job with it, so the
+      # per-term inventory never ran and the artefact upload had nothing to
+      # upload — a five-minute run that produced no evidence at all. These two
+      # steps answer different questions and neither should be able to silence
+      # the other. The job's verdict is the inventory's.
       - name: Pull the whole catalogue
+        continue-on-error: true
         run: python3 tools/citypack/fetch_textures.py --catalogue
       - name: And the per-term view
         run: python3 tools/citypack/fetch_textures.py --inventory
@@ -99,7 +107,8 @@ jobs:
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add tools/citypack/candidates.json tools/citypack/catalogue.json
+          git add -f tools/citypack/candidates.json tools/citypack/catalogue.json 2>/dev/null || true
+          git add tools/citypack/candidates.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "candidates.json unchanged — nothing to commit"
             exit 0
@@ -119,6 +128,7 @@ jobs:
         if: always()
         with:
           name: citypack-candidates
+          if-no-files-found: warn
           path: |
             tools/citypack/candidates.json
             tools/citypack/catalogue.json

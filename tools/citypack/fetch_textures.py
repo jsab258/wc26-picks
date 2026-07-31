@@ -82,6 +82,47 @@ def get(url, timeout=60):
         return r.read()
 
 
+def dig(node, *keys):
+    """Walk nested dicts without assuming a shape.
+
+    `d.get("k", {})` returns NONE, not `{}`, when the key is present with a
+    null value — so the obvious chain of `.get(...)` calls raises
+    AttributeError on the first asset whose `downloadFolders` is null. The
+    catalogue run died on exactly that and wrote no file at all, which meant a
+    five-minute run produced nothing to read: no catalogue, no candidate list,
+    and an artefact upload with nothing to upload.
+
+    The per-term inventory has the same chain and survived only because the
+    query-filtered results happened not to contain a null."""
+    for k in keys:
+        if not isinstance(node, dict):
+            return None
+        node = node.get(k)
+    return node
+
+
+def sizes_of(asset):
+    """Which download sizes this asset publishes. Empty when it publishes none,
+    which is a fact about the asset rather than an error."""
+    zips = dig(asset, "downloadFolders", "default",
+               "downloadFiletypeCategories", "zip", "downloads")
+    if not isinstance(zips, list):
+        return []
+    return sorted({z.get("attribute") for z in zips
+                   if isinstance(z, dict) and z.get("attribute")})
+
+
+def link_for(asset, resolution):
+    zips = dig(asset, "downloadFolders", "default",
+               "downloadFiletypeCategories", "zip", "downloads")
+    if not isinstance(zips, list):
+        return None
+    for z in zips:
+        if isinstance(z, dict) and z.get("attribute") == resolution:
+            return z.get("downloadLink")
+    return None
+
+
 def catalogue():
     """THE WHOLE CATALOGUE, ONCE. Every material id and the sizes it publishes.
 
@@ -97,36 +138,50 @@ def catalogue():
     answered locally in seconds with no run at all.
 
     Metadata only. No image is downloaded."""
-    out, offset, limit = [], 0, 200
+    out, offset, limit, note = [], 0, 200, "complete"
+    seen = set()
     print("catalogue — every material, metadata only\n")
-    while offset < 4000:
-        url = (API + f"?type=Material&limit={limit}&offset={offset}"
-               + "&include=downloadData")
-        try:
-            data = json.loads(get(url))
-        except Exception as e:                                   # noqa: BLE001
-            print(f"  FAILED at offset {offset}: {type(e).__name__}: {e}")
-            break
-        assets = data.get("foundAssets", [])
-        if not assets:
-            break
-        for a in assets:
-            aid = a.get("assetId")
-            if not aid:
-                continue
-            zips = (a.get("downloadFolders", {}).get("default", {})
-                     .get("downloadFiletypeCategories", {})
-                     .get("zip", {}).get("downloads", []))
-            out.append({"id": aid,
-                        "sizes": sorted({z.get("attribute") for z in zips if z.get("attribute")})})
-        print(f"  offset {offset:5d}  +{len(assets)} -> {len(out)} total")
-        if len(assets) < limit:
-            break
-        offset += limit
+    try:
+        while offset < 4000:
+            url = (API + f"?type=Material&limit={limit}&offset={offset}"
+                   + "&include=downloadData")
+            try:
+                data = json.loads(get(url))
+            except Exception as e:                               # noqa: BLE001
+                note = f"stopped at offset {offset}: {type(e).__name__}: {e}"
+                print("  " + note)
+                break
+            assets = data.get("foundAssets") if isinstance(data, dict) else None
+            if not assets:
+                note = f"catalogue ended at offset {offset}"
+                break
+            fresh = 0
+            for a in assets:
+                aid = a.get("assetId") if isinstance(a, dict) else None
+                if not aid or aid in seen:
+                    continue
+                seen.add(aid)
+                fresh += 1
+                out.append({"id": aid, "sizes": sizes_of(a)})
+            print(f"  offset {offset:5d}  +{len(assets)} ({fresh} new) -> {len(out)} total")
+            # AN API THAT IGNORES `offset` WOULD LOOP FOREVER returning the same
+            # page. Nothing new means stop, whatever the page length says.
+            if fresh == 0 or len(assets) < limit:
+                note = ("offset appears to be ignored — the same page came back"
+                        if fresh == 0 else "complete")
+                break
+            offset += limit
+    except Exception as e:                                       # noqa: BLE001
+        # WRITE WHAT WE HAVE REGARDLESS. The first attempt died on an
+        # AttributeError mid-walk and produced no file at all, so a five-minute
+        # run left nothing to read. A partial catalogue is worth having; an
+        # exception that eats the evidence is not.
+        note = f"aborted: {type(e).__name__}: {e}"
+        print("  " + note)
 
     path = HERE / "catalogue.json"
-    path.write_text(json.dumps({"resolution": RESOLUTION, "assets": out}, indent=1),
-                    encoding="utf-8")
+    path.write_text(json.dumps({"resolution": RESOLUTION, "note": note,
+                                "assets": out}, indent=1), encoding="utf-8")
     usable = sum(1 for a in out if RESOLUTION in a["sizes"])
     print(f"\n{len(out)} material(s), {usable} publish {RESOLUTION}")
     print(f"wrote {path.relative_to(ROOT)}")
@@ -159,10 +214,7 @@ def inventory():
                 continue
             # Only entries that actually publish the size we want, so the fetch
             # step cannot pick something it then cannot download.
-            dl = (a.get("downloadFolders", {}).get("default", {})
-                   .get("downloadFiletypeCategories", {}))
-            zips = dl.get("zip", {}).get("downloads", [])
-            has = [z.get("attribute") for z in zips]
+            has = sizes_of(a)
             rows.append({"id": aid, "sizes": has,
                          "hasWanted": RESOLUTION in has})
         rows.sort(key=lambda r: (not r["hasWanted"], r["id"]))
@@ -214,12 +266,12 @@ def fetch():
                + urllib.parse.quote(asset_id))
         try:
             data = json.loads(get(url))
-            asset = next(a for a in data.get("foundAssets", [])
+            asset = next(a for a in (data.get("foundAssets") or [])
                          if a.get("assetId") == asset_id)
-            zips = (asset["downloadFolders"]["default"]
-                    ["downloadFiletypeCategories"]["zip"]["downloads"])
-            entry = next(z for z in zips if z.get("attribute") == RESOLUTION)
-            blob = get(entry["downloadLink"], timeout=180)
+            link = link_for(asset, RESOLUTION)
+            if not link:
+                raise ValueError(f"{asset_id} does not publish {RESOLUTION}")
+            blob = get(link, timeout=180)
         except Exception as e:                                   # noqa: BLE001
             print(f"  {logical:<12} FAILED {asset_id}: {type(e).__name__}: {e}")
             failed.append(logical)
