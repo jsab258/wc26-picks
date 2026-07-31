@@ -578,17 +578,35 @@ def _routes_for(source, cast=None):
     def open_vctk():
         from datasets import load_dataset
         last = None
-        for name in VCTK_DATASETS:
+        # EACH MIRROR TWICE: the ordinary way, then via the parquet export.
+        #
+        # `BadZipFile: File is not a zip file` is what both full VCTK mirrors
+        # answer with — a broken archive upstream, nothing to do with us. The
+        # only id that opens is a PARTIAL copy, which is why aligning the
+        # accent brief to the corpus changed the yield from five characters
+        # to four instead of unlocking the cast: the pool was never big
+        # enough for any brief to matter.
+        #
+        # The Hub auto-generates a parquet export at `refs/convert/parquet`
+        # for every dataset, and it is built from the data rather than from
+        # the archive — so it sidesteps the corrupt zip entirely. This
+        # fetcher already used that trick for Common Voice and never tried it
+        # on VCTK, which is the whole of this change.
+        attempts = [(name, rev) for name in VCTK_DATASETS
+                    for rev in (None, "refs/convert/parquet")]
+        for name, revision in attempts:
             try:
                 # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
                 # VCTK mirrors are script-backed, so without this `datasets`
                 # asks "Do you wish to run the custom code? [y/N]" — and a CI
                 # runner cannot answer a prompt, so every id declined itself.
+                kw = dict(split="train", streaming=True)
+                if revision:
+                    kw["revision"] = revision
                 try:
-                    ds = load_dataset(name, split="train", streaming=True,
-                                      trust_remote_code=True)
+                    ds = load_dataset(name, trust_remote_code=True, **kw)
                 except TypeError:
-                    ds = load_dataset(name, split="train", streaming=True)
+                    ds = load_dataset(name, **kw)
                 # AND PULL A ROW BEFORE BELIEVING THIS MIRROR.
                 #
                 # `load_dataset(streaming=True)` is LAZY: it returns happily
@@ -603,10 +621,13 @@ def _routes_for(source, cast=None):
                 # for the route list, applied one level down. Learning it in
                 # one place and not the other is how it stayed hidden.
                 next(iter(ds))
+                print(f"    vctk mirror {name}"
+                      f"{'@parquet' if revision else ''} opened")
                 break
             except Exception as e:              # noqa: BLE001 - try the next id
-                print(f"    vctk mirror {name} failed: {type(e).__name__}: "
-                      f"{str(e).strip().splitlines()[0][:120]}")
+                print(f"    vctk mirror {name}"
+                      f"{'@parquet' if revision else ''} failed: "
+                      f"{type(e).__name__}: {str(e).strip().splitlines()[0][:120]}")
                 last = e
         else:
             raise last or RuntimeError("no VCTK id resolved")
@@ -713,6 +734,11 @@ def diagnose(source, cast, rows=60):
         vocab = {"gender": set(), "age": set(), "accent": set()}
         # WHY each brief said no, counted per clause.
         why = {"gender": 0, "age": 0, "accent": 0, "no-gender-on-row": 0, "accepted": 0}
+        # HOW BIG IS THE POOL — the number that would have ended this two
+        # days ago. Nineteen briefs cannot be filled from a corpus offering
+        # eight voices, whatever their accents are, and rewriting the briefs
+        # cannot change it. VCTK proper has 110 speakers.
+        speakers = set()
         per_character = {c["id"]: 0 for c in cast}
         for row in [first] + [r for _, r in zip(range(rows - 1), it)]:
             seen += 1
@@ -721,6 +747,9 @@ def diagnose(source, cast, rows=60):
             ac = (row.get("accent") or row.get("accents") or "")
             vocab["gender"].add(str(g)[:24]); vocab["age"].add(str(a)[:24])
             vocab["accent"].add(str(ac)[:24])
+            sp = row.get(key_speaker)
+            if sp:
+                speakers.add(str(sp))
             for c in cast:
                 if matches(row, c):
                     per_character[c["id"]] += 1
@@ -737,7 +766,8 @@ def diagnose(source, cast, rows=60):
                 else:
                     why["age"] += 1
         detail = dict(seen=seen, vocab=vocab, why=why, per_character=per_character,
-                      columns=sorted(first.keys()), key_speaker=key_speaker)
+                      columns=sorted(first.keys()), key_speaker=key_speaker,
+                      speakers=speakers)
 
     # ---- THE ANSWER, LAST, COMPACT ----
     print("\n\n================ DIAGNOSE ================")
@@ -748,6 +778,8 @@ def diagnose(source, cast, rows=60):
         print("==========================================")
         return 1
     print(f"  measuring: {opened_name}, {detail['seen']} rows")
+    print(f"  DISTINCT SPEAKERS in those rows: {len(detail['speakers'])}"
+          f"   (VCTK proper has 110)")
     print(f"  columns: {','.join(detail['columns'])[:160]}")
     for field in ("gender", "age", "accent"):
         vals = sorted(v for v in detail["vocab"][field] if v)
