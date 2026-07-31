@@ -62,7 +62,13 @@ jobs:
         working-directory: tools/voice-fetch
         run: |
           set -o pipefail
+          # THE TAIL IS THE PART I CAN READ. `datasets` prints a thousand
+          # progress lines and the log API returns a fixed window of the end,
+          # so the diagnostic prints its answer last and this keeps only the
+          # last chunk of everything else.
           python ledger_voice_fetch.py --yes --diagnose 2>&1 | tee diagnose.log || true
+          echo "----- tail of diagnose -----"
+          tail -40 diagnose.log
       # INTO THE STEP SUMMARY, because the log API hands back a fixed tail and
       # post-job cleanup fills it. This is the lesson the Windows job learned
       # over three builds and this workflow never had.

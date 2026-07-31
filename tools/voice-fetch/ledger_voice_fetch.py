@@ -613,84 +613,111 @@ def _routes_for(source, cast=None):
     ]
 
 
-def diagnose(source, cast, rows=40):
-    """Open each route, read a few rows, and say what the filter SEES.
+def diagnose(source, cast, rows=60):
+    """Open every route, read some rows, and say WHY each brief rejects them.
 
-    WHY THIS EXISTS. Run 7 streamed for forty-five minutes, exited zero, and
-    banked nothing. The wall-clock budget worked exactly as designed — it
-    stopped on time and wrote what it had, and what it had was nothing. So a
-    second bug had been hiding behind the timeout the whole time, and the one
-    line that would name it sat in a log the GitHub API returns only the tail
-    of.
+    WHY THIS EXISTS, and why it prints its answer LAST.
 
-    Debugging that with forty-five-minute round trips and an unreadable log
-    is not debugging, it is guessing with a delay. This reads FORTY ROWS and
-    prints the metadata verbatim: which route opened, what the gender, age
-    and accent fields actually contain, and — the number that matters — how
-    many of the nineteen briefs would accept each row.
+    Run 7 streamed for forty-five minutes, exited zero, and banked nothing.
+    The one line naming the reason sat in a log the GitHub API returns only
+    the tail of, and `datasets` fills that tail with a thousand lines of
+    "Reading metadata..." progress. Two attempts to route the answer around
+    it — an artifact, then a step summary — both failed to come back through
+    any API I can read.
 
-    A corpus that streams perfectly and matches nobody looks exactly like a
-    corpus that never opened, right up until you print this.
+    So the answer goes at the very END, in a compact block, because the tail
+    is the part I can actually see. Everything above it is allowed to be
+    noise.
+
+    And it reports a REJECTION BREAKDOWN rather than a pass rate. "4 of 40
+    rows accepted" says the filter is strict; it does not say whether the
+    strictness is gender, age, accent, or a corpus that fills none of them.
+    Those have completely different fixes and one of them is not a bug.
     """
-    import numpy as np                          # noqa: F401 - opener needs it
-    print("=== DIAGNOSE: what the filter actually sees ===")
-    routes = _routes_for(source, cast)
-    for name, opener in routes:
-        print(f"\n--- route: {name} ---")
+    import os
+    # The progress bars are what evicted the answer from the log last time.
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("HF_DATASETS_DISABLE_PROGRESS_BARS", "1")
+    try:
+        import datasets as _d
+        _d.disable_progress_bars()
+    except Exception:                            # noqa: BLE001
+        pass
+
+    report = []
+    opened_name = None
+    detail = {}
+
+    for name, opener in _routes_for(source, cast):
         try:
             ds, key_speaker, key_audio, matches = opener()
+            first = next(iter(ds))
         except Exception as e:                   # noqa: BLE001
-            print(f"  did not open: {type(e).__name__}: "
-                  f"{str(e).strip().splitlines()[0][:200]}")
+            report.append(f"{name}: DID NOT OPEN — {type(e).__name__}: "
+                          f"{str(e).strip().splitlines()[0][:120]}")
             continue
-        try:
-            it = iter(ds)
-            first = next(it)
-        except Exception as e:                   # noqa: BLE001
-            print(f"  opened but the first row failed: {type(e).__name__}: "
-                  f"{str(e).strip().splitlines()[0][:200]}")
-            continue
+        report.append(f"{name}: opened")
+        if opened_name is not None:
+            continue                             # keep probing, but only measure the first
+        opened_name = name
 
-        print(f"  opened. columns: {sorted(first.keys())}")
-        print(f"  speaker key: {key_speaker!r}  present: {key_speaker in first}")
-        print(f"  audio key:   {key_audio!r}  present: {key_audio in first}")
-
-        # The three fields every brief filters on, printed RAW. A mismatch
-        # here is silent: `same_gender` normalises vocabularies, and if a
-        # corpus spells gender in a way the normaliser has never seen, every
-        # row is a non-match and nothing says so.
-        accepted_any = 0
+        it = iter(ds)
         seen = 0
         vocab = {"gender": set(), "age": set(), "accent": set()}
+        # WHY each brief said no, counted per clause.
+        why = {"gender": 0, "age": 0, "accent": 0, "no-gender-on-row": 0, "accepted": 0}
         per_character = {c["id"]: 0 for c in cast}
         for row in [first] + [r for _, r in zip(range(rows - 1), it)]:
             seen += 1
-            vocab["gender"].add(str(row.get("gender") or row.get("sex") or "")[:24])
-            vocab["age"].add(str(row.get("age") or "")[:24])
-            vocab["accent"].add(str(row.get("accent") or row.get("accents") or "")[:24])
-            hit = False
+            g = (row.get("gender") or row.get("sex") or "")
+            a = (row.get("age") or "")
+            ac = (row.get("accent") or row.get("accents") or "")
+            vocab["gender"].add(str(g)[:24]); vocab["age"].add(str(a)[:24])
+            vocab["accent"].add(str(ac)[:24])
             for c in cast:
                 if matches(row, c):
                     per_character[c["id"]] += 1
-                    hit = True
-            if hit:
-                accepted_any += 1
+                    why["accepted"] += 1
+                    continue
+                # Re-derive the clause that failed. Same helpers the filter
+                # uses, so this cannot disagree with it about the verdict.
+                if not str(g).strip():
+                    why["no-gender-on-row"] += 1
+                elif c.get("gender") and same_gender(g, c["gender"]) is False:
+                    why["gender"] += 1
+                elif not accent_ok(ac, c.get("accent")):
+                    why["accent"] += 1
+                else:
+                    why["age"] += 1
+        detail = dict(seen=seen, vocab=vocab, why=why, per_character=per_character,
+                      columns=sorted(first.keys()), key_speaker=key_speaker)
 
-        print(f"  read {seen} rows")
-        for field in ("gender", "age", "accent"):
-            vals = sorted(v for v in vocab[field] if v)
-            print(f"  {field:7}: {vals[:8] if vals else 'EMPTY ON EVERY ROW'}")
-        print(f"  rows accepted by at least one brief: {accepted_any}/{seen}")
-        if accepted_any == 0:
-            print("  >>> NOBODY MATCHES. The corpus streams and the filter "
-                  "rejects everything — which is indistinguishable from a "
-                  "corpus that never opened, in every log we have had.")
-        short = [cid for cid, n in per_character.items() if n == 0]
-        print(f"  characters matching nothing in {seen} rows: "
-              f"{len(short)}/{len(cast)}"
-              + (" -> " + ", ".join(short[:10]) if short else ""))
-        break                                    # the first route that opens is the one used
-    print("\n=== end diagnose ===")
+    # ---- THE ANSWER, LAST, COMPACT ----
+    print("\n\n================ DIAGNOSE ================")
+    for line in report:
+        print("  " + line)
+    if not detail:
+        print("  NO ROUTE OPENED — nothing else can be said")
+        print("==========================================")
+        return 1
+    print(f"  measuring: {opened_name}, {detail['seen']} rows")
+    print(f"  columns: {','.join(detail['columns'])[:160]}")
+    for field in ("gender", "age", "accent"):
+        vals = sorted(v for v in detail["vocab"][field] if v)
+        print(f"  {field:7}: {vals[:6] if vals else 'EMPTY ON EVERY ROW'}")
+    tries = detail["seen"] * len(cast)
+    w = detail["why"]
+    print(f"  brief x row decisions: {tries}")
+    for k in ("accepted", "gender", "accent", "age", "no-gender-on-row"):
+        print(f"    {k:18} {w[k]:6}  ({100.0 * w[k] / max(1, tries):5.1f}%)")
+    dead = [cid for cid, n in detail["per_character"].items() if n == 0]
+    print(f"  characters matching NOTHING: {len(dead)}/{len(cast)}")
+    if dead:
+        print("    " + ", ".join(dead))
+    live = {cid: n for cid, n in detail["per_character"].items() if n}
+    print(f"  characters with matches: {live if live else 'none'}")
+    print("==========================================")
+    return 0
 
 
 def fetch(source, cast, candidates, out_dir, budget_minutes=0):
