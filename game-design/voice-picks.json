@@ -1,0 +1,103 @@
+{
+  "made": "2026-07-31",
+  "by": "Jafar",
+  "corpus": "vctk",
+  "picks": {
+    "ada": {
+      "candidate": 2,
+      "speaker": "p276",
+      "age": "24",
+      "accent": "English"
+    },
+    "crowd_f2": {
+      "candidate": 1,
+      "speaker": "p265",
+      "age": "23",
+      "accent": "Scottish"
+    },
+    "crowd_m1": {
+      "candidate": 2,
+      "speaker": "p287",
+      "age": "23",
+      "accent": "English"
+    },
+    "crowd_m2": {
+      "candidate": 1,
+      "speaker": "p272",
+      "age": "23",
+      "accent": "Scottish"
+    },
+    "ellis": {
+      "candidate": 4,
+      "speaker": "p231",
+      "age": "23",
+      "accent": "English"
+    },
+    "emil": {
+      "candidate": 1,
+      "speaker": "p245",
+      "age": "25",
+      "accent": "Irish"
+    },
+    "hal": {
+      "candidate": 4,
+      "speaker": "p273",
+      "age": "23",
+      "accent": "English"
+    },
+    "joey": {
+      "candidate": 2,
+      "speaker": "p263",
+      "age": "22",
+      "accent": "Scottish"
+    },
+    "kest": {
+      "candidate": 1,
+      "speaker": "p244",
+      "age": "22",
+      "accent": "English"
+    },
+    "lena": {
+      "candidate": 2,
+      "speaker": "p228",
+      "age": "22",
+      "accent": "English"
+    },
+    "marla": {
+      "candidate": 1,
+      "speaker": "p282",
+      "age": "23",
+      "accent": "English"
+    },
+    "reese": {
+      "candidate": 4,
+      "speaker": "p256",
+      "age": "24",
+      "accent": "English"
+    },
+    "rita": {
+      "candidate": 3,
+      "speaker": "p249",
+      "age": "22",
+      "accent": "Scottish"
+    },
+    "rocco": {
+      "candidate": 1,
+      "speaker": "p227",
+      "age": "38",
+      "accent": "English"
+    },
+    "sam": {
+      "candidate": 1,
+      "speaker": "p241",
+      "age": "21",
+      "accent": "Scottish"
+    },
+    "vesna": {
+      "candidate": 1,
+      "speaker": "p238",
+      "age": "22",
+      "accent": "NorthernIrish"
+    }
+  }
+}
