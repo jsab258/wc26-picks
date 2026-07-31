@@ -162,7 +162,12 @@ def catalogue():
                     continue
                 seen.add(aid)
                 fresh += 1
-                out.append({"id": aid, "sizes": sizes_of(a)})
+                # AND THE DOWNLOAD LINK, so a later fetch never has to ask a
+                # second endpoint what this asset's zip is called. Recording it
+                # here is what turns `--fetch` into twelve downloads from
+                # committed data instead of twelve queries that can lie.
+                out.append({"id": aid, "sizes": sizes_of(a),
+                            "link": link_for(a, RESOLUTION)})
             print(f"  offset {offset:5d}  +{len(assets)} ({fresh} new) -> {len(out)} total")
             # AN API THAT IGNORES `offset` WOULD LOOP FOREVER returning the same
             # page. Nothing new means stop, whatever the page length says.
@@ -193,10 +198,26 @@ def catalogue():
 
 
 def inventory():
-    """Ask the catalogue what exists, and write it down. No images."""
+    """Per-term search. SUPERSEDED BY `--catalogue`, AND NOT TO BE TRUSTED.
+
+    This asks `q=<term>`, and that endpoint has now been wrong three times: zero
+    `PavingStones` against 162 in the catalogue, zero `RoofingTiles` against 31,
+    and then twelve exact-id lookups that matched nothing at all. `--catalogue`
+    answers the same questions from the list endpoint, which has never been
+    wrong here, and `choices.json` is made from that.
+
+    It stays because a search that disagrees with the catalogue is itself worth
+    seeing, and it is cheap. But `candidates.json` is a record of what the
+    search SAID, not of what the library HOLDS, and the file says so."""
     wanted = sorted({t for terms in SURFACES.values() for t in terms})
-    out = {"resolution": RESOLUTION, "terms": {}}
-    print(f"inventory — {len(wanted)} category term(s), metadata only\n")
+    out = {"resolution": RESOLUTION,
+           "_": "WHAT THE SEARCH ENDPOINT SAID, which has disagreed with the "
+                "library three times. catalogue.json is the evidence; this is "
+                "a second opinion from a witness with a record.",
+           "terms": {}}
+    print(f"inventory — {len(wanted)} category term(s), metadata only")
+    print("NOTE: the q= endpoint has been wrong three times; "
+          "catalogue.json is the source of truth\n")
     for term in wanted:
         url = (API + "?type=Material&limit=60&include=downloadData"
                + "&q=" + urllib.parse.quote(term))
@@ -237,6 +258,56 @@ def inventory():
               "at this resolution. That is a finding, not a pass.")
         return 1
     return 0
+
+
+def links_for(ids):
+    """Download links for exactly these asset ids, from the LIST endpoint.
+
+    THE SEARCH ENDPOINT LIED FOR THE THIRD TIME. `--fetch` used to resolve each
+    choice with `?q=<assetId>` and take the entry whose `assetId` matched. Every
+    one of the twelve raised a bare `StopIteration` — no match in the results —
+    in six seconds flat, so the queries answered promptly and answered with the
+    wrong thing. The same endpoint had already reported zero `PavingStones` when
+    the catalogue held 162, and zero `RoofingTiles` against 31.
+
+    Twice is a coincidence; three times is a rule. Nothing in the fetch path
+    asks `q=` any more.
+
+    The list endpoint — `type=Material&limit&offset&include=downloadData`, with
+    no query — is the call that produced all 2,005 materials, so it is the one
+    that gets used. It costs about eleven pages, which is a minute of a job that
+    already budgets thirty.
+
+    AND IT SAYS WHAT IT DID NOT FIND. A bare `StopIteration` with no message is
+    why the first failure needed a CI log dug out of a truncated window to
+    diagnose at all."""
+    want, found = set(ids), {}
+    offset, limit = 0, 200
+    print(f"  resolving {len(want)} link(s) from the list endpoint")
+    while offset < 4000 and len(found) < len(want):
+        url = (API + f"?type=Material&limit={limit}&offset={offset}"
+               + "&include=downloadData")
+        try:
+            data = json.loads(get(url))
+        except Exception as e:                                   # noqa: BLE001
+            print(f"    offset {offset}: {type(e).__name__}: {e} — stopping")
+            break
+        assets = data.get("foundAssets") if isinstance(data, dict) else None
+        if not assets:
+            break
+        for a in assets:
+            aid = a.get("assetId") if isinstance(a, dict) else None
+            if aid in want and aid not in found:
+                link = link_for(a, RESOLUTION)
+                if link:
+                    found[aid] = link
+        offset += limit
+        if len(assets) < limit:
+            break
+    print(f"    {len(found)}/{len(want)} resolved")
+    for aid in sorted(want - set(found)):
+        print(f"    NOT FOUND in the list endpoint: {aid}")
+    return found
 
 
 def load_choices():
@@ -300,20 +371,36 @@ def fetch():
     textures.mkdir(parents=True, exist_ok=True)
     materials.mkdir(parents=True, exist_ok=True)
 
+    wanted = {logical: aid
+              for logical, aid in sorted(choices.get("surfaces", {}).items())
+              if logical in SURFACES}
+
+    # THE LINKS FIRST, ALL OF THEM, BEFORE ANY DOWNLOAD. A catalogue pulled
+    # after this change already carries `link` per asset, in which case this
+    # costs nothing; the committed one predates it, so the list endpoint fills
+    # the gap. Either way the fetch loop below only ever downloads a URL the
+    # library itself handed over.
+    cat_path = HERE / "catalogue.json"
+    links = {}
+    if cat_path.exists():
+        for a in json.loads(cat_path.read_text(encoding="utf-8")).get("assets", []):
+            if a.get("id") in set(wanted.values()) and a.get("link"):
+                links[a["id"]] = a["link"]
+        if links:
+            print(f"  {len(links)} link(s) came from the committed catalogue")
+    unresolved = set(wanted.values()) - set(links)
+    if unresolved:
+        links.update(links_for(unresolved))
+
     written, failed, attribution = [], [], {}
-    for logical, asset_id in sorted(choices.get("surfaces", {}).items()):
-        if logical not in SURFACES:
-            print(f"  {logical:<12} SKIP — not a surface AssetLibrary asks for")
+    for logical, asset_id in wanted.items():
+        link = links.get(asset_id)
+        if not link:
+            print(f"  {logical:<12} FAILED {asset_id}: no {RESOLUTION} download "
+                  "link — the library did not offer one")
+            failed.append(logical)
             continue
-        url = (API + "?type=Material&include=downloadData&q="
-               + urllib.parse.quote(asset_id))
         try:
-            data = json.loads(get(url))
-            asset = next(a for a in (data.get("foundAssets") or [])
-                         if a.get("assetId") == asset_id)
-            link = link_for(asset, RESOLUTION)
-            if not link:
-                raise ValueError(f"{asset_id} does not publish {RESOLUTION}")
             blob = get(link, timeout=180)
         except Exception as e:                                   # noqa: BLE001
             print(f"  {logical:<12} FAILED {asset_id}: {type(e).__name__}: {e}")
@@ -326,12 +413,23 @@ def fetch():
         # weight for nothing.
         try:
             with zipfile.ZipFile(io.BytesIO(blob)) as z:
-                name = next(n for n in z.namelist()
-                            if n.lower().endswith((".jpg", ".png"))
-                            and "color" in n.lower())
+                inside = z.namelist()
+                # NAMED, NOT `next()`. A bare `next()` raises StopIteration with
+                # an EMPTY message, which is how twelve identical failures
+                # reached the log saying only "StopIteration:" and cost a CI
+                # round trip to identify. If no colour map is in there, the
+                # useful thing to print is what WAS.
+                name = None
+                for n in inside:
+                    if n.lower().endswith((".jpg", ".png")) and "color" in n.lower():
+                        name = n
+                        break
+                if name is None:
+                    raise ValueError("no colour map among " + ", ".join(inside[:8]))
                 img = z.read(name)
         except Exception as e:                                   # noqa: BLE001
-            print(f"  {logical:<12} FAILED to read colour map from {asset_id}: {e}")
+            print(f"  {logical:<12} FAILED to read colour map from {asset_id}: "
+                  f"{type(e).__name__}: {e}")
             failed.append(logical)
             continue
 

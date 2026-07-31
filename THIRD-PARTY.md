@@ -68,17 +68,38 @@ latter; the FBX files are tracked because they are project inputs.
   typography differs per machine.
 - On macOS and Linux this falls through to Arial or Unity's `LegacyRuntime.ttf`.
 
-M17.9 / M22.4 replaces this with a face under the SIL Open Font Licence 1.1,
-which permits shipping inside a product. `tools/citypack/fetch_font.py` takes
-one static regular from Inter, Source Sans 3 or Roboto Condensed — in that
-order, all OFL — and **writes the licence file next to the font**, because the
-OFL requires the licence to travel with it and a copy beside the file is the
-only version of that which cannot drift from a document somebody forgot.
+M17.9 / M22.4 replaces this with a face whose licence permits shipping inside a
+product, and `tools/citypack/fetch_font.py` **writes the licence file next to
+the font** — the OFL requires the licence to travel with the font, and a copy
+beside the file is the only version of that which cannot drift from a document
+somebody forgot to update.
 
 One face, not a family: `UiTheme` uses a single family with weights done through
-rich text, so eight weights would be megabytes for nothing. A static face rather
-than a variable one, because Unity's dynamic font path does not read variable
-axes and would install cleanly while rendering one arbitrary weight.
+rich text, so eight weights would be megabytes for nothing. A **static** face
+rather than a variable one, because Unity's dynamic font path does not read
+variable axes — a variable font would install cleanly and render one arbitrary
+weight, which looks like success and is not.
+
+**And that constraint decided it.** The inventory pass listed what each
+candidate family actually publishes in `google/fonts`, and the shortlist did not
+survive contact with the evidence:
+
+| Family | Licence dir | Static faces | Variable | Usable |
+|---|---|---|---|---|
+| Inter | `ofl/` | **0** | 2 | no — variable only |
+| Source Sans 3 | `ofl/` | **0** | 2 | no — variable only |
+| Roboto Condensed | `apache/` | — | — | no — `apache/robotocondensed` 404s |
+| Libre Franklin | `ofl/` | **0** | 2 | no — variable only |
+| **PT Sans** | `ofl/` | **4** | 0 | **yes — `PT_Sans-Web-Regular.ttf`** |
+
+So the face this ships is **PT Sans**, under the SIL Open Font Licence 1.1, and
+it is the only one of the five that can be shipped at all. It was listed last as
+"a dependable fallback" and the fallback is what exists. The record is kept here
+because the earlier version of this section named three families that cannot be
+used, which is worse than naming none.
+
+Recorded in `tools/citypack/font-candidates.json` (what each family publishes)
+and `tools/citypack/font-installed.json` (what was actually taken).
 
 Until it lands, `UiTheme.UsingShippedFont` is false and the sim verdict prints
 it every run. Reported rather than gated — gating on a fetch that has not

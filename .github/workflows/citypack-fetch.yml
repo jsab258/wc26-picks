@@ -63,22 +63,32 @@ jobs:
       - name: Validate the choices offline
         run: python3 tools/citypack/fetch_textures.py --validate
 
-      - name: Fetch the chosen assets
-        id: fetch
-        run: python3 tools/citypack/fetch_textures.py --fetch
-
-      # AND THE FONT, in the same run. It is one file and one licence, it has
-      # the same blocked-host problem, and a second twenty-minute round trip to
-      # collect it would be a round trip spent on nothing.
+      # THE FONT FIRST, AND INDEPENDENTLY OF THE TEXTURES.
+      #
+      # It ran second and never ran at all: the texture fetch exited 1 on all
+      # twelve surfaces, the step failed, and `bash -e` took the job down with
+      # it — so a one-file download that shares nothing with the texture path
+      # except a blocked host was lost to an unrelated failure. Two fetches from
+      # two libraries are two facts, and a run should come back knowing both.
       - name: Fetch the typeface
         id: font
         continue-on-error: true
         run: python3 tools/citypack/fetch_font.py --fetch
 
+      - name: Fetch the chosen assets
+        id: fetch
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_textures.py --fetch
+
       # THE ARTEFACT, OPENED. Square, power-of-two, non-empty, present under the
       # exact logical name the game looks up, and attributed. Every one of those
       # is invisible from the script that wrote the files.
+      #
+      # Only when the fetch says it wrote something. Opening an empty directory
+      # produces a second failure that describes the first one badly and buries
+      # it underneath itself.
       - name: Open the pack and check it
+        if: steps.fetch.outcome == 'success'
         run: |
           python3 tools/citypack/pack_check.py --selftest
           python3 tools/citypack/pack_check.py
@@ -86,42 +96,63 @@ jobs:
       - name: Attribution still holds
         run: python3 tools/attribution-check.py
 
-      # THE GUARD KNOWS WHY IT IS REFUSING. A guard that only asks whether a
-      # number went down would throw away a corrected, smaller set — which the
-      # first version of the voice guard would have done.
-      - name: Commit the pack
+      # COMMIT WHAT ARRIVED, AND JUDGE EACH THING ON ITSELF.
+      #
+      # This refused everything when `fetch` failed, so a typeface that
+      # downloaded cleanly was discarded because twelve textures from a
+      # different library did not turn up. That is the ratchet again, pointing
+      # the other way: a guard that cannot tell two outcomes apart throws one of
+      # them away. The run still ends red below — committing what arrived is not
+      # a claim that everything did.
+      #
+      # Nothing here deletes, and `git add` names only the two paths this job
+      # writes.
+      - name: Commit whatever arrived
         run: |
           before=${{ steps.before.outputs.count }}
           after=$(find ledger/Assets/StreamingAssets/CityPack/textures -type f 2>/dev/null | wc -l)
-          echo "textures: $before -> $after"
-          if [ "${{ steps.fetch.outcome }}" != "success" ]; then
-            echo "the fetch itself failed — refusing to commit whatever is on disk"
-            exit 1
-          fi
-          if [ "$after" -eq 0 ]; then
+          echo "textures: $before -> $after  (fetch=${{ steps.fetch.outcome }}, font=${{ steps.font.outcome }})"
+          if [ "${{ steps.fetch.outcome }}" = "success" ] && [ "$after" -eq 0 ]; then
             echo "nothing on disk after a successful fetch — that is the fetch lying"
             exit 1
           fi
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add ledger/Assets/StreamingAssets/CityPack
+          if [ "${{ steps.fetch.outcome }}" = "success" ]; then
+            git add ledger/Assets/StreamingAssets/CityPack
+          fi
           git add ledger/Assets/Resources/LedgerSans.* tools/citypack/font-installed.json 2>/dev/null || true
           if git diff --cached --quiet; then
-            echo "pack unchanged — nothing to commit"
+            echo "nothing arrived that was not already committed"
             exit 0
           fi
-          git commit -m "M17.6 — the city has surfaces
+          git commit -m "M17.6/M17.9 — surfaces, and a typeface the game owns
 
-          $after texture(s) under the twelve logical names AssetLibrary has
-          asked for since it was written. CC0, attributed in ATTRIBUTION.json
-          and in THIRD-PARTY.md. No code change: the pack path and the
-          procedural fallback have both existed for months and nothing had ever
-          been put in the directory."
+          Textures on disk: $after, under the logical names AssetLibrary has
+          asked for since it was written. CC0 from ambientCG, attributed in
+          ATTRIBUTION.json and THIRD-PARTY.md. The typeface ships with its
+          licence file beside it, because that is what the licence requires.
+
+          No code change: the pack path, the procedural fallback and
+          UiTheme.LoadFont's Resources lookup all existed already, and nothing
+          had ever been put where any of them look."
           for i in 1 2 3 4 5 6; do
             git push origin HEAD:${GITHUB_REF_NAME} && exit 0
             echo "push failed, attempt $i"; sleep $((2 ** i))
           done
           exit 1
+
+      # AND THE RUN IS RED IF EITHER FETCH FAILED, named separately so the
+      # verdict says which. A job on this project has reported success while
+      # producing zero output for every character it was asked for; committing
+      # a partial result must never be the thing that hides the other half.
+      - name: The verdict on both fetches
+        run: |
+          bad=0
+          [ "${{ steps.fetch.outcome }}" = "success" ] || { echo "TEXTURES FAILED"; bad=1; }
+          [ "${{ steps.font.outcome }}"  = "success" ] || { echo "FONT FAILED"; bad=1; }
+          [ "$bad" -eq 0 ] && echo "both fetches succeeded"
+          exit $bad
 
       - uses: actions/upload-artifact@v4
         if: always()

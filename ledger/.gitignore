@@ -9,18 +9,28 @@
 [Mm]emoryCaptures/
 [Rr]ecordings/
 
-# IDE (Unity regenerates these at the project root)
+# IDE
 .idea/
 .vs/
 .vscode/
-*.csproj
-*.sln
 *.user
-# ...but the hand-written test projects are real code
-!CoreTests/CoreTests.csproj
-!SimHarness/SimHarness.csproj
-!Tier2Gen/Tier2Gen.csproj
-!ShapeCheck/ShapeCheck.csproj
+
+# UNITY'S GENERATED PROJECTS, AND ONLY THOSE. The leading slash anchors this
+# to `ledger/`, which is where Unity writes `Assembly-CSharp.csproj` and
+# friends. Everything in a subdirectory is a hand-written tool and is code.
+#
+# THIS WAS `*.csproj` PLUS A HAND-KEPT ALLOWLIST OF FOUR NEGATIONS, and the
+# allowlist did exactly what allowlists do. `ReachCheck.csproj` was written,
+# committed as far as I could tell, and silently dropped — so CI ran
+# `dotnet run --project ledger/ReachCheck` against a directory holding a
+# Program.cs and no project, and every core-tests run since has been red with
+# "Couldn't find a project to run". BalanceLab and BarkGen were dropped the
+# same way and nobody noticed, because nothing in CI had run them yet.
+#
+# A rule that has to be edited every time a tool is added is a rule that will
+# be forgotten every time a tool is added. This one cannot be.
+/*.csproj
+/*.sln
 
 # Generated playtest report
 SimHarness/sim-report.md

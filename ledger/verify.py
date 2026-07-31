@@ -95,6 +95,32 @@ def reach():
     return False, m.group(0) if m else "reach-check did not report (build failure?)"
 
 
+def tools_tracked():
+    """Every tool project CI runs is actually committed.
+
+    THE TOOL WAS RIGHT AND THE REPOSITORY WAS EMPTY. `ledger/.gitignore` held
+    `*.csproj` plus a hand-kept allowlist of four negations, so `ReachCheck`,
+    `BalanceLab` and `BarkGen` were written, built and tested here and never
+    committed. CI ran `dotnet run --project ledger/ReachCheck` against a
+    directory with a Program.cs and no project and went red with "Couldn't find
+    a project to run" — a build failure that says nothing about the build.
+
+    Local green and CI red with no code difference between them is the worst
+    shape a failure can take, and it cost every core-tests run for an evening.
+    The ignore rule is now anchored so it cannot swallow a subdirectory; this
+    checks the outcome rather than trusting the rule, because verifying the
+    rule is verifying my own comment."""
+    missing = []
+    for proj in sorted(ROOT.glob("*/*.csproj")):
+        code, out = run(["git", "ls-files", "--error-unmatch", str(proj)], cwd=str(ROOT))
+        if code != 0:
+            missing.append(proj.parent.name)
+    if missing:
+        return False, "UNTRACKED TOOL PROJECT(S): " + ", ".join(missing)
+    n = len(list(ROOT.glob("*/*.csproj")))
+    return True, "%d tool project(s) tracked" % n
+
+
 def shape_files():
     """Layer 2 of the testing system, for the half that lives in files.
 
@@ -164,7 +190,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, reach, shape_files, stale_anchors, core_tests):
+    for fn in (lint, shape, tools_tracked, reach, shape_files, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

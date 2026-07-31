@@ -26,7 +26,9 @@
     "by re-picking. What cannot be corrected is a texture of the wrong THING,",
     "which is what the category choice below is for.",
     "",
-    "RE-TRIGGERED 2026-07-31. The first commit of this file ran the INVENTORY and SKIPPED the fetch — the workflow routed on `github.event.commits.*.added`, which is an array of arrays that `join()` does not flatten, so both branches of the condition read false and the negated one won. The run reported success while doing nothing. Routing is now a `paths:` filter in two separate workflow files, which GitHub evaluates itself, so there is no condition left to be wrong."
+    "RE-TRIGGERED 2026-07-31 (a). The first commit of this file ran the INVENTORY and SKIPPED the fetch — the workflow routed on `github.event.commits.*.added`, which is an array of arrays that `join()` does not flatten, so both branches of the condition read false and the negated one won. The run reported success while doing nothing. Routing is now a `paths:` filter in two separate workflow files, which GitHub evaluates itself, so there is no condition left to be wrong.",
+    "",
+    "RE-TRIGGERED 2026-07-31 (b). The routing fix worked and the fetch ran, and all twelve surfaces failed in six seconds with a bare `StopIteration`. The fetch resolved each id through `?q=<assetId>` and took the result whose assetId matched; nothing matched, for any of the twelve. THE SEARCH ENDPOINT AGAIN — the same one that reported zero PavingStones against 162 in the catalogue and zero RoofingTiles against 31. Three times is not a coincidence, so the fetch path no longer asks it anything: links come from the committed catalogue where present, and otherwise from the paginated list endpoint that produced all 2,005 materials in the first place. The catalogue now records each asset's download link too, so the next fetch is twelve downloads and no lookup at all."
   ],
   "resolution": "1K-JPG",
   "surfaces": {

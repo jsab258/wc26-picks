@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Match Unity 6's compiler level so nothing Unity can't compile sneaks in -->
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Ledger.BalanceLab</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <!-- The lab must gate the SHIPPED supplier configuration, not a copy of it
+         that can drift: same file the game builds its district from. -->
+    <Compile Include="../Assets/Scripts/Game/EconomySetup.cs" />
+  </ItemGroup>
+</Project>
