@@ -3,7 +3,23 @@
 > **STATUS — LIVE, verified 2026-07-31.** what still needs buying, and what no longer does.
 > Kept current. If it is wrong, that is a bug in this file.
 
-**For Jafar. Written 2026-07-28. Nothing here has been bought.**
+**For Jafar. Written 2026-07-28.**
+
+> **UPDATE 2026-07-31 — the list is shorter than it was, and nothing on it was
+> bought.**
+>
+> - **Characters and animation: DONE, and free.** The Mixamo drop landed
+>   2026-07-30 — 41 clips and two bodies in `ledger/Assets/Characters/`, with
+>   `_picks.json` recording which clip answered which slot. Everything below
+>   about rigs and retargeting is now reference rather than shopping.
+> - **Voices: DONE, and free.** Nineteen cast from VCTK, a corpus of donated
+>   recordings. No voice library was needed. See `voice-casting.md`.
+> - **Non-verbal foley (grunts, pain, exertion): decided free.** Jafar,
+>   2026-07-31: *"free obviously. i won't be recording anything."* The route is
+>   CC0 effort recordings through the pipeline built for voices, not the
+>   $30-80 library that was recommended.
+>
+> **Nothing on this project currently requires a purchase.**
 
 The brief was "minimal manual work for me", so this is written as a
 checklist rather than as research. Everything I could decide, I decided.

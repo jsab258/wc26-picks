@@ -3,6 +3,53 @@
 > **STATUS — LIVE, verified 2026-07-31.** who sounds like what, and the 19 cast voices.
 > Kept current. If it is wrong, that is a bug in this file.
 
+## CAST — all nineteen, 2026-07-31
+
+Jafar listened and picked. Recorded by **speaker id**, not candidate number: a
+number means a row on one particular page, a speaker id means a person, and the
+page gets regenerated.
+
+| character | speaker | accent | age |
+|---|---|---|---|
+| `lena` | **p228** | English | 22 |
+| `rocco` | **p227** | English | 38 |
+| `ellis` | **p231** | English | 23 |
+| `reese` | **p256** | English | 24 |
+| `kest` | **p244** | English | 22 |
+| `sam` | **p241** | Scottish | 21 |
+| `ada` | **p276** | English | 24 |
+| `vesna` | **p238** | NorthernIrish | 22 |
+| `marla` | **p282** | English | 23 |
+| `joey` | **p263** | Scottish | 22 |
+| `rita` | **p249** | Scottish | 22 |
+| `hal` | **p273** | English | 23 |
+| `emil` | **p245** | Irish | 25 |
+| `crowd_m1` | **p287** | English | 23 |
+| `crowd_m2` | **p272** | Scottish | 23 |
+| `crowd_m3` | **p292** | NorthernIrish | 23 |
+| `crowd_f1` | **p266** | Irish | 22 |
+| `crowd_f2` | **p265** | Scottish | 23 |
+| `crowd_f3` | **p288** | Irish | 22 |
+
+The chosen clips are copied to `game-design/picked-clips/<character>.<speaker>.mp3`,
+a directory nothing in the fetch pipeline writes to. The identity of a choice
+and the evidence for it live together.
+
+**Checked rather than assumed:** nobody is cast twice, and the sixteen picked
+before the final crowd fetch still resolve to the same sixteen people — the run
+that filled the crowd moved nobody. That is what the cross-run claim seeding
+exists for, confirmed against real picks rather than a fixture.
+
+**Rocco is p227, age 38** — the oldest speaker VCTK holds, and precisely the
+voice the age filter discarded on the morning of the 31st for being two decades
+short of a fifties brief. The whole day turned on that filter being wrong.
+
+**Still uncast: 15 named characters**, Ossei among them, and he is an Act III
+condition. They fall through to a crowd voice rather than throwing, so the
+symptom is a named character quietly sounding like a passer-by.
+
+---
+
 ## Accent — decided 2026-07-30, moved 2026-07-31
 
 **English base, with the other accents as deliberate texture at the edges.**

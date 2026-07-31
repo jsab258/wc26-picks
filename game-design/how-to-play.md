@@ -3,7 +3,7 @@
 > **STATUS — LIVE, verified 2026-07-31.** player-facing instructions for the prototype build.
 > Kept current. If it is wrong, that is a bug in this file.
 
-You inherited your uncle Mickey's bar on Hook Street — and the half-dead
+You inherited your uncle Mickey's pub on Hook Street — and the half-dead
 criminal arrangement that came with it. Everyone on the street is simulated:
 they keep schedules, remember everything you say, and talk to each other.
 Your two lives stay apart only as long as the street can't compare notes.
