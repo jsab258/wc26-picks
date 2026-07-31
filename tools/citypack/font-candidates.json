@@ -1,14 +1,65 @@
 {
  "Inter": {
-  "why": "neutral, superb at small sizes, the safest possible caption face",
-  "error": "BadZipFile: File is not a zip file"
+  "path": "ofl/inter",
+  "why": "neutral, superb at small sizes, the safest caption face",
+  "licenceDir": "ofl",
+  "static": [],
+  "variable": [
+   "Inter-Italic[opsz,wght].ttf",
+   "Inter[opsz,wght].ttf"
+  ],
+  "licenceFiles": [
+   "OFL.txt"
+  ],
+  "regular": null
  },
  "Source Sans 3": {
+  "path": "ofl/sourcesans3",
   "why": "slightly warmer, Adobe's, wide weight range",
-  "error": "BadZipFile: File is not a zip file"
+  "licenceDir": "ofl",
+  "static": [],
+  "variable": [
+   "SourceSans3-Italic[wght].ttf",
+   "SourceSans3[wght].ttf"
+  ],
+  "licenceFiles": [
+   "OFL.txt"
+  ],
+  "regular": null
  },
  "Roboto Condensed": {
+  "path": "apache/robotocondensed",
   "why": "condensed, which suits a ruled ledger column",
-  "error": "BadZipFile: File is not a zip file"
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "Libre Franklin": {
+  "path": "ofl/librefranklin",
+  "why": "a period-plausible grotesque, if the others are variable-only",
+  "licenceDir": "ofl",
+  "static": [],
+  "variable": [
+   "LibreFranklin-Italic[wght].ttf",
+   "LibreFranklin[wght].ttf"
+  ],
+  "licenceFiles": [
+   "OFL.txt"
+  ],
+  "regular": null
+ },
+ "PT Sans": {
+  "path": "ofl/ptsans",
+  "why": "ships static faces, and a dependable fallback",
+  "licenceDir": "ofl",
+  "static": [
+   "PT_Sans-Web-Bold.ttf",
+   "PT_Sans-Web-BoldItalic.ttf",
+   "PT_Sans-Web-Italic.ttf",
+   "PT_Sans-Web-Regular.ttf"
+  ],
+  "variable": [],
+  "licenceFiles": [
+   "OFL.txt"
+  ],
+  "regular": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptsans/PT_Sans-Web-Regular.ttf"
  }
 }
