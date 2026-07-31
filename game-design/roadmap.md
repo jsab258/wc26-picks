@@ -263,6 +263,24 @@ spending a year losing it.
 
 ---
 
+## The testing system
+
+Researched and planned 2026-07-31 on Jafar's instruction; **applying it across
+the game is gated on his word.** Five layers, in `testing-system.md`:
+
+| | layer | catches | when |
+|---|---|---|---|
+| 1 | **Reach** — every public Core API has a caller | *built is not running*; ~40 APIs with no call site | before M16 ph.3/4 land |
+| 2 | **Shape** — text, audio and assets are well-formed | 21 of 42 gossip templates rendering a lowercase sentence under 2,883 green tests | before M16 ph.3/4 land |
+| 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | after M17 |
+| 4 | **Time** — determinism, replay, 100-day soak, save/load chaos | a bug that is currently unreproducible | after M17 |
+| 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | after M17 |
+
+What already exists is stronger than the gap list suggests: 2,884 CoreTests,
+**21 mutation-testing specs** (`breakrun.py` — most studios do not do this),
+20 gated sim claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and content
+enumeration that measures repeat intervals rather than asserting them.
+
 ## At risk
 
 - **Windows CI is red.** `nightNotDarker` compared one noon frame to one night
