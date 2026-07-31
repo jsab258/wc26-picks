@@ -1,5 +1,10 @@
 # Playtest notes — 30 July 2026
 
+> **STATUS — LOG, 2026-07-30. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 Second session. The 29th's notes still apply for everything about the art, the
 frame rate and the crowd; **this file is only about what changed overnight.**
 

@@ -1,5 +1,10 @@
 # What else we missed about speech — audit, 2026-07-30
 
+> **STATUS — LOG, 2026-07-30. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 > *"pretty big oversight not to think about accents until now. what else in the
 > world of speech/voices did we miss?"*
 

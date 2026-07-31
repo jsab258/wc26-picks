@@ -1,5 +1,10 @@
 # Playtest notes — 29 July 2026
 
+> **STATUS — LOG, 2026-07-29. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 For the first play session. Written to make an hour of your time worth more
 than an hour of mine, so it is mostly about **what to look at** and **what I
 cannot find out without you.**

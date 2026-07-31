@@ -1,5 +1,10 @@
 # The voice pipeline: what went wrong today, and the plan
 
+> **STATUS — SPEC.** The design for the voice pipeline's invariants and plan. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Jafar, after the sixth fix in a row: *"you keep fucking up. think, plan and
 build properly before throwing more spaghetti at the wall."* Correct. This is
 the think-and-plan, written before any more code.

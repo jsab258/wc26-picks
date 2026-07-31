@@ -1,5 +1,10 @@
 # M0 Tech Spike — Build Plan
 
+> **STATUS — LOG, 2026-07-24. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 ## What M0 is, in plain words
 
 Before building the game, we build the smallest possible thing that **proves the risky

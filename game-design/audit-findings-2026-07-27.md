@@ -1,5 +1,10 @@
 # Audit findings — 2026-07-27 (Fable session)
 
+> **STATUS — LOG, 2026-07-27. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 **Status update 2026-07-28: FIX PHASE — ALL 25 HIGH FINDINGS RESOLVED.**
 104 findings, 160 clean checks from the 15-dimension sweep. The adversarial
 verify wave failed four separate ways (session limit x2, structured-output

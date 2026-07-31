@@ -1,5 +1,10 @@
 # M15 — The world speaks for itself
 
+> **STATUS — SPEC.** The design for M15 — the world speaks for itself. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 **Status: PROPOSAL, 2026-07-28.** Written after Jafar's first playtest note:
 *"overall feel is very text heavy / text adventure game like. that is not the
 goal. the goal is to have real-feeling characters (something KCD2 did well,

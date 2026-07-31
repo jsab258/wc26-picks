@@ -1,5 +1,10 @@
 # Game feel — the full spec, benchmarked against KCD2 / GTA5
 
+> **STATUS — SPEC.** The design for game feel, benchmarked against KCD2/GTA5. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 **Status: SPEC, 2026-07-28.** Jafar: *"you just listed a few things, I hope
 this isn't all. benchmark is KCD2/GTA5 (yes I know we won't get there, but
 aspirationally/directionally)."* He was right — the earlier list was a

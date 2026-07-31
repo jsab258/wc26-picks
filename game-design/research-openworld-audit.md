@@ -1,5 +1,10 @@
 # Open-World Feature Audit — GTA5/KCD2-class features vs. LEDGER
 
+> **STATUS — LOG, 2026-07. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 84 features across six domains, each judged against the five novelty claims,
 the pillars, and Risk 1 (simulation jank via scope creep). Produced by a
 six-agent audit panel 2026-07-25; synthesized with the player's density

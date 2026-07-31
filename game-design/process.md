@@ -1,5 +1,8 @@
 # Collaboration Process & Decision Log
 
+> **STATUS — LIVE, verified 2026-07-31.** how we work and the decision log.
+> Kept current. If it is wrong, that is a bug in this file.
+
 ## Roles
 
 - **Jafar** — creative director and decision-maker. Not a developer; usually on mobile.

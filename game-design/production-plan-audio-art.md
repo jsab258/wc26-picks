@@ -1,5 +1,10 @@
 # Production plan — voice, characters, art direction, feel, budget
 
+> **STATUS — SPEC.** The design for voice, characters, art direction, feel, budget. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 **Status: PROPOSAL for Jafar, 2026-07-28.** Answers his six questions after
 the M15 playtest. Nothing here has been bought or started. Prices are
 estimates from what I know and **must be re-checked at purchase time** —

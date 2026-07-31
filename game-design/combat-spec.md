@@ -1,5 +1,10 @@
 # Combat — spec and plan
 
+> **STATUS — SPEC.** The design for combat, phases 1-3b. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 **Status: PHASES 1, 2 AND 3b BUILT, 2026-07-28.** Requested by Jafar:
 *"update combat on the roadmap. needs to be properly specced and planned.
 UI/UX needs to be high quality."*

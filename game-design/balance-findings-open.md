@@ -1,5 +1,10 @@
 # Open-City Balance Findings (Monte-Carlo, 2026-07-26)
 
+> **STATUS — LOG, 2026-07-26. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 BalanceLab extension: 300 seeded 21-day campaigns per plan (week 1 with
 smart damage control, then open mode + empire per plan). Lab mirrors the
 in-game wiring: same tunables, same Fall consequences, same rival ladder.

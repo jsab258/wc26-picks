@@ -1,5 +1,10 @@
 # The city is British — decision and consequences, 2026-07-31
 
+> **STATUS — SPEC.** The design for the British setting decision and its consequences. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Jafar chose **option 1**: change the accent direction rather than buy voices or
 accept a half-cast game. He asked for the consequences beyond voices.
 

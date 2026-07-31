@@ -1,5 +1,10 @@
 # Balance findings — the ending matrix (2026-07-27)
 
+> **STATUS — LOG, 2026-07-27. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 Run: `dotnet run --project ledger/BalanceLab -c Release`, 400 worlds per row.
 
 The endgame's distribution had never been measured. It was known only from

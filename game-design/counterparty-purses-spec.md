@@ -1,5 +1,10 @@
 # Finite counterparty purses — M13 spec (player decision, 2026-07-27)
 
+> **STATUS — SPEC.** The design for M13 finite counterparty purses. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 > *"add it to the end of the roadmap and spec/build it"*
 
 ## The gap

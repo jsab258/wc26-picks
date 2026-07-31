@@ -1,5 +1,8 @@
 # QA matrix — the human test plan (P9)
 
+> **STATUS — LIVE, verified 2026-07-31.** the human test plan, layered on the automated harness.
+> Kept current. If it is wrong, that is a bug in this file.
+
 Layered ON the automated harness, not beside it: every row here is something
 the 1451 CoreTests, the 71-check SimHarness, ShapeCheck, the lint and the CI
 sim's ~30 gates CANNOT establish, mostly because they are questions about how

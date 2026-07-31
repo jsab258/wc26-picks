@@ -1,5 +1,10 @@
 # Tier-2 Character Pipeline — Spec v1 (2026-07-26)
 
+> **STATUS — SPEC.** The design for the Tier-2 character generation pipeline. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 The machine that makes density purchasable (player direction: build density
 via AI generation, not manual work). Target: the doc §5 middle ring —
 150–300 generated-then-curated characters, each mechanically individual.

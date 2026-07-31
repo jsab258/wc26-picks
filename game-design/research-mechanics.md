@@ -1,5 +1,10 @@
 # Mechanics Research — Retention, Innovation, AI-NPC Best Practices
 
+> **STATUS — LOG, 2026-07. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 Research pass for the game concept "8+10" (double-life: honest citizen + criminal boss, big city,
 large LLM-driven cast with persistent memory). Date: 2026-07. Feeds into the founding design doc.
 

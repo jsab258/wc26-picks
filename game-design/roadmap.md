@@ -1,5 +1,8 @@
 # LEDGER — Reconciled Roadmap (v1, 2026-07-25)
 
+> **STATUS — LIVE, verified 2026-07-31.** the plan and the build state. If this and another doc disagree, this wins.
+> Kept current. If it is wrong, that is a bug in this file.
+
 The founding doc's milestone list (§11) and our built reality have drifted — mostly
 because M1/M2 were re-scoped by player decisions (gossip first, then the week campaign).
 This document reconciles the two: what §11 called "M1 living block / M2 double-life MVP"
@@ -1436,3 +1439,86 @@ Controller support is a real but contained job, checked rather than assumed:
 zero `OnGUI` (all four UI files are uGUI Canvas, so the EventSystem focus
 model already applies) and 27 `Input.*` calls across six files. The work is
 moving those onto an action map, not a rewrite.
+
+---
+
+## BUILD STATE — 2026-07-31 evening. **The day the voices got cast.**
+
+### What shipped
+
+**THE CITY IS BRITISH.** Jafar's call. The finding was that the writing had
+been British all along — `flat`, `colour`, `pavement`, `constable`, `kerb`, and
+streets named Saltmarket, Quay Street, The Esplanade, Weighhouse Lane. The
+American accent brief was the outlier, not the prose. Full consequence analysis
+in `setting-britain-2026-07-31.md`. Currency is `£`. The bar is **the pub**,
+and the counter is still the bar, because in British usage it is. The owner is
+**the landlord**, which is the change that earns the decision: a job title
+became a relationship, in a game about rent and obligation.
+
+**THE AUDIT IS CUSTOMS AND EXCISE.** Section 112 of the Customs and Excise
+Management Act — real, and the actual power of entry. "Revenue" turned out to
+be correct excise vocabulary rather than an Americanism: a licensed publican is
+statutorily a *revenue trader*, so nothing was renamed and the instrument is
+now named instead. The duty clause gives `LedgerStrain`'s one-third laundering
+ceiling a reason it never had — an officer reads takings against duty paid on
+stock, and drink you never bought cannot have been drunk. And s.112(2) says an
+officer may not enter after dark without a constable, which is now one of
+Reese's hard facts and is the obvious next Act III beat.
+
+**ALL NINETEEN VOICES ARE CAST.** `game-design/voice-picks.json` records them
+by speaker id; the chosen clips are copied to `game-design/picked-clips/`,
+named by speaker, where nothing in the fetch pipeline writes. Named cast:
+English 8, Scottish 3, Northern Irish 1, Irish 1. Crowd pool: Irish 2,
+Scottish 2, English 1, Northern Irish 1.
+
+**The crowd takes any accent.** The pool starved because the principals had
+claimed nearly every English speaker in VCTK — but the shortage only forced
+the question. A crowd in a British dock town *should* be mixed, and a uniformly
+English one was the wrong picture regardless of supply.
+
+### What it cost, and the part worth keeping
+
+Twenty-four hours, six defects, each found by shipping something broken.
+`voice-pipeline-plan-2026-07-31.md` has the full account and the nine
+invariants the pipeline now holds. The one-line version: **there was no way to
+ask the corpus a question except by running a forty-minute fetch**, so every
+fact about VCTK was inferred from side effects. That is why every estimate was
+wrong.
+
+Jafar caught the worst of them by ear — four "different" candidates for Lena
+that were the same speaker four times. The rule stopping a speaker being shared
+BETWEEN characters said nothing about one character taking the same speaker
+repeatedly, and VCTK stores ~400 consecutive utterances per speaker.
+
+**Instruments built as a result**, and these are the durable output:
+
+- `--inventory` — reads the corpus speaker table from metadata only, no audio.
+  Built, **not yet run**.
+- `page_check.py` — drives the listening page in a 390px browser. Twelve
+  assertions. Found six faults in a page that had been shipped.
+- `mp3trim.py` — frame-accurate mp3 cutting, no re-encode.
+- `tools/docs-check.py` — every design doc must declare LIVE / SPEC / LOG.
+- A per-character CI guard: any character that had clips and now has none
+  fails the commit, whatever the totals say.
+
+### Open, and honest about it
+
+- **Windows CI is RED** (run 154). `nightNotDarker` measured night at 0.136
+  against noon's 0.135 — a real render issue, undiagnosed. `suspicionActs` was
+  unsatisfiable (staging on day 10, CI ran 9 days) and is fixed by running 11.
+  Which of the two is still failing is not visible in the log tail.
+- **M16 Phase 2 is built but partly ungated.** `deedSlotSets` is reported and
+  not asserted, deliberately: setting a threshold without a measured value is
+  the mistake this project keeps making.
+- **Phase 2 remainder** — alarm propagation, the witness ghost, routing
+  witnesses on the real map.
+- **15 named characters have no dedicated voice**, Ossei among them, and he is
+  an Act III condition. They fall through to crowd voices.
+- **Bark curation** — 336 unique authored lines across 24 slots. **Mine, on
+  Jafar's instruction 2026-07-31** (*"you will do that, and do it thoroughly
+  and properly"*). The 2,268 other entries in `barks.json` are `telling ||
+  reply` combinations, derived rather than written.
+- **Non-verbal voice (grunts, pain, exertion)** — **DECIDED 2026-07-31: the
+  free CC0 route**, not a purchase and not a recording session. Jafar: *"free
+  obviously. i won't be recording anything."* Needs a source adapter on the
+  existing fetch pipeline.

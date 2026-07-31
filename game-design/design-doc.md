@@ -1,9 +1,21 @@
 # LEDGER — Founding Design Document
 
+> **STATUS — LIVE, verified 2026-07-31.** the founding document. Pillars, fiction, systems.
+> Kept current. If it is wrong, that is a bug in this file.
+
 Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
 Genre: open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
-Engine: Unity 6, C#. Setting: **late-analog** — landlines, payphones, answering machines,
-messages left with people; no internet, no mobiles.
+Engine: Unity 6, C#. Setting: **a British port town, late-analog** — landlines, payphones,
+answering machines, messages left with people; no internet, no mobiles.
+
+**The place was decided 2026-07-31, and mostly discovered rather than chosen.** The prose
+had been writing `flat`, `colour`, `pavement`, `constable`, `neighbourhood` and `kerb` for
+weeks, and the streets were already Saltmarket, Quay Street, The Esplanade, Weighhouse Lane,
+Tannery Row — British street forms and nothing else. The American accent brief was the
+outlier. Money is **£**; the inherited business is a **pub** whose counter is still the
+bar; its owner is the **landlord**; the Act III audit is **Customs and Excise** under s.112
+of the Customs and Excise Management Act. Consequences in full:
+`setting-britain-2026-07-31.md`.
 
 **Quality target: a high-quality indie game** (player decision 2026-07-26) — the bar is
 Disco Elysium / Papers Please / Rimworld / Shadows of Doubt: reviews well, sells, gets
@@ -169,7 +181,7 @@ truth. Counterplay: silence a witness (many ways, most non-violent), buy a rumor
 plant a counter-story, or get ahead of it by confessing.
 
 **The second channel: the telephone (built).** §1's late-analog setting made into a system.
-**A phone is a place, not a pocket** — you ring the bar, or the boarding-house hall phone, or
+**A phone is a place, not a pocket** — you ring the pub, or the boarding-house hall phone, or
 the foundry office across the water, and whoever is near it answers. That single constraint
 generates the play: reaching somebody is a gamble on their afternoon; **somebody else picking
 up is the interesting outcome, not a failure**, because now they know you called and you must
@@ -256,7 +268,7 @@ who thinks best of you asks for an evening.
 
 ### 6.7 Economy
 Two currencies that resist mixing: clean money (spendable anywhere, slow) and dirty money
-(fast, but spending it visibly is evidence — laundering through the bar/rackets is a core
+(fast, but spending it visibly is evidence — laundering through the pub/rackets is a core
 loop). Lifestyle upgrades (apartment, clothes, car) improve both lives but raise "how does
 he afford that?" suspicion if income doesn't cover them.
 
@@ -264,11 +276,11 @@ he afford that?" suspicion if income doesn't cover them.
 holds a finite amount of money, and everything you do to it changes how much. Rackets take
 money out; wages and generous cuts put money back; heat keeps people indoors. Prosperity and
 prices drift over a week, never overnight, so a decision can be felt before its consequence
-lands — and both feed the bar's daily takings. **Squeezing the street therefore makes the
+lands — and both feed the pub's daily takings. **Squeezing the street therefore makes the
 street poorer, and a poorer street spends less in your bar**: the racket that pays dirty
 money at night quietly costs clean money in the morning, and past a point it costs more than
-it pays. The balance lab puts aggressive play $94 *behind* a campaign that ran no rackets
-at all, despite $1697 of racket income — the trade is real, and there is no dominant answer.
+it pays. The balance lab puts aggressive play £94 *behind* a campaign that ran no rackets
+at all, despite £1697 of racket income — the trade is real, and there is no dominant answer.
 
 **And the screw turns twice (decision 9, 2026-07-27).** The paragraph above was only half
 the loop for a while: the take drained the street, and nothing let the street limit the
@@ -393,7 +405,7 @@ luck** — inventing a stranger, an accident or a coincidence is forbidden in th
 discarded in validation. Most nights the correct answer is that nothing happens, and the
 prompt argues for it. The player is never shown what is pending: §6.2's rule holds.
 
-- **Act I — The Inheritance.** Arrival, the bar, discovering what it really is. Choice of
+- **Act I — The Inheritance.** Arrival, the pub, discovering what it really is. Choice of
   posture (wind it down / take it over) that the game then makes hard to keep.
 - **Act II — The Squeeze.** Growth attracts the three rivals and one authored investigator,
   Detective **Mara Ellis** — patient, personal, incorruptible-so-far. The two lives begin
@@ -406,7 +418,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
   the one document in this game that has been quietly lying since day one. Everything the
   player did to the ledger becomes evidence in the other direction, **and it is wrong in both
   directions**: launder too little and the night money has nowhere to have come from, launder
-  too much and the bar earned more than a bar on this street possibly could.
+  too much and the pub earned more than a pub on this street possibly could.
 
   The endgame matrix is *empire × life*, and **the player never picks an ending from a list**.
   Each is a condition the world can be IN when the books open; several can be live at once and
@@ -435,7 +447,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
 
   **The audit has a face: Tobias Reese, Board of Excise.** Not corrupt — load-bearing rather
   than characterisation, because an inspector with a price collapses the matrix into *did you
-  save up*. Not cruel either, which is the frightening part. He sits at a table in the bar
+  save up*. Not cruel either, which is the frightening part. He sits at a table in the pub
   from nine until six and does not go anywhere else. The only thing about him that moves is
   **how much he reads**: one item a day for six days, produce it or tell him to put it in
   writing. It is the act's only verb that is not irreversible and the only one that costs
@@ -465,7 +477,7 @@ system personified). ~14 total; full cards to be written next.
 
 > **Status note (2026-07-25).** The prototype's approved cast cards drift from this
 > sketch: Sam is currently a street go-between (both circles) and Ada a retired
-> schoolteacher across from the bar — both fit the one-street scale better than
+> schoolteacher across from the pub — both fit the one-street scale better than
 > "coworker" and "landlady" while the day job doesn't exist yet. Open decision: either
 > this sketch is revised to match, or the doc roles are re-homed in new characters when
 > the day-job world arrives (see `roadmap.md`, open items).

@@ -1,7 +1,24 @@
 # Pending Player Decisions
 
+> **STATUS — LIVE, verified 2026-07-31.** the queue of things only Jafar can answer.
+> Kept current. If it is wrong, that is a bug in this file.
+
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
+
+## OPEN RIGHT NOW — 2026-07-31
+
+Everything else in this file is answered. This is the whole live list:
+
+| | decision | why it is waiting |
+|---|---|---|
+| 1 | **Is cloning a cast donor's voice inside the consent rule?** | Nineteen speakers are cast and nothing has been generated from them. Last gate before their voices become the characters. *Recommendation: proceed.* |
+| 2 | **Do the 15 named characters without a voice get cast?** | Ossei among them, and he is an Act III condition. They currently fall through to crowd voices, so the symptom is a named character sounding like a passer-by. |
+| 3 | **Does M16 Phase 3 (melee) start before the animation work lands?** | Combat was deferred once already on the grounds that timing cannot be judged on capsules. The bodies are in the repo now; the IK and coat work is not. |
+
+**Not waiting on Jafar any more:** the corpus (closed by the British decision),
+non-verbal foley (free CC0 route), bark curation (mine, on instruction), and
+the Mixamo drop (done 2026-07-30).
 Answered items move to the decision log in `process.md`.
 Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
 as answerable options — the doc is the record, the chat is the interface.
@@ -728,7 +745,22 @@ the same overnight batch. One engine.
 
 ---
 
-## OPEN — the voice corpus is wrong for this game *(2026-07-30, needs your call)*
+## ~~OPEN — the voice corpus is wrong for this game~~ **CLOSED 2026-07-31**
+
+> **ANSWERED, and by a route none of the three options described.** Jafar took
+> option 1 — change the accent direction rather than buy voices — and the city
+> became British. VCTK, which had been sitting unused behind a broken archive,
+> turned out to be exactly the right corpus for it: studio-recorded, and rich
+> in the English, Scottish, Irish and Northern Irish the new brief wanted.
+> **All nineteen voices are cast**; see `voice-casting.md` and
+> `voice-picks.json`. The audio-quality complaint that opened this entry was
+> Common Voice's kitchen microphones, and it is gone with the corpus.
+>
+> The three faults that made it take a day longer than it should have are in
+> `voice-pipeline-plan-2026-07-31.md`, along with the nine invariants that now
+> hold. Kept below for the reasoning.
+
+### (original)
 
 > *"legit bad quality, strong accents... overall bad audio quality and accents"*
 
@@ -784,7 +816,24 @@ VCTK a better fit than it looked, not a worse one.
 
 ---
 
-## OPEN — non-verbal voice has to come from somewhere else *(2026-07-30 night, needs your call)*
+## ~~OPEN — non-verbal voice has to come from somewhere else~~ **DECIDED 2026-07-31**
+
+> **THE FREE CC0 ROUTE.** Jafar: *"free obviously. i won't be recording
+> anything."* So neither A (a $30-80 library) nor B (a recording session) —
+> a fourth option I should have listed the first time and did not:
+> **CC0-licensed effort recordings, fetched and curated through the pipeline
+> built for voices.** CC0 means the recordist released the rights deliberately,
+> which is the same consent logic the voice corpora were chosen under, and the
+> fetch → trim → listening-page → pick machinery already works end to end.
+>
+> Cost: nothing. Caveats, stated rather than discovered: licences are mixed per
+> sound rather than per site, so filtering has to be per file; and quality
+> varies more than a paid set, which is what a listening page is for.
+> If it comes back thin, the purchase is still available.
+>
+> Kept below for the options as they were put.
+
+### (original)
 
 Voice audit item 3, and it is here rather than in a Phase 3 ticket **because
 it has lead time**.
@@ -813,6 +862,12 @@ character. C is the one I would not pick.
 ---
 
 ## OPEN — is cloning a donor's voice inside the consent rule? *(2026-07-30 night)*
+
+> **STILL OPEN, and now concrete rather than hypothetical.** Nineteen specific
+> VCTK speakers are cast as of 2026-07-31 and recorded by id in
+> `voice-picks.json`. Nothing has been generated from them. This is the last
+> gate before their voices become the characters, so it wants an explicit yes
+> or no rather than another day of assuming.
 
 The rule I have held through three corpus changes: clips come only from
 corpora whose contributors **donated their voices to build speech

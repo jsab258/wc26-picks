@@ -1,5 +1,10 @@
 # Act III — The Ledger Comes Due
 
+> **STATUS — SPEC.** The design for Act III — The Ledger Comes Due. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Drafted 2026-07-27 (player: *"do content (Act III, Copper Row) and system
 (phones), then I'll test"*). Per doc §8: a triggered crisis forces the books
 open, and the endgame matrix is **empire × life**.

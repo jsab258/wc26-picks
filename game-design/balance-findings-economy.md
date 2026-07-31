@@ -1,5 +1,10 @@
 # Balance findings — the living economy (M7)
 
+> **STATUS — LOG, 2026-07-28. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 Run: 300 open-city campaigns per plan, 21 in-game days each, smart damage
 control throughout. Same harness that proved the open economy has no death
 spiral; the district simulation is now inside it and gated by it.

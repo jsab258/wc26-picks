@@ -1,5 +1,10 @@
 # PERCEPTION, WEAPONS AND VIOLENCE — spec v5, APPROVED, BUILDING
 
+> **STATUS — SPEC.** The design for M16 — perception, weapons and violence. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 **Status: APPROVED IN FULL, 2026-07-29. Cleared to build.** *"approved."*
 
 This is now the spec for the largest single feature in the project. It

@@ -1,5 +1,10 @@
 # Act I — The Inheritance (7-day structure — APPROVED 2026-07-26)
 
+> **STATUS — SPEC.** The design for Act I — The Inheritance. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Drafted 2026-07-26 for the M5 vertical slice; approved same day with all four
 open questions decided (see §Decisions at bottom). This is now the build plan. Per doc §8: **authored spine, systemic flesh, LLM skin** — the
 spine below is pressure points that fire on *conditions*, not dates. The day

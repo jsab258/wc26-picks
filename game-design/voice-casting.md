@@ -1,5 +1,8 @@
 # Voice casting
 
+> **STATUS — LIVE, verified 2026-07-31.** who sounds like what, and the 19 cast voices.
+> Kept current. If it is wrong, that is a bug in this file.
+
 ## Accent — decided 2026-07-30, moved 2026-07-31
 
 **English base, with the other accents as deliberate texture at the edges.**

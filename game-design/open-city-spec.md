@@ -1,5 +1,10 @@
 # The Open City — Day 8 and Beyond (spec DRAFT, awaiting player approval)
 
+> **STATUS — SPEC.** The design for the open city from day 8. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Drafted 2026-07-26 after the player flagged design drift: the built prototype
 reads as a linear story game, while the founding doc promises an open-city
 crime sim × slice-of-life social RPG (§1, §4 outer loop, §6.5 empire). This

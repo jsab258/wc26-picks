@@ -1,5 +1,10 @@
 # Overnight — 29/30 July 2026: the city gets senses
 
+> **STATUS — LOG, 2026-07-30. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 **M16 Phases 1, 1b, and the Core of 2, 3, 5.** Approved at the start of the
 night, built through it.
 

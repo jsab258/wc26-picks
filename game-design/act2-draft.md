@@ -1,5 +1,10 @@
 # Act II — The Squeeze (APPROVED 2026-07-26: 1a Facts+one mechanical effect, 2a highest-loyalty evening, 3a flat $600 truce, 4a Table resolves the act)
 
+> **STATUS — SPEC.** The design for Act II — The Squeeze. Stable reference:
+> build state lives in `roadmap.md`, not here. A spec that disagrees
+> with the roadmap is out of date about what got built, not about what
+> was intended.
+
 Drafted 2026-07-26. Per doc §8: growth attracts the three rivals and one
 investigator, and the two lives begin colliding through the gossip system.
 Act II's set pieces are systemic collisions the spine guarantees. Same

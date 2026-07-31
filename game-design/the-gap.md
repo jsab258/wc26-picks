@@ -1,5 +1,10 @@
 # The gap — LEDGER against KCD2 and GTA5
 
+> **STATUS — LOG, 2026-07-28. NOT CURRENT.** A record of what was true on the
+> day, kept because the reasoning is worth having. **Do not read it as the
+> present state** — for that, `roadmap.md`. Items called "open" here have
+> very likely been closed since.
+
 **Written 2026-07-28**, answering Jafar directly: *"how far away are we from
 top tier games like kcd2 and gta5? how do we close the gap? goal is to get as
 close as possible to those."*
