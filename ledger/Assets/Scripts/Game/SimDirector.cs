@@ -2942,6 +2942,30 @@ namespace Ledger.Game
                 System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
                 var info = new System.IO.FileInfo(path);
 
+                // AND A SMALL JPEG THE BUILD CAN COMMIT, so the render can be
+                // LOOKED AT rather than inferred.
+                //
+                // The PNG below goes to an artifact host this project's review
+                // environment is denied outright, which is why the ASCII
+                // thumbnail underneath exists at all — a coarse luminance grid
+                // standing in for the picture. It caught a magenta error shader
+                // once and it cannot tell moss from cobble.
+                //
+                // That stopped being an acceptable trade the moment a real
+                // texture pack landed. Three of the first three albedos
+                // inspected were off-brief — red rust through the asphalt,
+                // bright green moss through the paving, ochre rubble where red
+                // brick was asked for — and whether `SurfaceSpec`'s noir tint
+                // rescues them is not answerable from the source images or from
+                // a luminance mean. It is answerable by looking at the street.
+                //
+                // Quality 60 at 1280x720 is ~150KB, which a run can commit
+                // without the repository growing the way a PNG per shot would.
+                // The same file name every run, so it overwrites rather than
+                // accumulates.
+                System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
+                                             tex.EncodeToJPG(60));
+
                 // Emit a coarse ASCII luminance thumbnail + mean colour to the log.
                 // The PNG artifact lives on a host our review environment can't reach,
                 // but the job LOG is readable — so this is how the render gets "seen"

@@ -7,6 +7,10 @@ name: LEDGER Windows build
 on:
   workflow_dispatch:
 
+# So the run can commit the review stills. Nothing else here writes.
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -189,6 +193,55 @@ jobs:
           Get-Content sim-run/player.log | Select-String -Pattern "SimDirector: done\.|FAILING GATES" |
             ForEach-Object { $_.Line }
           if ($p.ExitCode -ne 0) { Write-Error "Simulation reported failure (exit $($p.ExitCode))"; exit 1 }
+
+      # THE STILLS, INTO THE REPOSITORY, BECAUSE THAT IS THE ONLY PLACE THEY CAN
+      # BE LOOKED AT.
+      #
+      # Every screenshot this build takes goes to the artifact host below, which
+      # this project's review environment is denied outright — which is why the
+      # sim prints a coarse ASCII luminance grid instead. That grid caught a
+      # magenta error shader once. It cannot tell moss from cobble, and the
+      # first real texture pack landed three albedos out of three that needed
+      # exactly that judgement: rust through the asphalt, green moss through the
+      # paving, ochre rubble where red brick was asked for.
+      #
+      # Whether the noir tint rescues those is a question about the rendered
+      # street, so the rendered street has to be visible. Same filenames every
+      # run, so this overwrites rather than accumulates, and it is scoped to the
+      # one directory the sim writes — nothing else is added, and nothing is
+      # removed.
+      - name: Commit the review stills
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          shopt -s nullglob
+          shots=(sim-run/sim-out/review_*.jpg)
+          if [ ${#shots[@]} -eq 0 ]; then
+            echo "no review stills — the sim did not reach a screenshot"
+            exit 0
+          fi
+          mkdir -p game-design/sim-shots
+          cp "${shots[@]}" game-design/sim-shots/
+          ls -la game-design/sim-shots/
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add game-design/sim-shots
+          if git diff --cached --quiet; then
+            echo "stills identical to the committed ones — nothing to commit"
+            exit 0
+          fi
+          git commit -m "Sim stills from ${GITHUB_SHA:0:7}
+
+          What the street actually looks like, at the size it is played at.
+          Committed because the artifact host is unreachable from the review
+          environment, so an ASCII luminance grid was standing in for the
+          picture."
+          for i in 1 2 3 4 5 6; do
+            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
+            echo "push failed, attempt $i"; sleep $((2 ** i))
+          done
+          exit 1
 
       - name: Upload simulation report
         timeout-minutes: 10
