@@ -170,6 +170,27 @@ jobs:
         run: |
           git config user.name "LEDGER CI"
           git config user.email "ci@ledger.invalid"
+          # NEVER COMMIT FEWER CLIPS THAN THE BRANCH ALREADY HAS.
+          #
+          # `if: always()` means this step also runs when the fetch is
+          # CANCELLED, and a cancelled fetch leaves a near-empty output
+          # directory. `git add voice-candidates` then stages the difference
+          # as DELETIONS, and run 16 duly committed the removal of all 24
+          # clips that had already been listened to and picked from. The step
+          # reported success. Nothing in the log said the word "deleted".
+          #
+          # Clips are listening material: the expensive, human part of this
+          # pipeline. A run that produces less than what is already there has
+          # failed at its one job and must not be allowed to write the result
+          # down. Growth commits; shrinkage aborts and says so.
+          HAVE=$(git ls-tree -r HEAD --name-only voice-candidates 2>/dev/null | grep -c '\.mp3$' || true)
+          GOT=$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)
+          echo "clips on branch: $HAVE   clips from this run: $GOT"
+          if [ "$GOT" -lt "$HAVE" ]; then
+            echo "::error::REFUSING TO COMMIT — this run produced $GOT clips and the branch already has $HAVE."
+            echo "::error::Committing would delete listening material. Leaving the branch alone."
+            exit 0
+          fi
           git add voice-candidates
           if git diff --cached --quiet; then
             echo "nothing changed"
