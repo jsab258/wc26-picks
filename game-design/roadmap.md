@@ -16,12 +16,12 @@ open a second document to find out what happens next.
 | | | |
 |---|---|---|
 | **now** | M16 — perception, weapons, violence | phases 1, 1b, 2 shipped; 3 and 4 building |
-| **next** | M17 — the game looks and sounds like itself | bodies, voices, barks, foley |
+| **next** | M17 — the game looks and sounds like itself | bodies, voices, barks, foley, **surfaces, props, weapons** |
 | | M18 — the second life | home, family, companionship, vice |
 | | M19 — the city pushes back | allegiance, law as a tool, notoriety, competence |
 | | M20 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M21 — firearms | M16 phase 5, deliberately last |
-| | M22 — ship | performance, platforms, controller, QA |
+| | M22 — ship | performance, platforms, controller, QA, **licences, packaging, fonts** |
 | **shipped** | M0–M15, Acts I–III, seven districts, the British setting | |
 | **waiting on Jafar** | nothing | |
 
@@ -100,6 +100,30 @@ design — every item has a working system underneath already.
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — 336 authored lines, read line by line | mine, on instruction | none |
 | 17.5 | **Non-verbal foley** — grunts, pain, exertion | decided: CC0 through the voice pipeline | low |
+| 17.6 | **Surfaces** — a real texture set for the twelve logical surfaces `AssetLibrary` already asks for | **nothing. Zero image files in the project**; every surface is procedural tiling noise | low — the ingestion path exists |
+| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | 10 `CreatePrimitive` sites; the city is boxes | medium — the volume of work, not the difficulty |
+| 17.8 | **Weapons and held objects** — the player's hands are empty | 19 weapons as data, no mesh, nothing rendered | low |
+| 17.9 | **A font that ships, and icons** | borrows Segoe UI from the OS and falls back to Arial elsewhere | low |
+
+**17.6–17.9 were found by an audit on 2026-07-31, not by the plan.** Jafar asked
+whether the roadmap covered textures and models; it did not, and eight other
+categories were missing with them. `completeness-audit-2026-07-31.md` has the
+evidence and the cause. The short version: this file was derived from the work
+queue rather than from a definition of done, so it was complete about the things
+somebody was already thinking about and silent about the rest.
+
+**The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
+§4 chose stylised noir for the reason that still holds — a game about what people
+think they saw should look subjective and half-obscured, and weather and fog do
+the heavy lifting because they cut draw distance, hide low-detail geometry and
+create mood at once. One palette across seven districts beats scattered
+high-resolution assets, and none of it needs a purchase: CC0 PBR sources cover
+every surface name already in `AssetLibrary`.
+
+**17.6's blocker cleared two days ago and nobody noticed.** §4 item 5 put
+building and prop packs on hold on 2026-07-28 pending the character direction;
+Mixamo landed 2026-07-30. A blocked item living only in a spec unblocks silently
+and then waits forever, which is the argument for this table carrying it.
 
 **17.1 is the risk and it is worth naming precisely.** No `.meta` files are
 tracked anywhere in this project, so FBX import settings are not under version
@@ -230,10 +254,24 @@ wronger.
 ## M22 — SHIP
 
 Performance budgets held under load; macOS (compiles today, never run);
-controller support (27 `Input.*` calls to move onto an action map — contained,
+controller support (28 `Input.*` calls to move onto an action map — contained,
 not a rewrite, and zero `OnGUI` so the focus model already applies);
 accessibility beyond the caption channel; and `qa-matrix.md` run for real by a
 person rather than asserted by a harness.
+
+**And the four things that turn a build into something a person installs**,
+added by the 2026-07-31 audit because none of them had an owner:
+
+| | what | why it is not optional |
+|---|---|---|
+| 22.1 | **Credits, attribution and a licence file** | **VCTK is CC BY 4.0 — attribution is required.** Mixamo carries its own terms, CC0 packs usually request it. There is no `LICENSE`, no credits screen and no attribution file in the project |
+| 22.2 | **A localisation decision, recorded** | there is no localisation infrastructure and every player-facing string is a C# literal. English-only is a legitimate answer; never having decided is not |
+| 22.3 | **Packaging** | no app icon, no splash, no store metadata. CI makes a build artefact and nothing turns it into an install |
+| 22.4 | **Fonts that ship with the game** | `UiTheme` borrows Segoe UI from the OS, which is Microsoft-licensed and not redistributable, and falls through to Arial elsewhere — so the typography differs per machine |
+
+**Done when.** Somebody who is not on this project can install it, see who made
+it and what it is built from, and read every screen in the same typeface the
+build intended.
 
 ---
 
@@ -289,6 +327,40 @@ enumeration that measures repeat intervals rather than asserting them.
 - **The animation import** (M17.1) cannot be checked locally at all.
 - **Phases 2–4 were built, tested and disconnected** — ~40 Core APIs with no
   call site. Being fixed now, and the reason to distrust "built" as a status.
+
+## The ship checklist — every category, and who owns it
+
+**This table exists because the roadmap did not have one, and nine categories
+were missing.** A milestone may not claim a category it has not named. Anything
+here with no owner is a gap whether or not somebody is currently thinking about
+it — which is the whole failure the 2026-07-31 audit found, and it is `built is
+not running` one level up: a category with no milestone looks finished in a
+roadmap exactly like a system with no call site looks finished in a review.
+
+| | owner | state |
+|---|---|---|
+| Simulation systems | M16, M18–M21 | the moat; in progress |
+| Character models and animation | 17.1 | committed, not imported |
+| Voices | 17.2, 17.3 | cast; generation pending |
+| Barks | 17.4 | 2,604 lines enumerated, curation mine |
+| Foley | 17.5 | decided free, not sourced |
+| Surfaces and textures | **17.6** | nothing |
+| Props, buildings, vehicles | **17.7** | primitives |
+| Weapons and held objects | **17.8** | invisible |
+| Fonts and icons | **17.9**, 22.4 | borrowed from the OS |
+| Music | shipped M13 | procedural layer, running |
+| Lighting, weather, post | shipped | noir pass, grain, bloom, AO, reflections |
+| UI and menus | shipped | text-only, no icons |
+| Save / load | shipped | atomic, slots, backup recovery |
+| Onboarding and pacing | M20 | not started |
+| Performance | M22, testing Layer 4 | gated per run, no trend yet |
+| Platforms | M22 | Windows green, macOS compiles, never run |
+| Controller | M22 | 28 `Input.*` calls to move |
+| Accessibility | M22 | caption channel only |
+| Testing | testing-system.md | Layers 1–2 built, 3–5 planned |
+| Credits, licences, attribution | **22.1** | nothing, and CC BY 4.0 requires it |
+| Localisation | **22.2** | no infrastructure, no decision on record |
+| Packaging and release | **22.3** | nothing |
 
 ## The rules this project runs on
 
