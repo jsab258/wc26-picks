@@ -50,6 +50,20 @@ namespace Ledger.Game
         public static int Beats;
         public static Awareness LastAwareness = Awareness.NeitherKnows;
 
+        /// THE GHOST — who it is for, when it was raised, and which awareness
+        /// earned it. Held rather than drawn here: this class owns the beat,
+        /// and what a ghost LOOKS like is presentation.
+        public static string GhostFor;
+        public static float GhostAt = -999f;
+        public static Awareness GhostAwareness = Awareness.NeitherKnows;
+        public static int Ghosts;
+
+        /// How long it hangs. Longer than the beat, because the beat is a held
+        /// breath and the ghost is the thing you are meant to read.
+        public const float GhostSeconds = 2.5f;
+
+        public static bool GhostShowing => Time.time - GhostAt < GhostSeconds;
+
         public static bool Running => Time.time - _firedAt < BeatSeconds;
 
         /// 0 at rest, 1 at the peak of the beat, back to 0. Read by the grade.
@@ -73,6 +87,31 @@ namespace Ledger.Game
         {
             var a = Observe.AwarenessOf(youSeeThem, theySeeYou);
             LastAwareness = a;
+
+            // THE GHOST (§6.2), which is the one item Phase 2 left outstanding.
+            //
+            // `Observe.GhostAllowed` has been written and tested since Phase 1
+            // and had no caller. It permits the ghost for Standoff AND for
+            // YouKnow — and this method returned early on everything that was
+            // not a Standoff, so the YouKnow case could never have produced
+            // one however the rest of the game was wired.
+            //
+            // WHY IT IS RESTRICTED AT ALL, because it looks like a limitation
+            // and is the opposite: v3 of the spec showed the ghost for every
+            // witness, which silently destroyed the quiet-horror case — if the
+            // ghost always appears, being seen WITHOUT KNOWING IT cannot exist,
+            // and that case is the best thing in the perception model. Keeping
+            // it to mutual awareness also stops it being a readout of another
+            // person's mind, which Tom has no right to, and makes it a picture
+            // of something the character actually experienced.
+            if (!string.IsNullOrEmpty(who) && Observe.GhostAllowed(a))
+            {
+                GhostFor = who;
+                GhostAt = Time.time;
+                GhostAwareness = a;
+                Ghosts++;
+            }
+
             if (a != Awareness.Standoff) return;
             if (string.IsNullOrEmpty(who)) return;
             if (Time.time - _firedAt < GlobalCooldown) return;
@@ -119,6 +158,10 @@ namespace Ledger.Game
             _firedAt = -999f;
             _lastPerPerson.Clear();
             LastAwareness = Awareness.NeitherKnows;
+            Ghosts = 0;
+            GhostFor = null;
+            GhostAt = -999f;
+            GhostAwareness = Awareness.NeitherKnows;
         }
     }
 }

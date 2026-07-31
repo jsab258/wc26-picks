@@ -184,6 +184,7 @@ namespace Ledger.Game
         {
             InFlight.Clear();
             Started = Arrived = Interceptions = 0;
+            Retellings = HardenedToAName = 0;
         }
 
         /// Everybody who got something and will say it starts walking.
@@ -257,6 +258,69 @@ namespace Ledger.Game
                 return true;
             }
             return false;
+        }
+
+        // ---- MEMORY HARDENS AS IT DECAYS ----------------------------------
+        //
+        // A hesitant "a big man in a long coat" becomes, after a week of
+        // telling it, a certain "it was Tom Novak" — with no new observation,
+        // purely from retelling. `Observe.Retell` has modelled that since
+        // Phase 1 and nothing called it, so a witness left alone was simply
+        // static, and the time pressure ran the wrong way: waiting was free.
+        //
+        // Waiting must not be free. A witness you do not deal with gets MORE
+        // dangerous, which is what makes the delivery window a decision rather
+        // than a countdown.
+
+        public static int Retellings { get; private set; }
+        public static int HardenedToAName { get; private set; }
+
+        /// Every witness still carrying an undelivered account tells it again.
+        /// Called on the game clock rather than per frame — a retelling is a
+        /// conversation, not a tick.
+        ///
+        /// `expectedOf` supplies who this witness would name if their certainty
+        /// climbs past what they actually saw. That is the mechanism by which a
+        /// WRONG name gets in, and it is deliberate: climbing to a name without
+        /// new evidence means the name comes from what they already believed.
+        public static int RetellRound(System.Func<Observation, string> expectedOf = null)
+        {
+            int hardened = 0;
+            foreach (var o in Last)
+            {
+                if (o == null || o.Empty) continue;
+                bool namedBefore = o.NamesSomebody;
+                Observe.Retell(o, expectedOf != null ? expectedOf(o) : null);
+                Retellings++;
+                if (!namedBefore && o.NamesSomebody) { hardened++; HardenedToAName++; }
+            }
+            return hardened;
+        }
+
+        /// COMPARING NOTES. Whether putting these two in a room produces a
+        /// truth neither of them held — the thing the mill's compare-notes path
+        /// has always been able to do and has never had partial information to
+        /// do it with.
+        ///
+        /// Returns the number of PAIRS that would assemble more, which is the
+        /// honest measure: one pair is a coincidence of geometry, several means
+        /// the street is genuinely producing partial accounts that fit together.
+        public static int PairsThatAssembleMore()
+        {
+            int pairs = 0;
+            for (int i = 0; i < Last.Count; i++)
+                for (int j = i + 1; j < Last.Count; j++)
+                    if (Observe.AssemblesMore(Last[i], Last[j])) pairs++;
+            return pairs;
+        }
+
+        /// How many witnesses can put a NAME to it, rather than a description.
+        /// The difference between a rumour and an accusation.
+        public static int NamingWitnesses()
+        {
+            int n = 0;
+            foreach (var o in Last) if (o != null && o.NamesSomebody) n++;
+            return n;
         }
 
         /// The best identification anybody got, 0..4. Reported rather than

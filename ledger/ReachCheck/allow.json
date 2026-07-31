@@ -44,9 +44,6 @@
     "HarmBook.FeudsOf": "WIRE: M19 — feuds are recorded by Harm and drive nothing; they are the cheapest allegiance signal in the game.",
     "Feud.Involves": "WIRE: M19 — helper for FeudsOf, dead for the same reason.",
     "HarmBook.Hottest": "WIRE: M19 — which feud is worst right now, for the Director to author against.",
-    "HomicideBook.BodyCount": "WIRE: M16 phase 4 — notoriety and Ellis's caseload both scale off it.",
-    "Police.AsksAboutYou": "WIRE: M16 phase 4 — Ellis coming to ask is the visible face of an investigation the sim already runs.",
-    "Watched.WouldTalkToPolice": "WIRE: M16 phase 4 — whether a witness who was got to actually talks.",
     "VerbSpec.WithArg": "BY DESIGN: builder used to declare the verb table inside IntentRouter; the game consumes the table, never authors one.",
     "Intent.Arg": "WIRE: M19 — arguments are parsed and the game only ever reads Intent.Verb, so `press a charge against X` has nowhere to put the X.",
     "DoorSwing.Set": "WIRE: M17 — doors animate through DoorSwing.Step; the explicit set is used when a door is opened by something other than the player, which nothing yet is.",
@@ -77,10 +74,6 @@
     "MotionMatcher.BlendOut": "WIRE: M17.1 — same.",
     "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way.",
     "MusicModel.RoomHasGoneQuiet": "WIRE: M17 — the music layer reacts to tension and not to a room emptying, which is the better cue of the two.",
-    "Observation.NamesSomebody": "WIRE: M16 phase 2 — whether a witness's account names a person or only describes one.",
-    "Observe.GhostAllowed": "WIRE: M16 phase 2 — the witness ghost, the one outstanding item of the phase.",
-    "Observe.Retell": "WIRE: M16 phase 2 — a witness passing their account on, which is where observation meets the gossip mill.",
-    "Observe.AssemblesMore": "WIRE: M16 phase 2 — two partial accounts making a fuller one.",
     "OperationPlan.Bringing": "WIRE: M19 — visible odds. The plan knows what you are carrying into a job and the player cannot see it.",
     "Palette.Saturation": "BY DESIGN: the palette sweep is applied in the post shader; the C# model is what the pixel gates compare against.",
     "Palette.NaiveScale": "BY DESIGN: the deliberately-wrong scaling, kept as the contrast case in the palette tests. Wiring it would be a bug.",
@@ -103,8 +96,6 @@
     "StreetMap.AvenueClear": "WIRE: M17 — whether an avenue is unobstructed, for traffic and for the camera.",
     "StreetMap.OnStreet": "WIRE: M17 — nearest-street lookup for placing things.",
     "StreetMap.FullyConnected": "BY DESIGN: a map invariant the tests and the sim assert after generation. The game never re-checks connectivity at runtime.",
-    "Traces.Traceability": "WIRE: M16 phase 4 — how far back an object can be followed. The phase's done-condition is stated in this number.",
-    "Traces.ResidualRisk": "WIRE: M16 phase 4 — what disposal leaves behind, seen or unseen.",
     "TrafficSim.AwakeCount": "BY DESIGN: an LOD measurement the sim's performance gate reads. The game does not choose how many vehicles are awake; TrafficSim does.",
     "TrafficSim.BusLoop": "WIRE: M17 — the bus route exists and no bus is drawn following it.",
     "TrafficSim.Ranks": "WIRE: M17 — taxi ranks, same.",
@@ -117,7 +108,6 @@
     "Typography.MeetsAa": "WIRE: M17 — the accessibility contrast gate, which M22 names and nothing enforces.",
     "Typography.LiftToMeet": "WIRE: M17 — the fix-up that makes a failing pair pass.",
     "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not.",
-    "Arsenal.AccidentAvailable": "WIRE: M16 phase 4 — accidents, the only violence in the game that produces no crime.",
     "Combat.Breathe": "WIRE: M16 phase 3 — stamina recovery between exchanges."
   }
 }

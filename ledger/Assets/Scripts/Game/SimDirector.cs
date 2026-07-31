@@ -190,6 +190,7 @@ namespace Ledger.Game
             ViolenceHost.Reset();
             ViolenceHost.BindWalkers(_npcs);
             CoatHost.Reset();
+            EvidenceHost.Reset();
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
         }
 
@@ -803,6 +804,7 @@ namespace Ledger.Game
             StageConfrontation(now);
             StageThePlaces(now);
             StageCarryAndThreat(now);
+            StageProvenance(now);
             StagePerception(now, ref target);
             _player.AutoMoveTarget = target;
 
@@ -849,6 +851,25 @@ namespace Ledger.Game
             // stays there, which is the design: dealing with it is a decision
             // rather than a timer you wait out.
             ViolenceHost.AgeStain(gameMinutes);
+
+            // A WITNESS LEFT ALONE GETS MORE DANGEROUS. Once a game-hour, so a
+            // retelling is a conversation rather than a frame; four of them
+            // climb a rung, which is `Observe.RetellingsPerRung`. The expected
+            // name is the same misattribution source the delivery window uses,
+            // because a certainty that outruns the evidence has to borrow a
+            // name from somewhere and what it borrows is what they believed.
+            _retellMinutes += gameMinutes;
+            if (_retellMinutes >= 60 && Witnesses.Last.Count > 0)
+            {
+                _retellMinutes = 0;
+                int hardened = Witnesses.RetellRound(o =>
+                    _deedAccused.ContainsKey(o.WitnessId) ? _deedAccused[o.WitnessId] : null);
+                _assemblingPairs = Witnesses.PairsThatAssembleMore();
+                if (hardened > 0)
+                    Debug.Log($"SimDirector: {hardened} witness(es) hardened into a name "
+                              + $"without seeing anything new ({Witnesses.NamingWitnesses()} naming, "
+                              + $"{_assemblingPairs} pair(s) would assemble more)");
+            }
 
             if (_game != null && _game.Gossip != null && Witnesses.InFlight.Count > 0)
             {
@@ -1455,6 +1476,23 @@ namespace Ledger.Game
         bool _friskGroundlessHappened = true;
         bool _washFailedInPublic, _washWorkedAtHome;
 
+        /// PHASE 4 — provenance, disposal, accidents. Day ten, after the coat
+        /// and the frisk have run, so a run that dies early still gets Phase 3.
+        const int ProvenanceStagesOnDay = 10;
+        bool _provenanceStaged;
+        double _provBought, _provStolen, _provTaken, _provInherited, _provOrdinary;
+        bool _provOrdinaryStayedOrdinary, _provUsedShowsInHistory;
+        bool _provDisposalSeen, _provDisposalUnseen;
+        double _provRiskSeen, _provRiskUnseen;
+        bool _accidentInCompany, _accidentAlone;
+        string _provThread = "none";
+        double _provThreadRisk;
+        bool _provEllisAsking;
+
+        /// PHASE 2's REMAINDER — the ghost, retelling, comparing notes.
+        double _retellMinutes;
+        int _assemblingPairs;
+
         const int SlamsWanted = 4;
         /// Did a slam actually put a circle on the ground? Checked in the same
         /// frame as the Emit, because `Show` is synchronous — so this is the
@@ -1906,6 +1944,102 @@ namespace Ledger.Game
             _confrontOpenedAt = Time.time;
             Debug.Log($"SimDirector: staged a confrontation with {_confrontTarget} at "
                       + $"{best:0.0}m, suspicion now {g.Suspicion.Value:0.00}");
+        }
+
+        /// PHASE 4 — the object's life, and the claim the phase is done by.
+        ///
+        /// *A weapon acquired by each of the four routes carries a different
+        /// traceability, and disposal seen by a witness produces a different
+        /// residual risk from disposal unseen.* Both are numbers `Core/Traces`
+        /// has computed since Phase 1 and nothing has ever called.
+        ///
+        /// FOUR OBJECTS, ONE PER ROUTE, and the fifth is the deliberate
+        /// collision: a kitchen knife BOUGHT from a named seller must still
+        /// come out Ordinary, because ordinariness is a property of the object
+        /// rather than of the transaction, and that is the one place the two
+        /// disagree and the object wins.
+        void StageProvenance(GameTime now)
+        {
+            if (_provenanceStaged || now.Day < ProvenanceStagesOnDay || _player == null) return;
+            _provenanceStaged = true;
+
+            var bought = EvidenceHost.Acquire("p-bought", "switchblade",
+                                              Traces.Origin.Bought, "Kass");
+            var stolen = EvidenceHost.Acquire("p-stolen", "tyreiron",
+                                              Traces.Origin.Stolen, "the garage on Copper Row");
+            var taken = EvidenceHost.Acquire("p-taken", "cosh",
+                                             Traces.Origin.Taken, "a man who is not carrying it now");
+            var inherited = EvidenceHost.Acquire("p-inherited", "razor",
+                                                 Traces.Origin.Inherited, "Mickey");
+            var ordinary = EvidenceHost.Acquire("p-ordinary", "kitchenknife",
+                                                Traces.Origin.Bought, "Kass");
+
+            _provBought = EvidenceHost.Traceability(bought);
+            _provStolen = EvidenceHost.Traceability(stolen);
+            _provTaken = EvidenceHost.Traceability(taken);
+            _provInherited = EvidenceHost.Traceability(inherited);
+            _provOrdinary = EvidenceHost.Traceability(ordinary);
+            _provOrdinaryStayedOrdinary = ordinary != null
+                                          && ordinary.Origin == Traces.Origin.Ordinary;
+
+            // THE SAME OBJECT, USED, THEN DISPOSED OF TWICE OVER — once where
+            // people can see and once where they cannot. Two items rather than
+            // one, because disposal is once-only and the comparison needs both
+            // answers from the same starting position.
+            var seenBlade = EvidenceHost.Acquire("p-seen", "switchblade",
+                                                 Traces.Origin.Bought, "Kass");
+            var unseenBlade = EvidenceHost.Acquire("p-unseen", "switchblade",
+                                                   Traces.Origin.Bought, "Kass");
+            EvidenceHost.Used(seenBlade, "killed", "a man on Copper Row");
+            EvidenceHost.Used(unseenBlade, "killed", "a man on Copper Row");
+            _provUsedShowsInHistory = seenBlade != null && seenBlade.UsedInAKilling;
+
+            // Where people are, and where they are not. Found by measuring
+            // rather than authored, exactly as the §4.7 places are.
+            Vector3 crowded = _player.transform.position, empty = _player.transform.position;
+            int most = -1; float furthest = -1f;
+            if (_npcs != null)
+                foreach (var n in _npcs)
+                {
+                    if (n == null) continue;
+                    int near = 0;
+                    foreach (var o in _npcs)
+                        if (o != null && o != n
+                            && Vector3.Distance(o.transform.position, n.transform.position)
+                               < Perception.Rung2MarkMetres) near++;
+                    if (near > most) { most = near; crowded = n.transform.position; }
+                    float lonely = Vector3.Distance(n.transform.position, _player.transform.position);
+                    if (near == 0 && lonely > furthest) { furthest = lonely; empty = n.transform.position; }
+                }
+
+            bool seenA = EvidenceHost.Dispose(seenBlade, "the canal", crowded, _npcs);
+            bool seenB = EvidenceHost.Dispose(unseenBlade, "the canal", empty, _npcs);
+            _provDisposalSeen = seenA;
+            _provDisposalUnseen = seenB;
+            _provRiskSeen = EvidenceHost.ResidualRisk(seenBlade);
+            _provRiskUnseen = EvidenceHost.ResidualRisk(unseenBlade);
+
+            // AND THE ACCIDENT, which must be refused in company. Same spot,
+            // same weapon, and the only thing that differs is who can see it.
+            var stairs = Arsenal.Get("stairs");
+            _accidentInCompany = EvidenceHost.AccidentAvailable(stairs, crowded, true, _npcs);
+            _accidentAlone = EvidenceHost.AccidentAvailable(stairs, empty, true, _npcs);
+
+            // Ellis follows the object rather than the man.
+            double threadRisk;
+            var thread = EvidenceHost.StrongestThread(out threadRisk);
+            _provThread = thread != null ? thread.InstanceId : "none";
+            _provThreadRisk = threadRisk;
+            _provEllisAsking = EvidenceHost.EllisIsAskingAboutYou(
+                _game.Homicides, _game.Gossip != null ? _game.Gossip.Mill : null);
+
+            Debug.Log($"SimDirector: provenance — bought {_provBought:0.00} stolen {_provStolen:0.00} "
+                      + $"taken {_provTaken:0.00} inherited {_provInherited:0.00} "
+                      + $"ordinary {_provOrdinary:0.00} (stayed ordinary={_provOrdinaryStayedOrdinary}); "
+                      + $"disposal seen={seenA} risk {_provRiskSeen:0.00} vs unseen={seenB} "
+                      + $"risk {_provRiskUnseen:0.00}; accident inCompany={_accidentInCompany} "
+                      + $"alone={_accidentAlone}; thread {_provThread} at {_provThreadRisk:0.00}, "
+                      + $"Ellis asking={_provEllisAsking}");
         }
 
         /// THE REST OF PHASE 3 — the threat, the coat, the frisk, the blood.
@@ -3970,6 +4104,58 @@ namespace Ledger.Game
                  + $"fled={ViolenceHost.ThreatsThatFled} called={ViolenceHost.ThreatsCalled} "
                  + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()}]",
                  ViolenceHost.Brandishes > 0 && !ViolenceHost.CanUndraw()),
+
+                // PHASE 4's DONE-CONDITION, stated as the spec states it.
+                //
+                // *A weapon acquired by each of the four routes carries a
+                // different traceability, and disposal seen by a witness
+                // produces a different residual risk from disposal unseen.*
+                //
+                // Every clause is a relationship rather than a number: the four
+                // routes must be four distinct values in the design's order,
+                // seen must cost more than unseen, and a kitchen knife bought
+                // from a named seller must still come out Ordinary — the one
+                // place the object and the transaction disagree.
+                ($"provenance[bought={_provBought:0.00} stolen={_provStolen:0.00} "
+                 + $"taken={_provTaken:0.00} inherited={_provInherited:0.00} "
+                 + $"ordinary={_provOrdinary:0.00} stayedOrdinary={_provOrdinaryStayedOrdinary} "
+                 + $"usedLogged={_provUsedShowsInHistory}]",
+                 _provenanceStaged
+                 && _provBought > _provStolen && _provStolen > _provInherited
+                 && _provInherited > _provTaken && _provTaken > _provOrdinary
+                 && _provOrdinaryStayedOrdinary && _provUsedShowsInHistory),
+
+                ($"disposal[seen={_provDisposalSeen} risk={_provRiskSeen:0.00} "
+                 + $"unseen={_provDisposalUnseen} risk={_provRiskUnseen:0.00} "
+                 + $"disposals={EvidenceHost.Disposed} watched={EvidenceHost.DisposalsSeen} "
+                 + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking}]",
+                 _provenanceStaged && EvidenceHost.Disposed >= 2
+                 && !_provDisposalUnseen && _provRiskSeen > _provRiskUnseen),
+
+                // AND THE ACCIDENT, which is only an accident when nobody is
+                // there. Same spot, same weapon, and the only thing that
+                // differs is who can see it — so this is one claim, not two.
+                // PHASE 2's REMAINDER. The ghost only where the awareness was
+                // mutual — reported rather than gated, because a run whose bot
+                // never happens to lock eyes with anybody is a legitimate run
+                // and gating on it would make the gate a dice roll. What IS
+                // gated is that when a ghost appeared, the awareness that
+                // earned it was one `GhostAllowed` permits, which is the rule
+                // rather than the frequency.
+                ($"ghost[shown={Standoff.Ghosts} awareness={Standoff.GhostAwareness} "
+                 + $"standoffs={Standoff.Beats}]",
+                 Standoff.Ghosts == 0
+                 || Observe.GhostAllowed(Standoff.GhostAwareness)),
+
+                // AND WAITING IS NOT FREE. A witness left alone retells, and
+                // certainty climbs while accuracy does not — so a hesitant
+                // description hardens into a name nobody ever verified.
+                ($"retelling[rounds={Witnesses.Retellings} hardened={Witnesses.HardenedToAName} "
+                 + $"naming={Witnesses.NamingWitnesses()} assembles={_assemblingPairs}]",
+                 Witnesses.Retellings > 0),
+
+                ($"accident[inCompany={_accidentInCompany} alone={_accidentAlone}]",
+                 _provenanceStaged && !_accidentInCompany && _accidentAlone),
 
                 ($"killings[acts={ViolenceHost.Acts} killings={ViolenceHost.Killings} "
                  + $"confidence={ViolenceHost.PeakKillingConfidence:0.00} "
