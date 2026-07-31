@@ -15,7 +15,7 @@ open a second document to find out what happens next.
 
 | | | |
 |---|---|---|
-| **now** | M16 — perception, weapons, violence | phases 1, 1b, 2 shipped; 3 and 4 building |
+| **now** | M16 — perception, weapons, violence | **phases 1–4 shipped and gated**; 5 is M21 |
 | **next** | M17 — the game looks and sounds like itself | bodies, voices, barks, foley, **surfaces, props, weapons** |
 | | M18 — the second life | home, family, companionship, vice |
 | | M19 — the city pushes back | allegiance, law as a tool, notoriety, competence |
@@ -46,9 +46,9 @@ crime game in a city that perceives, reacts and remembers. Spec:
 |---|---|---|
 | 1 | vision, hearing, masking, investigation | **shipped, gated** |
 | 1b | vignette, noise ring, four attention channels, captions | **shipped, gated** |
-| 2 | witnesses, slots, ID ladder, delivery window, misattribution | **shipped**; the ghost is outstanding |
-| 3 | melee, carry, concealment, the frisk, blood | **building** |
-| 4 | provenance, acquisition, disposal, accidents | **building** |
+| 2 | witnesses, slots, ID ladder, delivery window, misattribution | **shipped, gated** — the ghost landed 2026-07-31 |
+| 3 | melee, carry, concealment, the frisk, blood | **shipped, gated** 2026-07-31 |
+| 4 | provenance, acquisition, disposal, accidents | **shipped, gated** 2026-07-31 |
 | 5 | firearms | M21, deliberately last |
 
 **Phase 3 — what is in it.** Hands, blunt, edged and ligature as tested state
@@ -73,12 +73,14 @@ a different traceability, and disposal seen by a witness produces a different
 residual risk from disposal unseen. Both are numbers `Core/Traces` already
 computes and nothing currently calls.
 
-**The real work in both is wiring.** A gap analysis over 61 public Core APIs in
-Observation, Combat, Homicide, Arsenal, Traces, Reaction and Coat found **2
-untested and roughly 40 with no call site in the game.** `Brandish` 0. `Fits`
-0. `FriskCost` 0. `MayFrisk` 0. `Acquire` 0. Phases 2–4 were built, tested and
-disconnected — this project's oldest failure mode, and the reason the current
-work is connecting rather than building.
+**The real work in both was wiring, and the reach check found more of it than
+the hand analysis had.** An afternoon's manual gap analysis over 61 public Core
+APIs said roughly 40 had no call site. `tools/ReachCheck` ran the same question
+as a call-graph walk in a second and said **131**. Thirty-eight of those were
+M16 phases 2–4 — `Brandish` 0, `MayFrisk` 0, `Acquire` 0, `Traceability` 0 —
+built, tested, green and unreachable, which is this project's oldest failure
+mode. The ledger stood at **89** when the phases landed, and it can only count
+down: wiring an API without deleting its row fails the build too.
 
 **Risk.** The Game layer does not compile locally; only lint, ShapeCheck and
 2,884 CoreTests run here. Every wiring change is verified by a ~28-minute
