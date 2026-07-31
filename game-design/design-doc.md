@@ -1,6 +1,6 @@
 # LEDGER — Founding Design Document
 
-> **STATUS — LIVE, verified 2026-07-31.** the founding document. Pillars, fiction, systems.
+> **STATUS — LIVE, verified 2026-07-31, reference.** the founding document. Pillars, fiction, systems.
 > Kept current. If it is wrong, that is a bug in this file.
 
 Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
@@ -755,34 +755,6 @@ memory formats are plain text (markdown/JSON) end to end.
 
 *Next documents: `cast-tier1.md` (full core-cast cards), `systems-gossip.md` (propagation
 spec), `m0-plan.md` (tech-spike build plan for Unity).*
-
-## 19. What changed on 2026-07-29 (and what it means for this document)
-
-`roadmap.md` carries the build state; this section records only what
-affects the DESIGN as written above.
-
-**§6 systems — the street now shows the gossip.** Pairs stop, square off
-at conversational distance, and break off when the player walks up if the
-talk was about him. That is the first time the belief network has been
-visible without opening a panel, and it is the single largest change to how
-§2's premise reads in play.
-
-**§6 — suspicion now becomes behaviour in a verified build.** Someone at
-0.80 steps into the player's path; someone at 0.50 compares notes with a
-neighbour. Both were written long ago and neither had ever executed.
-
-**§14 agency — violence is still not a verb, and that is now an explicit
-open decision** rather than an implicit deferral. See
-`decisions-pending.md`.
-
-**§15 production — the mocap line is optional, the Mixamo line is not.**
-Motion matching is built and waits on a corpus that Mixamo does not sell;
-Mixamo's free models and clips remain the outstanding animation item and
-cost nothing.
-
-**§8/§17 — nothing in the fiction changed.** No character, place, act or
-ending was altered. The work was the layer between the writing and the
-screen, which is exactly where this document said the gap was.
 
 ## 20. THE FRAMING, CORRECTED (2026-07-29)
 

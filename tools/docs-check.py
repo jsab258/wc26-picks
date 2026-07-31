@@ -66,6 +66,43 @@ def main():
                   f"{p.name} — LIVE doc carries a verified date")
 
     print(f"\n  {seen['LIVE']} live, {seen['SPEC']} spec, {seen['LOG']} log")
+
+    # A LIVE DOC THAT HAS GROWN A CHRONOLOGY IS NOT LIVE ANY MORE.
+    #
+    # The roadmap reached 1,525 lines of which ~85% was dated: thirteen
+    # "BUILD STATE — <date>" sections interleaved with milestone definitions,
+    # a 219-line "STILL OPEN" list four days stale, a 337-line re-sequencing.
+    # The first pass of this checker gave it a LIVE banner and called it clean,
+    # because a banner says what a document CLAIMS to be and nothing about
+    # whether it still is. Jafar read it and said so.
+    #
+    # Two cheap shapes catch it: length, and dated headings. A live doc that
+    # wants to be read has to stay short, and history belongs in a LOG.
+    for p2 in docs:
+        head = p2.read_text(encoding="utf-8").split("\n")[:WITHIN_LINES]
+        if not re.search(r"\*\*STATUS — LIVE", "\n".join(head)):
+            continue
+        body = p2.read_text(encoding="utf-8").split("\n")
+        # NARROWED, DELIBERATELY, after the first version flagged three docs
+        # of which only one was really guilty. "§7.1 Streets and the car (M12,
+        # built 2026-07-26)" is a design section carrying its provenance and is
+        # good practice; "BUILD STATE — 2026-07-29" and "What changed on
+        # 2026-07-29" are a diary. A date in a heading does not distinguish
+        # them, so the check now looks for the diary markers rather than for
+        # dates, and asserts only what it can actually tell.
+        diary = [l for l in body
+                 if re.match(r"^#{2,3} .*(BUILD STATE|[Ww]hat changed on|"
+                             r"[Tt]he night of|[Oo]vernight|— round \d)", l)]
+        check(not diary, f"{p2.name} — a live doc is not a diary",
+              "; ".join(x.strip()[:44] for x in diary[:2]))
+        # LENGTH IS FOR PLANS AND QUEUES, NOT FOR SPECIFICATIONS. A founding
+        # design document is long by nature; a roadmap that is long has failed.
+        # The doc says which it is rather than this file keeping a list.
+        reference = "reference" in "\n".join(head)
+        if not reference:
+            check(len(body) <= 400,
+                  f"{p2.name} — a live plan stays scannable (<=400 lines)",
+                  f"{len(body)} lines — mark it `reference` if it is a specification")
     # The roadmap is the tiebreak and has to say so, because two docs
     # disagreeing is the normal state of a project this size.
     road = (DOCS / "roadmap.md").read_text(encoding="utf-8")[:600]
