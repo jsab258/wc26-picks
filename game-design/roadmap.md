@@ -709,11 +709,19 @@ the sim-bot and purse changes stand.
 
 *Waiting on Jafar — and as of this entry, THE ONLY THINGS WAITING ON
 ANYBODY:*
-- **Mixamo characters + animations.** ~4 characters and ~13 animations,
-  downloaded and committed. Art direction moved to semi-realistic after he
-  rejected the Synty low-poly look. Blocks foot IK, the coat reading at
-  distance, fatigue breathing, and moving the limp from the footstep rhythm
-  onto the body.
+
+> **STALE — read M16.0 instead (2026-07-31).** This list is dated 2026-07-28
+> and the Mixamo item below was DONE on 2026-07-30: 41 clips and two bodies
+> are in `ledger/Assets/Characters/`. I reported it to Jafar as the project's
+> biggest open blocker by quoting this section without checking whether it was
+> current, and he had to tell me it was finished. A "still open" list that is
+> not dated at the point of reading is a trap; this one now says so in place.
+
+- ~~**Mixamo characters + animations.**~~ **DONE 2026-07-30 — see M16.0.**
+  ~4 characters and ~13 animations, downloaded and committed. Art direction
+  moved to semi-realistic after he rejected the Synty low-poly look. Blocked
+  foot IK, the coat reading at distance, fatigue breathing, and moving the
+  limp from the footstep rhythm onto the body.
 - **The voice listening pass.** `tools/voice-fetch/` makes this two commands
   and about fifteen minutes; see below.
 - **Bark curation, step 3.** A human pass, and not optional — it is what
