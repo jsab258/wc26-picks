@@ -39,6 +39,14 @@ on:
         required: false
         default: ""
 
+# ONE FETCH AT A TIME. Four runs were streaming the same corpus at once
+# because four commits landed in ten minutes, and they competed for the same
+# push. Queue them instead — `cancel-in-progress: false`, because the running
+# one is usually the one carrying the clips.
+concurrency:
+  group: voice-candidates
+  cancel-in-progress: false
+
 jobs:
   # THE PAGE IS A DELIVERABLE, SO IT GETS OPENED. Jafar reported "nothing
   # happens when I click copy picks", and no amount of re-reading the Python
@@ -231,14 +239,27 @@ jobs:
             # to a non-fast-forward because six commits had landed while it
             # streamed. Rebase and retry rather than treating the race as
             # an error — the clips are the point, not the ancestry.
-            for attempt in 1 2 3; do
+            # THREE TRIES OVER THIRTY SECONDS IS NOT A RETRY LOOP, it is a
+            # gesture. Run 17 finally produced 114 clips for all nineteen
+            # characters, spent its three attempts inside half a minute while
+            # commits were landing every couple of minutes, gave up, and the
+            # clips survived only as a build artifact nobody was looking for.
+            # The job went green. Six exponential attempts cover about five
+            # minutes, which is longer than any realistic burst of pushes.
+            delay=5
+            for attempt in 1 2 3 4 5 6; do
               git fetch origin claude/game-dev-ai-automation-2h67ix || true
               git rebase origin/claude/game-dev-ai-automation-2h67ix || git rebase --abort || true
               if git push origin HEAD:claude/game-dev-ai-automation-2h67ix; then
                 echo "pushed on attempt $attempt"; break
               fi
-              echo "push attempt $attempt lost the race; retrying"
-              sleep $((attempt * 5))
+              if [ "$attempt" = 6 ]; then
+                echo "::error::SIX ATTEMPTS AND THE PUSH NEVER LANDED. The clips"
+                echo "::error::exist only as this run's artifact. Do not treat this job as done."
+                exit 1
+              fi
+              echo "push attempt $attempt lost the race; waiting ${delay}s"
+              sleep "$delay"; delay=$((delay * 2))
             done
           fi
 
