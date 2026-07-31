@@ -1,0 +1,147 @@
+<!doctype html><meta charset=utf-8>
+<title>LEDGER — voice casting</title>
+<style>
+ body { font: 16px/1.5 system-ui, sans-serif; max-width: 62rem; margin: 2rem auto;
+        padding: 0 1rem; background:#12100e; color:#e8e2d8; }
+ h1 { letter-spacing:.3em; font-weight:400; }
+ h2 { margin:0 0 .3rem; font-weight:500; }
+ code { color:#c9a227; }
+ section { border-top:1px solid #2c2822; padding:1.4rem 0; }
+ .brief { color:#b6ada0; margin:.2rem 0 1rem; }
+ .cand { display:flex; align-items:center; gap:.7rem; margin:.35rem 0; }
+ .n { width:1.6rem; text-align:right; color:#c9a227; }
+ .meta { color:#6d675e; font-size:.85rem; }
+ .pick { color:#6d675e; font-size:.9rem; margin:.7rem 0 0; }
+ .none, .warn { color:#c98b27; }
+ .how { background:#1a1714; padding:1rem 1.2rem; border-left:3px solid #c9a227; }
+</style>
+<h1>L E D G E R</h1>
+<p>Voice casting — 114 candidates from
+<b>vctk</b>.</p>
+
+<div class=how>
+<p><b>What to do.</b> Play the candidates under each brief. Judge against the
+brief, not against which voice is nicest — whatever clip we hand the cloner
+BECOMES the character.</p>
+<p>Open <code>picks.txt</code> next to this page and write one line per
+character: <code>lena 3</code>. Skip any you are unsure about; you can run
+this again.</p>
+<p>Then: <code>python ledger_voice_fetch.py --install</code></p>
+<p>Direction is a parameter, not a second clip — the cloner's exaggeration
+control does moods, so one clip per character is the whole ask.</p>
+</div>
+
+  <section id="lena">
+    <h2>LENA <code>lena</code></h2>
+    <p class=brief>Bar's bookkeeper, late 30s. Mid-low, dry, unhurried. She has known this family twenty years and is never surprised by it. WHAT MUST COME THROUGH: withheld judgement — she knows more than she says in every line. If it sounds like it is telling you everything, it is the wrong voice. Avoid bright, young, warm.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="lena/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="lena/candidate-02.mp3"></audio><span class=meta>10.3s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="lena/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="lena/candidate-04.mp3"></audio><span class=meta>11.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="lena/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="lena/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>lena N</code> in picks.txt</p>
+  </section>
+  <section id="rocco">
+    <h2>ROCCO <code>rocco</code></h2>
+    <p class=brief>Works the door, 50s. Low, worn, slightly gravelly. Money is always a little short and it is audible. WHAT MUST COME THROUGH: decency without softness. Not a tough-guy voice — a tired one.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="rocco/candidate-01.mp3"></audio><span class=meta>8.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="rocco/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="rocco/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="rocco/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="rocco/candidate-05.mp3"></audio><span class=meta>11.4s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="rocco/candidate-06.mp3"></audio><span class=meta>9.0s</span></div>
+    <p class=pick>Winner → write <code>rocco N</code> in picks.txt</p>
+  </section>
+  <section id="ellis">
+    <h2>MARA ELLIS <code>ellis</code></h2>
+    <p class=brief>Detective, 40s. Level, unhurried, PLEASANT. WHAT MUST COME THROUGH: that she never has to raise her voice. Cast against type — pick the warmest, most reasonable voice here. A cold voice makes her a villain; a courteous one makes her inevitable.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="ellis/candidate-01.mp3"></audio><span class=meta>11.4s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="ellis/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="ellis/candidate-03.mp3"></audio><span class=meta>10.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="ellis/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="ellis/candidate-05.mp3"></audio><span class=meta>10.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="ellis/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>ellis N</code> in picks.txt</p>
+  </section>
+  <section id="reese">
+    <h2>TOBIAS REESE <code>reese</code></h2>
+    <p class=brief>Board of Excise, the audit's face. Precise, mid register, faintly bureaucratic. WHAT MUST COME THROUGH: that this is not personal. He is reading from a procedure and the procedure will convict you.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="reese/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="reese/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="reese/candidate-03.mp3"></audio><span class=meta>11.4s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="reese/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="reese/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="reese/candidate-06.mp3"></audio><span class=meta>8.5s</span></div>
+    <p class=pick>Winner → write <code>reese N</code> in picks.txt</p>
+  </section>
+  <section id="kest">
+    <h2>SERA KEST <code>kest</code></h2>
+    <p class=brief>Rival head. Controlled, harder than Lena, younger than Mara. WHAT MUST COME THROUGH: someone used to being agreed with.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="kest/candidate-01.mp3"></audio><span class=meta>11.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="kest/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="kest/candidate-03.mp3"></audio><span class=meta>9.4s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="kest/candidate-04.mp3"></audio><span class=meta>10.8s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="kest/candidate-05.mp3"></audio><span class=meta>11.2s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="kest/candidate-06.mp3"></audio><span class=meta>10.8s</span></div>
+    <p class=pick>Winner → write <code>kest N</code> in picks.txt</p>
+  </section>
+  <section id="sam">
+    <h2>SAM <code>sam</code></h2>
+    <p class=brief>Walks the block at all hours, trades in being useful. Mid-high, quick, ingratiating, never still. THE FASTEST TALKER IN THE GAME — the voice should sound like it is already moving on to the next person.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="sam/candidate-01.mp3"></audio><span class=meta>11.7s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="sam/candidate-02.mp3"></audio><span class=meta>10.3s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="sam/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="sam/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="sam/candidate-05.mp3"></audio><span class=meta>10.9s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="sam/candidate-06.mp3"></audio><span class=meta>11.7s</span></div>
+    <p class=pick>Winner → write <code>sam N</code> in picks.txt</p>
+  </section>
+  <section id="ada">
+    <h2>ADA <code>ada</code></h2>
+    <p class=brief>Retired schoolteacher, the street's unofficial conscience. Older, clear, precise diction. WHAT MUST COME THROUGH: that she expects to be listened to, and is usually right.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="ada/candidate-01.mp3"></audio><span class=meta>8.6s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="ada/candidate-02.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="ada/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="ada/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="ada/candidate-05.mp3"></audio><span class=meta>11.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="ada/candidate-06.mp3"></audio><span class=meta>10.4s</span></div>
+    <p class=pick>Winner → write <code>ada N</code> in picks.txt</p>
+  </section>
+  <section id="vesna">
+    <h2>VESNA <code>vesna</code></h2>
+    <p class=brief>Keeps house at the chapel, the quietest well of information. Soft, low volume, careful. QUIET IS THE CASTING — everything she knows arrived through a door left ajar.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="vesna/candidate-01.mp3"></audio><span class=meta>8.4s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="vesna/candidate-02.mp3"></audio><span class=meta>9.6s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="vesna/candidate-03.mp3"></audio><span class=meta>9.6s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="vesna/candidate-04.mp3"></audio><span class=meta>8.4s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="vesna/candidate-05.mp3"></audio><span class=meta>11.6s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="vesna/candidate-06.mp3"></audio><span class=meta>8.3s</span></div>
+    <p class=pick>Winner → write <code>vesna N</code> in picks.txt</p>
+  </section>
+  <section id="marla">
+    <h2>MARLA <code>marla</code></h2>
+    <p class=brief>Vegetable stall at the market corner. Warm, carrying, market-pitch. The loudest woman in the cast and the most ordinary.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="marla/candidate-01.mp3"></audio><span class=meta>9.3s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="marla/candidate-02.mp3"></audio><span class=meta>9.9s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="marla/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="marla/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="marla/candidate-05.mp3"></audio><span class=meta>11.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="marla/candidate-06.mp3"></audio><span class=meta>11.8s</span></div>
+    <p class=pick>Winner → write <code>marla N</code> in picks.txt</p>
+  </section>
+  <section id="joey">
+    <h2>JOEY <code>joey</code></h2>
+    <p class=brief>Dock hand, twenty years on the water. Big, slow, plain. One daughter he would burn the port down for. SIMPLICITY IS THE CASTING — no irony in the voice at all.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="joey/candidate-01.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="joey/candidate-02.mp3"></audio><span class=meta>11.2s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="joey/candidate-03.mp3"></audio><span class=meta>9.9s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="joey/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="joey/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="joey/candidate-06.mp3"></audio><span class=meta>8.2s</span></div>
+    <p class=pick>Winner → write <code>joey N</code> in picks.txt</p>
+  </section>
+  <section id="rita">
+    <h2>RITA <code>rita</code></h2>
+    <p class=brief>Left-handed, owes nobody an explanation. Blunt, flat, short. The one who ends conversations.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="rita/candidate-01.mp3"></audio><span class=meta>9.3s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="rita/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="rita/candidate-03.mp3"></audio><span class=meta>10.8s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="rita/candidate-04.mp3"></audio><span class=meta>9.1s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="rita/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="rita/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>rita N</code> in picks.txt</p>
+  </section>
+  <section id="hal">
+    <h2>HAL <code>hal</code></h2>
+    <p class=brief>Carries messages, meetings, prices, peace. Neutral to the point of being forgettable — DELIBERATELY THE LEAST DISTINCTIVE VOICE IN THE GAME. That is his job. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="hal/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="hal/candidate-02.mp3"></audio><span class=meta>8.9s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="hal/candidate-03.mp3"></audio><span class=meta>9.1s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="hal/candidate-04.mp3"></audio><span class=meta>11.2s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="hal/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="hal/candidate-06.mp3"></audio><span class=meta>11.1s</span></div>
+    <p class=pick>Winner → write <code>hal N</code> in picks.txt</p>
+  </section>
+  <section id="emil">
+    <h2>FATHER EMIL <code>emil</code></h2>
+    <p class=brief>Older, measured, resonant. Used to being heard in a room that goes quiet for him.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="emil/candidate-01.mp3"></audio><span class=meta>10.7s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="emil/candidate-02.mp3"></audio><span class=meta>8.7s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="emil/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="emil/candidate-04.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="emil/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="emil/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>emil N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_m1">
+    <h2>CROWD — male, young <code>crowd_m1</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_m1/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_m1/candidate-02.mp3"></audio><span class=meta>8.6s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_m1/candidate-03.mp3"></audio><span class=meta>8.6s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_m1/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_m1/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_m1/candidate-06.mp3"></audio><span class=meta>10.6s</span></div>
+    <p class=pick>Winner → write <code>crowd_m1 N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_m2">
+    <h2>CROWD — male, middle <code>crowd_m2</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_m2/candidate-01.mp3"></audio><span class=meta>8.5s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_m2/candidate-02.mp3"></audio><span class=meta>8.5s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_m2/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_m2/candidate-04.mp3"></audio><span class=meta>11.1s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_m2/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_m2/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>crowd_m2 N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_m3">
+    <h2>CROWD — male, older <code>crowd_m3</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_m3/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_m3/candidate-02.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_m3/candidate-03.mp3"></audio><span class=meta>10.1s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_m3/candidate-04.mp3"></audio><span class=meta>10.9s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_m3/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_m3/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>crowd_m3 N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_f1">
+    <h2>CROWD — female, young <code>crowd_f1</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_f1/candidate-01.mp3"></audio><span class=meta>9.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_f1/candidate-02.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_f1/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_f1/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_f1/candidate-05.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_f1/candidate-06.mp3"></audio><span class=meta>11.3s</span></div>
+    <p class=pick>Winner → write <code>crowd_f1 N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_f2">
+    <h2>CROWD — female, middle <code>crowd_f2</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_f2/candidate-01.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_f2/candidate-02.mp3"></audio><span class=meta>11.9s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_f2/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_f2/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_f2/candidate-05.mp3"></audio><span class=meta>10.7s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_f2/candidate-06.mp3"></audio><span class=meta>12.0s</span></div>
+    <p class=pick>Winner → write <code>crowd_f2 N</code> in picks.txt</p>
+  </section>
+  <section id="crowd_f3">
+    <h2>CROWD — female, older <code>crowd_f3</code></h2>
+    <p class=brief>Anonymous. The bar here is INVERTED: they must be UNMEMORABLE, because a crowd voice you can recognise stops being a crowd. Pick the dullest one. If a candidate is interesting, it is wrong.</p>
+    <div class=cand><span class=n>1</span><audio controls preload=none src="crowd_f3/candidate-01.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>2</span><audio controls preload=none src="crowd_f3/candidate-02.mp3"></audio><span class=meta>11.3s</span></div><div class=cand><span class=n>3</span><audio controls preload=none src="crowd_f3/candidate-03.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>4</span><audio controls preload=none src="crowd_f3/candidate-04.mp3"></audio><span class=meta>12.0s</span></div><div class=cand><span class=n>5</span><audio controls preload=none src="crowd_f3/candidate-05.mp3"></audio><span class=meta>10.2s</span></div><div class=cand><span class=n>6</span><audio controls preload=none src="crowd_f3/candidate-06.mp3"></audio><span class=meta>9.2s</span></div>
+    <p class=pick>Winner → write <code>crowd_f3 N</code> in picks.txt</p>
+  </section>
