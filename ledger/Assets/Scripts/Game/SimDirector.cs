@@ -1194,7 +1194,15 @@ namespace Ledger.Game
         /// and the gate has been passing by luck.
         const int AoSamples = 3;
 
+        /// The first day the ambush probe may stage. Named rather than
+        /// inlined so the report can print it next to the day the run actually
+        /// reached, which is the comparison that would have made this obvious.
+        public const int ConfrontStagesOnDay = 10;
         bool _confrontStaged;
+        /// Set when staging was refused only because the run had not got that
+        /// far. Distinguishes "the game never confronted anybody" from "the
+        /// harness stopped before the probe was allowed to start".
+        bool _confrontUnreached;
         float _confrontOpenedAt = -1f;
         string _confrontTarget;
 
@@ -1598,7 +1606,22 @@ namespace Ledger.Game
             //
             // After day eight the week is already decided, so the ambush
             // proves the wiring without voting on the ending.
-            if (now.Day < 10 || _npcs == null) return;
+            // AND THE RUN MUST REACH DAY TEN FOR THIS LINE TO BE ANYTHING BUT
+            // A RETURN. It did not. CI runs `-simdays 9`, so day 10 never
+            // arrived, staging never ran, `TotalConfrontations` stayed 0, and
+            // `suspicionActs` — which requires it to be above zero — could not
+            // go green on any run, ever. The gate was not failing. It was
+            // unsatisfiable, and it had been reporting `confronts=0` as though
+            // that were a finding about the game rather than about the harness.
+            //
+            // The harness is what was wrong, so the harness is what changed:
+            // the run is eleven days now, which leaves days ten and eleven for
+            // the nearest walker to be near enough. The day-ten rule itself is
+            // deliberate and stays — staging inside the campaign week tipped
+            // `verdictSane` red once already, and a probe that alters the
+            // outcome measured beside it is not a probe.
+            if (now.Day < ConfrontStagesOnDay) { _confrontUnreached = true; return; }
+            if (_npcs == null) return;
 
             // The nearest walker who is not Ellis — the confrontation needs
             // them within four metres, and picking somebody already standing
@@ -3317,7 +3340,10 @@ namespace Ledger.Game
                  $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 ($"suspicionActs[checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} " +
-                 $"confronts={_game.TotalConfrontations} staged={_confrontTarget ?? "none"}]",
+                 $"confronts={_game.TotalConfrontations} staged={_confrontTarget ?? "none"} " +
+                 $"stagesOnDay={ConfrontStagesOnDay} lastDay={_lastSeenDay}" +
+                 (_confrontUnreached && _confrontTarget == null
+                      ? " NEVER-REACHED-THE-STAGING-DAY" : "") + "]",
                  suspicionActs),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +

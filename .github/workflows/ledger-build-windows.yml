@@ -151,7 +151,7 @@ jobs:
             $shaderErrs | ForEach-Object { Write-Host $_ }
           }
 
-      - name: Run game simulation (9 in-game days — the week, the verdict, and the open city)
+      - name: Run game simulation (11 in-game days — the week, the verdict, and the open city)
         shell: pwsh
         # timeout-minutes is the guard that actually works. The in-script wait
         # below is the one that reports a useful message, but it cannot be
@@ -165,7 +165,7 @@ jobs:
           New-Item -ItemType Directory -Force sim-run | Out-Null
           $exe = Resolve-Path "ledger/build/LEDGER/LEDGER.exe"
           $p = Start-Process -FilePath $exe -WorkingDirectory sim-run -PassThru -ArgumentList `
-            "-simdays","9","-screen-width","1280","-screen-height","720","-screen-fullscreen","0",`
+            "-simdays","11","-screen-width","1280","-screen-height","720","-screen-fullscreen","0",`
             "-force-d3d11","-logFile","player.log"
           # Wait-Process honours its timeout on the object Start-Process returns;
           # WaitForExit(ms) does not reliably.
