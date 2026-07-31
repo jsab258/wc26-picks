@@ -1015,7 +1015,18 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
               f"{sum(len(f) for f in made.values())} clips written; "
               f"{len(short)} characters short of {candidates}: "
               + (", ".join(short[:12]) if short else "none"))
-    return made
+    # THE CORPUS THAT ANSWERED, not the one that was asked for. `build_page`
+    # was handed `args.source` — the REQUEST — and printed it as though it
+    # were the result. So the page said "commonvoice" for a run whose log
+    # said `source: vctk`, and the two disagreed in the one field the
+    # listening pass most needs to trust.
+    #
+    # It cost real time: I read the page label, told Jafar his clips were
+    # from the corpus he had rejected, and nearly deleted them. The comment
+    # forty lines up already says "whichever wins is NAMED in the output,
+    # because the casting notes need to say which one you were listening to."
+    # It was named in the log and not in the page.
+    return made, used
 
 
 # ---------------------------------------------------------------------------
@@ -1403,14 +1414,14 @@ def main():
           f"{args.candidates} candidate(s) each")
     print("  this scans the corpus rather than downloading it; expect a few minutes\n")
     try:
-        made = fetch(args.source, cast, args.candidates, OUT, args.minutes)
+        made, used_source = fetch(args.source, cast, args.candidates, OUT, args.minutes)
     except Exception as e:
         print(f"\n  fetch failed: {type(e).__name__}: {e}")
         if args.source == "commonvoice":
             print("  try:  python ledger_voice_fetch.py --source libritts")
         return 1
 
-    build_page(cast, made, OUT, args.source)
+    build_page(cast, made, OUT, used_source)
     total = sum(len(v) for v in made.values())
     empty = [c["id"] for c in cast if not made.get(c["id"])]
     print(f"\n  {total} candidate(s) for {len(cast) - len(empty)} of {len(cast)} characters")
