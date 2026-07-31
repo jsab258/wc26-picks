@@ -82,6 +82,61 @@ def get(url, timeout=60):
         return r.read()
 
 
+def catalogue():
+    """THE WHOLE CATALOGUE, ONCE. Every material id and the sizes it publishes.
+
+    The first inventory run was already the right idea and it was still too
+    narrow: it asked eleven search terms, and two of them — `PavingStones` and
+    `RoofingTiles` — came back with ZERO assets. Sidewalk and roof would have
+    silently had no texture, which is precisely the class of surprise a blind
+    fetch produces and the reason the voice pipeline burned fifteen runs.
+
+    Guessing a better search term is the same mistake one notch smaller. So:
+    pull the entire material list once, write it down, and every question after
+    that — what is paving called here, is there a roof at all, which brick — is
+    answered locally in seconds with no run at all.
+
+    Metadata only. No image is downloaded."""
+    out, offset, limit = [], 0, 200
+    print("catalogue — every material, metadata only\n")
+    while offset < 4000:
+        url = (API + f"?type=Material&limit={limit}&offset={offset}"
+               + "&include=downloadData")
+        try:
+            data = json.loads(get(url))
+        except Exception as e:                                   # noqa: BLE001
+            print(f"  FAILED at offset {offset}: {type(e).__name__}: {e}")
+            break
+        assets = data.get("foundAssets", [])
+        if not assets:
+            break
+        for a in assets:
+            aid = a.get("assetId")
+            if not aid:
+                continue
+            zips = (a.get("downloadFolders", {}).get("default", {})
+                     .get("downloadFiletypeCategories", {})
+                     .get("zip", {}).get("downloads", []))
+            out.append({"id": aid,
+                        "sizes": sorted({z.get("attribute") for z in zips if z.get("attribute")})})
+        print(f"  offset {offset:5d}  +{len(assets)} -> {len(out)} total")
+        if len(assets) < limit:
+            break
+        offset += limit
+
+    path = HERE / "catalogue.json"
+    path.write_text(json.dumps({"resolution": RESOLUTION, "assets": out}, indent=1),
+                    encoding="utf-8")
+    usable = sum(1 for a in out if RESOLUTION in a["sizes"])
+    print(f"\n{len(out)} material(s), {usable} publish {RESOLUTION}")
+    print(f"wrote {path.relative_to(ROOT)}")
+    if usable == 0:
+        print("NOTHING USABLE — the catalogue answered and had nothing at this "
+              "resolution. A finding, not a pass.")
+        return 1
+    return 0
+
+
 def inventory():
     """Ask the catalogue what exists, and write it down. No images."""
     wanted = sorted({t for terms in SURFACES.values() for t in terms})
@@ -219,11 +274,15 @@ def fetch():
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--catalogue", action="store_true",
+                    help="pull EVERY material id once; every later question is local")
     ap.add_argument("--inventory", action="store_true",
                     help="ask the catalogue what exists; download nothing")
     ap.add_argument("--fetch", action="store_true",
                     help="download the assets named in choices.json")
     args = ap.parse_args()
+    if args.catalogue:
+        return catalogue()
     if args.inventory:
         return inventory()
     if args.fetch:

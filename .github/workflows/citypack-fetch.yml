@@ -54,6 +54,16 @@ concurrency:
   group: citypack-${{ inputs.mode || 'push' }}
   cancel-in-progress: false
 
+# THE FIRST RUN COMMITTED ITS RESULT AND COULD NOT PUSH IT: "Permission to
+# jsab258/wc26-picks.git denied to github-actions[bot]", six times, with the
+# retry loop doing exactly what it was told. The default GITHUB_TOKEN is
+# read-only, so a job that writes to the repo has to say so.
+#
+# Scoped to `contents` alone. This job needs to push a file; it has no business
+# with issues, packages, deployments or anything else.
+permissions:
+  contents: write
+
 jobs:
   inventory:
     # On a dispatch the mode says which job runs. On a push there is no mode, so
@@ -75,14 +85,21 @@ jobs:
       # Metadata only. This is the instrument the voice pipeline wished it had
       # on day one: it answers every question about what the catalogue holds,
       # costs one run, and the actual choice is then made locally in seconds.
-      - name: Ask the catalogue what exists
+      # THE WHOLE CATALOGUE FIRST, then the per-term view. The first run asked
+      # eleven search terms and two came back empty — sidewalk and roof would
+      # have had no texture at all. Pulling every material id once means the
+      # next question about what paving or roofing is called here is answered
+      # locally in seconds instead of costing another run.
+      - name: Pull the whole catalogue
+        run: python3 tools/citypack/fetch_textures.py --catalogue
+      - name: And the per-term view
         run: python3 tools/citypack/fetch_textures.py --inventory
 
       - name: Commit the candidate list
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add tools/citypack/candidates.json
+          git add tools/citypack/candidates.json tools/citypack/catalogue.json
           if git diff --cached --quiet; then
             echo "candidates.json unchanged — nothing to commit"
             exit 0
@@ -102,7 +119,9 @@ jobs:
         if: always()
         with:
           name: citypack-candidates
-          path: tools/citypack/candidates.json
+          path: |
+            tools/citypack/candidates.json
+            tools/citypack/catalogue.json
 
   fetch:
     if: >-
