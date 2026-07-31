@@ -1191,8 +1191,14 @@ def build_page(cast, made, out_dir, source):
             f'<input type=radio name="pick-{c["id"]}" value="{f["n"]}">'
             f'<span class=n>{f["n"]}</span></label>'
             f'<audio controls preload=none src="{f["file"]}"></audio>'
-            f'<span class=meta>{f["seconds"]}s &middot; age {f.get("age", "?")}'
-            f' &middot; {f.get("accent", "?")}</span></div>'
+            # The metadata is omitted rather than printed as "?" when a page
+            # is rebuilt from clips on disk, where the corpus row is long gone.
+            # A row of question marks reads as broken; a row without them reads
+            # as a duration, which is what it is.
+            f'<span class=meta>{f["seconds"]}s'
+            + (f' &middot; age {f["age"]}' if f.get("age") else "")
+            + (f' &middot; {f["accent"]}' if f.get("accent") else "")
+            + '</span></div>'
             for f in files)
         if not players:
             players = ('<p class=none>Nothing matched this brief in the rows '
