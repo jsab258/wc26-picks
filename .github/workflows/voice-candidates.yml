@@ -26,6 +26,9 @@ on:
       - ".github/workflows/voice-candidates.yml"
   workflow_dispatch:
     inputs:
+      inventory:
+        description: "Set to yes to enumerate the corpus speakers instead of fetching"
+        default: "no"
       skip_rows:
         description: "Start this many rows in — the stretch a previous run already claimed"
         default: "0"
@@ -54,6 +57,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ASK THE CORPUS A QUESTION WITHOUT FETCHING IT.
+  #
+  # HuggingFace is unreachable from the dev container, so every fact about
+  # VCTK has been inferred from the side effects of a forty-minute fetch —
+  # which is why a day of estimates were wrong and every answer arrived as a
+  # surprise. This reads four metadata columns and no audio, and writes the
+  # complete speaker table to the repo. Afterwards "can crowd_f1 be filled,
+  # by whom, from which row" is answered locally in a second.
+  #
+  # It writes one JSON file and cannot touch a clip.
+  inventory:
+    if: github.event_name == 'workflow_dispatch' && inputs.inventory == 'yes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/game-dev-ai-automation-2h67ix
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enumerate the speakers
+        working-directory: tools/voice-fetch
+        run: python ledger_voice_fetch.py --inventory --yes 2>&1 | tee inventory.log
+      - name: Commit the table
+        run: |
+          git config user.name "LEDGER CI"
+          git config user.email "ci@ledger.invalid"
+          git add tools/voice-fetch/vctk-speakers.json
+          if git diff --cached --quiet; then echo "unchanged"; else
+            git commit -m "The VCTK speaker table, read from metadata"
+            for a in 1 2 3 4 5 6; do
+              git fetch origin claude/game-dev-ai-automation-2h67ix || true
+              git rebase origin/claude/game-dev-ai-automation-2h67ix || git rebase --abort || true
+              git push origin HEAD:claude/game-dev-ai-automation-2h67ix && break
+              sleep $((a * 5))
+            done
+          fi
+      - name: Report
+        if: always()
+        run: |
+          { echo '## VCTK speaker inventory'; echo '```';
+            tail -c 4000 tools/voice-fetch/inventory.log; echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vctk-speakers
+          path: |
+            tools/voice-fetch/vctk-speakers.json
+            tools/voice-fetch/inventory.log
+
   # THE PAGE IS A DELIVERABLE, SO IT GETS OPENED. Jafar reported "nothing
   # happens when I click copy picks", and no amount of re-reading the Python
   # that writes the HTML would have found it: the page had no viewport tag, no
@@ -389,6 +444,25 @@ jobs:
           if [ "$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)" -eq 0 ]; then
             echo "NO CLIPS PRODUCED — see the diagnose job and the summary above"
             exit 1
+          fi
+          # AND A TARGETED RUN IS JUDGED ON ITS OWN TARGETS. The check above
+          # counts every clip on disk, so a `--who` run for three characters
+          # that banks nothing still sees the other sixteen's fifty-three and
+          # exits green. One did exactly that. Invariant found by reading the
+          # workflow rather than by it breaking, which is the only one today
+          # that can be said of.
+          if [ -n "${{ inputs.who }}" ]; then
+            EMPTY=""
+            for c in $(echo "${{ inputs.who }}" | tr ',' ' '); do
+              if [ -z "$(find "voice-candidates/$c" -name '*.mp3' 2>/dev/null)" ]; then
+                EMPTY="$EMPTY $c"
+              fi
+            done
+            if [ -n "$EMPTY" ]; then
+              echo "::error::THIS RUN WAS ASKED FOR${EMPTY# } AND PRODUCED NOTHING FOR THEM."
+              echo "::error::Other characters' clips are why the count above is not zero."
+              exit 1
+            fi
           fi
           if [ -n "$FAILED" ]; then
             echo "SHORTLISTS REPEAT A SPEAKER — see the lines above"

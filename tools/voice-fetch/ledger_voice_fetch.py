@@ -566,6 +566,106 @@ def age_gap(value, wanted):
                for w in wanted if w in CV_AGE_BANDS) or 1
 
 
+def inventory(out_path):
+    """Enumerate every speaker in the corpus, reading no audio at all.
+
+    THE INSTRUMENT THAT WAS MISSING ALL DAY. Every fact about VCTK — who is in
+    it, which accents, who is still unclaimed, where they sit in the stream —
+    has been inferred from the side effects of a forty-minute fetch, because
+    HuggingFace is blocked from the dev box and a CI run was the only way to
+    ask. That is why every answer arrived as a surprise and every estimate was
+    wrong: experiments were being run where a lookup was wanted.
+
+    This reads ONLY `speaker_id, gender, accent, age`. The audio column holds
+    the entire ten gigabytes and is never touched — parquet stores columns
+    separately, so projecting four small ones reads almost nothing.
+
+    Emits, per speaker: their attributes and the first row offset they appear
+    at. After this runs once, "can crowd_f1 be filled, by whom, and from which
+    offset" is a question answered locally in a second.
+    """
+    import json as _json
+    wanted_cols = ["speaker_id", "gender", "accent", "age"]
+    rows_seen = 0
+    speakers = {}
+    how = None
+
+    # PARQUET WITH COLUMN PROJECTION FIRST. This is the cheap path and the
+    # reason the whole idea works.
+    try:
+        import pyarrow.dataset as _pads
+        import huggingface_hub as _hub
+        files = [f for f in _hub.list_repo_files(VCTK_DATASETS[0], repo_type="dataset",
+                                                 revision="refs/convert/parquet")
+                 if f.endswith(".parquet")]
+        if not files:
+            raise RuntimeError("no parquet files listed")
+        urls = [_hub.hf_hub_url(VCTK_DATASETS[0], f, repo_type="dataset",
+                                revision="refs/convert/parquet") for f in files]
+        import fsspec
+        fs = fsspec.filesystem("http")
+        ds = _pads.dataset([fs.open(u) for u in sorted(urls)], format="parquet")
+        for batch in ds.to_batches(columns=wanted_cols):
+            cols = {c: batch.column(c).to_pylist() for c in wanted_cols}
+            for i in range(batch.num_rows):
+                sid = str(cols["speaker_id"][i])
+                if sid not in speakers:
+                    speakers[sid] = dict(speaker=sid,
+                                         gender=str(cols["gender"][i] or ""),
+                                         accent=str(cols["accent"][i] or ""),
+                                         age=str(cols["age"][i] or ""),
+                                         first_row=rows_seen, rows=0)
+                speakers[sid]["rows"] += 1
+                rows_seen += 1
+        how = "parquet column projection"
+    except Exception as e:                        # noqa: BLE001
+        print(f"  parquet projection unavailable ({type(e).__name__}: "
+              f"{str(e).splitlines()[0][:120]})")
+        # FALLBACK: stream, but drop the audio column before iterating so the
+        # decoder is never invoked. Slower than parquet, far cheaper than a
+        # fetch, and it SAYS it took this path rather than pretending.
+        routes = _routes_for("vctk", CAST)
+        ds = None
+        for name, opener in routes:
+            try:
+                ds, _key, _audio, _m = opener()
+                break
+            except Exception as e2:               # noqa: BLE001
+                print(f"    {name} failed: {type(e2).__name__}")
+        if ds is None:
+            raise RuntimeError("no route to the corpus at all")
+        try:
+            ds = ds.remove_columns(["audio"])
+        except Exception:                          # noqa: BLE001
+            pass
+        for row in ds:
+            sid = str(row.get("speaker_id") or "")
+            if sid:
+                if sid not in speakers:
+                    speakers[sid] = dict(speaker=sid,
+                                         gender=str(row.get("gender") or ""),
+                                         accent=str(row.get("accent") or ""),
+                                         age=str(row.get("age") or ""),
+                                         first_row=rows_seen, rows=0)
+                speakers[sid]["rows"] += 1
+            rows_seen += 1
+        how = "streaming without the audio column"
+
+    table = sorted(speakers.values(), key=lambda s: s["first_row"])
+    out_path.write_text(_json.dumps(
+        dict(corpus=VCTK_DATASETS[0], read_by=how, rows=rows_seen,
+             speakers=table), indent=1) + "\n", encoding="utf-8")
+
+    print(f"  read by: {how}")
+    print(f"  {rows_seen} rows, {len(table)} distinct speakers")
+    from collections import Counter
+    print(f"  accents: {dict(Counter(s['accent'] for s in table).most_common())}")
+    print(f"  genders: {dict(Counter(s['gender'] for s in table).most_common())}")
+    print(f"  last speaker first appears at row {table[-1]['first_row']}")
+    print(f"  written: {out_path}")
+    return 0
+
+
 def _routes_for(source, cast=None):
     """The corpus routes, in order, as (name, opener) pairs.
 
@@ -1898,6 +1998,9 @@ def main():
                     help="stop scanning after N minutes and write what is banked")
     ap.add_argument("--source", default="commonvoice",
                     choices=["vctk", "commonvoice", "libritts"])
+    ap.add_argument("--inventory", action="store_true",
+                    help="enumerate every speaker in the corpus from metadata "
+                         "only, and write the table to vctk-speakers.json")
     ap.add_argument("--selftest", action="store_true")
     # TWO MINUTES INSTEAD OF FORTY-FIVE. Opens each route, reads a few rows,
     # and prints what the filter actually sees. See `diagnose` for why.
@@ -1933,6 +2036,14 @@ def main():
             return subprocess.run([str(py), str(Path(__file__).resolve()),
                                    "--selftest", "--worker"]).returncode
         return selftest()
+
+    if args.inventory:
+        # Needs the venv for pyarrow/datasets, same as a fetch.
+        if not args.worker:
+            py = ensure_venv(args.yes)
+            return subprocess.run([str(py), str(Path(__file__).resolve()),
+                                   "--inventory", "--worker", "--yes"]).returncode
+        return inventory(HERE / "vctk-speakers.json")
 
     if not args.worker:
         py = ensure_venv(args.yes)
