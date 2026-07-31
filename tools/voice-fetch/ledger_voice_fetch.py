@@ -1195,7 +1195,44 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
 # the listening page
 # ---------------------------------------------------------------------------
 
-def build_page(cast, made, out_dir, source):
+def _rows_from_existing_page(out_dir):
+    """The candidate rows already on the committed page, per character.
+
+    SO A TARGETED RUN ADDS RATHER THAN REPLACES. `--who crowd_f1` filters the
+    cast down to one character, and `build_page` then rebuilt the whole page
+    from that one — silently dropping the other eighteen, including sixteen
+    that had clips sitting right there on disk. Fetching three missing voices
+    would have deleted the page for everybody else.
+
+    Read back rather than recomputed: the rows carry their own durations and
+    speaker ids, and nothing here needs to decode an mp3 to reuse them.
+    """
+    import re
+    page = out_dir / "listen.html"
+    if not page.exists():
+        return {}
+    html = page.read_text(encoding="utf-8")
+    out = {}
+    for cid, body in re.findall(r'<section id="([a-z0-9_]+)">(.*?)</section>',
+                                html, re.S):
+        rows = []
+        for n, (src, meta) in enumerate(
+                re.findall(r'<audio controls preload=none src="([^"]+)"></audio>'
+                           r'\s*<span class=meta>([^<]*)', body), 1):
+            bits = [b.strip() for b in meta.split("&middot;")]
+            secs = bits[0].rstrip("s") if bits else "0"
+            rows.append(dict(
+                n=n, file=src,
+                seconds=float(secs) if secs.replace(".", "", 1).isdigit() else 0.0,
+                speaker=bits[1] if len(bits) > 1 else "",
+                age=bits[2].replace("age ", "") if len(bits) > 2 else "",
+                accent=bits[3] if len(bits) > 3 else ""))
+        if rows:
+            out[cid] = rows
+    return out
+
+
+def build_page(cast, made, out_dir, source, keep_existing=False):
     """The listening page — and it is a MOBILE page, because that is where the
     listening actually happens.
 
@@ -1215,6 +1252,10 @@ def build_page(cast, made, out_dir, source):
     looks like. It tries the clipboard, falls back to execCommand, and either
     way leaves the text visible and selectable with the result said out loud.
     """
+    if keep_existing:
+        for cid, rows in _rows_from_existing_page(out_dir).items():
+            if not made.get(cid):
+                made[cid] = rows
     picked_total = sum(len(v) for v in made.values())
     short = [c["id"] for c in cast if len(made.get(c["id"], [])) == 0]
     rows = []
@@ -1864,7 +1905,13 @@ def main():
             print("  try:  python ledger_voice_fetch.py --source libritts")
         return 1
 
-    build_page(cast, made, OUT, used_source)
+    # A `--who` run is ADDITIVE, and that needs BOTH halves: the rows of
+    # everybody not re-fetched are read back off the existing page, and the
+    # page is rendered over the WHOLE cast rather than the filtered one.
+    # Merging the rows alone still produced a one-character page, because the
+    # renderer loops over the cast it was handed.
+    build_page(CAST if args.who else cast, made, OUT, used_source,
+               keep_existing=bool(args.who))
     total = sum(len(v) for v in made.values())
     empty = [c["id"] for c in cast if not made.get(c["id"])]
     print(f"\n  {total} candidate(s) for {len(cast) - len(empty)} of {len(cast)} characters")
