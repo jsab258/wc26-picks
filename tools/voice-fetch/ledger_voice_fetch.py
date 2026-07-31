@@ -1228,60 +1228,92 @@ def build_page(cast, made, out_dir, source):
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>LEDGER - voice casting</title>
 <style>
- :root { color-scheme: dark; }
+ /* THE GAME'S OWN PALETTE, not one invented for this page. `UiTheme.cs` has
+    had these since the UI pass: a green-biased near-black rather than a
+    neutral one, amber for anything that wants attention, and the ledger's
+    credit-green. The first draft of this page used a brown ground and brass
+    gold, which looked fine and belonged to nothing. A casting tool for
+    LEDGER should look like LEDGER.
+
+    Deliberately dark-only. This is a listening tool for a night-time game and
+    `color-scheme: dark` keeps the browser's own furniture in step; a light
+    variant would be a different object, not a courtesy. */
+ :root {
+   color-scheme: dark;
+   --ground:   #0c0f0e;   /* UiTheme.PanelDeep */
+   --surface:  #101514;   /* UiTheme.PanelBg   */
+   --field:    #0d1110;   /* UiTheme.Field     */
+   --button:   #1c2422;   /* UiTheme.ButtonBg  */
+   --hairline: #2a3431;   /* UiTheme.Hairline  */
+   --ink:      #e6ece8;   /* UiTheme.Ink       */
+   --dim:      #93a09a;   /* UiTheme.Dim       */
+   --amber:    #ffa636;   /* UiTheme.Amber     */
+   --amber-soft:#ffc272;  /* UiTheme.AmberSoft */
+   --credit:   #4fc98c;   /* UiTheme.Credit    */
+ }
  /* CONTENT-BOX IS WHY THE PAGE SCROLLED SIDEWAYS. `.meta` is flex-basis
     100% with a left indent, and under the default box model the indent is
     added to the 100% rather than taken out of it — 394px inside a 390px
     phone. One line, and the whole page stops overflowing. */
  *, *::before, *::after { box-sizing: border-box; }
- /* The bottom padding is set from the bar's real height by script; 7rem is
-    only the value before that runs. A FIXED BAR COVERS WHATEVER IS UNDER IT,
-    and this one grows when the text panel opens — driving the page in a
-    390px browser, the last character's controls were genuinely unclickable
-    because the bar was sitting on top of them. */
  body { font: 16px/1.5 system-ui, -apple-system, sans-serif; max-width: 62rem;
-        margin: 0 auto; padding: 1.2rem 1rem 7rem; background:#12100e; color:#e8e2d8; }
- h1 { letter-spacing:.3em; font-weight:400; font-size:1.4rem; }
- h2 { margin:0 0 .3rem; font-weight:500; font-size:1.1rem; }
- code { color:#c9a227; }
- section { border-top:1px solid #2c2822; padding:1.2rem 0; }
- .brief { color:#b6ada0; margin:.2rem 0 1rem; font-size:.95rem; }
- /* A LABEL, NOT A DIV, so the whole row is the tap target and the radio is
-    not a 12px dot somebody has to aim at on a moving train. */
+        margin: 0 auto; padding: 1.2rem 1rem 7rem;
+        background: var(--ground); color: var(--ink); }
+ h1 { letter-spacing:.34em; font-weight:400; font-size:1.15rem;
+      color: var(--dim); text-transform: uppercase; margin:0 0 .2rem; }
+ h2 { margin:0 0 .3rem; font-weight:600; font-size:1.1rem; text-wrap: balance; }
+ code { color: var(--amber); font-size:.9em; }
+ section { border-top:1px solid var(--hairline); padding:1.2rem 0; }
+ .brief { color: var(--dim); margin:.2rem 0 1rem; font-size:.95rem;
+          max-width: 62ch; }
  .cand { display:flex; align-items:center; gap:.6rem; margin:.3rem 0;
          padding:.55rem .6rem; border-radius:.4rem; min-height:2.9rem;
-         background:#191612; border:1px solid transparent; cursor:pointer;
+         background: var(--surface); border:1px solid transparent;
          flex-wrap:wrap; }
- .cand:has(input:checked) { border-color:#c9a227; background:#221d15; }
+ .cand:has(input:checked) { border-color: var(--amber); background:#16201d; }
  /* The tap target is the label, so it gets the padding rather than the
     radio: a 12px dot is not something to aim at on a moving train. */
  .pickbox { display:flex; align-items:center; gap:.5rem; flex:none;
-            padding:.5rem .4rem; margin:-.5rem 0; cursor:pointer; }
- .cand input { width:1.35rem; height:1.35rem; accent-color:#c9a227; flex:none; }
+            padding:.5rem .4rem; margin:-.5rem 0; cursor:pointer;
+            border-radius:.3rem; }
+ .cand input { width:1.35rem; height:1.35rem; accent-color: var(--amber);
+               flex:none; }
  .cand audio { flex:1 1 14rem; min-width:0; height:2.2rem; }
- .n { width:1.5rem; text-align:right; color:#c9a227; flex:none; }
- .meta { color:#6d675e; font-size:.8rem; flex:1 0 100%; padding-left:3.6rem; }
+ .n { width:1.5rem; text-align:right; color: var(--amber);
+      font-variant-numeric: tabular-nums; flex:none; }
+ .meta { color: var(--dim); font-size:.8rem; flex:1 0 100%; padding-left:3.6rem;
+         font-variant-numeric: tabular-nums; }
  /* On the brief's own decade. Age no longer filters, so this is the only
-    thing that still says which candidates the brief actually asked for. */
- .cand.on .n::after { content:"\2022"; color:#7ea36b; margin-left:.25rem; }
- .none, .warn { color:#c98b27; }
- .how { background:#1a1714; padding:1rem 1.2rem; border-left:3px solid #c9a227;
-        font-size:.95rem; }
- .clear { background:none; border:1px solid #3a352d; color:#6d675e;
-          padding:.3rem .7rem; border-radius:.3rem; font-size:.8rem;
-          margin-top:.5rem; }
- #bar { position:fixed; left:0; right:0; bottom:0; background:#1a1714;
-        border-top:1px solid #3a352d; padding:.7rem 1rem;
+    thing that still says which candidates the brief actually asked for, and
+    it borrows the ledger's credit-green rather than a colour of its own. */
+ .cand.on .n::after { content:"\2022"; color: var(--credit); margin-left:.25rem; }
+ .none, .warn { color: var(--amber-soft); }
+ .how { background: var(--surface); padding:1rem 1.2rem;
+        border-left:3px solid var(--amber); font-size:.95rem; max-width:62ch; }
+ .how p { margin:.5rem 0; }
+ .clear { background:none; border:1px solid var(--hairline); color: var(--dim);
+          padding:.35rem .8rem; border-radius:.3rem; font-size:.8rem;
+          margin-top:.5rem; cursor:pointer; }
+ #bar { position:fixed; left:0; right:0; bottom:0; background: var(--surface);
+        border-top:1px solid var(--hairline); padding:.7rem 1rem;
         display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; }
- #bar button { background:#c9a227; border:0; color:#12100e; font-weight:600;
-               padding:.7rem 1.1rem; border-radius:.4rem; font-size:1rem; }
- #count { color:#b6ada0; font-size:.9rem; }
- #said { color:#7ea36b; font-size:.9rem; }
- #out { width:100%; min-height:5rem; background:#12100e; color:#e8e2d8;
-        border:1px solid #3a352d; border-radius:.4rem; padding:.6rem;
+ #bar button { background: var(--amber); border:0; color: var(--ground);
+               font-weight:600; padding:.7rem 1.1rem; border-radius:.4rem;
+               font-size:1rem; cursor:pointer; }
+ #count { color: var(--ink); font-size:.9rem; font-variant-numeric: tabular-nums; }
+ /* WHAT IS LEFT, not just what is done. Nineteen characters is more than
+    anybody holds in their head, and "7 picked" does not tell you who to go
+    back to. */
+ #left { color: var(--dim); font-size:.8rem; flex:1 0 100%; }
+ #said { color: var(--credit); font-size:.9rem; }
+ #out { width:100%; min-height:5rem; background: var(--field); color: var(--ink);
+        border:1px solid var(--hairline); border-radius:.4rem; padding:.6rem;
         font-family:ui-monospace,monospace; font-size:.9rem; }
  details { margin-top:.6rem; width:100%; }
-</style>
+ summary { color: var(--dim); font-size:.85rem; cursor:pointer; }
+ /* Keyboard users get to see where they are. */
+ :focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+ </style>
 <h1>L E D G E R</h1>
 <p>Voice casting &mdash; __TOTAL__ candidates from <b>__SOURCE__</b>.</p>
 __WARN__
@@ -1301,6 +1333,7 @@ __ROWS__
 <div id=bar>
   <button type=button id=copy>Copy picks</button>
   <span id=count></span><span id=said></span>
+  <span id=left></span>
   <details><summary>show / edit the text</summary>
     <textarea id=out readonly></textarea>
   </details>
@@ -1323,9 +1356,20 @@ __ROWS__
       return id + ' ' + saved[id];
     }).join('\n');
   }
+  // Every character that has candidates to choose between. Read from the
+  // page rather than passed in, so it cannot drift from what is rendered.
+  var ALL = Array.prototype.map.call(
+    document.querySelectorAll('section'), function (s) { return s.id; })
+    .filter(function (id) {
+      return document.querySelector('input[name="pick-' + id + '"]');
+    });
+
   function refresh() {
     var n = Object.keys(saved).length;
-    document.getElementById('count').textContent = n + ' picked';
+    document.getElementById('count').textContent = n + ' of ' + ALL.length + ' picked';
+    var todo = ALL.filter(function (id) { return !(id in saved); });
+    document.getElementById('left').textContent =
+      todo.length ? 'still to do: ' + todo.join(', ') : 'that is all of them.';
     document.getElementById('out').value = text();
     try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
   }

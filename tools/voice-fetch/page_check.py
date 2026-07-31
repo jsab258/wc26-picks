@@ -41,6 +41,7 @@ CHROMIUM = _PINNED if os.path.exists(_PINNED) else None
 PHONE = {"width": 390, "height": 844}
 
 _fails = []
+L_EMPTY = []
 
 
 def check(ok, what, got=""):
@@ -61,6 +62,7 @@ def fixture(out):
                  onbrief=(k == 2), seconds=8.4)
             for k in range(1, 4)]
     L.build_page(L.CAST, made, out, "vctk")
+    L_EMPTY.append(L.CAST[3]["id"])
     return out / "listen.html", made
 
 
@@ -95,7 +97,17 @@ async def drive(page_path):
         for cid, n in (("lena", 2), ("rocco", 1), ("sam", 3)):
             await pg.locator(f'input[name="pick-{cid}"][value="{n}"]').check()
         count = await pg.locator("#count").inner_text()
-        check(count.startswith("3"), "three picks read back as three", count)
+        check(count.startswith("3 of "), "three picks read back as three of the total", count)
+        # WHAT IS LEFT, not just what is done. Nineteen characters is more than
+        # anybody holds in their head, and a bare count does not say who to go
+        # back to. The character with no candidates must not be on the list —
+        # it is not something anybody can pick.
+        left = await pg.locator("#left").inner_text()
+        check("still to do" in left and "lena" not in left,
+              "the bar names the characters still to do, and not the picked ones", left[:80])
+        check(L_EMPTY[0] not in left,
+              "and not the character with nothing to listen to",
+              f"{L_EMPTY[0]} in {left[:60]}")
 
         # 5. THE BUTTON THAT DID NOTHING. It must say something either way.
         await pg.locator("#copy").click()
@@ -151,7 +163,7 @@ def main():
         print(f"LEDGER listening-page check — {sum(len(v) for v in made.values())} "
               f"fixture clips, {PHONE['width']}x{PHONE['height']} phone")
         asyncio.run(drive(page))
-    print(f"\n{9 + 1 - len(_fails)} passed, {len(_fails)} failed")
+    print(f"\n{12 - len(_fails)} passed, {len(_fails)} failed")
     return 1 if _fails else 0
 
 
