@@ -97,11 +97,25 @@ def audit(pack=None):
             continue
         w, h = dim
         sizes.append((logical, w, h, hit.stat().st_size))
-        # A TILING TEXTURE HAS TO BE SQUARE AND POWER-OF-TWO, or it repeats
-        # wrong at the tiling rates in `SurfaceSpec` and looks like a stretched
-        # photograph. This is the fault nobody sees in a file listing.
-        check(w == h, f"{logical} — square, so it tiles", f"{w}x{h}")
-        check(w and (w & (w - 1)) == 0, f"{logical} — power-of-two", f"{w}")
+        # BOTH SIDES POWER-OF-TWO. This asked for SQUARE, and the first real
+        # pack failed it twice: `kerb` and `brick_red` arrived 1024x512.
+        #
+        # The instinct was right and the rule was wrong. A non-square texture
+        # tiles perfectly well; what breaks is that `AssetLibrary` applied one
+        # tiling factor to both axes, so a 2:1 image got twice the texel density
+        # across as up — a stretched photograph, which is what the rule was
+        # groping at. That is fixed where it belongs, in `Core/TextureFit`,
+        # which splits the correction across the axes so texels come out square
+        # AND the surface still reads at its authored size. Fourteen CoreTests
+        # hold it there.
+        #
+        # So square is not a requirement any more, and rejecting it would throw
+        # away most of a CC0 library over an assumption the renderer has stopped
+        # making. What must still hold is that each side is a power of two: the
+        # mip chain halves cleanly and the correction's square root stays exact.
+        # 1024x768 would pass a square-or-not test and fail this one, correctly.
+        check(w and (w & (w - 1)) == 0, f"{logical} — width power-of-two", f"{w}")
+        check(h and (h & (h - 1)) == 0, f"{logical} — height power-of-two", f"{h}")
         check(256 <= w <= 2048, f"{logical} — a sane size", f"{w}px")
 
     if sizes:
@@ -155,6 +169,24 @@ def selftest():
             failed += 1
             print(f"  FAIL {name} — passed on broken input")
 
+    def expect_pass(name, fn):
+        """The other half, and the half that is usually missing.
+
+        A self-test made only of `expect` proves the check can say no. It
+        cannot notice a check that says no to EVERYTHING, which is the shape
+        the square rule had — and a guard that refuses good input is the same
+        bug as one that accepts bad input, pointed the other way."""
+        global _fails
+        nonlocal passed, failed
+        _fails = []
+        fn()
+        if not _fails:
+            passed += 1
+            print(f"  ok   {name}")
+        else:
+            failed += 1
+            print(f"  FAIL {name} — refused good input: {_fails[0]}")
+
     print("pack-check selftest\n")
     with tempfile.TemporaryDirectory() as tmp:
         pack = pathlib.Path(tmp) / "CityPack"
@@ -173,11 +205,24 @@ def selftest():
         writeall(skip={"roof"})
         expect("a missing surface is caught", lambda: audit(pack))
 
+        # 1024x512 IS NOW ALLOWED, and the self-test has to say so out loud
+        # rather than quietly stop testing the case. Two real files are this
+        # shape, `TextureFit` corrects them, and a check that still refused them
+        # would be the ratchet: a guard that cannot tell a fault from a
+        # perfectly good file it did not expect.
         writeall(w=1024, h=512)
-        expect("a non-square texture is caught", lambda: audit(pack))
+        expect_pass("a 2:1 texture is accepted — TextureFit handles the shape",
+                    lambda: audit(pack))
 
         writeall(w=1000, h=1000)
         expect("a non-power-of-two texture is caught", lambda: audit(pack))
+
+        # THE SHAPE THAT ACTUALLY BREAKS, and the one square-or-not never
+        # caught: 4:3 is a clean-looking size with an irrational aspect
+        # correction and a mip chain that stops halving evenly.
+        writeall(w=1024, h=768)
+        expect("a 4:3 texture is caught — the height is not a power of two",
+               lambda: audit(pack))
 
         writeall(pad=0)
         expect("an empty file is caught", lambda: audit(pack))

@@ -94,6 +94,7 @@ namespace Ledger.CoreTests
                 TestCombat();
                 TestHomicide();
                 TestPalette();
+                TestTextureFit();
                 TestLightModel();
                 TestMusicModel();
                 TestRig();
@@ -10936,6 +10937,69 @@ namespace Ledger.CoreTests
                 "a wall with no length dresses nothing rather than dividing by it");
             Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
                 "and neither does one too short to put anything against");
+        }
+
+        static void TestTextureFit()
+        {
+            Console.WriteLine("TextureFit — a real pack is not all squares:");
+
+            // A SQUARE SOURCE MUST NOT MOVE AT ALL. Every texture the game
+            // generates for itself is square, and this correction landing on
+            // them would silently re-scale every surface in the game while
+            // fixing two files in a downloaded pack.
+            TextureFit.Isotropic(4, 4, 1024, 1024, out double sx, out double sy);
+            Check(Math.Abs(sx - 4) < 1e-9 && Math.Abs(sy - 4) < 1e-9,
+                  "a square source is left exactly alone", $"{sx}x{sy}");
+
+            // THE TWO THAT ARRIVED. `kerb` (Concrete034) and `brick_red`
+            // (Bricks075A) both came back 1024x512 from ambientCG, which is
+            // what started this.
+            TextureFit.Isotropic(3, 3, 1024, 512, out double kx, out double ky);
+
+            // ISOTROPY — the property the whole thing exists for. Texels per
+            // metre across must equal texels per metre up.
+            Check(Math.Abs(1024 * kx - 512 * ky) < 1e-9,
+                  "a 2:1 source ends up with square texels",
+                  $"{1024 * kx} across vs {512 * ky} up");
+
+            // AND APPARENT SCALE SURVIVES IT. `y *= aspect` alone is isotropic
+            // too and makes the surface twice as busy as it was authored to be,
+            // which is a different wrong picture rather than no wrong picture.
+            Check(Math.Abs(kx * ky - 9) < 1e-9,
+                  "the correction preserves how big the material reads",
+                  $"{kx * ky} against the authored 9");
+            Check(kx < 3 && ky > 3,
+                  "and it splits the correction across both axes",
+                  $"{kx}x{ky}");
+
+            // A TALL SOURCE IS THE SAME PROBLEM MIRRORED, and a correction
+            // that only ever multiplies would get this one backwards.
+            TextureFit.Isotropic(2, 2, 512, 1024, out double tx, out double ty);
+            Check(Math.Abs(512 * tx - 1024 * ty) < 1e-9,
+                  "a 1:2 source is corrected the other way",
+                  $"{512 * tx} across vs {1024 * ty} up");
+            Check(tx > 2 && ty < 2, "and the axes swap roles", $"{tx}x{ty}");
+
+            // A MISSING TEXTURE IS NOT A SHAPE. Unity hands back 8x8 for a
+            // failed load and 0 for nothing at all; neither is a reason to
+            // restyle a surface.
+            TextureFit.Isotropic(5, 7, 0, 0, out double zx, out double zy);
+            Check(Math.Abs(zx - 5) < 1e-9 && Math.Abs(zy - 7) < 1e-9,
+                  "a degenerate size changes nothing", $"{zx}x{zy}");
+            TextureFit.Isotropic(5, 7, -4, 16, out double nx, out double ny);
+            Check(Math.Abs(nx - 5) < 1e-9 && Math.Abs(ny - 7) < 1e-9,
+                  "and neither does a negative one", $"{nx}x{ny}");
+
+            // THE SHAPE RULE `pack_check` NOW ENFORCES. Square was the old rule
+            // and it rejected two usable files; what actually has to hold is
+            // that each side is a power of two, so the mip chain halves cleanly
+            // and the correction's square root stays exact.
+            Check(TextureFit.IsCleanShape(1024, 1024), "1024x1024 is a clean shape");
+            Check(TextureFit.IsCleanShape(1024, 512), "1024x512 is a clean shape too");
+            Check(TextureFit.IsCleanShape(512, 1024), "and so is 512x1024");
+            Check(!TextureFit.IsCleanShape(1024, 768), "1024x768 is not — 4:3 breaks both");
+            Check(!TextureFit.IsCleanShape(1000, 1000), "nor is 1000x1000, square or not");
+            Check(!TextureFit.IsCleanShape(0, 512), "nor is a zero side");
         }
 
         static void TestPalette()

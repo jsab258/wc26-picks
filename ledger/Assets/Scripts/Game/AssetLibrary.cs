@@ -122,7 +122,17 @@ namespace Ledger.Game
             if (tex != null)
             {
                 mat.mainTexture = tex;
-                mat.mainTextureScale = spec.Tiling;
+                // NOT EVERY SOURCE IS SQUARE, and `Tiling` was authored as
+                // though every source were. Two of the twelve in the first real
+                // pack came back 1024x512, and a uniform factor on those puts
+                // twice as many texels across a metre as up it — oblong mortar
+                // courses, a stretched kerb. `TextureFit` corrects the shape
+                // and leaves square sources, which is all of the procedural
+                // ones, bit-for-bit alone.
+                TextureFit.Isotropic(spec.Tiling.x, spec.Tiling.y,
+                                     tex.width, tex.height,
+                                     out double tx, out double ty);
+                mat.mainTextureScale = new Vector2((float)tx, (float)ty);
             }
             mat.color = spec.Tint;
             // Standard shader (built-in): _Glossiness is smoothness, _Metallic is 0..1.
@@ -236,7 +246,28 @@ namespace Ledger.Game
                 {
                     var bytes = File.ReadAllBytes(path);
                     var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true);
-                    if (tex.LoadImage(bytes)) { tex.name = "packtex_" + logical; return tex; }
+                    if (tex.LoadImage(bytes))
+                    {
+                        // AND THE GAME CHECKS THE SHAPE ITSELF, rather than
+                        // trusting that `pack_check` ran. A pack is a directory
+                        // anybody can drop a file into — CI is not in that
+                        // path — and a texture whose sides are not powers of
+                        // two gives a mip chain that stops halving cleanly and
+                        // an aspect correction that is irrational. Falling back
+                        // to the procedural surface is the right answer, and
+                        // saying so is the difference between a fallback and a
+                        // silent one.
+                        if (!TextureFit.IsCleanShape(tex.width, tex.height))
+                        {
+                            Debug.LogWarning(
+                                $"AssetLibrary: {logical} is {tex.width}x{tex.height} — each side "
+                                + "must be a power of two. Using the procedural surface instead.");
+                            UnityEngine.Object.Destroy(tex);
+                            return null;
+                        }
+                        tex.name = "packtex_" + logical;
+                        return tex;
+                    }
                 }
                 catch (System.Exception e) { Debug.LogWarning($"AssetLibrary: failed to load {path}: {e.Message}"); }
             }

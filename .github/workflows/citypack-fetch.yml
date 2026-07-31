@@ -87,13 +87,24 @@ jobs:
       # Only when the fetch says it wrote something. Opening an empty directory
       # produces a second failure that describes the first one badly and buries
       # it underneath itself.
+      #
+      # AND IT DOES NOT TAKE THE JOB DOWN WITH IT. This step failing is what
+      # discarded the typeface the second time: the textures downloaded, the
+      # font downloaded, `pack_check` refused two 1024x512 files, `bash -e`
+      # ended the job, and the commit step never ran. Same lesson as the step
+      # order above, one level further in — the fix is not to weaken the check,
+      # it is to stop an unrelated verdict from being fatal to everything else.
       - name: Open the pack and check it
+        id: pack
         if: steps.fetch.outcome == 'success'
+        continue-on-error: true
         run: |
           python3 tools/citypack/pack_check.py --selftest
           python3 tools/citypack/pack_check.py
 
       - name: Attribution still holds
+        id: attribution
+        continue-on-error: true
         run: python3 tools/attribution-check.py
 
       # COMMIT WHAT ARRIVED, AND JUDGE EACH THING ON ITSELF.
@@ -118,8 +129,15 @@ jobs:
           fi
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          if [ "${{ steps.fetch.outcome }}" = "success" ]; then
+          # TEXTURES ONLY IF THEY ARRIVED *AND* SURVIVED THE CHECK. Committing a
+          # pack the check refused would be the one genuinely bad outcome here:
+          # a stretched surface is worse than a procedural one, and it would
+          # look shipped.
+          if [ "${{ steps.fetch.outcome }}" = "success" ] \
+             && [ "${{ steps.pack.outcome }}" = "success" ]; then
             git add ledger/Assets/StreamingAssets/CityPack
+          else
+            echo "not committing textures (fetch=${{ steps.fetch.outcome }}, pack=${{ steps.pack.outcome }})"
           fi
           git add ledger/Assets/Resources/LedgerSans.* tools/citypack/font-installed.json 2>/dev/null || true
           if git diff --cached --quiet; then
@@ -146,12 +164,14 @@ jobs:
       # verdict says which. A job on this project has reported success while
       # producing zero output for every character it was asked for; committing
       # a partial result must never be the thing that hides the other half.
-      - name: The verdict on both fetches
+      - name: The verdict, named step by step
         run: |
           bad=0
-          [ "${{ steps.fetch.outcome }}" = "success" ] || { echo "TEXTURES FAILED"; bad=1; }
-          [ "${{ steps.font.outcome }}"  = "success" ] || { echo "FONT FAILED"; bad=1; }
-          [ "$bad" -eq 0 ] && echo "both fetches succeeded"
+          [ "${{ steps.font.outcome }}"        = "success" ] || { echo "FONT FETCH FAILED"; bad=1; }
+          [ "${{ steps.fetch.outcome }}"       = "success" ] || { echo "TEXTURE FETCH FAILED"; bad=1; }
+          [ "${{ steps.pack.outcome }}"        = "success" ] || { echo "PACK CHECK FAILED (or was skipped)"; bad=1; }
+          [ "${{ steps.attribution.outcome }}" = "success" ] || { echo "ATTRIBUTION CHECK FAILED"; bad=1; }
+          [ "$bad" -eq 0 ] && echo "font, textures, pack check and attribution all green"
           exit $bad
 
       - uses: actions/upload-artifact@v4
