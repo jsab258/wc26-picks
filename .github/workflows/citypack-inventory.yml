@@ -1,0 +1,89 @@
+# WHY THIS IS TWO FILES AND NOT ONE WITH A CONDITION.
+#
+# It was one file that routed on `github.event.commits.*.added` — inventory when
+# the workflow changed, fetch when `choices.json` did. On the commit that added
+# `choices.json` the INVENTORY ran and the FETCH was SKIPPED: exactly backwards.
+#
+# `github.event.commits.*.added` is an array of arrays, and `join()` does not
+# flatten it the way the expression assumed, so both `contains` were false and
+# the negated one won. The run reported SUCCESS while doing nothing anybody
+# wanted — a silent no-op, which is the failure this project keeps finding in
+# its own guards.
+#
+# GitHub evaluates `paths:` itself and gets it right. So the routing is a path
+# filter in two files rather than an expression in one, and there is no
+# condition left to be wrong.
+
+name: LEDGER city pack — inventory
+
+# ASK, TAKING NOTHING. Metadata only, about a minute. Runs when the tools that
+# do the asking change, because that is the only reason to ask again.
+on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    paths:
+      - ".github/workflows/citypack-inventory.yml"
+      - "tools/citypack/fetch_textures.py"
+      - "tools/citypack/fetch_font.py"
+  workflow_dispatch:
+
+concurrency:
+  group: citypack-inventory
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # `continue-on-error` on each, deliberately: these answer different
+      # questions and none should be able to silence the others. The first
+      # catalogue attempt died mid-walk and the shell's `-e` took the whole job
+      # with it, so a five-minute run produced no evidence at all.
+      - name: Pull the whole catalogue
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_textures.py --catalogue
+      - name: The per-term view
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_textures.py --inventory
+      - name: What the font families offer
+        continue-on-error: true
+        run: python3 tools/citypack/fetch_font.py --inventory
+
+      - name: Commit what was learned
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add tools/citypack/catalogue.json tools/citypack/candidates.json \
+                  tools/citypack/font-candidates.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "nothing changed — the catalogue already said this"
+            exit 0
+          fi
+          git commit -m "City pack: what the catalogue actually holds
+
+          Metadata only, no images. Every later question about what exists is
+          answered locally from this file rather than by spending a run."
+          for i in 1 2 3 4 5 6; do
+            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
+            echo "push failed, attempt $i"; sleep $((2 ** i))
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: citypack-inventory
+          if-no-files-found: warn
+          path: |
+            tools/citypack/catalogue.json
+            tools/citypack/candidates.json
+            tools/citypack/font-candidates.json

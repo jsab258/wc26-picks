@@ -1,150 +1,42 @@
-name: LEDGER city pack
+# WHY THIS IS TWO FILES AND NOT ONE WITH A CONDITION.
+#
+# It was one file that routed on `github.event.commits.*.added` — inventory when
+# the workflow changed, fetch when `choices.json` did. On the commit that added
+# `choices.json` the INVENTORY ran and the FETCH was SKIPPED: exactly backwards.
+#
+# `github.event.commits.*.added` is an array of arrays, and `join()` does not
+# flatten it the way the expression assumed, so both `contains` were false and
+# the negated one won. The run reported SUCCESS while doing nothing anybody
+# wanted — a silent no-op, which is the failure this project keeps finding in
+# its own guards.
+#
+# GitHub evaluates `paths:` itself and gets it right. So the routing is a path
+# filter in two files rather than an expression in one, and there is no
+# condition left to be wrong.
 
-# M17.6 — a real texture set for the surfaces `AssetLibrary` already asks for.
-#
-# WHY THIS IS A WORKFLOW AND NOT A SCRIPT. Every asset host is blocked from the
-# dev container, the same way HuggingFace is: ambientcg.com, api.polyhaven.com
-# and fonts.google.com all answer 000 through the proxy. So the network half has
-# to happen here, and everything that CAN be checked without a network is
-# checked locally instead — `pack_check.py` reads the committed pack exactly the
-# way `AssetLibrary` will.
-#
-# TWO JOBS, AND DISPATCHING ONE MUST NOT START THE OTHER. The voice pipeline
-# learned this the expensive way: its inventory job was gated only on the event
-# name, so asking a cheap question also kicked off a forty-minute fetch. The
-# `mode` input is the gate, and each job checks it.
-#
-# A CODE CHANGE MUST NEVER START A DOWNLOAD — three separate corpus runs once
-# ended up queued in front of the one somebody was waiting on, and one of them
-# was queued behind a run of the problem it would have fixed.
-#
-# AND IT CANNOT BE DISPATCHED FROM HERE, which cost a 404 that reads like a
-# missing file. `workflow_dispatch` only fires for workflows on the DEFAULT
-# branch; this one lives on a feature branch, so the dispatch API answers 404
-# Not Found. `ledger-build-mac.yml` hit exactly this and documented it, and I
-# walked into it anyway — which is what rule 1 is about.
-#
-# The fix is the pattern that file already established: push triggers scoped so
-# narrowly that nothing incidental can fire them.
-#
-#   inventory  fires on the workflow file itself. Metadata only, about a minute,
-#              and the only reason to touch this file is to work on this.
-#   fetch      fires on `choices.json` ONLY. Committing that file is the
-#              deliberate act of saying which asset answers which surface, so
-#              the download happens exactly when somebody decides it should and
-#              never as a side effect of a code change.
+name: LEDGER city pack — fetch
+
+# TAKE WHAT WAS DECIDED. Runs when `choices.json` changes and on nothing else,
+# because committing that file IS the decision that a download should happen.
+# A code change must never start one: three corpus runs once ended up queued in
+# front of the one somebody was waiting on, and one was queued behind a run of
+# the problem it would have fixed.
 on:
   push:
     branches: [claude/game-dev-ai-automation-2h67ix]
     paths:
-      - ".github/workflows/citypack-fetch.yml"
       - "tools/citypack/choices.json"
   workflow_dispatch:
-    inputs:
-      mode:
-        description: "inventory (ask the catalogue, download nothing) or fetch"
-        required: true
-        default: inventory
-        type: choice
-        options: [inventory, fetch]
 
-# Scoped to the expensive job only, so a cheap inventory never waits behind a
-# fetch and neither waits behind anything else in the repo.
 concurrency:
-  group: citypack-${{ inputs.mode || 'push' }}
+  group: citypack-fetch
   cancel-in-progress: false
 
-# THE FIRST RUN COMMITTED ITS RESULT AND COULD NOT PUSH IT: "Permission to
-# jsab258/wc26-picks.git denied to github-actions[bot]", six times, with the
-# retry loop doing exactly what it was told. The default GITHUB_TOKEN is
-# read-only, so a job that writes to the repo has to say so.
-#
-# Scoped to `contents` alone. This job needs to push a file; it has no business
-# with issues, packages, deployments or anything else.
 permissions:
   contents: write
 
 jobs:
-  inventory:
-    # On a dispatch the mode says which job runs. On a push there is no mode, so
-    # the trigger itself decides: touching the workflow asks the catalogue, and
-    # touching `choices.json` downloads. Neither job may run on both.
-    if: >-
-      inputs.mode == 'inventory'
-      || (github.event_name == 'push'
-          && !contains(join(github.event.commits.*.modified, ','), 'tools/citypack/choices.json')
-          && !contains(join(github.event.commits.*.added, ','), 'tools/citypack/choices.json'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      # Metadata only. This is the instrument the voice pipeline wished it had
-      # on day one: it answers every question about what the catalogue holds,
-      # costs one run, and the actual choice is then made locally in seconds.
-      # THE WHOLE CATALOGUE FIRST, then the per-term view. The first run asked
-      # eleven search terms and two came back empty — sidewalk and roof would
-      # have had no texture at all. Pulling every material id once means the
-      # next question about what paving or roofing is called here is answered
-      # locally in seconds instead of costing another run.
-      #
-      # `continue-on-error` on the catalogue, DELIBERATELY. The first attempt
-      # died mid-walk and the shell's `-e` took the whole job with it, so the
-      # per-term inventory never ran and the artefact upload had nothing to
-      # upload — a five-minute run that produced no evidence at all. These two
-      # steps answer different questions and neither should be able to silence
-      # the other. The job's verdict is the inventory's.
-      - name: Pull the whole catalogue
-        continue-on-error: true
-        run: python3 tools/citypack/fetch_textures.py --catalogue
-      - name: And the per-term view
-        run: python3 tools/citypack/fetch_textures.py --inventory
-      # M17.9 rides along: the font has the same problem (fonts.google.com
-      # answers 000 from the dev container) and asking costs seconds.
-      - name: What the font families offer
-        continue-on-error: true
-        run: python3 tools/citypack/fetch_font.py --inventory
-
-      - name: Commit the candidate list
-        run: |
-          git config user.name  "Claude"
-          git config user.email "noreply@anthropic.com"
-          git add -f tools/citypack/candidates.json tools/citypack/catalogue.json 2>/dev/null || true
-          git add tools/citypack/candidates.json 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "candidates.json unchanged — nothing to commit"
-            exit 0
-          fi
-          git commit -m "City pack: what the catalogue actually holds
-
-          Metadata only, no images. The choice of which asset answers which
-          surface is made locally from this file, which is the fix the voice
-          pipeline needed on its first day rather than its fifteenth run."
-          for i in 1 2 3 4 5 6; do
-            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
-            echo "push failed, attempt $i"; sleep $((2 ** i))
-          done
-          exit 1
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: citypack-candidates
-          if-no-files-found: warn
-          path: |
-            tools/citypack/candidates.json
-            tools/citypack/catalogue.json
-            tools/citypack/font-candidates.json
-
   fetch:
-    if: >-
-      inputs.mode == 'fetch'
-      || (github.event_name == 'push'
-          && (contains(join(github.event.commits.*.modified, ','), 'tools/citypack/choices.json')
-              || contains(join(github.event.commits.*.added, ','), 'tools/citypack/choices.json')))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
