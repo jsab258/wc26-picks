@@ -767,6 +767,26 @@ namespace Ledger.Game
                 }
             }
 
+            // THE WITNESSES ARE WALKING, so somebody has to move them. Without
+            // this the delivery window is a list that fills and never empties:
+            // dispatched, never arriving, and the mill never learning a thing.
+            //
+            // Indelible on arrival — Core's rule, not this file's. What is
+            // decided here is only what the fact SAYS, because the map and the
+            // words belong to the game.
+            if (_game != null && _game.Gossip != null && Witnesses.InFlight.Count > 0)
+            {
+                int landed = Witnesses.Tick(
+                    ElapsedGameMinutes(now),
+                    _game.Gossip.Mill, now,
+                    d => new Fact("player", "violence", d.WitnessId),
+                    d => $"{d.WitnessId} says they saw what happened, and came to say so");
+                if (landed > 0)
+                    Debug.Log($"SimDirector: {landed} witness account(s) arrived and "
+                              + $"went indelible ({Witnesses.Arrived} total, "
+                              + $"{Witnesses.Interceptions} intercepted)");
+            }
+
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
             SampleScore();
@@ -1262,6 +1282,43 @@ namespace Ledger.Game
         int _deedsStaged, _lastDeedDay = -99;
         const int DeedsWanted = 4;
         int _deedSlotSets, _deedWitnesses, _deedBestRung;
+        /// The delivery window, measured: how many witnesses started walking,
+        /// whether an interception landed, and how many got there anyway.
+        int _deedDispatched;
+        bool _deedInterceptTried, _deedIntercepted;
+        /// A person crossing a street, in metres per game-minute. Walk speed
+        /// is 1.4 m/s, and a sim minute is a minute.
+        const double WitnessWalkMetresPerMinute = 84.0;
+
+        int _minuteClock = -1;
+
+        /// Game-minutes since the last call, read off the CLOCK rather than
+        /// off the frame.
+        ///
+        /// The delivery window is measured in game minutes and the sim runs
+        /// days in seconds, so scaling a frame delta would have made a witness
+        /// walk for a real-time minute — a number with no relationship to the
+        /// distance they were given. `now` is the only honest source, and a
+        /// day rollover is a forward step rather than a jump backwards.
+        double ElapsedGameMinutes(GameTime now)
+        {
+            int stamp = now.Day * 1440 + now.Hour * 60 + now.Minute;
+            if (_minuteClock < 0) { _minuteClock = stamp; return 0; }
+            int delta = stamp - _minuteClock;
+            _minuteClock = stamp;
+            return delta > 0 ? delta : 0;
+        }
+
+        /// The walker with this display name, or null. A loop rather than
+        /// Linq because this file does not import it, and a `using` added for
+        /// one call site is how a lint rule starts being ignored.
+        NpcWalker NamedWalker(string displayName)
+        {
+            if (_npcs == null || string.IsNullOrEmpty(displayName)) return null;
+            foreach (var n in _npcs)
+                if (n != null && n.DisplayName == displayName) return n;
+            return null;
+        }
         const int SlamsWanted = 4;
         /// Did a slam actually put a circle on the ground? Checked in the same
         /// frame as the Emit, because `Show` is synchronous — so this is the
@@ -1528,6 +1585,43 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: staged deed #{_deedsStaged} "
                           + $"({Witnesses.Considered} considered, {Witnesses.Saw} got something, "
                           + $"{distinct} distinct slot sets, best rung {Witnesses.BestRung()})");
+
+                // THE DELIVERY WINDOW, ACTUALLY OPENED. `Witnesses.Dispatch`,
+                // `Tick` and `Intercept` were written, tested in Core and
+                // never once called by the game — the minutes between seeing
+                // and the street knowing, which §4.5 calls the best pressure
+                // in the design, did not exist at runtime.
+                //
+                // Real distance, not a constant: the witness walks from where
+                // they are standing to where they are taking it, at the walk
+                // speed the rest of the sim uses. That is the whole reason
+                // `Dispatch` takes a callback instead of a number.
+                NpcWalker goTo = NamedWalker("Ellis");
+                Vector3 dest = goTo != null ? goTo.transform.position
+                                            : WorldBuilder.BarDoor;
+                int walking = Witnesses.Dispatch(
+                    Witnesses.Last, goTo != null ? "Ellis" : "Lena",
+                    o =>
+                    {
+                        var w = NamedWalker(o.WitnessId);
+                        double metres = w != null
+                            ? Vector3.Distance(w.transform.position, dest) : 60.0;
+                        return Math.Max(1.0, metres / WitnessWalkMetresPerMinute);
+                    },
+                    o => 0.5);
+                _deedDispatched += walking;
+
+                // AND ONE OF THEM GETS STOPPED, so claim 4 is exercised rather
+                // than merely available: intercepted before arrival leaves the
+                // mill untouched, and the same witness a minute later leaves
+                // something nothing takes back.
+                if (walking > 0 && !_deedInterceptTried)
+                {
+                    _deedInterceptTried = true;
+                    var first = Witnesses.InFlight.Count > 0
+                        ? Witnesses.InFlight[0].WitnessId : null;
+                    if (first != null) _deedIntercepted = Witnesses.Intercept(first);
+                }
             }
 
             // THE RING IS THE MODEL, asserted rather than assumed. Comparing
@@ -3390,6 +3484,23 @@ namespace Ledger.Game
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
                  $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
+                // §4.7 CLAIM 1 AND CLAIM 4, GATED AT LAST.
+                //
+                // `deedSlotSets` has been reported and not asserted since it
+                // was written, deliberately: a threshold set without a
+                // measured value is how this project keeps hurting itself.
+                // The claim is not a number anyway, it is "more than one" —
+                // one means every witness in the city resolved identically,
+                // which says something upstream handed them the same geometry.
+                //
+                // The delivery half is stronger than a count: somebody started
+                // walking, and somebody was stopped before arriving. A window
+                // nobody walks is a list.
+                ($"deedClaims[slotSets={_deedSlotSets} dispatched={_deedDispatched} " +
+                 $"intercepted={Witnesses.Interceptions} arrived={Witnesses.Arrived}]",
+                 _deedsStaged == 0
+                     || (_deedSlotSets > 1 && _deedDispatched > 0
+                         && Witnesses.Interceptions > 0)),
                 ($"suspicionActs[checks={(_game.Gossip != null ? _game.Gossip.ChecksRun : 0)} " +
                  $"confronts={_game.TotalConfrontations} staged={_confrontTarget ?? "none"} " +
                  $"stagesOnDay={ConfrontStagesOnDay} lastDay={_lastSeenDay}" +
@@ -3492,6 +3603,14 @@ namespace Ledger.Game
                       // something upstream is handing them the same geometry.
                       $"deeds={_deedsStaged} deedWitnesses={_deedWitnesses} " +
                       $"deedSlotSets={_deedSlotSets} deedBestRung={_deedBestRung} " +
+                      // THE DELIVERY WINDOW, §4.5, measured rather than assumed
+                      // to run. Dispatched is how many started walking;
+                      // arrived is how many made it and went indelible;
+                      // intercepted is claim 4 actually exercised.
+                      $"deedDispatched={_deedDispatched} " +
+                      $"deedArrived={Witnesses.Arrived} " +
+                      $"deedIntercepted={Witnesses.Interceptions} " +
+                      $"deedInFlight={Witnesses.InFlight.Count} " +
                       $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
                       // ITEMISED, because `drawn=0` had three possible causes
                       // and I picked the wrong one out loud. `small` is the
