@@ -17,7 +17,27 @@ name: LEDGER city pack
 # `workflow_dispatch` ONLY. A push must never start this — a code change that
 # triggers a download is how three separate runs ended up queued in front of the
 # one somebody was waiting on.
+# AND IT CANNOT BE DISPATCHED FROM HERE, which cost a 404 that reads like a
+# missing file. `workflow_dispatch` only fires for workflows on the DEFAULT
+# branch; this one lives on a feature branch, so the dispatch API answers 404
+# Not Found. `ledger-build-mac.yml` hit exactly this and documented it, and I
+# walked into it anyway — which is what rule 1 is about.
+#
+# The fix is the pattern that file already established: push triggers scoped so
+# narrowly that nothing incidental can fire them.
+#
+#   inventory  fires on the workflow file itself. Metadata only, about a minute,
+#              and the only reason to touch this file is to work on this.
+#   fetch      fires on `choices.json` ONLY. Committing that file is the
+#              deliberate act of saying which asset answers which surface, so
+#              the download happens exactly when somebody decides it should and
+#              never as a side effect of a code change.
 on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    paths:
+      - ".github/workflows/citypack-fetch.yml"
+      - "tools/citypack/choices.json"
   workflow_dispatch:
     inputs:
       mode:
@@ -30,12 +50,19 @@ on:
 # Scoped to the expensive job only, so a cheap inventory never waits behind a
 # fetch and neither waits behind anything else in the repo.
 concurrency:
-  group: citypack-${{ inputs.mode }}
+  group: citypack-${{ inputs.mode || 'push' }}
   cancel-in-progress: false
 
 jobs:
   inventory:
-    if: inputs.mode == 'inventory'
+    # On a dispatch the mode says which job runs. On a push there is no mode, so
+    # the trigger itself decides: touching the workflow asks the catalogue, and
+    # touching `choices.json` downloads. Neither job may run on both.
+    if: >-
+      inputs.mode == 'inventory'
+      || (github.event_name == 'push'
+          && !contains(join(github.event.commits.*.modified, ','), 'tools/citypack/choices.json')
+          && !contains(join(github.event.commits.*.added, ','), 'tools/citypack/choices.json'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -77,7 +104,11 @@ jobs:
           path: tools/citypack/candidates.json
 
   fetch:
-    if: inputs.mode == 'fetch'
+    if: >-
+      inputs.mode == 'fetch'
+      || (github.event_name == 'push'
+          && (contains(join(github.event.commits.*.modified, ','), 'tools/citypack/choices.json')
+              || contains(join(github.event.commits.*.added, ','), 'tools/citypack/choices.json')))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
