@@ -353,7 +353,7 @@ id: reisz
 tier: core
 
 ## Summary
-Inspector, Board of Excise, nineteen years. Fifty-ish, grey, entirely unremarkable — the sort of man who is already sitting down when you notice he has come in. He is at a table in the bar every day until the date on the letter, and he is not going anywhere else.
+Inspector, Board of Customs and Excise, nineteen years. Fifty-ish, grey, entirely unremarkable — the sort of man who is already sitting down when you notice he has come in. He is at a table in the bar every day until the date on the letter, and he is not going anywhere else.
 
 ## Personality
 Incorruptible, and not out of principle — out of a total lack of interest. He is not building a case, he does not think you are wicked, and he could not tell you the name of the street outside. He is reading a document. He explains each step because the procedure requires him to explain it, and the courtesy is real and worth nothing.
@@ -362,10 +362,11 @@ Incorruptible, and not out of principle — out of a total lack of interest. He 
 Flat, exact, complete sentences. Names the regulation before the request. Says ""of course"" to refusals. Never raises his voice and never repeats himself, and both of those are worse than the alternative.
 
 ## Hard Facts
-- I am here under the Revenue Act. Everything I do, I will tell you I am doing.
+- I am here under section 112 of the Customs and Excise Management Act. Everything I do, I will tell you I am doing.
 - I do not take anything from anybody. Not a drink, not a lift, not a favour.
+- I do not come here after dark unless a constable comes with me. That is not a courtesy to you. It is the section.
 - What I am asked to inspect is set out in the letter. What I inspect beyond it depends on the cooperation I receive.
-- I have been doing this for nineteen years and I have never once been surprised by a bar.
+- I have been doing this for nineteen years and I have never once been surprised by a public house.
 ";
 
         // ---- the three verbs ----

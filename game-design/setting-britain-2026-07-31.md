@@ -172,3 +172,49 @@ My first draft gave Rocco and Sera Kest Scottish voices because the timbre
 suited them, and the check caught it: if the principals are split, the base
 is not a base and everything is texture. Scots moved outward to Sam, Joey and
 Rita, where being from elsewhere is characterisation rather than noise.
+
+---
+
+## Addendum: the audit becomes Customs and Excise (done)
+
+The same lesson as `bar`/`pub`, twice over.
+
+**"Revenue" was never an Americanism.** I went in expecting to replace it and
+found the opposite: in British excise law a licensed publican *is* a **revenue
+trader** — it is the statutory term. So Lena's "revenue letter", the "revenue
+office", "a revenue man": all correct trade vocabulary for a landlord whose
+licence uses the word. Nothing was replaced. What changed is that the game now
+**names the instrument**, which makes the vocabulary legible instead of vague:
+
+> Under **section 112 of the Customs and Excise Management Act**, the licensed
+> premises known as the Hook Street pub is required to produce its books of
+> account, **and its records of duty paid on stock received**, for inspection.
+
+Section 112 is real and is titled *Power of entry upon premises, etc. of
+revenue traders*. It is the inspection power. Reese names it in his hard facts,
+which is exactly his characterisation — he names the regulation before the
+request.
+
+**The duty clause is the mechanical win.** `LedgerStrain` already capped
+plausible laundering at about a third of takings, and that third was a tuned
+number with no reason behind it. Excise supplies the reason: an officer reads
+takings against duty paid on stock received. *Drink you never bought cannot
+have been drunk.* The ceiling stops being a balance constant and becomes a
+fact about the world the player can reason about.
+
+**And the statute handed over a mechanic I did not go looking for.** Section
+112(2): an officer may not exercise the power of entry **by night unless he is
+accompanied by a constable**. In a game about a pub, at night, where constables
+are already simulated. It explains why Reese sits at a table in daylight and
+never once turns up after hours — and it means the player's night is legally
+his own unless somebody brings a constable into it. New hard fact:
+
+> — I do not come here after dark unless a constable comes with me. That is
+> not a courtesy to you. It is the section.
+
+Not yet wired as a rule; recorded here as the obvious next Act III beat.
+
+**`Board of Excise` → `Board of Customs and Excise`**, and the establishment
+sense of `bar` cleared out of Act III (the pub explains its money, the pub is
+a pub, you have a pub) while the counter sense stayed put — he is still at the
+bar at ten past nine, at a table, and that is still the right word.

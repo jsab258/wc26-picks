@@ -7,12 +7,12 @@ namespace Ledger.Core
     ///
     /// The crisis is an AUDIT: the least dramatic instrument available, which
     /// is what makes it frightening. Somebody with a mandate asks to see the
-    /// bar's books, and the pub's books are the one document in this game that
+    /// books, and the pub's books are the one document in this game that
     /// has been quietly lying since day one.
     ///
     /// Everything the player did to the ledger is now evidence in the other
     /// direction. Launder too little and the night money has nowhere to have
-    /// come from. Launder too much and the bar earned more than a bar on this
+    /// come from. Launder too much and the pub earned more than a pub on this
     /// street possibly could. The lie has a shape, and the shape is now being
     /// measured. It cannot be fought — only survived, deflected onto somebody,
     /// or answered by choosing which life to keep.
@@ -164,7 +164,7 @@ namespace Ledger.Core
 
         /// The act opens when the Table has been answered AND one of the two
         /// ledgers has become undeniable: Ellis can name the rackets, or the
-        /// empire is too big for the bar to explain its own money.
+        /// empire is too big for the pub to explain its own money.
         public static bool ShouldOpen(bool tableAnswered, bool osseiCanName, int businessesOwned,
             int racketsEstablished) =>
             tableAnswered && (osseiCanName || businessesOwned + racketsEstablished >= 3);
@@ -172,7 +172,7 @@ namespace Ledger.Core
         /// How wrong the books look. 0 = the lie holds, 1 = it does not.
         ///
         /// Wrong in BOTH directions, which is the whole idea. Money washed far
-        /// beyond what a bar on this street could plausibly turn over is as
+        /// beyond what a pub on this street could plausibly turn over is as
         /// damning as racket income with no laundering behind it at all.
         public static double LedgerStrain(LedgerState s)
         {
@@ -181,9 +181,11 @@ namespace Ledger.Core
                 ? 0
                 : Math.Clamp(1.0 - (double)s.TotalWashed / Math.Max(1, s.TotalRacketIncome), 0, 1);
 
-            // A bar can plausibly account for washing about a third of what it
-            // takes over the counter. Past that the till is telling a story
-            // nobody on this street believes.
+            // A pub can plausibly account for washing about a third of what it
+            // takes over the counter, and the ceiling is not arbitrary: an
+            // excise officer reads takings against the duty paid on stock
+            // received. Drink you never bought cannot have been drunk. Past
+            // that third the till is claiming sales the cellar cannot supply.
             double plausible = Math.Max(1, s.BarTakingsToDate) * 0.35;
             double tooMuch = Math.Clamp((s.TotalWashed - plausible) / Math.Max(1.0, plausible), 0, 1);
 
@@ -278,7 +280,7 @@ namespace Ledger.Core
             // is where you find out what it cost them.
             //
             // Unless they are hunting you. Signing the licence over settles who
-            // owns a bar; it does not settle a body, and the one thing a
+            // owns a pub; it does not settle a body, and the one thing a
             // successor cannot inherit is a homicide. This is the only place
             // the lethality answer takes an ending off the table outright, and
             // it takes the quietest one.
@@ -378,12 +380,13 @@ namespace Ledger.Core
         // ---- authored text ----
 
         public const string OpenText =
-            "There is a letter on the counter when you come down, addressed to the bar rather than to you. " +
+            "There is a letter on the counter when you come down, addressed to the pub rather than to you. " +
             "It is courteous, entirely procedural, and it names a date.";
 
         public const string Pp1LetterText =
-            "Under the Revenue Act, the licensed premises known as the Hook Street pub is required to produce " +
-            "its books of account for inspection. A date is given. There is no threat in it anywhere, " +
+            "Under section 112 of the Customs and Excise Management Act, the licensed premises known as the " +
+            "Hook Street pub is required to produce its books of account, and its records of duty paid on stock " +
+            "received, for inspection. A date is given. There is no threat in it anywhere, " +
             "which is what makes it the worst thing that has ever arrived at this address.";
 
         public static string Pp2LenaText(double loyalty, double strain)
@@ -426,7 +429,7 @@ namespace Ledger.Core
 
         public const string InspectorArrivesText =
             "He is at the bar at ten past nine with a case and a folding rule, and he introduces himself " +
-            "twice — once to you and once to Lena, in the same words. Tobias Reese, Board of Excise. " +
+            "twice — once to you and once to Lena, in the same words. Tobias Reese, Board of Customs and Excise. " +
             "He asks where he may sit, and then he asks whether the light is always this poor.";
 
         public static string InspectorAskText(int day, double scope) =>
@@ -522,12 +525,12 @@ namespace Ledger.Core
         /// somebody else's.
         public static string StraightLifeText(bool everBuiltIt) => everBuiltIt
             ? "There is nothing in the books because there is nothing left to be in them. You sold up, paid " +
-              "everyone off, and took the loss. The bar is a bar. Somebody asks you, weeks later, whether it " +
+              "everyone off, and took the loss. The pub is a pub. Somebody asks you, weeks later, whether it " +
               "is true what they used to say about this place, and you get to tell the truth."
             : "The inspection takes an afternoon. There was never anything in the books, because you never put " +
               "anything in them — and the whole of what that cost you is invisible, which is the point. " +
               "Mickey's people drifted off to other people's rounds. The street decided you were nobody in " +
-              "particular. You have a bar, and the hours are bad, and everybody who knew you when you arrived " +
+              "particular. You have a pub, and the hours are bad, and everybody who knew you when you arrived " +
               "still knows you.";
 
         public static string EndingText(Ending e, string successorName = null) =>
@@ -561,7 +564,7 @@ namespace Ledger.Core
             bool intact = s != null && s.BestDayLifeLoyalty >= LedgerState.TrustThreshold;
 
             if (dayIndex <= 0)
-                return $"First morning off the street. Somebody who came in on the same boat says the bar opened on time and " +
+                return $"First morning off the street. Somebody who came in on the same boat says the pub opened on time and " +
                        $"{who} was behind the counter at seven, which is earlier than you ever managed.";
             if (dayIndex == 1)
                 return hot
