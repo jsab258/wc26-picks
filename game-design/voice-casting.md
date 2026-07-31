@@ -215,3 +215,22 @@ carry no age or gender at all (the script says so instead of pretending the
 filter worked).
 
 Casting stays mine as delegated; his part is a listening pass, not research.
+
+---
+
+## PICKS — round 1, VCTK, 2026-07-31
+
+Jafar's choices from the thirty candidates. Recorded here rather than left in
+a browser's local storage, because the page's copy button did not work and a
+decision that exists only on one phone is not a decision the project has.
+
+| character | take | notes |
+|---|---|---|
+| Lena | candidate-01 | |
+| Sam | candidate-05 | |
+| Sera Kest | candidate-05 | |
+| crowd — male, young (`crowd_m1`) | candidate-01 | |
+| crowd — female, young (`crowd_f1`) | candidate-01 | |
+
+**Five of nineteen cast.** The remaining fourteen had no candidates to choose
+from — see `decisions-pending.md` for why and what the options are.
