@@ -146,6 +146,7 @@ jobs:
       # every one produced EXACTLY ZERO clips, because the fetcher writes
       # everything in one go at the end.
       - name: Fetch candidates
+        id: fetch
         working-directory: tools/voice-fetch
         timeout-minutes: 45
         continue-on-error: true
@@ -228,11 +229,19 @@ jobs:
           # pipeline. A run that produces less than what is already there has
           # failed at its one job and must not be allowed to write the result
           # down. Growth commits; shrinkage aborts and says so.
+          # AND IT ASKS WHETHER THE FETCH FINISHED, not just whether the
+          # number went down. The first version of this guard compared counts
+          # alone, and the very next change — four distinct voices per
+          # character instead of six of the same one — would have been thrown
+          # away by it for producing 76 clips where the branch had 114. Fewer
+          # clips is only a fault when the run FAILED to produce them; a run
+          # that completed and deliberately produces fewer is doing its job.
           HAVE=$(git ls-tree -r HEAD --name-only voice-candidates 2>/dev/null | grep -c '\.mp3$' || true)
           GOT=$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)
-          echo "clips on branch: $HAVE   clips from this run: $GOT"
-          if [ "$GOT" -lt "$HAVE" ]; then
-            echo "::error::REFUSING TO COMMIT — this run produced $GOT clips and the branch already has $HAVE."
+          echo "clips on branch: $HAVE   clips from this run: $GOT   fetch: ${{ steps.fetch.outcome }}"
+          if [ "$GOT" -lt "$HAVE" ] && [ "${{ steps.fetch.outcome }}" != "success" ]; then
+            echo "::error::REFUSING TO COMMIT — the fetch did not succeed (${{ steps.fetch.outcome }})"
+            echo "::error::and it produced $GOT clips where the branch has $HAVE."
             echo "::error::Committing would delete listening material. Leaving the branch alone."
             exit 0
           fi
