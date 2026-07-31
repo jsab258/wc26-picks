@@ -48,14 +48,6 @@ on:
         required: false
         default: ""
 
-# ONE FETCH AT A TIME. Four runs were streaming the same corpus at once
-# because four commits landed in ten minutes, and they competed for the same
-# push. Queue them instead — `cancel-in-progress: false`, because the running
-# one is usually the one carrying the clips.
-concurrency:
-  group: voice-candidates
-  cancel-in-progress: false
-
 jobs:
   # ASK THE CORPUS A QUESTION WITHOUT FETCHING IT.
   #
@@ -192,6 +184,15 @@ jobs:
   # which is what a code change needs to prove. Streaming forty thousand rows
   # is a thing somebody decides to do.
   candidates:
+    # ONE FETCH AT A TIME — SCOPED TO THE FETCH. Four runs were streaming the
+    # same corpus at once and competing for one push, so they were serialised.
+    # But the group sat at WORKFLOW level, which meant the cheap jobs queued
+    # behind a forty-minute stream and, worse, the metadata read and the fetch
+    # blocked each other — twice today the run somebody was waiting on sat
+    # pending behind one of mine. Only the fetch needs to be alone.
+    concurrency:
+      group: voice-fetch
+      cancel-in-progress: false
     # AND NOT WHEN THE INVENTORY WAS WHAT WAS ASKED FOR. Gating on the event
     # alone meant dispatching the metadata read also started a full 38-minute
     # corpus fetch — the exact run the inventory exists to make unnecessary.
