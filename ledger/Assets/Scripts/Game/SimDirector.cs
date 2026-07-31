@@ -779,8 +779,20 @@ namespace Ledger.Game
                 int landed = Witnesses.Tick(
                     ElapsedGameMinutes(now),
                     _game.Gossip.Mill, now,
-                    d => new Fact("player", "violence", d.WitnessId),
-                    d => $"{d.WitnessId} says they saw what happened, and came to say so");
+                    d =>
+                    {
+                        string who = "player";
+                        if (_deedAccused.ContainsKey(d.WitnessId)
+                            && !string.IsNullOrEmpty(_deedAccused[d.WitnessId]))
+                            who = _deedAccused[d.WitnessId];
+                        return new Fact(who, "violence", "hook_street");
+                    },
+                    d =>
+                    {
+                        string who = _deedAccused.ContainsKey(d.WitnessId)
+                            ? _deedAccused[d.WitnessId] : "player";
+                        return $"{d.WitnessId} says it was {who}, and came to say so";
+                    });
                 if (landed > 0)
                     Debug.Log($"SimDirector: {landed} witness account(s) arrived and "
                               + $"went indelible ({Witnesses.Arrived} total, "
@@ -1286,6 +1298,11 @@ namespace Ledger.Game
         /// whether an interception landed, and how many got there anyway.
         int _deedDispatched;
         bool _deedInterceptTried, _deedIntercepted;
+        /// Who each witness will name when they get there — the player, or,
+        /// on a partial identification, somebody they merely expected.
+        readonly Dictionary<string, string> _deedAccused = new Dictionary<string, string>();
+        /// How many named the wrong man. §4.7 claim 5.
+        int _deedMisnamed;
         /// A person crossing a street, in metres per game-minute. Walk speed
         /// is 1.4 m/s, and a sim minute is a minute.
         const double WitnessWalkMetresPerMinute = 84.0;
@@ -1599,6 +1616,33 @@ namespace Ledger.Game
                 NpcWalker goTo = NamedWalker("Ellis");
                 Vector3 dest = goTo != null ? goTo.transform.position
                                             : WorldBuilder.BarDoor;
+                // WHO EACH WITNESS WILL NAME, decided before anybody walks.
+                //
+                // §4.7 claim 5: a rung-1 or rung-2 identification plus an
+                // expectation produces a named accusation of the WRONG man,
+                // and the mill has to carry it as an ordinary fact at ordinary
+                // confidence — being wrong is content, not an error path.
+                // `Observe.Misattribute` was written for this and had no
+                // caller, so the street could only ever be right.
+                //
+                // The expectation is the nearest OTHER walker: the person this
+                // witness would think of first. A long coat at night near the
+                // docks is Nikos to somebody who expects Nikos.
+                _deedAccused.Clear();
+                foreach (var o in Witnesses.Last)
+                {
+                    if (o == null || o.Empty) continue;
+                    string expected = null;
+                    if (_npcs != null)
+                        foreach (var n in _npcs)
+                            if (n != null && n.DisplayName != o.WitnessId
+                                && n.DisplayName != "Ellis") { expected = n.DisplayName; break; }
+                    string named = Observe.Misattribute(o, expected, _deedsStaged * 31 + 7);
+                    _deedAccused[o.WitnessId] = named;
+                    if (!string.IsNullOrEmpty(named) && named == expected
+                        && named != "player") _deedMisnamed++;
+                }
+
                 int walking = Witnesses.Dispatch(
                     Witnesses.Last, goTo != null ? "Ellis" : "Lena",
                     o =>
@@ -3611,6 +3655,7 @@ namespace Ledger.Game
                       $"deedArrived={Witnesses.Arrived} " +
                       $"deedIntercepted={Witnesses.Interceptions} " +
                       $"deedInFlight={Witnesses.InFlight.Count} " +
+                      $"deedMisnamed={_deedMisnamed} " +
                       $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
                       // ITEMISED, because `drawn=0` had three possible causes
                       // and I picked the wrong one out loud. `small` is the
