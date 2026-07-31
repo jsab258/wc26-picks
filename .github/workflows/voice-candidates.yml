@@ -121,7 +121,17 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # ASKED FOR, NOT TRIGGERED. Editing a Python file under tools/voice-fetch
+  # started a forty-minute corpus fetch, three times in one afternoon, and
+  # each one blocked the targeted run somebody was actually waiting on. Worse
+  # than slow: a full fetch rewrites every character's clips, including the
+  # sixteen already picked from, so an incidental run is now destructive.
+  #
+  # A push still gets the cheap half — page checks and the corpus diagnose,
+  # which is what a code change needs to prove. Streaming forty thousand rows
+  # is a thing somebody decides to do.
   candidates:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
