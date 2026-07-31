@@ -52,14 +52,20 @@ through to a crowd voice.
 1. **Finish M16 Phases 3 and 4** — the Core is built and tested; most of it has
    no call site in the game, so this is wiring and gating rather than new
    systems.
-2. **Integrate the Mixamo bodies.** 41 clips and two bodies are committed and
-   nothing references them; the game still animates `Mannequin` boxes.
-   Unknown: no `.meta` files are tracked anywhere, so import settings are not
-   under version control and Unity does not default to Humanoid.
-3. **Cast the 15 named characters** who have no voice — Ossei among them, and
-   he is an Act III condition.
-4. **Bark curation** — 336 authored lines, read line by line. Mine.
-5. **M16 Phase 5, firearms** — after all of the above.
+2. **M17 — the game looks and sounds like itself.** Integrate the Mixamo
+   bodies, generate the 19 cast voices, cast the 15 characters who have none,
+   curate the barks, source CC0 effort foley.
+3. **M18 — the second life.** Home, family, companionship, lifestyle, vice.
+   The lowest scores on the board are all the same half of the premise.
+4. **M19 — the city pushes back.** Faction allegiance, law as a *tool* rather
+   than a threat, notoriety, player competence, visible odds.
+5. **M20 — the shape of a playthrough.** Onboarding, pacing, replayability,
+   succession that matters before the ending.
+6. **M21 — firearms.** M16 Phase 5, deliberately last.
+7. **M22 — ship.** Performance, platforms, controller, accessibility, QA.
+
+Reasoning, targets and the open scope call: **`after-m16.md`**. Scores per
+dimension: `agency-model.md`, re-scored against the code on 2026-07-31.
 
 ## At risk
 

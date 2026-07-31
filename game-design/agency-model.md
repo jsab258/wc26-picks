@@ -32,6 +32,37 @@ This is the LLM-specific grind risk and the reason chips exist.
 
 ## Benchmark (0-100 by dimension)
 
+> **RE-SCORED 2026-07-31 against the code, not from memory.** The previous
+> scores were set on 2026-07-26 and fifteen rows had gone stale — all of them
+> understating, because milestones had shipped and nobody had come back to the
+> table. Operation planning read 5 with `Core/Operation` sitting at 327 lines.
+> Communication at distance read 0 with M10 shipped.
+>
+> Scoring is judgement and these are mine, but each moved row has something to
+> point at:
+>
+> | dimension | was | now | evidence |
+> |---|---|---|---|
+> | Operation planning | 5 | 65 | `Core/Operation`, 44 public members — M7.5 |
+> | Communication at distance | 0 | **65** | M10 phones + the line model — **past target** |
+> | Class & access | 10 | 60 | `Core/Access`, gates on notoriety, money, vouching |
+> | Traversal & place | 20 | 55 | seven districts, `StreetMap` 655, `Traffic` 980 |
+> | Violence | 0 | 45 | M11 consequence + M16 ph.1/1b/2; melee verb not in yet |
+> | Constraint | 40 | 45 | `Hunted` closes the quiet exit |
+> | Faction politics | 35 | 45 | `Core/Empire` 949 lines; allegiance does not shift yet |
+> | Law as a tool | 15 | 40 | you are *subject* to it more than you *use* it |
+> | Legacy & succession | 20 | 40 | successor, hand-over, epilogue — only at the ending |
+> | Public notoriety | 25 | 40 | a number that gates doors; no press, no reputation events |
+> | Vehicles | 0 | 35 | M12 |
+> | Multiple solutions | 60 | 65 | access routes plus the Act III verbs |
+> | Self-presentation | 15 | 25 | `Core/Coat`, `Core/Dressing` |
+> | Companionship | 0 | 15 | `CrewMember` exists; nobody walks beside you |
+> | Character competence | 0 | 10 | crew have it; the player does not — `Harm` only subtracts |
+>
+> **The top three did not move and did not need to.** Social 93, consequence
+> persistence 95, information 90 — against a best-in-class of 60, 85 and 65.
+> That is the moat and everything below is in service of it.
+
 | Dimension | GTA5 | RDR2 | KCD2 | BG3 | Hitman | Sims | CK3 | LEDGER now | **target** |
 |---|---|---|---|---|---|---|---|---|---|
 | Social: talk, trust, memory | 5 | 20 | 35 | 60* | 10 | 40 | 55 | 93 | **98** |
@@ -39,26 +70,26 @@ This is the LLM-specific grind risk and the reason chips exist.
 | Information / who knows what | 5 | 15 | 40 | 25 | 30 | 5 | 65 | 90 | **95** |
 | Time & opportunity cost | 10 | 40 | 70 | 30 | 20 | 80 | 60 | 85 | **90** |
 | **Economy (full simulation)** | 15 | 25 | 55 | 20 | 5 | 60 | 45 | 80 | **85** |
-| Faction politics / allegiance | 10 | 20 | 45 | 55 | 5 | 0 | 90 | 35 | **75** |
-| **Operation planning** | 70 | 25 | 20 | 45 | 95 | 5 | 30 | **5** | **75** |
-| Law & institutions as a tool | 5 | 25 | 55 | 20 | 10 | 5 | 60 | 15 | **70** |
-| Legacy & succession | 0 | 10 | 15 | 20 | 0 | 55 | 95 | 20 | **70** |
-| **Violence (staged: melee then guns)** | 90 | 90 | 80 | 85 | 70 | 5 | 20 | 0 | **70** |
-| **Traversal & place** | 95 | 90 | 70 | 30 | 40 | 15 | 0 | 20 | **65** |
-| Class & access (soft keys) | 10 | 25 | 60 | 30 | 95 | 20 | 50 | 10 | **65** |
-| Multiple solutions per obstacle | 30 | 25 | 55 | 85 | 95 | 20 | 40 | 60 | **80** |
-| Companionship (who's with you) | 25 | 75 | 30 | 90 | 0 | 45 | 20 | 0 | **55** |
-| Public notoriety | 20 | 45 | 50 | 30 | 25 | 15 | 60 | 25 | **60** |
-| Communication at distance | 40 | 5 | 0 | 5 | 20 | 50 | 30 | 0 | **60** |
-| Constraint (arrest, surveillance) | 30 | 40 | 65 | 20 | 40 | 10 | 35 | 40 | **55** |
+| Faction politics / allegiance | 10 | 20 | 45 | 55 | 5 | 0 | 90 | **45** | **75** |
+| **Operation planning** | 70 | 25 | 20 | 45 | 95 | 5 | 30 | **65** | **75** |
+| Law & institutions as a tool | 5 | 25 | 55 | 20 | 10 | 5 | 60 | **40** | **70** |
+| Legacy & succession | 0 | 10 | 15 | 20 | 0 | 55 | 95 | **40** | **70** |
+| **Violence (staged: melee then guns)** | 90 | 90 | 80 | 85 | 70 | 5 | 20 | **45** | **70** |
+| **Traversal & place** | 95 | 90 | 70 | 30 | 40 | 15 | 0 | **55** | **65** |
+| Class & access (soft keys) | 10 | 25 | 60 | 30 | 95 | 20 | 50 | **60** | **65** |
+| Multiple solutions per obstacle | 30 | 25 | 55 | 85 | 95 | 20 | 40 | **65** | **80** |
+| Companionship (who's with you) | 25 | 75 | 30 | 90 | 0 | 45 | 20 | **15** | **55** |
+| Public notoriety | 20 | 45 | 50 | 30 | 25 | 15 | 60 | **40** | **60** |
+| Communication at distance | 40 | 5 | 0 | 5 | 20 | 50 | 30 | **65** | **60** |
+| Constraint (arrest, surveillance) | 30 | 40 | 65 | 20 | 40 | 10 | 35 | **45** | **55** |
 | Home / base that reacts | 25 | 70 | 40 | 50 | 0 | 95 | 30 | 10 | **50** |
 | Family & dependents | 5 | 30 | 10 | 25 | 0 | 90 | 95 | 15 | **50** |
-| Character competence | 20 | 45 | 90 | 95 | 30 | 60 | 40 | 0 | **40** |
+| Character competence | 20 | 45 | 90 | 95 | 30 | 60 | 40 | **10** | **40** |
 | Vice & addiction | 15 | 25 | 40 | 10 | 0 | 30 | 25 | 5 | **40** |
-| Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | 15 | **35** |
+| Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | **25** | **35** |
 | Visible odds | 0 | 0 | 15 | 95 | 10 | 5 | 70 | 0 | **50** |
 | Interiority (psyche as system) | 0 | 15 | 0 | 20 | 0 | 30 | 20 | 0 | **30** |
-| Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | 0 | **40, late — superseded, see below** |
+| Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | **35** | **40, late — superseded, see below** |
 | Body needs (eat/sleep/hygiene) | 5 | 45 | 75 | 15 | 0 | 90 | 10 | 0 | **0** |
 | Crafting / minigames | 20 | 70 | 85 | 30 | 15 | 55 | 0 | 0 | **0** |
 
