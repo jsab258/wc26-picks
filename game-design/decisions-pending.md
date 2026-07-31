@@ -6,19 +6,22 @@
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
 
-## OPEN RIGHT NOW — 2026-07-31
+## NOTHING IS WAITING ON JAFAR — 2026-07-31 evening
 
-Everything else in this file is answered. This is the whole live list:
+The queue is empty for the first time since it was opened. The last three were
+answered together:
 
-| | decision | why it is waiting |
+| | decision | answer |
 |---|---|---|
-| 1 | **Is cloning a cast donor's voice inside the consent rule?** | Nineteen speakers are cast and nothing has been generated from them. Last gate before their voices become the characters. *Recommendation: proceed.* |
-| 2 | **Do the 15 named characters without a voice get cast?** | Ossei among them, and he is an Act III condition. They currently fall through to crowd voices, so the symptom is a named character sounding like a passer-by. |
-| 3 | **Does M16 Phase 3 (melee) start before the animation work lands?** | Combat was deferred once already on the grounds that timing cannot be judged on capsules. The bodies are in the repo now; the IK and coat work is not. |
+| 1 | Is cloning a cast donor's voice inside the consent rule? | **YES — proceed.** The nineteen cast VCTK speakers may be cloned. The rule that produced them stands: donated corpora only, no identifiable public figures, ever. |
+| 2 | Do the 15 named characters without a voice get cast? | **YES.** Ossei, Zlata, Noor, Halvard and the rest get their own voices rather than falling through to the crowd pool. |
+| 3 | Does Phase 3 start before the animation integration? | **Animations first** (Jafar: *"your rec"*). The bodies exist; Phase 3 gets judged on something real rather than on capsules, which is why combat was deferred the first time. |
 
-**Not waiting on Jafar any more:** the corpus (closed by the British decision),
-non-verbal foley (free CC0 route), bark curation (mine, on instruction), and
-the Mixamo drop (done 2026-07-30).
+**Also settled today:** the corpus question (closed by the British decision),
+non-verbal foley (the free CC0 route), bark curation (mine, on instruction),
+and the Mixamo drop (done 2026-07-30).
+
+Anything new goes below this line.
 Answered items move to the decision log in `process.md`.
 Standing rule (2026-07-26): every queued decision is ALSO spelled out in chat
 as answerable options — the doc is the record, the chat is the interface.

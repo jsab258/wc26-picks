@@ -1659,6 +1659,9 @@ namespace Ledger.Game
             for (int i = 0; i < AoSamples; i++) MeasureAoOnce(i);
         }
 
+        /// Every noon/night pair from the run, so the next threshold can be
+        /// chosen from data instead of from a guess.
+        string _lumaSeries = "";
         double _aoSpread = -1, _grainSpread = -1;
         double _aoFraction = -1, _aoDrop = -1;
         double _reflFraction = -1, _reflRise = -1;
@@ -2968,6 +2971,14 @@ namespace Ledger.Game
             var lightingWhy = new List<string>();
             {
                 double dayLuma = -1, nightLuma = -1, nightSat = -1;
+                // EVERY DAY, NOT THE LAST ONE. `dayLuma` and `nightLuma` were
+                // each overwritten by whichever shot came last, so an
+                // eleven-day run was gated on a single pair of frames — and it
+                // failed at 0.136 against 0.135, which is not a measurement,
+                // it is a rounding. Weather, district and the open-city switch
+                // all move a single frame by more than that.
+                var noonLumas = new List<double>();
+                var nightLumas = new List<double>();
                 foreach (var entry in _screenshots)
                 {
                     // _screenshots is List<object> because MiniJson wants it
@@ -2982,14 +2993,54 @@ namespace Ledger.Game
                     // catch the whole family at once, whatever caused it.
                     if (luma < 0.012) { lightingOk = false; lightingWhy.Add($"black:{nm}:{luma:0.000}"); }
                     if (luma > 0.85) { lightingOk = false; lightingWhy.Add($"blown:{nm}:{luma:0.000}"); }
-                    if (nm.Contains("noon")) dayLuma = luma;
-                    if (nm.Contains("night")) { nightLuma = luma; nightSat = ShotNum(shot, "satPct"); }
+                    if (nm.Contains("noon")) { dayLuma = luma; noonLumas.Add(luma); }
+                    if (nm.Contains("night"))
+                    {
+                        nightLuma = luma; nightSat = ShotNum(shot, "satPct");
+                        nightLumas.Add(luma);
+                    }
                 }
                 // Night must actually be darker than noon. This is the one
                 // that proves the day/night curves reach the RENDER rather
                 // than merely being computed correctly in a test.
-                if (dayLuma >= 0 && nightLuma >= 0 && nightLuma >= dayLuma)
-                { lightingOk = false; lightingWhy.Add($"nightNotDarker:{nightLuma:0.000}>={dayLuma:0.000}"); }
+                //
+                // ACROSS THE RUN, AND ON MOST DAYS. Two conditions, because
+                // either alone is weak: the MEANS must separate (a broken
+                // curve makes them equal, and no amount of weather fixes
+                // that), and night must win on MOST PAIRED DAYS (a mean can
+                // be carried by one freak frame). One pair of frames, which
+                // is what this used to be, proves neither.
+                if (noonLumas.Count > 0 && nightLumas.Count > 0)
+                {
+                    double noonMean = 0, nightMean = 0;
+                    for (int i = 0; i < noonLumas.Count; i++) noonMean += noonLumas[i];
+                    for (int i = 0; i < nightLumas.Count; i++) nightMean += nightLumas[i];
+                    noonMean /= noonLumas.Count; nightMean /= nightLumas.Count;
+                    int pairs = Math.Min(noonLumas.Count, nightLumas.Count), darker = 0;
+                    for (int i = 0; i < pairs; i++) if (nightLumas[i] < noonLumas[i]) darker++;
+                    // PRINT THE SERIES. A threshold set without looking at the
+                    // numbers is the mistake this project keeps making, and
+                    // there is no way to look at these without asking for
+                    // them: they live inside one frame of one CI run. With
+                    // the pairs in the log, a margin can be chosen from
+                    // evidence rather than invented here.
+                    var series = new System.Text.StringBuilder();
+                    for (int i = 0; i < pairs; i++)
+                        series.Append(i == 0 ? "" : " ")
+                              .Append($"{noonLumas[i]:0.000}/{nightLumas[i]:0.000}");
+                    _lumaSeries = $"noon{noonMean:0.000} night{nightMean:0.000} " +
+                                  $"darker{darker}of{pairs} [{series}]";
+                    if (nightMean >= noonMean)
+                    {
+                        lightingOk = false;
+                        lightingWhy.Add($"nightNotDarkerMean:{nightMean:0.000}>={noonMean:0.000}");
+                    }
+                    if (pairs > 0 && darker * 2 <= pairs)
+                    {
+                        lightingOk = false;
+                        lightingWhy.Add($"nightDarkerOn:{darker}/{pairs}days");
+                    }
+                }
                 // And a night street must have COLOUR in it — lamps and neon.
                 // A grey night is the failure mode the fog work exists to
                 // prevent, and it is invisible to a luminance check.
@@ -3429,6 +3480,7 @@ namespace Ledger.Game
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
+                      $"lumaPairs=[{_lumaSeries}] " +
                       // ITEMISED for the same reason the ring is: "captions=0"
                       // has more than one cause, and the hush is the one that
                       // dies quietly because it is polled rather than pushed.
