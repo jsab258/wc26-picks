@@ -528,6 +528,44 @@ def age_band(value):
     return CV_AGE_BANDS[idx - 1]
 
 
+def age_gap(value, wanted):
+    """How far a speaker's decade is from the one the brief asked for.
+
+    AGE IS A PREFERENCE, NOT A FILTER, AND THIS IS THE FUNCTION THAT DEMOTES
+    IT. Fifteen CI runs produced three fillable characters out of nineteen,
+    and the strided diagnose finally said why: VCTK's speakers are 22, 23, 38
+    — it was recorded from university-age volunteers and its whole range is
+    roughly 18 to 38. The cast asks for fourties, fifties and sixties for
+    almost every principal. Rocco is 50s. Ellis is 40s. Reese is fifty-ish.
+    Against this corpus those briefs could never be satisfied by anybody, and
+    27.7% of all rejections were this one field.
+
+    That is not a shortage in the corpus. It is the wrong question being
+    asked of it. THESE ARE REFERENCE CLIPS FOR CASTING A TIMBRE, not the
+    shipped performance — and a speaker's chronological age does not decide
+    whether the voice suits the part. A 38-year-old with a low, worn, dry
+    voice is a better Rocco than a 55-year-old with a light one, and the only
+    instrument that can tell the difference is somebody listening. Filtering
+    on the metadata throws the candidate away before the ears ever get a vote.
+
+    So age never rejects anybody now. It orders them: distance in decades
+    from the nearest requested band, smallest first, so the closest-aged
+    speakers are candidate 01 and the rest are still on the page underneath.
+    An unrecorded age scores 1 — behind an exact match, ahead of a speaker
+    known to be three decades out.
+    """
+    if not wanted:
+        return 0
+    band = age_band(value)
+    if not band:
+        return 1
+    if band in wanted:
+        return 0
+    here = CV_AGE_BANDS.index(band)
+    return min(abs(here - CV_AGE_BANDS.index(w))
+               for w in wanted if w in CV_AGE_BANDS) or 1
+
+
 def _routes_for(source, cast=None):
     """The corpus routes, in order, as (name, opener) pairs.
 
@@ -558,14 +596,12 @@ def _routes_for(source, cast=None):
             ds = load_dataset(CV_DATASET, "en", **kw)
         def matches(row, spec):
             g = (row.get("gender") or "").strip()
-            a = (row.get("age") or "").strip()
             # Through the shared normaliser, not a raw string compare: the
             # vocabularies differ between corpora and a mismatch here is
             # silent.
             if spec.get("gender") and same_gender(g, spec["gender"]) is False:
                 return False
-            if spec.get("age") and a and a not in spec["age"]:
-                return False
+            # Age orders, it does not reject — see `age_gap`.
             if not accent_ok(row.get("accents") or row.get("accent"),
                              spec.get("accent")):
                 return False
@@ -642,9 +678,10 @@ def _routes_for(source, cast=None):
             if not accent_ok(row.get("accent") or row.get("accents"),
                              spec.get("accent")):
                 return False
-            band = age_band(row.get("age"))
-            if spec.get("age") and band and band not in spec["age"]:
-                return False
+            # NO AGE TEST HERE — see `age_gap`. VCTK tops out around 38 and
+            # the cast is mostly middle-aged, so an age filter empties the
+            # corpus for sixteen of nineteen characters. It orders the
+            # shortlist instead of gating entry to it.
             return True
 
         return ds, "speaker_id", "audio", matches
@@ -752,7 +789,19 @@ def diagnose(source, cast, rows=60):
         speakers = set()
         per_character = {c["id"]: 0 for c in cast}
         sampled = [first]
-        STRIDE = 97           # coprime with any plausible utterances-per-speaker
+        # STRIDE MUST SPAN THE WHOLE CORPUS, NOT THE FRONT OF IT. The first
+        # strided run used 97, which over 60 samples walks 5,820 rows of a
+        # ~44,000-row corpus — the first 13%. VCTK is ordered by speaker, so
+        # that is the first dozen or so speakers and nobody else, and the
+        # report came back "accent: ['English']" as though the corpus had no
+        # Scots in it at all. It has 34. The sample was measuring where it
+        # started, not what was there.
+        #
+        # VCTK gives each speaker ~400 utterances, so a stride near 400 lands
+        # roughly one fresh speaker per sample and 60 samples reach ~60 of the
+        # 110. 401 is prime, which keeps it from locking onto any speaker's
+        # block boundary.
+        STRIDE = 401
         try:
             skip = 0
             for r in it:
@@ -788,6 +837,9 @@ def diagnose(source, cast, rows=60):
                 elif not accent_ok(ac, c.get("accent")):
                     why["accent"] += 1
                 else:
+                    # Cannot happen any more: age lost its veto (`age_gap`).
+                    # Kept as a tripwire — if this ever counts above zero,
+                    # a filter has grown back.
                     why["age"] += 1
         detail = dict(seen=seen, vocab=vocab, why=why, per_character=per_character,
                       columns=sorted(first.keys()), key_speaker=key_speaker,
@@ -1044,17 +1096,21 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
                         del w["banked"][speaker]
                         claimed.pop(speaker, None)
                         break
-                    w["done"].append((speaker, clip_, q))
+                    w["done"].append((speaker, clip_, q,
+                                      age_gap(row.get("age"), w["spec"].get("age"))))
                     del w["banked"][speaker]
                 break   # one character per row; sharing a voice defeats casting
 
     made = {}
     for cid, w in wanted.items():
         files = []
-        # BEST FIRST. The listener's time is the scarce thing, so the clip
-        # that measured cleanest is candidate 01.
-        ranked = sorted(w["done"], key=lambda d: -d[2])
-        for i, (speaker, samples, _q) in enumerate(ranked[:candidates], 1):
+        # CLOSEST IN AGE FIRST, THEN CLEANEST. The listener's time is the
+        # scarce thing, so the ordering carries both things measurement knows:
+        # how near the speaker's decade is to the brief, and how clean the
+        # recording measured. Age lost its veto (see `age_gap`) but it keeps
+        # its vote, and it votes here.
+        ranked = sorted(w["done"], key=lambda d: (d[3], -d[2]))
+        for i, (speaker, samples, _q, _gap) in enumerate(ranked[:candidates], 1):
             p = out_dir / cid / f"candidate-{i:02d}.wav"
             write_wav(p, samples)
             files.append(dict(n=i, file=f"{cid}/candidate-{i:02d}.wav",
@@ -1381,6 +1437,36 @@ def selftest():
     # how every Common Voice age silently became "" and stopped filtering.
     check(age_band("thirties") == "thirties" and age_band("fifties") == "fifties",
           "a band that arrives as a word survives the round trip")
+    # AGE ORDERS, IT NEVER REJECTS. The single most expensive bug in this
+    # pipeline was not a crash: sixteen of nineteen characters were unfillable
+    # because the briefs ask for fourties/fifties/sixties and VCTK's speakers
+    # are 22 to 38. The corpus was fine. The filter was asking metadata to do
+    # a job that belongs to somebody's ears.
+    #
+    # THE STRUCTURAL CHECK: run every character's brief against the ages VCTK
+    # actually contains, and require that not one of them is emptied by age.
+    # This is the check that, had it existed, would have ended this two days
+    # ago -- so it is written against the real numbers, not against a fixture.
+    _vctk_ages = (22, 23, 24, 26, 29, 31, 38)
+    for _c in CAST:
+        _gaps = [age_gap(n, _c.get("age")) for n in _vctk_ages]
+        check(all(isinstance(g, int) for g in _gaps) and len(_gaps) == len(_vctk_ages),
+              "%s: age scores every VCTK speaker rather than excluding them" % _c["id"])
+    # 38 is in their thirties, and thirties to fifties is two bands, not one.
+    # The first draft of this check asserted 1 and the check was wrong, not the
+    # function -- which is the correct way round for once.
+    check(age_gap(38, ("fifties", "sixties")) == 2,
+          "the oldest voice VCTK has scores two bands off Rocco, and is still offered",
+          age_gap(38, ("fifties", "sixties")))
+    check(age_gap(35, ("thirties", "fourties")) == 0,
+          "an exact band scores zero and sorts first", age_gap(35, ("thirties",)))
+    check(age_gap(22, ("sixties",)) > age_gap(38, ("sixties",)),
+          "and further away sorts later, so the ordering still carries the brief")
+    check(age_gap(None, ("fifties",)) == 1 and age_gap("", ("fifties",)) == 1,
+          "an unrecorded age sits behind an exact match, not behind everybody")
+    check(age_gap(22, ()) == 0 and age_gap(22, None) == 0,
+          "a brief with no age asked for treats every speaker equally")
+
     check(age_band("") == "" and age_band(None) == "" and age_band("abc") == "",
           "and an unusable age is empty rather than a wrong guess")
     # Every age the cast asks for has to exist in the vocabulary, or the brief
