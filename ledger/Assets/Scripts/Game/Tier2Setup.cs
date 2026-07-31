@@ -31,7 +31,7 @@ namespace Ledger.Game
         static readonly CastMember Marla = new CastMember
         {
             Circle = "day", Greed = 0.55, Nerve = 0.35, Loyalty = 0.4,
-            Scene = "At her market stall, weighing vegetables, talking with the new bar owner.",
+            Scene = "At her market stall, weighing vegetables, talking with the new landlord.",
             Card = @"# Marla
 id: mirela
 tier: ambient
@@ -58,7 +58,7 @@ Market patter — short, loud, price-shaped. Softens only mid-transaction.
         static readonly CastMember Joey = new CastMember
         {
             Circle = "night", Greed = 0.7, Nerve = 0.45, Loyalty = 0.35,
-            Scene = "On the docks between shifts, talking with the new bar owner.",
+            Scene = "On the docks between shifts, talking with the new landlord.",
             Card = @"# Joey
 id: josip
 tier: ambient
@@ -89,7 +89,7 @@ Few words, half of them about tides or overtime. Laughs like a winch.
         static readonly CastMember Victor = new CastMember
         {
             Circle = "day", Greed = 0.7, Nerve = 0.4, Loyalty = 0.4,
-            Scene = "On his rounds between the market corner and the bar, always mid-calculation, talking with the new bar owner.",
+            Scene = "On his rounds between the market corner and the bar, always mid-calculation, talking with the new landlord.",
             Card = @"# Victor
 id: viktor
 tier: ambient
@@ -119,7 +119,7 @@ He talks in numbers and counteroffers, rarely finishing a sentence without namin
         static readonly CastMember Ferko = new CastMember
         {
             Circle = "night", Greed = 0.6, Nerve = 0.5, Loyalty = 0.3,
-            Scene = "At the cab rank or leaning on the cab he lives out of, talking with the new bar owner.",
+            Scene = "At the cab rank or leaning on the cab he lives out of, talking with the new landlord.",
             Card = @"# Ferko
 id: ferko
 tier: ambient
@@ -145,7 +145,7 @@ Racetrack patter — odds, sure things, almosts. Calls every destination 'two mi
         static readonly CastMember Rita = new CastMember
         {
             Circle = "both", Greed = 0.8, Nerve = 0.6, Loyalty = 0.25,
-            Scene = "In and out of the pawnshop's back door with a canvas bag, talking with the new bar owner.",
+            Scene = "In and out of the pawnshop's back door with a canvas bag, talking with the new landlord.",
             Card = @"# Rita
 id: ruta
 tier: ambient
@@ -171,7 +171,7 @@ Short. Numbers where words would do. Ends conversations by walking away mid-sent
         static readonly CastMember Vesna = new CastMember
         {
             Circle = "day", Greed = 0.2, Nerve = 0.7, Loyalty = 0.5,
-            Scene = "Sweeping the chapel steps or at the market for the Father's table, talking with the new bar owner.",
+            Scene = "Sweeping the chapel steps or at the market for the Father's table, talking with the new landlord.",
             Card = @"# Vesna
 id: vesna
 tier: ambient
@@ -197,7 +197,7 @@ Soft, unhurried, full of blessings that carry edges. Asks after your mother even
         static readonly CastMember Tibor = new CastMember
         {
             Circle = "day", Greed = 0.4, Nerve = 0.4, Loyalty = 0.45,
-            Scene = "At the customs shed window stamping what needs stamping, talking with the new bar owner.",
+            Scene = "At the customs shed window stamping what needs stamping, talking with the new landlord.",
             Card = @"# Tibor
 id: tibor
 tier: ambient

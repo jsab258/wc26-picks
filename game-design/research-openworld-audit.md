@@ -71,7 +71,7 @@ route through the generation pipeline rather than being cut.
 
 ### Recognition barks — the city greets what it remembers  `RDR2` · cost S · domain presentation
 - **What:** RDR2 NPCs remember recent player deeds and appearance, and say so in passing ('heard about that mess in Valentine').
-- **LEDGER mapping:** A directed variant of the chatter feature: Tier-2/3 NPCs whose memory or received rumors include the player emit one-line greetings sourced from that state — warmth from a favor remembered, a too-pointed 'late night again?' from a neighbor whose suspicion crossed the probe threshold. Reuses the same rumor-to-bark templating; also doubles as soft feedback that a rumor reached this district (local information ecosystems made audible).
+- **LEDGER mapping:** A directed variant of the chatter feature: Tier-2/3 NPCs whose memory or received rumors include the player emit one-line greetings sourced from that state — warmth from a favor remembered, a too-pointed 'late night again?' from a neighbour whose suspicion crossed the probe threshold. Reuses the same rumor-to-bark templating; also doubles as soft feedback that a rumor reached this district (local information ecosystems made audible).
 - **Why:** Claims 1 and 2 at street level: persistent memory is only believable if it leaks into passing contact, not just seated conversations — RDR2 proved this single trick carries enormous alive-ness per line of dialogue. It's an S once the ambient-chatter templating exists (same M4 window), and it gives the suspicion-threshold work a cheap surface: the probe stage of probe-verify-confront can begin as a bark before it's a scene.
 
 ### The world moves without you (timed obligations)  `KCD2` · cost S · domain narrative-encounters
@@ -97,7 +97,7 @@ route through the generation pipeline rather than being cut.
 ### NPC-initiated encounters  `RDR2` · cost M · domain narrative-encounters
 - **What:** Characters seek the player out on their own initiative to confront, warn, or invite.
 - **LEDGER mapping:** Give M4's suspicion thresholds (probe → verify → confront) and loyalty warnings a body: past a threshold, the NPC's schedule spawns a seek-player task and the scene happens on their timing at your location — suspicion stops being a number and starts walking through your door.
-- **Why:** It's the physicalization of section 6.4 already scheduled for M4, and the strongest dread mechanic the game can own: Detective Ellis sitting at your bar unannounced is claim #2's set-piece, generated rather than scripted. GTA5 did this with phone nags; LEDGER can do it with feet and schedules.
+- **Why:** It's the physicalization of section 6.4 already scheduled for M4, and the strongest dread mechanic the game can own: Detective Ellis sitting at your pub unannounced is claim #2's set-piece, generated rather than scripted. GTA5 did this with phone nags; LEDGER can do it with feet and schedules.
 
 ## Adopt at the vertical slice
 
@@ -174,13 +174,13 @@ route through the generation pipeline rather than being cut.
 ## Adopt later (post-slice)
 
 ### Stolen-goods recognition / item provenance  `KCD2` · cost M · domain simulation
-- **What:** Stolen items carry provenance; owners and merchants recognize them on sight and react (refuse trade, call guards).
-- **LEDGER mapping:** The currency half is already adopted: clean/dirty money in M3 is exactly this mechanic applied to cash — spending dirty visibly is the recognition event, logged as evidence by witnesses. The object half (fenced loot a Tier-2 recognizes — 'isn't that Ada's brooch?') is P2 in its purest form, information physically attached to an object, and would define the fencing racket's exposure profile.
+- **What:** Stolen items carry provenance; owners and merchants recognise them on sight and react (refuse trade, call guards).
+- **LEDGER mapping:** The currency half is already adopted: clean/dirty money in M3 is exactly this mechanic applied to cash — spending dirty visibly is the recognition event, logged as evidence by witnesses. The object half (fenced loot a Tier-2 recognises — 'isn't that Ada's brooch?') is P2 in its purest form, information physically attached to an object, and would define the fencing racket's exposure profile.
 - **Why:** Rackets are M6+; building object provenance before fencing exists is a system without a consumer — exactly the scope creep Risk 1 warns against. Park it with the fencing racket spec and let M3's dirty-money version prove the recognition loop first.
 
 ### Role disguises (pass as courier/staff/uniform)  `KCD2 / genre-generic (Hitman)` · cost L · domain player-systems
 - **What:** Wearing an outfit associated with a role or faction lets you move through spaces as that role until someone sees through it.
-- **LEDGER mapping:** Extends the day/night disguise coat into a third claimed identity: a per-NPC recognition check (how well this person knows your face, from their memory file) against outfit-role fit; being recognized trips no alarm — it mints a high-confidence contradiction fact ('I saw the barman dressed as a Vane courier') that enters the mill.
+- **LEDGER mapping:** Extends the day/night disguise coat into a third claimed identity: a per-NPC recognition check (how well this person knows your face, from their memory file) against outfit-role fit; being recognised trips no alarm — it mints a high-confidence contradiction fact ('I saw the barman dressed as a Vane courier') that enters the mill.
 - **Why:** Novel here precisely because of claim 2 — in Hitman a blown disguise means combat, in LEDGER it is a rumor with your name on it, the scariest object in the game. But it needs rival interiors and Tier-2 density (M6+ districts) to have anywhere to matter, and per-NPC face-recognition modelling is real work. Post-slice, after the coat proves the two-identity version is fun.
 
 ### Gambling den as operating racket  `genre-generic` · cost L · domain economy-activities
@@ -199,7 +199,7 @@ route through the generation pipeline rather than being cut.
 - **Why:** GTA treats the cut as a one-shot price/performance slider; LEDGER should treat it as a relationship instrument — the mill guarantees your crew will find out who got paid what, which no scripted game can do. Needs a crew larger than Rocco and Lena, so it lands with post-slice recruitment, but the cut field belongs in the crew data model from day one.
 
 ### District identity  `GTA5` · cost XL · domain space-traversal
-- **What:** Each neighborhood instantly readable through architecture, signage, crowd type, and ambient audio.
+- **What:** Each neighbourhood instantly readable through architecture, signage, crowd type, and ambient audio.
 - **LEDGER mapping:** Each of the seven §7 districts maps to one coherent asset pack plus a local information ecosystem — identity is aesthetic and epistemic at once. Crossing a border should mean entering a different rumor climate, witness density, and heat profile: a rumor can own Copper Row and not exist in Fairview, and the streetscape should tell you which regime you are in.
 - **Why:** Already doctrine in §7, but Risk 5 says the slice is one district and it must be great first. The M5 Hook should lock the district template — asset kit, palette, soundscape, crowd profile, info-ecosystem parameters as data — so M6+ stamps six more districts through the pipeline instead of hand-building them. Adopting the template discipline now is what makes the XL later affordable.
 
@@ -384,7 +384,7 @@ route through the generation pipeline rather than being cut.
 
 ### Stock market with insider manipulation  `GTA5` · cost L · domain economy-activities
 - **What:** LCN/BAWSAQ markets the player can move via missions and trade on with foreknowledge.
-- **LEDGER mapping:** No plausible mapping: Meridian Bay is seven neighborhoods of individuals, not an abstract market, and the only LEDGER-native version of 'act on private information before it's public' is already the gossip mill plus hooks.
+- **LEDGER mapping:** No plausible mapping: Meridian Bay is seven neighbourhoods of individuals, not an abstract market, and the only LEDGER-native version of 'act on private information before it's public' is already the gossip mill plus hooks.
 - **Why:** Fails the §2 iron rule outright — a price sim serves none of the five claims, adds a parallel abstract economy that competes with the person-to-person information economy (P2), and is a textbook Risk-1 scope magnet. The one good idea inside it (profit from foreknowledge) reappears properly as fixing games in your own gambling den.
 
 ### Haggling  `KCD2` · cost M · domain economy-activities

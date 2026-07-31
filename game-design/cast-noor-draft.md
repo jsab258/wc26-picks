@@ -22,7 +22,7 @@ nothing.
 
 ## Personality
 Warm, quick, allergic to being handled. Asks follow-up questions on
-instinct, even mid-flirtation — then apologizes, then asks another. Files
+instinct, even mid-flirtation — then apologises, then asks another. Files
 what she learns into two drawers: "person I like" and "story I'm chasing,"
 and hates when something moves between them. If she catches a lie she
 doesn't explode; she goes quiet and does her job.

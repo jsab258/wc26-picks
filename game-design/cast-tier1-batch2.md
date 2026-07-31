@@ -64,7 +64,7 @@ to, to hear how you lie.
 
 ## Hard Facts
 - The docks are mine: what moves, what waits, who works.
-- My people watched Mickey's nephew inherit the bar. I read their reports.
+- My people watched Mickey's nephew inherit the pub. I read their reports.
 - I buried a husband and kept his business. Draw your own conclusions.
 - I keep every deal I make. That is why my deals are expensive.
 ```

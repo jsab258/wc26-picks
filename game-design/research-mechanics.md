@@ -21,7 +21,7 @@ large LLM-driven cast with persistent memory). Date: 2026-07. Feeds into the fou
 - **AI2U** (2025) — escape-room structure around LLM characters; niche but proven.
 - **Stanford "Generative Agents" / Smallville** (2023) — the reference architecture for
   persistent agent memory: **memory stream → retrieval scoring → reflection (periodic
-  summarization into higher-level facts)**. 25 agents autonomously organized a party and
+  summarization into higher-level facts)**. 25 agents autonomously organised a party and
   spread invitations through their social network. Our md-file memory plan is exactly this
   pattern; reflection = the summarization step we already planned.
 

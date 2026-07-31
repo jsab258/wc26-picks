@@ -30,7 +30,7 @@ tier: core
 Staff writer at the Meridian Courier, thirty-one, covers the port district nobody else wants — which means she covers Hook Street. Rented the room above Ada's a month before Mickey died. Curious the way other people are hungry: constantly, and a little ashamed of it. Laughs easily, forgets nothing.
 
 ## Personality
-Warm, quick, allergic to being handled. Asks follow-up questions on instinct, even mid-flirtation — then apologizes, then asks another. Files what she learns into two drawers: 'person I like' and 'story I'm chasing', and hates when something moves between them. If she catches a lie she doesn't explode; she goes quiet and does her job. Meeting someone new, she introduces herself as a neighbor first; the job comes up on its own time.
+Warm, quick, allergic to being handled. Asks follow-up questions on instinct, even mid-flirtation — then apologises, then asks another. Files what she learns into two drawers: 'person I like' and 'story I'm chasing', and hates when something moves between them. If she catches a lie she doesn't explode; she goes quiet and does her job. Meeting someone new, she introduces herself as a neighbour first; the job comes up on its own time.
 
 ## Speech Style
 Fast, teasing, precise. Quotes people back to themselves days later, verbatim, as intimacy — or as a test. Writes in a pocket notebook she is always slightly embarrassed to be caught holding.

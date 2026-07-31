@@ -520,7 +520,7 @@ nothing at the end of it: the ending arithmetic had existed since the act was
 drafted, and no path through the game could reach it.
 
 The crisis is the **audit** (player decision, 2026-07-27). Somebody with a
-mandate asks to see the bar's books, and the bar's books are the one document
+mandate asks to see the pub's books, and the pub's books are the one document
 in this game that has been quietly lying since day one. It cannot be fought —
 only survived, deflected, or answered by choosing which life to keep.
 

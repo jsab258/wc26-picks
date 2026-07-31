@@ -47,7 +47,7 @@ namespace Ledger.Core
         // PP1 — one line per doctrine, in the voice of the arm that noticed.
         public static string FirstNotice(string armId) =>
             armId == "dockside"
-                ? "A Dockside man drinks one slow beer at your bar, pays exact, and says only: \"Nice little street. Busy lately.\""
+                ? "A Dockside man drinks one slow beer at your pub, pays exact, and says only: \"Nice little street. Busy lately.\""
             : armId == "machine"
                 ? "A clerk you've never seen photographs your deed plate, notes something, and leaves without buying anything."
                 : "A grinning fish appears on the bar's side wall overnight. Kids' stuff. Kids who wanted you to see it.";

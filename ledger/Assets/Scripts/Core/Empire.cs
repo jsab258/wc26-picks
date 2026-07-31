@@ -732,7 +732,7 @@ namespace Ledger.Core
                     break;
                 case 3:
                     events.Add(new EmpireEvent { Kind = "rival",
-                        Text = "Your runners report a new toll: the kid takes his cut of your rounds now, 'for the neighborhood'. Danny Ro's neighborhood, apparently." });
+                        Text = "Your runners report a new toll: the kid takes his cut of your rounds now, 'for the neighbourhood'. Danny Ro's neighbourhood, apparently." });
                     break;
                 default:
                     events.Add(new EmpireEvent { Kind = "rival",
@@ -786,7 +786,7 @@ namespace Ledger.Core
             {
                 case 1:
                     events.Add(new EmpireEvent { Kind = "rival",
-                        Text = "A Dockside man drinks one slow beer at your bar, pays exact, and says only: \"Nice little street. Busy lately.\"" });
+                        Text = "A Dockside man drinks one slow beer at your pub, pays exact, and says only: \"Nice little street. Busy lately.\"" });
                     break;
                 case 2:
                     Rival.ProtectionTaxPerDay = 40;
@@ -814,7 +814,7 @@ namespace Ledger.Core
                             target.g.Memory.Append(new MemoryEvent(now, "observation", 0.95,
                                 "The Dockside people offered better, and I took it. The new owner never once asked what I needed."));
                             events.Add(new EmpireEvent { Kind = "rival", ActorId = target.c.Id,
-                                Text = $"{target.c.Name} didn't show today. Or yesterday, you realize. The docks have a new face on their payroll." });
+                                Text = $"{target.c.Name} didn't show today. Or yesterday, you realise. The docks have a new face on their payroll." });
                         }
                         else
                         {

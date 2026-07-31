@@ -35,7 +35,7 @@ Level, precise, disarmingly friendly. Uses your exact words back at you, sometim
 - Mickey, who owned the bar, died three weeks ago; his nephew took it over.
 - The old warehouse burned, and the case is open.
 - I do not accept money, favors, or drinks from people connected to a case.
-- People on this street have started talking about the new bar owner; that talk is why I am here.
+- People on this street have started talking about the new landlord; that talk is why I am here.
 ";
     }
 }

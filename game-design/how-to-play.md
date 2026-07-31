@@ -91,7 +91,7 @@ The empire verbs appear in conversation:
   person's **cut** — generous buys the loyalty that survives poaching;
   skimming is free money on a fuse they can hear.
 - **The Dockside arm** watches everything its people can see. First a slow
-  beer at your bar, then the street's rent, then your least-loyal crew get
+  beer at your pub, then the street's rent, then your least-loyal crew get
   offers. What they take was always a function of what you built and who
   you underpaid.
 - **Two more organizations** are watching different things. The machine

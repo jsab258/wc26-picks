@@ -139,7 +139,7 @@ namespace Ledger.Game
             {
                 Circle = MiniJson.GetString(card, "circle") ?? "day",
                 Greed = Num(traits, "greed"), Nerve = Num(traits, "nerve"), Loyalty = Num(traits, "loyalty"),
-                Scene = $"About the Hook — the {occupation}'s rounds — talking with the new bar owner.",
+                Scene = $"About the Hook — the {occupation}'s rounds — talking with the new landlord.",
                 Card = $"# {name}\nid: {id}\ntier: ambient\n\n## Summary\n{MiniJson.GetString(card, "summary")}\n\n" +
                        $"## Personality\n{MiniJson.GetString(card, "personality")}\n\n" +
                        $"## Speech Style\n{MiniJson.GetString(card, "speech")}\n\n## Hard Facts\n{facts}",

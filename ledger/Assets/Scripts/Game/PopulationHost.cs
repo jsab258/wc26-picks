@@ -234,7 +234,7 @@ namespace Ledger.Game
                 {
                     Content = new Fact("player", "street_talk", "something"),
                     OriginId = r.Id,
-                    Summary = "somebody has been saying things about the new owner of the bar on Hook Street",
+                    Summary = "somebody has been saying things about the new landlord of the pub on Hook Street",
                     // Second-hand and vague by construction: this is a person who
                     // heard it around, not somebody who saw anything.
                     Confidence = 0.3,

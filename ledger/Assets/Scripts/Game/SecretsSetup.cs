@@ -38,7 +38,7 @@ namespace Ledger.Game
             var informant = new Secret
             {
                 Id = "sam_informant", OwnerId = "Sam", Kind = SecretKind.Criminal,
-                Summary = "he sells neighborhood talk to a police contact, cash for names.",
+                Summary = "he sells neighbourhood talk to a police contact, cash for names.",
             };
             book.Add(informant); // nobody else knows; only Sam himself can let it slip
 

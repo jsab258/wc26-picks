@@ -186,7 +186,7 @@ namespace Ledger.Core
         public readonly List<VerbSpec> Verbs = new List<VerbSpec>();
         /// Who the player is speaking to, if anyone.
         public string SpeakingTo;
-        /// One sentence of place and circumstance, e.g. "the bar, after close".
+        /// One sentence of place and circumstance, e.g. "the pub, after close".
         public string Scene = "";
         /// Names the router may legitimately use as a novel action's target.
         public readonly List<string> KnownPeople = new List<string>();

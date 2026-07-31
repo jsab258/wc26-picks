@@ -246,7 +246,7 @@ namespace Ledger.Core
         /// not detour around buildings.
         public static readonly (double X, double Z, double W, double D)[] BuiltMasses =
         {
-            (-8, 8, 11, 11),   // the Hook Street bar
+            (-8, 8, 11, 11),   // the Hook Street pub
         };
 
         /// Does an avenue at this x (or z) cut through one of those?

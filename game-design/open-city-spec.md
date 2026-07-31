@@ -90,7 +90,7 @@ is driven by **what their people actually observe through the gossip
 system** (your runner seen on their corner, a debtor who stopped paying
 them), never by omniscient triggers. Reaction ladder mirrors the built
 suspicion escalation: a warning visit → prices raised → your recruit
-poached or leaned on → a violence threat (unrealized at v1 — combat stays
+poached or leaned on → a violence threat (unrealised at v1 — combat stays
 cut per doc risk #1). ⚠ Nemesis patent note (§6.5): the rival's internal
 structure stays flat at v1; no promotion-by-player-defeat anywhere.
 

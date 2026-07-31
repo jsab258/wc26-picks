@@ -5,7 +5,7 @@
 ## The gap
 
 The living economy (M7) made the district's money finite in one direction:
-squeezing the street lowers prosperity, prosperity lowers what your bar takes.
+squeezing the street lowers prosperity, prosperity lowers what your pub takes.
 That half is real and the balance lab proves it.
 
 But every *counterparty* still has infinite pockets. Rita owes $180 and Rita

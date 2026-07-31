@@ -155,7 +155,7 @@ namespace Ledger.Core
         /// review pass caught it.
         ///
         ///   0 "someone"                    3 "I'd know him again"
-        ///   1 "a man, big, long coat"      4 "that's Tom, runs the bar"
+        ///   1 "a man, big, long coat"      4 "that's Tom, runs the pub"
         ///   2 "the one with the limp"
         public static int IdRung(double metres, double lightLevel,
                                  double familiarity, bool hasDistinguishingMark,

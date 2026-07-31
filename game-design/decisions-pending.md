@@ -87,7 +87,7 @@ The act now opens off world state, names its date, fires its five pressure
 points, and resolves into one of the five endings. See `roadmap.md` (ACT III —
 SHIPPED) for what was actually built and what in it is still thin.
 
-**The proposal, for the record: an audit.** Somebody with a mandate asks to see the bar's books,
+**The proposal, for the record: an audit.** Somebody with a mandate asks to see the pub's books,
 and the books are the one document in this game that has been lying since day
 one. Everything you did to the ledger becomes evidence in the other direction,
 and it is wrong in both directions — launder too little and the night money has

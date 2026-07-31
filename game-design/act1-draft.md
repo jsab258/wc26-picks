@@ -50,7 +50,7 @@ as breaking HIS deal, not dodging a quest.
 
 **PP3 — The Question That Doesn't Sound Like One (fires: first Noor
 conversation; expected day 2).**
-Noor introduces herself as a neighbor, not a journalist — the card's "two
+Noor introduces herself as a neighbour, not a journalist — the card's "two
 drawers" made playable from minute one. She mentions the warehouse fire
 unprompted (her Hard Fact: the thread she won't drop). Everything the player
 says here is a Fact her brain checks later. No mechanics added — this is

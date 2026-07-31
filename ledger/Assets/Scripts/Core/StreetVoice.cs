@@ -339,7 +339,7 @@ namespace Ledger.Core
                 {
                     "Mickey's one. Still standing, then.",
                     "All right.",
-                    "How's the bar treating you?",
+                    "How's the pub treating you?",
                     "Cold enough for you?",
                     "Your uncle'd have hated this weather.",
                     "Tell Lena I said hello.",

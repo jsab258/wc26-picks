@@ -22,7 +22,7 @@ to find out.**
 
 Act III's opening image is not a raid. It is **an audit** — the least dramatic
 possible instrument, which is what makes it frightening. Somebody with a
-mandate asks to see the bar's books, and the bar's books are the one document
+mandate asks to see the pub's books, and the pub's books are the one document
 in this game that has been quietly lying since day one.
 
 Everything the player has done to the ledger is now evidence in the other

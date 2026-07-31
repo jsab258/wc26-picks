@@ -60,7 +60,7 @@ namespace Ledger.Game
         public static string Describe()
         {
             var path = NewestPath();
-            if (path == null) return "No saved city. A new game starts on the morning you inherit the bar.";
+            if (path == null) return "No saved city. A new game starts on the morning you inherit the pub.";
             try
             {
                 var json = File.ReadAllText(path);

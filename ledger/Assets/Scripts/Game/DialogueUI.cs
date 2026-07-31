@@ -1234,7 +1234,7 @@ namespace Ledger.Game
                 Audio.Foley(_game.WearingCoat ? "coat_on" : "coat_off");
                 Toast(_game.WearingCoat
                     ? "You pull on the runner's coat. Harder to name in the dark; harder to explain in daylight."
-                    : "You shrug off the coat. Just the bar owner again.", 5f);
+                    : "You shrug off the coat. Just the landlord again.", 5f);
             }
 
             // Morning summary card: auto-fades, or Esc/click-through dismisses.

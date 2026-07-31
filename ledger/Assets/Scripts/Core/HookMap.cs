@@ -24,7 +24,7 @@ namespace Ledger.Core
         public static readonly List<HookPlace> Places = new List<HookPlace>
         {
             // The built street (M0 coordinates — do not move).
-            P("bar_door",        "the Hook Street bar",       -6,   6, "landmark"),
+            P("bar_door",        "the Hook Street pub",       -6,   6, "landmark"),
             P("market_corner",   "the market corner",         10, -14, "business"),
             P("docks",           "the docks",                 18,  14, "landmark"),
             P("apartment_steps", "Ada's apartment steps",    -14,  12, "home"),

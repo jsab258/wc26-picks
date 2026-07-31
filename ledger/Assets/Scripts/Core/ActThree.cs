@@ -7,7 +7,7 @@ namespace Ledger.Core
     ///
     /// The crisis is an AUDIT: the least dramatic instrument available, which
     /// is what makes it frightening. Somebody with a mandate asks to see the
-    /// bar's books, and the bar's books are the one document in this game that
+    /// bar's books, and the pub's books are the one document in this game that
     /// has been quietly lying since day one.
     ///
     /// Everything the player did to the ledger is now evidence in the other
@@ -192,7 +192,7 @@ namespace Ledger.Core
 
         /// The word for it. No number ever reaches the player.
         public static string StrainWord(double strain) =>
-            strain < 0.2 ? "the books look like a bar's books"
+            strain < 0.2 ? "the books look like a pub's books"
             : strain < 0.45 ? "there are one or two months a careful reader would ask about"
             : strain < 0.7 ? "the shape of it is wrong, and a careful reader will see the shape"
             : "these books describe a business that does not exist";
@@ -382,7 +382,7 @@ namespace Ledger.Core
             "It is courteous, entirely procedural, and it names a date.";
 
         public const string Pp1LetterText =
-            "Under the Revenue Act, the licensed premises known as the Hook Street bar is required to produce " +
+            "Under the Revenue Act, the licensed premises known as the Hook Street pub is required to produce " +
             "its books of account for inspection. A date is given. There is no threat in it anywhere, " +
             "which is what makes it the worst thing that has ever arrived at this address.";
 
@@ -532,7 +532,7 @@ namespace Ledger.Core
 
         public static string EndingText(Ending e, string successorName = null) =>
             e == Ending.Both
-                ? "The books are opened, and they are a bar's books. The inspector is bored by two o'clock. " +
+                ? "The books are opened, and they are a pub's books. The inspector is bored by two o'clock. " +
                   "Nobody in the day circle ever quite says what they think you do, and nobody in the night one " +
                   "quite believes you got away with it. You did. It took managing every mouth on this street, " +
                   "and you will be managing them tomorrow too."

@@ -402,7 +402,7 @@ prompt argues for it. The player is never shown what is pending: §6.2's rule ho
 - **Act III — The Ledger Comes Due** (`act3-draft.md`; drafted, approved and wired
   2026-07-27 — the act opens off world state, runs its six days, and resolves in play).
   The crisis is an **audit** — the least dramatic instrument available, which is what
-  makes it frightening. Somebody with a mandate asks to see the bar's books, and the books are
+  makes it frightening. Somebody with a mandate asks to see the pub's books, and the books are
   the one document in this game that has been quietly lying since day one. Everything the
   player did to the ledger becomes evidence in the other direction, **and it is wrong in both
   directions**: launder too little and the night money has nowhere to have come from, launder

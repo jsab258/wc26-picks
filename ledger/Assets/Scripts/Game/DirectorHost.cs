@@ -104,7 +104,7 @@ namespace Ledger.Game
 
         string RoleOf(string name)
         {
-            if (name == "Lena") return "bookkeeper, keeps the bar's books";
+            if (name == "Lena") return "bookkeeper, keeps the pub's books";
             if (Empire.Arms.Any(a => a.HeadName == name)) return "head of a rival organization";
             if (Empire.CrewOf(name) != null) return "works for the player";
             if (Economy.Suppliers.Any(s => s.Name == name)) return "supplier";

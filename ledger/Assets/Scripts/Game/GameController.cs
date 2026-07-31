@@ -486,9 +486,9 @@ namespace Ledger.Game
             // comes on Thursdays whether you are awake or not, and knows to the
             // day when he was last paid.
             SpawnSupplier("drayman", SupplierCast.MitchCard, SupplierCast.MitchColor,
-                SupplierCast.MitchSchedule, "On his round along Hook Street, talking with the bar's new owner.");
+                SupplierCast.MitchSchedule, "On his round along Hook Street, talking with the new landlord.");
             SpawnSupplier("wholesaler", SupplierCast.TonyCard, SupplierCast.TonyColor,
-                SupplierCast.TonySchedule, "At the market corner, talking with the bar's new owner.");
+                SupplierCast.TonySchedule, "At the market corner, talking with the new landlord.");
 
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
@@ -498,7 +498,7 @@ namespace Ledger.Game
             _npcs.Add(lenaWalker);
             _lena = lenaWalker.gameObject.AddComponent<ConversationHost>();
             _lena.Initialize(this, LenaSetup.CardMarkdown, LenaSetup.SeedKnowledge, LenaSetup.SeedMemories);
-            _lena.SceneContext = "Behind the counter of the Hook Street bar, talking with the new owner.";
+            _lena.SceneContext = "Behind the bar, talking with the new owner.";
             // Lena keeps the books: she knows exactly what the till took and whether
             // the street's talk is what's thinning it.
             _lena.ExtraContext = () =>
@@ -527,7 +527,7 @@ namespace Ledger.Game
             _npcs.Add(noorWalker);
             _noor = noorWalker.gameObject.AddComponent<ConversationHost>();
             _noor.Initialize(this, NoorSetup.CardMarkdown, null, null);
-            _noor.SceneContext = "On her rounds of Hook Street, notebook half out of a pocket, talking with the new bar owner.";
+            _noor.SceneContext = "On her rounds of Hook Street, notebook half out of a pocket, talking with the new landlord.";
             _noor.ExtraContext = () =>
             {
                 var sb = new System.Text.StringBuilder();
@@ -742,7 +742,7 @@ namespace Ledger.Game
             if (_onboardStep == 0 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 10)))
             {
                 _onboardStep = 1;
-                _ui.Toast("The bar is yours now. Walk up to anyone and press E to talk — they remember.", 9f);
+                _ui.Toast("The pub is yours now. Walk up to anyone and press E to talk — they remember.", 9f);
             }
             else if (_onboardStep == 1 && Now.Hour >= 10)
             {
@@ -851,13 +851,13 @@ namespace Ledger.Game
                     ToastLine(ActTwoState.Pp4DoorstepText, 14f);
                     fond.Suspicion.Raise(0.18, "one of the new owner's people burst in on night business");
                     fond.Memory.Append(new MemoryEvent(Now, "observation", 0.9,
-                        $"I was at the bar, at ease for once, and {crewMember.Name} came through the door with " +
+                        $"I was in the pub, at ease for once, and {crewMember.Name} came through the door with " +
                         "night business written all over them. Whatever it was, it could not wait until morning."));
                     _gossip.Mill.Witness(fond.Id, new Fact("player", $"night_business_d{Now.Day}", "seen"),
                         $"{crewMember.Name} burst into the bar after dark with something for the new owner that could not wait",
                         true, Now, 0.85);
                     _gossip.Mill.Get(crewMember.Id)?.Memory.Append(new MemoryEvent(Now, "observation", 0.8,
-                        "Had to walk night business straight into the bar tonight. The whole room saw me do it."));
+                        "Had to walk night business straight into the pub tonight. The whole room saw me do it."));
                 }
             }
 
@@ -1522,7 +1522,7 @@ namespace Ledger.Game
             _osseiWalker = walker;
             _ossei = walker.gameObject.AddComponent<ConversationHost>();
             _ossei.Initialize(this, EllisSetup.CardMarkdown, null, null);
-            _ossei.SceneContext = "On Hook Street, unhurried, notebook in hand, talking with the new bar owner.";
+            _ossei.SceneContext = "On Hook Street, unhurried, notebook in hand, talking with the new landlord.";
             _ossei.ExtraContext = () =>
             {
                 var sb = new System.Text.StringBuilder();
@@ -1862,7 +1862,7 @@ namespace Ledger.Game
                 {
                     _lena.Suspicion.Raise(0.04, "cash keeps appearing that the books cannot explain");
                     _lena.Memory.Append(new MemoryEvent(Now, "observation", 0.6,
-                        "Counted the till again. There is money moving through this bar that no tap sold."));
+                        "Counted the till again. There is money moving through this pub that no tap sold."));
                 }
                 // June, the moral mirror (her approved card): her regard tracks
                 // inversely to the empire and directly to the honest life. She

@@ -33,7 +33,7 @@ namespace Ledger.Game
         static readonly CastMember Rocco = new CastMember
         {
             Circle = "night", Greed = 0.6, Nerve = 0.5, Loyalty = 0.6,
-            Scene = "By the bar door or on his rounds, talking with the new owner.",
+            Scene = "By the pub door or on his rounds, talking with the new owner.",
             Card = @"# Rocco
 id: rocco
 tier: ambient
@@ -49,7 +49,7 @@ Rambling, familiar, calls people 'boss' or 'friend'. Mentions what he's seen aro
 
 ## Hard Facts
 - Mickey, the previous owner, died three weeks ago.
-- I work the door at the Hook Street bar and drink there most afternoons.
+- I work the door at the Hook Street pub and drink there most afternoons.
 - I notice who comes and goes on this street at night.
 ",
         };
@@ -63,7 +63,7 @@ id: ada
 tier: ambient
 
 ## Summary
-Retired schoolteacher in the apartments across from the bar. Buys eggs at the market most mornings, knows every daytime face in the neighborhood. The unofficial conscience of the street.
+Retired schoolteacher in the apartments across from the bar. Buys eggs at the market most mornings, knows every daytime face in the neighbourhood. The unofficial conscience of the street.
 
 ## Personality
 Warm but unbending. Cannot be bought and does not scare; disrespect gets remembered. Judges people by how they treat the block.

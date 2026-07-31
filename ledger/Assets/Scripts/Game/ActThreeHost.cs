@@ -182,7 +182,7 @@ namespace Ledger.Game
                 // Lena reads over your shoulder, because of course she does.
                 var lena = _gossip.Mill.Get("Lena");
                 lena?.Memory.Append(new MemoryEvent(Now, "observation", 0.95,
-                    "A revenue letter came for the bar. Mickey got one of those once. " +
+                    "A revenue letter came for the pub. Mickey got one of those once. " +
                     "I watched him not sleep for a fortnight."));
                 return;
             }
@@ -324,7 +324,7 @@ namespace Ledger.Game
 
             var host = _inspectorWalker.gameObject.AddComponent<ConversationHost>();
             host.Initialize(this, InspectorCard, null, null);
-            host.SceneContext = "At a table just inside the Hook Street bar, papers squared, talking with the owner.";
+            host.SceneContext = "At a table just inside the Hook Street pub, papers squared, talking with the owner.";
             host.ExtraContext = () =>
             {
                 var s = Books();
@@ -474,7 +474,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             // They now genuinely know, and knowing is a fact in this world
             // rather than a mood — it goes into the mill like anything else.
             mill.Witness(whoId, new Fact("player", "confessed", "true"),
-                "the one who owns the bar told me what they have really been doing, to my face", true, Now, 1.0);
+                "the one who owns the pub told me what they have really been doing, to my face", true, Now, 1.0);
             ToastLine(ActThreeState.LastDayTruthText(friend.DisplayName ?? whoId), 15f);
             return true;
         }
@@ -488,7 +488,7 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
             ActThree.SoldUp = true;
             ToastLine("Hal does it in an afternoon, for a percentage, without once asking why. " +
                       $"Everything you took a year to build goes in six hours and raises £{raised}. " +
-                      "The bar is a bar again, and the cellar is a cellar.", 16f);
+                      "The pub is a pub again, and the cellar is a cellar.", 16f);
             return true;
         }
 
@@ -526,14 +526,14 @@ Flat, exact, complete sentences. Names the regulation before the request. Says "
                     "What I said in confidence came back out of a revenue office with my name on it. " +
                     "I know exactly who it went through."));
                 mill.Witness(burned.Id, new Fact("player", "informs", "police"),
-                    "the one who owns the bar talks to the revenue people, and uses what you tell them", true, Now, 0.9);
+                    "the one who owns the pub talks to the revenue people, and uses what you tell them", true, Now, 0.9);
                 ToastLine($"It is pointed elsewhere by the end of the week. {burned.DisplayName} finds out " +
                           "on Thursday, from somebody who was not being cruel about it.", 15f);
             }
             else ToastLine("It is pointed elsewhere by the end of the week. Nobody says anything to you about it at all.", 13f);
 
             _ossei?.Memory.Append(new MemoryEvent(Now, "conversation", 0.95,
-                $"The bar's owner gave me the {worst.Id} arm, with enough to work with. " +
+                $"The landlord gave me the {worst.Id} arm, with enough to work with. " +
                 "I took it. I would like to say I did not enjoy how quickly they decided."));
             return true;
         }

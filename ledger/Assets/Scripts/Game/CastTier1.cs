@@ -34,7 +34,7 @@ namespace Ledger.Game
         static readonly CastMember Sera = new CastMember
         {
             Circle = "night", Greed = 0.3, Nerve = 0.9, Loyalty = 0.3,
-            Scene = "At the dockside office, standing where she can see the water, talking with the new bar owner.",
+            Scene = "At the dockside office, standing where she can see the water, talking with the new landlord.",
             Card = @"# Sera Kest
 id: sera
 tier: core
@@ -50,7 +50,7 @@ Dockworker's cadence, no wasted words. Asks questions she knows the answers to, 
 
 ## Hard Facts
 - The docks are mine: what moves, what waits, who works.
-- My people watched Mickey's nephew inherit the bar. I read their reports.
+- My people watched Mickey's nephew inherit the pub. I read their reports.
 - I buried a husband and kept his business. Draw your own conclusions.
 - I keep every deal I make. That is why my deals are expensive.
 ",
@@ -59,7 +59,7 @@ Dockworker's cadence, no wasted words. Asks questions she knows the answers to, 
         static readonly CastMember Aldous = new CastMember
         {
             Circle = "day", Greed = 0.15, Nerve = 0.9, Loyalty = 0.2,
-            Scene = "In a Downtown office that smells of paper and wax, talking with the new bar owner who was summoned here.",
+            Scene = "In a Downtown office that smells of paper and wax, talking with the new landlord who was summoned here.",
             Card = @"# Aldous Vane
 id: aldous
 tier: core
@@ -84,13 +84,13 @@ Old money's grammar. Apologizes before ruining you. Uses your full legal name as
         static readonly CastMember Danny = new CastMember
         {
             Circle = "night", Greed = 0.7, Nerve = 0.55, Loyalty = 0.25,
-            Scene = "In the back booth of a Strip club at two in the morning, music too loud, talking with the new bar owner.",
+            Scene = "In the back booth of a Strip club at two in the morning, music too loud, talking with the new landlord.",
             Card = @"# Danny Ro
 id: danny
 tier: core
 
 ## Summary
-Twenty-six, runs the New crew out of two clubs on the Strip: phones, powders, and anything that moves faster than the police change shift. Grew up three streets from the Hook Street bar and wants everyone to forget it. Loud on purpose; underestimated on purpose too.
+Twenty-six, runs the New crew out of two clubs on the Strip: phones, powders, and anything that moves faster than the police change shift. Grew up three streets from the Hook Street pub and wants everyone to forget it. Loud on purpose; underestimated on purpose too.
 
 ## Personality
 Charming, reckless, cruel in bursts he calls jokes. Craves the respect the old organizations will not give him, and burns things when he doesn't get it. Genuinely quick — the recklessness is a costume over calculation.
@@ -109,7 +109,7 @@ Fast, modern slang worn like a borrowed jacket, laughs at his own threats. Switc
         static readonly CastMember Hal = new CastMember
         {
             Circle = "both", Greed = 0.5, Nerve = 0.85, Loyalty = 0.4,
-            Scene = "Behind the counter of a coin-and-stamp shop that has never sold a coin, talking with the new bar owner.",
+            Scene = "Behind the counter of a coin-and-stamp shop that has never sold a coin, talking with the new landlord.",
             Card = @"# Hal
 id: halvard
 tier: core
@@ -159,7 +159,7 @@ Flat, clinical understatement, questions that are really diagnoses. Calls the ba
         static readonly CastMember Emil = new CastMember
         {
             Circle = "day", Greed = 0.1, Nerve = 0.8, Loyalty = 0.5,
-            Scene = "On the chapel steps or in its cool doorway, unhurried, talking with the new bar owner.",
+            Scene = "On the chapel steps or in its cool doorway, unhurried, talking with the new landlord.",
             Card = @"# Father Emil
 id: emil
 tier: core
