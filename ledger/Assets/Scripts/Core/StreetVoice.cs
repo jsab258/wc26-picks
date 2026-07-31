@@ -126,19 +126,19 @@ namespace Ledger.Core
                 r.Confidence >= 0.8 ? Pick(seed, new[]
                 {
                     $"I'm telling you, {what}.",
-                    $"{what}. I know what I saw.",
-                    $"You want to know why I'm quiet lately? {what}.",
-                    $"{what}. I'd say it in front of him.",
-                    $"I was there. {what}, and that's the end of it.",
-                    $"Don't look at me like that. {what}.",
-                    $"{what}. My own eyes, not somebody's mouth.",
-                    $"You can believe what you like. {what}.",
-                    $"I've not slept right since. {what}.",
-                    $"{what}. I wish I hadn't seen it.",
+                    $"{Cap(what)}. I know what I saw.",
+                    $"You want to know why I'm quiet lately? {Cap(what)}.",
+                    $"{Cap(what)}. I'd say it in front of him.",
+                    $"I was there. {Cap(what)}, and that's the end of it.",
+                    $"Don't look at me like that. {Cap(what)}.",
+                    $"{Cap(what)}. My own eyes, not somebody's mouth.",
+                    $"You can believe what you like. {Cap(what)}.",
+                    $"I've not slept right since. {Cap(what)}.",
+                    $"{Cap(what)}. I wish I hadn't seen it.",
                     $"Ask me again in a year and I'll tell you the same: {what}.",
-                    $"{what}. There's no other way to read it.",
-                    $"I'm not guessing. {what}.",
-                    $"{what}. And nobody's done a thing about it.",
+                    $"{Cap(what)}. There's no other way to read it.",
+                    $"I'm not guessing. {Cap(what)}.",
+                    $"{Cap(what)}. And nobody's done a thing about it.",
                 })
                 : r.Confidence >= 0.5 ? Pick(seed, new[]
                 {
@@ -148,30 +148,30 @@ namespace Ledger.Core
                     $"It's going round that {what}.",
                     $"Two people told me {what}. Different two people.",
                     $"I had it off someone who'd know: {what}.",
-                    $"You've heard, then. {what}.",
+                    $"You've heard, then. {Cap(what)}.",
                     $"There's a version where {what}. I've heard worse ones.",
-                    $"{what}, if you believe the market.",
+                    $"{Cap(what)}, if you believe the market.",
                     $"I'd not repeat it, but {what}.",
                     $"The talk is {what}. Take that how you like.",
                     $"Somebody at the docks reckons {what}.",
-                    $"{what}. That's the third time this week I've heard it.",
+                    $"{Cap(what)}. That's the third time this week I've heard it.",
                     $"I'll say this much: {what}.",
                 })
                 : Pick(seed, new[]
                 {
                     $"There's a story going round that {what}. Probably nothing.",
-                    $"You hear all sorts. {what}, apparently.",
+                    $"You hear all sorts. {Cap(what)}, apparently.",
                     $"Somebody's saying {what}. Somebody's always saying something.",
-                    $"{what}, supposedly. People talk.",
+                    $"{Cap(what)}, supposedly. People talk.",
                     $"I heard {what}, but I heard it from Sam.",
                     $"Bit of nonsense going about — {what}.",
                     $"They'll tell you {what}. They'll tell you anything.",
                     $"Half the street reckons {what}. Half the street's wrong.",
-                    $"{what}? I'd want it from somebody sober.",
-                    $"You know how it is. {what}, they say.",
+                    $"{Cap(what)}? I'd want it from somebody sober.",
+                    $"You know how it is. {Cap(what)}, they say.",
                     $"There's a whisper that {what}. Not worth much.",
-                    $"{what}, or so I'm told, by people who weren't there.",
-                    $"Don't quote me. {what}, maybe.",
+                    $"{Cap(what)}, or so I'm told, by people who weren't there.",
+                    $"Don't quote me. {Cap(what)}, maybe.",
                     $"I'd give it a week before somebody says the opposite: {what}.",
                 });
 
@@ -687,6 +687,26 @@ namespace Ledger.Core
             if (s.EndsWith(".")) s = s.Substring(0, s.Length - 1);
             return s;
         }
+
+        /// The rumour, capitalised, for the templates that put it at the start
+        /// of a sentence.
+        ///
+        /// A `Rumor.Summary` is a lowercase clause — "the new owner was at the
+        /// warehouse on Tuesday" — because it is written to be spliced into
+        /// the middle of a sentence, and half the templates do exactly that.
+        /// The other half do not: twenty-one of the forty-two open on it or
+        /// follow a full stop, and every one of those was rendering "Don't
+        /// quote me. the new owner was at the warehouse on Tuesday" in a
+        /// subtitle. Found by reading the generated bank line by line, which
+        /// is what the bark curation pass is for — no test asserts the shape
+        /// of a sentence, and it is the most-heard mechanic in the game.
+        ///
+        /// Only the first character moves. A summary that already starts with
+        /// a proper noun is left exactly as it is.
+        static string Cap(string s) =>
+            string.IsNullOrEmpty(s) || !char.IsLower(s[0])
+                ? s
+                : char.ToUpperInvariant(s[0]) + s.Substring(1);
 
         static double Clamp01(double v) => v < 0 ? 0 : v > 1 ? 1 : v;
     }

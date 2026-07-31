@@ -443,6 +443,49 @@ namespace Ledger.CoreTests
             var weak = StreetVoice.Exchange(doubt, teller, hearer, seed: 0);
             Check(weak[0].Text != said[0].Text, "certainty changes how a thing is said", weak[0].Text);
 
+            // EVERY SENTENCE STARTS WITH A CAPITAL, AND HALF OF THEM DID NOT.
+            //
+            // A `Rumor.Summary` is a lowercase clause because most templates
+            // splice it mid-sentence. Twenty-one of the forty-two put it at
+            // the start of a sentence instead, and those rendered "Don't quote
+            // me. the new owner was at the warehouse on Tuesday" into a
+            // subtitle — in the most-heard mechanic in the game.
+            //
+            // Nothing caught it. The checks above assert the line CONTAINS
+            // the story and that confidence changes the wording; neither has
+            // an opinion about what a sentence looks like. It was found by
+            // reading the generated bank line by line, which is what the bark
+            // curation pass is for, and this is that reading turned into a
+            // check so it cannot come back.
+            //
+            // Every seed, both speakers, across the confidence bands — because
+            // the fault lived in specific templates and a single seed picks
+            // one of fourteen.
+            var badCaps = new List<string>();
+            foreach (var conf in new[] { 0.95, 0.65, 0.25 })
+            {
+                var r = new Rumor
+                {
+                    Content = new Fact("player", "seen_at", "warehouse"), OriginId = "ada",
+                    Summary = "the new owner was at the warehouse on Tuesday",
+                    Confidence = conf, Sensitive = false,
+                };
+                for (int s2 = 0; s2 < 40; s2++)
+                    foreach (var line in StreetVoice.Exchange(r, teller, hearer, s2))
+                    {
+                        var t = (line.Text ?? "").Trim();
+                        if (t.Length > 0 && char.IsLower(t[0])) badCaps.Add(t);
+                        // And after every full stop, question mark or bang.
+                        for (int i = 1; i < t.Length - 2; i++)
+                            if ((t[i] == '.' || t[i] == '?' || t[i] == '!')
+                                && t[i + 1] == ' ' && char.IsLower(t[i + 2]))
+                                badCaps.Add(t);
+                    }
+            }
+            Check(badCaps.Count == 0,
+                "every spoken line starts its sentences with a capital",
+                badCaps.Count == 0 ? "" : badCaps[0]);
+
             // THE LADDER. Every rung is a number the player used to read in a
             // panel and can now watch happen.
             Check(StreetVoice.Stance(0.0, 0.5, 0.0, false, false) == StanceKind.Indifferent,

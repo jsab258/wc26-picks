@@ -83,10 +83,35 @@ static class Program
         int have = slots.Sum(s => s.Lines.Count);
         Console.WriteLine($"{have} line(s) written, {wantTotal} wanted — {wantTotal - have} to author.\n");
 
-        var path = args.Length > 0 ? args[0] : "barks.json";
+        // THE TRACKED MANIFEST, NOT WHATEVER THE SHELL WAS POINTING AT.
+        //
+        // This defaulted to a bare "barks.json", so it landed wherever the
+        // caller happened to be standing. The committed copy is
+        // game-design/barks.json, and it had drifted: it still contained
+        // "How's the bar treating you?" after the pub rename, and every
+        // lowercase-after-a-full-stop splice after those were fixed in
+        // StreetVoice. A regenerated file that lands in an untracked spot
+        // reads as a successful run and changes nothing.
+        //
+        // Walks up for the directory holding game-design/, so it writes the
+        // same file from the repo root, from ledger/, or from anywhere else.
+        var path = args.Length > 0 ? args[0] : DefaultManifestPath();
         File.WriteAllText(path, Manifest(slots));
         Console.WriteLine($"manifest: {Path.GetFullPath(path)}");
         return 0;
+    }
+
+    /// game-design/barks.json, found by walking up from wherever we are.
+    static string DefaultManifestPath()
+    {
+        var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, "game-design");
+            if (Directory.Exists(candidate)) return Path.Combine(candidate, "barks.json");
+            dir = dir.Parent;
+        }
+        return "barks.json";   // not in the repo — behave as before
     }
 
     // -----------------------------------------------------------------
