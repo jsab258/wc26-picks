@@ -154,9 +154,18 @@ jobs:
           No code change: the pack path, the procedural fallback and
           UiTheme.LoadFont's Resources lookup all existed already, and nothing
           had ever been put where any of them look."
+          # REBASE BEFORE RETRYING. The retry loop was written for flaky
+          # networks and treats every rejection as one, so a branch that moved
+          # while the job ran gets six identical rejected pushes and the pack is
+          # dropped. That is not hypothetical: a push of mine was rejected
+          # tonight because the inventory job had committed the catalogue
+          # underneath it.
           for i in 1 2 3 4 5 6; do
             git push origin HEAD:${GITHUB_REF_NAME} && exit 0
-            echo "push failed, attempt $i"; sleep $((2 ** i))
+            echo "push failed, attempt $i — refetching and rebasing"
+            git fetch origin ${GITHUB_REF_NAME} || true
+            git rebase FETCH_HEAD || { git rebase --abort || true; }
+            sleep $((2 ** i))
           done
           exit 1
 

@@ -57,6 +57,11 @@ namespace Ledger.Game
         readonly List<string> _errors = new List<string>();
         readonly List<object> _samples = new List<object>();
         readonly List<object> _screenshots = new List<object>();
+
+        /// How many stills get committed for review. Four: noon and night on
+        /// the first two days the sim shoots. See `Shot`.
+        const int MaxReviewStills = 4;
+        int _reviewStills;
         readonly Dictionary<string, Vector3> _startPositions = new Dictionary<string, Vector3>();
 
         int _endDay;
@@ -2963,8 +2968,19 @@ namespace Ledger.Game
                 // without the repository growing the way a PNG per shot would.
                 // The same file name every run, so it overwrites rather than
                 // accumulates.
-                System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
-                                             tex.EncodeToJPG(60));
+                //
+                // AND ONLY THE FIRST FEW. The sim shoots noon and night on every
+                // in-game day, so a seventeen-day run is thirty-four stills —
+                // five megabytes committed per build, every build, all night.
+                // Four is enough to judge a surface: two lighting conditions,
+                // twice, and the day numbers are stable across runs so they
+                // overwrite rather than pile up.
+                if (_reviewStills < MaxReviewStills)
+                {
+                    _reviewStills++;
+                    System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
+                                                 tex.EncodeToJPG(60));
+                }
 
                 // Emit a coarse ASCII luminance thumbnail + mean colour to the log.
                 // The PNG artifact lives on a host our review environment can't reach,
