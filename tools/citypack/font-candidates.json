@@ -1,0 +1,14 @@
+{
+ "Inter": {
+  "why": "neutral, superb at small sizes, the safest possible caption face",
+  "error": "BadZipFile: File is not a zip file"
+ },
+ "Source Sans 3": {
+  "why": "slightly warmer, Adobe's, wide weight range",
+  "error": "BadZipFile: File is not a zip file"
+ },
+ "Roboto Condensed": {
+  "why": "condensed, which suits a ruled ledger column",
+  "error": "BadZipFile: File is not a zip file"
+ }
+}
