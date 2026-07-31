@@ -198,6 +198,17 @@ jobs:
               tools/voice-fetch/fetch.log | tail -40 || echo "no fetch log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          # A RUN THAT PRODUCES NO CLIPS IS A FAILED RUN, and it has to say so.
+          # `continue-on-error` on the fetch step exists so partial output still
+          # gets committed — and it also turned a hard crash thirty seconds in
+          # into a green tick, which is how run 8 reported success while the
+          # fetcher died on a TypeError. The step may fail softly; the JOB must
+          # not lie about the outcome.
+          if [ "$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)" -eq 0 ]; then
+            echo "NO CLIPS PRODUCED — see the diagnose job and the summary above"
+            exit 1
+          fi
           echo "==========================="
 
       - uses: actions/upload-artifact@v4

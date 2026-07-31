@@ -516,85 +516,91 @@ def _routes_for(source, cast=None):
     it diagnoses tells you about the copy. It has to open the corpus the same
     way the real run does or it is theatre.
     """
-    from datasets import load_dataset
-
-def open_common_voice(revision=None):
-    kw = dict(split="train", streaming=True)
-    if revision:
-        kw["revision"] = revision
-    # `datasets` 2.16 and later refuse to execute a dataset loading script
-    # unless told to, and the reachable Common Voice mirror is a script.
-    # Without this the route raises, we fall through to a corpus with no
-    # gender metadata, and nineteen briefs get filtered by nothing.
-    try:
-        ds = load_dataset(CV_DATASET, "en", trust_remote_code=True, **kw)
-    except TypeError:
-        # Older or newer versions that do not know the argument.
-        ds = load_dataset(CV_DATASET, "en", **kw)
-    def matches(row, spec):
-        g = (row.get("gender") or "").strip()
-        a = (row.get("age") or "").strip()
-        # Through the shared normaliser, not a raw string compare: the
-        # vocabularies differ between corpora and a mismatch here is
-        # silent.
-        if spec.get("gender") and same_gender(g, spec["gender"]) is False:
-            return False
-        if spec.get("age") and a and a not in spec["age"]:
-            return False
-        if not accent_ok(row.get("accents") or row.get("accent"),
-                         spec.get("accent")):
-            return False
-        # A row with no metadata at all is not a match — it is an
-        # unknown, and filling a shortlist with unknowns is the same as
-        # not filtering.
-        return bool(g)
-    return ds, "client_id", "audio", matches
-
-def open_vctk():
-    last = None
-    for name in VCTK_DATASETS:
+    # THE IMPORT LIVES IN THE OPENERS, not here. Listing the routes is not
+    # the same act as opening one, and a factory that needs the corpus
+    # library merely to name its routes cannot have its shape checked
+    # without installing two hundred megabytes of it. That is exactly why
+    # `_routes_for` returning None survived a green selftest.
+    def open_common_voice(revision=None):
+        from datasets import load_dataset
+        kw = dict(split="train", streaming=True)
+        if revision:
+            kw["revision"] = revision
+        # `datasets` 2.16 and later refuse to execute a dataset loading script
+        # unless told to, and the reachable Common Voice mirror is a script.
+        # Without this the route raises, we fall through to a corpus with no
+        # gender metadata, and nineteen briefs get filtered by nothing.
         try:
-            # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
-            # VCTK mirrors are script-backed, so without this `datasets`
-            # asks "Do you wish to run the custom code? [y/N]" — and a CI
-            # runner cannot answer a prompt, so every id declined itself.
+            ds = load_dataset(CV_DATASET, "en", trust_remote_code=True, **kw)
+        except TypeError:
+            # Older or newer versions that do not know the argument.
+            ds = load_dataset(CV_DATASET, "en", **kw)
+        def matches(row, spec):
+            g = (row.get("gender") or "").strip()
+            a = (row.get("age") or "").strip()
+            # Through the shared normaliser, not a raw string compare: the
+            # vocabularies differ between corpora and a mismatch here is
+            # silent.
+            if spec.get("gender") and same_gender(g, spec["gender"]) is False:
+                return False
+            if spec.get("age") and a and a not in spec["age"]:
+                return False
+            if not accent_ok(row.get("accents") or row.get("accent"),
+                             spec.get("accent")):
+                return False
+            # A row with no metadata at all is not a match — it is an
+            # unknown, and filling a shortlist with unknowns is the same as
+            # not filtering.
+            return bool(g)
+        return ds, "client_id", "audio", matches
+
+    def open_vctk():
+        from datasets import load_dataset
+        last = None
+        for name in VCTK_DATASETS:
             try:
-                ds = load_dataset(name, split="train", streaming=True,
-                                  trust_remote_code=True)
-            except TypeError:
-                ds = load_dataset(name, split="train", streaming=True)
-            break
-        except Exception as e:              # noqa: BLE001 - try the next id
-            last = e
-    else:
-        raise last or RuntimeError("no VCTK id resolved")
+                # SAME PERMISSION THE COMMON VOICE OPENER NEEDED. All three
+                # VCTK mirrors are script-backed, so without this `datasets`
+                # asks "Do you wish to run the custom code? [y/N]" — and a CI
+                # runner cannot answer a prompt, so every id declined itself.
+                try:
+                    ds = load_dataset(name, split="train", streaming=True,
+                                      trust_remote_code=True)
+                except TypeError:
+                    ds = load_dataset(name, split="train", streaming=True)
+                break
+            except Exception as e:              # noqa: BLE001 - try the next id
+                last = e
+        else:
+            raise last or RuntimeError("no VCTK id resolved")
 
-    def matches(row, spec):
-        g = same_gender(row.get("gender") or row.get("sex"),
-                        spec.get("gender"))
-        if g is False:
-            return False
-        if g is None:
-            return False        # no gender on the row is not a match
-        if not accent_ok(row.get("accent") or row.get("accents"),
-                         spec.get("accent")):
-            return False
-        band = age_band(row.get("age"))
-        if spec.get("age") and band and band not in spec["age"]:
-            return False
-        return True
+        def matches(row, spec):
+            g = same_gender(row.get("gender") or row.get("sex"),
+                            spec.get("gender"))
+            if g is False:
+                return False
+            if g is None:
+                return False        # no gender on the row is not a match
+            if not accent_ok(row.get("accent") or row.get("accents"),
+                             spec.get("accent")):
+                return False
+            band = age_band(row.get("age"))
+            if spec.get("age") and band and band not in spec["age"]:
+                return False
+            return True
 
-    return ds, "speaker_id", "audio", matches
+        return ds, "speaker_id", "audio", matches
 
-def open_libritts():
-    ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
-                      streaming=True)
-    def matches(row, spec):
-        # LibriTTS carries no age or gender in the row, so every brief
-        # sees every speaker and the filtering is your ears. Said out
-        # loud rather than silently pretending the filter worked.
-        return True
-    return ds, "speaker_id", "audio", matches
+    def open_libritts():
+        from datasets import load_dataset
+        ds = load_dataset(LIBRITTS_DATASET, "clean", split="train.clean.100",
+                          streaming=True)
+        def matches(row, spec):
+            # LibriTTS carries no age or gender in the row, so every brief
+            # sees every speaker and the filtering is your ears. Said out
+            # loud rather than silently pretending the filter worked.
+            return True
+        return ds, "speaker_id", "audio", matches
 
     if source == "libritts":
         return [("libritts", open_libritts)]
@@ -1170,6 +1176,27 @@ def selftest():
     write_wav(tmp, joined)
     check(abs(seconds_of(tmp) - secs) < 0.01, "a written clip reads back the same length")
     shutil.rmtree(tmp.parent, ignore_errors=True)
+
+    # THE ROUTES ARE A SHAPE, AND THE SHAPE IS TESTABLE WITHOUT A NETWORK.
+    # `_routes_for` returned None for one commit -- an extraction pushed the
+    # three openers out to module level, so the function body was a docstring
+    # and an import. The selftest passed all twenty-nine checks anyway, because
+    # not one of them called it, and the failure surfaced as a TypeError in CI
+    # thirty seconds into a job.
+    #
+    # Opening a corpus needs the internet. Checking that the factory returns a
+    # non-empty list of (name, callable) does not, and that is the half that
+    # broke.
+    for _src in ("", "libritts", "commonvoice"):
+        _r = _routes_for(_src, CAST)
+        check(isinstance(_r, list) and len(_r) > 0,
+              "_routes_for(%r) returns a non-empty list" % _src, repr(_r)[:60])
+        check(all(isinstance(n, str) and callable(o) for n, o in (_r or [])),
+              "_routes_for(%r) returns (name, callable) pairs" % _src)
+    check([n for n, _ in _routes_for("", CAST)][0] == "vctk",
+          "vctk is tried first, which is the corpus decision that was made")
+    check(_routes_for("libritts", CAST)[0][0] == "libritts",
+          "an explicit --source libritts does not silently try others first")
 
     print(f"\n{ok} passed, {fail} failed")
     return 1 if fail else 0
