@@ -288,6 +288,8 @@ namespace Ledger.Game
                     break;
             }
 
+            Wheels(root, v.Kind, len, wid, hi);
+
             if (v.Kind.Id != "bike")
             {
                 // Headlamps. Emissive at night through the same window material
@@ -315,6 +317,81 @@ namespace Ledger.Game
             var col = go.GetComponent<Collider>();
             if (col != null) Destroy(col);   // Core owns collision; a physics body would fight it
             return go.transform;
+        }
+
+        /// A wheel, which every vehicle in this city has been driving without.
+        ///
+        /// THE ONE TELL THAT SURVIVES FOG. The traffic already has per-kind
+        /// silhouettes — a truck's cab and load, a bus's window band, a car's
+        /// cabin set back off the bonnet — and headlamps that carry it at
+        /// night. It still read as boxes sliding down the road, because a box
+        /// with no wheels is a box however well proportioned, and the eye finds
+        /// the missing wheel before it finds anything else.
+        ///
+        /// Cheap in the way the art direction wants: Unity's cylinder is one
+        /// shared built-in mesh, so four per vehicle costs four draws of
+        /// geometry that already exists and no new asset at all.
+        ///
+        /// The cylinder's axis runs up its Y with radius 0.5 and height 2, so
+        /// the scale below is (diameter, width/2, diameter) and the rotation
+        /// lays that axis along X — across the car, which is the way an axle
+        /// goes.
+        void Wheel(Transform parent, string name, float x, float z, float radius, float width)
+        {
+            var t = Part(parent, name, new Vector3(x, radius, z),
+                         new Vector3(radius * 2f, width * 0.5f, radius * 2f),
+                         AssetLibrary.Asphalt);
+            t.GetComponent<MeshFilter>().sharedMesh = WheelMesh();
+            t.localRotation = Quaternion.Euler(0f, 0f, 90f);
+        }
+
+        /// Set once from a throwaway cylinder, because `Part` builds cubes and
+        /// this is the only round thing in the traffic. `Mannequin` learned the
+        /// same lesson: take the built-in mesh, share it, and never let a
+        /// primitive per instance become a mesh per instance.
+        static Mesh _wheelMesh;
+
+        static Mesh WheelMesh()
+        {
+            if (_wheelMesh != null) return _wheelMesh;
+            var probe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            _wheelMesh = probe.GetComponent<MeshFilter>().sharedMesh;
+            Destroy(probe);
+            return _wheelMesh;
+        }
+
+        /// Where the axles sit, per kind. Derived from the kind's own
+        /// dimensions rather than authored per vehicle, so a kind whose size
+        /// changes keeps its wheels underneath it.
+        void Wheels(Transform root, VehicleKind kind, float len, float wid, float hi)
+        {
+            float r = Mathf.Clamp(hi * 0.20f, 0.22f, 0.55f);
+            float w = kind.Id == "bike" ? 0.10f : 0.20f;
+            float axle = len * 0.32f;
+
+            if (kind.Id == "bike")
+            {
+                // Two, in line, and slightly larger for their body — a bicycle
+                // or a motorbike is mostly wheel.
+                float br = Mathf.Clamp(hi * 0.28f, 0.24f, 0.45f);
+                Wheel(root, "wheelF", 0f, len * 0.35f, br, w);
+                Wheel(root, "wheelR", 0f, -len * 0.35f, br, w);
+                return;
+            }
+
+            float side = wid * 0.5f;
+            Wheel(root, "wheelFL", -side, axle, r, w);
+            Wheel(root, "wheelFR", side, axle, r, w);
+            Wheel(root, "wheelRL", -side, -axle, r, w);
+            Wheel(root, "wheelRR", side, -axle, r, w);
+
+            // A SECOND REAR AXLE ON THE HEAVY ONES, which is what actually
+            // distinguishes a lorry from a long car at a glance.
+            if (kind.Id == "truck" || kind.Id == "bus")
+            {
+                Wheel(root, "wheelRL2", -side, -axle + len * 0.14f, r, w);
+                Wheel(root, "wheelRR2", side, -axle + len * 0.14f, r, w);
+            }
         }
 
         void Lamp(Transform parent, string name, Vector3 local)
