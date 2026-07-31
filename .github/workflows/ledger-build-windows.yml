@@ -29,10 +29,20 @@ jobs:
       - uses: actions/checkout@v4
         timeout-minutes: 2
         with:
-          # Nothing here pushes, and the credential it would otherwise persist
-          # costs about 1.5KB of git-config unwinding in POST-job cleanup —
-          # which matters because the log API returns a fixed ~4KB tail of the
-          # job and that cleanup is what has been burying the sim's verdict.
+          # The credential this would otherwise persist costs about 1.5KB of
+          # git-config unwinding in POST-job cleanup — which matters because the
+          # log API returns a fixed ~4KB tail of the job, and that cleanup is
+          # what has been burying the sim's verdict.
+          #
+          # THIS USED TO SAY "nothing here pushes". Then the review-stills step
+          # was added, which pushes, and it failed six times in a row and
+          # reported success because it is `continue-on-error`. The comment was
+          # true when written and the change that falsified it never came back
+          # here — which is the argument for not reading a comment as evidence
+          # about the code beside it.
+          #
+          # The trade-off still holds, so the credential stays out of the job
+          # and the one step that pushes carries its own.
           persist-credentials: false
 
       # Runs in a second, before eight minutes of Unity install. Catches the one
@@ -214,13 +224,27 @@ jobs:
         if: always()
         continue-on-error: true
         shell: bash
+        env:
+          # The job checks out with `persist-credentials: false`, so this is the
+          # only step that can push and it brings its own credential.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # AND IT SAYS WHAT HAPPENED SOMEWHERE READABLE. This step failed six
+          # times and reported success, and the reason was undiagnosable from
+          # outside: `continue-on-error` hides the exit code, and this step's log
+          # sits above the fixed ~4KB tail the log API returns, which post-job
+          # cleanup fills entirely. The step summary is the one channel out of a
+          # job here that survives — it is how the sim verdict already gets home.
+          say() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          echo "## Review stills" >> "$GITHUB_STEP_SUMMARY"
+
           shopt -s nullglob
           shots=(sim-run/sim-out/review_*.jpg)
           if [ ${#shots[@]} -eq 0 ]; then
-            echo "no review stills — the sim did not reach a screenshot"
+            say "no review stills — the sim did not reach a screenshot"
             exit 0
           fi
+          say "${#shots[@]} still(s) rendered"
           mkdir -p game-design/sim-shots
           cp "${shots[@]}" game-design/sim-shots/
           ls -la game-design/sim-shots/
@@ -228,7 +252,7 @@ jobs:
           git config user.email "noreply@anthropic.com"
           git add game-design/sim-shots
           if git diff --cached --quiet; then
-            echo "stills identical to the committed ones — nothing to commit"
+            say "stills identical to the committed ones — nothing to commit"
             exit 0
           fi
           git commit -m "Sim stills from ${GITHUB_SHA:0:7}
@@ -244,13 +268,26 @@ jobs:
           # retrying the identical push six times just fails six times and drops
           # the stills on the floor. The retry loop was written for flaky
           # networks and reads every rejection as one.
+          # THE CREDENTIAL, FOR THIS STEP ONLY — see the checkout step above.
+          origin="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # REDIRECTED, NOT PIPED. `git push | sed` reports SED's exit status,
+          # which is zero whatever git did — a retry loop that can never observe
+          # a failure, bolted onto a step whose entire problem was failing
+          # invisibly. The log is filtered afterwards so the token cannot reach
+          # a public log.
           for i in 1 2 3 4 5 6; do
-            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
+            if git push "$origin" HEAD:${GITHUB_REF_NAME} > "$RUNNER_TEMP/push.log" 2>&1; then
+              say "pushed ${#shots[@]} still(s) to ${GITHUB_REF_NAME}"
+              exit 0
+            fi
+            sed "s|${GH_TOKEN}|***|g" "$RUNNER_TEMP/push.log" || true
             echo "push failed, attempt $i — refetching and rebasing"
-            git fetch origin ${GITHUB_REF_NAME} || true
+            git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1 || true
             git rebase FETCH_HEAD || { git rebase --abort || true; }
             sleep $((2 ** i))
           done
+          say "PUSH FAILED after 6 attempts — the stills did not land"
           exit 1
 
       - name: Upload simulation report
