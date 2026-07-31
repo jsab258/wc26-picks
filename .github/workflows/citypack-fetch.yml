@@ -160,6 +160,11 @@ jobs:
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "textures before: $n"
 
+      # Validated against the committed catalogue with no network, so a typo
+      # fails in a second rather than as a surface that silently did not arrive.
+      - name: Validate the choices offline
+        run: python3 tools/citypack/fetch_textures.py --validate
+
       - name: Fetch the chosen assets
         id: fetch
         run: python3 tools/citypack/fetch_textures.py --fetch

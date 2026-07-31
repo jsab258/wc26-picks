@@ -248,9 +248,52 @@ def load_choices():
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def validate():
+    """Every chosen id exists and publishes the wanted size — checked against
+    the committed catalogue, with no network at all.
+
+    This is the whole payoff of pulling the catalogue once. A typo in
+    `choices.json` used to be discoverable only by spending a CI run and
+    reading which surface came back empty; now it is a local command that takes
+    a second, and the fetch refuses to start without it."""
+    choices = load_choices()
+    if choices is None:
+        return 1
+    path = HERE / "catalogue.json"
+    if not path.exists():
+        print("no catalogue.json — run --catalogue first; skipping validation")
+        return 0
+    cat = {a["id"]: a.get("sizes", [])
+           for a in json.loads(path.read_text(encoding="utf-8")).get("assets", [])}
+    want = choices.get("resolution", RESOLUTION)
+    bad = []
+    for surface, aid in sorted(choices.get("surfaces", {}).items()):
+        if aid not in cat:
+            bad.append(f"{surface}: {aid} is not in the catalogue")
+        elif want not in cat[aid]:
+            bad.append(f"{surface}: {aid} does not publish {want} ({cat[aid]})")
+        else:
+            print(f"  ok  {surface:<12} {aid}")
+    for b in bad:
+        print("  FAIL " + b)
+    missing = [s for s in SURFACES if s not in choices.get("surfaces", {})]
+    if missing:
+        bad.append("no choice for: " + ", ".join(missing))
+        print("  FAIL no choice for: " + ", ".join(missing))
+    print(f"{len(choices.get('surfaces', {})) - len(bad)}/{len(SURFACES)} surfaces "
+          "chosen, existing, and available at the wanted size")
+    return 1 if bad else 0
+
+
 def fetch():
     choices = load_choices()
     if choices is None:
+        return 1
+    # REFUSE TO START ON A BAD LIST. A typo here costs a CI run and comes back
+    # as a surface that silently did not arrive, which is the failure mode the
+    # catalogue exists to remove.
+    if validate() != 0:
+        print("choices.json does not validate — not fetching anything")
         return 1
     textures = PACK / "textures"
     materials = PACK / "materials"
@@ -330,11 +373,15 @@ def main():
                     help="pull EVERY material id once; every later question is local")
     ap.add_argument("--inventory", action="store_true",
                     help="ask the catalogue what exists; download nothing")
+    ap.add_argument("--validate", action="store_true",
+                    help="check choices.json against the catalogue; no network")
     ap.add_argument("--fetch", action="store_true",
                     help="download the assets named in choices.json")
     args = ap.parse_args()
     if args.catalogue:
         return catalogue()
+    if args.validate:
+        return validate()
     if args.inventory:
         return inventory()
     if args.fetch:
