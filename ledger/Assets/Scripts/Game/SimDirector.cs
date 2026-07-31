@@ -185,6 +185,11 @@ namespace Ledger.Game
             CaptionBar.Ensure();
             _npcs = UnityEngine.Object.FindObjectsByType<NpcWalker>(FindObjectsSortMode.None);
             foreach (var npc in _npcs) _startPositions[npc.DisplayName] = npc.transform.position;
+            // Phase 3 reports witnesses by id, and turning an id back into the
+            // person who has to react to blood on your coat needs the list.
+            ViolenceHost.Reset();
+            ViolenceHost.BindWalkers(_npcs);
+            CoatHost.Reset();
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
         }
 
@@ -796,6 +801,8 @@ namespace Ledger.Game
                 _waypointIndex = (_waypointIndex + 1) % Waypoints.Length;
 
             StageConfrontation(now);
+            StageThePlaces(now);
+            StageCarryAndThreat(now);
             StagePerception(now, ref target);
             _player.AutoMoveTarget = target;
 
@@ -828,10 +835,25 @@ namespace Ledger.Game
             // Indelible on arrival — Core's rule, not this file's. What is
             // decided here is only what the fact SAYS, because the map and the
             // words belong to the game.
+            // ONE READING OF THE CLOCK PER FRAME, and it has to be taken
+            // unconditionally.
+            //
+            // This used to be taken inside the `InFlight.Count > 0` guard
+            // below, which works for deliveries by luck: with nothing in
+            // flight, nothing needs the delta. Blood ages on the same clock,
+            // and with the reading still inside the guard a stain taken on a
+            // quiet night would have sat un-aged until the next delivery and
+            // then been handed three days in one step.
+            double gameMinutes = ElapsedGameMinutes(now);
+            // Blood does not fade usefully on its own — it dulls to a floor and
+            // stays there, which is the design: dealing with it is a decision
+            // rather than a timer you wait out.
+            ViolenceHost.AgeStain(gameMinutes);
+
             if (_game != null && _game.Gossip != null && Witnesses.InFlight.Count > 0)
             {
                 int landed = Witnesses.Tick(
-                    ElapsedGameMinutes(now),
+                    gameMinutes,
                     _game.Gossip.Mill, now,
                     d =>
                     {
@@ -1390,6 +1412,49 @@ namespace Ledger.Game
                 if (n != null && n.DisplayName == displayName) return n;
             return null;
         }
+        // ---- §4.7's HEADLINE CLAIM, which nothing has ever tested ----------
+        //
+        // *The same killing leaves no witness in an empty alley, several in a
+        // market, and none in the back room of a busy pub.* That is the done-
+        // condition for Phase 3 and it is a claim about the WORLD, not about
+        // the resolver: CoreTests can prove `Observe.Resolve` distinguishes
+        // vantages it is handed, and only a running street can prove the
+        // street produces vantages that differ this way.
+        //
+        // NO TELEPORTING, and no authored coordinates. The three places are
+        // found by measuring the street the run actually built: for every
+        // walker, how many OTHER walkers stand within sight range with a clear
+        // line, and how many stand within range with a wall between. That
+        // gives the three cases their honest definitions —
+        //
+        //   the empty alley       fewest people who can see it
+        //   the market            most people who can see it
+        //   the pub's back room   people are close, and every one is blocked
+        //
+        // — and if the world contains no such arrangement, the gate says so
+        // rather than inventing one. A world with no enclosed busy place is a
+        // finding about the world.
+        const int PlacesStageOnDay = 12;
+        bool _placesStaged;
+        int _placesAlley = -1, _placesMarket = -1, _placesEnclosed = -1;
+        string _placesWhy = "not reached";
+
+        /// PHASE 3's other verbs — carry, the frisk, the threat, the blood.
+        /// Day nine: the open city, after the campaign week has been decided,
+        /// for exactly the reason the confrontation waits until day ten. A
+        /// probe that alters the outcome measured beside it is not a probe.
+        const int CarryStagesOnDay = 9;
+        bool _carryStaged, _friskStaged, _threatStaged, _washTried;
+        int _carryTook;
+        bool _carryIsAChoice, _carryCanTakeAll;
+        Coat.Refusal _friskRefusalCost = Coat.Refusal.Allowed;
+        double _friskFound, _friskCost;
+        /// Somebody with no grounds must NOT get to search you. The negative
+        /// case, because a gate that only checks the positive one is testing
+        /// half a rule.
+        bool _friskGroundlessHappened = true;
+        bool _washFailedInPublic, _washWorkedAtHome;
+
         const int SlamsWanted = 4;
         /// Did a slam actually put a circle on the ground? Checked in the same
         /// frame as the Emit, because `Show` is synchronous — so this is the
@@ -1841,6 +1906,227 @@ namespace Ledger.Game
             _confrontOpenedAt = Time.time;
             Debug.Log($"SimDirector: staged a confrontation with {_confrontTarget} at "
                       + $"{best:0.0}m, suspicion now {g.Suspicion.Value:0.00}");
+        }
+
+        /// THE REST OF PHASE 3 — the threat, the coat, the frisk, the blood.
+        ///
+        /// Not one of these had a call site. The player cannot press a button
+        /// for any of them yet, so the same argument that justifies staging a
+        /// deed applies: the only way to find out whether the verbs work
+        /// against a live street is for the run to perform them. Every input
+        /// they take comes from the world; only the decision to act is staged.
+        void StageCarryAndThreat(GameTime now)
+        {
+            if (_player == null || now.Day < CarryStagesOnDay) return;
+            // The nearest walker, found here rather than threaded in: this runs
+            // from a different place in Update than the deed staging does, and
+            // a `nearest` computed three hundred lines away is a variable that
+            // silently means something else the day somebody moves a call.
+            NpcWalker nearestForThreat = null;
+            if (_npcs != null)
+            {
+                float best = float.MaxValue;
+                foreach (var n in _npcs)
+                {
+                    if (n == null) continue;
+                    float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                    if (d < best) { best = d; nearestForThreat = n; }
+                }
+                if (best > Perceivers.NearBandMetres) nearestForThreat = null;
+            }
+
+            // ---- what is in the coat, once ----
+            //
+            // Two objects that will not both fit, so `IsAChoice` is TRUE and
+            // the decision at the door is a real one. A razor is Damning, a
+            // cosh is Concealable, and the capacity rule says so rather than
+            // this file deciding it.
+            if (!_carryStaged)
+            {
+                _carryStaged = true;
+                var razor = Traces.Acquire("sim-razor", "razor", Traces.Origin.Ordinary, "a drawer");
+                var cosh = Traces.Acquire("sim-cosh", "cosh", Traces.Origin.Inherited, "Mickey");
+                // A bat is `Concealment.Impossible` — not carried under a coat
+                // at all, but carried VISIBLY, which is a different decision.
+                // Three objects that cannot all come is what makes `IsAChoice`
+                // true, and a run where everything fits proves nothing.
+                var bat = Traces.Acquire("sim-bat", "bat", Traces.Origin.Ordinary, "the yard");
+                CoatHost.Store(razor); CoatHost.Store(cosh); CoatHost.Store(bat);
+                _carryTook = 0;
+                if (CoatHost.Carry(cosh)) _carryTook++;
+                if (CoatHost.Carry(razor)) _carryTook++;
+                if (CoatHost.Carry(bat)) _carryTook++;
+                _carryIsAChoice = CoatHost.IsAChoice;
+                _carryCanTakeAll = CoatHost.CanTakeEverything;
+                Debug.Log($"SimDirector: coat — took {_carryTook} of 3, on me {CoatHost.OnMe.Count}, "
+                          + $"at home {CoatHost.AtHome.Count}, isAChoice={_carryIsAChoice}, "
+                          + $"canTakeEverything={_carryCanTakeAll}");
+            }
+
+            // ---- the frisk, both answers ----
+            //
+            // Refused once and allowed once, because refusing is an answer and
+            // costs something different depending on who asked. Both branches
+            // or the gate only proves half the verb.
+            if (!_friskStaged && _game.Gossip != null)
+            {
+                _friskStaged = true;
+                double heat = Feel.Clamp01(_game.CurrentHeat);
+                var refused = CoatHost.Frisk(Coat.Frisker.Doorman, 0.2,
+                                             placeHasARule: true, makingAPoint: false,
+                                             streetHeat: heat, playerRefuses: true);
+                var searched = CoatHost.Frisk(Coat.Frisker.Constable, 0.7,
+                                              placeHasARule: false, makingAPoint: false,
+                                              streetHeat: heat, playerRefuses: false);
+                // AND THE ONE THAT MUST NOT HAPPEN: nobody with no grounds gets
+                // to search you. A frisk is never at random, and a gate that
+                // never checks the negative case is testing half a rule.
+                var groundless = CoatHost.Frisk(Coat.Frisker.Constable, 0.05,
+                                                placeHasARule: false, makingAPoint: false,
+                                                streetHeat: heat, playerRefuses: false);
+                _friskRefusalCost = refused.IfRefused;
+                _friskFound = searched.WorstFind;
+                _friskCost = searched.Cost;
+                _friskGroundlessHappened = groundless.Happened;
+                Debug.Log($"SimDirector: frisk — refusing a doorman is {_friskRefusalCost}; "
+                          + $"a constable found {_friskFound:0.00} costing {_friskCost:0.00} "
+                          + $"at heat {heat:0.00}; groundless search happened={_friskGroundlessHappened}");
+            }
+
+            // ---- the threat ----
+            if (!_threatStaged && nearestForThreat != null)
+            {
+                _threatStaged = true;
+                var cosh = Arsenal.Get("cosh");
+                var t = ViolenceHost.Brandish(cosh, nearestForThreat,
+                                              _player.transform.position,
+                                              inPublic: true,
+                                              reputationForViolence: 0.7,
+                                              targetNerve: 0.2);
+                Debug.Log($"SimDirector: brandished a cosh at {nearestForThreat.DisplayName} -> {t}"
+                          + $" (canUndraw={ViolenceHost.CanUndraw()})");
+            }
+
+            // ---- and the blood, which is the part that costs time ----
+            //
+            // Aged on the game clock so it dulls to the floor rather than
+            // vanishing, offered to everybody near enough to see it, and then
+            // washed — which needs water, privacy and twenty-five minutes, and
+            // fails without any one of them.
+            if (ViolenceHost.PlayerStain != null)
+            {
+                // Ageing happens once a frame on the hoisted clock reading, up
+                // in the delivery block. This is only who can see it.
+                ViolenceHost.NoticeStain(_player.transform.position, _npcs, null);
+                if (!_washTried && now.Hour >= 2 && now.Hour <= 4)
+                {
+                    _washTried = true;
+                    // The failing attempt first, and it must fail: no privacy
+                    // in the street, whatever the clock says.
+                    _washFailedInPublic = !ViolenceHost.WashStain(Traces.WashMinutes,
+                                                                  hasWaterAndPrivacy: false);
+                    _washWorkedAtHome = ViolenceHost.WashStain(Traces.WashMinutes,
+                                                               hasWaterAndPrivacy: true);
+                    Debug.Log($"SimDirector: blood — failed in public={_washFailedInPublic}, "
+                              + $"washed at home={_washWorkedAtHome}, "
+                              + $"noticed by {ViolenceHost.StainsNoticed}, "
+                              + $"worst social cost {ViolenceHost.WorstStainCost:0.00}");
+                }
+            }
+        }
+
+        /// §4.7's headline claim, staged on the street the run actually built.
+        ///
+        /// The same act, three times, at three arrangements of people found by
+        /// measurement rather than authored as coordinates. Every number the
+        /// witnesses are judged on is the live world; only the act is
+        /// synthetic, exactly as the Phase 2 deed staging is.
+        void StageThePlaces(GameTime now)
+        {
+            if (_placesStaged || now.Day < PlacesStageOnDay) return;
+            if (_npcs == null || _npcs.Length < 3 || _player == null) return;
+
+            // For each walker: who else could see something happening to them.
+            NpcWalker alley = null, market = null, enclosed = null;
+            int alleyOpen = int.MaxValue, marketOpen = -1, enclosedBlocked = -1;
+            foreach (var subject in _npcs)
+            {
+                if (subject == null) continue;
+                Vector3 at = subject.transform.position;
+                int open = 0, blocked = 0;
+                foreach (var other in _npcs)
+                {
+                    if (other == null || other == subject) continue;
+                    float d = Vector3.Distance(other.transform.position, at);
+                    if (d > Perception.DetectRangeMetres) continue;
+                    if (Perceivers.Occluded(other.transform.position + Vector3.up * 1.6f,
+                                            at + Vector3.up * 1.6f)) blocked++;
+                    else open++;
+                }
+                if (open < alleyOpen) { alleyOpen = open; alley = subject; }
+                if (open > marketOpen) { marketOpen = open; market = subject; }
+                // The back room: people are near, and a wall is between every
+                // one of them and the act. `open == 0` is the whole point —
+                // an enclosed place with a sightline is just a room.
+                if (open == 0 && blocked > enclosedBlocked)
+                { enclosedBlocked = blocked; enclosed = subject; }
+            }
+
+            if (alley == null || market == null)
+            {
+                _placesWhy = "the street produced no arrangement to measure";
+                return;
+            }
+            // NOT A FAILURE, A FINDING. If the world has no place where people
+            // are close and all of them are blocked, then it has no back room,
+            // and that is a fact about the world worth printing rather than a
+            // reason to fake a third case.
+            if (enclosed == null) _placesWhy = "no enclosed busy place exists in this world";
+            else _placesWhy = "ok";
+
+            _placesStaged = true;
+            _placesAlley = WitnessesToAKillingAt(alley, "places-alley");
+            _placesMarket = WitnessesToAKillingAt(market, "places-market");
+            _placesEnclosed = enclosed != null
+                ? WitnessesToAKillingAt(enclosed, "places-enclosed") : -1;
+
+            Debug.Log($"SimDirector: §4.7 places — alley={_placesAlley} (open {alleyOpen}), "
+                      + $"market={_placesMarket} (open {marketOpen}), "
+                      + $"enclosed={_placesEnclosed} (blocked {enclosedBlocked}) — {_placesWhy}");
+        }
+
+        /// One killing, at this person, with the player standing beside them.
+        ///
+        /// The actor needs a transform with a position and a facing, and the
+        /// player is somewhere else entirely — so a throwaway one is placed a
+        /// metre off and turned to face the victim. That is the geometry of
+        /// somebody standing over somebody, and it is the only synthetic part.
+        int WitnessesToAKillingAt(NpcWalker victim, string eventId)
+        {
+            if (victim == null) return -1;
+            Vector3 victimAt = victim.transform.position;
+            var stand = new GameObject("sim-actor");
+            try
+            {
+                Vector3 offset = victim.transform.forward * -1f;
+                if (offset.sqrMagnitude < 0.01f) offset = Vector3.forward;
+                stand.transform.position = victimAt + offset;
+                stand.transform.LookAt(new Vector3(victimAt.x, stand.transform.position.y, victimAt.z));
+
+                // THE SAME KILLING, all three times. Same weapon, same lethality,
+                // same everything — if the three numbers differ it is because
+                // the places differ, which is the entire claim.
+                var weapon = Arsenal.Get("cosh");
+                var after = ViolenceHost.Commit(weapon, stand.transform, victim, eventId,
+                                                lethal: true, now: _game.Now,
+                                                harm: _game.Harm,
+                                                familiarityWithActor: 0.0);
+                return after != null ? after.SawSomething : -1;
+            }
+            finally
+            {
+                Destroy(stand);
+            }
         }
 
         void MeasureAo()
@@ -3631,6 +3917,64 @@ namespace Ledger.Game
                       ? " NEVER-REACHED-THE-STAGING-DAY" : "") + "]",
                  suspicionActs),
                 ($"frame[mean={meanFrameMs:0.0}ms budget=300 {frameWhere}]", frameOk),
+
+                // §4.7's HEADLINE CLAIM, AND IT IS GATED ON THE ORDER RATHER
+                // THAN ON A NUMBER.
+                //
+                // "The same killing leaves no witness in an empty alley,
+                // several in a market, and none in the back room of a busy
+                // pub." What "several" means is not knowable until a run has
+                // said so, and inventing a figure for it is how `nightNotDarker`
+                // came to fail on a thousandth. The claim itself is ordinal —
+                // fewest where nobody is, most where everybody is, none behind
+                // a wall — so that is what this asserts, and the three raw
+                // counts are printed beside it so an absolute gate can be set
+                // from evidence on a later run.
+                //
+                // The enclosed case is skipped when the world contains no
+                // place where people are near and every one of them is
+                // blocked. That is a finding about the world, and `placesWhy`
+                // says so rather than the gate quietly passing.
+                ($"places[alley={_placesAlley} market={_placesMarket} "
+                 + $"enclosed={_placesEnclosed} why={_placesWhy}]",
+                 _placesStaged
+                 && _placesMarket > _placesAlley
+                 && (_placesEnclosed < 0 || _placesMarket > _placesEnclosed)),
+
+                // THE REST OF PHASE 3, and every clause is a rule that had no
+                // caller before tonight rather than a number somebody picked.
+                //
+                //   the coat is a decision   three objects, two fit
+                //   refusing has a price     and it differs by who asked
+                //   a frisk is never random  nobody with no grounds searches you
+                //   blood needs a place      the same wash fails in the street
+                //                            and works at home
+                ($"carry[took={_carryTook}/3 choice={_carryIsAChoice} all={_carryCanTakeAll} "
+                 + $"refuse={_friskRefusalCost} found={_friskFound:0.00} cost={_friskCost:0.00} "
+                 + $"groundless={_friskGroundlessHappened} frisks={CoatHost.Frisks} "
+                 + $"refused={CoatHost.FrisksRefused}]",
+                 _carryStaged && _friskStaged
+                 && _carryTook > 0 && !_carryCanTakeAll && _carryIsAChoice
+                 && _friskRefusalCost == Coat.Refusal.NotGoingIn
+                 && _friskFound > 0 && _friskCost > 0
+                 && !_friskGroundlessHappened
+                 && CoatHost.Frisks == 1 && CoatHost.FrisksRefused == 1),
+
+                ($"blood[taken={ViolenceHost.StainsTaken} noticed={ViolenceHost.StainsNoticed} "
+                 + $"washed={ViolenceHost.StainsWashed} publicFailed={_washFailedInPublic} "
+                 + $"atHome={_washWorkedAtHome} worstCost={ViolenceHost.WorstStainCost:0.00}]",
+                 ViolenceHost.StainsTaken > 0
+                 && (!_washTried || (_washFailedInPublic && _washWorkedAtHome))),
+
+                ($"threat[brandishes={ViolenceHost.Brandishes} last={ViolenceHost.LastThreat} "
+                 + $"fled={ViolenceHost.ThreatsThatFled} called={ViolenceHost.ThreatsCalled} "
+                 + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()}]",
+                 ViolenceHost.Brandishes > 0 && !ViolenceHost.CanUndraw()),
+
+                ($"killings[acts={ViolenceHost.Acts} killings={ViolenceHost.Killings} "
+                 + $"confidence={ViolenceHost.PeakKillingConfidence:0.00} "
+                 + $"fleeing={ViolenceHost.FleeingVictims}]",
+                 ViolenceHost.Killings > 0 && ViolenceHost.PeakKillingConfidence > 0),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
                  $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
                 ($"preset[low vs high changes {100 * _presetFraction:0.0}% of the frame]", presetOk),

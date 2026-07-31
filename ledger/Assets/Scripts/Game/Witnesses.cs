@@ -89,6 +89,19 @@ namespace Ledger.Game
             foreach (var npc in Object.FindObjectsByType<NpcWalker>(FindObjectsSortMode.None))
             {
                 if (npc == null) continue;
+                // THE VICTIM IS NOT A BYSTANDER, and this loop counted them as
+                // one. They stand at distance zero with a clear sightline, so
+                // they resolved to a full sighting every time — which means
+                // `Saw` could never be zero for any act at all, and a killing
+                // in an empty alley had one witness: the man on the ground.
+                //
+                // `Reaction.AsVictim` owns the target's account and always
+                // has; it is the function that knows a dead man is not a
+                // witness, and combat-spec §2's whole trade turns on that. Two
+                // paths were producing the victim's view, one of them wrong,
+                // and Phase 3 is what made it visible — nothing before this
+                // ever asked whether a specific place had NO witnesses.
+                if (npc.DisplayName == deed.VictimId) continue;
                 float toEvent = Vector3.Distance(npc.transform.position, victimAt);
                 if (toEvent > ConsiderMetres) continue;
                 Considered++;

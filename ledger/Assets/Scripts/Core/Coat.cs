@@ -34,7 +34,17 @@ namespace Ledger.Core
 
         /// Take something with you. Fails when it will not fit under the coat,
         /// which is the entire limit.
-        public bool Take(Traces.Item it)
+        ///
+        /// NAMED `Carry` AND NOT `Take`, which it was until Phase 3 wired it.
+        /// `lint-usings.py` reads a call to `.Take(...)` as LINQ's and demands
+        /// `using System.Linq` — so every Game file that carried something got
+        /// a lint error for a method that is ours. The reach check has the
+        /// matching problem in the other direction: it matches by name, so a
+        /// LINQ `.Take` anywhere in the Game layer made this read as reached
+        /// while nothing carried anything. Two instruments confused by one
+        /// name, and `Carry` is the better verb for a file about what you
+        /// bring with you anyway.
+        public bool Carry(Traces.Item it)
         {
             if (it == null || it.Disposed || _onMe.Contains(it)) return false;
             var w = Arsenal.Get(it.WeaponId);

@@ -10230,26 +10230,26 @@ namespace Ledger.CoreTests
             var bat = Traces.Acquire("t", "bat", Traces.Origin.Bought, "kass");
             var sawn = Traces.Acquire("s", "sawnoff", Traces.Origin.Taken, "joey");
 
-            Check(coat.Take(knife) && coat.OnMe.Count == 1, "coat: one knife goes with you");
-            Check(coat.Take(cosh), "coat: and a cosh");
-            Check(coat.Take(knife) == false, "coat: you cannot take the same thing twice");
+            Check(coat.Carry(knife) && coat.OnMe.Count == 1, "coat: one knife goes with you");
+            Check(coat.Carry(cosh), "coat: and a cosh");
+            Check(coat.Carry(knife) == false, "coat: you cannot take the same thing twice");
 
             var full = new Coat();
-            full.Take(blade);
-            full.Take(cosh);
-            Check(!full.Take(Traces.Acquire("i", "icepick", Traces.Origin.Ordinary, null)),
+            full.Carry(blade);
+            full.Carry(cosh);
+            Check(!full.Carry(Traces.Acquire("i", "icepick", Traces.Origin.Ordinary, null)),
                   "coat: two things plus a damning one does not fit");
 
             var innocents = new Coat();
-            innocents.Take(Traces.Acquire("i2", "icepick", Traces.Origin.Ordinary, null));
-            innocents.Take(Traces.Acquire("b2", "bottle", Traces.Origin.Ordinary, null));
-            Check(innocents.Take(Traces.Acquire("k2", "kitchenknife", Traces.Origin.Ordinary, null)),
+            innocents.Carry(Traces.Acquire("i2", "icepick", Traces.Origin.Ordinary, null));
+            innocents.Carry(Traces.Acquire("b2", "bottle", Traces.Origin.Ordinary, null));
+            Check(innocents.Carry(Traces.Acquire("k2", "kitchenknife", Traces.Origin.Ordinary, null)),
                   "coat: three innocent things do");
 
             var loud = new Coat();
-            Check(loud.Take(bat), "coat: a bat can be carried");
-            Check(!loud.Take(sawn), "coat: but not alongside a sawn-off");
-            Check(loud.Take(Traces.Acquire("k3", "kitchenknife", Traces.Origin.Ordinary, null)),
+            Check(loud.Carry(bat), "coat: a bat can be carried");
+            Check(!loud.Carry(sawn), "coat: but not alongside a sawn-off");
+            Check(loud.Carry(Traces.Acquire("k3", "kitchenknife", Traces.Origin.Ordinary, null)),
                   "coat: a bat in your hand and a knife in your coat is a real loadout");
 
             // THE DECISION ONLY EXISTS WHILE SOMETHING MUST BE LEFT BEHIND.
@@ -10266,7 +10266,7 @@ namespace Ledger.CoreTests
                   "coat: with one object there is nothing to decide");
 
             var carried = new Coat();
-            carried.Take(blade);
+            carried.Carry(blade);
             carried.Store(blade);
             Check(carried.OnMe.Count == 0 && carried.AtHome.Count == 1,
                   "coat: what you leave at home is not on you");
@@ -10295,9 +10295,9 @@ namespace Ledger.CoreTests
                   "frisk: refuse the outfit and it is worse than the search");
 
             var damning = new Coat();
-            damning.Take(blade);
+            damning.Carry(blade);
             var innocent = new Coat();
-            innocent.Take(Traces.Acquire("k4", "kitchenknife", Traces.Origin.Ordinary, null));
+            innocent.Carry(Traces.Acquire("k4", "kitchenknife", Traces.Origin.Ordinary, null));
             Check(damning.WorstFind() > innocent.WorstFind(),
                   "frisk: a switchblade is worse to be caught with than a kitchen knife");
             Check(innocent.WorstFind() == 0, "frisk: and a kitchen knife is nothing at all");
@@ -10307,8 +10307,8 @@ namespace Ledger.CoreTests
             // the LEAST incriminating thing on you survived. A frisk finds the
             // worst thing in the coat, not the average and not the best.
             var mixed = new Coat();
-            mixed.Take(Traces.Acquire("m1", "kitchenknife", Traces.Origin.Ordinary, null));
-            mixed.Take(Traces.Acquire("m2", "switchblade", Traces.Origin.Bought, "kass"));
+            mixed.Carry(Traces.Acquire("m1", "kitchenknife", Traces.Origin.Ordinary, null));
+            mixed.Carry(Traces.Acquire("m2", "switchblade", Traces.Origin.Bought, "kass"));
             Check(mixed.WorstFind() == Arsenal.FriskCost(Arsenal.Get("switchblade")),
                   "frisk: a kitchen knife does not excuse the switchblade beside it",
                   $"{mixed.WorstFind():0.00}");
@@ -10321,7 +10321,7 @@ namespace Ledger.CoreTests
             var used = Traces.Acquire("u", "switchblade", Traces.Origin.Bought, "kass");
             Traces.Used(used, "killed", "tony");
             var carryingIt = new Coat();
-            carryingIt.Take(used);
+            carryingIt.Carry(used);
             Check(carryingIt.CarryingSomethingUsed(),
                   "frisk: a weapon with a killing in its history is a different order of problem");
             Check(!damning.CarryingSomethingUsed(), "frisk: a clean one is not");

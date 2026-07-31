@@ -155,7 +155,20 @@ namespace Ledger.Game
             floor += Mathf.Clamp(peopleNearby * 0.9f, 0f, 8f);
             if (Weather.Rain > 0.15f)
                 floor += Perception.AmbientRainAdds * Mathf.Clamp01(Weather.Rain);
-            return floor;
+            // AND WHEN THE STREET GOES QUIET, IT GETS QUIETER.
+            //
+            // `Notice.FlooredBy` has existed since the hush was written and
+            // had no caller anywhere — so the room going silent because
+            // everybody is looking at you changed the picture and not the
+            // sound, which is exactly backwards. A hush takes the crowd out of
+            // the bed but not the rain, the traffic or the sea, so the drop is
+            // bounded rather than total, and that rule lives in Core.
+            //
+            // It bites only during a hush: with nobody attending, `Hush` is 0
+            // and this returns the floor unchanged. What it buys is the moment
+            // the design is actually about — the street stops talking, and now
+            // a sound you would never have heard carries.
+            return Notice.FlooredBy(floor, Hush);
         }
 
         /// Degrees between where this transform is facing and that point.
