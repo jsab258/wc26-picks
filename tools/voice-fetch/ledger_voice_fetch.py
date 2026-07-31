@@ -158,17 +158,17 @@ CAST = [
     # Six anonymous voices. The bar here is INVERTED: a crowd voice you can
     # recognise stops being a crowd, so the right pick is the dullest one.
     dict(id="crowd_m1", name="CROWD — male, young", tier="crowd",
-         accent="english", gender="male_masculine", age=("twenties",), brief=None),
+         accent="any", gender="male_masculine", age=("twenties",), brief=None),
     dict(id="crowd_m2", name="CROWD — male, middle", tier="crowd",
-         accent="scottish", gender="male_masculine", age=("fourties",), brief=None),
+         accent="any", gender="male_masculine", age=("fourties",), brief=None),
     dict(id="crowd_m3", name="CROWD — male, older", tier="crowd",
-         accent="english", gender="male_masculine", age=("sixties",), brief=None),
+         accent="any", gender="male_masculine", age=("sixties",), brief=None),
     dict(id="crowd_f1", name="CROWD — female, young", tier="crowd",
-         accent="english", gender="female_feminine", age=("twenties",), brief=None),
+         accent="any", gender="female_feminine", age=("twenties",), brief=None),
     dict(id="crowd_f2", name="CROWD — female, middle", tier="crowd",
-         accent="scottish", gender="female_feminine", age=("fourties",), brief=None),
+         accent="any", gender="female_feminine", age=("fourties",), brief=None),
     dict(id="crowd_f3", name="CROWD — female, older", tier="crowd",
-         accent="english", gender="female_feminine", age=("sixties",), brief=None),
+         accent="any", gender="female_feminine", age=("sixties",), brief=None),
 ]
 
 CROWD_BRIEF = ("Anonymous. The bar here is INVERTED: they must be "
@@ -463,6 +463,12 @@ def accent_ok(row_value, spec_value):
     """
     want = (spec_value or "").strip().lower()
     got = canon_accent(row_value)
+    # "any" IS NOT THE SAME AS UNSET. Unset means "some accent I recognise";
+    # `any` means the brief genuinely does not care, including the accents
+    # this file has no name for. It exists for the crowd, where a mixed wash
+    # is the correct answer rather than a compromise.
+    if want == "any":
+        return True
     if not want:
         return got in ("american", "english", "scottish", "irish",
                        "northernirish", "canadian", "welsh", "australian", "")
@@ -1826,6 +1832,17 @@ def selftest():
           "a Scottish speaker cannot fill an American brief")
     check(accent_ok("NorthernIrish", "northernirish") and not accent_ok("", "irish"),
           "an unknown accent cannot satisfy a named one")
+    # "any" IS A REAL VALUE, NOT AN EMPTY ONE. Unset means "an accent I have
+    # a name for"; `any` means the brief does not care at all. The crowd
+    # needs the second, and an Indian voice on a British dock is the case
+    # that distinguishes them.
+    check(accent_ok("Indian", "any") and accent_ok("Scottish", "any")
+          and accent_ok("", "any"),
+          "an `any` brief takes every accent, including ones with no canon name")
+    check(not accent_ok("Indian", ""),
+          "while an unset brief still means an accent this file can name")
+    check(all(c["accent"] == "any" for c in CAST if c["tier"] == "crowd"),
+          "and the crowd asks for any of them, because a dock town is mixed")
     # THE PROPERTY, NOT THE VALUE. This check was written when the base
     # accent was American and it asserted the literal string, so when the
     # city became British it went red for a change that was correct — while
@@ -1839,7 +1856,19 @@ def selftest():
           str(sorted(_base)))
     # And that base has to be the majority of the cast, or "base" is just a
     # word for the accent five people happen to have.
-    _all = [c["accent"] for c in CAST]
+    #
+    # THE CROWD IS EXCLUDED FROM THAT COUNT, DELIBERATELY. Their briefs ask
+    # for `any` accent now: the principals had taken nearly every English
+    # speaker in VCTK and the last three crowd slots were starving, but the
+    # real argument is not the shortage — a crowd in a British dock town
+    # SHOULD be mixed, and a uniformly English one was the wrong picture all
+    # along. It is the same reasoning that made Sam and Joey Scottish.
+    #
+    # So the base accent is a claim about the people you meet and talk to,
+    # not about the background wash. Counting a deliberately mixed crowd
+    # against it would make this check contradict the design it exists to
+    # protect. Among the thirteen named characters English is still 8.
+    _all = [c["accent"] for c in CAST if c["tier"] != "crowd"]
     check(_base and _all.count(list(_base)[0]) > len(_all) / 2,
           "and that accent is the majority of the whole cast, not just the principals",
           "%s = %d of %d" % (list(_base)[0] if _base else "?",

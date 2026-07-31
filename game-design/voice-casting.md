@@ -20,10 +20,36 @@ See `setting-britain-2026-07-31.md`.
 | **Sam, Joey, Rita** | scottish | being from elsewhere as characterisation rather than noise |
 | **Vesna** | northernirish | came from elsewhere and learned it here — keep her the outsider |
 | **Father Emil** | irish | Irish clergy in a British port is the ordinary case, not a flourish |
-| Crowd | english ×4, scottish ×2 | the background is where a port city sounds like one |
+| Crowd (6) | **any** | see below — the background is where a port city sounds like one |
 
 One American slot is held in reserve rather than deleted, for a character who
 earns being visibly not from here.
+
+### The crowd takes any accent — 2026-07-31
+
+The six pool voices asked for English and Scottish, and the last three of them
+starved: the principals had claimed nearly every English speaker VCTK has, and
+a targeted run for the remaining slots came back with nothing at all.
+
+The shortage is what forced the question, but it is not the answer. **A crowd
+in a British dock town should be mixed.** A uniformly English background was
+the wrong picture regardless of what the corpus could supply — it is the same
+argument that made Sam and Joey Scottish, applied to the people who never get
+named. Irish, Welsh, Indian and Scottish voices in the wash of a port city are
+not texture added on top; they are what a port city sounds like.
+
+So the crowd briefs ask for `any`, which is a distinct value from unset: unset
+means "an accent this file has a name for", `any` means the brief genuinely
+does not care. An Indian voice on the dock front satisfies `any` and is
+rejected by unset, which is exactly the distinction wanted.
+
+**The base accent is now measured over the thirteen named characters, not all
+nineteen.** English is 8 of 13 there and still clearly the base. Counting a
+deliberately mixed crowd against a "the base must dominate" check would make
+that check argue with the design it exists to protect.
+
+The three crowd voices already cast — crowd_m1 (English), crowd_m2 and
+crowd_f2 (Scottish) — are unaffected and are themselves a reasonable mix.
 
 **The principals must share the base, and the selftest enforces it.** My first
 draft gave Rocco and Sera Kest Scottish voices because the timbre suited them,
