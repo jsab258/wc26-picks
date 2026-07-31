@@ -11,7 +11,7 @@ brief printed above its players. You listen and type numbers. Nothing else.
 
 Options (all optional):
     --who lena,rocco        just these characters
-    --candidates 8          how many voices to offer per character (default 6)
+    --candidates 8          how many DISTINCT voices per character (default 4)
     --source libritts       fallback corpus if Common Voice is unreachable
     --selftest              prove the assembly logic with no network at all
     --install               after you have filled in picks.txt: build the
@@ -889,7 +889,9 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
 
     wanted = {}
     for c in cast:
-        wanted[c["id"]] = dict(spec=c, banked={}, done=[])
+        # `used` is the speakers this character already has a finished
+        # candidate from. Without it a shortlist can be one voice N times.
+        wanted[c["id"]] = dict(spec=c, banked={}, done=[], used=set())
 
     # THREE ROUTES, TRIED IN ORDER, because the first one broke on contact
     # and none of them can be tested from where this was written.
@@ -1069,11 +1071,30 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
         #
         # The first unfilled character to want a speaker claims them, and no
         # one else may bank them afterwards.
+        #
+        # AND ONE CANDIDATE PER SPEAKER, WHICH THE RULE ABOVE DOES NOT GIVE
+        # YOU. Jafar listened to the delivered page and said the four Lena
+        # candidates were plainly the same person. They were. `claimed` stops
+        # a speaker being shared BETWEEN characters and does nothing about a
+        # character taking the same speaker again: once Lena claimed p225,
+        # every later p225 row still matched her, she was still under quota,
+        # so she banked another candidate from the same voice. VCTK stores
+        # ~400 consecutive utterances per speaker, so she filled all six slots
+        # out of one speaker's block before the stream reached anybody else.
+        #
+        # The arithmetic was in the log the whole time: 20,000 rows is about
+        # fifty speakers, and six distinct voices for nineteen characters
+        # needs a hundred and fourteen. It was never possible, and the page
+        # did not show the speaker id, so nothing said so.
+        #
+        # A shortlist of one voice six times is not a shortlist.
         for cid, w in wanted.items():
             if len(w["done"]) >= candidates:
                 continue
             if owner is not None and owner != cid:
                 continue
+            if speaker in w["used"]:
+                continue          # already gave this character a candidate
             if speaker in w["banked"] or matches(row, w["spec"]):
                 if owner is None:
                     claimed[speaker] = cid
@@ -1102,6 +1123,7 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
                     # not show them. "Does this 24-year-old read as fifty?"
                     # is a fair question and an answerable one, but only if
                     # the number is on screen next to the play button.
+                    w["used"].add(speaker)
                     w["done"].append((speaker, clip_, q,
                                       age_gap(row.get("age"), w["spec"].get("age")),
                                       str(row.get("age") or "?")[:12],
@@ -1127,6 +1149,24 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
                               onbrief=(gap == 0),
                               seconds=round(len(samples) / float(SAMPLE_RATE), 1)))
         made[cid] = files
+
+    # DISTINCT VOICES, COUNTED AND SAID OUT LOUD. The run that delivered six
+    # candidates per character delivered one voice six times, reported "114
+    # candidate(s) for 19 of 19 characters", and was believed. A count of
+    # clips is not a count of choices, so both are printed and they must
+    # agree — if they ever diverge again the log says so before anybody
+    # spends an evening listening.
+    dupes = []
+    for cid, files in made.items():
+        ids = [f.get("speaker") for f in files if f.get("speaker")]
+        if ids and len(set(ids)) < len(ids):
+            dupes.append(f"{cid}({len(ids)} clips, {len(set(ids))} voices)")
+    voices = sum(len({f.get("speaker") for f in files if f.get("speaker")})
+                 for files in made.values())
+    print(f"  {sum(len(f) for f in made.values())} clip(s) from {voices} distinct voice(s)")
+    if dupes:
+        print("  SAME VOICE TWICE IN ONE SHORTLIST — that is not a shortlist: "
+              + ", ".join(dupes[:8]))
 
     # AND SAY WHAT IS MISSING. A truncated run that reports the same way as a
     # complete one is the thing that makes a half-empty listening page look
@@ -1195,7 +1235,14 @@ def build_page(cast, made, out_dir, source):
             # is rebuilt from clips on disk, where the corpus row is long gone.
             # A row of question marks reads as broken; a row without them reads
             # as a duration, which is what it is.
+            # THE SPEAKER ID IS ON THE PAGE. It was not, and that is how a
+            # shortlist of the same voice six times over got delivered and
+            # believed: nothing on screen distinguished six clips of one
+            # person from six people, so it took somebody listening to catch
+            # it. Two candidates showing the same id is now a visible fault
+            # rather than an audible one.
             f'<span class=meta>{f["seconds"]}s'
+            + (f' &middot; {f["speaker"]}' if f.get("speaker") else "")
             + (f' &middot; age {f["age"]}' if f.get("age") else "")
             + (f' &middot; {f["accent"]}' if f.get("accent") else "")
             + '</span></div>'
@@ -1730,7 +1777,10 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--who", default="")
-    ap.add_argument("--candidates", type=int, default=6)
+    # FOUR. A candidate is one distinct speaker now, and six each across the
+    # nineteen briefs needs 114 different people out of a corpus with 110,
+    # partitioned by accent and gender before anybody chooses.
+    ap.add_argument("--candidates", type=int, default=4)
     # WALL CLOCK, not rows. Three CI runs were killed by the job cap with
     # nothing to show, because the clips are written in one go at the end.
     # 0 disables it, which is right for a laptop nobody is billing.

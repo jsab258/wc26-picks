@@ -155,7 +155,14 @@ jobs:
           # On a `push` event `inputs.*` are EMPTY STRINGS — the defaults
           # declared above apply to manual runs only — so the first CI run
           # died instantly on `--candidates ` with no value.
-          CANDIDATES="${{ inputs.candidates }}"; CANDIDATES="${CANDIDATES:-6}"
+          # FOUR, NOT SIX, AND THE CORPUS DECIDES THAT — not taste. A
+          # candidate is now one distinct speaker, so six each across nineteen
+          # characters needs 114 different people. VCTK has 110 in total, and
+          # they are partitioned by accent and gender before anybody gets to
+          # choose: seven characters share the English women, five the English
+          # men, one has Northern Irish. Four is what those buckets can
+          # actually supply. Asking for six produced six clips of one voice.
+          CANDIDATES="${{ inputs.candidates }}"; CANDIDATES="${CANDIDATES:-4}"
           # VCTK, BY NAME. It was chosen and it was never used — the fetcher
           # merely tried it first and fell through to Common Voice without
           # saying so. Naming it here means a run either uses the corpus that
@@ -272,6 +279,16 @@ jobs:
           grep -E "source:|unavailable:|NOTE|rejected|fell back|TRUNCATED|stopping:" \
             tools/voice-fetch/fetch.log || echo "no source line found"
           echo "clips: $(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)"
+          # A COUNT OF CLIPS IS NOT A COUNT OF CHOICES. The run that shipped
+          # six clips per character shipped one voice six times and reported
+          # "114 candidate(s) for 19 of 19 characters" — true, and useless.
+          # If any shortlist repeats a speaker the job fails here.
+          if grep -q "SAME VOICE TWICE" tools/voice-fetch/fetch.log 2>/dev/null; then
+            grep "SAME VOICE TWICE" tools/voice-fetch/fetch.log
+            echo "::error::A shortlist contains the same speaker more than once."
+            echo "::error::Those are not alternatives to choose between."
+            FAILED=1
+          fi
           {
             echo "## Voice fetch verdict"
             echo "clips: $(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)"
@@ -289,6 +306,10 @@ jobs:
           # not lie about the outcome.
           if [ "$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)" -eq 0 ]; then
             echo "NO CLIPS PRODUCED — see the diagnose job and the summary above"
+            exit 1
+          fi
+          if [ -n "$FAILED" ]; then
+            echo "SHORTLISTS REPEAT A SPEAKER — see the lines above"
             exit 1
           fi
           echo "==========================="
