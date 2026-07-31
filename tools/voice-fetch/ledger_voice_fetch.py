@@ -985,6 +985,30 @@ def fetch(source, cast, candidates, out_dir, budget_minutes=0):
             "      python ledger_voice_fetch.py --source libritts")
 
     claimed = {}          # speaker -> the character who owns them
+
+    # A TARGETED RUN INHERITS WHO IS ALREADY SPOKEN FOR.
+    #
+    # `claimed` is built fresh each run, so cross-character exclusivity only
+    # ever held WITHIN one run. Fetching three missing crowd voices on their
+    # own started from an empty table and handed them the same speakers the
+    # first characters got last time: crowd_f1 came back as p230/p228/p229/
+    # p225 — Lena's exact shortlist, including p228, the voice that had just
+    # been cast AS Lena. A crowd voice you recognise stops being a crowd, and
+    # this one was the bookkeeper.
+    #
+    # Everybody on the existing page who is not being re-fetched keeps their
+    # speakers. The rule was always "one speaker, one character"; it just had
+    # no memory across runs.
+    _here = {c["id"] for c in cast}
+    for _cid, _rows in _rows_from_existing_page(out_dir).items():
+        if _cid in _here:
+            continue                      # being replaced by this run
+        for _r in _rows:
+            if _r.get("speaker"):
+                claimed[_r["speaker"]] = _cid
+    if claimed:
+        print(f"  {len(claimed)} speaker(s) already spoken for by "
+              f"{len({v for v in claimed.values()})} character(s) — not offered again")
     seen_rows = 0
     # A WALL-CLOCK BUDGET, because the row count was never the thing that ran
     # out. Three CI runs were killed by the job cap and every one of them
@@ -1761,6 +1785,35 @@ def selftest():
     # how every Common Voice age silently became "" and stopped filtering.
     check(age_band("thirties") == "thirties" and age_band("fifties") == "fifties",
           "a band that arrives as a word survives the round trip")
+    # A TARGETED RUN MUST NOT RE-OFFER SOMEBODY ELSE'S VOICE. Three missing
+    # crowd voices were fetched alone and came back holding Lena's entire
+    # shortlist, p228 included -- the clip she had just been cast from. The
+    # exclusivity rule was real and had no memory across runs.
+    import tempfile
+    _tmp = Path(tempfile.mkdtemp())
+    _rows = [dict(n=i, file=f"lena/candidate-{i:02d}.mp3", seconds=8.0,
+                  speaker=f"p{224 + i}", age="22", accent="English")
+             for i in range(1, 5)]
+    # build_page writes picks.txt at module scope; point it somewhere
+    # disposable without turning PICKS into a local in this function.
+    globals()["PICKS"] = _tmp / "picks.txt"
+    build_page([c for c in CAST if c["id"] == "lena"], {"lena": _rows}, _tmp, "vctk")
+    _back = _rows_from_existing_page(_tmp)
+    check([r["speaker"] for r in _back.get("lena", [])] == ["p225", "p226", "p227", "p228"],
+          "a page round-trips its speaker ids",
+          str([r.get("speaker") for r in _back.get("lena", [])]))
+    # The seeding is what fetch() does with that: everybody NOT in this run's
+    # cast keeps their speakers.
+    _here = {"crowd_f1"}
+    _claimed = {r["speaker"]: cid for cid, rs in _back.items() if cid not in _here
+                for r in rs if r.get("speaker")}
+    check(_claimed.get("p228") == "lena",
+          "and a run for crowd_f1 alone still finds Lena holding p228",
+          str(_claimed))
+    check("crowd_f1" not in _claimed.values(),
+          "while the character being re-fetched is left free to claim afresh")
+    shutil.rmtree(_tmp, ignore_errors=True)
+
     # AGE ORDERS, IT NEVER REJECTS. The single most expensive bug in this
     # pipeline was not a crash: sixteen of nineteen characters were unfillable
     # because the briefs ask for fourties/fifties/sixties and VCTK's speakers

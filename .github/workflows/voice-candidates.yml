@@ -145,6 +145,26 @@ jobs:
       # is what happened three times: runs 3, 4 and 5 all died on the cap and
       # every one produced EXACTLY ZERO clips, because the fetcher writes
       # everything in one go at the end.
+      # HAND THE FETCHER WHAT THE BRANCH ALREADY KNOWS.
+      #
+      # The fetcher writes to `ledger-voices-out`, which is not in the repo and
+      # is therefore EMPTY at the start of every run. Both of the memory
+      # features — inheriting who is already spoken for, and keeping other
+      # characters' rows on the page — read the previous page out of that same
+      # directory, so in CI they would have found nothing and done nothing,
+      # silently, while passing every check locally.
+      #
+      # Copying the committed page in first is the whole wiring.
+      - name: Seed the run with the existing page
+        run: |
+          mkdir -p tools/voice-fetch/ledger-voices-out
+          if [ -f voice-candidates/listen.html ]; then
+            cp voice-candidates/listen.html tools/voice-fetch/ledger-voices-out/
+            echo "seeded with $(grep -c '<section id=' voice-candidates/listen.html) characters"
+          else
+            echo "::warning::no existing page — this run has no memory of earlier ones"
+          fi
+
       - name: Fetch candidates
         id: fetch
         working-directory: tools/voice-fetch
@@ -187,7 +207,23 @@ jobs:
         run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
           mkdir -p ../../voice-candidates
-          rm -rf ../../voice-candidates/*
+          # ONLY CLEAR WHAT THIS RUN IS ABOUT TO REPLACE.
+          #
+          # This was `rm -rf ../../voice-candidates/*`, and a `--who` run for
+          # three missing crowd voices duly deleted the clips for the other
+          # sixteen characters — including every one Jafar had just spent an
+          # hour picking from. The fetcher had been made additive an hour
+          # earlier and it made no difference: the directory was wiped a step
+          # before the fetcher's output was ever copied in.
+          #
+          # The characters this run produced are exactly the directories in
+          # `ledger-voices-out`. Everything else is somebody else's work and
+          # stays where it is.
+          if [ -d ledger-voices-out ]; then
+            for d in ledger-voices-out/*/; do
+              rm -rf "../../voice-candidates/$(basename "$d")"
+            done
+          fi
           # An empty or missing output directory is a real outcome now that
           # the fetch can be cut short, and it must not take the job down —
           # the verdict below is the thing worth reading in that case.
@@ -236,6 +272,23 @@ jobs:
           # away by it for producing 76 clips where the branch had 114. Fewer
           # clips is only a fault when the run FAILED to produce them; a run
           # that completed and deliberately produces fewer is doing its job.
+          # AND PER CHARACTER, NOT JUST IN TOTAL. A count alone cannot see a
+          # run that adds twelve clips for three characters while removing
+          # fifty-three from sixteen others — and the totals guard, loosened
+          # an hour earlier to allow a deliberate reduction, waved exactly
+          # that through. A character that had clips and now has none is a
+          # loss whatever the totals say.
+          LOST=""
+          for c in $(git ls-tree -r HEAD --name-only voice-candidates 2>/dev/null \
+                     | grep '\.mp3$' | cut -d/ -f2 | sort -u); do
+            if [ -z "$(find "voice-candidates/$c" -name '*.mp3' 2>/dev/null)" ]; then
+              LOST="$LOST $c"
+            fi
+          done
+          if [ -n "$LOST" ]; then
+            echo "::error::REFUSING TO COMMIT — these characters had clips and now have none:$LOST"
+            exit 0
+          fi
           HAVE=$(git ls-tree -r HEAD --name-only voice-candidates 2>/dev/null | grep -c '\.mp3$' || true)
           GOT=$(find voice-candidates -name '*.mp3' 2>/dev/null | wc -l)
           echo "clips on branch: $HAVE   clips from this run: $GOT   fetch: ${{ steps.fetch.outcome }}"
