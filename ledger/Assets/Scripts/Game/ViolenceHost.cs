@@ -60,6 +60,8 @@ namespace Ledger.Game
         public static int ThreatsThatFled { get; private set; }
         public static int ThreatsCalled { get; private set; }
         public static int ThreatsComplied { get; private set; }
+        /// The object currently in the hand, drawn by `HeldObject`.
+        public static GameObject Held { get; private set; }
 
         /// Point it at somebody. Returns what they do about it.
         ///
@@ -71,13 +73,21 @@ namespace Ledger.Game
         public static Arsenal.Threat Brandish(Weapon w, NpcWalker target, Vector3 actorAt,
                                               bool inPublic, double reputationForViolence,
                                               double targetNerve, bool targetArmed = false,
-                                              bool targetIsOutfit = false)
+                                              bool targetIsOutfit = false,
+                                              Transform hand = null)
         {
             var threat = Arsenal.Brandish(w, targetNerve, targetArmed, targetIsOutfit,
                                           inPublic, reputationForViolence);
             Brandishes++;
             LastThreat = threat;
             LastThreatTarget = target != null ? target.DisplayName : null;
+
+            // AND IT IS IN YOUR HAND. Nineteen weapons existed as data with no
+            // mesh anywhere, so the most legible act in a game about being seen
+            // was invisible — a threat nobody could see being made. `Drawn`
+            // stays raised afterwards because `CanUndraw` is false: the object
+            // does not go away, which is the whole point of the verb.
+            if (hand != null) Held = HeldObject.Draw(hand, w);
 
             switch (threat)
             {
@@ -164,6 +174,8 @@ namespace Ledger.Game
             PlayerStain = null;
             LastThreat = Arsenal.Threat.Freeze;
             LastThreatTarget = null;
+            Held = null;
+            HeldObject.ResetCounters();
         }
 
         /// Do it, and let the world decide what that meant.

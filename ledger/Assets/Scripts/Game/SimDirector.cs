@@ -2136,9 +2136,15 @@ namespace Ledger.Game
                                               _player.transform.position,
                                               inPublic: true,
                                               reputationForViolence: 0.7,
-                                              targetNerve: 0.2);
+                                              targetNerve: 0.2,
+                                              // THE PLAYER'S OWN FOREARM, so the
+                                              // object is drawn on the body the
+                                              // camera can see rather than at a
+                                              // world position nothing is at.
+                                              hand: PlayerForearm());
                 Debug.Log($"SimDirector: brandished a cosh at {nearestForThreat.DisplayName} -> {t}"
-                          + $" (canUndraw={ViolenceHost.CanUndraw()})");
+                          + $" (canUndraw={ViolenceHost.CanUndraw()}, "
+                          + $"drawn={HeldObject.Drawn} {HeldObject.LastDrawn})");
             }
 
             // ---- and the blood, which is the part that costs time ----
@@ -2167,6 +2173,16 @@ namespace Ledger.Game
                               + $"worst social cost {ViolenceHost.WorstStainCost:0.00}");
                 }
             }
+        }
+
+        /// The transform a held object hangs off. `Mannequin` builds the body
+        /// today and the Humanoid right hand replaces it at M17.1; the offset
+        /// is measured from the wrist either way, so nothing here changes.
+        Transform PlayerForearm()
+        {
+            if (_player == null) return null;
+            var body = _player.GetComponent<Mannequin>();
+            return body != null ? body.RForearm : null;
         }
 
         /// §4.7's headline claim, staged on the street the run actually built.
@@ -4102,8 +4118,14 @@ namespace Ledger.Game
 
                 ($"threat[brandishes={ViolenceHost.Brandishes} last={ViolenceHost.LastThreat} "
                  + $"fled={ViolenceHost.ThreatsThatFled} called={ViolenceHost.ThreatsCalled} "
-                 + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()}]",
-                 ViolenceHost.Brandishes > 0 && !ViolenceHost.CanUndraw()),
+                 + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()} "
+                 + $"drawn={HeldObject.Drawn} object={HeldObject.LastDrawn ?? "none"}]",
+                 ViolenceHost.Brandishes > 0 && !ViolenceHost.CanUndraw()
+                 // AND SOMETHING WAS ACTUALLY PUT IN THE HAND. M17.8: the
+                 // threat is the most legible act in a game about being seen,
+                 // and until tonight the object being threatened with had no
+                 // mesh anywhere in the project.
+                 && HeldObject.Drawn > 0),
 
                 // PHASE 4's DONE-CONDITION, stated as the spec states it.
                 //
