@@ -1,30 +1,81 @@
 # Voice casting
 
-## Accent — decided 2026-07-30
+## Accent — decided 2026-07-30, moved 2026-07-31
 
-**American base, with the other accents as deliberate texture at the edges.**
-Chosen because the writing already sits in that register and because a city
-whose surnames run Novak, Vesna, Zlata, Farid and Ossei is a port built on
-arrivals — the non-American voices should read as *people who came from
-somewhere*, not as a lottery.
+**English base, with the other accents as deliberate texture at the edges.**
 
-Before this, accent was not written down anywhere in the project, so the
-fetcher's filter decided it by accident: roughly a third of VCTK is Scottish,
-distributed at random across the cast. Lena could come out Scottish and Rocco
-American for no reason anybody chose. It is now a per-character field
-alongside gender and age, and a brief that names an accent gets that accent
-or nothing.
+The first version of this table said *American* base, for a reason that was
+sound at the time: the writing sat in that register and the surnames read as a
+port built on arrivals. Jafar chose the British setting on 2026-07-31 and the
+premise turned out to be wrong in a useful way — counting whole words, the
+project was already writing `flat`, `colour`, `pavement`, `constable`,
+`neighbourhood`, `kerb`, and naming streets Saltmarket, Quay Street, The
+Esplanade, Weighhouse Lane. The city had been a British port town all along.
+See `setting-britain-2026-07-31.md`.
 
 | | accent | why |
 |---|---|---|
-| **All five principals** | american | one register at the centre, so the edges can differ and mean something |
-| Sam, Ada, Marla, Joey, Rita, Hal | american | the street the player lives on |
-| **Vesna** | english | came from elsewhere and learned it in Britain |
-| **Father Emil** | irish | reads instantly, and a priest is where the ear expects it |
-| Crowd | american ×3, scottish, english, irish | the background is where a port city sounds like one |
+| **All five principals** | english | one register at the centre, so the edges can differ and mean something |
+| Ada, Marla, Hal | english | the street the player lives on |
+| **Sam, Joey, Rita** | scottish | being from elsewhere as characterisation rather than noise |
+| **Vesna** | northernirish | came from elsewhere and learned it here — keep her the outsider |
+| **Father Emil** | irish | Irish clergy in a British port is the ordinary case, not a flourish |
+| Crowd | english ×4, scottish ×2 | the background is where a port city sounds like one |
 
-Change any single line of that table and re-run; nothing else needs touching.
+One American slot is held in reserve rather than deleted, for a character who
+earns being visibly not from here.
 
+**The principals must share the base, and the selftest enforces it.** My first
+draft gave Rocco and Sera Kest Scottish voices because the timbre suited them,
+and the check caught it: if the principals are split, the base is not a base
+and everything is texture.
+
+## Age is a preference, not a filter — 2026-07-31
+
+**This is what cost fifteen CI runs.** The briefs ask for fourties, fifties and
+sixties for almost every principal — Rocco is 50s, Ellis 40s, Reese fifty-ish.
+VCTK was recorded from university-age volunteers and its speakers are 19 to 38.
+Against this corpus those briefs could not be satisfied by anybody alive in it,
+and 27.7% of every rejection was that one field.
+
+The corpus was not the problem. **These are reference clips for casting a
+timbre, not the shipped performance**, and a speaker's chronological age does
+not decide whether the voice suits the part. A 38-year-old with a low, worn,
+dry voice is a better Rocco than a 55-year-old with a light one, and the only
+instrument that can tell them apart is somebody listening.
+
+So age never rejects. It orders: distance in decades from the nearest
+requested band, closest first, then cleanest recording. The listening page
+shows each candidate's real age and marks the on-brief decade with a green
+dot, because the listener is now the one weighing it.
+
+### What that changed, measured
+
+| | before | after |
+|---|---|---|
+| characters matching **nothing** | 16 of 19 | **0 of 19** |
+| rows accepted | 5.3% | **23.9%** |
+| rejected on age | 27.7% | **0%** |
+| accents the sample could see | English only | English, Scottish, Irish, NorthernIrish, Welsh, Indian |
+
+The accent column moved for a second reason: the diagnostic's sampling stride
+was 97, which over 60 samples walks the first 13% of a 44,000-row corpus. VCTK
+is ordered by speaker, so it was reading the first dozen speakers and reporting
+on the corpus. Stride is 401 now — prime, near VCTK's ~400 utterances per
+speaker — so each sample lands on a fresh voice.
+
+**The thin slots, and they are thin by accent rather than by age:** Emil
+(irish) and Vesna (northernirish) draw from a handful of speakers each, and
+the Scottish women (Rita, crowd_f2) are not much better. Those are the ones to
+watch on a short run; everybody else has depth.
+
+## The five picks made on 2026-07-30 are void
+
+They were selected with `accent="american"` as a hard filter, which in VCTK
+matches only the handful of Americans in it. Under the British decision they
+are the wrong accent. The listening was not wasted — it proved the pipeline end
+to end and calibrated what usable quality sounds like — but the picks go back
+in the pot.
 
 **Delegated by Jafar 2026-07-28** ("you decide"). Engine is **chatterbox**,
 decided on the direction test — see `production-plan-audio-art.md` §1i.
