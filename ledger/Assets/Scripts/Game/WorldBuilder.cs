@@ -311,7 +311,7 @@ namespace Ledger.Game
                 // half-empty. Cheap numbers doing district work.
                 var districtName = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ);
                 bool warehouses = districtName == "Ironside";
-                bool offices = districtName == "Downtown";
+                bool offices = districtName == "the Exchange";
                 bool villas = districtName == "Fairview";
                 bool resort = districtName == "Gullwing";
                 bool alongX = w >= d;

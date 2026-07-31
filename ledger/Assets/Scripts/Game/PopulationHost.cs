@@ -40,7 +40,7 @@ namespace Ledger.Game
         // the inverse; the Strip's workforce keeps night hours; Gullwing is
         // nearly empty both ways — that emptiness is its mechanic.
         public static readonly string[] Districts =
-            { "the Hook", "Copper Row", "Ironside", "Downtown", "the Strip", "Fairview", "Gullwing" };
+            { "the Hook", "Copper Row", "Ironside", "the Exchange", "the Parade", "Fairview", "Gullwing" };
         public static readonly int[] HomeShares = { 30, 28, 4, 3, 6, 22, 7 };
         public static readonly int[] WorkShares = { 24, 22, 20, 16, 9, 3, 6 };
 

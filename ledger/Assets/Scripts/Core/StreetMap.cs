@@ -172,7 +172,7 @@ namespace Ledger.Core
             // says institution like a street you have to commit to crossing.
             new District
             {
-                Id = "downtown", Name = "Downtown",
+                Id = "downtown", Name = "the Exchange",
                 AvenuesX = new double[] { -200, -170, -140, -110 },
                 AvenuesZ = new double[] { -26, 4, 34 },
                 NamesNorthSouth = new[] { "Chancery Lane", "Exchange Street", "Assay Row", "Bank Walk" },
@@ -187,10 +187,10 @@ namespace Ledger.Core
             // go with it. Danny Ro's ground.
             new District
             {
-                Id = "strip", Name = "the Strip",
+                Id = "strip", Name = "the Parade",
                 AvenuesX = new double[] { 96, 118, 140 },
                 AvenuesZ = new double[] { -44, -22, 0, 22, 44 },
-                NamesNorthSouth = new[] { "Gaslight Walk", "The Strip", "Stage Door Lane" },
+                NamesNorthSouth = new[] { "Gaslight Walk", "The Parade", "Stage Door Lane" },
                 NamesEastWest = new[] { "Cardroom Row", "Marquee Street", "Chorus Lane", "Late Street", "Morning After Lane" },
             },
             // FAIRVIEW, on the north-west rise (§7: **residential hills —

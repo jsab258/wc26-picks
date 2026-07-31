@@ -868,9 +868,12 @@ namespace Ledger.Game
             float a1 = -2f * r * Mathf.Cos(theta), a2 = r * r;
             float y1 = 0f, y2 = 0f;
 
-            const float MainsHz = 50f;   // the one number here that says which
-                                         // side of an ocean the city is on, and
-                                         // nobody has decided; it is a knob.
+            // SETTLED, 2026-07-31. This was flagged as the one number in the
+            // audio layer that said which side of an ocean the city is on,
+            // with nobody having decided. The city is British — see
+            // `setting-britain-2026-07-31.md` — so 50 is now the answer
+            // rather than the default that happened to be typed.
+            const float MainsHz = 50f;
             for (int i = 0; i < len; i++)
             {
                 float t = i / (float)SampleRate;
