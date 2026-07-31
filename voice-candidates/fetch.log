@@ -2,8 +2,8 @@ LEDGER voice fetcher 2026-07-28.1
   streaming vctk for 19 character(s), 6 candidate(s) each
   this scans the corpus rather than downloading it; expect a few minutes
 
-Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 70.2kB/s]
-Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 74.8kB/s]
+Downloading builder script:   0%|          | 0.00/5.15k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 5.15k/5.15k [00:00<00:00, 55.7kB/s]
+Downloading readme:   0%|          | 0.00/5.90k [00:00<?, ?B/s]Downloading readme: 100%|██████████| 5.90k/5.90k [00:00<00:00, 65.4kB/s]
 /usr/bin/xdg-open: 882: www-browser: not found
 /usr/bin/xdg-open: 882: links2: not found
 /usr/bin/xdg-open: 882: elinks: not found
@@ -15,16 +15,16 @@ xdg-open: no method available for opening '/home/runner/work/wc26-picks/wc26-pic
     vctk mirror CSTR-Edinburgh/vctk@parquet opened
   source: vctk
   audio: decoding with soundfile, not torchcodec
-    2000 rows scanned, 15 characters still short, 0.3 min spent
-    4000 rows scanned, 13 characters still short, 1.0 min spent
-    6000 rows scanned, 10 characters still short, 1.7 min spent
-    8000 rows scanned, 8 characters still short, 2.6 min spent
-    10000 rows scanned, 6 characters still short, 3.6 min spent
-    12000 rows scanned, 5 characters still short, 4.1 min spent
-    14000 rows scanned, 4 characters still short, 4.4 min spent
-    16000 rows scanned, 2 characters still short, 5.8 min spent
-    18000 rows scanned, 1 characters still short, 6.6 min spent
-    20000 rows scanned, 1 characters still short, 7.2 min spent
+    2000 rows scanned, 15 characters still short, 0.1 min spent
+    4000 rows scanned, 13 characters still short, 0.4 min spent
+    6000 rows scanned, 10 characters still short, 0.7 min spent
+    8000 rows scanned, 8 characters still short, 0.9 min spent
+    10000 rows scanned, 6 characters still short, 1.6 min spent
+    12000 rows scanned, 5 characters still short, 1.7 min spent
+    14000 rows scanned, 4 characters still short, 1.9 min spent
+    16000 rows scanned, 2 characters still short, 2.7 min spent
+    18000 rows scanned, 1 characters still short, 3.0 min spent
+    20000 rows scanned, 1 characters still short, 3.3 min spent
 
   114 candidate(s) for 19 of 19 characters
   page:  /home/runner/work/wc26-picks/wc26-picks/tools/voice-fetch/ledger-voices-out/listen.html
