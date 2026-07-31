@@ -162,6 +162,13 @@ namespace Ledger.Game
                 tm.anchor = TextAnchor.MiddleCenter;
                 tm.alignment = TextAlignment.Center;
                 tm.color = new Color(0.93f, 0.92f, 0.88f);
+                // THE SECOND PLATE ONLY WORKS IF THE FIRST ONE HAS A BACK.
+                // Both copies were drawing through the board and through each
+                // other, so every sign in the city read as forward and
+                // backward glyphs superimposed. `Hidden/LedgerText` culls the
+                // reverse face and respects depth, which makes the plate
+                // genuinely double-sided instead of doubly wrong.
+                WorldText.Adopt(tm);
             }
         }
 

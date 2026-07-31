@@ -56,6 +56,11 @@ namespace Ledger.Game
             npc._label.fontSize = 48;
             npc._label.anchor = TextAnchor.MiddleCenter;
             npc._label.color = new Color(1f, 1f, 1f, 0f);   // fades in on approach
+            // A NAME BELONGS TO SOMEBODY STANDING SOMEWHERE, so it goes behind
+            // what they are standing behind. The built-in text shader is
+            // ZTest Always, and a screenshot caught "Lucille Salas" lying
+            // across the rooftops at noon.
+            WorldText.Adopt(npc._label);
             labelGo.SetActive(false);
 
             return npc;

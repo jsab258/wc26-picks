@@ -1309,9 +1309,31 @@ namespace Ledger.Game
                 if (t.font == null) { _labelsFontless++; continue; }
                 if (t.preferredWidth <= 0.01f) _labelsBlank++;
             }
+            // AND THE WORLD TEXT, which is a different population from the UI
+            // labels above — TextMesh in the street rather than UGUI on the
+            // canvas. Counted because the screenshots that started this showed
+            // names lying across the skyline, and a shader assignment that
+            // quietly did nothing would look exactly like one that worked.
+            int worldText = 0, worldTextMaterialled = 0;
+            foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
+            {
+                if (t == null) continue;
+                worldText++;
+                var r = t.GetComponent<MeshRenderer>();
+                var sh = r != null && r.sharedMaterial != null ? r.sharedMaterial.shader : null;
+                if (sh != null && sh.name == "Hidden/LedgerText") worldTextMaterialled++;
+            }
+            _worldText = worldText;
+            _worldTextDepth = worldTextMaterialled;
+
             Debug.Log($"SimDirector: glyphs labels={_labels} fontless={_labelsFontless} "
-                      + $"blank={_labelsBlank}");
+                      + $"blank={_labelsBlank} worldText={worldText} "
+                      + $"depthTested={worldTextMaterialled} "
+                      + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
+                      + $"shader={WorldText.ShaderPresent}");
         }
+
+        int _worldText = -1, _worldTextDepth = -1;
 
         /// REPEATED, because a single A/B pair cannot tell a small effect
         /// from a noisy ruler.
@@ -4229,6 +4251,28 @@ namespace Ledger.Game
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
                 ("harm", harmOk), ("phones", phonesOk),
                 ($"ui[labels={_labels} fontless={_labelsFontless} blank={_labelsBlank}]", uiOk),
+
+                // WORLD TEXT SITS IN THE WORLD. Unity's built-in text shader
+                // is ZTest Always, and the first screenshot this project ever
+                // committed caught what that means: a walker's name lying
+                // across the rooftops, and every street sign reading as
+                // forward and backward glyphs superimposed because the
+                // double-sided plate's far copy drew straight through the
+                // board.
+                //
+                // Gated on the SHADER ACTUALLY BEING ON THEM rather than on
+                // having called the helper. `Shader.Find` returns null in a
+                // player for anything not in `Resources` — the noise ring
+                // spent three CI runs proving that — and `WorldText.Adopt`
+                // deliberately leaves the built-in material in place when the
+                // lookup fails, because an invisible sign is worse than a
+                // mirrored one. That fallback is safe and silent, which is
+                // exactly the combination that needs a gate over it.
+                ($"worldText[n={_worldText} depthTested={_worldTextDepth} "
+                 + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
+                 + $"shader={WorldText.ShaderPresent}]",
+                 _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
+                                     && WorldText.Refused == 0)),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
@@ -4565,6 +4609,7 @@ namespace Ledger.Game
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
+                      $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +
                       // mean/median/peak bodies within 20m and within 8m,

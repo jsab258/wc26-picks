@@ -110,6 +110,15 @@ namespace Ledger.Game
             b._text.alignment = TextAlignment.Center;
             b._text.color = colour;
 
+            // AND THIS ONE DELIBERATELY DOES NOT TAKE `WorldText`. Every other
+            // TextMesh in the game was moved onto a depth-testing shader
+            // because a name has a place in the world and should go behind
+            // what its owner goes behind. A spoken line does not: it is a
+            // thing you HEARD, and occlusion is already modelled here as
+            // clarity, on purpose — a shout through an open door still reads
+            // and a murmur behind glass does not. Depth-testing it would hide
+            // the shout entirely and say the opposite of what the ear did.
+            //
             // A line you only half caught is also a line you can barely see.
             // Fading with clarity rather than with distance means a shout
             // through an open door still reads, and a murmur behind glass
