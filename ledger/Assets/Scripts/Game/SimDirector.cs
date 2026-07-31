@@ -344,23 +344,77 @@ namespace Ledger.Game
                 var mill8 = _game.Gossip != null ? _game.Gossip.Mill : null;
                 if (mill8 != null)
                 {
-                    string topic = null; string value = null; double before = 0;
+                    // AND IT HAS TO BE A DENIABLE STORY.
+                    //
+                    // This took the strongest sensitive rumour in the day
+                    // circle, full stop — and once the open city had produced
+                    // four killings, the strongest sensitive rumour in the day
+                    // circle was a BODY. `Discredit` refuses those, on purpose
+                    // and loudly: "There is a body. No amount of denying makes
+                    // it not be there." So the gate denied the one story the
+                    // design guarantees cannot be denied, measured no change,
+                    // and reported the design working as a failure.
+                    //
+                    // Third time this month the instrument was the thing at
+                    // fault. The fix is not to weaken the rule; it is to test
+                    // BOTH rules, since the run now reliably produces one of
+                    // each: a deniable story must lose weight, and an
+                    // indelible one must be refused by name.
+                    string topic = null, value = null; double before = 0;
+                    string hardTopic = null, hardValue = null;
                     foreach (var a8 in mill8.Agents)
                         if (a8.Circle == "day")
                             foreach (var r8 in a8.Rumors)
-                                if (r8.Sensitive && r8.Confidence > before)
+                            {
+                                if (!r8.Sensitive) continue;
+                                if (r8.Indelible)
+                                {
+                                    if (hardTopic == null)
+                                    { hardTopic = r8.TopicKey; hardValue = r8.Content.Value; }
+                                    continue;
+                                }
+                                if (r8.Confidence > before)
                                 { before = r8.Confidence; topic = r8.TopicKey; value = r8.Content.Value; }
-                    if (topic == null) _discreditWorked = false;   // nothing to deny = the gate is lying
+                            }
+
+                    bool deniableOk;
+                    if (topic == null)
+                    {
+                        // Nothing deniable to deny. That is a finding about the
+                        // run, not a pass — the same "an absent measurement is
+                        // not a passing one" the frame gate learned.
+                        deniableOk = false;
+                        Debug.Log("SimDirector: discredit had no deniable sensitive story in the day circle");
+                    }
                     else
                     {
-                        mill8.Discredit(topic, value, _game.Now);
+                        var res = mill8.Discredit(topic, value, _game.Now);
                         double after8 = 0;
                         foreach (var a8 in mill8.Agents)
                             if (a8.Circle == "day")
                                 foreach (var r8 in a8.Rumors)
                                     if (r8.TopicKey == topic && r8.Confidence > after8) after8 = r8.Confidence;
-                        _discreditWorked = after8 < before;
+                        deniableOk = after8 < before && res.Affected > 0;
+                        Debug.Log($"SimDirector: discredit {topic}={value} {before:0.00}->{after8:0.00} "
+                                  + $"({res.Outcome}, {res.Affected} telling(s))");
                     }
+
+                    // The body, if the run made one. Reported either way so the
+                    // next run says whether this half was exercised at all.
+                    bool bodyRefused = true;
+                    if (hardTopic != null)
+                    {
+                        var hard = mill8.Discredit(hardTopic, hardValue, _game.Now);
+                        bodyRefused = hard.Outcome == DcOutcome.Indelible;
+                        Debug.Log($"SimDirector: discredit on a body -> {hard.Outcome} "
+                                  + $"({hard.Affected} affected), refused={bodyRefused}");
+                    }
+                    else
+                    {
+                        Debug.Log("SimDirector: no indelible story in the day circle to refuse");
+                    }
+
+                    _discreditWorked = deniableOk && bodyRefused;
                 }
             }
 
@@ -2713,6 +2767,31 @@ namespace Ledger.Game
             double meanFrameMs = Perf.MeanFrameMs;
             bool frameOk = meanFrameMs <= 0 || meanFrameMs < 300;
 
+            // AND WHERE IT WENT, on the same line as the number.
+            //
+            // The gate failed at 302.9 against 300 and the verdict could say
+            // nothing about why, because `Perf` had two scopes in the entire
+            // project. A failure that names no cause gets its threshold moved,
+            // which is the wrong repair and the easy one — so the budget stays
+            // where it is until a run has actually attributed the growth.
+            //
+            // `render` is the residue rather than a scope: this runner has no
+            // GPU and software-rasterises 1280x720 with bloom, AO, reflections
+            // and grain, so most of the frame is expected to land there, and a
+            // frame regression that does NOT is the interesting kind.
+            var perFrame = new List<string>();
+            double attributed = 0;
+            foreach (var name in new[] { "npcs", "population", "sun", "checks", "traffic", "signals" })
+            {
+                var c = Perf.Get(name);
+                if (c == null || c.Samples == 0) { perFrame.Add($"{name}=none"); continue; }
+                double perFrameMs = Perf.FrameCount > 0 ? c.TotalMs / Perf.FrameCount : 0;
+                attributed += perFrameMs;
+                perFrame.Add($"{name}={perFrameMs:0.00}ms");
+            }
+            perFrame.Add($"render+rest={Math.Max(0, meanFrameMs - attributed):0.00}ms");
+            string frameWhere = string.Join(" ", perFrame);
+
 
             // The vehicle description (spec §4). Only meaningful if the bot was
             // seen at all; when it was, somebody must be able to describe the car.
@@ -3551,7 +3630,7 @@ namespace Ledger.Game
                  (_confrontUnreached && _confrontTarget == null
                       ? " NEVER-REACHED-THE-STAGING-DAY" : "") + "]",
                  suspicionActs),
-                ($"frame[mean={meanFrameMs:0.0}ms budget=300]", frameOk),
+                ($"frame[mean={meanFrameMs:0.0}ms budget=300 {frameWhere}]", frameOk),
                 ($"mix[duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} " +
                  $"bus={_busMusicMin:0.000}..{_busMusicMax:0.000}]", mixOk),
                 ($"preset[low vs high changes {100 * _presetFraction:0.0}% of the frame]", presetOk),

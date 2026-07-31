@@ -644,16 +644,31 @@ namespace Ledger.Game
 
             Perf.Frame(SimMode.Days > 0 ? step : Time.unscaledDeltaTime);
 
-            UpdateSun();
+            // WHERE THE FRAME ACTUALLY GOES, because until now nothing knew.
+            //
+            // `Perf` had exactly two scopes in the whole project — traffic and
+            // signals — and the frame gate failed at 302.9ms against a budget
+            // of 300 with 298 of those milliseconds unattributed. A gate whose
+            // failure message cannot say WHAT grew is a gate that gets its
+            // threshold raised, which is the wrong repair and the easy one.
+            //
+            // These four cover everything this class does per frame; whatever
+            // the frame total minus their sum comes to is rendering, which on
+            // a GPU-less runner is expected to be most of it. The next run
+            // says which, and the number moves only once something has been
+            // attributed.
+            using (Perf.Time("sun")) UpdateSun();
             // Level of detail before ticking, so a walker spawned this frame
             // starts from the right place rather than the origin.
-            TickPopulation(_player != null ? _player.transform.position : Vector3.zero);
-            for (int i = _npcs.Count - 1; i >= 0; i--)
-            {
-                var npc = _npcs[i];
-                if (npc == null) { _npcs.RemoveAt(i); continue; }  // despawned crowd
-                npc.Tick(Now);
-            }
+            using (Perf.Time("population"))
+                TickPopulation(_player != null ? _player.transform.position : Vector3.zero);
+            using (Perf.Time("npcs"))
+                for (int i = _npcs.Count - 1; i >= 0; i--)
+                {
+                    var npc = _npcs[i];
+                    if (npc == null) { _npcs.RemoveAt(i); continue; }  // despawned crowd
+                    npc.Tick(Now);
+                }
 
             // Once per game-hour, let rumors cool if nobody is keeping them alive — this
             // is what makes the player's "lie low and let it blow over" option real.
@@ -694,12 +709,32 @@ namespace Ledger.Game
             // Every frame, not on the 30-frame cadence: a door you hear half a
             // second after you walk through it is worse than no door at all.
             CheckBarDoor();
+            // EVERY FRAME, FOR THE SAME REASON AS THE DOOR: it is a proximity
+            // test, and a proximity test sampled on a frame cadence has a
+            // window that shrinks as the frame rate falls.
+            //
+            // It sat inside the thirty-frame block below and `suspicionActs`
+            // had never once gone green. The staging works — CI reports
+            // `staged=Ada` — and then reports `confronts=0` across seven days
+            // of open city. The reason is arithmetic: the CI runner has no GPU
+            // and software-rasterises at about 300ms a frame, so thirty frames
+            // is NINE SECONDS. A walker crosses the four-metre trigger in
+            // about five. The check was sampling straight past the encounter
+            // it exists to detect, and reporting that as a fact about the game
+            // rather than about its own cadence.
+            //
+            // At sixty frames a second the old cadence was half a second and
+            // fine, which is exactly why this survived: it is only wrong on
+            // the machine that measures it. The cost of moving it is one
+            // distance comparison per walker per frame, the same shape as
+            // `CheckBarDoor` above.
+            CheckConfrontations();
             if (Time.frameCount % 30 == 0)
             {
+                using var _checkScope = Perf.Time("checks");
                 CheckGates();
                 CheckLoyalWarnings();
                 CheckOssei();
-                CheckConfrontations();
                 CheckBarks();
                 CheckOsseiInterviews();
                 CheckOnboarding();
