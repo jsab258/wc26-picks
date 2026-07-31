@@ -95,6 +95,22 @@ def reach():
     return False, m.group(0) if m else "reach-check did not report (build failure?)"
 
 
+def shape_files():
+    """Layer 2 of the testing system, for the half that lives in files.
+
+    `TextShape` covers every line the game generates and CoreTests sweeps it.
+    This covers the clips and the manifests, where a fault is never a compile
+    error and never a failing assertion — it is a clip that plays as silence,
+    or two characters cast with the same throat."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "shape-check.py")])
+    if "shape ok" in out:
+        return True, "shape ok (clips, barks, manifests)"
+    m = re.search(r"(\d+) problem\(s\)", out)
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "SHAPE: %s%s" % (m.group(1) + " problem(s): " if m else "",
+                                   bad[0][:90] if bad else "did not report")
+
+
 def stale_anchors():
     """Every break's anchor, checked for a single exact match.
 
@@ -148,7 +164,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, reach, stale_anchors, core_tests):
+    for fn in (lint, shape, reach, shape_files, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

@@ -30,6 +30,14 @@ jobs:
             --allow ledger/ReachCheck/allow.json
       - name: Docs check (LIVE / SPEC / LOG)
         run: python3 tools/docs-check.py
+      # LAYER 2 — SHAPE, file side. The clips and the manifests: a clip that
+      # plays as silence and two characters cast with the same throat are both
+      # things no assertion in this project had ever looked for, and one of
+      # them was found by Jafar listening.
+      - name: Shape check (clips, barks, manifests)
+        run: python3 tools/shape-check.py
+      - name: Shape check — the checker itself, watched failing
+        run: python3 tools/shape-check.py --selftest
       - name: Run core test suite
         run: dotnet run --project ledger/CoreTests -c Release
       - name: Run AI playtest (fake mode)

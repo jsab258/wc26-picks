@@ -45,6 +45,7 @@ namespace Ledger.CoreTests
                 TestActOne();
                 TestDistrictPulse();
                 TestStreetVoice();
+                TestTextShape();
                 TestDamageControl();
                 TestCampaign();
                 TestPlayerKnowledge();
@@ -409,6 +410,212 @@ namespace Ledger.CoreTests
             return (mill, witness, day);
         }
 
+        /// LAYER 2 — SHAPE. The rules themselves, then every surface that makes
+        /// a line, swept.
+        ///
+        /// The order matters: a checker nobody has watched fail is worth as
+        /// little as a test nobody has watched fail, and the sweep below is
+        /// only meaningful if the thing doing the sweeping actually fires. So
+        /// the first half feeds it known-bad and known-good strings, including
+        /// every exemption — because an over-strict shape check is worse than
+        /// none. It gets switched off, and then so does the rule it protected.
+        static void TestTextShape()
+        {
+            Console.WriteLine("Text shape — the form of a line, not its meaning (Layer 2):");
+
+            // Each rule fires on the defect it is named for.
+            Check(!TextShape.IsWellFormed("the new owner was at the warehouse."),
+                "a line that opens lowercase is malformed — THE original bug");
+            Check(!TextShape.IsWellFormed("Don't quote me. the new owner was there."),
+                "and so is a lowercase sentence after a full stop — the other half of it");
+            Check(!TextShape.IsWellFormed("Ask {who} about it."),
+                "an unresolved placeholder is malformed");
+            Check(!TextShape.IsWellFormed("He was  there on Tuesday."),
+                "a double space is malformed — the signature of a slot that rendered empty");
+            Check(!TextShape.IsWellFormed("He was there ."),
+                "a space before a full stop is malformed, from the same cause");
+            Check(!TextShape.IsWellFormed("He was there,, on Tuesday."),
+                "doubled punctuation is malformed");
+            Check(!TextShape.IsWellFormed("He was there....."),
+                "so are five full stops, where three are an ellipsis");
+            Check(!TextShape.IsWellFormed(", he was there."),
+                "a line opening on a comma is malformed");
+            Check(!TextShape.IsWellFormed("He went to the the warehouse."),
+                "a doubled article is malformed — what a bad join produces");
+            Check(!TextShape.IsWellFormed("He said \"not tonight and left."),
+                "an unclosed quote is malformed");
+            Check(!TextShape.IsWellFormed(" He was there."),
+                "leading whitespace is malformed");
+            Check(!TextShape.IsWellFormed(""), "an empty line is malformed");
+            Check(!TextShape.IsWellFormed("   "), "so is a line of spaces");
+            Check(!TextShape.IsWellFormed(null), "and so is a null one, without throwing");
+
+            // AND EVERY EXEMPTION HOLDS. This half is the more important one.
+            // The first run of this checker over the 2,604-line bark bank
+            // reported two faults, and both were the checker being wrong:
+            // "..." and "...Evening." are somebody trailing off, which is the
+            // correct content for a person avoiding you.
+            Check(TextShape.IsWellFormed("..."),
+                "an ellipsis alone is a person not answering, not a fault");
+            Check(TextShape.IsWellFormed("...Evening."),
+                "and a line that opens on one is somebody trailing into speech");
+            Check(TextShape.IsWellFormed("Go and ask Mr. Novak about it."),
+                "an abbreviation ends in a full stop without ending a sentence");
+            Check(TextShape.IsWellFormed("That'd be Dr. Halloran, I think."),
+                "the same for a doctor");
+            // THESE THREE HAVE TO BE FOLLOWED BY A LOWERCASE WORD or they do
+            // not test the exemption at all. "It was J. Novak, the younger
+            // one." was the first attempt, and it passes with the initials
+            // rule deleted — the N is a capital either way, so nothing about
+            // the abbreviation table is being exercised. The break run said so
+            // by surviving, which is the whole reason break runs exist.
+            Check(TextShape.IsWellFormed("Ask J. about it, he was there."),
+                "an initial is a single letter and a stop, and does not end the sentence");
+            // EVERY ROW OF THE TABLE, not a sample of it. The first version
+            // tested "etc." and "approx." and a break that deleted "Prof"
+            // survived — an untested row in a table is a row that can be
+            // deleted without anything noticing, which is the same shape of
+            // hole as an untested branch.
+            var abbreviated = new List<string>();
+            foreach (var abbr in new[] { "Mr", "Mrs", "Ms", "Dr", "St", "Sgt", "Insp",
+                                         "Rev", "Prof", "no", "No", "vs", "etc",
+                                         "approx", "Ave", "Rd" })
+                if (!TextShape.IsWellFormed($"Down by {abbr}. bloody nowhere, he said."))
+                    abbreviated.Add(abbr);
+            Check(abbreviated.Count == 0,
+                "every abbreviation in the table ends in a stop without ending a sentence",
+                abbreviated.Count == 0 ? "" : string.Join(", ", abbreviated));
+            Check(TextShape.IsWellFormed("He stopped... then carried on anyway."),
+                "an ellipsis mid-line continues a sentence rather than starting one");
+            Check(TextShape.IsWellFormed("What? He said that?"),
+                "a question mark ends a sentence and the next one is capitalised");
+            Check(TextShape.IsWellFormed("Novak's lad was there, and he'd know."),
+                "apostrophes do not count toward balance — 'Novak's' and \"'ere\" both make odd counts");
+            Check(TextShape.IsWellFormed("'Ere, you. Come here."),
+                "including one that opens the line");
+            Check(TextShape.IsWellFormed("He had had enough of it by then."),
+                "'had had' is English, and only articles and prepositions are flagged");
+            Check(TextShape.IsWellFormed("not now", allowLowerStart: true),
+                "a fragment can opt out of the sentence rule — a UI chip is not a sentence");
+            Check(!TextShape.IsWellFormed("not now"),
+                "but it has to ask, because the default being strict is the whole point");
+
+            // TIDY — repair, on the LLM path. Two things have to be true and
+            // the second one matters more: it fixes what is mechanical, and it
+            // leaves a good line completely alone. A repair pass that rewrites
+            // healthy dialogue is worse than no repair pass, because the
+            // damage is invisible and lands on the thing the player reads.
+            Check(TextShape.Tidy("the new owner was there.") == "The new owner was there.",
+                "Tidy capitalises the opening letter");
+            Check(TextShape.Tidy("Not tonight. he's not in.") == "Not tonight. He's not in.",
+                "and the letter after a sentence end");
+            Check(TextShape.Tidy("He was  there.") == "He was there.",
+                "it collapses a double space");
+            Check(TextShape.Tidy("He was there , I think.") == "He was there, I think.",
+                "and drops a space in front of a comma");
+            Check(TextShape.Tidy("Down to the the yard.") == "Down to the yard.",
+                "it drops a doubled article");
+            Check(TextShape.Tidy("Down to the the.") == "Down to the.",
+                "keeping whichever of the two carries the punctuation");
+            Check(TextShape.Tidy("He said \"not tonight and left.")
+                  == "He said not tonight and left.",
+                "and drops a quote the model never closed");
+            Check(TextShape.Tidy("  Spare a minute?  ") == "Spare a minute?",
+                "it trims");
+
+            var untouched = new[]
+            {
+                "I've not seen him since Tuesday, and I'd not want to.",
+                "Ask Mr. Novak. He'd know before I would.",
+                "\"Not tonight,\" he said. So I left it.",
+                "...Evening.",
+                "He stopped... then carried on anyway.",
+                "That'd be J. and his brother, the pair of them.",
+                "Twenty quid? For that? You're having me on.",
+            };
+            var changed = new List<string>();
+            foreach (var line in untouched)
+                if (TextShape.Tidy(line) != line) changed.Add($"{line} -> {TextShape.Tidy(line)}");
+            Check(changed.Count == 0,
+                "Tidy leaves a well-formed line exactly as it was",
+                changed.Count == 0 ? "" : changed[0]);
+
+            // And repair actually satisfies the check, which is what lets
+            // `ResponseValidator` treat a surviving fault as a broken reply.
+            var mangled = new[]
+            {
+                "the man was  there , twice. he said so.",
+                "Down to the the yard . he'd know.",
+                "  he said \"not tonight and went home  ",
+            };
+            var unrepaired = new List<string>();
+            foreach (var line in mangled)
+            {
+                var fixedUp = TextShape.Tidy(line);
+                if (!TextShape.IsWellFormed(fixedUp))
+                    unrepaired.Add($"{line} -> {fixedUp} — {TextShape.Describe(fixedUp)}");
+            }
+            Check(unrepaired.Count == 0,
+                "a mechanically-broken line is well-formed after Tidy",
+                unrepaired.Count == 0 ? "" : unrepaired[0]);
+
+            // What must NOT be repairable, because it means the reply is not
+            // dialogue at all and the character should deflect instead.
+            Check(!TextShape.IsWellFormed(TextShape.Tidy("Ask {who} about the yard.")),
+                "an unresolved placeholder survives Tidy — a reply with one is broken, not untidy");
+            Check(ResponseValidator.Validate("Ask {who} about the yard.", "Rocco")
+                      .Contains("lose the thread"),
+                "and the validator deflects rather than putting it on screen");
+            Check(ResponseValidator.Validate("the man was  there , twice. he said so.", "Rocco")
+                  == "The man was there, twice. He said so.",
+                "while a merely untidy reply is repaired and spoken");
+
+            // THE SWEEP. Every surface in `StreetVoice` that produces a line,
+            // over the state that picks between templates. `Exchange` is swept
+            // in TestStreetVoice against a real mill; these are the two the
+            // player hears at least as often and that nothing had looked at.
+            var faults = new List<string>();
+            void Sweep(string what, string line)
+            {
+                var why = TextShape.Describe(line);
+                if (why.Length > 0) faults.Add($"{what}: \"{line}\" — {why}");
+            }
+
+            var who = new Gossiper("rocco", "Rocco", new MemoryStore("rocco"),
+                new KnowledgeBase(), new SuspicionTracker(), "night", 0.5, 0.4, 0.5);
+            var other = new Gossiper("ada", "Ada", new MemoryStore("ada"),
+                new KnowledgeBase(), new SuspicionTracker(), "day", 0.3, 0.3, 0.8);
+            var about = new Rumor
+            {
+                Content = new Fact("player", "seen_at", "warehouse"), OriginId = "ada",
+                Summary = "the new owner was at the warehouse on Tuesday",
+                Confidence = 0.8, Sensitive = false,
+            };
+
+            foreach (StanceKind stance in Enum.GetValues(typeof(StanceKind)))
+                for (int seed = 0; seed < 60; seed++)
+                {
+                    var said = StreetVoice.Recognition(who, about, stance, seed);
+                    if (said != null) Sweep($"recognition/{stance}", said.Text);
+                }
+
+            // Ambient branches on the hour, on money, on injury and on a feud,
+            // and the bank per band is fourteen deep — so the seed sweep has to
+            // clear fourteen or it reports on a slice. Sixty, as above.
+            foreach (int hour in new[] { 7, 13, 19, 23 })
+            foreach (double prosperity in new[] { 0.2, 0.5, 0.9 })
+            foreach (bool injured in new[] { false, true })
+            foreach (bool feuding in new[] { false, true })
+                for (int seed = 0; seed < 60; seed++)
+                    foreach (var line in StreetVoice.Ambient(who, other,
+                                 new GameTime(4, hour, 0), prosperity, 1.1, injured, feuding, seed))
+                        Sweep($"ambient/{hour}h", line.Text);
+
+            Check(faults.Count == 0,
+                "every line the street can say is well-formed",
+                faults.Count == 0 ? "" : $"{faults.Count} malformed, first: {faults[0]}");
+        }
+
         static void TestStreetVoice()
         {
             Console.WriteLine("Street voice — the simulation, out loud (M15.1):");
@@ -461,7 +668,17 @@ namespace Ledger.CoreTests
             // Every seed, both speakers, across the confidence bands — because
             // the fault lived in specific templates and a single seed picks
             // one of fourteen.
-            var badCaps = new List<string>();
+            //
+            // THE RULE ITSELF NOW LIVES IN `Core/TextShape`, which is Layer 2
+            // of the testing system. This started as a hand-rolled loop that
+            // checked exactly the two things the bug had just done — first
+            // letter, and after a full stop — because those were what I had
+            // been staring at. Every other way a generated line can be
+            // malformed was still unguarded: an unresolved `{placeholder}`, a
+            // double space where a slot rendered empty, " ." from the same
+            // cause, a doubled article from a bad join. One shared checker,
+            // applied everywhere lines are made.
+            var malformed = new List<string>();
             foreach (var conf in new[] { 0.95, 0.65, 0.25 })
             {
                 var r = new Rumor
@@ -473,18 +690,13 @@ namespace Ledger.CoreTests
                 for (int s2 = 0; s2 < 40; s2++)
                     foreach (var line in StreetVoice.Exchange(r, teller, hearer, s2))
                     {
-                        var t = (line.Text ?? "").Trim();
-                        if (t.Length > 0 && char.IsLower(t[0])) badCaps.Add(t);
-                        // And after every full stop, question mark or bang.
-                        for (int i = 1; i < t.Length - 2; i++)
-                            if ((t[i] == '.' || t[i] == '?' || t[i] == '!')
-                                && t[i + 1] == ' ' && char.IsLower(t[i + 2]))
-                                badCaps.Add(t);
+                        var why = TextShape.Describe(line.Text);
+                        if (why.Length > 0) malformed.Add($"\"{line.Text}\" — {why}");
                     }
             }
-            Check(badCaps.Count == 0,
-                "every spoken line starts its sentences with a capital",
-                badCaps.Count == 0 ? "" : badCaps[0]);
+            Check(malformed.Count == 0,
+                "every line an exchange produces is well-formed",
+                malformed.Count == 0 ? "" : malformed[0]);
 
             // THE LADDER. Every rung is a number the player used to read in a
             // panel and can now watch happen.

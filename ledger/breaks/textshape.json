@@ -1,0 +1,99 @@
+[
+ {
+  "name": "Cap() stops capitalising -- the exact defect that put 'the new owner was at the warehouse' into 21 of 42 templates for weeks under 2,883 green tests",
+  "file": "Assets/Scripts/Core/StreetVoice.cs",
+  "old": "                : char.ToUpperInvariant(s[0]) + s.Substring(1);",
+  "new": "                : s;"
+ },
+ {
+  "name": "one template loses its Cap() -- the single-site version, which is how it got in originally",
+  "file": "Assets/Scripts/Core/StreetVoice.cs",
+  "old": "                    $\"{Cap(what)}. I know what I saw.\",",
+  "new": "                    $\"{what}. I know what I saw.\","
+ },
+ {
+  "name": "a template splices two clauses with no separator, producing a double space",
+  "file": "Assets/Scripts/Core/StreetVoice.cs",
+  "old": "                    $\"{Cap(what)}. I'd say it in front of him.\",",
+  "new": "                    $\"{Cap(what)}.  I'd say it in front of him.\","
+ },
+ {
+  "name": "a placeholder is left unresolved in a shipped template",
+  "file": "Assets/Scripts/Core/StreetVoice.cs",
+  "old": "                    $\"You want to know why I'm quiet lately? {Cap(what)}.\",",
+  "new": "                    $\"You want to know why I'm quiet lately? {{what}}.\","
+ },
+
+ {
+  "name": "THE INSTRUMENT. TextShape reports nothing is ever wrong -- the failure mode where every sweep above passes for the wrong reason",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            if (line == null) { Bad(\"null\", 0, \"line is null\"); return faults; }",
+  "new": "            return faults;"
+ },
+ {
+  "name": "THE INSTRUMENT. the lowercase-start rule is dropped, leaving the sentence rule to carry a bug it cannot see",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "                    if (char.IsLower(line[i]))\n                        Bad(\"lower-start\", i, Excerpt(line, 0));",
+  "new": "                    if (false)\n                        Bad(\"lower-start\", i, Excerpt(line, 0));"
+ },
+ {
+  "name": "THE INSTRUMENT. every abbreviation is treated as a sentence end, so 'Ask Mr. Novak' becomes a fault and the checker becomes the thing people switch off",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            if (word.Length == 1) return true;           // an initial: \"J. Novak\"",
+  "new": "            if (word.Length == 1) return false;"
+ },
+ {
+  "name": "THE INSTRUMENT. the abbreviation table empties, so 'etc. and' and 'approx. maybe' become faults and the checker starts crying wolf",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            \"Mr\", \"Mrs\", \"Ms\", \"Dr\", \"St\", \"Sgt\", \"Insp\", \"Rev\", \"Prof\",",
+  "new": "            \"Mr\", \"Mrs\", \"Ms\", \"Dr\", \"St\", \"Sgt\", \"Insp\", \"Rev\","
+ },
+ {
+  "name": "THE INSTRUMENT. the leading-ellipsis exemption is dropped, so the two correct lines in recognition.avoids read as faults again",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            bool leadingEllipsis = t.StartsWith(\"...\", StringComparison.Ordinal);",
+  "new": "            bool leadingEllipsis = false;"
+ },
+ {
+  "name": "THE INSTRUMENT. apostrophes count toward quote balance, so every possessive in the bank is a fault",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            foreach (char c in line) if (c == '\"') dq++;",
+  "new": "            foreach (char c in line) if (c == '\"' || c == '\\'') dq++;"
+ },
+ {
+  "name": "REPAIR. Tidy stops capitalising, so every model reply reaches the player exactly as the model left it",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "                chars[i] = char.ToUpperInvariant(chars[i]);\n                break;",
+  "new": "                break;"
+ },
+ {
+  "name": "REPAIR. Tidy collapses ALL whitespace including the space it should keep, so it damages healthy dialogue",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "                    sb.Append(' ');\n                    continue;",
+  "new": "                    continue;"
+ },
+ {
+  "name": "REPAIR. the doubled-word pass keeps the wrong one, so 'the the.' loses its full stop",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "                        if (w.Length > a.Length) kept[kept.Count - 1] = w;",
+  "new": "                        if (false) kept[kept.Count - 1] = w;"
+ },
+ {
+  "name": "GUARDRAIL. the validator stops shape-checking, so an unresolved placeholder goes on screen",
+  "file": "Assets/Scripts/Core/ResponseValidator.cs",
+  "old": "            reply = TextShape.Tidy(reply);\n            if (!TextShape.IsWellFormed(reply)) return Deflect(characterName);",
+  "new": "            reply = TextShape.Tidy(reply);"
+ },
+ {
+  "name": "GUARDRAIL. the validator deflects on anything imperfect instead of repairing first, so characters lose the thread over a double space",
+  "file": "Assets/Scripts/Core/ResponseValidator.cs",
+  "old": "            reply = TextShape.Tidy(reply);\n            if (!TextShape.IsWellFormed(reply)) return Deflect(characterName);",
+  "new": "            if (!TextShape.IsWellFormed(reply)) return Deflect(characterName);"
+ },
+ {
+  "name": "THE INSTRUMENT. the placeholder rule needs a closing brace it never checks for, so '{who' passes",
+  "file": "Assets/Scripts/Core/TextShape.cs",
+  "old": "            if (open >= 0 && line.IndexOf('}', open) > open)",
+  "new": "            if (false)"
+ }
+]

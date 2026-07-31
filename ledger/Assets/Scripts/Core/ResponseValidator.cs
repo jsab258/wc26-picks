@@ -30,6 +30,28 @@ namespace Ledger.Core
             reply = Humanize(reply);
             if (string.IsNullOrWhiteSpace(reply)) return Deflect(characterName);
 
+            // LAYER 2 — SHAPE, on the one text in this game that nobody wrote
+            // and nobody reviewed.
+            //
+            // `Humanize` handles the AI tells: em-dashes, curly quotes,
+            // markdown, emoji. It has no opinion about form, and a model reply
+            // arrives with all of it — a double space, a space before a comma,
+            // a sentence that lost its capital, "to the the warehouse", a
+            // quote it ran out of tokens before closing. Those are mechanical,
+            // so `Tidy` repairs them rather than throwing the reply away: a
+            // character standing there losing the thread because a space was
+            // wrong would be a worse bug than the space.
+            //
+            // WHAT SURVIVES REPAIR IS A BROKEN REPLY. After `Tidy` the only
+            // faults left are an unresolved `{placeholder}` and punctuation
+            // that makes no sense — both mean the reply is not a line of
+            // dialogue, and the in-character deflection is exactly right for
+            // that. This is also the call site the reach check demanded:
+            // `TextShape` shipped as a checker with no caller in the game,
+            // which is the failure mode the checker exists to catch.
+            reply = TextShape.Tidy(reply);
+            if (!TextShape.IsWellFormed(reply)) return Deflect(characterName);
+
             if (reply.Length <= MaxChars) return reply;
 
             // Cut at the last sentence end before the cap; fall back to a hard cut
