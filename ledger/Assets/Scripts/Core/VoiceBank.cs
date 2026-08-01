@@ -62,6 +62,44 @@ namespace Ledger.Core
             "sam", "ada", "vesna", "marla", "joey", "rita", "hal", "emil",
         };
 
+        /// THE SAME PERSON UNDER TWO NAMES, and until now that cost them their
+        /// voice.
+        ///
+        /// The note above said some casting ids and some game ids are the same
+        /// character and that reconciling them was "a casting task somebody has
+        /// to actually do". Doing it found two, and both were silent failures of
+        /// exactly the kind `VoiceFor` is built to produce — an id that is not
+        /// in `Cast` draws from the crowd pool rather than throwing, so a
+        /// principal simply sounds like a passer-by and nothing reports it:
+        ///
+        ///   `CastTier1` card `# Hal`        has id `halvard`, cast as `hal`
+        ///   `CastTier1` card `# Sera Kest`  has id `sera`,    cast as `kest`
+        ///
+        /// Both voices were fetched weeks ago and are sitting in
+        /// `game-design/picked-clips/`. Neither could ever play.
+        ///
+        /// ALIASED RATHER THAN RENAMED. The ids are load-bearing — they are in
+        /// save files, gossip records, connection graphs and the Tier-2 batches
+        /// — and the clip filenames are what the fetcher produced. Renaming
+        /// either side breaks something that already works; a two-entry map
+        /// breaks nothing and says plainly which two names are one person.
+        ///
+        /// `tools/voice-cast-check.py` reads BOTH sources and fails if a
+        /// principal is unvoiced, so this cannot silently grow back.
+        public static readonly Dictionary<string, string> Alias =
+            new Dictionary<string, string>
+            {
+                { "halvard", "hal" },   // "# Hal", id halvard
+                { "sera", "kest" },     // "# Sera Kest", id sera
+            };
+
+        /// The casting id for a game id. Identity for everybody else.
+        public static string Resolve(string speakerId)
+        {
+            if (string.IsNullOrEmpty(speakerId)) return speakerId;
+            return Alias.TryGetValue(speakerId, out var castId) ? castId : speakerId;
+        }
+
         /// The byte between the voice and the words when they are hashed.
         ///
         /// NOT AN EMPTY STRING. Concatenating with nothing between them makes
@@ -155,6 +193,7 @@ namespace Ledger.Core
                                       bool? masculine = null)
         {
             if (string.IsNullOrEmpty(speakerId)) return null;
+            speakerId = Resolve(speakerId);
             if (castVoiceIds != null && castVoiceIds.Contains(speakerId)) return speakerId;
             uint h = Hash(speakerId);
             if (masculine == true) return PoolMasculine[h % (uint)PoolMasculine.Length];

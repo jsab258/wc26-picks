@@ -143,6 +143,28 @@ def shape_files():
                                    bad[0][:90] if bad else "did not report")
 
 
+def voice_cast():
+    """M17.3: a principal whose cast voice cannot reach them.
+
+    `VoiceBank.VoiceFor` falls back to the crowd pool for an unknown id rather
+    than throwing, which is right for robustness and means a MISCAST principal
+    is an entirely silent bug. Two were found this way — `# Hal` carrying id
+    `halvard` against a cast voice named `hal`, and `# Sera Kest` carrying id
+    `sera` against `kest`. Both clips had been fetched weeks earlier and could
+    never play.
+
+    Fails on breakage (an alias pointing at no voice, a cast voice with no
+    clip). REPORTS the not-yet-cast, because that is M17.3's remaining work and
+    a check that is red for a known reason is one people learn to skip."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "voice-cast-check.py")])
+    m = re.search(r"(\d+) principal\(s\) not cast yet", out)
+    todo = m.group(1) if m else "0"
+    if code == 0:
+        return True, "voice cast ok (%s uncast principal(s))" % todo
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("- ")]
+    return False, "VOICE CAST: " + (bad[-1][:90] if bad else "did not report")
+
+
 def stale_anchors():
     """Every break's anchor, checked for a single exact match.
 
@@ -196,7 +218,8 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, tools_tracked, reach, shape_files, stale_anchors, core_tests):
+    for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
+               stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)
