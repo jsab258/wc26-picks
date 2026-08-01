@@ -1391,14 +1391,12 @@ namespace Ledger.Game
                 if (t == null || string.IsNullOrEmpty(t.text)) continue;
                 var r = t.GetComponent<Renderer>();
                 if (r == null || !r.isVisible) continue;
-                var b = r.bounds;
-                var lo = cam.WorldToScreenPoint(b.min);
-                var hi = cam.WorldToScreenPoint(b.max);
-                // Behind the camera projects to nonsense; a negative z is not a
-                // label anybody is reading.
-                if (lo.z <= 0 || hi.z <= 0) continue;
-                boxes.Add(Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y),
-                                          Mathf.Max(lo.x, hi.x), Mathf.Max(lo.y, hi.y)));
+                // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
+                // it gates must agree about what "overlapping" means, or the
+                // gate measures its own opinion — which is how a control came to
+                // assert behaviour the router had reasoned its way out of.
+                if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) continue;
+                boxes.Add(rect);
             }
             int pairs = 0;
             for (int i = 0; i < boxes.Count; i++)
@@ -4373,7 +4371,14 @@ namespace Ledger.Game
                 // about. `SceneAudit.Renderers` is printed beside it so a clean
                 // report from an audit that walked nothing is not mistaken for
                 // a clean scene.
-                && SceneAudit.Clean;
+                && SceneAudit.Clean
+                // AND NO TWO NAMES IN THE SAME PLACE. Reported for three builds
+                // and gated on nothing, because zero was unreachable while the
+                // labels lay in the road and any other number was a threshold
+                // nobody had measured. `NameTags` resolves collisions, so zero
+                // is now both reachable and correct — and a number printed for
+                // three builds and never acted on is the same as no number.
+                && _labelsColliding == 0;
 
             // OCCLUSION, gated on the A/B rather than on the counter.
             //
@@ -5046,6 +5051,7 @@ namespace Ledger.Game
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} " +
+                      $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
                       $"bodyUp={RealBody.Upright:0.000} bodyRot=[{RealBody.Orientation}] " +

@@ -645,7 +645,24 @@ namespace Ledger.Game
                 {
                     if (!_label.gameObject.activeSelf) _label.gameObject.SetActive(true);
                     var c = _label.color; c.a = alpha; _label.color = c;
-                    _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - cam);
+                    // YAW ONLY, AND THAT IS THE WHOLE BUG. One-argument
+                    // `LookRotation` takes world up as its hint, so when the
+                    // forward vector is near-vertical the basis is degenerate —
+                    // and the review camera looks DOWN at the street, which is
+                    // exactly that case. The names in `review_day1_night.jpg`
+                    // are not overlapping so much as LYING IN THE ROAD,
+                    // stretched across the pavement in perspective.
+                    //
+                    // A nameplate should stand upright whatever the camera's
+                    // pitch — it is a label on a person, not a decal on the
+                    // ground. Flattening the direction to the horizontal plane
+                    // is the whole fix, and it removes the degeneracy rather
+                    // than working around it.
+                    var to = _label.transform.position - cam;
+                    to.y = 0f;
+                    if (to.sqrMagnitude > 1e-6f)
+                        _label.transform.rotation = Quaternion.LookRotation(to);
+                    NameTags.Offer(_label, d);
                 }
             }
 
