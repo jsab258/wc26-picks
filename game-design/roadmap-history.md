@@ -1566,3 +1566,41 @@ A blocked item that lives only in a spec unblocks SILENTLY and then waits
 forever — there is no event, no check, and nobody re-reads a spec to find out
 what became possible. That is the argument for the M17 table in `roadmap.md`
 carrying every item's state rather than pointing at the document that holds it.
+
+---
+
+## seeing the game, 2026-08-01
+
+Moved out of `roadmap.md` when it crossed the 400-line LIVE limit. Both entries
+were true when written; the first is now closed and the second is chronology.
+
+**17.1 was the risk and it was worth naming precisely** (written before it
+closed). No `.meta` files are tracked anywhere in this project, so FBX import
+settings are not under version control, and Unity does not default a model to
+Humanoid. `CharacterRig` needs Humanoid — the Avatar is the contract,
+deliberately, because Mixamo's bone names are stable right up until somebody
+re-exports from Blender. Committing import settings changes a project
+convention, and it was the one piece that could not be checked locally at all:
+Unity decides, and the first evidence is a CI screenshot.
+
+**Closed 2026-08-01.** `CharacterAudit: models=44 humanoid=44
+validHumanAvatar=44`, and then `bodyUp=1.000` once `bakeAxisConversion` was set
+— without which the body imported Z-up and lay on its back in the road, which
+is exactly the class of fault only a screenshot could show.
+
+**The project can now see itself, as of 2026-08-01.** Every Windows build
+commits four stills and a `verdict.txt` to `game-design/sim-shots/`, and that
+loop found, in its first hours: names drawn over rooftops, street signs reading
+as doubled glyphs, a noon sky at 2.6x the scene mean, a crowd dressed off the
+whole colour wheel, and a wardrobe 1.83x over its designed share of olive. It
+also cleared three textures and one set of wheel proportions that I had
+condemned from a low-resolution frame and that were correct all along.
+
+**And then the limit of it.** Three faults were found by a human opening one of
+those stills and none by a gate: a hand lookup that could only see one body
+tier, a white capsule drawn over the bought body, and that body lying flat on
+its back. In the third case I read `playerPrimitive=False` off the done-line and
+called the body confirmed while the noon frame in the same directory showed it
+magenta on its back — having written myself the instruction to open it. That is
+why `CLAUDE.md` §4 now says to read every still BEFORE any gate, and never the
+gate instead of the artifact.

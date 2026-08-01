@@ -1602,6 +1602,14 @@ namespace Ledger.Game
         const int CarryStagesOnDay = 9;
         bool _carryStaged, _friskStaged, _threatStaged, _washTried;
         int _carryTook;
+
+        // M18 companionship. `_companionRung` is the companion's OWN rung on
+        // the staged deed and `_companionStreetRung` is the best rung anybody
+        // ELSE reached on the same deed — the pair, because the design claim is
+        // comparative and a single number cannot carry it. See the gate.
+        bool _companionStaged;
+        string _companionWith = "";
+        int _companionRung = -1, _companionStreetRung = -1;
         bool _carryIsAChoice, _carryCanTakeAll;
         Coat.Refusal _friskRefusalCost = Coat.Refusal.Allowed;
         double _friskFound, _friskCost;
@@ -1892,6 +1900,29 @@ namespace Ledger.Game
                                            "player", nearest.DisplayName,
                                            actorFled: false, hadPrecursor: true);
                 Witnesses.Resolve(deed, _player.transform, nearest.transform.position);
+                // M18. AND WHOEVER WAS AT YOUR SHOULDER WHEN YOU DID IT.
+                //
+                // Read off the witness record that was just produced, not from
+                // a distance test here — the companion's sighting is an
+                // ordinary `Observation` resolved by the same pass as
+                // everybody else's, which is the entire design. See
+                // `CompanionHost.NoteDeed` for why a proximity check in this
+                // spot would be a second opinion about who saw what.
+                if (_game != null) _game.Companion.NoteDeed(deed.EventId);
+                // AND THE COMPARISON THAT TESTS THE CLAIM. The design says a
+                // companion is a full sighting BECAUSE OF WHERE THEY STAND,
+                // through the same resolver as everybody else. That is a
+                // statement about two numbers, not one: their rung, and the
+                // best rung the rest of the street managed on the same act.
+                // Recording only theirs would let a run where the whole street
+                // got a clean look read as proof of a companion effect.
+                foreach (var o in Witnesses.Last)
+                {
+                    if (o == null) continue;
+                    if (o.WitnessId == _companionWith)
+                    { if (o.Rung > _companionRung) _companionRung = o.Rung; }
+                    else if (o.Rung > _companionStreetRung) _companionStreetRung = o.Rung;
+                }
                 int distinct = Witnesses.DistinctSlotSets();
                 if (distinct > _deedSlotSets) _deedSlotSets = distinct;
                 if (Witnesses.Saw > _deedWitnesses) _deedWitnesses = Witnesses.Saw;
@@ -2253,6 +2284,39 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: coat — took {_carryTook} of 3, on me {CoatHost.OnMe.Count}, "
                           + $"at home {CoatHost.AtHome.Count}, isAChoice={_carryIsAChoice}, "
                           + $"canTakeEverything={_carryCanTakeAll}");
+            }
+
+            // ---- M18: somebody comes out with you ----
+            //
+            // STAGED BEFORE THE DEED, ON PURPOSE. The whole claim of the
+            // feature is that a companion is a witness by STANDING THERE, and
+            // the only way a run can prove that is for one to be at the
+            // player's shoulder when the deed resolves — then read their
+            // sighting out of the ordinary witness record. If this ran after,
+            // the gate below would be measuring nothing.
+            //
+            // The loyalty is raised first because `Escort.WillWalk` requires
+            // 0.55 and a cold walker sits below it. That is staging the
+            // PRECONDITION, not staging the result: the run still has to make
+            // them agree, put them there, and produce the sighting through
+            // `Witnesses.Resolve` like anybody else.
+            if (!_companionStaged && _game != null && _npcs != null
+                && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                foreach (var n in _npcs)
+                {
+                    if (n == null || n.DisplayName == "Ellis") continue;
+                    var g = _game.Gossip.Mill.Get(n.DisplayName);
+                    if (g == null) continue;
+                    g.Loyalty = 0.8;
+                    g.Nerve = 0.6;
+                    if (!_game.Companion.Ask(g, n, now.Day)) continue;
+                    _companionStaged = true;
+                    _companionWith = n.DisplayName;
+                    Debug.Log($"SimDirector: companion — {n.DisplayName} walks with you "
+                              + $"(loyalty {g.Loyalty:0.00}, walks above {Escort.WalksWithYouAbove:0.00})");
+                    break;
+                }
             }
 
             // ---- the frisk, both answers ----
@@ -4910,6 +4974,68 @@ namespace Ledger.Game
                  + $"atHome={_washWorkedAtHome} worstCost={ViolenceHost.WorstStainCost:0.00}]",
                  ViolenceHost.StainsTaken > 0
                  && (!_washTried || (_washFailedInPublic && _washWorkedAtHome))),
+
+                // M18 — THE HOUSEHOLD RAN AT ALL.
+                //
+                // ADDED ONE COMMIT LATE, and the omission is worth naming
+                // because it is rule 6 in the shape it actually arrives in.
+                // The household shipped wired, printing a household[...] line,
+                // and I called it done — but a line in the verdict is a
+                // REPORT, and this project's oldest failure is a system that
+                // reports beautifully and is never called. `Brandish`,
+                // `MayFrisk` and `Acquire` all printed zero for a month and
+                // nobody read the zero.
+                //
+                // AND THE BOUND IS DELIBERATELY LOOSE, WITH THE EVIDENCE
+                // PRINTED BESIDE IT. The clause I wrote first was `nights >=
+                // SimMode.Days` — the arithmetic one, and it is the right gate
+                // eventually. But whether a run closes `Days` nights or one
+                // fewer depends on where the sim stops relative to the day
+                // turn, and I have not measured that. Setting it from a guess
+                // is `nightNotDarker` again: a gate that fails on an off-by-one
+                // nobody has looked at, on a mechanism that is working.
+                //
+                // So: gate on ran-at-all, and PRINT `nights` against
+                // `simDays`. One run makes the relationship a fact and the
+                // clause can tighten to equality on evidence.
+                ($"{(_game != null ? _game.Household.Report() : "household[absent]")}"
+                 + $" nights={(_game != null ? _game.Household.NightsHome + _game.Household.NightsAway : -1)}"
+                 + $"/simDays={SimMode.Days}",
+                 _game != null
+                 && _game.Household.NightsHome + _game.Household.NightsAway > 0
+                 && _game.Household.Book.People.Count > 0),
+
+                // M18 — AND THE COMPANION IS A WITNESS BY STANDING THERE.
+                //
+                // THE COMPARISON IS THE GATE, not the companion's rung alone.
+                // The design claim is that somebody at your shoulder gets a
+                // better sighting than the street DOES NOT BECAUSE THEY ARE A
+                // COMPANION but because of where they are standing — resolved
+                // by `Observe.Resolve` through the same pass, with no
+                // companion branch anywhere in it. A gate reading only their
+                // rung would pass on a run where everybody had a clean look at
+                // a well-lit act, and would have proved nothing about the
+                // mechanism.
+                //
+                // `>=` and not `>`. The street CAN produce another rung-4
+                // witness — somebody standing close, lit, and facing the
+                // right way is exactly what the model is for — and demanding
+                // the companion beat them would be gating on the crowd's luck
+                // rather than on the companion's position. What must never
+                // happen is the companion coming out WORSE than the street
+                // while stood at two metres in the player's own light.
+                //
+                // `noted>0` is the separate half: the sighting reached
+                // `CompanionHost` through the witness record rather than
+                // through a proximity test of its own.
+                ($"companion[with={(_companionWith == "" ? "none" : _companionWith)} "
+                 + $"rung={_companionRung} street={_companionStreetRung} "
+                 + $"{(_game != null ? _game.Companion.Report() : "host=absent")}]",
+                 _game != null && _companionStaged
+                 && _game.Companion.Recruited > 0
+                 && _game.Companion.Noted > 0
+                 && _companionRung >= 4
+                 && _companionRung >= _companionStreetRung),
 
                 // M17.9 — REPORTED, NOT GATED, and the distinction is the
                 // point. The font cannot land until a CI fetch brings one

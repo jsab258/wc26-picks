@@ -113,23 +113,11 @@ draw distance, hide low-detail geometry and make mood at once. One palette acros
 seven districts beats scattered high-resolution assets, and none of it needs a
 purchase.
 
-**17.1 is the risk and it is worth naming precisely.** No `.meta` files are
-tracked anywhere in this project, so FBX import settings are not under version
-control, and Unity does not default a model to Humanoid. `CharacterRig` needs
-Humanoid — the Avatar is the contract, deliberately, because Mixamo's bone
-names are stable right up until somebody re-exports from Blender. Committing
-import settings changes a project convention, and it is the one piece that
-cannot be checked locally at all: Unity decides, and the first evidence is a
-CI screenshot.
-
-**The project can now see itself, as of 2026-08-01.** Every Windows build
-commits four stills and a `verdict.txt` to `game-design/sim-shots/`, and that
-loop found, in its first hours: names drawn over rooftops, street signs reading
-as doubled glyphs, a noon sky at 2.6x the scene mean, a crowd dressed off the
-whole colour wheel, and a wardrobe 1.83x over its designed share of olive. It
-also cleared three textures and one set of wheel proportions that I had
-condemned from a low-resolution frame and that were correct all along. Judge M17
-from the stills, not from the source.
+**The project can see itself.** Every Windows build commits four stills and a
+`verdict.txt` to `game-design/sim-shots/`. **Judge M17 from the stills, not from
+the source** — and read all four before reading any gate. What that loop has
+found, and the 17.1 import risk as it stood before it closed, are in
+`roadmap-history.md` §"seeing the game, 2026-08-01".
 
 **Done when.** A sim screenshot shows a skinned body walking with foot IK, and
 `bodiesOk` gates on the Avatar being bound rather than on `Mannequin` boxes;
@@ -163,14 +151,29 @@ lands on nothing.
 **What is in it.**
 - **Home as a place that reacts.** The rooms above the pub change with money,
   heat and who has been in them. A base that reads your week back to you.
-- **Companionship.** `CrewMember` exists as a roster entry; nobody walks beside
-  you. Somebody accompanying you sees what you do — which makes them a witness
-  under M16's rules, and that is the interesting version.
-- **Family and dependents.** The people whose week is worse when yours is.
-- **Vice.** A cost that is not money and not heat.
-- **Lifestyle.** `Core/Coat` and `Core/Dressing` exist; what you wear should be
-  read by the street, and it already can be — `Reaction.CataloguesYourCoat` has
-  no caller.
+- **Companionship.** **DONE 2026-08-01.** `Core/Companionship` + `CompanionHost`
+  + `NpcWalker.Escorting`. The companion is a witness through
+  `Witnesses.Resolve` **by standing there** — no companion branch anywhere in
+  the perception path — and adds no new threshold: both join/leave lines are
+  taken from `Empire`'s recruit and poach floors, and whether they spot a
+  watcher is `Perception` from where they stand. Gated on the comparison
+  (`companionRung >= streetRung >= 4`), because a gate on their rung alone
+  would pass on a run where the whole street had a clean look.
+- **Family and dependents.** **DONE 2026-08-01.** `Core/Household` +
+  `HouseholdHost`. Neglect has no number anything reads: a dependent below
+  `TalkFreely` is added to the mill as an ordinary agent whose loyalty is their
+  bond, so the people closest to you become the people most willing to talk.
+- **Vice.** A cost that is not money and not heat. **Not started.**
+- **Lifestyle.** **Not started, and the substrate this entry claimed does not
+  exist.** It said *"`Core/Coat` and `Core/Dressing` exist; what you wear should
+  be read by the street, and it already can be — `Reaction.CataloguesYourCoat`
+  has no caller."* Checked 2026-08-01: `Coat` is weapons **concealment**,
+  `Dressing` is **street furniture** placement, and `CataloguesYourCoat` DOES
+  have a caller (`CoatHost.Arrested`) — which itself has none, so it is the
+  whole `Reaction.Lawful` arrest path that is unwired, and that is an M19
+  finding rather than a lifestyle one. Nothing here is self-presentation.
+  Lifestyle needs **building**, not wiring, and `Core/Wardrobe` (which dresses
+  the crowd) is the only real starting point.
 
 **Done when.** A run where the player never goes home is measurably worse in
 the endings matrix than one where they do — and the difference comes from
@@ -272,22 +275,15 @@ build intended.
 
 ---
 
-## The scope call that is still open
+## The scope call, decided
 
-`the-gap.md` §4 argued for **two or three dense districts rather than seven
-graybox ones** — the gossip system is *better* in a small world where the same
-faces recur, rumours reach people who matter, and the player learns a street
-rather than a map. Seven were built.
+**Finish two districts to a shippable standard; leave the other five at current
+fidelity.** Not a cut — a focus. `the-gap.md` §4's argument was that gossip is
+*better* in a small world where the same faces recur, and M17's cost scales
+directly with district count. Seven were built; two get finished.
 
-Nothing since has made the argument wrong, and M17's cost scales directly with
-district count: set dressing, lighting, population, and every animation seen at
-every distance.
-
-**Recommendation: finish two districts to a shippable standard and leave the
-other five at current fidelity.** Not a cut — a focus. Depth over breadth is the
-whole strategy, and this is the one place the build currently argues with it.
-
-*Jafar, 2026-07-31: "fine with the district thing."*
+*Jafar, 2026-07-31: "fine with the district thing."* The heading said "still
+open" for a day after he closed it, which is how a live doc goes stale.
 
 ## What we should never chase
 

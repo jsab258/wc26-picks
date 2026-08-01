@@ -52,6 +52,9 @@ namespace Ledger.Game
 
         /// M18. The rooms above the pub and the two people in them.
         public readonly HouseholdHost Household = new HouseholdHost();
+
+        /// M18. Whoever is walking at your shoulder, and everything they know.
+        public readonly CompanionHost Companion = new CompanionHost();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
         // Act I's authored spine state (act1-draft.md): pressure-point flags,
         // the posture answer, Noor's two drawers.
@@ -1830,6 +1833,17 @@ namespace Ledger.Game
                                          cleanGiven: 0, heat: heat);
                     Household.WireTalkers(_gossip != null ? _gossip.Mill : null, Now);
                 }
+                // AND WHETHER THE ONE AT YOUR SHOULDER IS STILL YOURS.
+                //
+                // Asked nightly rather than at the moment of any particular
+                // act, because loyalty moves for reasons that have nothing to
+                // do with the companion: `Empire` squeezes it, a skimmed cut
+                // erodes it, the rival poaches against it. A departure that
+                // could only fire on a player action would miss every one of
+                // those — which is the same shape as a system built and never
+                // called, one step subtler.
+                if (Companion.Current != null && _gossip != null)
+                    Companion.CheckLoyalty(_gossip.Mill.Get(Companion.Current.Id), Now.Day);
                 // The licence is under review: the bar's own till stays shut.
                 if (ActTwo.BarFrozen(Now)) takings = 0;
                 // Owned fronts pay clean and get heat-taxed exactly like the bar

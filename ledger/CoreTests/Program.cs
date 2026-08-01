@@ -1201,6 +1201,53 @@ namespace Ledger.CoreTests
 
             Check(new Household().MeanBond == 0 && new Household().TalkerCount == 0,
                   "an empty household is quiet rather than a divide by zero");
+
+            // ---- M18 companionship ----------------------------------------
+            //
+            // The two thresholds are TAKEN from lines the game already draws,
+            // so the test is that they still agree. If somebody retunes
+            // `Empire` and this drifts, that is the whole failure mode of a
+            // copied constant and it should be loud.
+            Check(Escort.WalksWithYouAbove == 0.55 && Escort.WalksAwayBelow == 0.40,
+                  "escort thresholds still match Empire's recruit and poach floors");
+            Check(Escort.WalksWithYouAbove > Escort.WalksAwayBelow,
+                  "join and leave are separated, so nobody flickers on the line nightly");
+
+            Check(Escort.WillWalk(0.8, 0.6) && !Escort.WillWalk(0.5, 0.9),
+                  "loyalty below the recruit floor declines however steady the nerve");
+            Check(!Escort.WillWalk(0.9, 0.1),
+                  "a loyal coward stays in the bar — that is a character, not a failure");
+            Check(!Escort.WillWalk(0.9, 0.9, departed: true),
+                  "somebody who already walked does not quietly come back on their own");
+            Check(!Escort.WalksAway(0.41) && Escort.WalksAway(0.39),
+                  "walking away is the same line the poach and the mill already use");
+
+            // A companion accumulates, deduplicates, and is bounded.
+            var comp = new Companion { Id = "bry", Name = "Bry", SinceDay = 1 };
+            comp.Saw("deed-1"); comp.Saw("deed-1"); comp.Saw("deed-2");
+            Check(comp.Witnessed.Count == 2,
+                  "one deed resolved twice is one thing they stood next to, not two");
+            comp.Saw(null); comp.Saw("");
+            Check(comp.Witnessed.Count == 2, "a missing event id is not a memory");
+            for (int i = 0; i < Companion.MaxCarried * 2; i++) comp.Saw($"d{i}");
+            Check(comp.Witnessed.Count == Companion.MaxCarried,
+                  "what a companion carries is bounded, like every other list here");
+
+            // AND THE POINT OF THE WHOLE FEATURE: it survives leaving.
+            var carried = Escort.CarriesAway(comp);
+            Check(carried.Count == Companion.MaxCarried && Escort.Exposure(comp) == carried.Count,
+                  "what walks out of the door is what they were standing next to");
+            Check(Escort.CarriesAway(null).Count == 0 && Escort.Exposure(null) == 0,
+                  "nobody walking with you exposes you to nothing");
+
+            // The second pair of eyes is a SET DIFFERENCE, never a whole list.
+            var adds = Escort.Adds(new[] { "a", "b" }, new[] { "b", "c", "c" }).ToList();
+            Check(adds.Count == 1 && adds[0] == "c",
+                  "a companion reports what you could not see, not what you could");
+            Check(!Escort.Adds(new[] { "a" }, new[] { "a" }).Any(),
+                  "one who walks where you walk and looks where you look tells you nothing");
+            Check(Escort.Adds(null, new[] { "a" }).Count() == 1 && !Escort.Adds(new[] { "a" }, null).Any(),
+                  "an empty sightline on either side is answerable rather than a throw");
         }
 
         static void TestDebts()

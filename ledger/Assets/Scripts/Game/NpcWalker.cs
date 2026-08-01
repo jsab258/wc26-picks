@@ -146,6 +146,29 @@ namespace Ledger.Game
 
         public void SetPlayer(Transform player) => _player = player;
 
+        /// M18. WALKING WITH THE PLAYER INSTEAD OF TO A SCHEDULE.
+        ///
+        /// A flag and not a subclass, because a companion is an ordinary
+        /// person who happens to be next to you — that is the entire design.
+        /// `Witnesses.Resolve` iterates `NpcWalker`, so an escort is a witness
+        /// to everything the player does WITHOUT ONE LINE OF SPECIAL CASING:
+        /// they are at two metres, in the same light, facing you, and already
+        /// watching, so `Observe.Resolve` hands them a full-rung sighting the
+        /// same way it hands the man across the road a poor one. See
+        /// `Core/Companionship` for why that is the whole feature.
+        ///
+        /// `WaitingAsHost` is the precedent for a state that outranks the
+        /// schedule, and it is also the warning: that one exists because a
+        /// character who promised to wait walked her patrol route instead and
+        /// four fixes went at the pathfinding before anybody read the text.
+        public bool Escorting { get; set; }
+
+        /// Which side they walk on, so two escorts do not stand in one place.
+        /// Metres, and not a tuned number: `ConversationHost.TalkRange` is 3.0
+        /// and is what this game already calls "near enough to be with
+        /// somebody", so half of it is inside that and outside the body.
+        public float EscortSide = ConversationHost.TalkRange * 0.5f;
+
         /// SOMEBODY WALKED INTO YOU (game-feel-spec.md §5).
         ///
         /// Until now the player passed through a crowd like a ghost, which
@@ -556,6 +579,23 @@ namespace Ledger.Game
             // at all. A man coming toward the thing you just did is the
             // clearest statement this game can make.
             if (_investigateUntil > Time.time) target = _investigateAt;
+
+            // AND A COMPANION STAYS WITH YOU — last, so it outranks both the
+            // schedule and the noise.
+            //
+            // OUTRANKING THE NOISE IS THE DELIBERATE PART. Investigating is
+            // the best behaviour in the walker and this overrides it, because
+            // an escort who walks forty metres off to look at a scream has
+            // stopped being an escort, and the player would experience the
+            // feature as a follower that keeps losing them. They hold the
+            // shoulder; what they SAW is settled by `Witnesses.Resolve` from
+            // where they are standing, which is beside you, which is the
+            // point.
+            if (Escorting && _player != null)
+            {
+                var beside = _player.right * EscortSide;
+                target = _player.position - _player.forward * (EscortSide * 0.5f) + beside;
+            }
 
             var flatTarget = new Vector3(target.x, current.y, target.z);
 
