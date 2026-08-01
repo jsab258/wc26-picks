@@ -3008,6 +3008,30 @@ namespace Ledger.Game
                 // The PNG artifact lives on a host our review environment can't reach,
                 // but the job LOG is readable — so this is how the render gets "seen"
                 // for blind iteration on visuals.
+                // WHAT THE SKY ACTUALLY WAS, recorded beside the frame.
+                //
+                // The noon stills come back flat, with the sky near white, and
+                // every explanation for that is a guess until the run says
+                // which value produced it — the fog colour, the camera
+                // background, the density, or the grade on top. Two separate
+                // systems write `RenderSettings.fogColor` and the ambient
+                // trilight every frame (`SceneLighting` and `GameController`),
+                // so which one is winning is not answerable by reading either.
+                //
+                // Cheap, and it is the `deedSlotSets` move again: make the run
+                // print the series rather than argue about the number.
+                var bg = cam.backgroundColor;
+                var fc = RenderSettings.fogColor;
+                Debug.Log($"SimDirector: sky {name} fogMode={RenderSettings.fogMode} "
+                          + $"fogOn={RenderSettings.fog} "
+                          + $"density={RenderSettings.fogDensity:0.0000} "
+                          + $"fogRGB=({fc.r:0.000},{fc.g:0.000},{fc.b:0.000}) "
+                          + $"bgRGB=({bg.r:0.000},{bg.g:0.000},{bg.b:0.000}) "
+                          + $"clear={cam.clearFlags} "
+                          + $"ambSky={RenderSettings.ambientSkyColor.r:0.000},"
+                          + $"{RenderSettings.ambientSkyColor.g:0.000},"
+                          + $"{RenderSettings.ambientSkyColor.b:0.000}");
+
                 var fp = Fingerprint(tex, name);
                 _screenshots.Add(new Dictionary<string, object>
                 {

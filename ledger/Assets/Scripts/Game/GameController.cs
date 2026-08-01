@@ -2475,11 +2475,26 @@ namespace Ledger.Game
                 Color.Lerp(new Color(0.10f, 0.12f, 0.15f), new Color(0.58f, 0.61f, 0.64f), daylight),
                 Weather.Rain);
 
-            // Fog distance is time AND weather: the city closes in at night
-            // and in rain. Cheap mood, and it is also the draw-distance win.
-            float tight = Mathf.Clamp01((1f - daylight) * 0.55f + Weather.FogTightness);
-            RenderSettings.fogStartDistance = Mathf.Lerp(30f, 10f, tight);
-            RenderSettings.fogEndDistance = Mathf.Lerp(140f, 52f, tight);
+            // FOG DISTANCE USED TO BE SET HERE AND UNITY NEVER READ IT.
+            //
+            // `SceneLighting` sets `RenderSettings.fogMode =
+            // FogMode.ExponentialSquared`, and that is the only assignment to
+            // fogMode anywhere in the project. Exponential fog is driven by
+            // `fogDensity`; `fogStartDistance` and `fogEndDistance` are read
+            // ONLY in `FogMode.Linear`. So the three lines that stood here —
+            // computing a tightness from daylight and `Weather.FogTightness`
+            // and lerping both distances — wrote to two fields nothing sampled.
+            //
+            // "Weather and fog do the heavy lifting" is the load-bearing
+            // sentence of this game's art direction, and half of it had been
+            // wired to nothing. The comment that stood here claimed a
+            // draw-distance win it was not delivering.
+            //
+            // Deleted rather than repaired, because the intent is already
+            // implemented correctly one file over: `LightModel.FogDensity(night,
+            // rain)` takes both time and weather and feeds the parameter the
+            // chosen mode actually reads. This was a second, silent
+            // implementation of the same idea, losing.
 
             // The sky is the fog, so the horizon never shows a seam.
             var cam = Camera.main;
