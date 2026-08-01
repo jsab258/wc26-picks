@@ -1,4 +1,9 @@
 {
+  "effortLevel": "xhigh",
+  "env": {
+    "CLAUDE_EFFORT": "max",
+    "MAX_THINKING_TOKENS": "31999"
+  },
   "permissions": {
     "allow": [
       "Bash(git fetch *)",
