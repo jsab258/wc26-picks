@@ -492,6 +492,7 @@ namespace Ledger.Game
                 MakeBox($"Roof_{i}", pos + new Vector3(0, size.y + 0.15f, 0), new Vector3(size.x + 0.4f, 0.3f, size.z + 0.4f), AssetLibrary.Roof);
 
                 AddWindows($"Bldg{i}", pos, size);
+                GroundFloor($"Bldg{i}", pos, size, OutwardFrom(pos));
 
                 // Taller buildings get a stepped setback tier — breaks the flat-box
                 // silhouette into something that reads as a real building profile.
@@ -600,6 +601,62 @@ namespace Ledger.Game
                         new Vector3(w, bandH, 0.08f)));
                 }
             }
+        }
+
+        /// A STREET-LEVEL FLOOR THAT IS NOT THE SAME AS THE FLOORS ABOVE IT.
+        ///
+        /// This is the last thing the roadmap's 17.7 actually names, once
+        /// "buildings are cubes" turned out to be wrong in both directions:
+        /// they are box assemblies with roofs, setbacks and rooftop tanks, and
+        /// what they were missing was a BOTTOM. Every façade ran the same window
+        /// band from pavement to parapet, so a five-storey block and a shop read
+        /// identically and nothing told you where you could go in.
+        ///
+        /// Three pieces, all cheap, all silhouette:
+        ///
+        ///   a fascia   the horizontal band a shop's name sits on, which is what
+        ///              separates the commercial floor from the flats above it
+        ///   a door     a recess in the street-facing wall — the single strongest
+        ///              signal that a building is enterable, and this game is
+        ///              about places you can and cannot get into
+        ///   a cornice  a lip at the roofline. A flat box meeting the sky is the
+        ///              most graybox thing a building can do; a 25cm overhang
+        ///              casts a shadow line and costs one box.
+        ///
+        /// STREET SIDE ONLY. The back of a block is a back — `DressFacade`
+        /// already makes that distinction with bins and drainpipes, and putting
+        /// a shopfront on the alley face would undo it.
+        static void GroundFloor(string tag, Vector3 pos, Vector3 size, Vector3 outward)
+        {
+            // Which axis the street face lies on, and how wide it is.
+            bool alongX = Mathf.Abs(outward.x) > 0.5f;
+            float width = alongX ? size.z : size.x;
+            float depth = alongX ? size.x : size.z;
+            var face = pos + outward * (depth * 0.5f);
+
+            // The fascia: a band over the shopfront, at the height the ground
+            // floor ends. Proud of the wall so it reads as a ledge rather than
+            // as paint.
+            var fasciaSize = alongX
+                ? new Vector3(0.25f, 0.55f, width * 0.9f)
+                : new Vector3(width * 0.9f, 0.55f, 0.25f);
+            MakeBox($"{tag}_fascia", face + new Vector3(0, 3.5f, 0), fasciaSize,
+                    AssetLibrary.Roof);
+
+            // The door: narrow, tall, set INTO the wall rather than onto it, so
+            // it reads as an opening at any angle instead of a panel that
+            // disappears when you are not square to it.
+            var doorSize = alongX
+                ? new Vector3(0.30f, 2.2f, 1.15f)
+                : new Vector3(1.15f, 2.2f, 0.30f);
+            MakeBox($"{tag}_door", face - outward * 0.12f + new Vector3(0, 1.1f, 0),
+                    doorSize, AssetLibrary.Metal);
+
+            // The cornice: a lip at the parapet, all the way round, because a
+            // flat box meeting the sky is what makes a skyline read as
+            // untextured geometry.
+            MakeBox($"{tag}_cornice", pos + new Vector3(0, size.y - 0.35f, 0),
+                    new Vector3(size.x + 0.5f, 0.35f, size.z + 0.5f), AssetLibrary.Roof);
         }
 
         /// Anything else that should glow after dusk — a vehicle's headlamps,
@@ -764,7 +821,11 @@ namespace Ledger.Game
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
                 MakeBox($"District_{place.Id}_roof", pos + new Vector3(0, size.y + 0.12f, 0),
                     new Vector3(size.x + 0.4f, 0.25f, size.z + 0.4f), AssetLibrary.Roof);
-                if (place.Kind != "corner") AddWindows($"District_{place.Id}", pos, size);
+                if (place.Kind != "corner")
+                {
+                    AddWindows($"District_{place.Id}", pos, size);
+                    GroundFloor($"District_{place.Id}", pos, size, -dir);
+                }
                 Masses.Add((pos, size));
 
                 // A doorstep pad marks the schedule stop itself.
