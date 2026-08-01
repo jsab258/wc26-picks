@@ -1343,12 +1343,62 @@ namespace Ledger.Game
             }
             _worldText = worldText;
             _worldTextDepth = worldTextMaterialled;
+            _labelsColliding = CollidingNames();
 
             Debug.Log($"SimDirector: glyphs labels={_labels} fontless={_labelsFontless} "
                       + $"blank={_labelsBlank} worldText={worldText} "
                       + $"depthTested={worldTextMaterialled} "
                       + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
-                      + $"shader={WorldText.ShaderPresent}");
+                      + $"shader={WorldText.ShaderPresent} "
+                      + $"collidingNames={_labelsColliding}");
+        }
+
+        int _labelsColliding = -1;
+
+        /// How many pairs of world-space NAMES overlap on screen right now.
+        ///
+        /// FOUND IN A STILL, MEASURED HERE. `review_day1_night.jpg` has "Ivan
+        /// Loveric" and "Katarina" printed across each other, and neither is
+        /// readable. Every existing glyph check passed on that frame and all of
+        /// them were right: the labels exist, have a font, and lay out a
+        /// non-zero width. None of them asks whether two of them are in the same
+        /// place — which is the difference between "text rendered" and "text you
+        /// can read", and the second is the only one a player cares about.
+        ///
+        /// REPORTED, NOT GATED, and deliberately so. A crowd will sometimes put
+        /// two people in a line from the camera, and there is no such thing as
+        /// zero overlaps in a city — a gate at zero would be unsatisfiable and a
+        /// gate at any other number is a threshold nobody has measured. So this
+        /// prints the count and the count becomes the evidence, exactly as the
+        /// AO round series did.
+        ///
+        /// Screen-space AABBs from the text's own bounds, not world distance:
+        /// two names three metres apart in depth collide on screen and two names
+        /// three metres apart across the view do not.
+        int CollidingNames()
+        {
+            var cam = Camera.main;
+            if (cam == null) return -1;
+            var boxes = new List<Rect>();
+            foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
+            {
+                if (t == null || string.IsNullOrEmpty(t.text)) continue;
+                var r = t.GetComponent<Renderer>();
+                if (r == null || !r.isVisible) continue;
+                var b = r.bounds;
+                var lo = cam.WorldToScreenPoint(b.min);
+                var hi = cam.WorldToScreenPoint(b.max);
+                // Behind the camera projects to nonsense; a negative z is not a
+                // label anybody is reading.
+                if (lo.z <= 0 || hi.z <= 0) continue;
+                boxes.Add(Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y),
+                                          Mathf.Max(lo.x, hi.x), Mathf.Max(lo.y, hi.y)));
+            }
+            int pairs = 0;
+            for (int i = 0; i < boxes.Count; i++)
+                for (int j = i + 1; j < boxes.Count; j++)
+                    if (boxes[i].Overlaps(boxes[j])) pairs++;
+            return pairs;
         }
 
         int _worldText = -1, _worldTextDepth = -1;
@@ -4821,6 +4871,7 @@ namespace Ledger.Game
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
+                      $"collidingNames={_labelsColliding} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
