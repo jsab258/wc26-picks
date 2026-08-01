@@ -79,6 +79,59 @@ namespace Ledger.Core
             return t;
         }
 
+        /// Spread a stable fraction before it chooses a band.
+        ///
+        /// THE WEIGHTS WERE RIGHT AND THE STREET WAS STILL WRONG. The first run
+        /// to report the tally came back
+        ///
+        ///     olive:483 brown:441 charcoal:325 navy:261 oxblood:164
+        ///
+        /// against designed shares of 15.8 / 26.3 / 26.3 / 21.1 / 10.5 percent.
+        /// Olive came out at 1.83x its share and was the COMMONEST band while
+        /// weighted third; charcoal and navy came in at 0.74x.
+        ///
+        /// The weighting arithmetic is fine. The input is not uniform:
+        /// `Population.StableFraction` is FNV-1a over a name divided by
+        /// uint.MaxValue, and over the city's actual roster those hashes bunch
+        /// in the middle of the range — exactly where the olive slice sits. A
+        /// weighted pick is only as good as the uniformity of what it picks on,
+        /// and nothing had ever looked.
+        ///
+        /// MY TEST PASSED THROUGHOUT, because it fed `i / n` — a perfectly
+        /// uniform ramp, which cannot fail a weighting no matter how the real
+        /// input behaves. That is the corpus diagnostic reading sixty
+        /// consecutive rows of a speaker-ordered dataset and reporting on "the
+        /// corpus": the right check against the wrong sample.
+        ///
+        /// Two multiply-and-fold rounds with coprime primes. Cheap,
+        /// deterministic — the same name still always gets the same coat — and
+        /// it breaks up clustering without needing to know its shape.
+        static double Mix(double f)
+        {
+            double a = f * 7919.0;
+            a -= System.Math.Floor(a);
+            double b = (a + f) * 104729.0;
+            return b - System.Math.Floor(b);
+        }
+
+        /// Which band, from a fraction. ONE implementation, because `Dress` and
+        /// `BandOf` each had their own copy of this loop — and two copies of a
+        /// rule is how the fog ended up with two owners and the Core-tested one
+        /// always losing.
+        static Band Pick(double fraction)
+        {
+            double f = fraction - System.Math.Floor(fraction);
+            if (double.IsNaN(f) || f < 0) f = 0;
+            double target = Mix(f) * TotalWeight();
+            double acc = 0;
+            foreach (var b in Bands)
+            {
+                acc += b.Weight;
+                if (target < acc) return b;
+            }
+            return Bands[Bands.Length - 1];
+        }
+
         /// Dress somebody, deterministically, from a stable fraction in 0..1.
         ///
         /// The SAME fraction always produces the same clothes — a walker who
@@ -94,15 +147,7 @@ namespace Ledger.Core
             double f = fraction - System.Math.Floor(fraction);
             if (double.IsNaN(f) || f < 0) f = 0;
 
-            // Pick the band by weight.
-            double target = f * TotalWeight();
-            var band = Bands[Bands.Length - 1];
-            double acc = 0;
-            foreach (var b in Bands)
-            {
-                acc += b.Weight;
-                if (target < acc) { band = b; break; }
-            }
+            var band = Pick(f);
 
             // AND A SECOND, DECORRELATED FRACTION FOR THE POSITION INSIDE THE
             // BAND. Reusing `f` would make hue, saturation and value all move
@@ -124,18 +169,6 @@ namespace Ledger.Core
         /// Which band a fraction dresses from. For the tests and the sim
         /// verdict — a distribution that has quietly collapsed onto one band is
         /// a palette failure that every individual colour would pass.
-        public static string BandOf(double fraction)
-        {
-            double f = fraction - System.Math.Floor(fraction);
-            if (double.IsNaN(f) || f < 0) f = 0;
-            double target = f * TotalWeight();
-            double acc = 0;
-            foreach (var b in Bands)
-            {
-                acc += b.Weight;
-                if (target < acc) return b.Name;
-            }
-            return Bands[Bands.Length - 1].Name;
-        }
+        public static string BandOf(double fraction) => Pick(fraction).Name;
     }
 }

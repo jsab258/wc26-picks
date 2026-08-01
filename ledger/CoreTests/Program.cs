@@ -10996,6 +10996,60 @@ namespace Ledger.CoreTests
             Check(counts["charcoal"] > counts["oxblood"],
                   "grey is commoner than ox-blood", $"{counts["charcoal"]} vs {counts["oxblood"]}");
 
+            // AND NOW ON THE INPUT THE GAME ACTUALLY FEEDS IT.
+            //
+            // Everything above runs on `i / n` — a perfectly uniform ramp,
+            // which cannot fail a weighted pick however the real input behaves.
+            // It passed while the actual street came back olive:483 against a
+            // designed 15.8% share, 1.83x, the commonest band while weighted
+            // third. The check was right and the sample was wrong.
+            //
+            // `Population.StableFraction` is FNV-1a over a name divided by
+            // uint.MaxValue, so that is what this feeds — over names shaped
+            // like the ones the generator makes.
+            var real = new Dictionary<string, int>();
+            string[] firsts = { "Tom", "Ada", "Sam", "Rocco", "Marla", "Victor", "Ines",
+                                "Roland", "Danica", "Fabjan", "Noor", "Ossei", "Lucille", "Ellis" };
+            string[] lasts = { "Novak", "Salas", "Uzens", "Horvat", "Farid", "Blake", "Kerr",
+                               "Wynn", "Ashby", "Doyle", "Rains", "Vance", "Croft", "Meara" };
+            int people = 0;
+            foreach (var a in firsts)
+                foreach (var b in lasts)
+                    for (int k = 0; k < 12; k++)
+                    {
+                        string name = $"{a} {b}{(k == 0 ? "" : k.ToString())}";
+                        // FNV-1a, the same arithmetic Population uses.
+                        uint hash = 2166136261;
+                        unchecked
+                        {
+                            foreach (var ch in name) { hash ^= ch; hash *= 16777619; }
+                        }
+                        string bandName = Wardrobe.BandOf(hash / (double)uint.MaxValue);
+                        real[bandName] = real.TryGetValue(bandName, out var rc) ? rc + 1 : 1;
+                        people++;
+                    }
+
+            int totalW = 0;
+            foreach (var b in Wardrobe.Bands) totalW += b.Weight;
+            string worst = null;
+            double worstRatio = 1.0;
+            foreach (var b in Wardrobe.Bands)
+            {
+                double actual = (real.TryGetValue(b.Name, out var c) ? c : 0) / (double)people;
+                double designed = b.Weight / (double)totalW;
+                double ratio = actual / designed;
+                if (ratio > worstRatio || 1.0 / ratio > worstRatio)
+                {
+                    worstRatio = Math.Max(ratio, 1.0 / ratio);
+                    worst = $"{b.Name} {actual * 100:0.0}% vs {designed * 100:0.0}% ({ratio:0.00}x)";
+                }
+            }
+            // 1.35x, because the real roster is a finite sample and exact
+            // shares are not on offer — but 1.83x was a palette failure you
+            // could see from across the street.
+            Check(worstRatio <= 1.35,
+                  "hashed names land on the designed distribution", worst);
+
             // DETERMINISTIC. A walker who changes coat when the crowd re-bands
             // is a walker you cannot learn to recognise.
             Wardrobe.Dress(0.4242, out double h1, out double s1, out double v1);
