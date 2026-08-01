@@ -15,10 +15,9 @@ open a second document to find out what happens next.
 
 | | | |
 |---|---|---|
-| **now** | M16 — perception, weapons, violence | **phases 1–4 shipped and gated**; 5 is M21 |
-| **next** | M17 — the game looks and sounds like itself | bodies, voices, barks, foley, **surfaces, props, weapons** |
-| | M18 — the second life | home, family, companionship, vice |
-| | M19 — the city pushes back | allegiance, law as a tool, notoriety, competence |
+| **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 reopened: the player is upside down** · 17.2 and 17.5 need CI |
+| **also now** | M18 — the second life | **family and companionship built**; family verified running, companion built and not yet proven. Vice and lifestyle not started |
+| **next** | M19 — the city pushes back | allegiance, law as a tool, notoriety, competence |
 | | M20 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M21 — firearms | M16 phase 5, deliberately last |
 | | M22 — ship | performance, platforms, controller, QA, **licences, packaging, fonts** |
@@ -82,7 +81,7 @@ design — every item has a working system underneath already.
 
 | | what | state | risk |
 |---|---|---|---|
-| 17.1 | **Integrate the Mixamo bodies** | **DONE 2026-08-01.** `humanoid=44 validHumanAvatar=44`; an Editor step writes `Resources/Characters/Body`, `RealBody` attaches it, `CharacterRig` tier one binds its Avatar. `realBody=1`, scaled x0.949 from raw 1.90m. Player only — a skinned crowd is uncosted on a GPU-less runner | closed |
+| 17.1 | **Integrate the Mixamo bodies** | **REOPENED 2026-08-01, was marked DONE the same day.** Imported, attached, avatar bound, scaled and now dressed — and **the player renders upside down**. It was closed on `bodyUp=1.000`, which reads the ROOT transform and structurally cannot see the skeleton; a posture gate added later reads the head *below* the hips. The import is NOT at fault: the bind pose measures correct, so the inversion is introduced by a clip, the avatar binding, or `CharacterRig`'s own solve. **Not done until a still shows a person standing up** | **open — the last M17 blocker** |
 | 17.2 | **Generate the cast voices** — clones from the 19 reference clips | cast and consent-approved; **19 reference clips picked**. Blocked on a SCOPE decision, not on tooling — see below | **high, and it is scheduling** |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
@@ -92,19 +91,25 @@ design — every item has a working system underneath already.
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
-**17.6–17.9 were found by an audit on 2026-07-31, not by the plan.** Nine
-categories were missing; `completeness-audit-2026-07-31.md` has the cause. This
-file was derived from the work queue rather than from a definition of done, so
-it was complete about what somebody was already thinking about and silent about
-the rest.
+**17.6–17.9 were found by an audit on 2026-07-31, not by the plan** — this file
+was derived from the work queue rather than from a definition of done, so it was
+silent about nine whole categories. Cause in `completeness-audit-2026-07-31.md`.
 
-**17.2 IS BLOCKED ON A DECISION, NOT ON TOOLING, and it needs Jafar.** The bark
-bank is 2,604 lines, all distinct, so the crowd's six pool voices alone are
-**15,624 clips / 1.52M characters** of synthesis and all nineteen is 49,476 — on
-a CPU runner, CI-days. Options in `production-plan-audio-art.md` §"17.2 scope";
-short version, **voice the principals and leave the crowd's barks as text**,
-since `Acoustics.AsHeard` makes them unintelligible at distance anyway. Not
-taken alone: it is audible, and it is hours against days.
+**17.2 WAS NEVER BLOCKED ON JAFAR — I HAD MULTIPLIED INSTEAD OF MEASURING.**
+This paragraph said the work needed a scope decision from him because the bark
+bank is 2,604 distinct lines and six crowd voices makes **15,624 clips**, all
+nineteen makes 49,476, and on a CPU runner that is CI-days.
+
+That number is a cross product, not a demand. `VoiceBank.ClipName` keys on
+(voice, exact text), so a line is only ever synthesised for the voices that
+actually say it — and the sim now prints what a real week asks for:
+**`clipsAsked=276 voicesAsked=6`**. Fifty-six times smaller than the figure
+this file used to justify escalating, and an afternoon's work rather than
+CI-days.
+
+Still true and unchanged: LLM-authored dialogue can never be pre-generated,
+because the text is not known until it is written. That is a property of the
+design, not a blocker on this item.
 
 **The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
 §4 chose stylised noir for the reason that still holds — a game about what people
