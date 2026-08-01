@@ -1604,3 +1604,157 @@ called the body confirmed while the noon frame in the same directory showed it
 magenta on its back — having written myself the instruction to open it. That is
 why `CLAUDE.md` §4 now says to read every still BEFORE any gate, and never the
 gate instead of the artifact.
+
+
+---
+
+## moved out of roadmap.md, 2026-08-01
+
+The strategy rewrite (KCD2 immersion rather than a systems spike) added two
+milestones and pushed the LIVE plan over its 400-line limit. These three
+sections are REFERENCE and HISTORY rather than plan, so they moved here instead
+of the limit moving. The scope call in particular is superseded: it argued for
+two districts and `ledger/Recurrence` measured three as better.
+
+## The testing system
+
+Researched and planned 2026-07-31 on Jafar's instruction. Five layers, specced
+in `testing-system.md`:
+
+| | layer | catches | when |
+|---|---|---|---|
+| 1 | **Reach** — every public Core API has a caller | *built is not running*; ~40 APIs with no call site | before M16 ph.3/4 land |
+| 2 | **Shape** — text, audio and assets are well-formed | 21 of 42 gossip templates rendering a lowercase sentence under 2,883 green tests | before M16 ph.3/4 land |
+| 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | **ledger landed**, tolerance unmeasured |
+| 4 | **Time** — determinism, 500-day soak, save/load chaos | a bug that is currently unreproducible | **landed**; replay-log half open |
+| 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | **router+validator landed**; bot open |
+
+**All five layers now have a gate, and `verify.py` runs every one on every
+commit.** What each found, since a layer that found nothing is a layer nobody
+has watched fire:
+
+- **3 PIXELS**, half. Twenty frames were fingerprinted per run and reported
+  through two channels this environment cannot read; they now go to committed
+  `sim-shots/frames.tsv`, with `tools/frame-drift.py` printing per-shot deltas
+  into `verdict.txt`. **Open:** the GATING half — a tolerance is a threshold and
+  the rasteriser's noise floor is unmeasured, which is how `nightNotDarker`
+  failed at 0.136 against 0.135. **Depends on** two clean runs.
+- **4 TIME**, both gates. `SaveChaos` fuzzes the codec, `Soak` runs 500 days
+  twice comparing per-day digests. **Seven player-reachable faults**: two
+  exceptions the front end could not catch, a save loading into day 0, an int
+  overflow flipping a job count negative, a purse and a patience bypassing their
+  own clamps, and an unbounded `SuspicionTracker.Reasons` — found by the growth
+  SERIES, not a total, since rumours oscillated 9–74 in the same run because
+  gossip decays. **Open:** replay from a seed plus an input log (Unity).
+- **5 ADVERSARY**, the boundary. Twenty families, five seeds, 700 rounds, and
+  **not one routed a verb the catalogue did not contain** — the one function
+  written as a security boundary was written correctly. Found a public
+  off-by-one (`ResponseValidator` appended its ellipsis after cutting to
+  `MaxChars`; measured 901) and a fault in itself: every family asserts a
+  REFUSAL, so a router refusing everything scores perfectly. Positive controls
+  go first now. **Open:** the bot that plays badly (Unity).
+
+Beside them: 2,965 CoreTests, **21 mutation-testing specs** (`breakrun.py` —
+most studios do not), 20 gated sim claims, an LLM-vs-LLM playtest and
+Monte-Carlo balance.
+
+
+## The ship checklist — every category, and who owns it
+
+**This table exists because the roadmap did not have one, and nine categories
+were missing.** A milestone may not claim a category it has not named, and a
+category with no owner is a gap whether or not anybody is thinking about it —
+`built is not running` one level up: a category with no milestone looks
+finished in a roadmap exactly like a system with no call site does in review.
+
+| | owner | state |
+|---|---|---|
+| Simulation systems | M16, M18–M21 | the moat; in progress |
+| Character models and animation | 17.1 | **imported and attached**; player only |
+| Voices | 17.2, 17.3 | 19 references picked; generation blocked on scope |
+| Barks | 17.4 | 2,604 lines enumerated, curation mine |
+| Foley | 17.5 | decided free, not sourced |
+| Surfaces and textures | 17.6 | **12 CC0 albedos, attributed, verified in a render** |
+| Props, buildings, vehicles | **17.7** | vehicles done; buildings are blocks, need ground floors |
+| Weapons and held objects | 17.8 | **drawn from the hand, on either body tier** |
+| Fonts and icons | 17.9, **22.4** | **PT Sans ships with its licence**; icons nothing |
+| Music | shipped M13 | procedural layer, running |
+| Lighting, weather, post | shipped | noir pass, grain, bloom, AO, reflections |
+| UI and menus | shipped | text-only, no icons |
+| Save / load | shipped | atomic, slots, backup recovery |
+| Onboarding and pacing | M20 | not started |
+| Performance | M22, Layer 4 | gated per run; frames.tsv starts the trend |
+| Platforms | M22 | Windows green, macOS compiles, never run |
+| Controller | M22 | 28 `Input.*` calls to move |
+| Accessibility | M22 | caption channel only |
+| Testing | testing-system.md | **all five layers gated**; 3 reports, 4–5 partial |
+| Credits, licences, attribution | **22.1** | nothing, and CC BY 4.0 requires it |
+| Localisation | **22.2** | no infrastructure, no decision on record |
+| Packaging and release | **22.3** | nothing |
+
+
+## The scope call, decided
+
+**Finish two districts to a shippable standard; leave the other five at current
+fidelity.** Not a cut — a focus. `the-gap.md` §4's argument was that gossip is
+*better* in a small world where the same faces recur, and M17's cost scales
+directly with district count. Seven were built; two get finished.
+
+*Jafar, 2026-07-31: "fine with the district thing."* The heading said "still
+open" for a day after he closed it, which is how a live doc goes stale.
+
+
+**The lowest scores on the board are all the same half of the premise.** The
+design doc's genre line is *"open-city crime sim × slice-of-life social RPG"*
+and the slice-of-life side reads 5 to 25 across every dimension.
+
+| dimension | now | target |
+|---|---|---|
+| Home / base that reacts | 10 | 50 |
+| Family & dependents | 15 | 50 |
+| Companionship — who is with you | 15 | 55 |
+| Self-presentation / lifestyle | 25 | 35 |
+| Vice & addiction | 5 | 40 |
+
+**Why it matters more than its scores suggest.** A belief network is only
+frightening if the people in it are people you would miss. The game can
+currently model the street knowing you are a criminal, and cannot model
+anybody being at home waiting for you. Every consequence the moat produces
+lands on nothing.
+
+
+**17.2 WAS NEVER BLOCKED ON JAFAR — I HAD MULTIPLIED INSTEAD OF MEASURING.**
+This paragraph said the work needed a scope decision from him because the bark
+bank is 2,604 distinct lines and six crowd voices makes **15,624 clips**, all
+nineteen makes 49,476, and on a CPU runner that is CI-days.
+
+That number is a cross product, not a demand. `VoiceBank.ClipName` keys on
+(voice, exact text), so a line is only ever synthesised for the voices that
+actually say it — and the sim now prints what a real week asks for:
+**`clipsAsked=276 voicesAsked=6`**. Fifty-six times smaller than the figure
+this file used to justify escalating, and an afternoon's work rather than
+CI-days.
+
+Still true and unchanged: LLM-authored dialogue can never be pre-generated,
+because the text is not known until it is written. That is a property of the
+design, not a blocker on this item.
+
+
+**REPLACED 2026-08-01, and the old line is worth keeping visible because
+following it faithfully is what went wrong.** It read: *"Be incomparable on
+three axes and honest about the rest — social memory 93, consequence persistence
+95, information 90"*, with Disco Elysium against Baldur's Gate 3 as the
+precedent. That is a DIFFERENTIATION strategy, not an immersion one, and pursued
+for weeks it produced a 95-scoring consequence engine attached to a town of
+silent boxes: 447 lines of speech wanted and zero played, every character except
+the player a coloured box, and the immersion milestone repeatedly losing its
+slot to systems work. Jafar's actual goal, stated at the start and restated on
+2026-08-01, was always to get as near as possible to the games he rates — KCD2
+and GTA5 — with AI-heavy means.
+
+
+**Why first, ahead of every system below.** A player judges a game in ninety
+seconds. Right now it animates boxes and speaks in silence, and none of the
+depth below is visible in those ninety seconds. Almost nothing here is new
+design — every item has a working system underneath already.
+
