@@ -55,6 +55,7 @@ namespace Ledger.CoreTests
                 TestCompareNotes();
                 TestSaveRoundTrip();
                 TestDebts();
+                TestHousehold();
                 TestEmpire();
                 TestActTwo();
                 TestDayJob();
@@ -1088,6 +1089,118 @@ namespace Ledger.CoreTests
                 "TellCount counts written-prose words");
             Check(ResponseValidator.TellCount("Pay up or don't come back.") == 0,
                 "street talk carries no tells");
+        }
+
+        /// M18. THE PEOPLE WHOSE WEEK IS WORSE WHEN YOURS IS.
+        ///
+        /// The done-condition has two clauses and the SECOND one is the hard
+        /// one: a run where the player never goes home must be measurably worse
+        /// *and the difference must come from relationships rather than from a
+        /// stat*. So these tests are not only "does the number move" — the last
+        /// three assert the shape that keeps it from becoming a fuel gauge.
+        static void TestHousehold()
+        {
+            Console.WriteLine("Household — M18, the second life:");
+
+            Household Fresh()
+            {
+                var h = new Household();
+                h.Add(new Dependent { Id = "ma", Name = "Nell", Relation = "mother" });
+                h.Add(new Dependent { Id = "kid", Name = "Bry", Relation = "brother" });
+                return h;
+            }
+
+            // A week away crosses the line the design says it should, on the
+            // night the arithmetic says it should. This is the claim the
+            // constant's comment makes, asserted rather than trusted.
+            var away = Fresh();
+            int crossed = 0;
+            for (int day = 1; day <= 7; day++)
+            {
+                away.NightAway(day);
+                if (crossed == 0 && away.TalkerCount > 0) crossed = day;
+            }
+            Check(crossed == 6, $"a week of absence crosses TalkFreely on night six (got {crossed})");
+            Check(away.TalkerCount == 2, "and by then everybody in the house would talk");
+
+            // One bad night is nearly free — the design's other half.
+            var oneNight = Fresh();
+            oneNight.NightAway(1);
+            Check(oneNight.TalkerCount == 0, "one night away costs nobody their discretion");
+
+            // Coming home recovers, and SLOWER than absence costs. A player who
+            // alternates must lose ground, or going home is a chore to clear.
+            var alternating = Fresh();
+            for (int day = 1; day <= 10; day += 2)
+            {
+                alternating.NightAway(day);
+                alternating.NightAtHome(day + 1);
+            }
+            Check(alternating.People[0].Bond < 0.75,
+                  $"alternating nights still loses ground ({alternating.People[0].Bond:0.000})");
+
+            // Presence alone recovers a neglected bond, given enough of it.
+            var repaired = Fresh();
+            for (int day = 1; day <= 7; day++) repaired.NightAway(day);
+            Check(repaired.TalkerCount == 2, "neglected first");
+            for (int day = 8; day <= 20; day++) repaired.NightAtHome(day);
+            Check(repaired.TalkerCount == 0, "and being there is what mends it");
+
+            // ---- the clauses that stop it being a stat ----
+
+            // MONEY DOES NOT BUY A BOND. You cannot be richer at somebody until
+            // they forgive you; a game where you can is a game about a resource.
+            var bought = Fresh();
+            for (int day = 1; day <= 7; day++) bought.NightAway(day);
+            double bondBefore = bought.People[0].Bond;
+            bought.NightAtHome(8, givenClean: 5000);
+            Check(Math.Abs(bought.People[0].Bond - (bondBefore + Household.BondGainedPerNightHome)) < 1e-9,
+                  "money moves condition, never bond — a night is a night");
+            Check(bought.People[0].Condition > 0.6,
+                  "though it does move condition, which is what money is for");
+
+            // PROVIDED FOR AND UNSEEN IS A REAL STATE, and it is the one a
+            // single "time at home" number cannot express.
+            var providedFor = Fresh();
+            for (int day = 1; day <= 7; day++) providedFor.NightAway(day);
+            providedFor.NightAtHome(8, givenClean: 400);
+            for (int day = 9; day <= 14; day++) providedFor.NightAway(day);
+            Check(providedFor.MeanCondition > 0.6 && providedFor.TalkerCount == 2,
+                  $"well kept and still talking (cond {providedFor.MeanCondition:0.00}, "
+                  + $"{providedFor.TalkerCount} talkers)");
+
+            // BRINGING IT HOME IS NOT THE SAME AS BEING HOME. Attendance rises
+            // and the house gets worse, which no attendance counter can say.
+            var trouble = Fresh();
+            double condBefore = trouble.MeanCondition;
+            trouble.NightAtHome(1, givenClean: 0, heatBroughtHome: 0.9);
+            Check(trouble.People[0].Bond > 0.75, "the night still counts as a night");
+            Check(trouble.MeanCondition < condBefore,
+                  $"and the house is worse for it ({trouble.MeanCondition:0.00} < {condBefore:0.00})");
+            Check(trouble.People[0].Grievances.Count == 1,
+                  "and somebody remembers that you brought it in");
+
+            // A grievance list is bounded, for the reason the soak found.
+            var nagged = new Household();
+            nagged.Add(new Dependent { Id = "ma", Name = "Nell" });
+            for (int day = 1; day <= 40; day++)
+                nagged.NightAtHome(day, 0, heatBroughtHome: 0.9);
+            Check(nagged.People[0].Grievances.Count == Dependent.MaxGrievances,
+                  $"grievances are bounded ({nagged.People[0].Grievances.Count})");
+
+            // Nobody is written off entirely.
+            var abandoned = Fresh();
+            for (int day = 1; day <= 200; day++) abandoned.NightAway(day);
+            Check(abandoned.People[0].Bond >= Household.BondFloor - 1e-9,
+                  $"a bond floors rather than reaching zero ({abandoned.People[0].Bond:0.000})");
+
+            // Talkers() returns PEOPLE, not a penalty — the whole point.
+            var talkers = away.Talkers().ToList();
+            Check(talkers.Count == 2 && talkers[0].Name == "Nell",
+                  "Talkers() hands back people for the mill, not a number for a formula");
+
+            Check(new Household().MeanBond == 0 && new Household().TalkerCount == 0,
+                  "an empty household is quiet rather than a divide by zero");
         }
 
         static void TestDebts()

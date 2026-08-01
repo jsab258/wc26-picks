@@ -49,6 +49,9 @@ namespace Ledger.Game
         public int PlayerCash => Wallet.Total;
 
         public Campaign Campaign { get; } = new Campaign();
+
+        /// M18. The rooms above the pub and the two people in them.
+        public readonly HouseholdHost Household = new HouseholdHost();
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
         // Act I's authored spine state (act1-draft.md): pressure-point flags,
         // the posture answer, Noor's two drawers.
@@ -1814,6 +1817,19 @@ namespace Ledger.Game
                 _lastClosedDay = Now.Day;
                 double heat = CurrentHeat;
                 int takings = Campaign.CloseDay(heat);
+
+                // M18. THE NIGHT THAT JUST ENDED, and where the player spent it.
+                //
+                // Scored here because this is the moment the day actually turns
+                // — the same instant the till is counted and the fuse advances.
+                // Anywhere else and "a night" would be a different length from
+                // the one every other system means by it.
+                if (_player != null)
+                {
+                    Household.CloseNight(Now.Day, _player.transform.position,
+                                         cleanGiven: 0, heat: heat);
+                    Household.WireTalkers(_gossip != null ? _gossip.Mill : null, Now);
+                }
                 // The licence is under review: the bar's own till stays shut.
                 if (ActTwo.BarFrozen(Now)) takings = 0;
                 // Owned fronts pay clean and get heat-taxed exactly like the bar

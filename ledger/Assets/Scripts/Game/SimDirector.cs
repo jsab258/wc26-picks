@@ -5018,6 +5018,7 @@ namespace Ledger.Game
                       $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"clipsAsked={Audio.DistinctClipsAsked} voicesAsked={Audio.DistinctVoicesAsked} " +
+                      $"{(_game != null ? _game.Household.Report() : "household[absent]")} " +
                       $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
