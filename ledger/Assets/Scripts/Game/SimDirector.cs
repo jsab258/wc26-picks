@@ -2295,6 +2295,18 @@ namespace Ledger.Game
         /// `threat[... drawn=0 object=none]`. The gate was right and the threat
         /// was right; the hand lookup had been written against one tier and
         /// asserted about the other.
+        /// Is the player's spawn capsule still rendering on top of its body?
+        ///
+        /// Read live rather than latched at spawn, because the question is what
+        /// the camera sees now, and a renderer re-added by anything later is the
+        /// same fault arriving by a different door.
+        bool PlayerPrimitiveShowing()
+        {
+            if (_player == null) return false;
+            var mr = _player.GetComponent<MeshRenderer>();
+            return mr != null && mr.enabled;
+        }
+
         Transform PlayerHand()
         {
             if (_player == null) return null;
@@ -4125,7 +4137,19 @@ namespace Ledger.Game
                 && (_bodyCullable == 0 || _bodyCulled > _bodyCullable / 2)
                 // 8cm apart at minimum: enough that the variation reached the
                 // transforms rather than only the struct.
-                && _bodyTallest - _bodyShortest > 0.08;
+                && _bodyTallest - _bodyShortest > 0.08
+                // AND NOTHING IS DRAWING THE SPAWN PRIMITIVE OVER THE TOP.
+                //
+                // Every clause above asks about the body that was ADDED. None
+                // of them — none of the twenty gates in this file — asks what is
+                // still being DRAWN, and for one build that gap hid the whole
+                // point of M17.1: `realBody=1`, `bodiesOk=True`,
+                // `height=1.58..1.90`, all true, and the player on screen was a
+                // white capsule with two skin-coloured arms out of it, because
+                // `RealBody` never removed the `CreatePrimitive` mesh that
+                // `Mannequin.Build` has always removed. It was found by opening
+                // the still, which is the only reason it was found at all.
+                && !PlayerPrimitiveShowing();
 
             // OCCLUSION, gated on the A/B rather than on the counter.
             //
@@ -4459,7 +4483,7 @@ namespace Ledger.Game
                  $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
-                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00}]", bodiesOk),
+                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[hit={100 * _bloomFraction:0.00}% rise={_bloomRise:0.0000} " +
@@ -4799,6 +4823,7 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
+                      $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
                       $"{Perf.Summary()} trafficMs={(trafficCost != null ? trafficCost.MeanMs : 0):0.000} perfOk={perfOk} " +

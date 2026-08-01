@@ -61,6 +61,36 @@ namespace Ledger.Game
             var body = Object.Instantiate(prefab, host.transform);
             if (body == null) { Why = "instantiate returned null"; return false; }
             body.name = "RealBody";
+
+            // AND THE CAPSULE GOES, which this did not do and `Mannequin.Build`
+            // has always done.
+            //
+            // THE STILL IS HOW IT WAS FOUND, and every gate in the run said the
+            // body was fine: `realBody=1`, `realBodyWhy=[ok (raw 1.90m scaled
+            // x0.949)]`, `bodiesOk=True`, `height=1.58..1.90`. All true. The
+            // player was still a two-metre white capsule with a pair of skin-
+            // coloured arms poking out of it, because `PlayerController.Spawn`
+            // builds the host from `CreatePrimitive(Capsule)` and nothing here
+            // removed the mesh that came with it. The bought body was inside,
+            // at exactly the same height, hidden by the thing it replaced.
+            //
+            // Not one gate could have caught it. Every one of them asks about
+            // the body that was ADDED and none asks what is still being DRAWN —
+            // so `PlayerController` now reports `playerPrimitive`, and the sim
+            // gates on it.
+            //
+            // The instruction was eleven lines long in `Mannequin.Build`, with
+            // its reasoning attached, and I wrote the parallel path without
+            // reading it. That is the `persist-credentials: false` incident
+            // again: the comment that would have prevented it was sitting just
+            // above the code I was copying the shape of.
+            //
+            // The renderer, not the object — anything holding the transform
+            // still holds it.
+            var mesh = host.GetComponent<MeshRenderer>();
+            if (mesh != null) Object.Destroy(mesh);
+            var filter = host.GetComponent<MeshFilter>();
+            if (filter != null) Object.Destroy(filter);
             // DOWN, NOT UP, AND THE SIGN IS THE WHOLE THING. The host's origin
             // sits at hip height — `Mannequin.HipY = -SoleBelowOrigin`, and
             // callers spawn at `ground + up * SoleBelowOrigin`. A Mixamo rig's
