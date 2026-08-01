@@ -106,11 +106,31 @@ namespace Ledger.Core
         public void Restore(double patience, int exposedStreak, int jobsDone, int jobsMissed,
             int daysClosed, Verdict verdict, string reason)
         {
-            OutfitPatience = patience;
-            ExposedStreak = exposedStreak;
-            JobsDone = jobsDone;
-            JobsMissed = jobsMissed;
-            DaysClosed = daysClosed;
+            // COUNTS CANNOT BE NEGATIVE, whatever the file says.
+            //
+            // A save carrying `"jobsMissed": -1e308` restored to minus two
+            // billion missed jobs — `SaveChaos` found fifteen of these in a
+            // run. Every comparison downstream reads `JobsMissed >= n` to
+            // decide whether the outfit has lost patience, so a large negative
+            // does not merely look wrong: it makes the outfit permanently,
+            // silently forgiving, which is the failure this whole campaign
+            // layer exists to produce the opposite of.
+            //
+            // Clamped rather than refused, because unlike the day these have a
+            // correct floor and a save is not unreadable for having a bad one.
+            // PATIENCE IS A 0..1 QUANTITY and this is the only door into it
+            // that did not say so. `JobDone` caps it at 1.0 and `JobMissed`
+            // floors it at 0.0 — the invariant is the class's own, restated
+            // here rather than invented, because restore had been the one path
+            // that bypassed both. A save reading `"patience": 0.659e999999999`
+            // parses to Infinity, and `SaveChaos` restored one: at Infinity
+            // the `<= 0.0` cut-off on line 142 can never fire and the outfit
+            // never loses patience with the player again.
+            OutfitPatience = double.IsNaN(patience) ? 0.0 : Math.Min(1.0, Math.Max(0.0, patience));
+            ExposedStreak = Math.Max(0, exposedStreak);
+            JobsDone = Math.Max(0, jobsDone);
+            JobsMissed = Math.Max(0, jobsMissed);
+            DaysClosed = Math.Max(0, daysClosed);
             Verdict = verdict;
             VerdictReason = reason ?? "";
         }

@@ -1266,6 +1266,72 @@ namespace Ledger.CoreTests
                 "open-mode state round-trips");
             Check(!camp2.OpenMode && camp2.Falls == 0, "a week-mode save restores with the city closed");
 
+            // SIX PINNED SAVES, one per fault `SaveChaos` found on its first
+            // run. The fuzzer covers all of this and more, but it covers it
+            // RANDOMLY — a regression would come back as "seed 5 fails" on
+            // whichever seed happened to reach the case. These name themselves.
+            //
+            // Every one of them was reachable by a player with a save the disk
+            // filled up on, not by a hostile file.
+            string Bend(string key, string value)
+            {
+                var whole = SaveCodec.Capture(now, new Wallet(300), new Campaign(),
+                    new PlayerKnowledge(), new SecretsBook(), new BeatBook(),
+                    new GossipMill(new SocialGraph()), new DebtBook(), null);
+                int i = whole.IndexOf("\"" + key + "\":", StringComparison.Ordinal);
+                if (i < 0) return whole;
+                int colon = whole.IndexOf(':', i), end = colon + 1;
+                while (end < whole.Length && whole[end] != ',' && whole[end] != '}') end++;
+                return value == null
+                    ? whole.Substring(0, i) + whole.Substring(end + (end < whole.Length && whole[end] == ',' ? 1 : 0))
+                    : whole.Substring(0, colon + 1) + value + whole.Substring(end);
+            }
+            bool Refuses(string json)
+            {
+                try
+                {
+                    SaveCodec.Restore(json, new Wallet(0), new Campaign(), new PlayerKnowledge(),
+                        new SecretsBook(), new BeatBook(), new GossipMill(new SocialGraph()),
+                        new DebtBook(), out _);
+                    return false;
+                }
+                catch (SaveIncompatibleException) { return true; }
+            }
+            Check(Refuses(Bend("day", null)),
+                "a save with no day is refused, not loaded into day 0");
+            Check(Refuses(Bend("day", "9223372036854775807")),
+                "a save past the last playable day is refused (the day loop cannot terminate there)");
+            Check(Refuses(Bend("hour", "2147483647")),
+                "a clock that is not a time is refused rather than clamped behind the player's back");
+
+            // The three that LOAD, and must land somewhere the game can run.
+            var wClamp = new Wallet(0); var cClamp = new Campaign();
+            SaveCodec.Restore(Bend("dirty", "-1e308"), wClamp, cClamp, new PlayerKnowledge(),
+                new SecretsBook(), new BeatBook(), new GossipMill(new SocialGraph()),
+                new DebtBook(), out _);
+            Check(wClamp.Dirty >= 0, "a negative dirty purse restores to zero, not to minus two billion");
+            var cJobs = new Campaign();
+            SaveCodec.Restore(Bend("jobsMissed", "9223372036854775807"), new Wallet(0), cJobs,
+                new PlayerKnowledge(), new SecretsBook(), new BeatBook(),
+                new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            Check(cJobs.JobsMissed >= 0,
+                "an out-of-range job count saturates rather than wrapping its sign");
+            var cPat = new Campaign();
+            SaveCodec.Restore(Bend("patience", "0.659e999999999"), new Wallet(0), cPat,
+                new PlayerKnowledge(), new SecretsBook(), new BeatBook(),
+                new GossipMill(new SocialGraph()), new DebtBook(), out _);
+            Check(cPat.OutfitPatience >= 0.0 && cPat.OutfitPatience <= 1.0,
+                "patience restores inside 0..1, so the outfit can still run out of it");
+
+            // AND THE TWO THAT ESCAPED AS THE WRONG EXCEPTION TYPE. The front
+            // end catches SaveIncompatibleException and nothing else, so an NRE
+            // out of here was a stack trace on the load screen.
+            Check(millQ.Get(null) == null, "an agent lookup on a null id is a miss, not a throw");
+            bool factRefusedNull = false;
+            try { new Fact(null, "p", "v"); }
+            catch (ArgumentNullException) { factRefusedNull = true; }
+            Check(factRefusedNull, "a Fact refuses a null subject by name rather than dereferencing it");
+
             // Versioning: old saves migrate forward, future saves are refused
             // by name rather than by crashing halfway through a restore.
             Check(SaveCodec.PeekVersion(json) == SaveCodec.Version, "the version is legible without loading");

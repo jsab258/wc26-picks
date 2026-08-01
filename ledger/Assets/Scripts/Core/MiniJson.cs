@@ -216,8 +216,45 @@ namespace Ledger.Core
         public static string GetString(Dictionary<string, object> obj, string key)
             => obj != null && obj.TryGetValue(key, out var v) ? v as string : null;
 
+        /// CLAMPED, NOT CAST. `(int)d` for a double outside int's range is
+        /// undefined in C#, and on x86 it yields int.MinValue — so a save
+        /// carrying `"jobsDone": 9223372036854775807` restored to a job count
+        /// of MINUS two billion. `SaveChaos` found twenty-four of these in one
+        /// run and every single one had flipped sign, which is the worst shape
+        /// an overflow can take: the number is not merely wrong, it is wrong in
+        /// the direction that passes a `>= 0` check nowhere and a `< limit`
+        /// check everywhere.
+        ///
+        /// Saturating keeps the sign and the magnitude's meaning. It is still a
+        /// nonsense value — a save claiming two billion completed jobs is a
+        /// corrupt save — but it is nonsense the callers' own range checks can
+        /// see, rather than nonsense disguised as a small negative number.
         public static int GetInt(Dictionary<string, object> obj, string key)
-            => obj != null && obj.TryGetValue(key, out var v) && v is double d ? (int)d : 0;
+        {
+            if (obj == null || !obj.TryGetValue(key, out var v) || !(v is double d)) return 0;
+            if (double.IsNaN(d)) return 0;
+            if (d >= int.MaxValue) return int.MaxValue;
+            if (d <= int.MinValue) return int.MinValue;
+            return (int)d;
+        }
+
+        /// The same reading, but able to say "that key was not a number".
+        ///
+        /// `GetInt` returns 0 for absent, for null, for a string and for a
+        /// genuine zero, which is right for the many optional fields that
+        /// default to nothing and WRONG for the few that are load-bearing. A
+        /// save whose `day` key had been deleted restored to day 0 — outside
+        /// the range the entire rest of the game assumes, silently, and it
+        /// would have failed days later somewhere else looking like a
+        /// simulation bug.
+        public static bool TryGetInt(Dictionary<string, object> obj, string key, out int value)
+        {
+            value = 0;
+            if (obj == null || !obj.TryGetValue(key, out var v) || !(v is double d)) return false;
+            if (double.IsNaN(d) || double.IsInfinity(d)) return false;
+            value = GetInt(obj, key);
+            return true;
+        }
 
         public static Dictionary<string, object> GetObject(Dictionary<string, object> obj, string key)
             => obj != null && obj.TryGetValue(key, out var v) ? v as Dictionary<string, object> : null;

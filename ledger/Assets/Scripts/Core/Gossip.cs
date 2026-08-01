@@ -168,7 +168,15 @@ namespace Ledger.Core
             _agents.Remove(id);
             return true;
         }
-        public Gossiper Get(string id) => _agents.TryGetValue(id, out var g) ? g : null;
+        /// NULL IS A MISS, NOT A THROW. `Dictionary.TryGetValue(null)` raises
+        /// ArgumentNullException — the one lookup method whose whole purpose is
+        /// not to throw. `SaveChaos` reached it through `SaveCodec`, from a
+        /// saved agent record whose `id` key had been deleted, and the
+        /// exception escaped `Restore` past the only type the front end catches.
+        /// "No agent by that name" is the honest answer for a name that is not
+        /// there, and null is not there.
+        public Gossiper Get(string id) =>
+            id != null && _agents.TryGetValue(id, out var g) ? g : null;
         public IEnumerable<Gossiper> Agents => _agents.Values;
 
         /// A first-hand sighting enters the network. Confidence defaults to certain;

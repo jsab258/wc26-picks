@@ -39,9 +39,20 @@ namespace Ledger.Core
         }
 
         /// Save-load overlay: state only, invariants unchanged.
+        /// A PURSE CANNOT HOLD LESS THAN NOTHING, whatever the file says.
+        ///
+        /// The constructor has clamped `startingClean` since it was written and
+        /// this bypassed it — so `"dirty": -1e308` restored to minus two
+        /// billion, and `SaveChaos` found it. That is not a small wrong number:
+        /// `Seize()` returns `Dirty` as the amount taken in a Fall, `Launder`
+        /// moves it into `Clean`, and every affordability check reads
+        /// `Clean >= price`. A large negative dirty purse makes the player
+        /// unseizable and permanently broke at once.
         public void Restore(int clean, int dirty, int washed)
         {
-            Clean = clean; Dirty = dirty; TotalWashed = washed;
+            Clean = Math.Max(0, clean);
+            Dirty = Math.Max(0, dirty);
+            TotalWashed = Math.Max(0, washed);
         }
 
         /// The law takes what the books can't explain (a Fall seizes the

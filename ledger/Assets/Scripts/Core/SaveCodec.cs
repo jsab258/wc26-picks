@@ -28,6 +28,25 @@ namespace Ledger.Core
         /// The oldest save this build can still read.
         public const int MinReadableVersion = 1;
 
+        /// A day number beyond which the file is corrupt rather than long.
+        ///
+        /// NOT A GAME RULE AND NOT A GUESS. Open city has no ending and nobody
+        /// is capping how long a campaign runs. This exists because the day
+        /// counter is an `int` that `GameController` uses as a loop induction
+        /// variable — `for (int day = from; day &lt;= Now.Day; day++)`, catching
+        /// the world up over days the Fall skipped — and at `int.MaxValue` the
+        /// increment wraps to `int.MinValue` and the condition is true again.
+        /// The loop cannot terminate. `SaveChaos` restored exactly that world
+        /// from a save carrying `"day": 9223372036854775807`.
+        ///
+        /// So the bound is derived from the arithmetic rather than from taste,
+        /// and it is set far below the failure — 100,000 in-game days is 274
+        /// years of play, four orders of magnitude short of the overflow and
+        /// unreachable by any human. Anything past it did not come from
+        /// playing; it came from a corrupt file, and refusing it here is what
+        /// keeps that loop reachable only by real days.
+        public const int MaxPlayableDay = 100000;
+
         /// A save's version without committing to loading it — the front end
         /// uses this to decide whether "Continue" is offered at all.
         public static int PeekVersion(string json)
@@ -151,7 +170,44 @@ namespace Ledger.Core
 
             extra = MiniJson.GetObject(root, "extra") ?? new Dictionary<string, object>();
 
-            var now = new GameTime(MiniJson.GetInt(root, "day"), MiniJson.GetInt(root, "hour"), MiniJson.GetInt(root, "minute"));
+            // THE DAY IS REQUIRED, and it is the only key here that is.
+            //
+            // Everything else in a save has a defensible default — no debts is
+            // no debts, no beats is no beats — so `GetInt`'s "0 for absent" is
+            // right for them and catastrophic for this one. `SaveChaos` deleted
+            // the `day` key and the save LOADED, into day 0, which is outside
+            // the range every schedule, beat, gossip decay and campaign check in
+            // the game assumes without testing. It would have failed days later,
+            // elsewhere, looking like a simulation bug.
+            //
+            // Refused rather than clamped to 1. A file that quietly rewinds the
+            // player's week to its first morning is a worse outcome than one
+            // that says it cannot be read, because only the second is a thing
+            // the player can act on — and the front end already has the screen
+            // for it.
+            if (!MiniJson.TryGetInt(root, "day", out int day) || day < 1 || day > MaxPlayableDay)
+                throw new SaveIncompatibleException(SaveFault.Unreadable,
+                    "the save has no readable day — it is truncated or corrupt");
+
+            // AND THE CLOCK, checked here rather than inside `GameTime`.
+            //
+            // `GameTime` is a plain struct that every system in the game
+            // constructs from values it computed itself, and teaching it to
+            // normalise would change behaviour for a hundred trusted callers to
+            // defend against one untrusted one. The codec is the trust
+            // boundary; this is where a number stops being data and starts
+            // being state.
+            //
+            // A MISSING hour defaults to zero, because midnight is a real time
+            // and an absent key is an old save. A PRESENT hour of 2,147,483,647
+            // is not a time, and `SaveChaos` restored one — clamping it would
+            // have moved the player's clock by up to a day without telling
+            // them, so a clock that is present and impossible refuses.
+            int hour = MiniJson.GetInt(root, "hour"), minute = MiniJson.GetInt(root, "minute");
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+                throw new SaveIncompatibleException(SaveFault.Unreadable,
+                    $"the save's clock reads {hour:00}:{minute:00}, which is not a time");
+            var now = new GameTime(day, hour, minute);
             wallet.Restore(MiniJson.GetInt(root, "clean"), MiniJson.GetInt(root, "dirty"), MiniJson.GetInt(root, "washed"));
 
             Enum.TryParse(MiniJson.GetString(root, "verdict"), out Verdict verdict);
@@ -253,9 +309,18 @@ namespace Ledger.Core
                 {
                     var r = MiniJson.AsObject(ro);
                     if (r == null) continue;
+                    // A RUMOUR THAT LOST ITS SUBJECT IS NOT A RUMOUR. `Fact`
+                    // refuses null now rather than dereferencing it, so this
+                    // has to be the place the decision is made — and the
+                    // decision is to drop the record, which is what the codec
+                    // already does for an unknown secret id, an unparseable
+                    // beat and a null object. It was simply never done here,
+                    // and `SaveChaos` found it by deleting one key.
+                    var content = FactOrNull(r);
+                    if (content == null) continue;
                     g.Rumors.Add(new Rumor
                     {
-                        Content = new Fact(MiniJson.GetString(r, "subj"), MiniJson.GetString(r, "pred"), MiniJson.GetString(r, "val")),
+                        Content = content,
                         OriginId = MiniJson.GetString(r, "origin"), Summary = MiniJson.GetString(r, "summary"),
                         Confidence = Num(r, "conf"), Hops = MiniJson.GetInt(r, "hops"), Sensitive = Flag(r, "sensitive"),
                         Indelible = Flag(r, "indelible"),
@@ -266,9 +331,26 @@ namespace Ledger.Core
                 {
                     var f = MiniJson.AsObject(fo);
                     if (f == null) continue;
-                    g.Knowledge.Learn(new Fact(MiniJson.GetString(f, "subj"), MiniJson.GetString(f, "pred"), MiniJson.GetString(f, "val")));
+                    var fact = FactOrNull(f);
+                    if (fact != null) g.Knowledge.Learn(fact);
                 }
             }
+        }
+
+        /// A `Fact` from a saved record, or null if the record cannot make one.
+        ///
+        /// The three parts are all load-bearing — `SameTopic` compares subject
+        /// and predicate, so a fact missing either would match things it has
+        /// nothing to do with and contradict them. Dropping it loses one
+        /// rumour; keeping it corrupts the contradiction check the whole lying
+        /// system runs on.
+        static Fact FactOrNull(Dictionary<string, object> rec)
+        {
+            var subj = MiniJson.GetString(rec, "subj");
+            var pred = MiniJson.GetString(rec, "pred");
+            var val = MiniJson.GetString(rec, "val");
+            if (subj == null || pred == null || val == null) return null;
+            return new Fact(subj, pred, val);
         }
 
         static double Num(Dictionary<string, object> obj, string key) =>

@@ -13,8 +13,26 @@ namespace Ledger.Core
         public string Predicate;
         public string Value;
 
+        /// NULL IS NAMED RATHER THAN DEREFERENCED, and it is not hygiene.
+        ///
+        /// `SaveChaos` found this from the other end: a save file whose rumour
+        /// record had lost its `subj` key handed a null straight into
+        /// `ToLowerInvariant()`, and the NullReferenceException went all the way
+        /// out through `SaveCodec.Restore` — which the front end catches
+        /// `SaveIncompatibleException` from, and nothing else. A player with a
+        /// half-written save got a stack trace on the load screen.
+        ///
+        /// NOT MADE PERMISSIVE. Defaulting null to "" would have silenced the
+        /// crash and built a fact with an empty subject, and `SameTopic`
+        /// compares subject and predicate — so every gutted fact would match
+        /// every other gutted fact and contradict them. A quiet wrong answer in
+        /// the one system the game uses to decide whether a lie lands is worse
+        /// than a loud refusal, so the refusal is loud and says which argument.
         public Fact(string subject, string predicate, string value)
         {
+            if (subject == null) throw new ArgumentNullException(nameof(subject));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            if (value == null) throw new ArgumentNullException(nameof(value));
             Subject = subject.ToLowerInvariant();
             Predicate = predicate.ToLowerInvariant();
             Value = value.ToLowerInvariant();

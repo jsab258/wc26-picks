@@ -165,6 +165,42 @@ def voice_cast():
     return False, "VOICE CAST: " + (bad[-1][:90] if bad else "did not report")
 
 
+def save_chaos():
+    """Layer 4 of the testing system: what a save does when it is not a save.
+
+    `SaveCodec` had twenty CoreTests and every one of them wrote a file and read
+    it back, which proves the codec agrees with ITSELF — the one property a save
+    on a player's disk cannot be relied on to have. The interesting file is
+    truncated by a full disk, half-written by a crash, hand-edited, or produced
+    by a build that no longer exists, and none of those look like `Capture`'s
+    output.
+
+    Six real faults on its first run, all of them reachable by a player:
+
+      `Fact` dereferenced a null subject      -> NRE escaped Restore entirely
+      `GossipMill.Get(null)`                  -> ArgumentNullException, likewise
+      a save with no `day`                    -> loaded into day 0, silently
+      `(int)d` on 9.2e18                      -> jobsMissed = MINUS two billion
+      `"dirty": -1e308`                       -> an unseizable, broke player
+      `"patience": 0.6e999`                   -> Infinity; the outfit never
+                                                 loses patience again
+
+    The first two matter most: the front end catches `SaveIncompatibleException`
+    and nothing else, so both of those were a stack trace on the load screen.
+
+    Runs the default seed here. The gate is per-property per-family rather than
+    per-sample — 300 samples asserted individually is 300 lines of green saying
+    one thing, which is the mistake that took CoreTests to 14,953 checks."""
+    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "SaveChaos")])
+    m = re.search(r"save chaos ok — all (\d+) checks passed", out)
+    if m:
+        return True, "%s save-chaos checks" % m.group(1)
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+    if bad:
+        return False, "SAVE CHAOS: " + bad[0][7:97]
+    return False, "save chaos did not report (build failure?)"
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -240,7 +276,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               frame_drift, stale_anchors, core_tests):
+               frame_drift, save_chaos, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)
