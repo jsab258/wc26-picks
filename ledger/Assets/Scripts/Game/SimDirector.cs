@@ -4273,7 +4273,31 @@ namespace Ledger.Game
                 ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
                 ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
                 ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
-                ("harm", harmOk), ("phones", phonesOk),
+                // NAMED CLAUSE BY CLAUSE, because this gate went red as the
+                // single word "harm".
+                //
+                // It is seven conditions and the verdict printed four numbers,
+                // none of which moved: `injuries=6 feuds=1 samScars=1
+                // samCap=1.00` was byte-identical to the previous run, which
+                // passed. So the thing that flipped was one of the three
+                // clauses nothing reported, and there was no way to tell which
+                // without a twenty-eight-minute round trip per guess.
+                //
+                // `samCap` at two decimals is its own trap: the clause wants
+                // `< 1.0` and 0.999 prints as 1.00, so the number that decides
+                // it was rounded into looking like the number that fails it.
+                // Four decimals here.
+                ($"harm[staged={_harmStaged} sampled={_harmSampled} "
+                 + $"stillHurt={_harmStillHurt} turned={_harmTurned} "
+                 // `Harm.All` is an IReadOnlyList, which has no `.Exists` —
+                 // the fully-qualified LINQ form is what the rest of this file
+                 // uses, and it is also what the missing-usings linter accepts.
+                 + $"roccoUntreated={System.Linq.Enumerable.Any(_game.Harm.All, i => i.PersonId == "Rocco" && i.WentBad)} "
+                 + $"samScars={_game.Harm.ScarsOf("Sam")} "
+                 + $"samCap={_harmCapabilityAtInjury:0.0000} "
+                 + $"feudLive={_harmFeudLive} feudBlocks={_harmFeudBlocks}]",
+                 harmOk),
+                ("phones", phonesOk),
                 ($"ui[labels={_labels} fontless={_labelsFontless} blank={_labelsBlank}]", uiOk),
 
                 // WORLD TEXT SITS IN THE WORLD. Unity's built-in text shader
