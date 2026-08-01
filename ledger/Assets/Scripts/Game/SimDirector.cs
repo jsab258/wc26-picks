@@ -2476,6 +2476,20 @@ namespace Ledger.Game
         string _lumaSeries = "";
         double _aoSpread = -1, _grainSpread = -1;
         double _aoFraction = -1, _aoDrop = -1;
+        /// Every round's fraction, not just the largest. See `aoOk`.
+        readonly List<double> _aoFractions = new List<double>();
+
+        /// The middle round, for the question a maximum cannot answer.
+        double AoTypicalFraction
+        {
+            get
+            {
+                if (_aoFractions.Count == 0) return _aoFraction;
+                var s = new List<double>(_aoFractions);
+                s.Sort();
+                return s[s.Count / 2];
+            }
+        }
         double _reflFraction = -1, _reflRise = -1;
         double _specFraction = -1, _specRise = -1;
         double _presetFraction = -1;
@@ -2752,6 +2766,9 @@ namespace Ledger.Game
             var (aoFrac, aoDrop) = ImageStats.Darkened(all.Luma, noAo.Luma,
                                                        ImageStats.QuantisationStep);
             if (aoFrac > _aoFraction) { _aoFraction = aoFrac; _aoDrop = aoDrop; }
+            // AND EVERY ROUND KEPT, because the gate asks two questions of this
+            // number and a maximum can only answer one of them. See `aoOk`.
+            _aoFractions.Add(aoFrac);
             double aoD = noAo.Mean - all.Mean;
             double grainD = all.LocalSpread - noGrain.LocalSpread;
             // THE FIRST SAMPLE EVER, not the first of each round — which is a
@@ -4059,8 +4076,27 @@ namespace Ledger.Game
             // percent of the image and nothing like half of it — and unlike
             // the old global-mean floor these do not need retuning every time
             // the amount of geometry in shot changes.
+            // A MAXIMUM CANNOT ANSWER BOTH QUESTIONS, and it was being asked
+            // both. `MeasureAoOnce` runs three rounds and keeps the LARGEST
+            // fraction, which is right for "did the pass ever reach the frame"
+            // and structurally wrong for "is the pass everywhere" — a maximum
+            // maximises the very quantity the upper bound exists to keep small,
+            // so adding rounds makes the ceiling more likely to trip on its own.
+            //
+            // The committed verdicts say it plainly. Across five runs the
+            // number read 10.27, 31.22, 19.51, 24.88 and 80.49 percent, and
+            // vehicle count does not predict it — fourteen vehicles produced
+            // both 10 and 31. A 50% ceiling sits inside that spread, which is
+            // the frame budget at 300ms all over again, and the third threshold
+            // tonight found sitting inside its own instrument's noise.
+            //
+            // So the two questions get the two statistics they need: the peak
+            // for the floor, the median for the ceiling. The series prints, so
+            // the ceiling can be set from evidence rather than from the
+            // geometric argument that the data has now contradicted.
             bool aoOk = FilmGrade.Applied > 0
-                        && _aoFraction > 0.005 && _aoFraction < 0.50
+                        && _aoFraction > 0.005
+                        && AoTypicalFraction < 0.50
                         && _aoDrop > 0.004;
 
             // AND THAT THE GRADE RAN AT ALL, which is a different claim and
@@ -4356,7 +4392,9 @@ namespace Ledger.Game
                 ($"vignette[edge {_vigOn:0.000} vs {_vigOff:0.000}]", vigOk),
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
-                 $"hit={100 * _aoFraction:0.00}% drop={_aoDrop:0.0000}]", aoOk),
+                 $"peak={100 * _aoFraction:0.00}% typical={100 * AoTypicalFraction:0.00}% " +
+                 $"rounds=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
+                 $"drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 // §4.7 CLAIM 1 AND CLAIM 4, GATED AT LAST.
                 //
@@ -4705,6 +4743,8 @@ namespace Ledger.Game
                       $"bloomRise={_bloomRise:0.0000} bloomLit={100 * _bloomHadHighlights:0.0} " +
                       $"grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
+                      $"aoTypical={100 * AoTypicalFraction:0.00} " +
+                      $"aoRounds2=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
                       $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
                       $"reflSeen={reflSeen} reflWetAtAb={SceneLighting.Wetness:0.00} " +
