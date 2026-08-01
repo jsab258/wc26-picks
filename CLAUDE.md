@@ -29,6 +29,23 @@ say "I have not verified this."
 
 **Corollary: your own comments and docs are not evidence.** Read the code.
 
+**Second corollary: when you change code, you have changed the comments about
+it.** Four in one night, each true when written and quietly false afterwards —
+and every one of them misled somebody, usually me:
+
+| said | reality |
+|---|---|
+| `actions/checkout`: "Nothing here pushes" | I had just added a step that pushes. It failed six times and reported success. |
+| `NpcWalker`: a name is "not there at all across the road" | Full at 4m, visible at 11m, while talking range is 3m. |
+| `TrafficHost`: "sixteen blocks; a dozen or so reads as a working district" | Written when the game was one district. There are seven. |
+| `Tier2Batch`: "never brighter than the cast" | Nothing enforced it, and the crowd used a brighter value than the other spawner. |
+
+A comment is a claim with no test attached, so it decays silently and the decay
+is invisible in a diff that does not touch it. **Before finishing a change,
+re-read the comments on everything it touched — including the ones you did not
+edit — and grep for the claim you have just falsified elsewhere.** The
+`persist-credentials: false` comment was eleven lines above the step I broke.
+
 ## 2. Never set a threshold you have not measured
 
 - `nightNotDarker` compared one noon frame to one night frame and failed at
@@ -40,6 +57,27 @@ say "I have not verified this."
 **The rule.** If you need a threshold, first make the system report the value,
 run it, look, then set it. When a gate is failing, ask whether the instrument
 or the subject is wrong before touching either.
+
+**This covers the METRIC and the AGGREGATOR, not just the number.** Both were
+got wrong in one night, and neither is a threshold:
+
+- The §4.7 places gate read `alley=53 market=53`, I called the count saturated
+  by hearing and re-gated on eye-witnesses only. That was one sample. The alley
+  pick had simply happened to stand in the open, and the next run — printing all
+  four columns — read 3 / 53 / 3, which is the claim exactly. I had moved a gate
+  onto a worse metric to fix a problem that did not exist, and had to move it
+  back.
+- The AO gate bounded a fraction ABOVE 50% while `MeasureAoOnce` kept the
+  MAXIMUM of its rounds. A maximum answers "did the pass ever reach the frame";
+  it cannot answer "is the pass everywhere", because it maximises the very
+  quantity the ceiling exists to keep small — so adding rounds made it trip on
+  its own. One run read 80%; the round series read
+  `[26.9 26.4 26.4 22.8 23.0 23.0 5.9 5.9 5.9]`, median 23.
+
+So: choosing WHICH number a gate reads, and which statistic summarises it, needs
+the same evidence as choosing the threshold — and one run is not evidence.
+Print the series first. When a gate asks two questions, give each the statistic
+that answers it, and do not move the bound to make red go away.
 
 ## 3. Suspect the instrument first
 
@@ -72,6 +110,27 @@ could not tell apart on.
 will be used. If it is audio, check its duration and metadata. If it is a file,
 read it back. `tools/voice-fetch/page_check.py` does this for the listening
 page; write the equivalent for anything new.
+
+**And then: LOOKING IS NOT MEASURING.** The night the sim first committed
+screenshots, I opened them and condemned four correct things off the back of a
+1280x720 JPEG:
+
+- three textures as "off-brief" — rust-red asphalt, mossy paving, ochre brick.
+  `SurfaceSpec`'s noir tint had already stripped every one of them. The render
+  disagreed with the source files I had judged them from.
+- a bench as a sign board mounted wrong. `Plate` was correct and always had been.
+- the new vehicle wheels as oversized. Printed, they came out at dia/hi 0.40 and
+  dia/len 0.14 for a car — within a few percent of a real one.
+
+Each time I was one step from re-picking assets or "fixing" working geometry.
+
+A picture is excellent evidence that something is WRONG and poor evidence of
+WHAT or WHY. It has a resolution, a compression artefact and a palette, and at
+street distance in fog those hide more than they show. So: a visual judgement is
+a HYPOTHESIS. Before acting on it, make the run print the quantity — the tiled
+colour, the ratio, the dimension — and read that. Every one of the four
+reversals above was settled by a number in under a minute, and three of them
+would have cost a CI round trip and a wrong commit.
 
 ## 5. Look before you destroy, and make the guard know the difference
 
@@ -165,6 +224,29 @@ Asked whether a macOS build was *possible*, I built the CI job. Jafar:
 **The rule.** A question is a question. Answer it, and offer the work
 separately.
 
+## 12. If you cannot read the output, fix that before anything else
+
+For one whole night I diagnosed this project by inference, because every
+channel out of a CI job was blocked and I kept working around it instead of
+repairing it:
+
+- the log API returns a fixed ~4KB **byte** tail, so nothing mid-log is
+  reachable and GitHub's own post-job cleanup fills that window every run;
+- `get_check_run` returns the step summary EMPTY — and a comment in the
+  workflow asserted that channel worked;
+- artifacts are on a host this environment denies outright.
+
+So three separate faults were diagnosed from a step's **duration** (2m10s of
+retry sleep meaning six failed pushes) and from a branch that had not moved,
+and a 291-byte artefact standing in for "the directory was empty". That is
+divination, and I did hours of it before doing the ten-minute fix.
+
+**The rule.** A blocked feedback channel is not an inconvenience to route
+around, it is the highest-leverage bug on the board — fix it FIRST, and prefer
+a channel this environment can definitely read. In this repo that means a file
+in the repository. Everything since has been settled in seconds by
+`game-design/sim-shots/`.
+
 ---
 
 ## Project mechanics you will otherwise learn the hard way
@@ -175,6 +257,20 @@ diagnostics only), stale-anchor detection, 2,884 CoreTests, and break-runs.
 A type error against a Unity API is invisible until the Windows CI build, which
 takes ~28 minutes. **Batch Game-layer changes; never claim a phase is done on a
 local green.**
+
+**You can SEE and READ the game — use it.** Every Windows build commits four
+stills and a verdict to `game-design/sim-shots/`, overwritten each run:
+
+    review_day{1,2}_{noon,night}.jpg    what the street actually looks like
+    verdict.txt                         the done-line, FAILING GATES, the sky
+                                        readings, the places line, glyph and
+                                        wardrobe counts, wheel proportions
+
+`git pull` and read them. Do NOT try to tail the job log — see rule 12. The
+verdict is committed, so `git log -- game-design/sim-shots/verdict.txt` gives a
+HISTORY of measurements: that is how the AO ceiling was shown to be sitting
+inside its own instrument's noise across five runs. Adding a number to that file
+costs one line and pays for itself the first time a gate fails.
 
 **Always run `ledger/verify.py` before committing.** It prints the footer that
 goes in the commit message, measured rather than remembered — it exists because
