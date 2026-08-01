@@ -102,10 +102,10 @@ design — every item has a working system underneath already.
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — 336 authored lines, read line by line | mine, on instruction | none |
 | 17.5 | **Non-verbal foley** — grunts, pain, exertion | decided: CC0 through the voice pipeline | low |
-| 17.6 | **Surfaces** — a real texture set for the twelve logical surfaces `AssetLibrary` already asks for | **nothing. Zero image files in the project**; every surface is procedural tiling noise | low — the ingestion path exists |
-| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | 10 `CreatePrimitive` sites; the city is boxes | medium — the volume of work, not the difficulty |
-| 17.8 | **Weapons and held objects** — the player's hands are empty | 19 weapons as data, no mesh, nothing rendered | low |
-| 17.9 | **A font that ships, and icons** | borrows Segoe UI from the OS and falls back to Arial elsewhere | low |
+| 17.6 | **Surfaces** — a real texture set for the twelve logical surfaces `AssetLibrary` already asks for | **DONE 2026-08-01.** 12 CC0 albedos from ambientCG committed, attributed, `pack_check` green. Verified in a render: the noir tint neutralises the source saturation | closed |
+| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles had per-kind silhouettes already and now have wheels, verified against real proportions (car dia/hi 0.40, bus 0.34); density 14 -> 28 so a street reads occupied. Buildings and street furniture are still cubes | medium — the volume of work, not the difficulty |
+| 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
+| 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
 **17.6–17.9 were found by an audit on 2026-07-31, not by the plan.** Jafar asked
 whether the roadmap covered textures and models; it did not, and eight other
@@ -135,6 +135,15 @@ names are stable right up until somebody re-exports from Blender. Committing
 import settings changes a project convention, and it is the one piece that
 cannot be checked locally at all: Unity decides, and the first evidence is a
 CI screenshot.
+
+**The project can now see itself, as of 2026-08-01.** Every Windows build
+commits four stills and a `verdict.txt` to `game-design/sim-shots/`, and that
+loop found, in its first hours: names drawn over rooftops, street signs reading
+as doubled glyphs, a noon sky at 2.6x the scene mean, a crowd dressed off the
+whole colour wheel, and a wardrobe 1.83x over its designed share of olive. It
+also cleared three textures and one set of wheel proportions that I had
+condemned from a low-resolution frame and that were correct all along. Judge M17
+from the stills, not from the source.
 
 **Done when.** A sim screenshot shows a skinned body walking with foot IK, and
 `bodiesOk` gates on the Avatar being bound rather than on `Mannequin` boxes;
