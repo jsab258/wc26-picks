@@ -2468,11 +2468,41 @@ namespace Ledger.Game
             RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.045f, 0.075f, 0.11f), new Color(0.52f, 0.60f, 0.74f), daylight);
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.05f, 0.06f, 0.085f), new Color(0.44f, 0.45f, 0.47f), daylight);
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.035f, 0.03f, 0.035f), new Color(0.24f, 0.21f, 0.18f), daylight);
+            // THE DAYTIME SKY WAS 2.6x THE SCENE, MEASURED.
+            //
+            // The first run whose diagnostics could be read reported, at clear
+            // noon, `fogRGB=bgRGB=(0.600,0.645,0.700)` — luma 0.638 — against a
+            // scene mean luma of 0.245. The sky was two and a half times
+            // brighter than everything under it, which is why every noon still
+            // came back looking blown out and flat: the brightest thing in
+            // frame by a wide margin, with the buildings crushed into a narrow
+            // band below it.
+            //
+            // AND THIS IS THE CODE THAT ACTUALLY CONTROLS IT. `SceneLighting`
+            // also writes `RenderSettings.fogColor`, from `LightModel.FogColour`
+            // — and the values above match THESE constants exactly, to three
+            // decimals, including the rainy-day lerp. So GameController runs
+            // last and LightModel's fog colour never reaches the screen. Noted
+            // rather than restructured: two owners is the fault, but reordering
+            // the lighting at this hour to fix a duplication would risk the
+            // night, and the night is the half that already looks right.
+            //
+            // Scaled to sit at ~1.8x the scene mean instead of 2.6x: an
+            // overcast port-town sky is a shade above the street, not a
+            // lightbox over it. That ratio is a calibrated step rather than a
+            // known-correct number — the sky lines print every run, so the next
+            // still says whether it wants to go further.
+            //
+            // NIGHT IS UNTOUCHED. It reads well and nothing here needs to
+            // change it.
             var fogNight = new Color(0.045f, 0.065f, 0.10f);
-            var fogDay = new Color(0.60f, 0.645f, 0.70f);
+            var fogDay = new Color(0.415f, 0.446f, 0.484f);
             RenderSettings.fogColor = Color.Lerp(
                 Color.Lerp(fogNight, fogDay, daylight),
-                Color.Lerp(new Color(0.10f, 0.12f, 0.15f), new Color(0.58f, 0.61f, 0.64f), daylight),
+                // The rainy-day end scaled by the same factor as `fogDay`, so a
+                // wet noon stays slightly flatter and cooler than a clear one
+                // rather than jumping brighter than it.
+                Color.Lerp(new Color(0.10f, 0.12f, 0.15f), new Color(0.401f, 0.421f, 0.442f), daylight),
                 Weather.Rain);
 
             // FOG DISTANCE USED TO BE SET HERE AND UNITY NEVER READ IT.

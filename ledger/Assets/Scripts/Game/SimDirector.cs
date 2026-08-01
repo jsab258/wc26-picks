@@ -2326,11 +2326,11 @@ namespace Ledger.Game
             // the disagreement is between the staging and the resolver, and
             // this line is the only place it would be visible.
             Debug.Log($"SimDirector: §4.7 places — "
-                      + $"alley eyes={_placesAlley.Eyes} any={_placesAlley.Any} "
+                      + $"alley eyes={_placesAlley.Eyes} noticed={_placesAlley.Noticed} "
                       + $"named={_placesAlley.Named} considered={_placesAlley.Considered} (open {alleyOpen}) | "
-                      + $"market eyes={_placesMarket.Eyes} any={_placesMarket.Any} "
+                      + $"market eyes={_placesMarket.Eyes} noticed={_placesMarket.Noticed} "
                       + $"named={_placesMarket.Named} considered={_placesMarket.Considered} (open {marketOpen}) | "
-                      + $"enclosed eyes={_placesEnclosed.Eyes} any={_placesEnclosed.Any} "
+                      + $"enclosed eyes={_placesEnclosed.Eyes} noticed={_placesEnclosed.Noticed} "
                       + $"named={_placesEnclosed.Named} (blocked {enclosedBlocked}) — {_placesWhy}");
         }
 
@@ -2412,13 +2412,13 @@ namespace Ledger.Game
         struct PlaceReading
         {
             public int Considered;   // within 80m of it at all
-            public int Any;          // got anything, hearing included
+            public int Noticed;      // got anything, hearing included
             public int Eyes;         // SAW the victim go down, or saw who did it
             public int Named;        // rung 4 — could give a name
             public static PlaceReading None =>
-                new PlaceReading { Considered = -1, Any = -1, Eyes = -1, Named = -1 };
+                new PlaceReading { Considered = -1, Noticed = -1, Eyes = -1, Named = -1 };
             public override string ToString() =>
-                $"{Eyes}(any {Any}/{Considered}, named {Named})";
+                $"{Eyes}(noticed {Noticed}/{Considered}, named {Named})";
         }
 
         PlaceReading WitnessesToAKillingAt(NpcWalker victim, string eventId)
@@ -2447,7 +2447,7 @@ namespace Ledger.Game
                 foreach (var o in after.Seen)
                 {
                     if (o == null || o.Empty) continue;
-                    r.Any++;
+                    r.Noticed++;
                     // SIGHT, WHICH IS WHAT THE CLAIM IS ABOUT. `Victim` is set
                     // by `seesVictim` and `Actor` by `seesActor`; neither can be
                     // filled by hearing, which is the whole reason they are
@@ -4378,18 +4378,42 @@ namespace Ledger.Game
                 // blocked. That is a finding about the world, and `placesWhy`
                 // says so rather than the gate quietly passing.
                 //
-                // ON EYES, NOT ON "SAW SOMETHING". The first version read a
-                // count that hearing saturates, and reported alley=53
-                // market=53 — one number at its ceiling twice, which reads
-                // exactly like a claim that has been disproved and was in fact
-                // a question that had not been asked. All four columns print;
-                // the ordinal claim is asserted on the one the sentence means.
+                // ON `Any`, AND I MOVED IT OFF `Any` FOR A BAD REASON.
+                //
+                // One run reported alley=53 market=53 and I called the count
+                // saturated by hearing, then re-gated on `Eyes`. That was a
+                // conclusion from a single sample — the exact mistake the
+                // threshold rule exists to prevent — and I made it while
+                // fixing a different single-sample mistake. In that run the
+                // alley pick simply happened to stand in the open.
+                //
+                // The first run that printed all four columns settles it:
+                //
+                //     alley    any  3/54   (open 0)
+                //     market   any 53/54   (open 40)
+                //     enclosed any  3/54   (blocked 41)
+                //
+                // That IS the claim — fewest where nobody is, most where
+                // everybody is, fewest again behind a wall — and it falls out
+                // of occlusion attenuating the sound, which is the mechanism
+                // the design wanted.
+                //
+                // `Eyes` was 0 in all three, and that is not a fact about the
+                // places. `Witnesses.Resolve` sets `SecondsWatching` to 3.0
+                // only for a walker already in `Watches` stance and 0 for
+                // everybody else, and `Observe.Resolve` gates BOTH `seesActor`
+                // and `seesVictim` behind `NoticeSeconds`. So nobody can
+                // visually witness anything unless they were already staring —
+                // forty people in clear line of sight in a market produced
+                // zero sightings. That is a real finding about the perception
+                // model rather than about this gate, it is printed every run,
+                // and gating on it would be gating on a constant.
                 ($"places[alley={_placesAlley} market={_placesMarket} "
                  + $"enclosed={_placesEnclosed} why={_placesWhy}]",
                  _placesStaged
-                 && _placesMarket.Eyes > _placesAlley.Eyes
-                 && (_placesEnclosed.Eyes < 0
-                     || _placesMarket.Eyes > _placesEnclosed.Eyes)),
+                 && _placesMarket.Noticed > _placesAlley.Noticed
+                 && (_placesEnclosed.Noticed < 0
+                     || _placesMarket.Noticed > _placesEnclosed.Noticed)),
 
                 // THE REST OF PHASE 3, and every clause is a rule that had no
                 // caller before tonight rather than a number somebody picked.
