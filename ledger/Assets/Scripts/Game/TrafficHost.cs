@@ -20,10 +20,47 @@ namespace Ledger.Game
     {
         public TrafficSim Traffic { get; private set; }
 
-        /// How many vehicles the district carries. Sixteen blocks; a dozen or so
-        /// reads as a working district without ever becoming a queue the player
-        /// has to sit through.
-        public const int VehicleCount = 14;
+        /// How many vehicles the city carries.
+        ///
+        /// This said "sixteen blocks; a dozen or so reads as a working
+        /// district without ever becoming a queue the player has to sit
+        /// through". It was written when the game was one district. There are
+        /// seven now, and the sentence stayed put while the city grew around
+        /// it — the same way "nothing here pushes" outlived the step that
+        /// pushes.
+        ///
+        /// FOURTEEN CARS IN A SEVEN-DISTRICT CITY IS TWO PER DISTRICT, and it
+        /// shows: across twelve committed stills — four street views at noon
+        /// and at night, three builds apart — not one vehicle has appeared in
+        /// frame. Wide shots straight down a main road, empty. A city with two
+        /// cars per district does not read as quiet, it reads as evacuated.
+        ///
+        /// RAISED ON MEASUREMENT, NOT ON TASTE. The run reports
+        /// `trafficMs=0.994` at 14, so a vehicle costs 0.071ms of the traffic
+        /// scope. The game-systems budget is 12ms and the last run used 5.96ms
+        /// of it, so:
+        ///
+        ///     28 vehicles -> traffic 1.99ms, game total 6.96ms of 12ms
+        ///     42 vehicles -> traffic 2.98ms, game total 7.95ms of 12ms
+        ///
+        /// Twenty-eight and not forty-two, for a reason that is about a
+        /// different gate: `perfOk` requires the traffic scope's mean under
+        /// 4ms, and 42 lands at ~2.98 — a 25% margin on a prediction, which is
+        /// how the frame budget came to fail on runner noise in the first
+        /// place. 28 doubles the density, keeps a 100% margin, and is one step
+        /// of the same loop the sky is on: move it, look at the still, move it
+        /// again. Four per district is not the destination.
+        ///
+        /// WHAT THIS DOES NOT ACCOUNT FOR is render cost, and that is stated
+        /// rather than hidden: each vehicle is now a dozen-odd boxes plus four
+        /// to six wheels, and CI software-rasterises with no GPU, so the
+        /// residue outside the game scopes will grow and the sim will take
+        /// longer. The frame gate is on the game's half deliberately, so this
+        /// cannot fail it — the honest cost is wall-clock on the runner.
+        ///
+        /// And it finally puts the wheels from M17.7 in front of a camera,
+        /// which twelve stills have not managed.
+        public const int VehicleCount = 28;
         /// Hazards are gathered from whoever is closest, not from everybody — a
         /// walker forty metres away is not about to be run over, and scanning
         /// three thousand residents every frame to discover that is exactly the
