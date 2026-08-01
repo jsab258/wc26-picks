@@ -51,13 +51,6 @@ crime game in a city that perceives, reacts and remembers. Spec:
 | 4 | provenance, acquisition, disposal, accidents | **shipped, gated** 2026-07-31 |
 | 5 | firearms | M21, deliberately last |
 
-**Phase 3 — what is in it.** Hands, blunt, edged and ligature as tested state
-machines; brandish as a verb of its own, because §5.1 says the threat is the
-main use; carry as hands-and-a-coat rather than a grid; concealment as the
-real stat; the frisk, and what refusing one costs; blood as evidence that ages,
-is noticeable at a distance and in a light level, and can be washed given water
-and privacy.
-
 **Phase 3 — done when.** The §4.7 gate: *the same killing leaves no witness in
 an empty alley, several in a market, and none in the back room of a busy pub.*
 One act, three places, three outcomes, asserted in the sim rather than argued
@@ -301,8 +294,8 @@ spending a year losing it.
 
 ## The testing system
 
-Researched and planned 2026-07-31 on Jafar's instruction; **applying it across
-the game is gated on his word.** Five layers, in `testing-system.md`:
+Researched and planned 2026-07-31 on Jafar's instruction. Five layers, specced
+in `testing-system.md`:
 
 | | layer | catches | when |
 |---|---|---|---|
@@ -310,32 +303,36 @@ the game is gated on his word.** Five layers, in `testing-system.md`:
 | 2 | **Shape** — text, audio and assets are well-formed | 21 of 42 gossip templates rendering a lowercase sentence under 2,883 green tests | before M16 ph.3/4 land |
 | 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | **ledger landed**, tolerance unmeasured |
 | 4 | **Time** — determinism, 500-day soak, save/load chaos | a bug that is currently unreproducible | **landed**; replay-log half open |
-| 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | after M17 |
+| 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | **router+validator landed**; bot open |
 
-**Layer 3, first half.** The sim fingerprinted twenty frames a run and reported
-none of them — both channels carrying those numbers are unreadable here. They
-now go to `sim-shots/frames.tsv`, committed each build, and
-`tools/frame-drift.py` prints per-shot deltas into `verdict.txt`. **Done:** a
-luminance change shows in the verdict of the build that caused it. The GATING
-half is not — a tolerance is a threshold and the rasteriser's noise floor is
-unmeasured, which is how `nightNotDarker` failed at 0.136 against 0.135.
-**Depends on** two runs of unchanged code. **Risk:** variance swamps the signal
-and the answer is per-shot medians.
+**All five layers now have a gate, and `verify.py` runs every one on every
+commit.** What each found, since a layer that found nothing is a layer nobody
+has watched fire:
 
-**Layer 4, both gates green.** `ledger/SaveChaos` fuzzes the save codec against
-a stated contract; `ledger/Soak` runs 500 days twice and compares per-day
-digests. **Done:** seven player-reachable faults — two exceptions the front end
-could not catch, a save loading into day 0, an int overflow flipping a job count
-negative, a purse and a patience bypassing their own clamps, and an unbounded
-`SuspicionTracker.Reasons` (684 entries in 499 days, nothing removing one),
-found by the growth SERIES rather than a total: rumours oscillated 9–74 in the
-same run because gossip decays. **Open:** replay from a seed plus an input log,
-which needs Unity. **Risk:** the soak's street is a representative seven.
+- **3 PIXELS**, half. Twenty frames were fingerprinted per run and reported
+  through two channels this environment cannot read; they now go to committed
+  `sim-shots/frames.tsv`, with `tools/frame-drift.py` printing per-shot deltas
+  into `verdict.txt`. **Open:** the GATING half — a tolerance is a threshold and
+  the rasteriser's noise floor is unmeasured, which is how `nightNotDarker`
+  failed at 0.136 against 0.135. **Depends on** two clean runs.
+- **4 TIME**, both gates. `SaveChaos` fuzzes the codec, `Soak` runs 500 days
+  twice comparing per-day digests. **Seven player-reachable faults**: two
+  exceptions the front end could not catch, a save loading into day 0, an int
+  overflow flipping a job count negative, a purse and a patience bypassing their
+  own clamps, and an unbounded `SuspicionTracker.Reasons` — found by the growth
+  SERIES, not a total, since rumours oscillated 9–74 in the same run because
+  gossip decays. **Open:** replay from a seed plus an input log (Unity).
+- **5 ADVERSARY**, the boundary. Twenty families, five seeds, 700 rounds, and
+  **not one routed a verb the catalogue did not contain** — the one function
+  written as a security boundary was written correctly. Found a public
+  off-by-one (`ResponseValidator` appended its ellipsis after cutting to
+  `MaxChars`; measured 901) and a fault in itself: every family asserts a
+  REFUSAL, so a router refusing everything scores perfectly. Positive controls
+  go first now. **Open:** the bot that plays badly (Unity).
 
-What exists is stronger than the gap list suggests: 2,965 CoreTests, **21
-mutation-testing specs** (`breakrun.py` — most studios do not), 20 gated sim
-claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and enumeration measuring
-repeat intervals rather than asserting them.
+Beside them: 2,965 CoreTests, **21 mutation-testing specs** (`breakrun.py` —
+most studios do not), 20 gated sim claims, an LLM-vs-LLM playtest and
+Monte-Carlo balance.
 
 ## At risk
 
@@ -350,33 +347,32 @@ repeat intervals rather than asserting them.
 ## The ship checklist — every category, and who owns it
 
 **This table exists because the roadmap did not have one, and nine categories
-were missing.** A milestone may not claim a category it has not named. Anything
-here with no owner is a gap whether or not somebody is currently thinking about
-it — which is the whole failure the 2026-07-31 audit found, and it is `built is
-not running` one level up: a category with no milestone looks finished in a
-roadmap exactly like a system with no call site looks finished in a review.
+were missing.** A milestone may not claim a category it has not named, and a
+category with no owner is a gap whether or not anybody is thinking about it —
+`built is not running` one level up: a category with no milestone looks
+finished in a roadmap exactly like a system with no call site does in review.
 
 | | owner | state |
 |---|---|---|
 | Simulation systems | M16, M18–M21 | the moat; in progress |
-| Character models and animation | 17.1 | committed, not imported |
+| Character models and animation | 17.1 | **imported and attached**; player only |
 | Voices | 17.2, 17.3 | cast; generation pending |
 | Barks | 17.4 | 2,604 lines enumerated, curation mine |
 | Foley | 17.5 | decided free, not sourced |
-| Surfaces and textures | **17.6** | nothing |
-| Props, buildings, vehicles | **17.7** | primitives |
-| Weapons and held objects | **17.8** | invisible |
-| Fonts and icons | **17.9**, 22.4 | borrowed from the OS |
+| Surfaces and textures | 17.6 | **12 CC0 albedos, attributed, verified in a render** |
+| Props, buildings, vehicles | **17.7** | vehicles done; buildings and furniture cubes |
+| Weapons and held objects | 17.8 | **drawn from the hand, on either body tier** |
+| Fonts and icons | 17.9, **22.4** | **PT Sans ships with its licence**; icons nothing |
 | Music | shipped M13 | procedural layer, running |
 | Lighting, weather, post | shipped | noir pass, grain, bloom, AO, reflections |
 | UI and menus | shipped | text-only, no icons |
 | Save / load | shipped | atomic, slots, backup recovery |
 | Onboarding and pacing | M20 | not started |
-| Performance | M22, testing Layer 4 | gated per run, no trend yet |
+| Performance | M22, Layer 4 | gated per run; frames.tsv starts the trend |
 | Platforms | M22 | Windows green, macOS compiles, never run |
 | Controller | M22 | 28 `Input.*` calls to move |
 | Accessibility | M22 | caption channel only |
-| Testing | testing-system.md | Layers 1–2 built, 3–5 planned |
+| Testing | testing-system.md | **all five layers gated**; 3 reports, 4–5 partial |
 | Credits, licences, attribution | **22.1** | nothing, and CC BY 4.0 requires it |
 | Localisation | **22.2** | no infrastructure, no decision on record |
 | Packaging and release | **22.3** | nothing |
@@ -384,13 +380,14 @@ roadmap exactly like a system with no call site looks finished in a review.
 ## The rules this project runs on
 
 - **Measure before you gate.** A threshold set without a measured value is how
-  `nightNotDarker` came to fail on noise and `deedSlotSets` went ungated for
-  days.
-- **Check the ruler before the reading.** Three times this month the instrument
-  was at fault — `breakrun.py` reverting one file of a two-file spec, the bark
-  manifest written to an untracked path, a diagnostic sampling one speaker and
-  reporting on a corpus.
-- **Built is not running.** A system with no call site is not a feature, and it
-  looks exactly like one in a code review.
-- **Nothing here requires a purchase.** Characters, animations and voices all
-  came free; the last item on the shopping list was decided free on 2026-07-31.
+  `nightNotDarker` failed on noise. Print the series first — it is what
+  separated a leaking reasons trail from a healthy rumour count.
+- **Check the ruler before the reading.** The instrument was at fault four
+  times this month: `breakrun.py` reverting one file of a two-file spec, a bark
+  manifest written to an untracked path, a diagnostic reporting on a corpus it
+  had sampled one speaker of, and an Adversary control asserting behaviour the
+  router had reasoned its way out of.
+- **Built is not running.** A system with no call site is not a feature and
+  looks exactly like one in review — `SuspicionTracker.Reasons` is the newest.
+- **Nothing here requires a purchase.** Characters, animations and voices came
+  free; the last shopping-list item was decided free on 2026-07-31.
