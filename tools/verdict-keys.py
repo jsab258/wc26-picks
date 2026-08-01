@@ -80,11 +80,26 @@ def main():
     missing = sorted(k for k in required - present if k not in OPTIONAL)
     added = sorted(present - required)
 
-    if learn and added:
-        MANIFEST.write_text(json.dumps(sorted(required | present), indent=1) + "\n",
+    if learn:
+        # RECONCILE, DO NOT ONLY ADD. The first version unioned the manifest
+        # with what it saw, so a key that was RENAMED stayed required for ever
+        # and the check went permanently red for a rename it could never
+        # forgive. Caught on its first real encounter: the window probe's `rgb=`
+        # became `all=`/`face=`, which is exactly a rename.
+        #
+        # `--learn` means "this verdict is the new baseline", so the manifest
+        # becomes what is actually present. The protection is that it is
+        # explicit and manual — nothing learns on its own, and an accidental
+        # loss still fails until somebody decides otherwise.
+        MANIFEST.write_text(json.dumps(sorted(present), indent=1) + "\n",
                             encoding="utf-8")
-        print(f"verdict-keys: learned {len(added)} new key(s): {', '.join(added[:8])}")
-        added = []
+        note = []
+        if added:
+            note.append(f"+{len(added)} new ({', '.join(added[:5])})")
+        if missing:
+            note.append(f"-{len(missing)} dropped ({', '.join(missing[:5])})")
+        print("verdict-keys: rebaselined — " + ("; ".join(note) if note else "no change"))
+        return 0
 
     print(f"verdict-keys: {len(present)} present, {len(required)} required, "
           f"{len(missing)} missing, {len(added)} new")

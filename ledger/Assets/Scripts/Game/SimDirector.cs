@@ -3057,10 +3057,34 @@ namespace Ledger.Game
                 added.Add((dr + dg + db, dr, dg, db));
             }
             if (n == 0) return (0, 0, 0, 0, 0, 0, 0);
-            added.Sort((p, q) => q.sum.CompareTo(p.sum));
-            int top = Mathf.Max(1, added.Count / 10);
-            double fr = 0, fg = 0, fb = 0;
-            for (int i = 0; i < top; i++) { fr += added[i].r; fg += added[i].g; fb += added[i].b; }
+
+            // HISTOGRAM, NOT A SORT, and this is my own regression being paid
+            // back. The first version sorted every added pixel — up to 230,000
+            // of them, six times a run — and `meanFrame` went 267ms to 329ms.
+            // The probe made the thing it measures slower, which is the
+            // instrument disturbing the subject in the most literal way
+            // available.
+            //
+            // The decile does not need an ordering, only a cut: one pass to
+            // bucket the added luminance, one walk down the buckets to find the
+            // value the top tenth sits above, one pass to average them. O(n)
+            // and three cheap passes instead of O(n log n) on a quarter of a
+            // million items.
+            var hist = new int[766];              // 0..765, the sum of three bytes
+            foreach (var a2 in added) hist[a2.sum]++;
+            int want = Mathf.Max(1, added.Count / 10), running = 0, cut = 765;
+            for (int v = 765; v >= 0; v--)
+            {
+                running += hist[v];
+                if (running >= want) { cut = v; break; }
+            }
+            double fr = 0, fg = 0, fb = 0; int top = 0;
+            foreach (var a2 in added)
+            {
+                if (a2.sum < cut) continue;
+                fr += a2.r; fg += a2.g; fb += a2.b; top++;
+            }
+            if (top == 0) top = 1;
             return (100.0 * n / lit.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0,
                     fr / top / 255.0, fg / top / 255.0, fb / top / 255.0);
         }
