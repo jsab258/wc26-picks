@@ -53,7 +53,7 @@ jobs:
       - name: Lint (missing usings)
         timeout-minutes: 1
         shell: bash
-        run: python3 ledger/lint-usings.py ledger/Assets/Scripts
+        run: python3 ledger/lint-usings.py ledger/Assets/Scripts ledger/Assets/Editor
 
       # Unity is the only thing that compiles Assets/Scripts, so a mistake in
       # its own shape — a duplicate local, a duplicate member — costs a full
@@ -64,7 +64,7 @@ jobs:
       - name: Shape check (Unity layer)
         timeout-minutes: 6
         shell: bash
-        run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts
+        run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts ledger/Assets/Editor
 
       - name: Install Unity
         # 30, and this is headroom rather than a measurement.
@@ -286,6 +286,17 @@ jobs:
               grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } > game-design/sim-shots/verdict.txt
+            # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
+            # character audit runs inside `CiBuild` — Editor, not player — so it
+            # lands in unity.log and grepping player.log for it would report
+            # nothing and look exactly like "the audit never ran".
+            if [ -f build-log/unity.log ]; then
+              {
+                echo
+                grep -E "CharacterAudit: " build-log/unity.log | head -3 \
+                  || echo "CharacterAudit: (no line — the audit did not run)"
+              } >> game-design/sim-shots/verdict.txt
+            fi
             say "verdict.txt written ($(wc -l < game-design/sim-shots/verdict.txt) lines)"
           else
             say "no player.log — the sim did not run"

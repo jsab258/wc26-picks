@@ -28,6 +28,13 @@ namespace Ledger.EditorTools
 
         static void Build(BuildTarget target, string outputPath)
         {
+            // M17.1, ANSWERED BY THE ONLY THING THAT CAN ANSWER IT. Whether the
+            // Mixamo FBX yield valid human Avatars is a question about Unity's
+            // importer, and the Game layer does not compile locally — so the
+            // build reports it and the line is captured into the verdict file.
+            // Diagnostic only: it cannot fail the build.
+            CharacterAudit.Report();
+
             if (!System.IO.File.Exists(ScenePath))
             {
                 System.IO.Directory.CreateDirectory("Assets/Scenes");

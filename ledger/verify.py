@@ -54,7 +54,8 @@ def shape():
     # as intended: it refused to print a green footer for a check that had
     # not actually run. First use, first catch.
     code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "ShapeCheck"),
-                     "--", str(ROOT / "Assets" / "Scripts")])
+                     "--", str(ROOT / "Assets" / "Scripts"),
+                     str(ROOT / "Assets" / "Editor")])
     m = re.search(r"checked (\d+) files, (\d+) shape error", out)
     if not m:
         return False, "ShapeCheck did not report (build failure?)"
@@ -62,7 +63,12 @@ def shape():
 
 
 def lint():
-    code, out = run(["python3", str(ROOT / "lint-usings.py"), str(ROOT / "Assets" / "Scripts")])
+    # ASSETS/EDITOR TOO. It was checked by nothing: lint and ShapeCheck both
+    # scanned only Assets/Scripts, so `CiBuild.cs` — the entry point the whole
+    # Windows pipeline runs through — had never been linted or shape-checked,
+    # and a typo in it costs a full twenty-eight-minute round trip to find.
+    code, out = run(["python3", str(ROOT / "lint-usings.py"),
+                     str(ROOT / "Assets" / "Scripts"), str(ROOT / "Assets" / "Editor")])
     m = re.search(r"checked (\d+) files, (\d+) missing-using", out)
     if not m:
         return False, "lint did not report"

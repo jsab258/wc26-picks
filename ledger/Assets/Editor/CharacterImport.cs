@@ -1,0 +1,134 @@
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace Ledger.EditorTools
+{
+    /// M17.1. THE IMPORT SETTINGS, AS CODE, BECAUSE THERE ARE NO `.meta` FILES.
+    ///
+    /// Forty-four FBX sit in `Assets/Characters` — two bodies and forty-one
+    /// Mixamo clips — and NOTHING in the game references them. The roadmap has
+    /// called this "the one real unknown" in M17 for weeks, and the reason it
+    /// stayed unknown is worth stating plainly:
+    ///
+    ///   `CharacterRig` needs a Humanoid Avatar. The Avatar is the contract,
+    ///   deliberately, because Mixamo's bone names are stable right up until
+    ///   somebody re-exports from Blender.
+    ///
+    ///   Unity does NOT default a model to Humanoid. It imports as Generic, so
+    ///   no Avatar is produced and there is nothing to bind to.
+    ///
+    ///   Import settings live in `.meta` files, and this project tracks ZERO of
+    ///   them — checked, not assumed: `find ledger/Assets -name "*.meta"`
+    ///   returns nothing, and there is no ignore rule doing it. They simply do
+    ///   not exist, so Unity regenerates defaults on every CI checkout.
+    ///
+    /// COMMITTING `.meta` FILES WOULD CHANGE A PROJECT CONVENTION and hand the
+    /// settings to a file format nothing here reviews. An `AssetPostprocessor`
+    /// does the same job as tracked, reviewable code that runs deterministically
+    /// on every fresh import — which is exactly what CI does every run.
+    ///
+    /// WHY HUMANOID ON THE CLIPS TOO, not just the bodies. Retargeting is
+    /// Humanoid-to-Humanoid: a clip imported Generic carries its own skeleton's
+    /// curves and will not drive a different rig. Mixamo exports every clip with
+    /// the full skeleton, so each one can produce its own avatar and retarget
+    /// through the muscle space. That is the whole reason to pay the Humanoid
+    /// tax at all.
+    class CharacterImport : AssetPostprocessor
+    {
+        /// Everything under here is a character asset. Scoped to the folder so
+        /// this cannot reach a model somebody adds elsewhere for another reason.
+        public const string CharacterFolder = "Assets/Characters/";
+
+        void OnPreprocessModel()
+        {
+            var path = assetPath.Replace('\\', '/');
+            if (!path.StartsWith(CharacterFolder)) return;
+
+            var importer = assetImporter as ModelImporter;
+            if (importer == null) return;
+
+            importer.animationType = ModelImporterAnimationType.Human;
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            importer.importAnimation = true;
+
+            // MIXAMO SHIPS ITS CLIPS IN CENTIMETRES and its bodies at a scale
+            // that puts a "1.8 metre" man at 180 units. `useFileScale` takes the
+            // FBX's own unit declaration rather than assuming, which is the
+            // difference between a person and a tower block. `Mannequin` builds
+            // its bodies at 1.58-1.90m and the sim gates on that range, so a
+            // hundredfold error would be caught — but only after a build.
+            importer.useFileScale = true;
+
+            // The bodies have skin; the clips do not need it imported twice.
+            importer.importBlendShapes = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+        }
+    }
+
+    /// WHAT UNITY ACTUALLY PRODUCED, printed. The only way to find out.
+    ///
+    /// This cannot be checked locally at any level — the Game layer does not
+    /// compile here and Unity is the thing that decides whether an FBX yields a
+    /// valid human Avatar. So the build says so out loud, the line is captured
+    /// into `game-design/sim-shots/verdict.txt`, and M17.1 stops being a
+    /// question nobody can answer without opening the Editor.
+    public static class CharacterAudit
+    {
+        public static void Report()
+        {
+            try
+            {
+                var guids = AssetDatabase.FindAssets(
+                    "t:Model", new[] { "Assets/Characters" });
+                int models = 0, humanoid = 0, validHuman = 0, clips = 0;
+                var noAvatar = new List<string>();
+
+                foreach (var guid in guids)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (string.IsNullOrEmpty(path)) continue;
+                    models++;
+
+                    var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+                    if (importer != null
+                        && importer.animationType == ModelImporterAnimationType.Human)
+                        humanoid++;
+
+                    bool found = false;
+                    foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(path))
+                    {
+                        var avatar = obj as Avatar;
+                        if (avatar != null && avatar.isValid && avatar.isHuman)
+                        {
+                            validHuman++;
+                            found = true;
+                        }
+                        // Unity generates `__preview__` clips for the inspector;
+                        // counting those would report animation that does not
+                        // ship.
+                        var clip = obj as AnimationClip;
+                        if (clip != null && !clip.name.StartsWith("__preview"))
+                            clips++;
+                    }
+                    if (!found && noAvatar.Count < 4)
+                        noAvatar.Add(System.IO.Path.GetFileName(path));
+                }
+
+                Debug.Log($"CharacterAudit: models={models} humanoid={humanoid} "
+                          + $"validHumanAvatar={validHuman} clips={clips}"
+                          + (noAvatar.Count > 0
+                                 ? " noAvatar=[" + string.Join(", ", noAvatar) + "]"
+                                 : ""));
+            }
+            catch (System.Exception e)
+            {
+                // A REPORT THAT KILLS THE BUILD IS WORSE THAN NO REPORT. This
+                // runs inside the one entry point the whole Windows pipeline
+                // goes through, and it is a diagnostic, not a gate.
+                Debug.Log($"CharacterAudit: FAILED {e.GetType().Name}: {e.Message}");
+            }
+        }
+    }
+}

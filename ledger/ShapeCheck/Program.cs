@@ -45,7 +45,13 @@ var interesting = new HashSet<string>
 
 var trees = new List<SyntaxTree>();
 int files = 0;
-foreach (var path in Directory.EnumerateFiles(args[0], "*.cs", SearchOption.AllDirectories))
+// EVERY ROOT GIVEN, NOT JUST THE FIRST. This read `args[0]` and silently
+// dropped the rest, so `-- Assets/Scripts Assets/Editor` checked Scripts and
+// reported the same 136 files as before — an "extension" that was a no-op and
+// looked exactly like a working one. Caught only because the file count did
+// not move when a directory was added.
+foreach (var root in args.Length > 0 ? args : new[] { "Assets/Scripts" })
+foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
 {
     if (path.Contains("/obj/") || path.Contains("/bin/")) continue;
     files++;
@@ -129,6 +135,17 @@ var inherited = new HashSet<string>
     // properties, so whitelisting them turned a genuine CS0103 into a silent
     // miss, the exact thing the comment above promises cannot happen (audit
     // 2026-07-27).
+
+    // `AssetPostprocessor`'s, which this list could not have known about:
+    // `Assets/Editor` had never been scanned by lint OR ShapeCheck, so the
+    // first Editor file ever checked reported `assetPath` and `assetImporter`
+    // as missing names. Both are inherited, both are real, and both are
+    // invisible to a compilation with no references — the same class the note
+    // above describes, from a different base.
+    //
+    // Same discipline as the rigidbody/camera removal: only members that
+    // genuinely exist on the base go here. Everything else stays reportable.
+    "assetPath", "assetImporter",
 };
 
 // Members a MonoBehaviour or Component INHERITS. On one of our own types
@@ -154,6 +171,7 @@ var unityInherited = new HashSet<string>
     "Invoke", "InvokeRepeating", "CancelInvoke", "IsInvoking",
     "SendMessage", "SendMessageUpwards", "BroadcastMessage",
     "CompareTag", "GetInstanceID", "Equals", "GetHashCode", "ToString",
+
 };
 
 // THE FALSE-POSITIVE CLASSES the BCL references introduce, filtered as
