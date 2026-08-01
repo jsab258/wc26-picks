@@ -111,6 +111,26 @@ will be used. If it is audio, check its duration and metadata. If it is a file,
 read it back. `tools/voice-fetch/page_check.py` does this for the listening
 page; write the equivalent for anything new.
 
+**ALL of it, and never the gate INSTEAD of the artifact.** Every build commits
+four stills. Three separate faults have now been found by a human opening one
+of them and none by a gate: a hand lookup that could only see one body tier, a
+white capsule drawn over the bought body, and that body lying flat on its back
+in the road. In the third case I opened the NIGHT frame to check a window
+question, read `playerPrimitive=False` off the done-line, and called the body
+confirmed — while the noon frame in the same directory showed it on its back,
+magenta. My own checkpoint had said *"LOOK at review_day1_noon.jpg and confirm
+a skinned figure"*, and I substituted a passing number for the instruction I
+had written myself.
+
+A gate reports what it was built to ask. All twenty in `SimDirector` ask about
+what a system ADDED — is it there, is it the right size, did it bind — and not
+one asked what the frame LOOKS like, which is why all three faults sailed
+through green. So: **read every still, every build, before reading any gate,
+and never let a green reading stand in for the frame it claims to describe.**
+When a still shows something wrong, the fix is a NUMBER that would have caught
+it — `playerPrimitive`, `bodyUp`, `collidingNames` all exist because a picture
+found what nothing was measuring.
+
 **And then: LOOKING IS NOT MEASURING.** The night the sim first committed
 screenshots, I opened them and condemned four correct things off the back of a
 1280x720 JPEG:
