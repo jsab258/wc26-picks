@@ -5017,6 +5017,8 @@ namespace Ledger.Game
                       $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
                       $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
+                      $"clipsAsked={Audio.DistinctClipsAsked} voicesAsked={Audio.DistinctVoicesAsked} " +
+                      $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"lumaPairs=[{_lumaSeries}] " +
