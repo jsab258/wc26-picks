@@ -48,6 +48,32 @@ DECIMALS = {"meanLuma": 3, "maxLuma": 3, "brightPct": 2, "satPct": 2,
             "satStrength": 2}
 
 
+def commit_of(path):
+    """The commit the build wrote this ledger from, if it is stamped.
+
+    WHY IT MATTERS ENOUGH TO PRINT. A drift block between two DIFFERENT commits
+    is signal plus noise and cannot be read as either. The second run of this
+    ledger came back with `meanLuma` moving 0.060 and `satPct` moving 14.66, and
+    a checkpoint had already described that run as "the one that gives the
+    run-to-run noise floor" — it was not: the commit in between removed a large
+    white capsule from the middle of every frame, so most of that delta is the
+    fix working.
+
+    A noise floor needs the SAME commit built twice. Nothing in the ledger said
+    which commit produced it, so nothing could have caught that; now the header
+    carries it and the block says plainly which case you are looking at.
+    """
+    p = pathlib.Path(path)
+    if not p.exists():
+        return None
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if line.startswith("# commit "):
+            return line[len("# commit "):].strip()
+        if not line.startswith("#"):
+            break
+    return None
+
+
 def read(path):
     """A ledger as {shot: {field: float}}, in file order.
 
@@ -113,9 +139,19 @@ def drift(old_path, new_path):
     fresh = [s for s in order if s not in old]
     shared = [s for s in order if s in old]
 
+    ca, cb = commit_of(old_path), commit_of(new_path)
+    if ca and cb and ca == cb:
+        what = (f"SAME COMMIT {ca[:7]} BUILT TWICE — every delta below IS the "
+                "noise floor, and a Layer 3 tolerance may be derived from it.")
+    elif ca and cb:
+        what = (f"{ca[:7]} -> {cb[:7]}, DIFFERENT COMMITS — these deltas are the "
+                "change plus the noise and cannot be read as either. A noise "
+                "floor needs the same commit built twice.")
+    else:
+        what = ("commits unstamped, so these deltas cannot be told apart from "
+                "a code change.")
     out.append(f"FrameDrift: {len(shared)} shot(s) compared, {len(fresh)} new, "
-               f"{len(gone)} gone. REPORTED, NOT GATED — the run-to-run noise "
-               "floor has not been measured yet.")
+               f"{len(gone)} gone. REPORTED, NOT GATED — {what}")
     if fresh:
         out.append("FrameDrift:   new shots: " + ", ".join(fresh))
     if gone:
@@ -189,6 +225,31 @@ def selftest():
         p = d / name
         p.write_text("# comment\n" + head + body, encoding="utf-8")
         return str(p)
+
+    # THE COMMIT STAMP, and both cases it distinguishes. A block that cannot
+    # tell "same commit twice" from "two different commits" invites exactly the
+    # misreading that happened once already: a run-to-run delta being taken for
+    # a noise floor when the code in between had removed a white capsule from
+    # every frame.
+    same_a = d / "same_a.tsv"
+    same_a.write_text("# commit abc1234def\n" + head +
+                      "day1_noon\t0.250\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\n",
+                      encoding="utf-8")
+    same_b = d / "same_b.tsv"
+    same_b.write_text("# commit abc1234def\n" + head +
+                      "day1_noon\t0.251\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\n",
+                      encoding="utf-8")
+    check("reads a commit stamp", commit_of(str(same_a)) == "abc1234def")
+    check("no stamp is None", commit_of(str(d / "nope.tsv")) is None)
+    txt = "\n".join(drift(str(same_a), str(same_b))[0])
+    check("same commit says it IS the noise floor", "IS the noise floor" in txt)
+    diff_b = d / "diff_b.tsv"
+    diff_b.write_text("# commit 9999999aaa\n" + head +
+                      "day1_noon\t0.251\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\n",
+                      encoding="utf-8")
+    txt = "\n".join(drift(str(same_a), str(diff_b))[0])
+    check("different commits are flagged", "DIFFERENT COMMITS" in txt)
+    check("different commits refuse the floor", "cannot be read as either" in txt)
 
     a = write("a.tsv", "day1_noon\t0.250\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\n"
                        "day1_night\t0.126\t0.900\t0.30\t1.00\t0.38\t30,34,40\t200,200,210\n")
