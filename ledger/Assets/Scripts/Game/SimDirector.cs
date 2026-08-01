@@ -2568,7 +2568,14 @@ namespace Ledger.Game
             var cam = Camera.main;
             if (cam == null) return;
             for (int i = 0; i < AoSamples; i++) MeasureAoOnce(i);
+            // ONCE, HERE, because this is the one place in the run that is
+            // guaranteed to be night with the street built — which is the only
+            // condition under which a window glow is a thing that exists. Six
+            // extra 640x360 renders on top of the sampler's existing dozen.
+            if (!_windowGlowMeasured) { _windowGlowMeasured = true; MeasureWindowGlow(); }
         }
+
+        bool _windowGlowMeasured;
 
         /// Every noon/night pair from the run, so the next threshold can be
         /// chosen from data instead of from a guess.
@@ -2943,6 +2950,87 @@ namespace Ledger.Game
         /// occlusion and quietly passed the other three, which is the same
         /// mistake as measuring total energy for the score gate and the fog
         /// ratio against the wrong colour. Check the ruler.
+        /// THE WINDOW GLOW, AS A SERIES RATHER THAN AN ARGUMENT.
+        ///
+        /// The frame ledger established the fault: night `brightRgb` reads
+        /// (204,200,185), a channel ratio of 1.00:0.98:0.91 where the constant
+        /// asks for 1.00:0.82:0.45. The windows are white, and a warm interior
+        /// glow was the whole point of them.
+        ///
+        /// It did NOT establish the fix, and that is the distinction this
+        /// project keeps paying for. "Lower it" is not a number. Blue clips
+        /// above a 2.22 multiplier, ACES compresses and desaturates everything
+        /// above it again, and the interaction of those two is not something to
+        /// work out in my head — the AO ceiling was argued about across five
+        /// runs and settled in one by printing the round series.
+        ///
+        /// So this renders the same night frame at six multipliers and prints
+        /// what each one PRODUCES: how much of the frame is bright, and what
+        /// colour those bright pixels actually are. The multiplier to ship is
+        /// then read off the line — the largest one whose blue ratio is still
+        /// near 0.45 — instead of guessed and defended.
+        ///
+        /// Restores 3.0 before returning. A probe that leaves the world in the
+        /// state it was measuring is a probe that changes the build it reports
+        /// on, and the stills are taken after this runs.
+        void MeasureWindowGlow()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var line = new StringBuilder("SimDirector: windowGlow");
+            foreach (float k in new[] { 1.0f, 1.4f, 1.8f, 2.2f, 2.6f, 3.0f })
+            {
+                WorldBuilder.SetWindowGlow(k);
+                var (pct, r, g, b) = BrightColour(cam);
+                double blue = r > 0.01 ? b / r : 0.0;
+                line.Append($" k={k:0.0}[bright={pct:0.00}% rgb={(int)(r * 255)},")
+                    .Append($"{(int)(g * 255)},{(int)(b * 255)} b/r={blue:0.00}]");
+            }
+            WorldBuilder.SetWindowGlow(3.0f);
+            // The target ratio, printed beside the readings so the line answers
+            // its own question without anybody opening this file.
+            line.Append(" target b/r=0.45");
+            Debug.Log(line.ToString());
+        }
+
+        /// What fraction of the frame is bright, and the mean colour of exactly
+        /// those pixels. The same two quantities `Fingerprint` reports for the
+        /// committed stills, at probe resolution.
+        (double pct, double r, double g, double b) BrightColour(Camera cam)
+        {
+            RenderTexture rt = null;
+            Texture2D tex = null;
+            var prevTarget = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+            try
+            {
+                rt = new RenderTexture(640, 360, 24, RenderTextureFormat.ARGB32);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                tex.Apply();
+                var px = tex.GetPixels32();
+                long n = 0; double sr = 0, sg = 0, sb = 0;
+                foreach (var c in px)
+                {
+                    if (ImageStats.Luma(c.r / 255.0, c.g / 255.0, c.b / 255.0) <= 0.6) continue;
+                    n++; sr += c.r; sg += c.g; sb += c.b;
+                }
+                if (n == 0) return (0, 0, 0, 0);
+                return (100.0 * n / px.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0);
+            }
+            catch (Exception e) { _errors.Add("BrightColour: " + e.Message); return (-1, 0, 0, 0); }
+            finally
+            {
+                cam.targetTexture = prevTarget;
+                RenderTexture.active = prevActive;
+                if (tex != null) Destroy(tex);
+                if (rt != null) { rt.Release(); Destroy(rt); }
+            }
+        }
+
         struct FrameStats
         {
             public double Mean, Bright, Variance, EdgeRatio, LocalSpread;

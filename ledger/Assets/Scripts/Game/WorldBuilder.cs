@@ -29,15 +29,49 @@ namespace Ledger.Game
         /// percent of a real car — so the rule is that a visual judgement is a
         /// HYPOTHESIS until a number answers it.
         ///
-        /// The number is already coming. Every shot's `brightPct` (fraction
-        /// above 0.6 luma) and `brightRgb` (the colour of those pixels) now
-        /// land in `game-design/sim-shots/frames.tsv` every build. If the night
-        /// frames carry a large bright fraction whose colour is near-white
-        /// rather than near (255,209,115), the emission is clipping and this
-        /// constant is the fix. If they do not, the slabs are the window
-        /// GEOMETRY being too large a share of the façade, and changing this
-        /// would darken a city to fix a modelling problem.
+        /// THE NUMBER ARRIVED, AND IT CONFIRMS THE SUSPECT. The frame ledger's
+        /// first run gives, for the night shots:
+        ///
+        ///     brightPct 5.2-9.8%   brightRgb (204,200,185) and (211,206,184)
+        ///
+        /// The bright pixels' channel ratio is 1.00 : 0.98 : 0.91. The colour
+        /// asked for here is 1.00 : 0.82 : 0.45. The warmth is not dimmed, it is
+        /// GONE — those windows are white on screen, and a warm interior glow
+        /// was the entire point of the constant.
+        ///
+        /// The cause is arithmetic rather than taste: at a 3.0 multiplier every
+        /// channel exceeds 1.0 before the tonemap even sees it — red 3.00, green
+        /// 2.46, BLUE 1.35 — so the hue cannot survive. There is no value of
+        /// this colour at this multiplier that reads as anything but white.
+        ///
+        /// WHAT IT IS NOT: the geometry. The alternative hypothesis was that the
+        /// slabs are the window meshes taking too much of the façade, which
+        /// would have made darkening this constant a fix applied in the wrong
+        /// file. A desaturated bright colour rules that out — too much window
+        /// area would read as a large WARM fraction, not a bleached one.
+        ///
+        /// NOT YET CHANGED, because "lower" is not a number. The blue channel
+        /// clips above 2.22 and every channel is compressed by the ACES curve
+        /// on top of that, so the multiplier that keeps the hue is a
+        /// measurement, not a derivation — the same shape as the AO ceiling,
+        /// which was argued about for five runs and settled by printing the
+        /// round series. `SimDirector.MeasureWindowGlow` prints this one.
         static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f;
+
+        /// The multiplier under test, so the probe can sweep it without this
+        /// file and the sim disagreeing about what was rendered.
+        public static void SetWindowGlow(float multiplier)
+        {
+            var c = new Color(1.0f, 0.82f, 0.45f) * multiplier;
+            foreach (var r in Windows)
+            {
+                if (r == null) continue;
+                var mpb = new MaterialPropertyBlock();
+                r.GetPropertyBlock(mpb);
+                mpb.SetColor("_EmissionColor", c);
+                r.SetPropertyBlock(mpb);
+            }
+        }
         static readonly Color WindowDark = new Color(0.02f, 0.02f, 0.02f);
         static bool _windowsLit;
 
