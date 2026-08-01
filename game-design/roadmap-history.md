@@ -1552,3 +1552,17 @@ The lesson is the ratio rather than either number: a careful human sweep found
 under a third of it, in an afternoon, and was believed. The ledger stood at
 **89** when the phases landed and can only count down — wiring an API without
 deleting its row fails the build too.
+
+## 2026-07-31 — a blocker that cleared and nobody noticed
+
+Moved out of `roadmap.md` when 17.6 closed and the file hit its 400-line LIVE
+limit. The mechanism is the part worth keeping.
+
+`production-plan-audio-art.md` §4 item 5 put building and prop packs on hold on
+2026-07-28 pending the character direction. Mixamo landed on 2026-07-30, which
+unblocked them, and nothing said so for two days.
+
+A blocked item that lives only in a spec unblocks SILENTLY and then waits
+forever — there is no event, no check, and nobody re-reads a spec to find out
+what became possible. That is the argument for the M17 table in `roadmap.md`
+carrying every item's state rather than pointing at the document that holds it.

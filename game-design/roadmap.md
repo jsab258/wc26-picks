@@ -89,7 +89,7 @@ design — every item has a working system underneath already.
 
 | | what | state | risk |
 |---|---|---|---|
-| 17.1 | **Integrate the Mixamo bodies** — import as Humanoid, bind through `CharacterRig`, retarget 41 clips | 41 clips and two bodies committed; **nothing references them** | **the one real unknown** |
+| 17.1 | **Integrate the Mixamo bodies** | **DONE 2026-08-01.** `humanoid=44 validHumanAvatar=44`; an Editor step writes `Resources/Characters/Body`, `RealBody` attaches it, `CharacterRig` tier one binds its Avatar. `realBody=1`, scaled x0.949 from raw 1.90m. Player only — a skinned crowd is uncosted on a GPU-less runner | closed |
 | 17.2 | **Generate the 19 cast voices** — chatterbox clones from the reference clips | cast and consent-approved 2026-07-31 | low |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
@@ -113,11 +113,6 @@ the heavy lifting because they cut draw distance, hide low-detail geometry and
 create mood at once. One palette across seven districts beats scattered
 high-resolution assets, and none of it needs a purchase: CC0 PBR sources cover
 every surface name already in `AssetLibrary`.
-
-**17.6's blocker cleared two days ago and nobody noticed.** §4 item 5 put
-building and prop packs on hold on 2026-07-28 pending the character direction;
-Mixamo landed 2026-07-30. A blocked item living only in a spec unblocks silently
-and then waits forever, which is the argument for this table carrying it.
 
 **17.1 is the risk and it is worth naming precisely.** No `.meta` files are
 tracked anywhere in this project, so FBX import settings are not under version
@@ -314,39 +309,42 @@ the game is gated on his word.** Five layers, in `testing-system.md`:
 | 1 | **Reach** — every public Core API has a caller | *built is not running*; ~40 APIs with no call site | before M16 ph.3/4 land |
 | 2 | **Shape** — text, audio and assets are well-formed | 21 of 42 gossip templates rendering a lowercase sentence under 2,883 green tests | before M16 ph.3/4 land |
 | 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | **ledger landed**, tolerance unmeasured |
-| 4 | **Time** — determinism, replay, 100-day soak, save/load chaos | a bug that is currently unreproducible | after M17 |
+| 4 | **Time** — determinism, 500-day soak, save/load chaos | a bug that is currently unreproducible | **landed**; replay-log half open |
 | 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | after M17 |
 
-**Layer 3, first half, shipped.** The sim fingerprinted twenty frames a run and
-reported none of them — both channels carrying those numbers are ones this
-environment cannot read. They now go to `game-design/sim-shots/frames.tsv`,
-committed each build, and `tools/frame-drift.py` prints per-shot deltas into
-`verdict.txt`. **Done:** a luminance change is visible in the verdict of the
-build that caused it, and `git log` on `frames.tsv` gives the series. The
-gating half is **not** done — a tolerance is a threshold and the rasteriser's
-run-to-run noise floor is unmeasured, which is how `nightNotDarker` came to fail
-at 0.136 against 0.135. **Depends on** two runs of unchanged code. **Risk:**
-that variance swamps the signal, and the answer is per-shot medians, not a
-looser bound.
+**Layer 3, first half.** The sim fingerprinted twenty frames a run and reported
+none of them — both channels carrying those numbers are unreadable here. They
+now go to `sim-shots/frames.tsv`, committed each build, and
+`tools/frame-drift.py` prints per-shot deltas into `verdict.txt`. **Done:** a
+luminance change shows in the verdict of the build that caused it. The GATING
+half is not — a tolerance is a threshold and the rasteriser's noise floor is
+unmeasured, which is how `nightNotDarker` failed at 0.136 against 0.135.
+**Depends on** two runs of unchanged code. **Risk:** variance swamps the signal
+and the answer is per-shot medians.
 
-What already exists is stronger than the gap list suggests: 2,884 CoreTests,
-**21 mutation-testing specs** (`breakrun.py` — most studios do not do this), 20
-gated sim claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and content
-enumeration measuring repeat intervals rather than asserting them.
+**Layer 4, both gates green.** `ledger/SaveChaos` fuzzes the save codec against
+a stated contract; `ledger/Soak` runs 500 days twice and compares per-day
+digests. **Done:** seven player-reachable faults — two exceptions the front end
+could not catch, a save loading into day 0, an int overflow flipping a job count
+negative, a purse and a patience bypassing their own clamps, and an unbounded
+`SuspicionTracker.Reasons` (684 entries in 499 days, nothing removing one),
+found by the growth SERIES rather than a total: rumours oscillated 9–74 in the
+same run because gossip decays. **Open:** replay from a seed plus an input log,
+which needs Unity. **Risk:** the soak's street is a representative seven.
+
+What exists is stronger than the gap list suggests: 2,965 CoreTests, **21
+mutation-testing specs** (`breakrun.py` — most studios do not), 20 gated sim
+claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and enumeration measuring
+repeat intervals rather than asserting them.
 
 ## At risk
 
-- **Windows CI red on the threat gate** (`9708a8d`): `drawn=0 object=none`.
-  Mine — M17.1 gave the player a bought skeleton, so `SimDirector`'s
-  `GetComponent<Mannequin>()` hand lookup returned null and nothing reached the
-  hand. Fixed in `2cd11c2` by publishing the joint from `CharacterRig`, which
-  resolves both tiers; **unverified until the run lands.** `nightNotDarker` is
-  settled — the series reads `darker10of10`.
-- **The animation import** (M17.1) is unverifiable locally but CI says it
-  works: `models=44 humanoid=44 validHumanAvatar=44`, `realBody=1` scaled
-  x0.949 from raw 1.90m. Player skinned; crowd stays boxes until one is costed.
+- **Windows CI is green** (`2cd11c2`, pass=True). `nightNotDarker` is settled.
+- **The animation import** (M17.1) is unverifiable locally but CI says it works:
+  `humanoid=44 validHumanAvatar=44`, `realBody=1` scaled x0.949 from raw 1.90m.
+  Player skinned; the crowd stays boxes until one is costed on a GPU-less runner.
 - **Phases 2–4 were built, tested and disconnected.** `tools/ReachCheck` runs
-  every commit; the ledger is 89 typed entries, counting down only — the debt
+  every commit; the ledger is 90 typed entries, counting down only — the debt
   *measured*, not cleared.
 
 ## The ship checklist — every category, and who owns it
