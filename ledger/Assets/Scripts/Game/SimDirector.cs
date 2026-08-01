@@ -2990,10 +2990,13 @@ namespace Ledger.Game
             foreach (float k in new[] { 1.0f, 1.4f, 1.8f, 2.2f, 2.6f, 3.0f })
             {
                 WorldBuilder.SetWindowGlow(k);
-                var (pct, r, g, b) = LitMinusDark(cam, dark);
-                double blue = r > 0.01 ? b / r : 0.0;
-                line.Append($" k={k:0.0}[lit={pct:0.00}% rgb={(int)(r * 255)},")
-                    .Append($"{(int)(g * 255)},{(int)(b * 255)} b/r={blue:0.00}]");
+                var m = LitMinusDark(cam, dark);
+                double blue = m.r > 0.01 ? m.b / m.r : 0.0;
+                double blueTop = m.tr > 0.01 ? m.tb / m.tr : 0.0;
+                line.Append($" k={k:0.0}[lit={m.pct:0.00}% all={(int)(m.r * 255)},")
+                    .Append($"{(int)(m.g * 255)},{(int)(m.b * 255)} b/r={blue:0.00}")
+                    .Append($" face={(int)(m.tr * 255)},{(int)(m.tg * 255)},{(int)(m.tb * 255)}")
+                    .Append($" b/r={blueTop:0.00}]");
             }
             WorldBuilder.SetWindowGlow(3.0f);
             // The target ratio, printed beside the readings so the line answers
@@ -3011,11 +3014,34 @@ namespace Ledger.Game
         /// `lit - dark` per channel — rather than the final pixel. Averaging the
         /// final pixel would fold in whatever the window is sitting on top of,
         /// which is the same mistake one level down.
-        (double pct, double r, double g, double b) LitMinusDark(Camera cam, Color32[] dark)
+        /// TWO POPULATIONS, BECAUSE THEY ANSWER DIFFERENT QUESTIONS, and the
+        /// first two versions of this probe each measured one and reported it
+        /// as the other.
+        ///
+        /// `all` is every pixel the windows brightened. That legitimately
+        /// includes the light SPILLING onto walls, pavement and fog — and spill
+        /// is emission times a grey surface, then fog-blended toward a blue
+        /// night, so it is greyer and bluer than the source by physics rather
+        /// than by fault. Measuring the windows' colour from it will always read
+        /// too neutral, which is exactly what 0.70 against a target of 0.45
+        /// looks like.
+        ///
+        /// `face` is the top decile by added luminance — the window rectangles
+        /// themselves. THIS is what "are the windows the right colour" means.
+        ///
+        /// If `face` comes back near 0.45 the windows are correct at source and
+        /// the complaint in the still is BRIGHTNESS, not hue: a blown-out pixel
+        /// reads as white to the eye whatever its ratio. If `face` is also 0.70
+        /// then the emission path itself is losing the colour and the search
+        /// moves to the shader, not to the constant.
+        (double pct, double r, double g, double b, double tr, double tg, double tb)
+            LitMinusDark(Camera cam, Color32[] dark)
         {
             var lit = FramePixels(cam);
-            if (lit == null || dark == null || lit.Length != dark.Length) return (-1, 0, 0, 0);
+            if (lit == null || dark == null || lit.Length != dark.Length)
+                return (-1, 0, 0, 0, 0, 0, 0);
             long n = 0; double sr = 0, sg = 0, sb = 0;
+            var added = new List<(int sum, int r, int g, int b)>();
             for (int i = 0; i < lit.Length; i++)
             {
                 int dr = lit[i].r - dark[i].r, dg = lit[i].g - dark[i].g, db = lit[i].b - dark[i].b;
@@ -3024,9 +3050,15 @@ namespace Ledger.Game
                 // A/B gates, in 0..255 rather than 0..1.
                 if (dr + dg + db < 8 * 3) continue;
                 n++; sr += dr; sg += dg; sb += db;
+                added.Add((dr + dg + db, dr, dg, db));
             }
-            if (n == 0) return (0, 0, 0, 0);
-            return (100.0 * n / lit.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0);
+            if (n == 0) return (0, 0, 0, 0, 0, 0, 0);
+            added.Sort((p, q) => q.sum.CompareTo(p.sum));
+            int top = Mathf.Max(1, added.Count / 10);
+            double fr = 0, fg = 0, fb = 0;
+            for (int i = 0; i < top; i++) { fr += added[i].r; fg += added[i].g; fb += added[i].b; }
+            return (100.0 * n / lit.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0,
+                    fr / top / 255.0, fg / top / 255.0, fb / top / 255.0);
         }
 
         /// One render, as raw pixels, for an A/B that needs the frame itself

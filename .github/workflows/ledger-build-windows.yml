@@ -340,23 +340,34 @@ jobs:
           # luminance on a software rasteriser is not known yet, and rule 2 is
           # explicit that inventing it is how `nightNotDarker` came to fail at
           # 0.136 against 0.135.
+          # STAMP FIRST, THEN COMPARE, and the order is the whole of it.
+          #
+          # The sim cannot know its own SHA; this step can. Without the stamp a
+          # drift block cannot tell "the same commit built twice" (which IS the
+          # noise floor) from "two different commits" (which is the change plus
+          # the noise, readable as neither) — a distinction already got wrong
+          # once, when a delta that was mostly a white capsule leaving every
+          # frame got described as run-to-run variance.
+          #
+          # The first version of this stamped the file on the way into the
+          # repository, i.e. AFTER the comparison had already read the unstamped
+          # original — so the new side never carried a stamp and the block said
+          # "commits unstamped" every run, for ever, which is exactly the
+          # silent-no-op shape this project keeps producing. Stamped into a temp
+          # first, compared, then moved.
+          if [ -f sim-run/sim-out/frames.tsv ]; then
+            { echo "# commit ${GITHUB_SHA}"; cat sim-run/sim-out/frames.tsv; } \
+              > "$RUNNER_TEMP/frames-stamped.tsv"
+          fi
           {
             echo
             python3 tools/frame-drift.py \
               game-design/sim-shots/frames.tsv \
-              sim-run/sim-out/frames.tsv \
+              "$RUNNER_TEMP/frames-stamped.tsv" \
               || echo "FrameDrift: the drift tool itself failed"
           } >> game-design/sim-shots/verdict.txt
-          if [ -f sim-run/sim-out/frames.tsv ]; then
-            # STAMP THE COMMIT. The sim cannot know its own SHA; this step can,
-            # and without it a drift block cannot tell "the same commit built
-            # twice" (which IS the noise floor) from "two different commits"
-            # (which is the change plus the noise, and readable as neither).
-            # That distinction was got wrong once already — a run whose delta
-            # was mostly a white capsule being removed from every frame was
-            # described as measuring run-to-run variance.
-            { echo "# commit ${GITHUB_SHA}"; cat sim-run/sim-out/frames.tsv; } \
-              > game-design/sim-shots/frames.tsv
+          if [ -f "$RUNNER_TEMP/frames-stamped.tsv" ]; then
+            cp "$RUNNER_TEMP/frames-stamped.tsv" game-design/sim-shots/frames.tsv
             # COUNTED, NOT SUBTRACTED. This said `wc -l ... - 4` for the four
             # non-data lines, and adding the commit stamp above made it five —
             # a magic number falsified by the commit that changed the file it
