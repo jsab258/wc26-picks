@@ -62,6 +62,24 @@ namespace Ledger.Game
         /// the first two days the sim shoots. See `Shot`.
         const int MaxReviewStills = 4;
         int _reviewStills;
+
+        /// LAYER 3, and the thing it is actually for.
+        ///
+        /// Twenty frames are fingerprinted every run — mean and peak luminance,
+        /// the bright fraction and its colour, the saturated fraction and its
+        /// strength — and until now every one of those numbers went to
+        /// `player.log` and the sim-out JSON, which are the two channels this
+        /// environment cannot read. Twenty measurements taken, none reported.
+        /// That is rule 12 exactly, and it is why four correct things were
+        /// condemned off a 1280x720 JPEG: the picture was the only evidence
+        /// available, and a picture is good evidence that something is wrong
+        /// and poor evidence of what.
+        ///
+        /// One row per shot, committed to `game-design/sim-shots/frames.tsv`,
+        /// which makes the NEXT run able to answer the question none of those
+        /// four arguments could: not "does this look off" but "what moved".
+        int _frameRows;
+        readonly StringBuilder _frameLedger = new StringBuilder();
         readonly Dictionary<string, Vector3> _startPositions = new Dictionary<string, Vector3>();
 
         int _endDay;
@@ -3079,6 +3097,7 @@ namespace Ledger.Game
                     { "brightRgb", fp.brightRgb },
                     { "satPct", fp.satPct }, { "satStrength", fp.satRgb },
                 });
+                LedgerRow(name, fp);
             }
             catch (Exception e)
             {
@@ -3091,6 +3110,45 @@ namespace Ledger.Game
                 if (tex != null) Destroy(tex);
                 if (rt != null) { rt.Release(); Destroy(rt); }
             }
+        }
+
+        /// One shot, one row, written out immediately.
+        ///
+        /// APPENDED PER SHOT RATHER THAN BUFFERED TO THE END, because this
+        /// project has watched a CI job report success while producing zero
+        /// output for every character it was asked for. A run that dies on shot
+        /// fourteen should leave thirteen readings behind, not nothing — a
+        /// partial ledger is evidence and an absent one is a second mystery on
+        /// top of the first.
+        ///
+        /// Tab-separated and invariant-culture, for the reason `ShotNum` gives
+        /// below: a machine with a comma decimal separator turns 0.35 into 35
+        /// and inverts every comparison made from it. `Fingerprint` has already
+        /// formatted these invariantly, so they are passed through as text
+        /// rather than re-parsed and re-printed.
+        void LedgerRow(string name, (string luma, string rgb, string maxLuma, string brightPct,
+                                     string brightRgb, string satPct, string satRgb) fp)
+        {
+            try
+            {
+                if (_frameRows == 0)
+                    _frameLedger.Append("# frame ledger — one row per shot, written by the sim.\n")
+                                .Append("# Compared against the previous run's committed copy by\n")
+                                .Append("# tools/frame-drift.py, whose output goes into verdict.txt.\n")
+                                .Append("shot\tmeanLuma\tmaxLuma\tbrightPct\tsatPct\t")
+                                .Append("satStrength\tmeanRgb\tbrightRgb\n");
+                _frameRows++;
+                _frameLedger.Append(name).Append('\t')
+                            .Append(fp.luma).Append('\t')
+                            .Append(fp.maxLuma).Append('\t')
+                            .Append(fp.brightPct).Append('\t')
+                            .Append(fp.satPct).Append('\t')
+                            .Append(fp.satRgb).Append('\t')
+                            .Append(fp.rgb).Append('\t')
+                            .Append(fp.brightRgb).Append('\n');
+                System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
+            }
+            catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }
         }
 
         /// The fingerprint stores its numbers as invariant-culture STRINGS so

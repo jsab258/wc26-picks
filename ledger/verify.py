@@ -165,6 +165,27 @@ def voice_cast():
     return False, "VOICE CAST: " + (bad[-1][:90] if bad else "did not report")
 
 
+def frame_drift():
+    """Layer 3 of the testing system: the instrument that reads the render.
+
+    SUSPECT THE INSTRUMENT FIRST. `tools/frame-drift.py` answers "what moved in
+    the picture since the last build", and the expected answer is "nothing much"
+    — which is also exactly what it would print if it were broken, if the sim
+    had written no ledger, or if it were comparing the new file against itself.
+    A tool whose failure mode is indistinguishable from its success mode gets
+    believed, so its self-test is run here rather than trusted.
+
+    Twenty-one checks, and the ones that matter are the negative space: a
+    missing new ledger must be an ERROR and not a quiet zero, a dropped shot
+    must be named, and a change of one part in twenty-five must survive the
+    formatting."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "frame-drift.py"), "--selftest"])
+    m = re.search(r"selftest: (\d+) passed, (\d+) failed", out)
+    if not m:
+        return False, "frame-drift selftest did not report"
+    return m.group(2) == "0", "%s frame-drift checks (%s failed)" % (m.group(1), m.group(2))
+
+
 def stale_anchors():
     """Every break's anchor, checked for a single exact match.
 
@@ -219,7 +240,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               stale_anchors, core_tests):
+               frame_drift, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

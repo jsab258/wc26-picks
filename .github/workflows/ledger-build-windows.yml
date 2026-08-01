@@ -239,14 +239,21 @@ jobs:
           echo "## Review stills" >> "$GITHUB_STEP_SUMMARY"
 
           shopt -s nullglob
+          mkdir -p game-design/sim-shots
           shots=(sim-run/sim-out/review_*.jpg)
           if [ ${#shots[@]} -eq 0 ]; then
+            # NOT `exit 0`, AND THE DIFFERENCE IS THE WHOLE POINT OF THE STEP.
+            # Bailing here left the PREVIOUS run's verdict.txt sitting in the
+            # repository, so the one thing a catastrophically broken run
+            # produces is a stale verdict that reads exactly like a fresh one.
+            # The header carries the SHA, which is the only reason that has not
+            # yet cost anything. A run with no stills still has a log worth
+            # grepping and a ledger worth committing, so carry on.
             say "no review stills — the sim did not reach a screenshot"
-            exit 0
+          else
+            say "${#shots[@]} still(s) rendered"
+            cp "${shots[@]}" game-design/sim-shots/
           fi
-          say "${#shots[@]} still(s) rendered"
-          mkdir -p game-design/sim-shots
-          cp "${shots[@]}" game-design/sim-shots/
           ls -la game-design/sim-shots/
 
           # AND THE VERDICT, AS A FILE IN THE REPOSITORY.
@@ -267,13 +274,23 @@ jobs:
           #
           # Grepped rather than copied whole — player.log is megabytes, and the
           # point is the handful of lines that answer a question.
+          # THE HEADER IS WRITTEN UNCONDITIONALLY, and it used to be written
+          # only when there was a player.log to grep. That meant the single
+          # worst kind of run — one that never reached the sim at all — left
+          # the PREVIOUS run's verdict.txt sitting in the repository, freshly
+          # committed by this very step, indistinguishable from a real result
+          # except for a SHA on line one that a reader has to think to check.
+          # Truncating here means a broken run produces a verdict that says so.
+          {
+            echo "# Sim verdict — ${GITHUB_SHA:0:7}"
+            echo
+            echo "Written by the Windows build. Overwritten every run."
+            echo "Read this instead of trying to tail the job log."
+            echo
+          } > game-design/sim-shots/verdict.txt
+
           if [ -f sim-run/player.log ]; then
             {
-              echo "# Sim verdict — ${GITHUB_SHA:0:7}"
-              echo
-              echo "Written by the Windows build. Overwritten every run."
-              echo "Read this instead of trying to tail the job log."
-              echo
               # ASCII ONLY IN THE PATTERN. The places line is prefixed with a
               # section sign, and a non-ASCII byte in a grep pattern under Git
               # bash on Windows is a coin flip about encoding — the sort of
@@ -285,7 +302,7 @@ jobs:
               # nothing, and "alley eyes=" is both unique and plain.
               grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
-            } > game-design/sim-shots/verdict.txt
+            } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
             # character audit runs inside `CiBuild` — Editor, not player — so it
             # lands in unity.log and grepping player.log for it would report
@@ -300,6 +317,35 @@ jobs:
             say "verdict.txt written ($(wc -l < game-design/sim-shots/verdict.txt) lines)"
           else
             say "no player.log — the sim did not run"
+            echo "NO PLAYER LOG — the sim did not run on this commit." \
+              >> game-design/sim-shots/verdict.txt
+          fi
+
+          # LAYER 3, PIXELS: what moved in the render since the last build.
+          #
+          # The comparison happens HERE and not in the sim, because this is the
+          # only place both ledgers exist at once — the checkout carries the
+          # previous run's committed copy and sim-out carries the new one. It
+          # has to run BEFORE the copy below, or it would compare the new
+          # ledger against itself and report, with total confidence, that
+          # nothing had changed.
+          #
+          # Reports, does not gate. The run-to-run noise floor of a mean
+          # luminance on a software rasteriser is not known yet, and rule 2 is
+          # explicit that inventing it is how `nightNotDarker` came to fail at
+          # 0.136 against 0.135.
+          {
+            echo
+            python3 tools/frame-drift.py \
+              game-design/sim-shots/frames.tsv \
+              sim-run/sim-out/frames.tsv \
+              || echo "FrameDrift: the drift tool itself failed"
+          } >> game-design/sim-shots/verdict.txt
+          if [ -f sim-run/sim-out/frames.tsv ]; then
+            cp sim-run/sim-out/frames.tsv game-design/sim-shots/frames.tsv
+            say "frame ledger: $(( $(wc -l < game-design/sim-shots/frames.tsv) - 4 )) shot(s)"
+          else
+            say "NO FRAME LEDGER — the sim wrote no frames.tsv"
           fi
 
           git config user.name  "Claude"
