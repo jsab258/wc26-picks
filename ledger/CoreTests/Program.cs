@@ -11210,8 +11210,34 @@ namespace Ledger.CoreTests
             // 0.55 with nothing enforcing it.
             Check(maxVal <= Wardrobe.MaxValue + 1e-9,
                   "no crowd member is brighter than the cast", $"max value {maxVal}");
-            Check(maxSat <= 0.46 + 1e-9,
-                  "and nobody is in a loud coat", $"max saturation {maxSat}");
+            // AND LOUDNESS IS NOW A DELIBERATE, RARE THING — which is a change
+            // of DESIGN and not a bound moved to clear a red.
+            //
+            // This asserted `maxSat <= 0.46` — nobody in a loud coat — and that
+            // was right for a palette with no loud coat in it. The late-eighties
+            // rewrite adds one on purpose: a shell suit, weight 1 of 31. What
+            // must not change is the constraint that actually protects the
+            // frame, and that one is on VALUE (`MaxValue`, asserted above), not
+            // on saturation. A saturated magenta at v=0.44 reads loud against
+            // black and grey while staying well under a cast authored at
+            // 0.65-0.75, because loudness on a noir street is chroma against a
+            // desaturated field rather than luminance.
+            //
+            // So the assertion splits: every OTHER band stays quiet, and the
+            // loud one stays rare. Both halves are needed — dropping the first
+            // would let the whole wardrobe drift bright behind a passing test.
+            double maxSatQuiet = 0;
+            string loudBand = null;
+            foreach (var b in Wardrobe.Bands)
+            {
+                if (b.Name == "shellsuit") { loudBand = b.Name; continue; }
+                maxSatQuiet = Math.Max(maxSatQuiet, b.SatTo);
+            }
+            Check(loudBand != null, "the one loud band is still in the wardrobe");
+            Check(maxSatQuiet <= 0.56 + 1e-9,
+                  "every band but the shell suit stays quiet", $"max quiet saturation {maxSatQuiet}");
+            Check(maxSat <= 0.85 + 1e-9,
+                  "and even the shell suit has a ceiling", $"max saturation {maxSat}");
 
             // AND THE DISTRIBUTION HAS NOT COLLAPSED. Every band must actually
             // be worn — a palette that only ever produces charcoal passes every
@@ -11219,8 +11245,18 @@ namespace Ledger.CoreTests
             foreach (var b in Wardrobe.Bands)
                 Check(counts.TryGetValue(b.Name, out var c) && c > 0,
                       $"somebody is wearing {b.Name}", "nobody");
-            Check(counts["charcoal"] > counts["oxblood"],
-                  "grey is commoner than ox-blood", $"{counts["charcoal"]} vs {counts["oxblood"]}");
+            Check(counts["black"] > counts["shellsuit"],
+                  "black is commoner than a shell suit",
+                  $"{counts["black"]} vs {counts["shellsuit"]}");
+            // AND THE LOUD ONE IS ACTUALLY RARE, which is the whole licence for
+            // it existing. Weight 1 of 31 designs it at 3.2%; 6% allows for the
+            // finite sample without allowing a street of shell suits, and a
+            // number this side of the design share is the difference between an
+            // accent and a trend.
+            double loudShare = counts["shellsuit"] / (double)n;
+            Check(loudShare <= 0.06,
+                  "the shell suit is a person you notice, not the crowd",
+                  $"{loudShare * 100:0.0}%");
 
             // AND NOW ON THE INPUT THE GAME ACTUALLY FEEDS IT.
             //

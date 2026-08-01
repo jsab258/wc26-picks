@@ -6,7 +6,7 @@ namespace Ledger.Core
     /// mint green and pale lilac against grey stone and wet asphalt. Both crowd
     /// spawners were picking clothing as `HSVToRGB(stableFraction, s, v)` with
     /// the hue running the WHOLE WHEEL — so a third of the population wore
-    /// colours no British port town in the 1930s ever sold, and the art
+    /// colours no British port town ever sold, and the art
     /// direction's first rule ("one palette across seven districts beats
     /// scattered high-resolution assets") was being broken by the most visible
     /// objects in the frame.
@@ -16,11 +16,33 @@ namespace Ledger.Core
     /// walker belonged to changed how loud their coat was. One source now, and
     /// this is it.
     ///
-    /// THE BANDS ARE AUTHORED, not sampled. Working clothes of the period and
-    /// the place: charcoal and grey, brown and tan, olive and khaki, navy and
-    /// slate, and ox-blood — with grey and brown common and ox-blood rare,
-    /// because that is how a street looks. Everything else the wheel offers is
-    /// simply not in the wardrobe.
+    /// AND THEN THE BANDS THEMSELVES WERE WRITTEN FOR THE WRONG DECADE.
+    ///
+    /// This file justified its palette with *"colours no British port town in
+    /// the **1930s** ever sold"* and authored to match: charcoal, brown and
+    /// tan, olive and khaki, navy and slate, ox-blood. That is interwar
+    /// workwear. **The game is late-analog — the eighties and nineties**
+    /// (`agency-model.md:163`: landlines, payphones, answering machines,
+    /// messages left with people). I have called it 1930s twice in writing;
+    /// the first correction is at `decisions-answered.md:802` and this is the
+    /// code that correction never reached.
+    ///
+    /// The tell was that there was NO BLACK IN THE WARDROBE AT ALL, in a
+    /// decade of leather jackets and black jeans, while olive-khaki surplus
+    /// carried weight 3.
+    ///
+    /// THE BANDS ARE AUTHORED, not sampled. What a British port town wore at
+    /// the end of the eighties: black and denim leading, grey and navy behind
+    /// them, stone and burgundy and bottle green for anything smart, and one
+    /// rare loud thing. Everything else the wheel offers is simply not in the
+    /// wardrobe.
+    ///
+    /// WHAT SURVIVED THE REWRITE, because it was never about the decade:
+    /// `MaxValue` and the mixing. The value ceiling comes from the CAST being
+    /// authored at 0.65-0.75, not from any period; the `Mix` fold exists
+    /// because FNV-1a hashes bunch in the middle of the range. Both are
+    /// unchanged, and the CoreTests that hold them are the reason a palette
+    /// rewrite is a safe thing to do at all.
     ///
     /// IN CORE BECAUSE IT IS ARITHMETIC AND A RULE. The visible half needs a
     /// screenshot and a twenty-eight-minute round trip; that every output lands
@@ -53,23 +75,73 @@ namespace Ledger.Core
         /// changing it re-dresses the whole city.
         public static readonly Band[] Bands =
         {
-            // Charcoal through to slate grey. Hue barely matters at this
-            // saturation, which is the point of a grey.
-            new Band { Name = "charcoal", HueFrom = 0.55, HueTo = 0.62,
-                       SatFrom = 0.02, SatTo = 0.09, ValFrom = 0.26, ValTo = 0.42, Weight = 5 },
-            // Brown, tan, the colour of a working coat.
-            new Band { Name = "brown", HueFrom = 0.055, HueTo = 0.10,
-                       SatFrom = 0.24, SatTo = 0.44, ValFrom = 0.28, ValTo = 0.44, Weight = 5 },
-            // Olive and khaki — surplus, and everywhere in this period.
-            new Band { Name = "olive", HueFrom = 0.13, HueTo = 0.18,
-                       SatFrom = 0.18, SatTo = 0.36, ValFrom = 0.26, ValTo = 0.40, Weight = 3 },
-            // Navy and slate blue. The one cool note, and it reads well against
-            // sodium light at night.
-            new Band { Name = "navy", HueFrom = 0.58, HueTo = 0.645,
-                       SatFrom = 0.20, SatTo = 0.42, ValFrom = 0.24, ValTo = 0.40, Weight = 4 },
-            // Ox-blood. Rare on purpose — one in a crowd, never a third of it.
-            new Band { Name = "oxblood", HueFrom = 0.965, HueTo = 0.995,
-                       SatFrom = 0.28, SatTo = 0.46, ValFrom = 0.24, ValTo = 0.38, Weight = 2 },
+            // BLACK, and it leads because it is what the decade actually wore:
+            // leather, bomber jackets, black jeans, black coats. The old
+            // wardrobe had no black at all, which is the single clearest tell
+            // that it was written for the wrong period.
+            new Band { Name = "black", HueFrom = 0.60, HueTo = 0.68,
+                       SatFrom = 0.02, SatTo = 0.10, ValFrom = 0.09, ValTo = 0.20, Weight = 6 },
+            // DENIM. Indigo through stonewash, and the most-worn cloth of the
+            // era by a wide margin. Deliberately a distinct band from navy:
+            // stonewash is lighter and less saturated than a donkey jacket, and
+            // a street where those are the same colour looks synthesised.
+            new Band { Name = "denim", HueFrom = 0.58, HueTo = 0.63,
+                       SatFrom = 0.26, SatTo = 0.50, ValFrom = 0.24, ValTo = 0.44, Weight = 6 },
+            // Grey — marl sweatshirts, trackies, coats. Hue barely matters at
+            // this saturation, which is the point of a grey.
+            new Band { Name = "grey", HueFrom = 0.55, HueTo = 0.62,
+                       SatFrom = 0.02, SatTo = 0.09, ValFrom = 0.26, ValTo = 0.44, Weight = 5 },
+            // Navy — parkas, donkey jackets, anoraks. Survives the decade change
+            // unaltered, and reads well against sodium light at night.
+            new Band { Name = "navy", HueFrom = 0.60, HueTo = 0.66,
+                       SatFrom = 0.30, SatTo = 0.52, ValFrom = 0.16, ValTo = 0.30, Weight = 4 },
+            // Stone and beige — macs, chinos, the lining of everything.
+            new Band { Name = "stone", HueFrom = 0.08, HueTo = 0.12,
+                       SatFrom = 0.12, SatTo = 0.26, ValFrom = 0.30, ValTo = 0.46, Weight = 4 },
+            // Burgundy and bottle green, the two "smart" colours of the period —
+            // cords, shell-suit panels, a good coat.
+            new Band { Name = "burgundy", HueFrom = 0.955, HueTo = 0.99,
+                       SatFrom = 0.34, SatTo = 0.55, ValFrom = 0.18, ValTo = 0.32, Weight = 3 },
+            //
+            // BOTTLE GREEN IS CAPPED AT 0.28 AND THAT IS NOT A STYLE CHOICE.
+            // CoreTests forbids `h in (0.20, 0.55) && v > 0.30` — the mint/cyan
+            // gap, written because the first crowd came out in pale mint and
+            // lilac. Bottle green sits inside that hue range and is only
+            // admissible because it is DARK. A bottle green that drifted
+            // brighter would be mint, which is the exact fault that test exists
+            // to catch, so the ceiling is the test's and not mine.
+            new Band { Name = "bottle", HueFrom = 0.36, HueTo = 0.43,
+                       SatFrom = 0.28, SatTo = 0.50, ValFrom = 0.14, ValTo = 0.28, Weight = 2 },
+            // AND THE ONE LOUD THING, which the period demands and the old
+            // palette had no room for: a shell suit, a football top, a ski
+            // jacket in colours nobody would call tasteful.
+            //
+            // LOUD BY SATURATION, NOT BY BRIGHTNESS — and that is what makes it
+            // possible at all. `MaxValue` 0.46 exists so the crowd never
+            // outshines a cast authored at 0.65-0.75, and I nearly treated that
+            // as forbidding a bright accent. It does not: it caps VALUE. A
+            // saturated teal at v=0.40 is unmistakably loud against black and
+            // grey while staying well under the cast, because what reads as
+            // "loud" on a noir street is chroma against a desaturated field,
+            // not luminance. The period signature and the cast rule are not in
+            // conflict once the right axis is named.
+            //
+            // MAGENTA AND VIOLET, NOT THE TEAL I FIRST WROTE. My first pass put
+            // this at hue 0.47-0.56 — teal — which lands squarely inside the
+            // mint/cyan gap CoreTests forbids at any value above 0.30. That gap
+            // exists because the first crowd this game ever rendered was in
+            // mint green and pale lilac, and I had reintroduced the colour the
+            // fix removed while believing I was adding period character.
+            //
+            // The test caught it before the commit. Magenta through violet is
+            // just as much the decade — shell suits, ski jackets, anything
+            // sold as sportswear — and is nowhere near the region that has
+            // already burned this project once.
+            //
+            // Weight 1 of 31, so it is a person you notice rather than a
+            // texture the crowd has.
+            new Band { Name = "shellsuit", HueFrom = 0.82, HueTo = 0.90,
+                       SatFrom = 0.62, SatTo = 0.85, ValFrom = 0.30, ValTo = 0.44, Weight = 1 },
         };
 
         static int TotalWeight()
