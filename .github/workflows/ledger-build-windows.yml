@@ -306,7 +306,7 @@ jobs:
               # `hand=hand bone` on a green run is the line that proves the
               # bought skeleton is the one holding the object, and the run that
               # needs it most is the one that passed for the wrong reason.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow" \
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|SceneAudit: " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The

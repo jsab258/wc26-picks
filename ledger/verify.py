@@ -259,6 +259,34 @@ def adversary():
     return False, "adversary did not report (build failure?)"
 
 
+def verdict_keys():
+    """Every measurement the verdict is supposed to carry is still in it.
+
+    `verdict.txt` is the only channel out of CI this environment can read, and
+    it is assembled by a grep in the workflow over a log the sim prints. Every
+    link breaks QUIETLY: a `Debug.Log` reworded and the grep stops matching, a
+    metric dropped in a refactor, a gate that stops being evaluated and takes
+    its clause with it, an edited pattern that loses an alternation. In all of
+    them the verdict still arrives, still says `pass=True`, and is simply
+    missing the number that would have said otherwise.
+
+    That is this project's oldest defect shape — a success recorded because the
+    thing that would have failed was never asked. So the keys are committed and
+    compared: a key that disappears is an error, a key that appears is offered
+    to the manifest with `--learn` so growth is a decision.
+
+    Checks the QUESTIONS, not the answers. `pass=True` is the gates' job."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-keys.py")])
+    m = re.search(r"(\d+) present, (\d+) required, (\d+) missing, (\d+) new", out)
+    if not m:
+        return False, "verdict-keys did not report"
+    if code != 0:
+        gone = [l.strip()[5:] for l in out.splitlines() if l.strip().startswith("GONE")]
+        return False, "VERDICT KEYS GONE: " + ", ".join(gone[:4])
+    tail = "" if m.group(4) == "0" else ", %s new (run --learn)" % m.group(4)
+    return True, "%s verdict keys%s" % (m.group(2), tail)
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -334,7 +362,8 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               frame_drift, save_chaos, soak, adversary, stale_anchors, core_tests):
+               frame_drift, verdict_keys, save_chaos, soak, adversary,
+               stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

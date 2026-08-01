@@ -1344,6 +1344,12 @@ namespace Ledger.Game
             _worldText = worldText;
             _worldTextDepth = worldTextMaterialled;
             _labelsColliding = CollidingNames();
+            // THE SCENE AUDIT, at the same moment and for the same reason: this
+            // is the point in the run where "what is on screen" is a settled
+            // question. See `SceneAudit` for why it walks objects rather than
+            // pixels.
+            SceneAudit.Run(_player != null ? _player.gameObject : null);
+            Debug.Log(SceneAudit.Report());
 
             Debug.Log($"SimDirector: glyphs labels={_labels} fontless={_labelsFontless} "
                       + $"blank={_labelsBlank} worldText={worldText} "
@@ -4359,7 +4365,15 @@ namespace Ledger.Game
                 // vertical, which is further than a person leans and nowhere
                 // near a person lying down. Nothing in between is a pose this
                 // game produces.
-                && (RealBody.Attached == 0 || RealBody.Upright > 0.9);
+                && (RealBody.Attached == 0 || RealBody.Upright > 0.9)
+                // AND THE SCENE ITSELF IS SOUND. Missing materials, error
+                // shaders, NaN transforms, hundredfold scales, buried geometry —
+                // the classes that make a frame WRONG rather than merely
+                // unusual, none of which any gate in this file has ever asked
+                // about. `SceneAudit.Renderers` is printed beside it so a clean
+                // report from an audit that walked nothing is not mistaken for
+                // a clean scene.
+                && SceneAudit.Clean;
 
             // OCCLUSION, gated on the A/B rather than on the counter.
             //
@@ -5035,6 +5049,7 @@ namespace Ledger.Game
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
                       $"bodyUp={RealBody.Upright:0.000} bodyRot=[{RealBody.Orientation}] " +
+                      $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +
