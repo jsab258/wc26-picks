@@ -1133,6 +1133,35 @@ namespace Ledger.Game
                 if (knee > _bodyMaxKnee) _bodyMaxKnee = knee;
                 if (knee < _bodyMinKnee) _bodyMinKnee = knee;
             }
+
+            // AND THE PLAYER'S OWN BODY, SEPARATELY, because the sweep above
+            // cannot see it. That knee is COMPUTED from phase and speed rather
+            // than read off a transform, and it is taken across every rig — so
+            // fifty-five walking NPCs satisfy it while the protagonist stands
+            // frozen in a T-pose, which after this week is the likeliest fault
+            // left and nothing was watching for it.
+            //
+            // `PoseSignature` is read off the bones `CharacterRig` actually
+            // WRITES. A rig that is posing produces a different number every
+            // frame — breath alone moves the hips whether or not anybody is
+            // walking. A rig that has stopped leaves it bit-identical, so the
+            // test is that the value MOVED AT ALL rather than that it moved by
+            // some tuned amount. Nothing in between exists: either something
+            // wrote to the transform or nothing did.
+            if (_player != null)
+            {
+                var prig = _player.GetComponentInChildren<CharacterRig>();
+                if (prig != null)
+                {
+                    float sig = prig.PoseSignature;
+                    if (!_playerPoseSeen) { _playerPoseSeen = true; _playerPoseMin = _playerPoseMax = sig; }
+                    else
+                    {
+                        if (sig < _playerPoseMin) _playerPoseMin = sig;
+                        if (sig > _playerPoseMax) _playerPoseMax = sig;
+                    }
+                }
+            }
         }
 
         // ---- WET REFLECTIONS ----
@@ -1360,6 +1389,11 @@ namespace Ledger.Game
         }
 
         int _labelsColliding = -1;
+
+        /// The player's own pose, swept. See the note beside where it is read.
+        bool _playerPoseSeen;
+        float _playerPoseMin, _playerPoseMax;
+        double PlayerPoseRange => _playerPoseSeen ? _playerPoseMax - _playerPoseMin : 0.0;
 
         /// How many pairs of world-space NAMES overlap on screen right now.
         ///
@@ -4396,13 +4430,34 @@ namespace Ledger.Game
                 // report from an audit that walked nothing is not mistaken for
                 // a clean scene.
                 && SceneAudit.Clean
-                // AND NO TWO NAMES IN THE SAME PLACE. Reported for three builds
-                // and gated on nothing, because zero was unreachable while the
-                // labels lay in the road and any other number was a threshold
-                // nobody had measured. `NameTags` resolves collisions, so zero
-                // is now both reachable and correct — and a number printed for
-                // three builds and never acted on is the same as no number.
-                && _labelsColliding == 0;
+                // AND NO TWO NAMES IN THE SAME PLACE — among the names this
+                // game puts over people's heads, which is not the same set as
+                // "text on screen".
+                // NOT `_labelsColliding`, which counts every TextMesh in the
+                // scene — street plates, stop signs and lane signs on posts that
+                // cluster at a junction by design. That number is reported
+                // because a sudden jump in it means something moved, and it is
+                // NOT a legibility failure. The build that proved it read
+                // `collidingNames=144 nameTagsOffered=1`: a hundred and
+                // forty-four overlaps among text this declutter never sees, and
+                // one nameplate for it to place.
+                //
+                // TWO CLAUSES BECAUSE THERE ARE TWO QUESTIONS. `ResolvedFrames`
+                // answers "did the pass ever run" — without it a declutter that
+                // never executed reports a flawless zero. `WorstUnplaced`
+                // answers "did it ever leave two names on top of each other",
+                // and it is the maximum over the run rather than the reading at
+                // this instant, because this line executes once and a collision
+                // twenty frames ago is invisible to a snapshot.
+                //
+                // The first attempt at this fix was `Suppressed >= 0`, which is
+                // true of every int that only counts up. An unsatisfiable gate
+                // traded for a vacuous one is not a fix.
+                && NameTags.ResolvedFrames > 0 && NameTags.WorstUnplaced == 0
+                // AND THE PLAYER'S OWN BODY IS MOVING. Strictly greater than
+                // zero, which is not a tuned threshold — it is the difference
+                // between a transform something wrote to and one nothing did.
+                && (!_playerPoseSeen || PlayerPoseRange > 0.0);
 
             // OCCLUSION, gated on the A/B rather than on the counter.
             //
@@ -5079,9 +5134,12 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} " +
                       $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
+                      $"nameTagsFrames={NameTags.ResolvedFrames} " +
+                      $"nameTagsUnplaced={NameTags.WorstUnplaced} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
                       $"bodyUp={RealBody.Upright:0.000} bodyRot=[{RealBody.Orientation}] " +
+                      $"playerPose={PlayerPoseRange:0.00000} " +
                       $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +

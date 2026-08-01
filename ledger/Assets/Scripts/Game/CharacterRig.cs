@@ -235,6 +235,34 @@ namespace Ledger.Game
             return t;
         }
 
+        /// A cheap number that changes whenever this rig actually poses a bone.
+        ///
+        /// THE HOLE THIS CLOSES. The body gate reads
+        /// `_bodyMaxKnee - _bodyMinKnee > 10` across EVERY rig, and that knee is
+        /// computed from phase and speed rather than read off a transform — so
+        /// fifty-five walking NPCs satisfy it while the player stands frozen in
+        /// a T-pose, which given M17.1's week is the likeliest next fault and
+        /// nothing was watching for it.
+        ///
+        /// Read off the transforms this class actually WRITES, so it answers
+        /// "did the rig pose this body" rather than "would the maths have
+        /// produced a pose". A body being pushed around by something else does
+        /// not move it; a body nobody is posing leaves it bit-identical.
+        ///
+        /// Hips, chest and one knee: enough that a partial solve is visible, few
+        /// enough that this is three quaternion reads at the end of a frame the
+        /// rig was already solving.
+        public float PoseSignature { get; private set; }
+
+        void StampPose()
+        {
+            float s = 0f;
+            if (_hips != null) s += _hips.localPosition.y * 977f + _hips.localRotation.x;
+            if (_chest != null) s += _chest.localRotation.x * 31f + _chest.localRotation.z;
+            if (_rShin != null) s += _rShin.localRotation.x * 7f;
+            PoseSignature = s;
+        }
+
         void CaptureRest()
         {
             if (_chest != null) _chest0 = _chest.localRotation;
@@ -382,6 +410,13 @@ namespace Ledger.Game
             StanceScale = stance;
 
             DriveLimbs(stance);
+
+            // LAST, after everything that writes a bone. Stamped here rather
+            // than anywhere earlier so it reflects the pose that was actually
+            // left on the transforms — the same reasoning as `DriveBody` going
+            // last in `NpcWalker`, where a gait measured before the walk
+            // disagrees with where the body went.
+            StampPose();
         }
 
         /// THE WALK ITSELF, from `Core/Rig`. The limp's stance scale shortens

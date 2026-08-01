@@ -18,12 +18,20 @@ namespace Ledger.Game
     /// on the count — a cap would hide the sixth person on an empty street,
     /// where there was nothing wrong with showing them.
     ///
-    /// AND IT MAKES THE MEASUREMENT GATEABLE. `collidingNames` has been printed
-    /// for three builds and gated on nothing, because zero was unreachable and
-    /// any other number was a threshold nobody had measured. With a declutter
-    /// that actually resolves collisions, zero is both reachable and correct,
-    /// and the sim can require it. A number reported for three builds and never
-    /// acted on is the same as no number at all.
+    /// AND IT MAKES A MEASUREMENT GATEABLE — BUT NOT THE ONE THIS COMMENT
+    /// ORIGINALLY NAMED. It said `collidingNames` had been printed for three
+    /// builds and gated on nothing, and that a working declutter finally made
+    /// zero reachable there. Wrong: `collidingNames` counts every `TextMesh` in
+    /// the scene, and the scene is full of street plates, stop signs and lane
+    /// signs on posts that cluster at junctions by design. The build settled it
+    /// at `collidingNames=144 nameTagsOffered=1` — a hundred and forty-four
+    /// overlaps among text this class never touches, and one nameplate to
+    /// place. Zero was never reachable there and never should have been.
+    ///
+    /// What became gateable is `WorstUnplaced`, below: the labels this class
+    /// owns, after it has finished with them. `collidingNames` stays printed
+    /// and ungated, because a jump in it means the street furniture moved and
+    /// that is worth seeing without being a legibility failure.
     public static class NameTags
     {
         struct Candidate
@@ -40,6 +48,57 @@ namespace Ledger.Game
         /// looks different from a street with nothing to declutter.
         public static int Suppressed { get; private set; }
         public static int Offered { get; private set; }
+
+        /// Pairs of STILL-VISIBLE managed labels that overlap once the pass has
+        /// finished — the postcondition, not the workload.
+        ///
+        /// THE GATE HAS TO MEASURE WHAT THE DECLUTTER CONTROLS. The first
+        /// version gated on `collidingNames`, which counts every `TextMesh` in
+        /// the scene — and the scene is full of street furniture: name plates,
+        /// stop signs, lane signs, neon words, all on posts that legitimately
+        /// cluster at a junction. The build came back `collidingNames=144
+        /// nameTagsOffered=1`: a hundred and forty-four overlaps among text this
+        /// class never sees, and one nameplate to declutter. The gate was
+        /// unsatisfiable and it was measuring somebody else's population.
+        ///
+        /// AND THEN THE FIX WAS WRONG TWICE MORE, both worth writing down
+        /// because they are the failure modes this repo keeps producing:
+        ///
+        ///   - the replacement incremented this counter in the same `blocked`
+        ///     branch as `Suppressed`, so it was that number with a second name
+        ///     while its comment claimed it was what remained AFTERWARDS. Every
+        ///     one of those collisions was then successfully hidden — they are
+        ///     the declutter WORKING, and gating on zero of them would have
+        ///     demanded an empty street.
+        ///   - the gate clause became `Suppressed >= 0`, which is true of any
+        ///     int that only counts up. Swapping an unsatisfiable gate for a
+        ///     vacuous one is moving the bound to make red go away.
+        ///
+        /// So this is computed as a genuine postcondition: after the pass, take
+        /// the labels still showing and ask whether any two of them are in the
+        /// same place. Zero by construction — which is the point. A gate on a
+        /// constructed invariant costs nothing while the construction holds and
+        /// fires the moment somebody changes the resolver to nudge instead of
+        /// hide, or reorders it so a rect is compared before it is final.
+        public static int UnplacedNow { get; private set; }
+
+        /// The worst that got past the resolver on ANY frame of the run, and
+        /// how many frames actually resolved something.
+        ///
+        /// MAXIMUM, BECAUSE OF THE QUESTION IT ANSWERS. The sim reads these once
+        /// at the end of a day; `UnplacedNow` at that instant describes one
+        /// frame out of thousands and a collision two seconds earlier would be
+        /// invisible. "Did this ever fail" is answered by the maximum — the same
+        /// reasoning that made the maximum WRONG for the AO ceiling, where the
+        /// question was "is the pass everywhere" and a maximum maximised the
+        /// very quantity the bound existed to keep small. Same statistic, and it
+        /// is right here for precisely the reason it was wrong there.
+        ///
+        /// `ResolvedFrames` is the other half and it is a count, not a maximum,
+        /// because it answers "did this run at all" — without it, a declutter
+        /// that never executed reports a perfect zero and gates green.
+        public static int WorstUnplaced { get; private set; }
+        public static int ResolvedFrames { get; private set; }
 
         /// A walker offers its label each frame it wants one shown.
         ///
@@ -74,8 +133,10 @@ namespace Ledger.Game
         {
             Offered = _offered.Count;
             Suppressed = 0;
+            UnplacedNow = 0;
             var cam = Camera.main;
             if (cam == null || _offered.Count == 0) return;
+            ResolvedFrames++;
 
             // Nearest first, so the winner of any overlap is the person the
             // player is closest to — which is the one they are most likely to
@@ -107,6 +168,24 @@ namespace Ledger.Game
                 }
                 else kept.Add(rect);
             }
+
+            // THE POSTCONDITION, ASKED SEPARATELY FROM THE WORK.
+            //
+            // Everything above is what the pass DID. This is what it LEFT: of
+            // the labels still showing, is any pair in the same place. It is
+            // deliberately not the `blocked` tally — those are the collisions
+            // the declutter resolved, and requiring zero of THEM would be
+            // requiring an empty street.
+            //
+            // Redundant while the loop above is correct, and that is the whole
+            // value of it. It re-derives the claim from the result instead of
+            // restating the loop, so it survives the rewrite that breaks the
+            // loop — which is the failure a gate exists to catch and the one a
+            // counter incremented inside the loop cannot.
+            for (int i = 0; i < kept.Count; i++)
+                for (int j = i + 1; j < kept.Count; j++)
+                    if (kept[i].Overlaps(kept[j])) UnplacedNow++;
+            if (UnplacedNow > WorstUnplaced) WorstUnplaced = UnplacedNow;
         }
 
         /// A world-space bounds as a screen rectangle, or false if it is behind
