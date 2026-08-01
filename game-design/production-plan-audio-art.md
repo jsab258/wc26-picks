@@ -639,3 +639,45 @@ through a wall on a real street and not notice it was written.
 
 Voicing waits on the reference clips (`tools/voice-fetch/`), and at ~6 RTF
 on this hardware the whole bank is one overnight run.
+
+
+## 17.2 scope — what "generate the cast voices" actually costs
+
+Measured 2026-08-01 from `game-design/barks.json` and `Core/VoiceBank`, because
+the milestone said "low risk" and the arithmetic says otherwise.
+
+    bark lines                     2,604
+    DISTINCT strings               2,604   (no duplicates to collapse)
+    mean length                    97 chars, median 103, max 167
+    x 6 crowd pool voices         15,624 clips   1.52M characters
+    x all 19 cast voices          49,476 clips
+
+`VoiceBank.ClipName` keys a recording by (voice, normalised text), so distinct
+text is exactly what has to be synthesised — there is no dedup left to find.
+
+**Why this is a decision and not a task.** A voice-cloning model on a CPU
+runner is the dominating cost and nobody has measured its rate here. Even at an
+optimistic ten seconds a clip, the crowd bank alone is ~43 hours of runner time
+— eight of GitHub's six-hour jobs — for audio the game then deliberately
+destroys: `Acoustics.AsHeard` drops words by distance and noise, and the
+committed night still shows a bark arriving as *"The ... old ....thi.e...told,
+... there."*
+
+**The options.**
+
+1. **Principals voiced, crowd barks stay text.** Cheapest by orders of
+   magnitude and costs nothing the player can hear clearly. The crowd keeps its
+   six pool voices for the lines that matter — greetings, reactions, the ones
+   spoken at conversational range.
+2. **Generate the full crowd bank** across many dispatched runs. Honest, slow,
+   and the result is mostly inaudible.
+3. **Generate the loudest slots only.** The 42 slots are not equal: `AS YOU
+   PASS` and `OVERHEARD` are heard at range, `DISTINCT CONVERSATIONS` (2,268 of
+   the 2,604 lines) is the pair-generated bulk.
+
+**Recommended: 1, then 3 for the slots a player stands closest to.**
+
+**First step under any option:** a dispatched run that generates twenty clips
+and reports seconds-per-clip. Every number above except the rate is measured;
+the rate is the one that decides the schedule, and estimating it is exactly the
+mistake rule 7 names. Do not build the full pipeline before that run.

@@ -83,7 +83,7 @@ design — every item has a working system underneath already.
 | | what | state | risk |
 |---|---|---|---|
 | 17.1 | **Integrate the Mixamo bodies** | **DONE 2026-08-01.** `humanoid=44 validHumanAvatar=44`; an Editor step writes `Resources/Characters/Body`, `RealBody` attaches it, `CharacterRig` tier one binds its Avatar. `realBody=1`, scaled x0.949 from raw 1.90m. Player only — a skinned crowd is uncosted on a GPU-less runner | closed |
-| 17.2 | **Generate the 19 cast voices** — chatterbox clones from the reference clips | cast and consent-approved 2026-07-31 | low |
+| 17.2 | **Generate the cast voices** — clones from the 19 reference clips | cast and consent-approved; **19 reference clips picked**. Blocked on a SCOPE decision, not on tooling — see below | **high, and it is scheduling** |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
 | 17.5 | **Non-verbal foley** — grunts, pain, exertion | decided: CC0 through the voice pipeline | low |
@@ -92,20 +92,26 @@ design — every item has a working system underneath already.
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
-**17.6–17.9 were found by an audit on 2026-07-31, not by the plan.** Jafar asked
-whether the roadmap covered textures and models; it did not, and eight other
-categories were missing with them. `completeness-audit-2026-07-31.md` has the
-evidence and the cause. The short version: this file was derived from the work
-queue rather than from a definition of done, so it was complete about the things
-somebody was already thinking about and silent about the rest.
+**17.6–17.9 were found by an audit on 2026-07-31, not by the plan.** Nine
+categories were missing; `completeness-audit-2026-07-31.md` has the cause. This
+file was derived from the work queue rather than from a definition of done, so
+it was complete about what somebody was already thinking about and silent about
+the rest.
+
+**17.2 IS BLOCKED ON A DECISION, NOT ON TOOLING, and it needs Jafar.** The bark
+bank is 2,604 lines, all distinct, so the crowd's six pool voices alone are
+**15,624 clips / 1.52M characters** of synthesis and all nineteen is 49,476 — on
+a CPU runner, CI-days. Options in `production-plan-audio-art.md` §"17.2 scope";
+short version, **voice the principals and leave the crowd's barks as text**,
+since `Acoustics.AsHeard` makes them unintelligible at distance anyway. Not
+taken alone: it is audible, and it is hours against days.
 
 **The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
 §4 chose stylised noir for the reason that still holds — a game about what people
-think they saw should look subjective and half-obscured, and weather and fog do
-the heavy lifting because they cut draw distance, hide low-detail geometry and
-create mood at once. One palette across seven districts beats scattered
-high-resolution assets, and none of it needs a purchase: CC0 PBR sources cover
-every surface name already in `AssetLibrary`.
+think they saw should look subjective and half-obscured, and weather and fog cut
+draw distance, hide low-detail geometry and make mood at once. One palette across
+seven districts beats scattered high-resolution assets, and none of it needs a
+purchase.
 
 **17.1 is the risk and it is worth naming precisely.** No `.meta` files are
 tracked anywhere in this project, so FBX import settings are not under version
@@ -356,7 +362,7 @@ finished in a roadmap exactly like a system with no call site does in review.
 |---|---|---|
 | Simulation systems | M16, M18–M21 | the moat; in progress |
 | Character models and animation | 17.1 | **imported and attached**; player only |
-| Voices | 17.2, 17.3 | cast; generation pending |
+| Voices | 17.2, 17.3 | 19 references picked; generation blocked on scope |
 | Barks | 17.4 | 2,604 lines enumerated, curation mine |
 | Foley | 17.5 | decided free, not sourced |
 | Surfaces and textures | 17.6 | **12 CC0 albedos, attributed, verified in a render** |
