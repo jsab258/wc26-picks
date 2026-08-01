@@ -300,7 +300,13 @@ jobs:
               # prefix: the places line reads "SimDirector: <section sign>4.7
               # places", so anchoring on "SimDirector: places" would match
               # nothing, and "alley eyes=" is both unique and plain.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels " \
+              # `brandished a cosh` carries the HAND TIER, and it is here
+              # because the tier is only in the threat gate's label — which
+              # prints when the gate FAILS. That is backwards for a diagnostic:
+              # `hand=hand bone` on a green run is the line that proves the
+              # bought skeleton is the one holding the object, and the run that
+              # needs it most is the one that passed for the wrong reason.
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh" \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
