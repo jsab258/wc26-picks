@@ -15,7 +15,29 @@ namespace Ledger.Game
 
         static readonly List<Light> Lamps = new List<Light>();
         static readonly List<Renderer> Windows = new List<Renderer>();
-        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f; // warm interior glow (HDR emission)
+        /// Warm interior glow, HDR emission.
+        ///
+        /// A SUSPECT, NOT A VERDICT, and it is written down so nobody — me
+        /// included — changes it on a hunch. In `review_day1_night.jpg` whole
+        /// floors read as solid blown-white slabs rather than as lit rooms, and
+        /// the 3.0 multiplier is the obvious candidate: it puts red at 3.0,
+        /// which clips hard after the tonemap and then blooms.
+        ///
+        /// OBVIOUS IS NOT MEASURED. Three times in one night this project
+        /// condemned correct work from a still — three textures the noir tint
+        /// had already neutralised, a bench, a set of wheels within a few
+        /// percent of a real car — so the rule is that a visual judgement is a
+        /// HYPOTHESIS until a number answers it.
+        ///
+        /// The number is already coming. Every shot's `brightPct` (fraction
+        /// above 0.6 luma) and `brightRgb` (the colour of those pixels) now
+        /// land in `game-design/sim-shots/frames.tsv` every build. If the night
+        /// frames carry a large bright fraction whose colour is near-white
+        /// rather than near (255,209,115), the emission is clipping and this
+        /// constant is the fix. If they do not, the slabs are the window
+        /// GEOMETRY being too large a share of the façade, and changing this
+        /// would darken a city to fix a modelling problem.
+        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f;
         static readonly Color WindowDark = new Color(0.02f, 0.02f, 0.02f);
         static bool _windowsLit;
 
