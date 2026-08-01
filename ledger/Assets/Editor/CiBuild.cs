@@ -35,6 +35,10 @@ namespace Ledger.EditorTools
             // Diagnostic only: it cannot fail the build.
             CharacterAudit.Report();
 
+            // And the prefab that makes the body reachable from `Resources`,
+            // rebuilt every run so it cannot drift from the model it came from.
+            CharacterPrefab.Build();
+
             if (!System.IO.File.Exists(ScenePath))
             {
                 System.IO.Directory.CreateDirectory("Assets/Scenes");

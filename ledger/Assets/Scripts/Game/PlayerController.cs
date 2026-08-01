@@ -72,7 +72,13 @@ namespace Ledger.Game
             // the camera can be pulled off the shoulder, the reflection now
             // has something to reflect, and a shadow cast by a capsule is the
             // loudest possible statement that this is a prototype.
-            Mannequin.Build(go, new Color(0.72f, 0.58f, 0.47f), new Color(0.30f, 0.32f, 0.38f));
+            // TIER ONE FIRST, now that there is one. `CharacterRig.Bind` prefers
+            // a Humanoid Avatar and falls back to the boxes; this is the first
+            // thing in the project that ever gives it the choice. The player
+            // only — see `RealBody` for why the crowd keeps its boxes until the
+            // cost of a skinned mesh on a GPU-less runner has been measured.
+            if (!RealBody.TryAttach(go))
+                Mannequin.Build(go, new Color(0.72f, 0.58f, 0.47f), new Color(0.30f, 0.32f, 0.38f));
 
             var cc = go.AddComponent<CharacterController>();
             cc.height = 1.8f;
