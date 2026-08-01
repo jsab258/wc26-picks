@@ -227,6 +227,38 @@ def soak():
     return False, "soak did not report (build failure?)"
 
 
+def adversary():
+    """Layer 5: the two places where text nobody wrote becomes an action.
+
+    `IntentRouter.Validate` is the one function in this project written as a
+    security boundary — *"anything not provably a member of the offered set
+    becomes speech"* — and a boundary nobody has attacked is a boundary nobody
+    has tested. It holds: no verb outside the catalogue was ever routed, through
+    injection, fenced JSON, casing games or prose wrapped around the payload.
+
+    TWO FINDINGS, AND THE FIRST WAS MINE. Every family asserts something is
+    REFUSED, so a router that refused everything would score perfectly — and the
+    first run printed `routed=0` down the whole column, which I read as a clean
+    sweep. It is equally the shape of a fuzzer that never reached the code. The
+    positive controls added next failed immediately, and the one that failed was
+    the CONTROL: it asserted "pay them off" routes, when the router deliberately
+    refuses a verb whose arguments it cannot fill for free. Suspect the
+    instrument first.
+
+    The real finding is small and public: `ResponseValidator` cut a reply to
+    `MaxChars` and then appended an ellipsis, so the one thing that constant
+    promises was false by exactly one character for every endless sentence a
+    model produced. Measured at 901, not reasoned about."""
+    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "Adversary")])
+    m = re.search(r"adversary ok — all (\d+) checks passed", out)
+    if m:
+        return True, "%s adversary checks" % m.group(1)
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+    if bad:
+        return False, "ADVERSARY: " + bad[0][7:100]
+    return False, "adversary did not report (build failure?)"
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -302,7 +334,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               frame_drift, save_chaos, soak, stale_anchors, core_tests):
+               frame_drift, save_chaos, soak, adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

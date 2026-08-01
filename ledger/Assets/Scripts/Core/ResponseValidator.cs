@@ -62,7 +62,20 @@ namespace Ledger.Core
                 char c = reply[i];
                 if (c == '.' || c == '!' || c == '?') { cut = i + 1; break; }
             }
-            return cut > 0 ? reply.Substring(0, cut).TrimEnd() : reply.Substring(0, MaxChars).TrimEnd() + "…";
+            // THE ELLIPSIS HAS TO FIT INSIDE THE CAP, NOT AFTER IT. The hard-cut
+            // branch took `MaxChars` characters and then appended a character,
+            // so the one thing `MaxChars` promises — that nothing longer than
+            // this reaches the screen — was false by exactly one for every
+            // endless sentence a model ever produced. `Adversary` measured it:
+            // thirty replies over the bound, worst case 901.
+            //
+            // One character is not a crisis and the constant is PUBLIC, which
+            // is what makes it worth fixing rather than rounding off: anything
+            // sizing a caption box or a buffer from `MaxChars` is sized one
+            // short, and the failure would land in the UI, far from here.
+            return cut > 0
+                ? reply.Substring(0, cut).TrimEnd()
+                : reply.Substring(0, MaxChars - 1).TrimEnd() + "…";
         }
 
         static string Deflect(string characterName) =>
