@@ -94,6 +94,7 @@ namespace Ledger.CoreTests
                 TestCombat();
                 TestHomicide();
                 TestPalette();
+                TestWardrobe();
                 TestTextureFit();
                 TestLightModel();
                 TestMusicModel();
@@ -10937,6 +10938,92 @@ namespace Ledger.CoreTests
                 "a wall with no length dresses nothing rather than dividing by it");
             Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
                 "and neither does one too short to put anything against");
+        }
+
+        static void TestWardrobe()
+        {
+            Console.WriteLine("Wardrobe — a street, not a paint chart:");
+
+            // EVERY OUTPUT INSIDE A NAMED BAND. The fault this replaces was a
+            // hue running the whole wheel, so the test that matters is that no
+            // input can produce a colour the wardrobe does not stock.
+            int n = 4000;
+            var counts = new Dictionary<string, int>();
+            double maxSat = 0, maxVal = 0;
+            string hueEscape = null, satEscape = null, mintEscape = null;
+            for (int i = 0; i < n; i++)
+            {
+                double f = (double)i / n;
+                Wardrobe.Dress(f, out double h, out double s, out double v);
+                string name = Wardrobe.BandOf(f);
+                counts[name] = counts.TryGetValue(name, out var c) ? c + 1 : 1;
+                maxSat = Math.Max(maxSat, s);
+                maxVal = Math.Max(maxVal, v);
+
+                var band = Array.Find(Wardrobe.Bands, b => b.Name == name);
+                // ACCUMULATED, NOT ASSERTED PER ITERATION. Four thousand
+                // samples with a Check each turned 2,939 CoreTests into 14,953
+                // and made the footer count meaningless — and the footer is
+                // what goes in the commit message. One assertion per PROPERTY,
+                // naming the first sample that broke it.
+                if (!(h >= band.HueFrom - 1e-9 && h <= band.HueTo + 1e-9) && hueEscape == null)
+                    hueEscape = $"{name}: hue {h} at f={f}";
+                if (!(s >= band.SatFrom - 1e-9 && s <= band.SatTo + 1e-9) && satEscape == null)
+                    satEscape = $"{name}: saturation {s} at f={f}";
+                if (h > 0.20 && h < 0.55 && v > 0.30 && mintEscape == null)
+                    mintEscape = $"hue {h} value {v} at f={f}";
+            }
+            Check(hueEscape == null, "every hue stays inside its band", hueEscape);
+            Check(satEscape == null, "every saturation stays inside its band", satEscape);
+            // THE GREEN THAT STARTED THIS. Mint is around hue 0.42 at a value
+            // that carries; nothing in the wardrobe may land near it.
+            Check(mintEscape == null, "nothing lands in the mint/cyan gap", mintEscape);
+
+            // NOBODY OUTSHINES THE CAST. Rocco, Ada and Sam are authored at
+            // value 0.65-0.75. `Tier2Batch` promised this in a comment and used
+            // 0.55 with nothing enforcing it.
+            Check(maxVal <= Wardrobe.MaxValue + 1e-9,
+                  "no crowd member is brighter than the cast", $"max value {maxVal}");
+            Check(maxSat <= 0.46 + 1e-9,
+                  "and nobody is in a loud coat", $"max saturation {maxSat}");
+
+            // AND THE DISTRIBUTION HAS NOT COLLAPSED. Every band must actually
+            // be worn — a palette that only ever produces charcoal passes every
+            // per-colour check above and is still wrong.
+            foreach (var b in Wardrobe.Bands)
+                Check(counts.TryGetValue(b.Name, out var c) && c > 0,
+                      $"somebody is wearing {b.Name}", "nobody");
+            Check(counts["charcoal"] > counts["oxblood"],
+                  "grey is commoner than ox-blood", $"{counts["charcoal"]} vs {counts["oxblood"]}");
+
+            // DETERMINISTIC. A walker who changes coat when the crowd re-bands
+            // is a walker you cannot learn to recognise.
+            Wardrobe.Dress(0.4242, out double h1, out double s1, out double v1);
+            Wardrobe.Dress(0.4242, out double h2, out double s2, out double v2);
+            Check(h1 == h2 && s1 == s2 && v1 == v2, "the same person wears the same coat");
+
+            // AND HUE, SATURATION AND VALUE ARE NOT ONE NUMBER IN THREE HATS.
+            // Decorrelated on purpose: correlated components give every brown
+            // coat the same lightness and read as banding.
+            var hues = new List<double>();
+            var vals = new List<double>();
+            for (int i = 0; i < 400; i++)
+            {
+                Wardrobe.Dress(0.2 + i * 0.0001, out double hh, out _, out double vv);
+                hues.Add(hh); vals.Add(vv);
+            }
+            Check(hues.Distinct().Count() > 100, "hue varies within a band",
+                  $"{hues.Distinct().Count()} distinct");
+            Check(vals.Distinct().Count() > 100, "and so does value",
+                  $"{vals.Distinct().Count()} distinct");
+
+            // Degenerate inputs are dressed rather than thrown at.
+            Wardrobe.Dress(double.NaN, out double nh, out _, out _);
+            Check(nh >= 0 && nh <= 1, "a NaN fraction still produces a coat", $"{nh}");
+            Wardrobe.Dress(-3.25, out double negh, out _, out _);
+            Check(negh >= 0 && negh <= 1, "and so does a negative one", $"{negh}");
+            Wardrobe.Dress(1.0, out double oneh, out _, out _);
+            Check(oneh >= 0 && oneh <= 1, "and exactly 1.0 does not index off the end", $"{oneh}");
         }
 
         static void TestTextureFit()

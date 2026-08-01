@@ -59,6 +59,10 @@ namespace Ledger.Game
         public const float RebandSeconds = 3f;
 
         readonly Dictionary<string, NpcWalker> _crowdWalkers = new Dictionary<string, NpcWalker>();
+
+        /// How many of the crowd are wearing each `Core/Wardrobe` band. Read by
+        /// the sim verdict — see `EnsureWalker`.
+        public static readonly Dictionary<string, int> WardrobeWorn = new Dictionary<string, int>();
         /// The crowd's live walker count, for the sim's budget gate (P5).
         public int CrowdWalkerCount => _crowdWalkers.Count;
         /// Every crowd body, by resident id — the street the gossip director
@@ -263,7 +267,22 @@ namespace Ledger.Game
         void EnsureWalker(Resident r)
         {
             if (_crowdWalkers.ContainsKey(r.Id)) return;
-            var colour = Color.HSVToRGB((float)Population.StableFraction(r.Id), 0.22f, 0.45f);
+            // THE HUE USED TO RUN THE WHOLE WHEEL. A screenshot showed a street
+            // in mint green and pale lilac against grey stone — see
+            // `Core/Wardrobe`, which stocks charcoal, brown, olive, navy and
+            // ox-blood and nothing else.
+            double frac = Population.StableFraction(r.Id);
+            Wardrobe.Dress(frac, out double wh, out double ws, out double wv);
+            var colour = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
+
+            // TALLIED AS THEY ARE DRESSED. A wardrobe that has quietly
+            // collapsed onto one band passes every per-colour check — each
+            // charcoal coat is a perfectly legal charcoal coat — and produces a
+            // street where everybody is wearing the same thing. The
+            // distribution is the property, so the distribution is what the run
+            // reports.
+            string band = Wardrobe.BandOf(frac);
+            WardrobeWorn[band] = WardrobeWorn.TryGetValue(band, out var wc) ? wc + 1 : 1;
             var walker = NpcWalker.Spawn(r.Name, colour, new[]
             {
                 // Their first waypoint is where they ARE, not where they

@@ -96,6 +96,29 @@ namespace Ledger.Game
             // carriageway, clear of every building, near the door.
             PlayerCar.Spawn(FindParkingNear(WorldBuilder.BarDoor), 0f);
             Debug.Log($"Traffic: {Traffic.Vehicles.Count} vehicles on {StreetMap.Edges.Count} streets");
+
+            // THE WHEEL PROPORTIONS, PRINTED, because a still cannot settle
+            // them. Twenty-eight vehicles finally put a car in frame and the
+            // wheels look large against the body — but "looks large" off a
+            // 1280x720 JPEG is exactly the reading that condemned three
+            // perfectly good textures earlier tonight. The radius comes from
+            // `hi * 0.20` clamped to [0.22, 0.55], and whether that is right
+            // depends on numbers nothing has ever reported.
+            //
+            // A wheel should be roughly a third of a car's total height and
+            // rather less of a lorry's. This line makes that checkable next
+            // run instead of arguable now.
+            var seen = new HashSet<string>();
+            foreach (var v in Traffic.Vehicles)
+            {
+                if (v.Kind == null || !seen.Add(v.Kind.Id)) continue;
+                float hi = (float)v.Kind.Height, len = (float)v.Kind.Length;
+                float r = Mathf.Clamp(hi * 0.20f, 0.22f, 0.55f);
+                Debug.Log($"Traffic: wheels {v.Kind.Id} len={len:0.00} hi={hi:0.00} "
+                          + $"radius={r:0.000} diameter={r * 2f:0.000} "
+                          + $"dia/hi={(hi > 0 ? r * 2f / hi : 0):0.00} "
+                          + $"dia/len={(len > 0 ? r * 2f / len : 0):0.00}");
+            }
         }
 
         void TickTraffic(float step)

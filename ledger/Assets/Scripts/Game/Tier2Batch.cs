@@ -94,9 +94,16 @@ namespace Ledger.Game
         {
             int h = 17;
             foreach (var ch in id) h = h * 31 + ch;
-            // Muted, distinct street clothes — never brighter than the cast.
-            float hue = Mathf.Abs(h % 360) / 360f;
-            return Color.HSVToRGB(hue, 0.35f, 0.55f);
+            // "Muted, distinct street clothes — never brighter than the cast"
+            // is what this said while running the hue over the ENTIRE wheel at
+            // saturation 0.35 and value 0.55, with nothing enforcing either
+            // claim. `PopulationHost` said the same thing and used 0.22/0.45,
+            // so which crowd a walker belonged to decided how loud their coat
+            // was. `Core/Wardrobe` is the one source now, and the promise is a
+            // number CoreTests holds rather than a sentence.
+            Wardrobe.Dress(Mathf.Abs(h % 3600) / 3600.0,
+                           out double wh, out double ws, out double wv);
+            return Color.HSVToRGB((float)wh, (float)ws, (float)wv);
         }
 
         static void Load()

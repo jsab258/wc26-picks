@@ -283,7 +283,7 @@ jobs:
               # prefix: the places line reads "SimDirector: <section sign>4.7
               # places", so anchoring on "SimDirector: places" would match
               # nothing, and "alley eyes=" is both unique and plain.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=" \
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } > game-design/sim-shots/verdict.txt
             say "verdict.txt written ($(wc -l < game-design/sim-shots/verdict.txt) lines)"
