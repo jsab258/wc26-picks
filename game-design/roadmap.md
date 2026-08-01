@@ -73,18 +73,10 @@ a different traceability, and disposal seen by a witness produces a different
 residual risk from disposal unseen. Both are numbers `Core/Traces` already
 computes and nothing currently calls.
 
-**The real work in both was wiring, and the reach check found more of it than
-the hand analysis had.** An afternoon's manual gap analysis over 61 public Core
-APIs said roughly 40 had no call site. `tools/ReachCheck` ran the same question
-as a call-graph walk in a second and said **131**. Thirty-eight of those were
-M16 phases 2–4 — `Brandish` 0, `MayFrisk` 0, `Acquire` 0, `Traceability` 0 —
-built, tested, green and unreachable, which is this project's oldest failure
-mode. The ledger stood at **89** when the phases landed, and it can only count
-down: wiring an API without deleting its row fails the build too.
-
-**Risk.** The Game layer does not compile locally; only lint, ShapeCheck and
-2,884 CoreTests run here. Every wiring change is verified by a ~28-minute
-Windows CI run, and that round trip sets the pace.
+**The real work in both was wiring** — 131 unreached APIs where a hand analysis
+found ~40. **Risk:** the Game layer does not compile locally, only lint,
+ShapeCheck and 2,884 CoreTests do, so every wiring change is verified by a
+~28-minute Windows CI run and that round trip sets the pace.
 
 ---
 
@@ -321,23 +313,41 @@ the game is gated on his word.** Five layers, in `testing-system.md`:
 |---|---|---|---|
 | 1 | **Reach** — every public Core API has a caller | *built is not running*; ~40 APIs with no call site | before M16 ph.3/4 land |
 | 2 | **Shape** — text, audio and assets are well-formed | 21 of 42 gossip templates rendering a lowercase sentence under 2,883 green tests | before M16 ph.3/4 land |
-| 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | after M17 |
+| 3 | **Pixels** — golden-frame perceptual regression | a shader change turning every night purple | **ledger landed**, tolerance unmeasured |
 | 4 | **Time** — determinism, replay, 100-day soak, save/load chaos | a bug that is currently unreproducible | after M17 |
 | 5 | **Adversary** — input fuzzing, a bot that plays badly, exploit search | softlocks and dominant strategies | after M17 |
 
+**Layer 3, first half, shipped.** The sim fingerprinted twenty frames a run and
+reported none of them — both channels carrying those numbers are ones this
+environment cannot read. They now go to `game-design/sim-shots/frames.tsv`,
+committed each build, and `tools/frame-drift.py` prints per-shot deltas into
+`verdict.txt`. **Done:** a luminance change is visible in the verdict of the
+build that caused it, and `git log` on `frames.tsv` gives the series. The
+gating half is **not** done — a tolerance is a threshold and the rasteriser's
+run-to-run noise floor is unmeasured, which is how `nightNotDarker` came to fail
+at 0.136 against 0.135. **Depends on** two runs of unchanged code. **Risk:**
+that variance swamps the signal, and the answer is per-shot medians, not a
+looser bound.
+
 What already exists is stronger than the gap list suggests: 2,884 CoreTests,
-**21 mutation-testing specs** (`breakrun.py` — most studios do not do this),
-20 gated sim claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and content
-enumeration that measures repeat intervals rather than asserting them.
+**21 mutation-testing specs** (`breakrun.py` — most studios do not do this), 20
+gated sim claims, an LLM-vs-LLM playtest, Monte-Carlo balance, and content
+enumeration measuring repeat intervals rather than asserting them.
 
 ## At risk
 
-- **Windows CI is red.** `nightNotDarker` compared one noon frame to one night
-  frame out of eleven days and failed on a thousandth. The gate now uses the
-  whole series and prints it; unverified until the next run.
-- **The animation import** (M17.1) cannot be checked locally at all.
-- **Phases 2–4 were built, tested and disconnected** — ~40 Core APIs with no
-  call site. Being fixed now, and the reason to distrust "built" as a status.
+- **Windows CI red on the threat gate** (`9708a8d`): `drawn=0 object=none`.
+  Mine — M17.1 gave the player a bought skeleton, so `SimDirector`'s
+  `GetComponent<Mannequin>()` hand lookup returned null and nothing reached the
+  hand. Fixed in `2cd11c2` by publishing the joint from `CharacterRig`, which
+  resolves both tiers; **unverified until the run lands.** `nightNotDarker` is
+  settled — the series reads `darker10of10`.
+- **The animation import** (M17.1) is unverifiable locally but CI says it
+  works: `models=44 humanoid=44 validHumanAvatar=44`, `realBody=1` scaled
+  x0.949 from raw 1.90m. Player skinned; crowd stays boxes until one is costed.
+- **Phases 2–4 were built, tested and disconnected.** `tools/ReachCheck` runs
+  every commit; the ledger is 89 typed entries, counting down only — the debt
+  *measured*, not cleared.
 
 ## The ship checklist — every category, and who owns it
 

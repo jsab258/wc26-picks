@@ -1536,3 +1536,19 @@ repeatedly, and VCTK stores ~400 consecutive utterances per speaker.
   free CC0 route**, not a purchase and not a recording session. Jafar: *"free
   obviously. i won't be recording anything."* Needs a source adapter on the
   existing fetch pipeline.
+
+## 2026-08-01 — the reach check found more wiring than the hand analysis had
+
+Moved out of `roadmap.md` when that file crossed its 400-line LIVE limit. The
+finding is worth keeping; it is not the present state.
+
+An afternoon's manual gap analysis over 61 public Core APIs said roughly 40 had
+no call site. `tools/ReachCheck` ran the same question as a call-graph walk in
+a second and said **131**. Thirty-eight of those were M16 phases 2–4 —
+`Brandish` 0, `MayFrisk` 0, `Acquire` 0, `Traceability` 0 — built, tested,
+green and unreachable, which is this project's oldest failure mode.
+
+The lesson is the ratio rather than either number: a careful human sweep found
+under a third of it, in an afternoon, and was believed. The ledger stood at
+**89** when the phases landed and can only count down — wiring an API without
+deleting its row fails the build too.
