@@ -58,17 +58,14 @@ for.
 **Phase 4 — what is in it.** Provenance as a permanent property of an object;
 the four acquisition routes, all of them social; disposal as a verb somebody
 can watch you perform; Ellis looking for the object rather than for you; and
-accidents — the only violence in the game that produces no crime.
-
-**Phase 4 — done when.** A weapon acquired by each of the four routes carries
-a different traceability, and disposal seen by a witness produces a different
-residual risk from disposal unseen. Both are numbers `Core/Traces` already
-computes and nothing currently calls.
+accidents — the only violence in the game that produces no crime. Met: each
+route carries a different traceability, and disposal seen differs from disposal
+unseen.
 
 **The real work in both was wiring** — 131 unreached APIs where a hand analysis
-found ~40. **Risk:** the Game layer does not compile locally, only lint,
-ShapeCheck and 2,884 CoreTests do, so every wiring change is verified by a
-~28-minute Windows CI run and that round trip sets the pace.
+found ~40. **Risk, and it still sets the pace of everything below:** the Game
+layer does not compile locally. Only lint, ShapeCheck and CoreTests run here, so
+every wiring change is verified by a ~28-minute Windows CI round trip.
 
 ---
 
