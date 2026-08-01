@@ -2212,18 +2212,27 @@ namespace Ledger.Game
             {
                 _threatStaged = true;
                 var cosh = Arsenal.Get("cosh");
+                // ONCE, and held. `HandAnchor` builds a GameObject the first
+                // time it is asked, so calling it again for the log line would
+                // be a second anchor on the same wrist.
+                var hand = PlayerHand();
                 var t = ViolenceHost.Brandish(cosh, nearestForThreat,
                                               _player.transform.position,
                                               inPublic: true,
                                               reputationForViolence: 0.7,
                                               targetNerve: 0.2,
-                                              // THE PLAYER'S OWN FOREARM, so the
+                                              // THE PLAYER'S OWN HAND, so the
                                               // object is drawn on the body the
                                               // camera can see rather than at a
                                               // world position nothing is at.
-                                              hand: PlayerForearm());
+                                              hand: hand);
+                // `hand=` is in the line because its absence is what a null hand
+                // looks like from here — the threat resolves perfectly and
+                // nothing is ever drawn, which is how M17.1's body swap took the
+                // gate down without touching a line of violence code.
                 Debug.Log($"SimDirector: brandished a cosh at {nearestForThreat.DisplayName} -> {t}"
                           + $" (canUndraw={ViolenceHost.CanUndraw()}, "
+                          + $"hand={(hand != null ? hand.name : "NULL")}, "
                           + $"drawn={HeldObject.Drawn} {HeldObject.LastDrawn})");
             }
 
@@ -2255,14 +2264,24 @@ namespace Ledger.Game
             }
         }
 
-        /// The transform a held object hangs off. `Mannequin` builds the body
-        /// today and the Humanoid right hand replaces it at M17.1; the offset
-        /// is measured from the wrist either way, so nothing here changes.
-        Transform PlayerForearm()
+        /// The transform a held object hangs off — asked of the RIG, which is
+        /// the one thing that knows which kind of body this person ended up
+        /// with.
+        ///
+        /// THE PREVIOUS VERSION OF THIS METHOD WAS A REGRESSION I SHIPPED. It
+        /// read `_player.GetComponent&lt;Mannequin&gt;()`, and its comment said the
+        /// Humanoid hand would replace it "so nothing here changes" — which was
+        /// exactly backwards. When `RealBody` gave the player a bought skeleton
+        /// there was no `Mannequin` to find, this returned null, `Brandish` was
+        /// handed a null hand, and the run failed with
+        /// `threat[... drawn=0 object=none]`. The gate was right and the threat
+        /// was right; the hand lookup had been written against one tier and
+        /// asserted about the other.
+        Transform PlayerHand()
         {
             if (_player == null) return null;
-            var body = _player.GetComponent<Mannequin>();
-            return body != null ? body.RForearm : null;
+            var rig = _player.GetComponentInChildren<CharacterRig>();
+            return rig != null ? rig.HandAnchor : null;
         }
 
         /// §4.7's headline claim, staged on the street the run actually built.
@@ -4515,7 +4534,8 @@ namespace Ledger.Game
                 ($"threat[brandishes={ViolenceHost.Brandishes} last={ViolenceHost.LastThreat} "
                  + $"fled={ViolenceHost.ThreatsThatFled} called={ViolenceHost.ThreatsCalled} "
                  + $"complied={ViolenceHost.ThreatsComplied} undraw={ViolenceHost.CanUndraw()} "
-                 + $"drawn={HeldObject.Drawn} object={HeldObject.LastDrawn ?? "none"}]",
+                 + $"drawn={HeldObject.Drawn} object={HeldObject.LastDrawn ?? "none"} "
+                 + $"hand={CharacterRig.HandTier}]",
                  ViolenceHost.Brandishes > 0 && !ViolenceHost.CanUndraw()
                  // AND SOMETHING WAS ACTUALLY PUT IN THE HAND. M17.8: the
                  // threat is the most legible act in a game about being seen,

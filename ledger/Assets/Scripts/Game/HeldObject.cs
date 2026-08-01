@@ -33,10 +33,6 @@ namespace Ledger.Game
     /// frame with a few hundred stray colliders fighting the controllers.
     public static class HeldObject
     {
-        /// Where a held thing sits relative to the forearm's origin — at the
-        /// end of it, where a hand is.
-        public static readonly Vector3 HandOffset = new Vector3(0, -Mannequin.ForearmLength - 0.05f, 0);
-
         static readonly Dictionary<PrimitiveType, Mesh> _meshes =
             new Dictionary<PrimitiveType, Mesh>();
 
@@ -60,9 +56,18 @@ namespace Ledger.Game
         /// the one-way door the whole verb turns on, so in practice the only
         /// thing that removes it is the act ending.
         ///
-        /// `hand` is a forearm transform: `Mannequin.RForearm` today, and the
-        /// Humanoid right hand once M17.1 binds an Avatar. The offset is the
-        /// same either way because it is measured from the wrist.
+        /// `hand` is `CharacterRig.HandAnchor` — the GRIP, already placed and
+        /// already oriented for whichever body tier that person got, so the
+        /// object goes on at local zero.
+        ///
+        /// IT USED TO BE THE FOREARM AND AN OFFSET, and that offset was a
+        /// `Mannequin` constant, which quietly made this method mannequin-only.
+        /// M17.1 gave the player a bought skeleton and the caller's
+        /// `GetComponent&lt;Mannequin&gt;()` went null, so `hand` was null, so
+        /// nothing was ever drawn and the threat gate failed on
+        /// `drawn=0 object=none`. The offset now lives with the skeleton that
+        /// knows its own proportions; this end holds no assumption about bodies
+        /// at all.
         public static GameObject Draw(Transform hand, Weapon w)
         {
             if (hand == null || w == null) return null;
@@ -72,8 +77,7 @@ namespace Ledger.Game
             // procedural version with no code change, and a held object is
             // exactly the kind of thing a prop bundle would carry.
             var prop = AssetLibrary.TryInstantiateProp("weapon_" + w.Id,
-                                                       hand.TransformPoint(HandOffset),
-                                                       hand.rotation);
+                                                       hand.position, hand.rotation);
             if (prop != null)
             {
                 prop.transform.SetParent(hand, worldPositionStays: true);
@@ -84,7 +88,7 @@ namespace Ledger.Game
 
             var go = new GameObject("held_" + w.Id);
             go.transform.SetParent(hand, worldPositionStays: false);
-            go.transform.localPosition = HandOffset;
+            go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.identity;
 
             Silhouette(go.transform, w);

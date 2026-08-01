@@ -252,11 +252,11 @@ namespace Ledger.Game
         /// THE BODY, from the numbers the movement already produces
         /// (Core/Rig, the-gap.md §3b).
         ///
-        /// Runs on the capsule today and will run on a Mixamo humanoid the
-        /// moment one is imported, with no change here — `CharacterRig` binds
-        /// through the Avatar and falls back to the transform when there is
-        /// no skeleton. This is the whole reason it was built before the
-        /// characters: none of it is waiting on them.
+        /// Runs on a Mixamo humanoid as of M17.1, and it did so with no change
+        /// here — `CharacterRig` binds through the Avatar, falls back to the
+        /// boxes, and falls back again to the transform when there is no
+        /// skeleton at all. That claim was made before the characters existed
+        /// and it held; this line is the receipt.
         // `_body`, not `_rig` — CameraRig already holds `_rig` on this
         // class, and ShapeCheck caught the collision locally in a second
         // rather than twenty minutes into a Windows runner.

@@ -10,9 +10,15 @@ namespace Ledger.Game
     /// cycle, the limp, the look-split and the foot IK all run on a body
     /// today rather than on a capsule that leans.
     ///
-    /// When a Mixamo FBX lands, importing it as **Humanoid** is the entire
-    /// integration step — Unity's Avatar gives us HumanBodyBones, `Bind`
-    /// prefers it, and nothing else here changes.
+    /// THE FBX HAVE LANDED, and "importing it as **Humanoid** is the entire
+    /// integration step" — which is what this line said for weeks — was wrong
+    /// by one caller. `Bind` did prefer the Avatar exactly as promised and
+    /// nothing in this file needed changing; what broke was a caller elsewhere
+    /// that had reached PAST this class for a bone, straight into `Mannequin`,
+    /// and so could only ever see tier two. See `HandAnchor` below: the fix was
+    /// to publish the joint from here, where both tiers are already resolved.
+    /// Anything else that wants a named bone should ask this class for it
+    /// rather than the body.
     ///
     /// Humanoid rather than bone-name matching on purpose. Mixamo's naming is
     /// stable ("mixamorig:LeftUpLeg") right up until somebody re-exports from
@@ -29,6 +35,10 @@ namespace Ledger.Game
         Transform _lFoot, _rFoot;
         Transform _lThigh, _lShin, _rThigh, _rShin;
         Transform _lUpperArm, _lForearm, _rUpperArm, _rForearm;
+        /// The Avatar tier's real right hand bone. Null on the Mannequin tier,
+        /// which ends the arm at the forearm and has no wrist joint.
+        Transform _rHand;
+        Transform _handAnchor;
         Mannequin _mannequin;
         /// True once there is a skeleton to pose, from EITHER source.
         bool _posed;
@@ -81,9 +91,16 @@ namespace Ledger.Game
         /// procedural `Mannequin`, and — if somehow neither — the capsule
         /// fallback that leans and breathes as one object.
         ///
-        /// The tiers exist so the middle one can be DELETED without ceremony.
-        /// When the FBX arrives, tier one starts matching, tier two stops
-        /// being instantiated, and not one number below this method changes.
+        /// The tiers exist so the middle one can be DELETED without ceremony —
+        /// and tier one now matches, on the player, since `RealBody` runs. Tier
+        /// two is still what the crowd is made of and is not going anywhere
+        /// until a skinned mesh has been costed on a GPU-less runner.
+        ///
+        /// So BOTH tiers are live at once, which the note here did not
+        /// anticipate: it read as though the day tier one started matching was
+        /// the day tier two stopped existing. Every consumer therefore has to
+        /// work on either, and the way it does that is by reading the fields
+        /// below rather than the body above.
         void Bind()
         {
             _animator = GetComponentInChildren<Animator>();
@@ -105,6 +122,8 @@ namespace Ledger.Game
                 _lForearm = _animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
                 _rUpperArm = _animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
                 _rForearm = _animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
+                _rHand = _animator.GetBoneTransform(HumanBodyBones.RightHand);
+                _handAnchor = null;
                 CaptureRest();
                 return;
             }
@@ -120,6 +139,8 @@ namespace Ledger.Game
                 _rThigh = man.RThigh; _rShin = man.RShin;
                 _lUpperArm = man.LUpperArm; _lForearm = man.LForearm;
                 _rUpperArm = man.RUpperArm; _rForearm = man.RForearm;
+                _rHand = null;
+                _handAnchor = null;
                 _mannequin = man;
                 LegLength = Mannequin.ThighLength + Mannequin.ShinLength;
                 // This person's own stride and their own bad leg. A crowd
@@ -136,6 +157,82 @@ namespace Ledger.Game
             // runs — which was the point of building this before the
             // characters existed, and is still the point if one fails to load.
             _posed = false;
+        }
+
+        /// Wrist to grip. A hand is about this deep and a held thing sits in the
+        /// palm, not on the joint.
+        const float HandPad = 0.05f;
+
+        /// WHERE A HELD THING GOES, on whichever body this person turned out to
+        /// have. The transform's ORIGIN is the grip and its local -Y runs out
+        /// along the arm, so a caller parents at local zero and is done.
+        ///
+        /// THIS EXISTS BECAUSE THE TIER CHANGED UNDER A CALLER. `SimDirector`
+        /// found the player's hand with `GetComponent&lt;Mannequin&gt;()`, which was
+        /// the only body there was when it was written. `RealBody` then gave the
+        /// player a bought skeleton instead — so the lookup returned null, the
+        /// cosh was never drawn, and the threat gate went red reading
+        /// `drawn=0 object=none`. Nothing was wrong with the threat; the hand had
+        /// simply moved to a tier that caller could not see. `Bind` already
+        /// resolves the arm for BOTH tiers, so the answer belongs here, once,
+        /// where adding a fourth tier cannot break a caller again.
+        ///
+        /// Built lazily rather than in `Bind`, because most of a crowd never
+        /// holds anything and this allocates a GameObject.
+        public Transform HandAnchor
+        {
+            get
+            {
+                if (_handAnchor != null) return _handAnchor;
+                _handAnchor = BuildHandAnchor();
+                return _handAnchor;
+            }
+        }
+
+        /// Which joint the last anchor was built on, for the verdict.
+        ///
+        /// ONE LINE, AND IT IS THE LINE THAT WOULD HAVE SAVED A BUILD. The
+        /// threat gate failed reading `drawn=0 object=none`, which says the
+        /// object was not drawn and says nothing about why — and the why was a
+        /// body tier three files away. `verdict.txt` is the only channel out of
+        /// CI this environment can read, so the tier goes in it.
+        public static string HandTier { get; private set; } = "none";
+
+        Transform BuildHandAnchor()
+        {
+            var parent = _rHand != null ? _rHand : _rForearm;
+            if (parent == null) { HandTier = "no arm"; return null; }
+            HandTier = _rHand != null ? "hand bone" : "forearm";
+
+            var t = new GameObject("HandAnchor").transform;
+            t.SetParent(parent, worldPositionStays: false);
+            // The Avatar's hand bone IS the wrist. The Mannequin's forearm bone
+            // is the ELBOW and the wrist is a forearm down it — and that length
+            // is read from the builder rather than restated, because a second
+            // copy of a dimension is a second thing to keep in step.
+            t.localPosition = _rHand != null
+                ? Vector3.zero
+                : new Vector3(0f, -Mannequin.ForearmLength, 0f);
+            t.localRotation = Quaternion.identity;
+
+            // WHICH WAY IS DOWN THE ARM — MEASURED, NOT ASSUMED. On the
+            // Mannequin the forearm's own -Y is the answer by construction. On a
+            // bought rig the hand bone's local axes are whatever the exporter
+            // chose, and this project's rule about Mixamo naming applies to
+            // Mixamo AXES just as hard: a blade that comes out sideways because
+            // a re-export rolled a bone is not a bug anybody would think to look
+            // for. Elbow-to-wrist is a direction the skeleton cannot lie about.
+            if (_rForearm != null)
+            {
+                Vector3 alongArm = t.position - _rForearm.position;
+                if (alongArm.sqrMagnitude > 1e-6f)
+                    t.rotation = Quaternion.FromToRotation(t.up, -alongArm.normalized) * t.rotation;
+            }
+            // And then out to the palm, along the axis just established. On the
+            // Mannequin this lands at exactly the offset `HeldObject` used to
+            // apply itself, so nothing that already worked moves.
+            t.position -= t.up * HandPad;
+            return t;
         }
 
         void CaptureRest()
