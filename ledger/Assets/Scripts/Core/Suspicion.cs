@@ -72,7 +72,45 @@ namespace Ledger.Core
     public class SuspicionTracker
     {
         public double Value { get; private set; }
-        public List<string> Reasons { get; } = new List<string>();
+
+        /// Why this person's suspicion is where it is, most recent last.
+        ///
+        /// BOUNDED, because it was not, and `Soak` measured the consequence:
+        /// over 499 in-game days the seven-person street accumulated 684 of
+        /// these, strictly monotonically, at +1.363 a day and with nothing that
+        /// ever removes one. The rumour counts in the same run oscillated
+        /// between 9 and 74 — gossip decays, and the contrast is what made this
+        /// one legible as a leak rather than as traffic. On a long save it
+        /// grows until the save does.
+        ///
+        /// AND NOTHING READS IT. Three writers, zero call sites anywhere in the
+        /// game, the editor or the tools — rule 6, `built is not running`, in a
+        /// field rather than an API. That is why the fix is a cap and not a
+        /// deletion: "why is Lena suspicious of me" is the moat this project is
+        /// actually built on (information 90 against a best-in-class 65), and a
+        /// trail nobody reads yet is a trail somebody should. Deleting it would
+        /// make wiring that answer a rewrite instead of a hookup. It belongs on
+        /// the reach ledger, not in the bin.
+        ///
+        /// THE CAP IS DERIVED, NOT PICKED. `Value` is clamped to 0..1 and each
+        /// event moves it by roughly 0.12 to 0.35 (`ContradictionSuspicion`
+        /// 0.35, `LeakSuspicion` 0.12), so the most recent dozen or so entries
+        /// already sum to several times the entire range — nothing older can
+        /// still be part of the explanation for where the number sits now.
+        /// Thirty-two is that dozen with room, and it makes the trail a fixed
+        /// cost per person forever.
+        public const int MaxReasons = 32;
+
+        public IReadOnlyList<string> Reasons => _reasons;
+        readonly List<string> _reasons = new List<string>();
+
+        void Note(string line)
+        {
+            _reasons.Add(line);
+            // One at a time, from the front: this is called once per event, so
+            // the list is never more than one over.
+            if (_reasons.Count > MaxReasons) _reasons.RemoveAt(0);
+        }
 
         public SuspicionLevel Level =>
             Value < 0.25 ? SuspicionLevel.Trusting :
@@ -84,19 +122,19 @@ namespace Ledger.Core
         public void Restore(double value)
         {
             Value = Math.Clamp(value, 0.0, 1.0);
-            Reasons.Add("(restored from save)");
+            Note("(restored from save)");
         }
 
         public void Raise(double amount, string reason)
         {
             Value = Math.Clamp(Value + amount, 0.0, 1.0);
-            Reasons.Add($"+{amount:0.00} {reason}");
+            Note($"+{amount:0.00} {reason}");
         }
 
         public void Lower(double amount, string reason)
         {
             Value = Math.Clamp(Value - amount, 0.0, 1.0);
-            Reasons.Add($"-{amount:0.00} {reason}");
+            Note($"-{amount:0.00} {reason}");
         }
 
         /// Text the LLM receives describing how this character currently feels

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Match Unity 6's compiler level so nothing Unity can't compile sneaks in -->
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Ledger.Soak</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <!-- The SHIPPED supplier and price configuration, for the same reason
+         BalanceLab includes it: a soak run against a copy of the economy is a
+         soak of the copy. -->
+    <Compile Include="../Assets/Scripts/Game/EconomySetup.cs" />
+  </ItemGroup>
+</Project>

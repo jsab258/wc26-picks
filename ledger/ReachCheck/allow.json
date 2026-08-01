@@ -108,6 +108,7 @@
     "Typography.MeetsAa": "WIRE: M17 — the accessibility contrast gate, which M22 names and nothing enforces.",
     "Typography.LiftToMeet": "WIRE: M17 — the fix-up that makes a failing pair pass.",
     "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not.",
-    "Combat.Breathe": "WIRE: M16 phase 3 — stamina recovery between exchanges."
+    "Combat.Breathe": "WIRE: M16 phase 3 — stamina recovery between exchanges.",
+    "SuspicionTracker.Reasons": "WIRE: M19 — WHY a person suspects you, which is the moat this project is built on (information 90 against a best-in-class 65) and the one part of it with no surface. Three writers, no reader. Found by Soak as an unbounded list (684 entries over 499 days, +1.363/day, nothing removing one) and capped at MaxReasons=32 rather than deleted, precisely so wiring it stays a hookup instead of a rewrite."
   }
 }

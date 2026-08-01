@@ -201,6 +201,32 @@ def save_chaos():
     return False, "save chaos did not report (build failure?)"
 
 
+def soak():
+    """Layer 4's other half: five hundred days, twice, and does it match.
+
+    `BalanceLab` already drives this loop for four hundred weeks a policy and
+    asks whether the numbers are GOOD. This asks whether they are NUMBERS —
+    determinism (same seed, identical per-day digest, naming the first divergent
+    day), no NaN or negative anywhere in five hundred days, and a printed growth
+    series for everything that accumulates.
+
+    THE GROWTH SERIES IS WHY IT EXISTS, and it found a leak on its first run:
+    `SuspicionTracker.Reasons` climbed to 684 entries over 499 days, strictly
+    monotonically, at +1.363 a day. The rumour counts in the same run oscillated
+    between 9 and 74 — gossip decays — and the CONTRAST is what made one legible
+    as a leak and the other as traffic. Neither is visible from a total.
+
+    Two seconds, so it runs on every commit rather than nightly."""
+    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "Soak")])
+    m = re.search(r"soak ok — all (\d+) checks passed", out)
+    if m:
+        return True, "%s soak checks (500 days x2)" % m.group(1)
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+    if bad:
+        return False, "SOAK: " + bad[0][7:100]
+    return False, "soak did not report (build failure?)"
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -276,7 +302,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               frame_drift, save_chaos, stale_anchors, core_tests):
+               frame_drift, save_chaos, soak, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)
