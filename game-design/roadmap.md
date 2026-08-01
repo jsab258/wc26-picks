@@ -88,7 +88,7 @@ design — every item has a working system underneath already.
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
 | 17.5 | **Non-verbal foley** — grunts, pain, exertion | decided: CC0 through the voice pipeline | low |
 | 17.6 | **Surfaces** — a real texture set for the twelve logical surfaces `AssetLibrary` already asks for | **DONE 2026-08-01.** 12 CC0 albedos from ambientCG committed, attributed, `pack_check` green. Verified in a render: the noir tint neutralises the source saturation | closed |
-| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles had per-kind silhouettes already and now have wheels, verified against real proportions (car dia/hi 0.40, bus 0.34); density 14 -> 28 so a street reads occupied. Buildings and street furniture are still cubes | medium — the volume of work, not the difficulty |
+| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles have per-kind silhouettes and wheels at real proportions (car dia/hi 0.40, bus 0.34), density 28. "Buildings are cubes" was WRONG in both directions — read from `WorldBuilder`, they are box ASSEMBLIES: body, roof slab, stepped setback tier with its own roof, rooftop tank, window bands. What is actually missing is ground-floor differentiation (shopfronts, doors), cornices, and any variation in the window grid — they read as blocks, not as buildings. Street furniture is posts, plates and labels, which is what it should be | medium — volume, not difficulty |
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
@@ -366,7 +366,7 @@ finished in a roadmap exactly like a system with no call site does in review.
 | Barks | 17.4 | 2,604 lines enumerated, curation mine |
 | Foley | 17.5 | decided free, not sourced |
 | Surfaces and textures | 17.6 | **12 CC0 albedos, attributed, verified in a render** |
-| Props, buildings, vehicles | **17.7** | vehicles done; buildings and furniture cubes |
+| Props, buildings, vehicles | **17.7** | vehicles done; buildings are blocks, need ground floors |
 | Weapons and held objects | 17.8 | **drawn from the hand, on either body tier** |
 | Fonts and icons | 17.9, **22.4** | **PT Sans ships with its licence**; icons nothing |
 | Music | shipped M13 | procedural layer, running |
