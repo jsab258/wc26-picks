@@ -248,6 +248,49 @@ jobs:
           mkdir -p game-design/sim-shots
           cp "${shots[@]}" game-design/sim-shots/
           ls -la game-design/sim-shots/
+
+          # AND THE VERDICT, AS A FILE IN THE REPOSITORY.
+          #
+          # THE ONE CHANNEL OUT OF THIS JOB THAT HAS ACTUALLY WORKED. The log
+          # API returns a fixed ~4KB BYTE tail — not a line count — so
+          # `tail_lines` cannot reach anything mid-log, and GitHub's own
+          # post-job cleanup fills that window every time. The step summary was
+          # supposed to be the answer and comes back EMPTY through the check-run
+          # API. Artifacts live on a host this project's review environment is
+          # denied outright.
+          #
+          # So every diagnostic the sim prints has been unreadable unless it
+          # happened to land in the last four kilobytes, which is why three
+          # separate faults tonight had to be inferred from a step's DURATION
+          # or from the fact that a branch had not moved. The stills proved the
+          # fix: a file in the repository can simply be read.
+          #
+          # Grepped rather than copied whole — player.log is megabytes, and the
+          # point is the handful of lines that answer a question.
+          if [ -f sim-run/player.log ]; then
+            {
+              echo "# Sim verdict — ${GITHUB_SHA:0:7}"
+              echo
+              echo "Written by the Windows build. Overwritten every run."
+              echo "Read this instead of trying to tail the job log."
+              echo
+              # ASCII ONLY IN THE PATTERN. The places line is prefixed with a
+              # section sign, and a non-ASCII byte in a grep pattern under Git
+              # bash on Windows is a coin flip about encoding — the sort of
+              # thing that silently matches nothing and looks like "the sim
+              # never printed it".
+              # Matched on distinctive ASCII substrings rather than on a
+              # prefix: the places line reads "SimDirector: <section sign>4.7
+              # places", so anchoring on "SimDirector: places" would match
+              # nothing, and "alley eyes=" is both unique and plain.
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=" \
+                sim-run/player.log || echo "(no SimDirector lines matched)"
+            } > game-design/sim-shots/verdict.txt
+            say "verdict.txt written ($(wc -l < game-design/sim-shots/verdict.txt) lines)"
+          else
+            say "no player.log — the sim did not run"
+          fi
+
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
           git add game-design/sim-shots
