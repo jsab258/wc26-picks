@@ -4347,7 +4347,19 @@ namespace Ledger.Game
                 // `RealBody` never removed the `CreatePrimitive` mesh that
                 // `Mannequin.Build` has always removed. It was found by opening
                 // the still, which is the only reason it was found at all.
-                && !PlayerPrimitiveShowing();
+                && !PlayerPrimitiveShowing()
+                // AND IT IS STANDING UP. The bought body attached, scaled,
+                // bound its avatar and passed every clause above while lying
+                // flat on its back in the road — Jafar found it in the still,
+                // after I had read `playerPrimitive=False` off this very line
+                // and called the body confirmed without opening the frame.
+                //
+                // 0.9 is not a tuned number: `body.up` dotted with world up is
+                // 1.0 standing and 0.0 flat, and 0.9 is ~25 degrees off
+                // vertical, which is further than a person leans and nowhere
+                // near a person lying down. Nothing in between is a pose this
+                // game produces.
+                && (RealBody.Attached == 0 || RealBody.Upright > 0.9);
 
             // OCCLUSION, gated on the A/B rather than on the counter.
             //
@@ -4681,7 +4693,7 @@ namespace Ledger.Game
                  $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
-                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()}]", bodiesOk),
+                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()} up={RealBody.Upright:0.00}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[hit={100 * _bloomFraction:0.00}% rise={_bloomRise:0.0000} " +
@@ -5022,6 +5034,7 @@ namespace Ledger.Game
                       $"collidingNames={_labelsColliding} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
+                      $"bodyUp={RealBody.Upright:0.000} bodyRot=[{RealBody.Orientation}] " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +
                       $"{(badPanels.Count > 0 ? "broken=[" + string.Join(",", badPanels) + "] " : "")}" +

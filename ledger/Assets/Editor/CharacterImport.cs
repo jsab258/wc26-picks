@@ -60,6 +60,26 @@ namespace Ledger.EditorTools
             // hundredfold error would be caught — but only after a build.
             importer.useFileScale = true;
 
+            // AND THE AXIS, which is why the first body to reach the street was
+            // lying on its back in the road.
+            //
+            // Jafar spotted it in `review_day1_noon.jpg`. Every gate said the
+            // body was fine — `realBody=1`, `bodiesOk=True`, height in range,
+            // `playerPrimitive=False` — because not one of them asks WHICH WAY
+            // UP it is. Two noon frames from different days show it in the same
+            // attitude, which is what rules out `CharacterRig`'s compounding
+            // capsule lean: a drift would tumble differently each time, a fixed
+            // rotation looks identical.
+            //
+            // Mixamo exports Z-up. Without this Unity leaves the conversion as a
+            // -90° rotation on a node INSIDE the hierarchy, so
+            // `RealBody.TryAttach` setting the instantiated root's
+            // `localRotation` to identity — which it does — corrects nothing:
+            // the rotation is a level below the transform being straightened.
+            // Baking it puts the conversion into the mesh and the rig, and
+            // leaves every transform the runtime touches at identity.
+            importer.bakeAxisConversion = true;
+
             // The bodies have skin; the clips do not need it imported twice.
             importer.importBlendShapes = false;
             importer.importCameras = false;

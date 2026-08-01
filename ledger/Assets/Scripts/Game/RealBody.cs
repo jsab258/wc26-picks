@@ -33,6 +33,16 @@ namespace Ledger.Game
         public static int Attached { get; private set; }
         public static string Why { get; private set; } = "not tried";
 
+        /// `body.up` dotted with world up: 1 is standing, 0 is lying down.
+        ///
+        /// THE GATE THAT DID NOT EXIST. Five checks called the first bought body
+        /// fine — attached, scaled, in the height range, primitive gone — while
+        /// it lay on its back in the road, because every one of them asks about
+        /// the body that was ADDED and none asks what it looks like. Jafar found
+        /// it in the still. This is the number that would have.
+        public static double Upright { get; private set; }
+        public static string Orientation { get; private set; } = "not tried";
+
         public static void ResetCounters()
         {
             Attached = 0;
@@ -100,6 +110,35 @@ namespace Ledger.Game
             // still would show and a gate would not.
             body.transform.localPosition = new Vector3(0f, -Mannequin.SoleBelowOrigin, 0f);
             body.transform.localRotation = Quaternion.identity;
+
+            // A MATERIAL, because the model ships without one and Unity's
+            // stand-in for that is bright pink. The first body on the street was
+            // magenta and lying down, and the magenta is the easier half.
+            // Skin-toned and flat, matching what `Mannequin` dresses its own
+            // bodies in, so the two tiers do not read as different species.
+            var skin = AssetLibrary.Opaque(new Color(0.72f, 0.58f, 0.47f));
+            foreach (var r in body.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null) continue;
+                var m = r.sharedMaterial;
+                // Only where nothing was authored. A model that DOES arrive with
+                // materials keeps them — this is a fallback, not a repaint.
+                if (m == null || m.name.StartsWith("Default", System.StringComparison.Ordinal))
+                    r.sharedMaterial = skin;
+            }
+
+            // WHICH WAY UP, PRINTED. Setting the instantiated root's rotation to
+            // identity above corrects nothing if the axis conversion sits on a
+            // node BELOW it, which is what a Z-up FBX imported without
+            // `bakeAxisConversion` leaves behind. `CharacterImport` now bakes it;
+            // this reports the outcome rather than trusting that it took, and
+            // says which transform any residual rotation is on.
+            var childRot = body.transform.childCount > 0
+                ? body.transform.GetChild(0).localRotation.eulerAngles
+                : Vector3.zero;
+            Upright = Vector3.Dot(body.transform.up, Vector3.up);
+            Orientation = $"root={body.transform.localRotation.eulerAngles} "
+                          + $"child0={childRot} up.y={Upright:0.000}";
 
             // SCALE FROM THE BOUNDS, NOT FROM A CONSTANT. Mixamo's own scale
             // depends on how the file was exported, and `useFileScale` respects
