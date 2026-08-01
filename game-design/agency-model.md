@@ -63,17 +63,56 @@ This is the LLM-specific grind risk and the reason chips exist.
 > persistence 95, information 90 — against a best-in-class of 60, 85 and 65.
 > That is the moat and everything below is in service of it.
 
+**RE-TARGETED 2026-08-01, and four dimensions ADDED, because the strategy this
+table encoded was replaced.** `roadmap.md`'s governing line is now KCD2's
+immersion by other means rather than a spike on three systems axes. The
+LEDGER-now column is untouched: those are measurements of the code and they do
+not move because a goal did. Targets are where strategy lives, so those moved.
+
+**The table had no row for the thing that is now the goal.** Every dimension in
+it measured systems depth. Nothing asked whether characters are believable,
+whether the dialogue is any good AS WRITING, whether the place has texture, or
+whether it feels right in the hands — so the game could score **93 on "Social:
+talk, trust, memory"** while 447 lines of speech played as silence and every
+character but the player was a coloured box. That score is not wrong; it
+measures the trust-and-memory model, which is genuinely excellent. It simply was
+never measuring immersion, and read as though it were.
+
+| new dimension | now | why that number |
+|---|---|---|
+| Believable characters | **10** | only the player is skinned; 44 models exist and the town is boxes; zero speech played against 447 wanted; four principals uncast |
+| Dialogue as writing | **unjudged** | the honest entry. `ConversationEngine` and `IntentRouter` are wired and tested and NOBODY HAS EVER READ THE OUTPUT AND FORMED A VIEW. A number here would be invented, and M19 exists to replace this word with one |
+| Sense of place | **50** | seven districts with real street names, twelve CC0 surfaces, fog and noir grade, paned windows, cables, 28 vehicles at real proportions — the strongest of the four |
+| Input feel | **25** | input buffering and forgiveness shipped; controller untested and 28 `Input.*` calls still to move; `DialogueUI` still treats typing as the primary path |
+
+**Three targets HELD rather than raised, which is the part that costs
+something.** Social was 98, consequence 100, information 95. We are at 93/95/90
+against a best-in-class of 60/85/65 — a lead already won, and spending to widen
+it is the exact behaviour that produced a magnificent engine in a silent town.
+They are marked *hold*: do not regress, do not invest.
+
+**Two systems targets LOWERED** — faction politics 75 to 60, legacy and
+succession 70 to 45 — because a replan that only adds ambition is not a plan.
+Those compete for the same weeks as the immersion rows and lost.
+
+**Two raised**: character competence 40 to 55, since M21 makes growth the spine
+rather than a stat, and self-presentation 35 to 50, since what you wear being
+read by the street is immersion rather than book-keeping.
+
+**Competitor scores in the four new rows are authored judgement**, like every
+other competitor column here, and are not measurements. The LEDGER column is.
+
 | Dimension | GTA5 | RDR2 | KCD2 | BG3 | Hitman | Sims | CK3 | LEDGER now | **target** |
 |---|---|---|---|---|---|---|---|---|---|
-| Social: talk, trust, memory | 5 | 20 | 35 | 60* | 10 | 40 | 55 | 93 | **98** |
-| Consequence persistence | 5 | 30 | 60 | 70 | 15 | 40 | 85 | 95 | **100** |
-| Information / who knows what | 5 | 15 | 40 | 25 | 30 | 5 | 65 | 90 | **95** |
+| Social: talk, trust, memory | 5 | 20 | 35 | 60* | 10 | 40 | 55 | 93 | **93 — hold** |
+| Consequence persistence | 5 | 30 | 60 | 70 | 15 | 40 | 85 | 95 | **95 — hold** |
+| Information / who knows what | 5 | 15 | 40 | 25 | 30 | 5 | 65 | 90 | **90 — hold** |
 | Time & opportunity cost | 10 | 40 | 70 | 30 | 20 | 80 | 60 | 85 | **90** |
 | **Economy (full simulation)** | 15 | 25 | 55 | 20 | 5 | 60 | 45 | 80 | **85** |
-| Faction politics / allegiance | 10 | 20 | 45 | 55 | 5 | 0 | 90 | **45** | **75** |
+| Faction politics / allegiance | 10 | 20 | 45 | 55 | 5 | 0 | 90 | **45** | **60** |
 | **Operation planning** | 70 | 25 | 20 | 45 | 95 | 5 | 30 | **65** | **75** |
 | Law & institutions as a tool | 5 | 25 | 55 | 20 | 10 | 5 | 60 | **40** | **70** |
-| Legacy & succession | 0 | 10 | 15 | 20 | 0 | 55 | 95 | **40** | **70** |
+| Legacy & succession | 0 | 10 | 15 | 20 | 0 | 55 | 95 | **40** | **45** |
 | **Violence (staged: melee then guns)** | 90 | 90 | 80 | 85 | 70 | 5 | 20 | **45** | **70** |
 | **Traversal & place** | 95 | 90 | 70 | 30 | 40 | 15 | 0 | **55** | **65** |
 | Class & access (soft keys) | 10 | 25 | 60 | 30 | 95 | 20 | 50 | **60** | **65** |
@@ -84,18 +123,31 @@ This is the LLM-specific grind risk and the reason chips exist.
 | Constraint (arrest, surveillance) | 30 | 40 | 65 | 20 | 40 | 10 | 35 | **45** | **55** |
 | Home / base that reacts | 25 | 70 | 40 | 50 | 0 | 95 | 30 | 10 | **50** |
 | Family & dependents | 5 | 30 | 10 | 25 | 0 | 90 | 95 | 15 | **50** |
-| Character competence | 20 | 45 | 90 | 95 | 30 | 60 | 40 | **10** | **40** |
+| Character competence | 20 | 45 | 90 | 95 | 30 | 60 | 40 | **10** | **55** |
 | Vice & addiction | 15 | 25 | 40 | 10 | 0 | 30 | 25 | 5 | **40** |
-| Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | **25** | **35** |
+| Self-presentation / lifestyle | 45 | 55 | 50 | 30 | 60 | 85 | 25 | **25** | **50** |
 | Visible odds | 0 | 0 | 15 | 95 | 10 | 5 | 70 | 0 | **50** |
 | Interiority (psyche as system) | 0 | 15 | 0 | 20 | 0 | 30 | 20 | 0 | **30** |
 | Vehicles / driving | 95 | 60 | 50 | 0 | 10 | 20 | 0 | **35** | **40, late — superseded, see below** |
 | Body needs (eat/sleep/hygiene) | 5 | 45 | 75 | 15 | 0 | 90 | 10 | 0 | **0** |
 | Crafting / minigames | 20 | 70 | 85 | 30 | 15 | 55 | 0 | 0 | **0** |
+| **Believable characters (face, voice, presence)** | 60 | 85 | **95** | 90 | 40 | 50 | 10 | **10** | **75** |
+| **Dialogue as WRITING, not as a system** | 45 | 80 | **90** | 90 | 35 | 20 | 15 | **unjudged** | **85** |
+| **Sense of place / world detail** | 85 | 95 | **90** | 60 | 70 | 45 | 5 | **50** | **70** |
+| **Input feel (controller, couch-playable)** | 90 | 85 | 65 | 60 | 75 | 60 | 45 | **25** | **70** |
 
 \* BG3's social score is AUTHORED breadth — thousands of hand-written
-branches. It anticipates; it does not simulate. Outside the anticipated
-space there is nothing. That is the ceiling we are trying to break.
+branches. It anticipates; it does not simulate, and outside the anticipated
+space there is nothing.
+
+**REFRAMED 2026-08-01, because the old wording had become an argument against
+the plan.** It ended *"that is the ceiling we are trying to break"*, which reads
+authored quality as a lesser category. KCD2's immersion IS authored quality,
+superbly done, and it is now the target. The honest position is not that
+authoring is inferior — it is that we cannot AFFORD authored breadth at KCD2's
+scale, so we generate it instead, and generation buys one thing authoring cannot
+have at any budget: a character who can be **wrong about you**, argue about it,
+and hold a grudge over something that never happened.
 
 ## The seven decisions this encodes
 
