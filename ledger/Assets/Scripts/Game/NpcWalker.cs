@@ -16,8 +16,27 @@ namespace Ledger.Game
         readonly List<Entry> _schedule = new List<Entry>();
         TextMesh _label;
         /// Fully legible this close; gone by the far one. Recognition, not HUD.
-        const float LabelFullAt = 4f;
-        const float LabelFadeOut = 11f;
+        // TIED TO THE RANGE YOU CAN ACTUALLY SPEAK AT, rather than to two
+        // numbers that happened to be there.
+        //
+        // The rule beside the fade below says a name "resolves as you get close
+        // enough to speak to somebody, and it is not there at all across the
+        // road". `ConversationHost.TalkRange` is 3 metres. These were 4 and 11
+        // — fully legible a metre beyond speaking distance and still on screen
+        // eleven metres away, which IS across the road. The sentence and the
+        // numbers had never agreed, and the tuning pass on 2026-07-28 that was
+        // supposed to stop "a street of a dozen people reading as a wall of
+        // text" moved the numbers without checking them against the rule.
+        //
+        // A night still from the first build that could commit one shows five
+        // names at once, two of them larger than the people wearing them. That
+        // is the wall of text, still standing, with a picture of it.
+        //
+        // So: full exactly at talking distance, gone by twice that. Derived
+        // from the constant that defines the interaction rather than picked, so
+        // the two cannot drift apart again.
+        const float LabelFullAt = ConversationHost.TalkRange;
+        const float LabelFadeOut = ConversationHost.TalkRange * 2f;
 
         public string DisplayName { get; private set; }
 
