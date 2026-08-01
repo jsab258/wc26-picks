@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Match Unity 6's compiler level, like every other tool here. -->
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Ledger.Recurrence</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- THE REAL CORE, not a copy of it. The whole point of this tool is that
+         it measures the population the game actually generates; a Python
+         reimplementation of `Population.Generate` would be a second model free
+         to disagree with the first, which is the fault this project keeps
+         finding. -->
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+  </ItemGroup>
+</Project>
