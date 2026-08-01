@@ -43,6 +43,18 @@ namespace Ledger.Game
         public static double Upright { get; private set; }
         public static string Orientation { get; private set; } = "not tried";
 
+        /// HOW THE BODY IS PAINTED, counted so a run can tell the three cases
+        /// apart. `Kept` is renderers that arrived with their own material,
+        /// `Skinned` is head/hands/eyes, `Dressed` is everything the wardrobe
+        /// covered. The build that made these necessary read `Skinned` = every
+        /// renderer and `Dressed` = 0 — a naked player on a dressed street —
+        /// and reported nothing at all, because a body painted entirely skin
+        /// has a material on every renderer and passes every check that asks
+        /// whether a material exists.
+        public static int Skinned { get; private set; }
+        public static int Dressed { get; private set; }
+        public static int Kept { get; private set; }
+
         public static void ResetCounters()
         {
             Attached = 0;
@@ -55,7 +67,8 @@ namespace Ledger.Game
         /// The prefab is written by `Editor/CharacterPrefab` at build time and
         /// carries an `Animator` whose avatar is the model's own — which is
         /// precisely what `CharacterRig.Bind` looks for.
-        public static bool TryAttach(GameObject host, float targetHeightMetres = 1.8f)
+        public static bool TryAttach(GameObject host, float targetHeightMetres = 1.8f,
+                                     string wearer = "player")
         {
             if (host == null) { Why = "no host"; return false; }
 
@@ -116,15 +129,71 @@ namespace Ledger.Game
             // magenta and lying down, and the magenta is the easier half.
             // Skin-toned and flat, matching what `Mannequin` dresses its own
             // bodies in, so the two tiers do not read as different species.
+            // AND THEN THE STILL SHOWED WHY THAT COMMENT WAS ONLY HALF A FIX.
+            //
+            // The fallback fired on EVERY renderer — the model ships with no
+            // materials at all — so the player walked the street as a
+            // uniformly skin-coloured figure while `wardrobe=[navy:492
+            // charcoal:549 olive:267 brown:449 oxblood:100]` said the crowd was
+            // dressed. Nothing was broken by the measure any gate took:
+            // `realBody=1`, `playerPrimitive=False`, `bodyUp=1.000`,
+            // `SceneAudit` clean with no `noMaterial` finding — because there
+            // WAS a material, and it was skin.
+            //
+            // A person with no clothes is not a missing-material bug, which is
+            // why every check built to catch missing materials passed. It is a
+            // MISSING WARDROBE, and the player was the only body in the city
+            // nothing dressed.
+            //
+            // So: skin stays the fallback for anything unpainted, and the body
+            // is then DRESSED from `Core/Wardrobe` like everybody else — at a
+            // named character's value rather than the crowd's, since
+            // `Wardrobe.MaxValue` exists precisely so the cast stay brighter
+            // than the street. `Skinned` and `Dressed` are counted so a run can
+            // tell "the fallback painted everything" from "the model arrived
+            // with its own materials", which the last one could not.
             var skin = AssetLibrary.Opaque(new Color(0.72f, 0.58f, 0.47f));
+            // FULLY QUALIFIED, because this file deliberately has no `using
+            // Ledger.Core;` — that import collides `Ledger.Core.Object`-shaped
+            // names with `UnityEngine.Object` and the bare `Object.Destroy`
+            // above becomes CS0104. `lint-usings.py` caught the import I nearly
+            // added instead, which is a 28-minute CI round trip it just saved.
+            Ledger.Core.Wardrobe.Dress(
+                Ledger.Core.Physique.Fraction(wearer ?? "player", 7),
+                out double ch, out double cs, out double cv);
+            // The cast sit above the crowd's ceiling on purpose — Rocco 0.75,
+            // Ada 0.75, Sam 0.65 — and the player is a named character.
+            // `Wardrobe.MaxValue` is 0.46 and exists so nobody in the crowd
+            // outshines them, so lifting by a fixed step off the band keeps the
+            // hue and saturation the wardrobe chose while placing the value
+            // where the cast live. 0.68 is under Rocco's 0.75, not a tuned
+            // number: the protagonist should not be the brightest man on his
+            // own street either.
+            float coatV = Mathf.Min(0.68f, (float)cv + 0.22f);
+            var coat = AssetLibrary.Opaque(Color.HSVToRGB((float)ch, (float)cs, coatV));
+            Skinned = Dressed = Kept = 0;
             foreach (var r in body.GetComponentsInChildren<Renderer>())
             {
                 if (r == null) continue;
                 var m = r.sharedMaterial;
                 // Only where nothing was authored. A model that DOES arrive with
                 // materials keeps them — this is a fallback, not a repaint.
-                if (m == null || m.name.StartsWith("Default", System.StringComparison.Ordinal))
-                    r.sharedMaterial = skin;
+                if (m != null && !m.name.StartsWith("Default", System.StringComparison.Ordinal))
+                { Kept++; continue; }
+
+                // WHICH RENDERER IS SKIN AND WHICH IS COAT, FROM THE NAME.
+                //
+                // Mixamo names its submeshes, and head/hands/eyes are the parts
+                // that should stay flesh. Anything else is body, and body wears
+                // a coat. Read off the name rather than off an index, because
+                // an index would silently mean something different the first
+                // time a different model is bought — and this project has been
+                // bitten by exactly that with the hand lookup.
+                string n = r.name.ToLowerInvariant();
+                bool flesh = n.Contains("head") || n.Contains("hand")
+                          || n.Contains("eye") || n.Contains("face");
+                r.sharedMaterial = flesh ? skin : coat;
+                if (flesh) Skinned++; else Dressed++;
             }
 
             // WHICH WAY UP, PRINTED. Setting the instantiated root's rotation to

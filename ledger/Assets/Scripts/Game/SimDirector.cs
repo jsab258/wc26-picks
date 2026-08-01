@@ -1160,9 +1160,42 @@ namespace Ledger.Game
                         if (sig < _playerPoseMin) _playerPoseMin = sig;
                         if (sig > _playerPoseMax) _playerPoseMax = sig;
                     }
+
+                    // AND WHETHER THE SHAPE IS A PERSON, which is a different
+                    // question from whether it MOVED and from which way the
+                    // root faces. The build that forced this read
+                    // `bodyUp=1.000` and `playerPose` non-zero while the still
+                    // showed a splayed figure in the road: upright root,
+                    // moving bones, and not a standing man.
+                    //
+                    // WORST OVER THE RUN, not the reading at the end. The
+                    // question is "was the player ever assembled wrong", and a
+                    // snapshot at the final frame answers a different one — the
+                    // same reasoning that makes a maximum right for
+                    // `NameTags.WorstUnplaced` and was wrong for the AO
+                    // ceiling.
+                    if (prig.PostureRead)
+                    {
+                        if (!_postureSeen)
+                        {
+                            _postureSeen = true;
+                            _worstHeadAboveHips = prig.HeadAboveHips;
+                            _worstHipsAboveFeet = prig.HipsAboveFeet;
+                        }
+                        else
+                        {
+                            if (prig.HeadAboveHips < _worstHeadAboveHips)
+                                _worstHeadAboveHips = prig.HeadAboveHips;
+                            if (prig.HipsAboveFeet < _worstHipsAboveFeet)
+                                _worstHipsAboveFeet = prig.HipsAboveFeet;
+                        }
+                    }
                 }
             }
         }
+
+        bool _postureSeen;
+        float _worstHeadAboveHips, _worstHipsAboveFeet;
 
         // ---- WET REFLECTIONS ----
         //
@@ -4486,6 +4519,33 @@ namespace Ledger.Game
                 // near a person lying down. Nothing in between is a pose this
                 // game produces.
                 && (RealBody.Attached == 0 || RealBody.Upright > 0.9)
+                // AND THE SKELETON HANGING OFF THAT ROOT IS A PERSON.
+                //
+                // `bodyUp` reads the ROOT's up vector. It read 1.000 — a
+                // perfectly upright root — on the build whose player is a
+                // splayed red figure lying across the road with its limbs out,
+                // and the two facts are both true. Every clause above asks
+                // about the body that was added, its size, its orientation and
+                // whether the capsule is gone; not one of them can see the
+                // POSE, which is the thing a person looking at the screen sees
+                // first.
+                //
+                // Gated on the SIGN, so it is not a threshold: a head is above
+                // its hips and hips are above their feet, or the figure is not
+                // assembled like a man. The magnitudes are printed so a real
+                // bound can be set from evidence next run rather than invented
+                // here.
+                && (!_postureSeen
+                    || (_worstHeadAboveHips > 0f && _worstHipsAboveFeet > 0f))
+                // AND SOMEBODY DRESSED HIM. The same build put the player on a
+                // street reading `wardrobe=[navy:492 charcoal:549 olive:267
+                // brown:449 oxblood:100]` while he himself was bare skin from
+                // head to foot — because the material fallback painted every
+                // renderer flesh, and a body painted entirely skin HAS a
+                // material on every renderer. `SceneAudit`'s `noMaterial`
+                // check, which exists for exactly this family of fault, was
+                // right to pass. A naked man is not a missing material.
+                && (RealBody.Attached == 0 || RealBody.Dressed > 0)
                 // AND THE SCENE ITSELF IS SOUND. Missing materials, error
                 // shaders, NaN transforms, hundredfold scales, buried geometry —
                 // the classes that make a frame WRONG rather than merely
@@ -4855,7 +4915,9 @@ namespace Ledger.Game
                  $"refresh={ReflRefreshes} max={_reflMaxStrength:0.00}]", reflOk),
                 ($"bodies[rigs={_bodyRigs} solved={_bodyMaxSolved} " +
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
-                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()} up={RealBody.Upright:0.00}]", bodiesOk),
+                 $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()} up={RealBody.Upright:0.00} "
+                 + $"headOverHips={_worstHeadAboveHips:0.00} hipsOverFeet={_worstHipsAboveFeet:0.00} "
+                 + $"dressed={RealBody.Dressed} skinned={RealBody.Skinned}]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[hit={100 * _bloomFraction:0.00}% rise={_bloomRise:0.0000} " +
@@ -4995,14 +5057,22 @@ namespace Ledger.Game
                 // is `nightNotDarker` again: a gate that fails on an off-by-one
                 // nobody has looked at, on a mechanism that is working.
                 //
-                // So: gate on ran-at-all, and PRINT `nights` against
-                // `simDays`. One run makes the relationship a fact and the
-                // clause can tighten to equality on evidence.
+                // AND THE RUN THAT ANSWERED IT. 140f7a2 read `household[home=1
+                // away=5 ...]` beside `daysClosed=6`, so the relationship is
+                // exact and it is against `daysClosed` — the count of days the
+                // game actually turned — and NOT `SimMode.Days`, which is the
+                // requested length and was 17 on the same run because the sim
+                // skips days. I would have gated on the wrong variable.
+                //
+                // Equality, now that it is a measurement rather than a guess. A
+                // scorer that stops being called leaves the sum short, and no
+                // amount of staring at `bond=0.49` would show it — the bond is
+                // exactly what it would be if nothing had happened.
                 ($"{(_game != null ? _game.Household.Report() : "household[absent]")}"
                  + $" nights={(_game != null ? _game.Household.NightsHome + _game.Household.NightsAway : -1)}"
-                 + $"/simDays={SimMode.Days}",
+                 + $"/daysClosed={(_game != null ? _game.Campaign.DaysClosed : -1)}",
                  _game != null
-                 && _game.Household.NightsHome + _game.Household.NightsAway > 0
+                 && _game.Household.NightsHome + _game.Household.NightsAway == _game.Campaign.DaysClosed
                  && _game.Household.Book.People.Count > 0),
 
                 // M18 — AND THE COMPANION IS A WITNESS BY STANDING THERE.
@@ -5266,6 +5336,11 @@ namespace Ledger.Game
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
                       $"bodyUp={RealBody.Upright:0.000} bodyRot=[{RealBody.Orientation}] " +
                       $"playerPose={PlayerPoseRange:0.00000} " +
+                      $"headAboveHips={_worstHeadAboveHips:0.000} " +
+                      $"hipsAboveFeet={_worstHipsAboveFeet:0.000} " +
+                      $"postureRead={_postureSeen} " +
+                      $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
+                      $"bodyKeptMats={RealBody.Kept} " +
                       $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +

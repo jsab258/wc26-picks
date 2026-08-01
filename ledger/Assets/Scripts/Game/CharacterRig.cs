@@ -254,6 +254,29 @@ namespace Ledger.Game
         /// rig was already solving.
         public float PoseSignature { get; private set; }
 
+        /// IS THIS SHAPE A PERSON — asked of the BONES, not of the root.
+        ///
+        /// `RealBody.Upright` reads the root transform's up vector and it read
+        /// 1.000 on a build whose player is a splayed red figure in the road
+        /// with its limbs out. Both facts are true at once and neither is a
+        /// bug in the other: the root IS upright, and the skeleton hanging off
+        /// it is not a standing man. A gate on the root cannot see the pose,
+        /// and I had written `bodyUp` believing it could.
+        ///
+        /// So: a head above its hips, and hips above its feet. Two signed
+        /// metres, and the gate is on the SIGN rather than on a magnitude —
+        /// which makes it not a threshold at all but a statement about which
+        /// way a person is assembled. The magnitudes are printed so a real
+        /// bound (a head is ~0.55m above the hips, hips ~0.9m above the sole)
+        /// can be set from evidence on the next run instead of guessed now.
+        ///
+        /// WORLD SPACE, and deliberately: local positions are relative to a
+        /// parent that may itself be the thing that is wrong, which is exactly
+        /// how the Z-up import hid for a build.
+        public float HeadAboveHips { get; private set; }
+        public float HipsAboveFeet { get; private set; }
+        public bool PostureRead { get; private set; }
+
         void StampPose()
         {
             float s = 0f;
@@ -261,6 +284,16 @@ namespace Ledger.Game
             if (_chest != null) s += _chest.localRotation.x * 31f + _chest.localRotation.z;
             if (_rShin != null) s += _rShin.localRotation.x * 7f;
             PoseSignature = s;
+
+            if (_hips != null && _head != null && (_lFoot != null || _rFoot != null))
+            {
+                float soleY = _lFoot != null && _rFoot != null
+                    ? Mathf.Min(_lFoot.position.y, _rFoot.position.y)
+                    : (_lFoot != null ? _lFoot.position.y : _rFoot.position.y);
+                HeadAboveHips = _head.position.y - _hips.position.y;
+                HipsAboveFeet = _hips.position.y - soleY;
+                PostureRead = true;
+            }
         }
 
         void CaptureRest()
