@@ -55,6 +55,13 @@ namespace Ledger.Game
         public static int Dressed { get; private set; }
         public static int Kept { get; private set; }
 
+        /// The skeleton as IMPORTED, before anything animates it. See the note
+        /// where these are measured: this is what tells a bad import apart from
+        /// a bad animation without spending a CI round trip on each guess.
+        public static float BindHeadAboveHips { get; private set; }
+        public static float BindHipsAboveFeet { get; private set; }
+        public static bool BindPoseRead { get; private set; }
+
         public static void ResetCounters()
         {
             Attached = 0;
@@ -176,10 +183,22 @@ namespace Ledger.Game
             {
                 if (r == null) continue;
                 var m = r.sharedMaterial;
-                // Only where nothing was authored. A model that DOES arrive with
-                // materials keeps them — this is a fallback, not a repaint.
-                if (m != null && !m.name.StartsWith("Default", System.StringComparison.Ordinal))
-                { Kept++; continue; }
+                // KEEP ONLY WHAT IS ACTUALLY PAINTED, AND THE TEST IS A
+                // TEXTURE RATHER THAN A NAME.
+                //
+                // This read `!m.name.StartsWith("Default")` and the build said
+                // exactly what was wrong with it: `bodyKeptMats=2
+                // bodySkinned=0 bodyDressed=0`. Both of the body's renderers
+                // carry a material that is NOT called "Default…", so both were
+                // kept and neither the skin nor the coat was ever applied —
+                // the dressing code I shipped last cycle did not run once. The
+                // pink is the model's own material.
+                //
+                // A NAME IS NOT EVIDENCE OF AUTHORSHIP. An untextured
+                // stand-in has a name too. What distinguishes a material
+                // somebody made from a placeholder is that it has a texture on
+                // it, and that is a property rather than a guess.
+                if (m != null && m.mainTexture != null) { Kept++; continue; }
 
                 // WHICH RENDERER IS SKIN AND WHICH IS COAT, FROM THE NAME.
                 //
@@ -208,6 +227,49 @@ namespace Ledger.Game
             Upright = Vector3.Dot(body.transform.up, Vector3.up);
             Orientation = $"root={body.transform.localRotation.eulerAngles} "
                           + $"child0={childRot} up.y={Upright:0.000}";
+
+            // THE BIND POSE, MEASURED BEFORE ANYTHING ANIMATES IT.
+            //
+            // The run reports `headAboveHips=-0.130 hipsAboveFeet=-0.778` — the
+            // player is upside down — while `bodyUp=1.000` says the root is
+            // perfectly upright. Two hypotheses fit that equally well and they
+            // have opposite fixes:
+            //
+            //   IMPORT   `bakeAxisConversion = true` is wrong for these files.
+            //            It was set because a body lay on its back, and the
+            //            evidence that it worked was `bodyUp` going to 1.000 —
+            //            which reads the ROOT and could never have seen the
+            //            skeleton. If Mixamo's FBX were already Y-up, baking a
+            //            conversion would have introduced the flip rather than
+            //            removed it, and I would have confirmed the fix with an
+            //            instrument that cannot see the fault.
+            //   ANIMATE  the import is fine and something downstream — a clip,
+            //            the avatar binding, or `CharacterRig`'s own solve — is
+            //            driving the bones inverted.
+            //
+            // Guessing costs a 28-minute round trip per guess. Measuring the
+            // BIND pose here, before a single frame has animated, separates
+            // them in ONE: if the T-pose is already inverted it is the import,
+            // and if the T-pose is upright while the run is not, it is
+            // everything after.
+            var anim = body.GetComponentInChildren<Animator>();
+            BindPoseRead = false;
+            if (anim != null && anim.isHuman)
+            {
+                var hips = anim.GetBoneTransform(HumanBodyBones.Hips);
+                var head = anim.GetBoneTransform(HumanBodyBones.Head);
+                var lf = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
+                var rf = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+                if (hips != null && head != null && (lf != null || rf != null))
+                {
+                    float sole = lf != null && rf != null
+                        ? Mathf.Min(lf.position.y, rf.position.y)
+                        : (lf != null ? lf.position.y : rf.position.y);
+                    BindHeadAboveHips = head.position.y - hips.position.y;
+                    BindHipsAboveFeet = hips.position.y - sole;
+                    BindPoseRead = true;
+                }
+            }
 
             // SCALE FROM THE BOUNDS, NOT FROM A CONSTANT. Mixamo's own scale
             // depends on how the file was exported, and `useFileScale` respects

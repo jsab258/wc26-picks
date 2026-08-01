@@ -1929,10 +1929,38 @@ namespace Ledger.Game
                 _deedsStaged++;
                 _lastDeedDay = now.Day;
                 var weapon = Arsenal.Get("cosh");
+                // THE COMPANION CANNOT BE THE VICTIM, and the first run of this
+                // gate is what showed why. It came back `companion[with=Tanja
+                // rung=-1 ... noted=0]`: Tanja was recruited, was escorting,
+                // and produced no observation at all.
+                //
+                // Because she was standing at the player's shoulder she was
+                // ALWAYS the nearest walker, so the sim staged its deed
+                // against her — and `Witnesses.Resolve` skips the victim by
+                // design (`Reaction.AsVictim` owns the target's account; a dead
+                // man is not a bystander). The escort was excluded from the
+                // witness list by the very thing that made her a witness.
+                //
+                // A staging fault, not a design fault, and exactly the shape
+                // rule 3 warns about: the instrument was standing in the way of
+                // the measurement.
+                var victim = nearest;
+                if (_game != null && _game.Companion.Walking == victim)
+                {
+                    victim = null;
+                    float best = float.MaxValue;
+                    foreach (var n in _npcs)
+                    {
+                        if (n == null || n == _game.Companion.Walking) continue;
+                        float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                        if (d < best) { best = d; victim = n; }
+                    }
+                    if (victim == null) victim = nearest;   // nobody else: stage it anyway
+                }
                 var deed = Observe.DeedFor(weapon, $"sim-deed-{_deedsStaged}",
-                                           "player", nearest.DisplayName,
+                                           "player", victim.DisplayName,
                                            actorFled: false, hadPrecursor: true);
-                Witnesses.Resolve(deed, _player.transform, nearest.transform.position);
+                Witnesses.Resolve(deed, _player.transform, victim.transform.position);
                 // M18. AND WHOEVER WAS AT YOUR SHOULDER WHEN YOU DID IT.
                 //
                 // Read off the witness record that was just produced, not from
@@ -5098,9 +5126,15 @@ namespace Ledger.Game
                 // `noted>0` is the separate half: the sighting reached
                 // `CompanionHost` through the witness record rather than
                 // through a proximity test of its own.
-                ($"companion[with={(_companionWith == "" ? "none" : _companionWith)} "
-                 + $"rung={_companionRung} street={_companionStreetRung} "
-                 + $"{(_game != null ? _game.Companion.Report() : "host=absent")}]",
+                // The label wrapped `Companion.Report()` — which already opens
+                // its own `companion[` — inside a second one, so the first run
+                // printed `companion[with=Tanja rung=-1 street=1
+                // companion[with=Tanja …]` with unbalanced brackets. Cosmetic,
+                // and a verdict is the one channel out of CI this environment
+                // can read, so it stays legible.
+                ($"companionSight[with={(_companionWith == "" ? "none" : _companionWith)} "
+                 + $"rung={_companionRung} street={_companionStreetRung}] "
+                 + $"{(_game != null ? _game.Companion.Report() : "companion[host=absent]")}",
                  _game != null && _companionStaged
                  && _game.Companion.Recruited > 0
                  && _game.Companion.Noted > 0
@@ -5341,6 +5375,9 @@ namespace Ledger.Game
                       $"postureRead={_postureSeen} " +
                       $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
                       $"bodyKeptMats={RealBody.Kept} " +
+                      $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
+                      $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
+                      $"bindPoseRead={RealBody.BindPoseRead} " +
                       $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +
