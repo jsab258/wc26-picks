@@ -4974,6 +4974,8 @@ namespace Ledger.Game
                       $"beats=[{string.Join(",", beatStates)}] attended={beatsAttended} skipped={beatsSkipped} " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
                       $"dressed={WorldBuilder.Dressed} perNear={perNear:0.00} perFar={perFar:0.00} " +
+                      $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
+                      $"cables={StreetFurniture.CableCount} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +

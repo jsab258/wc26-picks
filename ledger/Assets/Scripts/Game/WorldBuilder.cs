@@ -82,6 +82,7 @@ namespace Ledger.Game
             Masses.Clear();
             Masses.AddRange(BuildBlockSpecs());
             _windowsLit = false;
+            WindowPanes = 0; WindowBands = 0;
             AssetLibrary.Initialize();
             ConfigureEnvironment();
 
@@ -521,19 +522,81 @@ namespace Ledger.Game
             }
         }
 
-        /// Horizontal window bands per floor on all four faces, sitting slightly proud of
-        /// the façade. Collected so SetWindowsLit can make them glow after dusk.
+        /// Windows per floor on all four faces, sitting slightly proud of the
+        /// façade. Collected so SetWindowsLit can make them glow after dusk.
+        ///
+        /// PANES, NOT BANDS, AND THAT IS THE FIX FOR THE NIGHT STILL. Each floor
+        /// used to be ONE box across 82% of the face, so a lit building was a
+        /// stack of solid glowing rectangles — which is exactly what
+        /// `review_day1_night.jpg` shows, and it would look like that at any
+        /// emission value. The bleached colour measured off the frame ledger
+        /// (b/r 0.91 against the 0.45 asked for) is a SECOND, independent cause
+        /// sitting on top of this one; fixing either alone leaves slabs.
+        ///
+        /// A window is a hole in a wall with wall on both sides of it. Splitting
+        /// the band into panes with a pier between them costs one loop and is
+        /// the difference between a lit building and a lit rectangle.
+        ///
+        /// PANE WIDTH IS DERIVED, NOT PICKED: the count is chosen so a pane
+        /// lands near 1.4m, which is a domestic window, and then the run is
+        /// divided evenly so a wide façade gets more windows rather than wider
+        /// ones. That is the property that makes buildings of different sizes
+        /// look like the same city.
         static void AddWindows(string tag, Vector3 pos, Vector3 size)
         {
-            const float floorH = 3.0f, bandH = 1.3f, proud = 0.04f;
-            float wx = size.x * 0.82f, wz = size.z * 0.82f;
+            const float floorH = 3.0f, bandH = 1.3f, proud = 0.04f, target = 1.4f, gap = 0.55f;
+            float runX = size.x * 0.82f, runZ = size.z * 0.82f;
+
+            // AND SPLIT ONLY WHERE SOMEBODY IS STANDING. Panes are ~4x the
+            // window renderers of a band, and this runs on a GPU-less runner
+            // already spending ~335ms a frame in the software rasteriser — a
+            // change that improves the near view and times the sim step out has
+            // not improved anything.
+            //
+            // The test is the one the facades already use — `NearCoreMetres`,
+            // the constant this file defines as "within this of a core counts as
+            // a dense district for the gate". Reused rather than reinvented: my
+            // first version thresholded `DetailAt` at 0.5, which is a number I
+            // picked, and `DetailAt` does not even range over 0..1 (it floors at
+            // 0.34), so 0.5 was not the midpoint of anything. A far building
+            // keeps the single band it has always had, where it is a smudge in
+            // fog and the difference is invisible.
+            bool near = Ledger.Core.Dressing.NearestCore(pos.x, pos.z, DenseCores) <= NearCoreMetres;
+            if (near) WindowPanes++; else WindowBands++;
+            int nx = near ? Mathf.Max(1, Mathf.RoundToInt(runX / (target + gap))) : 1;
+            int nz = near ? Mathf.Max(1, Mathf.RoundToInt(runZ / (target + gap))) : 1;
+            float paneX = (runX - gap * (nx - 1)) / nx;
+            float paneZ = (runZ - gap * (nz - 1)) / nz;
             int floor = 0;
             for (float y = 2.0f; y < size.y - 1.0f; y += floorH, floor++)
             {
-                Windows.Add(WinBox($"{tag}_win_xP_{floor}", new Vector3(pos.x + size.x / 2f + proud, y, pos.z), new Vector3(0.08f, bandH, wz)));
-                Windows.Add(WinBox($"{tag}_win_xN_{floor}", new Vector3(pos.x - size.x / 2f - proud, y, pos.z), new Vector3(0.08f, bandH, wz)));
-                Windows.Add(WinBox($"{tag}_win_zP_{floor}", new Vector3(pos.x, y, pos.z + size.z / 2f + proud), new Vector3(wx, bandH, 0.08f)));
-                Windows.Add(WinBox($"{tag}_win_zN_{floor}", new Vector3(pos.x, y, pos.z - size.z / 2f - proud), new Vector3(wx, bandH, 0.08f)));
+                // GROUND FLOOR IS DIFFERENT, because on a real street it is: a
+                // shopfront is one wide light and the flats above it are a row
+                // of small ones. One `if` buys the single most legible thing a
+                // block of buildings can have, which is a bottom.
+                bool ground = floor == 0;
+                for (int k = 0; k < (ground ? 1 : nz); k++)
+                {
+                    float off = ground ? 0f : -runZ / 2f + paneZ / 2f + k * (paneZ + gap);
+                    float w = ground ? runZ * 0.92f : paneZ;
+                    Windows.Add(WinBox($"{tag}_win_xP_{floor}_{k}",
+                        new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off),
+                        new Vector3(0.08f, bandH, w)));
+                    Windows.Add(WinBox($"{tag}_win_xN_{floor}_{k}",
+                        new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off),
+                        new Vector3(0.08f, bandH, w)));
+                }
+                for (int k = 0; k < (ground ? 1 : nx); k++)
+                {
+                    float off = ground ? 0f : -runX / 2f + paneX / 2f + k * (paneX + gap);
+                    float w = ground ? runX * 0.92f : paneX;
+                    Windows.Add(WinBox($"{tag}_win_zP_{floor}_{k}",
+                        new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud),
+                        new Vector3(w, bandH, 0.08f)));
+                    Windows.Add(WinBox($"{tag}_win_zN_{floor}_{k}",
+                        new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud),
+                        new Vector3(w, bandH, 0.08f)));
+                }
             }
         }
 
@@ -544,6 +607,17 @@ namespace Ledger.Game
         {
             if (r != null) Windows.Add(r);
         }
+
+        /// How many window renderers the city built, and how many of those are
+        /// panes rather than bands.
+        ///
+        /// PRINTED BECAUSE THE COST IS THE RISK. Panes are roughly four times
+        /// the renderers of a band and this runs on a software rasteriser, so
+        /// the next run's `meanFrame` against the 335ms before it is the
+        /// measurement that says whether the near/far split was cut in the right
+        /// place. Guessing that from the still is how three correct things got
+        /// condemned in one night.
+        public static int WindowPanes, WindowBands;
 
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
         {

@@ -29,6 +29,87 @@ namespace Ledger.Game
                 if (!Signals.HasLights(n)) BuildStopSigns(n);
             }
             BuildLaneSigns();
+            BuildOverheadCables();
+        }
+
+        /// How many cables got strung. Read by the sim, for the same reason
+        /// `Dressed` is: "the street feels enclosed" has to be a count.
+        public static int CableCount { get; private set; }
+
+        /// CABLES ACROSS THE STREET — `Dressing.CableAt`, which has been on the
+        /// reach ledger since the ledger was written.
+        ///
+        /// Its own comment says it: *"Overhead clutter is the cheapest thing
+        /// there is for making a street feel ENCLOSED rather than like two rows
+        /// of boxes with a gap, and nobody ever budgets for it."* The function
+        /// was written, tested, entered on the debt ledger as "authored in
+        /// Dressing and drawn nowhere", and left. `built is not running`, in the
+        /// one system whose entire job is to stop the city reading as two rows
+        /// of boxes with a gap — which is precisely how the review still reads.
+        ///
+        /// The span is the edge's own width, so `CableAt`'s 14m cutoff does the
+        /// deciding: alleys and streets get cables, and a wide avenue does not,
+        /// because a cable over a main road reads as a mistake rather than as a
+        /// slum. Prosperity is the back-alley figure on a lane and the
+        /// street-front figure otherwise — the same two constants the facades
+        /// are dressed from, so a poor lane strings more than a good street.
+        static void BuildOverheadCables()
+        {
+            CableCount = 0;
+            foreach (var e in StreetMap.Edges)
+            {
+                var a = StreetMap.Node(e.A);
+                var b = StreetMap.Node(e.B);
+                if (a == null || b == null) continue;
+                double dx = b.X - a.X, dz = b.Z - a.Z;
+                double len = System.Math.Sqrt(dx * dx + dz * dz);
+                if (len < 1e-3) continue;
+                dx /= len; dz /= len;
+                double prosperity = e.Kind == "lane" ? 0.15 : 0.55;
+
+                // Every seven metres along, which is far enough apart that two
+                // cables never read as a net and close enough that a short lane
+                // still gets one.
+                for (double s = 6.0; s < len - 6.0; s += 7.0)
+                {
+                    double x = a.X + dx * s, z = a.Z + dz * s;
+                    if (!Dressing.CableAt(x, z, prosperity, e.Width)) continue;
+                    Cable(x, z, dx, dz, e.Width);
+                    CableCount++;
+                }
+            }
+        }
+
+        /// One cable, as two sagging segments.
+        ///
+        /// TWO AND NOT ONE, because a dead-straight line at six metres reads as
+        /// scaffolding. Two segments meeting a third of a metre lower in the
+        /// middle is the cheapest thing that reads as weight — a real catenary
+        /// would be a mesh, and at this distance in fog nobody can tell the
+        /// difference between a curve and one bend.
+        static void Cable(double x, double z, double dx, double dz, double span)
+        {
+            // Across the street, not along it: the perpendicular.
+            var across = new Vector3((float)-dz, 0, (float)dx);
+            var mid = new Vector3((float)x, 0, (float)z);
+            float half = (float)span * 0.5f + 0.6f;   // into the facade at each end
+            const float high = 6.0f, sag = 0.35f;
+            var left = mid - across * half + Vector3.up * high;
+            var right = mid + across * half + Vector3.up * high;
+            var low = mid + Vector3.up * (high - sag);
+            Segment($"Cable_{x:0}_{z:0}_a", left, low);
+            Segment($"Cable_{x:0}_{z:0}_b", low, right);
+        }
+
+        static void Segment(string name, Vector3 from, Vector3 to)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.position = (from + to) * 0.5f;
+            go.transform.up = (to - from).normalized;
+            go.transform.localScale = new Vector3(0.05f, (to - from).magnitude, 0.05f);
+            go.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            Strip(go.GetComponent<Collider>());
         }
 
         /// Two boards on one post at each junction, one per street, set on the
