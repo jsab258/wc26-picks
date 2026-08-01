@@ -29,33 +29,38 @@ namespace Ledger.Game
         /// percent of a real car — so the rule is that a visual judgement is a
         /// HYPOTHESIS until a number answers it.
         ///
-        /// THE NUMBER ARRIVED, AND IT CONFIRMS THE SUSPECT. The frame ledger's
-        /// first run gives, for the night shots:
+        /// THE SERIES CAME BACK AND IT REFUTED ME. `MeasureWindowGlow` swept the
+        /// multiplier and printed:
         ///
-        ///     brightPct 5.2-9.8%   brightRgb (204,200,185) and (211,206,184)
+        ///     k=1.0 rgb=178,172,145 b/r=0.82    k=2.2 rgb=195,192,176 b/r=0.90
+        ///     k=1.4 rgb=186,181,159 b/r=0.86    k=2.6 rgb=198,195,181 b/r=0.91
+        ///     k=1.8 rgb=192,188,169 b/r=0.88    k=3.0 rgb=200,198,185 b/r=0.92
         ///
-        /// The bright pixels' channel ratio is 1.00 : 0.98 : 0.91. The colour
-        /// asked for here is 1.00 : 0.82 : 0.45. The warmth is not dimmed, it is
-        /// GONE — those windows are white on screen, and a warm interior glow
-        /// was the entire point of the constant.
+        /// At **k=1.0 there is no multiplier at all** — the raw colour, nothing
+        /// clipping, nothing for ACES to compress — and the bright pixels still
+        /// read 0.82 against a target of 0.45. Across a threefold change in
+        /// emission the ratio moves 0.82 to 0.92 and the bright fraction moves
+        /// 5.07% to 7.05%. **This constant is not what makes the windows white.**
         ///
-        /// The cause is arithmetic rather than taste: at a 3.0 multiplier every
-        /// channel exceeds 1.0 before the tonemap even sees it — red 3.00, green
-        /// 2.46, BLUE 1.35 — so the hue cannot survive. There is no value of
-        /// this colour at this multiplier that reads as anything but white.
+        /// I had written "THE NUMBER ARRIVED, AND IT CONFIRMS THE SUSPECT" in
+        /// this exact spot, with a clean argument about every channel clearing
+        /// 1.0 before the tonemap. The argument was true and it was not the
+        /// cause, which is the whole reason the constant was left alone until a
+        /// sweep existed. Had I "fixed" it on that reasoning I would have
+        /// darkened every window in the city and changed nothing about the
+        /// complaint.
         ///
-        /// WHAT IT IS NOT: the geometry. The alternative hypothesis was that the
-        /// slabs are the window meshes taking too much of the façade, which
-        /// would have made darkening this constant a fix applied in the wrong
-        /// file. A desaturated bright colour rules that out — too much window
-        /// area would read as a large WARM fraction, not a bleached one.
+        /// WHAT THE SWEEP ACTUALLY EXPOSED IS THE INSTRUMENT. `BrightColour`
+        /// averages every bright pixel in the FRAME, and at k=1.0 — windows
+        /// barely emitting — 5.07% of the frame is still bright. Most of that
+        /// bright set is lamps and neon, not windows, so the reading was never
+        /// about windows in the first place. Rule 3: check the ruler before the
+        /// reading, and this ruler was pointed at the wrong thing.
         ///
-        /// NOT YET CHANGED, because "lower" is not a number. The blue channel
-        /// clips above 2.22 and every channel is compressed by the ACES curve
-        /// on top of that, so the multiplier that keeps the hue is a
-        /// measurement, not a derivation — the same shape as the AO ceiling,
-        /// which was argued about for five runs and settled by printing the
-        /// round series. `SimDirector.MeasureWindowGlow` prints this one.
+        /// The measurement that would answer it is DIFFERENTIAL — the same A/B
+        /// the occlusion and reflection gates use: render with the windows dark,
+        /// render with them lit, and look only at the pixels that changed. That
+        /// is what `MeasureWindowGlow` does now.
         static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f;
 
         /// The multiplier under test, so the probe can sweep it without this

@@ -2977,13 +2977,22 @@ namespace Ledger.Game
         {
             var cam = Camera.main;
             if (cam == null) return;
+            // DARK FIRST, AS THE REFERENCE. Everything the windows are not —
+            // lamps, neon, headlamps, the sky — is in this frame too, and the
+            // first version of this probe averaged all of it and reported the
+            // answer as if it were about windows. At k=1.0 the frame was still
+            // 5.07% bright with the windows barely emitting, which is the number
+            // that gave the instrument away.
+            WorldBuilder.SetWindowGlow(0f);
+            var dark = FramePixels(cam);
+
             var line = new StringBuilder("SimDirector: windowGlow");
             foreach (float k in new[] { 1.0f, 1.4f, 1.8f, 2.2f, 2.6f, 3.0f })
             {
                 WorldBuilder.SetWindowGlow(k);
-                var (pct, r, g, b) = BrightColour(cam);
+                var (pct, r, g, b) = LitMinusDark(cam, dark);
                 double blue = r > 0.01 ? b / r : 0.0;
-                line.Append($" k={k:0.0}[bright={pct:0.00}% rgb={(int)(r * 255)},")
+                line.Append($" k={k:0.0}[lit={pct:0.00}% rgb={(int)(r * 255)},")
                     .Append($"{(int)(g * 255)},{(int)(b * 255)} b/r={blue:0.00}]");
             }
             WorldBuilder.SetWindowGlow(3.0f);
@@ -2993,10 +3002,36 @@ namespace Ledger.Game
             Debug.Log(line.ToString());
         }
 
-        /// What fraction of the frame is bright, and the mean colour of exactly
-        /// those pixels. The same two quantities `Fingerprint` reports for the
-        /// committed stills, at probe resolution.
-        (double pct, double r, double g, double b) BrightColour(Camera cam)
+        /// The pixels the WINDOWS added, and their colour.
+        ///
+        /// Read exactly as occlusion and reflections are read: two renders, one
+        /// quantity, the difference. A window that lights a wall is not a bright
+        /// pixel anywhere near the window's own colour, so this counts only
+        /// pixels that got MEANINGFULLY brighter and averages the ADDED light —
+        /// `lit - dark` per channel — rather than the final pixel. Averaging the
+        /// final pixel would fold in whatever the window is sitting on top of,
+        /// which is the same mistake one level down.
+        (double pct, double r, double g, double b) LitMinusDark(Camera cam, Color32[] dark)
+        {
+            var lit = FramePixels(cam);
+            if (lit == null || dark == null || lit.Length != dark.Length) return (-1, 0, 0, 0);
+            long n = 0; double sr = 0, sg = 0, sb = 0;
+            for (int i = 0; i < lit.Length; i++)
+            {
+                int dr = lit[i].r - dark[i].r, dg = lit[i].g - dark[i].g, db = lit[i].b - dark[i].b;
+                // Eight levels, so the rasteriser's own dither is not a finding.
+                // Same reasoning as `ImageStats.QuantisationStep` on the other
+                // A/B gates, in 0..255 rather than 0..1.
+                if (dr + dg + db < 8 * 3) continue;
+                n++; sr += dr; sg += dg; sb += db;
+            }
+            if (n == 0) return (0, 0, 0, 0);
+            return (100.0 * n / lit.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0);
+        }
+
+        /// One render, as raw pixels, for an A/B that needs the frame itself
+        /// rather than a summary of it.
+        Color32[] FramePixels(Camera cam)
         {
             RenderTexture rt = null;
             Texture2D tex = null;
@@ -3011,17 +3046,9 @@ namespace Ledger.Game
                 tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
                 tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
                 tex.Apply();
-                var px = tex.GetPixels32();
-                long n = 0; double sr = 0, sg = 0, sb = 0;
-                foreach (var c in px)
-                {
-                    if (ImageStats.Luma(c.r / 255.0, c.g / 255.0, c.b / 255.0) <= 0.6) continue;
-                    n++; sr += c.r; sg += c.g; sb += c.b;
-                }
-                if (n == 0) return (0, 0, 0, 0);
-                return (100.0 * n / px.Length, sr / n / 255.0, sg / n / 255.0, sb / n / 255.0);
+                return tex.GetPixels32();
             }
-            catch (Exception e) { _errors.Add("BrightColour: " + e.Message); return (-1, 0, 0, 0); }
+            catch (Exception e) { _errors.Add("FramePixels: " + e.Message); return null; }
             finally
             {
                 cam.targetTexture = prevTarget;
@@ -3030,6 +3057,7 @@ namespace Ledger.Game
                 if (rt != null) { rt.Release(); Destroy(rt); }
             }
         }
+
 
         struct FrameStats
         {
