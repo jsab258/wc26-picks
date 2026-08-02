@@ -312,6 +312,97 @@ voices to build speech technology, and **no identifiable public figures, ever.**
 
 ---
 
+## AUTO MODE
+
+Jafar's name for it. He will say **"start auto mode"** or **"stop auto mode"**,
+and both must work from a cold session — which is why this is here and not only
+in a trigger prompt. The container is ephemeral; a file in the repository is the
+only thing that survives it.
+
+**What it is.** Continuous autonomous building, around the clock, with a short
+plain update six times a day. Not a cycle. Not a cadence. Jafar's words, after
+I got it wrong twice: *"non stop, no idle time."*
+
+### Starting it
+
+1. Enable the watchdog: `update_trigger` on **`trig_01EA7ybQTcsiFyrTryptqVUi`**
+   with `enabled=true`. Its prompt carries the current work order — read it
+   rather than re-deriving one.
+2. Begin working immediately. Do not wait for the watchdog to fire; it is not
+   the thing that drives the work.
+3. Arm something before the turn ends (see below).
+
+### Stopping it
+
+1. `update_trigger` on the watchdog with `enabled=false`.
+2. Kill any background watchers (`TaskStop`, or `KillBash` on a running poll).
+3. Delete any pending `send_later` with `delete_trigger`, or it will wake the
+   loop after you were told to stop.
+4. Confirm the working tree is clean and pushed. Auto mode assumes it can be
+   interrupted at any moment, so it must never hold uncommitted work.
+
+All three steps matter. Disabling the cron alone leaves a background watcher
+that will re-invoke the loop, and it will look like the stop was ignored.
+
+### The four rules that make it continuous
+
+**1. Work until genuinely blocked, not until one task is done.** A turn can
+carry hours. Finish something, pick up the next thing, keep going.
+
+**2. Never wait on CI.** Only the Game layer needs the ~28-minute Windows round
+trip. Core, CoreTests, the measurement tools, the docs and every Python tool run
+here in seconds. Dispatch the build and start the next non-CI item in the SAME
+turn. A build in flight is a reason to switch tasks, not to stop.
+
+**3. Be woken by the event, not the clock.** The Windows job commits stills to
+the branch, so the branch advancing IS the build landing. Arm it with Bash
+`run_in_background: true`, which re-invokes you within seconds of it exiting:
+
+    BEFORE=$(git ls-remote origin claude/game-dev-ai-automation-2h67ix | cut -f1)
+    until [ "$(git ls-remote origin claude/game-dev-ai-automation-2h67ix | cut -f1)" != "$BEFORE" ]; do sleep 30; done
+    echo "build landed"
+
+Cap it around 50 minutes so a dead run cannot hang the loop. If something else
+blocks you, `send_later` goes down to one-minute granularity.
+
+**4. Never end a turn without arming something.** No watcher, no `send_later`,
+no pending work means the project has silently stopped. This is rule 8 with a
+mechanism attached.
+
+### Why the cron is only a watchdog
+
+**I built the loop wrong twice and the second version sounded reasonable.** The
+first was a three-hour cycle. The second was hourly, and I justified it as
+"matched to the CI round trip" — it was matched to nothing, and left up to
+fifty-nine minutes of idle per hour. Jafar: *"why hourly? i said non stop, no
+idle time. there must be a better way."*
+
+The root cause is worth remembering because it will recur: **cron's minimum
+interval is one hour**, so I designed around the limit of the tool I had picked
+instead of noticing it was the wrong tool. The work is driven by the event chain
+above. The cron exists for exactly one case — the chain dying (container
+reclaimed, a turn erroring out, a watcher lost) — and restarts it. Without it,
+one bad turn ends the project silently.
+
+### Reporting
+
+Six times a day, daytime only: **07:00, 10:00, 13:00, 16:00, 19:00 and 22:00
+CEST** — UTC hours 05, 08, 11, 14, 17, 20. Run `date -u +%H` and check before
+writing anything. Every other firing works in SILENCE and ends with no
+user-facing message. The 07:00 report is the overnight summary.
+
+**Five to seven short plain sentences. No code block, no template, no shas, no
+metric names, no file paths.** In order: what got done; where we are on the
+roadmap (read `roadmap.md`'s screen table — do not recite from memory, and fix
+it if it is wrong before quoting it); what is next; what decision is needed from
+Jafar, or "nothing needed from you". Lead with anything visibly broken.
+
+He has said twice that updates were too long and too technical, and once that a
+report was buried mid-message and he never saw it. Say *"the player is upside
+down"*, not the name of the metric that measured it.
+
+---
+
 ## The standard
 
 Jafar: *"it has to be EXCEPTIONALLY GOOD from a game feel and UI/UX point of
