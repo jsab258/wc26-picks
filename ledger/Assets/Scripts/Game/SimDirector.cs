@@ -1759,6 +1759,11 @@ namespace Ledger.Game
         // running. So this stages the two behaviours §3.3 actually promises
         // and counts what happened to the player.
         bool _loiterStaged, _nightRunStaged;
+
+        /// M21: the run has to actually NAME somebody, or the informer verb is
+        /// tested Core with no call site — which is the state it shipped in an
+        /// hour ago and which `reach-check` refused.
+        bool _denounceStaged;
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
@@ -2084,6 +2089,29 @@ namespace Ledger.Game
             {
                 _loiterApproaching = true;
                 _loiterTarget = nearest.transform.position;
+            }
+
+            // NAME SOMEBODY TO THE LAW, once, on a day when the street has had
+            // time to accumulate something to say. Day 9 rather than day 1
+            // because an accusation is weighed against what people have heard,
+            // and on day one nobody has heard anything — the probe would
+            // measure an empty mill and report Ignored for ever, which is a
+            // true answer to a question nobody asked.
+            //
+            // The target is the rival, because that is the fiction: Sera Kest
+            // is the person the player has a reason to point a detective at.
+            // Whoever is standing nearest is who saw him go in.
+            if (!_denounceStaged && now.Day >= 9 && _game != null && _game.Gossip != null
+                && nearest != null)
+            {
+                _denounceStaged = true;
+                var d = LawHost.Denounce(_game, nearest.DisplayName, "kest",
+                                         "handled", "the_warehouse_job");
+                if (d != null)
+                    Debug.Log($"SimDirector: denounced kest -> {d.Outcome} "
+                              + $"corroboration={d.Corroboration:0.00} "
+                              + $"contradiction={d.Contradiction:0.00} "
+                              + $"backers={d.Corroborators} mark={d.MarkOnYou}");
             }
             if (_loiterApproaching)
             {
@@ -4978,6 +5006,21 @@ namespace Ledger.Game
             // the load-bearing part: a rig bound to a body it never drives
             // reports a constant, and a constant knee is a mannequin being
             // dragged rather than a person walking.
+            // M21: THE VERB RAN AND IT PAID FOR ITSELF.
+            //
+            // Two clauses, because two different things go wrong. Zero
+            // denunciations is the failure this gate exists for — `Informing`
+            // was tested Core with no caller, and a run that never names
+            // anybody is that state wearing a green tick.
+            //
+            // And marks must equal denunciations. The mark on the player is the
+            // whole design: an informer who pays nothing is a delete button with
+            // extra steps. `Informing` hands the mark back as data so a caller
+            // cannot drop it silently, and this is the check that says it did
+            // not — the same shape as `deedDispatched` against `deedArrived`,
+            // which is how a whole class of never-arriving deeds was found.
+            bool lawOk = LawHost.Denounced > 0 && LawHost.MarksFiled == LawHost.Denounced;
+
             bool bodiesOk = _bodySamples > 0 && _bodyRigs >= 2
                 && _bodyMaxKnee - _bodyMinKnee > 10
                 // Whenever somebody WAS out of range, somebody was culled.
@@ -5399,6 +5442,7 @@ namespace Ledger.Game
                  + $"shader={WorldText.ShaderPresent}]",
                  _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
                                      && WorldText.Refused == 0)),
+                ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} {LawHost.LastVerdict}]", lawOk),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
@@ -5846,6 +5890,8 @@ namespace Ledger.Game
                       $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
                       $"loiterStaged={_loiterStaged} slams={_slams} " +
                       $"nightRunStaged={_nightRunStaged} " +
+                      $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
+                      $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
