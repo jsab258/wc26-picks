@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestAcquaintance();
                 TestSuspicion();
                 TestGossip();
                 TestConflictingValuesStayBounded();
@@ -269,6 +270,69 @@ namespace Ledger.CoreTests
 
             var recent = MemoryRetrieval.Retrieve(store, "", now, 1);
             Check(recent[0].Text.Contains("drinks"), "with no query, recency dominates");
+        }
+
+        /// THE RUNG THAT WAS NEVER REACHABLE.
+        ///
+        /// `Perception.IdRung`'s top rung is gated on familiarity and no
+        /// caller in the project has ever supplied a familiarity function, so
+        /// every witness scored 0.0 and nobody in the city could name the
+        /// player. These assert the ORDERING and which side of
+        /// `RecognitionFamiliarity` each case falls on — the absolute values
+        /// are authored fiction and are not claimed to be measurements.
+        ///
+        /// The last two are the accept cases rule 5b demands: it is not enough
+        /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestAcquaintance()
+        {
+            Console.WriteLine("Acquaintance:");
+
+            Check(Acquaintance.Stranger < Acquaintance.HeardOfYou
+                  && Acquaintance.HeardOfYou < Acquaintance.Known
+                  && Acquaintance.Known < Acquaintance.Close
+                  && Acquaintance.Close <= Acquaintance.Household,
+                  "the ladder is ordered");
+
+            Check(!Acquaintance.CanNameYou(Acquaintance.Stranger),
+                  "a stranger cannot name you");
+            // The one that keeps the game's central tension intact: talk
+            // travels further than faces, so hearing about the warehouse must
+            // not let somebody pick the player out of a queue.
+            Check(!Acquaintance.CanNameYou(Acquaintance.HeardOfYou),
+                  "hearing about you is not knowing your face",
+                  $"{Acquaintance.HeardOfYou} vs {Perception.RecognitionFamiliarity}");
+            Check(Acquaintance.CanNameYou(Acquaintance.Known),
+                  "somebody you have dealt with can name you");
+            Check(Acquaintance.CanNameYou(Acquaintance.Household),
+                  "your own household can name you");
+
+            Check(Acquaintance.Of(false, false, false, false) == Acquaintance.Stranger,
+                  "no relationship at all resolves to stranger");
+            Check(Acquaintance.Of(true, true, true, true) == Acquaintance.Household,
+                  "the strongest true statement wins");
+            Check(Acquaintance.Of(false, true, true, true) == Acquaintance.Close,
+                  "a companion outranks being merely known");
+
+            // THE ACCEPT CASE, END TO END, and it is the whole point of the
+            // change. A companion walking half a metre behind the shoulder has
+            // no face toward her and can never reach rung 3 — the design says
+            // so on purpose. Rung 4 does not need a face, and at 1.7 metres she
+            // must reach it. This is `companionSight rung=0 street=1
+            // dist=1.7m` written as an assertion.
+            int companion = Perception.IdRung(1.7, 1.0,
+                Acquaintance.Of(false, true, true, false),
+                hasDistinguishingMark: false, faceToward: false);
+            Check(companion == 4, "the woman at your shoulder knows who you are",
+                  $"rung {companion}");
+
+            // And the comparison the gate actually makes: she must out-see the
+            // street, not merely see something. A stranger at the same
+            // distance with no face toward them gets a silhouette and no name.
+            int stranger = Perception.IdRung(1.7, 1.0, Acquaintance.Stranger,
+                hasDistinguishingMark: false, faceToward: false);
+            Check(stranger == 1 && companion > stranger,
+                  "and she out-sees a stranger standing in the same spot",
+                  $"companion {companion}, stranger {stranger}");
         }
 
         static void TestSuspicion()

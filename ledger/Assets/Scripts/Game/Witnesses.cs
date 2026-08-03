@@ -51,7 +51,30 @@ namespace Ledger.Game
         public static int Considered { get; private set; }
         public static int Saw { get; private set; }
 
-        public static void Reset() { Last.Clear(); Considered = Saw = 0; LastEventId = null; }
+        /// THE TWO NUMBERS THAT SAY WHETHER THE STREET HAS ITS EYES OPEN, and
+        /// they exist because both faults found tonight were invisible to
+        /// every gate in the run.
+        ///
+        /// `EyesOpen` counts witnesses whose accrued attention cleared
+        /// `Perception.NoticeSeconds` — the gate that silently blinded
+        /// everybody not already suspicious of the player. `KnowsYou` counts
+        /// those whose familiarity carries a name, which was structurally
+        /// zero because no caller ever supplied a familiarity function.
+        ///
+        /// Worst-over-run is wrong for both: the question is not "did anybody
+        /// ever" but "how many, this time", so they are per-deed and the done
+        /// line prints the peak alongside `Considered`. Rule 4's rule: a
+        /// picture found the fault, so the fix ships with the number that
+        /// would have found it first.
+        public static int EyesOpen { get; private set; }
+        public static int KnowsYou { get; private set; }
+
+        public static void Reset()
+        {
+            Last.Clear();
+            Considered = Saw = EyesOpen = KnowsYou = 0;
+            LastEventId = null;
+        }
 
         /// One sightline, built from the world rather than from an argument.
         ///
@@ -80,7 +103,7 @@ namespace Ledger.Game
             Vector3 actorAt = actor.position;
             Last.Clear();
             LastEventId = deed.EventId;
-            Considered = Saw = 0;
+            Considered = Saw = EyesOpen = KnowsYou = 0;
 
             var eyeHeight = Vector3.up * 1.6f;
             var actorHead = actorAt + eyeHeight;
@@ -124,15 +147,56 @@ namespace Ledger.Game
                     // unable to name you.
                     FaceToward = Vector3.Angle(actor.forward,
                                                eye.position - actorAt) < FaceArcDegrees,
-                    // ALREADY LOOKING, or not. `Perception.NoticeSeconds` is a
-                    // real gate in Resolve: a witness who was not watching
-                    // gets nothing from their eyes however close they stand.
-                    // Somebody already tracking the player has been looking;
-                    // everybody else is mid-stride and has not.
-                    SecondsWatching = npc.Stance >= StanceKind.Watches ? 3.0 : 0.0,
+                    // HOW LONG THEY HAD BEEN LOOKING, MEASURED, and this line
+                    // used to be the single most consequential guess in the
+                    // perception model.
+                    //
+                    // It read `npc.Stance >= Watches ? 3.0 : 0.0`, under a
+                    // comment saying everybody else "is mid-stride and has
+                    // not" been looking. `Observe.Resolve` gates BOTH
+                    // `seesActor` and `seesVictim` behind `NoticeSeconds`, so
+                    // that guess did not shade the account — it BLINDED
+                    // everybody who was not already suspicious of the player,
+                    // however close they stood, in whatever light, facing
+                    // whichever way. The run has been saying so for weeks and
+                    // it was written down and not acted on: forty people in
+                    // clear line of sight in a market, `Eyes` zero.
+                    //
+                    // The two quantities are simply different. `Stance` is the
+                    // SUSPICION ladder — how somebody feels about you — and
+                    // loyalty deliberately pulls it DOWN, which is why the one
+                    // character walking at the player's shoulder came back
+                    // with a worse account of a stabbing than a stranger
+                    // across the road: `companionSight[rung=0 street=1
+                    // dist=1.7m]`. She was recruited for being fond of him and
+                    // the model read fondness as not looking.
+                    //
+                    // `Perception.NoticeSeconds` documents what belongs here —
+                    // *"seconds of continuous presence in the acuity band"* —
+                    // and `NpcWalker._attention` has been accruing exactly
+                    // that, dt-weighted, at 6Hz, through cone and light and
+                    // occlusion, for every walker in the band, unread by
+                    // anything outside its own class. No new number, no
+                    // invented threshold: the instrument was already running.
+                    //
+                    // MAX rather than replace, because the stance path answers
+                    // a case this one cannot. Attention accrues only inside
+                    // `Perceivers.NearBandMetres`; somebody in `Watches` picks
+                    // you out at fourteen metres and should keep doing so.
+                    SecondsWatching = System.Math.Max(
+                        npc.Stance >= StanceKind.Watches ? 3.0 : 0.0,
+                        npc.SecondsAttendingPlayer),
                     Alertness = npc.Stance >= StanceKind.Watches ? 0.5 : 0.0,
                     ArrivedLater = false,
                 };
+
+                // Counted off the VANTAGE, before the resolver runs, because
+                // the question is about the inputs. An observation being empty
+                // could mean darkness, a wall or a bad angle; these two say
+                // specifically whether the two structural blindnesses are
+                // still in place.
+                if (v.SecondsWatching >= Perception.NoticeSeconds) EyesOpen++;
+                if (Acquaintance.CanNameYou(v.Familiarity)) KnowsYou++;
 
                 var o = Observe.Resolve(deed, v);
                 Last.Add(o);

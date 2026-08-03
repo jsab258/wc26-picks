@@ -45,6 +45,36 @@ namespace Ledger.Game
         /// its own neighbours in as residents enter the simulated band.
         public SocialGraph Graph { get; private set; }
 
+        /// WHETHER THE PLAYER HAS ACTUALLY DEALT WITH THIS PERSON.
+        ///
+        /// `_walkers` is the authored cast, keyed by display name; the crowd
+        /// arrives separately through `CrowdBodies` keyed by id, and
+        /// `LiveBodies` already relies on exactly that split. So this is not a
+        /// new distinction — it is the one the file has always drawn, asked a
+        /// different question.
+        ///
+        /// It matters because `Acquaintance` needs "somebody you have dealt
+        /// with" and the tempting shortcut — has a `Gossiper` record — would
+        /// have been true of most of the crowd too, which would have made the
+        /// whole city able to name the player and collapsed the game's central
+        /// tension into nothing.
+        public bool IsCast(NpcWalker w) =>
+            w != null && _walkers.TryGetValue(w.DisplayName, out var m) && m == w;
+
+        /// Whether this person is carrying talk about the player. A promoted
+        /// resident who has heard about the warehouse knows OF him — which is
+        /// a real and deliberately weaker thing than knowing his face, and is
+        /// the rung `Acquaintance.HeardOfYou` exists to hold.
+        public bool HasHeardOfPlayer(NpcWalker w)
+        {
+            if (w == null || _mill == null) return false;
+            var g = _mill.Get(w.DisplayName);
+            if (g == null) return false;
+            foreach (var r in g.Rumors)
+                if (r != null && r.Content.Subject == "player") return true;
+            return false;
+        }
+
         public void Begin(GameController game, List<NpcWalker> npcs, List<ConversationHost> hosts)
         {
             _game = game;

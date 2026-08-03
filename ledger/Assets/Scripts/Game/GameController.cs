@@ -55,6 +55,35 @@ namespace Ledger.Game
 
         /// M18. Whoever is walking at your shoulder, and everything they know.
         public readonly CompanionHost Companion = new CompanionHost();
+
+        /// HOW WELL EACH PERSON ON THE STREET KNOWS THE PLAYER'S FACE.
+        ///
+        /// `Witnesses.Resolve` and `ViolenceHost.Commit` have both taken a
+        /// familiarity function since the perception engine was written, and
+        /// **no caller has ever passed one** — so it defaulted to null, every
+        /// witness scored zero, and `Perception.IdRung`'s top rung was
+        /// unreachable in every code path in the game. Four staged deeds,
+        /// forty-nine witnesses, `deedBestRung=1`: a city of strangers, every
+        /// run, for weeks. Rule 6 exactly — built, tested in Core, never
+        /// called.
+        ///
+        /// Assembled here rather than in either caller because this object is
+        /// the only one holding all four facts, and because two callers
+        /// building it separately is how they drift.
+        public System.Func<NpcWalker, double> FamiliarityWithPlayer => npc =>
+        {
+            if (npc == null) return Acquaintance.Stranger;
+
+            bool home = false;
+            foreach (var d in Household.Book.People)
+                if (d != null && d.Name == npc.DisplayName) { home = true; break; }
+
+            return Acquaintance.Of(
+                sharesYourHome: home,
+                walksWithYou: Companion.Walking == npc,
+                inTheSocialGraph: _gossip != null && _gossip.IsCast(npc),
+                hasHeardOfYou: _gossip != null && _gossip.HasHeardOfPlayer(npc));
+        };
         public PlayerKnowledge Knowledge { get; } = new PlayerKnowledge();
         // Act I's authored spine state (act1-draft.md): pressure-point flags,
         // the posture answer, Noor's two drawers.

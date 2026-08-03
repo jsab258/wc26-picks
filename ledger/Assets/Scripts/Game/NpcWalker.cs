@@ -152,10 +152,22 @@ namespace Ledger.Game
         /// person who happens to be next to you — that is the entire design.
         /// `Witnesses.Resolve` iterates `NpcWalker`, so an escort is a witness
         /// to everything the player does WITHOUT ONE LINE OF SPECIAL CASING:
-        /// they are at two metres, in the same light, facing you, and already
-        /// watching, so `Observe.Resolve` hands them a full-rung sighting the
-        /// same way it hands the man across the road a poor one. See
-        /// `Core/Companionship` for why that is the whole feature.
+        /// they are at two metres, in the same light, and already watching, so
+        /// `Observe.Resolve` hands them a full-rung sighting the same way it
+        /// hands the man across the road a poor one. See `Core/Companionship`
+        /// for why that is the whole feature.
+        ///
+        /// **That paragraph was false for as long as it existed, and the build
+        /// said so: `companionSight[with=Goran rung=0 street=1 dist=1.7m]`.**
+        /// The escort geometry was right — she really was at 1.7 metres — but
+        /// `Witnesses.Resolve` read "already watching" off the SUSPICION
+        /// ladder, which loyalty deliberately pulls down, so the resolver
+        /// scored the one guaranteed witness in the city as not looking. Fixed
+        /// by reading `SecondsAttendingPlayer`, which was already being
+        /// measured. Note the deleted clause: she is NOT "facing you" — she
+        /// walks half a metre behind the shoulder, so the actor's face is not
+        /// toward her and rung 3 is unreachable by design. Rung 4 is the one
+        /// she should get, and that needs familiarity, which is the other half.
         ///
         /// `WaitingAsHost` is the precedent for a state that outranks the
         /// schedule, and it is also the warning: that one exists because a
@@ -329,6 +341,31 @@ namespace Ledger.Game
         /// the hush, which needs a count of attending people per frame and
         /// must not re-run anybody's perception to get it.
         public bool AttendingPlayer => _attendingNow;
+
+        /// HOW LONG THIS WALKER HAS HAD ITS EYES ON THE PLAYER, in seconds.
+        ///
+        /// `Perception.NoticeSeconds` is documented as *"seconds of continuous
+        /// presence in the acuity band before a glance becomes a look"* — a
+        /// quantity about geometry, light and time. `Witnesses.Resolve` needs
+        /// exactly that and had no way to ask for it, so it substituted a
+        /// two-valued guess off the SUSPICION ladder: 3.0 for anybody already
+        /// in `Watches`, 0.0 for everybody else. Those are different
+        /// quantities, and the run says so — forty people in clear line of
+        /// sight in a market produced zero sightings, and the one person
+        /// walking at the player's shoulder produced a worse account of a
+        /// stabbing than a stranger across the road.
+        ///
+        /// The number was already here. `_attention` accrues real dt-weighted
+        /// seconds at 6Hz for every walker in the near band, through cone,
+        /// light and occlusion, and nothing outside this class had ever read
+        /// it. Rule 3, from the other side: the instrument was fine and the
+        /// consumer was measuring something else.
+        public double SecondsAttendingPlayer => _attention.Seconds;
+
+        /// The rung this walker's own accumulator reached, for the same
+        /// reason: it exists, it is real, and the witness path recomputed a
+        /// worse one from scratch.
+        public int AttentionRung => _attention.Rung;
 
         /// Nerve, for whether they say something rather than only look. The
         /// crowd's walkers do not all have a `Gossiper` behind them, so this

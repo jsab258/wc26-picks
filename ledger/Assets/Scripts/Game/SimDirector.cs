@@ -1761,6 +1761,11 @@ namespace Ledger.Game
         int _deedsStaged, _lastDeedDay = -99;
         const int DeedsWanted = 4;
         int _deedSlotSets, _deedWitnesses, _deedBestRung;
+        /// Peak over the run of the two structural blindnesses found on
+        /// 3 August: how many witnesses had their eyes open at all, and how
+        /// many knew the player well enough to name him. Both were zero by
+        /// construction and no gate asked.
+        int _deedEyesOpen, _deedKnowsYou;
         /// The delivery window, measured: how many witnesses started walking,
         /// whether an interception landed, and how many got there anyway.
         int _deedDispatched;
@@ -2211,7 +2216,16 @@ namespace Ledger.Game
                 var deed = Observe.DeedFor(weapon, $"sim-deed-{_deedsStaged}",
                                            "player", victim.DisplayName,
                                            actorFled: false, hadPrecursor: true);
-                Witnesses.Resolve(deed, _player.transform, victim.transform.position);
+                // WITH THE FAMILIARITY FUNCTION, which nothing has ever
+                // supplied. Without it every witness scores 0.0 and
+                // `Perception.IdRung`'s top rung — the one that carries a
+                // NAME, and therefore the only one the consequence engine can
+                // act on — is unreachable by construction. That is what
+                // `deedBestRung=1` has been reporting: not that the street got
+                // a poor look, but that nobody in the city has ever met the
+                // protagonist.
+                Witnesses.Resolve(deed, _player.transform, victim.transform.position,
+                                  _game != null ? _game.FamiliarityWithPlayer : null);
                 // M18. AND WHOEVER WAS AT YOUR SHOULDER WHEN YOU DID IT.
                 //
                 // Read off the witness record that was just produced, not from
@@ -2260,6 +2274,8 @@ namespace Ledger.Game
                 int distinct = Witnesses.DistinctSlotSets();
                 if (distinct > _deedSlotSets) _deedSlotSets = distinct;
                 if (Witnesses.Saw > _deedWitnesses) _deedWitnesses = Witnesses.Saw;
+                if (Witnesses.EyesOpen > _deedEyesOpen) _deedEyesOpen = Witnesses.EyesOpen;
+                if (Witnesses.KnowsYou > _deedKnowsYou) _deedKnowsYou = Witnesses.KnowsYou;
                 if (Witnesses.BestRung() > _deedBestRung) _deedBestRung = Witnesses.BestRung();
                 Debug.Log($"SimDirector: staged deed #{_deedsStaged} "
                           + $"({Witnesses.Considered} considered, {Witnesses.Saw} got something, "
@@ -2669,9 +2685,15 @@ namespace Ledger.Game
             {
                 _bloodStaged = true;
                 var razor = Arsenal.Get("razor");
+                // `familiarityWithActor` is the VICTIM's own — how well the
+                // person being cut knows who cut them — and `familiarityOf` is
+                // every bystander's. Two different people, two parameters, and
+                // the second has never been passed by anything.
                 var cut = ViolenceHost.Commit(razor, _player.transform, nearestForThreat,
                                               "sim-cut", lethal: false, now: now,
-                                              harm: _game.Harm, familiarityWithActor: 0.2);
+                                              harm: _game.Harm, familiarityWithActor: 0.2,
+                                              familiarityOf: _game != null
+                                                  ? _game.FamiliarityWithPlayer : null);
                 Debug.Log($"SimDirector: cut {nearestForThreat.DisplayName} with a razor — "
                           + $"marked={cut?.MarkedYou} fleeing={cut?.VictimIsFleeing} "
                           + $"saw={cut?.SawSomething} looksLike="
@@ -2942,7 +2964,8 @@ namespace Ledger.Game
                 var after = ViolenceHost.Commit(weapon, stand.transform, victim, eventId,
                                                 lethal: true, now: _game.Now,
                                                 harm: _game.Harm,
-                                                familiarityWithActor: 0.0);
+                                                familiarityWithActor: 0.0,
+                                                familiarityOf: _game.FamiliarityWithPlayer);
                 if (after == null || after.Seen == null) return PlaceReading.None;
 
                 var r = new PlaceReading { Considered = Witnesses.Considered };
@@ -5563,6 +5586,7 @@ namespace Ledger.Game
                       // everybody resolved identically, which would say
                       // something upstream is handing them the same geometry.
                       $"deeds={_deedsStaged} deedWitnesses={_deedWitnesses} " +
+                      $"deedEyesOpen={_deedEyesOpen} deedKnowsYou={_deedKnowsYou} " +
                       $"deedSlotSets={_deedSlotSets} deedBestRung={_deedBestRung} " +
                       // THE DELIVERY WINDOW, §4.5, measured rather than assumed
                       // to run. Dispatched is how many started walking;
