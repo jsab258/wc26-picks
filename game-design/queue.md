@@ -51,9 +51,12 @@ scheduling instead of to CI's output.
    parity), `rigsMs` with the skinned bone and vertex counts (cast tiering),
    and the relocated `worstNameFrac`. A metric that never prints is the shape
    this project ships most often. *(CI)*
-4. **`worstTextHeightFrac` is now `worstNameFrac`** — a deliberate rename, so
-   the key check will report the old name gone on the next verdict. Run
-   `verdict-keys.py --learn` then, not before.
+4. **The rest days have never run in the engine.** The sim renders campaign
+   days 1 and 2, both working days, so no still has shown a Saturday and no
+   gate has evaluated one. Covered by CoreTests and nothing else. Either the
+   sim visits a rest day or the verdict says out loud which weekdays it
+   covered — silence here reads as "days differ now" being finished when half
+   of it has never executed. *(CI)*
 
 ## Next
 

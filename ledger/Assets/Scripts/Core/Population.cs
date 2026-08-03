@@ -368,6 +368,21 @@ namespace Ledger.Core
         /// Day 0 is a Monday, so days 5 and 6 of each week are the rest days.
         /// A convention rather than a discovery, stated once here so nothing
         /// downstream has to guess it or quietly assume a different one.
+        ///
+        /// WHAT THAT MEANS FOR THE CAMPAIGN, worked out rather than left for
+        /// somebody to re-derive: `Now.Day` starts at 1, so the new owner's
+        /// first day is a Tuesday and the rest days fall on campaign days 5 and
+        /// 6 — a Saturday and a Sunday, one weekend inside the survive-week.
+        /// That is the right shape by luck rather than by design, and it is
+        /// written down so the next person to move the origin can see what they
+        /// would be moving.
+        ///
+        /// AND IT IS NOT EXERCISED IN THE ENGINE. The sim renders campaign days
+        /// 1 and 2, both working days, so no CI still has ever shown a rest day
+        /// and no gate has ever evaluated one. The behaviour is covered by
+        /// CoreTests and by nothing else. Said out loud because "days differ
+        /// now" is exactly the kind of claim that reads as finished while half
+        /// of it has never run.
         public static bool IsRestDay(int day) => (((day % 7) + 7) % 7) >= 5;
 
         /// WHICH DAY, AND THERE WAS NO SUCH THING BEFORE.
