@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       count:
-        description: "How many cards to generate"
+        description: "Fresh cards to generate — LEAVE EMPTY unless new people are wanted"
         required: false
-        default: "60"
+        default: ""
       model:
         description: "Generation model"
         required: false
@@ -86,7 +86,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # THE FRESH-GENERATION STEP IS OFF BY DEFAULT, and that is a guard on
+      # somebody else's money rather than tidiness.
+      #
+      # Jafar authorised two specific tasks: judge the conversations as output,
+      # and give the SIXTY EXISTING cards the example lines they lack.
+      # Generating sixty NEW characters is neither — it would spend on people
+      # nobody asked for and, worse, it would mint new ids while the current
+      # ones are wired into secrets, connections, schedules and promotions.
+      # Five of them have already been promoted into the hand-written ring.
+      #
+      # So it runs only when explicitly asked. A default that spends is a
+      # default that eventually spends by accident.
       - name: Generate and validate cards
+        if: ${{ github.event.inputs.count != '' && github.event.inputs.count != '0' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
