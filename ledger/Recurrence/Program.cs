@@ -131,12 +131,26 @@ static class Program
         Console.WriteLine("crowd tier is for. Dunbar's layers sit at ~5, ~15, ~50 and ~150.");
         Console.WriteLine();
 
-        Console.WriteLine("POPULATION SWEEP — three districts, same area, varying headcount");
-        Console.WriteLine($"{"people",8} {"seen/day",9} {"face 8m",9}");
+        // AREA OR HEADCOUNT — WHICH LEVER IS ACTUALLY BUYING THE RECURRENCE.
+        //
+        // The three-district case is made of one comparison: same people,
+        // smaller area, more familiar faces. But concentration has TWO levers
+        // and I only ever varied one of them. Cutting districts DELETES
+        // authored world — Ironside's clock, Gullwing's emptiness as a mechanic
+        // — and if raising the headcount buys the same familiarity then the cut
+        // is paying in content for something a number could have bought.
+        //
+        // Rule 5 in a form it does not usually take: look before you destroy,
+        // and "destroy" includes four districts somebody wrote briefs for.
+        Console.WriteLine("POPULATION SWEEP — same area, varying headcount, one week");
+        Console.WriteLine($"{"people",8} {"3-dist seen",12} {"3-dist face",12} "
+                          + $"{"7-dist seen",12} {"7-dist face",12}");
         foreach (int n in new[] { 350, 700, 1400, 2100, 2800 })
         {
-            var r = Measure($"n{n}", KeepThree, n);
-            Console.WriteLine($"{n,8} {r.Distinct,9:0.0} {r.FaceRange,9:0.0}");
+            var r3 = Measure($"n{n}", KeepThree, n);
+            var r7 = Measure($"n{n}", AllIdx(), n);
+            Console.WriteLine($"{n,8} {r3.Distinct,12:0.0} {r3.FaceRange,12:0.0} "
+                              + $"{r7.Distinct,12:0.0} {r7.FaceRange,12:0.0}");
         }
         Console.WriteLine();
         Console.WriteLine("Read this against what the runtime can afford: the crowd walker cap and");
