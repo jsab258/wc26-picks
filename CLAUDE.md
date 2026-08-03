@@ -92,8 +92,20 @@ Three times in one month the tool was the thing at fault:
 - A gap analysis I ran said alarm propagation was unwired. Reading `NpcWalker`
   showed it already emitted. **The analysis was wrong, not the code.**
 
+- The roadmap said M17.7 still owed "cornices, and doors as geometry". Both had
+  been built for weeks, by `GroundFloor`, three lines apart — and I added a
+  second door system to Core with four tests before reading it. The call site
+  was four lines up in the output of my own grep. A second door would have
+  landed on the same wall as the first.
+
 **The rule.** When a result is surprising, check the ruler before the reading.
 When your own analysis says something is missing, open the file and look.
+
+**And a DOC saying something is missing is an analysis, not evidence.** The
+roadmap is the tiebreak for what to do next; it is not a report on what the
+code contains, and its "still open" lists decay exactly like comments do. Grep
+is not enough either — grep found the call site and I read past it. Open the
+function.
 
 ## 4. Open the artifact you are shipping
 

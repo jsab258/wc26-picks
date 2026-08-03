@@ -38,31 +38,29 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Read the bone-ownership build, then the noon frame.** *(CI)* `Swing` was
-   assigning from a stale rest over the top of the clip every frame; now gated
-   on `PoseIsDriven`, and the arm bracket only reports the bought body rather
-   than a maximum over sixty-eight rigs that named nobody.
-2. **Read `windowWarmth`.** *(CI)* Read off the source blue that lands at 0.45
-   on screen and ship that colour. The six-multiplier series could never reach
-   its own target, so brightness was never the lever.
-3. **Read `ringGrowth`.** *(CI)* Seen-fraction at 4/8/16/32/64/128 metres. The
-   knee is where more screen gets covered without more being communicated —
-   that is the radius to fade over, and only then is the fade a measured
-   number rather than a defended one.
-4. **Read `speechNoClip` against `speechOutOfRange` and `speechNoAudio`.**
-   *(CI)* 358 was three facts under one name. This says which milestone is
-   actually in front of us: a bank to generate, a mix behaving correctly, or
-   a fault.
-5. **The coat covers 29.6% of the body.** Measured, and the vertex proxy would
-   have said 44%. Nothing to build until a real mesh lands — but when one
-   does, this is the number that says whether it is dressed, and it wants a
-   gate rather than a print.
-6. **Jafar runs BODIES.bat ~10:00 CEST.** Multi-body support is already in:
-   one prefab per FBX, picked per character through `Physique`. On the day,
-   check `bodyChoices` went above 1 and that the cast is not four copies.
-7. **Read a system for false comments — `WorldBuilder` next.** Seven found
-   today; three were in `Mannequin` alone, including a promise that the class
-   would stop being instantiated once the FBX landed. It landed days ago.
+**Seven builds are in flight at once, all confirmed running rather than queued.
+Read them as they land — that is the work, not a wait.** Each writes its own
+`runs/<sha7>.txt`, so they are seven answers rather than one overwriting six.
+
+1. **Bone ownership.** Does the arm bracket finally describe ONE body, and does
+   the noon frame show a figure standing normally rather than with one arm bent
+   up beside its head?
+2. **Multi-body.** `bodyChoices` should read 1 today and above 1 the moment
+   Jafar's meshes land.
+3. **Ring growth.** Seen-fraction at 4/8/16/32/64/128 metres. The knee is the
+   radius to fade over — read it, do not pick it.
+4. **Window warmth.** The source blue that lands at 0.45 on screen. Read it off
+   the line and ship that colour.
+5. **Speech split.** `speechNoClip` against `speechOutOfRange` and
+   `speechNoAudio` — which milestone is actually in front of us.
+6. **Doors and jambs.** The door that already existed, now wood and darkened
+   with a jamb each side. Check the frame, not the count.
+7. **The revert.** Confirm the duplicate door is gone and nothing double-draws.
+
+**When they are read:** the queue refills from `## Standing work`, and the
+first refill should be the thing tonight's revert exposed — the back of a block
+has no geometry of its own, and nothing distinguishes a shop from a house from
+a warehouse except the sign over it.
 
 ## Next
 
