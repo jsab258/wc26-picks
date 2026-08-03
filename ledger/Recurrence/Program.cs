@@ -58,6 +58,12 @@ static class Program
 
         const int Samples = 60;          // stand-in players, averaged
 
+        /// Candidate cast sizes, spanning Dunbar's layers — ~5 intimates, ~15
+        /// close, ~50 friends, ~150 contacts — because those are the sizes a
+        /// human social world actually comes in, and the question is which
+        /// layer a named cast has to fill.
+        static readonly int[] Tiers = { 5, 10, 15, 20, 30, 50, 80 };
+
     static void Main(string[] args)
     {
         Console.WriteLine("RECURRENCE — how often the same face comes back");
@@ -105,6 +111,24 @@ static class Program
         // about to invent. Same area, swept population: the crowd tier is
         // whatever makes a street feel walked-on, and that is a curve to read
         // rather than a figure to assert.
+        // HOW BIG THE NAMED CAST HAS TO BE, which is the question the tiering
+        // decision turns on and the one I was about to answer with a number I
+        // liked the sound of. Jafar's objection to forty was that it felt too
+        // intimate to hold ordinary people AND businesses AND gangs AND police;
+        // this says what a week of encounters is actually made of.
+        var three = rows[1];
+        Console.WriteLine("CAST COVERAGE — three districts, one week");
+        Console.WriteLine("share of a resident's encounters covered by their N most-met people");
+        Console.WriteLine($"{"N",6} {"coverage",10}");
+        for (int t = 0; t < Tiers.Length; t++)
+            Console.WriteLine($"{Tiers[t],6} {three.Coverage[t] * 100,9:0.0}%");
+        Console.WriteLine();
+        Console.WriteLine("Read for the KNEE, not for a target. Where this flattens is the point");
+        Console.WriteLine("past which another authored character buys almost no additional");
+        Console.WriteLine("familiarity — everyone beyond it is somebody you pass, which is what the");
+        Console.WriteLine("crowd tier is for. Dunbar's layers sit at ~5, ~15, ~50 and ~150.");
+        Console.WriteLine();
+
         Console.WriteLine("POPULATION SWEEP — three districts, same area, varying headcount");
         Console.WriteLine($"{"people",8} {"seen/day",9} {"face 8m",9}");
         foreach (int n in new[] { 350, 700, 1400, 2100, 2800 })
@@ -129,6 +153,9 @@ static class Program
     {
         public string Name;
         public double Distinct, TwicePlus, FaceRange, RepeatShare, Top20Share;
+        /// Share of a week's encounters covered by the N most-met people, for
+        /// each N in `Tiers`. This is the curve the cast size comes off.
+        public double[] Coverage;
     }
 
     /// One city, one week, averaged over many ordinary residents.
@@ -146,6 +173,7 @@ static class Program
         if (pop.Residents.Count == 0) return new Row { Name = name };
 
         double distinct = 0, twice = 0, faceRange = 0, repeatShare = 0, top20 = 0;
+        var coverage = new double[Tiers.Length];
         int used = 0;
 
         // Spread the stand-ins across the roster rather than taking the first
@@ -220,8 +248,15 @@ static class Program
             twice += met.Values.Count(v => v >= 2);
             faceRange += face.Count;
             repeatShare += encounters > 0 ? (encounters - met.Count) / (double)encounters : 0;
-            var top = met.Values.OrderByDescending(v => v).Take(20).Sum();
+            var ranked = met.Values.OrderByDescending(v => v).ToList();
+            var top = ranked.Take(20).Sum();
             top20 += encounters > 0 ? top / (double)encounters : 0;
+            // AND THE WHOLE CURVE, not just the twenty. The cast size is a
+            // choice about where this flattens, and one point on a curve cannot
+            // show you a knee.
+            for (int t = 0; t < Tiers.Length; t++)
+                coverage[t] += encounters > 0
+                    ? ranked.Take(Tiers[t]).Sum() / (double)encounters : 0;
         }
 
         if (used == 0) return new Row { Name = name };
@@ -233,6 +268,7 @@ static class Program
             FaceRange = faceRange / used,
             RepeatShare = repeatShare / used,
             Top20Share = top20 / used,
+            Coverage = coverage.Select(c => c / used).ToArray(),
         };
     }
 }
