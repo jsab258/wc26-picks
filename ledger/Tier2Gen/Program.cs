@@ -578,6 +578,19 @@ namespace Ledger.Tier2Gen
                    Card(c => MiniJson.AsObject(c["secret"])["line"] =
                        "He has been selling the yard's stock list over email."),
                    "secret mentions");
+            // RULE 5b — THE CASE IT MUST ACCEPT. A substring match rejected
+            // every widow in the cast for the 'usb' inside "husband", and the
+            // rejections read exactly like the fault the rule exists to catch.
+            Expect("a husband is not a usb stick",
+                   Card(c => c["hardFacts"] = new List<object>
+                       { "I have run the laundry alone since my husband died.",
+                         "The rent is due on a Friday and I pay it in cash.",
+                         "I know every back gate on this street." }),
+                   null);
+            Expect("but a real out-of-period word is still caught",
+                   Card(c => c["hardFacts"] = new List<object>
+                       { "I keep the accounts on a usb stick.", "b sentence here", "c sentence here" }),
+                   "hard fact mentions");
             Expect("an out-of-period hard fact is rejected",
                    Card(c => c["hardFacts"] = new List<object>
                        { "He found the address on a website.", "b sentence here", "c sentence here" }),
@@ -631,8 +644,43 @@ namespace Ledger.Tier2Gen
             if (string.IsNullOrEmpty(text)) return null;
             var lower = text.ToLowerInvariant();
             foreach (var w in OutOfPeriod)
-                if (lower.Contains(w)) return w;
+                if (ContainsWord(lower, w)) return w;
             return null;
+        }
+
+        /// A whole-word match, because a substring match rejected HUSBANDS.
+        ///
+        /// `Contains("usb")` is true of "husband". Three cards were rejected
+        /// for "a hard fact mentions 'usb'" and every one of them was a widow
+        /// — and I reported that twice, to Jafar, as evidence the validator
+        /// was catching the model reaching for anachronism. It was catching
+        /// the word husband. The model had done nothing wrong.
+        ///
+        /// Worth more than the bug: a checker's FALSE POSITIVES read exactly
+        /// like the thing it was written to find, and they are self-
+        /// confirming. Every rejection looked like proof the rule was
+        /// necessary, which is the most expensive possible way to be wrong
+        /// about an instrument.
+        ///
+        /// Bounded on both sides by anything that is not a letter, so
+        /// "email" still catches "Email me" and "emails", and multi-word
+        /// entries like "mobile phone" keep working unchanged.
+        static bool ContainsWord(string haystack, string needle)
+        {
+            int at = 0;
+            while ((at = haystack.IndexOf(needle, at, StringComparison.Ordinal)) >= 0)
+            {
+                bool leftOk = at == 0 || !char.IsLetter(haystack[at - 1]);
+                int end = at + needle.Length;
+                // A trailing 's' or 'ed' is the same word, so the right edge
+                // allows the word to continue as long as it started cleanly —
+                // except that would re-admit "husband". Bounded properly: the
+                // character after must not be a letter either.
+                bool rightOk = end >= haystack.Length || !char.IsLetter(haystack[end]);
+                if (leftOk && rightOk) return true;
+                at = end;
+            }
+            return false;
         }
 
         /// The script validator (spec rules, no LLM). Returns null when valid,
