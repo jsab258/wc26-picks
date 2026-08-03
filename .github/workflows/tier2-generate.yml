@@ -52,7 +52,17 @@ jobs:
           if grep -q "lines=NO" dry.log; then echo "a card has no spoken lines — not spending"; exit 1; fi
           echo "cast confirmed"
 
+      # SKIPPED IF THE TRANSCRIPT ALREADY EXISTS, because re-dispatching this
+      # workflow to run the SECOND task re-ran the first one and spent again.
+      # Not hypothetical: the enrichment run regenerated forty exchanges nobody
+      # had asked for, and it was only noticed because the transcript changed
+      # underneath a `git pull`.
+      #
+      # A workflow that spends on every dispatch is a workflow that cannot be
+      # retried — and the enrichment step needed retrying the moment it failed.
+      # Delete the transcript to ask for a fresh one.
       - name: What the characters actually say
+        if: ${{ hashFiles('game-design/writing-samples.md') == '' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |

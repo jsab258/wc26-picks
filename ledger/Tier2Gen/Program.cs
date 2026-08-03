@@ -270,9 +270,31 @@ namespace Ledger.Tier2Gen
                 // per card if it fails. An enrichment that quietly writes an
                 // out-of-period line is worse than one that refuses: the card
                 // was already shipping and would now be shipping wrong.
+                // THE REAL CAST, NOT AN EMPTY SET — and getting this wrong cost
+                // sixty calls for zero cards.
+                //
+                // I copied the empty `takenIds` from `Audit`, where it IS
+                // correct: that mode asks only "would this PROSE pass", and
+                // these cards collide with their own ids because they are
+                // already in the game. Enrichment is the opposite case. A card
+                // whose connections name `lena` or whose secret is known by
+                // `sam` is CORRECT — those people exist — and validating
+                // against an empty roster rejected all sixty for referencing
+                // the cast they were written to reference.
+                //
+                // Every failure line read "connection to unknown id 'lena'" or
+                // "secret.knownBy 'sam' does not exist", which is the validator
+                // faithfully reporting the roster it was handed. The instrument
+                // was fine; the arguments were wrong.
+                //
+                // Ids are also passed as TAKEN=false for the card's own id,
+                // because a card being enriched is allowed to already exist —
+                // that is the entire premise.
+                var roster = new HashSet<string>(ExistingCast);
+                foreach (var c in cards) roster.Add(MiniJson.GetString(c, "id"));
                 var why = Validate(card, new HashSet<string>(),
                                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                                   new HashSet<string>(cards.Select(c => MiniJson.GetString(c, "id"))));
+                                   roster);
                 if (why != null)
                 {
                     Console.WriteLine($"  FAIL {id}: {why}");
