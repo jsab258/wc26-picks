@@ -1233,6 +1233,18 @@ namespace Ledger.Game
         string _clipName = "";
         bool _avatarProbeSeen;
 
+        /// Per-frame cost of every `CharacterRig` in the scene, in milliseconds.
+        /// Divided by the frame count rather than by the sample count: the
+        /// question is what a FRAME pays, and rigs run once per character per
+        /// frame, so dividing by samples would report the cost of one character
+        /// and call it the cost of the crowd.
+        static double RigsPerFrameMs()
+        {
+            var c = Perf.Get("rigs");
+            if (c == null || Perf.FrameCount <= 0) return 0;
+            return c.TotalMs / Perf.FrameCount;
+        }
+
         // ---- WET REFLECTIONS ----
         //
         // The model is tested; what is NOT testable in Core is whether the
@@ -4079,7 +4091,12 @@ namespace Ledger.Game
             // and grain, so most of the frame is expected to land there.
             var perFrame = new List<string>();
             double attributed = 0;
-            foreach (var name in new[] { "npcs", "population", "sun", "checks", "traffic", "signals" })
+            // `rigs` joins the named buckets rather than sitting in the residue.
+            // Character work is the thing the cast tiering is about to trade
+            // against, and until now every millisecond of it was pooled with
+            // the software rasteriser under `render+rest` — where a doubling of
+            // it would be invisible next to 297ms of GPU-less rendering.
+            foreach (var name in new[] { "npcs", "population", "sun", "checks", "traffic", "signals", "rigs" })
             {
                 var c = Perf.Get(name);
                 if (c == null || c.Samples == 0) { perFrame.Add($"{name}=none"); continue; }
@@ -5514,6 +5531,13 @@ namespace Ledger.Game
                       $"prePoseRead={_prePostureSeen} " +
                       $"bodyPitch={_worstBodyPitch:0.0} bodyRoll={_worstBodyRoll:0.0} " +
                       $"clip=[{_clipName}] avatarProbeRead={_avatarProbeSeen} " +
+                      // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
+                      // breakdown lives inside a gate, and a gate label prints
+                      // when the gate FAILS — so on every green run the one
+                      // number the cast tiering needs would be absent, and the
+                      // run that most needs it is the one that passed. Same
+                      // fault as the hand tier hiding in the threat gate.
+                      $"rigsMs={RigsPerFrameMs():0.000} " +
                       $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
                       $"bodyKeptMats={RealBody.Kept} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +

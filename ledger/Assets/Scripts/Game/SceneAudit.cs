@@ -88,6 +88,12 @@ namespace Ledger.Game
             var found = new Dictionary<string, Finding>();
             var renderers = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
             int seen = 0;
+            // ZEROED PER PASS, because these are static and `Run` is called
+            // more than once. Accumulating would report the sum over every
+            // audit the run ever did and read exactly like a scene three times
+            // heavier than it is — a number that is wrong in the direction that
+            // makes you cut the cast.
+            SkinnedRenderers = SkinnedBones = SkinnedVerts = 0;
 
             foreach (var r in renderers)
             {
@@ -127,6 +133,33 @@ namespace Ledger.Game
                 // itself sits at y=0 and is excluded by its own name.
                 if (r.bounds.max.y < -0.5f && r.name != "Ground")
                     Note(found, "buried", r.name);
+
+                // WHAT A CHARACTER COSTS, IN THE UNITS THAT TRAVEL.
+                //
+                // The cast tiering has been bounded from the design side only:
+                // `Recurrence` says how many distinct faces a day the town
+                // produces and `Density` says the witness engine needs about
+                // twenty near an event, and nothing at all says what the
+                // machine allows. I was one step from proposing a cast size on
+                // half the evidence.
+                //
+                // This runner cannot answer the other half in milliseconds —
+                // it has no GPU and software-rasterises everything, so a
+                // skinning time measured here describes a software rasteriser
+                // and would be quoted for a year and wrong on every real
+                // machine. Bones and vertices are not like that. They are what
+                // the mesh actually is, they are identical on any hardware, and
+                // they are the input any GPU estimate needs. So count those,
+                // and let the millisecond question wait for a machine that can
+                // answer it honestly.
+                var skin = r as SkinnedMeshRenderer;
+                if (skin != null)
+                {
+                    SkinnedRenderers++;
+                    if (skin.bones != null) SkinnedBones += skin.bones.Length;
+                    var mesh = skin.sharedMesh;
+                    if (mesh != null) SkinnedVerts += mesh.vertexCount;
+                }
             }
 
             // THE PLAYER, SPECIFICALLY, because it is the one object in every
@@ -174,10 +207,22 @@ namespace Ledger.Game
         /// fire — and this project has shipped that twice.
         public static int Renderers { get; private set; }
 
+        /// The geometric load one frame is carrying, per skinned character.
+        /// Totals rather than averages, because the average is recoverable from
+        /// the total and the count while the reverse is not — and because a
+        /// single 40,000-vertex body among thirty cheap ones is exactly the
+        /// thing an average would hide.
+        public static int SkinnedRenderers { get; private set; }
+        public static int SkinnedBones { get; private set; }
+        public static int SkinnedVerts { get; private set; }
+
         public static string Report()
         {
             var sb = new StringBuilder();
             sb.Append("SceneAudit: renderers=").Append(Renderers)
+              .Append(" skinned=").Append(SkinnedRenderers)
+              .Append(" skinnedBones=").Append(SkinnedBones)
+              .Append(" skinnedVerts=").Append(SkinnedVerts)
               .Append(" clean=").Append(Clean);
             if (Findings.Count == 0) { sb.Append(" findings=none"); return sb.ToString(); }
             foreach (var f in Findings)

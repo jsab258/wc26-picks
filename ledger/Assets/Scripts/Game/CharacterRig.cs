@@ -430,6 +430,29 @@ namespace Ledger.Game
 
         void LateUpdate()
         {
+            using (Perf.Time("rigs")) LateUpdateBody();
+        }
+
+        /// WHAT A CHARACTER COSTS, which is the third measurement the cast
+        /// tiering was owed and the only one nobody had taken.
+        ///
+        /// `Recurrence` says what the DESIGN wants — 6.5 distinct faces a day
+        /// at seven districts, 12.9 at three — and `Density` says what the
+        /// witness engine needs, about twenty near an event. Neither says what
+        /// the machine allows, so the cast size has been bounded from one side
+        /// only and a proposal was about to be made on that.
+        ///
+        /// HONEST ABOUT WHAT THIS RUNNER CAN ANSWER. It has no GPU and
+        /// software-rasterises everything, so a millisecond of skinning
+        /// measured here is a number about a software rasteriser and transfers
+        /// nowhere. What DOES transfer is the CPU-side cost of the game's own
+        /// per-character code, which is this scope, and the geometric load —
+        /// bones, vertices, instances — which is what any GPU estimate needs as
+        /// its input. Measuring the transferable half and saying so is worth
+        /// more than a millisecond figure that would be quoted for a year and
+        /// be wrong on every real machine.
+        void LateUpdateBody()
+        {
             if (Time.frameCount != _solvedFrame)
             {
                 _solvedFrame = Time.frameCount;
