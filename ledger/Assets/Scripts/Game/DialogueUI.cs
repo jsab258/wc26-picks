@@ -1026,7 +1026,26 @@ namespace Ledger.Game
                 // screen already obeys (HeatWord, StrainWord, ProsperityWord).
                 // "−0.62" told the player nothing a person would say; how hard
                 // someone would swear to it does (audit 2026-07-27).
-                var figure = k.Handled
+                // DISCREDITED IS NOT SETTLED, AND THE PLAYER COULD NOT TELL.
+                //
+                // `plant_doubt` is a verb with a button. It calls `Discredit`,
+                // the mill records the topic, and `IsDiscredited` — which has
+                // sat on the reach ledger as "a rumour the street stopped
+                // believing; the mill tracks it and nothing reads it" — was
+                // never asked. So the one verb whose entire job is to change
+                // what the street believes reported its result exactly like
+                // paying somebody off: the word "settled".
+                //
+                // They are different in kind. Paid quiet is one person keeping
+                // their mouth shut and it holds while the money holds.
+                // Discredited is the STORY being publicly doubted, it applies
+                // to everyone carrying it, and it is capped at once per topic —
+                // which the player has no way to know they have spent.
+                bool doubted = _game.Gossip != null && _game.Gossip.Mill != null
+                               && _game.Gossip.Mill.IsDiscredited(k.TopicKey);
+                var figure = doubted
+                    ? $"<color={UiTheme.HexHeld}>story doubted</color>"
+                    : k.Handled
                     ? $"<color={UiTheme.HexHeld}>settled</color>"
                     : $"<color={UiTheme.HexDebit}><b>{GripWord(k.ConfidenceWhenLearned)}</b></color>";
                 sb.AppendLine($"<b>{k.HolderName}</b> — \"{k.Summary}\"  {figure}");
