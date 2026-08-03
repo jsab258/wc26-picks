@@ -1153,9 +1153,34 @@ namespace Ledger.Game
                         sb.AppendLine($"<b>the {b.Name}</b> — you hold {b.OwnerId}'s paper  <color={UiTheme.HexHeld}>unturned</color>");
                 }
                 foreach (var c in e.Crew)
+                {
                     sb.AppendLine(c.Departed
                         ? $"<b>{c.Name}</b> — <color={UiTheme.HexDebit}>gone to the docks</color>"
                         : $"<b>{c.Name}</b> — crew ({c.Route}){(c.Assignment != null ? $" · runs the {e.RacketOf(c.Assignment)?.Name}" : "")}");
+                    // WHO WILL NOT STAND NEXT TO WHOM.
+                    //
+                    // `HarmBook.FeudsOf` has been on the reach ledger as "feuds
+                    // are recorded by Harm and drive nothing; they are the
+                    // cheapest allegiance signal in the game" — and worse than
+                    // driving nothing, one thing DOES read them:
+                    // `WillWorkTogether` refuses to pair two people past a
+                    // certain heat, and its own comment calls that "a
+                    // scheduling problem the player has to solve with people
+                    // rather than with a menu". A scheduling problem you cannot
+                    // see is not a problem, it is a bug report.
+                    if (c.Departed || _game.Harm == null) continue;
+                    foreach (var f in _game.Harm.FeudsOf(c.Id))
+                    {
+                        if (f.Settled) continue;
+                        string other = f.AId == c.Id ? f.BName : f.AName;
+                        bool blocks = !_game.Harm.WillWorkTogether(f.AId, f.BId);
+                        sb.AppendLine($"   <color={UiTheme.HexDim}>"
+                            + (blocks
+                                ? $"<color={UiTheme.HexDebit}>will not work with {other}</color>"
+                                : $"bad blood with {other}")
+                            + $" · {f.Exchanges} time{(f.Exchanges == 1 ? "" : "s")} round</color>");
+                    }
+                }
                 var rivalWord = e.Rival.Stage switch
                 {
                     0 => "hasn't looked your way",

@@ -38,66 +38,33 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **THE PLAYER IS NAKED IN THE MIDDLE OF THE FRAME, and the fix is in.** *(CI)*
-   `name.Contains("face")` matched `Beta_Surface`, the whole body mesh, so the
-   figure was painted flesh from the neck down and the coat went on the joint
-   balls. Every number said so — `bodyCoatArea=0.296` — and none was read.
-   The rule moved to `Core/BodyParts` with twelve unit tests, `bodyParts` now
-   names each mesh with its share, and `bodiesOk` fails an undressed body.
-   **Read `bodyParts` and then OPEN THE NOON STILL.** A number saying clothed
-   is what was there all along.
-2. **The nameplate wall was mostly the ruler.** *(CI)* `collidingNames=182`
-   counted every TextMesh in the city — street plates included — and used a
-   projection that magnifies anything off to the side: solving the run's own
-   figures put the worst label 84 degrees off the camera axis with a
-   566-pixel rect. Off-screen labels are now excluded and world text is
-   counted separately. **Read `collidingNames` against `collidingWorldText`
-   and `nameTagsOffScreen` against `nameTagsUnresolved`** — if the wall was
-   real, the first pair still shows it.
-3. **The confab collapse was never the walking pace.** *(CI)* `confabTooFar=0`
-   against `confabOffRoad=199`: distance rejected nothing. The road test used
-   a flat 3.0m while `StreetEdge.Width` is 8 / 6 / 4, so it was wrong on every
-   road in the city in one direction or the other. Now the kerb.
-   **Read `confabKerbMean`, `confabKerbWorst` and `confabs` before bounding
-   anything** — the gate still only catches total failure, and the replacement
-   threshold comes off that series and not off me.
-4. **Read `premises` and `companionSight`.** *(CI)* Houses were unreachable
-   under a green test; the escort was stranded by the pace change. `eb00eb0`
-   answers the first — the last landed run still says `house3`, which is the
-   pre-fix number.
-5. **Jafar runs BODIES.bat ~10:00 CEST.** `bodyChoices` 2 - 6, and the fetched
-   characters are TEXTURED, so the wardrobe leaves them alone and the naked
-   body stops being a question of colour at all.
-
-0a. **THE SKINNED CROWD IS AFFORDABLE — and the first reading was the
-   instrument.** `crowdCost n=0[ms=7.8] n=8[ms=10.5] n=24[ms=10.0]
-   n=50[ms=10.2]` on the GPU-less runner: fifty bodies for 2.4ms against a
-   7.8ms baseline. But FLAT from 8 to 50, which is culling and not skinning —
-   the probe fanned bodies in a spiral all round the player and most were
-   behind the camera. Re-spawned inside the frustum; **read the new curve
-   before deciding a crowd count.** `CharacterRig`'s own blocker ("not going
-   anywhere until a skinned mesh has been costed on a GPU-less runner") is
-   answered either way: it is affordable. What is not yet answered is how
-   many, and the swap is worth far more after BODIES.bat lands six TEXTURED
-   models than it is today with two grey bots.
-
-0. **RE-LEARN THE VERDICT KEYS once tonight's builds land.** Nine new
-   measurements — `bodyClothed`, `bodyParts`, `confabKerbMean/Worst/N`,
-   `nameTagsOffScreen`, `collidingWorldText`, `denounced`, `marksFiled` —
-   are unprotected until a landed verdict carries them and `--learn` records
-   them. `verdict-keys.py` reads what LANDED, not the source, which is
-   correct and means this step is real. `python3 tools/verdict-keys.py
-   --learn` after the pull.
-
-6. **Wire M21's informer verb — it is built, tested and unreached.** *(CI)*
-   `Informing.Weigh` and `RedirectsInquiry` are on the reach ledger with a
-   reason, which is honest and is not done. It needs two things in Game: a
-   place the player names somebody (the phone is the obvious one — Ellis has a
-   number and the distance layer already exists), and a caller that files
-   `MarkOnYou` into the gossip layer. **The mark is the whole design.** A
-   caller that drops it turns the verb into a free delete button, so the gate
-   to add with it counts denunciations AND marks filed, and fails if they
-   disagree.
+1. **READ THE FIVE BUILDS IN FLIGHT.** *(CI)* Between them they carry six new
+   gates and none has been seen passing yet. `claimsOk`, `lawOk` (the stronger
+   four-clause version), `allegianceOk` (failed once on `poachesHeard=0`, poach
+   now staged), the doubt panel predicate, `confabInJunction`, and the honest
+   crowd-cost curve. **Lead any report with whichever of these is red.**
+2. **RE-LEARN THE VERDICT KEYS once they land.** Twenty-four new measurements
+   are unprotected until a landed verdict carries them: `python3
+   tools/verdict-keys.py --learn` after the pull. The tool reads what LANDED,
+   not the source, which is correct and makes this a real step.
+3. **Read `confabInJunction` against `confabs`.** *(CI)* The road test was
+   rejecting 183 of 190 pairs by asking for something the world never produces
+   — people walk down the middle of the road, mean 1.74m from the centreline.
+   It asks about junctions now. If confabs do not recover, the cause is
+   upstream in `ConfabCandidates` and the pace hypothesis comes back.
+4. **Read the honest crowd curve, then decide a count.** *(CI)* The first
+   reading was culling, not skinning. If cost rises gently, near-crowd skinned
+   bodies become worth doing the moment BODIES.bat lands textured models.
+5. **Jafar runs BODIES.bat ~10:00 CEST.** README now opens with the three
+   steps; the reminder fires 07:55 UTC. `bodyChoices` 2 - 6, and those models
+   are TEXTURED so the wardrobe leaves them alone entirely.
+6. **Keep retiring the reach ledger — it is a to-do list I wrote myself, with
+   reasons.** 90 to 81 tonight and every one was WIRING, not building. Next
+   cheapest: `HarmBook.FeudsOf`/`Hottest` (feuds are recorded and drive
+   nothing — "the cheapest allegiance signal in the game"),
+   `OperationPlan.Bringing` (the plan knows what you are carrying into a job
+   and the player cannot see it), `PurseBook.Owed` and `Payment.InFull` (the
+   debt-collection loop).
 
 ## Next
 
