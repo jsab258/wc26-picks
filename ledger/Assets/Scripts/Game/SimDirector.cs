@@ -3240,10 +3240,35 @@ namespace Ledger.Game
                 //
                 // So this prints what each radius actually PUTS ON SCREEN,
                 // through the same A/B the ring's own evidence already uses.
-                // The knee is then read off the series — the radius past which
-                // more screen is covered without more being communicated —
-                // exactly as the AO ceiling was settled after five runs of
-                // arguing about it. One extra sample per radius, once per run.
+                //
+                // AND THE ANSWER IS THAT THIS METRIC CANNOT TELL, which is
+                // worth more than a number forced out of it. The series at
+                // 6b64b40:
+                //
+                //     r=4  1.14%   r=16  2.04%   r=64  1.93%
+                //     r=8  1.09%   r=32  1.27%   r=128 1.00%
+                //
+                // No trend. A 128-metre ring covers about as much screen as a
+                // four-metre one, because a ring is a THIN LINE — its pixel
+                // count is its length times its width, and as the radius grows
+                // most of the circle leaves the frame entirely. Coverage was
+                // the wrong quantity: the night still's band across the whole
+                // image is only one or two percent of pixels, exactly like a
+                // small ring nearby.
+                //
+                // Which leaves the geometric argument standing alone, and it is
+                // a DERIVATION rather than a measurement — labelled as such
+                // because rule 2 is about not dressing one up as the other. The
+                // sagitta of a chord L on radius R is about L squared over 8R,
+                // so a thirty-metre visible span bows by 0.76m at R=148 and by
+                // 2.8m at R=40. Below roughly forty metres the curve is legible
+                // as a curve; above it the shape stops carrying its meaning.
+                //
+                // Left unfaded for now, deliberately. Acting on a derivation
+                // when the measurement said "cannot tell" is how thresholds get
+                // defended instead of read, and the ring is already out of the
+                // stills. The series stays so a better metric — arc curvature
+                // in screen pixels, not coverage — can be compared against it.
                 if (_ringGrowth == null)
                 {
                     var g = new System.Text.StringBuilder("SimDirector: [series] ringGrowth");
@@ -3522,16 +3547,22 @@ namespace Ledger.Game
             var warm = new StringBuilder("SimDirector: [series] windowWarmth");
             WorldBuilder.SetWindowGlow(0f);
             var dark2 = FramePixels(cam);
-            foreach (float b in new[] { 0.45f, 0.32f, 0.22f, 0.14f, 0.06f, 0.00f })
+            // BLUE IS ANSWERED (0.16, read off the last run) so the sweep moves
+            // to GREEN, which comes out at 0.97 against a target of 0.82 and is
+            // the remaining half of the wash. Same shape, same discipline: six
+            // inputs, print what each produces, read the answer off the line.
+            // Blue held at its measured value so the two do not confound.
+            foreach (float g in new[] { 0.82f, 0.70f, 0.58f, 0.46f, 0.34f, 0.20f })
             {
-                WorldBuilder.WindowEmissive = new Color(1.0f, 0.82f, b);
+                WorldBuilder.WindowEmissive = new Color(1.0f, g, 0.16f);
                 WorldBuilder.SetWindowGlow(1.4f);
                 var m = LitMinusDark(cam, dark2);
-                double got = m.tr > 0.01 ? m.tb / m.tr : 0.0;
-                warm.Append($" src={b:0.00}[face={(int)(m.tr * 255)},")
-                    .Append($"{(int)(m.tg * 255)},{(int)(m.tb * 255)} b/r={got:0.00}]");
+                double gr = m.tr > 0.01 ? m.tg / m.tr : 0.0;
+                double br = m.tr > 0.01 ? m.tb / m.tr : 0.0;
+                warm.Append($" srcG={g:0.00}[face={(int)(m.tr * 255)},")
+                    .Append($"{(int)(m.tg * 255)},{(int)(m.tb * 255)} g/r={gr:0.00} b/r={br:0.00}]");
             }
-            warm.Append(" want b/r=0.45 at k=1.4");
+            warm.Append(" want g/r=0.82 b/r=0.45 at k=1.4");
             Debug.Log(warm.ToString());
 
             // RESTORED, BOTH OF THEM. A probe that leaves the world in the

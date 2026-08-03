@@ -104,7 +104,27 @@ namespace Ledger.Game
         /// pulls it toward white. So the number to find is not a brightness,
         /// it is the source colour that COMES OUT at 0.45, and that is a
         /// transfer to be measured rather than reasoned about.
-        public static Color WindowEmissive = new Color(1.0f, 0.82f, 0.45f);
+        /// READ OFF THE SERIES, not chosen. `[series] windowWarmth` at 6b64b40,
+        /// sweeping the source blue at a fixed multiplier and measuring what
+        /// the FRAME comes out at:
+        ///
+        ///     src 0.45 -> b/r 0.83      src 0.14 -> b/r 0.41
+        ///     src 0.32 -> b/r 0.72      src 0.06 -> b/r 0.17
+        ///     src 0.22 -> b/r 0.59      src 0.00 -> b/r 0.00
+        ///
+        /// Nearly linear at about 1.85x, and the target of 0.45 on screen sits
+        /// between the 0.14 and 0.22 samples: 0.16. That is the number three
+        /// confident diagnoses failed to reach, and it took one build once the
+        /// sweep was on the right axis — the multiplier had been swept six ways
+        /// and never moved b/r below 0.68 because brightness was never the
+        /// lever.
+        ///
+        /// GREEN IS STILL WRONG AND IS NOT GUESSED. It comes out at 199/205 =
+        /// 0.97 against a target of 0.82, so the same wash applies — but that
+        /// is ONE point, not a series, and extrapolating a second channel off a
+        /// single reading is precisely what rule 2 forbids. It is now in the
+        /// sweep, and the next run answers it the same way this one did.
+        public static Color WindowEmissive = new Color(1.0f, 0.82f, 0.16f);
 
         /// How much brighter than the source a lit window renders. Named
         /// because `WindowLit` is built from it and the probe sweeps around
