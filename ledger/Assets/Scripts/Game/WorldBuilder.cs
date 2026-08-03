@@ -119,12 +119,28 @@ namespace Ledger.Game
         /// and never moved b/r below 0.68 because brightness was never the
         /// lever.
         ///
-        /// GREEN IS STILL WRONG AND IS NOT GUESSED. It comes out at 199/205 =
-        /// 0.97 against a target of 0.82, so the same wash applies — but that
-        /// is ONE point, not a series, and extrapolating a second channel off a
-        /// single reading is precisely what rule 2 forbids. It is now in the
-        /// sweep, and the next run answers it the same way this one did.
-        public static Color WindowEmissive = new Color(1.0f, 0.82f, 0.16f);
+        /// AND THE BLUE ANSWER CAME BACK EXACTLY AS THE SERIES PREDICTED,
+        /// which is the part worth recording. The line said 0.16 would land on
+        /// 0.45; the next build measured `b/r=0.43`. Read off, shipped,
+        /// confirmed — after three confident diagnoses had failed on the same
+        /// question because they were all sweeping brightness, which was never
+        /// the lever.
+        ///
+        /// GREEN, THE SAME WAY. Swept at the shipped blue so the two do not
+        /// confound:
+        ///
+        ///     srcG 0.82 -> g/r 0.97      srcG 0.46 -> g/r 0.80
+        ///     srcG 0.70 -> g/r 0.93      srcG 0.34 -> g/r 0.69
+        ///     srcG 0.58 -> g/r 0.88      srcG 0.20 -> g/r 0.47
+        ///
+        /// The 0.82 target sits between the 0.46 and 0.58 samples: 0.49.
+        ///
+        /// So the source is (1.00, 0.49, 0.16) and it looks violently orange
+        /// as a raw colour — which is the whole point. ACES desaturates the
+        /// top of its curve and bloom spreads a near-white halo, and
+        /// pre-compensating for both is what puts (1.00, 0.82, 0.45) on the
+        /// screen. The number that matters is the one in the frame.
+        public static Color WindowEmissive = new Color(1.0f, 0.49f, 0.16f);
 
         /// How much brighter than the source a lit window renders. Named
         /// because `WindowLit` is built from it and the probe sweeps around
