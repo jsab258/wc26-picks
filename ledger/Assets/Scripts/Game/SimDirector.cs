@@ -1496,7 +1496,6 @@ namespace Ledger.Game
 
         int _labelsColliding = -1;
         int _textMirrored = 0;
-        float _worstNameplateFrac = 0f;
 
         /// See the note at the call site. Two numbers, each answering one
         /// question a still asked and no gate could.
@@ -1505,7 +1504,6 @@ namespace Ledger.Game
             var cam = Camera.main;
             if (cam == null) return;
             int mirrored = 0;
-            float worst = 0f;
             foreach (var tm in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 if (tm == null || string.IsNullOrEmpty(tm.text)) continue;
@@ -1554,14 +1552,20 @@ namespace Ledger.Game
                     if (sh == null || sh.name != "Hidden/LedgerText") mirrored++;
                 }
 
-                // And how tall it lands on screen. Only the NPC nameplates are
-                // in question here — street plates are meant to be large and
-                // near — so this measures what `NameTags` manages.
-                if (NameTags.ScreenRect(cam, r.bounds, out var rect))
-                {
-                    float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
-                    if (frac > worst) worst = frac;
-                }
+                // THE HEIGHT MEASUREMENT MOVED, and the comment that used to sit
+                // here is why. It said "only the NPC nameplates are in question
+                // here — street plates are meant to be large and near — so this
+                // measures what `NameTags` manages." The loop it sat in walks
+                // EVERY `TextMesh` in the scene, street plates included, so it
+                // measured the opposite of what it claimed and reported 0.210
+                // for what may well have been a sign the camera was standing
+                // next to.
+                //
+                // It now lives in `NameTags.Resolve`, where the set really is
+                // the offered NPC labels and the rects are already computed —
+                // and where a suppressed label is excluded, because an invisible
+                // name being large is not a fault. Read as
+                // `NameTags.WorstNameFrac`.
             }
             // WORST OVER THE RUN, not the reading at one instant — and the
             // first run of this is exactly why. It came back
@@ -1572,7 +1576,6 @@ namespace Ledger.Game
             // moment when one was. A single sample cannot answer "does this
             // ever get absurd", which is the question.
             if (mirrored > _textMirrored) _textMirrored = mirrored;
-            if (worst > _worstNameplateFrac) _worstNameplateFrac = worst;
         }
 
         /// The player's own pose, swept. See the note beside where it is read.
@@ -5556,7 +5559,7 @@ namespace Ledger.Game
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} textMirrored={_textMirrored} " +
-                      $"worstTextHeightFrac={_worstNameplateFrac:0.000} " +
+                      $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
                       $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
                       $"nameTagsFrames={NameTags.ResolvedFrames} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +

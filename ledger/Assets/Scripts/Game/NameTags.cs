@@ -100,6 +100,13 @@ namespace Ledger.Game
         public static int WorstUnplaced { get; private set; }
         public static int ResolvedFrames { get; private set; }
 
+        /// The tallest a SHOWING nameplate has been over the run, as a fraction
+        /// of screen height. Worst-over-run rather than a sample, for the reason
+        /// the first version of this measurement failed: it read 0.036 while the
+        /// still that prompted it showed a name spanning a third of the frame.
+        /// Both were true — the sample happened at a moment with no label near.
+        public static float WorstNameFrac { get; private set; }
+
         /// A walker offers its label each frame it wants one shown.
         ///
         /// OFFERED, NOT SHOWN. The walker has already decided the label is close
@@ -166,7 +173,29 @@ namespace Ledger.Game
                     c.Label.color = col;
                     Suppressed++;
                 }
-                else kept.Add(rect);
+                else
+                {
+                    kept.Add(rect);
+                    // HOW BIG A NAME EVER GETS, MEASURED WHERE THE NAMES ARE.
+                    //
+                    // `SimDirector.MeasureTextFaults` reported
+                    // `worstTextHeightFrac=0.210` — a label a fifth of the
+                    // screen tall — under a comment claiming it measured "what
+                    // NameTags manages". It did not: it looped over every
+                    // `TextMesh` in the scene, and this city is full of street
+                    // plates that are SUPPOSED to be large when you stand next
+                    // to one. The same reading that made the mirrored-text
+                    // count meaningless.
+                    //
+                    // Here the set is exactly the offered NPC labels, the rects
+                    // are already computed, and a suppressed label is excluded
+                    // because it is invisible and its size is not a fault. The
+                    // number this produces is answerable: no threshold on it
+                    // yet, because rule 2 — print the series first, then bound
+                    // it from the evidence.
+                    float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
+                    if (frac > WorstNameFrac) WorstNameFrac = frac;
+                }
             }
 
             // THE POSTCONDITION, ASKED SEPARATELY FROM THE WORK.
