@@ -62,9 +62,27 @@ namespace Ledger.Game
 
         /// The multiplier under test, so the probe can sweep it without this
         /// file and the sim disagreeing about what was rendered.
+        /// THE COLOUR A LIT WINDOW EMITS, before anything renders it.
+        ///
+        /// Named rather than inline because the probe now sweeps it. The night
+        /// still shows windows as white slabs, and the six-multiplier series
+        /// says brightness is not the reason: the measured blue-over-red runs
+        /// 0.71 to 0.79 across a 3x range and RISES with the multiplier, while
+        /// the target is 0.45. There is no multiplier that reaches it, so the
+        /// probe's own instruction — "ship the largest k whose blue ratio is
+        /// still near 0.45" — was unsatisfiable, and had been for as long as it
+        /// has been printed.
+        ///
+        /// The source is already 0.45. Everything between here and the frame —
+        /// bloom spreading a near-white halo, ACES desaturating highlights —
+        /// pulls it toward white. So the number to find is not a brightness,
+        /// it is the source colour that COMES OUT at 0.45, and that is a
+        /// transfer to be measured rather than reasoned about.
+        public static Color WindowEmissive = new Color(1.0f, 0.82f, 0.45f);
+
         public static void SetWindowGlow(float multiplier)
         {
-            var c = new Color(1.0f, 0.82f, 0.45f) * multiplier;
+            var c = WindowEmissive * multiplier;
             foreach (var r in Windows)
             {
                 if (r == null) continue;

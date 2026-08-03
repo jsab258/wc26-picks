@@ -3431,11 +3431,50 @@ namespace Ledger.Game
                     .Append($" face={(int)(m.tr * 255)},{(int)(m.tg * 255)},{(int)(m.tb * 255)}")
                     .Append($" b/r={blueTop:0.00}]");
             }
-            WorldBuilder.SetWindowGlow(3.0f);
-            // The target ratio, printed beside the readings so the line answers
-            // its own question without anybody opening this file.
             line.Append(" target b/r=0.45");
             Debug.Log(line.ToString());
+
+            // AND THE AXIS THAT WAS NEVER SWEPT.
+            //
+            // The series above says brightness is not the lever: blue-over-red
+            // runs 0.71 to 0.79 across a 3x multiplier and RISES with it, while
+            // the target is 0.45. So there is no k that satisfies this probe's
+            // own instruction — "ship the largest k whose blue ratio is still
+            // near 0.45" — and there never was. A series can look informative
+            // and still be a dead end, and this one printed every run for days.
+            //
+            // The source is ALREADY 0.45. Bloom spreads a near-white halo and
+            // ACES desaturates highlights, and between them they pull it toward
+            // white. What is wanted is therefore the SOURCE colour that comes
+            // out at 0.45 on screen — a transfer, measured the same way the AO
+            // ceiling was: print what each input produces and read the answer
+            // off the line.
+            //
+            // Blue is swept and red is held, because the fault is entirely that
+            // blue arrives too high; scaling green with it would change the hue
+            // as well as the warmth and confound the two.
+            var was = WorldBuilder.WindowEmissive;
+            var warm = new StringBuilder("SimDirector: windowWarmth");
+            WorldBuilder.SetWindowGlow(0f);
+            var dark2 = FramePixels(cam);
+            foreach (float b in new[] { 0.45f, 0.32f, 0.22f, 0.14f, 0.06f, 0.00f })
+            {
+                WorldBuilder.WindowEmissive = new Color(1.0f, 0.82f, b);
+                WorldBuilder.SetWindowGlow(1.4f);
+                var m = LitMinusDark(cam, dark2);
+                double got = m.tr > 0.01 ? m.tb / m.tr : 0.0;
+                warm.Append($" src={b:0.00}[face={(int)(m.tr * 255)},")
+                    .Append($"{(int)(m.tg * 255)},{(int)(m.tb * 255)} b/r={got:0.00}]");
+            }
+            warm.Append(" want b/r=0.45 at k=1.4");
+            Debug.Log(warm.ToString());
+
+            // RESTORED, BOTH OF THEM. A probe that leaves the world in the
+            // state it was measuring changes the build it reports on, and the
+            // four stills are taken after this runs — so a forgotten restore
+            // here would put the wrong windows in every frame Jafar looks at.
+            WorldBuilder.WindowEmissive = was;
+            WorldBuilder.SetWindowGlow(3.0f);
         }
 
         /// The pixels the WINDOWS added, and their colour.
