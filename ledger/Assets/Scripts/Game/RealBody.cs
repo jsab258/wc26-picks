@@ -332,12 +332,25 @@ namespace Ledger.Game
                 if (!flesh) { coatArea += a; coatVerts += verts; }
             }
 
-            if (totalArea > 0)
-            {
-                DressedAreaFraction = coatArea / totalArea;
-                DressedVertexFraction = totalVerts > 0 ? (double)coatVerts / totalVerts : 0;
-                CoverageRead = true;
-            }
+            // TWO MEASUREMENTS, TWO GATES, and the first run is why.
+            //
+            // These used to share one `if (totalArea > 0)`, so when the mesh
+            // turned out to be non-readable — `mesh.vertices` returns an EMPTY
+            // ARRAY rather than throwing — the area came back zero and took the
+            // vertex fraction down with it. Both printed 0.000, which is
+            // exactly what a coat covering nothing looks like.
+            //
+            // `vertexCount` is metadata and works on a non-readable mesh, so it
+            // would have answered on its own. One condition guarding two
+            // independent facts is the same fault as a reset that clears half a
+            // class's counters: the half it forgets looks deliberate.
+            //
+            // And -1 rather than 0 for "not measured", because a fraction of
+            // zero is a legitimate reading and must not be confused with the
+            // absence of one.
+            DressedAreaFraction = totalArea > 0 ? coatArea / totalArea : -1;
+            DressedVertexFraction = totalVerts > 0 ? (double)coatVerts / totalVerts : -1;
+            CoverageRead = totalArea > 0 && totalVerts > 0;
 
             // WHICH WAY UP, PRINTED. Setting the instantiated root's rotation to
             // identity above corrects nothing if the axis conversion sits on a

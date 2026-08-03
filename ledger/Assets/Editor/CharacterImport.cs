@@ -115,6 +115,26 @@ namespace Ledger.EditorTools
             // hundredfold error would be caught — but only after a build.
             importer.useFileScale = true;
 
+            // READABLE MESHES, BODIES ONLY.
+            //
+            // `RealBody` measures how much of the figure the coat covers, by
+            // triangle area — the number that tells a dressed body from a bare
+            // one, which no renderer COUNT can. Unity imports meshes
+            // non-readable by default, and `mesh.vertices` on a non-readable
+            // mesh returns an EMPTY ARRAY at runtime rather than throwing. So
+            // the first run of that measurement reported `bodyCoatArea=0.000`,
+            // which is indistinguishable from the fault it was written to
+            // find: a coat covering none of the body. A false positive that
+            // looks exactly like the finding — the `Anachronism` lesson, in a
+            // different system, three days later.
+            //
+            // BODIES ONLY, and the test is the folder. Clips live in A/B/C and
+            // carry a skeleton nobody reads vertices from; bodies sit directly
+            // in `Assets/Characters`. Making all forty-four readable would keep
+            // a second CPU copy of every mesh in memory for nothing.
+            string rel = path.Substring(CharacterFolder.Length);
+            if (!rel.Contains("/")) importer.isReadable = true;
+
             // AND THE AXIS, which is why the first body to reach the street was
             // lying on its back in the road.
             //
