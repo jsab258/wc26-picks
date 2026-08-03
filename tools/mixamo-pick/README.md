@@ -1,5 +1,21 @@
 # LEDGER — the Mixamo drop
 
+## Doing this now? Three steps, about five minutes.
+
+1. **`UPDATE.bat`** — pulls the latest project. Always first.
+2. Open **mixamo.com**, sign in, press **F12**, go to the **Network** tab,
+   click any character, and copy the long `Bearer` token out of a request
+   header. It expires in about an hour, which is the only reason this runs on
+   your machine and not mine.
+3. **`BODIES.bat`** — paste the token when it asks. It downloads four real
+   characters with their clothes on and commits them.
+
+**`PUSH.bat`** if anything is left uncommitted. That is the whole job.
+
+If a step fails, send me the message it printed rather than fighting it —
+every unexpected response is printed in full precisely so one round fixes it.
+
+
 ## Never done this before? Download **`SETUP.bat`** and double-click it.
 
 That is the only file you need. It puts the project on your PC, then hands
@@ -154,8 +170,19 @@ the largest visible thing wrong with the game.
 
 The harvest got 42 animations and two bodies, and **both bodies are the grey
 featureless mannequins Mixamo uses for previews**. The player has been one of
-them ever since — `review_day1_noon.jpg` is a pale figure with no face and a
-blue hip band, standing in a city that is otherwise trying to be a place.
+them ever since.
+
+**Updated 4 August, because the frame changed and this paragraph did not.** It
+used to say the player "is a pale figure with no face and a blue hip band". The
+hip band is gone: that was a wardrobe bug, not the model — the code that decides
+which part of a body is bare skin asked whether the mesh name contained "face",
+and `Beta_Surface` — the entire body — contains sur-FACE. So the figure was
+painted skin from the neck down and the coat went onto the joint balls.
+
+Fixed, and the noon still now shows a figure clothed head to foot. What is still
+true is the sentence this section is really about: **it is a mannequin.** One
+flat colour, no face, because a preview bot has no separate head mesh to leave
+bare. That is what `BODIES.bat` fixes, and it is why it is still worth running.
 
 Two causes, both in this folder:
 
