@@ -127,6 +127,113 @@ namespace Ledger.Game
         static GameObject[] _bodies;
         public static int BodyChoices { get; private set; }
 
+        /// WHAT A CROWD OF SKINNED BODIES WOULD COST, measured on the runner
+        /// that has to draw it.
+        ///
+        /// WHY THIS IS THE NEXT THING AND NOT THE CROWD ITSELF. `CharacterRig`
+        /// states the blocker in its own words: *"Tier two is still what the
+        /// crowd is made of and is not going anywhere until a skinned mesh has
+        /// been costed on a GPU-less runner."* That is a measurement nobody had
+        /// taken, and swapping fifty walkers over without it is precisely the
+        /// "set a threshold you have not measured" habit — with a 28-minute
+        /// round trip per guess and a software rasteriser to be wrong on.
+        ///
+        /// The player is currently the ONLY skinned figure in the city:
+        /// `SceneAudit` reads `renderers=9073 skinned=2`, and the bought body
+        /// has exactly two meshes. Every one of the fifty walkers is ten boxes
+        /// and a sphere, which is what the noon still shows standing next to a
+        /// skinned player.
+        ///
+        /// A SERIES AND NOT A SINGLE READING, for two reasons this project has
+        /// paid for. One value cannot separate "skinning is expensive" from
+        /// "the runner was busy" — the AO ceiling sat inside its own
+        /// instrument's noise for five runs on exactly that mistake. And the
+        /// question is not "is it affordable" but "how many", which only a
+        /// curve answers.
+        ///
+        /// THE MEDIAN OF THE ROUNDS, never the max. The AO probe kept a maximum
+        /// while its gate bounded a fraction from above, so adding rounds made
+        /// it trip on itself. Frame times here are long-tailed on a software
+        /// rasteriser — this run reports `meanFrame=266ms` with
+        /// `worstFrame=2000ms` — so a mean is a report on the worst hitch and a
+        /// median is a report on the frame.
+        public static string CostSeries { get; private set; } = "not measured";
+
+        public static void MeasureCrowdCost(Transform near)
+        {
+            if (near == null) return;
+            var prefab = PickBody("player");
+            if (prefab == null) { CostSeries = "no body to cost"; return; }
+
+            var line = new System.Text.StringBuilder();
+            var spawned = new List<GameObject>();
+            int[] counts = { 0, 8, 24, 50 };
+            foreach (int want in counts)
+            {
+                // Bodies accumulate rather than being rebuilt each step, so the
+                // instantiate cost lands once per step instead of being charged
+                // to every reading after it.
+                while (spawned.Count < want)
+                {
+                    // Spread them across the near band the player actually sees
+                    // people in, not stacked on one another — a pile of fifty
+                    // coincident meshes is a depth-test benchmark, not a crowd.
+                    float a = spawned.Count * 2.399963f;   // golden angle
+                    float rad = 3f + 0.4f * spawned.Count;
+                    var at = near.position + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    var g = Object.Instantiate(prefab, at, Quaternion.identity);
+                    g.name = $"CostBody_{spawned.Count}";
+                    spawned.Add(g);
+                }
+
+                double ms = MedianFrameMs(5);
+                line.Append(line.Length == 0 ? "" : " ")
+                    .Append($"n={want}[ms={ms:0.0}]");
+            }
+            foreach (var g in spawned) if (g != null) Object.Destroy(g);
+            CostSeries = line.ToString();
+        }
+
+        /// Render `rounds` frames and return the median wall time of one.
+        /// `Time.deltaTime` is the frame the ENGINE last completed, which on a
+        /// batchmode runner is the honest number — it includes the rasteriser,
+        /// which is the whole point of costing skinning here rather than
+        /// counting vertices in a spreadsheet.
+        static double MedianFrameMs(int rounds)
+        {
+            var cam = Camera.main;
+            if (cam == null) return -1;
+            var ms = new List<double>();
+            RenderTexture rt = null;
+            var prevTarget = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+            try
+            {
+                // 1280x720 because that is the size the stills are taken at and
+                // therefore the size every judgement about this game is made
+                // at. Costing skinning at 640x360 would answer a question
+                // nobody asks.
+                rt = new RenderTexture(1280, 720, 24, RenderTextureFormat.ARGB32);
+                cam.targetTexture = rt;
+                for (int i = 0; i < rounds; i++)
+                {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    cam.Render();
+                    sw.Stop();
+                    ms.Add(sw.Elapsed.TotalMilliseconds);
+                }
+            }
+            catch (System.Exception e) { CostSeries = "render failed: " + e.Message; return -1; }
+            finally
+            {
+                cam.targetTexture = prevTarget;
+                RenderTexture.active = prevActive;
+                if (rt != null) { rt.Release(); Object.Destroy(rt); }
+            }
+            ms.Sort();
+            return ms.Count == 0 ? -1 : ms[ms.Count / 2];
+        }
+
         static GameObject PickBody(string wearer)
         {
             if (_bodies == null)

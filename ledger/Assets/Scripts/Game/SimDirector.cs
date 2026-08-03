@@ -3027,9 +3027,19 @@ namespace Ledger.Game
             // condition under which a window glow is a thing that exists. Six
             // extra 640x360 renders on top of the sampler's existing dozen.
             if (!_windowGlowMeasured) { _windowGlowMeasured = true; MeasureWindowGlow(); }
+            // AND WHAT A SKINNED CROWD WOULD COST, once, in the same place —
+            // the street is built and the camera is where the player is, which
+            // is the only condition under which the answer means anything.
+            if (!_crowdCostMeasured && _game != null && _game.Player != null)
+            {
+                _crowdCostMeasured = true;
+                RealBody.MeasureCrowdCost(_game.Player.transform);
+                Debug.Log($"SimDirector: [series] crowdCost {RealBody.CostSeries}");
+            }
         }
 
         bool _windowGlowMeasured;
+        bool _crowdCostMeasured;
 
         /// Every noon/night pair from the run, so the next threshold can be
         /// chosen from data instead of from a guess.
