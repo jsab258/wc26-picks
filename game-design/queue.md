@@ -64,6 +64,18 @@ stand up. Buildings vary by premises and have doors.
 
 ## Next
 
+**CORRECTED — "raise the population" and "make the street busier" are two
+different changes and this queue conflated them.** `CrowdWalkerCap = 12` bounds
+how many bodies are out of doors within earshot, whatever `CityPlan.Count` is,
+and it was set from measurement rather than ambition: at 3,000 residents there
+were 333 people standing within 34m of the bar door, so the caps were not
+thinning a crowd, they were choosing 28 out of a mob and spawning every one on
+top of the player. Raising the count from 700 to 1,400 buys FAMILIARITY — 43.5
+distinct faces a week against 47.4 — and changes the frame not at all. Whether
+a dozen people in a plaza reads as a street or as a demonstration is a judgement
+for Jafar off a still, not a number for me to move against a measured decision.
+
+
 6. **Raise the population instead of cutting districts.** Measured, and it
    reverses the plan: seven districts at 1,400 people gives 43.5 distinct faces
    a week against 47.4 for three at 700, and 2,100 beats the cut outright. What
