@@ -300,14 +300,23 @@ def verdict_keys():
 
     Checks the QUESTIONS, not the answers. `pass=True` is the gates' job."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-keys.py")])
-    m = re.search(r"(\d+) present, (\d+) required, (\d+) missing, (\d+) new", out)
+    # ANCHORED ON THE TAIL, which is the part that means something. The line
+    # gained an `N always + M gate-only` prefix when the checker learned to tell
+    # a gate label from a measurement, and the old pattern — which began at
+    # `present` — stopped matching and reported "did not report" while the tool
+    # underneath was perfectly healthy. A parser is a claim about another
+    # program's output and decays the moment that output is edited.
+    m = re.search(r"(\d+) required, (\d+) missing, (\d+) new", out)
     if not m:
         return False, "verdict-keys did not report"
     if code != 0:
         gone = [l.strip()[5:] for l in out.splitlines() if l.strip().startswith("GONE")]
-        return False, "VERDICT KEYS GONE: " + ", ".join(gone[:4])
-    tail = "" if m.group(4) == "0" else ", %s new (run --learn)" % m.group(4)
-    return True, "%s verdict keys%s" % (m.group(2), tail)
+        demoted = [l.strip()[8:] for l in out.splitlines() if l.strip().startswith("DEMOTED")]
+        if gone:
+            return False, "VERDICT KEYS GONE: " + ", ".join(gone[:4])
+        return False, "VERDICT KEYS NOW GATE-ONLY: " + ", ".join(demoted[:4])
+    tail = "" if m.group(3) == "0" else ", %s new (run --learn)" % m.group(3)
+    return True, "%s verdict keys%s" % (m.group(1), tail)
 
 
 def frame_drift():

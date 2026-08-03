@@ -342,8 +342,88 @@ namespace Ledger.Game
             }
 
             Attached++;
+            StageNoClipTwin(prefab, host);
             return true;
         }
+
+        /// THE LAST TWO SUSPECTS, SEPARATED BY A BODY THAT IS HANDED NO
+        /// ANIMATION AT ALL.
+        ///
+        /// `importerRan=44` closed the import: the postprocessor runs on every
+        /// model, so the bake experiment that came back identical to three
+        /// decimals really was an experiment, and the bake really is not the
+        /// variable. Bind pose upright, scaled pose upright, everything after
+        /// the Animator inverted. Two suspects are left and they need opposite
+        /// fixes:
+        ///
+        ///   the CLIP's curves are inverted   -> reauthor or reimport the clips
+        ///   the AVATAR's mapping is inverted -> rebuild the human description
+        ///
+        /// The bind-pose reading cannot tell them apart, because a disabled
+        /// Animator leaves the bones exactly where the bind pose put them —
+        /// which is the number already measured, and it is upright. The
+        /// distinguishing case is an Animator that is ENABLED and BOUND to the
+        /// avatar but has no clip to play: it evaluates the avatar's own
+        /// default humanoid pose through muscle space, so the avatar does all
+        /// the work and no clip contributes anything.
+        ///
+        ///   twin upright  -> the avatar maps correctly and the clip inverts
+        ///   twin inverted -> the avatar inverts, and the clip is innocent
+        ///
+        /// A SEPARATE, HIDDEN INSTANCE rather than a change to the player. I
+        /// have twice made the body the subject of a test and twice had to ask
+        /// whether the test moved it; a probe that touches the thing it
+        /// measures cannot answer a question about what moved it. This one is
+        /// disabled for rendering, parented off to the side, and never solved
+        /// by `CharacterRig` — it exists for one reading and costs one skinned
+        /// mesh for the length of the run.
+        static void StageNoClipTwin(GameObject prefab, GameObject host)
+        {
+            if (prefab == null || host == null || TwinRead) return;
+            var twin = Object.Instantiate(prefab, host.transform);
+            twin.name = "NoClipTwin";
+            twin.transform.localPosition = new Vector3(0f, -40f, 0f);
+            foreach (var r in twin.GetComponentsInChildren<Renderer>()) r.enabled = false;
+            // Any `CharacterRig` on the twin would solve it and contaminate the
+            // very pose being read — the same reason the reading is taken before
+            // the solve on the real body.
+            foreach (var rig in twin.GetComponentsInChildren<CharacterRig>()) Object.Destroy(rig);
+
+            var anim = twin.GetComponentInChildren<Animator>();
+            if (anim == null) { TwinWhy = "no animator on the twin"; return; }
+            // ENABLED AND BOUND, WITH NOTHING TO PLAY. Clearing the controller
+            // rather than disabling the Animator is the whole experiment: a
+            // disabled Animator reports the bind pose, which is already known
+            // and already upright.
+            anim.runtimeAnimatorController = null;
+            anim.enabled = true;
+            TwinHuman = anim.avatar != null && anim.avatar.isHuman;
+            TwinWhy = TwinHuman ? "bound, no controller" : "avatar not human";
+            _twin = twin;
+        }
+
+        static GameObject _twin;
+
+        /// Read once, late, from the sim — the Animator needs a frame to
+        /// evaluate before there is anything to measure, and reading in the
+        /// same frame it was created would report the bind pose and quietly
+        /// answer the wrong question.
+        public static void ReadNoClipTwin()
+        {
+            if (_twin == null || TwinRead) return;
+            if (ReadBoneSpan(_twin, out float h, out float f))
+            {
+                TwinHeadAboveHips = h;
+                TwinHipsAboveFeet = f;
+                TwinRead = true;
+            }
+        }
+
+        public static float TwinHeadAboveHips { get; private set; }
+        public static float TwinHipsAboveFeet { get; private set; }
+        public static bool TwinRead { get; private set; }
+        public static bool TwinHuman { get; private set; }
+        public static string TwinWhy { get; private set; } = "not staged";
 
         /// World height of everything renderable under `go`. Uses renderer
         /// bounds rather than the transform, because a rig's root transform says

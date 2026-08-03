@@ -1150,6 +1150,11 @@ namespace Ledger.Game
             // wrote to the transform or nothing did.
             if (_player != null)
             {
+                // The twin needs at least one Animator evaluation behind it, so
+                // it is read here on the sampling pass rather than at staging —
+                // reading it in the frame it was created would report the bind
+                // pose and answer a question that already has an answer.
+                RealBody.ReadNoClipTwin();
                 var prig = _player.GetComponentInChildren<CharacterRig>();
                 if (prig != null)
                 {
@@ -5546,6 +5551,10 @@ namespace Ledger.Game
                       $"scaledHeadAboveHips={RealBody.ScaledHeadAboveHips:0.000} " +
                       $"scaledHipsAboveFeet={RealBody.ScaledHipsAboveFeet:0.000} " +
                       $"scaledPoseRead={RealBody.ScaledPoseRead} " +
+                      $"twinHeadAboveHips={RealBody.TwinHeadAboveHips:0.000} " +
+                      $"twinHipsAboveFeet={RealBody.TwinHipsAboveFeet:0.000} " +
+                      $"twinRead={RealBody.TwinRead} twinHuman={RealBody.TwinHuman} " +
+                      $"twinWhy=[{RealBody.TwinWhy}] " +
                       $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +

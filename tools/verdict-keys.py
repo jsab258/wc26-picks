@@ -33,6 +33,7 @@ verdict that looks complete.
 import json
 import pathlib
 import re
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -62,6 +63,81 @@ def keys_in(text):
     return found
 
 
+def split_keys(text):
+    """Keys that are always reported, and keys that only appear when a gate FAILS.
+
+    A GATE LABEL IS NOT A MEASUREMENT CHANNEL, and this checker could not tell
+    the difference. `FAILING GATES:` prints the label of every gate that went
+    red, and those labels carry numbers — so a key inside one is reported ONLY
+    on the runs where its gate failed.
+
+    The harm gate went GREEN and `feudBlocks`, `feudLive`, `roccoUntreated` and
+    `sampled` all vanished with its label. This file called that four
+    measurements silently dropped and failed the build. It was four measurements
+    silently PASSING.
+
+    That is the worse kind of false alarm: a checker that goes red on good news
+    gets rebaselined on reflex, and the next time it is right nobody looks. So
+    the two kinds are recorded separately — a key first seen outside the gate
+    line must keep appearing, and a key only ever seen inside one is allowed to
+    come and go with its gate.
+    """
+    gate_lines, other_lines = [], []
+    for line in text.split("\n"):
+        (gate_lines if "FAILING GATES" in line else other_lines).append(line)
+    always = keys_in("\n".join(other_lines))
+    conditional = keys_in("\n".join(gate_lines)) - always
+    return always, conditional
+
+
+def classify_over_history():
+    """The same split, taken over EVERY committed verdict rather than the latest.
+
+    ONE RUN CANNOT DO THIS, and trying was the first version of the fix. The
+    current verdict has the harm gate green, so its four keys appear nowhere in
+    it — rebaselining off that run would drop them from the manifest entirely
+    and the check meant to notice them vanishing would never look for them
+    again. Reclassifying every currently-absent key as conditional instead would
+    be worse: a genuinely dropped metric gets quietly relabelled as an alarm
+    that simply is not sounding.
+
+    The history settles it without inference. CLAUDE.md already notes that
+    `git log -- verdict.txt` is a series of measurements — that is how the AO
+    ceiling was shown to sit inside its own instrument's noise across five runs.
+    A key that has EVER been reported outside a gate label is a measurement and
+    must keep coming; one only ever seen inside a label belongs to its gate.
+
+    Falls back to the working tree if git is unavailable, and says so rather
+    than silently classifying everything as always-required.
+    """
+    always, conditional = set(), set()
+    try:
+        shas = subprocess.run(
+            ["git", "log", "--format=%H", "--", str(VERDICT)],
+            cwd=str(ROOT), capture_output=True, text=True, check=True,
+        ).stdout.split()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None, None
+    for sha in shas:
+        blob = subprocess.run(
+            ["git", "show", f"{sha}:game-design/sim-shots/verdict.txt"],
+            # DECODED LENIENTLY, like the main read above it. These blobs
+            # were written by a Windows job and carry a section sign in the
+            # places line, so a strict decode dies on one byte and takes the
+            # whole history with it.
+            cwd=str(ROOT), capture_output=True,
+            encoding="utf-8", errors="replace",
+        )
+        if blob.returncode != 0:
+            continue
+        a, c = split_keys(blob.stdout)
+        always |= a
+        conditional |= c
+    # A key seen outside a gate label even ONCE is a measurement. The union
+    # order matters: `conditional` is only what has never appeared anywhere else.
+    return always, conditional - always
+
+
 def main():
     learn = "--learn" in sys.argv
     if not VERDICT.exists():
@@ -69,16 +145,41 @@ def main():
         return 0
 
     text = VERDICT.read_text(encoding="utf-8", errors="replace")
-    present = keys_in(text)
+    always, conditional = split_keys(text)
+    present = always | conditional
+
+    def write(manifest_always, manifest_conditional):
+        MANIFEST.write_text(json.dumps({
+            "always": sorted(manifest_always),
+            "conditional": sorted(manifest_conditional),
+        }, indent=1) + "\n", encoding="utf-8")
 
     if not MANIFEST.exists():
-        MANIFEST.write_text(json.dumps(sorted(present), indent=1) + "\n", encoding="utf-8")
+        write(always, conditional)
         print(f"verdict-keys: manifest seeded with {len(present)} key(s)")
         return 0
 
-    required = set(json.loads(MANIFEST.read_text(encoding="utf-8")))
-    missing = sorted(k for k in required - present if k not in OPTIONAL)
-    added = sorted(present - required)
+    raw = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    # THE OLD FLAT LIST STILL READS. A format change that made every existing
+    # manifest unreadable would force a rebaseline, and a rebaseline is exactly
+    # the moment a genuine loss slips through unnoticed. A flat list is treated
+    # as "all always-required", which is what it meant, and the first `--learn`
+    # sorts it into the two kinds.
+    if isinstance(raw, list):
+        req_always, req_conditional = set(raw), set()
+    else:
+        req_always = set(raw.get("always", []))
+        req_conditional = set(raw.get("conditional", []))
+
+    # A conditional key going missing is its gate passing, which is the good
+    # outcome and not a finding.
+    missing = sorted(k for k in req_always - present if k not in OPTIONAL)
+    # AND A KEY THAT MOVED THE OTHER WAY IS A REAL LOSS. Something that used to
+    # be reported every run and now only shows up when its gate fails has
+    # stopped being a measurement and become an alarm — quieter, and quietly
+    # worse. Caught by comparing against `always`, not against `present`.
+    demoted = sorted(k for k in req_always & conditional if k not in OPTIONAL)
+    added = sorted(present - req_always - req_conditional)
 
     if learn:
         # RECONCILE, DO NOT ONLY ADD. The first version unioned the manifest
@@ -91,18 +192,39 @@ def main():
         # becomes what is actually present. The protection is that it is
         # explicit and manual — nothing learns on its own, and an accidental
         # loss still fails until somebody decides otherwise.
-        MANIFEST.write_text(json.dumps(sorted(present), indent=1) + "\n",
-                            encoding="utf-8")
+        # A CONDITIONAL KEY IS NOT FORGOTTEN JUST BECAUSE ITS GATE IS GREEN
+        # TODAY. Rebaselining off a run where the harm gate passed would drop
+        # its four keys from the manifest entirely, and the check that is meant
+        # to notice them disappearing would never look for them again.
+        # OVER THE HISTORY WHEN GIT CAN SUPPLY IT, because a single run cannot
+        # tell a gate-only key from a dropped one — see `classify_over_history`.
+        hist_always, hist_conditional = classify_over_history()
+        if hist_always is None:
+            print("verdict-keys: no git history available — classifying from this run only")
+            write(always, conditional | (req_conditional - always))
+        else:
+            # THE CURRENT RUN DEFINES WHAT IS LIVE; HISTORY ONLY SAYS WHICH KEYS
+            # ARE GATE-ONLY. Taking `always` from history too resurrects the
+            # dead: `rgb` was renamed to `all`/`face` builds ago and came
+            # straight back as a required key that can never be satisfied — the
+            # permanently-red rename this file already learned once and wrote a
+            # comment about. History is the right source for the ONE question a
+            # single run cannot answer, and the wrong source for everything else.
+            write(always, (hist_conditional | req_conditional) - always)
         note = []
         if added:
             note.append(f"+{len(added)} new ({', '.join(added[:5])})")
         if missing:
             note.append(f"-{len(missing)} dropped ({', '.join(missing[:5])})")
+        if demoted:
+            note.append(f"{len(demoted)} now gate-only ({', '.join(demoted[:5])})")
         print("verdict-keys: rebaselined — " + ("; ".join(note) if note else "no change"))
         return 0
 
-    print(f"verdict-keys: {len(present)} present, {len(required)} required, "
-          f"{len(missing)} missing, {len(added)} new")
+    for k in demoted:
+        print(f"  DEMOTED {k}  (was reported every run, now only when its gate fails)")
+    print(f"verdict-keys: {len(always)} always + {len(conditional)} gate-only present, "
+          f"{len(req_always)} required, {len(missing)} missing, {len(added)} new")
     for k in added:
         # NEW IS NOT AN ERROR, it is an unrecorded decision. Printed so somebody
         # runs --learn on purpose rather than the manifest drifting behind.
