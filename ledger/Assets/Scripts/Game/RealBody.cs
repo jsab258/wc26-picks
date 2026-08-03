@@ -62,6 +62,33 @@ namespace Ledger.Game
         public static float BindHipsAboveFeet { get; private set; }
         public static bool BindPoseRead { get; private set; }
 
+        /// The same span AFTER the body is scaled to its target height. See the
+        /// note where it is taken: the bind sample alone left the scaling step
+        /// unmeasured, which is precisely where a bisect must not have a gap.
+        public static float ScaledHeadAboveHips { get; private set; }
+        public static float ScaledHipsAboveFeet { get; private set; }
+        public static bool ScaledPoseRead { get; private set; }
+
+        /// One reader for both samples, so the two cannot measure subtly
+        /// different things. A bisect whose arms disagree proves nothing.
+        static bool ReadBoneSpan(GameObject body, out float headAboveHips, out float hipsAboveFeet)
+        {
+            headAboveHips = hipsAboveFeet = 0f;
+            var anim = body != null ? body.GetComponentInChildren<Animator>() : null;
+            if (anim == null || !anim.isHuman) return false;
+            var hips = anim.GetBoneTransform(HumanBodyBones.Hips);
+            var head = anim.GetBoneTransform(HumanBodyBones.Head);
+            var lf = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
+            var rf = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+            if (hips == null || head == null || (lf == null && rf == null)) return false;
+            float sole = lf != null && rf != null
+                ? Mathf.Min(lf.position.y, rf.position.y)
+                : (lf != null ? lf.position.y : rf.position.y);
+            headAboveHips = head.position.y - hips.position.y;
+            hipsAboveFeet = hips.position.y - sole;
+            return true;
+        }
+
         public static void ResetCounters()
         {
             Attached = 0;
@@ -266,23 +293,12 @@ namespace Ledger.Game
             // them in ONE: if the T-pose is already inverted it is the import,
             // and if the T-pose is upright while the run is not, it is
             // everything after.
-            var anim = body.GetComponentInChildren<Animator>();
             BindPoseRead = false;
-            if (anim != null && anim.isHuman)
+            if (ReadBoneSpan(body, out float bh, out float bf))
             {
-                var hips = anim.GetBoneTransform(HumanBodyBones.Hips);
-                var head = anim.GetBoneTransform(HumanBodyBones.Head);
-                var lf = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
-                var rf = anim.GetBoneTransform(HumanBodyBones.RightFoot);
-                if (hips != null && head != null && (lf != null || rf != null))
-                {
-                    float sole = lf != null && rf != null
-                        ? Mathf.Min(lf.position.y, rf.position.y)
-                        : (lf != null ? lf.position.y : rf.position.y);
-                    BindHeadAboveHips = head.position.y - hips.position.y;
-                    BindHipsAboveFeet = hips.position.y - sole;
-                    BindPoseRead = true;
-                }
+                BindHeadAboveHips = bh;
+                BindHipsAboveFeet = bf;
+                BindPoseRead = true;
             }
 
             // SCALE FROM THE BOUNDS, NOT FROM A CONSTANT. Mixamo's own scale
@@ -302,6 +318,27 @@ namespace Ledger.Game
             else
             {
                 Why = $"ok (no renderer bounds; left at file scale)";
+            }
+
+            // AND THE SAME MEASUREMENT AGAIN, AFTER SCALING, because the last
+            // bisect had a hole in exactly this shape.
+            //
+            // The bind sample above is taken at instantiate, BEFORE this scale
+            // is applied. It read +0.56 / +0.96 — upright — and I reported
+            // that as "the import is innocent". It only ever showed the body
+            // innocent up to that LINE. Everything between it and the
+            // Animator was unmeasured, and the scale sits right in the gap.
+            //
+            // So the stages are now fully bracketed: bind (post-instantiate),
+            // scaled (here), pre-solve (top of `CharacterRig.LateUpdate`, so
+            // after the Animator), and post-solve. Whichever adjacent pair
+            // disagrees is the stage that inverts the body, and there is
+            // nowhere left for it to hide.
+            if (ReadBoneSpan(body, out float sh, out float sf))
+            {
+                ScaledHeadAboveHips = sh;
+                ScaledHipsAboveFeet = sf;
+                ScaledPoseRead = true;
             }
 
             Attached++;

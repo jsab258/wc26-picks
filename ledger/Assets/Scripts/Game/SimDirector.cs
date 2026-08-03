@@ -5401,6 +5401,9 @@ namespace Ledger.Game
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
                       $"bindPoseRead={RealBody.BindPoseRead} " +
+                      $"scaledHeadAboveHips={RealBody.ScaledHeadAboveHips:0.000} " +
+                      $"scaledHipsAboveFeet={RealBody.ScaledHipsAboveFeet:0.000} " +
+                      $"scaledPoseRead={RealBody.ScaledPoseRead} " +
                       $"sceneClean={SceneAudit.Clean} sceneRenderers={SceneAudit.Renderers} " +
                       $"playerPrimitive={PlayerPrimitiveShowing()} " +
                       $"wardrobe=[{string.Join(" ", System.Linq.Enumerable.Select(GameController.WardrobeWorn, kv => kv.Key + ":" + kv.Value))}] " +
