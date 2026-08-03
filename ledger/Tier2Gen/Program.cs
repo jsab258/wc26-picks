@@ -48,6 +48,14 @@ namespace Ledger.Tier2Gen
 
         static async Task<int> MainAsync(string[] args)
         {
+            // RUN THE CHECKER WITHOUT SPENDING ANYTHING, because a validator
+            // that has never executed is exactly how a generation run comes back
+            // with sixty rejections and an empty directory after burning the
+            // API budget — which is Jafar's, not mine. `--selftest` exercises
+            // every writing rule against cards built to pass and cards built to
+            // fail, in about a second, with no key.
+            if (args.Contains("--selftest")) return SelfTest();
+
             int count = ArgInt(args, "--count", 60);
             int perCall = ArgInt(args, "--batch", 4);
             string outDir = ArgStr(args, "--out", "tier2-out");
@@ -147,13 +155,41 @@ namespace Ledger.Tier2Gen
             sb.AppendLine();
             sb.AppendLine("Every card must be a small, grounded life with MECHANICAL INDIVIDUALITY: one concrete skill, access, or connection that could matter to a player building either an honest life or a quiet criminal outfit. No colorful lunatics, no assassins, no masterminds. Secrets are ordinary-sized and shameful or quietly criminal.");
             sb.AppendLine();
+            // THE DECADE, WHICH THIS PROMPT DID NOT HAVE.
+            //
+            // `agency-model` records the era as decided — late-analog — and ends
+            // that entry with "Cards and generation prompts inherit this." This
+            // prompt did not. Every card it has ever written would read
+            // identically in 1935, which is the same fault the writing pass found
+            // in the hand-authored cards and plausibly why I twice described this
+            // game in writing as 1930s.
+            //
+            // Stated as what a person NOTICES rather than as set dressing,
+            // because that is what actually carries a decade in dialogue. A
+            // character who mentions borrowing next door's phone is in the
+            // period; a character wearing a described jacket is in a costume.
+            sb.AppendLine("PERIOD — late analog, the eighties into the nineties. No internet, no mobile phones, no email, no texting. People reach each other through landlines, phone boxes, answering machines, and messages left with whoever is behind a bar. Being unreachable is normal and is part of how this world works. Money is cash, wages are in an envelope, and credit is somebody's word. Write what a character NOTICES and USES from that world rather than describing their clothes: the pools coupon, the meter, the tick at the corner shop, whose phone they borrow, what is on in the corner of the pub.");
+            sb.AppendLine();
+            // AND LINES, BECAUSE DESCRIBING A VOICE IS NOT HAVING ONE.
+            //
+            // `speech` alone produces adjectives — "gruff", "world-weary" — and
+            // an adjective gets you the model's AVERAGE of that adjective, so
+            // every card converges on the same person. The cards that work
+            // already do the opposite: "rarely finishes a sentence without
+            // naming a price", "laughs like a winch". Those are behaviours a
+            // model can act on. Two or three lines of the character actually
+            // TALKING anchors a register harder than any description, and it
+            // costs a field.
+            sb.AppendLine("VOICE — `speech` must name a BEHAVIOUR, not a mood. \"Rarely finishes a sentence without naming a price\" is usable; \"gruff and world-weary\" gets you the average of those words and every card sounds the same. Then `lines`: two or three things this person would actually say, in their own words, showing the behaviour you just named. Plain speech, contractions, sentences allowed to trail off. Never 'serves as' or 'boasts'; no delve, tapestry, testament, vibrant, crucial, pivotal, showcase.");
+            sb.AppendLine();
             sb.AppendLine("Valid place ids for schedules (use ONLY these): " +
                 string.Join(", ", HookMap.Places.Select(p => p.Id)) + ".");
             sb.AppendLine();
             sb.AppendLine("Output ONLY a bare JSON array of card objects — no prose, no code fences. Each card object has exactly these fields:");
             sb.AppendLine("id (lowercase single word, unique), name (first name, may repeat no existing name), age (int 18-75), occupation (string), circle (\"day\"|\"night\"|\"both\"), " +
                           "traits {greed, nerve, loyalty: each 0.05-0.9, at least one outside 0.4-0.6}, " +
-                          "summary (2 sentences), personality (2 sentences), speech (1-2 sentences on how they talk), " +
+                          "summary (2 sentences), personality (2 sentences), speech (1-2 sentences naming a speech BEHAVIOUR), " +
+                          "lines (array of 2-3 short quotes this character would say, no attribution, no quotation marks), " +
                           "hardFacts (array of 3-5 first-person checkable facts), " +
                           "secret {kind: \"shameful\"|\"criminal\", line (one sentence), knownBy (array of 0-2 ids)}, " +
                           "need (one thing they want that the player could supply), " +
@@ -178,6 +214,147 @@ namespace Ledger.Tier2Gen
                 foreach (var f in failures.Take(10)) sb.AppendLine("- " + f);
             }
             return sb.ToString();
+        }
+
+        /// Every writing rule, against cards built to pass and to fail.
+        ///
+        /// A GOOD CARD FIRST, and that ordering is the point. The failure this
+        /// guards against is not "a bad card slips through" — it is a validator
+        /// so strict that nothing survives it, and the run reports sixty
+        /// rejections with the money already gone. So the first assertion is
+        /// that a card written the way the prompt asks for is ACCEPTED.
+        static int SelfTest()
+        {
+            int fails = 0;
+            void Expect(string label, Dictionary<string, object> card, string wantSubstring)
+            {
+                var got = Validate(card, new HashSet<string>(ExistingCast),
+                                   new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                                   new HashSet<string> { "rocco" });
+                bool ok = wantSubstring == null
+                    ? got == null
+                    : got != null && got.Contains(wantSubstring);
+                Console.WriteLine((ok ? "  ok   " : "  FAIL ") + label
+                                  + (ok ? "" : $" — got: {got ?? "accepted"}"));
+                if (!ok) fails++;
+            }
+
+            // PARSED, NOT HAND-BUILT, AND THE FIRST RUN OF THIS TEST IS WHY.
+            //
+            // The first version assembled these dictionaries in C# and every
+            // single case came back "age out of range" — including the one that
+            // was supposed to pass. Suspect the instrument: `MiniJson.GetInt`
+            // reads `v is double`, because a JSON number always arrives as a
+            // double, and my literal `54` was a boxed int. The test was wrong
+            // and the code was right, so nothing in `GetInt` was touched.
+            //
+            // Hand-building the input made the test a SECOND MODEL of what the
+            // model returns, free to disagree with the first — the fault this
+            // repo keeps finding in its own instruments. Going through the real
+            // parser means the test can only ever be fed what production is fed.
+            string place = HookMap.Places[0].Id;
+            string baseJson = @"{
+              ""id"": ""wilf"", ""name"": ""Wilf"", ""age"": 54,
+              ""occupation"": ""knife grinder"", ""circle"": ""day"",
+              ""traits"": { ""greed"": 0.3, ""nerve"": 0.5, ""loyalty"": 0.5 },
+              ""summary"": ""Grinds knives off a barrow on the corner. Has done since the yard shut."",
+              ""personality"": ""Patient with the work and impatient with everything else. Keeps a tally of who has not paid."",
+              ""speech"": ""Names the price before he has looked at the blade, then argues himself down."",
+              ""lines"": [
+                ""Two quid. All right, one fifty, but you're robbing me."",
+                ""Leave it with us, I'll be here Thursday.""
+              ],
+              ""hardFacts"": [ ""He has ground blades on this corner for nine years."",
+                               ""The yard shut in the spring and never paid its last week."",
+                               ""He drinks in the Hook Street bar on a Friday and nowhere else."" ],
+              ""secret"": { ""kind"": ""shameful"",
+                            ""line"": ""He sharpens for the yard that sacked him and takes the cash."",
+                            ""knownBy"": [] },
+              ""need"": ""a new stone for the wheel"",
+              ""connections"": [ { ""to"": ""rocco"", ""weight"": 0.4 },
+                                 { ""to"": ""ada"", ""weight"": 0.5 } ],
+              ""schedule"": [ { ""place"": ""PLACE"", ""hour"": 8 },
+                              { ""place"": ""PLACE"", ""hour"": 17 } ]
+            }".Replace("PLACE", place);
+
+            Dictionary<string, object> Card(Action<Dictionary<string, object>> tweak = null)
+            {
+                var c = MiniJson.AsObject(MiniJson.Deserialize(baseJson));
+                tweak?.Invoke(c);
+                return c;
+            }
+
+            Console.WriteLine("Tier2Gen --selftest — the writing rules, without spending anything");
+            Expect("a card written as the prompt asks is ACCEPTED", Card(), null);
+            Expect("no lines at all is rejected", Card(c => c.Remove("lines")), "lines must have");
+            Expect("one line is rejected", Card(c => c["lines"] = new List<object> { "Two quid, mate." }),
+                   "lines must have");
+            Expect("a fragment is not a line",
+                   Card(c => c["lines"] = new List<object> { "Aye.", "Two quid, take it or leave it." }),
+                   "not a fragment");
+            Expect("an out-of-period line is rejected",
+                   Card(c => c["lines"] = new List<object>
+                       { "Send us an email about it.", "Leave it with us till Thursday." }),
+                   "does not exist in this period");
+            Expect("an out-of-period secret is rejected",
+                   Card(c => MiniJson.AsObject(c["secret"])["line"] =
+                       "He has been selling the yard's stock list over email."),
+                   "secret mentions");
+            Expect("an out-of-period hard fact is rejected",
+                   Card(c => c["hardFacts"] = new List<object>
+                       { "He found the address on a website.", "b sentence here", "c sentence here" }),
+                   "hard fact mentions");
+            Expect("an out-of-period need is rejected",
+                   Card(c => c["need"] = "a mobile phone so the yard can reach him"),
+                   "does not exist in this period");
+            Expect("adjective-only speech is rejected",
+                   Card(c => c["speech"] = "Gruff and world-weary."), "must name a behaviour");
+            // AND THE THINGS THAT ARE IN THE PERIOD AND MUST NOT TRIP IT. A
+            // checker that rejected these would be quietly deleting the decade
+            // it exists to protect.
+            Expect("a payphone is in the world",
+                   Card(c => c["lines"] = new List<object>
+                       { "Ring us from the box on the corner.", "I'll leave word with the barman." }),
+                   null);
+            Expect("an answering machine is in the world",
+                   Card(c => c["need"] = "somebody to answer the machine while he is out"), null);
+
+            Console.WriteLine(fails == 0
+                ? $"\n  all writing rules behave — {fails} failure(s)"
+                : $"\n  {fails} FAILURE(S) — do not dispatch a generation run");
+            return fails == 0 ? 0 : 1;
+        }
+
+        /// Things that cannot exist in a late-analog city, and the whole reason
+        /// the era is a DESIGN decision rather than a flavour: information here
+        /// gains a second channel without travelling at internet speed, which is
+        /// what makes missed calls, wiretaps and being unreachable into play.
+        /// A card that hands somebody an email has quietly deleted a mechanic.
+        ///
+        /// DELIBERATELY SHORT. Everything on this list is unambiguous for the
+        /// eighties and nineties. Borderline period items are NOT here — CDs
+        /// (1982), answering machines, pagers, car phones and DNA evidence
+        /// (Pitchfork, 1987) are all in the world and a checker that guessed at
+        /// them would reject correct cards. Rule 2: assert what can be asserted.
+        static readonly string[] OutOfPeriod =
+        {
+            "internet", "email", "e-mail", "website", "web site", "online",
+            "mobile phone", "smartphone", "smart phone", "text message",
+            "texted her", "texted him", "texted me", "social media", "wifi",
+            "wi-fi", "google", "facebook", "dvd", "usb", "download",
+        };
+
+        /// The offending word, or null. Substring rather than token match: the
+        /// list carries multi-word phrases on purpose, so "mobile phone" is
+        /// caught while an ordinary "mobile" — which meant something else and
+        /// was in use — is not.
+        static string Anachronism(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var lower = text.ToLowerInvariant();
+            foreach (var w in OutOfPeriod)
+                if (lower.Contains(w)) return w;
+            return null;
         }
 
         /// The script validator (spec rules, no LLM). Returns null when valid,
@@ -211,6 +388,60 @@ namespace Ledger.Tier2Gen
                 if (v < 0.4 || v > 0.6) nonBeige = true;
             }
             if (!nonBeige) return "all traits beige (0.4-0.6); at least one must sit outside";
+
+            // THE WRITING, CHECKED. Everything above this asserts SHAPE — an id
+            // is a word, an hour is an hour, a leg is walkable — and not one
+            // line of it could tell a good card from a card that says the
+            // character is "gruff" and could be any century. A prompt
+            // instruction with no validator behind it is a suggestion, and this
+            // generator's whole design is that the script rejects and the reason
+            // goes back into the next prompt.
+            var lines = MiniJson.GetList(card, "lines");
+            if (lines == null || lines.Count < 2 || lines.Count > 3)
+                return "lines must have 2-3 short quotes the character would actually say";
+            foreach (var l in lines)
+            {
+                var text = (l as string ?? "").Trim();
+                // Structural, not a tuned threshold: three words is the shortest
+                // thing that can demonstrate a register rather than assert one.
+                if (text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 3)
+                    return "each line must be something a person would actually say, not a fragment";
+                var bad = Anachronism(text);
+                if (bad != null) return $"line mentions '{bad}', which does not exist in this period";
+            }
+
+            // AND THE REST OF THE CARD IN THE SAME PERIOD, because the era only
+            // holds if it holds everywhere: a card whose lines are impeccable
+            // and whose secret is about an email is still out of the world.
+            foreach (var field in new[] { "summary", "personality", "speech", "occupation", "need" })
+            {
+                var bad = Anachronism(MiniJson.GetString(card, field));
+                if (bad != null) return $"{field} mentions '{bad}', which does not exist in this period";
+            }
+            // Including the two places a card carries its most load-bearing
+            // sentences. A secret is what the whole social layer trades in and a
+            // hard fact is what the character cannot be argued out of; either one
+            // built on something that does not exist has broken the world in the
+            // spot where it matters most.
+            {
+                var sec = MiniJson.GetObject(card, "secret");
+                var bad = Anachronism(sec != null ? MiniJson.GetString(sec, "line") : null);
+                if (bad != null) return $"secret mentions '{bad}', which does not exist in this period";
+                foreach (var f in MiniJson.GetList(card, "hardFacts") ?? new List<object>())
+                {
+                    bad = Anachronism(f as string);
+                    if (bad != null) return $"a hard fact mentions '{bad}', which does not exist in this period";
+                }
+            }
+
+            // ADJECTIVES DESCRIBE A VOICE; BEHAVIOUR IS ONE. "Gruff and
+            // world-weary" returns the model's average of two words and every
+            // card converges on the same man. Caught by asking whether the field
+            // is ONLY mood words, which is cheap and catches the actual failure
+            // rather than trying to score prose.
+            var speech = MiniJson.GetString(card, "speech");
+            if (speech.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 6)
+                return "speech must name a behaviour, not a mood — one or two sentences, not adjectives";
 
             var facts = MiniJson.GetList(card, "hardFacts");
             if (facts == null || facts.Count < 3 || facts.Count > 5) return "hardFacts must have 3-5 entries";
@@ -325,6 +556,17 @@ namespace Ledger.Tier2Gen
             sb.AppendLine();
             sb.AppendLine("## Speech Style");
             sb.AppendLine(MiniJson.GetString(card, "speech"));
+            sb.AppendLine();
+            // RENDERED, OR THE FIELD IS DECORATION. `CharacterCard.Parse` puts
+            // every `##` section into `Sections` and `ToPromptBlock` emits all of
+            // them, so a section added here reaches the system prompt with no
+            // other change — which is worth stating because the opposite
+            // assumption is how this project has shipped systems that were built,
+            // tested and never once called.
+            sb.AppendLine("## Example Lines");
+            sb.AppendLine("Things this person actually says. Match this register.");
+            foreach (var l in MiniJson.GetList(card, "lines") ?? new List<object>())
+                sb.AppendLine($"- \"{l}\"");
             sb.AppendLine();
             sb.AppendLine("## Hard Facts");
             foreach (var f in MiniJson.GetList(card, "hardFacts") ?? new List<object>())

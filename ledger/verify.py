@@ -127,6 +127,29 @@ def tools_tracked():
     return True, "%d tool project(s) tracked" % n
 
 
+def card_writing():
+    """The generator's writing rules, run without spending anything.
+
+    `Tier2Gen` is the only tool here that costs money to exercise properly, so
+    its validator was the one nobody could run: a rule added to it went
+    straight to a CI job with an API key and sixty cards riding on it. The
+    failure that shape produces is the expensive one — every card rejected, an
+    empty output directory, and the money already gone.
+
+    `--selftest` runs the writing rules against cards built to pass and cards
+    built to fail, with no key and in about a second. Its first execution
+    caught two faults in ITSELF and none in the code, which is the usual
+    ratio: hand-built test input was a second model of what the API returns
+    and disagreed with the real parser about whether 54 is a double."""
+    code, out = run(["dotnet", "run", "--project", str(ROOT / "Tier2Gen"), "--", "--selftest"])
+    m = re.search(r"all writing rules behave — (\d+) failure", out)
+    if m:
+        n = len([l for l in out.splitlines() if l.strip().startswith("ok ")])
+        return True, "%d card-writing rules" % n
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "CARD WRITING RED: " + (bad[0][:120] if bad else "no verdict (build failure?)")
+
+
 def shape_files():
     """Layer 2 of the testing system, for the half that lives in files.
 
@@ -362,8 +385,8 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               frame_drift, verdict_keys, save_chaos, soak, adversary,
-               stale_anchors, core_tests):
+               card_writing, frame_drift, verdict_keys, save_chaos, soak,
+               adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)
