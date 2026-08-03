@@ -55,6 +55,28 @@ namespace Ledger.Game
         public static int Dressed { get; private set; }
         public static int Kept { get; private set; }
 
+        /// AND HOW MUCH OF THE BODY EACH OF THOSE ACTUALLY COVERS.
+        ///
+        /// The counts above are of RENDERERS, and a count cannot see
+        /// proportion. `bodyDressed=1 bodySkinned=1` is the same reading
+        /// whether the coat covers the torso and the skin covers the hands, or
+        /// the skin covers the whole figure and the coat covers a waistband —
+        /// and the noon still on 3 August shows the second one, a bare
+        /// mannequin, while every number in the run said dressed. Three faults
+        /// have now been found by a human opening a frame and none by a gate
+        /// (rule 4); this is the one that would have caught this one.
+        ///
+        /// TRIANGLE AREA RATHER THAN VERTEX COUNT, because vertex share only
+        /// equals surface share if the mesh is uniformly tessellated, and
+        /// heads never are — a face carries a large share of a character's
+        /// vertices and a small share of its skin. Area is the quantity the
+        /// eye is actually judging, so it is the one to measure rather than a
+        /// proxy that happens to be easier to get. Both are printed: if they
+        /// disagree, the disagreement is itself the finding.
+        public static double DressedAreaFraction { get; private set; }
+        public static double DressedVertexFraction { get; private set; }
+        public static bool CoverageRead { get; private set; }
+
         /// The skeleton as IMPORTED, before anything animates it. See the note
         /// where these are measured: this is what tells a bad import apart from
         /// a bad animation without spending a CI round trip on each guess.
@@ -68,6 +90,49 @@ namespace Ledger.Game
         public static float ScaledHeadAboveHips { get; private set; }
         public static float ScaledHipsAboveFeet { get; private set; }
         public static bool ScaledPoseRead { get; private set; }
+
+        /// The mesh a renderer draws, whether it is skinned or not. One reader,
+        /// because the body has both kinds and two lookups would eventually
+        /// disagree about which meshes count.
+        static Mesh MeshOf(Renderer r)
+        {
+            if (r is SkinnedMeshRenderer smr) return smr.sharedMesh;
+            var mf = r != null ? r.GetComponent<MeshFilter>() : null;
+            return mf != null ? mf.sharedMesh : null;
+        }
+
+        static int VertexCount(Renderer r)
+        {
+            var m = MeshOf(r);
+            return m != null ? m.vertexCount : 0;
+        }
+
+        /// Total triangle area of a renderer's mesh, in the mesh's own units.
+        ///
+        /// Local space deliberately, and not world: every renderer on this body
+        /// shares one root scale, so a uniform factor cancels in the FRACTION
+        /// that is the only thing anybody reads. Doing it in world space would
+        /// add a per-vertex transform to a loop over fifty thousand triangles
+        /// for a number that comes out identical.
+        static double SurfaceArea(Renderer r)
+        {
+            var mesh = MeshOf(r);
+            if (mesh == null) return 0;
+            var verts = mesh.vertices;
+            var tris = mesh.triangles;
+            if (verts == null || tris == null) return 0;
+            double sum = 0;
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+                if (a >= verts.Length || b >= verts.Length || c >= verts.Length) continue;
+                // Half the cross product's magnitude — the triangle's area, and
+                // the only definition of "how much of this person" that does
+                // not depend on how finely somebody chose to tessellate a face.
+                sum += Vector3.Cross(verts[b] - verts[a], verts[c] - verts[a]).magnitude * 0.5;
+            }
+            return sum;
+        }
 
         /// One reader for both samples, so the two cannot measure subtly
         /// different things. A bisect whose arms disagree proves nothing.
@@ -220,6 +285,9 @@ namespace Ledger.Game
             float coatV = Mathf.Min(0.68f, (float)cv + lift);
             var coat = AssetLibrary.Opaque(Color.HSVToRGB((float)ch, (float)cs, coatV));
             Skinned = Dressed = Kept = 0;
+            double coatArea = 0, totalArea = 0;
+            long coatVerts = 0, totalVerts = 0;
+            CoverageRead = false;
             foreach (var r in body.GetComponentsInChildren<Renderer>())
             {
                 if (r == null) continue;
@@ -254,6 +322,21 @@ namespace Ledger.Game
                           || n.Contains("eye") || n.Contains("face");
                 r.sharedMaterial = flesh ? skin : coat;
                 if (flesh) Skinned++; else Dressed++;
+
+                // HOW MUCH OF THE PERSON THIS RENDERER IS. Measured on the
+                // mesh the wardrobe just painted, so the answer cannot drift
+                // from the decision it describes.
+                double a = SurfaceArea(r);
+                int verts = VertexCount(r);
+                totalArea += a; totalVerts += verts;
+                if (!flesh) { coatArea += a; coatVerts += verts; }
+            }
+
+            if (totalArea > 0)
+            {
+                DressedAreaFraction = coatArea / totalArea;
+                DressedVertexFraction = totalVerts > 0 ? (double)coatVerts / totalVerts : 0;
+                CoverageRead = true;
             }
 
             // WHICH WAY UP, PRINTED. Setting the instantiated root's rotation to

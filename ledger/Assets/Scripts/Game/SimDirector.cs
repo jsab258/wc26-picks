@@ -5688,6 +5688,9 @@ namespace Ledger.Game
                       $"rigsMs={RigsPerFrameMs():0.000} " +
                       $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
                       $"bodyKeptMats={RealBody.Kept} " +
+                      $"bodyCoatArea={RealBody.DressedAreaFraction:0.000} " +
+                      $"bodyCoatVerts={RealBody.DressedVertexFraction:0.000} " +
+                      $"bodyCoverageRead={RealBody.CoverageRead} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
                       $"bindPoseRead={RealBody.BindPoseRead} " +

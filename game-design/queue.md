@@ -38,34 +38,34 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **The companion sees a knifing WORSE than a stranger does, and the excuse is
-   gone.** `companionSight[with=Goran rung=0 street=1 dist=1.7m]` — she is at
-   the player's shoulder, 1.7 metres, and the street out-sees her. The standing
-   hypothesis in the code comment was that `CompanionHost.Ask` has no proximity
-   requirement so she gets recruited across the city; the printed distance
-   refutes it outright. This is the one failing gate in the run and it is Core,
-   so it answers here in seconds rather than in twenty-eight minutes. Read
-   `Witnesses.Resolve`'s rung computation against a witness standing at 1.7m
-   and find what demotes her.
-2. **The player is a shop dummy, and no code fixes that.** The noon frame shows
-   a featureless pale figure with a blue hip band. `CharacterPrefab.BodyModel`
-   is `Assets/Characters/X Bot.fbx` — Mixamo's free mannequin. The 44 imported
-   files are animation clips. So `bodyDressed=1` is TRUE and says nothing: the
-   coat went onto a placeholder. Nothing to build; the roadmap now says so and
-   it is Jafar's purchase. **Do not spend another hour making a dummy prettier.**
-3. **`bodyDressed` counts renderers, so it cannot see how much of the body is
-   dressed.** One renderer flesh, one coat, `Dressed=1` — and if the coat lands
-   on the smaller mesh the figure reads naked while the number reads clothed.
-   The metric that would have caught it is area, not count: vertices or bounds
-   volume per material. This is the standing "turn a still into a number" item
-   with a specific target, and it will still be right when a real mesh arrives.
-4. **The arms: the bracket is dispatched, do not guess ahead of it.** *(CI)*
-   `restArmDrop=0.0`, `liveArmDrop=118.8`, and `preArmDrop` lands with the
-   build on `9ae6ff6`. Already ~119 pre-solve means the Animator's default pose
-   does it; 0 pre-solve means our `Swing` does. Read it, then act.
-5. **First engine-side evidence that rest days differ.** *(CI)*
-   `workNoonCrowd` / `restNoonCrowd` land in the same build. The Core says the
-   crowd should thin at the weekend; nothing has ever looked.
+1. **Read `preArmDrop` when the arm build lands, then act.** *(CI)*
+   `restArmDrop=0.0`, `liveArmDrop=118.8`. Already ~119 pre-solve means the
+   Animator's default pose does it and our solve is innocent; 0 pre-solve means
+   `Swing` composing onto a rest rotation is the culprit. Do not guess ahead of
+   the number — the last arm hypothesis was wrong and the number said so first.
+2. **Read `deedEyesOpen`, `deedKnowsYou` and `companionSight` on the
+   perception build.** *(CI)* Both were structurally zero: the street could
+   only witness a crime if it was already suspicious of the player, and no
+   caller anywhere supplied a familiarity function so nobody could name him.
+   Both fixed and dispatched. **The accept case is the one to check** — eyes
+   open in the market, the companion at rung 4, `street` still below her.
+3. **Read `bodyCoatArea` against `bodyDressed`.** *(CI)* The count says
+   dressed, the frame says naked; the area fraction is the number that can
+   tell them apart. If it comes back near zero the count was lying, which is
+   the finding. Dispatched with the same build.
+4. **First engine-side evidence that rest days differ.** *(CI)*
+   `workNoonCrowd` / `restNoonCrowd`. The Core says the crowd should thin at
+   the weekend; nothing has ever looked.
+5. **Six generated cards still lack example lines**, down from sixty. Local,
+   no key needed to find which six.
+6. **Read a system for false comments — `Perceivers` next.** Two were found in
+   `NpcWalker` and `Witnesses` tonight, both asserting the companion got a
+   full sighting while the build printed rung 0. `Perceivers` feeds both and
+   has never been read for this.
+7. **The player is a shop dummy and no code fixes it.** `X Bot.fbx` is
+   Mixamo's free mannequin; the 44 imported files are animation clips. It is
+   Jafar's purchase and the roadmap says so. **Do not spend another hour
+   making a dummy prettier.**
 
 ## Next
 
