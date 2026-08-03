@@ -339,7 +339,7 @@ jobs:
               # series carry `[series]` in the line and this matches on that:
               # one pattern, and the next probe is captured without anybody
               # remembering this file exists.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|SceneAudit: " \
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The

@@ -180,6 +180,48 @@ namespace Ledger.Game
 
         /// Every visible word in the panel, joined — the content predicates
         /// read the panel the way a player would: off what is rendered.
+        /// THE LEDGER PANEL AS THE PLAYER WOULD READ IT, for the verdict.
+        ///
+        /// Rule 4 says open the artifact you are shipping, and everything built
+        /// tonight ships into this panel: the DOUBT section, the feud lines
+        /// under each crew member, "story doubted" where it used to say
+        /// "settled". Not one of them has ever been LOOKED at. They are
+        /// asserted by a content predicate, which checks that a header string
+        /// is present and can say nothing whatever about whether the screen
+        /// reads like English.
+        ///
+        /// TEXT AND NOT A SCREENSHOT, and the reason is structural rather than
+        /// lazy. `Shot` renders `Camera.main` into a RenderTexture, and this
+        /// canvas is `ScreenSpaceOverlay` — which does not render through a
+        /// camera at all. A UI still down that path would have come back as a
+        /// picture of the street with no panel in it, and committed silently,
+        /// which is the exact shape of every "reported success, produced
+        /// nothing" failure in this repo's history.
+        ///
+        /// For a panel made of words, reading the words back IS opening it. It
+        /// also lands in the one channel this environment can definitely read.
+        ///
+        /// Rich-text tags stripped, because `<color=#8a8a8a>` is not something
+        /// a player sees and three of them per line would bury the content in
+        /// the character budget.
+        public string LedgerWords()
+        {
+            if (_ledgerPanel == null) return "(no ledger panel)";
+            try { RefreshLedger(); } catch (System.Exception e) { return "refresh threw: " + e.Message; }
+            var raw = AllWords(_ledgerPanel);
+            var sb = new System.Text.StringBuilder();
+            bool inTag = false;
+            foreach (char c in raw)
+            {
+                if (c == '<') { inTag = true; continue; }
+                if (c == '>') { inTag = false; continue; }
+                if (inTag) continue;
+                sb.Append(c == '\n' ? " | " : c.ToString());
+            }
+            var flat = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), " +", " ").Trim();
+            return flat.Length > 1400 ? flat.Substring(0, 1400) + " …" : flat;
+        }
+
         static string AllWords(GameObject panel)
         {
             var sb = new System.Text.StringBuilder();

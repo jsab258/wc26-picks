@@ -3174,6 +3174,10 @@ namespace Ledger.Game
                 _crowdCostMeasured = true;
                 RealBody.MeasureCrowdCost(_game.Player.transform);
                 Debug.Log($"SimDirector: [series] crowdCost {RealBody.CostSeries}");
+                // AND THE LEDGER SCREEN, IN WORDS. Everything built tonight
+                // ships into that panel and none of it has ever been read back.
+                if (_game.Ui != null)
+                    Debug.Log($"SimDirector: [panel] ledger — {_game.Ui.LedgerWords()}");
             }
         }
 
