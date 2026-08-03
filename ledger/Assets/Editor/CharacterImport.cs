@@ -101,8 +101,35 @@ namespace Ledger.EditorTools
             // Bodies sit at the root of `Assets/Characters/`; clips live in the
             // per-character subfolders. That is the discriminator, and it is a
             // property of the layout rather than a guess about a filename.
-            bool isClipOnly = path.Substring(CharacterFolder.Length).Contains("/");
-            importer.bakeAxisConversion = !isClipOnly;
+            // EXPERIMENT, NOT A FIX, and it is labelled that way on purpose.
+            //
+            // The four-stage bracket has now located the fault exactly. Bind
+            // pose +0.56/+0.96 upright; after scaling +0.53/+0.91, still
+            // upright and scaling cleanly by 0.949; after the Animator
+            // evaluates, -0.13/-0.78. The import is innocent, the scale is
+            // innocent, our rig is innocent. THE AVATAR'S OWN RETARGET INVERTS
+            // THE BODY.
+            //
+            // That points at a disagreement between the mesh and the avatar
+            // about which way is up. `bakeAxisConversion` rotates the mesh and
+            // the skeleton into Y-up — which is why the ROOT reads upright and
+            // why the first body stopped lying on its back — but if the human
+            // description is built against the pre-bake orientation, muscle
+            // space maps "up" to the old axis and every evaluated pose comes
+            // out inverted.
+            //
+            // I have proposed two fixes on this fault already and both were
+            // wrong, so this is not a third. It is the experiment that
+            // distinguishes the remaining possibilities: turn the bake OFF
+            // entirely and read the same four stages. If bind and scaled go
+            // INVERTED while the animated pose comes out UPRIGHT, the mesh and
+            // the avatar are provably using opposite conventions and the fix
+            // is to make them agree rather than to keep flipping one of them.
+            // If everything stays inverted, the bake was never the variable at
+            // all and the avatar is simply built wrong.
+            //
+            // Either answer is worth a build. Neither is worth a guess.
+            importer.bakeAxisConversion = false;
 
             // The bodies have skin; the clips do not need it imported twice.
             importer.importBlendShapes = false;
