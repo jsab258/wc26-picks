@@ -5803,6 +5803,9 @@ namespace Ledger.Game
                       $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +
                       $"playerHasController={_playerHasController} " +
                       $"speedDriven={CharacterRig.SpeedDriven} " +
+                      $"animCulling={CharacterRig.AnimCulling} " +
+                      $"animClipTime={CharacterRig.AnimClipTime:0.00} " +
+                      $"animState={CharacterRig.AnimStateHash} " +
                       $"crowdSpeed={NpcWalker.CrowdSpeedMean:0.00}/{NpcWalker.CrowdSpeedPeak:0.00} " +
                       $"crowdHip={Rig.LegSwing(0.25, NpcWalker.CrowdSpeedMean).hip:0.0} " +
                       $"armSplay={CharacterRig.ArmSplayDegrees:0.0} " +

@@ -477,6 +477,13 @@ namespace Ledger.Game
         /// controller at all — so the run says which.
         public static bool SpeedDriven { get; private set; }
 
+        /// The bought body's animator, reported rather than assumed. A
+        /// controller that exists and never evaluates looks identical from
+        /// every number the run had until now.
+        public static string AnimCulling = "not read";
+        public static float AnimClipTime;
+        public static int AnimStateHash;
+
         /// How far an arm sits from vertical when it is simply hanging. Not a
         /// measurement and not claimed as one — it is the small outward angle a
         /// person's arms make against their own body, and it exists so the
@@ -757,6 +764,21 @@ namespace Ledger.Game
             {
                 _animator.SetFloat(SpeedParam, (float)Speed);
                 if (!SpeedDriven) { SpeedDriven = true; }
+                // WHAT THE ANIMATOR IS ACTUALLY DOING, because "it has a
+                // controller" and "it is animating" turned out to be different
+                // facts and only the first was measured. `speedDriven=True`
+                // said the float was written; it said nothing about whether
+                // anything read it.
+                if (IsTheBoughtBody)
+                {
+                    AnimCulling = _animator.cullingMode.ToString();
+                    var st = _animator.GetCurrentAnimatorStateInfo(0);
+                    // Normalised time ADVANCES when a clip is playing and sits
+                    // still when it is not. One number, and it separates "no
+                    // controller", "controller with no motion" and "playing".
+                    if (st.normalizedTime > AnimClipTime) AnimClipTime = st.normalizedTime;
+                    AnimStateHash = st.shortNameHash;
+                }
             }
             // Beside the pre-solve sample, because they answer the same question
             // from opposite ends: `PreHeadAboveHips` is what the BONES say after

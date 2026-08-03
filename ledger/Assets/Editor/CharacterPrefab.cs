@@ -188,7 +188,31 @@ namespace Ledger.EditorTools
                     // pose" are different questions, and this is the line that
                     // makes them different.
                     animator.applyRootMotion = false;
-                    animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                    // ALWAYS ANIMATE, and the reading is exact enough to name
+                    // the cause. With the instrument finally scoped to one body,
+                    // the bracket came back `restArmDrop=90.0 preArmDrop=90.0
+                    // liveArmDrop=87.4` — a T-pose, to a tenth, on both sides of
+                    // our solve, while `clipsBound=3` and `speedDriven=True` say
+                    // the controller exists and is being driven.
+                    //
+                    // EXACTLY 90.0 IS THE TELL. A clip being evaluated would
+                    // land anywhere; it would not land on the bind pose to a
+                    // tenth of a degree. So the Animator is not writing these
+                    // bones at all, and `CullUpdateTransforms` is the setting
+                    // that does precisely that: it skips retargeting whenever no
+                    // camera reports the renderer visible.
+                    //
+                    // The sim does not render a live camera every frame — it
+                    // calls `cam.Render()` on demand into a RenderTexture for
+                    // each still and each A/B probe — so `isVisible` is false
+                    // for most of the run and the body freezes in its bind pose
+                    // between shots. That is a correct optimisation meeting a
+                    // renderer nobody is continuously looking at.
+                    //
+                    // One body. The saving `CullUpdateTransforms` buys is a
+                    // retarget we want to happen anyway, and paying it always is
+                    // the difference between a character and a mannequin.
+                    animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
                     var stem = System.IO.Path.GetFileNameWithoutExtension(modelPath)
                         .Replace(" ", "");
