@@ -30,6 +30,22 @@ namespace Ledger.Core
             reply = Humanize(reply);
             if (string.IsNullOrWhiteSpace(reply)) return Deflect(characterName);
 
+            // NARRATION IS NOT SPEECH, and this is from a real transcript.
+            // Asked something he could not answer, one character replied
+            // "Sam squints at that like you've asked him to fly" — prose ABOUT
+            // a person rather than a person talking. The prompt now forbids it,
+            // and a prompt rule with nothing behind it is a suggestion: this is
+            // the only reply in the game nobody wrote and nobody reviews.
+            //
+            // Detected by the character narrating THEMSELVES in the third
+            // person, which is what the failure looks like and is cheap to
+            // spot. Deliberately narrow — a character may legitimately talk
+            // about somebody else in the third person all day, and about
+            // themselves by name when quoting what others call them. Only a
+            // reply that OPENS with their own name and a verb is the shape
+            // that went wrong.
+            if (ReadsAsNarration(reply, characterName)) return Deflect(characterName);
+
             // LAYER 2 — SHAPE, on the one text in this game that nobody wrote
             // and nobody reviewed.
             //
@@ -86,6 +102,33 @@ namespace Ledger.Core
         /// curly quotes go straight, markdown emphasis and emoji vanish. Word-
         /// level tells are handled upstream by the speech-style rules in the
         /// system prompt; TellCount below measures what still slips through.
+        /// Does this reply read as stage direction rather than speech?
+        ///
+        /// NARROW ON PURPOSE. The observed failure opens with the speaker's own
+        /// name followed by a verb — "Sam squints...", "Rocco laughs...". A
+        /// broader test would catch a character talking about a third party,
+        /// which is most of what anybody says in this game, and deflecting
+        /// those would be far worse than the fault it fixes.
+        public static bool ReadsAsNarration(string reply, string characterName)
+        {
+            if (string.IsNullOrWhiteSpace(reply) || string.IsNullOrWhiteSpace(characterName))
+                return false;
+            var first = characterName.Split(' ')[0];
+            var t = reply.TrimStart();
+            if (!t.StartsWith(first, StringComparison.OrdinalIgnoreCase)) return false;
+            var rest = t.Substring(first.Length).TrimStart();
+            // A quote or a comma after the name is somebody being addressed or
+            // quoted, not narrated. A bare word after it is a verb.
+            if (rest.Length == 0) return false;
+            char c = rest[0];
+            if (c == ',' || c == '?' || c == '!' || c == '.' || c == ':' || c == '"') return false;
+            int end = rest.IndexOf(' ');
+            var word = end < 0 ? rest : rest.Substring(0, end);
+            // Lowercase word straight after the speaker's own name: "Sam
+            // squints", "Ada considers". Capitalised would be another name.
+            return word.Length > 2 && char.IsLower(word[0]);
+        }
+
         public static string Humanize(string reply)
         {
             var sb = new System.Text.StringBuilder(reply.Length);

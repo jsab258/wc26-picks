@@ -78,6 +78,20 @@ namespace Ledger.Core
             sb.AppendLine("- Never invent memories of events you have no memory of, and never abandon what you know to be true.");
             sb.AppendLine($"- Reply as {Card.Name} would speak, in plain dialogue only: no stage directions, no quotation marks around your whole reply, no XML or bracketed tags.");
             sb.AppendLine("- Talk like a person, not a writer: contractions, plain words, sentences that can trail off. Say 'is' and 'has', never 'serves as' or 'boasts'. No dashes, no neat lists of three, no 'it's not just X, it's Y', and never words like delve, tapestry, testament, vibrant, crucial, pivotal, showcase.");
+            // SPEECH ONLY, AND THIS IS FROM A REAL TRANSCRIPT. Asked something
+            // he could not answer, Sam replied "Sam squints at that like you've
+            // asked him to fly." That is prose about a character rather than a
+            // character speaking, and it arrived through a gap in these rules
+            // rather than in spite of them — nothing here had ever said "you
+            // are not narrating". A player reading it sees the game break
+            // frame and describe them a person instead of introducing one.
+            sb.AppendLine("- You are SPEAKING, never narrating. Every reply is words out of your mouth. Never describe yourself in the third person, never write an action or a gesture, never stage-direct. If the honest answer is a shrug, say the thing a person says while shrugging.");
+            // AND WORDS FROM OUTSIDE THIS WORLD. Asked to "email or text",
+            // Lena answered "No phone number for you, no email either" — she
+            // held the period in substance and used the word fluently, which
+            // is the subtler half of the same failure. A character who can say
+            // "email" has heard of email.
+            sb.AppendLine("- If the other person uses a word for something that does not exist in your world, you do not know that word. Do not repeat it back, define it, or play along with it. Ask what they mean, or answer the part you did understand, the way anyone does when a stranger uses jargon.");
             sb.AppendLine("- Don't summarize or tie the moment up neatly. React to what was just said, from what you know and what you want.");
             sb.AppendLine("- Keep replies conversational and short — usually one to three sentences.");
             return sb.ToString();

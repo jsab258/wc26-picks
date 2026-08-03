@@ -5510,6 +5510,22 @@ namespace Ledger.CoreTests
             // hazard, which is a district appended to one array and not the
             // others, silently shifting every share after it onto the wrong
             // place.
+            // NARRATION, FROM THE TRANSCRIPT THAT FOUND IT. The real failure
+            // was "Sam squints at that like you've asked him to fly" — a reply
+            // that is prose about a character rather than a character talking.
+            Check(ResponseValidator.ReadsAsNarration(
+                      "Sam squints at that like you've asked him to fly.", "Sam"),
+                "a character narrating themselves is caught");
+            Check(!ResponseValidator.ReadsAsNarration(
+                      "Sam's the one you want, not me.", "Rocco"),
+                "talking ABOUT somebody else is not narration");
+            Check(!ResponseValidator.ReadsAsNarration(
+                      "Sam, you're not listening.", "Sam"),
+                "a name followed by a comma is address, not narration");
+            Check(!ResponseValidator.ReadsAsNarration(
+                      "Sam? Never heard of him.", "Sam"),
+                "a name followed by a question mark is not narration");
+
             Check(CityPlan.Balanced,
                 "the city's districts and its home/work shares are the same length and total 100",
                 $"{CityPlan.Districts.Length} districts, "
