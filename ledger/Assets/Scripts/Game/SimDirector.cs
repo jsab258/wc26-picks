@@ -5560,6 +5560,13 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} textMirrored={_textMirrored} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
+                      // INPUT PARITY, AS A NUMBER. The claim is that a
+                      // conversation can be carried without typing; it fails when
+                      // the chip row runs dry, and no gate could see that because
+                      // every gate asks whether the chips were BUILT. A zero here
+                      // means somebody was left with nothing but a text field.
+                      $"fewestChips={(DialogueUI.ChipRefreshes > 0 ? DialogueUI.FewestChipsOffered : -1)} " +
+                      $"chipRefreshes={DialogueUI.ChipRefreshes} " +
                       $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
                       $"nameTagsFrames={NameTags.ResolvedFrames} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +

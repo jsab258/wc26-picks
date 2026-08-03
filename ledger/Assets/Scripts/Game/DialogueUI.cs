@@ -786,8 +786,16 @@ namespace Ledger.Game
         {
             if (_current == null || _waiting || string.IsNullOrEmpty(_chipSays[i])) return;
             AskedOf(CurrentHostId()).Add(_chipLabels[i].text);
+            // SAYING GOODBYE HAS TO ACTUALLY LEAVE. Submitting the line and
+            // sitting there waiting for a reply is not leaving, it is announcing
+            // an intention — and on a controller Escape is the only other exit,
+            // which is the thing this chip exists to remove. The line is still
+            // said, because walking off mid-sentence is a different move and
+            // this street remembers which one you made.
+            bool leaving = _chipLabels[i].text == "leave it";
             _input.text = _chipSays[i];
             Submit();
+            if (leaving) CloseDialogue();
         }
 
         /// 2–3 contextual openers from live game state — the act's threads, known
@@ -830,15 +838,75 @@ namespace Ledger.Game
             opts.Add(("the street", "How is the street treating everyone these days?"));
             opts.RemoveAll(o => asked.Contains(o.label));
 
+            // THE ROW COULD EMPTY, AND AN EMPTY ROW MEANS TYPING IS COMPULSORY.
+            //
+            // Every option above is dropped once it has been asked, including
+            // the two generic ones — the `RemoveAll` is the last thing that runs
+            // and nothing is added after it. So a player who has asked a person
+            // about Mickey and about the street is left with three inactive
+            // buttons and a text field, and the only way to continue is to type.
+            //
+            // Jafar's constraint is explicit: playable with a controller on a
+            // couch, and *"typing/dictating should still be possible, just not
+            // required."* A row that empties makes it required, silently, and
+            // only for the players who talk to somebody more than twice — which
+            // is to say the ones who are actually engaging with the thing this
+            // game is built on.
+            //
+            // These two are added AFTER the removal and are deliberately not
+            // once-only, because neither is a topic. One keeps a conversation
+            // going without asking anything, which is a real move — most of what
+            // a person tells you comes after you stop questioning them. The
+            // other ends it, so a controller can leave a conversation without
+            // reaching for Escape.
+            opts.Add(("go on", "Go on."));
+            opts.Add(("leave it", "Right. I'll leave you to it."));
+
             _chipRow.SetActive(true);
+            int shown = 0;
             for (int i = 0; i < 3; i++)
             {
                 bool has = i < opts.Count;
                 _chipBtns[i].gameObject.SetActive(has);
                 _chipSays[i] = has ? opts[i].say : null;
-                if (has) _chipLabels[i].text = opts[i].label;
+                if (has) { _chipLabels[i].text = opts[i].label; shown++; }
+            }
+
+            // WHAT THE ROW ACTUALLY OFFERED, AT ITS WORST OVER A RUN.
+            //
+            // The claim being made is "a conversation can be carried without
+            // typing", and the way that claim fails is a row that quietly runs
+            // dry — which no gate here could see, because every gate asks
+            // whether the chips were BUILT. Worst-over-run rather than a sample,
+            // for the reason the nameplate metric had to be rewritten: a single
+            // reading lands wherever it lands, and the question is whether this
+            // EVER goes to zero.
+            if (shown < FewestChipsOffered) FewestChipsOffered = shown;
+            ChipRefreshes++;
+
+            // AND SOMETHING FOR A CONTROLLER TO START ON. Unity will navigate
+            // between these buttons on its own, but only once something is
+            // selected — with nothing selected a gamepad does nothing at all and
+            // the row looks decorative. Set only when the current selection is
+            // gone or outside the row, so it cannot steal focus from a player
+            // who has already moved.
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            if (es != null && shown > 0)
+            {
+                var sel = es.currentSelectedGameObject;
+                bool inRow = sel != null && sel.transform.parent == _chipRow.transform;
+                if (!inRow && (_input == null || !_input.isFocused))
+                    es.SetSelectedGameObject(_chipBtns[0].gameObject);
             }
         }
+
+        /// The fewest chips ever offered while a conversation was open, and how
+        /// many times the row was built. Zero means a player was left with
+        /// nothing but the text field — the exact shape of "typing is required"
+        /// that the input-parity decision rules out. `int.MaxValue` with zero
+        /// refreshes means the row was never built and the number says nothing.
+        public static int FewestChipsOffered { get; private set; } = int.MaxValue;
+        public static int ChipRefreshes { get; private set; }
 
         void BuildKeyPanel(Transform parent)
         {
@@ -1260,6 +1328,33 @@ namespace Ledger.Game
                     "\n\n" + _game.PurseStatusLine() +
                     "\n\n" + _game.PhoneStatusLine();
 
+            // TYPE-TO-FOCUS, which is what keeps typing free after the caret
+            // stopped being handed out on open.
+            //
+            // The parity decision is that typing is always POSSIBLE and never
+            // REQUIRED, and those pull in opposite directions on one question:
+            // who holds focus when a conversation starts. Auto-focusing made
+            // typing free and a controller useless; simply not auto-focusing
+            // makes a controller work and costs the keyboard player a click
+            // before every line, which is worse than what we had.
+            //
+            // So the field takes the caret the moment a printable key is
+            // pressed, and the character that triggered it is kept rather than
+            // eaten — losing the first letter of every sentence is exactly the
+            // kind of small wrongness that reads as a broken game. Ignores the
+            // frame where a chip was just activated by Return or Space, which
+            // would otherwise type a space into the box on every chip press.
+            if (dialogueOpen && !_input.isFocused && !_waiting)
+            {
+                foreach (char c in Input.inputString)
+                {
+                    if (c < ' ' || c == 127) continue;   // Return, backspace, control
+                    _input.text += c;
+                    _input.ActivateInputField();
+                    _input.caretPosition = _input.text.Length;
+                    break;
+                }
+            }
             if (dialogueOpen && _input.isFocused && Input.GetKeyDown(KeyCode.Return))
                 Submit();
 
@@ -1481,7 +1576,20 @@ namespace Ledger.Game
             _titleText.text = host.Card.Name;
             _dialoguePanel.SetActive(true);
             _input.text = "";
-            _input.ActivateInputField();
+            // THE TEXT FIELD NO LONGER TAKES FOCUS ON OPEN, and that one line is
+            // most of what "typing is not required" means in practice.
+            //
+            // Grabbing the caret the moment a conversation starts declares
+            // typing the primary path before the player has done anything. On a
+            // controller it is worse than a declaration: focus sits in a text
+            // field, the stick and D-pad do nothing, and the chip row below is
+            // decorative. `RefreshChips` now selects the first chip instead, so
+            // a pad can navigate and choose immediately.
+            //
+            // Typing loses nothing, because `Update` hands the field the caret
+            // the instant a printable key is pressed — see there. So desk play
+            // is still "start typing", couch play is "press right", and neither
+            // is the one true way in.
             RefreshChips();
             RenderHistory();
         }
@@ -1523,8 +1631,17 @@ namespace Ledger.Game
             if (host == null) return;
             var text = _input.text.Trim();
             if (text.Length == 0 || _waiting) return;
+            // ONLY GIVE THE CARET BACK TO SOMEBODY WHO ALREADY HAD IT.
+            //
+            // This reactivated unconditionally, which was right when the field
+            // took focus on open and is wrong now: a controller player presses a
+            // chip, the chip fills the field and submits, and focus lands in a
+            // text box they never touched — D-pad dead, exactly the state the
+            // parity change exists to prevent, reappearing after the first line
+            // instead of at the start.
+            bool wasTyping = _input.isFocused;
             _input.text = "";
-            _input.ActivateInputField();
+            if (wasTyping) _input.ActivateInputField();
 
             var history = HistoryOf(host);
             var name = host.Card.Name;
