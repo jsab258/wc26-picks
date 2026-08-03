@@ -442,8 +442,25 @@ namespace Ledger.Game
         /// mesh renders out, which is a skinning problem and nothing to do with
         /// the rig at all — a completely different search, and worth knowing
         /// before spending a night on the wrong one.
+        /// WHETHER THIS RIG IS THE ONE BODY ANYBODY IS ASKING ABOUT.
+        ///
+        /// Every arm reading was a MAXIMUM over all sixty-eight rigs, so
+        /// `liveArmDrop=122.4` named no body: it could have been the player's
+        /// bought skeleton or any mannequin in the crowd, and the three numbers
+        /// in the bracket were not guaranteed to describe the SAME PERSON.
+        /// `restArmDrop=7.8` alongside `preArmDrop=108.1` is exactly that —
+        /// one figure with its arms down and a different one with them out,
+        /// reported as though they were a before and an after.
+        ///
+        /// A bracket whose arms measure different subjects proves nothing,
+        /// which is rule 3 pointed at my own instrument. Only the driven body
+        /// reports now; the crowd is measured by `bodiesOk` and its own knee
+        /// range, which is what those exist for.
+        bool IsTheBoughtBody => _animator != null && _mannequin == null;
+
         void StampArmsPre()
         {
+            if (!IsTheBoughtBody) return;
             float a = ArmDropNow();
             if (a < 0f) return;
             if (a > PreArmDropDegrees) PreArmDropDegrees = a;
@@ -506,6 +523,7 @@ namespace Ledger.Game
 
         void StampArmsNow()
         {
+            if (!IsTheBoughtBody) return;
             float a = ArmDropNow();
             if (a < 0f) return;
             if (a > LiveArmDropDegrees) LiveArmDropDegrees = a;
@@ -604,7 +622,7 @@ namespace Ledger.Game
             // function produced all three. The `_hips != null` guard it also
             // carried was decorative — no term in the angle uses the hips.
             float rest = ArmDropNow();
-            if (rest >= 0f)
+            if (rest >= 0f && IsTheBoughtBody)
             {
                 RestArmDropDegrees = rest;
                 RestArmRead = true;
@@ -923,25 +941,58 @@ namespace Ledger.Game
             // Accumulation grows; this was constant, which is the signature of
             // a wrong absolute rather than a runaway. Both were live at once,
             // which is why the first fix moved the torso and left the legs.
-            Swing(_lThigh, _lThigh0, -lLeg.hip * lScale);
-            Swing(_lShin, _lShin0, lLeg.knee * lScale);
-            Swing(_rThigh, _rThigh0, -rLeg.hip * rScale);
-            Swing(_rShin, _rShin0, rLeg.knee * rScale);
+            // THE LIMBS BELONG TO WHOEVER IS DRIVING THE POSE, AND ONLY ONE
+            // THING CAN OWN A BONE.
+            //
+            // `Swing` ASSIGNS `rest * Euler(degrees, 0, 0)`, where `rest` was
+            // captured once. That is correct on a mannequin, which has no other
+            // writer. On a body with an Animator it overwrites the clip every
+            // frame with a stale snapshot — so the first build with a real
+            // locomotion controller came back `speedDriven=True
+            // controller=ok(idle+walk+run)` and a figure standing with one arm
+            // bent up beside its head, which is no clip and no rest pose but a
+            // blend of both.
+            //
+            // This is the third face of the same lesson and it is worth stating
+            // once more: composing writes need a rest pose to return to,
+            // assigning writes need one to build from, AND NEITHER MAY RUN ON A
+            // BONE SOMETHING ELSE IS ALREADY ANIMATING. `PoseIsDriven` already
+            // guarded the rest-restore and the arm hang; it did not guard the
+            // thing that actually writes the limbs.
+            //
+            // What stays when a clip is playing: the lean, the breath and the
+            // chest counterturn, because those COMPOSE onto whatever the
+            // Animator just wrote and are the expressive layer the clips cannot
+            // know about — how tired this person is, how hurt, which way they
+            // are banking. That was always the design; it simply had no case
+            // where a clip existed.
+            if (!PoseIsDriven)
+            {
+                Swing(_lThigh, _lThigh0, -lLeg.hip * lScale);
+                Swing(_lShin, _lShin0, lLeg.knee * lScale);
+                Swing(_rThigh, _rThigh0, -rLeg.hip * rScale);
+                Swing(_rShin, _rShin0, rLeg.knee * rScale);
 
-            Swing(_lUpperArm, _lUpperArm0, -lArm.shoulder);
-            Swing(_lForearm, _lForearm0, -lArm.elbow);
-            Swing(_rUpperArm, _rUpperArm0, -rArm.shoulder);
-            Swing(_rForearm, _rForearm0, -rArm.elbow);
+                Swing(_lUpperArm, _lUpperArm0, -lArm.shoulder);
+                Swing(_lForearm, _lForearm0, -lArm.elbow);
+                Swing(_rUpperArm, _rUpperArm0, -rArm.shoulder);
+                Swing(_rForearm, _rForearm0, -rArm.elbow);
 
-            // Feet stay level with the ground rather than pointing wherever
-            // the shin left them, which is the difference between walking and
-            // marionetting.
-            Level(_lFoot);
-            Level(_rFoot);
+                // Feet stay level with the ground rather than pointing wherever
+                // the shin left them, which is the difference between walking
+                // and marionetting. Nothing to level when a clip placed them.
+                Level(_lFoot);
+                Level(_rFoot);
+            }
 
             var (pelvisYaw, chestYaw) = Rig.Counterturn(Phase, gait);
+            // ASSIGNED on a mannequin, COMPOSED on a driven body — the same
+            // distinction, one line lower. An assign here would flatten the
+            // clip's own pelvis rotation and undo half of any walk cycle.
             if (_hips != null)
-                _hips.localRotation = Quaternion.Euler(0, (float)pelvisYaw, 0);
+                _hips.localRotation = PoseIsDriven
+                    ? _hips.localRotation * Quaternion.Euler(0, (float)pelvisYaw, 0)
+                    : Quaternion.Euler(0, (float)pelvisYaw, 0);
             if (_chest != null)
                 _chest.localRotation = _chest.localRotation * Quaternion.Euler(0, (float)chestYaw, 0);
 
