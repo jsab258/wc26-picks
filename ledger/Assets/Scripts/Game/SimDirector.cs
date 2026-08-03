@@ -5769,7 +5769,7 @@ namespace Ledger.Game
                       // means somebody was left with nothing but a text field.
                       $"fewestChips={(DialogueUI.ChipRefreshes > 0 ? DialogueUI.FewestChipsOffered : -1)} " +
                       $"chipRefreshes={DialogueUI.ChipRefreshes} " +
-                      $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
+                      $"nameTagsOffered={NameTags.OfferedPeak} nameTagsHidden={NameTags.Suppressed} " +
                       $"nameTagsActive={NameTags.ActivePeak} " +
                       $"nameTagsUpDot={NameTags.WorstUpDot:0.000} " +
                       $"speechUpDot={SpeechBubble.WorstUpDot:0.000} " +

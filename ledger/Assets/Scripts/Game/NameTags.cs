@@ -47,7 +47,22 @@ namespace Ledger.Game
         /// were offered. Printed so a declutter that quietly stopped running
         /// looks different from a street with nothing to declutter.
         public static int Suppressed { get; private set; }
+        /// PEAK OVER THE RUN, not the reading on the last frame.
+        ///
+        /// This was instantaneous, and it produced a straight contradiction:
+        /// `nameTagsOffered=2` printed beside a night still with a dozen names
+        /// in it. Neither was wrong — the counter described the final frame and
+        /// the picture described a different one — but a number that answers
+        /// "how many right now" while sitting on a done line that everything
+        /// else reads as "how bad did it get" is a number that will be misread
+        /// every time, and I misread it within a minute of printing it.
+        ///
+        /// `WorstUnplaced` next door is already a maximum, for exactly this
+        /// reason and with a comment saying so. Two counters about the same
+        /// system disagreeing on what a run-level number means is the drift
+        /// worth removing.
         public static int Offered { get; private set; }
+        public static int OfferedPeak { get; private set; }
 
         /// Pairs of STILL-VISIBLE managed labels that overlap once the pass has
         /// finished — the postcondition, not the workload.
@@ -229,6 +244,7 @@ namespace Ledger.Game
         static void Resolve()
         {
             Offered = _offered.Count;
+            if (Offered > OfferedPeak) OfferedPeak = Offered;
             Suppressed = 0;
             UnplacedNow = 0;
             var cam = Camera.main;
