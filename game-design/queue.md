@@ -47,25 +47,31 @@ scheduling instead of to CI's output.
    and `bodySkinned=1`, so the one retargeted body is the only broken one.
    Import is closed (`importerRan=44`); it is the clip or the avatar, and the
    twin decides which.
-3. **Period texture and example lines for the Tier-2 ring.** The generator half
-   is DONE — prompt, eleven validator rules, `--selftest` in `verify.py`. What
-   is left is the six hand-written ambient cards, which the generator cannot
-   reach. Authored, free, no round trip.
-4. **`worstTextHeightFrac=0.210` and `textMirrored=58`.** A name taking a fifth
-   of the frame height, and mirrored world text that got WORSE (was 46). Both
-   are visible faults with numbers already on them. *(CI)*
+3. **Confirm the three new numbers report at all.** `fewestChips` (input
+   parity), `rigsMs` with the skinned bone and vertex counts (cast tiering),
+   and the relocated `worstNameFrac`. A metric that never prints is the shape
+   this project ships most often. *(CI)*
+4. **`worstTextHeightFrac` is now `worstNameFrac`** — a deliberate rename, so
+   the key check will report the old name gone on the next verdict. Run
+   `verdict-keys.py --learn` then, not before.
 
 ## Next
 
-5. **M19 input parity.** `DialogueUI` currently treats typing as the primary
-   path. The decision is the inverse: playable end to end on a controller,
-   typing and dictation always available and never required.
-6. **M20 town you learn** — three districts, tier the cast, and days that
-   differ. The last part is a real gap: `OutdoorsAt` and `OutdoorPosition`
-   reduce the hour mod 24, so there is no day parameter anywhere in the routine
-   model and every Tuesday in this town is every Saturday.
-7. **M17.2 voices** — held behind the writing verdict, which is held behind one
-   decision from Jafar (below).
+5. **Tier the cast.** The last open piece of M20, and now the only one bounded
+   from both sides: a full week gives 47 distinct faces and 13 near enough to
+   read at three districts, the witness engine needs about twenty near an
+   event, and the geometric load per character is being measured this build.
+6. **Judge the conversation as OUTPUT.** Blocked on one small spend (below).
+7. **M17.2 voices** — held behind that verdict.
+
+## Done today, kept here only until the next tidy
+
+- Parallel builds; the work queue; the Tier-2 generator's decade and its
+  eleven writing rules with a no-key self-test; example lines and period
+  texture for the whole cast; per-character geometric cost and a `rigs` frame
+  bucket; M19 input parity with a number behind it; days that differ.
+- Three "faults" that were my own instruments: the mirrored-text count, the
+  oversized-nameplate metric, and the verdict-key checker failing on good news.
 
 ## Blocked, and on whom
 
