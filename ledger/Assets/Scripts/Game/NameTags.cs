@@ -150,6 +150,11 @@ namespace Ledger.Game
         public static float WorstNameBoundsY { get; private set; }
         public static float WorstNameScale { get; private set; }
 
+        /// Distance to the bounds the rect is actually projected from, and the
+        /// rect's raw height in pixels. The pair that settles it.
+        public static float WorstNameCentreMetres { get; private set; }
+        public static float WorstNamePixels { get; private set; }
+
         /// A walker offers its label each frame it wants one shown.
         ///
         /// OFFERED, NOT SHOWN. The walker has already decided the label is close
@@ -244,6 +249,28 @@ namespace Ledger.Game
                                                           c.Label.transform.position);
                         WorstNameBoundsY = r.bounds.size.y;
                         WorstNameScale = c.Label.transform.lossyScale.y;
+                        // THE NUMBERS CONTRADICT EACH OTHER, SO MEASURE THE
+                        // THING THE RECT IS ACTUALLY BUILT FROM.
+                        //
+                        // Last run: bounds 0.29m tall, scale 1.0, label 6.45m
+                        // away — and a rect 4.5 SCREENS high. At that distance
+                        // the frame is about seven metres, so 0.29m is four per
+                        // cent of it. Those readings cannot all describe the
+                        // same object, and the one I trust least is the
+                        // distance, because it is measured to the TRANSFORM
+                        // while the rect is projected from the BOUNDS. If the
+                        // mesh sits far from its own transform, both the
+                        // enormous rect and a third of all rect requests being
+                        // rejected as too-near follow immediately.
+                        //
+                        // So: the distance to the bounds, and the raw pixel
+                        // height. Between them there is nothing left to infer —
+                        // either the box is somewhere the transform is not, or
+                        // the projection is wrong, and no third reading is
+                        // needed to tell those apart.
+                        WorstNameCentreMetres = Vector3.Distance(cam.transform.position,
+                                                                r.bounds.center);
+                        WorstNamePixels = rect.height;
                     }
                 }
             }
