@@ -55,7 +55,14 @@ scheduling instead of to CI's output.
 
 ## Next
 
-5. **Tier the cast — and the runtime is not the constraint.** All three sides
+5. **Raise the population instead of cutting districts.** Measured this
+   afternoon and it reverses the plan: seven districts at 1,400 people gives
+   43.5 distinct faces a week against 47.4 for three districts at 700, and
+   2,100 beats the cut outright. The familiarity was buyable with a number
+   rather than by deleting four authored districts. What is NOT measured is
+   whether a fuller city still reads as a port rather than a crowd — that is a
+   question for a still. Change the headcount, look at the frames, then decide.
+6. **Tier the cast — and the runtime is not the constraint.** All three sides
    are now measured. Design: a full week at three districts gives 47 distinct
    faces, 13 near enough to read, and a knee at ~50 people covering 92% of a
    resident's week. Witnesses: no fewer than ~20 near an event. Runtime: one
@@ -63,8 +70,8 @@ scheduling instead of to CI's output.
    cost 1.1ms of a 12ms game-frame budget — 0.016ms each. Bodies are capped at
    28 anyway, so ~400,000 vertices is the worst case and no real GPU cares.
    **The machine does not bound the cast at fifty; only authoring does.**
-6. **Judge the conversation as OUTPUT.** Blocked on one small spend (below).
-7. **M17.2 voices** — held behind that verdict.
+7. **Judge the conversation as OUTPUT.** Blocked on one small spend (below).
+8. **M17.2 voices** — held behind that verdict.
 
 ## Done today, kept here only until the next tidy
 

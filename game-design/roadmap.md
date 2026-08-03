@@ -16,7 +16,7 @@ what happens next.
 | **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 reopened: the player renders upside down** |
 | **also now** | M18 — the second life | family verified running · companion built, unproven · **vice and lifestyle deferred** |
 | **next** | M19 — the people are thinking | inputs judged and fixed · **input parity done: a conversation can be carried without typing** · outputs still unjudged, blocked on one spend |
-| | M20 — the town you learn | **days now differ from each other** · three districts confirmed over a full week · the cast tiering is what remains |
+| | M20 — the town you learn | **days now differ from each other** · **the district cut is OFF — filling the city beats shrinking it, measured** · the cast tiering is what remains |
 | | M21 — the two ledgers | empire growth, law as a tool, and what expansion costs you |
 | | M22 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M23 — firearms | M16 phase 5, deliberately last |
