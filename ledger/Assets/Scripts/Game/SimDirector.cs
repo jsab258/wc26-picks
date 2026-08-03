@@ -568,7 +568,7 @@ namespace Ledger.Game
                     if (sam != null)
                     {
                         sam.Loyalty = 0.5; // the week's favors, staged
-                        _game.Empire.RecruitByNeed(sam, "Sam", 120, _game.Wallet, now);
+                        _game.Empire.RecruitByNeed(sam, "Sam", 120, _game.Wallet, now, _game.Gossip?.Mill);
                         _game.Empire.Establish(_game.Empire.RacketOf("collection"), _game.Empire.CrewOf("Sam"), now);
                     }
                     var shop = _game.Empire.BusinessOf("pawnshop");
@@ -662,7 +662,7 @@ namespace Ledger.Game
                 if (rocco != null && _game.Empire.CrewOf("Rocco") == null)
                 {
                     rocco.Loyalty = 0.75;                       // the week's favours, staged
-                    _game.Empire.RecruitByNeed(rocco, "Rocco", 100, _game.Wallet, now);
+                    _game.Empire.RecruitByNeed(rocco, "Rocco", 100, _game.Wallet, now, _game.Gossip?.Mill);
                     _game.Empire.Establish(_game.Empire.RacketOf("fencing"), _game.Empire.CrewOf("Rocco"), now);
                 }
 
@@ -1764,6 +1764,7 @@ namespace Ledger.Game
         /// tested Core with no call site — which is the state it shipped in an
         /// hour ago and which `reach-check` refused.
         bool _denounceStaged;
+        bool _pledged, _pledgeRefused, _brokeWith;
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
@@ -2107,6 +2108,33 @@ namespace Ledger.Game
                 _denounceStaged = true;
                 var d = LawHost.Denounce(_game, nearest.DisplayName, "kest",
                                          "handled", "the_warehouse_job");
+
+                // AND ALLEGIANCE MOVES, BOTH WAYS, IN THE SAME RUN.
+                //
+                // Pledging and walking out are two halves of one claim — an
+                // allegiance you cannot leave is a setting rather than a
+                // choice — so staging only the pledge would leave the exit
+                // exactly as unreached as it was this morning. Rule 5b in a
+                // sim probe: exercise the case it must accept AND the case it
+                // must refuse, which here is pledging to somebody who despises
+                // you.
+                var em = _game.Empire;
+                var friendly = em.ArmOf("dockside");
+                if (friendly != null)
+                {
+                    // The standing floor is a real precondition and the probe
+                    // must not tunnel through it — it is SET here rather than
+                    // bypassed, so the refusal below still means something.
+                    friendly.Standing = System.Math.Max(friendly.Standing, em.PledgeStandingFloor);
+                    _pledged = _game.Pledge("dockside");
+                    var hostile = em.ArmOf("machine");
+                    if (hostile != null)
+                    {
+                        hostile.Standing = -1.0;
+                        _pledgeRefused = !_game.Pledge("machine");
+                    }
+                    _brokeWith = _game.WalkOutOn("dockside");
+                }
                 if (d != null)
                     Debug.Log($"SimDirector: denounced kest -> {d.Outcome} "
                               + $"corroboration={d.Corroboration:0.00} "
@@ -5019,6 +5047,20 @@ namespace Ledger.Game
             // cannot drop it silently, and this is the check that says it did
             // not — the same shape as `deedDispatched` against `deedArrived`,
             // which is how a whole class of never-arriving deeds was found.
+            // M21: ALLEGIANCE MOVED, BOTH WAYS, AND THE FLOOR STILL HELD.
+            //
+            // Four clauses because four different things were wrong this
+            // morning and each could regress alone. Pledging works; pledging to
+            // somebody who despises you does NOT (a probe that tunnels through
+            // its own precondition proves nothing — rule 5b, the accept case
+            // and the reject case both); walking out works; and the street
+            // heard about a poach, which is the half that was silently missing
+            // for as long as the recruit paths called a private twin that
+            // skipped the gossip layer.
+            bool allegianceOk = _pledged && _pledgeRefused && _brokeWith
+                && GameController.AllegianceChanges >= 2
+                && _game != null && _game.Empire != null && _game.Empire.PoachesHeard > 0;
+
             bool lawOk = LawHost.Denounced > 0 && LawHost.MarksFiled == LawHost.Denounced;
 
             bool bodiesOk = _bodySamples > 0 && _bodyRigs >= 2
@@ -5443,6 +5485,7 @@ namespace Ledger.Game
                  _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
                                      && WorldText.Refused == 0)),
                 ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} {LawHost.LastVerdict}]", lawOk),
+                ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
@@ -5892,6 +5935,8 @@ namespace Ledger.Game
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
                       $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
+                      $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
+                      $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +

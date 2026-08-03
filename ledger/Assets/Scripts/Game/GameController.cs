@@ -1104,6 +1104,61 @@ namespace Ledger.Game
             SaveNow(quiet: true);
         }
 
+        /// M21: ALLEGIANCE, WHICH UNTIL NOW NEVER SHIFTED.
+        ///
+        /// The roadmap scores faction politics 45 against a target of 75 with
+        /// the note "rivals exist; allegiance never shifts", and the reason was
+        /// not missing code. `EmpireBook.PledgeTo` and `BreakWith` were written,
+        /// tested and sitting on the reach ledger with that exact sentence as
+        /// their reason. Three unwired methods were the whole gap.
+        ///
+        /// Shaped on `AnswerTable` directly above, because pledging is the same
+        /// kind of event: a decision that becomes a Fact the street learns, not
+        /// a flag on an object. Flying somebody's colours is the most public
+        /// thing the player can do — `PledgeTo`'s own line is "everyone on this
+        /// street noticed the day it happened" — so it would be absurd for it
+        /// to reach the empire book and not the people in it.
+        public bool Pledge(string armId)
+        {
+            var arm = Empire.ArmOf(armId);
+            if (arm == null || !Empire.PledgeTo(armId, _gossip?.Mill, Now)) return false;
+            BroadcastAllegiance(new Fact("player", "allegiance", arm.Id),
+                $"The new owner flies {arm.HeadName}'s colors now.");
+            ToastLine($"You are {arm.HeadName}'s now. The street will know by morning.", 14f);
+            return true;
+        }
+
+        /// And out again. Nobody takes that quietly, which is the point of
+        /// having it: an allegiance you cannot leave is a setting, not a choice.
+        public bool WalkOutOn(string armId)
+        {
+            var arm = Empire.ArmOf(armId);
+            if (arm == null || !Empire.BreakWith(armId, _gossip?.Mill, Now)) return false;
+            BroadcastAllegiance(new Fact("player", "allegiance", "none"),
+                $"The new owner walked out on {arm.HeadName}.");
+            ToastLine($"You are on your own again. {arm.HeadName} does not forget that.", 14f);
+            return true;
+        }
+
+        /// The half both of those share: it is not a decision until somebody
+        /// else knows about it.
+        void BroadcastAllegiance(Fact fact, string line)
+        {
+            foreach (var host in _hosts)
+            {
+                if (host == null) continue;
+                host.Knowledge.Learn(fact);
+                host.Memory.Append(new MemoryEvent(Now, "heard", 0.8, line));
+            }
+            AllegianceChanges++;
+            SaveNow(quiet: true);
+        }
+
+        /// How many times allegiance actually moved. A run where it never does
+        /// is the state this milestone exists to leave, and a counter is how a
+        /// gate can tell that state from a green one.
+        public static int AllegianceChanges { get; private set; }
+
         /// The courier round (doc §6.6): the board by the docks, a route of
         /// stops, clean pay, and the quiet cover of being someone with a
         /// timecard. Time is the resource — the morning goes to parcels.

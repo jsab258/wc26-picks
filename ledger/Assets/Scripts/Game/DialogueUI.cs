@@ -745,14 +745,14 @@ namespace Ledger.Game
             }
             if (leverage && hook != null && g != null)
             {
-                Narrate(e.RecruitByHook(g, hook, _game.Now)
+                Narrate(e.RecruitByHook(g, hook, _game.Now, _game.Gossip?.Mill)
                     ? $"{id} goes quiet, then nods. They work for you now — because they must."
                     : "That lever doesn't move them.");
                 return;
             }
             if (_game.TryNeedOf(id, out var cost, out var line) && g != null)
             {
-                bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now);
+                bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now, _game.Gossip?.Mill);
                 Narrate($"{line} (-£{cost})" + (joined
                     ? $" {id} is with you now — by choice."
                     : $" {id} owes you, and knows it. Not a yes. Yet."));

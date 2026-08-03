@@ -180,6 +180,15 @@ namespace Ledger.Core
             arm.Members.Remove(id);
             arm.Standing = Math.Clamp(arm.Standing - PoachStandingCost, -1, 1);
             arm.Attention = Math.Clamp(arm.Attention + 0.2, 0, 1);
+            // WAS MISSING HERE AND PRESENT IN THE PRIVATE TWIN, which is the
+            // whole argument for there being one of these. `LastPoachedFrom` is
+            // documented three lines below as the thing "the game layer reads
+            // to voice the consequence"; this path never set it, so anything
+            // calling the public method would have poached somebody in silence
+            // and the drift would have been invisible — two implementations of
+            // one idea, one of them missing a line.
+            LastPoachedFrom = arm.Id;
+            if (mill != null) PoachesHeard++;
             var g = mill?.Get(id);
             g?.Memory.Append(new MemoryEvent(now, "observation", 0.9,
                 $"I used to answer to {arm.HeadName}'s people. I answer to the new owner now. Somebody will have noticed by morning."));
@@ -400,7 +409,7 @@ namespace Ledger.Core
 
         /// The need route: supply what their card says they want. Slow, sticky —
         /// loyalty rises, and past the floor they say yes on their own.
-        public bool RecruitByNeed(Gossiper g, string name, int costPaid, Wallet wallet, GameTime now)
+        public bool RecruitByNeed(Gossiper g, string name, int costPaid, Wallet wallet, GameTime now, GossipMill mill = null)
         {
             if (g == null || CrewOf(g.Id) != null) return false;
             if (!wallet.Spend(costPaid, dirtyOk: true)) return false;
@@ -414,14 +423,14 @@ namespace Ledger.Core
             Enlist(g, "need", now);
             g.Memory.Append(new MemoryEvent(now, "conversation", 0.9,
                 "I said yes. I work for the new owner now — because of what they did for me, not what they know about me. There's a difference."));
-            NotePoachInternal(g.Id, now);
+            NotePoach(g.Id, mill, now);
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
             return true;
         }
 
         /// The hook route: fast, brittle. They join because they must; loyalty
         /// starts wounded and the rot is visible early to the attentive.
-        public bool RecruitByHook(Gossiper g, Secret secret, GameTime now)
+        public bool RecruitByHook(Gossiper g, Secret secret, GameTime now, GossipMill mill = null)
         {
             if (g == null || CrewOf(g.Id) != null || secret == null
                 || secret.OwnerId != g.Id || !secret.KnownToPlayer) return false;
@@ -431,7 +440,7 @@ namespace Ledger.Core
             Enlist(g, "hook", now);
             g.Memory.Append(new MemoryEvent(now, "observation", 0.95,
                 "I work for the new owner now. Not because I chose to. I keep a list in my head of every time they remind me why."));
-            NotePoachInternal(g.Id, now);
+            NotePoach(g.Id, mill, now);
             Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
             return true;
         }
@@ -465,15 +474,23 @@ namespace Ledger.Core
         /// Recruit paths call this without a mill handle; the arm bookkeeping
         /// still happens, and the poached person's own memory is written by the
         /// caller. Mill-aware callers use NotePoach for the full effect.
-        void NotePoachInternal(string id, GameTime now)
-        {
-            var arm = ArmOfMember(id);
-            if (arm == null) return;
-            arm.Members.Remove(id);
-            arm.Standing = Math.Clamp(arm.Standing - PoachStandingCost, -1, 1);
-            arm.Attention = Math.Clamp(arm.Attention + 0.2, 0, 1);
-            LastPoachedFrom = arm.Id;
-        }
+        /// HOW MANY POACHES THE STREET ACTUALLY HEARD ABOUT.
+        ///
+        /// Poaching has always moved standing and attention. What it never did
+        /// was reach anybody: the recruit paths called a private twin of
+        /// `NotePoach` that skipped the gossip layer entirely, so a rival lost
+        /// a man and not one person on the street remarked on it. The roadmap
+        /// scores faction politics 45 against 75 and says "allegiance never
+        /// shifts"; half of that was three methods with no callers, and this
+        /// half was a consequence with no audience.
+        ///
+        /// Counted rather than assumed because the mill is an optional
+        /// argument — twenty-two call sites make it optional out of
+        /// necessity — and an optional argument that silently drops the
+        /// consequence is the same fault in a new place. A run where crew get
+        /// recruited and `poachesHeard` is zero is a run where this regressed,
+        /// and the sim says so.
+        public int PoachesHeard { get; private set; }
 
         /// Which organization lost someone most recently — the game layer reads
         /// this to voice the consequence.
