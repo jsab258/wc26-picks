@@ -1426,6 +1426,26 @@ namespace Ledger.Game
             _worldText = worldText;
             _worldTextDepth = worldTextMaterialled;
             _labelsColliding = CollidingNames();
+            // TWO MORE THINGS THE STILLS SHOWED AND NOTHING MEASURES.
+            //
+            // MIRRORED TEXT. `review_day2_noon` at fbb1865 has a caption
+            // rendering back to front — "warehouse" reversed. World-space
+            // TextMesh is only readable from the front, and the bark and
+            // caption text is not billboarded, so from behind it is a mirror.
+            // The count is of visible world text whose own forward points away
+            // from the camera, which is exactly the population that reads
+            // backwards.
+            //
+            // NAMEPLATE SIZE. `review_day2_night` has "Dusan" spanning a third
+            // of the frame. `NameTags` resolves OVERLAP and has no opinion
+            // about SIZE, so a label can pass the declutter and still be
+            // absurd. The number is the tallest nameplate as a fraction of
+            // viewport height.
+            //
+            // Both REPORTED, NOT GATED, on the first run. There is no bound
+            // yet that has been measured, and inventing one is how
+            // `nightNotDarker` came to fail on a thousandth.
+            MeasureTextFaults();
             // THE SCENE AUDIT, at the same moment and for the same reason: this
             // is the point in the run where "what is on screen" is a settled
             // question. See `SceneAudit` for why it walks objects rather than
@@ -1442,6 +1462,41 @@ namespace Ledger.Game
         }
 
         int _labelsColliding = -1;
+        int _textMirrored = -1;
+        float _worstNameplateFrac = -1f;
+
+        /// See the note at the call site. Two numbers, each answering one
+        /// question a still asked and no gate could.
+        void MeasureTextFaults()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            int mirrored = 0;
+            float worst = 0f;
+            foreach (var tm in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
+            {
+                if (tm == null || string.IsNullOrEmpty(tm.text)) continue;
+                var r = tm.GetComponent<Renderer>();
+                if (r == null || !r.isVisible) continue;
+
+                // FACING AWAY: the text's own forward against the direction
+                // from the camera to it. Positive dot means we are behind the
+                // glyphs, which is where they read as a mirror.
+                var toText = tm.transform.position - cam.transform.position;
+                if (Vector3.Dot(tm.transform.forward, toText) < 0f) mirrored++;
+
+                // And how tall it lands on screen. Only the NPC nameplates are
+                // in question here — street plates are meant to be large and
+                // near — so this measures what `NameTags` manages.
+                if (NameTags.ScreenRect(cam, r.bounds, out var rect))
+                {
+                    float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
+                    if (frac > worst) worst = frac;
+                }
+            }
+            _textMirrored = mirrored;
+            _worstNameplateFrac = worst;
+        }
 
         /// The player's own pose, swept. See the note beside where it is read.
         bool _playerPoseSeen;
@@ -1661,6 +1716,7 @@ namespace Ledger.Game
         // ELSE reached on the same deed — the pair, because the design claim is
         // comparative and a single number cannot carry it. See the gate.
         bool _companionStaged;
+        float _companionDist = -1f;
         string _companionWith = "";
         int _companionRung = -1, _companionStreetRung = -1;
         bool _carryIsAChoice, _carryCanTakeAll;
@@ -1989,6 +2045,28 @@ namespace Ledger.Game
                 // everybody else's, which is the entire design. See
                 // `CompanionHost.NoteDeed` for why a proximity check in this
                 // spot would be a second opinion about who saw what.
+                // WHERE THE COMPANION ACTUALLY WAS, measured at the moment
+                // the deed resolves.
+                //
+                // Two builds have now reported `companionSight rung=-1`: the
+                // escort recruited, escorting, and producing no observation at
+                // all. My first explanation was that she was being staged as
+                // the deed's own victim, and fixing that changed nothing — a
+                // guess that cost a round trip. The leading explanation now is
+                // that `CompanionHost.Ask` has NO PROXIMITY REQUIREMENT, so
+                // the sim recruits the first walker with a gossiper wherever
+                // they happen to be in the city, marks them escorting, and
+                // stages the deed before they have walked anywhere near the
+                // player's shoulder.
+                //
+                // That is a hypothesis and it is not getting another build on
+                // trust. This prints the distance. If it comes back at forty
+                // metres the explanation is settled; if it comes back at two,
+                // the fault is somewhere else entirely and I would have
+                // "fixed" proximity for nothing.
+                if (_game != null && _game.Companion.Walking != null && _player != null)
+                    _companionDist = Vector3.Distance(
+                        _game.Companion.Walking.transform.position, _player.transform.position);
                 if (_game != null) _game.Companion.NoteDeed(deed.EventId);
                 // AND THE COMPARISON THAT TESTS THE CLAIM. The design says a
                 // companion is a full sighting BECAUSE OF WHERE THEY STAND,
@@ -5153,7 +5231,7 @@ namespace Ledger.Game
                 // and a verdict is the one channel out of CI this environment
                 // can read, so it stays legible.
                 ($"companionSight[with={(_companionWith == "" ? "none" : _companionWith)} "
-                 + $"rung={_companionRung} street={_companionStreetRung}] "
+                 + $"rung={_companionRung} street={_companionStreetRung} dist={_companionDist:0.0}m] "
                  + $"{(_game != null ? _game.Companion.Report() : "companion[host=absent]")}",
                  _game != null && _companionStaged
                  && _game.Companion.Recruited > 0
@@ -5382,7 +5460,8 @@ namespace Ledger.Game
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
-                      $"collidingNames={_labelsColliding} " +
+                      $"collidingNames={_labelsColliding} textMirrored={_textMirrored} " +
+                      $"worstTextHeightFrac={_worstNameplateFrac:0.000} " +
                       $"nameTagsOffered={NameTags.Offered} nameTagsHidden={NameTags.Suppressed} " +
                       $"nameTagsFrames={NameTags.ResolvedFrames} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +
