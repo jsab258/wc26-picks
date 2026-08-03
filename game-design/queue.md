@@ -38,28 +38,26 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **THE WALL OF TEXT IS REAL AND IT IS NOT TILT: 43 names on screen at once.**
-   `nameTagsActive=43` against `labels=42` — essentially every nameplate in the
-   world is switched on simultaneously. `nameTagsUpDot=1.000` and
-   `speechUpDot=1.000` say both billboards stand perfectly upright, so the
-   skewed text in the night frame was the speech bubbles and that is fixed.
-   What remains is quantity.
-   The label rule says full at talking distance, gone by twice it — 3m and 6m,
-   off `ConversationHost.TalkRange`. For 43 to be active, 43 walkers would have
-   to be within six metres of the camera, which a plaza with 55 walkers in it
-   does not plausibly contain. **Either the distance test is not doing what it
-   reads as doing, or the camera is not where I think it is.** Do not guess:
-   the next build reports offered as a PEAK rather than an instant, and
-   offered-versus-active then discriminates outright.
-2. **Read the green sweep.** *(CI)* Blue shipped at a measured 0.16. Green is
-   the swept axis now; read it off the line, do not extrapolate from blue.
-3. **Read `premises` and `companionSight`.** *(CI)* Houses were unreachable
-   under a green test; the escort was 31m away because I halved her speed.
-   Both fixed, neither confirmed.
-4. **Read `bodyChoices` after Jafar's drop (~10:00 CEST).** 2 → 6.
-5. **A ring metric that discriminates.** Coverage cannot — 1.14, 1.09, 2.04,
-   1.27, 1.93, 1.00 percent across radii 4 to 128. Arc curvature in screen
-   pixels would. Only then is a fade a reading rather than a defence.
+1. **THE WALK COST THE STREET ITS CONVERSATIONS — 24 a run down to 7.** Measured
+   across sixteen verdicts, before and after the pace change. Slower people meet
+   each other less. The gate asks `confabs > 0` and so fired only on the single
+   run that landed on zero; a seventy percent collapse sat inside a passing check
+   for four hours. *(CI)* Read `confabTooFar` against `confabOffRoad` and
+   `confabWidest` before touching anything — the cause has two candidates and I
+   have been wrong about this shape twice tonight.
+   **The gate itself is wrong and wants replacing whatever the cause turns out
+   to be:** a bound that only catches total failure is a liveness check wearing
+   a quality check's name.
+2. **The nameplate wall: three outcomes, now all counted.** *(CI)* Offered and
+   active agree at 43, so the declutter sees everything. Read
+   `nameTagsHidden` as a peak against `nameTagsUnresolved` — suppression never
+   firing and two-fifths of labels never reaching the placement loop have
+   completely different repairs.
+3. **Read the green sweep** and ship the source green that lands on 0.82. *(CI)*
+4. **Read `premises` and `companionSight`.** *(CI)* Houses were unreachable
+   under a green test; the escort was stranded by the same pace change as the
+   confabs. Both fixed, neither confirmed.
+5. **Jafar runs BODIES.bat ~10:00 CEST.** `bodyChoices` 2 → 6.
 
 ## Next
 
