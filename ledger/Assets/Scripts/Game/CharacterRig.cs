@@ -398,6 +398,17 @@ namespace Ledger.Game
         public bool HasController =>
             _animator != null && _animator.runtimeAnimatorController != null;
 
+        /// Whether anything OTHER THAN THIS CLASS writes these bones each frame.
+        ///
+        /// The distinction the rest-restore needed and did not have. An Animator
+        /// that exists but has no controller evaluates nothing, so the pose it
+        /// "produces" is simply whatever was there last frame — which, when this
+        /// class is the only writer, is this class's own previous output.
+        /// Composing onto that is composing onto yourself, for ever.
+        bool PoseIsDriven => _animator != null
+                             && _animator.runtimeAnimatorController != null
+                             && _animator.enabled;
+
         void StampPose()
         {
             float s = 0f;
@@ -563,7 +574,30 @@ namespace Ledger.Game
             // spins. The bought characters would never have shown this, which
             // is exactly why it is worth writing down — the fallback path is
             // the one nobody re-reads.
-            if (_animator == null && _restCaptured)
+            // THE CONDITION WAS "IS THERE AN ANIMATOR" AND HAD TO BE "IS
+            // ANYTHING REWRITING THE POSE". That gap is the upside-down player,
+            // and it took five round trips to find because every reading I took
+            // was of a body that had already been wrong for hundreds of frames.
+            //
+            // The comment above says the compounding "is correct when an
+            // Animator has just rewritten that pose in Update and catastrophic
+            // when nothing has", and then ends "the bought characters would
+            // never have shown this." They showed it. The bought body HAS an
+            // Animator — `playerHasController=False`, `clip=[]`, so it has one
+            // with nothing in it. It therefore failed the `_animator == null`
+            // test, never got restored to rest, and every frame's lean and
+            // breath and limp multiplied onto the previous frame's output until
+            // the man was upside down in mid-air.
+            //
+            // Measured, not reasoned: `firstPreHeadAboveHips=0.659` — UPRIGHT on
+            // the first frame this component ever ran, before any solve of ours
+            // — against -0.135 later in the same run. Nothing else touches those
+            // bones. The no-clip twin, identical but with its `CharacterRig`
+            // destroyed, stayed at +0.557 all run.
+            //
+            // An Animator with no controller drives nothing. Ask what it DOES,
+            // not whether it EXISTS.
+            if (!PoseIsDriven && _restCaptured)
             {
                 if (_chest != null) _chest.localRotation = _chest0;
                 if (_neck != null) _neck.localRotation = _neck0;

@@ -107,6 +107,13 @@ namespace Ledger.Game
         /// Both were true — the sample happened at a moment with no label near.
         public static float WorstNameFrac { get; private set; }
 
+        /// Labels rejected for sitting at or inside the camera's near plane.
+        /// Counted rather than silently dropped: if this is large, bodies are
+        /// walking through the camera, which is a placement problem wearing a
+        /// nameplate problem's clothes — and the old code answered it with a
+        /// rect thousands of screens tall instead of a number.
+        public static int TooNear { get; private set; }
+
         /// A walker offers its label each frame it wants one shown.
         ///
         /// OFFERED, NOT SHOWN. The walker has already decided the label is close
@@ -225,7 +232,26 @@ namespace Ledger.Game
             rect = default;
             var lo = cam.WorldToScreenPoint(b.min);
             var hi = cam.WorldToScreenPoint(b.max);
-            if (lo.z <= 0f || hi.z <= 0f) return false;
+            // NOT MERELY IN FRONT — IN FRONT OF THE NEAR PLANE.
+            //
+            // `z <= 0` catches behind the camera, where the projection is
+            // meaningless. It does not catch a label ALMOST AT the camera, where
+            // the projection is finite and absurd: screen size goes as 1/z, so a
+            // label at a millimetre produces a rect thousands of screens tall.
+            // The run that found this reported a nameplate 2,119 times the
+            // height of the frame.
+            //
+            // That is not only a bad number. This same function feeds the
+            // declutter, and a rect that size overlaps EVERY other label — so
+            // one NPC brushing the camera would suppress every name on screen,
+            // silently, and the "collisions resolved" counter would call it a
+            // good day's work.
+            //
+            // Bounded by `nearClipPlane` rather than by a figure of mine. It is
+            // the camera's own statement of what it draws: nearer than that and
+            // there is nothing on screen to label, so there is no rect to want.
+            float near = Mathf.Max(cam.nearClipPlane, 0.001f);
+            if (lo.z <= near || hi.z <= near) { TooNear++; return false; }
             rect = Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y),
                                    Mathf.Max(lo.x, hi.x), Mathf.Max(lo.y, hi.y));
             return true;
