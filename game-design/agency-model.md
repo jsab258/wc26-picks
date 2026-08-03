@@ -81,7 +81,7 @@ never measuring immersion, and read as though it were.
 | new dimension | now | why that number |
 |---|---|---|
 | Believable characters | **10** | only the player is skinned; 44 models exist and the town is boxes; zero speech played against 447 wanted; four principals uncast |
-| Dialogue as writing | **unjudged** | the honest entry. `ConversationEngine` and `IntentRouter` are wired and tested and NOBODY HAS EVER READ THE OUTPUT AND FORMED A VIEW. A number here would be invented, and M19 exists to replace this word with one |
+| Dialogue as writing | **78** | judged 2026-08-03 against forty real exchanges (`writing-samples.md`), no longer invented. Four voices stayed four voices — the behavioural hooks all fire and nobody converged on the model's average person. Injection resistance held completely, and better than refusing: the character got SUSPICIOUS in fiction. The eighties texture put into the cards this morning came back out in dialogue unprompted. Marked down from higher for two real faults: one character narrated a stage direction instead of speaking, and one repeated an out-of-period word back at the player |
 | Sense of place | **50** | seven districts with real street names, twelve CC0 surfaces, fog and noir grade, paned windows, cables, 28 vehicles at real proportions — the strongest of the four |
 | Input feel | **25** | input buffering and forgiveness shipped; controller untested and 28 `Input.*` calls still to move; `DialogueUI` still treats typing as the primary path |
 
@@ -132,7 +132,7 @@ other competitor column here, and are not measurements. The LEDGER column is.
 | Body needs (eat/sleep/hygiene) | 5 | 45 | 75 | 15 | 0 | 90 | 10 | 0 | **0** |
 | Crafting / minigames | 20 | 70 | 85 | 30 | 15 | 55 | 0 | 0 | **0** |
 | **Believable characters (face, voice, presence)** | 60 | 85 | **95** | 90 | 40 | 50 | 10 | **10** | **75** |
-| **Dialogue as WRITING, not as a system** | 45 | 80 | **90** | 90 | 35 | 20 | 15 | **unjudged** | **85** |
+| **Dialogue as WRITING, not as a system** | 45 | 80 | **90** | 90 | 35 | 20 | 15 | **78** | **85** |
 | **Sense of place / world detail** | 85 | 95 | **90** | 60 | 70 | 45 | 5 | **50** | **70** |
 | **Input feel (controller, couch-playable)** | 90 | 85 | 65 | 60 | 75 | 60 | 45 | **25** | **70** |
 

@@ -70,8 +70,14 @@ scheduling instead of to CI's output.
    cost 1.1ms of a 12ms game-frame budget — 0.016ms each. Bodies are capped at
    28 anyway, so ~400,000 vertices is the worst case and no real GPU cares.
    **The machine does not bound the cast at fifty; only authoring does.**
-7. **Judge the conversation as OUTPUT.** Blocked on one small spend (below).
-8. **M17.2 voices** — held behind that verdict.
+7. **Two faults the transcripts found, both authored fixes.** One character
+   answered with a stage direction — *"Sam squints at that like you've asked
+   him to fly"* — instead of speaking, which the prompt's own rules forbid and
+   nothing enforces. And one repeated an out-of-period word straight back at
+   the player rather than not knowing it. Neither needs a round trip.
+8. **M17.2 voices** — no longer held. The writing verdict came back 78 and the
+   risk it was gating (paying to voice something that needs rewriting) is
+   retired.
 
 ## Done today, kept here only until the next tidy
 
@@ -84,13 +90,12 @@ scheduling instead of to CI's output.
 
 ## Blocked, and on whom
 
-**One decision, and it now buys two things.** Nothing has been spent; every
-purchase is Jafar's. Raise at most once a day.
-
-- **Judging the conversation as OUTPUT** needs a small API spend to generate
-  sample exchanges, including adversarial ones. The input-side verdict is in
-  `writing-judgement-2026-08-03.md` and was better than expected, so this is the
-  cheap half of an open question rather than a rescue.
+**Authorised and half spent.** Jafar approved both tasks on 3 August. The
+conversation probe has run — 40 calls, £0.28, transcripts in
+`writing-samples.md` — and the dialogue benchmark now carries a measured 78
+instead of the word `unjudged`. The card enrichment has NOT run yet: it needs
+an `--enrich` mode that adds lines to the existing sixty without minting new
+ids, because five of them are already promoted into the hand-written ring.
 - **And the same spend would lift most of the cast — but by less than I first
   wrote.** The game has 83 named characters, 23 hand-written and 60 generated.
   Running the new validator over the old 60: every one fails, and **all sixty
