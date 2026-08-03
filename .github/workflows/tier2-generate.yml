@@ -152,17 +152,30 @@ jobs:
           echo "improved $before -> $after; keeping it"
 
           # AND THE AUDIT'S OWN NOISE STAYS OUT OF THE DECISION. It runs with an
-          # EMPTY roster on purpose — that mode judges prose alone — so it also
-          # reports "connection to unknown id" for every card that names a real
-          # character. Those sixteen are an artefact of how the audit is called,
-          # not a fault in the cards, and gating on them would block for ever.
+          # The comment that used to sit here said the audit's "connection to
+          # unknown id" lines were an unavoidable artefact of judging prose
+          # against an empty roster, and that gating on them would block for
+          # ever. That was the bug, not a property: MINTABLE and EXISTS are
+          # opposite questions and one parameter was answering both. Split on
+          # 3 August, and the audit went from 0/60 passing to 60/60 — with two
+          # genuinely dangling connections falling out that had been hidden
+          # under the noise the whole time.
 
       - name: Commit the enriched cast
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
           cp enriched/tier2-batch-1.json game-design/tier2-batch-1.json
-          git add game-design/tier2-batch-1.json
+          # AND THE COPY THE GAME ACTUALLY LOADS. `Tier2Batch` reads
+          # `Application.streamingAssetsPath`, not `game-design/` — so the
+          # first enrichment run wrote sixty enriched cards into a design
+          # folder the runtime never opens and shipped the stale six-line
+          # version, and every check anybody ran was pointed at the copy that
+          # was right. The money was spent and the voices were not in the game.
+          # `verify.py`'s `shipped_cards` fails the commit if these two ever
+          # disagree again; this is what stops them.
+          cp enriched/tier2-batch-1.json ledger/Assets/StreamingAssets/tier2-batch-1.json
+          git add game-design/tier2-batch-1.json ledger/Assets/StreamingAssets/tier2-batch-1.json
           if git diff --cached --quiet; then
             echo "NOTHING CHANGED — the enrichment wrote the same manifest"; exit 1
           fi

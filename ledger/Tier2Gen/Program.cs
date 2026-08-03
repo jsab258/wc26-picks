@@ -132,10 +132,18 @@ namespace Ledger.Tier2Gen
                     lastFailures.Add("your previous output was not a parseable bare JSON array — output ONLY the JSON array");
                     continue;
                 }
-                var batchIds = new HashSet<string>(cards.Select(c => MiniJson.GetString(c, "id") ?? ""));
+                // MINTABLE and EXISTS are different sets here too: a new card
+                // may not reuse an existing id, but it MAY point a connection
+                // at one — that is most of what a connection is for.
+                var known = new HashSet<string>(ExistingCast);
+                foreach (var c in cards)
+                {
+                    var cid = MiniJson.GetString(c, "id");
+                    if (!string.IsNullOrEmpty(cid)) known.Add(cid);
+                }
                 foreach (var card in cards)
                 {
-                    var problem = Validate(card, takenIds, takenNames, batchIds);
+                    var problem = Validate(card, takenIds, takenNames, known);
                     var id = MiniJson.GetString(card, "id") ?? "(no id)";
                     if (problem == null)
                     {
@@ -465,7 +473,14 @@ namespace Ledger.Tier2Gen
             // the file do not count against themselves. The question is whether
             // the WRITING would pass, not whether the roster has duplicates.
             var reasons = new Dictionary<string, int>();
-            var batchIds = new HashSet<string>(cards.Select(c => MiniJson.GetString(c, "id")));
+            // WHO EXISTS: the shipped cast plus everybody in this file. Every
+            // card here is already in the game, so every id in it resolves.
+            var known = new HashSet<string>(ExistingCast);
+            foreach (var c in cards)
+            {
+                var cid = MiniJson.GetString(c, "id");
+                if (!string.IsNullOrEmpty(cid)) known.Add(cid);
+            }
             int ok = 0;
             foreach (var c in cards)
             {
@@ -474,8 +489,14 @@ namespace Ledger.Tier2Gen
                 // the audit reported four "id already taken" — a fact about the
                 // roster masquerading as a fact about the writing. The question
                 // here is only whether the PROSE would pass.
+                //
+                // But `known` is passed in FULL, because "may this id be
+                // minted" and "does this id exist" are opposite questions and
+                // this call site is precisely where conflating them lied: an
+                // empty roster made every reference to the shipped cast read
+                // as a dangling pointer.
                 var why = Validate(c, new HashSet<string>(),
-                                   new HashSet<string>(StringComparer.OrdinalIgnoreCase), batchIds);
+                                   new HashSet<string>(StringComparer.OrdinalIgnoreCase), known);
                 if (why == null) { ok++; continue; }
                 // Bucketed by the rule rather than by the card — thirty cards
                 // failing one rule is a batch to rerun; thirty cards failing
@@ -506,9 +527,21 @@ namespace Ledger.Tier2Gen
             int fails = 0;
             void Expect(string label, Dictionary<string, object> card, string wantSubstring)
             {
+                // TAKEN = the shipped cast, so a test card minting "rocco" is
+                // caught. KNOWN = the shipped cast too, because every one of
+                // them exists and a test card is allowed to point at them —
+                // which is what the accept cases below actually do.
+                //
+                // This argument used to be the one-element set `{"rocco"}`,
+                // and it was only ever right by accident: the accept-case
+                // cards happened to connect to Rocco. The moment the roster
+                // question was separated from the minting question, two accept
+                // cases failed on "connection to unknown id 'ada'" — the guard
+                // rejecting good input, which is the failure rule 5b exists
+                // for and the reason its accept cases are not decoration.
                 var got = Validate(card, new HashSet<string>(ExistingCast),
                                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                                   new HashSet<string> { "rocco" });
+                                   new HashSet<string>(ExistingCast));
                 bool ok = wantSubstring == null
                     ? got == null
                     : got != null && got.Contains(wantSubstring);
@@ -685,8 +718,28 @@ namespace Ledger.Tier2Gen
 
         /// The script validator (spec rules, no LLM). Returns null when valid,
         /// otherwise the reason — which goes back into the next prompt.
+        /// TWO ROSTERS, AND THEY ARE OPPOSITE QUESTIONS.
+        ///
+        /// `takenIds` is *may this id be MINTED* — false for anybody who
+        /// already exists. `knownIds` is *does this id EXIST* — true for
+        /// exactly the same people. One parameter served both for as long as
+        /// this file has existed, and the two call sites that need them to
+        /// differ both got it wrong in the same way.
+        ///
+        /// `--enrich` passed an empty roster and rejected all sixty cards for
+        /// naming the cast they were written to name; that cost 113,717 tokens
+        /// and was fixed. **`--audit` still had it tonight** — it passes an
+        /// empty `takenIds` deliberately, because a card being audited must not
+        /// collide with its own promoted self, and that same empty set was
+        /// silently answering "does Rocco exist". Seventeen "connection to
+        /// unknown id" and thirty-seven "secret.knownBy does not exist", every
+        /// one a fact about the arguments rather than about the writing.
+        ///
+        /// Fixing one call site and not grepping for the other is the exact
+        /// failure CLAUDE.md rule 1 names. Splitting the parameter is what
+        /// stops there being a third.
         static string Validate(Dictionary<string, object> card, HashSet<string> takenIds,
-            HashSet<string> takenNames, HashSet<string> batchIds)
+            HashSet<string> takenNames, HashSet<string> knownIds)
         {
             if (card == null) return "not an object";
             var id = MiniJson.GetString(card, "id");
@@ -780,7 +833,7 @@ namespace Ledger.Tier2Gen
             var knownBy = MiniJson.GetList(secret, "knownBy") ?? new List<object>();
             if (knownBy.Count > 2) return "secret.knownBy max 2";
             foreach (var k in knownBy.OfType<string>())
-                if (!takenIds.Contains(k) && !batchIds.Contains(k)) return $"secret.knownBy '{k}' does not exist";
+                if (!knownIds.Contains(k)) return $"secret.knownBy '{k}' does not exist";
 
             var conns = MiniJson.GetList(card, "connections");
             if (conns == null || conns.Count < 2 || conns.Count > 4) return "connections must have 2-4 entries";
@@ -790,7 +843,7 @@ namespace Ledger.Tier2Gen
                 var to = co != null ? MiniJson.GetString(co, "to") : null;
                 if (string.IsNullOrEmpty(to)) return "connection missing 'to'";
                 if (to == id) return "connection to self";
-                if (!takenIds.Contains(to) && !batchIds.Contains(to)) return $"connection to unknown id '{to}'";
+                if (!knownIds.Contains(to)) return $"connection to unknown id '{to}'";
                 double w = co.ContainsKey("weight") ? Convert.ToDouble(co["weight"]) : -1;
                 if (w < 0.3 || w > 0.8) return "connection weight out of 0.3-0.8";
             }

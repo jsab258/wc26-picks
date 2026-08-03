@@ -150,6 +150,49 @@ def card_writing():
     return False, "CARD WRITING RED: " + (bad[0][:120] if bad else "no verdict (build failure?)")
 
 
+def shipped_cards():
+    """The cards the GAME loads are the cards we edited.
+
+    WHY THIS EXISTS, and it cost the only money this project has spent.
+
+    `Tier2Batch` loads `Application.streamingAssetsPath/tier2-batch-1.json`.
+    The enrichment run — the API spend Jafar authorised on 3 August, 54 cards
+    given the example lines they lacked plus period texture — writes
+    `game-design/tier2-batch-1.json` and NOTHING copied it across. So the
+    shipped copy still had six cards with lines where the design copy had
+    sixty, and every one of those new voices was sitting in a folder the
+    runtime never opens. Rule 6 with a receipt attached: built, paid for, not
+    running.
+
+    It was invisible because both files exist, both parse, both are tracked,
+    and the audit tool takes a path — so every check anybody ran was pointed
+    at the copy that was right.
+
+    This compares CONTENT rather than bytes: the two are allowed to differ in
+    formatting, and a whitespace diff failing the build would be a checker
+    nobody trusts within a week."""
+    import json
+    design = ROOT.parent / "game-design" / "tier2-batch-1.json"
+    shipped = ROOT / "Assets" / "StreamingAssets" / "tier2-batch-1.json"
+    if not design.exists() or not shipped.exists():
+        return False, "SHIPPED CARDS RED: one of the two copies is missing"
+    try:
+        a = json.loads(design.read_text(encoding="utf-8"))
+        b = json.loads(shipped.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return False, "SHIPPED CARDS RED: %s" % e
+    if json.dumps(a, sort_keys=True) != json.dumps(b, sort_keys=True):
+        # WHICH cards, because "they differ" sends somebody diffing 190KB.
+        byid = {c.get("id"): c for c in a}
+        drift = sorted(i for i, c in {c.get("id"): c for c in b}.items()
+                       if json.dumps(byid.get(i), sort_keys=True)
+                       != json.dumps(c, sort_keys=True))
+        return False, ("SHIPPED CARDS RED: the game loads StreamingAssets and it "
+                       "disagrees with game-design on %d card(s): %s"
+                       % (len(drift), ", ".join(drift[:5])))
+    return True, "%d cards shipped as edited" % len(a)
+
+
 def queue_depth():
     """There is enough on the queue to survive the next build.
 
@@ -445,7 +488,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, convo_probe, queue_depth, frame_drift, verdict_keys, save_chaos, soak,
+               card_writing, shipped_cards, convo_probe, queue_depth, frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
