@@ -300,8 +300,6 @@ namespace Ledger.Game
         public static bool ScreenRect(Camera cam, Bounds b, out Rect rect)
         {
             rect = default;
-            var lo = cam.WorldToScreenPoint(b.min);
-            var hi = cam.WorldToScreenPoint(b.max);
             // NOT MERELY IN FRONT — IN FRONT OF THE NEAR PLANE.
             //
             // `z <= 0` catches behind the camera, where the projection is
@@ -321,10 +319,44 @@ namespace Ledger.Game
             // the camera's own statement of what it draws: nearer than that and
             // there is nothing on screen to label, so there is no rect to want.
             RectCalls++;
+            // PROJECTED FROM THE CENTRE, NOT FROM TWO DIAGONAL CORNERS.
+            //
+            // The numbers finally cornered this. A box 0.29m tall, whose centre
+            // and whose transform are BOTH 3.08m from the camera, produced a
+            // rect 3,816 pixels high on a 720-pixel screen. At that distance
+            // the frame is about 3.6m, so 0.29m is roughly 59 pixels. The
+            // inputs were right and the projection was wrong by a factor of
+            // sixty-five, which is why three previous attempts at this metric —
+            // wrong scope, wrong near-plane, wrong distance — all failed: they
+            // were looking for a bad input to a good algorithm.
+            //
+            // `b.min` and `b.max` are OPPOSITE CORNERS of the box, at different
+            // depths. Projecting exactly those two and taking their screen-space
+            // bounding box is not an approximation of the right answer, it is a
+            // different quantity: as either corner approaches the camera its
+            // projected position runs away, and the "height" becomes a fact
+            // about perspective rather than about the label. Two of eight
+            // corners cannot bound a box in general.
+            //
+            // A nameplate is small and faces the camera, so the honest and
+            // stable construction is its centre, sized by its extents at the
+            // centre's depth. It cannot run away, because nothing near the
+            // camera plane enters the arithmetic.
+            var centre = cam.WorldToScreenPoint(b.center);
             float near = Mathf.Max(cam.nearClipPlane, 0.001f);
-            if (lo.z <= near || hi.z <= near) { TooNear++; return false; }
-            rect = Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y),
-                                   Mathf.Max(lo.x, hi.x), Mathf.Max(lo.y, hi.y));
+            if (centre.z <= near) { TooNear++; return false; }
+
+            // Pixels per world metre at this depth, from the camera's own
+            // vertical field of view. No invented constant: this is the same
+            // relationship the projection matrix uses.
+            float halfFov = cam.fieldOfView * 0.5f * Mathf.Deg2Rad;
+            float visibleHeight = 2f * centre.z * Mathf.Tan(halfFov);
+            if (visibleHeight <= 0.0001f) { TooNear++; return false; }
+            float pxPerMetre = cam.pixelHeight / visibleHeight;
+
+            float w = b.size.x * pxPerMetre;
+            float h = b.size.y * pxPerMetre;
+            rect = new Rect(centre.x - w * 0.5f, centre.y - h * 0.5f, w, h);
             return true;
         }
     }
