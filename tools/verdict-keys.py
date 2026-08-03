@@ -138,6 +138,49 @@ def classify_over_history():
     return always, conditional - always
 
 
+
+def newest_run_text():
+    """The verdict from the NEWEST COMMIT, which is not the latest to land.
+
+    WHY THIS IS NOT `verdict.txt`. CLAUDE.md states the hazard in its own
+    words: *"verdict.txt is the last run to LAND, which is not the newest
+    commit."* Runners here vary by twenty minutes, so a build dispatched
+    earlier on an older commit routinely finishes second and lays its output
+    over a newer one's.
+
+    For reading a number that is a nuisance. For `--learn` it is a RATCHET
+    RUNNING BACKWARDS, and it is the same fault that was found in the CI job
+    an hour ago: `--learn` takes "what is live" from this file, so learning
+    off a stale verdict DELETES every key added since that commit — and a key
+    deleted from the manifest is a measurement that can go missing for ever
+    without anything saying so. The guard erases its own baseline, which is
+    strictly worse than having no guard, because the absence now looks
+    deliberate.
+
+    `runs/<sha7>.txt` is one verdict per commit and the shas are orderable, so
+    the newest one is a fact rather than a guess. Falls back to `verdict.txt`
+    when there are no run files or no git — and returns which it used, because
+    a tool that quietly picks a different input than the one you think it read
+    is how three separate nights got diagnosed off the wrong number.
+    """
+    runs = ROOT / "game-design" / "sim-shots" / "runs"
+    if not runs.is_dir():
+        return None, "no runs directory"
+    have = {p.stem: p for p in runs.glob("*.txt")}
+    if not have:
+        return None, "no run files"
+    try:
+        log = subprocess.run(
+            ["git", "log", "--format=%h", "-400"],
+            cwd=str(ROOT), capture_output=True, text=True, check=True,
+        ).stdout.split()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None, "no git"
+    for sha in log:                      # newest first
+        if sha in have:
+            return have[sha].read_text(encoding="utf-8", errors="replace"), sha
+    return None, "no run file matches any recent commit"
+
 def main():
     learn = "--learn" in sys.argv
     if not VERDICT.exists():
@@ -145,6 +188,19 @@ def main():
         return 0
 
     text = VERDICT.read_text(encoding="utf-8", errors="replace")
+    # LEARNING USES THE NEWEST COMMIT'S RUN; CHECKING USES WHAT LANDED.
+    #
+    # They want different things. A check should ask "is the thing that just
+    # landed complete", and the answer is about that run. `--learn` rewrites
+    # the baseline, and rewriting it from a stale run deletes keys — see
+    # `newest_run_text`.
+    source = "verdict.txt"
+    if "--learn" in sys.argv:
+        newer, why = newest_run_text()
+        if newer is not None:
+            text, source = newer, f"runs/{why}.txt"
+        else:
+            print(f"verdict-keys: learning from verdict.txt ({why})")
     always, conditional = split_keys(text)
     present = always | conditional
 
@@ -218,7 +274,7 @@ def main():
             note.append(f"-{len(missing)} dropped ({', '.join(missing[:5])})")
         if demoted:
             note.append(f"{len(demoted)} now gate-only ({', '.join(demoted[:5])})")
-        print("verdict-keys: rebaselined — " + ("; ".join(note) if note else "no change"))
+        print(f"verdict-keys: rebaselined from {source} — " + ("; ".join(note) if note else "no change"))
         return 0
 
     for k in demoted:

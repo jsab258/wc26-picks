@@ -69,6 +69,14 @@ scheduling instead of to CI's output.
    characters are TEXTURED, so the wardrobe leaves them alone and the naked
    body stops being a question of colour at all.
 
+0. **RE-LEARN THE VERDICT KEYS once tonight's builds land.** Nine new
+   measurements — `bodyClothed`, `bodyParts`, `confabKerbMean/Worst/N`,
+   `nameTagsOffScreen`, `collidingWorldText`, `denounced`, `marksFiled` —
+   are unprotected until a landed verdict carries them and `--learn` records
+   them. `verdict-keys.py` reads what LANDED, not the source, which is
+   correct and means this step is real. `python3 tools/verdict-keys.py
+   --learn` after the pull.
+
 6. **Wire M21's informer verb — it is built, tested and unreached.** *(CI)*
    `Informing.Weigh` and `RedirectsInquiry` are on the reach ledger with a
    reason, which is honest and is not done. It needs two things in Game: a
