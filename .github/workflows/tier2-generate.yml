@@ -62,6 +62,7 @@ jobs:
       # retried — and the enrichment step needed retrying the moment it failed.
       # Delete the transcript to ask for a fresh one.
       - name: What the characters actually say
+        id: probe
         if: ${{ hashFiles('game-design/writing-samples.md') == '' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -70,7 +71,15 @@ jobs:
             --model "claude-sonnet-5" \
             --out game-design/writing-samples.md
 
+      # GATED ON THE PROBE ACTUALLY RUNNING, and the first version was not.
+      # Skipping the probe left this step still running, finding nothing new to
+      # commit, and exiting 1 — which under `bash -e` killed the whole job
+      # BEFORE the enrichment it was dispatched for. A guard added to stop a
+      # double spend stopped the work instead. Same shape as the ordering fix
+      # that shut the stills channel: the protective change closed the thing it
+      # was protecting.
       - name: Commit the transcript
+        if: ${{ steps.probe.outcome == 'success' }}
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
