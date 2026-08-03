@@ -79,6 +79,22 @@ the same evidence as choosing the threshold — and one run is not evidence.
 Print the series first. When a gate asks two questions, give each the statistic
 that answers it, and do not move the bound to make red go away.
 
+**AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
+night, all mine, all in metrics I had written hours earlier:
+
+| number | asked | then | and I |
+|---|---|---|---|
+| `liveArmDrop` | worst-ever arm angle, to catch a frozen T-pose | the body started animating, so it caught the peak of a walk cycle | nearly read a correct animation as a fault |
+| `nameTagsOffered` | how many labels the declutter has RIGHT NOW | sat on a done line where every neighbour is a peak or a worst | compared it against a peak and wrote a commit about the contradiction |
+| `crowdSpeed` | did the walk land at 1.4 | escorts learned to hurry at 2.6, so the mean rises by design | caught it before, which is the only difference worth having |
+
+The instrument does not change when the system does — that is the whole point of
+it — so the drift is silent and it points the wrong way twice: a working feature
+reads as a regression, and the number that would have said so reads as
+agreement. **When you change what a system DOES, re-read what its numbers ASK**,
+the same sweep as re-reading its comments, and say in the comment which question
+the number is now answering.
+
 ## 3. Suspect the instrument first
 
 Three times in one month the tool was the thing at fault:
