@@ -3146,7 +3146,23 @@ namespace Ledger.Game
                 // for even one physics step is a shove nobody asked for.
                 if (col != null) col.enabled = false;
                 go.transform.position = cam.transform.position + cam.transform.forward * 3f;
-                go.transform.rotation = Quaternion.LookRotation(cam.transform.forward);
+                // THE CAMERA'S OWN ROTATION, not a `LookRotation` along its
+                // forward. Same result whenever it works, and it cannot fail.
+                //
+                // One-argument `LookRotation` takes world up as its hint, so a
+                // camera looking steeply down gives a degenerate basis, returns
+                // identity, and leaves this quad EDGE-ON — invisible. The
+                // control would then read zero, which is exactly the
+                // "the A/B itself is blind" verdict it exists to rule out, and
+                // it would be believed because that is what a control reading
+                // zero means. A false negative that is self-confirming.
+                //
+                // It works today (`ringControl=19.85`) and works only because
+                // the review camera happens not to be steep enough. Found by
+                // grepping every `LookRotation` in the project after fixing the
+                // same degeneracy twice by accident — the nameplates and then
+                // the speech bubbles — rather than a third time by luck.
+                go.transform.rotation = cam.transform.rotation;
                 go.transform.localScale = new Vector3(2f, 2f, 1f);
                 var mr = go.GetComponent<MeshRenderer>();
                 if (mr == null) return -1;
