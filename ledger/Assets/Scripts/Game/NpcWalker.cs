@@ -647,8 +647,22 @@ namespace Ledger.Game
             CheckHush();
             if (ConfabTarget(current, out var standAt, out var faceDir))
             {
+                // AT A WALK, NOT AT HALF ONE. This was `MoveSpeed * 0.55f`,
+                // and the 0.55 was calibrated when `MoveSpeed` was 2.6 — it
+                // existed to make somebody crossing to talk approach at 1.43
+                // rather than at a jog, which was right.
+                //
+                // Against a real 1.4 m/s walk the same factor produces 0.77:
+                // a shuffle, for a person who has decided to go and speak to
+                // somebody. Nobody chose that. It is the constant left behind
+                // when the thing it was a fraction OF changed underneath it,
+                // which is the same shape as a comment going stale and just as
+                // invisible in a diff that does not touch the line.
+                //
+                // A person walking over to say something walks. `MoveSpeed` is
+                // now the walk, so the fraction has nothing left to do.
                 var step = Vector3.MoveTowards(current, new Vector3(standAt.x, current.y, standAt.z),
-                                               MoveSpeed * 0.55f * Time.deltaTime);
+                                               MoveSpeed * Time.deltaTime);
                 transform.position = step;
                 if (faceDir.sqrMagnitude > 0.001f)
                     transform.rotation = Quaternion.Slerp(transform.rotation,
