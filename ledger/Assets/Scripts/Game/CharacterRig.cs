@@ -74,6 +74,11 @@ namespace Ledger.Game
         float _breathTime;
         Quaternion _chest0, _neck0, _head0;
         Vector3 _hips0;
+        /// The hips' rest ROTATION, which was never captured — only the
+        /// position was. That omission is the second half of the upside-down
+        /// player: `Sway` multiplies onto `_hips.localRotation` every frame and
+        /// there was no value to put it back to.
+        Quaternion _hips0Rot = Quaternion.identity;
         bool _restCaptured;
 
         public static CharacterRig Attach(GameObject body)
@@ -430,7 +435,7 @@ namespace Ledger.Game
             if (_chest != null) _chest0 = _chest.localRotation;
             if (_neck != null) _neck0 = _neck.localRotation;
             if (_head != null) _head0 = _head.localRotation;
-            if (_hips != null) _hips0 = _hips.localPosition;
+            if (_hips != null) { _hips0 = _hips.localPosition; _hips0Rot = _hips.localRotation; }
             _restCaptured = true;
         }
 
@@ -602,6 +607,27 @@ namespace Ledger.Game
                 if (_chest != null) _chest.localRotation = _chest0;
                 if (_neck != null) _neck.localRotation = _neck0;
                 if (_head != null) _head.localRotation = _head0;
+                // AND THE HIPS, WHICH THE FIRST VERSION OF THIS LEFT OUT.
+                //
+                // Restoring three bones took `headAboveHips` from -0.136 to
+                // +0.520 — the torso came the right way up — and left
+                // `hipsAboveFeet` at -0.775, because `Sway` does
+                // `_hips.localRotation = _hips.localRotation * ...` and the
+                // lateral shift does `p.x +=`, both of which compound exactly
+                // like the chest did. `CaptureRest` saved the hips POSITION and
+                // nothing ever read it back, and it never saved the rotation at
+                // all.
+                //
+                // A restore list is a claim that it names every bone the solve
+                // composes onto, and that claim is invisible in a diff. The
+                // legs are safe because `Swing` ASSIGNS rather than multiplies —
+                // which is the distinction worth carrying: composing writes need
+                // a rest pose, assigning writes do not.
+                if (_hips != null)
+                {
+                    _hips.localRotation = _hips0Rot;
+                    _hips.localPosition = _hips0;
+                }
             }
 
             // ---- look-at: split down the spine, never the head alone ----

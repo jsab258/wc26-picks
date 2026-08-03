@@ -282,7 +282,21 @@ jobs:
           # except for a SHA on line one that a reader has to think to check.
           # Truncating here means a broken run produces a verdict that says so.
           {
-            echo "# Sim verdict — ${GITHUB_SHA:0:7}"
+            # THE COMMIT'S OWN TIMESTAMP, ON LINE ONE, because the only other
+            # way to ask "is this run newer than that one" needs history and
+            # there is none — `actions/checkout` clones at depth 1.
+            #
+            # The first version of the ordering rule used `git merge-base
+            # --is-ancestor`, which on a shallow clone cannot resolve the other
+            # run's commit at all, fails, and takes the "theirs is newer" branch
+            # every single time. So the run carrying the fix for the upside-down
+            # player contributed its numbers and NO STILLS, and the pictures on
+            # the branch stayed the ones from before the fix — a feedback channel
+            # closed by the change meant to protect it.
+            #
+            # An epoch second compares without history and is present on a
+            # shallow clone, because the commit itself is always there.
+            echo "# Sim verdict — ${GITHUB_SHA:0:7} @$(git show -s --format=%ct ${GITHUB_SHA})"
             echo
             echo "Written by the Windows build. Overwritten every run — but"
             echo "also kept per-commit under sim-shots/runs/, so two builds"
@@ -479,9 +493,18 @@ jobs:
             if git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1; then
               git reset --hard FETCH_HEAD > /dev/null
               theirs=$(head -1 game-design/sim-shots/verdict.txt 2>/dev/null \
-                       | sed -n 's/.*— \([0-9a-f]\{7\}\).*/\1/p')
+                       | sed -n 's/.*@\([0-9]\{6,\}\).*/\1/p')
+              mine=$(git show -s --format=%ct ${GITHUB_SHA})
+              # DEFAULTS TO OURS WINNING, and that direction is deliberate.
+              # The first version defaulted the other way and, because the
+              # ancestry test it used can never succeed on a shallow clone, the
+              # newest run stopped updating the stills entirely — silently, and
+              # in the one direction that costs a feedback channel. Never
+              # landing is worse than landing out of order: an unreadable
+              # verdict is a build wasted, a stale one at least carries its own
+              # timestamp on line one.
               mine_wins=1
-              if [ -n "$theirs" ] && ! git merge-base --is-ancestor "$theirs" "$GITHUB_SHA" 2>/dev/null; then
+              if [ -n "$theirs" ] && [ -n "$mine" ] && [ "$theirs" -gt "$mine" ] 2>/dev/null; then
                 mine_wins=0
               fi
               if [ "$mine_wins" = "1" ]; then
