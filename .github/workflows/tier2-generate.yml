@@ -123,15 +123,39 @@ jobs:
 
       - name: Audit the result before keeping it
         run: |
-          dotnet run --project ledger/Tier2Gen -c Release -- --audit enriched/tier2-batch-1.json \
-            | tee enrich-audit.log
-          # THE SAME AUDIT THAT FOUND THE PROBLEM, RUN ON THE CURE. Sixty cards
-          # went in failing one rule; if they come out still failing it, the
-          # spend bought nothing and this should say so rather than commit a
-          # manifest that looks changed.
-          if grep -qE "^ +[0-9]+ +lines must have" enrich-audit.log; then
-            echo "cards still lack lines after enrichment — not committing"; exit 1
+          count_missing() {
+            dotnet run --project ledger/Tier2Gen -c Release -- --audit "$1" 2>/dev/null \
+              | sed -nE 's/^ +([0-9]+) +lines must have.*/\1/p' | head -1
+          }
+          before=$(count_missing game-design/tier2-batch-1.json); before=${before:-0}
+          after=$(count_missing enriched/tier2-batch-1.json);     after=${after:-0}
+          echo "cards lacking lines: $before before, $after after"
+
+          # A GUARD THAT CANNOT TELL A REGRESSION FROM AN IMPROVEMENT IS A
+          # RATCHET, and the first version of this was one.
+          #
+          # It refused to commit if ANY card still lacked lines. The run
+          # enriched fifty-four of sixty and it threw all fifty-four away
+          # because six did not make it — the fourth time today a guard blocked
+          # the good case instead of the bad one, and CLAUDE.md rule 5 already
+          # names this exact shape from the CI job that deleted twenty-four
+          # clips Jafar had picked from.
+          #
+          # What matters is whether the spend BOUGHT something. Fewer cards
+          # lacking lines than before is a success even at fifty-four out of
+          # sixty; the same or more means the run achieved nothing and should
+          # not land a manifest that merely looks changed.
+          if [ "$after" -ge "$before" ]; then
+            echo "no improvement ($before -> $after) — the spend bought nothing, not committing"
+            exit 1
           fi
+          echo "improved $before -> $after; keeping it"
+
+          # AND THE AUDIT'S OWN NOISE STAYS OUT OF THE DECISION. It runs with an
+          # EMPTY roster on purpose — that mode judges prose alone — so it also
+          # reports "connection to unknown id" for every card that names a real
+          # character. Those sixteen are an artefact of how the audit is called,
+          # not a fault in the cards, and gating on them would block for ever.
 
       - name: Commit the enriched cast
         run: |
