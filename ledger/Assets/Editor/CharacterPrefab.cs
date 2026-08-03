@@ -77,6 +77,21 @@ namespace Ledger.EditorTools
                     // No controller: `CharacterRig` drives the bones itself and
                     // an empty state machine would only fight it. The Animator
                     // is here for its AVATAR — that is the whole contract.
+                    //
+                    // AND THAT CONTRACT HAD A SHARP EDGE NOBODY HAD WRITTEN
+                    // DOWN. An Animator with no controller drives nothing, so
+                    // `CharacterRig` is the only thing writing these bones —
+                    // which is intended — but `CharacterRig` decided whether to
+                    // restore its rest pose by asking whether an Animator
+                    // EXISTED. One does. It therefore took neither branch,
+                    // never reset, and composed every frame onto its own
+                    // previous output until the player was upside down in
+                    // mid-air. Eight builds.
+                    //
+                    // The arrangement is still right. What was missing is that
+                    // "there is an Animator" and "something is driving the
+                    // pose" are different questions, and this is the line that
+                    // makes them different.
                     animator.applyRootMotion = false;
                     animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 

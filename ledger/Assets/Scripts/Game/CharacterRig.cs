@@ -404,6 +404,13 @@ namespace Ledger.Game
         public static float FirstPreHipsAboveFeet { get; private set; }
         public static bool FirstPreRead { get; private set; }
 
+        /// Angle between the upper arm and straight down in the REST pose:
+        /// 0 is arms at the sides, 90 is a T-pose. Static because the question
+        /// is about the one bought body, and sixty-eight mannequins would
+        /// overwrite a per-instance value.
+        public static float RestArmDropDegrees { get; private set; }
+        public static bool RestArmRead { get; private set; }
+
         /// Whether this rig's Animator has anything to play at all. If it does
         /// not, the Animator cannot be rewriting the pose each frame, and every
         /// modulation below composes onto its own output for ever.
@@ -451,6 +458,39 @@ namespace Ledger.Game
             if (_lForearm != null) _lForearm0 = _lForearm.localRotation;
             if (_rUpperArm != null) _rUpperArm0 = _rUpperArm.localRotation;
             if (_rForearm != null) _rForearm0 = _rForearm.localRotation;
+
+            // HOW FAR THE ARMS HANG IN THE REST POSE, which is the last thing
+            // visibly wrong with the player and is a hypothesis until this
+            // reads.
+            //
+            // The still shows him standing correctly with his arms straight
+            // out sideways. `Swing` now composes from rest, and at a standstill
+            // the arm swing is near zero — so what is on screen IS the rest
+            // pose. A bought Humanoid ships in a T-pose; `Mannequin` builds its
+            // arms hanging down, which is exactly why sixty-eight procedural
+            // bodies look fine and the one purchased body does not.
+            //
+            // Measured as the angle between the upper arm and straight down, so
+            // 0 is arms at the sides and 90 is a T-pose. If it reads near 90 the
+            // fix is a rest pose with the arms lowered — sampled from one of the
+            // forty-four imported clips rather than invented — and if it reads
+            // near 0 then something else is holding them out and the obvious
+            // fix would have been wrong.
+            if (_lUpperArm != null && _hips != null)
+            {
+                var down = -transform.up;
+                // The arm's own direction, from shoulder toward elbow, in world
+                // space; falls back to the bone's own down-axis when there is no
+                // forearm to point at.
+                var arm = _lForearm != null
+                    ? (_lForearm.position - _lUpperArm.position)
+                    : -_lUpperArm.up;
+                if (arm.sqrMagnitude > 1e-6f)
+                {
+                    RestArmDropDegrees = Vector3.Angle(arm.normalized, down);
+                    RestArmRead = true;
+                }
+            }
             _restCaptured = true;
         }
 
