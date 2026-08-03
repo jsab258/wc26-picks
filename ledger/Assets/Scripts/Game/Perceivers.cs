@@ -208,14 +208,69 @@ namespace Ledger.Game
             LastSoundTime = -999f;
             LastSoundLoudness = 0;
             LastSoundKind = null;
+            LastSoundAt = Vector3.zero;
+            // AND THE CROWD ACCUMULATOR. Same argument as the sentence above,
+            // applied to the fields that sentence did not cover: a reset that
+            // leaves `PresentNearby` holding the last run's crowd makes the
+            // first frame after it compute a hush from two different runs.
+            Attending = PresentNearby = 0;
+            _attendingAccrued = _presentAccrued = 0;
+            _reportFrame = -1;
             // Including the ring's own counters, for the same reason.
             NoiseRing.Reset();
         }
 
         /// Currently-attending walkers, maintained by `NpcWalker` so the hush
         /// can be computed once per frame rather than per listener.
-        public static int Attending;
-        public static int PresentNearby;
+        ///
+        /// **THAT SENTENCE WAS FALSE AND IT IS WHY NOBODY FOUND THIS.** These
+        /// were plain fields, and grep says the only writer in the project was
+        /// `SimDirector` — a `MonoBehaviour` that exists solely for the CI
+        /// harness. In an actual play session nothing set either one, so both
+        /// sat at zero for ever and three separate systems quietly did nothing:
+        ///
+        ///   - `Hush` was always `HushFraction(0, 0)`, so the street going
+        ///     silent because everybody is looking at you — a designed beat
+        ///     with its own gate and its own metrics — happened only in the
+        ///     sim. `hushPeak=1.00` every run, and never once in the game.
+        ///   - `AmbientFloorAt` took `PresentNearby` as its crowd term, so in
+        ///     real play a market at noon was as quiet as an empty alley and
+        ///     every sound carried further than the design says.
+        ///   - `CaptionBar` reads `Attending > 0` for its attention channel,
+        ///     which could therefore never fire.
+        ///
+        /// The comment made it look like a walker-side invariant that holds
+        /// everywhere, so the sim's numbers read as evidence about the game.
+        /// That is the shape CLAUDE.md rule 6 names — built, tested, and never
+        /// running — and the comment is what hid it.
+        ///
+        /// WHY LAST FRAME'S TOTAL. Every walker reports itself during its own
+        /// tick, so the count is only complete at the end of the frame; a
+        /// consumer reading mid-frame would see a partial one and its answer
+        /// would depend on script execution order. Publishing the frame that
+        /// just finished is stable, needs no central pass and no ordering
+        /// contract, and is one frame stale — which for a hush nobody can
+        /// perceive.
+        public static int Attending { get; private set; }
+        public static int PresentNearby { get; private set; }
+
+        static int _reportFrame = -1;
+        static int _attendingAccrued, _presentAccrued;
+
+        /// Called by every walker, every frame, from `NpcWalker.Tick`.
+        public static void Report(float metresFromPlayer, bool attending)
+        {
+            if (Time.frameCount != _reportFrame)
+            {
+                _reportFrame = Time.frameCount;
+                Attending = _attendingAccrued;
+                PresentNearby = _presentAccrued;
+                _attendingAccrued = _presentAccrued = 0;
+            }
+            if (metresFromPlayer > NearBandMetres) return;
+            _presentAccrued++;
+            if (attending) _attendingAccrued++;
+        }
 
         public static double Hush => Notice.HushFraction(Attending, PresentNearby);
 

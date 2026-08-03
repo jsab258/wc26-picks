@@ -1938,7 +1938,6 @@ namespace Ledger.Game
             // them made "how many people are near you" an answer about the story
             // rather than about the street — which is wrong for a hush, whose
             // whole subject is how much noise a crowd was making.
-            int attending = 0, present = 0;
             NpcWalker nearest = null;
             float nearestDist = float.MaxValue;
             void Consider(NpcWalker n)
@@ -1946,15 +1945,23 @@ namespace Ledger.Game
                 if (n == null) return;
                 float d = Vector3.Distance(n.transform.position, _player.transform.position);
                 if (d < nearestDist) { nearestDist = d; nearest = n; }
-                if (d > Perceivers.NearBandMetres) return;
-                present++;
-                if (n.AttendingPlayer) attending++;
+                // The counting itself has moved to `NpcWalker.Tick`; this
+                // pass now only wants the nearest body for staging a deed.
             }
             if (_npcs != null) foreach (var n in _npcs) Consider(n);
             if (_game != null && _game.CrowdBodies != null)
                 foreach (var kv in _game.CrowdBodies) Consider(kv.Value);
-            Perceivers.Attending = attending;
-            Perceivers.PresentNearby = present;
+            // NOT ASSIGNED HERE ANY MORE. This loop was the only writer of
+            // `Perceivers.Attending` and `PresentNearby` in the project, and
+            // this class runs in CI and nowhere else — so the hush, the crowd's
+            // share of the ambient floor and the caption bar's attention
+            // channel were all sim-only, behind a comment in `Perceivers`
+            // claiming the walkers maintained them. The walkers do now.
+            //
+            // Read rather than recomputed, so the gate below measures the same
+            // quantity the game does. A sim that computes its own copy of a
+            // number is a sim that can pass while the game fails.
+            int attending = Perceivers.Attending, present = Perceivers.PresentNearby;
             double hush = Notice.HushFraction(attending, present);
             if (hush > _hushPeak) _hushPeak = hush;
             // Read the caption channel from the same place the hush is read,

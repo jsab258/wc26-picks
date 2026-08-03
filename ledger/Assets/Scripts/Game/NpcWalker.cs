@@ -548,6 +548,23 @@ namespace Ledger.Game
             var target = TargetFor(now);
             var current = transform.position;
 
+            // WHO IS NEAR THE PLAYER, AND WHO IS LOOKING — reported before
+            // anything can return early.
+            //
+            // `Perceivers` has always said these were "maintained by
+            // NpcWalker". They were not: the only writer was `SimDirector`,
+            // which runs in CI and nowhere else, so in a real play session the
+            // hush never fell, the crowd never raised the ambient floor, and
+            // the caption bar's attention channel could not fire. Three
+            // systems doing nothing behind one true-sounding sentence.
+            //
+            // ABOVE `WaitingAsHost`, deliberately. Somebody standing still
+            // because they promised to wait for you is emphatically present,
+            // and the early return below would have made the room go quiet
+            // whenever the only people in it were the ones waiting for you.
+            if (_player != null)
+                Perceivers.Report(Vector3.Distance(current, _player.position), _attendingNow);
+
             // A HOST WAITS. Ada's invitation says "I'll wait up"; Rocco says
             // "my front step". They then walked their patrol route all
             // evening, and the player — who moves at about the same speed —
