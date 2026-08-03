@@ -370,8 +370,10 @@
   "witnesses",
   "worldText",
   "worstFrame",
+  "worstNameBoundsY",
   "worstNameFrac",
   "worstNameMetres",
+  "worstNameScale",
   "wrongPerson",
   "y",
   "yields"

@@ -105,7 +105,7 @@ purchase is Jafar's. Raise at most once a day.
   pools coupon. That half stays a judgement call and it is the half that would
   actually be worth the tokens.
 
-## Standing rules this file exists to serve
+## How to keep this file honest
 
 - **Dispatch, then immediately take item 1 of Now.** A build in flight is a
   reason to switch tasks, never a reason to stop.
@@ -116,3 +116,27 @@ purchase is Jafar's. Raise at most once a day.
 - **Prefer a local answer.** `Recurrence` links real Core and answers in two
   seconds what a round trip answers in twenty-eight minutes. Before dispatching,
   ask whether the question is actually about Unity.
+
+## Standing work
+
+**This section never empties, and that is its entire job.** The queue ran dry on
+3 August after an hour of good work, because every item was sized to fit inside
+one build round trip — so an hour of good work consumed the list, and an empty
+list read as an empty afternoon. Three gaps of 21, 28 and 28 minutes followed.
+
+When `## Now` has nothing startable in it, the next action is to take one of
+these and decompose it into `## Now` — NOT to end the turn. Running out of short
+items is a refill signal, not a stop signal.
+
+- **M21, the two ledgers.** Empire growth, law as a tool, what expansion costs
+  you. Entirely unbuilt, entirely Core, so entirely doable here without a round
+  trip. This is the largest piece of unwritten game left.
+- **M22, the shape of a playthrough.** Onboarding, pacing, replayability,
+  succession. Also unbuilt and also Core-shaped.
+- **Read a system and write down what it actually does.** Every system in this
+  project has at least one comment that is now false; two were found today. The
+  supply is effectively unlimited and each one found is a bug that would
+  otherwise have been believed.
+- **Turn a still into a number.** Three faults have been found by opening a
+  frame and none by a gate. Any frame is fair game, and anything it shows that
+  no metric names is a metric worth adding.

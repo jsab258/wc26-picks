@@ -150,6 +150,29 @@ def card_writing():
     return False, "CARD WRITING RED: " + (bad[0][:120] if bad else "no verdict (build failure?)")
 
 
+def queue_depth():
+    """There is enough on the queue to survive the next build.
+
+    The queue was written to stop four idle gaps and it worked for an hour:
+    eighteen commits, longest gap eight minutes. Then three more gaps — 21, 28,
+    28 — because THE QUEUE HAD RUN OUT. Its own instructions guaranteed that:
+    every item sized to fit inside one round trip means an hour of good work
+    consumes the list, and an empty list reads exactly like an empty afternoon.
+
+    So the depth is checked where every other claim in this project is checked,
+    at commit time, and the failure it names is the one that actually happened:
+    nothing left that can be started without waiting on CI."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "queue-check.py")])
+    m = re.search(r"(\d+) item\(s\), (\d+) ready", out)
+    if not m:
+        return False, "queue-check did not report"
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("only ")
+               or l.strip().startswith("no `")]
+        return False, "QUEUE TOO THIN: " + (bad[0][:100] if bad else "see queue-check")
+    return True, "%s queue items ready" % m.group(2)
+
+
 def convo_probe():
     """The conversation probe finds the real cards, without spending anything.
 
@@ -422,7 +445,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, convo_probe, frame_drift, verdict_keys, save_chaos, soak,
+               card_writing, convo_probe, queue_depth, frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok

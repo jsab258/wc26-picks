@@ -383,6 +383,22 @@ items are written down BEFORE the dispatch and taken from the top afterwards,
 with no judgement required at the exact point where judgement was failing.
 Keep it current: a stale queue is worse than none, because it looks like a plan.
 
+**AND IT MUST NOT BE ABLE TO EMPTY.** The queue fixed the gaps for exactly one
+hour — eighteen commits, longest gap eight minutes — and then produced three
+more of 21, 28 and 28 minutes. Not because the rule was forgotten. Because the
+queue RAN OUT, and its own instruction guaranteed it would: *every item sized to
+fit inside one build round trip* means an hour of good work consumes the list.
+An empty list reads exactly like an empty afternoon, and the two have completely
+different next actions.
+
+So: a `## Standing work` section that never empties — unbuilt milestones, a
+system to read for false comments, a still to turn into a number. When `## Now`
+has nothing startable, **decompose a standing item into it. That is a refill
+signal, not a stop signal.** `tools/queue-check.py` runs inside `verify.py` and
+fails the commit when fewer than three items can be started without waiting on
+CI, so the queue running thin is something you are told before it costs an hour
+rather than something you notice afterwards.
+
 **3. Be woken by the event, not the clock.** Arm it with Bash
 `run_in_background: true`, which re-invokes you within seconds of it exiting.
 **Watch for a verdict naming the sha you dispatched** — not for the branch to
