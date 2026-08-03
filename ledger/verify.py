@@ -498,12 +498,32 @@ def main():
         all_ok &= ok
         parts.append(text)
 
+    footer = ", ".join(parts) + "."
     print()
     print("--- verification footer ---")
-    print(", ".join(parts) + ".")
+    print(footer)
     print("---------------------------")
-    if not all_ok:
+
+    # A RED RUN LEAVES NOTHING TO PASTE, which is the only version of this that
+    # works. The line below has said "do not paste this into a commit message as
+    # if it were" for weeks, and on 3 August I pasted one anyway — the third
+    # time an unmeasured footer has reached a commit message, and the second
+    # after the footer was introduced specifically to stop that.
+    #
+    # It fails the same way every time: the message gets written BEFORE the
+    # check finishes, from a footer already sitting in the scrollback, and a
+    # warning printed after the fact cannot reach a decision already made.
+    #
+    # So the file is the handle. Green writes it; red DELETES it. `cat` it into
+    # the commit message and a red run cannot produce one, because there is
+    # nothing there — the failure mode stops being a thing to remember and
+    # becomes a thing that cannot happen.
+    stamp = ROOT / ".verify-footer"
+    if all_ok:
+        stamp.write_text(footer + "\n", encoding="utf-8")
+    else:
         print("NOT GREEN — do not paste this into a commit message as if it were.")
+        stamp.unlink(missing_ok=True)
     return 0 if all_ok else 1
 
 
