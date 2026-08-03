@@ -38,91 +38,83 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **The upside-down player: cause found, fix dispatched, NOT YET CONFIRMED.**
-   Our own rig composed onto its own previous output because the rest-restore
-   asked whether an Animator existed rather than whether anything was driving
-   the pose — and the bought body has an Animator with nothing in it. Proven by
-   the one sample that cannot contain our solve: upright on the very first
-   frame, inverted later. Read the next stills before believing it.
-2. **A second fault the same run found, also fixed and unconfirmed.** A
-   nameplate measured 2,119 times the frame height, because the screen-rect
-   helper rejected labels behind the camera but not labels almost at it. That
-   helper feeds the declutter, so one NPC brushing the camera would have
-   suppressed every name on screen while the counters reported success.
-3. **The rest days DO run — I had that wrong, three times.** The sim runs
-   eleven in-game days, so days 5 and 6 execute every build; it is the STILLS
-   that are captured on days 1 and 2, and I read the screenshot filenames as
-   the run length. The real gap was narrower: the code ran and nothing had ever
-   looked at it. A crowd-at-noon comparison is now in flight. *(CI)*
+1. **The companion sees a knifing WORSE than a stranger does, and the excuse is
+   gone.** `companionSight[with=Goran rung=0 street=1 dist=1.7m]` — she is at
+   the player's shoulder, 1.7 metres, and the street out-sees her. The standing
+   hypothesis in the code comment was that `CompanionHost.Ask` has no proximity
+   requirement so she gets recruited across the city; the printed distance
+   refutes it outright. This is the one failing gate in the run and it is Core,
+   so it answers here in seconds rather than in twenty-eight minutes. Read
+   `Witnesses.Resolve`'s rung computation against a witness standing at 1.7m
+   and find what demotes her.
+2. **The player is a shop dummy, and no code fixes that.** The noon frame shows
+   a featureless pale figure with a blue hip band. `CharacterPrefab.BodyModel`
+   is `Assets/Characters/X Bot.fbx` — Mixamo's free mannequin. The 44 imported
+   files are animation clips. So `bodyDressed=1` is TRUE and says nothing: the
+   coat went onto a placeholder. Nothing to build; the roadmap now says so and
+   it is Jafar's purchase. **Do not spend another hour making a dummy prettier.**
+3. **`bodyDressed` counts renderers, so it cannot see how much of the body is
+   dressed.** One renderer flesh, one coat, `Dressed=1` — and if the coat lands
+   on the smaller mesh the figure reads naked while the number reads clothed.
+   The metric that would have caught it is area, not count: vertices or bounds
+   volume per material. This is the standing "turn a still into a number" item
+   with a specific target, and it will still be right when a real mesh arrives.
+4. **The arms: the bracket is dispatched, do not guess ahead of it.** *(CI)*
+   `restArmDrop=0.0`, `liveArmDrop=118.8`, and `preArmDrop` lands with the
+   build on `9ae6ff6`. Already ~119 pre-solve means the Animator's default pose
+   does it; 0 pre-solve means our `Swing` does. Read it, then act.
+5. **First engine-side evidence that rest days differ.** *(CI)*
+   `workNoonCrowd` / `restNoonCrowd` land in the same build. The Core says the
+   crowd should thin at the weekend; nothing has ever looked.
 
 ## Next
 
-5. **Raise the population instead of cutting districts.** Measured this
-   afternoon and it reverses the plan: seven districts at 1,400 people gives
-   43.5 distinct faces a week against 47.4 for three districts at 700, and
-   2,100 beats the cut outright. The familiarity was buyable with a number
-   rather than by deleting four authored districts. What is NOT measured is
-   whether a fuller city still reads as a port rather than a crowd — that is a
-   question for a still. Change the headcount, look at the frames, then decide.
-6. **Tier the cast — and the runtime is not the constraint.** All three sides
-   are now measured. Design: a full week at three districts gives 47 distinct
-   faces, 13 near enough to read, and a knee at ~50 people covering 92% of a
-   resident's week. Witnesses: no fewer than ~20 near an event. Runtime: one
-   skinned body is 64 bones and ~14,200 vertices, and all 68 rigs together
-   cost 1.1ms of a 12ms game-frame budget — 0.016ms each. Bodies are capped at
-   28 anyway, so ~400,000 vertices is the worst case and no real GPU cares.
-   **The machine does not bound the cast at fifty; only authoring does.**
-7. **Two faults the transcripts found, both authored fixes.** One character
-   answered with a stage direction — *"Sam squints at that like you've asked
-   him to fly"* — instead of speaking, which the prompt's own rules forbid and
-   nothing enforces. And one repeated an out-of-period word straight back at
-   the player rather than not knowing it. Neither needs a round trip.
+6. **Raise the population instead of cutting districts.** Measured, and it
+   reverses the plan: seven districts at 1,400 people gives 43.5 distinct faces
+   a week against 47.4 for three at 700, and 2,100 beats the cut outright. What
+   is NOT measured is whether a fuller city still reads as a port rather than a
+   crowd — that is a question for a still. Change the headcount, look, decide.
+7. **Tier the cast — and the runtime is not the constraint.** All three sides
+   measured. Design: 47 distinct faces a week, 13 near enough to read, a knee at
+   ~50 people covering 92% of a resident's week. Witnesses: no fewer than ~20
+   near an event. Runtime: 68 rigs cost 1.1ms of a 12ms budget. **The machine
+   does not bound the cast at fifty; only authoring does.**
 8. **M17.2 voices** — no longer held. The writing verdict came back 78 and the
    risk it was gating (paying to voice something that needs rewriting) is
-   retired.
-
-## Done today, kept here only until the next tidy
-
-- Parallel builds; the work queue; the Tier-2 generator's decade and its
-  eleven writing rules with a no-key self-test; example lines and period
-  texture for the whole cast; per-character geometric cost and a `rigs` frame
-  bucket; M19 input parity with a number behind it; days that differ.
-- Three "faults" that were my own instruments: the mirrored-text count, the
-  oversized-nameplate metric, and the verdict-key checker failing on good news.
+   retired. Note this is a SPEND and Jafar has not authorised it.
+9. **Six cards still lack example lines**, down from sixty. Small, local, no key
+   needed to identify them.
 
 ## Blocked, and on whom
 
-**Authorised and half spent.** Jafar approved both tasks on 3 August. The
-conversation probe has run — 40 calls, £0.28, transcripts in
-`writing-samples.md` — and the dialogue benchmark now carries a measured 78
-instead of the word `unjudged`. The card enrichment has NOT run yet: it needs
-an `--enrich` mode that adds lines to the existing sixty without minting new
-ids, because five of them are already promoted into the hand-written ring.
-- **And the same spend would lift most of the cast — but by less than I first
-  wrote.** The game has 83 named characters, 23 hand-written and 60 generated.
-  Running the new validator over the old 60: every one fails, and **all sixty
-  fail on exactly one rule — no example lines.** Nothing else. No adjective-soup
-  speech, no anachronism, no structural fault. So "72% of the cast is at the old
-  bar" overstated it; the accurate version is that 60 cards are one field short.
-  Worth doing — the coverage curve says the generated sixty are most of who you
-  actually meet — but it is a small, targeted run rather than a rescue.
-- **What the audit cannot see: period texture.** There is a rule against
-  anachronism and none for *presence* of a decade, because absence is not
-  greppable. Those 60 cards still have no phone box, no tick at the shop, no
-  pools coupon. That half stays a judgement call and it is the half that would
-  actually be worth the tokens.
+- **A character mesh.** Only Jafar can buy one, and it is now the single
+  largest immersion gap in the project — see roadmap 17.1b.
+- **Any further API spend.** The 3 August authorisation covered two tasks, both
+  done, ~£0.85. Nothing else is approved and nothing else gets spent.
+
+## Done, kept here only until the next tidy
+
+- The upside-down player, closed by looking at the frame: two independent
+  faults in our own rig, both fixed, a figure on its feet in the noon still.
+- The nameplate that measured 2,119 times the frame height — the screen-rect
+  helper projected two diagonal corners of a rotating box. Now 0.825.
+- The rest days were never unrun; I read screenshot filenames as run length.
+- Parallel builds; the work queue and its checker; the Tier-2 generator's
+  thirteen writing rules with a no-key self-test; example lines for 54 of the
+  60 generated cards; the conversation probe and a measured 78; per-character
+  geometric cost; M19 input parity.
 
 ## How to keep this file honest
 
 - **Dispatch, then immediately take item 1 of Now.** A build in flight is a
   reason to switch tasks, never a reason to stop.
-- **Batch Game-layer changes.** Five round trips today carried two or three
-  files each and answered one question each. They can now run in parallel —
-  each build keeps its own verdict under `sim-shots/runs/<sha>.txt` — so
-  dispatch the hypotheses together instead of in series.
-- **Prefer a local answer.** `Recurrence` links real Core and answers in two
-  seconds what a round trip answers in twenty-eight minutes. Before dispatching,
-  ask whether the question is actually about Unity.
+- **Arming a watcher is the PRECONDITION for ending a turn, not permission to
+  end one.** Both are required and only one of them feels like progress.
+- **Batch Game-layer changes, and dispatch hypotheses in parallel** — each build
+  keeps its own verdict under `sim-shots/runs/<sha>.txt`, so concurrent builds
+  are concurrent answers.
+- **Prefer a local answer.** Before dispatching, ask whether the question is
+  actually about Unity. Item 1 above is not.
 
 ## Standing work
 
@@ -141,9 +133,10 @@ items is a refill signal, not a stop signal.
 - **M22, the shape of a playthrough.** Onboarding, pacing, replayability,
   succession. Also unbuilt and also Core-shaped.
 - **Read a system and write down what it actually does.** Every system in this
-  project has at least one comment that is now false; two were found today. The
-  supply is effectively unlimited and each one found is a bug that would
-  otherwise have been believed.
-- **Turn a still into a number.** Three faults have been found by opening a
-  frame and none by a gate. Any frame is fair game, and anything it shows that
-  no metric names is a metric worth adding.
+  project has at least one comment that is now false; three were found today,
+  one of them in the file being edited at the time. The supply is effectively
+  unlimited and each one found is a bug that would otherwise have been believed.
+- **Turn a still into a number.** Four faults have now been found by opening a
+  frame and none by a gate — the newest being a naked body with a metric
+  reporting it clothed. Anything a frame shows that no metric names is a metric
+  worth adding.

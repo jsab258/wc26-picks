@@ -1,6 +1,6 @@
 # LEDGER — roadmap
 
-> **STATUS — LIVE, verified 2026-08-01.** The plan and the build state. If this
+> **STATUS — LIVE, verified 2026-08-03.** The plan and the build state. If this
 > and another doc disagree, this wins. If it is wrong, that is a bug in this file.
 
 **The plan lives here.** Chronology, post-mortems and superseded plans are in
@@ -13,16 +13,16 @@ what happens next.
 
 | | | |
 |---|---|---|
-| **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 reopened: the player renders upside down** |
-| **also now** | M18 — the second life | family verified running · companion built, unproven · **vice and lifestyle deferred** |
-| **next** | M19 — the people are thinking | inputs judged and fixed · **input parity done: a conversation can be carried without typing** · outputs still unjudged, blocked on one spend |
+| **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1: the player stands up again — confirmed in the frame, not just in a number. Two faults left in the same body: the arms hang 119° out from the sides, and it renders as bare mannequin while `bodyDressed=1` reports it clothed** |
+| **also now** | M18 — the second life | family verified running · **companion still the one failing gate: she walks at 1.7m and sees the deed WORSE than the street does** · vice and lifestyle deferred |
+| **next** | M19 — the people are thinking | inputs judged and fixed · **input parity done: a conversation can be carried without typing** · **outputs now judged too: the dialogue benchmark is a measured 78, no longer the word `unjudged`** |
 | | M20 — the town you learn | **days now differ from each other** · **the district cut is OFF — filling the city beats shrinking it, measured** · the cast tiering is what remains |
 | | M21 — the two ledgers | empire growth, law as a tool, and what expansion costs you |
 | | M22 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M23 — firearms | M16 phase 5, deliberately last |
 | | M24 — ship | performance, platforms, controller, QA, licences, packaging |
 | **shipped** | M0–M16, Acts I–III, the perception and consequence engine | |
-| **waiting on Jafar** | one small API spend | judges the dialogue as OUTPUT (the inputs are judged and good) and the same run gives 60 generated characters the example lines they lack |
+| **waiting on Jafar** | a character MESH, which only he can buy | 17.1b. The 44 imported files are animation clips; the body itself is `X Bot.fbx`, Mixamo's free grey mannequin, and the noon frame shows exactly that — a featureless figure with a blue hip band. No amount of dressing code makes a placeholder into a person. Nothing else is blocked on him — the API spend he approved on 3 August is spent and delivered |
 
 **The strategy every milestone below is judged against.**
 
@@ -80,8 +80,8 @@ below is visible in them. Almost nothing here is new design.
 
 | | what | state | risk |
 |---|---|---|---|
-| 17.1 | **Integrate the Mixamo bodies** | **REOPENED 2026-08-01, was marked DONE the same day.** Imported, attached, avatar bound, scaled and now dressed — and **the player renders upside down**. It was closed on `bodyUp=1.000`, which reads the ROOT transform and structurally cannot see the skeleton; a posture gate added later reads the head *below* the hips. The import is NOT at fault: the bind pose measures correct, so the inversion is introduced by a clip, the avatar binding, or `CharacterRig`'s own solve. **Not done until a still shows a person standing up** | **open — the last M17 blocker** |
-| 17.1b | **Bodies and faces for EVERYONE** | new 2026-08-01, and the largest single immersion gap. Only the player is skinned; the whole town is coloured boxes. 44 models exist and are audited every build — that caps distinct named faces until somebody buys more, which is Jafar's call | **open** |
+| 17.1 | **Integrate the Mixamo bodies** | **The standing-up half is CLOSED, 2026-08-03, and closed the way it should have been the first time — by opening `review_day1_noon.jpg` and seeing a figure on its feet, with `preHeadAboveHips=0.520` and `headAboveHips=0.522` agreeing on either side of the solve.** It took eight builds and a four-stage bracket because `bodyUp=1.000` reads the ROOT and structurally cannot see the skeleton, so the first close was certified by an instrument blind to the fault. Two independent faults in our own rig, both ours: the rest-restore asked whether an Animator EXISTED rather than whether anything was DRIVING the pose, so the body composed onto its own previous output for ever; and `Swing` composed onto a live rotation instead of assigning from a rest one. **Still open in the same body:** the arms sit 119° out from the sides (`restArmDrop=0.0` → `liveArmDrop=118.8`, and `ArmSwing` maxes at 22° so it cannot be that alone — the pre-solve sample that splits it is in flight), and the figure reads bare. | **arms open; upside-down closed** |
+| 17.1b | **Bodies and faces for EVERYONE** | new 2026-08-01, and the largest single immersion gap. **2026-08-03, from the frame: the player is not "skinned but undressed", it is Mixamo's free `X Bot` mannequin** — `CharacterPrefab.BodyModel` names it, and the 44 imported files are animation clips carrying no mesh of their own. So `bodyDressed=1` is true and useless: the coat went on, onto a placeholder. The whole town is coloured boxes and the one skinned body is a shop dummy. Buying a real character mesh is Jafar's call and nothing here substitutes for it | **open — the biggest immersion gap** |
 | 17.2 | **Generate the cast voices** — clones from the 19 reference clips | cast and consent-approved; **19 reference clips picked**. Blocked on a SCOPE decision, not on tooling — see below | **high, and it is scheduling** |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
