@@ -22,7 +22,7 @@ what happens next.
 | | M23 — firearms | M16 phase 5, deliberately last |
 | | M24 — ship | performance, platforms, controller, QA, licences, packaging |
 | **shipped** | M0–M16, Acts I–III, the perception and consequence engine | |
-| **waiting on Jafar** | nothing |  |
+| **waiting on Jafar** | one small API spend | judges the dialogue as OUTPUT (the inputs are judged and good) and the same run gives 60 generated characters the example lines they lack |
 
 **The strategy every milestone below is judged against.**
 
