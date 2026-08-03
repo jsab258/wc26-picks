@@ -146,3 +146,45 @@ taught this morning at greater expense. What **is** tested is
 before you ever saw it. The rest is written from the harvester's actual source
 rather than from assumptions about it — but the first run is the first run, and
 if it falls over I would rather you send me the output than fight it.
+
+## BODIES.bat — the character bodies (added 3 August)
+
+**Run this one first, next time.** It takes minutes, not hours, and it fixes
+the largest visible thing wrong with the game.
+
+The harvest got 42 animations and two bodies, and **both bodies are the grey
+featureless mannequins Mixamo uses for previews**. The player has been one of
+them ever since — `review_day1_noon.jpg` is a pale figure with no face and a
+blue hip band, standing in a city that is otherwise trying to be a place.
+
+Two causes, both in this folder:
+
+- `choose_characters.py` defaults to `--count 2` and its preference list begins
+  `x bot, y bot, michelle, remy`. It pins the first two matches and stops, so it
+  pinned the two placeholders and never reached a real person. Working exactly
+  as written, choosing exactly the wrong thing.
+- MixamoHarvester downloads ANIMATIONS. Nothing in this pipeline had ever asked
+  for a character's own T-pose mesh, so no amount of re-running the harvest
+  would have produced one.
+
+`BODIES.bat` asks Mixamo for the characters themselves, **with skin**, and
+commits them. Mixamo's characters are free — this is a download, not a purchase.
+
+    BODIES.bat
+
+Defaults to Michelle, Remy, Sophie and Shae: free, rigged, in ordinary clothes,
+and neutral enough that a silhouette reads as a person in a coat rather than as
+a costume. Override with `fetch_bodies.py --names ...` if you would rather pick
+by eye from mixamo.com.
+
+**If it fails, send the message.** Mixamo's API is undocumented and unreachable
+from the container these scripts are written in, so none of those calls have
+ever been executed here — the request shapes follow the ones
+`choose_characters.py` already uses successfully against this account. Every
+unexpected response is printed in full for exactly that reason: one pass to fix
+rather than three rounds of guessing.
+
+One check is worth knowing about. A skinned body is megabytes; a skeleton-only
+export is tens of kilobytes. If the `skin` preference silently does not take,
+the script says so on the spot rather than letting another invisible man reach
+a build twenty-eight minutes later.

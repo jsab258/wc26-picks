@@ -208,6 +208,43 @@ namespace Ledger.Game
         static double _shownLoudness = -1;
         static NoiseRing _live;
 
+        /// HIDE THE TEACHING OVERLAY WHILE A REVIEW STILL IS TAKEN.
+        ///
+        /// `review_day1_night.jpg` is a white arc sweeping the entire frame,
+        /// edge to edge, over a street you can barely see behind it. That is
+        /// this class working exactly as designed: `ringMax=148.1` metres, and
+        /// a 148-metre circle seen from inside is a straight band, half a metre
+        /// thick, across the world.
+        ///
+        /// The four stills exist to answer ONE question — what does the street
+        /// look like — and they were answering "what does the street look like
+        /// with a debug overlay on it". Nothing is weakened by hiding it: the
+        /// ring's own evidence is an A/B render (`ringSeen` against
+        /// `ringNone`), taken in its own frames with its own camera pass, and
+        /// it does not read these files.
+        ///
+        /// THIS IS NOT THE WHOLE FIX AND MUST NOT BE MISTAKEN FOR IT. A player
+        /// would see that band too. A ring only reads AS a ring while its
+        /// curvature is visible: the sagitta of a chord `L` on radius `R` is
+        /// about `L²/8R`, so a thirty-metre span of a 148-metre ring bows by
+        /// 0.76m and is a straight line to the eye. Past roughly forty metres
+        /// the shape stops carrying its meaning and becomes a stripe. Fading it
+        /// out over that range is a real change to game feel and wants its own
+        /// commit and its own frame, not a rider on a screenshot fix.
+        public static bool HiddenForCapture;
+
+        /// Show or hide the live ring around a capture. Returns whether one was
+        /// actually there, so a still taken on a silent street cannot be read
+        /// as proof that the hiding worked.
+        public static bool SetHiddenForCapture(bool hidden)
+        {
+            HiddenForCapture = hidden;
+            if (_live == null) return false;
+            var lr = _live.GetComponent<LineRenderer>();
+            if (lr != null) lr.enabled = !hidden;
+            return true;
+        }
+
         /// Zeroed with the rest of the perception counters at the start of a
         /// sim run, so the numbers in the verdict describe THIS run.
         public static void Reset()

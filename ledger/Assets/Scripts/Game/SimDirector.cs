@@ -3659,6 +3659,11 @@ namespace Ledger.Game
             }
         }
 
+        /// How many stills were taken with a live ring hidden. Zero over a
+        /// whole run means either a silent street or a hide that never
+        /// fired, and those want telling apart.
+        int _shotsWithRingHidden;
+
         void Shot(string name)
         {
             // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
@@ -3671,6 +3676,21 @@ namespace Ledger.Game
             var path = $"sim-out/shot_{name}.png";
             var cam = Camera.main;
             if (cam == null) { _errors.Add("Shot: no main camera"); return; }
+
+            // THE TEACHING OVERLAY IS NOT THE STREET. `review_day1_night.jpg`
+            // is a white arc edge to edge across the frame with the city
+            // barely visible behind it — the noise ring at its true
+            // `ringMax=148.1` metre radius, which seen from inside is a band
+            // rather than a circle. These four files exist to answer one
+            // question and were answering it with a debug layer over the top.
+            //
+            // Nothing is weakened: the ring's own evidence is an A/B render
+            // (`ringSeen` against `ringNone`) taken in its own frames, and it
+            // does not read these files.
+            //
+            // Counted, because a still taken on a silent street looks exactly
+            // like one where the hiding worked.
+            if (NoiseRing.SetHiddenForCapture(true)) _shotsWithRingHidden++;
 
             RenderTexture rt = null;
             Texture2D tex = null;
@@ -3774,6 +3794,10 @@ namespace Ledger.Game
             {
                 cam.targetTexture = prevTarget;
                 RenderTexture.active = prevActive;
+                // Restored in `finally`, so a throw mid-render cannot
+                // leave the ring invisible for the rest of the run and
+                // turn a screenshot fix into a silent feature removal.
+                NoiseRing.SetHiddenForCapture(false);
                 if (tex != null) Destroy(tex);
                 if (rt != null) { rt.Release(); Destroy(rt); }
             }
@@ -5624,6 +5648,7 @@ namespace Ledger.Game
                       $"ringTransformZ={100 * _ringSeenTransformZ:0.0000} " +
                       $"ringControl={100 * _controlSeen:0.0000} " +
                       $"ringPaintUsed={NoiseRing.PaintUsed} " +
+                      $"ringHiddenShots={_shotsWithRingHidden} " +
                       $"aoRounds={_aoRounds} aoRan={_tookAoPair} " +
                       $"perceptionWhy={PerceptionWhy()} " +
                       $"perceptionOk={perceptionOk} " +
