@@ -86,6 +86,60 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # TASK 2 OF THE AUTHORISED SPEND: give the sixty existing cards the
+      # example lines they lack, WITHOUT minting new ids. They fail exactly one
+      # validator rule and nothing else, and five of them are already promoted
+      # into the hand-written ring — regenerating would spend money to break
+      # references. One call per card, each validated by the same rules as a
+      # fresh one and rolled back individually on failure, so a bad reply
+      # cannot take the other fifty-nine with it.
+      - name: Give the existing cards a voice
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          dotnet run --project ledger/Tier2Gen -c Release -- \
+            --enrich game-design/tier2-batch-1.json \
+            --model "claude-sonnet-5" \
+            --out enriched
+
+      - name: Audit the result before keeping it
+        run: |
+          dotnet run --project ledger/Tier2Gen -c Release -- --audit enriched/tier2-batch-1.json \
+            | tee enrich-audit.log
+          # THE SAME AUDIT THAT FOUND THE PROBLEM, RUN ON THE CURE. Sixty cards
+          # went in failing one rule; if they come out still failing it, the
+          # spend bought nothing and this should say so rather than commit a
+          # manifest that looks changed.
+          if grep -qE "^ +[0-9]+ +lines must have" enrich-audit.log; then
+            echo "cards still lack lines after enrichment — not committing"; exit 1
+          fi
+
+      - name: Commit the enriched cast
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          cp enriched/tier2-batch-1.json game-design/tier2-batch-1.json
+          git add game-design/tier2-batch-1.json
+          if git diff --cached --quiet; then
+            echo "NOTHING CHANGED — the enrichment wrote the same manifest"; exit 1
+          fi
+          git commit -q -m "Sixty characters that can now be heard
+
+          Example lines and period texture added to the existing generated
+          cast, ids and everything else untouched."
+          origin="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for i in 1 2 3 4; do
+            if git push "$origin" HEAD:${GITHUB_REF_NAME} > push.log 2>&1; then
+              echo "enriched cast pushed"; break
+            fi
+            sed "s|${GH_TOKEN}|***|g" push.log || true
+            git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1 || true
+            git rebase FETCH_HEAD || git rebase --abort || true
+            sleep $((2 ** i))
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # THE FRESH-GENERATION STEP IS OFF BY DEFAULT, and that is a guard on
       # somebody else's money rather than tidiness.
       #

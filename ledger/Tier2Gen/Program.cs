@@ -62,6 +62,23 @@ namespace Ledger.Tier2Gen
             // cards are already in the repository.
             if (args.Contains("--audit")) return Audit(ArgStr(args, "--audit", ""));
 
+            // ENRICH, NOT REGENERATE, and the distinction is the whole task.
+            //
+            // The sixty existing cards fail exactly ONE rule — no example lines
+            // — and nothing else. Regenerating them fresh would fix that and
+            // mint sixty NEW ids, while the current ones are wired into
+            // secrets, connections, schedules and promotions, five of them
+            // already pulled up into the hand-written ring. That is spending
+            // money to break references.
+            //
+            // So this reads the manifest, asks only for what is missing, and
+            // writes the same people back with their ids, names, traits,
+            // secrets, schedules and connections untouched.
+            if (args.Contains("--enrich"))
+                return await EnrichAsync(ArgStr(args, "--enrich", ""),
+                                         ArgStr(args, "--out", "tier2-out"),
+                                         ArgStr(args, "--model", "claude-sonnet-5"));
+
             int count = ArgInt(args, "--count", 60);
             int perCall = ArgInt(args, "--batch", 4);
             string outDir = ArgStr(args, "--out", "tier2-out");
@@ -150,6 +167,147 @@ namespace Ledger.Tier2Gen
             Console.WriteLine(manifest);
             Console.WriteLine("===TIER2-MANIFEST-END===");
             return accepted.Count >= count ? 0 : 1;
+        }
+
+        /// Give existing cards the voice they were written without.
+        static async Task<int> EnrichAsync(string path, string outDir, string model)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                Console.WriteLine($"Tier2Gen --enrich: no such file '{path}'");
+                return 1;
+            }
+            var cards = ParseCards(File.ReadAllText(path));
+            if (cards == null || cards.Count == 0)
+            {
+                Console.WriteLine("Tier2Gen --enrich: no cards parsed");
+                return 1;
+            }
+
+            var key = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+            if (string.IsNullOrEmpty(key))
+            {
+                Console.WriteLine("Tier2Gen --enrich: ANTHROPIC_API_KEY is not set; nothing changed.");
+                return 1;
+            }
+
+            var client = new AnthropicClient(key);
+            long tin = 0, tout = 0;
+            int done = 0, failed = 0;
+
+            // ONE CARD PER CALL. A batch would be cheaper and would let one
+            // malformed reply take twenty characters down with it — and the
+            // cards being repaired are already in the game, so a partial
+            // failure has to leave the survivors intact rather than roll back
+            // sixty people.
+            foreach (var card in cards)
+            {
+                var id = MiniJson.GetString(card, "id");
+                if (MiniJson.GetList(card, "lines") != null) { done++; continue; }
+
+                var ask = new StringBuilder();
+                ask.AppendLine("Here is an existing character from the game. Do not change them.");
+                ask.AppendLine();
+                ask.AppendLine($"name: {MiniJson.GetString(card, "name")}");
+                ask.AppendLine($"age: {MiniJson.GetInt(card, "age")}");
+                ask.AppendLine($"occupation: {MiniJson.GetString(card, "occupation")}");
+                ask.AppendLine($"summary: {MiniJson.GetString(card, "summary")}");
+                ask.AppendLine($"personality: {MiniJson.GetString(card, "personality")}");
+                ask.AppendLine($"speech: {MiniJson.GetString(card, "speech")}");
+                ask.AppendLine($"need: {MiniJson.GetString(card, "need")}");
+                ask.AppendLine();
+                ask.AppendLine("Return ONLY a JSON object with two fields and nothing else:");
+                ask.AppendLine("  lines: 2-3 short quotes this person would actually say, no");
+                ask.AppendLine("         attribution and no quotation marks inside them. They must");
+                ask.AppendLine("         DEMONSTRATE the speech behaviour above rather than restate");
+                ask.AppendLine("         it, and they must sound like different people from card to");
+                ask.AppendLine("         card.");
+                ask.AppendLine("  fact:  one further first-person hard fact that places them in the");
+                ask.AppendLine("         PERIOD through something they use or notice — a phone box, a");
+                ask.AppendLine("         tab at the corner shop, wages in an envelope, who has a");
+                ask.AppendLine("         telephone and who knocks to borrow one. Never a costume note.");
+
+                LlmResponse res;
+                try
+                {
+                    res = await client.CompleteAsync(new LlmRequest
+                    {
+                        Model = model,
+                        MaxTokens = 700,
+                        System = SystemPrompt(),
+                        Messages = { new LlmMessage("user", ask.ToString()) },
+                    });
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"  FAIL {id}: {e.Message}");
+                    failed++;
+                    continue;
+                }
+                tin += res.InputTokens;
+                tout += res.OutputTokens;
+
+                var obj = MiniJson.AsObject(MiniJson.Deserialize(Between(res.Text, '{', '}')));
+                var lines = obj != null ? MiniJson.GetList(obj, "lines") : null;
+                if (lines == null || lines.Count < 2 || lines.Count > 3)
+                {
+                    Console.WriteLine($"  FAIL {id}: no usable lines returned");
+                    failed++;
+                    continue;
+                }
+                card["lines"] = lines;
+                var fact = obj != null ? MiniJson.GetString(obj, "fact") : null;
+                if (!string.IsNullOrEmpty(fact))
+                {
+                    var facts = MiniJson.GetList(card, "hardFacts") ?? new List<object>();
+                    // FIVE IS THE VALIDATOR'S CEILING, so a card already at it
+                    // keeps what it has rather than being pushed out of spec by
+                    // the thing meant to improve it.
+                    if (facts.Count < 5) { facts.Add(fact); card["hardFacts"] = facts; }
+                }
+
+                // VALIDATED WITH THE SAME RULES AS A FRESH CARD, and rolled back
+                // per card if it fails. An enrichment that quietly writes an
+                // out-of-period line is worse than one that refuses: the card
+                // was already shipping and would now be shipping wrong.
+                var why = Validate(card, new HashSet<string>(),
+                                   new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                                   new HashSet<string>(cards.Select(c => MiniJson.GetString(c, "id"))));
+                if (why != null)
+                {
+                    Console.WriteLine($"  FAIL {id}: {why}");
+                    card.Remove("lines");
+                    failed++;
+                    continue;
+                }
+                Console.WriteLine($"  ok   {id}");
+                done++;
+            }
+
+            Directory.CreateDirectory(outDir);
+            var outPath = Path.Combine(outDir, "tier2-batch-1.json");
+            File.WriteAllText(outPath, MiniJson.Serialize(cards.Cast<object>().ToList()));
+            foreach (var card in cards)
+                File.WriteAllText(Path.Combine(outDir, MiniJson.GetString(card, "id") + ".md"),
+                                  RenderMarkdown(card));
+            Console.WriteLine($"Tier2Gen --enrich: {done} enriched, {failed} left as they were; "
+                              + $"tokens {tin} in / {tout} out.");
+            return failed > cards.Count / 2 ? 1 : 0;
+        }
+
+        /// The first balanced {...} in a reply, so a model that adds a sentence
+        /// of preamble does not cost a card.
+        static string Between(string text, char open, char close)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            int a = text.IndexOf(open), depth = 0;
+            if (a < 0) return "";
+            for (int i = a; i < text.Length; i++)
+            {
+                if (text[i] == open) depth++;
+                else if (text[i] == close && --depth == 0) return text.Substring(a, i - a + 1);
+            }
+            return "";
         }
 
         static string SystemPrompt()
