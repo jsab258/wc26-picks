@@ -125,7 +125,7 @@ namespace Ledger.Game
             // Only people who are actually OUT get bodies (playtest: the map
             // read as a crowd scene because everyone was on the pavement).
             var changed = Populace.SetBands(r => Distance(r, playerPos), LoadBearingIds(),
-                r => Population.OutdoorsAt(r, Now.Hour));
+                r => Population.OutdoorsAt(r, Now.Day, Now.Hour));
             foreach (var r in changed) ApplyBand(r, reach);
         }
 
@@ -156,7 +156,7 @@ namespace Ledger.Game
         /// stayed empty while the code looked correct.
         Vector3 WhereIs(Resident r)
         {
-            if (Population.OutdoorPosition(r, Now.Hour, out var ox, out var oz))
+            if (Population.OutdoorPosition(r, Now.Day, Now.Hour, out var ox, out var oz))
             {
                 // Snapped to the network, because a straight line from home to
                 // work runs through buildings. The streets already know where

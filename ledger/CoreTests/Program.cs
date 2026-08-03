@@ -5443,16 +5443,78 @@ namespace Ledger.CoreTests
             int outAtNoon = 0, outAtThree = 0;
             foreach (var r in pop.Residents)
             {
-                if (Population.OutdoorsAt(r, 13)) outAtNoon++;
-                if (Population.OutdoorsAt(r, 3)) outAtThree++;
+                if (Population.OutdoorsAt(r, 0, 13)) outAtNoon++;
+                if (Population.OutdoorsAt(r, 0, 3)) outAtThree++;
             }
             Check(outAtNoon < pop.Residents.Count / 3,
                 "most of the city is indoors at any hour", $"{outAtNoon} of {pop.Residents.Count} out at one o'clock");
             Check(outAtThree < outAtNoon / 2,
                 "and the small hours belong to far fewer", $"{outAtThree} out at three in the morning");
             var someone = pop.Residents[42];
-            Check(Population.OutdoorsAt(someone, 13) == Population.OutdoorsAt(someone, 13),
+            Check(Population.OutdoorsAt(someone, 0, 13) == Population.OutdoorsAt(someone, 0, 13),
                 "whether somebody is out is stable, not a coin flipped every frame");
+
+            // DAYS THAT DIFFER, which this model did not have until the routine
+            // took a day at all. It reduced the hour mod 24 and nothing else, so
+            // every Tuesday in this town was every Saturday — and the fault
+            // surfaced as arithmetic rather than as a complaint: `Recurrence`
+            // looped a week, every column came out identical, and 86% of
+            // encounters read as "repeat", which is exactly 6/7.
+            Check(!Population.IsRestDay(0) && !Population.IsRestDay(4)
+                  && Population.IsRestDay(5) && Population.IsRestDay(6),
+                "day 0 is a Monday, so 5 and 6 are the rest days");
+
+            // WHO is out has to change, or the day parameter is decoration.
+            // Counted as a disagreement rather than as two totals, because two
+            // days with the same NUMBER of people out and the same PEOPLE out
+            // is exactly the failure being guarded against.
+            int differs = 0;
+            foreach (var r in pop.Residents)
+                if (Population.OutdoorsAt(r, 1, 13) != Population.OutdoorsAt(r, 2, 13)) differs++;
+            Check(differs > pop.Residents.Count / 40,
+                "a different set of people is outdoors on a different day",
+                $"{differs} of {pop.Residents.Count} differ between two working days at one o'clock");
+
+            // And WHEN, on a rest day: no commute, so eight in the morning is
+            // quiet and the middle of the day is thicker. Compared against the
+            // working day rather than against a threshold — the claim is a
+            // RELATION between two days and stating it as one is what keeps it
+            // honest when the rates are next retuned.
+            int workRush = 0, restRush = 0, workNoon = 0, restNoon = 0;
+            foreach (var r in pop.Residents)
+            {
+                if (Population.OutdoorsAt(r, 0, 8)) workRush++;
+                if (Population.OutdoorsAt(r, 5, 8)) restRush++;
+                if (Population.OutdoorsAt(r, 0, 14)) workNoon++;
+                if (Population.OutdoorsAt(r, 5, 14)) restNoon++;
+            }
+            Check(restRush < workRush,
+                "nobody commutes on a rest day, so eight in the morning is quieter",
+                $"working {workRush} vs rest {restRush}");
+            Check(restNoon > workNoon,
+                "and the middle of a free day is busier than the middle of a working one",
+                $"working {workNoon} vs rest {restNoon}");
+
+            // A DAY IS STILL DETERMINISTIC. The whole point of the seeded model
+            // is that the player can leave a street and come back to the same
+            // world; adding a dimension to the hash must not cost that.
+            Check(Population.OutdoorsAt(someone, 3, 13) == Population.OutdoorsAt(someone, 3, 13),
+                "a given day is as stable as a given hour was");
+
+            // AND THE WALK DIFFERS TOO, which is the subtler half. A different
+            // set of people outdoors, every one of them walking the identical
+            // route in the identical direction as yesterday, would change who is
+            // out while leaving the street looking the same.
+            int routeDiffers = 0;
+            foreach (var r in pop.Residents)
+            {
+                bool a = Population.OutdoorPosition(r, 1, 13, out var ax, out _);
+                bool b = Population.OutdoorPosition(r, 2, 13, out var bx, out _);
+                if (a && b && Math.Abs(ax - bx) > 0.5) routeDiffers++;
+            }
+            Check(routeDiffers > 0,
+                "and somebody out on both days is not always at the same point of the same walk",
+                $"{routeDiffers} residents stand somewhere else");
 
             // With an unstable sort, people at equal distance can swap places
             // and be reported as having changed when nothing about them did —
@@ -6290,7 +6352,7 @@ namespace Ledger.CoreTests
             int outdoors = 0, atADoor = 0;
             foreach (var r in pop.Residents)
             {
-                if (!Population.OutdoorPosition(r, 13, out var x, out var z)) continue;
+                if (!Population.OutdoorPosition(r, 0, 13, out var x, out var z)) continue;
                 outdoors++;
                 bool onHome = Math.Abs(x - r.HomeX) < 0.001 && Math.Abs(z - r.HomeZ) < 0.001;
                 bool onWork = Math.Abs(x - r.WorkX) < 0.001 && Math.Abs(z - r.WorkZ) < 0.001;
@@ -6307,15 +6369,15 @@ namespace Ledger.CoreTests
             // Indoors must still be indoors, or the whole day/night rhythm goes.
             int outAt3am = 0;
             foreach (var r in pop.Residents)
-                if (Population.OutdoorPosition(r, 3, out _, out _)) outAt3am++;
+                if (Population.OutdoorPosition(r, 0, 3, out _, out _)) outAt3am++;
             Check(outAt3am < outdoors / 2,
                 "and far fewer are out at three in the morning", $"{outAt3am} vs {outdoors}");
 
             // Stable within an hour: a person who teleports every frame is
             // worse than one standing in a wall.
             var sample = pop.Residents[42];
-            Population.OutdoorPosition(sample, 13, out var x1, out var z1);
-            Population.OutdoorPosition(sample, 13, out var x2, out var z2);
+            Population.OutdoorPosition(sample, 0, 13, out var x1, out var z1);
+            Population.OutdoorPosition(sample, 0, 13, out var x2, out var z2);
             Check(x1 == x2 && z1 == z2, "where somebody stands does not flicker within the hour");
 
             // But it MOVES across hours, or the street is a diorama of
@@ -6323,8 +6385,8 @@ namespace Ledger.CoreTests
             int moved = 0;
             foreach (var r in pop.Residents)
             {
-                if (!Population.OutdoorPosition(r, 13, out var ax, out var az)) continue;
-                if (!Population.OutdoorPosition(r, 14, out var bx, out var bz)) continue;
+                if (!Population.OutdoorPosition(r, 0, 13, out var ax, out var az)) continue;
+                if (!Population.OutdoorPosition(r, 0, 14, out var bx, out var bz)) continue;
                 if (Math.Abs(ax - bx) > 0.5 || Math.Abs(az - bz) > 0.5) moved++;
             }
             Check(moved > 50,
@@ -6338,8 +6400,8 @@ namespace Ledger.CoreTests
             int flickered = 0, outAt13 = 0;
             foreach (var r in pop.Residents)
             {
-                bool a = Population.OutdoorPosition(r, 13, out _, out _);
-                bool b = Population.OutdoorPosition(r, 14, out _, out _);
+                bool a = Population.OutdoorPosition(r, 0, 13, out _, out _);
+                bool b = Population.OutdoorPosition(r, 0, 14, out _, out _);
                 if (a) outAt13++;
                 if (a != b) flickered++;
             }
@@ -6352,7 +6414,7 @@ namespace Ledger.CoreTests
             double lowHalf = 0, total = 0;
             foreach (var r in pop.Residents)
             {
-                if (!Population.OutdoorPosition(r, 13, out var px, out _)) continue;
+                if (!Population.OutdoorPosition(r, 0, 13, out var px, out _)) continue;
                 double span = r.WorkX - r.HomeX;
                 if (Math.Abs(span) < 1) continue;
                 double t = (px - r.HomeX) / span;

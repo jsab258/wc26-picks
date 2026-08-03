@@ -61,7 +61,7 @@ static class Program
     static void Main(string[] args)
     {
         Console.WriteLine("RECURRENCE — how often the same face comes back");
-        Console.WriteLine($"population {Count}, seed {Seed}, ONE day (see note), {Samples} stand-in residents");
+        Console.WriteLine($"population {Count}, seed {Seed}, a FULL WEEK (5 working days + 2 rest), {Samples} stand-in residents");
         Console.WriteLine($"recognition ranges from Perception: mark {Perception.Rung2MarkMetres}m, "
                           + $"face {Perception.Rung3FaceMetres}m");
         Console.WriteLine();
@@ -178,16 +178,23 @@ static class Program
             // met. That is worth knowing on its own: recurrence is currently
             // total. You cannot fail to run into the same people, which is a
             // different immersion problem from the one I set out to measure.
+            // A REAL WEEK, WHICH THIS COULD NOT DO UNTIL TODAY. The note below
+            // is kept because it is the finding: the first version looped seven
+            // days, every column came out identical, and the 86% "repeat" figure
+            // was exactly 6/7 — the arithmetic of a routine model with no day in
+            // it. Now there is one, so the loop is honest and the number it
+            // produces is about the city rather than about the bug.
+            for (int day = 0; day < 7; day++)
             for (int hour = 0; hour < 24; hour++)
             {
-                if (!Population.OutdoorsAt(me, hour)) continue;
-                if (!Population.OutdoorPosition(me, hour, out double mx, out double mz)) continue;
+                if (!Population.OutdoorsAt(me, day, hour)) continue;
+                if (!Population.OutdoorPosition(me, day, hour, out double mx, out double mz)) continue;
 
                 foreach (var other in pop.Residents)
                 {
                     if (ReferenceEquals(other, me)) continue;
-                    if (!Population.OutdoorsAt(other, hour)) continue;
-                    if (!Population.OutdoorPosition(other, hour, out double ox, out double oz)) continue;
+                    if (!Population.OutdoorsAt(other, day, hour)) continue;
+                    if (!Population.OutdoorPosition(other, day, hour, out double ox, out double oz)) continue;
                     double dx = ox - mx, dz = oz - mz;
                     double d2 = dx * dx + dz * dz;
                     if (d2 > Perception.Rung2MarkMetres * Perception.Rung2MarkMetres) continue;

@@ -313,14 +313,14 @@ namespace Ledger.Core
         /// short one puts us back to people blinking in and out.
         public const int TripHours = 3;
 
-        public static bool OutdoorPosition(Resident r, int hour, out double x, out double z)
+        public static bool OutdoorPosition(Resident r, int day, int hour, out double x, out double z)
         {
             x = z = 0;
             if (r == null) return false;
             // Presence is decided for the whole block, off the hour the block
             // STARTS, so it cannot change underneath somebody mid-walk.
             int blockStart = (((hour % 24) + 24) % 24) / TripHours * TripHours;
-            if (!OutdoorsAt(r, blockStart)) return false;
+            if (!OutdoorsAt(r, day, blockStart)) return false;
 
             int h = ((hour % 24) + 24) % 24;
             // A TRIP, not an hourly coin flip.
@@ -342,7 +342,13 @@ namespace Ledger.Core
                 // A different mix from OutdoorsAt's, or where somebody stands
                 // would correlate with whether they are out at all, and the
                 // crowd would bunch at one end of every street.
-                int seed = r.Index * 486187739 + block * 40503 + 7;
+                // THE DAY IS IN HERE TOO, and leaving it out would have been
+                // the subtler half of the same bug: a different set of people
+                // outdoors, every one of them walking the identical route in
+                // the identical direction they walked yesterday. Who is out
+                // would vary and what the street LOOKS like would not.
+                int d = ((day % 7) + 7) % 7;
+                int seed = r.Index * 486187739 + block * 40503 + d * 374761393 + 7;
                 seed ^= seed >> 15; seed *= 668265263; seed ^= seed >> 13;
                 double along = (seed & 0x7FFFFFF) / (double)0x8000000;
                 // Which direction they are walking is also fixed for the
@@ -359,25 +365,72 @@ namespace Ledger.Core
             return true;
         }
 
-        public static bool OutdoorsAt(Resident r, int hour)
+        /// Day 0 is a Monday, so days 5 and 6 of each week are the rest days.
+        /// A convention rather than a discovery, stated once here so nothing
+        /// downstream has to guess it or quietly assume a different one.
+        public static bool IsRestDay(int day) => (((day % 7) + 7) % 7) >= 5;
+
+        /// WHICH DAY, AND THERE WAS NO SUCH THING BEFORE.
+        ///
+        /// This took an hour and reduced it mod 24, and so did `OutdoorPosition`
+        /// — so there was no day parameter anywhere in the routine model and
+        /// every Tuesday in this town was every Saturday. It surfaced as an
+        /// arithmetic artefact rather than as a design complaint: `Recurrence`
+        /// looped seven days and every column came out identical, with 86% of
+        /// encounters "repeat", which is exactly 6/7. My week was one day
+        /// counted seven times.
+        ///
+        /// That is an immersion fault of the first order for a game whose whole
+        /// claim is a town you come to know. Recurrence was TOTAL — you could
+        /// not fail to run into the same people, in the same places, at the same
+        /// hours, for ever. Learning a town means noticing that the market is
+        /// different on a Saturday, and there was nothing to notice.
+        ///
+        /// Two things now differ. WHO is out changes day to day, because the day
+        /// enters the hash — same crowd size, different faces, which is what
+        /// makes a familiar face feel like a coincidence instead of a fixture.
+        /// And WHEN people are out changes on the rest days: no commute peaks at
+        /// eight and six, more of the town outdoors through the middle of the
+        /// day and into the evening.
+        ///
+        /// The weekday numbers are UNCHANGED. They are the ones the crowd
+        /// density floor was measured against, and moving them would invalidate
+        /// that measurement in the same commit that adds a feature — two changes
+        /// at once, neither attributable.
+        public static bool OutdoorsAt(Resident r, int day, int hour)
         {
             if (r == null) return false;
             int h = ((hour % 24) + 24) % 24;
-            // A stable per-person-per-hour value in [0,1).
+            int d = ((day % 7) + 7) % 7;
+            // A stable per-person-per-day-per-hour value in [0,1).
             unchecked
             {
-                int seed = r.Index * 486187739 + h * 97;
+                int seed = r.Index * 486187739 + h * 97 + d * 40503;
                 seed ^= seed >> 13; seed *= 1274126177; seed ^= seed >> 16;
                 double roll = (seed & 0x7FFFFFF) / (double)0x8000000;
-                double chance =
-                    h >= 23 || h < 5 ? 0.03 :          // the small hours belong to few
-                    h < 7 ? 0.07 :
-                    h < 9 ? 0.20 :                     // out to work
-                    h < 12 ? 0.13 :
-                    h < 14 ? 0.18 :                    // the middle of the day
-                    h < 17 ? 0.13 :
-                    h < 19 ? 0.20 :                    // home again
-                    0.10;
+                double chance = IsRestDay(day)
+                    // A REST DAY. Nobody commutes, so the two sharp peaks
+                    // flatten; the town is out later in the morning, thicker
+                    // through the middle of the day, and stays out in the
+                    // evening. Totalled deliberately close to a weekday so this
+                    // changes the SHAPE of a day rather than the size of the
+                    // crowd — a busier Saturday would be a separate decision,
+                    // and would need its own measurement.
+                    ? (h >= 24 || h < 6 ? 0.03 :
+                       h < 9 ? 0.06 :                  // nobody is anywhere early
+                       h < 11 ? 0.14 :
+                       h < 16 ? 0.22 :                 // the long middle of a free day
+                       h < 19 ? 0.17 :
+                       h < 23 ? 0.14 :                 // and out later than a work night
+                       0.05)
+                    : (h >= 23 || h < 5 ? 0.03 :       // the small hours belong to few
+                       h < 7 ? 0.07 :
+                       h < 9 ? 0.20 :                  // out to work
+                       h < 12 ? 0.13 :
+                       h < 14 ? 0.18 :                 // the middle of the day
+                       h < 17 ? 0.13 :
+                       h < 19 ? 0.20 :                 // home again
+                       0.10);
                 return roll < chance;
             }
         }
