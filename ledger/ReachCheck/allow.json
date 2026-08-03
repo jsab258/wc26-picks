@@ -45,7 +45,6 @@
     "HarmBook.FeudsOf": "WIRE: M19 — feuds are recorded by Harm and drive nothing; they are the cheapest allegiance signal in the game.",
     "HarmBook.Hottest": "WIRE: M19 — which feud is worst right now, for the Director to author against.",
     "Informing.RedirectsInquiry": "WIRE: M21 law-as-a-tool, and it needs something that does not exist yet. `Inquiry` is DERIVED from HomicideBook's pressure rather than stored, so there is no value to redirect — pointing the detective elsewhere means the book growing a second subject, which is its own change. Weigh is wired and gated as of tonight; this clause is not, and saying so is the point of this ledger.",
-    "Intent.Arg": "WIRE: M19 — arguments are parsed and the game only ever reads Intent.Verb, so `press a charge against X` has nowhere to put the X.",
     "LightModel.Aces": "BY DESIGN: the ACES tonemap runs in the shader, not on the CPU. The C# copy exists so the pixel gates can predict what the shader will produce, and the sim is its caller.",
     "LightModel.AoDirectRelief": "WIRE: M17 — same.",
     "LightModel.AoMultiplier": "WIRE: M17 — same.",
@@ -102,7 +101,6 @@
     "Typography.MeetsAa": "WIRE: M17 — the accessibility contrast gate, which M22 names and nothing enforces.",
     "Vehicle.Waiting": "WIRE: M17 — a stopped vehicle should idle differently from a moving one.",
     "VerbBeat.PhaseProgress": "WIRE: M17 — how far through an interaction beat the player is, for the progress ring nothing draws yet.",
-    "VerbSpec.WithArg": "BY DESIGN: builder used to declare the verb table inside IntentRouter; the game consumes the table, never authors one.",
     "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not."
   }
 }

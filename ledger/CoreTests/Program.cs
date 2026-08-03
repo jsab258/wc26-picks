@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestIntentArguments();
                 TestClaims();
                 TestInforming();
                 TestBodyParts();
@@ -286,6 +287,45 @@ namespace Ledger.CoreTests
         ///
         /// The last two are the accept cases rule 5b demands: it is not enough
         /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestIntentArguments()
+        {
+            Console.WriteLine("Intent arguments:");
+
+            // THE PATH NOTHING HAD EVER USED. `VerbSpec.WithArg` has existed
+            // since the router was written; no verb in the game ever declared
+            // an argument, so binding, ambiguity-refusal and unfillable-refusal
+            // were three untested branches behind a tested front door. The
+            // informer verb is the first with an argument, and the argument is
+            // WHO the player names — which makes these the tests standing
+            // between a typed accusation and the wrong person being named.
+            var ctx = new IntentContext { SpeakingTo = "Lena", Scene = "the bar, late" };
+            ctx.Verbs.Add(new VerbSpec("inform", "tell the police about somebody")
+                .WithArg("who", "Sera Kest", "Aldous Vane", "Danny Ro")
+                .WithLexical("inform on", "grass on", "tell the police about"));
+
+            var hit = IntentRouter.RouteLexical("tell the police about Sera Kest", ctx);
+            Check(hit.Kind == IntentKind.Mechanical && hit.VerbId == "inform",
+                  "a phrase with an argument still routes to the verb", hit.ToString());
+            Check(hit.Arg("who") == "Sera Kest",
+                  "and the argument arrives with it", hit.Arg("who") ?? "(null)");
+
+            // AMBIGUOUS MUST REFUSE. Naming two people is not naming one, and
+            // guessing which would put a charge on somebody the player did not
+            // choose — the single worst failure this verb can have.
+            var two = IntentRouter.RouteLexical("tell the police about Sera Kest and Danny Ro", ctx);
+            Check(two.Kind != IntentKind.Mechanical,
+                  "two names is not a routable accusation", two.ToString());
+
+            // UNFILLABLE MUST REFUSE. The verb without its argument is a verb
+            // that would run against nobody.
+            var none = IntentRouter.RouteLexical("inform on them", ctx);
+            Check(none.Kind != IntentKind.Mechanical,
+                  "a verb whose argument is missing is speech, not an action",
+                  none.ToString());
+
+            Check(hit.Arg("nonexistent") == null, "an unset argument reads null");
+        }
+
         static void TestClaims()
         {
             Console.WriteLine("Claims:");

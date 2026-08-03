@@ -1766,7 +1766,7 @@ namespace Ledger.Game
         bool _denounceStaged;
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
-        bool _denounceIgnored, _denounceStuck;
+        bool _denounceIgnored, _denounceStuck, _poached;
         int _denounceWitnesses;
         float _slamAt = -1f;
         bool _loiterApproaching;
@@ -2172,6 +2172,30 @@ namespace Ledger.Game
                         _pledgeRefused = !_game.Pledge("machine");
                     }
                     _brokeWith = _game.WalkOutOn("dockside");
+
+                    // AND TAKE ONE OF THEIR PEOPLE, which the run has never
+                    // once done. `poachesHeard=0` failed this gate on its first
+                    // build and was right to: the sim recruits Sam and Rocco,
+                    // and neither answers to anybody — dockside is Joey and
+                    // Ferko, machine is Tibor, newcrew is Rita. So the poach
+                    // path was gated on an event the run cannot produce, which
+                    // is the accept case going untested from the other
+                    // direction.
+                    //
+                    // Joey, because he is dockside's and dockside is the arm
+                    // this probe already deals with. Loyalty is SET to clear
+                    // the recruit floor rather than hoped over it — the same
+                    // reason the standing floor is set above and the witness is
+                    // planted below. A probe that only fires on a lucky run is
+                    // not a probe.
+                    var joey = _game.Gossip?.Mill?.Get("Joey");
+                    if (joey != null && em.CrewOf("Joey") == null)
+                    {
+                        joey.Loyalty = System.Math.Max(joey.Loyalty, 0.6);
+                        _game.Wallet.EarnDirty(120);   // the probe must not fail for being skint
+                        _poached = em.RecruitByNeed(joey, "Joey", 100, _game.Wallet, now,
+                                                    _game.Gossip.Mill);
+                    }
                 }
 
                 // AND THE PLAYER OFFERS AN ALIBI — one that holds and one that
@@ -5125,6 +5149,13 @@ namespace Ledger.Game
 
             bool allegianceOk = _pledged && _pledgeRefused && _brokeWith
                 && GameController.AllegianceChanges >= 2
+                // The poach must HAPPEN before the street can hear it, and the
+                // first build failed here for the honest reason: nobody the sim
+                // recruits answers to a rival, so the run never poached anyone
+                // and a clause demanding the street hear about it could never
+                // be satisfied. Both halves now, so a silent poach and an
+                // absent poach stay distinguishable.
+                && _poached
                 && _game != null && _game.Empire != null && _game.Empire.PoachesHeard > 0;
 
             // FOUR CLAUSES, and the two new ones are why the first version of
@@ -5559,7 +5590,7 @@ namespace Ledger.Game
                  _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
                                      && WorldText.Refused == 0)),
                 ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} ignored={_denounceIgnored} stuck={_denounceStuck} backers={_denounceWitnesses} {LawHost.LastVerdict}]", lawOk),
-                ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
+                ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} poached={_poached} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
                 ($"claims[made={LawHost.ClaimsMade} caught={LawHost.ClaimsCaught} held={_claimHeld}]", claimsOk),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),

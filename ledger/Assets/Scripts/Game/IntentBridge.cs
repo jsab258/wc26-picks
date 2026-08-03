@@ -95,6 +95,22 @@ namespace Ledger.Game
                     .WithLexical("use what i know", "use what you know", "remind them what i know",
                                  "hold it over them", "blackmail them"));
             }
+            // THE TYPED-ONLY VERB, and the first one in the game with an
+            // ARGUMENT the dispatch actually receives. `WithArg` has existed on
+            // `VerbSpec` since the router was written and nothing had ever
+            // called it, so the whole argument path — bind, reject when
+            // ambiguous, refuse when unfillable — has never run.
+            var informable = InformTargets();
+            if (informable.Count > 0)
+            {
+                ctx.Verbs.Add(new VerbSpec("inform",
+                        "tell the police what somebody has been doing",
+                        "they will know you were in there")
+                    .WithArg("who", informable.ToArray())
+                    .WithLexical("tell the police about", "inform on", "grass on",
+                                 "put the police onto", "give the police a name",
+                                 "have a word with the police about"));
+            }
             if (Live(_collectBtn))
             {
                 var debtor = _game.Debts.Of(CurrentHostId() ?? "");
@@ -164,9 +180,27 @@ namespace Ledger.Game
         /// Runs a routed verb through the SAME handler its button uses. There is
         /// one implementation of each verb; typing it and clicking it are the
         /// same code, so they cannot drift apart.
-        bool ExecuteVerb(string verbId)
+        bool ExecuteVerb(Intent intent)
         {
-            if (!Live(ButtonFor(verbId))) return false;
+            if (intent == null) return false;
+            string verbId = intent.VerbId;
+            // THE ARGUMENT USED TO DIE HERE. This took a bare `string verbId`,
+            // so `Intent.Args` — parsed, validated against the spec's options,
+            // and rejected when ambiguous — had nowhere to go. That is why
+            // `Intent.Arg` sat on the reach ledger under "arguments are parsed
+            // and the game only ever reads Intent.Verb, so `press a charge
+            // against X` has nowhere to put the X". The router was never the
+            // gap; the dispatch boundary was, and it was one parameter wide.
+            //
+            // TYPED-ONLY VERBS HAVE NO BUTTON, and requiring one is what would
+            // have quietly made `inform` unroutable. Every verb until now had a
+            // row in the action bar, so "is the button live" WAS the
+            // precondition. Naming somebody to the police is a thing you say,
+            // not a thing there is a row for — the router exists precisely so
+            // the player can do things the bar does not list.
+            var button = ButtonFor(verbId);
+            if (button != null && !Live(button)) return false;
+            if (button == null && !TypedOnlyIsAvailable(verbId)) return false;
             switch (verbId)
             {
                 case "pay_off":      PayOff(); return true;
@@ -177,8 +211,54 @@ namespace Ledger.Game
                 case "forgive_debt": ForgiveDebt(); return true;
                 case "empire_a":     EmpireAct(false); return true;
                 case "empire_b":     EmpireAct(true); return true;
+                case "inform":       return Inform(intent.Arg("who"));
                 default: return false;
             }
+        }
+
+        /// Whether a verb with no button is available right now. A typed-only
+        /// verb still needs a precondition — the difference is that it lives
+        /// here rather than in whether a row is on screen.
+        bool TypedOnlyIsAvailable(string verbId) =>
+            verbId == "inform" && InformTargets().Count > 0;
+
+        /// WHO THE PLAYER COULD NAME. The heads of the three organizations and
+        /// anybody who answers to them — the people a detective would be
+        /// interested in and the player has a reason to point at.
+        ///
+        /// Off the empire book rather than off a list here, so it follows the
+        /// world: poach somebody and they stop being nameable as one of Kest's,
+        /// because they are not one of Kest's any more.
+        List<string> InformTargets()
+        {
+            var names = new List<string>();
+            if (_game == null || _game.Empire == null) return names;
+            foreach (var arm in _game.Empire.Arms)
+            {
+                if (arm == null) continue;
+                if (!string.IsNullOrEmpty(arm.HeadName)) names.Add(arm.HeadName);
+                foreach (var m in arm.Members)
+                    if (!string.IsNullOrEmpty(m) && !names.Contains(m)) names.Add(m);
+            }
+            return names;
+        }
+
+        /// Say a name to the police.
+        ///
+        /// The predicate is fixed at "ran" and the value at the racket, because
+        /// this is the accusation the fiction supports: the player knows these
+        /// people run things and cannot know details they were never told. A
+        /// free-text accusation would let the player invent evidence, which is
+        /// the one thing `Informing` is built to make impossible — what lands
+        /// is what the STREET will back, never what the player asserts.
+        bool Inform(string who)
+        {
+            if (string.IsNullOrEmpty(who) || _current == null) return false;
+            var d = LawHost.Denounce(_game, _current.Card != null ? _current.Card.Name : null,
+                                     who, "ran", "the_racket");
+            if (d == null) return false;
+            Narrate(Informing.Describe(d.Outcome));
+            return true;
         }
 
         // ---------------------------------------------------------------

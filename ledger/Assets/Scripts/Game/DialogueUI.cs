@@ -1765,9 +1765,12 @@ namespace Ledger.Game
             {
                 // Re-checked against the state we just refreshed: a verb that went
                 // stale while the router thought is not fired, it becomes speech.
-                if (!Live(ButtonFor(intent.VerbId))) return false;
+                // The button check moved INTO ExecuteVerb, because not every
+                // verb has one any more — see the note there. Re-checking here
+                // would refuse every typed-only verb before dispatch ever saw
+                // it, which is the same mistake in a second place.
                 DropThinking(host);
-                if (!ExecuteVerb(intent.VerbId)) return false;
+                if (!ExecuteVerb(intent)) return false;
                 Audio.Ui("tick");
                 return true;
             }
