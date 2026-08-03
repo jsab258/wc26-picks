@@ -133,6 +133,23 @@ namespace Ledger.Game
         /// nothing in common but the symptom.
         public static float WorstNameMetres { get; private set; }
 
+        /// The world-space height of the tallest label's renderer bounds, and
+        /// the scale of the transform it hangs on.
+        ///
+        /// The distance reading settled what this is NOT. The tallest label was
+        /// 5.48m away — ordinary street distance, nowhere near the camera — so
+        /// it is not a placement problem, and 4,107 of 11,026 rect requests
+        /// being rejected as "too near" from that distance can only mean the
+        /// BOUNDS are large enough to straddle the camera plane from five
+        /// metres out. One cause, both symptoms.
+        ///
+        /// Which leaves two candidates with different fixes: a mesh whose
+        /// bounds are genuinely enormous, or an ordinary mesh on a transform
+        /// with a large scale. Printing both rather than picking one, because
+        /// this metric has been guessed at twice today and been wrong twice.
+        public static float WorstNameBoundsY { get; private set; }
+        public static float WorstNameScale { get; private set; }
+
         /// A walker offers its label each frame it wants one shown.
         ///
         /// OFFERED, NOT SHOWN. The walker has already decided the label is close
@@ -225,6 +242,8 @@ namespace Ledger.Game
                         WorstNameFrac = frac;
                         WorstNameMetres = Vector3.Distance(cam.transform.position,
                                                           c.Label.transform.position);
+                        WorstNameBoundsY = r.bounds.size.y;
+                        WorstNameScale = c.Label.transform.lossyScale.y;
                     }
                 }
             }
