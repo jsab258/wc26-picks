@@ -5600,6 +5600,8 @@ namespace Ledger.Game
                       $"firstPreRead={CharacterRig.FirstPreRead} " +
                       $"restArmDrop={CharacterRig.RestArmDropDegrees:0.0} " +
                       $"restArmRead={CharacterRig.RestArmRead} " +
+                      $"liveArmDrop={CharacterRig.LiveArmDropDegrees:0.0} " +
+                      $"liveArmRead={CharacterRig.LiveArmRead} " +
                       $"playerHasController={_playerHasController} " +
                       // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
                       // breakdown lives inside a gate, and a gate label prints

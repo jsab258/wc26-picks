@@ -428,8 +428,42 @@ namespace Ledger.Game
                              && _animator.runtimeAnimatorController != null
                              && _animator.enabled;
 
+        /// The same angle as `RestArmDropDegrees`, measured AFTER the solve.
+        ///
+        /// The rest reading came back 0.0 — arms hanging straight down — and
+        /// the still shows them straight out sideways. Both cannot be true of
+        /// the same frame, so one number is measuring something other than what
+        /// I think it is, and that is exactly the position the torso was in
+        /// before the four-stage bracket settled it.
+        ///
+        /// This is the other end of the bracket. Rest 0 and live 90 means
+        /// something between them lifts the arms and it can be found by
+        /// elimination. Rest 0 and live 0 means the BONES are down while the
+        /// mesh renders out, which is a skinning problem and nothing to do with
+        /// the rig at all — a completely different search, and worth knowing
+        /// before spending a night on the wrong one.
+        void StampArmsNow()
+        {
+            if (_lUpperArm == null) return;
+            var down = -transform.up;
+            var arm = _lForearm != null
+                ? (_lForearm.position - _lUpperArm.position)
+                : -_lUpperArm.up;
+            if (arm.sqrMagnitude <= 1e-6f) return;
+            float a = Vector3.Angle(arm.normalized, down);
+            if (a > LiveArmDropDegrees) LiveArmDropDegrees = a;
+            LiveArmRead = true;
+        }
+
+        /// Widest the arms got over the run, in degrees from straight down.
+        /// Worst-over-run because the question is "do they EVER stick out",
+        /// and a sample taken mid-stride answers a different one.
+        public static float LiveArmDropDegrees { get; private set; }
+        public static bool LiveArmRead { get; private set; }
+
         void StampPose()
         {
+            StampArmsNow();
             float s = 0f;
             if (_hips != null) s += _hips.localPosition.y * 977f + _hips.localRotation.x;
             if (_chest != null) s += _chest.localRotation.x * 31f + _chest.localRotation.z;
