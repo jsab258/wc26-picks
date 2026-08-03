@@ -807,6 +807,11 @@ namespace Ledger.Game
                     if (to.sqrMagnitude > 1e-6f)
                         _label.transform.rotation = Quaternion.LookRotation(to);
                     NameTags.Offer(_label, d);
+                    // COUNTED WHERE IT IS SWITCHED ON, not where it is offered.
+                    // A label the declutter never sees is still a label on the
+                    // screen, and the whole reason the frame and the counters
+                    // disagreed is that only the offered ones were counted.
+                    NameTags.NoteActive(_label.transform);
                 }
             }
 

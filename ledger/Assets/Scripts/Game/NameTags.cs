@@ -114,6 +114,43 @@ namespace Ledger.Game
         /// rect thousands of screens tall instead of a number.
         public static int TooNear { get; private set; }
 
+        /// IS THE NAME STANDING UP, AND HOW MANY ARE THERE.
+        ///
+        /// `review_day1_night.jpg` at eea92fd is a wall of names, several of
+        /// them skewed across the pavement — the exact "lying in the road"
+        /// failure a comment in `NpcWalker` says was fixed by flattening the
+        /// billboard direction. The comment may be right and something else may
+        /// be tilting them; it may be wrong. Nothing measures it either way,
+        /// which is why the frame is the only place it shows.
+        ///
+        /// `UpDot` is the label's own up-vector dotted with world up: 1.0 is
+        /// standing, 0.0 is flat on the ground. WORST over the run, because one
+        /// plate lying down is the fault and an average would hide it behind
+        /// forty that are fine.
+        ///
+        /// `Active` is how many labels are switched on at once. The declutter
+        /// reported `nameTagsOffered=2` against `labels=42`, which reads as "the
+        /// street is nearly empty of names" — and the frame shows a dozen. One
+        /// of those two numbers is about something other than what I think, and
+        /// counting the live ones is how to find out which.
+        public static double WorstUpDot { get; private set; } = 2.0;
+        public static int Active { get; private set; }
+        public static int ActivePeak { get; private set; }
+
+        /// Called by each walker for every label it leaves switched on.
+        public static void NoteActive(Transform label)
+        {
+            Active++;
+            if (Active > ActivePeak) ActivePeak = Active;
+            if (label == null) return;
+            double up = Vector3.Dot(label.up, Vector3.up);
+            if (up < WorstUpDot) WorstUpDot = up;
+        }
+
+        /// Cleared where the per-frame offer list is, so the two cannot drift
+        /// into describing different frames.
+        public static void ClearActive() => Active = 0;
+
         /// How many rects were asked for at all — the denominator `TooNear`
         /// needs and did not have. 3,739 rejections is unreadable on its own:
         /// over a two-day run with dozens of labels a frame it could be a
@@ -182,6 +219,11 @@ namespace Ledger.Game
             _frame = Time.frameCount;
             Resolve();
             _offered.Clear();
+            // The live count is per FRAME, like the offer list, and cleared in
+            // the same place so the two can never describe different frames —
+            // which is exactly how `nameTagsOffered=2` came to sit beside a
+            // screenshot with a dozen names in it without anybody noticing.
+            ClearActive();
         }
 
         static void Resolve()
