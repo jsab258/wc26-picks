@@ -40,21 +40,23 @@ using Ledger.Core;
 /// the only half of the question this tool can honestly answer.
 static class Program
 {
-    // The real city, copied from `PopulationHost` because that class is
-    // Unity-side and cannot be linked here. If these drift, the tool is
-    // measuring a city the game does not build — so they are asserted below.
-    static readonly string[] AllDistricts =
-        { "the Hook", "Copper Row", "Ironside", "the Exchange", "the Parade", "Fairview", "Gullwing" };
-    static readonly int[] AllHomeShares = { 30, 28, 4, 3, 6, 22, 7 };
-    static readonly int[] AllWorkShares = { 24, 22, 20, 16, 9, 3, 6 };
-    const int Seed = 20260726;
-    const int Count = 700;
+    // THE REAL CITY, LINKED RATHER THAN COPIED. These were duplicated here
+    // from `PopulationHost` under a comment saying that if the copies drifted
+    // the tool would be measuring a city the game does not build, "so they are
+    // asserted below". There was no assertion below. Not one, anywhere in this
+    // file — and the three-district cut and the fifty-person cast were both
+    // decided off this tool before anybody checked.
+    static readonly string[] AllDistricts = CityPlan.Districts;
+    static readonly int[] AllHomeShares = CityPlan.HomeShares;
+    static readonly int[] AllWorkShares = CityPlan.WorkShares;
+    const int Seed = CityPlan.Seed;
+    const int Count = CityPlan.Count;
 
     /// The two the plan would keep. The Hook is where the bar is and Copper Row
     /// is the other side of the water — together they already house 58% of the
     /// city and employ 46% of it, which is why they are the candidates.
-    static readonly int[] KeepTwo = { 0, 1 };
-    static readonly int[] KeepThree = { 0, 1, 2 };
+    static readonly int[] KeepTwo = CityPlan.KeepTwo;
+    static readonly int[] KeepThree = CityPlan.KeepThree;
 
         const int Samples = 60;          // stand-in players, averaged
 

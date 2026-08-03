@@ -5501,6 +5501,23 @@ namespace Ledger.CoreTests
             Check(Population.OutdoorsAt(someone, 3, 13) == Population.OutdoorsAt(someone, 3, 13),
                 "a given day is as stable as a given hour was");
 
+            // THE CITY TABLE, WHICH USED TO BE TWO TABLES AND ONE FALSE PROMISE.
+            // `Recurrence` carried a copy of the districts and shares under a
+            // comment saying that if they drifted the tool would be measuring a
+            // city the game does not build, "so they are asserted below" — and
+            // there was no assertion anywhere in that file. Both are `CityPlan`
+            // now, so drift cannot happen; this checks the remaining hand-edit
+            // hazard, which is a district appended to one array and not the
+            // others, silently shifting every share after it onto the wrong
+            // place.
+            Check(CityPlan.Balanced,
+                "the city's districts and its home/work shares are the same length and total 100",
+                $"{CityPlan.Districts.Length} districts, "
+                + $"home {CityPlan.HomeShares.Sum()}, work {CityPlan.WorkShares.Sum()}");
+            Check(CityPlan.KeepThree.All(i => i >= 0 && i < CityPlan.Districts.Length)
+                  && CityPlan.KeepTwo.All(i => i >= 0 && i < CityPlan.Districts.Length),
+                "the district subsets index districts that exist");
+
             // AND THE WALK DIFFERS TOO, which is the subtler half. A different
             // set of people outdoors, every one of them walking the identical
             // route in the identical direction as yesterday, would change who is

@@ -39,10 +39,15 @@ namespace Ledger.Game
         // HOUSES people and employs almost nobody; Downtown and Ironside are
         // the inverse; the Strip's workforce keeps night hours; Gullwing is
         // nearly empty both ways — that emptiness is its mechanic.
-        public static readonly string[] Districts =
-            { "the Hook", "Copper Row", "Ironside", "the Exchange", "the Parade", "Fairview", "Gullwing" };
-        public static readonly int[] HomeShares = { 30, 28, 4, 3, 6, 22, 7 };
-        public static readonly int[] WorkShares = { 24, 22, 20, 16, 9, 3, 6 };
+        // MOVED TO CORE, AND KEPT REACHABLE FROM HERE. The table lived here and
+        // was copied into `Recurrence` under a comment promising the copies were
+        // asserted equal. They were not — there was no assertion anywhere in
+        // that file, and two decisions were taken off the tool this afternoon.
+        // One copy now, in `CityPlan`, which the engine-free tools link
+        // directly; these forward so no call site had to change.
+        public static string[] Districts => Ledger.Core.CityPlan.Districts;
+        public static int[] HomeShares => Ledger.Core.CityPlan.HomeShares;
+        public static int[] WorkShares => Ledger.Core.CityPlan.WorkShares;
 
         // Set from MEASUREMENT, not from ambition (playtest 2026-07-28). At
         // 3000 residents there were 333 people standing within 34m of the bar
@@ -84,6 +89,15 @@ namespace Ledger.Game
             // fourteen and employs closer to one in three, so it is busy at
             // noon and all but empty after dark. That is what "places without
             // witnesses" has to mean if it is going to mean anything.
+            // CHECKED WHERE THE CITY IS BUILT, not only in a test. A district
+            // appended to one array and not the others shifts every share after
+            // it onto the wrong place, and the city that comes out is plausible
+            // — right headcount, right names, wrong distribution — which is the
+            // kind of wrong nothing downstream can notice.
+            if (!Ledger.Core.CityPlan.Balanced)
+                Debug.LogError("PopulationHost: CityPlan is unbalanced — districts and "
+                               + "home/work shares disagree in length or do not total 100. "
+                               + "The generated city will not be the designed one.");
             Populace = Population.Generate(PopulationCount, PopulationSeed,
                 Districts, HomeShares, WorkShares);
             Populace.NearCap = CrowdWalkerCap;
