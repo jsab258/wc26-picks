@@ -170,6 +170,34 @@ anything a human spent time on somewhere the pipeline cannot reach —
 `game-design/picked-clips/` exists for exactly that reason and it paid for
 itself within the hour.
 
+## 5b. A guard must be tested on the case it should PASS
+
+Four in one day, and every one of them blocked the good case rather than the
+bad one:
+
+| guard | blocked |
+|---|---|
+| build-ordering by git ancestry | the checkout is shallow, so the test could never succeed and the NEWEST run stopped publishing stills at all |
+| `queue-check`'s standing-work test | matched `## Standing rules`, a section about how to use the queue, and certified the backstop it existed to demand |
+| the anti-double-spend gate | skipped the paid step correctly, then let the step that COMMITS its output run anyway, fail, and kill the job before the work it was dispatched for |
+| the enrichment audit | refused to commit unless every card passed, so a run that fixed 54 of 60 landed nothing |
+
+Every one passed its failure case. Not one had ever been run against its
+success case. And every one was reported as a clean exit by the step above it,
+so the symptom was always "nothing happened" rather than "something broke".
+
+**The rule.** A guard has two outcomes and shipping it means having watched
+BOTH. Before committing one, run it against input it must ACCEPT as well as
+input it must reject — and if the accepting case cannot be produced locally,
+say so in the commit rather than assuming that half works. `Tier2Gen
+--selftest` is the shape to copy: its first assertion is that a good card is
+accepted, and that assertion is first precisely because the expensive failure
+is a validator nothing survives.
+
+**Corollary: a guard that cannot tell a regression from an improvement is a
+ratchet** (rule 5). "Refuse unless perfect" throws away partial success, and
+partial success is what real work looks like.
+
 ## 6. Built is not running
 
 A gap analysis over 61 public Core APIs found **2 untested and ~40 with no call
