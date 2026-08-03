@@ -150,6 +150,34 @@ def card_writing():
     return False, "CARD WRITING RED: " + (bad[0][:120] if bad else "no verdict (build failure?)")
 
 
+def convo_probe():
+    """The conversation probe finds the real cards, without spending anything.
+
+    This is the one tool here that costs Jafar money, and its whole job is to
+    pull four character cards out of C# verbatim string literals and hand them
+    to the real prompt builder. Every way that can go wrong produces a
+    PLAUSIBLE TRANSCRIPT OF THE WRONG THING — a complete-looking run, a written
+    file, and a bill.
+
+    Its dry mode found three such faults before a call was made: an off-by-one
+    that dropped the `#` and silently discarded every card; a name match on
+    "Lena" against a card headed "Lena Moreau", which would have probed three
+    characters and a market trader; and a spoken-lines check that knew only one
+    of the two conventions in this repo and reported three good cards as
+    voiceless."""
+    code, out = run(["dotnet", "run", "--project", str(ROOT / "ConvoProbe"), "--", "--dry"],
+                    cwd=str(ROOT.parent))
+    m = re.search(r"(\d+) card\(s\), (\d+) scripted turns each = (\d+) calls", out)
+    if not m:
+        return False, "CONVO PROBE did not report (build failure?)"
+    if m.group(1) != "4":
+        return False, "CONVO PROBE found %s cards, expected 4" % m.group(1)
+    voiceless = [l.split()[0] for l in out.splitlines() if "lines=NO" in l]
+    if voiceless:
+        return False, "CONVO PROBE: no spoken lines for " + ", ".join(voiceless[:3])
+    return True, "%s probe calls staged" % m.group(3)
+
+
 def shape_files():
     """Layer 2 of the testing system, for the half that lives in files.
 
@@ -394,7 +422,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, frame_drift, verdict_keys, save_chaos, soak,
+               card_writing, convo_probe, frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
