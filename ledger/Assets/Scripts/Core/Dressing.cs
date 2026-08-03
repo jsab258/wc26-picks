@@ -251,9 +251,28 @@ namespace Ledger.Core
             // guaranteed even at the centre — a high street with a shop in
             // every single unit is a shopping centre, not a town.
             if (nearCore && r < 0.30 + 0.45 * Feel.Clamp01(prosperity)) return Premises.Shop;
-            // Houses are the quiet remainder of a prosperous street; tenements
-            // are everything else, which in a port town is most of it.
-            if (prosperity > 0.55 && r < 0.55) return Premises.House;
+
+            // HOUSES WERE UNREACHABLE AND THE BUILD SAID SO:
+            // `premises=[shop42 house0 tenement69 shed18]`.
+            //
+            // The condition was `prosperity > 0.55`, and the two values any
+            // real caller supplies are `StreetFrontProsperity = 0.55` and
+            // `BackAlleyProsperity = 0.15`. Strictly greater than 0.55 is
+            // false for both, so no wall in the city could ever be a house —
+            // while the Core test asserted houses exist by passing 0.80, a
+            // number no call site produces.
+            //
+            // That is rule 6 wearing a passing test: exercised with synthetic
+            // input the game never sends. Worse than an untested branch,
+            // because the green tick says the opposite.
+            //
+            // The deeper problem is that prosperity here is not a gradient at
+            // all — it is two constants, one per side of the building, so it
+            // carries no per-wall variation to key on. Houses therefore key
+            // off the roll and the district, which DO vary: near a core a
+            // frontage that is not a shop is somebody's front door, and away
+            // from one it is flats.
+            if (nearCore && r < 0.62) return Premises.House;
             return Premises.Tenement;
         }
 

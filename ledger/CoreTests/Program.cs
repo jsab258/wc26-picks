@@ -11317,10 +11317,15 @@ namespace Ledger.CoreTests
             int shops = 0, houses = 0, tenements = 0, sheds = 0;
             for (double x = 0; x < 600; x += 7)
             {
-                if (Dressing.KindAt(x, 0, 0.85, true) == Dressing.Premises.Shop) shops++;
-                if (Dressing.KindAt(x, 40, 0.80, false) == Dressing.Premises.House) houses++;
-                if (Dressing.KindAt(x, 80, 0.20, false) == Dressing.Premises.Warehouse) sheds++;
-                if (Dressing.KindAt(x, 120, 0.30, false) == Dressing.Premises.Tenement) tenements++;
+                if (Dressing.KindAt(x, 0, 0.55, true) == Dressing.Premises.Shop) shops++;
+                // AT THE PROSPERITY THE GAME ACTUALLY SUPPLIES. This asked at
+                // 0.80, which no caller produces — `StreetFrontProsperity` is
+                // 0.55 and `BackAlleyProsperity` is 0.15 — so it asserted
+                // houses exist while the city built none, and the build said
+                // `house0` under a green test.
+                if (Dressing.KindAt(x, 40, 0.55, true) == Dressing.Premises.House) houses++;
+                if (Dressing.KindAt(x, 80, 0.15, false) == Dressing.Premises.Warehouse) sheds++;
+                if (Dressing.KindAt(x, 120, 0.15, false) == Dressing.Premises.Tenement) tenements++;
             }
             Check(shops > 0 && houses > 0 && sheds > 0 && tenements > 0,
                 "a town has shops, houses, warehouses and tenements in it",

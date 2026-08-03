@@ -42,6 +42,11 @@ namespace Ledger.Game
         /// hurry the ones who are late rather than to make everybody run.
         const float MoveSpeed = 1.4f;
 
+        /// What somebody moves at when they are catching you up. The old
+        /// crowd-wide speed — a jog, wrong as a walk, and exactly right for a
+        /// person hurrying to fall in beside you.
+        const float CatchUpSpeed = 2.6f;
+
         /// What the crowd is actually doing, over the run. A constant can be
         /// read off the source; whether the bodies MOVE at it cannot.
         public static double CrowdSpeedPeak, CrowdSpeedSum;
@@ -701,13 +706,39 @@ namespace Ledger.Game
                 target = _player.position - _player.forward * (EscortSide * 0.5f) + beside;
             }
 
+            // AN ESCORT WHO IS NOT AT YOUR SHOULDER YET HURRIES TO IT.
+            //
+            // `companionSight[with=Filip rung=0 street=4 dist=31.0m]`. At
+            // thirty-one metres rung 0 is CORRECT — she genuinely could not see
+            // it — so the perception model is right and the FOLLOWING is wrong,
+            // which is the opposite of where two earlier rounds looked.
+            //
+            // `CompanionHost.Ask` has no proximity requirement, so the sim
+            // recruits the first willing gossiper wherever they happen to be.
+            // That was survivable at 2.6 m/s. Dropping the crowd to a real
+            // walking 1.4 halved the closing speed, and against a player who is
+            // also moving it can mean never arriving — a regression I caused
+            // tonight that surfaced as a perception failure two systems away.
+            //
+            // Hurrying is the fix already argued for: the walk-speed note said
+            // that if anything fell behind, hurry the ones who are late rather
+            // than make everybody run. Somebody half a street away catching up
+            // to walk with you is also what a person does.
+            //
+            // `TalkRange`, not a new number — it is what this project already
+            // calls "near enough to be with somebody".
+            float moveAt = MoveSpeed;
+            if (Escorting && _player != null
+                && Vector3.Distance(current, _player.position) > ConversationHost.TalkRange)
+                moveAt = CatchUpSpeed;
+
             var flatTarget = new Vector3(target.x, current.y, target.z);
 
             bool moving = (flatTarget - current).sqrMagnitude > 0.04f;
             if (moving)
             {
                 var waypoint = Steer(current, flatTarget);
-                var next = Vector3.MoveTowards(current, waypoint, MoveSpeed * Time.deltaTime);
+                var next = Vector3.MoveTowards(current, waypoint, moveAt * Time.deltaTime);
                 transform.position = next;
                 var dir = waypoint - current; dir.y = 0;
                 if (dir.sqrMagnitude > 0.001f)
