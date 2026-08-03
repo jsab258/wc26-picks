@@ -1513,10 +1513,46 @@ namespace Ledger.Game
                 if (r == null || !r.isVisible) continue;
 
                 // FACING AWAY: the text's own forward against the direction
-                // from the camera to it. Positive dot means we are behind the
-                // glyphs, which is where they read as a mirror.
+                // from the camera to it. `NpcWalker` billboards a label with
+                // `LookRotation(labelPos - cam)`, so a correctly-facing plate
+                // has its forward pointing AWAY from the camera and a negative
+                // dot is the one we are behind.
+                //
+                // The comment that used to sit here said the opposite of the
+                // line under it — "positive dot means we are behind the
+                // glyphs" — and the line was right. A comment is a claim with
+                // no test attached.
                 var toText = tm.transform.position - cam.transform.position;
-                if (Vector3.Dot(tm.transform.forward, toText) < 0f) mirrored++;
+                bool facingAway = Vector3.Dot(tm.transform.forward, toText) < 0f;
+
+                // AND THAT ALONE IS NOT A FAULT, which is what this metric got
+                // wrong and what I was one report away from telling Jafar was a
+                // regression.
+                //
+                // It read 46, then 58, and "mirrored world text is getting
+                // worse" is exactly how it looks. Then `StreetFurniture.Label`:
+                // every street plate is built TWICE, at `yaw` and `yaw + 180`,
+                // deliberately — "a plate you can only read from one side is
+                // worse than no plate, because you walk round it to find out."
+                // So one of every pair is always facing away, by construction,
+                // and `Hidden/LedgerText` culls its reverse face so it draws
+                // nothing at all.
+                //
+                // The metric was counting the back of 58 correctly-built signs
+                // and calling each one a defect. It went up because more signs
+                // were in frustum, not because anything broke. `isVisible` is a
+                // frustum test and never claimed otherwise; I read it as "can
+                // be seen".
+                //
+                // So the question narrows to the one that has an answer: text
+                // facing away that is NOT back-face culled, and therefore
+                // really does render as a mirror image.
+                if (facingAway)
+                {
+                    var mat = r.sharedMaterial;
+                    var sh = mat != null ? mat.shader : null;
+                    if (sh == null || sh.name != "Hidden/LedgerText") mirrored++;
+                }
 
                 // And how tall it lands on screen. Only the NPC nameplates are
                 // in question here — street plates are meant to be large and

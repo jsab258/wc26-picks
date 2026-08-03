@@ -38,18 +38,22 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Read the build on `4f3a42c`** *(CI, in flight)* — `importerRan`,
-   `companionSight dist=`, `textMirrored`, `worstTextHeightFrac`.
-2. **The player is on his back in the road.** The bracket named the stage — the
-   avatar's retarget inverts the body between the scaled bind pose and the
-   solve. Next probe goes in the same batch as anything else Game-layer. *(CI)*
-3. **Period texture and example lines for the Tier-2 ring.** The core four have
-   them; the ambient cards do not. Authored, free, no round trip. The higher-
-   leverage half is the *generator* prompt in `Tier2Gen` — one change reaches
-   every card it will ever write, rather than six by hand.
-4. **Per-skinned-character frame cost.** The third owed measurement, and the one
-   that bounds the cast tiering from the runtime side. `Recurrence` says what
-   the design wants; nothing yet says what the frame budget allows. *(CI)*
+1. **Two builds in flight, and they are the first parallel pair.** A on the
+   avatar probe and the rig cost, B on the no-clip twin. Read both
+   `sim-shots/runs/<sha>.txt` when they land — and check that BOTH landed,
+   because that is also the test of the parallel-build change itself.
+2. **The player is airborne and splayed, not lying in the road.** The still says
+   so and all sixty-eight other rigs stand correctly — but those are mannequins
+   and `bodySkinned=1`, so the one retargeted body is the only broken one.
+   Import is closed (`importerRan=44`); it is the clip or the avatar, and the
+   twin decides which.
+3. **Period texture and example lines for the Tier-2 ring.** The generator half
+   is DONE — prompt, eleven validator rules, `--selftest` in `verify.py`. What
+   is left is the six hand-written ambient cards, which the generator cannot
+   reach. Authored, free, no round trip.
+4. **`worstTextHeightFrac=0.210` and `textMirrored=58`.** A name taking a fifth
+   of the frame height, and mirrored world text that got WORSE (was 46). Both
+   are visible faults with numbers already on them. *(CI)*
 
 ## Next
 
