@@ -5919,7 +5919,7 @@ namespace Ledger.Game
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +
-                      $"confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
+                      $"confabCand={GossipDirector.ConfabCandidates} confabOffRoad={GossipDirector.ConfabOffRoad} confabTooFar={GossipDirector.ConfabTooFar} confabWidest={GossipDirector.ConfabWidestSeen:0.0} confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +

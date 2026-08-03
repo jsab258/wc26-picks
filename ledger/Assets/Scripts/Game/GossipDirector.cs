@@ -344,6 +344,12 @@ namespace Ledger.Game
                                         lines[i].SpeakerId));
         }
 
+        /// Why pairs did not stop to talk. See the note at the rejection site:
+        /// a seventy-percent collapse in street conversations hid behind a gate
+        /// that only asks whether the number is zero.
+        public static int ConfabCandidates, ConfabOffRoad, ConfabTooFar;
+        public static float ConfabWidestSeen;
+
         /// Total confabs staged. The sim gate reads it: an exchange the
         /// player can watch is the game's central mechanic made visible, and
         /// a staging path that quietly stops firing looks identical to a
@@ -376,12 +382,33 @@ namespace Ledger.Game
                 if (!_walkers.TryGetValue(ev.ToId, out var wb) || wb == null) continue;
                 if (wa == wb || wa.InConfab || wb.InConfab) continue;
 
+                ConfabCandidates++;
                 float apart = Vector3.Distance(wa.transform.position, wb.transform.position);
+                if (apart > ConfabWidestSeen) ConfabWidestSeen = apart;
                 // `somewhereToStand` is a road check: the rumour graph has no
                 // idea where anybody is and will happily fire an exchange
                 // between two people crossing a junction.
                 bool clear = OffRoad(wa.transform.position) && OffRoad(wb.transform.position);
-                if (!Confab.WorthStopping(apart, true, clear)) continue;
+                // WHY A CONFAB DID NOT HAPPEN, WHICH HAS TWO ANSWERS AND HAD
+                // ONE COUNTER.
+                //
+                // The verdict history across sixteen runs says the walking-pace
+                // change cost most of the street's conversations: 16, 21, 42,
+                // 13, 26 before it and 4, 4, 12, 3, 10, 8, 2, 18, 7, 8, 2, 7,
+                // 5, 9, 6, 0 after — roughly 24 a run down to roughly 7. The
+                // gate asks `confabs > 0`, so it only fired on the run that
+                // happened to hit zero, and a seventy percent collapse went
+                // fifteen builds without being seen.
+                //
+                // Two things can stop a pair: they are too far apart, or one of
+                // them is standing in the road. Slower walkers mix less, so
+                // "too far apart" is the hypothesis — but it IS a hypothesis,
+                // and the speech counter proved this morning how differently a
+                // split reads from a total. Counted separately, and the widest
+                // gap ever considered goes on the line so a threshold, if one
+                // is ever needed, comes off a series.
+                if (!clear) { ConfabOffRoad++; continue; }
+                if (!Confab.WorthStopping(apart, true, clear)) { ConfabTooFar++; continue; }
 
                 double tie = _mill != null ? _mill.Tie(ev.FromId, ev.ToId) : 0.4;
                 bool sensitive = ev.Rumor != null && ev.Rumor.Sensitive;
