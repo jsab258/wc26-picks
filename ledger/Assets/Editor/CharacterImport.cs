@@ -78,7 +78,31 @@ namespace Ledger.EditorTools
             // the rotation is a level below the transform being straightened.
             // Baking it puts the conversion into the mesh and the rig, and
             // leaves every transform the runtime touches at identity.
-            importer.bakeAxisConversion = true;
+            // BODIES ONLY, AND THE BISECT IS WHY. Baking it on the CLIPS is
+            // what has had the player upside down all along.
+            //
+            // The evidence, from one run that sampled the posture three times:
+            // the BIND pose measures +0.56 head-above-hips and +0.96
+            // hips-above-feet — anatomically right, so the body's own
+            // conversion worked. The moment the Animator evaluates a clip it
+            // reads -0.11 and -0.78, and `CharacterRig`'s solve then barely
+            // moves it (-0.11 to -0.11). Correct T-pose, inverted animation:
+            // the inversion enters with the retarget, not with the model and
+            // not with our rig.
+            //
+            // The reason is that Humanoid retargeting goes through MUSCLE
+            // SPACE, which is already axis-independent — the avatar defines
+            // which way is up. Baking a conversion into a clip's skeleton on
+            // top of that applies the rotation twice: once in the baked curves
+            // and once in the avatar that reads them. A body needs the bake
+            // because its mesh and bind pose are real geometry; a clip does
+            // not, because its curves are interpreted rather than placed.
+            //
+            // Bodies sit at the root of `Assets/Characters/`; clips live in the
+            // per-character subfolders. That is the discriminator, and it is a
+            // property of the layout rather than a guess about a filename.
+            bool isClipOnly = path.Substring(CharacterFolder.Length).Contains("/");
+            importer.bakeAxisConversion = !isClipOnly;
 
             // The bodies have skin; the clips do not need it imported twice.
             importer.importBlendShapes = false;
