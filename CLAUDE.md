@@ -285,12 +285,21 @@ stills and a verdict to `game-design/sim-shots/`, overwritten each run:
     verdict.txt                         the done-line, FAILING GATES, the sky
                                         readings, the places line, glyph and
                                         wardrobe counts, wheel proportions
+    runs/<sha7>.txt                     the same verdict, kept per commit
 
 `git pull` and read them. Do NOT try to tail the job log — see rule 12. The
 verdict is committed, so `git log -- game-design/sim-shots/verdict.txt` gives a
 HISTORY of measurements: that is how the AO ceiling was shown to be sitting
 inside its own instrument's noise across five runs. Adding a number to that file
 costs one line and pays for itself the first time a gate fails.
+
+**DISPATCH BUILDS IN PARALLEL.** The Windows job is `workflow_dispatch` with no
+concurrency group, so nothing queues it — several can run at once, and that is
+how a day of serial hypotheses turns into two waves. Five round trips on the
+upside-down player cost two and a half hours because I sent one question at a
+time when I could have sent three. Each run keeps its own `runs/<sha7>.txt`, so
+concurrent builds are concurrent ANSWERS rather than one answer overwriting
+another; `verdict.txt` is still the latest and still where to look by default.
 
 **Always run `ledger/verify.py` before committing.** It prints the footer that
 goes in the commit message, measured rather than remembered — it exists because
@@ -353,6 +362,16 @@ carry hours. Finish something, pick up the next thing, keep going.
 trip. Core, CoreTests, the measurement tools, the docs and every Python tool run
 here in seconds. Dispatch the build and start the next non-CI item in the SAME
 turn. A build in flight is a reason to switch tasks, not to stop.
+
+**`game-design/queue.md` is what you pick up.** This rule was already written,
+in these words, and I broke it four times in one afternoon — twenty, thirty-two,
+nineteen and twenty-eight minutes of nothing landing, each one right after a
+dispatch. The rule was not forgotten; the problem is that *the moment after a
+dispatch is a decision point*, and re-deriving priorities from a 400-line
+roadmap at the end of a long turn is enough friction to lose to. So the next
+items are written down BEFORE the dispatch and taken from the top afterwards,
+with no judgement required at the exact point where judgement was failing.
+Keep it current: a stale queue is worse than none, because it looks like a plan.
 
 **3. Be woken by the event, not the clock.** Arm it with Bash
 `run_in_background: true`, which re-invokes you within seconds of it exiting.

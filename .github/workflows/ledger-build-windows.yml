@@ -284,7 +284,9 @@ jobs:
           {
             echo "# Sim verdict — ${GITHUB_SHA:0:7}"
             echo
-            echo "Written by the Windows build. Overwritten every run."
+            echo "Written by the Windows build. Overwritten every run — but"
+            echo "also kept per-commit under sim-shots/runs/, so two builds"
+            echo "dispatched together are two answers rather than one."
             echo "Read this instead of trying to tail the job log."
             echo
           } > game-design/sim-shots/verdict.txt
@@ -377,8 +379,36 @@ jobs:
             say "NO FRAME LEDGER — the sim wrote no frames.tsv"
           fi
 
+          # A PER-RUN COPY, SO TWO BUILDS IN FLIGHT ARE TWO ANSWERS.
+          #
+          # This job has no concurrency group and is dispatch-only, so N builds
+          # can already run at once — nothing queues them. What made that
+          # useless is right below: every run writes the SAME verdict.txt and
+          # the SAME four JPEGs, so a second run landing after the first
+          # overwrites the answer I dispatched it for, and I get one result for
+          # two round trips without being told.
+          #
+          # That is the whole reason five hypotheses about the upside-down
+          # player cost five serial half-hours instead of two waves. The
+          # verdict is a few kilobytes of text; keeping one per commit costs
+          # nothing and can never collide, because the filename carries the SHA.
+          # `verdict.txt` stays exactly as it was — the latest run, where every
+          # reader already looks.
+          mkdir -p game-design/sim-shots/runs
+          cp game-design/sim-shots/verdict.txt \
+             "game-design/sim-shots/runs/${GITHUB_SHA:0:7}.txt"
+          # Keep the last twenty. Unbounded, this grows a file per build for
+          # ever; twenty is about a day of parallel waves, which is as far back
+          # as anything has ever been read.
+          ls -1t game-design/sim-shots/runs/*.txt 2>/dev/null | tail -n +21 \
+            | xargs -r rm -f
+
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
+          # SAVED BEFORE THE COMMIT, because the retry loop below has to be able
+          # to put these back on top of whatever another run pushed meanwhile.
+          rm -rf "$RUNNER_TEMP/ours"
+          cp -r game-design/sim-shots "$RUNNER_TEMP/ours"
           git add game-design/sim-shots
           if git diff --cached --quiet; then
             say "stills identical to the committed ones — nothing to commit"
@@ -411,9 +441,35 @@ jobs:
               exit 0
             fi
             sed "s|${GH_TOKEN}|***|g" "$RUNNER_TEMP/push.log" || true
-            echo "push failed, attempt $i — refetching and rebasing"
-            git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1 || true
-            git rebase FETCH_HEAD || { git rebase --abort || true; }
+            echo "push failed, attempt $i — refetching and reapplying our outputs"
+            # REAPPLIED, NOT REBASED, AND THE DIFFERENCE ONLY SHOWS UP WHEN TWO
+            # BUILDS RUN AT ONCE.
+            #
+            # `git rebase FETCH_HEAD` replays our stills commit onto whatever
+            # arrived. Against ordinary source commits that is fine, and it is
+            # what this loop did for weeks. Against ANOTHER BUILD'S stills it
+            # is a binary conflict on four JPEGs — rebase stops, the `|| abort`
+            # below it puts the branch back, and the next five attempts push
+            # the identical rejected commit and fail identically. A whole run's
+            # results land nowhere, and the step's own retry logging makes it
+            # read like a flaky network.
+            #
+            # These files are RENDERED OUTPUT, not content anybody merged, so
+            # there is nothing to reconcile: the newest render of a frame is
+            # the right one. Reset to what is on the branch, lay our outputs
+            # back over the top, commit that. It cannot conflict. The other
+            # run's per-run verdict survives untouched, because `cp` overlays
+            # and its filename carries a different SHA — which is the point of
+            # writing it in the first place.
+            if git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1; then
+              git reset --hard FETCH_HEAD > /dev/null
+              cp -r "$RUNNER_TEMP/ours/." game-design/sim-shots/
+              git add game-design/sim-shots
+              git diff --cached --quiet \
+                || git commit -q -m "Sim stills from ${GITHUB_SHA:0:7}"
+            else
+              echo "fetch failed too — retrying the push unchanged"
+            fi
             sleep $((2 ** i))
           done
           say "PUSH FAILED after 6 attempts — the stills did not land"
