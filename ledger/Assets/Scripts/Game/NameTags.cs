@@ -64,6 +64,23 @@ namespace Ledger.Game
         public static int Offered { get; private set; }
         public static int OfferedPeak { get; private set; }
 
+        /// PEAKS, FOR THE SAME REASON `Offered` NEEDED ONE — third instance of
+        /// this drift in one file, and I wrote the rule about it an hour before
+        /// finding this one.
+        ///
+        /// `Suppressed` is reset at the top of every `Resolve`, so
+        /// `nameTagsHidden=0` means "nothing was hidden on whichever frame
+        /// swept last", not "nothing is ever hidden". Printed beside a peak it
+        /// reads as the declutter doing nothing, which may well be true and
+        /// which this cannot currently tell you.
+        ///
+        /// `Unresolved` is the outcome that had no name at all: a label whose
+        /// screen rect could not be computed is skipped by the placement loop
+        /// and stays visible, counted by neither side.
+        public static int SuppressedPeak { get; private set; }
+        public static int Unresolved { get; private set; }
+        public static int UnresolvedPeak { get; private set; }
+
         /// Pairs of STILL-VISIBLE managed labels that overlap once the pass has
         /// finished — the postcondition, not the workload.
         ///
@@ -246,6 +263,7 @@ namespace Ledger.Game
             Offered = _offered.Count;
             if (Offered > OfferedPeak) OfferedPeak = Offered;
             Suppressed = 0;
+            Unresolved = 0;
             UnplacedNow = 0;
             var cam = Camera.main;
             if (cam == null || _offered.Count == 0) return;
@@ -262,7 +280,19 @@ namespace Ledger.Game
                 if (c.Label == null) continue;
                 var r = c.Label.GetComponent<Renderer>();
                 if (r == null) continue;
-                if (!ScreenRect(cam, r.bounds, out var rect)) continue;
+                if (!ScreenRect(cam, r.bounds, out var rect))
+                {
+                    // NEITHER KEPT NOR SUPPRESSED — AND STILL ON SCREEN.
+                    //
+                    // A label whose rect cannot be computed falls out of this
+                    // loop entirely: it is not placed, it is not hidden, and
+                    // nothing counts it. It just draws. `nameTagsTooNear` has
+                    // read as high as 5,049 of 12,664 rect requests, so this is
+                    // not a corner — it is two labels in five going unmanaged
+                    // while `nameTagsHidden` reports the declutter working.
+                    Unresolved++;
+                    continue;
+                }
 
                 bool blocked = false;
                 foreach (var k in kept)
@@ -350,6 +380,11 @@ namespace Ledger.Game
                 for (int j = i + 1; j < kept.Count; j++)
                     if (kept[i].Overlaps(kept[j])) UnplacedNow++;
             if (UnplacedNow > WorstUnplaced) WorstUnplaced = UnplacedNow;
+            // Taken here, at the end of a resolve, so all three describe the
+            // same pass — the mismatch that made `offered` unreadable was
+            // exactly two counters sampled at different moments.
+            if (Suppressed > SuppressedPeak) SuppressedPeak = Suppressed;
+            if (Unresolved > UnresolvedPeak) UnresolvedPeak = Unresolved;
         }
 
         /// A world-space bounds as a screen rectangle, or false if it is behind
