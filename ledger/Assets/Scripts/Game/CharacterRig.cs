@@ -347,11 +347,56 @@ namespace Ledger.Game
         {
             if (ReadPosture(out float h, out float f))
             {
+                // THE FIRST FRAME, KEPT SEPARATELY, BECAUSE THE BRACKET HAS A
+                // HOLE IN IT AND THIS IS THE THIRD TIME.
+                //
+                // `PreHeadAboveHips` is sampled at the TOP of `LateUpdate`,
+                // which is after the PREVIOUS frame's solve — bones persist
+                // between frames. So "pre-solve" and "post-solve" both see
+                // accumulated state, and the pair can never distinguish "the
+                // Animator handed us an inverted pose" from "we inverted it on
+                // an earlier frame and nothing put it back". I read that pair
+                // as indicting the retarget. It cannot indict anything.
+                //
+                // The twin says the same thing from the other side: an Animator
+                // bound to this avatar with no controller reads +0.557/+0.955,
+                // exactly upright, while the player reads -0.115. The twin's
+                // only other difference is that its `CharacterRig` was
+                // destroyed.
+                //
+                // On the FIRST frame this component ever runs, nothing has
+                // solved. If that reading is upright and later ones are not,
+                // the pose is being accumulated rather than delivered, and the
+                // comment forty lines below — "the bought characters would
+                // never have shown this" — is false: `clip=[]` says the bought
+                // body has an Animator and NOTHING PLAYING, so nothing rewrites
+                // the pose each frame and the compounding that guard was
+                // written for applies to it exactly as it does to a mannequin.
+                if (!FirstPreRead)
+                {
+                    FirstPreHeadAboveHips = h;
+                    FirstPreHipsAboveFeet = f;
+                    FirstPreRead = true;
+                }
                 PreHeadAboveHips = h;
                 PreHipsAboveFeet = f;
                 PrePoseRead = true;
             }
         }
+
+        /// The pre-solve posture on the very first frame this rig ran, before
+        /// any solve of ours could have touched it. Static because there is one
+        /// player and the question is about that body, and because a per-
+        /// instance value would be overwritten by sixty-eight mannequins.
+        public static float FirstPreHeadAboveHips { get; private set; }
+        public static float FirstPreHipsAboveFeet { get; private set; }
+        public static bool FirstPreRead { get; private set; }
+
+        /// Whether this rig's Animator has anything to play at all. If it does
+        /// not, the Animator cannot be rewriting the pose each frame, and every
+        /// modulation below composes onto its own output for ever.
+        public bool HasController =>
+            _animator != null && _animator.runtimeAnimatorController != null;
 
         void StampPose()
         {

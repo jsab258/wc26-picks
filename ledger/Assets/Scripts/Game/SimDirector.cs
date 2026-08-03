@@ -1209,6 +1209,7 @@ namespace Ledger.Game
                         if (Mathf.Abs(prig.BodyRoll) > Mathf.Abs(_worstBodyRoll))
                             _worstBodyRoll = prig.BodyRoll;
                         if (!string.IsNullOrEmpty(prig.ClipName)) _clipName = prig.ClipName;
+                        _playerHasController = prig.HasController;
                     }
                     if (prig.PostureRead)
                     {
@@ -1237,6 +1238,7 @@ namespace Ledger.Game
         float _worstBodyPitch, _worstBodyRoll;
         string _clipName = "";
         bool _avatarProbeSeen;
+        bool _playerHasController;
 
         /// Per-frame cost of every `CharacterRig` in the scene, in milliseconds.
         /// Divided by the frame count rather than by the sample count: the
@@ -5582,6 +5584,15 @@ namespace Ledger.Game
                       $"prePoseRead={_prePostureSeen} " +
                       $"bodyPitch={_worstBodyPitch:0.0} bodyRoll={_worstBodyRoll:0.0} " +
                       $"clip=[{_clipName}] avatarProbeRead={_avatarProbeSeen} " +
+                      // THE FIRST FRAME, WHICH IS THE ONE SAMPLE THAT CANNOT
+                      // CONTAIN OUR OWN SOLVE. Upright here with everything
+                      // after it inverted means the pose is accumulating, not
+                      // arriving inverted — and `playerHasController` says
+                      // whether anything is rewriting it each frame.
+                      $"firstPreHeadAboveHips={CharacterRig.FirstPreHeadAboveHips:0.000} " +
+                      $"firstPreHipsAboveFeet={CharacterRig.FirstPreHipsAboveFeet:0.000} " +
+                      $"firstPreRead={CharacterRig.FirstPreRead} " +
+                      $"playerHasController={_playerHasController} " +
                       // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
                       // breakdown lives inside a gate, and a gate label prints
                       // when the gate FAILS — so on every green run the one
