@@ -86,7 +86,12 @@ namespace Ledger.Core
         public const double ManhuntAt = 1.0;
 
         /// Testimony grade — deliberately the same bar Act III already uses for
-        /// what would stand up in front of a magistrate (ActThree.CaseStandsAt).
+        /// what would stand up in front of a magistrate
+        /// (`LedgerState.CaseStandsAt`, and it said `ActThree` here for
+        /// months — a type that has never existed. Nothing dereferences a
+        /// comment, so the compiler could not say so; it was found by
+        /// copying the name out of it into real code, which is the only
+        /// way a false comment ever gets found).
         public const double TestimonyGrade = 0.5;
 
         public Killing Record(string victimId, string victimName, int day, int hour, string where)

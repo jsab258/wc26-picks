@@ -22,7 +22,7 @@ what happens next.
 | | M23 — firearms | M16 phase 5, deliberately last |
 | | M24 — ship | performance, platforms, controller, QA, licences, packaging |
 | **shipped** | M0–M16, Acts I–III, the perception and consequence engine | |
-| **waiting on Jafar** | a character MESH, which only he can buy | 17.1b. The 44 imported files are animation clips; the body itself is `X Bot.fbx`, Mixamo's free grey mannequin, and the noon frame shows exactly that — a featureless figure with a blue hip band. No amount of dressing code makes a placeholder into a person. Nothing else is blocked on him — the API spend he approved on 3 August is spent and delivered |
+| **waiting on Jafar** | one Mixamo fetch, ~10:00 CEST 4 August | 17.1b. NOT a purchase — Mixamo characters are free and the harvester that got the 44 animation clips fetches bodies too. `tools/mixamo-pick/BODIES.bat` downloads michelle, remy, sophie and shae WITH skin; it needs a browser token that only lasts an hour, so it runs on his machine. `bodyChoices` goes 2 to 6 and, because those models arrive TEXTURED, the wardrobe leaves them alone entirely. Today's body is `X Bot.fbx`, Mixamo's free grey mannequin. Nothing else is blocked on him — the API spend he approved on 3 August is spent and delivered |
 
 **The strategy every milestone below is judged against.**
 

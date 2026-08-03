@@ -69,6 +69,16 @@ scheduling instead of to CI's output.
    characters are TEXTURED, so the wardrobe leaves them alone and the naked
    body stops being a question of colour at all.
 
+6. **Wire M21's informer verb — it is built, tested and unreached.** *(CI)*
+   `Informing.Weigh` and `RedirectsInquiry` are on the reach ledger with a
+   reason, which is honest and is not done. It needs two things in Game: a
+   place the player names somebody (the phone is the obvious one — Ellis has a
+   number and the distance layer already exists), and a caller that files
+   `MarkOnYou` into the gossip layer. **The mark is the whole design.** A
+   caller that drops it turns the verb into a free delete button, so the gate
+   to add with it counts denunciations AND marks filed, and fails if they
+   disagree.
+
 ## Next
 
 **CORRECTED — "raise the population" and "make the street busier" are two

@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestInforming();
                 TestBodyParts();
                 TestAcquaintance();
                 TestSuspicion();
@@ -284,6 +285,89 @@ namespace Ledger.CoreTests
         ///
         /// The last two are the accept cases rule 5b demands: it is not enough
         /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestInforming()
+        {
+            Console.WriteLine("Informing:");
+
+            var claim = new Fact("kest", "handled", "the_warehouse_job");
+            Testimony T(double cred, bool talks, string value = "the_warehouse_job") =>
+                new Testimony(new Fact("kest", "handled", value), cred, talks);
+
+            // THE ACCEPT CASE FIRST (rule 5b). Three people who will talk and
+            // agree is a case, and if this does not pass, nothing else matters.
+            var stuck = Informing.Weigh(claim, new[] { T(0.6, true), T(0.4, true), T(0.4, true) });
+            Check(stuck.Outcome == Accusation.Charged,
+                  "three who will swear to it makes a charge",
+                  $"{stuck.Corroboration:0.00} vs {Informing.StandsAt:0.00}, {stuck.Why}");
+
+            // THE THESIS, AS A TEST. Truth is not an input to this system.
+            var trueButAlone = Informing.Weigh(claim, new Testimony[0]);
+            Check(trueButAlone.Outcome == Accusation.Ignored,
+                  "a true accusation nobody will back is ignored");
+            var willingButSilent = Informing.Weigh(claim, new[] { T(0.9, false), T(0.9, false) });
+            Check(willingButSilent.Outcome == Accusation.Ignored,
+                  "knowing it and saying it to police are different things",
+                  "two credible witnesses who will not talk");
+
+            // One believable voice is a lead, not a case.
+            var one = Informing.Weigh(claim, new[] { T(0.45, true) });
+            Check(one.Outcome == Accusation.Noted,
+                  "one voice under the bar goes in a file",
+                  $"{one.Corroboration:0.00}");
+
+            // BLOWBACK, which is the outcome that makes the verb cost anything.
+            var blew = Informing.Weigh(claim, new[] { T(0.3, true), T(0.8, true, "was_at_the_dogs") });
+            Check(blew.Outcome == Accusation.BlewBack,
+                  "a stronger contrary voice turns it back on you",
+                  blew.Why);
+            Check(blew.MarkOnYou.Predicate == "lied_to_police"
+                  && blew.MarkOnYou.Value == "kest",
+                  "and it becomes a fact about the player",
+                  blew.MarkOnYou.ToString());
+
+            // THE COST LANDS EVEN WHEN THE ACCUSATION DOES NOT. An informer who
+            // pays nothing is a delete button with extra steps.
+            Check(trueButAlone.MarkOnYou.Predicate == "informer"
+                  && trueButAlone.MarkOnYou.Value == "kest",
+                  "you were seen going in even when nothing came of it",
+                  trueButAlone.MarkOnYou.ToString());
+            Check(stuck.MarkOnYou.Predicate == "informer",
+                  "and when it worked");
+
+            // Naming yourself is a confession, and there is an Act III for it.
+            var self = Informing.Weigh(new Fact("player", "handled", "the_warehouse_job"),
+                                       new[] { new Testimony(new Fact("player", "handled", "the_warehouse_job"), 0.9, true) });
+            Check(self.Outcome == Accusation.Ignored && self.MarkOnYou.Value == "no",
+                  "you cannot inform on yourself", self.Why);
+
+            // A claim on a topic nobody holds is unbacked, not contradicted —
+            // the same Unknown/Contradiction distinction KnowledgeBase draws.
+            var offTopic = Informing.Weigh(claim,
+                new[] { new Testimony(new Fact("kest", "drinks_at", "the_anchor"), 0.9, true) });
+            Check(offTopic.Outcome == Accusation.Ignored && offTopic.Contradiction == 0,
+                  "a witness on another subject is not a contradiction");
+
+            Check(Informing.Weigh(null, new Testimony[0]).Outcome == Accusation.Ignored,
+                  "no claim is not a crash");
+
+            // A manhunt cannot be talked away, which is the exploit this would
+            // otherwise be.
+            Check(Informing.RedirectsInquiry(Accusation.Charged, Inquiry.None),
+                  "a charge points a detective who was not looking at you");
+            Check(!Informing.RedirectsInquiry(Accusation.Charged, Inquiry.Investigation),
+                  "but not one already asking about you by name");
+            Check(!Informing.RedirectsInquiry(Accusation.Charged, Inquiry.Manhunt),
+                  "and a manhunt cannot be redirected at all");
+            Check(!Informing.RedirectsInquiry(Accusation.Noted, Inquiry.None),
+                  "a file is not a redirection");
+
+            // The bar is the game's existing one, not a new one.
+            Check(Informing.StandsAt == LedgerState.CaseStandsAt
+                  && Informing.StandsAt == HomicideBook.TestimonyGrade,
+                  "the magistrate is the same magistrate",
+                  $"{Informing.StandsAt}");
+        }
+
         static void TestBodyParts()
         {
             Console.WriteLine("BodyParts:");
