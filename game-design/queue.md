@@ -82,14 +82,19 @@ purchase is Jafar's. Raise at most once a day.
   sample exchanges, including adversarial ones. The input-side verdict is in
   `writing-judgement-2026-08-03.md` and was better than expected, so this is the
   cheap half of an open question rather than a rescue.
-- **And the same spend would lift most of the cast.** Counted rather than
-  assumed: the game has 83 named characters, 23 hand-written and 60 generated,
-  and **0 of the 60 carry example lines or any period texture** — they predate
-  both. That is 72% of the cast at the old bar, against a measured knee of ~50
-  people covering 92% of a resident's week, so those generated characters are
-  not background: they are most of who you meet. Regenerating them through the
-  new prompt and its eleven validator rules is one batch run, and it is the
-  largest single lift available to the writing.
+- **And the same spend would lift most of the cast — but by less than I first
+  wrote.** The game has 83 named characters, 23 hand-written and 60 generated.
+  Running the new validator over the old 60: every one fails, and **all sixty
+  fail on exactly one rule — no example lines.** Nothing else. No adjective-soup
+  speech, no anachronism, no structural fault. So "72% of the cast is at the old
+  bar" overstated it; the accurate version is that 60 cards are one field short.
+  Worth doing — the coverage curve says the generated sixty are most of who you
+  actually meet — but it is a small, targeted run rather than a rescue.
+- **What the audit cannot see: period texture.** There is a rule against
+  anachronism and none for *presence* of a decade, because absence is not
+  greppable. Those 60 cards still have no phone box, no tick at the shop, no
+  pools coupon. That half stays a judgement call and it is the half that would
+  actually be worth the tokens.
 
 ## Standing rules this file exists to serve
 

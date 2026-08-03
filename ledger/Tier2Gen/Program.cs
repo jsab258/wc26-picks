@@ -56,6 +56,12 @@ namespace Ledger.Tier2Gen
             // fail, in about a second, with no key.
             if (args.Contains("--selftest")) return SelfTest();
 
+            // WHAT THE CARDS WE ALREADY HAVE WOULD SCORE, which turns "the old
+            // sixty need regenerating" from an assumption into a count. Costs
+            // nothing and needs no key: the validator is a script, and the
+            // cards are already in the repository.
+            if (args.Contains("--audit")) return Audit(ArgStr(args, "--audit", ""));
+
             int count = ArgInt(args, "--count", 60);
             int perCall = ArgInt(args, "--batch", 4);
             string outDir = ArgStr(args, "--out", "tier2-out");
@@ -214,6 +220,64 @@ namespace Ledger.Tier2Gen
                 foreach (var f in failures.Take(10)) sb.AppendLine("- " + f);
             }
             return sb.ToString();
+        }
+
+        /// Score cards we already have against the rules we have now.
+        ///
+        /// "The sixty generated cards predate the writing rules, so they need
+        /// regenerating" is an assumption, and regenerating them costs Jafar
+        /// money. This turns it into a count, and into a REASON per card — so
+        /// the decision he is being asked for comes with the actual damage
+        /// rather than with my summary of it.
+        ///
+        /// Runs the real `Validate`, not a second copy of its rules. A separate
+        /// audit checker would be free to disagree with the thing it audits,
+        /// which is the fault this repo keeps finding in its own instruments.
+        static int Audit(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                Console.WriteLine($"Tier2Gen --audit: no such file '{path}'");
+                return 1;
+            }
+            var cards = ParseCards(File.ReadAllText(path));
+            if (cards == null || cards.Count == 0)
+            {
+                Console.WriteLine("Tier2Gen --audit: no cards parsed");
+                return 1;
+            }
+
+            // EVERY CARD JUDGED AS IF IT WERE NEW, so ids and names already in
+            // the file do not count against themselves. The question is whether
+            // the WRITING would pass, not whether the roster has duplicates.
+            var reasons = new Dictionary<string, int>();
+            var batchIds = new HashSet<string>(cards.Select(c => MiniJson.GetString(c, "id")));
+            int ok = 0;
+            foreach (var c in cards)
+            {
+                // NO TAKEN IDS. Four of these cards were later promoted into
+                // the hand-written ring, so they now collide with themselves and
+                // the audit reported four "id already taken" — a fact about the
+                // roster masquerading as a fact about the writing. The question
+                // here is only whether the PROSE would pass.
+                var why = Validate(c, new HashSet<string>(),
+                                   new HashSet<string>(StringComparer.OrdinalIgnoreCase), batchIds);
+                if (why == null) { ok++; continue; }
+                // Bucketed by the rule rather than by the card — thirty cards
+                // failing one rule is a batch to rerun; thirty cards failing
+                // thirty different rules is a prompt that does not work.
+                var key = why.Split(new[] { " — ", ": ", " '" }, StringSplitOptions.None)[0];
+                reasons[key] = reasons.TryGetValue(key, out var n) ? n + 1 : 1;
+            }
+
+            Console.WriteLine($"Tier2Gen --audit {Path.GetFileName(path)}");
+            Console.WriteLine($"  {cards.Count} card(s), {ok} pass the current rules, {cards.Count - ok} do not");
+            foreach (var kv in reasons.OrderByDescending(k => k.Value))
+                Console.WriteLine($"  {kv.Value,4}  {kv.Key}");
+            Console.WriteLine();
+            Console.WriteLine("A count, not a verdict on the prose. These rules catch a MISSING voice");
+            Console.WriteLine("and a wrong decade; they cannot tell good writing from adequate writing.");
+            return 0;
         }
 
         /// Every writing rule, against cards built to pass and to fail.
