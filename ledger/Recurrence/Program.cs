@@ -116,6 +116,8 @@ static class Program
         Console.WriteLine("Read this against what the runtime can afford: the crowd walker cap and");
         Console.WriteLine("the frame budget bound it from the other side, and that has not been");
         Console.WriteLine("measured yet. This says what the DESIGN wants, not what the GPU allows.");
+
+        Density.Run();
     }
 
     static int[] AllIdx() => Enumerable.Range(0, AllDistricts.Length).ToArray();
