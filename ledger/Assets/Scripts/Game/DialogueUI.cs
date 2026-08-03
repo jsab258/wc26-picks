@@ -1057,6 +1057,50 @@ namespace Ledger.Game
             if (owed.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>RECEIVABLES — Mickey's book</b></color>\n").Append(owed);
 
+            // DOUBT — who has stopped trusting you, AND WHY.
+            //
+            // `SuspicionTracker.Reasons` has been on the reach ledger with the
+            // bluntest reason on it: *"WHY a person suspects you, which is the
+            // moat this project is built on (information 90 against a
+            // best-in-class 65) and the one part of it with no way to see it."*
+            // Three writers, no readers. The game has spent months computing a
+            // precise, per-person, event-by-event account of how somebody came
+            // to distrust the player and showing the player none of it.
+            //
+            // It belongs here rather than in a new screen because this panel is
+            // already the answer to "what does the street have on me", and this
+            // is the same question asked about a person instead of a fact.
+            //
+            // WORDS, NOT A FIGURE — the legibility law the rest of this screen
+            // obeys and states twice. `SuspicionLevel` already names the four
+            // rungs; a player never needs to see 0.62.
+            //
+            // The LAST few reasons, not all of them. `Reasons` is capped at 32
+            // and is chronological, and the recent ones are the explanation —
+            // each event moves suspicion by 0.12 to 0.35 on a 0..1 scale, so
+            // anything a dozen entries back has been arithmetically outvoted.
+            var doubt = new System.Text.StringBuilder();
+            foreach (var h in _game.Hosts)
+            {
+                if (h == null || h.Suspicion == null) continue;
+                if (h.Suspicion.Level == SuspicionLevel.Trusting) continue;
+                string who = h.Card != null ? h.Card.Name : "somebody";
+                string word = h.Suspicion.Level == SuspicionLevel.Confronting
+                    ? $"<color={UiTheme.HexDebit}><b>ready to say it to your face</b></color>"
+                    : h.Suspicion.Level == SuspicionLevel.Suspicious
+                        ? $"<color={UiTheme.HexDebit}><b>does not believe you</b></color>"
+                        : $"<color={UiTheme.HexHeld}>uneasy about you</color>";
+                doubt.AppendLine($"<b>{who}</b> — {word}");
+                var why = h.Suspicion.Reasons;
+                for (int i = System.Math.Max(0, why.Count - 3); i < why.Count; i++)
+                    doubt.AppendLine($"   <color={UiTheme.HexDim}>{why[i]}</color>");
+                if (why.Count == 0)
+                    doubt.AppendLine($"   <color={UiTheme.HexDim}>nothing you can point to</color>");
+            }
+            if (doubt.Length > 0)
+                sb.Append($"\n<color={UiTheme.HexDim}><b>DOUBT — who has stopped trusting you</b></color>\n")
+                  .Append(doubt);
+
             // The other ledger (open mode): what the street is becoming yours.
             var e = _game.Empire;
             bool anyEmpire = _game.Campaign.OpenMode &&

@@ -89,7 +89,6 @@
     "StreetMap.AvenueClear": "WIRE: M17 — whether an avenue is unobstructed, for traffic and for the camera.",
     "StreetMap.FullyConnected": "BY DESIGN: a map invariant the tests and the sim assert after generation. The game never re-checks connectivity at runtime.",
     "StreetMap.OnStreet": "WIRE: M17 — nearest-street lookup for placing things.",
-    "SuspicionTracker.Reasons": "WIRE: M19 — WHY a person suspects you, which is the moat this project is built on (information 90 against a best-in-class 65) and the one part of it with no surface. Three writers, no reader. Found by Soak as an unbounded list (684 entries over 499 days, +1.363/day, nothing removing one) and capped at MaxReasons=32 rather than deleted, precisely so wiring it stays a hookup instead of a rewrite.",
     "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way.",
     "TrafficSim.AwakeCount": "BY DESIGN: an LOD measurement the sim's performance gate reads. The game does not choose how many vehicles are awake; TrafficSim does.",
     "TrafficSim.BusLoop": "WIRE: M17 — the bus route exists and no bus is drawn following it.",

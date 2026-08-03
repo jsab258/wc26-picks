@@ -70,7 +70,19 @@ namespace Ledger.Game
                     var e = _game.Empire;
                     bool anyEmpire = _game.Campaign.OpenMode &&
                         (e.Businesses.Exists(b => b.Owned || b.DebtHeld) || e.Crew.Count > 0 || e.Rival.Stage > 0);
-                    return words.Contains("LIABILITIES") && (!anyEmpire || words.Contains("THE STREET"));
+                    // DOUBT, on the same terms: required exactly when somebody
+                    // has actually stopped trusting the player, and not
+                    // otherwise. Demanding it unconditionally would red a run
+                    // on a street where nobody suspects anything, which is a
+                    // legitimate state and was how the THE STREET clause got
+                    // this wrong the first time (run 30335994335).
+                    bool anyDoubt = false;
+                    foreach (var h in _game.Hosts)
+                        if (h != null && h.Suspicion != null
+                            && h.Suspicion.Level != SuspicionLevel.Trusting) { anyDoubt = true; break; }
+                    return words.Contains("LIABILITIES")
+                        && (!anyEmpire || words.Contains("THE STREET"))
+                        && (!anyDoubt || words.Contains("DOUBT"));
                 });
             Check(reports, "dialogue", _dialoguePanel, null,
                 () => _input != null && _historyText != null);
