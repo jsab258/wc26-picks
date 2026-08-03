@@ -3230,7 +3230,7 @@ namespace Ledger.Game
                 // arguing about it. One extra sample per radius, once per run.
                 if (_ringGrowth == null)
                 {
-                    var g = new System.Text.StringBuilder("SimDirector: ringGrowth");
+                    var g = new System.Text.StringBuilder("SimDirector: [series] ringGrowth");
                     foreach (double r in new[] { 4.0, 8.0, 16.0, 32.0, 64.0, 128.0 })
                     {
                         var (f2, _) = RingSeenAt(cam, r);
@@ -3503,7 +3503,7 @@ namespace Ledger.Game
             // blue arrives too high; scaling green with it would change the hue
             // as well as the warmth and confound the two.
             var was = WorldBuilder.WindowEmissive;
-            var warm = new StringBuilder("SimDirector: windowWarmth");
+            var warm = new StringBuilder("SimDirector: [series] windowWarmth");
             WorldBuilder.SetWindowGlow(0f);
             var dark2 = FramePixels(cam);
             foreach (float b in new[] { 0.45f, 0.32f, 0.22f, 0.14f, 0.06f, 0.00f })

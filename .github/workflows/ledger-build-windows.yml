@@ -322,7 +322,24 @@ jobs:
               # `hand=hand bone` on a green run is the line that proves the
               # bought skeleton is the one holding the object, and the run that
               # needs it most is the one that passed for the wrong reason.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|SceneAudit: " \
+              # AND EVERY MEASUREMENT SERIES, WHICH IS WHY THE MARKER EXISTS.
+              #
+              # This pattern is an allowlist, and on 3 August two probes were
+              # written, shipped, run, and filtered out of the only channel
+              # anybody can read: `windowWarmth` swept the source colour that
+              # the window investigation had been parked on for want of it, and
+              # `ringGrowth` measured the radius at which a noise ring stops
+              # reading as a ring. Both executed. Neither reached the verdict.
+              # An hour of work each, invisible, with every step reporting
+              # success — rule 12's failure exactly, in the file rule 12 was
+              # written about.
+              #
+              # The trap is that adding a measurement and adding it HERE are two
+              # separate acts and only the first feels like the work. So new
+              # series carry `[series]` in the line and this matches on that:
+              # one pattern, and the next probe is captured without anybody
+              # remembering this file exists.
+              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|SceneAudit: " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
             } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
