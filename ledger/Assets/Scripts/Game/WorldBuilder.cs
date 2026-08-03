@@ -695,11 +695,44 @@ namespace Ledger.Game
             // The door: narrow, tall, set INTO the wall rather than onto it, so
             // it reads as an opening at any angle instead of a panel that
             // disappears when you are not square to it.
+            //
+            // I ADDED A SECOND DOOR SYSTEM ON 3 AUGUST BEFORE READING THIS
+            // FUNCTION. The roadmap said 17.7 still owed "cornices, and doors
+            // as geometry"; both were already here, three lines apart, and I
+            // built a `Clutter.Door` in Core with four tests to put a second
+            // door on the same wall as this one. Rule 3, exactly: when your own
+            // analysis says something is missing, OPEN THE FILE. The duplicate
+            // is reverted and the two improvements it did carry are folded in
+            // here, where the one door already was.
             var doorSize = alongX
                 ? new Vector3(0.30f, 2.2f, 1.15f)
                 : new Vector3(1.15f, 2.2f, 0.30f);
-            MakeBox($"{tag}_door", face - outward * 0.12f + new Vector3(0, 1.1f, 0),
-                    doorSize, AssetLibrary.Metal);
+            // WOOD AND DARKER, not bare metal. A door the same value as its
+            // wall is a panel; the recess only reads as an opening if there is
+            // a shadow in it, which is the same argument the window piers won.
+            var leaf = MakeBox($"{tag}_door", face - outward * 0.12f + new Vector3(0, 1.1f, 0),
+                    doorSize, AssetLibrary.Wood);
+            var lr = leaf.GetComponent<Renderer>();
+            var lmpb = new MaterialPropertyBlock();
+            lr.GetPropertyBlock(lmpb);
+            lmpb.SetColor("_Color", new Color(0.13f, 0.11f, 0.10f));
+            lr.SetPropertyBlock(lmpb);
+
+            // AND A JAMB EACH SIDE, proud of the wall. One box per side rather
+            // than a surround, because a surround needs a hole in the wall and
+            // this whole city is boxes. It is what turns a dark rectangle into
+            // a doorway at a glance from across the street.
+            var alongAxis = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+            var jambSize = alongX
+                ? new Vector3(0.22f, 2.36f, 0.14f)
+                : new Vector3(0.14f, 2.36f, 0.22f);
+            var off = alongAxis * (alongX ? doorSize.z : doorSize.x) * 0.5f
+                      + alongAxis * 0.07f;
+            MakeBox($"{tag}_jambA", face + off + new Vector3(0, 1.18f, 0), jambSize,
+                    AssetLibrary.Concrete);
+            MakeBox($"{tag}_jambB", face - off + new Vector3(0, 1.18f, 0), jambSize,
+                    AssetLibrary.Concrete);
+            Doors++;
 
             // The cornice: a lip at the parapet, all the way round, because a
             // flat box meeting the sky is what makes a skyline read as
@@ -1010,47 +1043,6 @@ namespace Ledger.Game
                     case Ledger.Core.Clutter.Awning:
                         MakeBox($"Awning_{id}", at + new Vector3(0, 2.9f, 0),
                             new Vector3(2.6f, 0.1f, 1.1f), AssetLibrary.Roof);
-                        break;
-                    case Ledger.Core.Clutter.Door:
-                        // THREE BOXES, AND THE RECESS IS THE ONE THAT MATTERS.
-                        //
-                        // A door painted flat onto a wall reads as a poster.
-                        // What makes an opening look like an opening is that it
-                        // is DARKER than the wall and set BACK from it, so the
-                        // eye gets an edge and a shadow — the same reason the
-                        // window panes needed piers between them rather than
-                        // one wide band.
-                        //
-                        // Sized to a person rather than to the wall: 2.1m is a
-                        // door head, `Mannequin` builds bodies 1.58-1.90m, and a
-                        // door that does not agree with the people walking
-                        // through it is the fastest way to make a street feel
-                        // like a model village.
-                        float dw = 1.15f * sc, dh = 2.1f;
-                        var into = -outward * 0.08f;
-                        // `Wood`, one of the twelve logical surfaces the city
-                        // already builds against — not a thirteenth invented
-                        // for one box. Darkened through a property block, the
-                        // same way the puddle is, because the recess is what
-                        // makes an opening read as an opening and a door the
-                        // same value as its wall is a panel.
-                        var leaf = MakeBox($"Door_{id}", at + new Vector3(0, dh * 0.5f, 0) + into,
-                            new Vector3(dw, dh, 0.12f), AssetLibrary.Wood);
-                        var lr = leaf.GetComponent<Renderer>();
-                        var lmpb = new MaterialPropertyBlock();
-                        lr.GetPropertyBlock(lmpb);
-                        lmpb.SetColor("_Color", new Color(0.13f, 0.11f, 0.10f));
-                        lr.SetPropertyBlock(lmpb);
-                        // The frame, proud of the wall on both sides and over
-                        // the head. One box per jamb rather than a surround,
-                        // because a surround would need a hole in the wall and
-                        // this whole city is boxes.
-                        var side = along * (dw * 0.5f + 0.07f);
-                        MakeBox($"DoorJambA_{id}", at + side + new Vector3(0, dh * 0.5f, 0),
-                            new Vector3(0.14f, dh + 0.16f, 0.16f), AssetLibrary.Concrete);
-                        MakeBox($"DoorJambB_{id}", at - side + new Vector3(0, dh * 0.5f, 0),
-                            new Vector3(0.14f, dh + 0.16f, 0.16f), AssetLibrary.Concrete);
-                        Doors++;
                         break;
                     case Ledger.Core.Clutter.Puddle:
                         // Flat, dark and SMOOTH: a puddle is only a puddle
