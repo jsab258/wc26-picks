@@ -41,6 +41,7 @@ namespace Ledger.Game
         }
 
         static readonly List<Candidate> _offered = new List<Candidate>();
+        static readonly HashSet<TextMesh> _managed = new HashSet<TextMesh>();
         static int _frame = -1;
 
         /// How many labels stood down on the last resolved frame, and how many
@@ -80,6 +81,18 @@ namespace Ledger.Game
         public static int SuppressedPeak { get; private set; }
         public static int Unresolved { get; private set; }
         public static int UnresolvedPeak { get; private set; }
+
+        /// Labels the camera could not see, this pass and at worst. Kept apart
+        /// from `Unresolved` because they are the opposite finding: nothing is
+        /// wrong, there is simply nothing on screen to place. Printed rather
+        /// than dropped so the two can be told apart next time — the whole
+        /// reason `Unresolved` was ambiguous is that it silently held both.
+        public static int OffScreenNow { get; private set; }
+        public static int OffScreenPeak { get; private set; }
+
+        /// Every rect request anywhere that fell outside the viewport. A
+        /// lifetime total, alongside `TooNear` and `RectCalls`.
+        public static int OffScreen { get; private set; }
 
         /// Pairs of STILL-VISIBLE managed labels that overlap once the pass has
         /// finished — the postcondition, not the workload.
@@ -234,8 +247,24 @@ namespace Ledger.Game
         {
             if (label == null) return;
             Sweep();
+            _managed.Add(label);
             _offered.Add(new Candidate { Label = label, Distance = distance });
         }
+
+        /// Is this one of the labels this class is responsible for?
+        ///
+        /// WHY ANYTHING NEEDS TO ASK. `SimDirector.CollidingNames` reported 182
+        /// overlapping pairs and was quoted as "the nameplate wall" — while
+        /// looping over EVERY TextMesh in the scene. This city is full of
+        /// street plates, shop fascias and bark bubbles, and two street plates
+        /// overlapping at a junction is a junction, not a fault.
+        ///
+        /// It is the same misreading that made `worstTextHeightFrac=0.210`
+        /// meaningless, diagnosed in this very file forty lines below and then
+        /// left in place one file over. A metric whose scope is "everything"
+        /// answers a question nobody asked.
+        public static bool Manages(TextMesh label) =>
+            label != null && _managed.Contains(label);
 
         /// Resolve the previous frame's offers once, at the start of the next.
         ///
@@ -264,6 +293,7 @@ namespace Ledger.Game
             if (Offered > OfferedPeak) OfferedPeak = Offered;
             Suppressed = 0;
             Unresolved = 0;
+            OffScreenNow = 0;
             UnplacedNow = 0;
             var cam = Camera.main;
             if (cam == null || _offered.Count == 0) return;
@@ -280,8 +310,16 @@ namespace Ledger.Game
                 if (c.Label == null) continue;
                 var r = c.Label.GetComponent<Renderer>();
                 if (r == null) continue;
-                if (!ScreenRect(cam, r.bounds, out var rect))
+                if (!ScreenRect(cam, r.bounds, out var rect, out var why))
                 {
+                    // OFF SCREEN IS NOT UNMANAGED. A label the camera cannot
+                    // see is not drawn, cannot collide with anything, and needs
+                    // no decision — counting it as a failure of the declutter
+                    // is how `nameTagsUnresolved=42` of 43 came to read as
+                    // "two-fifths of labels never reach the placement loop"
+                    // when most of them were simply behind the player.
+                    if (why == RectFail.OffScreen) { OffScreenNow++; continue; }
+
                     // NEITHER KEPT NOR SUPPRESSED — AND STILL ON SCREEN.
                     //
                     // A label whose rect cannot be computed falls out of this
@@ -385,13 +423,22 @@ namespace Ledger.Game
             // exactly two counters sampled at different moments.
             if (Suppressed > SuppressedPeak) SuppressedPeak = Suppressed;
             if (Unresolved > UnresolvedPeak) UnresolvedPeak = Unresolved;
+            if (OffScreenNow > OffScreenPeak) OffScreenPeak = OffScreenNow;
         }
 
         /// A world-space bounds as a screen rectangle, or false if it is behind
         /// the camera — where the projection is meaningless and every rect
         /// would appear to collide with every other.
-        public static bool ScreenRect(Camera cam, Bounds b, out Rect rect)
+        /// Why a rect could not be had. `OffScreen` is not a fault — see the
+        /// note where it is returned.
+        public enum RectFail { None, TooNear, OffScreen }
+
+        public static bool ScreenRect(Camera cam, Bounds b, out Rect rect) =>
+            ScreenRect(cam, b, out rect, out _);
+
+        public static bool ScreenRect(Camera cam, Bounds b, out Rect rect, out RectFail why)
         {
+            why = RectFail.None;
             rect = default;
             // NOT MERELY IN FRONT — IN FRONT OF THE NEAR PLANE.
             //
@@ -437,19 +484,55 @@ namespace Ledger.Game
             // camera plane enters the arithmetic.
             var centre = cam.WorldToScreenPoint(b.center);
             float near = Mathf.Max(cam.nearClipPlane, 0.001f);
-            if (centre.z <= near) { TooNear++; return false; }
+            if (centre.z <= near) { TooNear++; why = RectFail.TooNear; return false; }
 
             // Pixels per world metre at this depth, from the camera's own
             // vertical field of view. No invented constant: this is the same
             // relationship the projection matrix uses.
             float halfFov = cam.fieldOfView * 0.5f * Mathf.Deg2Rad;
             float visibleHeight = 2f * centre.z * Mathf.Tan(halfFov);
-            if (visibleHeight <= 0.0001f) { TooNear++; return false; }
+            if (visibleHeight <= 0.0001f) { TooNear++; why = RectFail.TooNear; return false; }
             float pxPerMetre = cam.pixelHeight / visibleHeight;
 
             float w = b.size.x * pxPerMetre;
             float h = b.size.y * pxPerMetre;
             rect = new Rect(centre.x - w * 0.5f, centre.y - h * 0.5f, w, h);
+
+            // AND IT HAS TO BE ON THE SCREEN, which `z > near` does not say.
+            //
+            // THE ARITHMETIC THAT FOUND THIS, from one landed run and nothing
+            // else. The worst-offending label reported `worstNameBoundsY=0.29`,
+            // `worstNameCentreMetres=3.37` and `worstNamePixels=566`. At 3.37m
+            // through a 60-degree lens the frame is 3.89m tall, so 0.29m is 54
+            // pixels — and 566 is ten and a half times that. The only free term
+            // is the depth the projection actually used, and solving for it
+            // gives z = 0.32m against a straight-line distance of 3.37m. That
+            // is a label EIGHTY-FOUR DEGREES off the camera axis: over the
+            // player's shoulder, behind the frame edge, not drawn at all.
+            //
+            // `centre.z` is depth ALONG THE VIEW AXIS, and `pxPerMetre` goes as
+            // 1/z, so anything out to the side is magnified by the cosine of a
+            // large angle. Off-axis is the same blow-up as up-close and the
+            // near-plane test cannot see it: the label was 3.4m away, which is
+            // nowhere near the camera.
+            //
+            // The damage ran both ways. Such a rect overlaps most of the
+            // screen, so an unseen label suppressed real ones; and
+            // `SimDirector.CollidingNames` was pairing these off against each
+            // other and calling the total a wall of text.
+            //
+            // Reported as OffScreen and NOT as a fault, because it is not one.
+            // A label the camera cannot see needs no rect and takes no part in
+            // decluttering — the correct handling is to leave it out, which is
+            // what the callers now do.
+            if (rect.xMax < 0 || rect.yMax < 0
+                || rect.xMin > cam.pixelWidth || rect.yMin > cam.pixelHeight)
+            {
+                OffScreen++;
+                why = RectFail.OffScreen;
+                rect = default;
+                return false;
+            }
             return true;
         }
     }

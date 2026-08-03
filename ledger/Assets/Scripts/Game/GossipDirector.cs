@@ -435,13 +435,48 @@ namespace Ledger.Game
         /// Measured off the street centreline the rest of the game already
         /// uses, rather than a new notion of "road", so this cannot disagree
         /// with the pathing about where the road is.
+        /// Is this spot out of the traffic? THE ROAD'S OWN WIDTH DECIDES, not a
+        /// number of mine.
+        ///
+        /// This compared against a flat 3.0m and threw away the edge it was
+        /// handed — `out _` — while `StreetEdge.Width` was sitting on it: 8m
+        /// for an avenue, 6m for a street, 4m for a lane. So the constant was
+        /// wrong in BOTH directions at once. On an avenue it cleared people to
+        /// stand and chat a metre inside the carriageway; on a lane it pushed
+        /// the boundary a metre past the kerb and refused pairs standing on the
+        /// pavement.
+        ///
+        /// The refusals are what the run measured: `confabOffRoad=199` against
+        /// `confabTooFar=0`. I had spent the evening on the hypothesis that
+        /// slowing the walk from 2.6 to 1.4 m/s stopped people meeting, and the
+        /// split says flatly that distance rejected nothing — every lost
+        /// conversation was this test. The pace change was not the cause and
+        /// the seventy percent collapse was a constant that never matched any
+        /// road in the city.
+        ///
+        /// `Width / 2` is the kerb, so this is now the definition of "off the
+        /// carriageway" rather than an approximation of it, and it follows the
+        /// map if a road is ever widened.
         static bool OffRoad(Vector3 p)
         {
-            if (!StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out _))
+            if (!StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out var edge))
                 return true;   // no street known here: it is not a carriageway
             double dx = p.x - sx, dz = p.z - sz;
-            return System.Math.Sqrt(dx * dx + dz * dz) > 3.0;
+            double d = System.Math.Sqrt(dx * dx + dz * dz);
+            double kerb = edge != null ? edge.Width / 2.0 : 3.0;
+            // The series, so the next question about where people stand is
+            // answered off evidence rather than another constant.
+            ConfabKerbSamples++;
+            ConfabKerbSum += d;
+            if (d > ConfabKerbWorst) ConfabKerbWorst = d;
+            return d > kerb;
         }
+
+        /// Where people actually stand relative to the nearest kerb — total,
+        /// count and worst — so the distribution is readable instead of guessed
+        /// at. Rule 2: print the series before bounding anything on it.
+        public static double ConfabKerbSum, ConfabKerbWorst;
+        public static int ConfabKerbSamples;
 
         void ReportOverheard(List<GossipEvent> events)
         {

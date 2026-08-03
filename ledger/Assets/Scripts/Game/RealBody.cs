@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Ledger.Core;
 using UnityEngine;
 
 namespace Ledger.Game
@@ -76,6 +78,20 @@ namespace Ledger.Game
         public static double DressedAreaFraction { get; private set; }
         public static double DressedVertexFraction { get; private set; }
         public static bool CoverageRead { get; private set; }
+
+        /// Every paintable mesh, its share of the body's surface, and which
+        /// material it got — `Beta_Surface:70.4%->skin Beta_Joints:29.6%->coat`.
+        /// The naked player was visible in three separate numbers and legible
+        /// in none of them; this is the line that says it in words.
+        public static string Parts { get; private set; } = "not tried";
+
+        /// Is the body actually clothed? False only when coverage was READ and
+        /// came back under the bound — a model whose materials all arrived
+        /// textured is never measured and must not fail for it (rule 5b: the
+        /// guard has to pass the case it should pass, and a bought character
+        /// with its own textures is that case).
+        public static bool Clothed =>
+            !CoverageRead || DressedAreaFraction >= BodyParts.MinDressedArea;
 
         /// The skeleton as IMPORTED, before anything animates it. See the note
         /// where these are measured: this is what tells a bad import apart from
@@ -327,6 +343,13 @@ namespace Ledger.Game
             double coatArea = 0, totalArea = 0;
             long coatVerts = 0, totalVerts = 0;
             CoverageRead = false;
+
+            // TWO PASSES, BECAUSE THE DECISION IS ABOUT THE MODEL AND NOT ABOUT
+            // ONE NAME. `BodyParts.Assign` needs to see every paintable mesh at
+            // once: a body that is a SINGLE mesh cannot be dressed part-bare,
+            // and the honest answer there is a coloured mannequin rather than a
+            // nude. One renderer at a time cannot know that.
+            var paint = new List<Renderer>();
             foreach (var r in body.GetComponentsInChildren<Renderer>())
             {
                 if (r == null) continue;
@@ -347,18 +370,30 @@ namespace Ledger.Game
                 // somebody made from a placeholder is that it has a texture on
                 // it, and that is a property rather than a guess.
                 if (m != null && m.mainTexture != null) { Kept++; continue; }
+                paint.Add(r);
+            }
 
-                // WHICH RENDERER IS SKIN AND WHICH IS COAT, FROM THE NAME.
-                //
-                // Mixamo names its submeshes, and head/hands/eyes are the parts
-                // that should stay flesh. Anything else is body, and body wears
-                // a coat. Read off the name rather than off an index, because
-                // an index would silently mean something different the first
-                // time a different model is bought — and this project has been
-                // bitten by exactly that with the hand lookup.
-                string n = r.name.ToLowerInvariant();
-                bool flesh = n.Contains("head") || n.Contains("hand")
-                          || n.Contains("eye") || n.Contains("face");
+            // WHICH RENDERER IS SKIN AND WHICH IS COAT, FROM THE NAME — and
+            // the rule now lives in Core where it has unit tests, because the
+            // version that lived here was wrong for weeks and could only have
+            // been caught by a 28-minute Windows round trip.
+            //
+            // What was wrong with it: `name.Contains("face")` matched
+            // `Beta_Surface`, which is the whole body. The player was painted
+            // flesh from the neck down and the coat went on the joint balls,
+            // and that is the naked figure in the middle of the noon still.
+            // `BodyParts.IsFlesh` compares WORDS for equality; sur-face is not
+            // face, and there is a test named after it.
+            var names = new string[paint.Count];
+            for (int i = 0; i < paint.Count; i++) names[i] = paint[i].name;
+            var isFlesh = BodyParts.Assign(names);
+
+            var parts = new System.Text.StringBuilder();
+            var areas = new double[paint.Count];
+            for (int i = 0; i < paint.Count; i++)
+            {
+                var r = paint[i];
+                bool flesh = isFlesh[i];
                 r.sharedMaterial = flesh ? skin : coat;
                 if (flesh) Skinned++; else Dressed++;
 
@@ -367,9 +402,32 @@ namespace Ledger.Game
                 // from the decision it describes.
                 double a = SurfaceArea(r);
                 int verts = VertexCount(r);
+                areas[i] = a;
                 totalArea += a; totalVerts += verts;
                 if (!flesh) { coatArea += a; coatVerts += verts; }
             }
+
+            // NAME EVERY MESH, ITS SHARE AND WHICH WAY IT WENT.
+            //
+            // Rule 4's repair. `bodySkinned=1 bodyDressed=1 bodyCoatArea=0.296`
+            // was in every verdict for as long as the player was naked, and it
+            // is the correct reading of a body painted the wrong way round — it
+            // simply never named the mesh, so nothing in the file connected
+            // 29.6% to "the coat is on the joints". One line does:
+            //
+            //     bodyParts=[Beta_Surface:70.4%->skin Beta_Joints:29.6%->coat]
+            //
+            // and the fault is legible from the text alone, with no picture and
+            // no round trip.
+            for (int i = 0; i < paint.Count; i++)
+            {
+                double share = totalArea > 0 ? areas[i] / totalArea : 0;
+                parts.Append(i == 0 ? "" : " ")
+                     .Append(paint[i].name).Append(':')
+                     .Append((share * 100.0).ToString("0.0")).Append("%->")
+                     .Append(isFlesh[i] ? "skin" : "coat");
+            }
+            Parts = parts.ToString();
 
             // TWO MEASUREMENTS, TWO GATES, and the first run is why.
             //

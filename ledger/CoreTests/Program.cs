@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestBodyParts();
                 TestAcquaintance();
                 TestSuspicion();
                 TestGossip();
@@ -283,6 +284,54 @@ namespace Ledger.CoreTests
         ///
         /// The last two are the accept cases rule 5b demands: it is not enough
         /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestBodyParts()
+        {
+            Console.WriteLine("BodyParts:");
+
+            // THE TEST THAT WOULD HAVE SAVED THE NAKED PLAYER, and it is first
+            // because it is the entire reason this type exists. The shipped
+            // classifier asked `name.Contains("face")` and `Beta_Surface`
+            // answered yes, so the body was painted skin and the coat went on
+            // the joint balls. Both mesh names are quoted verbatim from the
+            // model file rather than typed from memory.
+            Check(!BodyParts.IsFlesh("Beta_Surface"),
+                  "sur-FACE is not a face", "the whole body mesh");
+            Check(!BodyParts.IsFlesh("Beta_Joints"),
+                  "joint balls are not flesh either");
+
+            // The cases the rule is FOR — a real head, a real hand — because a
+            // classifier that says no to everything passes the line above.
+            Check(BodyParts.IsFlesh("Head"), "a head is flesh");
+            Check(BodyParts.IsFlesh("Mesh.Left Hand"), "a hand is flesh");
+            Check(BodyParts.IsFlesh("Head_01"), "a numbered head is still a head");
+            Check(BodyParts.IsFlesh("body_eyes_low"), "eyes are flesh");
+            Check(!BodyParts.IsFlesh("Handbag"), "a handbag is not a hand");
+            Check(!BodyParts.IsFlesh("Overheads"), "an overhead is not a head");
+            Check(!BodyParts.IsFlesh(null) && !BodyParts.IsFlesh(""),
+                  "an unnamed renderer is not flesh");
+
+            // THE STRUCTURAL RULE. A body that is one mesh cannot be dressed
+            // part-bare, and of the two wrong answers a coloured mannequin
+            // beats a nude one.
+            var one = BodyParts.Assign(new[] { "Head" });
+            Check(one.Length == 1 && !one[0],
+                  "a single mesh called Head still gets the coat",
+                  "nothing left to dress otherwise");
+            var pair = BodyParts.Assign(new[] { "Beta_Surface", "Beta_Joints" });
+            Check(pair.Length == 2 && !pair[0] && !pair[1],
+                  "the bot model is dressed head to foot");
+            var real = BodyParts.Assign(new[] { "Body", "Head", "Hands" });
+            Check(!real[0] && real[1] && real[2],
+                  "a model with a separate head keeps its head bare");
+
+            // The bound, against the two values it sits between: the failing
+            // measurement off the build and the anatomy of a dressed person.
+            Check(0.296 < BodyParts.MinDressedArea,
+                  "the measured naked body fails the bound", "bodyCoatArea=0.296");
+            Check(0.89 > BodyParts.MinDressedArea,
+                  "bare head and hands passes it", "rule of nines: 9% + 2%");
+        }
+
         static void TestAcquaintance()
         {
             Console.WriteLine("Acquaintance:");

@@ -38,26 +38,36 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **THE WALK COST THE STREET ITS CONVERSATIONS — 24 a run down to 7.** Measured
-   across sixteen verdicts, before and after the pace change. Slower people meet
-   each other less. The gate asks `confabs > 0` and so fired only on the single
-   run that landed on zero; a seventy percent collapse sat inside a passing check
-   for four hours. *(CI)* Read `confabTooFar` against `confabOffRoad` and
-   `confabWidest` before touching anything — the cause has two candidates and I
-   have been wrong about this shape twice tonight.
-   **The gate itself is wrong and wants replacing whatever the cause turns out
-   to be:** a bound that only catches total failure is a liveness check wearing
-   a quality check's name.
-2. **The nameplate wall: three outcomes, now all counted.** *(CI)* Offered and
-   active agree at 43, so the declutter sees everything. Read
-   `nameTagsHidden` as a peak against `nameTagsUnresolved` — suppression never
-   firing and two-fifths of labels never reaching the placement loop have
-   completely different repairs.
-3. **Read the green sweep** and ship the source green that lands on 0.82. *(CI)*
+1. **THE PLAYER IS NAKED IN THE MIDDLE OF THE FRAME, and the fix is in.** *(CI)*
+   `name.Contains("face")` matched `Beta_Surface`, the whole body mesh, so the
+   figure was painted flesh from the neck down and the coat went on the joint
+   balls. Every number said so — `bodyCoatArea=0.296` — and none was read.
+   The rule moved to `Core/BodyParts` with twelve unit tests, `bodyParts` now
+   names each mesh with its share, and `bodiesOk` fails an undressed body.
+   **Read `bodyParts` and then OPEN THE NOON STILL.** A number saying clothed
+   is what was there all along.
+2. **The nameplate wall was mostly the ruler.** *(CI)* `collidingNames=182`
+   counted every TextMesh in the city — street plates included — and used a
+   projection that magnifies anything off to the side: solving the run's own
+   figures put the worst label 84 degrees off the camera axis with a
+   566-pixel rect. Off-screen labels are now excluded and world text is
+   counted separately. **Read `collidingNames` against `collidingWorldText`
+   and `nameTagsOffScreen` against `nameTagsUnresolved`** — if the wall was
+   real, the first pair still shows it.
+3. **The confab collapse was never the walking pace.** *(CI)* `confabTooFar=0`
+   against `confabOffRoad=199`: distance rejected nothing. The road test used
+   a flat 3.0m while `StreetEdge.Width` is 8 / 6 / 4, so it was wrong on every
+   road in the city in one direction or the other. Now the kerb.
+   **Read `confabKerbMean`, `confabKerbWorst` and `confabs` before bounding
+   anything** — the gate still only catches total failure, and the replacement
+   threshold comes off that series and not off me.
 4. **Read `premises` and `companionSight`.** *(CI)* Houses were unreachable
-   under a green test; the escort was stranded by the same pace change as the
-   confabs. Both fixed, neither confirmed.
-5. **Jafar runs BODIES.bat ~10:00 CEST.** `bodyChoices` 2 → 6.
+   under a green test; the escort was stranded by the pace change. `eb00eb0`
+   answers the first — the last landed run still says `house3`, which is the
+   pre-fix number.
+5. **Jafar runs BODIES.bat ~10:00 CEST.** `bodyChoices` 2 - 6, and the fetched
+   characters are TEXTURED, so the wardrobe leaves them alone and the naked
+   body stops being a question of colour at all.
 
 ## Next
 

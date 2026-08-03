@@ -1540,7 +1540,7 @@ namespace Ledger.Game
                       + $"depthTested={worldTextMaterialled} "
                       + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
                       + $"shader={WorldText.ShaderPresent} "
-                      + $"collidingNames={_labelsColliding}");
+                      + $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText}");
         }
 
         int _labelsColliding = -1;
@@ -1657,6 +1657,7 @@ namespace Ledger.Game
             var cam = Camera.main;
             if (cam == null) return -1;
             var boxes = new List<Rect>();
+            var other = new List<Rect>();
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 if (t == null || string.IsNullOrEmpty(t.text)) continue;
@@ -1667,14 +1668,34 @@ namespace Ledger.Game
                 // gate measures its own opinion — which is how a control came to
                 // assert behaviour the router had reasoned its way out of.
                 if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) continue;
-                boxes.Add(rect);
+                // ONLY THE LABELS SOMETHING IS RESPONSIBLE FOR.
+                //
+                // This counted EVERY TextMesh in the scene and reported 182
+                // overlapping pairs, which was quoted for hours as the
+                // nameplate wall. The city is full of street plates, shop
+                // fascias and bark bubbles, and two street plates overlapping
+                // at a junction is what a junction looks like — nothing
+                // declutters those and nothing should.
+                //
+                // It is the same fault as `worstTextHeightFrac=0.210`, which
+                // was diagnosed in NameTags.cs and fixed there while this
+                // identical loop sat one file away doing it again. Split
+                // rather than filtered, so world text keeps being counted and
+                // stops being blamed on the declutter.
+                (NameTags.Manages(t) ? boxes : other).Add(rect);
             }
             int pairs = 0;
             for (int i = 0; i < boxes.Count; i++)
                 for (int j = i + 1; j < boxes.Count; j++)
                     if (boxes[i].Overlaps(boxes[j])) pairs++;
+            _collidingWorldText = 0;
+            for (int i = 0; i < other.Count; i++)
+                for (int j = i + 1; j < other.Count; j++)
+                    if (other[i].Overlaps(other[j])) _collidingWorldText++;
             return pairs;
         }
+
+        int _collidingWorldText = -1;
 
         int _worldText = -1, _worldTextDepth = -1;
 
@@ -4981,6 +5002,22 @@ namespace Ledger.Game
                 // near a person lying down. Nothing in between is a pose this
                 // game produces.
                 && (RealBody.Attached == 0 || RealBody.Upright > 0.9)
+                // AND IT HAS CLOTHES ON.
+                //
+                // The fifth fault found by opening a frame and the fourth this
+                // list of clauses sailed past. Every one above asks about a
+                // body that was ADDED — is it there, the right size, the right
+                // way up, assembled like a man — and the figure in the middle
+                // of the noon still was all four of those and stark naked,
+                // because `name.Contains("face")` matched `Beta_Surface` and
+                // painted the whole body flesh.
+                //
+                // The measurement was already here and already correct:
+                // `bodyCoatArea=0.296`. Nothing read it, because nothing was
+                // obliged to. `RealBody.Clothed` is that same number against
+                // `BodyParts.MinDressedArea`, and it is exempt when the model
+                // arrived with its own textures — see the property.
+                && RealBody.Clothed
                 // AND THE SKELETON HANGING OFF THAT ROOT IS A PERSON.
                 //
                 // `bodyUp` reads the ROOT's up vector. It read 1.000 — a
@@ -5379,7 +5416,9 @@ namespace Ledger.Game
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()} up={RealBody.Upright:0.00} "
                  + $"headOverHips={_worstHeadAboveHips:0.00} hipsOverFeet={_worstHipsAboveFeet:0.00} "
-                 + $"dressed={RealBody.Dressed} skinned={RealBody.Skinned}]", bodiesOk),
+                 + $"dressed={RealBody.Dressed} skinned={RealBody.Skinned} "
+                 + $"clothed={RealBody.Clothed} coat={RealBody.DressedAreaFraction:0.000} "
+                 + $"parts=({RealBody.Parts})]", bodiesOk),
                 ($"post[frames={FilmGrade.Frames}]", postOk),
                 ($"framing[begun={FramedBeat.Begun} tightest={PlayerController.TightestFraming:0.0000}]", framingOk),
                 ($"bloom[hit={100 * _bloomFraction:0.00}% rise={_bloomRise:0.0000} " +
@@ -5801,7 +5840,7 @@ namespace Ledger.Game
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
-                      $"collidingNames={_labelsColliding} textMirrored={_textMirrored} " +
+                      $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} textMirrored={_textMirrored} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
                       $"nameTagsTooNear={NameTags.TooNear} nameTagsRects={NameTags.RectCalls} " +
                       $"worstNameMetres={NameTags.WorstNameMetres:0.00} " +
@@ -5816,7 +5855,7 @@ namespace Ledger.Game
                       // means somebody was left with nothing but a text field.
                       $"fewestChips={(DialogueUI.ChipRefreshes > 0 ? DialogueUI.FewestChipsOffered : -1)} " +
                       $"chipRefreshes={DialogueUI.ChipRefreshes} " +
-                      $"nameTagsOffered={NameTags.OfferedPeak} nameTagsHidden={NameTags.SuppressedPeak} nameTagsUnresolved={NameTags.UnresolvedPeak} " +
+                      $"nameTagsOffered={NameTags.OfferedPeak} nameTagsHidden={NameTags.SuppressedPeak} nameTagsUnresolved={NameTags.UnresolvedPeak} nameTagsOffScreen={NameTags.OffScreenPeak} nameTagsOffScreenCalls={NameTags.OffScreen} " +
                       $"nameTagsActive={NameTags.ActivePeak} " +
                       $"nameTagsUpDot={NameTags.WorstUpDot:0.000} " +
                       $"speechUpDot={SpeechBubble.WorstUpDot:0.000} " +
@@ -5871,6 +5910,8 @@ namespace Ledger.Game
                       $"bodyCoatArea={RealBody.DressedAreaFraction:0.000} " +
                       $"bodyCoatVerts={RealBody.DressedVertexFraction:0.000} " +
                       $"bodyCoverageRead={RealBody.CoverageRead} " +
+                      $"bodyClothed={RealBody.Clothed} " +
+                      $"bodyParts=[{RealBody.Parts}] " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
@@ -5919,7 +5960,7 @@ namespace Ledger.Game
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +
-                      $"confabCand={GossipDirector.ConfabCandidates} confabOffRoad={GossipDirector.ConfabOffRoad} confabTooFar={GossipDirector.ConfabTooFar} confabWidest={GossipDirector.ConfabWidestSeen:0.0} confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
+                      $"confabCand={GossipDirector.ConfabCandidates} confabKerbMean={(GossipDirector.ConfabKerbSamples > 0 ? GossipDirector.ConfabKerbSum / GossipDirector.ConfabKerbSamples : -1):0.00} confabKerbWorst={GossipDirector.ConfabKerbWorst:0.00} confabKerbN={GossipDirector.ConfabKerbSamples} confabOffRoad={GossipDirector.ConfabOffRoad} confabTooFar={GossipDirector.ConfabTooFar} confabWidest={GossipDirector.ConfabWidestSeen:0.0} confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +
