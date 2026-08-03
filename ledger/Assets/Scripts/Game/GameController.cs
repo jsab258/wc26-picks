@@ -279,6 +279,11 @@ namespace Ledger.Game
         Light _sun;
         readonly List<NpcWalker> _npcs = new List<NpcWalker>();
         readonly List<ConversationHost> _hosts = new List<ConversationHost>();
+
+        /// The people you can actually talk to, read-only. The sim needs one to
+        /// tell a lie to, and reaching into a private field from another class
+        /// is how a second source of truth gets born.
+        public IReadOnlyList<ConversationHost> Hosts => _hosts;
         ConversationHost _lena;
         ConversationHost _noor;
         GossipDirector _gossip;

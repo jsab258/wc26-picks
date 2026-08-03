@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestClaims();
                 TestInforming();
                 TestBodyParts();
                 TestAcquaintance();
@@ -285,6 +286,80 @@ namespace Ledger.CoreTests
         ///
         /// The last two are the accept cases rule 5b demands: it is not enough
         /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestClaims()
+        {
+            Console.WriteLine("Claims:");
+            var now = new GameTime(2, 19, 0);           // day 2, evening
+            var places = new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "anchor", "anchor" }, { "warehouse", "warehouse" },
+                { "pub", "pub" }, { "docks", "docks" },
+            };
+            Fact E(string said) => Claims.Extract(said, now, places);
+
+            Check(Claims.LocationKey(now) == "location_d2_evening",
+                  "the key matches the one the harness has always used",
+                  Claims.LocationKey(now));
+
+            // THE ACCEPT CASE FIRST.
+            var a = E("I was at the Anchor all evening");
+            Check(a != null && a.Subject == "player" && a.Value == "anchor"
+                  && a.Predicate == "location_d2_evening",
+                  "an alibi becomes a fact", a?.ToString());
+            Check(E("I was in the pub")?.Value == "pub", "in, as well as at");
+            Check(E("I've been at the docks since six")?.Value == "docks",
+                  "and the perfect tense");
+
+            // THE FIRST PLACE NAMED IS THE CLAIM; the rest is story.
+            Check(E("I was at the pub after I left the docks")?.Value == "pub",
+                  "the claim is where you say you were, not everywhere mentioned");
+
+            // A QUESTION IS THE OPPOSITE OF A CLAIM, and somebody else's
+            // whereabouts are not the player's.
+            Check(E("were you at the warehouse") == null, "a question is not a claim");
+            Check(E("he was at the warehouse") == null, "somebody else is not you");
+            Check(E("she said I should try the pub") == null,
+                  "a place mentioned is not a place claimed");
+
+            // DENIALS ARE SKIPPED ON PURPOSE. Encoding them as not_<place>
+            // would make a truthful player contradict a witness who knows a
+            // DIFFERENT place, because CheckClaim compares values for equality.
+            Check(E("I was never at the warehouse") == null,
+                  "a denial is not encoded, because the encoding would lie");
+            Check(E("I wasn't at the warehouse") == null, "nor the contraction");
+            Check(E("I was nowhere near the docks") == null, "nor the idiom");
+
+            Check(E("") == null && E(null) == null
+                  && Claims.Extract("I was at the pub", now, null) == null,
+                  "empty input is not a crash");
+            Check(E("I was at the moon") == null,
+                  "a place the world does not have is not a claim");
+
+            // AND IT REACHES THE THING IT EXISTS FOR: a claim that contradicts
+            // what somebody knows raises their suspicion. That is the whole
+            // point of extracting it, so it is asserted end to end rather than
+            // assumed from the Fact coming back non-null.
+            var known = new KnowledgeBase();
+            known.Learn(new Fact("player", "location_d2_evening", "warehouse"));
+            Check(known.CheckClaim(E("I was at the pub")) == ClaimResult.Contradiction,
+                  "a false alibi is caught by somebody who knows better");
+            Check(known.CheckClaim(E("I was at the warehouse")) == ClaimResult.Consistent,
+                  "and a true one checks out");
+
+            // THE REAL VOCABULARY, off the map the game actually has.
+            var real = Claims.KnownPlaces();
+            Check(real.Count > 0, "the map supplies place names", $"{real.Count}");
+            Check(Claims.Extract("I was at the docks", now, real)?.Value == "docks",
+                  "a real place resolves to its real id");
+            Check(Claims.Extract("I was at the Hook Street pub", now, real)?.Value == "bar_door",
+                  "and the full name resolves to the id, not to itself");
+            // Three places on this map end in "corner". A short form that could
+            // mean any of them must mean none of them.
+            Check(Claims.Extract("I was at the corner", now, real) == null,
+                  "an ambiguous short name is not a claim",
+                  "north/south/market corner all end in it");
+        }
+
         static void TestInforming()
         {
             Console.WriteLine("Informing:");

@@ -1694,7 +1694,26 @@ namespace Ledger.Game
 
             // The player may have walked off, or the world moved, while we waited.
             if (_current != host) return false;
-            if (intent.Kind == IntentKind.Narrative) return false;
+            if (intent.Kind == IntentKind.Narrative)
+            {
+                // NARRATIVE IS NOT NOTHING. It returned false here and stopped,
+                // which is why `ConversationEngine.ProcessClaim` and
+                // `GossipMill.PlayerClaims` sat on the reach ledger for months
+                // with the note that "nothing in the game yet lets them make a
+                // claim". Both were written and tested; the missing inch was
+                // turning a typed sentence into a `Fact`.
+                //
+                // An alibi is the case that matters, because it is the one the
+                // whole information layer is built to catch: say you were at
+                // the pub to somebody who saw you at the warehouse and they
+                // know you lied, permanently, without anything being authored.
+                //
+                // Still returns false — a claim is speech, not a mechanical
+                // action, and the conversation carries on as speech. What it
+                // does now is leave a mark on the record first.
+                LawHost.Claim(_game, host, text);
+                return false;
+            }
 
             try { RefreshActionRows(); } catch (System.Exception) { return false; }
 

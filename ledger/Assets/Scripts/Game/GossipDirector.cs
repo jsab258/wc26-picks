@@ -388,7 +388,7 @@ namespace Ledger.Game
                 // `somewhereToStand` is a road check: the rumour graph has no
                 // idea where anybody is and will happily fire an exchange
                 // between two people crossing a junction.
-                bool clear = OffRoad(wa.transform.position) && OffRoad(wb.transform.position);
+                bool clear = CanStopHere(wa.transform.position) && CanStopHere(wb.transform.position);
                 // WHY A CONFAB DID NOT HAPPEN, WHICH HAS TWO ANSWERS AND HAD
                 // ONE COUNTER.
                 //
@@ -457,24 +457,70 @@ namespace Ledger.Game
         /// `Width / 2` is the kerb, so this is now the definition of "off the
         /// carriageway" rather than an approximation of it, and it follows the
         /// map if a road is ever widened.
-        static bool OffRoad(Vector3 p)
+        /// Is this a place two people could stop and talk?
+        ///
+        /// THE MEASUREMENT THAT SETTLED IT. Rewritten once already tonight,
+        /// from a flat 3.0m to the road's own half-width, and the run said the
+        /// threshold was never the problem: `confabCand=190 confabOffRoad=183
+        /// confabTooFar=0 confabs=7`. One test rejected 96% of every pair the
+        /// rumour graph offered, and distance rejected none.
+        ///
+        /// `confabKerbMean=1.74` over 213 samples, worst 5.03, against kerbs of
+        /// 2, 3 and 4 metres. People in this city stand 1.7m from the middle of
+        /// the road because that is where they WALK — the schedules path along
+        /// street centrelines. So "beyond the kerb" is a state the world almost
+        /// never produces, and asking for it of BOTH people at once is asking
+        /// for something that happens four times in a hundred.
+        ///
+        /// THE TEST NOW ASKS WHAT ITS OWN COMMENT ALWAYS SAID IT DID. The
+        /// original note: *"the rumour graph has no idea where anybody is and
+        /// will happily fire an exchange between two people crossing a
+        /// junction."* A junction. Not a road — a road is where the whole city
+        /// walks and two people stopping on one is a street scene, not a bug.
+        /// `StreetNode.IsJunction` has been there the entire time.
+        ///
+        /// This is the second half of rule 2 rather than the first: the number
+        /// was measurable and I measured it, and what the series showed was
+        /// that I was bounding the wrong quantity. Moving the bound would have
+        /// made red go green and staged conversations in the middle of a
+        /// crossing.
+        static bool CanStopHere(Vector3 p)
         {
-            if (!StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out var edge))
-                return true;   // no street known here: it is not a carriageway
-            double dx = p.x - sx, dz = p.z - sz;
-            double d = System.Math.Sqrt(dx * dx + dz * dz);
-            double kerb = edge != null ? edge.Width / 2.0 : 3.0;
-            // The series, so the next question about where people stand is
-            // answered off evidence rather than another constant.
-            ConfabKerbSamples++;
-            ConfabKerbSum += d;
-            if (d > ConfabKerbWorst) ConfabKerbWorst = d;
-            return d > kerb;
+            // The series stays, because the next question about where people
+            // stand should also come off evidence.
+            if (StreetMap.NearestOnStreet(p.x, p.z, out double sx, out double sz, out var edge))
+            {
+                double dx = p.x - sx, dz = p.z - sz;
+                double d = System.Math.Sqrt(dx * dx + dz * dz);
+                ConfabKerbSamples++;
+                ConfabKerbSum += d;
+                if (d > ConfabKerbWorst) ConfabKerbWorst = d;
+                double kerb = edge != null ? edge.Width / 2.0 : 3.0;
+                if (d > kerb) return true;      // properly off the carriageway
+            }
+
+            // NOT IN A CROSSING. Bounded by the widest road in the map rather
+            // than by a figure of mine: a junction is as big as the roads that
+            // meet in it, so anything inside the widest half-width of the node
+            // is in the crossing itself.
+            foreach (var n in StreetMap.Nodes)
+            {
+                if (n == null || !n.IsJunction) continue;
+                double jx = p.x - n.X, jz = p.z - n.Z;
+                if (jx * jx + jz * jz < StreetMap.AvenueWidth * StreetMap.AvenueWidth / 4.0)
+                {
+                    ConfabInJunction++;
+                    return false;
+                }
+            }
+            return true;
         }
 
-        /// Where people actually stand relative to the nearest kerb — total,
-        /// count and worst — so the distribution is readable instead of guessed
-        /// at. Rule 2: print the series before bounding anything on it.
+        /// How many pairs were turned away for standing in a crossing —
+        /// separately from the old off-road count, so the replacement can be
+        /// compared against the thing it replaced rather than trusted.
+        public static int ConfabInJunction;
+
         public static double ConfabKerbSum, ConfabKerbWorst;
         public static int ConfabKerbSamples;
 

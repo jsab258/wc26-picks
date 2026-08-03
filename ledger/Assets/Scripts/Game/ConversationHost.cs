@@ -15,6 +15,16 @@ namespace Ledger.Game
 
         GameController _game;
         ConversationEngine _engine;
+
+        /// The brain, for callers that need to run something through it rather
+        /// than talk to it. `ProcessClaim` is the case: checking an alibi
+        /// against what this person knows is not a conversation, it is the
+        /// bookkeeping a conversation causes, and it has to be reachable from
+        /// outside the async speech path so the sim can exercise it.
+        ///
+        /// Null until `Begin` has run, and callers must expect that — a host
+        /// that has not been set up yet is a normal state during scene build.
+        public ConversationEngine Engine => _engine;
         AnthropicClient _client;
 
         public CharacterCard Card { get; private set; }

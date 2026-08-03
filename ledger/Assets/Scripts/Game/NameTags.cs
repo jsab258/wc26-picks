@@ -484,14 +484,34 @@ namespace Ledger.Game
             // camera plane enters the arithmetic.
             var centre = cam.WorldToScreenPoint(b.center);
             float near = Mathf.Max(cam.nearClipPlane, 0.001f);
-            if (centre.z <= near) { TooNear++; why = RectFail.TooNear; return false; }
+            if (centre.z <= near)
+            {
+                // BEHIND THE CAMERA IS OFF SCREEN, NOT A FAULT — and the run
+                // that landed says so plainly: `nameTagsUnresolved=42` with
+                // `nameTagsOffScreen=42`. Forty-two labels at once with a depth
+                // at or behind the near plane is not forty-two broken labels,
+                // it is a camera standing in a crowd with people behind it.
+                // None of them is drawn — the near clip sees to that — so none
+                // of them needs placing.
+                //
+                // Left in the fault bucket, `Unresolved` would stay pinned at
+                // the crowd size for ever and the counter built to discriminate
+                // would go back to meaning nothing. Moved here it becomes what
+                // it was for: the ONLY way to be unresolved now is a degenerate
+                // frustum, so a non-zero reading is a real alarm rather than a
+                // census of who is standing behind you.
+                TooNear++;
+                OffScreen++;
+                why = RectFail.OffScreen;
+                return false;
+            }
 
             // Pixels per world metre at this depth, from the camera's own
             // vertical field of view. No invented constant: this is the same
             // relationship the projection matrix uses.
             float halfFov = cam.fieldOfView * 0.5f * Mathf.Deg2Rad;
             float visibleHeight = 2f * centre.z * Mathf.Tan(halfFov);
-            if (visibleHeight <= 0.0001f) { TooNear++; why = RectFail.TooNear; return false; }
+            if (visibleHeight <= 0.0001f) { why = RectFail.TooNear; return false; }
             float pxPerMetre = cam.pixelHeight / visibleHeight;
 
             float w = b.size.x * pxPerMetre;

@@ -115,6 +115,39 @@ namespace Ledger.Game
             return d;
         }
 
+        /// How many alibis the player has offered, and how many were caught.
+        ///
+        /// Counted because "the claim path runs" and "the claim path can catch
+        /// a lie" are different facts and only the first is obvious. A run
+        /// where claims are made and none is ever contradicted would look
+        /// identical to a working system and be a broken one — the same split
+        /// `speechMissing` needed before it could be read.
+        public static int ClaimsMade { get; private set; }
+        public static int ClaimsCaught { get; private set; }
+
+        /// THE PLAYER SAYS WHERE THEY WERE, and the street writes it down.
+        ///
+        /// Lives here rather than inside `DialogueUI` so the sim can exercise
+        /// the REAL path. The dialogue route reaches this through an async
+        /// router the sim does not drive, and a gate on a call site nothing in
+        /// CI can reach is a gate that proves the code compiles. One method,
+        /// two callers, and the run exercises what the player exercises.
+        public static ClaimResult Claim(GameController game, ConversationHost host, string said)
+        {
+            if (game == null || host == null || host.Engine == null) return ClaimResult.Unknown;
+            var claim = Claims.Extract(said, game.Now, Claims.KnownPlaces());
+            if (claim == null) return ClaimResult.Unknown;
+            ClaimsMade++;
+            var was = host.Engine.ProcessClaim(claim, game.Now);
+            if (was == ClaimResult.Contradiction) ClaimsCaught++;
+            // AND THE STREET CARRIES IT. `ProcessClaim` moves one person's
+            // suspicion; `PlayerClaims` is what makes the alibi a thing that
+            // exists after the conversation ends and can be checked against
+            // later — which is the half `Informing` accuses from.
+            game.Gossip?.Mill?.PlayerClaims(host.Card?.Name ?? "", claim, game.Now);
+            return was;
+        }
+
         /// Whoever will actually repeat it, for attribution. The charge has to
         /// come from a person, because in this game every rumour does — an
         /// unattributed one cannot be bribed, leashed or contradicted, and

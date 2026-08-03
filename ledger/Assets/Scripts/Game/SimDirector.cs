@@ -1765,6 +1765,7 @@ namespace Ledger.Game
         /// hour ago and which `reach-check` refused.
         bool _denounceStaged;
         bool _pledged, _pledgeRefused, _brokeWith;
+        bool _claimHeld, _claimCaught;
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
@@ -2134,6 +2135,27 @@ namespace Ledger.Game
                         _pledgeRefused = !_game.Pledge("machine");
                     }
                     _brokeWith = _game.WalkOutOn("dockside");
+                }
+
+                // AND THE PLAYER OFFERS AN ALIBI — one that holds and one that
+                // does not, to somebody who was there.
+                //
+                // Both, in the same run, because "a claim was processed" and "a
+                // claim can be CAUGHT" are different facts. A run where every
+                // alibi checks out is indistinguishable from one where the
+                // contradiction branch is dead, and that branch is the moat:
+                // an NPC cannot be talked out of what it knows.
+                var listener = _game.Hosts != null && _game.Hosts.Count > 0 ? _game.Hosts[0] : null;
+                if (listener != null)
+                {
+                    // The witness is GIVEN what he saw rather than hoped to
+                    // have it, so the reject case is reachable on every run
+                    // instead of on the lucky ones.
+                    listener.Knowledge.Learn(new Fact("player", Claims.LocationKey(now), "docks"));
+                    _claimHeld = LawHost.Claim(_game, listener, "I was at the docks all evening")
+                                 == ClaimResult.Consistent;
+                    _claimCaught = LawHost.Claim(_game, listener, "I was at the Hook Street pub")
+                                   == ClaimResult.Contradiction;
                 }
                 if (d != null)
                     Debug.Log($"SimDirector: denounced kest -> {d.Outcome} "
@@ -5057,6 +5079,13 @@ namespace Ledger.Game
             // heard about a poach, which is the half that was silently missing
             // for as long as the recruit paths called a private twin that
             // skipped the gossip layer.
+            // M19: THE PLAYER CAN MAKE A CLAIM, AND IT CAN BE CAUGHT.
+            //
+            // Both halves, because either alone is satisfiable by a broken
+            // system: a run where every alibi is consistent proves nothing
+            // about the contradiction branch.
+            bool claimsOk = _claimHeld && _claimCaught && LawHost.ClaimsMade >= 2;
+
             bool allegianceOk = _pledged && _pledgeRefused && _brokeWith
                 && GameController.AllegianceChanges >= 2
                 && _game != null && _game.Empire != null && _game.Empire.PoachesHeard > 0;
@@ -5486,6 +5515,7 @@ namespace Ledger.Game
                                      && WorldText.Refused == 0)),
                 ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} {LawHost.LastVerdict}]", lawOk),
                 ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
+                ($"claims[made={LawHost.ClaimsMade} caught={LawHost.ClaimsCaught} held={_claimHeld}]", claimsOk),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),
@@ -5937,6 +5967,8 @@ namespace Ledger.Game
                       $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
+                      $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
+                      $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
@@ -6061,7 +6093,7 @@ namespace Ledger.Game
                       $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000} " +
                       $"aoRange={_aoDeltaMin:0.00000}..{_aoDeltaMax:0.00000} " +
                       $"grainRange={_grainDeltaMin:0.00000}..{_grainDeltaMax:0.00000} " +
-                      $"confabCand={GossipDirector.ConfabCandidates} confabKerbMean={(GossipDirector.ConfabKerbSamples > 0 ? GossipDirector.ConfabKerbSum / GossipDirector.ConfabKerbSamples : -1):0.00} confabKerbWorst={GossipDirector.ConfabKerbWorst:0.00} confabKerbN={GossipDirector.ConfabKerbSamples} confabOffRoad={GossipDirector.ConfabOffRoad} confabTooFar={GossipDirector.ConfabTooFar} confabWidest={GossipDirector.ConfabWidestSeen:0.0} confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
+                      $"confabCand={GossipDirector.ConfabCandidates} confabKerbMean={(GossipDirector.ConfabKerbSamples > 0 ? GossipDirector.ConfabKerbSum / GossipDirector.ConfabKerbSamples : -1):0.00} confabKerbWorst={GossipDirector.ConfabKerbWorst:0.00} confabKerbN={GossipDirector.ConfabKerbSamples} confabOffRoad={GossipDirector.ConfabOffRoad} confabInJunction={GossipDirector.ConfabInJunction} confabTooFar={GossipDirector.ConfabTooFar} confabWidest={GossipDirector.ConfabWidestSeen:0.0} confabs={(_game.Gossip != null ? _game.Gossip.Confabs : -1)} confabOk={confabOk} " +
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +
