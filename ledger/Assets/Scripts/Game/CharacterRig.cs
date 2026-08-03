@@ -277,6 +277,39 @@ namespace Ledger.Game
         public float HipsAboveFeet { get; private set; }
         public bool PostureRead { get; private set; }
 
+        /// The same two measurements taken BEFORE this class touches a bone —
+        /// the Animator's own output. See the note at the top of `LateUpdate`:
+        /// the pair is a bisect, and reading them together is what makes it one
+        /// CI round trip instead of two.
+        public float PreHeadAboveHips { get; private set; }
+        public float PreHipsAboveFeet { get; private set; }
+        public bool PrePoseRead { get; private set; }
+
+        /// Shared by both samples so the two cannot drift apart. A bisect whose
+        /// halves measure slightly different things proves nothing.
+        bool ReadPosture(out float headAboveHips, out float hipsAboveFeet)
+        {
+            headAboveHips = hipsAboveFeet = 0f;
+            if (_hips == null || _head == null || (_lFoot == null && _rFoot == null))
+                return false;
+            float soleY = _lFoot != null && _rFoot != null
+                ? Mathf.Min(_lFoot.position.y, _rFoot.position.y)
+                : (_lFoot != null ? _lFoot.position.y : _rFoot.position.y);
+            headAboveHips = _head.position.y - _hips.position.y;
+            hipsAboveFeet = _hips.position.y - soleY;
+            return true;
+        }
+
+        void StampPrePose()
+        {
+            if (ReadPosture(out float h, out float f))
+            {
+                PreHeadAboveHips = h;
+                PreHipsAboveFeet = f;
+                PrePoseRead = true;
+            }
+        }
+
         void StampPose()
         {
             float s = 0f;
@@ -285,13 +318,10 @@ namespace Ledger.Game
             if (_rShin != null) s += _rShin.localRotation.x * 7f;
             PoseSignature = s;
 
-            if (_hips != null && _head != null && (_lFoot != null || _rFoot != null))
+            if (ReadPosture(out float h, out float f))
             {
-                float soleY = _lFoot != null && _rFoot != null
-                    ? Mathf.Min(_lFoot.position.y, _rFoot.position.y)
-                    : (_lFoot != null ? _lFoot.position.y : _rFoot.position.y);
-                HeadAboveHips = _head.position.y - _hips.position.y;
-                HipsAboveFeet = _hips.position.y - soleY;
+                HeadAboveHips = h;
+                HipsAboveFeet = f;
                 PostureRead = true;
             }
         }
@@ -363,6 +393,25 @@ namespace Ledger.Game
                 _solvedShown = _solved;
                 _solved = 0;
             }
+            // THE BISECT, TAKEN HERE RATHER THAN IN A SEPARATE BUILD.
+            //
+            // The player renders upside down while the BIND pose measures
+            // correct (`RealBody.BindHeadAboveHips` 0.557, `BindHipsAboveFeet`
+            // 0.955), so the import is innocent and something after it inverts
+            // the body. Two suspects with opposite fixes: the animation clip or
+            // the avatar binding, versus this rig's own solve.
+            //
+            // The obvious experiment is a build with the solve disabled, then
+            // another with it back. That is two round trips at ~28 minutes each
+            // and a revert to remember. Sampling HERE — after the Animator has
+            // written the clip's pose, before a single line of this class
+            // touches a bone — gets both numbers out of ONE run and needs no
+            // revert. If the pre-solve pose is upright and the post-solve pose
+            // is not, the fault is in this file. If both are inverted, the
+            // Animator handed us an inverted pose and the fault is the clip or
+            // the avatar.
+            StampPrePose();
+
             bool near = ShouldSolve();
             // The small pieces go with the solve. Same distance, one check,
             // and it keeps the two from disagreeing about what "far" means.

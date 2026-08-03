@@ -1174,6 +1174,24 @@ namespace Ledger.Game
                     // same reasoning that makes a maximum right for
                     // `NameTags.WorstUnplaced` and was wrong for the AO
                     // ceiling.
+                    // THE BISECT'S OTHER HALF. Worst-over-run for both, so a
+                    // single good frame cannot hide an inverted one.
+                    if (prig.PrePoseRead)
+                    {
+                        if (!_prePostureSeen)
+                        {
+                            _prePostureSeen = true;
+                            _worstPreHeadAboveHips = prig.PreHeadAboveHips;
+                            _worstPreHipsAboveFeet = prig.PreHipsAboveFeet;
+                        }
+                        else
+                        {
+                            if (prig.PreHeadAboveHips < _worstPreHeadAboveHips)
+                                _worstPreHeadAboveHips = prig.PreHeadAboveHips;
+                            if (prig.PreHipsAboveFeet < _worstPreHipsAboveFeet)
+                                _worstPreHipsAboveFeet = prig.PreHipsAboveFeet;
+                        }
+                    }
                     if (prig.PostureRead)
                     {
                         if (!_postureSeen)
@@ -1196,6 +1214,8 @@ namespace Ledger.Game
 
         bool _postureSeen;
         float _worstHeadAboveHips, _worstHipsAboveFeet;
+        bool _prePostureSeen;
+        float _worstPreHeadAboveHips, _worstPreHipsAboveFeet;
 
         // ---- WET REFLECTIONS ----
         //
@@ -5373,6 +5393,9 @@ namespace Ledger.Game
                       $"headAboveHips={_worstHeadAboveHips:0.000} " +
                       $"hipsAboveFeet={_worstHipsAboveFeet:0.000} " +
                       $"postureRead={_postureSeen} " +
+                      $"preHeadAboveHips={_worstPreHeadAboveHips:0.000} " +
+                      $"preHipsAboveFeet={_worstPreHipsAboveFeet:0.000} " +
+                      $"prePoseRead={_prePostureSeen} " +
                       $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
                       $"bodyKeptMats={RealBody.Kept} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +

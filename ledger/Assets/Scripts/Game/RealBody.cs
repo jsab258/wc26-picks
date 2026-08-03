@@ -171,12 +171,26 @@ namespace Ledger.Game
             // The cast sit above the crowd's ceiling on purpose — Rocco 0.75,
             // Ada 0.75, Sam 0.65 — and the player is a named character.
             // `Wardrobe.MaxValue` is 0.46 and exists so nobody in the crowd
-            // outshines them, so lifting by a fixed step off the band keeps the
-            // hue and saturation the wardrobe chose while placing the value
-            // where the cast live. 0.68 is under Rocco's 0.75, not a tuned
-            // number: the protagonist should not be the brightest man on his
-            // own street either.
-            float coatV = Mathf.Min(0.68f, (float)cv + 0.22f);
+            // outshines them, so lifting off the band keeps the hue and
+            // saturation the wardrobe chose while placing the value where the
+            // cast live. 0.68 is under Rocco's 0.75: the protagonist should not
+            // be the brightest man on his own street either.
+            //
+            // BUT THE LIFT IS SCALED BY SATURATION, and the stills are why.
+            // A flat +0.22 is fine on denim or burgundy and ruinous on grey or
+            // stone, whose saturation floor is 0.02 — lifting those to 0.68
+            // produces a near-white coat, which is what `review_day1_noon` and
+            // `review_day2_night` at 45c96bc actually show. It is also the
+            // exact look of the white-capsule fault this project already fixed
+            // once, so it would have been read as a regression in that.
+            //
+            // Scaling by the band's own saturation means a coloured coat gets
+            // the full step and a grey one barely moves, which is how cloth
+            // behaves: a bright grey is just a pale grey, while a bright navy
+            // is still navy. No new constant — the multiplier is the
+            // saturation the wardrobe already chose.
+            float lift = 0.22f * Mathf.Clamp01((float)cs / 0.35f);
+            float coatV = Mathf.Min(0.68f, (float)cv + lift);
             var coat = AssetLibrary.Opaque(Color.HSVToRGB((float)ch, (float)cs, coatV));
             Skinned = Dressed = Kept = 0;
             foreach (var r in body.GetComponentsInChildren<Renderer>())
