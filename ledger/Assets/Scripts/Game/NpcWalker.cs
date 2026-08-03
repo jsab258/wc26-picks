@@ -62,6 +62,15 @@ namespace Ledger.Game
         public static double CrowdSpeedMean =>
             CrowdSpeedSamples > 0 ? CrowdSpeedSum / CrowdSpeedSamples : -1;
 
+        /// How far walkers are from where their schedule says they should be.
+        /// Escorts, talkers and waiting hosts are excluded: all three are
+        /// deliberately off-schedule and counting them would bury the signal
+        /// under the features.
+        public static double ScheduleLagSum, ScheduleLagWorst;
+        public static int ScheduleLagSamples;
+        public static double ScheduleLagMean =>
+            ScheduleLagSamples > 0 ? ScheduleLagSum / ScheduleLagSamples : -1;
+
         struct Entry { public int MinuteOfDay; public Vector3 Position; }
 
         readonly List<Entry> _schedule = new List<Entry>();
@@ -755,6 +764,31 @@ namespace Ledger.Game
                 moveAt = CatchUpSpeed;
 
             var flatTarget = new Vector3(target.x, current.y, target.z);
+
+            // HOW FAR BEHIND ITS OWN SCHEDULE THIS BODY IS, which nothing has
+            // ever asked. `npcsMoved=True` proves the walkers MOVE; it says
+            // nothing about whether they ARRIVE.
+            //
+            // That distinction is the leading explanation for two regressions
+            // from one constant tonight. `Confab.StartWithinMetres` is 6.5 and
+            // is purely a distance test, so slowing the crowd cannot make a
+            // pair "too far apart" at any given instant — unless people stop
+            // reaching the places their schedules send them, in which case
+            // socially-connected characters simply stop co-locating and the
+            // rumour graph fires exchanges between two people who are nowhere
+            // near each other. The escort stranded at thirty-one metres is the
+            // same fact seen from the other end.
+            //
+            // Mean and worst, because a crowd where everybody is four metres
+            // adrift is a completely different world from one where two people
+            // are two hundred metres adrift and everybody else is fine.
+            if (!Escorting && !InConfab && !WaitingAsHost)
+            {
+                float lag = Vector3.Distance(current, flatTarget);
+                ScheduleLagSum += lag;
+                ScheduleLagSamples++;
+                if (lag > ScheduleLagWorst) ScheduleLagWorst = lag;
+            }
 
             bool moving = (flatTarget - current).sqrMagnitude > 0.04f;
             if (moving)
