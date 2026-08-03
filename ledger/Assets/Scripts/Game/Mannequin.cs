@@ -18,10 +18,22 @@ namespace Ledger.Game
     /// ground never is — and the difference between those two is most of what
     /// makes a street feel populated.
     ///
-    /// It is also not throwaway. The bones are the contract: when the FBX
-    /// lands, `CharacterRig` binds to an Avatar instead of to this, drives the
-    /// identical joints with the identical numbers, and this class stops being
-    /// instantiated. Nothing downstream of it changes.
+    /// It is also not throwaway. The bones are the contract: `CharacterRig`
+    /// binds to an Avatar instead of to this, drives the identical joints with
+    /// the identical numbers, and nothing downstream of it changes.
+    ///
+    /// **"AND THIS CLASS STOPS BEING INSTANTIATED" WAS THE WRONG PREDICTION,
+    /// and it has been wrong since the FBX landed.** Both tiers are live at
+    /// once and will be for a long time: the player has a bought skeleton and
+    /// sixty-seven mannequins are the crowd, because a skinned mesh per walker
+    /// has never been costed on a GPU-less runner. `CharacterRig.Bind` already
+    /// says so in its own note — "it read as though the day tier one started
+    /// matching was the day tier two stopped existing" — and this file was
+    /// still promising the opposite one directory away.
+    ///
+    /// It matters beyond tidiness: a class believed to be on its way out does
+    /// not get looked at, and this one is what sixty-seven of the sixty-eight
+    /// bodies in every screenshot are made of.
     [DisallowMultipleComponent]
     public class Mannequin : MonoBehaviour
     {
@@ -61,13 +73,18 @@ namespace Ledger.Game
         public Transform LThigh, LShin, LFoot, RThigh, RShin, RFoot;
         public Transform LUpperArm, LForearm, RUpperArm, RForearm;
 
-        /// Build a body onto `host`, replacing whatever primitive mesh it was
-        /// wearing. The host keeps its collider, its controller and its
-        /// scripts — only the visible shape changes.
         /// This body's proportions. Public so the rig can read the gait bias
         /// and so the sim gate can prove a crowd is not thirty of one person.
         public Physique Shape { get; private set; }
 
+        /// Build a body onto `host`, replacing whatever primitive mesh it was
+        /// wearing. The host keeps its collider, its controller and its
+        /// scripts — only the visible shape changes.
+        ///
+        /// (This paragraph was stacked on top of `Shape`'s own doc comment, so
+        /// C# attached it there and this function had none. Harmless to the
+        /// compiler and not to a reader, who got "build a body onto host" as
+        /// the description of a property.)
         public static Mannequin Build(GameObject host, Color skin, Color cloth, string who = null)
         {
             if (host == null) return null;
@@ -212,14 +229,15 @@ namespace Ledger.Game
             return (upper, fore);
         }
 
-        /// A bare transform at a joint position. The MESH is a child of it,
-        /// offset half a limb down, so rotating the joint swings the limb from
-        /// its end rather than about its middle. Parenting a scaled mesh
-        /// directly and rotating THAT is the usual mistake and it makes every
-        /// limb pivot around its own centre, which reads as a body coming
-        /// apart.
-        /// The small pieces — eyes, nose, hands, hair, feet. Switched off at
-        /// distance.
+        /// The small pieces — eyes, nose, hands, hair and whatever is on the
+        /// head. Switched off at distance.
+        ///
+        /// NOT THE FEET, though this list said so for as long as it has
+        /// existed. `MarkDetail` is called on the head's five pieces and on the
+        /// two hands, and nowhere else; the feet have never been cullable. The
+        /// same paragraph also sat stacked on `Joint`'s doc comment, so that
+        /// function's description was attached to this field instead — the
+        /// second time in one file.
         ///
         /// NOT THE LIMBS. The temptation with a body made of boxes is to cull
         /// from the outside in, and that is backwards: at fifty metres the
@@ -266,6 +284,12 @@ namespace Ledger.Game
             || name == "UpperArmMesh" || name == "ForearmMesh"
             || name == "Hair";
 
+        /// A bare transform at a joint position. The MESH is a child of it,
+        /// offset half a limb down, so rotating the joint swings the limb from
+        /// its end rather than about its middle. Parenting a scaled mesh
+        /// directly and rotating THAT is the usual mistake and it makes every
+        /// limb pivot around its own centre, which reads as a body coming
+        /// apart.
         static Transform Joint(string name, Transform parent, Vector3 localPos)
         {
             var go = new GameObject(name);
