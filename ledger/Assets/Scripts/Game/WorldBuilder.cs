@@ -134,6 +134,8 @@ namespace Ledger.Game
             Masses.AddRange(BuildBlockSpecs());
             _windowsLit = false;
             WindowPanes = 0; WindowBands = 0;
+            Doors = 0;
+            System.Array.Clear(PremisesBuilt, 0, PremisesBuilt.Length);
             AssetLibrary.Initialize();
             ConfigureEnvironment();
 
@@ -683,14 +685,37 @@ namespace Ledger.Game
             float depth = alongX ? size.x : size.z;
             var face = pos + outward * (depth * 0.5f);
 
+            // WHAT KIND OF PLACE THIS IS. Until now every mass in the city got
+            // the same fascia, the same door and the same cornice, so a
+            // five-storey block, a corner shop and a dock warehouse were one
+            // object at three sizes — and a street read as repetition however
+            // well each individual wall was dressed. This function's own note
+            // says "nothing told you where you could go in"; that was solved
+            // for one building and never for the difference between buildings.
+            //
+            // Prosperity comes from the same ramp `DressFacade` uses for
+            // clutter, so the two descriptions of one street agree by
+            // construction: a frontage with shops is a frontage somebody
+            // sweeps, and a warehouse stands where the bins pile up.
+            bool nearCore = Ledger.Core.Dressing.NearestCore(face.x, face.z, DenseCores)
+                            <= NearCoreMetres;
+            var kind = Ledger.Core.Dressing.KindAt(face.x, face.z,
+                nearCore ? StreetFrontProsperity : BackAlleyProsperity, nearCore);
+            PremisesBuilt[(int)kind]++;
+
             // The fascia: a band over the shopfront, at the height the ground
             // floor ends. Proud of the wall so it reads as a ledge rather than
-            // as paint.
-            var fasciaSize = alongX
-                ? new Vector3(0.25f, 0.55f, width * 0.9f)
-                : new Vector3(width * 0.9f, 0.55f, 0.25f);
-            MakeBox($"{tag}_fascia", face + new Vector3(0, 3.5f, 0), fasciaSize,
-                    AssetLibrary.Roof);
+            // as paint. A house does not get one — a signboard over somebody's
+            // front room is the fastest way to make a residential street look
+            // like a high street.
+            if (Ledger.Core.Dressing.HasFascia(kind))
+            {
+                var fasciaSize = alongX
+                    ? new Vector3(0.25f, 0.55f, width * 0.9f)
+                    : new Vector3(width * 0.9f, 0.55f, 0.25f);
+                MakeBox($"{tag}_fascia", face + new Vector3(0, 3.5f, 0), fasciaSize,
+                        AssetLibrary.Roof);
+            }
 
             // The door: narrow, tall, set INTO the wall rather than onto it, so
             // it reads as an opening at any angle instead of a panel that
@@ -704,14 +729,18 @@ namespace Ledger.Game
             // analysis says something is missing, OPEN THE FILE. The duplicate
             // is reverted and the two improvements it did carry are folded in
             // here, where the one door already was.
+            // WIDTH FROM THE PREMISES, and the height with it: a loading door
+            // has to take a cart, and a cart is not 2.2m of headroom short.
+            float dwid = (float)Ledger.Core.Dressing.DoorWidth(kind);
+            float dhgh = kind == Ledger.Core.Dressing.Premises.Warehouse ? 3.2f : 2.2f;
             var doorSize = alongX
-                ? new Vector3(0.30f, 2.2f, 1.15f)
-                : new Vector3(1.15f, 2.2f, 0.30f);
+                ? new Vector3(0.30f, dhgh, dwid)
+                : new Vector3(dwid, dhgh, 0.30f);
             // WOOD AND DARKER, not bare metal. A door the same value as its
             // wall is a panel; the recess only reads as an opening if there is
             // a shadow in it, which is the same argument the window piers won.
-            var leaf = MakeBox($"{tag}_door", face - outward * 0.12f + new Vector3(0, 1.1f, 0),
-                    doorSize, AssetLibrary.Wood);
+            var leaf = MakeBox($"{tag}_door", face - outward * 0.12f
+                    + new Vector3(0, dhgh * 0.5f, 0), doorSize, AssetLibrary.Wood);
             var lr = leaf.GetComponent<Renderer>();
             var lmpb = new MaterialPropertyBlock();
             lr.GetPropertyBlock(lmpb);
@@ -724,13 +753,13 @@ namespace Ledger.Game
             // a doorway at a glance from across the street.
             var alongAxis = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
             var jambSize = alongX
-                ? new Vector3(0.22f, 2.36f, 0.14f)
-                : new Vector3(0.14f, 2.36f, 0.22f);
+                ? new Vector3(0.22f, dhgh + 0.16f, 0.14f)
+                : new Vector3(0.14f, dhgh + 0.16f, 0.22f);
             var off = alongAxis * (alongX ? doorSize.z : doorSize.x) * 0.5f
                       + alongAxis * 0.07f;
-            MakeBox($"{tag}_jambA", face + off + new Vector3(0, 1.18f, 0), jambSize,
+            MakeBox($"{tag}_jambA", face + off + new Vector3(0, dhgh * 0.54f, 0), jambSize,
                     AssetLibrary.Concrete);
-            MakeBox($"{tag}_jambB", face - off + new Vector3(0, 1.18f, 0), jambSize,
+            MakeBox($"{tag}_jambB", face - off + new Vector3(0, dhgh * 0.54f, 0), jambSize,
                     AssetLibrary.Concrete);
             Doors++;
 
@@ -1071,6 +1100,19 @@ namespace Ledger.Game
         /// design and an entrance must not, so a floor on the total would say
         /// nothing about whether the buildings can be read as places.
         public static int Doors;
+
+        /// How many of each kind of premises the city built, indexed by
+        /// `Dressing.Premises`. Printed because "the buildings vary" is a claim
+        /// and a frame at street level sees perhaps six of them — a distribution
+        /// is the only way to know whether the whole town varies or just the
+        /// corner the camera happens to be on.
+        ///
+        /// NOT `Premises`, which is what I called it first. `lint-usings`
+        /// flagged it: `Ledger.Core.Dressing.Premises` is the enum this counts,
+        /// and a field in another assembly wearing the same bare name is
+        /// exactly the ambiguity that linter exists to catch. It was a false
+        /// positive about the USING and a true one about the NAME.
+        public static readonly int[] PremisesBuilt = new int[4];
 
         /// PIECES AND FACADES, split by whether they are near a dense core.
         ///

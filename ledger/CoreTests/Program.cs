@@ -11307,6 +11307,43 @@ namespace Ledger.CoreTests
             Check(!Wall(0.5).Exists(p => p.Kind == Clutter.Awning),
                 "and a blank wall does not");
 
+            // ---- WHAT KIND OF BUILDING ----
+            //
+            // Every mass in the city has had the same fascia, the same door and
+            // the same cornice, so a five-storey block, a corner shop and a dock
+            // warehouse were one object at three sizes. These assert the
+            // DISTRIBUTION rather than any single answer, because a classifier
+            // keyed on position is only meaningful in aggregate.
+            int shops = 0, houses = 0, tenements = 0, sheds = 0;
+            for (double x = 0; x < 600; x += 7)
+            {
+                if (Dressing.KindAt(x, 0, 0.85, true) == Dressing.Premises.Shop) shops++;
+                if (Dressing.KindAt(x, 40, 0.80, false) == Dressing.Premises.House) houses++;
+                if (Dressing.KindAt(x, 80, 0.20, false) == Dressing.Premises.Warehouse) sheds++;
+                if (Dressing.KindAt(x, 120, 0.30, false) == Dressing.Premises.Tenement) tenements++;
+            }
+            Check(shops > 0 && houses > 0 && sheds > 0 && tenements > 0,
+                "a town has shops, houses, warehouses and tenements in it",
+                $"shop {shops} house {houses} shed {sheds} tenement {tenements}");
+            // NOT ALL OF ONE, which is the failure a position-keyed roll makes
+            // easy: a threshold slightly wrong turns every wall into a shop and
+            // the frame looks deliberate.
+            Check(shops < 86, "and a rich centre is not a shopping centre — some of "
+                  + "it is still somewhere people live", $"{shops} of 86");
+
+            Check(Dressing.KindAt(17, 3, 0.5, true) == Dressing.KindAt(17, 3, 0.5, true),
+                "the same corner is the same premises every time it is asked");
+
+            // THE DIFFERENCE HAS TO BE VISIBLE, or the type is bookkeeping. A
+            // cart has to get through a warehouse door and a house door has to
+            // be a door.
+            Check(Dressing.DoorWidth(Dressing.Premises.Warehouse)
+                  > 2 * Dressing.DoorWidth(Dressing.Premises.House),
+                "a warehouse takes a cart and a house takes a person");
+            Check(Dressing.HasFascia(Dressing.Premises.Shop)
+                  && !Dressing.HasFascia(Dressing.Premises.House),
+                "a signboard belongs over a shop and not over somebody's front room");
+
             // ---- OVERHEAD ----
             Check(!Dressing.CableAt(5, 5, 0.1, 30),
                 "nothing is strung across a wide avenue — a cable over a main road reads "

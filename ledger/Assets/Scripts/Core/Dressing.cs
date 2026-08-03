@@ -191,6 +191,72 @@ namespace Ledger.Core
         public static double Roll(double x, double z, int salt) =>
             (Hash(x, z, salt) % 100000) / 100000.0;
 
+        /// WHAT KIND OF BUILDING THIS IS, which nothing has ever asked.
+        ///
+        /// Every mass in the city gets the same treatment: a fascia at 3.5m, a
+        /// 1.15m door, a cornice. So a five-storey block, a corner shop and a
+        /// dock warehouse are the same object at three sizes, and a street
+        /// reads as repetition however well each individual wall is dressed.
+        /// That is the note `GroundFloor` itself makes — "nothing told you
+        /// where you could go in" — solved for one building and not for the
+        /// difference between buildings.
+        ///
+        /// FROM POSITION AND PROSPERITY, deterministically, so the same corner
+        /// is the same shop every run and the CI frames stay comparable.
+        /// Prosperity is already what `Facade` uses to decide how much rubbish
+        /// collects against a wall, and the two agree by construction: a rich
+        /// frontage gets shops, a poor one gets tenements, and warehouses sit
+        /// where nobody is spending money on the pavement.
+        public enum Premises
+        {
+            /// A wide glazed frontage under a signboard. The commercial floor.
+            Shop = 0,
+            /// A narrow door, no fascia, windows that are windows rather than
+            /// display. Somebody lives behind this wall.
+            House = 1,
+            /// Flats above a plain street door. The default in a dense poor
+            /// district and most of what a port town is made of.
+            Tenement = 2,
+            /// A loading door wide enough for a cart, and no shopfront at all.
+            Warehouse = 3,
+        }
+
+        /// How wide this kind of premises makes its street door, in metres.
+        ///
+        /// Named here rather than in the Game layer because it is the number
+        /// that carries the DIFFERENCE — a warehouse door and a house door at
+        /// the same width is the whole fault this type exists to fix, and a
+        /// constant sitting in a renderer is a constant nobody tests.
+        public static double DoorWidth(Premises p) =>
+            p == Premises.Warehouse ? 3.0
+            : p == Premises.Shop ? 1.3
+            : p == Premises.House ? 0.95
+            : 1.1;
+
+        /// Whether this kind carries a signboard band over the ground floor.
+        /// A house with a shop fascia is the single most obvious way to make a
+        /// residential street look like a high street.
+        public static bool HasFascia(Premises p) =>
+            p == Premises.Shop || p == Premises.Warehouse;
+
+        public static Premises KindAt(double x, double z, double prosperity, bool nearCore)
+        {
+            double r = Roll(x, z, 11);
+            // A WAREHOUSE IS A PLACE NOBODY DRESSES. Away from a core and poor
+            // is exactly the condition `Facade` already uses for bins and
+            // alleys, so the two descriptions of the same street agree without
+            // a second rule to keep in step.
+            if (!nearCore && prosperity < 0.35 && r < 0.45) return Premises.Warehouse;
+            // Shops cluster where the money and the footfall are. Not
+            // guaranteed even at the centre — a high street with a shop in
+            // every single unit is a shopping centre, not a town.
+            if (nearCore && r < 0.30 + 0.45 * Feel.Clamp01(prosperity)) return Premises.Shop;
+            // Houses are the quiet remainder of a prosperous street; tenements
+            // are everything else, which in a port town is most of it.
+            if (prosperity > 0.55 && r < 0.55) return Premises.House;
+            return Premises.Tenement;
+        }
+
         /// Dress one facade: a wall running from (ax,az) to (bx,bz), with the
         /// building on the left and the street on the right.
         ///
