@@ -426,9 +426,26 @@ the signal cannot be forged by anything I do.
 Cap it around 50 minutes so a dead run cannot hang the loop. If something else
 blocks you, `send_later` goes down to one-minute granularity.
 
-**4. Never end a turn without arming something.** No watcher, no `send_later`,
-no pending work means the project has silently stopped. This is rule 8 with a
-mechanism attached.
+**4. Never end a turn without arming something — AND ARMING IS NOT ENDING.**
+No watcher, no `send_later`, no pending work means the project has silently
+stopped. This is rule 8 with a mechanism attached.
+
+But arming a watcher is the *precondition* for ending a turn, not permission to
+end one, and reading it as permission is what survived both repairs. Measured
+after the second fix: nine commits in seventy-four minutes with gaps of 2, 5, 3,
+**30**, 12, 1, 10, 11. The thirty was a dispatch, a watcher, and a stop — with
+four standing items sitting unused on the queue.
+
+So the mechanisms built for this solve the wrong half. `queue-check` guarantees
+work is AVAILABLE; nothing can make it be CONSUMED, because no check inside
+`verify.py` can see a turn boundary. Availability was never the binding
+constraint.
+
+**The rule, and it is a rule because it cannot be a tool: a turn ends only when
+nothing is startable.** With a standing section that cannot be completed, that
+state does not exist — so after arming a watcher, open `queue.md` and start the
+next thing in the same turn. Every time. The watcher is what makes the result
+reachable later; it is not the work.
 
 ### Why the cron is only a watchdog
 
