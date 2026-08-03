@@ -49,6 +49,14 @@ namespace Ledger.Game
 
         /// What the crowd is actually doing, over the run. A constant can be
         /// read off the source; whether the bodies MOVE at it cannot.
+        ///
+        /// WHAT IT MEANS CHANGED WHEN ESCORTS LEARNED TO HURRY, and the number
+        /// stays while the question it answers moves — the same trap
+        /// `liveArmDrop` fell into the moment the body started animating. The
+        /// mean now mixes walkers at 1.4 with escorts closing at 2.6, so it
+        /// will read ABOVE 1.4 and that is the feature working rather than the
+        /// walk being wrong. Read the peak as "somebody was hurrying", not as
+        /// "the crowd is jogging again".
         public static double CrowdSpeedPeak, CrowdSpeedSum;
         public static int CrowdSpeedSamples;
         public static double CrowdSpeedMean =>

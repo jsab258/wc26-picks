@@ -38,33 +38,29 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**Answered tonight, from landed builds:**
+**Answered and shipped tonight.** 17.1 is closed except for the mesh: the
+player stands, arms at the sides, and forty-one imported animations are finally
+being played. The street can see and can name you. The crowd walks. The window
+colour is a measured 0.16 rather than three failed diagnoses. Speech bubbles
+stand up. Buildings vary by premises and have doors.
 
-- The street can see and can name you: eyes-open 0 → 42 of 50, knows-you 0 → 42,
-  best rung silhouette → name. No failing gates.
-- The crowd walks: 1.39 m/s against a 1.40 target, hip swing 36° → 26°, and the
-  schedule still holds.
-- The coat covers 29.6% of the body by area. Vertex share would have said 44%.
-- **The voice gap is a bank, not a bug: 312 of 346 missing lines have no
-  recording, 34 are correctly out of earshot, none are faults.** That is a spend
-  and it is Jafar's call.
-- Doors exist on 39 buildings; premises vary; both bodies found by the picker.
-
-**Still to read as they land:**
-
-1. **`nameTagsUpDot` and `speechUpDot`.** *(CI)* The night frame is a wall of
-   names with spoken lines lying flat across the pavement. `SpeechBubble` had
-   the identical one-argument `LookRotation` the nameplates were fixed for and
-   nobody grepped for. 1.0 is standing, 0.0 is in the road.
-2. **`nameTagsActive` against `nameTagsOffered`.** *(CI)* Offered said 2 while
-   the frame showed a dozen — one of those numbers is about something else.
-3. **`animCulling`, `animClipTime`, `animState`.** *(CI)* Exactly 90.0° said the
-   animator never ran; the body was culled between on-demand renders. Clip time
-   advancing is the proof it now does.
-4. **`[series] windowWarmth` and `[series] ringGrowth`.** *(CI)* Both were being
-   filtered out of the verdict entirely. Read the source blue that lands at 0.45,
-   and the radius where a ring stops reading as a ring.
-5. **`bodyChoices` on Jafar's drop (~10:00 CEST).** Should go 2 → 6.
+1. **Read the green sweep.** *(CI)* Blue is answered at 0.16; green comes out
+   at 0.97 against a target of 0.82 and is now the swept axis. Read the source
+   green that lands on target and ship it — do not extrapolate it from the blue
+   result, which is one point and is what rule 2 forbids.
+2. **Read `nameTagsUpDot` and `speechUpDot`.** *(CI)* 1.0 standing, 0.0 lying in
+   the road. Both billboards are fixed; these say whether anything else tilts.
+3. **Read `premises` again.** *(CI)* Houses were structurally unreachable under
+   a green test — `house0` in the build while the Core test asserted otherwise
+   by passing a prosperity no caller supplies. All four should appear now.
+4. **Read `companionSight`.** *(CI)* She was 31 metres away and rung 0 was
+   CORRECT; the fault was following, not perception, and my walk-speed change
+   caused it. An escort beyond talking distance now hurries at the old 2.6.
+5. **Read `bodyChoices` after Jafar's drop (~10:00 CEST).** 2 → 6.
+6. **A better ring metric.** Coverage cannot discriminate — a 128m ring covers
+   as much screen as a 4m one, because a ring is a thin line and most of a big
+   one leaves the frame. What would: arc curvature in screen pixels. Only then
+   is a fade threshold a reading rather than a defence.
 
 ## Next
 
