@@ -38,30 +38,33 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Read the animation build.** *(CI)* The body now gets a real blend tree —
-   idle, walk, run — from clips that were imported and never played. Check
-   `clipsBound`, `controller=`, `speedDriven` and `looped` BEFORE the stills,
-   because a soft failure there is designed to look like nothing happened.
-   Then open the frame: a person standing, not a scarecrow.
-2. **The crowd walks in fencing lunges and nothing measures it.** In the noon
-   still the walkers lean forward maybe forty-five degrees mid-stride with the
-   arms thrown back. That is a HYPOTHESIS off a 1280x720 frame — rule 4 says
-   make the run print the quantity first. Worst torso pitch and worst leg
-   swing across the mannequins, then read them before touching `Rig`.
-3. **Read `deedEyesOpen`, `deedKnowsYou`, `companionSight`.** *(CI)* Both were
-   structurally zero. The accept case is what to check: eyes open in the
-   market, the companion at rung 4, the street still below her.
-4. **Read `bodyCoatArea` against `bodyDressed`.** *(CI)* The count says
-   dressed, the frame says naked; area can tell them apart.
-5. **`Attending`/`PresentNearby` are now walker-maintained** — confirm the
-   hush figures did not move in the sim, because the sim used to compute its
-   own copy and now reads the shared one. Same number means the swap is
-   clean; a different one means the two were never measuring the same thing.
-6. **Mixamo characters are FREE and we never downloaded one.** The 42 files
-   in `Assets/Characters` are all animations; the only bodies are `X Bot` and
-   `Y Bot`, the default grey preview mannequins. Not a purchase — a download
-   needing an Adobe login, and this container cannot reach Mixamo. Jafar's
-   ten minutes, and the single biggest visible change available.
+1. **Read the bone-ownership build.** *(CI)* The controller runs and the arms
+   came down, but one was bent up beside the head: `Swing` was assigning from
+   a stale rest over the top of the clip every frame. Now gated on
+   `PoseIsDriven`, and the arm bracket only reports the bought body instead of
+   a maximum over sixty-eight rigs that named nobody. Read `preArmDrop` and
+   `liveArmDrop` — they should finally describe the same person — then open
+   the noon frame.
+2. **Read the window warmth series.** *(CI)* `windowWarmth` sweeps the SOURCE
+   blue at fixed brightness. The six-multiplier series could never reach its
+   own target of 0.45 and moved the wrong way with k, so brightness was never
+   the lever. Read off the source blue that lands at 0.45 on screen and ship
+   that colour. Do not average, do not eyeball — read the line.
+3. **Read `bodyCoatArea` now the meshes import readable.** *(CI)* It returned
+   0.000 last time because `mesh.vertices` on a non-readable mesh is an empty
+   array, which looks exactly like the fault it was written to find.
+4. **Jafar runs BODIES.bat tomorrow ~10:00 CEST.** When real bodies land:
+   point `CharacterPrefab.BodyModel` at one, and give the cast different
+   bodies rather than four copies of one. One-line change plus a lookup.
+5. **The noise ring reads as a stripe, not a ring, past about forty metres.**
+   Sagitta of a chord L on radius R is L squared over 8R, so thirty metres of
+   a 148-metre ring bows by 0.76m — a straight line to the eye. Hiding it from
+   the stills was the screenshot fix; fading it as it grows is the game-feel
+   one, and it wants its own frame.
+6. **Read a system for false comments — `Mannequin` or `WorldBuilder` next.**
+   Four found today: two claiming the companion got a full sighting, one
+   claiming the walkers maintained the hush counters, one claiming an empty
+   audit roster was unavoidable. Every one had been true when written.
 
 ## Next
 

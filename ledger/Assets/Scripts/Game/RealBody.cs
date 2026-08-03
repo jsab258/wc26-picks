@@ -91,6 +91,45 @@ namespace Ledger.Game
         public static float ScaledHipsAboveFeet { get; private set; }
         public static bool ScaledPoseRead { get; private set; }
 
+        /// WHICH BODY THIS PERSON HAS, and it must never change.
+        ///
+        /// Every `Body_*.prefab` in Resources is one bought mesh.
+        /// `CharacterPrefab` writes one per FBX sitting directly in
+        /// `Assets/Characters`, so the moment more than one lands the town
+        /// stops being sixty people wearing one face.
+        ///
+        /// Chosen through `Physique.Fraction`, which is the function this
+        /// project already uses to make a name mean a body — "the same name is
+        /// the same body, always; a city that reshuffles its people on reload
+        /// is broken in a way nobody can unsee". A different salt from the
+        /// wardrobe's, or everybody in a navy coat would also share a face.
+        ///
+        /// SORTED, because `Resources.LoadAll` does not promise an order and
+        /// an unsorted list would give the same name a different body whenever
+        /// a new mesh was added — which is the reshuffle that rule forbids,
+        /// arriving through the back door.
+        static GameObject[] _bodies;
+        public static int BodyChoices { get; private set; }
+
+        static GameObject PickBody(string wearer)
+        {
+            if (_bodies == null)
+            {
+                var all = Resources.LoadAll<GameObject>("Characters");
+                var list = new System.Collections.Generic.List<GameObject>();
+                foreach (var g in all)
+                    if (g != null && g.name.StartsWith("Body_")) list.Add(g);
+                list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                _bodies = list.ToArray();
+                BodyChoices = _bodies.Length;
+            }
+            if (_bodies.Length == 0)
+                return Resources.Load<GameObject>("Characters/Body");
+            double f = Ledger.Core.Physique.Fraction(wearer ?? "player", 23);
+            int i = Mathf.Clamp((int)(f * _bodies.Length), 0, _bodies.Length - 1);
+            return _bodies[i];
+        }
+
         /// The mesh a renderer draws, whether it is skinned or not. One reader,
         /// because the body has both kinds and two lookups would eventually
         /// disagree about which meshes count.
@@ -171,7 +210,7 @@ namespace Ledger.Game
         {
             if (host == null) { Why = "no host"; return false; }
 
-            var prefab = Resources.Load<GameObject>("Characters/Body");
+            var prefab = PickBody(wearer);
             if (prefab == null)
             {
                 // The likeliest cause is that the Editor step did not run, not

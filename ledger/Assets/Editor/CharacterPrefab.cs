@@ -47,18 +47,71 @@ namespace Ledger.EditorTools
         public static int ClipsBound = -1;
         public static string ControllerWhy = "not tried";
 
+        /// Every body prefab written this run, newline-free for the done line.
+        /// A run that finds one body and a run that finds five look identical
+        /// from a screenshot of one character.
+        public static int Variants;
+
+        /// Built on the first body and reused for the rest.
+        static RuntimeAnimatorController _locomotion;
+
+        /// EVERY BODY IN THE FOLDER, NOT JUST THE ONE NAMED ABOVE.
+        ///
+        /// `BodyModel` names `X Bot.fbx` because that is all there has ever
+        /// been. When real characters land — Jafar runs `BODIES.bat` and drops
+        /// them in beside the clips — a town where sixty-odd named people share
+        /// one face is barely better than a town of boxes, and pointing the
+        /// constant at a different single file would just move the problem.
+        ///
+        /// So this writes one prefab per body it finds and `RealBody` picks per
+        /// character. Written BEFORE the bodies arrive on purpose: the drop
+        /// then shows up in the next build instead of the one after, and the
+        /// code is reviewed while it is cheap to be wrong about.
+        ///
+        /// Bodies are files directly in `Assets/Characters`; the forty-two
+        /// clips live in A/B/C. Same test `CharacterImport` uses for
+        /// readability, and it is the folder convention this project already
+        /// relies on rather than a new one.
+        static System.Collections.Generic.List<string> BodyModels()
+        {
+            var found = new System.Collections.Generic.List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { "Assets/Characters" }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var rel = path.Substring("Assets/Characters/".Length);
+                if (rel.Contains("/")) continue;
+                found.Add(path);
+            }
+            // Sorted, because `FindAssets` order is not defined and a cast whose
+            // faces reshuffle between builds is the same fault `Physique` exists
+            // to prevent — "the same name is the same body, always".
+            found.Sort(System.StringComparer.Ordinal);
+            return found;
+        }
+
         public static void Build()
+        {
+            Variants = 0;
+            _locomotion = null;
+            foreach (var path in BodyModels())
+                BuildOne(path, path == BodyModel);
+            Debug.Log($"CharacterPrefab: {Variants} body prefab(s) written");
+        }
+
+        /// `isDefault` writes the extra copy at `Body.prefab`, which is what
+        /// `RealBody` falls back to and what every existing gate names.
+        static void BuildOne(string modelPath, bool isDefault)
         {
             try
             {
-                var model = AssetDatabase.LoadAssetAtPath<GameObject>(BodyModel);
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
                 if (model == null)
                 {
-                    Debug.Log($"CharacterPrefab: no model at {BodyModel} — skipping");
+                    Debug.Log($"CharacterPrefab: no model at {modelPath} — skipping");
                     return;
                 }
 
-                var avatar = AvatarOf(BodyModel);
+                var avatar = AvatarOf(modelPath);
                 if (avatar == null || !avatar.isHuman)
                 {
                     // NOT AN ERROR, A FINDING. If the importer stopped producing
@@ -111,7 +164,14 @@ namespace Ledger.EditorTools
                     // controller present it now takes the composing branch it
                     // was designed for, and the rest-restore stands down
                     // because something else genuinely is driving the pose.
-                    animator.runtimeAnimatorController = BuildLocomotion();
+                    // BUILT ONCE AND SHARED. Every body plays the same idle
+                    // and the same walk, and `CreateAnimatorControllerAtPath`
+                    // called four times at one path would rebuild it four
+                    // times — with the later calls landing on an asset that
+                    // already exists, which is a failure mode nobody would
+                    // read as "too many bodies".
+                    if (_locomotion == null) _locomotion = BuildLocomotion();
+                    animator.runtimeAnimatorController = _locomotion;
                     //
                     // AND THAT CONTRACT HAD A SHARP EDGE NOBODY HAD WRITTEN
                     // DOWN. An Animator with no controller drives nothing, so
@@ -130,8 +190,18 @@ namespace Ledger.EditorTools
                     animator.applyRootMotion = false;
                     animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
-                    PrefabUtility.SaveAsPrefabAsset(instance, BodyPrefab, out bool ok);
-                    Debug.Log($"CharacterPrefab: wrote {BodyPrefab} ok={ok} "
+                    var stem = System.IO.Path.GetFileNameWithoutExtension(modelPath)
+                        .Replace(" ", "");
+                    var mine = $"{ResourceDir}/Body_{stem}.prefab";
+                    PrefabUtility.SaveAsPrefabAsset(instance, mine, out bool ok);
+                    if (ok) Variants++;
+                    // AND THE DEFAULT NAME TOO, so every gate and every caller
+                    // that already says `Characters/Body` keeps working. Two
+                    // files rather than a rename, because a rename would break
+                    // the fallback path on the run that introduces it.
+                    if (isDefault)
+                        PrefabUtility.SaveAsPrefabAsset(instance, BodyPrefab, out _);
+                    Debug.Log($"CharacterPrefab: wrote {mine} ok={ok} "
                               + $"avatar={avatar.name} human={avatar.isHuman} "
                               + $"clipsBound={ClipsBound} controller={ControllerWhy}");
                 }
