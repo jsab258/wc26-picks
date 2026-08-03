@@ -233,7 +233,12 @@ namespace Ledger.Tier2Gen
                     res = await client.CompleteAsync(new LlmRequest
                     {
                         Model = model,
-                        MaxTokens = 700,
+                        // 700 TRUNCATED REPLIES AND TRUNCATION CRASHED THE
+                        // RUN. Three lines and a sentence do not need 1200,
+                        // but the failure mode of too few is a wasted call and
+                        // the cost of too many is nothing — output is billed on
+                        // what comes back, not on the ceiling.
+                        MaxTokens = 1200,
                         System = SystemPrompt(),
                         Messages = { new LlmMessage("user", ask.ToString()) },
                     });
@@ -247,7 +252,32 @@ namespace Ledger.Tier2Gen
                 tin += res.InputTokens;
                 tout += res.OutputTokens;
 
-                var obj = MiniJson.AsObject(MiniJson.Deserialize(Between(res.Text, '{', '}')));
+                // PARSING IS PART OF THE PER-CARD FAILURE, NOT ABOVE IT.
+                //
+                // The comment above says one call per card so "a partial
+                // failure has to leave the survivors standing rather than roll
+                // back sixty people". I then wrote code where a single reply
+                // that ran out of tokens threw `Unexpected end of JSON` out of
+                // the loop and killed the process — after twenty-odd cards had
+                // already been enriched. Every one of them was lost, and the
+                // run exited 134 with nothing written.
+                //
+                // A claim in a comment with no mechanism behind it is the thing
+                // this project keeps producing. The mechanism is here now: a
+                // malformed or truncated reply is just another card that did
+                // not work.
+                Dictionary<string, object> obj = null;
+                try
+                {
+                    var json = Between(res.Text, '{', '}');
+                    if (json.Length > 0) obj = MiniJson.AsObject(MiniJson.Deserialize(json));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"  FAIL {id}: unparseable reply ({e.Message})");
+                    failed++;
+                    continue;
+                }
                 var lines = obj != null ? MiniJson.GetList(obj, "lines") : null;
                 if (lines == null || lines.Count < 2 || lines.Count > 3)
                 {
@@ -306,6 +336,10 @@ namespace Ledger.Tier2Gen
                 done++;
             }
 
+            // WRITTEN WHATEVER HAPPENED. The previous run enriched more than
+            // twenty cards and wrote none of them, because the only write was
+            // past a crash. Work that has been paid for should reach the disk
+            // even when the run ends badly.
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, "tier2-batch-1.json");
             File.WriteAllText(outPath, MiniJson.Serialize(cards.Cast<object>().ToList()));
