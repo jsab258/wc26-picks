@@ -38,33 +38,31 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Read the bone-ownership build.** *(CI)* The controller runs and the arms
-   came down, but one was bent up beside the head: `Swing` was assigning from
-   a stale rest over the top of the clip every frame. Now gated on
-   `PoseIsDriven`, and the arm bracket only reports the bought body instead of
-   a maximum over sixty-eight rigs that named nobody. Read `preArmDrop` and
-   `liveArmDrop` — they should finally describe the same person — then open
-   the noon frame.
-2. **Read the window warmth series.** *(CI)* `windowWarmth` sweeps the SOURCE
-   blue at fixed brightness. The six-multiplier series could never reach its
-   own target of 0.45 and moved the wrong way with k, so brightness was never
-   the lever. Read off the source blue that lands at 0.45 on screen and ship
-   that colour. Do not average, do not eyeball — read the line.
-3. **Read `bodyCoatArea` now the meshes import readable.** *(CI)* It returned
-   0.000 last time because `mesh.vertices` on a non-readable mesh is an empty
-   array, which looks exactly like the fault it was written to find.
-4. **Jafar runs BODIES.bat tomorrow ~10:00 CEST.** When real bodies land:
-   point `CharacterPrefab.BodyModel` at one, and give the cast different
-   bodies rather than four copies of one. One-line change plus a lookup.
-5. **The noise ring reads as a stripe, not a ring, past about forty metres.**
-   Sagitta of a chord L on radius R is L squared over 8R, so thirty metres of
-   a 148-metre ring bows by 0.76m — a straight line to the eye. Hiding it from
-   the stills was the screenshot fix; fading it as it grows is the game-feel
-   one, and it wants its own frame.
-6. **Read a system for false comments — `Mannequin` or `WorldBuilder` next.**
-   Four found today: two claiming the companion got a full sighting, one
-   claiming the walkers maintained the hush counters, one claiming an empty
-   audit roster was unavoidable. Every one had been true when written.
+1. **Read the bone-ownership build, then the noon frame.** *(CI)* `Swing` was
+   assigning from a stale rest over the top of the clip every frame; now gated
+   on `PoseIsDriven`, and the arm bracket only reports the bought body rather
+   than a maximum over sixty-eight rigs that named nobody.
+2. **Read `windowWarmth`.** *(CI)* Read off the source blue that lands at 0.45
+   on screen and ship that colour. The six-multiplier series could never reach
+   its own target, so brightness was never the lever.
+3. **Read `ringGrowth`.** *(CI)* Seen-fraction at 4/8/16/32/64/128 metres. The
+   knee is where more screen gets covered without more being communicated —
+   that is the radius to fade over, and only then is the fade a measured
+   number rather than a defended one.
+4. **Read `speechNoClip` against `speechOutOfRange` and `speechNoAudio`.**
+   *(CI)* 358 was three facts under one name. This says which milestone is
+   actually in front of us: a bank to generate, a mix behaving correctly, or
+   a fault.
+5. **The coat covers 29.6% of the body.** Measured, and the vertex proxy would
+   have said 44%. Nothing to build until a real mesh lands — but when one
+   does, this is the number that says whether it is dressed, and it wants a
+   gate rather than a print.
+6. **Jafar runs BODIES.bat ~10:00 CEST.** Multi-body support is already in:
+   one prefab per FBX, picked per character through `Physique`. On the day,
+   check `bodyChoices` went above 1 and that the cast is not four copies.
+7. **Read a system for false comments — `WorldBuilder` next.** Seven found
+   today; three were in `Mannequin` alone, including a promise that the class
+   would stop being instantiated once the FBX landed. It landed days ago.
 
 ## Next
 

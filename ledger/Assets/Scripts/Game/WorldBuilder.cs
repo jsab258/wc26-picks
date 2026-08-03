@@ -48,17 +48,43 @@ namespace Ledger.Game
         /// spreads a near-white halo over the result. Both are working as
         /// designed and both are global.
         ///
-        /// PARKED RATHER THAN CHASED. The remaining options are to
-        /// pre-compensate the colour so the RENDERED result lands on target, or
-        /// to soften bloom on emissives, or to accept it — and all three are
-        /// art-direction calls on a global grade, not a bug fix. Each costs a
-        /// ~28-minute round trip to evaluate, and M18-M22 have not started. The
-        /// measurement is here so the decision can be taken in a minute when
-        /// somebody wants to take it; it is not worth four more builds today.
+        /// PARKED, AND NOW UNPARKED WITH ONE MEASUREMENT RATHER THAN FOUR
+        /// BUILDS. The note here said the options were to pre-compensate the
+        /// colour, soften bloom on emissives, or accept it — "all three
+        /// art-direction calls on a global grade", each costing a round trip.
+        /// The first is now a SWEEP: `windowWarmth` renders the same frame at
+        /// six source blues and prints what each produces, so the colour that
+        /// lands on target is read off a line instead of guessed and defended.
+        /// One build, and the decision takes a minute.
         ///
         /// The constant has never moved. That is the point: three confident
         /// diagnoses, none of them right, and none of them cost a commit.
-        static readonly Color WindowLit = new Color(1.0f, 0.82f, 0.45f) * 3.0f;
+        ///
+        /// ONE COLOUR, AND FOR TWO HOURS TONIGHT THERE WERE TWO. Adding
+        /// `WindowEmissive` for the probe to sweep left this line holding its
+        /// own private copy of the same three numbers — so the sweep would have
+        /// measured one colour while the shipped windows used another, and the
+        /// answer it produced could not have been applied by changing the thing
+        /// it measured. A probe whose result cannot be acted on is worse than
+        /// no probe: it looks like progress.
+        ///
+        /// `CityPlan` exists because of exactly this ("nothing may hold a
+        /// second copy"), and I made a second copy of a constant in the middle
+        /// of a night spent finding other people's. Derived now, so they cannot
+        /// disagree.
+        /// A PROPERTY, NOT A FIELD, and both reasons matter.
+        ///
+        /// Static field initialisers run in DECLARATION ORDER, and
+        /// `WindowEmissive` is declared below this — so `static readonly Color
+        /// WindowLit = WindowEmissive * ...` would have read an uninitialised
+        /// colour and lit every window in the city black. Nothing local catches
+        /// that: it compiles, and `ShapeCheck` is reference-independent.
+        ///
+        /// And `readonly` would have frozen the value at load, so the sweep
+        /// could change `WindowEmissive` and the windows would not follow —
+        /// which is the same "the answer cannot be applied" fault one level
+        /// down from the one this whole change exists to fix.
+        static Color WindowLit => WindowEmissive * WindowGlowMultiplier;
 
         /// The multiplier under test, so the probe can sweep it without this
         /// file and the sim disagreeing about what was rendered.
@@ -79,6 +105,11 @@ namespace Ledger.Game
         /// it is the source colour that COMES OUT at 0.45, and that is a
         /// transfer to be measured rather than reasoned about.
         public static Color WindowEmissive = new Color(1.0f, 0.82f, 0.45f);
+
+        /// How much brighter than the source a lit window renders. Named
+        /// because `WindowLit` is built from it and the probe sweeps around
+        /// it; the six-point series that chose 3.0 is above.
+        public const float WindowGlowMultiplier = 3.0f;
 
         public static void SetWindowGlow(float multiplier)
         {
