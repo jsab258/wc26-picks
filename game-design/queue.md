@@ -49,9 +49,11 @@ scheduling instead of to CI's output.
    helper rejected labels behind the camera but not labels almost at it. That
    helper feeds the declutter, so one NPC brushing the camera would have
    suppressed every name on screen while the counters reported success.
-3. **The rest days have never run in the engine.** The sim renders campaign
-   days 1 and 2, both working days, so no still has shown a Saturday and no
-   gate has evaluated one. Covered by CoreTests and nothing else. *(CI)*
+3. **The rest days DO run — I had that wrong, three times.** The sim runs
+   eleven in-game days, so days 5 and 6 execute every build; it is the STILLS
+   that are captured on days 1 and 2, and I read the screenshot filenames as
+   the run length. The real gap was narrower: the code ran and nothing had ever
+   looked at it. A crowd-at-noon comparison is now in flight. *(CI)*
 
 ## Next
 

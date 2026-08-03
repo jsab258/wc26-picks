@@ -223,8 +223,55 @@ namespace Ledger.Game
                 _errors.Add($"{type}: {condition}");
         }
 
+        /// DOES A REST DAY LOOK DIFFERENT IN THE ENGINE, not just in a test.
+        ///
+        /// I said three times today — in a commit, in a doc and in the work
+        /// order — that the rest days had never run because "the sim renders
+        /// campaign days 1 and 2". Wrong. The STILLS are captured on days 1 and
+        /// 2; the sim runs ELEVEN in-game days, so days 5 and 6 execute every
+        /// build and always have. I read the screenshot filenames as if they
+        /// were the run length.
+        ///
+        /// So the gap is narrower and real: the code runs, and nothing has ever
+        /// LOOKED at it. Rule 6 is that a feature is done when something calls
+        /// it and a gate proves the call happened — and CoreTests proving the
+        /// curve differs is not the same as this city being different on a
+        /// Saturday.
+        ///
+        /// Sampled at noon, which is where the two curves are furthest apart
+        /// by construction: a working day is 0.18 outdoors at that hour and a
+        /// rest day 0.22. Worst-case honest: if these come back equal, either
+        /// the day is not reaching the population host or the difference is
+        /// too small to see in a crowd this size, and both are worth knowing.
+        void SampleDayShape()
+        {
+            // `PopulationHost.cs` is a PARTIAL GameController, not a separate
+            // component — so the crowd count is on `_game` and there is no host
+            // to find. Worth the line: I went looking for a type that does not
+            // exist as a type.
+            if (_game == null || _game.Now.Hour != 12) return;
+            int day = _game.Now.Day;
+            if (day == _lastShapeDay) return;
+            _lastShapeDay = day;
+            int outdoors = _game.CrowdWalkerCount;
+            if (Ledger.Core.Population.IsRestDay(day))
+            {
+                _restDayNoonCrowd += outdoors;
+                _restDaysSeen++;
+            }
+            else
+            {
+                _workDayNoonCrowd += outdoors;
+                _workDaysSeen++;
+            }
+        }
+
+        int _lastShapeDay = -1;
+        int _restDayNoonCrowd, _workDayNoonCrowd, _restDaysSeen, _workDaysSeen;
+
         void Update()
         {
+            SampleDayShape();
             if (_game == null) return;
             var now = _game.Now;
 
@@ -5602,6 +5649,9 @@ namespace Ledger.Game
                       $"restArmRead={CharacterRig.RestArmRead} " +
                       $"liveArmDrop={CharacterRig.LiveArmDropDegrees:0.0} " +
                       $"liveArmRead={CharacterRig.LiveArmRead} " +
+                      $"workNoonCrowd={(_workDaysSeen > 0 ? _workDayNoonCrowd / _workDaysSeen : -1)} " +
+                      $"restNoonCrowd={(_restDaysSeen > 0 ? _restDayNoonCrowd / _restDaysSeen : -1)} " +
+                      $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +
                       $"playerHasController={_playerHasController} " +
                       // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
                       // breakdown lives inside a gate, and a gate label prints
