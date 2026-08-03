@@ -79,6 +79,13 @@ namespace Ledger.Game
         /// player: `Sway` multiplies onto `_hips.localRotation` every frame and
         /// there was no value to put it back to.
         Quaternion _hips0Rot = Quaternion.identity;
+        /// Rest rotations for every limb `Swing` writes. See `Swing` — it
+        /// ASSIGNS an absolute rotation, which is only correct when the rest
+        /// pose is identity, and on a bought humanoid it never is.
+        Quaternion _lThigh0 = Quaternion.identity, _lShin0 = Quaternion.identity;
+        Quaternion _rThigh0 = Quaternion.identity, _rShin0 = Quaternion.identity;
+        Quaternion _lUpperArm0 = Quaternion.identity, _lForearm0 = Quaternion.identity;
+        Quaternion _rUpperArm0 = Quaternion.identity, _rForearm0 = Quaternion.identity;
         bool _restCaptured;
 
         public static CharacterRig Attach(GameObject body)
@@ -436,6 +443,14 @@ namespace Ledger.Game
             if (_neck != null) _neck0 = _neck.localRotation;
             if (_head != null) _head0 = _head.localRotation;
             if (_hips != null) { _hips0 = _hips.localPosition; _hips0Rot = _hips.localRotation; }
+            if (_lThigh != null) _lThigh0 = _lThigh.localRotation;
+            if (_lShin != null) _lShin0 = _lShin.localRotation;
+            if (_rThigh != null) _rThigh0 = _rThigh.localRotation;
+            if (_rShin != null) _rShin0 = _rShin.localRotation;
+            if (_lUpperArm != null) _lUpperArm0 = _lUpperArm.localRotation;
+            if (_lForearm != null) _lForearm0 = _lForearm.localRotation;
+            if (_rUpperArm != null) _rUpperArm0 = _rUpperArm.localRotation;
+            if (_rForearm != null) _rForearm0 = _rForearm.localRotation;
             _restCaptured = true;
         }
 
@@ -705,15 +720,31 @@ namespace Ledger.Game
             double lScale = BadLegIsLeft ? stance : 1.0;
             double rScale = BadLegIsLeft ? 1.0 : stance;
 
-            Swing(_lThigh, -lLeg.hip * lScale);
-            Swing(_lShin, lLeg.knee * lScale);
-            Swing(_rThigh, -rLeg.hip * rScale);
-            Swing(_rShin, rLeg.knee * rScale);
+            // SWUNG FROM REST, NOT TO AN ABSOLUTE, and that is the rest of the
+            // upside-down player.
+            //
+            // `Swing` assigned `Quaternion.Euler(degrees, 0, 0)` outright,
+            // which is correct only when a bone's rest rotation is identity.
+            // `Mannequin` builds its joints that way, so this was right for
+            // every body the game had until one was bought — and a Humanoid
+            // FBX carries real rest orientations on every limb, so assigning
+            // over them threw the model's own skeleton away and replaced it
+            // with a pitch about nothing.
+            //
+            // It is NOT the compounding fault fixed above, and the numbers say
+            // so plainly: `hipsAboveFeet` sat at -0.777 and stayed there.
+            // Accumulation grows; this was constant, which is the signature of
+            // a wrong absolute rather than a runaway. Both were live at once,
+            // which is why the first fix moved the torso and left the legs.
+            Swing(_lThigh, _lThigh0, -lLeg.hip * lScale);
+            Swing(_lShin, _lShin0, lLeg.knee * lScale);
+            Swing(_rThigh, _rThigh0, -rLeg.hip * rScale);
+            Swing(_rShin, _rShin0, rLeg.knee * rScale);
 
-            Swing(_lUpperArm, -lArm.shoulder);
-            Swing(_lForearm, -lArm.elbow);
-            Swing(_rUpperArm, -rArm.shoulder);
-            Swing(_rForearm, -rArm.elbow);
+            Swing(_lUpperArm, _lUpperArm0, -lArm.shoulder);
+            Swing(_lForearm, _lForearm0, -lArm.elbow);
+            Swing(_rUpperArm, _rUpperArm0, -rArm.shoulder);
+            Swing(_rForearm, _rForearm0, -rArm.elbow);
 
             // Feet stay level with the ground rather than pointing wherever
             // the shin left them, which is the difference between walking and
@@ -762,9 +793,18 @@ namespace Ledger.Game
             _hips.localPosition = p;
         }
 
-        static void Swing(Transform joint, double degrees)
+        /// Rotate a joint `degrees` about its own X from ITS REST POSE.
+        ///
+        /// The rest quaternion is not optional and not a default. Omitting it
+        /// is assigning an absolute, which silently works on any skeleton whose
+        /// bind rotations are identity and silently destroys any skeleton whose
+        /// are not — and the difference does not show up until somebody buys a
+        /// character. Taking it as a parameter means a new caller has to supply
+        /// one rather than inherit the bug.
+        static void Swing(Transform joint, Quaternion rest, double degrees)
         {
-            if (joint != null) joint.localRotation = Quaternion.Euler((float)degrees, 0, 0);
+            if (joint != null)
+                joint.localRotation = rest * Quaternion.Euler((float)degrees, 0, 0);
         }
 
         /// Cancel a foot's inherited rotation so the sole stays parallel to
