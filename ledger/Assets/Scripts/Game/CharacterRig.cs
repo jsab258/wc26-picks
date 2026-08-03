@@ -450,6 +450,41 @@ namespace Ledger.Game
             PreArmRead = true;
         }
 
+        /// The blend-tree float. Must match `CharacterPrefab.SpeedParam`, and
+        /// is spelled out here rather than referenced because that type is
+        /// Editor-only and this one ships.
+        public const string SpeedParam = "Speed";
+
+        /// Whether anything ever wrote that float. A controller that exists
+        /// and is never driven looks identical, from a screenshot, to no
+        /// controller at all — so the run says which.
+        public static bool SpeedDriven { get; private set; }
+
+        /// How far an arm sits from vertical when it is simply hanging. Not a
+        /// measurement and not claimed as one — it is the small outward angle a
+        /// person's arms make against their own body, and it exists so the
+        /// hands do not intersect the coat.
+        public const float ArmSplayDegrees = 8f;
+
+        /// Rotate one arm from wherever it is to a natural hang.
+        ///
+        /// `sign` splays it away from the body: positive for the left arm,
+        /// negative for the right, so both go outward rather than both going
+        /// the same way — which would put one arm through the ribs and is the
+        /// obvious way to get this wrong.
+        void HangArm(Transform upper, Transform fore, float sign)
+        {
+            if (upper == null) return;
+            var arm = fore != null ? (fore.position - upper.position) : -upper.up;
+            if (arm.sqrMagnitude <= 1e-6f) return;
+            // Down, tilted outward around the body's own forward axis. Built
+            // from `transform`, not from world axes, so it stays right for a
+            // body standing on a slope or facing any direction.
+            var want = Quaternion.AngleAxis(sign, transform.forward) * -transform.up;
+            upper.rotation = Quaternion.FromToRotation(arm.normalized, want.normalized)
+                             * upper.rotation;
+        }
+
         /// Angle of the left upper arm from straight down, or -1 if unreadable.
         /// ONE reader for all three samples — rest, pre-solve, post-solve — so
         /// the arms of a bracket cannot drift apart. That is the `ReadPosture`
@@ -510,6 +545,36 @@ namespace Ledger.Game
             if (_lShin != null) _lShin0 = _lShin.localRotation;
             if (_rThigh != null) _rThigh0 = _rThigh.localRotation;
             if (_rShin != null) _rShin0 = _rShin.localRotation;
+            // BRING THE ARMS DOWN FIRST, WHEN NOTHING ELSE WILL.
+            //
+            // A bought Humanoid ships in a T-pose and `X Bot` is no exception:
+            // the bracket read `preArmDrop=118.6` before a single line of this
+            // class runs and `liveArmDrop=118.6` after, the same number to a
+            // tenth of a degree. Our solve is innocent — it composes a swing of
+            // at most 22 degrees onto whatever rest it was given, and the rest
+            // it was given is a man holding his arms out.
+            //
+            // The real fix is a controller with a breathing idle, which
+            // `CharacterPrefab` now builds. This is the OTHER half: if that
+            // build fails — a wrong Editor API, a missing clip — the body still
+            // stands like a person instead of a scarecrow, and the frame shows
+            // one fault rather than two. `PoseIsDriven` is the switch: with
+            // something actually animating these bones, the Animator owns them
+            // and this must not touch them.
+            //
+            // MEASURED, NOT GUESSED. It does not test the angle against a
+            // threshold and it does not assume a T-pose — it computes the
+            // rotation that takes the arm WHEREVER IT IS onto a natural hang,
+            // so it is correct for a T-pose, an A-pose and a body already
+            // right (where it is the identity). The only authored number is
+            // the splay, and eight degrees is an arm resting against a coat
+            // rather than clipping through one.
+            if (!PoseIsDriven)
+            {
+                HangArm(_lUpperArm, _lForearm, +ArmSplayDegrees);
+                HangArm(_rUpperArm, _rForearm, -ArmSplayDegrees);
+            }
+
             if (_lUpperArm != null) _lUpperArm0 = _lUpperArm.localRotation;
             if (_lForearm != null) _lForearm0 = _lForearm.localRotation;
             if (_rUpperArm != null) _rUpperArm0 = _rUpperArm.localRotation;
@@ -659,6 +724,22 @@ namespace Ledger.Game
             // `Swing` composing onto a rest rotation is not the harmless thing
             // it looks like.
             StampArmsPre();
+            // AND TELL THE CONTROLLER HOW FAST THIS BODY IS MOVING.
+            //
+            // Without this the blend tree sits at zero for ever and a walking
+            // man plays a breathing idle while sliding down the street — which
+            // is the classic version of "the animation system is wired and
+            // nothing drives it", and would have looked like the controller
+            // failing to build rather than a float nobody wrote.
+            //
+            // `Speed` is the same metres-per-second the procedural gait
+            // already runs on, so the clip and the footfalls agree by
+            // construction instead of by tuning.
+            if (PoseIsDriven)
+            {
+                _animator.SetFloat(SpeedParam, (float)Speed);
+                if (!SpeedDriven) { SpeedDriven = true; }
+            }
             // Beside the pre-solve sample, because they answer the same question
             // from opposite ends: `PreHeadAboveHips` is what the BONES say after
             // the retarget, `BodyPitch` is what the AVATAR says it did. One run,

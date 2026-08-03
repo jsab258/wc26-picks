@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace Ledger.EditorTools
@@ -30,9 +31,21 @@ namespace Ledger.EditorTools
         public const string BodyModel = "Assets/Characters/X Bot.fbx";
         public const string ResourceDir = "Assets/Resources/Characters";
         public const string BodyPrefab = ResourceDir + "/Body.prefab";
+        public const string ControllerPath = ResourceDir + "/Body.controller";
 
         /// The name the runtime asks `Resources.Load` for.
         public const string LoadPath = "Characters/Body";
+
+        /// The float `CharacterRig` writes each frame. Named once here so the
+        /// controller that reads it and the code that writes it cannot drift.
+        public const string SpeedParam = "Speed";
+
+        /// Reported on the done line so a run says whether the body has
+        /// anything to play, rather than leaving it to be inferred from a
+        /// screenshot. `-1` is "the builder did not run at all", which is a
+        /// different fault from "it ran and found no clips".
+        public static int ClipsBound = -1;
+        public static string ControllerWhy = "not tried";
 
         public static void Build()
         {
@@ -74,9 +87,31 @@ namespace Ledger.EditorTools
                     var animator = instance.GetComponent<Animator>()
                                    ?? instance.AddComponent<Animator>();
                     animator.avatar = avatar;
-                    // No controller: `CharacterRig` drives the bones itself and
-                    // an empty state machine would only fight it. The Animator
-                    // is here for its AVATAR — that is the whole contract.
+                    // AND NOW A CONTROLLER, WHICH IS THE WHOLE VISIBLE FIX.
+                    //
+                    // The paragraph below is kept because its lesson is real,
+                    // but its DECISION was wrong and the still is what says so:
+                    // the player stands in the FBX's bind pose with both arms
+                    // out at 119 degrees, because nothing has ever animated
+                    // this body. The bracket proves our code is not doing it —
+                    // `preArmDrop=118.6` sampled before a single line of
+                    // `CharacterRig` runs, `liveArmDrop=118.6` after, the same
+                    // number to a tenth of a degree.
+                    //
+                    // "An empty state machine would only fight it" was true of
+                    // an EMPTY one. Forty-one clips were imported and audited
+                    // every build and not one was ever played — `clips=44`
+                    // reported as a success four days running. A breathing idle
+                    // and a walk cycle are the difference between a person and
+                    // a mannequin sliding along a pavement, and no amount of
+                    // procedural lean substitutes for either.
+                    //
+                    // `CharacterRig.PoseIsDriven` was written for exactly this
+                    // and has been false since the day it was added: with a
+                    // controller present it now takes the composing branch it
+                    // was designed for, and the rest-restore stands down
+                    // because something else genuinely is driving the pose.
+                    animator.runtimeAnimatorController = BuildLocomotion();
                     //
                     // AND THAT CONTRACT HAD A SHARP EDGE NOBODY HAD WRITTEN
                     // DOWN. An Animator with no controller drives nothing, so
@@ -97,7 +132,8 @@ namespace Ledger.EditorTools
 
                     PrefabUtility.SaveAsPrefabAsset(instance, BodyPrefab, out bool ok);
                     Debug.Log($"CharacterPrefab: wrote {BodyPrefab} ok={ok} "
-                              + $"avatar={avatar.name} human={avatar.isHuman}");
+                              + $"avatar={avatar.name} human={avatar.isHuman} "
+                              + $"clipsBound={ClipsBound} controller={ControllerWhy}");
                 }
                 finally
                 {
@@ -112,6 +148,102 @@ namespace Ledger.EditorTools
                 // the whole Windows pipeline goes through.
                 Debug.Log($"CharacterPrefab: FAILED {e.GetType().Name}: {e.Message}");
             }
+        }
+
+        /// ONE BLEND TREE ON SPEED: standing, walking, running.
+        ///
+        /// Deliberately the smallest thing that stops the body being a statue,
+        /// and deliberately keyed on a quantity `CharacterRig` already has.
+        /// Everything else the forty-one clips could do — the greeting, the
+        /// flinch, the smoke, sitting at a counter — is a later layer, and
+        /// building all of it before seeing one frame of a walk cycle would be
+        /// the same mistake as the systems this project keeps finding unrun.
+        ///
+        /// THRESHOLDS FROM THE GAME, NOT INVENTED. `Rig`'s own gait model and
+        /// the walker's `MoveSpeed` put an ordinary walk at about 1.4 m/s,
+        /// which is also the figure `Witnesses` passes to `Perception.InSight`
+        /// as `subjectSpeed` for a person walking. The run threshold is the
+        /// sprint speed the player controller already uses. If either moves,
+        /// these are wrong and the frame will show it.
+        ///
+        /// WRAPPED, AND FAILING SOFT ON PURPOSE. This is Editor-only API that
+        /// cannot be compiled outside CI, so a mistake here would otherwise
+        /// take down the one entry point the whole Windows pipeline goes
+        /// through — twenty-eight minutes to learn a method name. A null
+        /// return leaves the body exactly as it was before this change and
+        /// says why on the done line, which is a bad frame instead of no
+        /// frames at all.
+        static RuntimeAnimatorController BuildLocomotion()
+        {
+            ClipsBound = 0;
+            try
+            {
+                var idle = ClipFor("idle");
+                var walk = ClipFor("walk");
+                var run = ClipFor("run");
+                if (idle == null)
+                {
+                    // WITHOUT AN IDLE THERE IS NO CONTROLLER WORTH HAVING. A
+                    // tree whose zero-speed pose is a walk cycle looks worse
+                    // than the statue, so this refuses rather than half-doing
+                    // it — and says which clip was missing.
+                    ControllerWhy = "no idle clip under Assets/Characters";
+                    return null;
+                }
+
+                var controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
+                if (controller == null) { ControllerWhy = "could not create controller asset"; return null; }
+                controller.AddParameter(SpeedParam, AnimatorControllerParameterType.Float);
+
+                var state = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
+                tree.blendType = BlendTreeType.Simple1D;
+                tree.blendParameter = SpeedParam;
+                // Explicit, because automatic thresholds spread the children
+                // evenly over 0..1 and would put a full run at one metre per
+                // second — the clips would play, at the wrong speeds, which is
+                // the kind of wrong that looks like a physics bug.
+                tree.useAutomaticThresholds = false;
+
+                tree.AddChild(idle, 0f);   ClipsBound++;
+                if (walk != null) { tree.AddChild(walk, 1.4f); ClipsBound++; }
+                if (run != null) { tree.AddChild(run, 4.0f); ClipsBound++; }
+
+                controller.layers[0].stateMachine.defaultState = state;
+                AssetDatabase.SaveAssets();
+                ControllerWhy = $"ok (idle{(walk != null ? "+walk" : "")}{(run != null ? "+run" : "")})";
+                return controller;
+            }
+            catch (System.Exception e)
+            {
+                ControllerWhy = $"{e.GetType().Name}: {e.Message}";
+                ClipsBound = 0;
+                return null;
+            }
+        }
+
+        /// The clip whose file carries this key, e.g. `idle` from
+        /// `idle__Breathing Idle_<guid>.fbx`.
+        ///
+        /// Off the KEY rather than the Mixamo title, because the key is the
+        /// name this project chose and `_picks.json` records, while the title
+        /// is whatever Adobe called it that year. `__preview__` clips are
+        /// Unity's own scratch objects and are not animations anybody asked
+        /// for — including one would bind a body to an editor artefact.
+        static AnimationClip ClipFor(string key)
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { "Assets/Characters" }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var file = System.IO.Path.GetFileName(path);
+                int split = file.IndexOf("__", System.StringComparison.Ordinal);
+                if (split < 0 || file.Substring(0, split) != key) continue;
+                foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(path))
+                {
+                    var clip = obj as AnimationClip;
+                    if (clip != null && !clip.name.StartsWith("__preview__")) return clip;
+                }
+            }
+            return null;
         }
 
         static Avatar AvatarOf(string path)

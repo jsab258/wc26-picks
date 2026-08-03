@@ -47,6 +47,54 @@ namespace Ledger.EditorTools
         public static int Ran;
         public static string LastPath = "none";
 
+        /// WHICH CLIPS LOOP, and it is a short list on purpose.
+        ///
+        /// Mixamo ships every clip non-looping, so a breathing idle plays once
+        /// and the body freezes on its last frame — which looks exactly like
+        /// the statue this whole change exists to fix, and would have been
+        /// read as the controller not working.
+        ///
+        /// Only sustained states belong here. Looping a death, a flinch or a
+        /// fall is worse than not looping it: a man who dies four times a
+        /// second is a bug nobody would attribute to an import setting.
+        static readonly HashSet<string> Sustained = new HashSet<string>
+            { "idle", "walk", "run", "back_away", "guard", "block_hold",
+              "sit", "smoke", "work_counter", "lie_still", "talk" };
+
+        /// How many clips were set to loop. Zero when the character folder is
+        /// present would mean the key convention has changed under this.
+        public static int Looped;
+
+        /// LOOPING IS SET IN THE ANIMATION PASS, not the model pass.
+        /// `defaultClipAnimations` is only populated once the importer has
+        /// read the take, so doing this in `OnPreprocessModel` would return an
+        /// empty array and quietly set nothing at all — a silent no-op wearing
+        /// the shape of a fix.
+        void OnPreprocessAnimation()
+        {
+            var path = assetPath.Replace('\\', '/');
+            if (!path.StartsWith(CharacterFolder)) return;
+            var importer = assetImporter as ModelImporter;
+            if (importer == null) return;
+
+            var file = System.IO.Path.GetFileName(path);
+            int split = file.IndexOf("__", System.StringComparison.Ordinal);
+            if (split < 0 || !Sustained.Contains(file.Substring(0, split))) return;
+
+            var clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0) return;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                clips[i].loopTime = true;
+                // `loopPose` matches the first and last frame so a cycle does
+                // not jolt at the seam. Right for a walk and for breathing;
+                // it is why the list above is short.
+                clips[i].loopPose = true;
+            }
+            importer.clipAnimations = clips;
+            Looped++;
+        }
+
         void OnPreprocessModel()
         {
             var path = assetPath.Replace('\\', '/');
@@ -216,7 +264,7 @@ namespace Ledger.EditorTools
                         noAvatar.Add(System.IO.Path.GetFileName(path));
                 }
 
-                Debug.Log($"CharacterAudit: importerRan={CharacterImport.Ran} lastImported={CharacterImport.LastPath} "
+                Debug.Log($"CharacterAudit: importerRan={CharacterImport.Ran} looped={CharacterImport.Looped} lastImported={CharacterImport.LastPath} "
                           + $"models={models} humanoid={humanoid} "
                           + $"validHumanAvatar={validHuman} clips={clips}"
                           + (noAvatar.Count > 0

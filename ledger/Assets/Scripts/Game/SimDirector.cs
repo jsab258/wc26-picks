@@ -5686,6 +5686,8 @@ namespace Ledger.Game
                       $"restNoonCrowd={(_restDaysSeen > 0 ? _restDayNoonCrowd / _restDaysSeen : -1)} " +
                       $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +
                       $"playerHasController={_playerHasController} " +
+                      $"speedDriven={CharacterRig.SpeedDriven} " +
+                      $"armSplay={CharacterRig.ArmSplayDegrees:0.0} " +
                       // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
                       // breakdown lives inside a gate, and a gate label prints
                       // when the gate FAILS — so on every green run the one
