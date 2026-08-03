@@ -1758,3 +1758,18 @@ seconds. Right now it animates boxes and speaks in silence, and none of the
 depth below is visible in those ninety seconds. Almost nothing here is new
 design — every item has a working system underneath already.
 
+## M16 — what shipped, in full *(moved out of roadmap.md 2026-08-04)*
+
+A crime game in a city that perceives, reacts and remembers. Spec:
+`weapons-spec.md`. Phases 1, 1b, 2, 3 and 4 all shipped and gated: vision and
+hearing, witnesses with an ID ladder and a delivery window, misattribution,
+melee and concealment and the frisk, provenance and disposal. Phase 5 is
+firearms and is M23, deliberately last.
+
+The §4.7 gate is asserted by the sim rather than argued for. Only lint,
+ShapeCheck and CoreTests run in the dev container.
+
+Moved here because roadmap.md is a LIVE plan capped at 400 lines and a shipped
+milestone's detail is chronology. The cap fired the moment M21 gained the
+paragraph describing what actually landed, which is the cap working: the plan
+stays about what happens next.

@@ -1766,6 +1766,8 @@ namespace Ledger.Game
         bool _denounceStaged;
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
+        bool _denounceIgnored, _denounceStuck;
+        int _denounceWitnesses;
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
@@ -2107,8 +2109,43 @@ namespace Ledger.Game
                 && nearest != null)
             {
                 _denounceStaged = true;
+
+                // THE ACCUSATION NOBODY WILL BACK, FIRST. This is the state the
+                // street is in by default and it must be Ignored.
+                var quiet = LawHost.Denounce(_game, nearest.DisplayName, "kest",
+                                             "handled", "the_warehouse_job");
+                _denounceIgnored = quiet != null && quiet.Outcome == Accusation.Ignored;
+
+                // AND THEN ONE THE STREET WILL BACK, because the first run of
+                // this probe returned `Ignored (0 of 0, nobody will back it)`
+                // and `lawOk=True`, and those two facts together prove only
+                // that the method was called. Every branch that makes the verb
+                // worth having — corroboration, the bar, the charge — went
+                // unexercised behind a green gate. That is the shape rule 5b
+                // exists for, found in my own probe within an hour of writing
+                // the rule down again.
+                //
+                // The witnesses are PLANTED rather than hoped for: two people
+                // who will talk to police and agree, so a charge is reachable
+                // on every run instead of on the lucky ones. Nothing here
+                // bypasses `Informing` — it still has to weigh them.
+                var mill = _game.Gossip != null ? _game.Gossip.Mill : null;
+                if (mill != null)
+                {
+                    int planted = 0;
+                    foreach (var g in mill.Agents)
+                    {
+                        if (g == null || !Watched.WouldTalkToPolice(g)) continue;
+                        mill.Witness(g.Id, new Fact("kest", "ran", "the_dockside_racket"),
+                                     "I have seen who runs that.", sensitive: false,
+                                     now: now, confidence: 0.6);
+                        if (++planted >= 3) break;
+                    }
+                    _denounceWitnesses = planted;
+                }
                 var d = LawHost.Denounce(_game, nearest.DisplayName, "kest",
-                                         "handled", "the_warehouse_job");
+                                         "ran", "the_dockside_racket");
+                _denounceStuck = d != null && d.Outcome == Accusation.Charged;
 
                 // AND ALLEGIANCE MOVES, BOTH WAYS, IN THE SAME RUN.
                 //
@@ -5090,7 +5127,15 @@ namespace Ledger.Game
                 && GameController.AllegianceChanges >= 2
                 && _game != null && _game.Empire != null && _game.Empire.PoachesHeard > 0;
 
-            bool lawOk = LawHost.Denounced > 0 && LawHost.MarksFiled == LawHost.Denounced;
+            // FOUR CLAUSES, and the two new ones are why the first version of
+            // this gate was worthless. It read `Denounced > 0 && Marks ==
+            // Denounced` and went green on a run whose only accusation was
+            // `Ignored (0 of 0)` — the method was called, nothing was weighed,
+            // and every branch that gives the verb meaning sat untested.
+            bool lawOk = LawHost.Denounced >= 2
+                && LawHost.MarksFiled == LawHost.Denounced
+                && _denounceIgnored            // unbacked accusations do nothing
+                && _denounceStuck;             // and a corroborated one lands
 
             bool bodiesOk = _bodySamples > 0 && _bodyRigs >= 2
                 && _bodyMaxKnee - _bodyMinKnee > 10
@@ -5513,7 +5558,7 @@ namespace Ledger.Game
                  + $"shader={WorldText.ShaderPresent}]",
                  _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
                                      && WorldText.Refused == 0)),
-                ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} {LawHost.LastVerdict}]", lawOk),
+                ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} ignored={_denounceIgnored} stuck={_denounceStuck} backers={_denounceWitnesses} {LawHost.LastVerdict}]", lawOk),
                 ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
                 ($"claims[made={LawHost.ClaimsMade} caught={LawHost.ClaimsCaught} held={_claimHeld}]", claimsOk),
                 ("budgets", budgetsOk),
@@ -5965,6 +6010,7 @@ namespace Ledger.Game
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
                       $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
+                      $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +

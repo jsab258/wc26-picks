@@ -56,20 +56,13 @@ Scores per dimension are in `agency-model.md`, re-scored against the code on
 
 ## M16 — PERCEPTION, WEAPONS AND VIOLENCE *(shipped)*
 
-A crime game in a city that perceives, reacts and remembers. Spec:
-`weapons-spec.md`. Phases 1, 1b, 2, 3 and 4 all **shipped and gated**: vision
-and hearing, witnesses with an ID ladder and a delivery window, misattribution,
-melee and concealment and the frisk, provenance and disposal. Phase 5 is
-firearms and is M23, deliberately last.
-
-The §4.7 gate holds — *the same killing leaves no witness in an empty alley,
-several in a market, and none in the back room of a busy pub* — asserted by the
-sim rather than argued for. Phase detail and post-mortems in
+Phases 1–4 shipped and gated; phase 5 is firearms and is M23. The §4.7 gate
+holds — *the same killing leaves no witness in an empty alley, several in a
+market, and none in the back room of a busy pub*. Detail and post-mortems in
 `roadmap-history.md`.
 
-**The risk it exposed still sets the pace of everything below:** the Game layer
-does not compile locally. Only lint, ShapeCheck and CoreTests run here, so every
-wiring change costs a ~28-minute Windows CI round trip.
+**The risk it exposed sets the pace of everything below:** the Game layer does
+not compile locally, so every wiring change costs a ~28-minute round trip.
 
 ---
 
@@ -257,42 +250,46 @@ licence, a till and wages. The night side pays better than the bar ever will.
 already tracks them apart: one run closed with £0 clean against £354 dirty,
 which is the whole story in two numbers.
 
-**Everything you gain is a person who knows something about you.** This is
-already true in code and only needs surfacing: a `CrewMember` IS a gossip agent,
-with their own memory, loyalty and mouth. Recruiting manufactures a witness with
-a wage. Lose them below the poach line and they walk carrying everything they
-stood next to. Expansion and exposure are the same system read from either end.
+**Everything you gain is a person who knows something about you.** A `CrewMember`
+IS a gossip agent, with their own memory, loyalty and mouth. Recruiting
+manufactures a witness with a wage. Expansion and exposure are the same system
+read from either end — and as of 4 Aug the street finally hears about a poach.
 
 | dimension | now | target | what is missing |
 |---|---|---|---|
-| Faction politics / allegiance | 45 | 75 | rivals exist; allegiance never shifts |
-| **Law as a tool** | 40 | 70 | you are *subject* to the law; you cannot *use* it |
+| Faction politics / allegiance | 45 | 75 | **allegiance shifts as of 4 Aug.** `PledgeTo` and `BreakWith` were written, tested and unwired — three methods were the whole gap. Both now run through `GameController` and broadcast to the street, and a poach finally reaches the gossip layer instead of moving two numbers in silence. Still missing: a place in the UI for the player to choose it, and standing that moves from anything other than the summit |
+| **Law as a tool** | 40 | 70 | **the verb exists as of 4 Aug.** `Core/Informing` weighs an accusation against what the street would tell a detective, on the same magistrate's bar Act III uses, and returns the mark that goes on the player for having informed. `Core/Claims` turns a typed alibi into a `Fact`, so `ProcessClaim` and `PlayerClaims` run for the first time. Still missing: the surface a player names somebody FROM, and redirecting an inquiry — `Inquiry` is derived from the homicide book rather than stored, so there is no value to point elsewhere |
 | Public notoriety | 40 | 60 | a number that gates doors, with no press and no reputation events |
 | Character competence | 10 | 40 | crew have it; the player has none, and `Harm` only ever subtracts |
 
-**Law as a tool is the one to build first.** The game already has an excise
+**Law as a tool was the one to build first, and the spine of it is in** (4 Aug):
+an accusation is weighed by what people will say to a detective rather than by
+whether it is true, and the mark for having informed is a return value so no
+caller can skip the cost. The rest of the original plan still stands: The game already has an excise
 audit, a detective with a case, and police escalation on a body. Being able to
 *point* those at somebody — inform, press a charge, tip Ellis off, let a rival's
 books be the ones that do not reconcile — turns the game's central threat into a
 verb the player can hold. It reuses the whole information layer rather than
 adding one: a crime game where your best weapon is what people believe.
 
-**Growth is the competence axis, and there is NO EGO METER.** The obvious
-implementation is a number the player learns to top up, which kills the story
-the mechanic exists to tell. Instead it is a run of individually reasonable
-decisions that compound: take the bigger cut because you earned it, and loyalty
-erodes; do this one yourself because the lad would botch it, and four people see
-your face instead of his; miss tonight because this job matters, and that is the
-sixth night running. The game already punishes every one of those. What it owes
-the player is the ability to see the shape forming, which M19's chips supply.
+**Growth is the competence axis, and there is NO EGO METER.** A number the
+player tops up kills the story the mechanic exists to tell. Instead it is a run
+of individually reasonable decisions that compound: take the bigger cut because
+you earned it and loyalty erodes; do this one yourself because the lad would
+botch it and four people see your face instead of his; miss tonight because this
+job matters, and that is the sixth night running. The game already punishes
+every one. What it owes the player is the ability to SEE the shape forming —
+M19's chips, and as of 4 August the ledger's DOUBT section, which finally
+reads back why each person stopped trusting you.
 
 **The empire grows in DEPTH, not area.** Four businesses on a street where you
-know every face beats twelve across a map — legible, affordable, and it agrees
-with M20's cut.
+know every face beats twelve across a map.
 
-**The rival is a person, not a stage counter.** Sera Kest has a name and an
-escalation number; she should be able to ring you, offer terms, be refused, and
-remember it.
+**The rival is a person, not a stage counter — and this was half wrong when
+written.** `ResolveTable` already offers terms, takes accept/defy/counter, moves
+standing and attention, and writes the answer into her people's memory. What is
+actually missing is her RINGING you: the summit is a place you go, not a call
+you take, and `Phones` has been built since M10.
 
 **Done when.** A player can end a rival without touching them — allegiance
 moves, a charge lands, their access closes because of what the street believes.
