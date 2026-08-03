@@ -505,10 +505,53 @@ namespace Ledger.Tier2Gen
                 reasons[key] = reasons.TryGetValue(key, out var n) ? n + 1 : 1;
             }
 
+            // PERIOD TEXTURE, REPORTED AND NOT REJECTED.
+            //
+            // `OutOfPeriod` is deliberately short — only words that cannot
+            // exist in a late-analog city. It says nothing about MONEY, and
+            // the cast turns out to deal in shillings, half a crown, pence and
+            // two-and-six. That is pre-decimal British currency, gone in 1971,
+            // in a world the same file dates to the eighties and nineties by
+            // listing CDs, pagers and car phones as in-period.
+            //
+            // Nobody decided that. The generator invented it card by card and
+            // no check could see it, because a decade shows up as the PRESENCE
+            // of texture and absence is not greppable — which the queue has
+            // said for days without anything acting on it.
+            //
+            // REPORTED, because a guard that cannot tell a regression from an
+            // improvement is a ratchet (rule 5) and rejecting sixty cards over
+            // an unmade decision is exactly that. It is a question for Jafar —
+            // move the era, or move the money — and until it is answered the
+            // honest thing is to make it countable rather than invisible.
+            var predecimal = new[] { "shilling", "bob", "half a crown", "two and six",
+                                     "pence", "farthing", "ha'penny", "guinea" };
+            int coins = 0;
+            var seen = new SortedSet<string>();
+            foreach (var c in cards)
+            {
+                foreach (var field in new[] { "lines", "hardFacts" })
+                {
+                    var list = MiniJson.GetList(c, field);
+                    if (list == null) continue;
+                    foreach (var s in list.OfType<string>())
+                    {
+                        var low = s.ToLowerInvariant();
+                        foreach (var w in predecimal)
+                            if (ContainsWord(low, w)) { coins++; seen.Add(w); }
+                    }
+                }
+            }
+
             Console.WriteLine($"Tier2Gen --audit {Path.GetFileName(path)}");
             Console.WriteLine($"  {cards.Count} card(s), {ok} pass the current rules, {cards.Count - ok} do not");
             foreach (var kv in reasons.OrderByDescending(k => k.Value))
                 Console.WriteLine($"  {kv.Value,4}  {kv.Key}");
+            if (coins > 0)
+                Console.WriteLine($"  period: {coins} pre-decimal money reference(s) "
+                                  + $"({string.Join(", ", seen)}) in a world dated to the "
+                                  + "eighties and nineties. Not rejected — a decision, not a fault.");
+
             Console.WriteLine();
             Console.WriteLine("A count, not a verdict on the prose. These rules catch a MISSING voice");
             Console.WriteLine("and a wrong decade; they cannot tell good writing from adequate writing.");

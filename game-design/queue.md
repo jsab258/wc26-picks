@@ -84,6 +84,17 @@ scheduling instead of to CI's output.
 
 ## Blocked, and on whom
 
+- **THE MONEY DOES NOT MATCH THE DECADE, and it is a decision rather than a
+  fault.** The cast deals in shillings, half a crown, pence and two-and-six —
+  pre-decimal British currency, gone in 1971 — while `Tier2Gen` dates the world
+  to the eighties and nineties by listing CDs, pagers and car phones as
+  in-period. Seven references across the sixty cards, now counted by `--audit`
+  and deliberately not rejected: refusing sixty cards over an unmade decision is
+  the ratchet rule 5 warns about. Two ways out, both cheap, and it is Jafar's
+  call: move the era back, or move the money forward. Worth noting the era is
+  load-bearing rather than flavour — a late-analog city is what makes missed
+  calls, wiretaps and being unreachable into mechanics.
+
 - **A character mesh.** Only Jafar can buy one, and it is now the single
   largest immersion gap in the project — see roadmap 17.1b.
 - **Any further API spend.** The 3 August authorisation covered two tasks, both
