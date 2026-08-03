@@ -1192,6 +1192,19 @@ namespace Ledger.Game
                                 _worstPreHipsAboveFeet = prig.PreHipsAboveFeet;
                         }
                     }
+                    // THE AVATAR'S OWN ANSWER, kept at its most extreme swing.
+                    // A pitch that reaches 180 once has inverted the body once,
+                    // and an average over a run would hide exactly that — the
+                    // same reasoning as the two worst-over-run pairs around it.
+                    if (prig.AvatarProbeRead)
+                    {
+                        _avatarProbeSeen = true;
+                        if (Mathf.Abs(prig.BodyPitch) > Mathf.Abs(_worstBodyPitch))
+                            _worstBodyPitch = prig.BodyPitch;
+                        if (Mathf.Abs(prig.BodyRoll) > Mathf.Abs(_worstBodyRoll))
+                            _worstBodyRoll = prig.BodyRoll;
+                        if (!string.IsNullOrEmpty(prig.ClipName)) _clipName = prig.ClipName;
+                    }
                     if (prig.PostureRead)
                     {
                         if (!_postureSeen)
@@ -1216,6 +1229,9 @@ namespace Ledger.Game
         float _worstHeadAboveHips, _worstHipsAboveFeet;
         bool _prePostureSeen;
         float _worstPreHeadAboveHips, _worstPreHipsAboveFeet;
+        float _worstBodyPitch, _worstBodyRoll;
+        string _clipName = "";
+        bool _avatarProbeSeen;
 
         // ---- WET REFLECTIONS ----
         //
@@ -5496,6 +5512,8 @@ namespace Ledger.Game
                       $"preHeadAboveHips={_worstPreHeadAboveHips:0.000} " +
                       $"preHipsAboveFeet={_worstPreHipsAboveFeet:0.000} " +
                       $"prePoseRead={_prePostureSeen} " +
+                      $"bodyPitch={_worstBodyPitch:0.0} bodyRoll={_worstBodyRoll:0.0} " +
+                      $"clip=[{_clipName}] avatarProbeRead={_avatarProbeSeen} " +
                       $"bodySkinned={RealBody.Skinned} bodyDressed={RealBody.Dressed} " +
                       $"bodyKeptMats={RealBody.Kept} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +

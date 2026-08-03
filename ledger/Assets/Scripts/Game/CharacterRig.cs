@@ -285,6 +285,49 @@ namespace Ledger.Game
         public float PreHipsAboveFeet { get; private set; }
         public bool PrePoseRead { get; private set; }
 
+        /// WHAT THE AVATAR ITSELF THINKS UP IS, which is the one quantity in
+        /// this whole investigation nobody has read.
+        ///
+        /// The bracket has narrowed the fault to the retarget: bind pose
+        /// upright, scaled pose upright, the Animator's output inverted. That
+        /// leaves exactly three possibilities and every one of them has a
+        /// different fix, so guessing between them is how the last two
+        /// proposed fixes came to be wrong.
+        ///
+        ///   the avatar's mapping is inverted   -> `BodyPitch`/`BodyRoll` near 180
+        ///   the CLIP's curves are inverted     -> body upright, bones inverted
+        ///   there is no clip and the rest pose
+        ///   is what we are looking at          -> `ClipName` empty
+        ///
+        /// `bodyRotation` is the avatar's own notion of the body's orientation
+        /// in muscle space, computed by the retarget rather than read off our
+        /// bones — so it can disagree with the skeleton, and the disagreement
+        /// IS the diagnosis. Pure reads, no side effects: this probe cannot
+        /// itself become the thing that moves the body, which a `Rebind` test
+        /// could.
+        public float BodyPitch { get; private set; }
+        public float BodyRoll { get; private set; }
+        public string ClipName { get; private set; } = "";
+        public bool AvatarProbeRead { get; private set; }
+
+        void StampAvatar()
+        {
+            if (_animator == null || !_animator.isHuman) return;
+            // Euler angles are read as a signed swing about each axis so an
+            // inversion reads as ~180 rather than as 359-and-a-bit, which is
+            // the same number wearing a disguise.
+            var e = _animator.bodyRotation.eulerAngles;
+            BodyPitch = Mathf.DeltaAngle(0f, e.x);
+            BodyRoll = Mathf.DeltaAngle(0f, e.z);
+            if (_animator.runtimeAnimatorController != null && _animator.layerCount > 0)
+            {
+                var infos = _animator.GetCurrentAnimatorClipInfo(0);
+                ClipName = infos.Length > 0 && infos[0].clip != null ? infos[0].clip.name : "";
+            }
+            else ClipName = "";
+            AvatarProbeRead = true;
+        }
+
         /// Shared by both samples so the two cannot drift apart. A bisect whose
         /// halves measure slightly different things proves nothing.
         bool ReadPosture(out float headAboveHips, out float hipsAboveFeet)
@@ -411,6 +454,11 @@ namespace Ledger.Game
             // Animator handed us an inverted pose and the fault is the clip or
             // the avatar.
             StampPrePose();
+            // Beside the pre-solve sample, because they answer the same question
+            // from opposite ends: `PreHeadAboveHips` is what the BONES say after
+            // the retarget, `BodyPitch` is what the AVATAR says it did. One run,
+            // both readings, and the pair partitions every remaining case.
+            StampAvatar();
 
             bool near = ShouldSolve();
             // The small pieces go with the solve. Same distance, one check,
