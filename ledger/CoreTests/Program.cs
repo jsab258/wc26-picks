@@ -11301,6 +11301,23 @@ namespace Ledger.CoreTests
 
             // ---- DOORS ----
             var withDoor = Wall(0.5, door: true);
+            // THE DOOR ITSELF, which did not exist until 3 August. `Awning` was
+            // documented as "over a door" for as long as it has been here and
+            // there was no door — a canopy hanging over blank wall, and roadmap
+            // 17.7 listing "doors as geometry" as open the whole time.
+            Check(withDoor.Exists(p => p.Kind == Clutter.Door),
+                "a street-facing wall has a way in — a facade you cannot enter reads "
+                + "as scenery however well it is dressed");
+            Check(!Wall(0.5).Exists(p => p.Kind == Clutter.Door),
+                "and the back of the building does not");
+            // ARCHITECTURE DOES NOT SPEND THE CLUTTER BUDGET. A rich wall
+            // collects fewer bins by design; it must not thereby lose its door.
+            Check(Wall(0.95, door: true).Exists(p => p.Kind == Clutter.Door)
+                  && Wall(0.15, door: true).Exists(p => p.Kind == Clutter.Door),
+                "rich wall and poor wall both keep their entrance");
+            var doors = withDoor.FindAll(p => p.Kind == Clutter.Door);
+            Check(doors.Count == 1, "exactly one, because a terrace house with two "
+                  + "front doors is a duplex nobody asked for", $"{doors.Count}");
             Check(withDoor.Exists(p => p.Kind == Clutter.Awning),
                 "a door gets an awning — an entrance nobody can find from down the street "
                 + "is an entrance the player walks past");

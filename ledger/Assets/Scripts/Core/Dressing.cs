@@ -39,6 +39,19 @@ namespace Ledger.Core
         Overhead = 4,
         /// A puddle. Only where water would actually sit.
         Puddle = 5,
+        /// THE DOOR ITSELF, which did not exist until now.
+        ///
+        /// `Awning` has always been documented as "over a door" and there was
+        /// no door — an entrance marked by a canopy hanging over blank wall.
+        /// Roadmap 17.7 has listed "doors as geometry" as open since it was
+        /// written, and it is the difference between a street of buildings and
+        /// a street of boxes with windows: a facade you cannot enter reads as
+        /// scenery however well it is dressed.
+        ///
+        /// Emitted at the same point as the awning and in the same pass, so
+        /// the two cannot end up on different walls — which is the obvious way
+        /// to get this wrong and would be invisible from anywhere but a frame.
+        Door = 6,
     }
 
     public struct Dressed
@@ -253,15 +266,45 @@ namespace Ledger.Core
 
             // A door gets an awning, because an entrance nobody can find from
             // down the street is an entrance the player walks past.
-            if (hasDoor && placed.Count <= budget)
+            //
+            // AND NOW THE DOOR. Both come out of this one block, at one
+            // position, so a canopy can never end up over blank wall and a
+            // door can never end up in the open — which is the obvious way to
+            // get this wrong and is invisible from anywhere except a frame.
+            //
+            // NOT BUDGET-GATED, unlike the clutter above. Bins and puddles are
+            // texture and thinning them in a far district is the LOD working;
+            // an entrance is architecture, and a building whose door was
+            // dropped because a random roll spent the budget is a building the
+            // player cannot read at all. The awning keeps its budget check
+            // because a missing canopy costs legibility, not meaning.
+            if (hasDoor)
             {
+                // MEASURED BEFORE THE DOOR IS ADDED, and the test caught the
+                // version that was not. A door is architecture, not clutter, so
+                // it must not SPEND the clutter budget — the first draft added
+                // it to `placed` and then asked whether there was room for the
+                // awning, which on a busy wall pushed the count past the budget
+                // and dropped the canopy. The assertion that a door gets an
+                // awning went red immediately, which is exactly what an accept
+                // case is for (rule 5b): the failure case was never in doubt.
+                bool roomForAwning = placed.Count <= budget;
                 double mx = ax + dx * (length * 0.5) + nx * WallOffset;
                 double mz = az + dz * (length * 0.5) + nz * WallOffset;
                 placed.Add(new Dressed
                 {
-                    Kind = Clutter.Awning, X = mx, Z = mz, Facing = facing,
-                    Scale = 1.0,
+                    Kind = Clutter.Door, X = mx, Z = mz, Facing = facing,
+                    // Width varies a little so a terrace is not a row of
+                    // identical openings, and it is rolled off the POSITION so
+                    // the same wall gets the same door every run.
+                    Scale = 0.9 + Roll(mx, mz, 7) * 0.35,
                 });
+                if (roomForAwning)
+                    placed.Add(new Dressed
+                    {
+                        Kind = Clutter.Awning, X = mx, Z = mz, Facing = facing,
+                        Scale = 1.0,
+                    });
             }
             return placed;
         }

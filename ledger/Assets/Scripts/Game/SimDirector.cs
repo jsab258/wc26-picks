@@ -5841,7 +5841,7 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] attended={beatsAttended} skipped={beatsSkipped} " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
-                      $"dressed={WorldBuilder.Dressed} perNear={perNear:0.00} perFar={perFar:0.00} " +
+                      $"dressed={WorldBuilder.Dressed} doors={WorldBuilder.Doors} perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
