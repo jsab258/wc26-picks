@@ -5649,6 +5649,8 @@ namespace Ledger.Game
                       $"restArmRead={CharacterRig.RestArmRead} " +
                       $"liveArmDrop={CharacterRig.LiveArmDropDegrees:0.0} " +
                       $"liveArmRead={CharacterRig.LiveArmRead} " +
+                      $"preArmDrop={CharacterRig.PreArmDropDegrees:0.0} " +
+                      $"preArmRead={CharacterRig.PreArmRead} " +
                       $"workNoonCrowd={(_workDaysSeen > 0 ? _workDayNoonCrowd / _workDaysSeen : -1)} " +
                       $"restNoonCrowd={(_restDaysSeen > 0 ? _restDayNoonCrowd / _restDaysSeen : -1)} " +
                       $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +

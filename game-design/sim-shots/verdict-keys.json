@@ -185,6 +185,8 @@
   "lines",
   "lit",
   "litRange",
+  "liveArmDrop",
+  "liveArmRead",
   "loiterLooks",
   "loiterNotices",
   "loiterStaged",

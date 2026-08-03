@@ -442,15 +442,37 @@ namespace Ledger.Game
         /// mesh renders out, which is a skinning problem and nothing to do with
         /// the rig at all — a completely different search, and worth knowing
         /// before spending a night on the wrong one.
-        void StampArmsNow()
+        void StampArmsPre()
         {
-            if (_lUpperArm == null) return;
+            float a = ArmDropNow();
+            if (a < 0f) return;
+            if (a > PreArmDropDegrees) PreArmDropDegrees = a;
+            PreArmRead = true;
+        }
+
+        /// Angle of the left upper arm from straight down, or -1 if unreadable.
+        /// ONE reader for all three samples — rest, pre-solve, post-solve — so
+        /// the arms of a bracket cannot drift apart. That is the `ReadPosture`
+        /// lesson: three numbers only bracket a fault if one function made them.
+        float ArmDropNow()
+        {
+            if (_lUpperArm == null) return -1f;
             var down = -transform.up;
             var arm = _lForearm != null
                 ? (_lForearm.position - _lUpperArm.position)
                 : -_lUpperArm.up;
-            if (arm.sqrMagnitude <= 1e-6f) return;
-            float a = Vector3.Angle(arm.normalized, down);
+            if (arm.sqrMagnitude <= 1e-6f) return -1f;
+            return Vector3.Angle(arm.normalized, down);
+        }
+
+        /// Widest the arms got BEFORE this class touched them, over the run.
+        public static float PreArmDropDegrees { get; private set; }
+        public static bool PreArmRead { get; private set; }
+
+        void StampArmsNow()
+        {
+            float a = ArmDropNow();
+            if (a < 0f) return;
             if (a > LiveArmDropDegrees) LiveArmDropDegrees = a;
             LiveArmRead = true;
         }
@@ -510,20 +532,17 @@ namespace Ledger.Game
             // forty-four imported clips rather than invented — and if it reads
             // near 0 then something else is holding them out and the obvious
             // fix would have been wrong.
-            if (_lUpperArm != null && _hips != null)
+            // THROUGH THE SHARED READER, like the other two samples. This block
+            // used to carry its own copy of the same six lines, which is the
+            // drift `ReadPosture` was rewritten to stop: three numbers compared
+            // against each other in a bracket are only comparable if one
+            // function produced all three. The `_hips != null` guard it also
+            // carried was decorative — no term in the angle uses the hips.
+            float rest = ArmDropNow();
+            if (rest >= 0f)
             {
-                var down = -transform.up;
-                // The arm's own direction, from shoulder toward elbow, in world
-                // space; falls back to the bone's own down-axis when there is no
-                // forearm to point at.
-                var arm = _lForearm != null
-                    ? (_lForearm.position - _lUpperArm.position)
-                    : -_lUpperArm.up;
-                if (arm.sqrMagnitude > 1e-6f)
-                {
-                    RestArmDropDegrees = Vector3.Angle(arm.normalized, down);
-                    RestArmRead = true;
-                }
+                RestArmDropDegrees = rest;
+                RestArmRead = true;
             }
             _restCaptured = true;
         }
@@ -627,6 +646,19 @@ namespace Ledger.Game
             // Animator handed us an inverted pose and the fault is the clip or
             // the avatar.
             StampPrePose();
+            // THE MISSING MIDDLE OF THE ARM BRACKET. Rest reads 0 degrees —
+            // arms straight down — and after the solve they read 118.8, which
+            // is past horizontal. `ArmSwing` cannot do that: it returns (0,0)
+            // at a standstill and maxes at 22 degrees anywhere.
+            //
+            // So the same bisect that settled the torso, and the same reason it
+            // worked: this samples BEFORE any line of this class touches a
+            // bone, so it splits the two candidates cleanly. Already 118.8 here
+            // means the Animator's own default pose is doing it and our solve
+            // is innocent; 0 here and 118.8 after means the solve does it and
+            // `Swing` composing onto a rest rotation is not the harmless thing
+            // it looks like.
+            StampArmsPre();
             // Beside the pre-solve sample, because they answer the same question
             // from opposite ends: `PreHeadAboveHips` is what the BONES say after
             // the retarget, `BodyPitch` is what the AVATAR says it did. One run,
