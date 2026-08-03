@@ -57,10 +57,14 @@ scheduling instead of to CI's output.
 
 ## Next
 
-5. **Tier the cast.** The last open piece of M20, and now the only one bounded
-   from both sides: a full week gives 47 distinct faces and 13 near enough to
-   read at three districts, the witness engine needs about twenty near an
-   event, and the geometric load per character is being measured this build.
+5. **Tier the cast — and the runtime is not the constraint.** All three sides
+   are now measured. Design: a full week at three districts gives 47 distinct
+   faces, 13 near enough to read, and a knee at ~50 people covering 92% of a
+   resident's week. Witnesses: no fewer than ~20 near an event. Runtime: one
+   skinned body is 64 bones and ~14,200 vertices, and all 68 rigs together
+   cost 1.1ms of a 12ms game-frame budget — 0.016ms each. Bodies are capped at
+   28 anyway, so ~400,000 vertices is the worst case and no real GPU cares.
+   **The machine does not bound the cast at fifty; only authoring does.**
 6. **Judge the conversation as OUTPUT.** Blocked on one small spend (below).
 7. **M17.2 voices** — held behind that verdict.
 
