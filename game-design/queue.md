@@ -38,25 +38,20 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Two builds in flight, and they are the first parallel pair.** A on the
-   avatar probe and the rig cost, B on the no-clip twin. Read both
-   `sim-shots/runs/<sha>.txt` when they land — and check that BOTH landed,
-   because that is also the test of the parallel-build change itself.
-2. **The player is airborne and splayed, not lying in the road.** The still says
-   so and all sixty-eight other rigs stand correctly — but those are mannequins
-   and `bodySkinned=1`, so the one retargeted body is the only broken one.
-   Import is closed (`importerRan=44`); it is the clip or the avatar, and the
-   twin decides which.
-3. **Confirm the three new numbers report at all.** `fewestChips` (input
-   parity), `rigsMs` with the skinned bone and vertex counts (cast tiering),
-   and the relocated `worstNameFrac`. A metric that never prints is the shape
-   this project ships most often. *(CI)*
-4. **The rest days have never run in the engine.** The sim renders campaign
+1. **The upside-down player: cause found, fix dispatched, NOT YET CONFIRMED.**
+   Our own rig composed onto its own previous output because the rest-restore
+   asked whether an Animator existed rather than whether anything was driving
+   the pose — and the bought body has an Animator with nothing in it. Proven by
+   the one sample that cannot contain our solve: upright on the very first
+   frame, inverted later. Read the next stills before believing it.
+2. **A second fault the same run found, also fixed and unconfirmed.** A
+   nameplate measured 2,119 times the frame height, because the screen-rect
+   helper rejected labels behind the camera but not labels almost at it. That
+   helper feeds the declutter, so one NPC brushing the camera would have
+   suppressed every name on screen while the counters reported success.
+3. **The rest days have never run in the engine.** The sim renders campaign
    days 1 and 2, both working days, so no still has shown a Saturday and no
-   gate has evaluated one. Covered by CoreTests and nothing else. Either the
-   sim visits a rest day or the verdict says out loud which weekdays it
-   covered — silence here reads as "days differ now" being finished when half
-   of it has never executed. *(CI)*
+   gate has evaluated one. Covered by CoreTests and nothing else. *(CI)*
 
 ## Next
 
