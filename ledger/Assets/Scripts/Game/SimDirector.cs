@@ -3078,11 +3078,25 @@ namespace Ledger.Game
         /// BOTH DIRECTIONS. A pale line over dark asphalt brightens and the same
         /// line across a lamp's glare darkens, and counting only one of those is
         /// how a gate ends up measuring its own blind spot.
+        /// Printed once per run; null until then. A string rather than a bool,
+        /// so the done line can carry the series itself and a run that skipped
+        /// the probe says so instead of reporting zeros.
+        string _ringGrowth;
+
+        /// The same A/B at an arbitrary radius. `RingSeenWith` hardcoded
+        /// `RingProbeRadius`, which is right for the "does it draw at all"
+        /// question and cannot ask "does it still read as a ring at sixty-four
+        /// metres".
+        (double fraction, double rise) RingSeenAt(Camera cam, double radius) =>
+            RingSeenWith(cam, NoiseRing.Paint.Ledger, NoiseRing.Lay.FlatBillboard, radius);
+
         (double fraction, double rise) RingSeenWith(Camera cam, NoiseRing.Paint paint,
-                                                    NoiseRing.Lay lay = NoiseRing.Lay.FlatBillboard)
+                                                    NoiseRing.Lay lay = NoiseRing.Lay.FlatBillboard,
+                                                    double radius = -1)
         {
             var probe = NoiseRing.ForVerification(_player.transform.position,
-                                                  RingProbeRadius, paint, lay);
+                                                  radius > 0 ? radius : RingProbeRadius,
+                                                  paint, lay);
             if (probe == null) return (-1, -1);
             try
             {
@@ -3190,6 +3204,41 @@ namespace Ledger.Game
                 var (frac, rise) = RingSeenWith(cam, NoiseRing.Paint.Ledger);
                 if (frac > _ringSeenFraction) { _ringSeenFraction = frac; _ringSeenRise = rise; }
                 if (frac > _ringSeenLedger) _ringSeenLedger = frac;
+
+                // HOW A RING BEHAVES AS IT GROWS, PRINTED ONCE.
+                //
+                // `review_day1_night.jpg` is a white band edge to edge with the
+                // city behind it: the ring at its true `ringMax=148.1` metre
+                // radius, which seen from inside is a straight line rather than
+                // a circle. Hiding it from the stills answered the screenshot;
+                // it did not answer the game, because a player standing there
+                // sees the same band.
+                //
+                // The geometric argument is that a circle stops reading as one
+                // when its curvature falls below what the eye can pick out —
+                // the sagitta of a chord L on radius R is about L squared over
+                // 8R, so thirty metres of a 148-metre ring bows by 0.76m and is
+                // a line. That says a fade is wanted; it does not say WHERE,
+                // and picking a radius to fade over would be inventing a
+                // threshold (rule 2).
+                //
+                // So this prints what each radius actually PUTS ON SCREEN,
+                // through the same A/B the ring's own evidence already uses.
+                // The knee is then read off the series — the radius past which
+                // more screen is covered without more being communicated —
+                // exactly as the AO ceiling was settled after five runs of
+                // arguing about it. One extra sample per radius, once per run.
+                if (_ringGrowth == null)
+                {
+                    var g = new System.Text.StringBuilder("SimDirector: ringGrowth");
+                    foreach (double r in new[] { 4.0, 8.0, 16.0, 32.0, 64.0, 128.0 })
+                    {
+                        var (f2, _) = RingSeenAt(cam, r);
+                        g.Append($" r={r:0}[seen={100 * f2:0.0000}%]");
+                    }
+                    _ringGrowth = g.ToString();
+                    Debug.Log(_ringGrowth);
+                }
 
                 // The two rejected candidates and the control, once. They exist
                 // to tell me WHY a zero is a zero, and once is enough for that —
