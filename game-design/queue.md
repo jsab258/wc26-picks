@@ -75,11 +75,21 @@ scheduling instead of to CI's output.
 
 ## Blocked, and on whom
 
+**One decision, and it now buys two things.** Nothing has been spent; every
+purchase is Jafar's. Raise at most once a day.
+
 - **Judging the conversation as OUTPUT** needs a small API spend to generate
-  sample exchanges, including adversarial ones. Nothing has been spent; every
-  purchase is Jafar's. Raise at most once a day. The input-side verdict is in
-  `writing-judgement-2026-08-03.md` and it was better than expected, so this is
-  the cheap half of an open question rather than a rescue.
+  sample exchanges, including adversarial ones. The input-side verdict is in
+  `writing-judgement-2026-08-03.md` and was better than expected, so this is the
+  cheap half of an open question rather than a rescue.
+- **And the same spend would lift most of the cast.** Counted rather than
+  assumed: the game has 83 named characters, 23 hand-written and 60 generated,
+  and **0 of the 60 carry example lines or any period texture** — they predate
+  both. That is 72% of the cast at the old bar, against a measured knee of ~50
+  people covering 92% of a resident's week, so those generated characters are
+  not background: they are most of who you meet. Regenerating them through the
+  new prompt and its eleven validator rules is one batch run, and it is the
+  largest single lift available to the writing.
 
 ## Standing rules this file exists to serve
 
