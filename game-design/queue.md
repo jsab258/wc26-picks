@@ -38,29 +38,33 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**Seven builds are in flight at once, all confirmed running rather than queued.
-Read them as they land — that is the work, not a wait.** Each writes its own
-`runs/<sha7>.txt`, so they are seven answers rather than one overwriting six.
+**Answered tonight, from landed builds:**
 
-1. **Bone ownership.** Does the arm bracket finally describe ONE body, and does
-   the noon frame show a figure standing normally rather than with one arm bent
-   up beside its head?
-2. **Multi-body.** `bodyChoices` should read 1 today and above 1 the moment
-   Jafar's meshes land.
-3. **Ring growth.** Seen-fraction at 4/8/16/32/64/128 metres. The knee is the
-   radius to fade over — read it, do not pick it.
-4. **Window warmth.** The source blue that lands at 0.45 on screen. Read it off
-   the line and ship that colour.
-5. **Speech split.** `speechNoClip` against `speechOutOfRange` and
-   `speechNoAudio` — which milestone is actually in front of us.
-6. **Doors and jambs.** The door that already existed, now wood and darkened
-   with a jamb each side. Check the frame, not the count.
-7. **The revert.** Confirm the duplicate door is gone and nothing double-draws.
+- The street can see and can name you: eyes-open 0 → 42 of 50, knows-you 0 → 42,
+  best rung silhouette → name. No failing gates.
+- The crowd walks: 1.39 m/s against a 1.40 target, hip swing 36° → 26°, and the
+  schedule still holds.
+- The coat covers 29.6% of the body by area. Vertex share would have said 44%.
+- **The voice gap is a bank, not a bug: 312 of 346 missing lines have no
+  recording, 34 are correctly out of earshot, none are faults.** That is a spend
+  and it is Jafar's call.
+- Doors exist on 39 buildings; premises vary; both bodies found by the picker.
 
-**When they are read:** the queue refills from `## Standing work`, and the
-first refill should be the thing tonight's revert exposed — the back of a block
-has no geometry of its own, and nothing distinguishes a shop from a house from
-a warehouse except the sign over it.
+**Still to read as they land:**
+
+1. **`nameTagsUpDot` and `speechUpDot`.** *(CI)* The night frame is a wall of
+   names with spoken lines lying flat across the pavement. `SpeechBubble` had
+   the identical one-argument `LookRotation` the nameplates were fixed for and
+   nobody grepped for. 1.0 is standing, 0.0 is in the road.
+2. **`nameTagsActive` against `nameTagsOffered`.** *(CI)* Offered said 2 while
+   the frame showed a dozen — one of those numbers is about something else.
+3. **`animCulling`, `animClipTime`, `animState`.** *(CI)* Exactly 90.0° said the
+   animator never ran; the body was culled between on-demand renders. Clip time
+   advancing is the proof it now does.
+4. **`[series] windowWarmth` and `[series] ringGrowth`.** *(CI)* Both were being
+   filtered out of the verdict entirely. Read the source blue that lands at 0.45,
+   and the radius where a ring stops reading as a ring.
+5. **`bodyChoices` on Jafar's drop (~10:00 CEST).** Should go 2 → 6.
 
 ## Next
 
