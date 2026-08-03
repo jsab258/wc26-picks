@@ -38,34 +38,30 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **Read `preArmDrop` when the arm build lands, then act.** *(CI)*
-   `restArmDrop=0.0`, `liveArmDrop=118.8`. Already ~119 pre-solve means the
-   Animator's default pose does it and our solve is innocent; 0 pre-solve means
-   `Swing` composing onto a rest rotation is the culprit. Do not guess ahead of
-   the number — the last arm hypothesis was wrong and the number said so first.
-2. **Read `deedEyesOpen`, `deedKnowsYou` and `companionSight` on the
-   perception build.** *(CI)* Both were structurally zero: the street could
-   only witness a crime if it was already suspicious of the player, and no
-   caller anywhere supplied a familiarity function so nobody could name him.
-   Both fixed and dispatched. **The accept case is the one to check** — eyes
-   open in the market, the companion at rung 4, `street` still below her.
-3. **Read `bodyCoatArea` against `bodyDressed`.** *(CI)* The count says
-   dressed, the frame says naked; the area fraction is the number that can
-   tell them apart. If it comes back near zero the count was lying, which is
-   the finding. Dispatched with the same build.
-4. **First engine-side evidence that rest days differ.** *(CI)*
-   `workNoonCrowd` / `restNoonCrowd`. The Core says the crowd should thin at
-   the weekend; nothing has ever looked.
-5. **Six generated cards still lack example lines**, down from sixty. Local,
-   no key needed to find which six.
-6. **Read a system for false comments — `Perceivers` next.** Two were found in
-   `NpcWalker` and `Witnesses` tonight, both asserting the companion got a
-   full sighting while the build printed rung 0. `Perceivers` feeds both and
-   has never been read for this.
-7. **The player is a shop dummy and no code fixes it.** `X Bot.fbx` is
-   Mixamo's free mannequin; the 44 imported files are animation clips. It is
-   Jafar's purchase and the roadmap says so. **Do not spend another hour
-   making a dummy prettier.**
+1. **Read the animation build.** *(CI)* The body now gets a real blend tree —
+   idle, walk, run — from clips that were imported and never played. Check
+   `clipsBound`, `controller=`, `speedDriven` and `looped` BEFORE the stills,
+   because a soft failure there is designed to look like nothing happened.
+   Then open the frame: a person standing, not a scarecrow.
+2. **The crowd walks in fencing lunges and nothing measures it.** In the noon
+   still the walkers lean forward maybe forty-five degrees mid-stride with the
+   arms thrown back. That is a HYPOTHESIS off a 1280x720 frame — rule 4 says
+   make the run print the quantity first. Worst torso pitch and worst leg
+   swing across the mannequins, then read them before touching `Rig`.
+3. **Read `deedEyesOpen`, `deedKnowsYou`, `companionSight`.** *(CI)* Both were
+   structurally zero. The accept case is what to check: eyes open in the
+   market, the companion at rung 4, the street still below her.
+4. **Read `bodyCoatArea` against `bodyDressed`.** *(CI)* The count says
+   dressed, the frame says naked; area can tell them apart.
+5. **`Attending`/`PresentNearby` are now walker-maintained** — confirm the
+   hush figures did not move in the sim, because the sim used to compute its
+   own copy and now reads the shared one. Same number means the swap is
+   clean; a different one means the two were never measuring the same thing.
+6. **Mixamo characters are FREE and we never downloaded one.** The 42 files
+   in `Assets/Characters` are all animations; the only bodies are `X Bot` and
+   `Y Bot`, the default grey preview mannequins. Not a purchase — a download
+   needing an Adobe login, and this container cannot reach Mixamo. Jafar's
+   ten minutes, and the single biggest visible change available.
 
 ## Next
 

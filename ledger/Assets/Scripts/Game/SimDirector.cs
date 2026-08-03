@@ -5687,6 +5687,8 @@ namespace Ledger.Game
                       $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +
                       $"playerHasController={_playerHasController} " +
                       $"speedDriven={CharacterRig.SpeedDriven} " +
+                      $"crowdSpeed={NpcWalker.CrowdSpeedMean:0.00}/{NpcWalker.CrowdSpeedPeak:0.00} " +
+                      $"crowdHip={Rig.LegSwing(0.25, NpcWalker.CrowdSpeedMean).hip:0.0} " +
                       $"armSplay={CharacterRig.ArmSplayDegrees:0.0} " +
                       // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. The frame
                       // breakdown lives inside a gate, and a gate label prints

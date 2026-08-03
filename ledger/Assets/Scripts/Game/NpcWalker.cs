@@ -9,7 +9,45 @@ namespace Ledger.Game
     /// routines you can learn".
     public class NpcWalker : MonoBehaviour
     {
-        const float MoveSpeed = 2.6f;
+        /// HOW FAST A PERSON WALKS, and this was 2.6 with no comment on it —
+        /// the only bare constant in the file, which is usually what a
+        /// placeholder looks like after everybody stops noticing it.
+        ///
+        /// 2.6 m/s is 9.4 km/h. That is a jog, and the noon still shows
+        /// exactly that: a crowd in deep lunging strides with the arms thrown
+        /// back, which reads as a street full of people running late.
+        ///
+        /// THE GAIT MODEL WAS INNOCENT — `Rig.LegSwing` is driven by MEASURED
+        /// displacement, not by this constant, so it was faithfully drawing
+        /// the run it was being handed. Printed off the real Core rather than
+        /// guessed:
+        ///
+        ///     speed  peakHip  peakKnee  peakArm
+        ///       1.2     23.7      39.9     11.6
+        ///       1.4     26.2      43.7     12.8
+        ///       2.0     32.1      52.5     15.7
+        ///       2.6     36.1      58.6     17.7   <- what the street was doing
+        ///       3.5     40.0      64.4     19.5
+        ///
+        /// 1.4 is not invented either. This project already asserts twice that
+        /// a walking person moves at 1.4 m/s — `Witnesses.Resolve` passes it to
+        /// `Perception.InSight` as `subjectSpeed` for somebody walking, and the
+        /// locomotion blend tree uses it as the walk threshold. Three places
+        /// now agree instead of two agreeing and one contradicting them.
+        ///
+        /// THE RISK, STATED: game time is compressed, so a slower crowd may
+        /// fall behind its schedule. `crowdSpeed` and `crowdHip` are on the
+        /// done line for that reason — if the street stops keeping its
+        /// routine, that is the number that will say so, and the fix is to
+        /// hurry the ones who are late rather than to make everybody run.
+        const float MoveSpeed = 1.4f;
+
+        /// What the crowd is actually doing, over the run. A constant can be
+        /// read off the source; whether the bodies MOVE at it cannot.
+        public static double CrowdSpeedPeak, CrowdSpeedSum;
+        public static int CrowdSpeedSamples;
+        public static double CrowdSpeedMean =>
+            CrowdSpeedSamples > 0 ? CrowdSpeedSum / CrowdSpeedSamples : -1;
 
         struct Entry { public int MinuteOfDay; public Vector3 Position; }
 
@@ -411,6 +449,18 @@ namespace Ledger.Game
             _lastBodyPos = here;
             double speed = moved / dt;
             _body.Speed = speed;
+            // SAMPLED WHERE IT IS MEASURED, not where it is configured. A
+            // constant says what the walker was ASKED to do; this says what
+            // the body was actually handed, which is the number the gait
+            // draws and therefore the number the frame shows. Only while
+            // genuinely moving, or a crowd standing at its stops would drag
+            // the mean toward zero and hide a street of joggers.
+            if (speed > Ledger.Core.Rig.StillBelowMetresPerSec)
+            {
+                if (speed > CrowdSpeedPeak) CrowdSpeedPeak = speed;
+                CrowdSpeedSum += speed;
+                CrowdSpeedSamples++;
+            }
             // Cadence rises with speed, so a hurrying person takes faster
             // steps rather than longer ones.
             _gaitPhase = (_gaitPhase + speed * dt * 0.62) % 1.0;
