@@ -354,13 +354,29 @@ trip. Core, CoreTests, the measurement tools, the docs and every Python tool run
 here in seconds. Dispatch the build and start the next non-CI item in the SAME
 turn. A build in flight is a reason to switch tasks, not to stop.
 
-**3. Be woken by the event, not the clock.** The Windows job commits stills to
-the branch, so the branch advancing IS the build landing. Arm it with Bash
-`run_in_background: true`, which re-invokes you within seconds of it exiting:
+**3. Be woken by the event, not the clock.** Arm it with Bash
+`run_in_background: true`, which re-invokes you within seconds of it exiting.
+**Watch for a verdict naming the sha you dispatched** — not for the branch to
+move:
 
-    BEFORE=$(git ls-remote origin claude/game-dev-ai-automation-2h67ix | cut -f1)
-    until [ "$(git ls-remote origin claude/game-dev-ai-automation-2h67ix | cut -f1)" != "$BEFORE" ]; do sleep 30; done
-    echo "build landed"
+    SHA=<the sha you built>
+    for i in $(seq 1 100); do sleep 30
+      git fetch -q origin claude/game-dev-ai-automation-2h67ix 2>/dev/null
+      V=$(git show origin/claude/game-dev-ai-automation-2h67ix:game-design/sim-shots/verdict.txt 2>/dev/null | head -1)
+      case "$V" in *"$SHA"*) echo "VERDICT LANDED: $V"; exit 0;; esac
+    done; echo "timed out; last verdict line: $V"
+
+**THE OBVIOUS VERSION IS WRONG AND I SHIPPED IT INTO THIS FILE.** It watched
+`git ls-remote` for the branch head to change, on the reasoning that the job
+commits stills so the branch advancing IS the build landing. That is true when
+nothing else is pushing. In auto mode I push constantly — and the watcher fired
+forty seconds later on MY OWN COMMIT, reporting "BUILD LANDED" while the verdict
+still named the previous build. A watcher that cannot tell my push from CI's is
+the ruler being wrong, and it would have had me reading a stale verdict as a
+fresh one for the rest of the session.
+
+The verdict's first line carries the sha it was built from. Match on that and
+the signal cannot be forged by anything I do.
 
 Cap it around 50 minutes so a dead run cannot hang the loop. If something else
 blocks you, `send_later` goes down to one-minute granularity.
