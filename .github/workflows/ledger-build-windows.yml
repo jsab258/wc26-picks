@@ -461,9 +461,38 @@ jobs:
             # run's per-run verdict survives untouched, because `cp` overlays
             # and its filename carries a different SHA — which is the point of
             # writing it in the first place.
+            # AND "NEWEST RENDER" IS NOT "LAST TO FINISH", which is the half of
+            # that reasoning the first version got wrong.
+            #
+            # Two builds ran together on 3 Aug. The one on the NEWER commit
+            # finished first and pushed its verdict; the one on the OLDER commit
+            # finished second, hit this path, and laid its own older output over
+            # the top. `verdict.txt` ended up naming the earlier commit — so the
+            # file every reader treats as "the latest" was the stale answer, and
+            # only the SHA on line one said so. Runners vary by twenty minutes
+            # here, so dispatch order tells you nothing about landing order.
+            #
+            # So: if what is already on the branch was rendered from a commit we
+            # are a descendant of, we are newer and ours wins. Otherwise theirs
+            # is newer or unrelated, and we take ONLY our per-run file — which
+            # cannot collide, and is the whole reason it exists.
             if git fetch "$origin" ${GITHUB_REF_NAME} > /dev/null 2>&1; then
               git reset --hard FETCH_HEAD > /dev/null
-              cp -r "$RUNNER_TEMP/ours/." game-design/sim-shots/
+              theirs=$(head -1 game-design/sim-shots/verdict.txt 2>/dev/null \
+                       | sed -n 's/.*— \([0-9a-f]\{7\}\).*/\1/p')
+              mine_wins=1
+              if [ -n "$theirs" ] && ! git merge-base --is-ancestor "$theirs" "$GITHUB_SHA" 2>/dev/null; then
+                mine_wins=0
+              fi
+              if [ "$mine_wins" = "1" ]; then
+                cp -r "$RUNNER_TEMP/ours/." game-design/sim-shots/
+                say "ours is newer than ${theirs:-nothing} — updating the latest verdict and stills"
+              else
+                mkdir -p game-design/sim-shots/runs
+                cp "$RUNNER_TEMP/ours/runs/${GITHUB_SHA:0:7}.txt" \
+                   game-design/sim-shots/runs/ 2>/dev/null || true
+                say "a NEWER run ($theirs) already landed — keeping its stills, adding only our per-run verdict"
+              fi
               git add game-design/sim-shots
               git diff --cached --quiet \
                 || git commit -q -m "Sim stills from ${GITHUB_SHA:0:7}"

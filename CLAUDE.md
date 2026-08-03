@@ -299,7 +299,17 @@ how a day of serial hypotheses turns into two waves. Five round trips on the
 upside-down player cost two and a half hours because I sent one question at a
 time when I could have sent three. Each run keeps its own `runs/<sha7>.txt`, so
 concurrent builds are concurrent ANSWERS rather than one answer overwriting
-another; `verdict.txt` is still the latest and still where to look by default.
+another.
+
+**`verdict.txt` is the last run to LAND, which is not the newest commit.** Two
+builds ran together and the one on the older commit finished second and laid
+its output over the newer one's — so the file everything treats as "latest"
+held the stale answer, and only the sha on line one said so. Runners here vary
+by twenty minutes, so dispatch order tells you nothing about landing order. The
+workflow now keeps whichever verdict came from the newer commit and lets the
+loser contribute only its `runs/` file. **Check the sha on line 1 anyway**, and
+when you dispatched a specific question, read `runs/<sha7>.txt` and not the
+default.
 
 **Always run `ledger/verify.py` before committing.** It prints the footer that
 goes in the commit message, measured rather than remembered — it exists because
