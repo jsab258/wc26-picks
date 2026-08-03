@@ -40,6 +40,13 @@ namespace Ledger.EditorTools
         /// this cannot reach a model somebody adds elsewhere for another reason.
         public const string CharacterFolder = "Assets/Characters/";
 
+        /// How many assets this postprocessor actually touched, and the last
+        /// one it saw. Printed by `CharacterAudit`, because a build that
+        /// silently never ran the importer looks exactly like a build where
+        /// the importer had no effect.
+        public static int Ran;
+        public static string LastPath = "none";
+
         void OnPreprocessModel()
         {
             var path = assetPath.Replace('\\', '/');
@@ -128,10 +135,32 @@ namespace Ledger.EditorTools
             // If everything stays inverted, the bake was never the variable at
             // all and the avatar is simply built wrong.
             //
-            // Either answer is worth a build. Neither is worth a guess.
-            importer.bakeAxisConversion = false;
+            // THE EXPERIMENT CAME BACK IDENTICAL, AND THAT IS THE FINDING.
+            // With the bake OFF, the four stages read +0.557/+0.955,
+            // +0.528/+0.907, -0.142/-0.778, -0.148/-0.777 — the same to three
+            // decimals as with it ON. A setting that changes the import cannot
+            // leave every measurement bit-identical, so either this
+            // postprocessor is not running on the model at all, or the bake is
+            // irrelevant to the bone positions we read.
+            //
+            // Restored to the documented setting, because it has a real
+            // incident behind it (the first body reached the street on its
+            // back) and turning it off on a null result would be trading a
+            // reasoned setting for an unreasoned one. `CharacterAudit` now
+            // reports whether this code ran, so the next build says which of
+            // the two explanations is true instead of me picking one.
+            bool isClipOnly = path.Substring(CharacterFolder.Length).Contains("/");
+            importer.bakeAxisConversion = !isClipOnly;
 
             // The bodies have skin; the clips do not need it imported twice.
+            // AND SAY THAT THIS RAN. The bake experiment returned identical
+            // numbers with the setting on and off, which is only possible if
+            // the setting is irrelevant or this method never executed. Those
+            // have opposite fixes and no evidence separated them, so the
+            // importer now records its own footprint for the audit to print.
+            Ran++;
+            LastPath = path;
+
             importer.importBlendShapes = false;
             importer.importCameras = false;
             importer.importLights = false;
@@ -187,7 +216,8 @@ namespace Ledger.EditorTools
                         noAvatar.Add(System.IO.Path.GetFileName(path));
                 }
 
-                Debug.Log($"CharacterAudit: models={models} humanoid={humanoid} "
+                Debug.Log($"CharacterAudit: importerRan={CharacterImport.Ran} lastImported={CharacterImport.LastPath} "
+                          + $"models={models} humanoid={humanoid} "
                           + $"validHumanAvatar={validHuman} clips={clips}"
                           + (noAvatar.Count > 0
                                  ? " noAvatar=[" + string.Join(", ", noAvatar) + "]"

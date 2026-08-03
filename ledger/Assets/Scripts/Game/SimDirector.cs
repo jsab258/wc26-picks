@@ -1462,8 +1462,8 @@ namespace Ledger.Game
         }
 
         int _labelsColliding = -1;
-        int _textMirrored = -1;
-        float _worstNameplateFrac = -1f;
+        int _textMirrored = 0;
+        float _worstNameplateFrac = 0f;
 
         /// See the note at the call site. Two numbers, each answering one
         /// question a still asked and no gate could.
@@ -1494,8 +1494,16 @@ namespace Ledger.Game
                     if (frac > worst) worst = frac;
                 }
             }
-            _textMirrored = mirrored;
-            _worstNameplateFrac = worst;
+            // WORST OVER THE RUN, not the reading at one instant — and the
+            // first run of this is exactly why. It came back
+            // `worstTextHeightFrac=0.036`, a label 3.6% of screen height,
+            // while the still that prompted the measurement shows a name
+            // spanning a third of the frame. Both are true: the sample was
+            // taken at a moment when no label was near, and the still caught a
+            // moment when one was. A single sample cannot answer "does this
+            // ever get absurd", which is the question.
+            if (mirrored > _textMirrored) _textMirrored = mirrored;
+            if (worst > _worstNameplateFrac) _worstNameplateFrac = worst;
         }
 
         /// The player's own pose, swept. See the note beside where it is read.
@@ -1999,6 +2007,52 @@ namespace Ledger.Game
             // CoreTests cannot: whether the street produces varied vantages,
             // or whether four people in a city all resolve identically because
             // something upstream is handing them the same geometry.
+            // ---- M18: somebody comes out with you ----
+            //
+            // MOVED AHEAD OF THE DEED, and the distance probe is what found
+            // it. The run reported `dist=-1.0m`, which is the untouched
+            // initial value — so at the moment the deed resolved, the
+            // companion had NO WALKER AT ALL, not a distant one. Proximity was
+            // never the problem.
+            //
+            // The cause is ordering inside one tick: the deed block sits some
+            // four hundred lines above this one, so on the day a deed fires
+            // the escort has not been recruited yet. My first guess blamed the
+            // victim selection, my second blamed proximity, and both were
+            // stories about geometry when the fault was a line number. The
+            // probe that settled it prints one float.
+            //
+            // STAGED BEFORE THE DEED, ON PURPOSE. The whole claim of the
+            // feature is that a companion is a witness by STANDING THERE, and
+            // the only way a run can prove that is for one to be at the
+            // player's shoulder when the deed resolves — then read their
+            // sighting out of the ordinary witness record. If this ran after,
+            // the gate below would be measuring nothing.
+            //
+            // The loyalty is raised first because `Escort.WillWalk` requires
+            // 0.55 and a cold walker sits below it. That is staging the
+            // PRECONDITION, not staging the result: the run still has to make
+            // them agree, put them there, and produce the sighting through
+            // `Witnesses.Resolve` like anybody else.
+            if (!_companionStaged && _game != null && _npcs != null
+                && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                foreach (var n in _npcs)
+                {
+                    if (n == null || n.DisplayName == "Ellis") continue;
+                    var g = _game.Gossip.Mill.Get(n.DisplayName);
+                    if (g == null) continue;
+                    g.Loyalty = 0.8;
+                    g.Nerve = 0.6;
+                    if (!_game.Companion.Ask(g, n, now.Day)) continue;
+                    _companionStaged = true;
+                    _companionWith = n.DisplayName;
+                    Debug.Log($"SimDirector: companion — {n.DisplayName} walks with you "
+                              + $"(loyalty {g.Loyalty:0.00}, walks above {Escort.WalksWithYouAbove:0.00})");
+                    break;
+                }
+            }
+
             if (_deedsStaged < DeedsWanted && now.Day != _lastDeedDay
                 && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
@@ -2443,39 +2497,6 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: coat — took {_carryTook} of 3, on me {CoatHost.OnMe.Count}, "
                           + $"at home {CoatHost.AtHome.Count}, isAChoice={_carryIsAChoice}, "
                           + $"canTakeEverything={_carryCanTakeAll}");
-            }
-
-            // ---- M18: somebody comes out with you ----
-            //
-            // STAGED BEFORE THE DEED, ON PURPOSE. The whole claim of the
-            // feature is that a companion is a witness by STANDING THERE, and
-            // the only way a run can prove that is for one to be at the
-            // player's shoulder when the deed resolves — then read their
-            // sighting out of the ordinary witness record. If this ran after,
-            // the gate below would be measuring nothing.
-            //
-            // The loyalty is raised first because `Escort.WillWalk` requires
-            // 0.55 and a cold walker sits below it. That is staging the
-            // PRECONDITION, not staging the result: the run still has to make
-            // them agree, put them there, and produce the sighting through
-            // `Witnesses.Resolve` like anybody else.
-            if (!_companionStaged && _game != null && _npcs != null
-                && _game.Gossip != null && _game.Gossip.Mill != null)
-            {
-                foreach (var n in _npcs)
-                {
-                    if (n == null || n.DisplayName == "Ellis") continue;
-                    var g = _game.Gossip.Mill.Get(n.DisplayName);
-                    if (g == null) continue;
-                    g.Loyalty = 0.8;
-                    g.Nerve = 0.6;
-                    if (!_game.Companion.Ask(g, n, now.Day)) continue;
-                    _companionStaged = true;
-                    _companionWith = n.DisplayName;
-                    Debug.Log($"SimDirector: companion — {n.DisplayName} walks with you "
-                              + $"(loyalty {g.Loyalty:0.00}, walks above {Escort.WalksWithYouAbove:0.00})");
-                    break;
-                }
             }
 
             // ---- the frisk, both answers ----
