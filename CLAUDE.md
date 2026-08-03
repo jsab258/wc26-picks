@@ -367,9 +367,20 @@ loser contribute only its `runs/` file. **Check the sha on line 1 anyway**, and
 when you dispatched a specific question, read `runs/<sha7>.txt` and not the
 default.
 
-**Always run `ledger/verify.py` before committing.** It prints the footer that
-goes in the commit message, measured rather than remembered — it exists because
-I put unmeasured test counts in two commit messages.
+**Always run `ledger/verify.py` before committing, and PASTE THE FOOTER FROM
+THE FILE.** A green run writes `ledger/.verify-footer`; a red run deletes it.
+
+    python3 ledger/verify.py && git commit -F - <<EOF
+    ...
+    $(cat ledger/.verify-footer)
+    EOF
+
+It exists because I put unmeasured test counts in two commit messages, and the
+FILE exists because printing "NOT GREEN — do not paste this into a commit
+message as if it were" underneath the footer did not stop me doing it a third
+time. The message gets written before the check finishes, from a footer already
+in the scrollback, and a warning printed afterwards cannot reach a decision
+already made. Paste from the file and a red run has nothing to give you.
 
 **HuggingFace and most external hosts are blocked from this container** (403
 through the proxy). Anything corpus-related must go through CI, so make each
