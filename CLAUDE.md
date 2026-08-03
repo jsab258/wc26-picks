@@ -407,11 +407,23 @@ CEST** — UTC hours 05, 08, 11, 14, 17, 20. Run `date -u +%H` and check before
 writing anything. Every other firing works in SILENCE and ends with no
 user-facing message. The 07:00 report is the overnight summary.
 
-**Five to seven short plain sentences. No code block, no template, no shas, no
-metric names, no file paths.** In order: what got done; where we are on the
-roadmap (read `roadmap.md`'s screen table — do not recite from memory, and fix
-it if it is wrong before quoting it); what is next; what decision is needed from
-Jafar, or "nothing needed from you". Lead with anything visibly broken.
+**It opens with a header line so it can be FOUND**, then five to seven short
+plain sentences:
+
+    **LEDGER — 16:00** *(update 4 of 6)*
+
+Then: what got done; where we are on the roadmap (read `roadmap.md`'s screen
+table — do not recite from memory, and fix it if it is wrong before quoting it);
+what is next; what decision is needed from Jafar, or "nothing needed from you".
+Lead with anything visibly broken. **No code block, no template, no shas, no
+metric names, no file paths.**
+
+**The header exists because Jafar twice asked where an update was that had
+already been sent.** Both times it was there and both times it read as more
+conversation — I had followed the rule that it goes last with nothing after it,
+which is right, and lost the signal anyway because nothing marked it. A report
+he cannot find when scanning back is a report that did not happen, and the fix
+is one line rather than more words.
 
 He has said twice that updates were too long and too technical, and once that a
 report was buried mid-message and he never saw it. Say *"the player is upside
