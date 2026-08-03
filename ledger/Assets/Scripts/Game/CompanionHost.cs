@@ -14,13 +14,38 @@ namespace Ledger.Game
     ///
     /// HOW LITTLE IS IN HERE IS THE POINT. There is no companion perception
     /// pass, no follower witness hook, no "escort saw it" branch anywhere in
-    /// the game. Setting `NpcWalker.Escorting` puts a person at the player's
-    /// shoulder, and from that moment `Witnesses.Resolve` — which walks every
-    /// `NpcWalker` within eighty metres of a deed — hands them to
-    /// `Observe.Resolve` with a two-metre sightline, the player's own light
-    /// level, a face-toward of true and `SecondsWatching` from their stance.
-    /// A full sighting, produced by geometry, through the same path as the man
-    /// across the road who gets almost nothing.
+    /// the game. `Witnesses.Resolve` walks every `NpcWalker` within eighty
+    /// metres of a deed and hands each to `Observe.Resolve`, so an escort is a
+    /// witness through the same path as the man across the road. That part is
+    /// true and is the whole design.
+    ///
+    /// **THE SENTENCE THAT USED TO BE HERE WAS WRONG IN THREE PLACES, and I
+    /// spent a night reasoning from it.** It said that setting
+    /// `NpcWalker.Escorting` "puts a person at the player's shoulder, and from
+    /// that moment" they are handed a two-metre sightline, a face-toward of
+    /// TRUE, and `SecondsWatching` from their stance.
+    ///
+    ///   - IT SETS A TARGET, NOT A POSITION. They have to walk there.
+    ///     `CompanionHost.Ask` has no proximity requirement, so the sim
+    ///     recruits whoever is willing wherever they stand — and the build
+    ///     read `companionSight dist=31.0m`. At 1.4 m/s that is twenty-two
+    ///     seconds away, during which she sees what somebody thirty metres off
+    ///     sees, which is correctly almost nothing.
+    ///   - FACE-TOWARD IS COMPUTED, NOT TRUE. `Witnesses` has its own note
+    ///     saying the first draft hardcoded it and that a constant there
+    ///     "decides identification for the whole street". The escort walks
+    ///     half a metre BEHIND the shoulder, so it is usually false and rung 3
+    ///     is unreachable for her by design. Rung 4 is the one she should
+    ///     get, and that needs familiarity.
+    ///   - `SecondsWatching` NO LONGER COMES FROM STANCE. It was changed on
+    ///     3 August to the accrued attention the walker already measures,
+    ///     because stance is the SUSPICION ladder and loyalty pulls it down —
+    ///     so the one person guaranteed to be looking at you was scored as not
+    ///     looking.
+    ///
+    /// Every one of those was true when written. Together they described a
+    /// companion who could not fail to see, which is why three rounds of
+    /// diagnosis went looking anywhere except at whether she had arrived.
     ///
     /// That is why this file reads the witness record rather than writing one.
     /// The only thing it does at a deed is note the EVENT ID against the
