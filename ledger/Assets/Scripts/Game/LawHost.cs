@@ -122,6 +122,9 @@ namespace Ledger.Game
         /// where claims are made and none is ever contradicted would look
         /// identical to a working system and be a broken one — the same split
         /// `speechMissing` needed before it could be read.
+        /// Why the last claim attempt did what it did. See the guards.
+        public static string ClaimWhy { get; private set; } = "not tried";
+
         public static int ClaimsMade { get; private set; }
         public static int ClaimsCaught { get; private set; }
 
@@ -134,9 +137,21 @@ namespace Ledger.Game
         /// two callers, and the run exercises what the player exercises.
         public static ClaimResult Claim(GameController game, ConversationHost host, string said)
         {
-            if (game == null || host == null || host.Engine == null) return ClaimResult.Unknown;
+            // WHY IT DID NOT LAND, RECORDED. `claimsMade=0` came back from the
+            // first build with three possible causes and no way to tell them
+            // apart: no host, a host whose brain has not been built yet, or a
+            // sentence the extractor did not recognise. Guessing between three
+            // silent early returns is a round trip each.
+            if (game == null) { ClaimWhy = "no game"; return ClaimResult.Unknown; }
+            if (host == null) { ClaimWhy = "no host"; return ClaimResult.Unknown; }
+            if (host.Engine == null) { ClaimWhy = "host has no engine yet"; return ClaimResult.Unknown; }
             var claim = Claims.Extract(said, game.Now, Claims.KnownPlaces());
-            if (claim == null) return ClaimResult.Unknown;
+            if (claim == null)
+            {
+                ClaimWhy = $"nothing extracted from \"{said}\" ({Claims.KnownPlaces().Count} places)";
+                return ClaimResult.Unknown;
+            }
+            ClaimWhy = "ok";
             ClaimsMade++;
             var was = host.Engine.ProcessClaim(claim, game.Now);
             if (was == ClaimResult.Contradiction) ClaimsCaught++;

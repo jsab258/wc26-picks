@@ -1766,7 +1766,7 @@ namespace Ledger.Game
         bool _denounceStaged;
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
-        bool _denounceIgnored, _denounceStuck, _poached;
+        bool _denounceIgnored, _denounceStuck, _poached, _claimStaged;
         int _denounceWitnesses;
         float _slamAt = -1f;
         bool _loiterApproaching;
@@ -2206,23 +2206,40 @@ namespace Ledger.Game
                 // alibi checks out is indistinguishable from one where the
                 // contradiction branch is dead, and that branch is the moat:
                 // an NPC cannot be talked out of what it knows.
-                var listener = _game.Hosts != null && _game.Hosts.Count > 0 ? _game.Hosts[0] : null;
-                if (listener != null)
-                {
-                    // The witness is GIVEN what he saw rather than hoped to
-                    // have it, so the reject case is reachable on every run
-                    // instead of on the lucky ones.
-                    listener.Knowledge.Learn(new Fact("player", Claims.LocationKey(now), "docks"));
-                    _claimHeld = LawHost.Claim(_game, listener, "I was at the docks all evening")
-                                 == ClaimResult.Consistent;
-                    _claimCaught = LawHost.Claim(_game, listener, "I was at the Hook Street pub")
-                                   == ClaimResult.Contradiction;
-                }
                 if (d != null)
                     Debug.Log($"SimDirector: denounced kest -> {d.Outcome} "
                               + $"corroboration={d.Corroboration:0.00} "
                               + $"contradiction={d.Contradiction:0.00} "
                               + $"backers={d.Corroborators} mark={d.MarkOnYou}");
+            }
+            // THE ALIBI PROBE, OUTSIDE THE DENUNCIATION'S ONE-SHOT GUARD.
+            //
+            // It used to live inside it, and `claimsMade=0` came back from the
+            // build for exactly that reason: `_denounceStaged` is set at the
+            // TOP of that block, so if the conversation hosts were not built on
+            // the single frame it ran, nothing ever tried again. A one-shot
+            // probe that marks itself done BEFORE doing the work cannot tell
+            // "did it" from "gave up", and reports the same zero either way.
+            //
+            // Its own latch, set only once a claim actually landed, and it
+            // keeps trying until then. Both directions in the same run: an
+            // alibi that holds and one that does not, because a run where every
+            // alibi checks out is indistinguishable from one where the
+            // contradiction branch is dead — and that branch is the moat.
+            if (!_claimStaged && now.Day >= 9 && _game != null)
+            {
+                var listener = _game.Hosts != null && _game.Hosts.Count > 0 ? _game.Hosts[0] : null;
+                if (listener != null && listener.Engine != null)
+                {
+                    // The witness is GIVEN what he saw rather than hoped to
+                    // have it, so the reject case is reachable on every run.
+                    listener.Knowledge.Learn(new Fact("player", Claims.LocationKey(now), "docks"));
+                    _claimHeld = LawHost.Claim(_game, listener, "I was at the docks all evening")
+                                 == ClaimResult.Consistent;
+                    _claimCaught = LawHost.Claim(_game, listener, "I was at the Hook Street pub")
+                                   == ClaimResult.Contradiction;
+                    _claimStaged = LawHost.ClaimsMade > 0;
+                }
             }
             if (_loiterApproaching)
             {
@@ -6050,6 +6067,7 @@ namespace Ledger.Game
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
+                      $"claimWhy=[{LawHost.ClaimWhy}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
