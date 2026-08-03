@@ -38,29 +38,28 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**Answered and shipped tonight.** 17.1 is closed except for the mesh: the
-player stands, arms at the sides, and forty-one imported animations are finally
-being played. The street can see and can name you. The crowd walks. The window
-colour is a measured 0.16 rather than three failed diagnoses. Speech bubbles
-stand up. Buildings vary by premises and have doors.
-
-1. **Read the green sweep.** *(CI)* Blue is answered at 0.16; green comes out
-   at 0.97 against a target of 0.82 and is now the swept axis. Read the source
-   green that lands on target and ship it — do not extrapolate it from the blue
-   result, which is one point and is what rule 2 forbids.
-2. **Read `nameTagsUpDot` and `speechUpDot`.** *(CI)* 1.0 standing, 0.0 lying in
-   the road. Both billboards are fixed; these say whether anything else tilts.
-3. **Read `premises` again.** *(CI)* Houses were structurally unreachable under
-   a green test — `house0` in the build while the Core test asserted otherwise
-   by passing a prosperity no caller supplies. All four should appear now.
-4. **Read `companionSight`.** *(CI)* She was 31 metres away and rung 0 was
-   CORRECT; the fault was following, not perception, and my walk-speed change
-   caused it. An escort beyond talking distance now hurries at the old 2.6.
-5. **Read `bodyChoices` after Jafar's drop (~10:00 CEST).** 2 → 6.
-6. **A better ring metric.** Coverage cannot discriminate — a 128m ring covers
-   as much screen as a 4m one, because a ring is a thin line and most of a big
-   one leaves the frame. What would: arc curvature in screen pixels. Only then
-   is a fade threshold a reading rather than a defence.
+1. **THE WALL OF TEXT IS REAL AND IT IS NOT TILT: 43 names on screen at once.**
+   `nameTagsActive=43` against `labels=42` — essentially every nameplate in the
+   world is switched on simultaneously. `nameTagsUpDot=1.000` and
+   `speechUpDot=1.000` say both billboards stand perfectly upright, so the
+   skewed text in the night frame was the speech bubbles and that is fixed.
+   What remains is quantity.
+   The label rule says full at talking distance, gone by twice it — 3m and 6m,
+   off `ConversationHost.TalkRange`. For 43 to be active, 43 walkers would have
+   to be within six metres of the camera, which a plaza with 55 walkers in it
+   does not plausibly contain. **Either the distance test is not doing what it
+   reads as doing, or the camera is not where I think it is.** Do not guess:
+   the next build reports offered as a PEAK rather than an instant, and
+   offered-versus-active then discriminates outright.
+2. **Read the green sweep.** *(CI)* Blue shipped at a measured 0.16. Green is
+   the swept axis now; read it off the line, do not extrapolate from blue.
+3. **Read `premises` and `companionSight`.** *(CI)* Houses were unreachable
+   under a green test; the escort was 31m away because I halved her speed.
+   Both fixed, neither confirmed.
+4. **Read `bodyChoices` after Jafar's drop (~10:00 CEST).** 2 → 6.
+5. **A ring metric that discriminates.** Coverage cannot — 1.14, 1.09, 2.04,
+   1.27, 1.93, 1.00 percent across radii 4 to 128. Arc curvature in screen
+   pixels would. Only then is a fade a reading rather than a defence.
 
 ## Next
 
