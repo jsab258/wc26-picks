@@ -175,12 +175,31 @@ namespace Ledger.Game
                 // to every reading after it.
                 while (spawned.Count < want)
                 {
-                    // Spread them across the near band the player actually sees
-                    // people in, not stacked on one another — a pile of fifty
-                    // coincident meshes is a depth-test benchmark, not a crowd.
-                    float a = spawned.Count * 2.399963f;   // golden angle
-                    float rad = 3f + 0.4f * spawned.Count;
-                    var at = near.position + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    // IN FRONT OF THE CAMERA, WHICH THE FIRST VERSION WAS NOT.
+                    //
+                    // It spread them on a golden-angle spiral all the way round
+                    // the player, and the run showed the instrument up rather
+                    // than the subject: n=8 cost 10.5ms, n=24 cost 10.0 and
+                    // n=50 cost 10.2 — flat, because most of them were behind
+                    // the camera and frustum-culled before anything skinned
+                    // them. A cost curve that does not rise with the count is
+                    // measuring culling.
+                    //
+                    // Fanned across the view direction instead, inside roughly
+                    // the horizontal field of view, at the distances people are
+                    // actually seen at. Now every body added is a body drawn,
+                    // which is the number the decision needs.
+                    var cam = Camera.main;
+                    Vector3 fwd = cam != null ? cam.transform.forward : Vector3.forward;
+                    fwd.y = 0f;
+                    if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
+                    fwd.Normalize();
+                    var side = new Vector3(fwd.z, 0f, -fwd.x);
+                    // Rows of six across, stepping back — a queue at a stall
+                    // rather than a wall, and it fills the frame from 4m out.
+                    int col = spawned.Count % 6, row = spawned.Count / 6;
+                    var at = near.position + fwd * (4f + 2.2f * row)
+                                           + side * ((col - 2.5f) * 1.1f);
                     var g = Object.Instantiate(prefab, at, Quaternion.identity);
                     g.name = $"CostBody_{spawned.Count}";
                     spawned.Add(g);

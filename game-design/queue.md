@@ -69,6 +69,18 @@ scheduling instead of to CI's output.
    characters are TEXTURED, so the wardrobe leaves them alone and the naked
    body stops being a question of colour at all.
 
+0a. **THE SKINNED CROWD IS AFFORDABLE — and the first reading was the
+   instrument.** `crowdCost n=0[ms=7.8] n=8[ms=10.5] n=24[ms=10.0]
+   n=50[ms=10.2]` on the GPU-less runner: fifty bodies for 2.4ms against a
+   7.8ms baseline. But FLAT from 8 to 50, which is culling and not skinning —
+   the probe fanned bodies in a spiral all round the player and most were
+   behind the camera. Re-spawned inside the frustum; **read the new curve
+   before deciding a crowd count.** `CharacterRig`'s own blocker ("not going
+   anywhere until a skinned mesh has been costed on a GPU-less runner") is
+   answered either way: it is affordable. What is not yet answered is how
+   many, and the swap is worth far more after BODIES.bat lands six TEXTURED
+   models than it is today with two grey bots.
+
 0. **RE-LEARN THE VERDICT KEYS once tonight's builds land.** Nine new
    measurements — `bodyClothed`, `bodyParts`, `confabKerbMean/Worst/N`,
    `nameTagsOffScreen`, `collidingWorldText`, `denounced`, `marksFiled` —
