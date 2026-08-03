@@ -719,8 +719,13 @@ namespace Ledger.Game
             // sweeps, and a warehouse stands where the bins pile up.
             bool nearCore = Ledger.Core.Dressing.NearestCore(face.x, face.z, DenseCores)
                             <= NearCoreMetres;
+            // STREET-FRONT PROSPERITY ALWAYS, because this function dresses
+            // the street front — that is stated at the top of it. Passing the
+            // back-alley figure to every frontage away from a core told
+            // `KindAt` those walls were back alleys and turned forty percent of
+            // them into warehouses.
             var kind = Ledger.Core.Dressing.KindAt(face.x, face.z,
-                nearCore ? StreetFrontProsperity : BackAlleyProsperity, nearCore);
+                StreetFrontProsperity, nearCore);
             PremisesBuilt[(int)kind]++;
 
             // The fascia: a band over the shopfront, at the height the ground

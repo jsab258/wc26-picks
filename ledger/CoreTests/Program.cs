@@ -11323,7 +11323,10 @@ namespace Ledger.CoreTests
                 // 0.55 and `BackAlleyProsperity` is 0.15 — so it asserted
                 // houses exist while the city built none, and the build said
                 // `house0` under a green test.
-                if (Dressing.KindAt(x, 40, 0.55, true) == Dressing.Premises.House) houses++;
+                // AWAY FROM A CORE, which is where people live. Asking near
+                // one gave three houses in a whole city, because that is the
+                // street front where the shops are.
+                if (Dressing.KindAt(x, 40, 0.15, false) == Dressing.Premises.House) houses++;
                 if (Dressing.KindAt(x, 80, 0.15, false) == Dressing.Premises.Warehouse) sheds++;
                 if (Dressing.KindAt(x, 120, 0.15, false) == Dressing.Premises.Tenement) tenements++;
             }

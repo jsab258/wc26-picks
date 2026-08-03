@@ -242,11 +242,24 @@ namespace Ledger.Core
         public static Premises KindAt(double x, double z, double prosperity, bool nearCore)
         {
             double r = Roll(x, z, 11);
-            // A WAREHOUSE IS A PLACE NOBODY DRESSES. Away from a core and poor
-            // is exactly the condition `Facade` already uses for bins and
-            // alleys, so the two descriptions of the same street agree without
-            // a second rule to keep in step.
-            if (!nearCore && prosperity < 0.35 && r < 0.45) return Premises.Warehouse;
+
+            // PROSPERITY IS NOT DOING WHAT I ASKED IT TO, and the distribution
+            // printed off this Core is what says so. It was keying the
+            // warehouse rule, and the caller supplies only two values —
+            // `StreetFrontProsperity` 0.55 and `BackAlleyProsperity` 0.15 —
+            // which distinguish the FRONT of a building from its BACK, not a
+            // rich district from a poor one. `GroundFloor` dresses street
+            // fronts only, and it was handing 0.15 to every front away from a
+            // core: forty percent of them came back warehouses. A street of
+            // houses does not become an industrial estate because it is a
+            // fifteen-minute walk from the shops.
+            //
+            // So the district signal is `nearCore`, which is real and is
+            // computed from the actual core positions. Prosperity stays in the
+            // signature because it is a real concept and a later caller may
+            // have a genuine gradient — but nothing keys on it until one does,
+            // rather than pretending a front/back flag is a wealth map.
+            if (!nearCore && r < 0.25) return Premises.Warehouse;
             // Shops cluster where the money and the footfall are. Not
             // guaranteed even at the centre — a high street with a shop in
             // every single unit is a shopping centre, not a town.
@@ -272,7 +285,20 @@ namespace Ledger.Core
             // off the roll and the district, which DO vary: near a core a
             // frontage that is not a shop is somebody's front door, and away
             // from one it is flats.
-            if (nearCore && r < 0.62) return Premises.House;
+            // AND THEN THERE WERE THREE, WHICH IS ALSO WRONG AND FOR A
+            // DIFFERENT REASON. The first repair put houses NEAR a core, in
+            // the band left over after shops took everything below 0.55 — so
+            // they got a seven-percent sliver of the one place in town where
+            // nobody lives in a terraced house. `house3` out of 129.
+            //
+            // Backwards. A core street front is shops with flats above them;
+            // houses are what the streets AWAY from it are made of, alongside
+            // the tenements and the sheds. Putting them where the shops are
+            // was reaching for the nearest free band rather than asking what
+            // the town is like — a threshold picked to make a zero go away,
+            // which is the same reflex rule 2 names about making red go away.
+            if (nearCore) return Premises.Tenement;   // flats over the shops
+            if (r < 0.60) return Premises.House;      // the residential streets
             return Premises.Tenement;
         }
 
