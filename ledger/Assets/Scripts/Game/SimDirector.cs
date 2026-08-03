@@ -5562,7 +5562,8 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} textMirrored={_textMirrored} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
-                      $"nameTagsTooNear={NameTags.TooNear} " +
+                      $"nameTagsTooNear={NameTags.TooNear} nameTagsRects={NameTags.RectCalls} " +
+                      $"worstNameMetres={NameTags.WorstNameMetres:0.00} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a
                       // conversation can be carried without typing; it fails when
                       // the chip row runs dry, and no gate could see that because

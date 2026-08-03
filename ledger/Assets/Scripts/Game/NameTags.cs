@@ -114,6 +114,25 @@ namespace Ledger.Game
         /// rect thousands of screens tall instead of a number.
         public static int TooNear { get; private set; }
 
+        /// How many rects were asked for at all — the denominator `TooNear`
+        /// needs and did not have. 3,739 rejections is unreadable on its own:
+        /// over a two-day run with dozens of labels a frame it could be a
+        /// rounding or it could be most of them, and rule 2 is that a count
+        /// without its denominator is not a measurement.
+        public static int RectCalls { get; private set; }
+
+        /// How far from the camera the tallest label was, in metres.
+        ///
+        /// `worstNameFrac` fell from 2,119 to 4.4 when the near plane was
+        /// enforced, which is a fix and not a cure — 4.4 screens tall is still
+        /// absurd. The obvious next move is to guess at another bound, and
+        /// guessing at bounds on this metric has already been wrong twice
+        /// today. The distance says whether this is a label pressed against the
+        /// camera (a placement problem) or an ordinary label whose world bounds
+        /// are far larger than the glyphs (a bounds problem), and those have
+        /// nothing in common but the symptom.
+        public static float WorstNameMetres { get; private set; }
+
         /// A walker offers its label each frame it wants one shown.
         ///
         /// OFFERED, NOT SHOWN. The walker has already decided the label is close
@@ -201,7 +220,12 @@ namespace Ledger.Game
                     // yet, because rule 2 — print the series first, then bound
                     // it from the evidence.
                     float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
-                    if (frac > WorstNameFrac) WorstNameFrac = frac;
+                    if (frac > WorstNameFrac)
+                    {
+                        WorstNameFrac = frac;
+                        WorstNameMetres = Vector3.Distance(cam.transform.position,
+                                                          c.Label.transform.position);
+                    }
                 }
             }
 
@@ -250,6 +274,7 @@ namespace Ledger.Game
             // Bounded by `nearClipPlane` rather than by a figure of mine. It is
             // the camera's own statement of what it draws: nearer than that and
             // there is nothing on screen to label, so there is no rect to want.
+            RectCalls++;
             float near = Mathf.Max(cam.nearClipPlane, 0.001f);
             if (lo.z <= near || hi.z <= near) { TooNear++; return false; }
             rect = Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y),
