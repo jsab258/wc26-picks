@@ -1977,6 +1977,29 @@ namespace Ledger.Game
         string _targetOwner = "none";
         readonly Dictionary<string, int> _jobOwnerTicks = new Dictionary<string, int>();
 
+        /// How many loiter holds ended early because a drop opened under them.
+        int _loitersCutShort;
+
+        /// GROUND COVERED DURING THE WINDOW, which is the number the owner
+        /// tally could not supply and the second half of the answer.
+        ///
+        /// The tally split the misses cleanly in two. `d8` was a staged probe
+        /// owning every tick — fixed above. But `d1` and `d13` read
+        /// `held:job=20` and `held:job=19` and still finished 9.3m and 6.9m
+        /// out, so the steering was right for every tick of those windows and
+        /// the bot still did not arrive.
+        ///
+        /// Ownership cannot tell "steered at the drop and walking" from
+        /// "steered at the drop and not moving" — a conversation, a knockdown
+        /// or a blocked path all read as `job` holding the target. And the
+        /// comparison the numbers invite is unreadable without this: `d2`
+        /// covered 16.5m in 14 ticks and completed, `d13` covered 12.1m in 19.
+        /// More time, less ground. That is not a distance problem and it is not
+        /// a steering problem, and no reading in this trace can say which of
+        /// the remaining ones it is.
+        Vector3 _jobLastPos;
+        double _jobMetresWalked;
+
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
         /// free to be anywhere and counting it would drown the signal.
@@ -2047,8 +2070,22 @@ namespace Ledger.Game
                     // probe ever hold the bot", which is yes and is useless;
                     // the question is whether one held it during THIS window.
                     _jobOwnerTicks.Clear();
+                    _jobLastPos = p0;
+                    _jobMetresWalked = 0;
                 }
-                else if (d < _jobNearest) { _jobNearest = d; _jobNearestHour = now.Hour; }
+                else
+                {
+                    if (d < _jobNearest) { _jobNearest = d; _jobNearestHour = now.Hour; }
+                    // PATH LENGTH, NOT DISPLACEMENT. A bot that walks twenty
+                    // metres in a circle and a bot that stands still both end
+                    // the window the same distance out, and they are completely
+                    // different faults. Flat, like every other distance here,
+                    // because the completion test is flat.
+                    var flatNow = new Vector3(p0.x, 0, p0.z);
+                    var flatWas = new Vector3(_jobLastPos.x, 0, _jobLastPos.z);
+                    _jobMetresWalked += Vector3.Distance(flatNow, flatWas);
+                    _jobLastPos = p0;
+                }
                 return;
             }
 
@@ -2063,6 +2100,7 @@ namespace Ledger.Game
                        : "gone";
             _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m "
                           + $"nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h "
+                          + $"walked={_jobMetresWalked:0.0}m "
                           + $"held:{OwnerTally()}]");
         }
 
@@ -3548,7 +3586,31 @@ namespace Ledger.Game
             }
             if (_loiterUntil > 0)
             {
-                if (Time.time < _loiterUntil)
+                // THE DROP WINS HERE TOO, AND THAT IS THE HALF THAT WAS MISSING.
+                //
+                // Twenty-three lines up, the loiter refuses to START while a
+                // drop is open, with a comment explaining exactly why: "the
+                // loiter has twenty other hours of the day and the drop has
+                // four, so the drop wins and nothing is lost". The HOLD that
+                // follows had no such guard, so a loiter begun at 19:00 pins
+                // the bot in place straight through a window that opens at
+                // 22:00 — and the owner tally caught it doing precisely that:
+                //
+                //   d8:MISSED[from=11m nearest=10.6m@22h held:loiter-hold=21]
+                //
+                // Twenty-one ticks, every one of them owned by the loiter, and
+                // the bot moved less than half a metre. One idea, two
+                // implementations, and the one nobody looked at is the one
+                // missing a line — which is the fault this project has now
+                // recorded four times in its own rules and walked into again.
+                //
+                // The measurement is taken rather than discarded: the loiter
+                // has already done its work by this point (`loiterNotices` has
+                // read 37 of 37) and what is lost is the tail of a hold, not
+                // the probe. `loitersCutShort` counts it so the cost is a
+                // number rather than a silence.
+                bool dropWaiting = _game.ActiveJobPos.HasValue;
+                if (Time.time < _loiterUntil && !dropWaiting)
                 {
                     // Stand still. Holding the target AT the player is how the
                     // bot stops without touching the locomotion.
@@ -3557,10 +3619,12 @@ namespace Ledger.Game
                 }
                 else
                 {
+                    if (dropWaiting && Time.time < _loiterUntil) _loitersCutShort++;
                     _loiterLooks = Perceivers.Looks - _looksBeforeLoiter;
                     _loiterUntil = -1f;
                     Debug.Log($"SimDirector: loiter over, {_loiterLooks} heads turned, "
-                              + $"{Perceivers.LoiterNotices} of them for loitering");
+                              + $"{Perceivers.LoiterNotices} of them for loitering"
+                              + (dropWaiting ? " — CUT SHORT, a drop was open" : ""));
                 }
             }
 
@@ -8122,6 +8186,7 @@ namespace Ledger.Game
                       $"slamDrewRing={_slamDrewRing} " +
                       $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
                       $"slamsDeferred={_slamsDeferred} " +
+                      $"loitersCutShort={_loitersCutShort} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
