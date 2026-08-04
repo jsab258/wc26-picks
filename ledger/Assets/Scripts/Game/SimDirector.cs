@@ -2045,9 +2045,39 @@ namespace Ledger.Game
                 // order is a property of where they happened to stand. One
                 // number, and it needs no threshold — which is the point,
                 // because inventing one here is what rule 2 forbids.
+                // "6/6", NOT "7/6". The first version printed the player's
+                // POSITION in a list they are not in, so being brighter than
+                // all six bodies came out as `7/6` — a number that reads as an
+                // off-by-one and would be dismissed as one. It was the correct
+                // answer in a notation that cannot express it.
+                //
+                // How many of the crowd the player outshines, out of how many
+                // there were. Unambiguous at both ends: 0/6 is the darkest
+                // thing on the street, 6/6 is the brightest.
                 int below = 0;
                 foreach (var l in lums) if (l < _playerLum) below++;
-                _bodyReadRank = $"{below + 1}/{lums.Count}";
+                _bodyReadRank = $"{below}/{lums.Count}";
+
+                // AND ACROSS EVERY SHOT, BECAUSE ONE FRAME IS NOT A SAMPLE.
+                //
+                // `crowdRead` has now come back as 24, 11 and 6 on three green
+                // runs, and the median moved with it: 19.5, 2.8, 3.0. With six
+                // bodies a median is barely a statistic, and I have twice drawn
+                // a conclusion about the player's brightness from one — first
+                // "comfortably inside the crowd's spread", then "the brightest
+                // body on the street", and the second reversed the first.
+                //
+                // Both readings were honest arithmetic on a sample too small
+                // and too variable to carry them. The instrument was answering
+                // a question about ONE FRAME while being read as a question
+                // about the game — which is the same fault as the bubble
+                // series taking two samples in seventeen days, repaired here
+                // the same way and one probe later.
+                //
+                // Each shot contributes its own outshone-fraction, so the run
+                // reports how often the player is the brightest thing rather
+                // than whether they were in one photograph.
+                if (lums.Count > 0) _bodyOutshone.Add((float)below / lums.Count);
             }
         }
 
@@ -2063,6 +2093,23 @@ namespace Ledger.Game
         /// median cannot tell "this body is bright" from "this body is standing
         /// under the only lamp".
         string _bodyReadRank = "none";
+        /// The outshone-fraction from every shot, so the run answers "how often
+        /// is the player the brightest body" rather than "were they in this
+        /// one photograph".
+        readonly List<float> _bodyOutshone = new List<float>();
+
+        /// Typical share of the crowd the player outshines. -1 when never
+        /// sampled — outshining nobody is a real and welcome reading.
+        double BodyOutshoneMedian
+        {
+            get
+            {
+                if (_bodyOutshone.Count == 0) return -1;
+                var v = new List<float>(_bodyOutshone);
+                v.Sort();
+                return v[v.Count / 2];
+            }
+        }
         /// One reading per body — x is luminance, y is saturation. Kept rather
         /// than folded so the spread can be printed beside the median.
         readonly List<Vector2> _crowdReadings = new List<Vector2>();
@@ -7623,6 +7670,8 @@ namespace Ledger.Game
                       $"bodyCoat=[{RealBody.CoatRead}] " +
                       $"bodyReadLum={_playerLum:0.0} bodyReadSat={_playerSat:0.000} bodyReadPx={_playerPixels} " +
                       $"bodyReadWhen={_bodyReadWhen} bodyReadRank={_bodyReadRank} " +
+                      $"bodyOutshoneMedian={BodyOutshoneMedian:0.000} " +
+                      $"bodyOutshoneShots={_bodyOutshone.Count} " +
                       // MEDIAN, and the SPREAD beside it. Two collapsed numbers
                       // cannot say whether the player's lower saturation is
                       // the player being unusual or the crowd being spread —
