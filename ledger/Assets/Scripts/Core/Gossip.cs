@@ -179,6 +179,67 @@ namespace Ledger.Core
             id != null && _agents.TryGetValue(id, out var g) ? g : null;
         public IEnumerable<Gossiper> Agents => _agents.Values;
 
+        /// How many rumour summaries say `word` out loud.
+        ///
+        /// WHY THIS IS IN CORE AND NOT A GREP. A rumour has two halves that
+        /// look alike and are not: `Content` is a FACT, keyed on ids, and
+        /// `Summary` is PROSE that a person reads on the ledger screen and a
+        /// model reads in a prompt. The id for the player is the literal
+        /// string `player`, which is correct in a Fact and is not a word any
+        /// character in this game would ever say.
+        ///
+        /// It shipped. The panel readback from 0eeee6d holds four of these:
+        ///
+        ///     Rocco — "Mitch says it was player, and came to say so"
+        ///
+        /// and the sentence beside it, built by a different lambda, says
+        /// "Novak" correctly. Same shape as the empty-slot bug repaired in
+        /// that exact spot a day earlier — one idea, two implementations, and
+        /// the one nobody looks at is the one missing a line. The earlier fix
+        /// gave both halves ONE helper; the helper returns an ID, which is
+        /// right for the fact and wrong for the words.
+        ///
+        /// A grep cannot find it because the leak is in the RUNNING world, not
+        /// in the source: `{Accused(id)}` is an innocent-looking template, and
+        /// what it interpolates depends on whether a witness had a name to
+        /// give. So the check has to read the mill, and it lives here because
+        /// Core is the layer that compiles and tests in this container.
+        ///
+        /// WHOLE WORDS. "a player's entrance" is a leak; "two players" is a
+        /// different word and matching it would make the number un-actionable.
+        public int SummariesSaying(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return 0;
+            int n = 0;
+            foreach (var g in _agents.Values)
+            {
+                if (g == null) continue;
+                foreach (var r in g.Rumors)
+                    if (r != null && SaysWord(r.Summary, word)) n++;
+            }
+            return n;
+        }
+
+        /// Does `text` contain `word` as a whole word? Case-insensitive,
+        /// because a sentence that starts "Player was seen…" is the same bug.
+        public static bool SaysWord(string text, string word)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(word)) return false;
+            for (int i = 0; i + word.Length <= text.Length; )
+            {
+                int at = text.IndexOf(word, i, StringComparison.OrdinalIgnoreCase);
+                if (at < 0) return false;
+                int end = at + word.Length;
+                bool leftFree = at == 0 || !IsWordChar(text[at - 1]);
+                bool rightFree = end >= text.Length || !IsWordChar(text[end]);
+                if (leftFree && rightFree) return true;
+                i = at + 1;
+            }
+            return false;
+        }
+
+        static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
         /// A first-hand sighting enters the network. Confidence defaults to certain;
         /// a disguise (or distance, or darkness) passes less than 1.0 — the witness
         /// saw SOMETHING but can't swear to who, and everything downstream (spread,

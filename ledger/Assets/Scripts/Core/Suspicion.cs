@@ -103,13 +103,91 @@ namespace Ledger.Core
 
         public IReadOnlyList<string> Reasons => _reasons;
         readonly List<string> _reasons = new List<string>();
+        // The same entries taken apart: the words on their own, and what each
+        // one moved. Kept beside the formatted line rather than parsed back out
+        // of it — a reader that re-splits `"+0.03 heard something"` on its first
+        // space is a reader that breaks silently the day the format changes,
+        // and this file is the only thing that knows the format.
+        readonly List<string> _why = new List<string>();
+        readonly List<double> _moved = new List<double>();
 
-        void Note(string line)
+        /// `showMove` is false only for the restore marker, which is not an
+        /// event and moved nothing. It is a flag rather than a `moved == 0`
+        /// test because a real event CAN move zero — `LeakSuspicion * passed`
+        /// with nothing passed — and "+0.00 heard something" is still a thing
+        /// that happened to this person, so it must keep looking like one.
+        void Note(double moved, string why, bool showMove = true)
         {
-            _reasons.Add(line);
+            _reasons.Add(!showMove ? why
+                : $"{(moved >= 0 ? "+" : "-")}{Math.Abs(moved):0.00} {why}");
+            _why.Add(why);
+            _moved.Add(moved);
             // One at a time, from the front: this is called once per event, so
             // the list is never more than one over.
-            if (_reasons.Count > MaxReasons) _reasons.RemoveAt(0);
+            if (_reasons.Count > MaxReasons)
+            {
+                _reasons.RemoveAt(0); _why.RemoveAt(0); _moved.RemoveAt(0);
+            }
+        }
+
+        /// The last `want` DISTINCT reasons, newest last, with a repeat said
+        /// once and counted.
+        ///
+        /// WHY. The ledger screen showed the last three entries verbatim and
+        /// the run from 0eeee6d rendered this, twice, for two different people:
+        ///
+        ///     Lena Moreau — uneasy about you
+        ///        +0.03 heard something that doesn't fit the person I thought I knew
+        ///        +0.03 heard something that doesn't fit the person I thought I knew
+        ///        +0.03 heard something that doesn't fit the person I thought I knew
+        ///
+        /// That reads as a broken screen, and it is worse than it looks: the
+        /// three-line window is the whole explanation the player gets, and one
+        /// repeated event had filled all of it. The other reasons she has for
+        /// distrusting you were pushed off the panel by the same sentence
+        /// three times.
+        ///
+        /// So this is not tidying. Collapsing puts MORE in the window than it
+        /// takes out, and it says the thing the three lines were failing to
+        /// say — that it kept happening, which is itself the story.
+        ///
+        /// Consecutive only, deliberately: "twice, then something else, then
+        /// twice again" is a different account of a person from "four times",
+        /// and merging across the gap would erase the shape of how they came
+        /// to feel this way.
+        public List<string> RecentReasons(int want)
+        {
+            var picked = new List<string>();
+            if (want <= 0) return picked;
+            int i = _why.Count - 1;
+            while (i >= 0 && picked.Count < want)
+            {
+                int run = 1;
+                double sum = _moved[i];
+                while (i - run >= 0 && _why[i - run] == _why[i]) { sum += _moved[i - run]; run++; }
+                picked.Add(run == 1 ? _reasons[i] : Repeated(sum, _why[i], run));
+                i -= run;
+            }
+            picked.Reverse();
+            return picked;
+        }
+
+        static string Repeated(double moved, string why, int times) =>
+            $"{(moved >= 0 ? "+" : "-")}{Math.Abs(moved):0.00} {why} — {Times(times)}";
+
+        /// Small counts as words, because this is prose on a screen a person
+        /// reads and "2 times" is not English. Past five it stops being a
+        /// number anybody holds in their head, so it goes back to digits.
+        static string Times(int n)
+        {
+            switch (n)
+            {
+                case 2: return "twice";
+                case 3: return "three times";
+                case 4: return "four times";
+                case 5: return "five times";
+                default: return $"{n} times";
+            }
         }
 
         public SuspicionLevel Level =>
@@ -122,19 +200,19 @@ namespace Ledger.Core
         public void Restore(double value)
         {
             Value = Math.Clamp(value, 0.0, 1.0);
-            Note("(restored from save)");
+            Note(0.0, "(restored from save)", showMove: false);
         }
 
         public void Raise(double amount, string reason)
         {
             Value = Math.Clamp(Value + amount, 0.0, 1.0);
-            Note($"+{amount:0.00} {reason}");
+            Note(amount, reason);
         }
 
         public void Lower(double amount, string reason)
         {
             Value = Math.Clamp(Value - amount, 0.0, 1.0);
-            Note($"-{amount:0.00} {reason}");
+            Note(-amount, reason);
         }
 
         /// Text the LLM receives describing how this character currently feels

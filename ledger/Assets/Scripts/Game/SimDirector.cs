@@ -976,8 +976,8 @@ namespace Ledger.Game
                 int landed = Witnesses.Tick(
                     gameMinutes,
                     _game.Gossip.Mill, now,
-                    d => new Fact(Accused(d.WitnessId), "violence", "hook_street"),
-                    d => $"{d.WitnessId} says it was {Accused(d.WitnessId)}, "
+                    d => new Fact(AccusedId(d.WitnessId), "violence", "hook_street"),
+                    d => $"{d.WitnessId} says it was {AccusedName(d.WitnessId)}, "
                          + "and came to say so");
                 if (landed > 0)
                     Debug.Log($"SimDirector: {landed} witness account(s) arrived and "
@@ -1004,9 +1004,36 @@ namespace Ledger.Game
             // repaired tonight: one idea, two implementations, and the one
             // nobody looks at is the one missing a line. This one also feeds
             // the model, so the hole was in a prompt as well as on a screen.
-            string Accused(string witnessId) =>
+            // AND THE FIX FOR THAT SPLIT PUT THE ID INTO THE WORDS.
+            //
+            // Sharing one helper made the fact and the sentence agree, which
+            // was the bug, and the value they now agree on is `"player"` —
+            // right for a Fact, and a raw database key in a sentence a person
+            // reads. The panel from 0eeee6d says it four times:
+            //
+            //     Rocco — "Mitch says it was player, and came to say so"
+            //
+            // So it is two helpers after all, and the reason is that the two
+            // consumers want DIFFERENT THINGS from the same lookup — an id and
+            // a name. What was wrong the first time was not having two, it was
+            // having two that could disagree about who.
+            //
+            // The name comes from `GossipDirector.PlayerInTalk`, which is the
+            // one place that knows whether the street has learned it yet. Not
+            // a second copy of that rule: a district that says "Novak" in one
+            // sentence and "the new owner" in the next, in the same panel, is
+            // the same class of fault one layer up.
+            string AccusedId(string witnessId) =>
                 _deedAccused.TryGetValue(witnessId, out var w) && !string.IsNullOrEmpty(w)
                     ? w : "player";
+            string AccusedName(string witnessId)
+            {
+                var id = AccusedId(witnessId);
+                if (id != "player") return id;   // an NPC's id IS their display name here
+                return _game != null && _game.Gossip != null
+                    ? _game.Gossip.PlayerInTalk
+                    : (_game != null && _game.Me != null ? _game.Me.Unplaced : "the new owner");
+            }
 
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
@@ -5475,7 +5502,70 @@ namespace Ledger.Game
             // empty rectangle — and the font this game gets depends on which
             // machine it is running on.
             bool glyphsOk = _labels > 0 && _labelsFontless == 0 && _labelsBlank == 0;
-            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7 && glyphsOk;
+
+            // AND THE WORDS ARE NOT DATABASE KEYS.
+            //
+            // Every check above asks whether the panel WORKS. None of them can
+            // see what it says, and what it said on 0eeee6d was:
+            //
+            //     Rocco — "Mitch says it was player, and came to say so"
+            //
+            // four times, beside a sentence built ten lines away that got the
+            // name right. Found by reading the dump, which is the third fault
+            // a picture or a readback has caught that no gate was asking about
+            // — so it becomes a number, the way `playerPrimitive` and `bodyUp`
+            // did.
+            //
+            // IT NAMES THE SENTENCE, not just the count. A gate that can only
+            // say its own name costs a round trip to learn why, and the whole
+            // reason this one is possible is that the leak depends on world
+            // state rather than on source a grep can reach.
+            int idLeaks = 0;
+            string idLeakSaid = "none";
+            if (_game != null && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                idLeaks = _game.Gossip.Mill.SummariesSaying("player");
+                if (idLeaks > 0)
+                    foreach (var g in _game.Gossip.Mill.Agents)
+                    {
+                        if (g == null) continue;
+                        foreach (var r in g.Rumors)
+                            if (r != null && GossipMill.SaysWord(r.Summary, "player"))
+                            { idLeakSaid = $"{g.Id}: {r.Summary}"; break; }
+                        if (idLeakSaid != "none") break;
+                    }
+            }
+
+            // AND THE DOUBT TRAIL IS NOT ONE SENTENCE REPEATED.
+            //
+            // The panel shows three reasons. It used to show the last three
+            // ENTRIES, and on 0eeee6d that was the same sentence three times
+            // for two separate people — one repeated event had taken the whole
+            // explanation, so every other reason those two had for distrusting
+            // the player was off the screen.
+            //
+            // The number is the collapse doing its job: how many DISTINCT
+            // lines the worst-doubting person's window resolves to, against
+            // how many raw entries they are carrying. `shown` back at 1 with
+            // `held` in double figures is the fault returning, and it is
+            // exactly the reading nothing was taking when it shipped.
+            //
+            // REPORTED, NOT GATED. A person who has genuinely doubted you for
+            // one reason once is a legitimate street state, and gating on it
+            // would be a probe that only fires on a lucky run.
+            int doubtShown = 0, doubtHeld = 0;
+            string doubtWho = "nobody";
+            if (_game != null && _game.Hosts != null)
+                foreach (var h in _game.Hosts)
+                {
+                    if (h == null || h.Suspicion == null) continue;
+                    if (h.Suspicion.Reasons.Count <= doubtHeld) continue;
+                    doubtHeld = h.Suspicion.Reasons.Count;
+                    doubtShown = h.Suspicion.RecentReasons(3).Count;
+                    doubtWho = h.Card != null ? h.Card.Name : "somebody";
+                }
+
+            bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7 && glyphsOk && idLeaks == 0;
 
             // P5 BUDGETS. The deterministic ones gate (caps are design
             // numbers, so exceeding them is a leak, not a slow machine); the
@@ -6416,7 +6506,8 @@ namespace Ledger.Game
                  + $"feudLive={_harmFeudLive} feudBlocks={_harmFeudBlocks}]",
                  harmOk),
                 ("phones", phonesOk),
-                ($"ui[labels={_labels} fontless={_labelsFontless} blank={_labelsBlank}]", uiOk),
+                ($"ui[labels={_labels} fontless={_labelsFontless} blank={_labelsBlank} "
+                 + $"idLeaks={idLeaks} said={idLeakSaid}]", uiOk),
 
                 // WORLD TEXT SITS IN THE WORLD. Unity's built-in text shader
                 // is ZTest Always, and the first screenshot this project ever
@@ -6931,7 +7022,8 @@ namespace Ledger.Game
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
-                      $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
+                      $"panelsOk={panelsOk} panelsBad={panelsBad} idLeaks={idLeaks} " +
+                      $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +

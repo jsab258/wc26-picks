@@ -102,6 +102,15 @@ namespace Ledger.Game
         }
 
         /// The player as the street would name them in talk, right now.
+        ///
+        /// PUBLIC because a second caller appeared and the wrong fix was to
+        /// let it work the rule out for itself. `SimDirector` builds the
+        /// witness-account sentence — *"Mitch says it was …"* — and was
+        /// interpolating the raw subject id into it. Two places deciding
+        /// separately whether the street has learned the name is how a panel
+        /// ends up saying "Novak" in one line and "the new owner" in the next.
+        public string PlayerInTalk => Talked;
+
         string Talked => _game != null && _game.Me != null
             ? _game.Me.InTalk(StreetKnowsName()) : "the new owner";
 

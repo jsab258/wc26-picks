@@ -1110,8 +1110,14 @@ namespace Ledger.Game
                         ? $"<color={UiTheme.HexDebit}><b>does not believe you</b></color>"
                         : $"<color={UiTheme.HexHeld}>uneasy about you</color>";
                 doubt.AppendLine($"<b>{who}</b> — {word}");
-                var why = h.Suspicion.Reasons;
-                for (int i = System.Math.Max(0, why.Count - 3); i < why.Count; i++)
+                // THREE DISTINCT ONES, not the last three entries. Taking the
+                // tail verbatim rendered the same sentence three times for two
+                // separate people on 0eeee6d — one repeated event had filled
+                // the entire explanation and pushed everything else off the
+                // screen. `RecentReasons` collapses a run and says how often,
+                // which is both shorter and more of an answer.
+                var why = h.Suspicion.RecentReasons(3);
+                for (int i = 0; i < why.Count; i++)
                     doubt.AppendLine($"   <color={UiTheme.HexDim}>{why[i]}</color>");
                 if (why.Count == 0)
                     doubt.AppendLine($"   <color={UiTheme.HexDim}>nothing you can point to</color>");

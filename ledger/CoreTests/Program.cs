@@ -820,6 +820,57 @@ namespace Ledger.CoreTests
             Check(s.Level == SuspicionLevel.Confronting, "0.9 is confronting");
             s.Lower(2.0, "test");
             Check(s.Value == 0.0 && s.Level == SuspicionLevel.Trusting, "clamped at zero");
+
+            // -- THE TRAIL AS A PERSON READS IT -------------------------------
+            //
+            // The ledger screen took the last three entries and rendered them
+            // verbatim, and on 0eeee6d that was the same sentence three times,
+            // for two different people.
+            //
+            // THE ACCEPTING CASE FIRST. Three different reasons must come back
+            // as three different lines, untouched — a collapser that quietly
+            // merges distinct events would destroy the trail this whole class
+            // exists to keep, and it would do it invisibly.
+            var trail = new SuspicionTracker();
+            trail.Raise(0.12, "saw you at the docks");
+            trail.Raise(0.35, "your story about Tuesday did not hold");
+            trail.Lower(0.05, "you did what you said you would");
+            var kept = trail.RecentReasons(3);
+            Check(kept.Count == 3
+                  && kept[0].Contains("docks") && kept[2].Contains("did what you said"),
+                  "three different reasons stay three lines, oldest first",
+                  string.Join(" / ", kept));
+            Check(kept[2].StartsWith("-0.05"), "and a fall still reads as a fall", kept[2]);
+
+            var same = new SuspicionTracker();
+            same.Raise(0.12, "saw you at the docks");
+            for (int i = 0; i < 3; i++) same.Raise(0.03, "heard something that doesn't fit");
+            var folded = same.RecentReasons(3);
+            Check(folded.Count == 2, "a run of the same reason is one line",
+                  string.Join(" / ", folded));
+            Check(folded[1].Contains("three times") && folded[1].StartsWith("+0.09"),
+                  "that says how often, and what it cost in total", folded[1]);
+            Check(folded[0].Contains("docks"),
+                  "and the reason it used to push off the screen is back on it", folded[0]);
+
+            // NOT ACROSS A GAP. "twice, something else, twice again" is a
+            // different account of a person from "four times", and merging it
+            // would erase the shape of how they got here.
+            var gapped = new SuspicionTracker();
+            gapped.Raise(0.03, "a doubt");
+            gapped.Raise(0.03, "a doubt");
+            gapped.Raise(0.20, "something else entirely");
+            gapped.Raise(0.03, "a doubt");
+            gapped.Raise(0.03, "a doubt");
+            var g3 = gapped.RecentReasons(3);
+            Check(g3.Count == 3 && g3[0].Contains("twice") && g3[2].Contains("twice")
+                  && g3[1].Contains("something else"),
+                  "two runs of the same reason around a gap stay two runs",
+                  string.Join(" / ", g3));
+
+            var none = new SuspicionTracker();
+            Check(none.RecentReasons(3).Count == 0 && none.RecentReasons(0).Count == 0,
+                  "nothing to explain returns nothing, and asking for none is not a throw");
         }
 
         static Gossiper Agent(string id, string name, string circle) =>
@@ -1433,6 +1484,47 @@ namespace Ledger.CoreTests
                 "a lifetime of ordinary hours stays bounded", mem.Events.Count.ToString());
             Check(mem.Events.Exists(e => e.Text.Contains("changed hands")),
                 "while the day that mattered is never the one forgotten");
+
+            // -- AN ID IS NOT A NAME ------------------------------------------
+            //
+            // Four rumours shipped to the ledger screen reading `"Mitch says it
+            // was player, and came to say so"`. The FACT was right — `player`
+            // is the subject id and always has been — and the SENTENCE beside
+            // it, built three lines away, was wrong.
+            //
+            // THE ACCEPTING CASE FIRST, and it is first because the expensive
+            // failure here is a check that fires on healthy prose: every
+            // summary in this game is going to contain the word "the", and a
+            // leak-finder that cannot pass a clean mill would be turned off
+            // within a day (rule 5b).
+            var clean = new GossipMill(new SocialGraph());
+            clean.Add(Agent("ferko", "Ferko", "day"));
+            clean.Witness("ferko", new Fact("player", "night_job_d3", "seen"),
+                "someone in a runner's coat — maybe Novak — was handling a package past midnight",
+                true, now, 0.6);
+            Check(clean.SummariesSaying("player") == 0,
+                "prose that names the man rather than the id reads clean",
+                clean.Get("ferko").Rumors[0].Summary);
+
+            var leaky = new GossipMill(new SocialGraph());
+            leaky.Add(Agent("rocco", "Rocco", "night"));
+            leaky.Witness("rocco", new Fact("player", "violence", "hook_street"),
+                "Mitch says it was player, and came to say so", true, now, 1.0);
+            Check(leaky.SummariesSaying("player") == 1,
+                "and the sentence that shipped is found",
+                leaky.Get("rocco").Rumors[0].Summary);
+
+            // WHOLE WORDS, because a count that includes near-misses is a count
+            // nobody can act on: "two players" is a different word, and a
+            // possessive is the same one.
+            Check(!GossipMill.SaysWord("the room emptied of players", "player"),
+                "a longer word is a different word");
+            Check(GossipMill.SaysWord("Player was seen at the docks", "player"),
+                "the start of a sentence is still the id");
+            Check(GossipMill.SaysWord("that was the player's coat", "player"),
+                "and so is a possessive");
+            Check(!GossipMill.SaysWord("replayer", "player") && !GossipMill.SaysWord(null, "player"),
+                "no match inside a word, and no throw on nothing");
         }
 
         static void TestSurvivingLead()
