@@ -229,6 +229,14 @@ namespace Ledger.Game
         public static int Remarks;            // people who said something about it
         public static int LoiterNotices;      // noticed for standing about
         public static int NightRunNotices;    // noticed for running in the dark
+        /// Noticed for blood on the coat, and for carrying in the open. Both
+        /// are new tonight and both read zero in all 132 kept runs, because
+        /// `Notice.What` was told in a literal that the player was never
+        /// bloodied and never armed. `Looks` is the denominator for this whole
+        /// family: a zero here beside a zero there means nobody looked, and a
+        /// zero beside `looks=35` means they looked and saw nothing to say.
+        public static int BloodNotices;
+        public static int WeaponNotices;
         public static int NoiseInvestigations;// walked toward a sound
         /// Of those, how many went to a WALL rather than to the sound —
         /// `Perception.BelievedAt` shortening the range because the noise
@@ -241,6 +249,7 @@ namespace Ledger.Game
         public static void ResetCounters()
         {
             Looks = Remarks = LoiterNotices = NightRunNotices = NoiseInvestigations = 0;
+            BloodNotices = WeaponNotices = 0;
             BeliefsShortened = 0;
             PeakHush = 0;
             // AND THE SOUND STATE, which the first version of this method

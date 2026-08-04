@@ -371,6 +371,10 @@ namespace Ledger.Game
             // there says the branch is unreachable today, and the day the crowd
             // gets faces it goes non-zero and the lift counters start answering
             // the question they were written for.
+            // AND WHETHER THE PLAYER IS VISIBLY ARMED, refreshed here for the
+            // same reason the capability is: the askers are every walker on
+            // every frame, and this changes when a coat is packed.
+            CoatHost.RefreshShowingWeapon();
             BodyCrowdEligible = 0;
             _bodyRank.Clear();
             foreach (var n in _npcs)

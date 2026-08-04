@@ -362,9 +362,23 @@ namespace Ledger.Game
         /// same sensors everything else uses — which is why a stain that would
         /// ruin you in the bar is invisible on the walk home.
         public static bool StainNoticeableFrom(Vector3 eye, Vector3 playerAt) =>
-            PlayerStain != null
-            && Traces.Noticeable(PlayerStain, Vector3.Distance(eye, playerAt),
-                                 Perceivers.LevelAt(playerAt));
+            StainNoticeableAt(Vector3.Distance(eye, playerAt),
+                              Perceivers.LevelAt(playerAt));
+
+        /// THE SAME QUESTION WHEN THE CALLER ALREADY HOLDS THE SENSORS, and it
+        /// exists because the version above cannot be used at walker rates.
+        /// `Perceivers.LevelAt` walks every lamp in the scene — its own file
+        /// says so — while `NpcWalker.TickPerception` has the distance in hand
+        /// and reads the light from the once-a-frame cache that twenty other
+        /// walkers share. Asking the expensive one per walker per tick would
+        /// have paid for a fresh sweep of the city to answer a question the
+        /// cheap numbers already answer.
+        ///
+        /// One predicate, two entry points: `StainNoticeableFrom` routes
+        /// through this rather than repeating `Traces.Noticeable`, so the range
+        /// model cannot end up living in two places and drifting.
+        public static bool StainNoticeableAt(double metres, double lightLevel) =>
+            PlayerStain != null && Traces.Noticeable(PlayerStain, metres, lightLevel);
 
         /// A stain is a distinguishing mark, exactly like a limp: it feeds the
         /// identification ladder rather than the case file.

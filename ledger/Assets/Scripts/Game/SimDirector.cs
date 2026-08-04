@@ -3577,6 +3577,13 @@ namespace Ledger.Game
         const int CarryStagesOnDay = 9;
         bool _carryStaged, _friskStaged, _threatStaged, _washTried;
         int _carryTook;
+        /// THE VISIBLY-ARMED WINDOW. `_batTook` is whether the swap succeeded
+        /// and `_batCarried` is whether the street's flag agrees — two facts
+        /// rather than one, because a `Carry` that returns true and a
+        /// `ShowingWeapon` that stays false would be the interesting failure
+        /// and one boolean cannot say which half went wrong.
+        bool _batStaged, _batTook, _batCarried;
+        Traces.Item _simRazor, _simBat;
 
         // M18 companionship. `_companionRung` is the companion's OWN rung on
         // the staged deed and `_companionStreetRung` is the best rung anybody
@@ -4963,9 +4970,16 @@ namespace Ledger.Game
             // ---- what is in the coat, once ----
             //
             // Two objects that will not both fit, so `IsAChoice` is TRUE and
-            // the decision at the door is a real one. A razor is Damning, a
-            // cosh is Concealable, and the capacity rule says so rather than
-            // this file deciding it.
+            // the decision at the door is a real one, and the capacity rule
+            // says so rather than this file deciding it.
+            //
+            // THIS COMMENT USED TO SAY "a razor is Damning, a cosh is
+            // Concealable" AND THE RAZOR IS NOT. Measured against `Arsenal`
+            // rather than remembered: cosh and razor are BOTH `Concealable` at
+            // frisk cost 0.35, and the bat is `Impossible` at 1.00. The razor's
+            // sharp edge is `MarksYou`, which is a different axis entirely and
+            // is why it is the weapon the blood probe uses. Nothing downstream
+            // was wrong — the reason written beside it was.
             if (!_carryStaged)
             {
                 _carryStaged = true;
@@ -4976,6 +4990,12 @@ namespace Ledger.Game
                 // Three objects that cannot all come is what makes `IsAChoice`
                 // true, and a run where everything fits proves nothing.
                 var bat = Traces.Acquire("sim-bat", "bat", Traces.Origin.Ordinary, "the yard");
+                // KEPT, because the bat is picked up again later in the run and
+                // `Traces` has no lookup by id — `Acquire` mints one. Calling
+                // it twice would have made a SECOND bat, left the first at
+                // home, and printed a coat that reads correctly while
+                // describing an object nobody is holding.
+                _simRazor = razor; _simBat = bat;
                 CoatHost.Store(razor); CoatHost.Store(cosh); CoatHost.Store(bat);
                 _carryTook = 0;
                 if (CoatHost.Carry(cosh)) _carryTook++;
@@ -5016,6 +5036,52 @@ namespace Ledger.Game
                 Debug.Log($"SimDirector: frisk — refusing a doorman is {_friskRefusalCost}; "
                           + $"a constable found {_friskFound:0.00} costing {_friskCost:0.00} "
                           + $"at heat {heat:0.00}; groundless search happened={_friskGroundlessHappened}");
+            }
+
+            // ---- and then the player carries it where people can see ----
+            //
+            // RULE 5b's TWIN: A GUARD NEEDS A RUN IN WHICH THE THING IT ASSERTS
+            // CAN HAPPEN. `Notice.What` learned to see a carried weapon tonight
+            // and would have reported nothing for ever, because the coat probe
+            // above asks for the bat THIRD and `Arsenal.Fits` refuses it: a
+            // cosh and a razor are already on, and an `Impossible` weapon only
+            // fits when it is one of at most two things. So `weaponVisible`
+            // was wired to a flag that could not become true — the wiring would
+            // have read exactly like the literal it replaced.
+            //
+            // NOT BY LOOSENING THE COAT RULE, which is the thing rule 2
+            // forbids, and not by reordering the probe above — the choice gate
+            // needs three objects that cannot all come, and its numbers are
+            // captured at that instant. The player simply leaves the razor
+            // behind and picks the bat up, which is a decision a player makes
+            // and the one the file's own comment describes.
+            //
+            // AFTER THE FRISK, gated on `_friskStaged` rather than on merely
+            // sitting lower in the method — the frisk block is skipped
+            // entirely while `Gossip` is null, so source order is not the
+            // guarantee it looks like.
+            //
+            // AND THE ORDER IS LOAD-BEARING, measured rather than assumed:
+            // `Coat.WorstFind` is 0.35 with the cosh and the razor on and 1.00
+            // once the bat replaces the razor, because an `Impossible`
+            // concealment cannot be missed. Swapping first would have tripled
+            // `_friskFound`, moved a landed gate number, and done it while
+            // planting a condition that has nothing to do with frisking.
+            if (!_batStaged && _carryStaged && _friskStaged)
+            {
+                _batStaged = true;
+                if (_simRazor != null) CoatHost.Store(_simRazor);
+                _batTook = _simBat != null && CoatHost.Carry(_simBat);
+                // REFRESHED HERE RATHER THAN READ. `ShowingWeapon` is a cache
+                // the population pass rebuilds once a second, so reading it in
+                // the frame that changed the coat would report the previous
+                // second's coat — and `batCarried=False` beside `batTook=True`
+                // is exactly the self-contradicting pair that gets a number
+                // deleted rather than explained.
+                CoatHost.RefreshShowingWeapon();
+                _batCarried = CoatHost.ShowingWeapon;
+                Debug.Log($"SimDirector: the bat — took={_batTook} showing={_batCarried}, "
+                          + $"on me {CoatHost.OnMe.Count}, at home {CoatHost.AtHome.Count}");
             }
 
             // ---- and one act that actually bleeds ----
@@ -8783,6 +8849,16 @@ namespace Ledger.Game
                       $"looks={Perceivers.Looks} remarks={Perceivers.Remarks} " +
                       $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
                       $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
+                      // ON THE DONE LINE ONLY, and deliberately not on the
+                      // gate string above. Both are run totals, and the gate
+                      // string is emitted only when the gate is red — so a key
+                      // living on both lines is a key `verdict-read.py` has to
+                      // refuse, which is the fault that cost an afternoon.
+                      // `loiterNotices` is on both for historical reasons; two
+                      // more would be making the problem bigger on purpose.
+                      $"bloodNotices={Perceivers.BloodNotices} " +
+                      $"weaponNotices={Perceivers.WeaponNotices} " +
+                      $"batCarried={_batCarried} batTook={_batTook} " +
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"beliefsShortened={Perceivers.BeliefsShortened} " +
                       $"clipsAsked={Audio.DistinctClipsAsked} voicesAsked={Audio.DistinctVoicesAsked} " +

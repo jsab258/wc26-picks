@@ -724,10 +724,30 @@ namespace Ledger.Game
             // changing how fast the whole street places the player on every
             // ordinary day is a decision to make at the top of a turn against
             // the perception numbers, not at the end of one.
-            bool bloodOnMe = ViolenceHost.PlayerStain != null;
+            // AND THE FIRST VERSION OF THIS LINE WAS `PlayerStain != null`,
+            // WHICH IS THE SAME FAULT ONE LAYER IN. The literal `false` was
+            // wrong because the street could never see blood; a bare null check
+            // is wrong because the street can now see it from forty-five
+            // metres. `Notice.BloodNoticeMetres` is 4.5 and this band is 45 —
+            // a factor of ten, and every one of the nine walkers in between
+            // would have read a man as bloodied across a dark road.
+            //
+            // `Traces.Noticeable` is the model: range scaled by light and by
+            // how strong the stain still is. The distance is the horizontal one
+            // this tick already computed for `InSight`, so the stain is judged
+            // at the range the rest of the perception judges everything else at
+            // — one sensor per tick rather than two that can disagree.
+            bool bloodOnMe = ViolenceHost.StainNoticeableAt(metres, light);
+            // AND A CARRIED WEAPON HAS NO SHORTER RANGE THAN THE PERSON. There
+            // is no `WeaponNoticeMetres` and inventing one here is exactly what
+            // rule 2 forbids: a bat is a silhouette rather than a stain, so it
+            // is visible for as long as its owner is, and `inSight` below is
+            // the range test. If that turns out to be too generous it wants a
+            // measured constant in `Notice`, not a number picked in a walker.
             var notable = Notice.What(_stationaryFor, speed, GameController.NightAmount,
                                       whereTheyShouldNotBe: false,
-                                      bloodVisible: bloodOnMe, weaponVisible: false);
+                                      bloodVisible: bloodOnMe,
+                                      weaponVisible: CoatHost.ShowingWeapon);
             // A noteworthy person is noticed FASTER through the same
             // accumulator rather than through a second code path.
             double pull = 1.0 + Notice.Interest(notable, GameController.NightAmount);
@@ -788,6 +808,14 @@ namespace Ledger.Game
             {
                 if (notable == Notable.Loitering) Perceivers.LoiterNotices++;
                 if (notable == Notable.RunningAtNight) Perceivers.NightRunNotices++;
+                // THE TWO CLASSIFICATIONS THAT COULD NOT HAPPEN UNTIL TONIGHT,
+                // counted here rather than trusted: both arguments were
+                // literals until today, so `Notable.BloodOnClothes` and
+                // `Notable.WeaponVisible` have never been returned by this call
+                // in the recorded history of the project. A wiring nobody can
+                // see fire is rule 6's "built is not running".
+                if (notable == Notable.BloodOnClothes) Perceivers.BloodNotices++;
+                if (notable == Notable.WeaponVisible) Perceivers.WeaponNotices++;
             }
             // KEPT ACROSS A LOOK-AWAY, and resetting it was an over-count.
             //

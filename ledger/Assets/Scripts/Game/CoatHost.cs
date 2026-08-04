@@ -23,6 +23,31 @@ namespace Ledger.Game
     {
         public static readonly Coat Player = new Coat();
 
+        /// IS THE PLAYER VISIBLY CARRYING SOMETHING, cached because the street
+        /// asks once per walker per frame and the answer changes when a coat is
+        /// packed.
+        ///
+        /// `HeldObject.VisibleWhenCarried` decides it — a bat or a sawn-off has
+        /// `Concealment.Impossible` and is carried in the open, which its own
+        /// comment calls "a different decision entirely" and says "the street
+        /// should be able to see that decision". The street could not: the one
+        /// call that asks about a notable person passed `weaponVisible: false`
+        /// as a literal, and `VisibleWhenCarried` had no callers at all.
+        ///
+        /// Refreshed by the population pass rather than computed on demand.
+        /// `CarriedWeapons` is a LINQ projection and the asker is every walker
+        /// on every frame; once a second is what a reading costs, and the coat
+        /// changes at a door rather than at sixty hertz.
+        public static bool ShowingWeapon { get; private set; }
+
+        public static void RefreshShowingWeapon()
+        {
+            bool showing = false;
+            foreach (var w in Player.CarriedWeapons)
+                if (HeldObject.VisibleWhenCarried(w)) { showing = true; break; }
+            ShowingWeapon = showing;
+        }
+
         public static int Frisks { get; private set; }
         public static int FrisksRefused { get; private set; }
         public static int FrisksThatFoundSomething { get; private set; }
