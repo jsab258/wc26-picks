@@ -161,25 +161,23 @@ AUTO MODE.
    The Core-shaped work that remains is M22, the shape of a playthrough:
    onboarding, pacing, replayability, succession. Entirely unbuilt.
 
-6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD — and the second
-   finding under it is CLOSED by the reading, not by a fix.**
-   `RealBody.TryAttach` lifts the coat's value to 0.68 with a comment saying
-   "the player is a named character", and `TryAttachExtra` calls straight
-   through it, so every walker gets it too. `Wardrobe.MaxValue = 0.46` exists
-   precisely so nobody in the crowd outshines the cast. Still open, and still
-   needs a cast test that does not exist — `VoiceBank.Cast`'s own comment says
-   its ids do not all match the roster, and the named cast walk the street as
-   `NpcWalker` too, so neither the roster nor the call path separates them.
+6. **DONE 4 Aug — the cast's brightness lift no longer goes to the whole
+   city.** It was blocked all afternoon on not having a way to tell cast from
+   crowd, and the answer was never a roster: the SPAWN PATH knows.
+   `GameController` and `ActThreeHost` spawn the cast by name,
+   `PopulationHost` spawns residents in a loop and is the only place in the
+   game that makes a crowd walker. One flag through `NpcWalker.Spawn`,
+   defaulting to cast — a cast member accidentally dimmed is a lead the eye
+   slides off, a crowd member accidentally bright is one person.
+   `bodyLiftedCast`/`bodyLiftedCrowd` prove it, and zero of both means no body
+   was dressed rather than that it worked.
 
-   **`bodySkinnedEver=0` IS NOT A BUG AND `bodyPartsEver` SAID SO IN ONE
-   RUN.** Four distinct renderer names have ever gone through the paint path:
-   `Alpha_Joints`, `Alpha_Surface`, `Beta_Joints`, `Beta_Surface`. Not one is
-   a flesh word, so `IsFlesh` can never fire — these models have no separately
-   named head, face or hands at all. `BodyParts` is neither broken nor
-   unwired; the models simply do not name a head, which is precisely why
-   texture extraction was the thing that mattered. Closed.
+   `bodySkinnedEver=0` was closed earlier by `bodyPartsEver`: four renderer
+   names have ever reached the paint path and not one is a flesh word, so
+   these models have no separately named head or hands and `IsFlesh` can never
+   fire. Not a bug.
 
-7. **KEEP RETIRING THE REACH LEDGER** — 38 entries, five wired today. Each
+7. **KEEP RETIRING THE REACH LEDGER** — 36 entries, seven wired today. Each
    one retired is a public API that something actually calls.
 
    **AND READ THE ENTRY'S REASON, NOT JUST ITS NAME.** The ledger was
