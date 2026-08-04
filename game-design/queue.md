@@ -245,36 +245,23 @@ the run is `pass=True` with no failing gate.**
    `ikPlantedMedian` comes back near the overall median, that is it, and the fix
    is to derive the plant from the foot's own height rather than from a phase
    that knows nothing about the clip.
-3. **THE DROP IS A DISTANCE PROBLEM AND THE ARITHMETIC IS NOW COMPLETE.**
-   `walked=` landed and it settles it. Five drops, and path length is within
-   ~2m of straight-line distance in every one — **the bot walks almost exactly
-   at the marker, never wanders, is never diverted or blocked.**
+3. **THE DROP IS FIXED — 4 of 6, up from 2 of 5.** Making the bot run while a
+   drop is open did it, and the traces confirm the mechanism rather than just
+   the outcome: `d12` covered 22.2m in 13 ticks where walking managed 1.15m per
+   tick, and two drops that opened at 3m and 7m completed in 2 and 3 ticks.
+   Planting the condition, not loosening the bound.
 
-   | day | from | walked | nearest | ticks | |
-   |---|---|---|---|---|---|
-   | d1 | 30m | 23.5m | 8.1m | 21 | MISSED |
-   | d2 | 19m | 16.7m | 2.5m | 14 | done |
-   | d8 | 15m | 8.4m | 8.0m | 21 | MISSED |
-   | d12 | 22m | 20.1m | 2.2m | 17 | done |
-   | d13 | 27m | 23.2m | 4.0m | 21 | MISSED |
+   **The predicted side effect happened and was already counted.**
+   `nightRunNotices` went 143 to 320 because there is now a second reason to be
+   running; `dropRuns=214` is how many ticks that was, so the two can be told
+   apart. That number was added in the same commit as the change precisely so
+   this would not read as the night-run probe going haywire.
 
-   **The window is 21 ticks and buys about 24 metres** — the two successes ended
-   early at 14 and 17 ticks because they ARRIVED; all three misses ran the full
-   21. Travel rate is ~1.15m per tick in four of the five. Completion needs
-   `from` covered to within 2.5m, so **any drop posted beyond about 21m cannot
-   complete, by arithmetic, however well the bot walks.** d1 at 30m and d13 at
-   27m were never reachable and the gate was measuring where the marker
-   happened to land.
+   **What is left is a 30cm boundary case.** `d13` missed at 2.8m against a
+   2.5m completion radius — it arrived and stopped just outside. Worth one
+   reading of whether the bot's approach easing stops it short, and NOT worth
+   widening the radius.
 
-   **d8 is a separate, real anomaly**: 8.4m in 21 ticks, 0.40m per tick against
-   1.15 everywhere else — a third of the rate, with the job holding the target
-   the whole time. Injury (`Gait.SpeedFactor`) and crowd shoving are the
-   candidates; nothing measures which.
-
-   **The fix is the standing item's, and it is now specific:** bound where the
-   staged drop is posted so at least one is inside the window's reach. Do NOT
-   loosen the gate — accepting a miss would let a run that never exercised the
-   drop pipeline pass silently.
 4. **THE WALKER BODIES ARE WIRED — read `walkerBodies` and `walkerBodiesFailed`.**
    Done 2026-08-04 with the trap cleared first: `TryAttachExtra` saves and
    restores every static `TryAttach` publishes, so the five `bodies` gate
