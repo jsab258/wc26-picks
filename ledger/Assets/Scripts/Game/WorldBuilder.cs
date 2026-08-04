@@ -1136,6 +1136,38 @@ namespace Ledger.Game
                     : new Vector3(4, 3, 4); // corner: a shelter, not a building
                 var pos = stop + dir * (size.z / 2f + 2.5f);
 
+                // IS THIS PLACE'S OWN POINT IN THE ROAD, AND IS ITS FACE?
+                //
+                // All eight pieces of clutter standing in a carriageway belong
+                // to four REGISTERED PLACES — `warehouse_row`, `boarding_house`,
+                // `crescent_houses`, `laurel_letting`, two items each — and not
+                // one belongs to a block building. That is the whole population
+                // of the fault and it points at this line.
+                //
+                // A block building is inset 2.6m from its block edge, "pavement
+                // plus a doorstep", measured from the KERB. A place is pushed
+                // `size.z/2 + 2.5` from `stop`, which is an authored map
+                // coordinate that knows nothing about where the road is. Two
+                // implementations of "how far back does a building sit" and only
+                // one of them has ever been told about the street — the shape
+                // this project keeps finding in pairs.
+                //
+                // MEASURED, NOT ASSUMED, AND DELIBERATELY NOT FIXED HERE. The
+                // fix moves buildings, which re-baselines `massInRoad`, the
+                // places gate and every framing shot, and the last two guesses
+                // about this world came from reading half of it. So the run says
+                // which places are wrong and by how much, and the move happens
+                // once that is on paper. `Dressing.WallOffset` is 0.45, so a
+                // face less than that from the carriageway CANNOT have clutter
+                // on a pavement, whatever else is true.
+                var face = pos - dir * (size.z / 2f);
+                if (Ledger.Core.StreetMap.OnRoad(stop.x, stop.z)) PlaceStopsInRoad++;
+                if (Ledger.Core.StreetMap.OnRoad(face.x, face.z))
+                {
+                    PlaceFacesInRoad++;
+                    if (PlaceFacesInRoadWho.Count < 12) PlaceFacesInRoadWho.Add(place.Id);
+                }
+
                 var facade = facades[i % facades.Length];
                 var body = MakeBox($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
@@ -1473,6 +1505,22 @@ namespace Ledger.Game
         /// "no dressing was placed at all" are different worlds and read the
         /// same without one.
         public static int DressedInRoad;
+
+        /// AND WHERE THE EIGHT ACTUALLY COME FROM. All of them belong to
+        /// registered PLACES, none to a block building, and the two rules for
+        /// "how far back does a building sit" are different: a block is inset
+        /// 2.6m from its own edge, measured from the kerb; a place is pushed
+        /// `size.z/2 + 2.5` from an authored map coordinate that has never been
+        /// told where the road is.
+        ///
+        /// `placeStopsInRoad` is how many of those coordinates are themselves on
+        /// a carriageway and `placeFacesInRoad` how many of the resulting FACES
+        /// are — which is the one that matters, because `Dressing.WallOffset` is
+        /// a constant 0.45 and a face that close to a road cannot put anything
+        /// on a pavement.
+        public static int PlaceStopsInRoad, PlaceFacesInRoad;
+        public static readonly System.Collections.Generic.List<string> PlaceFacesInRoadWho
+            = new System.Collections.Generic.List<string>();
         /// Of those, how many were pulled back onto the pavement and how many
         /// could not be. `Stuck` is not a failure of the nudge — it is a facade
         /// that fronts directly onto the carriageway, which is a level fact
