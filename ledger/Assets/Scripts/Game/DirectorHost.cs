@@ -96,6 +96,27 @@ namespace Ledger.Game
             // about what belongs in it — "what has been left undone" — and a
             // feud nobody has settled is precisely that. A feud is only here
             // while it is live; a settled one is a thing that happened.
+            // AND WHO OWES THE PLAYER A FAVOUR AND HAS NOT PAID IT.
+            //
+            // `PurseBook.Owed` says in its own summary that it exists "for the
+            // Director and for the ledger", and neither has ever called it —
+            // the second entry tonight documented as being for this exact
+            // snapshot and never handed to it. An unpaid favour is the purest
+            // possible member of a list whose comment reads "what has been left
+            // undone": somebody owes you, you have not collected, and both of
+            // you know it.
+            //
+            // Capped at three. This list is prose fed to a model that has to
+            // choose ONE pressure from it, and twelve near-identical debt lines
+            // would crowd out everything else in the world — the same reason
+            // the people list carries one note each rather than a dossier.
+            int shownFavours = 0;
+            foreach (var f in Purses.Owed("player"))
+            {
+                if (shownFavours++ >= 3) break;
+                w.Ignored.Add($"{f.DebtorId} has owed the new owner £{f.Amount} since day {f.Day}");
+            }
+
             var worstFeud = Harm != null ? Harm.Hottest() : null;
             if (worstFeud != null)
                 w.Ignored.Add($"{worstFeud.AName} and {worstFeud.BName} have been at each other "
