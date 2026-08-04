@@ -161,6 +161,29 @@ same hour and they usually share the fault. Both fixes I made underneath the
 wrong reasoning were correct on their own terms — that is what makes this hard
 to notice, and it is not the same as having been right.
 
+**AND THE NUMBER MOST LIKELY TO BE WRONG IS THE ONE YOU WROTE AN HOUR AGO.**
+Three over-conclusions on 4 August, all mine, all published before being
+checked, and all three a DIFFERENT statistical mistake:
+
+| number | I said | it was |
+|---|---|---|
+| `confabs` | baseline 74 | a peak read as a middle |
+| `crowdTightest` | separation is broken | a run minimum read as a description |
+| `namesTracked=2` | "the declutter manages two labels" — filed as DECISIVE | a last-wins field read as a summary, describing whichever shot ran last |
+
+The third is the instructive one. I had added the adjacent-numbers rule above
+four hours earlier and applied it to somebody else's metric that morning — and
+did not think to point it at a counter I had written myself twenty minutes
+before. **A number you have just written has been read by nobody, including
+you.** It has no landed series, no second opinion and no history of being
+quoted correctly, which is precisely the state in which a wrong statistic is
+most confident and most quotable.
+
+So: before a new number is allowed into a conclusion, say out loud which of
+peak / median / last-wins / at-worst it is, and whether that answers the
+question being asked of it. It takes one sentence. All three above would have
+been caught by it, and two of them cost a build each.
+
 **AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
 night, all mine, all in metrics I had written hours earlier:
 
