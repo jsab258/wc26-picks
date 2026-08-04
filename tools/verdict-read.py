@@ -55,6 +55,66 @@ def newest_measuring_run():
     return None
 
 
+def lint(run):
+    """FLAG ANY VALUE THAT BREAKS THE VERDICT'S OWN FORMAT.
+
+    The file is space-separated `key=value` and every reader assumes it. On
+    4 August `crowdBodyWidth` was emitted as `0.45(narrowest 0.39 broadest
+    0.53)` and this tool returned `0.45(narrowest` without a murmur — the exact
+    class of quietly-wrong answer it exists to prevent, happening to itself.
+
+    A RULE IN CLAUDE.md WOULD NOT HAVE STOPPED IT, because I wrote that value
+    an hour after reading the rules that morning. This is the mechanism: an
+    unbalanced bracket or parenthesis in what the reader took to be a value
+    means a space was swallowed, and the run says so instead of the next person
+    finding it by squinting at a number.
+    """
+    # THE FILE HAS TWO FORMATS AND THE FIRST VERSION OF THIS KNEW ONE.
+    #
+    # Top-level `key=value` pairs, AND bracketed gate groups —
+    # `frame[mean=471.0ms gameShare=3.23%]` — where the whole bracket is one
+    # value and spaces inside it are the format working as intended. Linting
+    # without that produced forty-one hits, forty of them the last key inside a
+    # group carrying the group's closing bracket. Rule 3, on a tool written to
+    # enforce rule 3, found by running it before shipping it rather than after.
+    #
+    # So groups are removed first and what remains is the top level.
+    text = run.read_text(encoding="utf-8", errors="replace")
+    bad = []
+    for n, line in enumerate(text.split("\n"), 1):
+        if "=" not in line:
+            continue
+        # INNERMOST FIRST, REPEATEDLY, because groups nest: `perception[...
+        # ringPaint[ledger=1.18 ...] ...]`. One pass leaves the outer group's
+        # closing bracket stranded on whatever key came last, which is three of
+        # the five hits the previous version reported. Loop until it stops
+        # changing.
+        # INNERMOST FIRST, REPEATEDLY, AND REPLACED WITH SOMETHING THAT IS NOT
+        # A BRACKET. Groups nest — `ao[... rounds=[28.1 18.0] drop=0.0123]` —
+        # and substituting `[]` for the inner one leaves a bracket pair the next
+        # pass matches and rewrites to itself, so the loop reaches a fixpoint
+        # with the OUTER group still standing and its closing bracket stranded
+        # on whatever key came last. Three of the five hits the previous version
+        # reported were exactly that. A space has no such problem.
+        flat = line
+        for _ in range(8):
+            once = re.sub(r"\[[^\[\]]*\]", " ", flat)
+            if once == flat:
+                break
+            flat = once
+        for m in re.finditer(r"(?<![\w])([A-Za-z][\w]*)=([^\s]+)", flat):
+            v = m.group(2)
+            if v.count("(") != v.count(")") or v.count("[") != v.count("]"):
+                bad.append(f"line {n}: {m.group(1)}={v} …")
+    if not bad:
+        return 0
+    print("verdict-read: %d value(s) with a space inside them — the file is "
+          "space-separated key=value and every reader assumes it:" % len(bad))
+    for b in bad:
+        print("  " + b)
+    return 2
+
+
 def main():
     argv = sys.argv[1:]
     run = None
@@ -62,6 +122,13 @@ def main():
         i = argv.index("--run")
         run = SHOTS / "runs" / f"{argv[i + 1]}.txt"
         del argv[i:i + 2]
+    if "--lint" in argv:
+        run = run or newest_measuring_run()
+        if run is None or not run.exists():
+            print("verdict-read: no run has measured anything — nothing to lint")
+            return 0
+        return lint(run)
+
     keys = argv
     if not keys:
         print(__doc__.strip().split("\n\n")[1])

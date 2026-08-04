@@ -287,6 +287,23 @@ certainly one — its corner is measurably 1.5m inside Hook Street.
 `dressedStuckOn` names them in the next build rather than leaving me to guess a
 third time. **Read that before proposing anything.**
 
+### WIRE `verdict-read.py --lint` INTO verify.py ONCE A VERDICT IS GREEN
+
+Written and working: it reads the newest measuring verdict and flags any
+top-level value with a space inside it, which is the fault that made the
+reader return `0.45(narrowest` today. It knows about nested gate groups now —
+the first version reported forty-one hits, forty of them the last key inside a
+bracketed group carrying the group's closing bracket, and the second still
+reported three because substituting `[]` for an inner group leaves a pair the
+next pass rewrites to itself.
+
+**NOT WIRED YET, DELIBERATELY.** It currently finds one hit — `crowdBodyWidth`
+in the last landed verdict — and that value is already fixed in the emitter,
+so the check is red on a fault that no longer exists. Wiring it now would block
+every commit until a build lands, which is rule 5b's failure exactly: a guard
+that has never been run against the case it must PASS. Land a verdict, confirm
+it reports nothing, then add it to `verify.py`.
+
 ### The next reach-ledger entry, with its consumer already found
 
 **`VerbBeat.PhaseProgress` — and the entry does not name the beat that is
