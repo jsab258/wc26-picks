@@ -2276,6 +2276,39 @@ namespace Ledger.Game
                     _crowdReadings.Add(new Vector2((float)(l / c), (float)(sa / c)));
                 }
             _crowdConsidered = considered;
+
+            // HOW MANY DIFFERENT PEOPLE THE TWELVE FACES ACTUALLY ARE.
+            //
+            // The roadmap has said "ten models dress forty-three named people,
+            // so at least two on screen always share one" for two days, and the
+            // noon still shows it — two women in the same trousers with the
+            // same hair, one of them the player. Nothing measured it.
+            // `bodyChoices=10` counts models that EXIST, which is a different
+            // question and has been standing in for this one.
+            //
+            // OVER THE BODIES THE LOD GRANTED, not over what is in shot. That
+            // set is the nearest twelve by construction, so it is both the
+            // people you can see and the people the sameness matters for — and
+            // it needs no frustum test, which is the reading that has been
+            // wrong twice in this file already.
+            //
+            // BOTH NUMBERS FROM ONE PASS. A distinct-model count taken on one
+            // frame and a body count taken on another is the fault CLAUDE.md
+            // lists four times over: the worst instant for the numerator is not
+            // the worst instant for the denominator. They are appended as a
+            // pair and read as a pair.
+            if (_npcs != null)
+            {
+                var models = new HashSet<string>();
+                int withBody = 0;
+                foreach (var n in _npcs)
+                {
+                    if (n == null || !n.HasRealBody) continue;
+                    withBody++;
+                    models.Add(RealBody.ModelNameFor(n.DisplayName));
+                }
+                if (withBody > 0) _modelSamples.Add(new Vector2Int(withBody, models.Count));
+            }
             if (_crowdReadings.Count > 0)
             {
                 var lums = new List<float>();
@@ -2345,6 +2378,34 @@ namespace Ledger.Game
                 if (lums.Count > 0) _bodyOutshone.Add((float)below / lums.Count);
             }
         }
+
+        /// -1 for "nothing sampled", never 0, because zero distinct models and
+        /// no samples at all are opposite findings and they read identically.
+        int ModelMedian(System.Func<Vector2Int, int> pick)
+        {
+            if (_modelSamples.Count == 0) return -1;
+            var xs = new List<int>();
+            foreach (var v in _modelSamples) xs.Add(pick(v));
+            xs.Sort();
+            return xs[xs.Count / 2];
+        }
+
+        /// The busiest sample's pair, printed together because they were taken
+        /// together — `4/12` is four distinct models among twelve bodies.
+        string ModelAtMost()
+        {
+            if (_modelSamples.Count == 0) return "nothing sampled";
+            var best = _modelSamples[0];
+            foreach (var v in _modelSamples) if (v.x > best.x) best = v;
+            return $"{best.y}/{best.x}";
+        }
+
+        /// (bodies near, distinct models among them), one entry per sample.
+        /// Kept rather than collapsed so the median and the busiest sample can
+        /// both be read — a peak answers "did it ever get duplicated" and a
+        /// median answers "is this how the street looks", and this needs the
+        /// second one with the first beside it.
+        readonly List<Vector2Int> _modelSamples = new List<Vector2Int>();
 
         double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
         int _playerPixels, _crowdSampled, _crowdConsidered;
@@ -8792,6 +8853,19 @@ namespace Ledger.Game
                       // three are lifetime, and they are what says whether the
                       // wash is the wardrobe's only route to the eye or merely
                       // was for one walker.
+                      // THE SAMENESS, WITH A NUMBER ON IT AT LAST. `bodyFaces`
+                      // is the median count of distinct models among the bodies
+                      // the LOD granted, `bodyFacesOf` the median number of
+                      // bodies those were chosen from, and `bodyFacesAtMost`
+                      // the same pair taken from the busiest single sample —
+                      // one instant, both halves, so the ratio means something.
+                      // Ten models against forty-three named people bounds this
+                      // at ten however good the wardrobe gets, which is exactly
+                      // why the wash has to carry the rest.
+                      $"bodyFaces={ModelMedian(v => v.y)} " +
+                      $"bodyFacesOf={ModelMedian(v => v.x)} " +
+                      $"bodyFacesAtMost={ModelAtMost()} " +
+                      $"bodyFaceSamples={_modelSamples.Count} " +
                       $"bodySkinnedEver={RealBody.SkinnedEver} " +
                       $"bodyDressedEver={RealBody.DressedEver} " +
                       $"bodyKeptEver={RealBody.KeptEver} " +

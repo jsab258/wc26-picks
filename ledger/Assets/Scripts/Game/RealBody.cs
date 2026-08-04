@@ -321,6 +321,28 @@ namespace Ledger.Game
             return ms.Count == 0 ? -1 : ms[ms.Count / 2];
         }
 
+        /// WHICH MODEL A NAME WEARS, ASKABLE WITHOUT ATTACHING ONE.
+        ///
+        /// Ten prefabs against forty-three named people is the sameness problem
+        /// in one sentence, and it has never had a number — `bodyChoices=10`
+        /// says how many models EXIST, which is not the question. The question
+        /// is how many DISTINCT ones are in the frame, and answering it needs
+        /// the pick for a walker the reader is not attaching.
+        ///
+        /// A FUNCTION OF THE NAME AND NOTHING ELSE, going through the same
+        /// `PickBody` the attach uses. The alternative — recording the pick on
+        /// a static as bodies attach — walks straight into the save-and-restore
+        /// set that puts the player's readings back after every walker, and
+        /// would answer with the player's model at unpredictable moments. It is
+        /// also rule 1's third corollary waiting to happen: one idea, two
+        /// implementations, and the drift is invisible because both return a
+        /// plausible model name.
+        public static string ModelNameFor(string wearer)
+        {
+            var p = PickBody(wearer);
+            return p != null ? p.name : "none";
+        }
+
         static GameObject PickBody(string wearer)
         {
             if (_bodies == null)
