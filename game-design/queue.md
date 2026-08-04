@@ -148,6 +148,50 @@ witnessed deeds and denouncements, and decays far more slowly than heat. Then
 **Check the roadmap row when it lands** — it currently describes a gap that is
 half closed and half misdiagnosed.
 
+### RED — the frame gate, and the walker bodies did it. THIS LEADS.
+
+**44 walker bodies attached, 0 failed, and the noon still shows a street with
+no boxes in it.** That is the change working. It also broke the frame budget and
+the series says so unambiguously rather than by suspicion.
+
+`meanFrame` over 111 landed runs: median 342, quartiles 334/340/347, never once
+above 369. The two newest are **570 and 668**. That is outside everything the
+project has ever recorded, so it is not runner noise.
+
+| | before | after |
+|---|---|---|
+| game (attributed) | 7.92ms | **13.37ms** against a 12ms budget |
+| rigs | 1.08 | 2.33 |
+| traffic | 1.72 | **3.78** |
+| sun | 1.72 | 2.77 |
+| npcs | 2.45 | 3.10 |
+| render+rest | 307 | 557 |
+
+**READ THE TABLE BEFORE ACTING ON IT.** Traffic more than doubled and the sun
+went up 61%, and neither has the faintest connection to skinned meshes. That
+rules out "the bodies cost game CPU" as a complete explanation and points at the
+thing this runner does: **it has no GPU and software-rasterises everything, so
+rendering competes with game code for the same core.** When render cost rises,
+every wall-clock game-side timer inflates with it. `game=13.37ms` is therefore
+NOT a clean game-side number here, and the gate is attributing to game code a
+cost that is mostly render.
+
+**So do not loosen the budget and do not "optimise" traffic.** The transferable
+numbers are geometric — `sceneRenderers=8301`, `heapMb=15`, 67 rigs — and those
+are what a real machine's cost follows from.
+
+**The decision this actually poses:** 44 simultaneous skinned bodies is the
+named cast, which was the deliberate choice. The proper answer if it is too many
+is LOD — real bodies for walkers near the player, mannequins beyond — because
+the cast size should not be bounded by a frame budget when only a handful are
+ever on screen. Walkers currently choose their body at SPAWN, so that is a real
+change rather than a constant.
+
+**Next reading that would settle it:** a run with the crowd cap lowered, or one
+that reports skinned-mesh count and bone count separately from wall-clock. One
+of those is a number that transfers to Jafar's machine; none of the milliseconds
+here are.
+
 ### Startable right now, in order
 
 **The 12:03 build answered four of the five questions that were in flight, and
