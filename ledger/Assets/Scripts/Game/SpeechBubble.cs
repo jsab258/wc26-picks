@@ -119,6 +119,22 @@ namespace Ledger.Game
             // and a murmur behind glass does not. Depth-testing it would hide
             // the shout entirely and say the opposite of what the ear did.
             //
+            // AND IT GIVES UP THE BACK-FACE CULL WITH IT, WHICH THIS DID NOT
+            // SAY. The reasoning above is entirely about `ZTest`, and it is
+            // right — but `Hidden/LedgerText` also sets `Cull Back`, and the
+            // built-in text shader is `Cull Off`. So a bubble is the ONE kind of
+            // world text in this game that renders its own reverse when you get
+            // behind it, and `textMirrored` counts exactly that population
+            // because the shader test is what puts a label in it.
+            //
+            // That is why the aim mattering at shot time mattered at all: a
+            // nameplate aimed a frame late is skewed, and a bubble aimed a frame
+            // late can be printed backwards. Accepted rather than fixed — the
+            // fix is a third shader with LedgerText's cull and the built-in's
+            // depth behaviour, which is worth doing the day the number says
+            // bubbles are being read backwards rather than the day it occurs to
+            // somebody.
+            //
             // A line you only half caught is also a line you can barely see.
             // Fading with clarity rather than with distance means a shout
             // through an open door still reads, and a murmur behind glass

@@ -189,8 +189,9 @@ namespace Ledger.Game
             return Police.AsksAboutYou(InquiryOf(book, mill, today));
         }
 
-        /// The inquiry level, which follows from bodies and from who can still
-        /// name you rather than from street noise.
+        /// The inquiry level, which follows from bodies, from who can still name
+        /// you, and — since 4 August — from whether a charge has pointed the
+        /// detective at somebody else. Never from street noise.
         ///
         /// ONE IMPLEMENTATION NOW. This used to compute the stage itself —
         /// bodies, plus a flat `NamedWeight` if anybody could name you, plus

@@ -398,6 +398,13 @@ namespace Ledger.Core
 
         /// A floor under day-circle suspicion. Not a raise applied once — a
         /// floor, because the reason it is there does not go away.
+        ///
+        /// AND SINCE 4 AUGUST IT CAN FALL, WHICH THE SENTENCE ABOVE DOES NOT
+        /// SAY BY ITSELF. `HomicideBook.PointAt` moves the stage down for four
+        /// days, so a floor of 0.7 becomes 0.45 and then climbs back. The claim
+        /// survives — the floor still tracks the reason rather than being a
+        /// one-off bump, and the bodies are still on the books the whole time —
+        /// but "does not go away" now means the CAUSE, not the number.
         public static double SuspicionFloor(Inquiry i) =>
             i >= Inquiry.Manhunt ? 0.7 :
             i >= Inquiry.Investigation ? 0.45 :
