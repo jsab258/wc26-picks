@@ -62,6 +62,11 @@ namespace Ledger.Game
         /// the first two days the sim shoots. See `Shot`.
         const int MaxReviewStills = 4;
         int _reviewStills;
+        /// Noon and night of one rest day, on top of the four. Two,
+        /// because a Saturday needs the same pair of lighting
+        /// conditions as a Tuesday to be comparable with one.
+        const int MaxRestStills = 2;
+        int _restStills;
 
         /// LAYER 3, and the thing it is actually for.
         ///
@@ -4097,9 +4102,33 @@ namespace Ledger.Game
                 // Four is enough to judge a surface: two lighting conditions,
                 // twice, and the day numbers are stable across runs so they
                 // overwrite rather than pile up.
-                if (_reviewStills < MaxReviewStills)
+                //
+                // AND ONE REST DAY, WHICH NO STILL HAS EVER SHOWN.
+                //
+                // The first-four rule fills its quota on campaign days 1 and 2,
+                // and `Population.IsRestDay` is `day % 7 >= 5` — so both are
+                // working days and every picture ever taken of this game is a
+                // Tuesday. The week HAS a shape and the run measures it:
+                // `workNoonCrowd=9` against `restNoonCrowd=12`, a third more
+                // people out of doors at noon. Nobody has seen it.
+                //
+                // THE CAP WAS CHOSEN FOR A QUESTION THAT HAS BEEN ANSWERED. Its
+                // own note says "four is enough to judge a surface: two
+                // lighting conditions, twice" — and the texture pack landed and
+                // was judged. The question now is whether the week reads, and
+                // four stills of two identical weekdays cannot answer it. Same
+                // drift as a metric keeping its name when the question moves.
+                //
+                // Added rather than swapped: the day numbers are in the file
+                // names, and a dozen comments across this codebase cite
+                // `review_day1_night` and `review_day2_noon` by name as the
+                // evidence for a finding. Renaming them would falsify a dozen
+                // true statements to save 300KB a build.
+                bool restStill = Ledger.Core.Population.IsRestDay(_game != null ? _game.Now.Day : 0)
+                                 && _restStills < MaxRestStills;
+                if (_reviewStills < MaxReviewStills || restStill)
                 {
-                    _reviewStills++;
+                    if (restStill) _restStills++; else _reviewStills++;
                     System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
                                                  tex.EncodeToJPG(60));
                 }
