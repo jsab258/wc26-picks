@@ -116,6 +116,31 @@ sweep that found them is mechanical and takes two minutes — **list every field
 assigned by a max, then ask which of them are printed next to each other.**
 Twenty-two peak fields in `SimDirector`, four bad pairs, one that was right.
 
+**A PEAK CANNOT SEE A MIDDLE AND A MEDIAN CANNOT SEE A TAIL, AND ON 4 AUGUST I
+GOT CAUGHT BY BOTH BEFORE BREAKFAST.** The rule above says print the series and
+read the median. That is right and it is not sufficient, because the median has
+a blind spot of its own and it is exactly the interesting one:
+
+| number | the summary | the truth |
+|---|---|---|
+| `confabs` | `queue.md` said "was 74" | 74 is the single HIGHEST reading in the project's history. The distribution over 43 runs is 29 / 43 / **49** / 60 / 74. Anything in the low forties — the commonest band there is — would have been reported as conversation collapsing under the crowd change, and "fixed". |
+| `billboardStale` | median 0.000, and I wrote "billboards are fine" | `billboardWorstDeg=116.9`, with 38 of 57 stale. The median was correct. Every fault was in the tail, which is the one thing a median structurally cannot show. |
+
+Same morning, opposite directions, and neither was a threshold. **So: which
+statistic you read is a choice about which question you are asking, and a
+summary is never the evidence.** A peak answers "did it ever"; a median answers
+"is this normal"; neither answers the other and a system usually needs both
+printed side by side. `tools/gates.py --series <key>` exists for this — it
+prints every landed value of a verdict number, newest first, then the recent
+window, then all runs, and it puts the raw series ABOVE both summaries on
+purpose.
+
+**And beware the regime change, which no statistic survives.** `confabs` read
+1–13 under the old flat-road conversation rule and 29–74 under the junction
+one, so its all-time median of 34 describes neither test. No aggregate can see
+that break. A human looking at the row of numbers sees it in a second, which is
+the whole argument for printing the series.
+
 **AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
 night, all mine, all in metrics I had written hours earlier:
 
@@ -188,6 +213,33 @@ roadmap is the tiebreak for what to do next; it is not a report on what the
 code contains, and its "still open" lists decay exactly like comments do. Grep
 is not enough either — grep found the call site and I read past it. Open the
 function.
+
+## 3b. A ZERO NEEDS A DENOMINATOR, OR IT CANNOT TELL NOTHING FROM FINE
+
+Three separate systems on the morning of 4 August, each reporting a number that
+looked like health and meant nothing, and the third one caught only because the
+first two had just happened:
+
+| reported | reads as | also consistent with |
+|---|---|---|
+| `lint-static: 0 static/instance errors` | the codebase is clean | the walker entered no method bodies at all — which it did not, because this codebase is Allman and it compared brace depth against itself on the signature line |
+| `soundsAdmitted=0 dropped=0 stolen=0 peak=0` | the street never got busy enough to need a voice budget | `Admit` returns on a null clip BEFORE any counter moves, so silence upstream prints identically |
+| `contrastChecked=40 contrastFailing=0 contrastWorst=21.00` | forty labels measured, all pass | `ContrastWorst` only moves for a FAILING pair, so a clean run leaves it at its initialiser — which happens to be the best ratio there is |
+
+The middle one is the sharpest, because the comment directly above those
+counters *says* "a budget that never refuses anything is indistinguishable from
+one that is not wired" — written about one of the four, and the very next
+reading was ambiguous in exactly the way it warned about.
+
+**The rule. Every zero, every "none", every clean result ships with the count of
+what was examined.** `lint-static` now prints "354 static bodies walked", `Audio`
+has `soundsOffered`, the contrast check has a `contrastTightest` whose default
+text is the words "nothing measured" so that case cannot read as clean. It is
+the same repair every time and it is one line: **the denominator.**
+
+This is rule 5b's sibling. 5b says a guard must be run against the case it
+should PASS. This says a guard's PASS must be legible as a pass rather than as
+an absence.
 
 ## 4. Open the artifact you are shipping
 
