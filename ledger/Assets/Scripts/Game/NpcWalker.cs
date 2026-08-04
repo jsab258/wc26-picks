@@ -1000,9 +1000,35 @@ namespace Ledger.Game
                     // so they get a deterministic sideways shove derived from
                     // their identity rather than a random one, which would make
                     // the crowd shimmer.
-                    var away = dist > 0.001f
-                        ? d / dist
-                        : new Vector3(Mathf.Cos(GetInstanceID()), 0, Mathf.Sin(GetInstanceID()));
+                    // ...AND IT HAS TO BE ANTISYMMETRIC, OR THEY WALK OFF
+                    // TOGETHER. This derived the escape direction from the
+                    // walker's OWN instance id, so two people standing on the
+                    // same point each picked a direction independently — and
+                    // nothing stopped those being the same direction. Two
+                    // walkers travelling identically stay exactly coincident
+                    // for ever, which is why `crowdTightest` read 0.00 through
+                    // three builds while `crowdGapMedian` climbed 0.00 -> 0.20
+                    // -> 0.29 -> 0.33 around it. The median moving while the
+                    // worst case does not, twice over, from two different
+                    // causes.
+                    //
+                    // The direction now comes from the PAIR and the sign from
+                    // which id is lower, so A gets exactly the opposite of
+                    // what B gets. Still deterministic, so no shimmer.
+                    //
+                    // The angle is also bounded now. `Mathf.Cos(GetInstanceID())`
+                    // takes the cosine of a large int: the float carries almost
+                    // none of that argument, so the "spread" of directions it
+                    // produced was never as varied as it looks.
+                    Vector3 away;
+                    if (dist > 0.001f) away = d / dist;
+                    else
+                    {
+                        int mine = GetInstanceID(), theirs = other.GetInstanceID();
+                        float ang = ((mine ^ theirs) & 1023) * (Mathf.PI * 2f / 1024f);
+                        float sign = mine < theirs ? 1f : -1f;
+                        away = new Vector3(Mathf.Cos(ang) * sign, 0, Mathf.Sin(ang) * sign);
+                    }
                     push -= away * (BodyWidth - dist) * 0.5f;
                 }
                 return at + push;
