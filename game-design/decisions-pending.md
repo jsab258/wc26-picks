@@ -6,7 +6,44 @@
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
 
-## ONE IS WAITING, ADDED 2026-08-04 EVENING
+## TWO ARE WAITING
+
+### How close should strangers stand? (added 2026-08-04, late)
+
+**The street packs people to exactly one body width and stops, and that is the
+separation rule doing precisely what it says.** `NpcWalker.StepApart` pushes two
+walkers apart only while they are closer than `BodyWidth` — 0.45m, which is a
+measured fact about the meshes rather than a preference — and the push is sized
+to just clear that. Its job is to stop bodies interpenetrating, it says so, and
+it does it: `crowdGapMedian=0.45`, exactly the bound.
+
+**Nothing in the game models personal space.** Thirty-six people can stand
+within two metres of one person with every pair legally 45cm apart, and
+`crowdHuddleWorst=36` says they do. Forty-five centimetres between strangers is
+touching distance.
+
+I chased this to the wrong place first: I widened the ring people stand on at a
+scheduled point, on the theory that the mob was people sent to one spot. The
+run disproved it in one line — `busiestPlace=12` against a huddle of 36 — so
+these are people who END UP together, not people scheduled together.
+
+**The number cannot come from me.** A spacing constant is a statement about how
+a street should READ, and this project's own rule is that "whether a dozen
+people in a plaza reads as a street or as a demonstration is a judgement for
+Jafar off a still, not a number for me to move against a measured decision."
+
+| | what it means | what it costs |
+|---|---|---|
+| A | **Leave it.** Overlap prevention only. A busy junction packs tight, like a real one at rush hour. | Nothing. But `review_day5_noon` at `2b38df1` is what that looks like, and it reads as a crowd scene rather than a street. |
+| B | **A personal-space radius**, bigger than a shoulder, that eases people apart without a hard push. You pick the number off a still. | Small: `StepApart` already has the loop and the antisymmetry. The risk is a street that looks sparse. |
+| C | **Find why they converge at all.** They gather at a junction beside a parked truck, which is nobody's home or work. Something is routing them there. | Unknown until read — and it may make A or B unnecessary. |
+
+**Recommendation: C first, then look at a still and decide between A and B.** If
+the convergence is a pathing artefact then spacing them out is decorating a
+bug, and this project has now twice fixed the visible half of something whose
+cause was elsewhere.
+
+## THE FIRST ONE, ADDED 2026-08-04 EVENING
 
 ### What does the player get BETTER at?
 

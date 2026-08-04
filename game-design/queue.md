@@ -309,33 +309,24 @@ for Jafar off a still, not a number for me to move against a measured decision.
 
 ## Done, kept here only until the next tidy
 
-- **The night skyline is occupancy** — 1747 windows lit of 2447 against a
-  measured 0.70 of the city being in, and the still shows lit and dark windows
-  on the same floor where there was a wall of identical cream. Shopfronts
-  follow OPENING hours rather than occupancy, about a third late.
-- **Bus stops and cab ranks are signed** — `transit=8` against a 6-to-8
-  prediction written before the dispatch. Both entries described missing
-  behaviour when the real gap was signage.
-- **The wash is anchored per material** — seventeen albedo sheets measured,
-  0.04 to 0.78 against a 0.46 ceiling, and multiplying by wardrobeValue/albedo
-  needs no constant at all. Trousers that were bright yellow all day are olive.
-- **Build, cadence, loop phase and head size** all reach the bought bodies now.
-  Twenty-two distinct breadths, forty-five seeded phases.
-- **The pub's corner is in Hook Street**, 1.5m each way, pinned at two so it
-  can shrink and not grow.
-- **Paying in full and being cleaned out are different days.**
-- **The indoor rain gain was 0.424 where the model said 0.28**, because three
-  places held one idea.
+**Trimmed 4 Aug late, because this file crossed its own 400-line bound and the
+history is what pushed it over.** Done work is in the git log; this file records
+what is NEXT. What stays here is only the handful a reader needs so they do not
+re-open a closed question.
 
-- The upside-down player, closed by looking at the frame: two independent
-  faults in our own rig, both fixed, a figure on its feet in the noon still.
-- The nameplate that measured 2,119 times the frame height — the screen-rect
-  helper projected two diagonal corners of a rotating box. Now 0.825.
-- The rest days were never unrun; I read screenshot filenames as run length.
-- Parallel builds; the work queue and its checker; the Tier-2 generator's
-  thirteen writing rules with a no-key self-test; example lines for 54 of the
-  60 generated cards; the conversation probe and a measured 78; per-character
-  geometric cost; M19 input parity.
+- **There are no scarecrows** — 53.5 degrees is a bent elbow at walking pace,
+  measured off `Rig.ArmSwing`, and `animAdvancing` says nothing is frozen.
+- **The night skyline is occupancy**, shopfronts follow opening hours, and the
+  wash is anchored per material — trousers that were bright yellow are olive.
+- **The limp reaches the street**: five named people used it, and the pose limp
+  is the same size as the audio one for the first time.
+- **A public callbox is reachable** — the flag was set on three lines, saved,
+  restored, and read by nothing, which cost the rival's summons entirely.
+- **The drop marker is not solid any more**; it was a box you walked into and
+  stopped against, thirty centimetres outside its own completion radius.
+- Build, cadence, loop phase, head size and breadth all reach the bought
+  bodies; the pub's corner is in Hook Street; the upside-down player, the
+  nameplate algorithm and the rest days are closed and stay closed.
 
 ## How to keep this file honest
 
