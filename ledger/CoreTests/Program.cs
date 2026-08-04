@@ -7664,6 +7664,37 @@ namespace Ledger.CoreTests
             Check(fame.Notoriety < known,
                 "but it does fade — being known is not permanent either");
 
+            // FOUR SITES OF ONE IDEA, AND TWO MORE WERE MISSING THE LINE.
+            // Found by grepping for the flag after fixing the second, which is
+            // the mechanical step rule 1's third corollary asks for. `Leads`
+            // and the day-circle heat both skipped a leashed agent BEFORE
+            // looking at their rumours, so a hooked witness to a killing gave
+            // the player no lead and added nothing to the heat — while telling
+            // everybody they met about it through the two paths that were
+            // already correct.
+            var bodyGraph = new SocialGraph();
+            var bodyMill = new GossipMill(bodyGraph);
+            var hooked = Agent("hooked", "Zora", "day");
+            bodyMill.Add(hooked);
+            bodyMill.Witness("hooked", new Fact("player", "killed", "yes"),
+                             "I saw him do it.", sensitive: true,
+                             now: new GameTime(1, 22, 0), confidence: 0.9,
+                             indelible: true);
+            bodyMill.Witness("hooked", new Fact("player", "met", "Rocco"),
+                             "He was with Rocco.", sensitive: true,
+                             now: new GameTime(1, 22, 0), confidence: 0.9);
+            hooked.Leashed = true;
+
+            var leads = bodyMill.Leads("player");
+            Check(leads.Exists(l => l.TopicKey.Contains("killed")),
+                "a hooked witness to a body is still a lead the player can work",
+                $"{leads.Count} lead(s)");
+            Check(!leads.Exists(l => l.TopicKey.Contains("met")),
+                "and the leash still hides everything else they hold");
+            Check(bodyMill.DayCircleHeat() > 0,
+                "and the body still counts towards what the day circle believes",
+                $"{bodyMill.DayCircleHeat():0.00}");
+
             // ---- THE PAPER: THE ONE CHANNEL WITH NO HOPS -----------------
             //
             // Every other way information moves here is person to person and

@@ -496,10 +496,18 @@ namespace Ledger.Core
                 // leash, and this read used to be the one side channel that
                 // did not — a silenced witness still spawned Ellis and seeded
                 // "somebody has been saying things" (audit 2026-07-27).
-                if (a.Leashed) continue;
+                //
+                // EXCEPT A BODY, corrected 4 Aug — fourth site of one idea and
+                // the last of them. Those spread paths do NOT hold an indelible
+                // rumour, and this one did, so a hooked witness to a killing
+                // contributed nothing to the heat while telling everybody they
+                // met about it. The exemption is per-RUMOUR because that is
+                // where the fact lives: the leash still hides everything else
+                // this person holds.
                 var bestPerTopic = new Dictionary<string, double>();
                 foreach (var r in a.Rumors)
-                    if (r.Sensitive && (!bestPerTopic.TryGetValue(r.TopicKey, out var b) || r.Confidence > b))
+                    if (r.Sensitive && (!a.Leashed || r.Indelible)
+                        && (!bestPerTopic.TryGetValue(r.TopicKey, out var b) || r.Confidence > b))
                         bestPerTopic[r.TopicKey] = r.Confidence;
                 double doubt = 1.0;
                 foreach (var c in bestPerTopic.Values) doubt *= 1.0 - c;
@@ -519,9 +527,24 @@ namespace Ledger.Core
             var list = new List<Lead>();
             foreach (var a in _agents.Values)
             {
-                if (a.Leashed && subj == "player") continue; // held: carrying, but never spreading
+                // A LEASH HOLDS EVERYTHING EXCEPT A BODY, and this guard used
+                // to hold that too. Third site of one idea, found by grepping
+                // for `Indelible` after fixing the second — `Tick` exempts an
+                // indelible rumour from the leash and always has, and
+                // `CompareNotes` was corrected an hour ago. This one silenced a
+                // hooked witness completely, so a body they saw never became a
+                // lead the player could work from, while the same witness would
+                // volunteer it in ordinary conversation.
+                //
+                // AGENT-LEVEL RATHER THAN RUMOUR-LEVEL, which is why it hid:
+                // the other two guards sit inside the loop where a per-rumour
+                // exemption reads naturally, and this one skipped the person
+                // before their rumours were ever looked at.
+                bool leashed = a.Leashed && subj == "player";
                 foreach (var r in a.Rumors)
-                    if (r.Content.Subject == subj && r.Confidence >= MinConfidenceToShare && !a.Suppressed.Contains(r.TopicKey))
+                    if (r.Content.Subject == subj && r.Confidence >= MinConfidenceToShare
+                        && (!leashed || r.Indelible)
+                        && (!a.Suppressed.Contains(r.TopicKey) || r.Indelible))
                         list.Add(new Lead
                         {
                             HolderId = a.Id, HolderName = a.DisplayName, SourceId = r.OriginId,
