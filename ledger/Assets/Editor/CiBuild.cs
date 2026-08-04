@@ -28,16 +28,32 @@ namespace Ledger.EditorTools
 
         static void Build(BuildTarget target, string outputPath)
         {
+            // The prefab that makes the body reachable from `Resources`,
+            // rebuilt every run so it cannot drift from the model it came from.
+            // It also EXTRACTS the embedded textures, which is why it now goes
+            // first — see below.
+            CharacterPrefab.Build();
+
             // M17.1, ANSWERED BY THE ONLY THING THAT CAN ANSWER IT. Whether the
             // Mixamo FBX yield valid human Avatars is a question about Unity's
             // importer, and the Game layer does not compile locally — so the
             // build reports it and the line is captured into the verdict file.
             // Diagnostic only: it cannot fail the build.
+            //
+            // AND IT USED TO RUN FIRST, WHICH MADE IT REPORT A MOMENT THAT WAS
+            // TOO EARLY. `CharacterPrefab.Build` extracts the FBX's embedded
+            // textures and force-reimports each model so its materials can bind
+            // to assets that did not exist before. Reading the materials BEFORE
+            // that is reading the state the extraction exists to change.
+            //
+            // The run that caught it is unambiguous: the extraction line said
+            // "extracted from 10 of 10 model(s), 54 texture(s)" and every
+            // per-body line in the SAME verdict said `textured=0` — while
+            // `bodyKeptMats` moved 0 to 1 at runtime, hours after the audit had
+            // already reported. The instrument was honest about an instant that
+            // was not the one being asked about, which is the fault this
+            // project has now shipped in a ratio, a gate and a diagnostic.
             CharacterAudit.Report();
-
-            // And the prefab that makes the body reachable from `Resources`,
-            // rebuilt every run so it cannot drift from the model it came from.
-            CharacterPrefab.Build();
 
             if (!System.IO.File.Exists(ScenePath))
             {

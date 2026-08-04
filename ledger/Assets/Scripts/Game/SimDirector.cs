@@ -1752,7 +1752,10 @@ namespace Ledger.Game
                       + $" bubblesTracked={_bubblesTracked}"
                       + $" textWalked={_textWalked}"
                       + $" textProjected={_textProjected}"
-                      + $" namesManagedEver={_namesManagedEver}");
+                      + $" namesManagedEver={_namesManagedEver}"
+                      + $" textNoText={_textNoText}"
+                      + $" textInvisible={_textInvisible}"
+                      + $" textNoRect={_textNoRect}");
         }
 
         int _labelsColliding = -1;
@@ -2352,18 +2355,29 @@ namespace Ledger.Game
             var otherText = new List<string>();
             var boxText = new List<string>();
             var bubbles = new List<Rect>();
-            int walked = 0;
+            // WHICH FILTER ATE THEM, because 392 walked and 92 projected leaves
+            // three hundred unaccounted for and no way to tell which gate they
+            // fell through.
+            //
+            // The night still shows PEOPLE'S NAMES — "Marla", "Sam" — rendered
+            // large, while `namesTracked` peaks at 0 and says the declutter
+            // tracked none of them. Those cannot both describe a working
+            // instrument, and I have now spent three readings inferring which
+            // one is wrong instead of asking. Every rejection is counted at the
+            // line that makes it, so the next verdict names the gate rather
+            // than leaving it to be deduced.
+            int walked = 0, noText = 0, invisible = 0, noRect = 0;
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 walked++;
-                if (t == null || string.IsNullOrEmpty(t.text)) continue;
+                if (t == null || string.IsNullOrEmpty(t.text)) { noText++; continue; }
                 var r = t.GetComponent<Renderer>();
-                if (r == null || !r.isVisible) continue;
+                if (r == null || !r.isVisible) { invisible++; continue; }
                 // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
                 // it gates must agree about what "overlapping" means, or the
                 // gate measures its own opinion — which is how a control came to
                 // assert behaviour the router had reasoned its way out of.
-                if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) continue;
+                if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) { noRect++; continue; }
                 // ONLY THE LABELS SOMETHING IS RESPONSIBLE FOR.
                 //
                 // This counted EVERY TextMesh in the scene and reported 182
@@ -2484,6 +2498,9 @@ namespace Ledger.Game
             // that can say whether the offer path runs at all. Between them
             // there is nothing left to infer.
             _textWalked = walked;
+            _textNoText = noText;
+            _textInvisible = invisible;
+            _textNoRect = noRect;
             _textProjected = boxes.Count + other.Count + bubbles.Count;
             _namesManagedEver = NameTags.ManagedEver;
             // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
@@ -2618,6 +2635,10 @@ namespace Ledger.Game
         /// what the scene walk saw, what survived the filters, and how many
         /// labels have ever been offered to the declutter at all.
         int _textWalked = -1, _textProjected = -1, _namesManagedEver = -1;
+        /// The three rejections, so `walked` and `projected` add up. A gap
+        /// between two counts with nothing naming it is an invitation to guess,
+        /// and the last three readings of this metric were guesses.
+        int _textNoText = -1, _textInvisible = -1, _textNoRect = -1;
         /// How many managed labels were on screen AT the worst overlap —
         /// the denominator from the same instant as its numerator, which
         /// this file has now shipped wrong six times.
