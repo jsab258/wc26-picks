@@ -176,9 +176,27 @@ every wall-clock game-side timer inflates with it. `game=13.37ms` is therefore
 NOT a clean game-side number here, and the gate is attributing to game code a
 cost that is mostly render.
 
-**So do not loosen the budget and do not "optimise" traffic.** The transferable
-numbers are geometric — `sceneRenderers=8301`, `heapMb=15`, 67 rigs — and those
-are what a real machine's cost follows from.
+**So do not loosen the budget and do not "optimise" traffic.**
+
+**AND THE GEOMETRIC NUMBERS WERE ALREADY THERE — I said they were missing and
+they were not.** They also settle it, and they say the cost is REAL rather than
+an artefact:
+
+| | before | after |
+|---|---|---|
+| skinned renderers | 1 | **221** |
+| skinned bones | 52 | **8,353** |
+| skinned vertices | 16,338 | **1,037,694** |
+
+A million skinned vertices a frame, up sixty-three-fold, across 44 bodies —
+about 23k each, which is what a Mixamo character costs. **That is genuine work
+on any machine, GPU or not**, so the earlier reading of "mostly render
+contention" was half right and the wrong half was the comforting one. The render
+cost rose because there is sixty-three times more skinned geometry to render.
+
+That makes the LOD answer not a nicety but the actual fix, and it now has a
+number to aim at: eight nearby bodies would be ~190k vertices, which is the
+order the rest of this scene is built at.
 
 **The decision this actually poses:** 44 simultaneous skinned bodies is the
 named cast, which was the deliberate choice. The proper answer if it is too many
@@ -187,10 +205,12 @@ the cast size should not be bounded by a frame budget when only a handful are
 ever on screen. Walkers currently choose their body at SPAWN, so that is a real
 change rather than a constant.
 
-**Next reading that would settle it:** a run with the crowd cap lowered, or one
-that reports skinned-mesh count and bone count separately from wall-clock. One
-of those is a number that transfers to Jafar's machine; none of the milliseconds
-here are.
+**The work, and it is now specific:** walkers choose their body at SPAWN, so LOD
+means swapping at runtime — attach a real body when a walker enters the near
+band and drop back to a mannequin when it leaves. `Population` already bands
+people and `CrowdWalkerCap` already bounds the near set, so the machinery to ask
+"who is close" exists; what does not exist is a body that can be exchanged
+without losing the rig's state.
 
 ### Startable right now, in order
 
