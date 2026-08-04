@@ -264,8 +264,17 @@ namespace Ledger.Game
                 _mat.SetTexture("_AoTex", aoA);
                 _mat.SetFloat("_AoStrength",
                     (float)LightModel.AoStrength(night, Weather.Rain));
-                _mat.SetFloat("_AoRelief", 0.65f);
-                _mat.SetFloat("_AoFloor", 0.35f);
+                // FROM `LightModel`, NOT FROM TWO LITERALS HERE.
+                //
+                // These were `0.65f` and `0.35f` written out, and they are
+                // `AoDirectRelief`'s coefficient and `AoMultiplier`'s clamp —
+                // the same two numbers, in the tested C# model that has no
+                // caller and in the code that actually reaches the frame. So
+                // the copy with CoreTests behind it could be edited freely
+                // while the render kept the old values, which is the drift the
+                // reach ledger's AO entries now describe.
+                _mat.SetFloat("_AoRelief", (float)LightModel.AoReliefAtFullLight);
+                _mat.SetFloat("_AoFloor", (float)LightModel.AoFloor);
                 Applied++;
             }
             else

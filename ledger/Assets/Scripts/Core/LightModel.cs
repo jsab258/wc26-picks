@@ -499,9 +499,23 @@ namespace Ledger.Core
         /// AO looks like grime. Brightness is a decent proxy for "this pixel
         /// is directly lit", so the effect backs off as the pixel gets
         /// brighter. It is an approximation and it is stated as one.
+        /// HOW MUCH RELIEF A FULLY-LIT PIXEL GETS, named because it is written
+        /// in two places and only one of them is tested.
+        ///
+        /// `FilmGrade` pushes this same number into the shader as `_AoRelief`,
+        /// hardcoded as `0.65f` beside a `_AoFloor` of `0.35f` — and those are
+        /// this function's literal and `AoMultiplier`'s clamp. The C# half has
+        /// CoreTests; the half that actually reaches the frame had a magic
+        /// number. Editing one moved nothing and looked like a change.
+        public const double AoReliefAtFullLight = 0.65;
+
+        /// And never darker than this. An occlusion term reaching zero turns
+        /// every interior corner into a hole, and no real corner is unlit.
+        public const double AoFloor = 0.35;
+
         public static double AoDirectRelief(double luminance)
         {
-            return 1.0 - 0.65 * Feel.Clamp01(luminance);
+            return 1.0 - AoReliefAtFullLight * Feel.Clamp01(luminance);
         }
 
         /// The final multiplier applied to a pixel. `raw` is 0 (fully open)
@@ -509,9 +523,7 @@ namespace Ledger.Core
         public static double AoMultiplier(double raw, double strength, double luminance)
         {
             double a = Feel.Clamp01(raw) * Feel.Clamp01(strength) * AoDirectRelief(luminance);
-            // Never to black. An occlusion term that reaches zero turns every
-            // interior corner into a hole, and no real corner is unlit.
-            return Feel.Clamp(1.0 - a, 0.35, 1.0);
+            return Feel.Clamp(1.0 - a, AoFloor, 1.0);
         }
 
         // ---- helpers ------------------------------------------------------
