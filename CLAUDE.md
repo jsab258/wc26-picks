@@ -563,21 +563,44 @@ local green.**
 
 **AND "REFERENCE-INDEPENDENT" IS THE PART THAT BITES.** ShapeCheck can run here
 precisely because it does not need the assemblies — which means every diagnostic
-that requires RESOLVING a name is invisible to it, not just Unity ones. Two have
-now each cost a round trip, both about a name that exists and is in the wrong
-place:
+that requires RESOLVING a name is invisible to it, not just Unity ones. Four
+have now each cost a round trip, every one about a name that exists somewhere
+other than where it was written:
 
 | | | |
 |---|---|---|
 | CS0119 | `EvidenceHost.Watched` shadowed `Core.Watched` | `tools/lint-shadow.py` |
 | CS0426 | `Mixing.Bus` — `Bus` is a SIBLING of `Mixing`, not nested | `tools/lint-nested.py` |
+| CS0120 | a static body reaching an instance member | `tools/lint-static.py` |
+| CS0103 | `TrafficHost.BrakeLampsPeak` — **there is no type called `TrafficHost`** | `tools/lint-filetype.py` |
 
-Both tools are name-matching rather than type-resolving, so both were written
+The last is the cheapest of the four and the most embarrassing: `TrafficHost.cs`
+declares `partial class GameController`, and so do thirteen other Game-layer
+files. I took a type name off a FILENAME without opening the file. Measure
+before writing the rule — fourteen files in that folder declare no type of
+their own name, so it is a systemic trap rather than a slip.
+
+These tools are name-matching rather than type-resolving, so they get written
 twice: the first CS0426 version flagged thirteen call sites that compile
 perfectly. **The live codebase is the accepting case and it is the best one
 available — every hit on today's code is a false positive by definition**, so
 the check needs no fixture to be trusted and cannot be fooled by one I wrote.
 Run any new lint of this kind against the whole repository before believing it.
+
+**AND RUN IT AGAINST THE ERROR IT WAS WRITTEN FOR, WHICH IS THE HALF THAT GOES
+UNRUN.** `lint-filetype` passed the whole repository and then scored ZERO on the
+very line that prompted it. The name was in the trap set, the pattern was right,
+and the reference never reached either — because it lives inside `$"..."` and
+the stripper removed every double-quoted run wholesale.
+
+**`$"..."` IS CODE.** `SimDirector`'s done-line is one interpolated string
+hundreds of expressions long and is the largest concentration of Game-layer
+static reads in the project. `lint-shadow` had been throwing all of it away
+since it was written, with a docstring approving of it — *"a verdict line with
+`Traces.` in it is prose that happens to be quoted"*, which is true of a plain
+string and false of an interpolated one. Every CS0119 in the done-line was
+invisible. One idea, two implementations, and the second was found only because
+the rejecting case was actually run.
 
 **THE COST IS NEVER THE ERROR, IT IS THE COMMITS ON TOP OF IT.** CS0426 landed
 and three more Game-layer commits went out before the verdict came back, so
