@@ -7629,6 +7629,34 @@ namespace Ledger.CoreTests
             Check(Combat.StaminaAfterMoving(1.0, Locomotion.RunSpeed, 0.0) == 1.0
                   && Combat.StaminaAfterMoving(0.0, Locomotion.RunSpeed, 999.0) >= 0.0,
                   "no time is no change, and it never goes below empty");
+
+            // THE TWO WAYS TO GET YOUR WIND BACK ARE ONE WAY.
+            //
+            // `Breathe` recovers a Fighter between exchanges and
+            // `StaminaAfterMoving` recovers anybody below walking pace. Those
+            // were the same arithmetic written twice, an hour apart, agreeing
+            // by coincidence — the shape rule 1 calls the most repeated fault
+            // here, where the copy nobody reads is the one missing a line.
+            //
+            // This does not assert the FORMULA, which would just be the
+            // duplication moved into the test. It asserts that the two paths
+            // land in the same place, which is the property that was never
+            // held and the one that would break if either drifted.
+            var resting = new Fighter { Stamina = 0.4 };
+            Combat.Breathe(resting, 2.0);
+            double stoodInstead = Combat.StaminaAfterMoving(0.4, 0.0, 2.0);
+            Check(System.Math.Abs(resting.Stamina - stoodInstead) < 1e-12,
+                  "breathing between exchanges and standing still give back the same wind, "
+                  + "because they are now the same line of code",
+                  $"{resting.Stamina:0.0000} vs {stoodInstead:0.0000}");
+
+            // And the shared floor and ceiling hold from either door.
+            var toppedUp = new Fighter { Stamina = 0.9 };
+            Combat.Breathe(toppedUp, 999.0);
+            Check(toppedUp.Stamina == 1.0 && Combat.Recovered(0.9, 999.0) == 1.0
+                  && Combat.Recovered(0.5, 0.0) == 0.5 && Combat.Recovered(0.5, -1.0) == 0.5,
+                  "wind stops at full, and no time is no change",
+                  $"{toppedUp.Stamina:0.000}");
         }
 
         static void TestHomicide()

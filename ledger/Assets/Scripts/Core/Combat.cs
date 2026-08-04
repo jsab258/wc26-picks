@@ -258,11 +258,27 @@ namespace Ledger.Core
             return r;
         }
 
+        /// GETTING YOUR WIND BACK, AND THERE IS ONLY ONE OF THESE NOW.
+        ///
+        /// This arithmetic was written twice: here, and again inside
+        /// `StaminaAfterMoving`, which recovers on its own whenever you are
+        /// below walking pace. One idea, two implementations, and CLAUDE.md
+        /// names that as the most repeated fault in this project — the copy
+        /// nobody looks at is the one missing a line. Nothing held them
+        /// together; they agreed by coincidence and by having been written an
+        /// hour apart.
+        ///
+        /// They cannot drift now, and `TestStamina` asserts that they agree
+        /// rather than trusting that they do.
+        public static double Recovered(double stamina, double seconds) =>
+            seconds <= 0 ? stamina
+                         : Feel.Clamp01(stamina + StaminaRecovery * seconds);
+
         /// Not striking is how you get your wind back.
         public static void Breathe(Fighter f, double seconds)
         {
-            if (f == null || seconds <= 0) return;
-            f.Stamina = Feel.Clamp01(f.Stamina + StaminaRecovery * seconds);
+            if (f == null) return;
+            f.Stamina = Recovered(f.Stamina, seconds);
         }
 
         /// What MOVING costs, and what standing still gives back.
@@ -299,13 +315,14 @@ namespace Ledger.Core
             if (seconds <= 0) return stamina;
             // Below walking pace nothing is being spent, so the recovery term
             // is the whole story — standing and strolling both give wind back.
+            // THAT BRANCH IS `Recovered`, not a second copy of it: this used to
+            // spell out `stamina + StaminaRecovery * seconds` itself, which is
+            // `Breathe`'s body written a second time.
             double over = (metresPerSecond - Locomotion.WalkSpeed)
                         / (Locomotion.RunSpeed - Locomotion.WalkSpeed);
             over = Feel.Clamp01(over);
-            double delta = over > 0
-                ? -StaminaRecovery * over * seconds
-                : StaminaRecovery * seconds;
-            return Feel.Clamp01(stamina + delta);
+            if (over <= 0) return Recovered(stamina, seconds);
+            return Feel.Clamp01(stamina - StaminaRecovery * over * seconds);
         }
     }
 
