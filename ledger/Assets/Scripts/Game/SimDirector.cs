@@ -7761,6 +7761,16 @@ namespace Ledger.Game
                       $"hushWalkBys={hushBy} hushes={hushed} " +
                       $"duck={_mixDuckMin:0.00}..{_mixDuckMax:0.00} mixOk={mixOk} " +
                       $"stemVolMax={_stemVolumeMax:0.000} stemsUnbound={_stemsUnbound} " +
+                      // THE VOICE BUDGET, PROVEN TO BE REFUSING THINGS.
+                      // `dropped=0` over a whole run means either the
+                      // street never gets busy enough to need a budget or
+                      // the gate is not in the path — and those look
+                      // identical from here, which is the state this
+                      // system was in for as long as it has existed.
+                      $"soundsAdmitted={Audio.SoundsAdmitted} " +
+                      $"soundsDropped={Audio.SoundsDropped} " +
+                      $"soundsStolen={Audio.SoundsStolen} " +
+                      $"soundsPeak={Audio.SoundsPeak} soundsPeakBus={Audio.SoundsPeakBus} " +
                       $"stemRatio={_stemRatioMin:0.000}..{_stemRatioMax:0.000} " +
                       $"scoreAudible={scoreAudible} " +
                       $"busMusic={_busMusicMin:0.000}..{_busMusicMax:0.000} " +

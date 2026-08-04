@@ -25,6 +25,91 @@ namespace Ledger.Game
         public const int SampleRate = 44100;
 
         static AudioSource _ambience, _ui, _foot, _traffic, _music;
+
+        // ---- THE VOICE BUDGET, WHICH HAD NO CHOKE POINT ---------------------
+        //
+        // `Core/Mixing` models this completely and nothing called any of it.
+        // `Budget` sets a per-bus voice count, `Admit` decides whether a new
+        // sound gets one, `Protected` says an authored line never loses its
+        // slot to a footstep, and `CrowdGain` sums incoherent sources as the
+        // square root of their count rather than linearly. Four public members,
+        // written, tested, unreachable — and the ledger's note said what it
+        // costs: *"nothing enforces it, so a busy market can start every clip
+        // it wants."*
+        //
+        // It could not be enforced anywhere else. `PlayOneShot` on a shared
+        // `AudioSource` accepts any number of overlapping clips; Unity gives
+        // each a virtual voice and, past its own limit, steals them by rules
+        // that know nothing about which sound mattered. So the decision has to
+        // happen BEFORE the call, which means one funnel — and one funnel is
+        // what a system with four scattered play sites did not have.
+        //
+        // TRACKED BY WHEN THEY END, not by counting calls. A one-shot occupies
+        // a slot for the length of its clip and no event says it finished, so
+        // the list is pruned by time on every admission. That also makes the
+        // count self-healing: a missed release cannot leak a slot for ever.
+        struct Sounding { public double Until; public double Loudness; }
+        static readonly Dictionary<Mixing.Bus, List<Sounding>> _sounding =
+            new Dictionary<Mixing.Bus, List<Sounding>>();
+
+        /// Sounds let through, refused, and displaced. Read by the sim: a
+        /// budget that never refuses anything is indistinguishable from one
+        /// that is not wired, which is the state this system was in.
+        public static int SoundsAdmitted { get; private set; }
+        public static int SoundsDropped { get; private set; }
+        public static int SoundsStolen { get; private set; }
+        /// The most that were ever sounding at once on one bus, and which.
+        public static int SoundsPeak { get; private set; }
+        public static string SoundsPeakBus { get; private set; } = "none";
+
+        /// May this sound start, and at what gain.
+        ///
+        /// Returns false when the bus is full of things louder than this one —
+        /// which is not a loss: a sound quieter than everything already playing
+        /// would have been inaudible, and playing it would only cost the slot.
+        static bool Admit(Mixing.Bus bus, AudioClip clip, double loudness,
+                          bool authored, out float gain)
+        {
+            gain = 1f;
+            if (clip == null) return false;
+            if (!_sounding.TryGetValue(bus, out var live))
+                _sounding[bus] = live = new List<Sounding>();
+
+            double now = Time.unscaledTimeAsDouble;
+            for (int i = live.Count - 1; i >= 0; i--)
+                if (live[i].Until <= now) live.RemoveAt(i);
+
+            if (!Mixing.Protected(bus, authored))
+            {
+                double quietest = 1.0;
+                foreach (var v in live) if (v.Loudness < quietest) quietest = v.Loudness;
+                if (live.Count == 0) quietest = 0.0;
+                if (!Mixing.Admit(bus, loudness, live.Count, quietest, out bool steal))
+                {
+                    SoundsDropped++;
+                    return false;
+                }
+                if (steal)
+                {
+                    int worst = 0;
+                    for (int i = 1; i < live.Count; i++)
+                        if (live[i].Loudness < live[worst].Loudness) worst = i;
+                    if (live.Count > 0) live.RemoveAt(worst);
+                    SoundsStolen++;
+                }
+            }
+
+            live.Add(new Sounding { Until = now + clip.length, Loudness = loudness });
+            SoundsAdmitted++;
+            if (live.Count > SoundsPeak) { SoundsPeak = live.Count; SoundsPeakBus = bus.ToString(); }
+            // INCOHERENT SOURCES SUM AS THE ROOT OF THEIR COUNT. Ten footsteps
+            // at 0.3 make roughly 0.95, not 3.0 — and the usual fix for that,
+            // turning everything down until a crowd is safe, is what leaves one
+            // walker inaudible. `CrowdGain` is the correct form and has been
+            // sitting in Core unused.
+            gain = (float)Mixing.CrowdGain(live.Count);
+            return true;
+        }
         /// The voice bus, and the two halves of the telephone: `_phone` is the
         /// speech that arrives down the wire, `_line` is the wire itself.
         static AudioSource _voice, _phone, _line;
@@ -614,8 +699,13 @@ namespace Ledger.Game
             bool splash = wet > 0.35f && Random.value < wet;
             string name = (splash ? "step_wet" : "step") + v;
             _foot.pitch = Random.Range(0.94f, 1.06f) / Mathf.Max(0.6f, weight);
-            _foot.PlayOneShot(Clip(name, () => Step(v, splash)),
-                              Mathf.Clamp(weight, 0.4f, 1.4f));
+            // THROUGH THE BUDGET. Footsteps are the highest-rate sound in the
+            // game and the one a crowd multiplies, so this is the site the
+            // voice budget was written for.
+            float vol = Mathf.Clamp(weight, 0.4f, 1.4f);
+            var stepClip = Clip(name, () => Step(v, splash));
+            if (!Admit(Mixing.Bus.Foley, stepClip, vol, authored: false, out float stepGain)) return;
+            _foot.PlayOneShot(stepClip, vol * stepGain);
         }
 
         /// FOLEY (game-feel-spec.md §4): clothing rustle, keys, the coat
@@ -662,7 +752,10 @@ namespace Ledger.Game
                         : material == "glass" ? "hit_glass"
                         : material == "wood" ? "hit_wood"
                         : "hit_soft";
-            _ui.PlayOneShot(Clip(name, () => Hit(material)), 0.25f + 0.55f * force);
+            float hitVol = 0.25f + 0.55f * force;
+            var hitClip = Clip(name, () => Hit(material));
+            if (!Admit(Mixing.Bus.Impact, hitClip, hitVol, authored: false, out float hitGain)) return;
+            _ui.PlayOneShot(hitClip, hitVol * hitGain);
             _ui.pitch = 1f;
         }
 
