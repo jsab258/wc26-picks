@@ -953,6 +953,15 @@ report that describes the street without showing it is making him take my word
 for the one thing he can check himself. Send the noon frame with the update —
 and where something changed, send the before beside it.
 
+`tools/report-frame.py` finds both, because a rule that depends on remembering
+to go and look is a rule that decays and this file is mostly a list of things
+that decayed. It walks back to the last commit whose verdict says a sim
+actually RAN — a build that died on a licence seat still commits, and one on 4
+August committed six stills it could not have made — and it refuses to hand
+over a frame rather than offering a stale one. Tested both ways: it finds the
+pair on today's repository, and with the verdicts hidden it says do not attach
+a picture, say the build produced nothing.
+
 ### Why the cron is only a watchdog
 
 **I built the loop wrong twice and the second version sounded reasonable.** The
