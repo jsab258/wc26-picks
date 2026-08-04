@@ -226,7 +226,25 @@ AUTO MODE.
    value** — this is exactly the "a number keeps its name when the question
    moves" case, and I have now shipped the change that moves it.
 
-11. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
+11. **EVERY WINDOW IN THE CITY IS LIT TO ONE COLOUR BY ONE CALL, AND IT IS
+   THE LOUDEST THING IN THE NIGHT FRAME.** `WorldBuilder.SetWindowsLit` walks
+   every window and writes the same emissive to all of them, so the skyline
+   after dusk is a wall of identical cream rectangles — which is exactly what
+   `review_day1_night` shows and what the eye goes to first.
+
+   **The fix is not a jitter, it is occupancy.** A lit window means somebody
+   is in. That is the information pillar this game is built on, it is free
+   visual variety as a side effect, and it makes a dark window at a known
+   address into something a player can use. Doing it properly means asking
+   the population where people actually are at that hour rather than picking
+   a lit fraction out of the air — `Household` and `DayJob` already model it,
+   and a fraction I invent is the threshold rule 2 forbids.
+
+   Sized honestly: this is a Core lookup plus a Game-side write plus a
+   reading (`windowsLit` against `windowsTotal`), and it does not fit in the
+   tail of a turn. **Start it at the top of one.**
+
+12. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
    is in and is what mattered: duplicate offers made every duplicated label
    hide itself. The COUNTERS have now contradicted themselves twice.
    **If the next reading is still incoherent, delete them rather than explain
