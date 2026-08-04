@@ -86,10 +86,27 @@ def split_keys(text):
     the two kinds are recorded separately — a key first seen outside the gate
     line must keep appearing, and a key only ever seen inside one is allowed to
     come and go with its gate.
+
+    ALL GATES IS THE SAME CLASS, FOR NOW, AND THAT IS A CHOICE.
+
+    The sim now prints every gate's label on every run, green or red, because
+    35 of the 39 quantities inside those labels were unreadable on a passing
+    run. That makes them always-present, so this file COULD require them — and
+    requiring them would be a real ratchet: deleting `atRecruit` from a label
+    would then be caught.
+
+    It does not, yet, and the reason is rule 2. Promoting ninety-odd keys on
+    the strength of ZERO landed runs is setting a threshold I have not
+    measured: label text is built with conditionals in several places, and I
+    do not know which of those keys are stable across runs. The cheap thing is
+    to read two or three verdicts first and promote deliberately. Doing it the
+    other way round means a red build on good news, which is the failure this
+    docstring already describes one paragraph up.
     """
     gate_lines, other_lines = [], []
     for line in text.split("\n"):
-        (gate_lines if "FAILING GATES" in line else other_lines).append(line)
+        gateish = "FAILING GATES" in line or "ALL GATES" in line
+        (gate_lines if gateish else other_lines).append(line)
     always = keys_in("\n".join(other_lines))
     conditional = keys_in("\n".join(gate_lines)) - always
     return always, conditional

@@ -38,9 +38,58 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**RED: `companionSight` — AND ON A COMMIT THAT CHANGED NO CODE.** The newest
-landed verdict fails it with `dist=23.8m`, on a queue-only edit, twenty-two runs
-after it last went red. A gate that fails on identical code is measuring luck.
+**A GREEN RUN COULD NOT SAY HOW IT PASSED, AND THAT WAS TRUE OF 35 NUMBERS.**
+`companionSight` came back green on `efff6fc` and reported **nothing** — because
+`atRecruit` and `waited`, written an hour earlier for the sole purpose of
+telling "she was there and saw nothing" from "she never arrived", both went
+inside the gate LABEL, and a verdict prints labels only for FAILING gates. So
+the run where the fix works is silent about how, on the one gate whose whole
+problem was passing on luck for twenty-two runs.
+
+Then the grep, and it is not one instance: **35 of the 39 named quantities
+inside gate labels appear nowhere on a green run.** A whole diagnostic channel
+that only opens once something is already broken. The sim prints `ALL GATES:`
+every run now, green or red, and the companion distances moved to the
+always-printed done-line as well.
+
+**NEXT, and it needs two or three landed runs first (rule 2):** promote those
+label keys from gate-only to REQUIRED in `verdict-keys`. Deleting `atRecruit`
+from a label would then be caught. Not done blind — some labels build their
+text conditionally and I do not yet know which keys are stable.
+
+**PANEL DUMP, READ: two faults, both fixed, neither visible from the C#.** The
+ledger screen said `"Mitch says it was player"` four times — the raw subject id
+in a sentence a person reads, beside a line ten lines away that says "Novak"
+correctly. And the DOUBT trail printed the same sentence three times for two
+different people, because it took the last three ENTRIES and one repeated event
+had filled the whole window. `idLeaks` gates it and names the sentence;
+`RecentReasons` collapses a run and says how often.
+
+**DO NOT `--learn` THE 8 NEW VERDICT KEYS YET.** Six are the appearance probe
+and are real. `S` and `tail` are fragments of the traffic sentence that the
+colon fix already removes — learning them would demand keys the next build
+deletes, which is the exact false alarm that fix exists to prevent. Learn after
+a build carrying the colon fix lands.
+
+**THE PLAYER READS AS UNDRESSED, AND THE NUMBER THAT SAYS WHY WAS ALREADY
+PASSING.** `bodyCoatArea=1.000` and `bodyParts=[Beta_Joints:29.6%->coat
+Beta_Surface:70.4%->coat]` — the coat covers **100%** of the body, head to
+feet. That metric was built to prove the coat is APPLIED, and it is green while
+describing the fault exactly: one flat material with no separation between
+coat, trousers, skin and hair, which is what makes the figure read as a
+mannequin next to blocky but clearly-dressed NPCs. `bodyReadSat=0.510` against
+`crowdReadSat=0.699` is the same thing in pixels — the player is the least
+colourful body in the frame. **The build is material ZONES, not a palette
+change**, and it is Game-layer: torso/arms coat, legs darker, head and hands a
+skin tone. A gate that asks how many distinct materials the body carries.
+
+**Landed and green: `0eeee6d`, `efff6fc`. Still in flight: `6ca5db4`.**
+
+---
+
+**RESOLVED — `companionSight` on a commit that changed no code.** It failed
+with `dist=23.8m` on a queue-only edit, twenty-two runs after it last went red.
+A gate that fails on identical code is measuring luck.
 
 The distance probe named its own answer: its comment asked for exactly this
 number — *"if it comes back at forty metres the explanation is settled; if it

@@ -6875,6 +6875,37 @@ namespace Ledger.Game
 
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
             bool pass = failed.Count == 0;
+
+            // EVERY GATE'S LABEL, GREEN OR RED — and this is a repair to the
+            // one channel out of CI this environment can read, so it outranks
+            // whatever else was next (rule 12).
+            //
+            // `FAILING GATES:` prints the label of every gate that WENT RED,
+            // and those labels are where most of this sim's diagnostics live.
+            // So a measurement written to explain a failure is legible only on
+            // the runs that fail, and the run where the fix WORKS reports
+            // nothing about how.
+            //
+            // Found on `companionSight`. `atRecruit` and `waited` were added
+            // an hour earlier for exactly one purpose — to tell "she was there
+            // and saw nothing" from "she never arrived" — and both went inside
+            // the gate label. It came back green and said neither, on a gate
+            // whose whole problem is that it had been passing on LUCK for
+            // twenty-two runs before going red on a commit that changed no
+            // code. Green with no numbers cannot be told from lucky.
+            //
+            // Then the grep, because a fix without one is half a fix: 35 of
+            // the 39 named quantities inside gate labels appear NOWHERE on a
+            // green run. Not one instance — a whole channel that only opens
+            // when something is already broken.
+            //
+            // ITS OWN LINE, and deliberately not merged into `done.`:
+            // `verdict-keys` splits always-reported keys from gate-only ones
+            // by looking for `FAILING GATES` in the line, and a key that moves
+            // between the two classes is how that checker learned to cry wolf.
+            // A distinct prefix keeps the old split intact and lets the tool
+            // decide separately what to do with this one.
+            Debug.Log($"SimDirector: ALL GATES: {string.Join(" | ", System.Array.ConvertAll(gates, g => (g.ok ? "ok " : "RED ") + g.name))}");
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -6961,6 +6992,26 @@ namespace Ledger.Game
                       $"deeds={_deedsStaged} deedWitnesses={_deedWitnesses} " +
                       $"deedEyesOpen={_deedEyesOpen} deedKnowsYou={_deedKnowsYou} " +
                       $"deedSlotSets={_deedSlotSets} deedBestRung={_deedBestRung} " +
+                      // THE ESCORT'S DISTANCE BELONGS ON THE ALWAYS-PRINTED
+                      // LINE, and putting it in the gate label was the third
+                      // "suspect the instrument" of the week.
+                      //
+                      // `atRecruit` and `waited` were written to tell "she was
+                      // there and saw nothing" apart from "she never arrived".
+                      // They went into `companionSight[...]`, which a verdict
+                      // prints ONLY for a FAILING gate — so the run where the
+                      // fix works reports nothing about how it worked, and a
+                      // green `companionSight` cannot be told from the green
+                      // runs it produced by luck for twenty-two runs before
+                      // going red on a commit that changed no code.
+                      //
+                      // That is the exact question the gate exists to answer,
+                      // and the diagnostic was only readable when the answer
+                      // was already known. A number that can only be seen on a
+                      // bad run cannot show a fix HOLDING.
+                      $"companionRung={_companionRung} companionStreet={_companionStreetRung} " +
+                      $"companionDist={_companionDist:0.0} companionAtRecruit={_companionRecruitDist:0.0} " +
+                      $"deedWaitedDays={_deedWaitedDays} " +
                       // THE DELIVERY WINDOW, §4.5, measured rather than assumed
                       // to run. Dispatched is how many started walking;
                       // arrived is how many made it and went indelible;
