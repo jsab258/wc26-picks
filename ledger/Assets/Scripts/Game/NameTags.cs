@@ -221,6 +221,21 @@ namespace Ledger.Game
         public static int NameFracSamples => _nameFracs.Count;
         static readonly List<float> _nameFracs = new List<float>();
 
+        /// THE WIDTH FAMILY, and it exists because a still disagreed with every
+        /// number in this file at once.
+        ///
+        /// `WorstNameWidthText` carries the NAME, not just the number, because
+        /// the width of a label is mostly a fact about its text — and "the
+        /// widest label was 0.34 of the screen" sends you looking at the
+        /// projection while "the widest label was 0.34 of the screen and it
+        /// said Katarina" sends you at the right thing in one reading.
+        public static double NameWidthMedian { get; private set; }
+        public static double NameWidthP90 { get; private set; }
+        public static float WorstNameWidthFrac { get; private set; }
+        public static string WorstNameWidthText { get; private set; } = "none";
+        public static int NameWidthSamples => _nameWidths.Count;
+        static readonly List<float> _nameWidths = new List<float>();
+
         /// The same for a bubble, and it is the SHARPER half of the still.
         ///
         /// `review_day1_night.jpg` has overheard speech running edge to edge
@@ -309,8 +324,10 @@ namespace Ledger.Game
             foreach (var l in _managed) if (l == null) ManagedDead++;
 
             NameFracMedian = MedianOf(_nameFracs);
+            NameWidthMedian = MedianOf(_nameWidths);
             BubbleFracMedian = MedianOf(_bubbleFracs);
             NameFracP90 = QuantileOf(_nameFracs, 0.90);
+            NameWidthP90 = QuantileOf(_nameWidths, 0.90);
             BubbleFracP90 = QuantileOf(_bubbleFracs, 0.90);
         }
 
@@ -753,6 +770,29 @@ namespace Ledger.Game
                     // holders — a median of the maxima, which is a statistic
                     // about nothing.
                     _nameFracs.Add(frac);
+                    // AND THE OTHER AXIS, WHICH NOTHING HAS EVER MEASURED.
+                    //
+                    // Every reading in this file is `rect.height` — the cap,
+                    // the worst, the series. `review_day1_night` shows two
+                    // labels each spanning about a third of the frame with the
+                    // second one clipping off the right edge, and every number
+                    // here says the nameplates are inside their bound. Both are
+                    // true: `PinFrac` caps HEIGHT, and at a legal height an
+                    // eight-letter name is enormously wide. A bound on one axis
+                    // of a two-axis object is not a bound.
+                    //
+                    // NOT REOPENING THE PINNING RULE, which is closed and works
+                    // — this adds the axis it was never asked about. From the
+                    // SAME rect as the height, so the two cannot come from two
+                    // instants, and no threshold until the series has been read
+                    // (rule 2), which is the same discipline the height had.
+                    float wfrac = rect.width / Mathf.Max(1f, cam.pixelWidth);
+                    _nameWidths.Add(wfrac);
+                    if (wfrac > WorstNameWidthFrac)
+                    {
+                        WorstNameWidthFrac = wfrac;
+                        WorstNameWidthText = c.Label.text ?? "";
+                    }
                     Pin(c.Label, frac);
                     if (frac > WorstNameFrac)
                     {

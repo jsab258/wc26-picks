@@ -8756,6 +8756,19 @@ namespace Ledger.Game
                       // nothing about the number says so.
                       $"nameFracMedian={NameTags.NameFracMedian:0.000} " +
                       $"nameFracP90={NameTags.NameFracP90:0.000} " +
+                      // THE OTHER AXIS. Every nameplate number in this
+                      // project has been a HEIGHT, and the night still shows
+                      // two labels each about a third of the frame wide with
+                      // the second clipping off the edge — while every height
+                      // reading says the plates are inside their bound. Both
+                      // are true, which is what makes a one-axis bound on a
+                      // two-axis object worth naming. The text comes with it,
+                      // because a label's width is mostly a fact about its
+                      // letters and the name says so in one reading.
+                      $"nameWidthMedian={NameTags.NameWidthMedian:0.000} " +
+                      $"nameWidthP90={NameTags.NameWidthP90:0.000} " +
+                      $"nameWidthWorst={NameTags.WorstNameWidthFrac:0.000} " +
+                      $"nameWidthWorstText={NameTags.WorstNameWidthText} " +
                       $"nameFracSamples={NameTags.NameFracSamples} " +
                       $"worstBubbleFrac={NameTags.WorstBubbleFrac:0.000} " +
                       $"worstBubbleMetres={NameTags.WorstBubbleMetres:0.00} " +
