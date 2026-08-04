@@ -121,10 +121,26 @@ the reading lands, and every guess made without one tonight was wrong.
    0.42m of arc each and now get 0.46m — but it is not this fault, and reading
    the huddle drop as a fix would have closed the wrong thing.
 
-   **Where to look next**: the separation nudge (`StepApart`), the walk
-   pathing, or somewhere people converge that is not a schedule point at all.
-   `review_day5_noon` at `2b38df1` shows the mob standing in a JUNCTION next to
-   a parked truck, which is none of their homes or workplaces.
+   **THE GENERATED SCHEDULES DO NOT CLUSTER — measured locally off the real
+   generator with the real seed, no round trip.** 700 residents, 688 distinct
+   home points and 687 distinct work points, and the most that share a point
+   within two metres is SIX at home and FIVE at work. Only 38 are within ten
+   metres of each other. The city plan spreads people properly.
+
+   **The AUTHORED schedules do share exact points, and that is what
+   `busiestPlace=12` is seeing.** `GameController`'s cast waypoints repeat by
+   hand: `(10,0,-14)` is the market corner for three different people,
+   `(18,0,14)` the docks for two, `(-16,0,-12)` and `(-12,0,14)` are two homes
+   with two residents each. Twelve on one point is exactly what the packing
+   ring was built for and it now gives them 0.88m.
+
+   **NEITHER EXPLAINS THIRTY-SIX.** There are 42 walkers in the run and 36 of
+   them stood within two metres of one person — 86% of everybody, in a disc
+   the size of a small room, while the authored points are twenty metres
+   apart. `busiestNear` lands next build and separates the last two
+   candidates: near 36 means the targets cluster after all in a way the metre
+   grid cannot see, and near 6 means the walk gathers them and the plan is
+   innocent.
 
 3. **BOTH DWELL NUMBERS HAVE LANDED, AND THE FIX IS NOT OBVIOUSLY WORTH IT.**
    `bodySpell=5.41` median with `bodySpellShortest=1.00` over 1,143 spells, and
