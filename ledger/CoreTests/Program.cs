@@ -6855,6 +6855,60 @@ namespace Ledger.CoreTests
                 "and every lane the city actually has reads as one",
                 $"{alleys}/{lanes}");
 
+            // -- WHO ELSE HEARD THAT ------------------------------------------
+            //
+            // An alibi told to one person was told to exactly one person,
+            // however crowded the room, because nothing asked whether a
+            // bystander made out the WORDS. `CanMakeOutWords` and
+            // `OverheardConfidence` were built for that and never called.
+            //
+            // THE ACCEPTING CASE FIRST, and it is the one with teeth: somebody
+            // standing close DOES catch it. A version of this that quietly
+            // caught nobody would look identical to a quiet street, and would
+            // have shipped as "the mechanic never fires on this map".
+            var ears = new List<Acoustics.Ear>
+            {
+                new Acoustics.Ear("close", 1.5),
+                new Acoustics.Ear("across the room", 5.0),
+                new Acoustics.Ear("down the street", 30.0),
+                new Acoustics.Ear("through a wall", 2.0, occluded: true),
+            };
+            var overheardBy = Acoustics.WhoOverheard(ears);
+            var bystanderIds = overheardBy.ConvertAll(h => h.ListenerId);
+            Check(bystanderIds.Contains("close"),
+                "somebody at arm's length catches an alibi you told to someone else",
+                string.Join(", ", bystanderIds));
+            Check(!bystanderIds.Contains("down the street"),
+                "and somebody thirty metres off does not");
+            Check(!bystanderIds.Contains("through a wall"),
+                "nor somebody two metres away through a wall — a wall is not a distance");
+
+            // NEVER KNOWLEDGE. The mill promotes anything at 0.95 into hard
+            // fact, and a thing caught across a room becoming a thing you KNOW
+            // is the difference between this game's rumour mill and a
+            // database. The cap is asserted here rather than trusted, because
+            // it is enforced in a different method from the one being called.
+            foreach (var h in overheardBy)
+                Check(h.Confidence < 0.95 && h.Confidence > 0,
+                      $"what {h.ListenerId} took away is usable and never certain",
+                      h.Confidence.ToString("0.00"));
+
+            // CLOSER IS SURER, which is the whole model in one assertion.
+            double nearEar = Acoustics.OverheardConfidence(1.5, false);
+            double farEar = Acoustics.OverheardConfidence(5.0, false);
+            Check(nearEar > farEar, "and the nearer ear is the surer one",
+                  $"{nearEar:0.00} vs {farEar:0.00}");
+
+            // A LOUD STREET IS COVER. Same geometry, noisier room, fewer ears
+            // — so WHERE you say it is a decision, which is the point.
+            int noisyCount = Acoustics.WhoOverheard(ears, streetNoise: 1.0).Count;
+            Check(noisyCount <= overheardBy.Count,
+                  "a loud street is cover, and never the reverse",
+                  $"{noisyCount} of {overheardBy.Count}");
+
+            Check(Acoustics.WhoOverheard(null).Count == 0,
+                  "nobody in the room is not a crash");
+
             TestTelephone();
         }
 

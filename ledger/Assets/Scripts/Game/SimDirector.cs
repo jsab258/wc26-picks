@@ -7357,6 +7357,14 @@ namespace Ledger.Game
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
+                      // WHO ELSE WAS STANDING THERE. Reported, not gated: a
+                      // quiet street where nobody is within earshot is a
+                      // legitimate world, and gating would be a probe that
+                      // fires only on a lucky run — which is the single
+                      // largest cause of red in this project. If it reads 0
+                      // every run, the condition wants PLANTING, not a looser
+                      // bound.
+                      $"claimOverheard={LawHost.ClaimOverheard} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +

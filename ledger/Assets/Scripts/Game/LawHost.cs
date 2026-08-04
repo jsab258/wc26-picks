@@ -204,8 +204,71 @@ namespace Ledger.Game
             // exists after the conversation ends and can be checked against
             // later — which is the half `Informing` accuses from.
             game.Gossip?.Mill?.PlayerClaims(host.Card?.Name ?? "", claim, game.Now);
+
+            // AND WHOEVER ELSE WAS STANDING THERE.
+            //
+            // An alibi told to one person was told to exactly one person,
+            // however crowded the room, because nothing anywhere asked whether
+            // a bystander made out the WORDS. The perception model resolves
+            // hearing a NOISE — direction and distance, never identity — and
+            // `Acoustics.CanMakeOutWords` and `OverheardConfidence` were built
+            // for the other half and had no caller in the game.
+            //
+            // This is the mechanic, not a detail: the whole point of a lie in
+            // LEDGER is that it survives the conversation and can be checked
+            // later, so WHERE you tell it has to be a decision. It was not one
+            // while the street was deaf by construction.
+            //
+            // AT OVERHEARD CONFIDENCE, capped at 0.9 by the Core call so a
+            // thing caught across a room can never be promoted into hard
+            // knowledge — which is the line between this game's mill and a
+            // database, and the reason the cap lives in Core rather than here.
+            //
+            // NOT ON THE TELEPHONE. A voice in a handset is not in the room,
+            // and the one thing worse than a street that cannot hear you is a
+            // street that hears the half of the call it is not present for.
+            ClaimOverheard = 0;
+            if (!host.OnTheLine)
+            {
+                // THE HOSTS, not a walker list. `GameController` keeps its
+                // walkers private and exposes `Hosts`, and the hosts are the
+                // people who can carry a claim anyway — a background walker
+                // has no brain to put it in, so an ear it cannot use is not an
+                // ear. Cheaper too: hosts are a handful, walkers are dozens.
+                var ears = new List<Acoustics.Ear>();
+                var at = host.transform.position;
+                foreach (var h in game.Hosts)
+                {
+                    if (h == null || h == host || !h.isActiveAndEnabled) continue;
+                    var who = h.Card?.Name;
+                    if (string.IsNullOrEmpty(who)) continue;
+                    ears.Add(new Acoustics.Ear(who,
+                        Vector3.Distance(h.transform.position, at)));
+                }
+                // THE CLAIM ITSELF, not a fact rebuilt from its parts. `claim`
+                // IS a `Fact` — the first version read `claim.Place` off it and
+                // reconstructed the predicate from `Claims.LocationKey`, which
+                // is a second implementation of the key the extractor already
+                // chose. Two spellings of one topic mean the overheard version
+                // could never contradict the told version, and a claim nobody
+                // can contradict is the one thing this whole system is for.
+                foreach (var o in Acoustics.WhoOverheard(ears, Audio.ChatterLevel))
+                {
+                    if (game.Gossip?.Mill?.Get(o.ListenerId) == null) continue;
+                    game.Gossip.Mill.Witness(o.ListenerId, claim,
+                        $"heard {game.Me.InTalk(game.Gossip.Mill)} say they were at {claim.Value}",
+                        false, game.Now, o.Confidence);
+                    ClaimOverheard++;
+                }
+            }
             return was;
         }
+
+        /// How many bystanders caught the last claim. Reported by the sim: a
+        /// mechanic that never fires is indistinguishable from one that is not
+        /// wired, and this one is wired to a distance threshold that a quiet
+        /// street can legitimately never satisfy.
+        public static int ClaimOverheard { get; private set; }
 
         /// Whoever will actually repeat it, for attribution. The charge has to
         /// come from a person, because in this game every rumour does — an

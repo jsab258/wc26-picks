@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ledger.Core
 {
@@ -116,6 +117,70 @@ namespace Ledger.Core
             double i = Intelligibility(metres, occluded, streetNoise, carry);
             if (i < WordsThreshold * 0.5) return 0;     // heard nothing usable
             return Feel.Clamp(0.25 + 0.65 * i, 0.0, 0.9);
+        }
+
+        /// One person who might have been in earshot of something said.
+        public struct Ear
+        {
+            public string ListenerId;
+            public double Metres;
+            public bool Occluded;
+            public Ear(string id, double metres, bool occluded = false)
+            { ListenerId = id; Metres = metres; Occluded = occluded; }
+        }
+
+        /// What a bystander took away, if anything.
+        public struct Overheard
+        {
+            public string ListenerId;
+            /// 0..0.9. Never 0.95, so overhearing can never become knowledge.
+            public double Confidence;
+        }
+
+        /// WHO ELSE HEARD THAT.
+        ///
+        /// `CanMakeOutWords` and `OverheardConfidence` have been on the reach
+        /// ledger since they were written, with the ledger's own note: *"a
+        /// witness who hears the killing without seeing it"*. Both were built,
+        /// tested, and never called — rule 6, on the mechanic that is most of
+        /// what this game is about.
+        ///
+        /// What was missing is not the arithmetic, it is the QUESTION. The
+        /// perception model already resolves hearing a NOISE: `Observe.Resolve`
+        /// asks whether a witness heard the act or the cry, and gives them
+        /// direction and distance and never identity. Nothing anywhere asked
+        /// whether somebody standing nearby made out the WORDS.
+        ///
+        /// So an alibi told to one person was told to exactly one person,
+        /// however crowded the room. That is the wrong game: the whole point of
+        /// a lie in LEDGER is that it exists afterwards and can be checked, and
+        /// choosing WHERE to tell it should be a decision. It was not one,
+        /// because the street was deaf by construction.
+        ///
+        /// TWO THRESHOLDS, NOT ONE, and they are already here. Making out the
+        /// words at all is `CanMakeOutWords`; how much you would swear to is
+        /// `OverheardConfidence`, capped at 0.9 so a thing you caught across a
+        /// room can never be promoted into hard knowledge. Both are used —
+        /// taking only the second would file half-heard mush as a claim.
+        ///
+        /// The speaker is not in the list and must not be: a caller that hands
+        /// in the person doing the talking would file their own sentence back
+        /// at them as something they overheard.
+        public static List<Overheard> WhoOverheard(IEnumerable<Ear> ears,
+                                                   double streetNoise = 0.0,
+                                                   double carry = SpeechCarry)
+        {
+            var got = new List<Overheard>();
+            if (ears == null) return got;
+            foreach (var e in ears)
+            {
+                if (string.IsNullOrEmpty(e.ListenerId)) continue;
+                if (!CanMakeOutWords(e.Metres, e.Occluded, streetNoise, carry)) continue;
+                double c = OverheardConfidence(e.Metres, e.Occluded, streetNoise, carry);
+                if (c <= 0) continue;
+                got.Add(new Overheard { ListenerId = e.ListenerId, Confidence = c });
+            }
+            return got;
         }
 
         /// Above this you got the line. Below it you got some of it.
