@@ -56,11 +56,18 @@ scheduling instead of to CI's output.
    `verdict-keys`. They always print now, so deleting `atRecruit` from a label
    would be caught. Two or three landed runs first — some labels build their
    text conditionally and which keys are stable is not yet known.
-4. **`crowdRead` fell from 24 to 11 between two runs.** Same cap, same
-   population. Probably day versus night — fewer bodies in frame — but that is
-   a guess and `bodyReadWhen` is now there to settle it. If the sample size
-   swings with the hour, the noon and night comparisons are not the same
-   instrument and should be reported separately.
+4. **ANSWERED AND REPAIRED — the crowd sample was 24, then 11, then 6.** With
+   six bodies a median is barely a statistic, and I drew a conclusion from one
+   twice and got opposite answers. Each shot now contributes its own
+   outshone-fraction and the run reports the median across all twenty.
+   **Both brightness claims are withdrawn until that series lands.** The
+   palette work stays cancelled — not because the noon reading supported
+   cancelling it, but because nothing supports doing it yet.
+
+4b. **BILLBOARDS ARE FINE, CLOSED.** `billboardStaleMedian=0.000` against a
+   peak of 9 stale out of 53 tracked. The typical frame has NO billboard
+   drifting; 5 → 12 → 27 across three runs was a peak wandering with how many
+   were visible, exactly as suspected. Do not reopen without a median.
 5. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
    Still the only route to the player mesh.
 6. **Keep retiring the reach ledger** (65, from 71 last night). What is left is
