@@ -2600,6 +2600,30 @@ namespace Ledger.Game
             marker.name = name;
             marker.transform.position = new Vector3(pos.x, 0.3f, pos.z);
             marker.transform.localScale = new Vector3(0.9f, 0.6f, 0.9f);
+            // A WAYPOINT IS NOT FURNITURE, AND THIS ONE WAS SOLID.
+            //
+            // `CreatePrimitive` ships a collider, and nothing here ever took it
+            // off — so the glowing cube marking the place you must REACH is a
+            // box you walk into and stop against. Every other primitive in this
+            // project that exists to be looked at rather than bumped into has
+            // its collider destroyed; this one was written before that habit and
+            // nobody grepped for the second site.
+            //
+            // The drop trace is what sent me here. `d1:MISSED[from=22m
+            // nearest=2.8m walked=21.2m held:job=17]` — the bot walked
+            // twenty-one of twenty-two metres, steered at the drop for every
+            // tick of the window, and finished THIRTY CENTIMETRES outside a
+            // 2.5m completion radius. Beside it `d8:done[nearest=2.4m]`. The
+            // arrivals cluster on the boundary, which is what an obstacle at
+            // the target looks like from the outside.
+            //
+            // AND THE OBVIOUS FIX WAS THE FORBIDDEN ONE. A miss by 0.3m invites
+            // widening the radius to 3.0 and calling it talking distance, which
+            // is moving a bound to make red go away — rule 2 by name. The bound
+            // is not what is wrong. The thing it measures the distance to is
+            // pushing the player back out of it.
+            var box = marker.GetComponent<Collider>();
+            if (box != null) Destroy(box);
             var mat = marker.GetComponent<Renderer>().material;
             mat.color = color;
             mat.EnableKeyword("_EMISSION");
