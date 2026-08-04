@@ -8731,6 +8731,11 @@ namespace Ledger.Game
                       // like it ran quietly.
                       $"summonsPlaced={SummonsHost.Placed} " +
                       $"summonsTaken={SummonsHost.Taken} " +
+                      // WHICH KIND OF MISS. "No line was live" is a world
+                      // that never offered the choice; "a line was live and he
+                      // was not near it" is the mechanic working. Zero taken
+                      // means both until this says which.
+                      $"summonsMissWhy=[{SummonsHost.MissWhy}] " +
                       $"summonsMissed={SummonsHost.MissedCalls} " +
                       $"summonsRead=[{SummonsHost.LastRead}] " +
                       // THE PAPER. `pressEditions` is the denominator:

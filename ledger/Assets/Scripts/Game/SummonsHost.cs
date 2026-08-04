@@ -45,6 +45,14 @@ namespace Ledger.Game
         /// quietly. The gate compares them, the same shape as the informer's
         /// mark against the accusations that earned it.
         public static int Placed { get; private set; }
+        /// Why the last miss was a miss. Empty when the call was taken.
+        ///
+        /// `Taken=0` beside `Placed=1` is the ambiguity CLAUDE.md names in its
+        /// own words — one missed call reads identically to a player who was
+        /// out on the street — and adding the player branch to `NearPhone` fixed
+        /// only half of it: the outcome became possible, and the reason stayed
+        /// invisible.
+        public static string MissWhy { get; private set; } = "";
         public static int Taken { get; private set; }
         public static int MissedCalls { get; private set; }
         public static int Refused { get; private set; }
@@ -56,6 +64,7 @@ namespace Ledger.Game
         public static void Reset()
         {
             Placed = Taken = MissedCalls = Refused = 0;
+            MissWhy = "";
             LastRead = "she has not rung";
         }
 
@@ -103,6 +112,27 @@ namespace Ledger.Game
             // bot would put a decision the player owns inside the harness.
             var answer = reachable ? Answered.Took : Answered.Missed;
             if (answer == Answered.Took) Taken++; else MissedCalls++;
+
+            // AND WHY, BECAUSE `Taken=0` STILL CANNOT SAY. The player branch in
+            // `NearPhone` was added this afternoon, which made `Took`
+            // REACHABLE; the run then reported `summonsPlaced=1 summonsTaken=0`
+            // again, and reachable is not the same as reached. A miss has two
+            // completely different causes — no line was live at nine, or a live
+            // line was live and the player was nowhere near it — and they want
+            // opposite things done about them. The first is a world that never
+            // offered the choice; the second is the mechanic working.
+            //
+            // `MissWhy` names which. The lines are asked once more, ignoring
+            // proximity, so "was any line even open" and "was he near one" are
+            // separated rather than collapsed into a single false.
+            if (answer == Answered.Missed)
+            {
+                bool anyLive = game.Phones != null
+                               && game.Phones.ReachableNow("player", atRing, (_, __) => true);
+                MissWhy = anyLive ? "a line was live and he was not near it"
+                                  : "no line was live at that hour";
+            }
+            else MissWhy = "";
 
             Summoning.Apply(game.Empire, call, answer, game.Now.Day);
             LastRead = Summoning.ReadOf(call, answer);
