@@ -26,25 +26,35 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### WHAT THE LAST TWO BUILDS SETTLED
+### WHAT THE LAST THREE BUILDS SETTLED
 
+- **The summons is fixed and its zero is now honest.** `summonsMissWhy` went
+  from "no line was live at that hour" to **"a line was live and he was not
+  near it"** — the exact distinction that code was built to draw, and its own
+  comment says the first is a world that never offered the choice while the
+  second is the mechanic working. `summonsTaken=0` still, but for a reason a
+  player could have changed.
+- **The reliability rule fired for the first time in 132 runs.**
+  `dropsSkipped=2 reliabilityFiled=1 reliabilityRead=[Slipping after 3]`. The
+  street now says the publican is slipping. Planting the condition worked and
+  the bound was never touched.
+- **The two-axis name cap is IN and UNDEMONSTRATED.** `nameWidthWorst=0.171`
+  and `nameShownWidthWorst=0.171` — identical, because no label this run was
+  wide enough to clamp. The 0.431 case from the run before would have been.
+  **Not a confirmation: a quiet run.**
 - **There are no scarecrows.** 53.5 degrees is a bent elbow at walking pace,
   and every body with an Animator has a clip whose time is moving.
 - **The mob is real and neither the plan nor the ring causes it.** 700
-  residents put at most six within two metres of each other; the busiest
-  scheduled place holds twelve; thirty-six stood within two metres of one
-  person. `busiestNear` separates the last two candidates next build.
-- **The limp is on the street** — five named people used it — and the pose
-  limp is the same size as the audio one for the first time.
+  residents put at most six within two metres; the busiest scheduled place
+  holds twelve; thirty-nine stood within two metres of one person.
+  `busiestNear` separates the last two candidates next build.
+- **Two white capsules are standing in the road** and no reading names them —
+  `playerPrimitive` was built for the player alone. `walkersPrimitive` counts
+  them next build.
 - **The clutter in the road belongs to registered places**, twenty-two of whose
-  facades stand in a carriageway, because places are set back from an authored
-  coordinate while block buildings are inset from a kerb.
-- **The name cap never touched the widest name**: pre- and post-cap widths were
-  identical at 0.431 because `PinFrac` bounds height only. Now it bounds the
-  larger axis in the same unit.
+  facades stand in a carriageway.
 - **The frame gate's biggest item was two passes sharing one number** — the
-  reband is 1.31ms and the body LOD 2.59ms, and only the second was worth
-  looking at.
+  reband is 1.31ms and the body LOD 2.59ms.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
