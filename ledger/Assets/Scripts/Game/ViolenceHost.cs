@@ -212,6 +212,18 @@ namespace Ledger.Game
             // every reason in the world to talk.
             var victimView = Reaction.AsVictim(deed, victimId, familiarityWithActor,
                                                survived: !lethal);
+            // AND THE STREET LEARNS WHO YOU ARE. `Violence.Notoriety` has been
+            // unit-tested and uncalled since it was written — it is the model
+            // that says a brawl outside the bar at noon is the day's news and
+            // the same fight in an alley at three is a sound somebody
+            // half-heard, and nothing had ever asked it.
+            //
+            // The witness count is the one already gathered for this deed, so
+            // the reputation and the perception agree about how public it was
+            // rather than each counting its own crowd.
+            if (Game != null && Game.Campaign != null)
+                Game.Campaign.Noted(Violence.Notoriety(seen.Count, lethal));
+
             var reacted = lethal ? Reacted.Ignore : Reacted.Flee;
             bool fleeing = Reaction.IsFleeingVictim(victimView, reacted);
             if (fleeing)

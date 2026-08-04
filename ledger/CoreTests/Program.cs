@@ -7543,6 +7543,44 @@ namespace Ledger.CoreTests
                 "but a KILLING nobody saw is still enormous — a body is not a rumour",
                 $"{Violence.Notoriety(0, true):0.00}");
 
+            // ---- NOTORIETY IS NOT HEAT, AND THIS IS THE CLAIM (M21) --------
+            //
+            // `Access` has gated doors on notoriety for weeks while `AccessHost`
+            // fed it `CurrentHeat` — one variable under two names. The whole
+            // point of separating them is that they answer different questions
+            // on different timescales, so the tests assert the DIFFERENCE
+            // rather than the numbers.
+            var fame = new Campaign();
+            Check(fame.Notoriety == 0, "a new man is nobody");
+
+            fame.Noted(Violence.Notoriety(6, false));
+            double afterBrawl = fame.Notoriety;
+            Check(afterBrawl > 0, "a brawl six people watched is worth something",
+                $"{afterBrawl:0.00}");
+
+            // WHAT YOU ARE KNOWN FOR, not a tally of everything you have done.
+            // Summing would let a hundred small acts out-weigh a murder, which
+            // is the opposite of how a street talks about somebody.
+            fame.Noted(Violence.Notoriety(0, false));
+            Check(fame.Notoriety == afterBrawl,
+                "a smaller act afterwards does not make you MORE known");
+
+            fame.Noted(Violence.Notoriety(0, true));
+            Check(fame.Notoriety >= 0.75,
+                "a killing does — you are known for the worst of it",
+                $"{fame.Notoriety:0.00}");
+
+            // AND IT FADES ON A DIFFERENT CLOCK FROM HEAT, which is the entire
+            // reason it is a second number. Six weeks of complete quiet still
+            // leaves a man who killed somebody halfway known.
+            double known = fame.Notoriety;
+            fame.FadeNotoriety(42);
+            Check(fame.Notoriety > known / 2.0,
+                "six weeks of quiet does not make a killer anonymous",
+                $"{known:0.00} -> {fame.Notoriety:0.00}");
+            Check(fame.Notoriety < known,
+                "but it does fade — being known is not permanent either");
+
             // ---- THE SYSTEM MUST NOT BE INERT (BalanceLab, 2026-07-28) ----
             //
             // The original constants made a clean strike do 0.86 against a

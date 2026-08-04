@@ -1942,6 +1942,12 @@ namespace Ledger.Game
             {
                 _lastClosedDay = Now.Day;
                 double heat = CurrentHeat;
+                // BEING KNOWN FADES, on its own clock. Here rather than inside
+                // `CloseDay` because that method returns the day's takings and
+                // is about the OUTFIT's ledger; reputation is the street's, and
+                // hiding a second decay inside a money function is how the two
+                // would drift apart without anybody noticing.
+                Campaign.FadeNotoriety();
                 int takings = Campaign.CloseDay(heat);
 
                 // M18. THE NIGHT THAT JUST ENDED, and where the player spent it.

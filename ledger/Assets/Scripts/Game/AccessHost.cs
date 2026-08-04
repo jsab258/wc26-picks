@@ -33,7 +33,17 @@ namespace Ledger.Game
         {
             var s = new AccessState
             {
-                Notoriety = CurrentHeat,
+                // NOT `CurrentHeat` ANY MORE, and that substitution was the
+                // whole of what M21's notoriety row was missing.
+                //
+                // A door gated on reputation opened when the POLICE lost
+                // interest, because the two were literally the same variable.
+                // Heat asks "is anyone looking at you right now" and answers in
+                // days; notoriety asks "do they know who you are" and answers
+                // in weeks. Feeding one from the other made the second
+                // meaningless and made the first do a job it was never shaped
+                // for.
+                Notoriety = Campaign.Notoriety,
                 Dress = WearingCoat ? "coat" : "plain",
                 Money = Wallet.Total,
                 Hour = Now.Hour,

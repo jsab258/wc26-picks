@@ -35,6 +35,65 @@ namespace Ledger.Core
         public Verdict Verdict { get; private set; } = Verdict.Ongoing;
         public string VerdictReason { get; private set; } = "";
 
+        // ---- notoriety (M21) ------------------------------------------------
+
+        /// HOW KNOWN YOU ARE, which is NOT how hot you are.
+        ///
+        /// `Access.KeyKind.Notoriety` has gated doors on this for weeks and
+        /// `AccessHost` fed it `CurrentHeat` — one variable under two names, so
+        /// a door gated on reputation actually opened when the police lost
+        /// interest. That is backwards: heat falls when attention moves on and
+        /// a famous man stays famous.
+        ///
+        /// The two axes are the whole point of the M21 row. Heat asks "is
+        /// anyone looking at you right now" and answers in days. This asks "do
+        /// they know who you are" and answers in weeks — which is why it is the
+        /// number an empire is built on and heat is not.
+        public double Notoriety { get; private set; }
+
+        /// What a day of being unremarkable takes off, as a PROPORTION.
+        ///
+        /// THE FIRST VERSION SUBTRACTED AND THE TEST CAUGHT THE ARITHMETIC.
+        /// The comment claimed 1.5% a day leaves a man "still halfway there
+        /// after six weeks", and 1.5 times 42 is 63 POINTS — it took 0.75 down
+        /// to 0.12, which is anonymous. I wrote a number into a sentence
+        /// without doing the sum, and the test asserting the design claim is
+        /// the only reason it is a paragraph rather than a shipped constant.
+        ///
+        /// Proportional is also the truer model, which is the useful half.
+        /// Subtracting a fixed amount says a killing and a shouting match fade
+        /// at the same absolute rate and both hit exactly zero on a schedule;
+        /// scaling says a big reputation takes longer to lose than a small one
+        /// and neither ever quite reaches nothing. That is how a street forgets
+        /// somebody. At 1.5% a day, six weeks of complete quiet leaves 53% of
+        /// whatever you had — halfway, as the claim said, now that the
+        /// arithmetic agrees with it.
+        ///
+        /// Heat's decay is an order of magnitude faster, and that gap IS the
+        /// mechanic: if these two numbers were close, the second one would not
+        /// be worth having.
+        public const double NotorietyDecayPerDay = 0.015;
+
+        /// A notable act, on the scale `Violence.Notoriety` returns.
+        ///
+        /// TAKES THE MAXIMUM RATHER THAN ACCUMULATING. Reputation is not a
+        /// tally of everything you have ever done — it is what you are known
+        /// FOR, and being known for a killing is not made worse by also having
+        /// been in a brawl. Summing would let a hundred small acts out-weigh a
+        /// murder, which is the opposite of how a street talks.
+        public void Noted(double weight)
+        {
+            if (weight <= 0) return;
+            Notoriety = Feel.Clamp01(Math.Max(Notoriety, weight));
+        }
+
+        /// Called once per day close, after `Noted` has had its chances.
+        public void FadeNotoriety(int days = 1)
+        {
+            if (days <= 0) return;
+            Notoriety = Feel.Clamp01(Notoriety * Math.Pow(1.0 - NotorietyDecayPerDay, days));
+        }
+
         // Open mode (open-city-spec.md, approved 2026-07-26): from day 8 the
         // campaign stops being survivable and starts being ownable. No win state;
         // losing is still possible but scarring, never terminal — the fuse
