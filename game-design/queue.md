@@ -42,8 +42,14 @@ CLAUDE.md under AUTO MODE.
   and `nameShownWidthWorst=0.171` — identical, because no label this run was
   wide enough to clamp. The 0.431 case from the run before would have been.
   **Not a confirmation: a quiet run.**
-- **There are no scarecrows.** 53.5 degrees is a bent elbow at walking pace,
-  and every body with an Animator has a clip whose time is moving.
+- **The STREET is not full of scarecrows, and one body might still be one.**
+  `armCrowdWidest=53.5` is a bent elbow at walking pace, printed off the real
+  `ArmSwing`, and every body with an Animator has a clip whose time is moving —
+  so the median retraction stands. But `armCrowdWidestWorst=76.6` is near
+  ninety and `review_day2_night` has a figure with its arms straight out to
+  both sides. The drop angle measures against straight DOWN and cannot tell
+  forward from sideways; a walk is entirely fore-and-aft and a T-pose entirely
+  lateral. `armSide` settles it next build.
 - **The mob is real and neither the plan nor the ring causes it.** 700
   residents put at most six within two metres; the busiest scheduled place
   holds twelve; thirty-nine stood within two metres of one person.
