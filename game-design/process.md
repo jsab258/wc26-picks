@@ -1,6 +1,6 @@
 # Collaboration Process & Decision Log
 
-> **STATUS — LIVE, verified 2026-07-31.** how we work and the decision log.
+> **STATUS — LIVE, verified 2026-08-04.** how we work and the decision log.
 > Kept current. If it is wrong, that is a bug in this file.
 
 ## Roles
@@ -20,6 +20,34 @@
    never only in chat. Each session updates the decision log below.
 4. Manual steps for Jafar are batched, rare, and come with exact instructions
    (e.g. one-time account creation, API keys, playtesting a build).
+
+## AUTO MODE is how the work actually runs — added 2026-08-04
+
+This file described the working agreement and never described the WORKING MODE,
+which has been continuous autonomous building for days. That is the gap Jafar's
+question on 4 August pointed at, so it is written down here rather than only in
+the trigger prompt that keeps going stale.
+
+**The rules live in `CLAUDE.md` under "AUTO MODE" and that file is the source.**
+This section says what it IS so somebody reading about process finds it; it does
+not restate the mechanism, because two copies of a mechanism is how the trigger
+prompt drifted from the repo in the first place.
+
+- **Jafar starts and stops it by saying so** — "start auto mode", "stop auto
+  mode" — and both must work from a cold session, which is why the rules are in
+  the repository and not in a chat.
+- **Continuous, not a cadence.** His words after I got it wrong twice: *"non
+  stop, no idle time."*
+- **Six plain updates a day**, 07:00 / 10:00 / 13:00 / 16:00 / 19:00 / 22:00
+  CEST, and silence otherwise. Short sentences, no metric names, no file paths —
+  *"the player is upside down"*, not the name of the number that measured it.
+- **`game-design/queue.md` is what gets picked up**, and it has a standing
+  section that cannot empty, because an empty queue and an empty afternoon look
+  identical and have completely different next actions.
+- **Rule 1 of that file governs everything else**: never assert what has not
+  just been checked. Point 2 of the working agreement above — technical calls
+  are Claude's to make autonomously — is what makes the mode possible, and rule
+  1 is what makes it safe.
 
 ## Decision log
 

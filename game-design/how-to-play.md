@@ -1,6 +1,6 @@
 # LEDGER — How to Play (prototype build)
 
-> **STATUS — LIVE, verified 2026-07-31.** player-facing instructions for the prototype build.
+> **STATUS — LIVE, verified 2026-08-04.** player-facing instructions for the prototype build.
 > Kept current. If it is wrong, that is a bug in this file.
 
 You inherited your uncle Mickey's pub on Hook Street — and the half-dead
@@ -28,6 +28,8 @@ of what you'll say and always the safe default.
 
 | F | get in / out of your car (it's parked outside the bar) |
 | L | **the ledger** — what you believe the street knows, what you hold, THE STREET (open city) |
+| J | **the plan** — what you are carrying into a job, and what the street can already prove |
+| T | **the phone** — call somebody instead of walking to them; it costs the distance in time, not in secrecy |
 | C | the runner's coat — harder to name at night, harder to explain in daylight |
 | F1 | debug: the brain of whoever you're near (memory file, suspicion, beliefs) |
 | F2 | API key entry (conversations are live LLM; get one at console.anthropic.com) |
