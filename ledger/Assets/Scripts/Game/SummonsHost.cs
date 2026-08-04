@@ -76,7 +76,14 @@ namespace Ledger.Game
             // it takes the proximity test from the caller rather than guessing
             // at it. `GameController.NearPhone` is that test and has been
             // running for weeks; this is the first thing that asks it about
-            // the PLAYER rather than about somebody being rung.
+            // the PLAYER rather than about somebody being rung — and asking it
+            // that question the first time is what showed it had no answer for
+            // him at all. It walked the walker list and the crowd, and the
+            // player is in neither, so it returned false for every line at
+            // every hour and "you were not reachable" was the only outcome this
+            // mechanic could produce. Fixed in `PhoneSetup`; the first build's
+            // single missed call reads identically either way, which is why it
+            // had to be found by reading.
             //
             // ASKED AT THE HOUR SHE RINGS, NOT THE HOUR THE DAY TURNS. The day
             // closes at eight in the morning; she calls at nine at night. A

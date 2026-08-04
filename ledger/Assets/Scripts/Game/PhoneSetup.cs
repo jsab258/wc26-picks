@@ -83,6 +83,29 @@ namespace Ledger.Game
         {
             if (!_phoneSpots.TryGetValue(placeId, out var spot)) return false;
 
+            // THE PLAYER IS NOT IN THE WALKER LIST, AND UNTIL NOW THAT MEANT
+            // THE ANSWER FOR HIM WAS ALWAYS NO.
+            //
+            // This walks `_npcs` by display name and then the crowd, and the
+            // player is in neither — so `NearPhone("player", …)` returned false
+            // for every line at every hour. Harmless while the only caller
+            // asked about somebody being RUNG; the moment the rival started
+            // telephoning the player, "you were not reachable" became the only
+            // outcome the mechanic could ever produce.
+            //
+            // That is rule 5b's twin: a run in which the thing being asserted
+            // CAN happen. `Answered.Took` was unreachable, and the first
+            // build's `summonsMissed=1` reads identically whether the player
+            // was out on the street or whether picking up is impossible.
+            //
+            // Found by reading the lookup rather than by trusting the number,
+            // which is the only way this surfaces — a mechanic that always
+            // takes one branch looks exactly like a mechanic whose condition
+            // never held.
+            if (personId == "player")
+                return _player != null
+                       && Vector3.Distance(_player.transform.position, spot) <= PhoneReach;
+
             foreach (var npc in _npcs)
             {
                 if (npc == null || npc.DisplayName != personId) continue;
