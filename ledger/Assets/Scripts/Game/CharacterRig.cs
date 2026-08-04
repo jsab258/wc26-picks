@@ -71,6 +71,18 @@ namespace Ledger.Game
         /// animated furniture.
         public double IdleOffset;
 
+        /// Whether this rig has offset its Animator's loop yet, and how many
+        /// have across the run.
+        ///
+        /// COUNTED BECAUSE ZERO IS THE FAILURE AND IT IS SILENT. A phase seeded
+        /// into a state machine that has not entered a state yet does nothing,
+        /// and the symptom — twelve people stepping together — is exactly what
+        /// the frame looked like BEFORE the fix. `phasesSeeded=0` beside a
+        /// non-zero `walkerBodies` is that, said out loud, instead of a still
+        /// somebody has to notice.
+        bool _phaseSeeded;
+        public static int PhasesSeeded { get; private set; }
+
         float _breathTime;
         Quaternion _chest0, _neck0, _head0;
         Vector3 _hips0;
@@ -820,6 +832,48 @@ namespace Ledger.Game
             {
                 _animator.SetFloat(SpeedParam, (float)Speed);
                 if (!SpeedDriven) { SpeedDriven = true; }
+
+                // AND THE PERSON'S OWN CADENCE AND PHASE, WHICH THIS BRANCH
+                // IGNORED WHILE THE PROCEDURAL ONE HONOURED BOTH.
+                //
+                // Found by grepping `Breadth` after fixing the bought bodies'
+                // uniform scale, then grepping the rest of `Physique` for the
+                // same shape — which is rule 1's third corollary paying out
+                // three times in one sweep. `GaitBias` appears exactly once in
+                // this file outside its declaration, in `DriveLimbs`, and
+                // `IdleOffset` twice, in the procedural breath and sway.
+                // Neither reaches the Animator. So `NpcWalker` sets all three
+                // traits on every walker — with a comment explaining that it
+                // sets them unconditionally so the two tiers "cannot disagree
+                // about who walks how" — and on the twelve nearest people, the
+                // ones actually wearing bought bodies, all three were written
+                // and dropped.
+                //
+                // `speed` RATHER THAN THE BLEND PARAMETER. Scaling the float
+                // the tree blends on would make a loose-strided person appear
+                // to be MOVING faster and pick a run clip while walking; the
+                // playback rate changes the cadence at the same ground speed,
+                // which is what a gait bias means. Same argument `DriveLimbs`
+                // makes one screen down for why it scales the speed the cycle
+                // is asked about rather than the angles it returns.
+                //
+                // THE PHASE IS SEEDED ONCE, not driven. Every bought body
+                // starts its controller at normalised time zero, so twelve
+                // people in shot breathe and step in lockstep — the one way
+                // real bodies could read as worse than thirteen boxes, which
+                // the roadmap says was deliberately avoided for the mannequins
+                // and was then reintroduced here by omission. Writing it every
+                // frame would fight the state machine; writing it at the first
+                // driven frame offsets the whole loop for ever after.
+                if (_animator.speed != (float)GaitBias)
+                    _animator.speed = (float)GaitBias;
+                if (!_phaseSeeded)
+                {
+                    _phaseSeeded = true;
+                    var seed = _animator.GetCurrentAnimatorStateInfo(0);
+                    _animator.Play(seed.shortNameHash, 0, (float)IdleOffset);
+                    PhasesSeeded++;
+                }
                 // WHAT THE ANIMATOR IS ACTUALLY DOING, because "it has a
                 // controller" and "it is animating" turned out to be different
                 // facts and only the first was measured. `speedDriven=True`

@@ -8849,6 +8849,11 @@ namespace Ledger.Game
                       $"restInFrame={(_restFrames > 0 ? _restFrameSum / _restFrames : -1)} workInFrame={(_workFrames > 0 ? _workFrameSum / _workFrames : -1)} framesRest={_restFrames} framesWork={_workFrames} " +
                       $"playerHasController={_playerHasController} " +
                       $"speedDriven={CharacterRig.SpeedDriven} " +
+                      // HOW MANY BOUGHT BODIES GOT THEIR OWN LOOP PHASE. Zero
+                      // beside a non-zero `walkerBodies` means everybody is
+                      // still stepping in lockstep — the failure this seeds
+                      // against, and one that only ever shows in a still.
+                      $"phasesSeeded={CharacterRig.PhasesSeeded} " +
                       $"animCulling={CharacterRig.AnimCulling} " +
                       $"animClipTime={CharacterRig.AnimClipTime:0.00} " +
                       $"animState={CharacterRig.AnimStateHash} " +
