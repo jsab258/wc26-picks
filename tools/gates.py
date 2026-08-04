@@ -74,47 +74,108 @@ def split_gates(line):
     return [g for g in out if g]
 
 
-def flaky():
-    """Which gates have EVER gone red, and how often, across every kept run.
+def ordered_runs():
+    """Every kept run, NEWEST COMMIT FIRST.
 
-    WHY. Four gates went red tonight on one run each while passing on either
-    side, and each time the first question was "is this new, or has it done
-    this before?" — answered three separate times by hand-grepping the runs
-    directory. A question asked three times in one night is a command.
+    `glob` returns files in whatever order the filesystem gives, and sorting
+    those by name sorts by sha, which is sorting by nothing. Commit order is
+    the only order in which "how long ago" means anything, so it is built once
+    here and both readers use it.
+
+    Runs whose commit is older than the log window are appended at the end,
+    oldest-ish, rather than dropped — a run that fell off the log is still
+    evidence about the past, and silently discarding it would make the counts
+    disagree with the runs directory for no visible reason.
+    """
+    have = {p.stem: p for p in RUNS.glob("*.txt")}
+    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h", "-400"],
+                         capture_output=True, text=True).stdout.split()
+    out, seen = [], set()
+    for sha in log:
+        if sha in have:
+            out.append((sha, have[sha]))
+            seen.add(sha)
+    out.extend((s, p) for s, p in sorted(have.items()) if s not in seen)
+    return out
+
+
+def flaky():
+    """Which gates have gone red, how often, and HOW LONG AGO.
+
+    WHY. Four gates went red on one run each while passing on either side, and
+    each time the first question was "is this new, or has it done this before?"
+    — answered three separate times by hand-grepping the runs directory. A
+    question asked three times in one night is a command.
 
     It matters more than it sounds. A gate that fails rarely for a reason
     nobody has named is worse than one that fails always: it trains everybody
-    to read red as noise, and that is how a real failure walks through. Rarity
-    is exactly what makes it dangerous, and rarity is what this counts.
+    to read red as noise, and that is how a real failure walks through.
 
-    Reports the FAILING RATE, not a verdict. One in sixty may be a world state
-    the probe does not guarantee, or a real bug that needs sixty runs to show
-    — this cannot tell those apart and does not pretend to.
+    THE FIRST VERSION HAD NO TIME AXIS AND THAT MADE IT LIE. It reported
+    `bodies 6/64, 9.4%` beside `claims 22/64` and I wrote "bodies is the
+    biggest untouched one" onto the queue off the back of it. All six `bodies`
+    failures are from a hundred-minute window on 3 August — the runs during
+    which the upside-down player was being diagnosed and repaired — and every
+    one of the forty-odd runs since has passed it. It is not the most neglected
+    gate in the project; it is the most thoroughly fixed thing in it.
+
+    A rate with no recency is a claim about the present made entirely out of
+    the past, and it pointed me at a solved problem while `claims` was failing
+    on the newest run in the directory. So every gate now carries how many runs
+    have passed since it last went red, and the ones that have gone quiet say
+    so in words rather than being ranked as though they were live.
+
+    Reports rates and recency, not verdicts. One in sixty may be a world state
+    the probe does not guarantee or a real bug that needs sixty runs to show —
+    this cannot tell those apart and does not pretend to.
     """
     if not RUNS.is_dir():
         print("gates: no runs directory yet")
         return 0
-    files = sorted(RUNS.glob("*.txt"))
-    if not files:
+    runs = ordered_runs()
+    if not runs:
         print("gates: no run files yet")
         return 0
-    counts, examples = {}, {}
-    for f in files:
-        m = FAILING.search(read(f))
+
+    total = len(runs)
+    counts, newest, ago = {}, {}, {}
+    for i, (sha, path) in enumerate(runs):        # i == runs since, newest first
+        m = FAILING.search(read(path))
         if not m:
             continue
         for g in split_gates(m.group(1)):
             name = g.split("[", 1)[0].strip()
             counts[name] = counts.get(name, 0) + 1
-            examples.setdefault(name, f.stem)
+            if name not in newest:
+                newest[name] = sha
+                ago[name] = i
+
     if not counts:
-        print(f"gates: no failures in {len(files)} kept run(s)")
+        print(f"gates: no failures in {total} kept run(s)")
         return 0
-    print(f"gate failures across {len(files)} kept run(s):")
-    for name, n in sorted(counts.items(), key=lambda kv: -kv[1]):
-        pct = 100.0 * n / len(files)
+
+    # QUIET IS A JUDGEMENT AND IT NEEDS A NUMBER. Ten clean runs is roughly a
+    # night's dispatching here, which is long enough that a gate still failing
+    # for a live reason would have shown it. It is a reading aid, not a
+    # threshold anything depends on — nothing branches on it but the wording.
+    QUIET = 10
+    live = {k: v for k, v in counts.items() if ago[k] < QUIET}
+    quiet = {k: v for k, v in counts.items() if ago[k] >= QUIET}
+
+    print(f"gate failures across {total} kept run(s), newest commit first:")
+    for name, n in sorted(live.items(), key=lambda kv: -kv[1]):
+        pct = 100.0 * n / total
+        when = "the newest run" if ago[name] == 0 else f"{ago[name]} run(s) ago"
         note = "  <- rare, and rare is the dangerous kind" if n <= 2 else ""
-        print(f"  {n:3}/{len(files)}  {pct:5.1f}%  {name:14} e.g. {examples[name]}{note}")
+        print(f"  {n:3}/{total}  {pct:5.1f}%  {name:14} last {when}, e.g. {newest[name]}{note}")
+
+    if quiet:
+        print(f"\n  quiet — nothing red in the last {QUIET}+ runs. Fixed, or the "
+              f"condition has not recurred:")
+        for name, n in sorted(quiet.items(), key=lambda kv: ago[kv[0]]):
+            pct = 100.0 * n / total
+            print(f"  {n:3}/{total}  {pct:5.1f}%  {name:14} "
+                  f"last {ago[name]} run(s) ago, at {newest[name]}")
     return 0
 
 

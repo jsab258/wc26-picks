@@ -82,25 +82,31 @@ scheduling instead of to CI's output.
    reminder fires 07:55 UTC.
 5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
    more once the six textured models are in.
-7. **THE FLAKINESS TABLE, and it has now corrected me three times.** `python3
-   tools/gates.py --flaky` reads every kept run and reports which gates have
-   ever gone red and how often. Across 64 runs:
+7. **THE FLAKINESS TABLE — AND THE TABLE ITSELF WAS THE THIRD THING IT
+   CORRECTED.** `python3 tools/gates.py --flaky` had no time axis, so it
+   reported `bodies 6/64, 9.4%` beside `claims 22/64` and I wrote "bodies is
+   the biggest untouched one" onto this queue off the back of it. All six
+   `bodies` failures are from a hundred-minute window on 3 August — the runs
+   during which the upside-down player was being repaired — and the forty
+   runs since have all passed. It was the most thoroughly FIXED thing in the
+   project, ranked third-worst. Rule 3: suspect the instrument. It now reports
+   how many runs ago each gate last went red, and splits live from quiet:
 
-   | rate | gate | note |
-   |---|---|---|
-   | 22/64 | claims | fixed — bookkeeping hung off the LLM engine; awaiting a landed verdict |
-   | 13/64 | companionSight | fixed — the escort had no player reference |
-   | 6/64 | bodies | **still never investigated — the biggest untouched one** |
-   | 5/64 | allegiance | fixed — the run never poached anyone |
-   | 4/64 | traffic | **I called this a one-off. It is not.** Now prints its five readings |
-   | 2/64 | harm | fixed — asked about every Rocco injury, meant the one it treated |
-   | 2/64 | disposal, accident | open — the "crowded" spot may have nobody in it; `crowdedWatchers` now prints |
-   | 1/64 | jobRan, verdictSane | verdictSane fixed; jobRan is a real coverage hole, see standing work |
-   | 1/64 | perception, confab | open — confab is the old total-failure gate and is moot at 66 confabs |
+   | rate | last red | gate | note |
+   |---|---|---|---|
+   | 23/66 | 1 run ago | claims | fixed in 0ef0b10; first green verdict is dc42046 |
+   | 4/66 | 8 runs ago | traffic | **I called this a one-off. It is not.** Now prints its five readings |
+   | 1/66 | 3 runs ago | jobRan | real coverage hole — see standing work |
+   | 1/66 | 3 runs ago | verdictSane | fixed — a cut-off outfit posts nothing |
+   | 1/66 | 10 runs ago | perception | open — 32 glances, nobody stayed to notice |
+   | 2/66 | 13 runs ago | harm, disposal, accident | harm fixed; the other two await `crowdedWatchers` |
+   | 5/66 | 20 runs ago | allegiance | fixed — the run never poached anyone |
+   | 13/66 | 22 runs ago | companionSight | fixed — the escort had no player reference |
+   | 1/66 | 36 runs ago | confab | moot — the old total-failure gate, and there are 66 confabs |
+   | 6/66 | 60 runs ago | bodies | fixed with the rig; `worstAt` in flight in case it returns |
 
-   **`bodies` at 6/64 is the biggest untouched one.** Read its label across
-   the six before touching anything — that is the method that worked for
-   `harm` and the method I skipped the first time and got it wrong.
+   **`traffic` at 8 runs ago is now the oldest LIVE one and the real next
+   target.** It used to say nothing but its name; it prints five readings now.
 
 6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces
