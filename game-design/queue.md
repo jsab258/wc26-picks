@@ -56,24 +56,24 @@ scheduling instead of to CI's output.
    reminder fires 07:55 UTC.
 5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
    more once the six textured models are in.
-5b. **ONE OF THE THREE INTERMITTENT GATES IS SOLVED, AND MY FIRST READING
-   OF IT WAS WRONG.** I said `harm` was over-specified on `samCap` — it is
-   not; 0.70 satisfies its clause fine. The failing clause was
-   `roccoUntreated=True`, which I skimmed past because every neighbouring
-   field in that label means True-is-good and that one means True-is-bad.
+5b. **THE FLAKINESS TABLE, and it corrected me twice.** `python3
+   tools/gates.py --flaky` reads every kept run and reports which gates have
+   ever gone red and how often. Across 60 runs:
 
-   The real fault: the clause means "the injury we TREATED did not get
-   worse" and the code asked "did ANY Rocco injury get worse". Rocco picks up
-   other wounds — the collision layer hands out six or so a run and nothing
-   treats those — so the gate went red twice while the mechanism it exists to
-   prove worked perfectly. Now holds the staged injury and asks about that
-   one; the label reads `treatedHeld` (True is good, like its neighbours)
-   with `roccoOtherBad` printed beside it and NOT gated.
+   | rate | gate | note |
+   |---|---|---|
+   | 18/60 | claims | diagnosed and fixed — bookkeeping hung off the LLM engine |
+   | 13/60 | companionSight | fixed — the escort had no player reference |
+   | 6/60 | bodies | **never investigated** |
+   | 5/60 | allegiance | fixed — the run never poached anyone |
+   | 4/60 | traffic | **I called this a one-off two hours ago. It is not.** Now prints its five readings; it used to say nothing but its name |
+   | 2/60 | harm | fixed — asked about every Rocco injury, meant the one it treated |
+   | 2/60 | disposal, accident | open — the "crowded" spot may have nobody in it; `crowdedWatchers` now prints |
+   | 1/60 | perception, confab | open, unexamined |
 
-   **`disposal` and `accident` are still open** and failed together on one
-   older run. Read their labels the same way — clause by clause against the
-   assertion — rather than looking for a differing number, which is what sent
-   me down the wrong path here.
+   **`bodies` at 6/60 is the biggest untouched one.** Read its label across
+   the six before touching anything — that is the method that worked for
+   `harm` and the method I skipped the first time and got it wrong.
 
 6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces

@@ -74,7 +74,53 @@ def split_gates(line):
     return [g for g in out if g]
 
 
+def flaky():
+    """Which gates have EVER gone red, and how often, across every kept run.
+
+    WHY. Four gates went red tonight on one run each while passing on either
+    side, and each time the first question was "is this new, or has it done
+    this before?" — answered three separate times by hand-grepping the runs
+    directory. A question asked three times in one night is a command.
+
+    It matters more than it sounds. A gate that fails rarely for a reason
+    nobody has named is worse than one that fails always: it trains everybody
+    to read red as noise, and that is how a real failure walks through. Rarity
+    is exactly what makes it dangerous, and rarity is what this counts.
+
+    Reports the FAILING RATE, not a verdict. One in sixty may be a world state
+    the probe does not guarantee, or a real bug that needs sixty runs to show
+    — this cannot tell those apart and does not pretend to.
+    """
+    if not RUNS.is_dir():
+        print("gates: no runs directory yet")
+        return 0
+    files = sorted(RUNS.glob("*.txt"))
+    if not files:
+        print("gates: no run files yet")
+        return 0
+    counts, examples = {}, {}
+    for f in files:
+        m = FAILING.search(read(f))
+        if not m:
+            continue
+        for g in split_gates(m.group(1)):
+            name = g.split("[", 1)[0].strip()
+            counts[name] = counts.get(name, 0) + 1
+            examples.setdefault(name, f.stem)
+    if not counts:
+        print(f"gates: no failures in {len(files)} kept run(s)")
+        return 0
+    print(f"gate failures across {len(files)} kept run(s):")
+    for name, n in sorted(counts.items(), key=lambda kv: -kv[1]):
+        pct = 100.0 * n / len(files)
+        note = "  <- rare, and rare is the dangerous kind" if n <= 2 else ""
+        print(f"  {n:3}/{len(files)}  {pct:5.1f}%  {name:14} e.g. {examples[name]}{note}")
+    return 0
+
+
 def main():
+    if "--flaky" in sys.argv:
+        return flaky()
     count = 12
     if len(sys.argv) > 1:
         try:

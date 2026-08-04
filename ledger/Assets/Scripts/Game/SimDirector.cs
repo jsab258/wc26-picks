@@ -5754,7 +5754,23 @@ namespace Ledger.Game
                 ("actOne", actOneOk), ("openMode", openModeOk), ("fall", fallOk), ("empire", empireOk),
                 ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
                 ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
-                ("traffic", trafficOk), ("perf", perfOk), ("witnessCar", witnessCarOk),
+                // ITS OWN NUMBERS, LIKE EVERY OTHER GATE HERE. This one has
+                // failed four times in sixty kept runs and said nothing but its
+                // name each time, which is the exact thing this file's own
+                // comment forbids: "a gate that can only say its own name costs
+                // a twenty-minute round trip to learn WHY, which is what this
+                // one cost the first time it fired."
+                //
+                // I called the most recent of those four a one-off two hours
+                // ago. It is the fifth most common failure on the board, and
+                // nobody has ever seen a reason for any of them — because
+                // there was nothing to see.
+                //
+                // Five clauses, five readings: enough vehicles, nobody inside
+                // anybody, nobody on the pavement, more than one kind of
+                // vehicle, and it went somewhere.
+                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} metres={(traffic != null ? traffic.TotalDistance : -1):0}]", trafficOk),
+                ("perf", perfOk), ("witnessCar", witnessCarOk),
                 // NAMED CLAUSE BY CLAUSE, because this gate went red as the
                 // single word "harm".
                 //
