@@ -1356,11 +1356,34 @@ namespace Ledger.Game
             else if (!_grace.StillOffered(Time.time)) _nearest = null;
 
             bool offering = !dialogueOpen && _nearest != null;
-            _promptText.text = offering ? $"Press E to talk to {_nearest.Card.Name}" : "";
+
+            // THE COAT TAKES A SECOND AND FOR A YEAR IT LOOKED LIKE NOTHING.
+            //
+            // `_coatVerb` is a real `VerbBeat` — 0.35s anticipation, 0.5s
+            // consequence, 0.25s recovery — and its own comment argues that
+            // "the wind-up is your chance to change your mind". A wind-up you
+            // cannot see is not a chance to change your mind; it is a key that
+            // does nothing for a second and then does something.
+            //
+            // `VerbBeat.PhaseProgress` has been on the reach ledger since the
+            // ledger existed, described as being "for the progress ring nothing
+            // draws yet", which reads as a feature waiting on a system. The
+            // system was already running. This is the ring, drawn in the prompt
+            // line that is already on screen and already fades — no new object,
+            // no new layout, and it inherits the fade that stops interface
+            // popping.
+            //
+            // READ BEFORE `Tick`, deliberately: this is the phase belonging to
+            // the frame being rendered, not the one after it.
+            bool coatBusy = _coatVerb.Phase != VerbPhase.Idle;
+            _promptText.text =
+                coatBusy ? CoatLine()
+                : offering ? $"Press E to talk to {_nearest.Card.Name}" : "";
 
             // AND IT FADES (§6). A prompt that pops is the single most common
             // tell that a game's interface was bolted on rather than staged.
-            _promptAlpha = (float)Feel.Approach(_promptAlpha, offering ? 1f : 0f, 11.0, Time.deltaTime);
+            _promptAlpha = (float)Feel.Approach(_promptAlpha, offering || coatBusy ? 1f : 0f,
+                                                11.0, Time.deltaTime);
             var pc = _promptText.color;
             pc.a = _promptAlpha;
             _promptText.color = pc;
@@ -1565,6 +1588,34 @@ namespace Ledger.Game
 
         /// A short transient line at the top of the screen — takings banked, a job
         /// posted, a drop made. The campaign's voice outside of dialogue.
+        /// The coat beat as one line of text, in the prompt already on screen.
+        ///
+        /// EIGHT BLOCKS RATHER THAN A PERCENTAGE, because a number is a readout
+        /// and this is a physical action — it should read the way a kettle
+        /// reads, not the way a form does. Drawn in the prompt's own typeface
+        /// and amber, so it cannot drift from the rest of the interface the way
+        /// a bespoke widget would.
+        ///
+        /// RECOVERY IS DELIBERATELY SILENT. The coat is on by then and `Toast`
+        /// has already said so; a second line describing the follow-through
+        /// would be the interface narrating itself, which is worse than no
+        /// feedback at all.
+        ///
+        /// THE VERB IS READ BEFORE IT IS TICKED, so this is the phase belonging
+        /// to the frame being rendered rather than the one after it — the same
+        /// same-instant discipline every counter in this project has had to
+        /// learn, applied to a thing the player looks at.
+        string CoatLine()
+        {
+            var phase = _coatVerb.Phase;
+            if (phase == VerbPhase.Recovery || phase == VerbPhase.Idle) return "";
+            double p = Feel.Clamp01(_coatVerb.PhaseProgress);
+            int filled = Mathf.Clamp(Mathf.RoundToInt((float)p * 8f), 0, 8);
+            var bar = new System.Text.StringBuilder(8);
+            for (int i = 0; i < 8; i++) bar.Append(i < filled ? '\u2588' : '\u2591');
+            return (_game.WearingCoat ? "Shrugging off the coat  " : "Pulling on the coat  ") + bar;
+        }
+
         public void Toast(string line, float seconds = 7f)
         {
             _toastText.text = line;
