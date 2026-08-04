@@ -834,8 +834,21 @@ branch to move, and not for a run named after the sha you dispatched:
       git fetch -q origin claude/game-dev-ai-automation-2h67ix 2>/dev/null
       git merge-base --is-ancestor "$SHA" origin/claude/game-dev-ai-automation-2h67ix 2>/dev/null \
         && git pull -q --no-rebase origin claude/game-dev-ai-automation-2h67ix 2>/dev/null
-      python3 tools/landed.py --contains "$SHA" && exit 0
+      python3 tools/landed.py --contains "$SHA"; rc=$?
+      [ $rc = 0 ] && exit 0          # landed WITH an answer
+      [ $rc = 3 ] && exit 3          # landed with NOTHING — re-dispatch, do not wait
     done; echo "timed out"; python3 tools/landed.py --contains "$SHA"
+
+**EXIT 3 IS NEW AND IT IS THE ONE THAT WAS COSTING HALF-HOURS.** A build whose
+licence activation fails, or whose Game layer will not compile, still commits a
+verdict — so the ancestry test says LANDED, correctly, and the old recipe
+reported success. On 4 August I read one of those as an answer and went looking
+for numbers that were never written. "The build carried your change" and "the
+build measured anything" are different facts, and only the second is what a
+watcher waits for. `landed.py` now separates them, and prefers the newest run
+that MEASURED something over a newer one that did not — the first version
+returned on the newest containing run whatever it held, which hid an available
+answer behind an empty build the very first time it was tested.
 
 **BOTH OBVIOUS VERSIONS ARE WRONG AND I SHIPPED BOTH INTO THIS FILE.**
 
@@ -888,6 +901,49 @@ nothing is startable.** With a standing section that cannot be completed, that
 state does not exist — so after arming a watcher, open `queue.md` and start the
 next thing in the same turn. Every time. The watcher is what makes the result
 reachable later; it is not the work.
+
+### Jafar asked why twenty-four hours looked like almost nothing
+
+4 August, and he was half right, which is the half that matters. Measured
+before answering rather than after: **347 commits and 133 builds in the day**,
+so the loop was not idle. And **about a third of those commits were about my
+own MEASUREMENTS being wrong rather than about the game**, and **7 of the last
+30 builds returned no answer at all** — a compile error or two builds fighting
+over the same Unity licence seat, half an hour each, nothing to show.
+
+The one thing he could actually see took the whole day to arrive: the street
+went from smooth featureless dummies to people with skin, clothes and a walk.
+Everything else was invisible to him, and a lot of it was invisible because it
+was me arguing with my own instruments — one nameplate counter has now given
+four contradictory readings and no player will ever see it.
+
+**Four rules follow, and they are his, not mine.**
+
+**1. BATCH THE BUILD.** Several changes per dispatch, not one question per
+dispatch. A round trip is ~28 minutes whether it carries one change or six.
+And **two at once, not three**: the licence seat is a single Personal
+activation, four concurrent dispatches killed two builds on 4 August and three
+killed one the same afternoon. Parallel dispatch is still right; three is over
+the line.
+
+**2. A MEASUREMENT THAT CONTRADICTS ITSELF TWICE GETS DELETED, NOT EXPLAINED.**
+The rule this replaces was "measure again with a better instrument", and it is
+how one counter consumed four round trips. The second contradiction is the
+signal: at that point the cheapest correct move is to delete the number and
+keep the behaviour fix, because a metric nobody can interpret is worth less
+than the hours it takes to interpret it. Exception, and only this one: the
+number is load-bearing for a gate that is currently red.
+
+**3. ORDER THE QUEUE BY WHAT SHOWS ON SCREEN.** Not by what is open, not by
+what is nearly finished, not by what I happen to be holding in my head. The
+standard is immersion first, so the top of `## Now` is the item a player would
+notice, every time. Everything else is below it whatever its state.
+
+**4. EVERY REPORT CARRIES A PICTURE.** He asked "is it just not visible to me"
+about a day whose single biggest change is a JPEG sitting in the repository. A
+report that describes the street without showing it is making him take my word
+for the one thing he can check himself. Send the noon frame with the update —
+and where something changed, send the before beside it.
 
 ### Why the cron is only a watchdog
 

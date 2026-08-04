@@ -65,67 +65,59 @@ world are tried twice each — at the run's real value and at zero — because a
 single reading cannot tell "notoriety opened this" from "this was open to
 anybody".
 
-### Startable right now, in order
+### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **READ THE BODY-LOD THRASH NUMBERS.** *(CI)* Grants and revokes should fall
-   from ~1,486 to something near the number of people who actually walked past.
-   If they do not, the rank slack was not the mechanism and a dwell time is the
-   next lever — but not before, because two guards added together cannot be
-   told apart. Watch `population` in the frame breakdown: it was 4.70ms and the
-   swaps are what is in it.
+**The order is Jafar's, 4 August.** He asked why a day looked like almost
+nothing and the honest half of the answer was that most of it was invisible to
+him. So the top of this list is whatever a player would notice, every time,
+whatever state anything else is in. The full four rules are in CLAUDE.md under
+AUTO MODE.
 
-2. **READ THE NAME CAP AND THE WARDROBE TINT.** *(CI)* Both are one-line
-   readings against numbers that already exist. `namesPinned` non-zero with
-   `worstNameFrac` falling toward 0.12 is the size cap working; a `namePinFloor`
-   that keeps dropping run over run means its one assumption — that a label's
-   own scale starts at 1 — is breaking. `bodyTinted` non-zero is the wardrobe
-   reconnected: texture extraction silently switched it off, so ten models were
-   dressing forty-three people identically.
+1. **WHAT THE STREET LOOKS LIKE — the wardrobe wash and the name cap.** *(CI)*
+   Ten body models dress forty-three named people, so at least two on screen
+   are always wearing the same face; texture extraction silently switched the
+   wardrobe off this morning and the noon frame shows two women in identical
+   yellow trousers, one of them the player. The wash is in flight. Beside it,
+   a name could take a third of the screen as you walked up to somebody and now
+   stops growing once it is readable. **Both are judged from the frame first
+   and the numbers second.**
 
-3. **M21, THE TWO LEDGERS — Core-shaped, no round trip.**
-   The largest piece of unwritten game left: empire growth, law as a tool, what
-   expansion costs you. Notoriety is the first brick and it landed today with
-   its own decay and its own accumulation, so the next one is what a rival
-   actually does with a reputation once you have one. Decomposed from standing
-   work; take one sub-piece at a time and keep each inside a round trip.
+2. **THE FEET — read the two drop medians.** *(CI)* The planted foot sits about
+   six centimetres above the road and, on the last reading, planted frames were
+   indistinguishable from any other frame — which is the two-clocks answer: the
+   plant is driven by the procedural gait phase while the foot comes from a
+   bought clip with its own timing. If the next run agrees, derive the plant
+   from the foot's own height. A body that skates is the most visible rig fault
+   there is.
 
-4. **RETIRE A STANDING ITEM BY CHECKING IT.** "Six cards still lack example
-   lines" was here this morning and is false: all sixty carry three lines each
-   and the rule asks for two or three, checked against the manifest on 4 Aug.
-   The same stale sentence was sitting in `Tier2Gen`'s own comment. Both fixed.
-   The reusable item is the one underneath: **every claim in this file that
-   says something is MISSING is an analysis, not evidence, and decays exactly
-   like a comment.** Take the oldest one and go and look.
+3. **THE FRAME RATE, WHICH IS FELT RATHER THAN SEEN.** *(CI)* Body LOD works and
+   churned three times a second, instantiating a prefab each time; rank
+   hysteresis is in flight. If grants do not fall to roughly the number of
+   people who walked past, a dwell time is next — but not before, because two
+   guards added together cannot be told apart.
 
-5. **KEEP RETIRING THE REACH LEDGER** — 43 entries, every reason verified
-   against the code today. Each one retired is a public API with a caller.
+4. **THINGS STANDING WHERE THEY SHOULD NOT.** *(CI)* Two counts land next run
+   and neither has ever been taken: facade clutter whose centre is on a
+   carriageway, and vehicles whose centre is off every road a car uses. Both
+   are expected to be zero and both are visible in a still if they are not.
 
-6. **THE NAME HEAP IS ANSWERED — DUPLICATES — AND HALF OF IT IS STILL OPEN.**
-   The discriminator came back `nameTagsOffered=42` against
-   `namesDistinctPeak=7` on the same frame: forty-two entries from at most
-   seven labels. `namesManagedDead=0` kills the other candidate outright —
-   nothing in the managed set has been destroyed, so recycled identity was
-   never it.
-   The harm is fixed: the resolve loop was finding the second copy of a label
-   overlapping the rect it had just kept from the FIRST copy — identical rect,
-   so always — marking it blocked and setting its alpha to zero on the same
-   object. Every duplicated name hid itself, which is what `nameTagsHidden`
-   has been reporting beside legible names in the frames. Offers now dedupe
-   within the frame, nearest wins.
-   **What is NOT known is why a walker offers its name six times in a rendered
-   frame.** `Tick` has one caller and it is a single pass per `Update`, so the
-   only mechanism the code allows is the same walker sitting in the tick list
-   twice — eleven `Add` sites, none checking. `npcsDuplicated` tests exactly
-   that, from `GameController`'s list and not the sim's, which is a
-   `FindObjectsByType` snapshot that could only ever have answered zero. *(CI)*
+5. **M21, THE TWO LEDGERS — Core-shaped, no round trip.** The largest piece of
+   unwritten game left. Notoriety landed today with its own accumulation, a
+   second source, and — for the first time — a probe that says whether being
+   known actually opens or closes a door. Next sub-piece: the rival is a person
+   who RINGS you rather than a summit you travel to, and the phone layer has
+   been built since M10.
 
-7. **WHEN THE FOOT-IK BUILD LANDS, READ THE DROP MEDIANS.** *(CI)*
-   `ikPlantedMedian` against `ikCorrectionMedian` could never have answered the
-   question: `correction` is derived from `blend`, so a swinging foot
-   contributes an arithmetic zero and the overall median is the planted one
-   diluted. `ikPlantedDropMedian` well below `ikDropMedian` means the plant
-   blend is timed to the clip; the two landing together means it is not, and the
-   fix is to derive the plant from the foot's own height.
+6. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
+   retired is a public API that something actually calls.
+
+7. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
+   is in and is what mattered: duplicate offers made every duplicated label
+   hide itself. The COUNTERS have now contradicted themselves twice.
+   **If the next reading is still incoherent, delete them rather than explain
+   them** — a metric nobody can interpret is worth less than the hours spent
+   interpreting it, and no player will ever see this one. The four numbers now
+   come from a single frame, which is the last explanation it gets.
 
 ## Next
 

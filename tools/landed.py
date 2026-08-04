@@ -91,6 +91,7 @@ def contains(want):
     # change rather than the oldest one that happens to.
     order = git("log", "--format=%h", "-400").split()
     ranked = [s for s in order if s in have] + sorted(set(have) - set(order))
+    empty = None
     for run in ranked:
         # `--is-ancestor X Y` is "X is contained in Y". A commit is its own
         # ancestor, so an exact match answers yes with no special case.
@@ -100,11 +101,58 @@ def contains(want):
         if not ok:
             continue
         subject = git("log", "-1", "--format=%s", run)[:60]
-        print(f"LANDED in {run} — {subject}")
         p = RUNS / f"{run}.txt"
-        if p.exists():
-            print("  " + p.read_text(encoding="utf-8", errors="replace").split("\n")[0])
+        body = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+
+        # LANDED IS NOT THE SAME AS ANSWERED, AND THE WATCHER COULD NOT TELL.
+        #
+        # On 4 August a build came back with both licence attempts failed, so
+        # the sim never ran and the verdict carried nothing but the reason. The
+        # ancestry test said LANDED, correctly — a run does contain the commit —
+        # and the watcher reported success. I read it as an answer and went
+        # looking for numbers that were never written.
+        #
+        # That is rule 3b at the level of the whole channel: a result with no
+        # denominator. "The build carried your change" and "the build measured
+        # anything" are different facts and only one of them is what a watcher
+        # is waiting for. So the empty case says so in the first line, where a
+        # watcher's tail will see it, and exits 3 rather than 0 — different
+        # from `1` (not yet, keep waiting), because retrying cannot help: this
+        # run is finished and it is finished with nothing.
+        # NEWEST-FIRST IS RIGHT AND "NEWEST" MUST MEAN "NEWEST THAT ANSWERED".
+        #
+        # The first version of this returned on the newest containing run
+        # whatever it held, and the very first test showed the cost: a run that
+        # died on a licence seat is newer than the one that measured the same
+        # commit, so the empty one won and an available answer was hidden
+        # behind it. So an empty match is remembered and the search carries on;
+        # it is only reported if nothing older measured anything either.
+        if "NO PLAYER LOG" in body:
+            if empty is None:
+                why = ("licence contention"
+                       if "licence attempt : failure" in body
+                       or "licence attempt: failure" in body
+                       else "see COMPILE ERRORS")
+                empty = (run, subject, why, body.split("\n")[0])
+            continue
+
+        print(f"LANDED in {run} — {subject}")
+        if body:
+            print("  " + body.split("\n")[0])
         return 0
+    # LANDED, AND WITH NOTHING IN IT — reported only now that every older run
+    # has been checked. Exit 3 rather than 0 or 1: 0 would tell a watcher the
+    # question is answered, 1 would tell it to keep waiting, and neither is
+    # true. The build is finished and it measured nothing.
+    if empty is not None:
+        run, subject, why, first = empty
+        print(f"LANDED EMPTY in {run} — the sim did not run ({why}) — {subject}")
+        print("  " + first)
+        print("  Nothing was measured on this commit and no older run measured "
+              "it either. Re-dispatch; do NOT read the stills, which are not "
+              "from this run.")
+        return 3
+
     print(f"not yet: no run contains {sha[:7]}. "
           f"{len(ranked)} run(s) known, newest {ranked[0] if ranked else 'none'}.")
     return 1
