@@ -1,6 +1,6 @@
 # Shopping list — characters and animation
 
-> **STATUS — LIVE, verified 2026-07-31.** what still needs buying, and what no longer does.
+> **STATUS — LIVE, verified 2026-08-04.** what still needs buying, and what no longer does.
 > Kept current. If it is wrong, that is a bug in this file.
 
 **For Jafar. Written 2026-07-28.**
@@ -8,10 +8,17 @@
 > **UPDATE 2026-07-31 — the list is shorter than it was, and nothing on it was
 > bought.**
 >
-> - **Characters and animation: DONE, and free.** The Mixamo drop landed
+> - **Characters and animation: DONE, and free.** The first Mixamo drop landed
 >   2026-07-30 — 41 clips and two bodies in `ledger/Assets/Characters/`, with
->   `_picks.json` recording which clip answered which slot. Everything below
->   about rigs and retargeting is now reference rather than shopping.
+>   `_picks.json` recording which clip answered which slot. **A second drop
+>   landed 2026-08-04 and took it to ten bodies** — Michelle, Remy, Sophie, Joe,
+>   Martha, Big Vegas, Sporty Granny and The Boss, plus the two grey stand-ins.
+>   The build reports all fifty-two models carrying valid human avatars and
+>   `bodyChoices=10`. Everything below about rigs and retargeting is now
+>   reference rather than shopping.
+> - **Still free, still not a purchase.** Mixamo characters are a download.
+>   The Synty section below was never acted on and is kept only as the spec to
+>   match against if a paid character set is ever wanted.
 > - **Voices: DONE, and free.** Nineteen cast from VCTK, a corpus of donated
 >   recordings. No voice library was needed. See `voice-casting.md`.
 > - **Non-verbal foley (grunts, pain, exertion): decided free.** Jafar,
@@ -25,7 +32,8 @@ The brief was "minimal manual work for me", so this is written as a
 checklist rather than as research. Everything I could decide, I decided.
 What is left is the part only an account holder can do.
 
-**Total: $0–80.** Three of the four items are free.
+**Total: $0.** All four items came in free — the $30-80 foley library was the
+only paid line and Jafar took the CC0 route instead.
 
 **Prices and product names must be re-checked when you actually buy** — I am
 working from knowledge, not from a live store page, and asset stores rename
