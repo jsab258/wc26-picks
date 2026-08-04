@@ -2744,7 +2744,8 @@ namespace Ledger.CoreTests
             Check(cost.EstimateUsd() > 0, "cost tracked");
 
             // Game-state gate: the lie contradicts what Lena knows.
-            var result = engine.ProcessClaim(new Fact("player", "location_d2_evening", "cinema"), now);
+            var result = Claims.Process(kb, suspicion, memory,
+                new Fact("player", "location_d2_evening", "cinema"), now);
             Check(result == ClaimResult.Contradiction, "lie caught by knowledge base");
             Check(suspicion.Value > 0.1, "suspicion rose from contradiction");
             bool remembered = false;

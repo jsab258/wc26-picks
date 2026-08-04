@@ -156,26 +156,6 @@ namespace Ledger.Core
         /// it lands, and that is a number the caller already has.
         ///
         /// Default 1.0, so every existing caller means exactly what it meant.
-        public ClaimResult ProcessClaim(Fact claim, GameTime now, double weight = 1.0)
-        {
-            var result = Knowledge.CheckClaim(claim);
-            weight = Feel.Clamp(weight, 0.0, 1.0);
-            if (result == ClaimResult.Contradiction)
-            {
-                Suspicion.Raise(0.15 * weight,
-                    weight < 1.0
-                        ? $"caught contradiction on {claim.Subject}.{claim.Predicate}, on the telephone"
-                        : $"caught contradiction on {claim.Subject}.{claim.Predicate}");
-                Memory.Append(new MemoryEvent(now, "observation", 0.8,
-                    $"The player claimed {claim} but I know otherwise. They lied to me."));
-            }
-            else if (result == ClaimResult.Consistent)
-            {
-                Suspicion.Lower(0.03 * weight, "story checked out");
-            }
-            return result;
-        }
-
         /// Nightly reflection: distill the day's events into a handful of stable
         /// beliefs (bounds prompt size and cost; beliefs formed from false rumors
         /// are the gameplay).

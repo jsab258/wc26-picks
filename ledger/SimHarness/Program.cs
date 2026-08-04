@@ -150,7 +150,7 @@ namespace Ledger.SimHarness
                 "I saw the new owner at the old warehouse this evening, just before the trouble."));
 
             double before = lena.Suspicion.Value;
-            var result = lena.Engine.ProcessClaim(new Fact("player", "location_d2_evening", "cinema"), now);
+            var result = Claims.Process(lena.Knowledge, lena.Suspicion, lena.Memory, new Fact("player", "location_d2_evening", "cinema"), now);
             var reply = await Say(lena, "I was at the cinema all evening, ask anyone.", now);
 
             Check("game-state gate flags the lie", result == ClaimResult.Contradiction);
@@ -399,7 +399,7 @@ namespace Ledger.SimHarness
             for (int d = 1; d <= 6; d++)
             {
                 lena.Knowledge.Learn(new Fact("player", $"whereabouts_d{d}", "warehouse"));
-                if (lena.Engine.ProcessClaim(new Fact("player", $"whereabouts_d{d}", "cinema"),
+                if (Claims.Process(lena.Knowledge, lena.Suspicion, lena.Memory, new Fact("player", $"whereabouts_d{d}", "cinema"),
                         now.AddMinutes(d)) == ClaimResult.Contradiction) caught++;
             }
             Check("all six alibis are caught by the game-state gate", caught == 6);

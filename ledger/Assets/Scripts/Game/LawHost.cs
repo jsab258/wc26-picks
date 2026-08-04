@@ -144,7 +144,12 @@ namespace Ledger.Game
             // silent early returns is a round trip each.
             if (game == null) { ClaimWhy = "no game"; return ClaimResult.Unknown; }
             if (host == null) { ClaimWhy = "no host"; return ClaimResult.Unknown; }
-            if (host.Engine == null) { ClaimWhy = "host has no engine yet"; return ClaimResult.Unknown; }
+            // NO ENGINE NEEDED. Checking a claim is bookkeeping over knowledge,
+            // suspicion and memory — the host owns all three — and requiring
+            // the LLM-backed engine made it unreachable in the sim, which runs
+            // without a client. That is what `claimVia=[game.Hosts]` beside
+            // `claimWhy=[not tried]` was saying: found the host, engine null.
+            if (host.Knowledge == null) { ClaimWhy = "host has no knowledge"; return ClaimResult.Unknown; }
             var claim = Claims.Extract(said, game.Now, Claims.KnownPlaces());
             if (claim == null)
             {
@@ -159,7 +164,7 @@ namespace Ledger.Game
             // half, which `PhoneBook.Damped` has been sitting there to provide
             // since the phone layer was written.
             double weight = host.OnTheLine ? PhoneBook.Damped(1.0) : 1.0;
-            var was = host.Engine.ProcessClaim(claim, game.Now, weight);
+            var was = Claims.Process(host.Knowledge, host.Suspicion, host.Memory, claim, game.Now, weight);
             if (was == ClaimResult.Contradiction) ClaimsCaught++;
             // AND THE STREET CARRIES IT. `ProcessClaim` moves one person's
             // suspicion; `PlayerClaims` is what makes the alibi a thing that

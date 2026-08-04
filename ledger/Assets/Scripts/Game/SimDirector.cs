@@ -2320,12 +2320,12 @@ namespace Ledger.Game
                 {
                     var all = FindObjectsByType<ConversationHost>(FindObjectsSortMode.None);
                     foreach (var h in all)
-                        if (h != null && h.Engine != null) { listener = h; via = $"scene({all.Length})"; break; }
-                    if (listener == null && all.Length > 0) via = $"scene({all.Length}) none with an engine";
+                        if (h != null && h.Knowledge != null) { listener = h; via = $"scene({all.Length})"; break; }
+                    if (listener == null && all.Length > 0) via = $"scene({all.Length}) none with knowledge";
                     if (all.Length == 0) via = "no hosts in the scene at all";
                 }
                 _claimVia = via;
-                if (listener != null && listener.Engine != null)
+                if (listener != null && listener.Knowledge != null)
                 {
                     // The witness is GIVEN what he saw rather than hoped to
                     // have it, so the reject case is reachable on every run.

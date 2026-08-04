@@ -58,6 +58,45 @@ namespace Ledger.Core
         // the test named for the tense, which is what tests in a compiling
         // layer are for.
 
+        /// CHECK A CLAIM AGAINST WHAT SOMEBODY KNOWS, and move their suspicion.
+        ///
+        /// LIFTED OUT OF `ConversationEngine` BECAUSE IT WAS UNREACHABLE THERE.
+        /// The sim runs with no LLM client, so a `ConversationHost` never builds
+        /// its engine — and this method, which touches only knowledge,
+        /// suspicion and memory and needs no model at all, was hanging off that
+        /// object. `claimVia=[game.Hosts] claimWhy=[not tried]` was the two
+        /// facts side by side: the host was found and its engine was null.
+        ///
+        /// So the one thing in the conversation layer that is pure bookkeeping
+        /// could not run in the one place that exercises the game unattended.
+        /// `ConversationEngine.ProcessClaim` now delegates here, so there is one
+        /// implementation and the caller decides whether it needs a model.
+        ///
+        /// `weight` scales how far suspicion moves: 1.0 across a table,
+        /// `PhoneBook.Damped(1.0)` down a wire.
+        public static ClaimResult Process(KnowledgeBase knowledge, SuspicionTracker suspicion,
+                                          MemoryStore memory, Fact claim, GameTime now,
+                                          double weight = 1.0)
+        {
+            if (knowledge == null || claim == null) return ClaimResult.Unknown;
+            var result = knowledge.CheckClaim(claim);
+            weight = Feel.Clamp(weight, 0.0, 1.0);
+            if (result == ClaimResult.Contradiction)
+            {
+                suspicion?.Raise(0.15 * weight,
+                    weight < 1.0
+                        ? $"caught contradiction on {claim.Subject}.{claim.Predicate}, on the telephone"
+                        : $"caught contradiction on {claim.Subject}.{claim.Predicate}");
+                memory?.Append(new MemoryEvent(now, "observation", 0.8,
+                    $"The player claimed {claim} but I know otherwise. They lied to me."));
+            }
+            else if (result == ClaimResult.Consistent)
+            {
+                suspicion?.Lower(0.03 * weight, "story checked out");
+            }
+            return result;
+        }
+
         /// The vocabulary, built from the map the game actually has.
         ///
         /// Two forms per place: the full name without its article — "hook
