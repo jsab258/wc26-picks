@@ -626,7 +626,67 @@ namespace Ledger.Game
         /// Returns the scale RELATIVE to what the rect was measured at, or
         /// -1 when nothing could be pinned — so a caller can turn a pre-cap
         /// measurement into the post-cap one without projecting twice.
+        /// AND THE SAME CAP NOW HOLDS A SPOKEN LINE, on the same evidence and
+        /// with no second constant.
+        ///
+        /// `review_day5_noon` is two lines of overheard speech at roughly a
+        /// fifth of the frame each with the street invisible behind them, and
+        /// the series says that is the tail rather than the rule:
+        /// `bubbleFracMedian=0.041 bubbleFracP90=0.093 worstBubbleFrac=0.245`
+        /// at 1.47 metres, over 414 samples. A typical bubble is four per cent
+        /// of the screen; the worst is a quarter of it, and it happens when
+        /// somebody stands next to you.
+        ///
+        /// That is the shape `PinFrac` was derived for, and 0.12 sits ABOVE the
+        /// measured bubble P90 — so it clamps strictly less of the bubble
+        /// distribution than it clamps of the name distribution, whose P90 is
+        /// 0.113. Nine bubbles in ten are untouched and the one taking a quarter
+        /// of the frame is brought to an eighth.
+        ///
+        /// ONE CONSTANT FOR BOTH, DELIBERATELY. "How much of the frame may one
+        /// piece of world text take" is one question, and the last four faults
+        /// in this project were one idea with two implementations where the one
+        /// nobody looked at was missing a line. A bubble is allowed to be the
+        /// bigger of the two because it is content and a name is not — and it
+        /// already is, by being nowhere near the cap.
+        ///
+        /// SEPARATE COUNTERS, because `namesPinned` answers a question about
+        /// nameplates and mixing bubbles into it would make a number stop
+        /// meaning what its name says — which is the drift rule 2 records.
+        public static int BubblesPinned { get; private set; }
+        public static float BubblePinFloor { get; private set; } = 1f;
+        public static float WorstBubbleFracPreCap { get; private set; }
+
+        public static float PinBubble(TextMesh label, float frac)
+        {
+            if (frac > WorstBubbleFracPreCap) WorstBubbleFracPreCap = frac;
+            float now = label != null ? label.transform.localScale.y : -1f;
+            float r = PinTo(label, frac);
+            if (r >= 0f && label != null)
+            {
+                float want = label.transform.localScale.y;
+                if (want < now) BubblesPinned++;
+                if (want < BubblePinFloor) BubblePinFloor = want;
+            }
+            return r;
+        }
+
         static float Pin(TextMesh label, float frac)
+        {
+            float now = label != null ? label.transform.localScale.y : -1f;
+            float r = PinTo(label, frac);
+            if (r >= 0f && label != null)
+            {
+                float want = label.transform.localScale.y;
+                if (want < now) NamesPinned++;
+                if (want < NamePinFloor) NamePinFloor = want;
+            }
+            return r;
+        }
+
+        /// The clamp itself, with no accounting — one implementation of the
+        /// arithmetic, two callers that each keep their own tally.
+        static float PinTo(TextMesh label, float frac)
         {
             if (label == null || frac <= 0f) return -1f;
             var t = label.transform;
@@ -644,8 +704,6 @@ namespace Ledger.Game
             // it was already the right size, which is the majority of them.
             if (Mathf.Abs(want - now) < 0.01f) return want / now;
             t.localScale = new Vector3(want, want, want);
-            if (want < now) NamesPinned++;
-            if (want < NamePinFloor) NamePinFloor = want;
             return want / now;
         }
 

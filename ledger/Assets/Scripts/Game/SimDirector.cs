@@ -8962,6 +8962,15 @@ namespace Ledger.Game
                       $"worstBubbleMetres={NameTags.WorstBubbleMetres:0.00} " +
                       $"bubbleFracMedian={NameTags.BubbleFracMedian:0.000} " +
                       $"bubbleFracP90={NameTags.BubbleFracP90:0.000} " +
+                      // AND WHAT THE CAP DID. `worstBubbleFracPreCap` is what
+                      // the bubble WOULD have taken; `worstBubbleFrac` beside it
+                      // is what it actually took, so the clamp's effect is a
+                      // subtraction rather than a claim. `bubblesPinned=0` with
+                      // a pre-cap worst above 0.12 means the pin never ran,
+                      // which is a different fault from it not being needed.
+                      $"bubbleFracPreCap={NameTags.WorstBubbleFracPreCap:0.000} " +
+                      $"bubblesPinned={NameTags.BubblesPinned} " +
+                      $"bubblePinFloor={NameTags.BubblePinFloor:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a
                       // conversation can be carried without typing; it fails when

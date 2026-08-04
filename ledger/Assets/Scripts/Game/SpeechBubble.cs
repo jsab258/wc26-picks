@@ -310,6 +310,36 @@ namespace Ledger.Game
             double up = Vector3.Dot(transform.up, Vector3.up);
             if (up < WorstUpDot) WorstUpDot = up;
 
+            // AND CAPPED, NOW THAT THE SERIES SAYS WHAT THE TAIL IS.
+            //
+            // A bubble has a fixed WORLD size — `characterSize` and `fontSize`
+            // set once at creation and never touched — so its share of the
+            // screen grows without bound as the camera closes in. A nameplate
+            // has been pinned for days; this is the same idea with the second
+            // implementation missing its line, which is the fault this project
+            // finds in pairs more often than any other.
+            //
+            // `review_day5_noon` is what that costs: two spoken lines at
+            // roughly a fifth of the frame each and the street invisible behind
+            // them. The run agrees and puts a shape on it —
+            // `bubbleFracMedian=0.041 bubbleFracP90=0.093 worstBubbleFrac=0.245`
+            // over 414 samples — so it is a tail, not a rule, and a clamp above
+            // the ninth decile leaves nine bubbles in ten exactly as they are.
+            //
+            // AGAINST `Camera.main`, WHICH IS THE PLAYER'S. The measurement in
+            // `Rects` runs against whatever camera the sim hands it, including
+            // the review camera at shot time; pinning there would size a bubble
+            // only on the frames somebody happened to measure. This is what the
+            // player sees, every frame, which is what a cap is for.
+            if (_text != null)
+            {
+                var cam = Camera.main;
+                var rend = _text.GetComponent<Renderer>();
+                if (cam != null && rend != null
+                    && NameTags.ScreenRect(cam, rend.bounds, out var rect))
+                    NameTags.PinBubble(_text, rect.height / Mathf.Max(1f, cam.pixelHeight));
+            }
+
             float left = _until - Time.time;
             if (left <= 0f) { Destroy(gameObject); return; }
             // Fade the last stretch, so lines leave rather than blink out.
