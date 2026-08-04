@@ -442,9 +442,39 @@ namespace Ledger.Core
                 if (v.Dormant || lead.Dormant) continue;
                 if (v.FromId != lead.FromId || v.ToId != lead.ToId) continue;
                 double limit = lead.S - lead.Kind.Length;
-                if (limit < 0) limit = 0;
+                // THE LEADER'S TAIL IS BEHIND THE JUNCTION, and clamping to zero
+                // does not separate them — it parks the follower's nose at the
+                // edge start while the leader's body still covers it. That is
+                // where every negative reading of `TightestGap` comes from: the
+                // four gaps in sixty-eight kept runs are -0.28, -2.58, -2.69 and
+                // -3.20, and a car is 4.2m long, a bus 10.5m. The arithmetic is
+                // `lead.S - lead.Kind.Length` with `lead.S` small, nothing more
+                // exotic.
+                //
+                // Counted rather than clamped away, because which of the two it
+                // is cannot be settled from here: either the junction let the
+                // follower in before the leader cleared it, which is a real
+                // overlap, or the two edges bend apart and the bodies never
+                // touch in the world, which makes it a measurement crossing a
+                // junction it does not model. `Cross` has an entry check for
+                // exactly this; whether it is being reached is the question.
+                if (limit < 0) { limit = 0; TailsBehindStart++; }
                 if (v.S > limit)
                 {
+                    // OVERLAPS RESOLVED, AND THE COUNT IS THE POINT. The clamp
+                    // leaves the pair at a gap of EXACTLY `lead.S - length - v.S`
+                    // = 0, so `gap=0.00` in the verdict does not mean "traffic
+                    // is flowing with no room"; it means "the de-overlap pass
+                    // fired at the sampled instant". Sixteen of forty-eight
+                    // measured runs read exactly 0.00, which is not a coincidence
+                    // and was indistinguishable from a healthy gap because both
+                    // pass `>= 0`.
+                    //
+                    // A planner that never needs this is the goal; a planner that
+                    // needs it constantly is a planner that is not working, and
+                    // the gate could not tell those apart while the only number
+                    // was a distance.
+                    OverlapsResolved++;
                     TotalDistance -= v.S - limit;
                     v.S = limit;
                     if (v.Speed > lead.Speed) v.Speed = lead.Speed;
@@ -960,11 +990,45 @@ namespace Ledger.Core
         /// and a screenshot never would.
         public double TotalDistance { get; private set; }
 
+        /// How many times `Enforce` has had to push a follower back off a leader.
+        ///
+        /// Zero is the goal: the planner in `Decide` is supposed to keep the
+        /// room, and the clamp exists only because a leader can brake harder
+        /// over a discrete step than the follower predicted. A count that climbs
+        /// with the metres driven means the planner is not planning and the
+        /// clamp is doing the driving — which looks identical in a screenshot
+        /// and identical in `TightestGap`, because a resolved overlap reads as a
+        /// gap of exactly zero and zero passes every bound this has ever had.
+        public long OverlapsResolved { get; private set; }
+
+        /// How many times the clamp found the leader's tail sitting behind the
+        /// start of the edge, where clamping to zero cannot separate the pair.
+        /// The generator of every negative `TightestGap` reading. See `Enforce`.
+        public long TailsBehindStart { get; private set; }
+
+        /// The pair behind the last `TightestGap()` reading, in words.
+        ///
+        /// WHY A SENTENCE AND NOT A NUMBER. The gate said `traffic` and nothing
+        /// else for four failures running; adding the scalar turned that into
+        /// `gap=-2.69`, which is better and still not diagnosable — it does not
+        /// say whether a bus is inside a car or a car has just crossed a junction
+        /// its leader had not cleared. Those are a physics bug and a coordinate
+        /// artefact and they need completely different work. One line here is
+        /// cheaper than either guess.
+        public string TightestGapWhy { get; private set; } = "not measured";
+
         /// Smallest bumper gap currently open between any two vehicles sharing a
         /// stretch of road. Negative means an overlap, which must never happen.
+        ///
+        /// ONE INSTANT, AND THE CALLER MUST KNOW THAT. The sentinel comes back
+        /// whenever no two vehicles shared a directed edge at the moment of the
+        /// call — which is common and is good news about the city — and 20 of 68
+        /// kept runs read `not-measured`. The sim's `trafficOk` accepted all
+        /// twenty as proven clearance, because 999 passes `>= 0`.
         public double TightestGap()
         {
             double best = double.MaxValue;
+            Vehicle bv = null, bo = null;
             foreach (var v in Vehicles)
                 foreach (var o in Vehicles)
                 {
@@ -972,9 +1036,22 @@ namespace Ledger.Core
                     if (o.FromId != v.FromId || o.ToId != v.ToId) continue;
                     if (o.S <= v.S) continue;
                     double gap = o.S - o.Kind.Length - v.S;
-                    if (gap < best) best = gap;
+                    if (gap < best) { best = gap; bv = v; bo = o; }
                 }
-            return best == double.MaxValue ? 999 : best;
+            if (best == double.MaxValue)
+            {
+                TightestGapWhy = "no two vehicles shared a directed edge at this instant";
+                return 999;
+            }
+            // THE LEADER'S TAIL POSITION IS THE WHOLE DIAGNOSIS, so it is stated
+            // rather than left to be worked out from three other numbers.
+            double tail = bo.S - bo.Kind.Length;
+            TightestGapWhy =
+                $"{bo.Kind.Id}#{bo.Id} lead S={bo.S:0.00} len={bo.Kind.Length:0.00} tail={tail:0.00}"
+                + $" over {bv.Kind.Id}#{bv.Id} at S={bv.S:0.00}"
+                + $" on {bo.FromId}->{bo.ToId}"
+                + (tail < 0 ? " — LEADER'S TAIL IS BEHIND THE EDGE START" : "");
+            return best;
         }
     }
 }

@@ -4871,8 +4871,38 @@ namespace Ledger.Game
                     if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5)) offRoad++;
                 }
                 kindsSeen = kinds.Count;
+                // NOBODY INSIDE ANYBODY, ASKED OVER THE RUN INSTEAD OF AT AN
+                // INSTANT. `tightest >= 0` was the clause and it could not
+                // answer the question two different ways:
+                //
+                //   * the sentinel is 999, and 999 passes `>= 0`. Twenty of 68
+                //     kept runs read `gap=not-measured` and every one of them
+                //     cleared this clause on the strength of no data. The
+                //     comment below has said so since it was written and the
+                //     gate went on accepting it — reporting a hole is not
+                //     closing it.
+                //   * a RESOLVED overlap reads as exactly 0.00, because
+                //     `Enforce` clamps the follower to nose-to-tail. Sixteen of
+                //     the 48 measured runs read exactly 0.00, which is the clamp
+                //     firing, and it passed `>= 0` alongside a genuinely clear
+                //     road. "The planner kept the room" and "the clamp shoved
+                //     them apart this frame" were the same reading.
+                //
+                // `OverlapsResolved` has neither problem: it counts every time
+                // the clamp had to act, over the whole run, and it is always
+                // measured. Bounded per METRE DRIVEN because the distance is a
+                // property of the city and the frame count is a property of the
+                // runner.
+                //
+                // THE BOUND IS MEASURED, from fifteen CoreTests configurations
+                // covering ~460km: zero clamps everywhere except one, at 60
+                // vehicles, which needed one. 2.0 per km is sixty times the
+                // worst reading ever taken. `tightest` stays in the verdict as a
+                // report, with `gapWhy` naming the pair.
+                double perKm = traffic.TotalDistance > 0
+                    ? 1000.0 * traffic.OverlapsResolved / traffic.TotalDistance : 0;
                 trafficOk = trafficOk
-                    && tightest >= 0                     // nobody inside anybody
+                    && perKm < 2.0                       // nobody inside anybody, all run
                     && offRoad == 0                      // nobody on the pavement
                     && kindsSeen >= 3                    // it is traffic, not a fleet of one car
                     && traffic.TotalDistance > 500;      // and it went somewhere
@@ -5969,7 +5999,7 @@ namespace Ledger.Game
                 // Five clauses, five readings: enough vehicles, nobody inside
                 // anybody, nobody on the pavement, more than one kind of
                 // vehicle, and it went somewhere.
-                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} metres={(traffic != null ? traffic.TotalDistance : -1):0}]", trafficOk),
+                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
                 ("perf", perfOk), ("witnessCar", witnessCarOk),
                 // NAMED CLAUSE BY CLAUSE, because this gate went red as the
                 // single word "harm".
@@ -6399,6 +6429,16 @@ namespace Ledger.Game
                       $"vehicles={(traffic != null ? traffic.Vehicles.Count : 0)} kinds={kindsSeen} " +
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} " +
                       $"gap={(gapMeasured ? tightest.ToString("0.00") : "not-measured")} " +
+                      // THE CLAMP COUNT IS THE GATE NOW; the gap is the report.
+                      // `gapWhy` names the pair, because four failures running
+                      // said the word "traffic" and nothing else, and the run
+                      // after that said "gap=-2.69" — which still cannot tell a
+                      // bus inside a car from a car crossing a junction its
+                      // leader had not cleared. Those need different work.
+                      $"clamps={(traffic != null ? traffic.OverlapsResolved : -1)} " +
+                      $"clampsPerKm={(traffic != null && traffic.TotalDistance > 0 ? 1000.0 * traffic.OverlapsResolved / traffic.TotalDistance : 0):0.00} " +
+                      $"tailsBehindStart={(traffic != null ? traffic.TailsBehindStart : -1)} " +
+                      $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
                       $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +

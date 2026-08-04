@@ -5269,6 +5269,90 @@ namespace Ledger.CoreTests
             }
             Check(stuck == 0, "in a minute of traffic, nobody is permanently wedged", stuck.ToString());
 
+            // WHAT THE SIM'S `gap` NUMBER HAS ACTUALLY BEEN SAYING, and it took
+            // sixty-eight kept runs to ask. Reading `gap=` off every one of them:
+            // twenty said `not-measured`, four were negative (-0.28, -2.58,
+            // -2.69, -3.20) and SIXTEEN read exactly 0.00. Sixteen identical
+            // readings to two decimals is not sixteen coincidences.
+            //
+            // 0.00 is `Enforce` firing. The clamp sets `v.S = lead.S -
+            // lead.Kind.Length`, so a resolved overlap leaves the pair at a gap
+            // of exactly zero — and zero passes `>= 0`, which is every bound this
+            // has ever had. "The planner kept the room" and "the clamp had to
+            // shove them apart this frame" were the same reading.
+            //
+            // So the distance was never the question. `OverlapsResolved` is, and
+            // these two assertions are the pair rule 5b asks for: one that a
+            // healthy run must PASS, and one that says what would have to break
+            // for it to fail.
+            var clean = new TrafficSim(seed: 11);
+            clean.Populate(14);
+            for (int i = 0; i < 240; i++) clean.Step(0.5);
+            Check(clean.OverlapsResolved >= 0 && clean.TotalDistance > 500,
+                "the overlap counter exists on a run that actually drove",
+                $"{clean.OverlapsResolved} resolved over {clean.TotalDistance:0}m");
+            // THE PLANNER, NOT THE CLAMP, MUST BE DOING THE DRIVING. A clamp that
+            // fires once per several hundred metres is the discrete-step rounding
+            // it was written for; one that fires every few metres means `Decide`
+            // is not keeping the room and the traffic is being held apart by
+            // force. Bounded per METRE DRIVEN rather than per step, because the
+            // step count is a property of the test and the metres are a property
+            // of the city.
+            double perKm = clean.TotalDistance > 0
+                ? 1000.0 * clean.OverlapsResolved / clean.TotalDistance : 0;
+            // PRINTED, BECAUSE `Check` SWALLOWS ITS DETAIL WHEN IT PASSES — and
+            // a bound set against a number nobody has seen is rule 2's whole
+            // complaint. The first draft of this line read `< 50.0`, chosen out
+            // of the air, and it went green, which is the failure mode exactly:
+            // an invented threshold that passes tells you nothing and reads like
+            // evidence.
+            //
+            // THE SWEEP THAT SET IT. Fifteen configurations — 14, 20, 28, 40 and
+            // 60 vehicles across three seeds, ten minutes of traffic each,
+            // roughly 460km driven in total:
+            //
+            //     n=14  0 clamps    n=20  0 clamps    n=28  0 clamps
+            //     n=40  0 clamps    n=60  0, 0 and 1 clamp over 32.8km
+            //
+            // The planner does not need the clamp at any density this city
+            // reaches. One clamp in 460km is 0.03/km at the single worst
+            // configuration, so 2.0/km is roughly sixty times the worst thing
+            // ever observed and still small enough to catch a planner that has
+            // started leaning on the clamp instead of steering.
+            //
+            // AND IT DOES NOT EXPLAIN THE SIM. Sixteen sim runs read `gap=0.00`,
+            // which is the clamp's exact signature, and nothing here reproduces
+            // it — so the difference is something the sim has and this does not:
+            // pedestrians stepping into the road, and the player at a wheel. A
+            // leader that stops DEAD for somebody is not a leader braking
+            // comfortably, which is all `Decide` plans against. That is the next
+            // question, and `OverlapsResolved` now travels into the sim verdict
+            // so the run can answer it rather than another guess.
+            Console.WriteLine($"  .. clamps: {clean.OverlapsResolved} over "
+                              + $"{clean.TotalDistance:0}m = {perKm:0.00}/km, "
+                              + $"tails behind an edge start: {clean.TailsBehindStart}");
+
+            Check(perKm < 2.0,
+                "and the planner keeps the room, rather than the clamp forcing it",
+                $"{perKm:0.0} clamps per km over {clean.TotalDistance:0}m");
+
+            // AND THE SENTENCE HAS TO SAY SOMETHING. `TightestGapWhy` is the
+            // repair for four runs whose entire failure report was the word
+            // `traffic`. Both branches are exercised: a populated road, and one
+            // where no two vehicles share an edge.
+            clean.TightestGap();
+            Check(!string.IsNullOrEmpty(clean.TightestGapWhy) &&
+                  clean.TightestGapWhy != "not measured",
+                "the tightest pair describes itself after a measurement",
+                clean.TightestGapWhy);
+            var lonely = new TrafficSim(seed: 5);
+            lonely.Populate(1);
+            lonely.Step(0.5);
+            Check(lonely.TightestGap() > 900 &&
+                  lonely.TightestGapWhy.Contains("no two vehicles"),
+                "and one vehicle alone reports no measurement rather than clearance",
+                lonely.TightestGapWhy);
+
             // Determinism: the same seed drives the same city. The CI sim and the
             // player's machine must not merely look similar.
             var a1 = new TrafficSim(seed: 3); a1.Populate(12);
