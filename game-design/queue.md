@@ -38,55 +38,49 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### THE BRANCH DID NOT COMPILE FOR TEN COMMITS, AND THE CHANNEL THAT SHOULD HAVE SAID SO LIED
+### WHAT IS IN FLIGHT, AND WHAT THE LAST FOUR BUILDS SAID
 
-`ViolenceHost` is a static class with no game in scope and I wrote
-`Game.Campaign.Noted(...)` in it. Inside `namespace Ledger.Game` the bare name
-`Game` binds to the NAMESPACE, so two builds came back `NO PLAYER LOG` with
-CS0118. Fixed; the act now REPORTS what it is worth as a topic and the caller
-charges it, which also stops the place-reading probe making the player notorious
-for three killings it committed only to measure them.
+**The compile outage is closed.** Ten commits had ridden a branch that would
+not build — a static class writing `Game.Campaign`, where the bare name binds
+to the NAMESPACE. Fixed, a lint written for it, and the sim has run green
+since.
 
-**The instrument was worse than the bug.** The build that failed to compile
-still committed "Sim stills from c61047f" — six replaced JPEGs and a rewritten
-frame ledger, from a run that rendered nothing. It committed its own CHECKOUT's
-copies, because dispatch takes a BRANCH and the runner was seven commits behind
-the tip. The branch went backwards and the frames landed indexed under the sha
-of the build that could not have made them. I opened all six and read them as
-evidence about that commit before checking line one.
+**The stills channel could go BACKWARDS and now cannot.** A build that failed
+to compile still committed six JPEGs and a frame ledger from its own checkout,
+seven commits behind the tip, and indexed them under its own sha. A run now
+commits only what it produced. **Read line one and the NO PLAYER LOG line
+before looking at any frame.**
 
-`tools/sim-shots-stage.sh` now names what a run actually produced — always the
-verdict and the per-run copy, the stills only if the sim reached a screenshot,
-the ledger only if it wrote one. Tested on both cases before it went near CI.
+**Body LOD landed and works and thrashes.** Forty-three eligible, twelve
+carried, none failed, and the noon frame has real people in the foreground
+where there were boxes. It also made 1,486 grants across 485 passes — three
+swaps a second — because the hysteresis was on the distance and not on the
+cap. Rank slack is in flight; the counters that found it were added in the
+same commit as the feature, which is the only reason it took minutes.
 
-**Read the verdict's first line and its NO PLAYER LOG line before reading any
-frame.** That is not advice, it is the only thing that would have caught this.
+**Notoriety has a second source and a way to see whether it matters.**
+Informing charges it now as well as violence, which is what forced the
+accumulation to stop being a maximum. And the two notoriety-keyed doors in the
+world are tried twice each — at the run's real value and at zero — because a
+single reading cannot tell "notoriety opened this" from "this was open to
+anybody".
 
 ### Startable right now, in order
 
-1. **BODY LOD — the frame gate is red and this is the actual fix.**
-   44 skinned bodies is 1,037,694 vertices a frame against 16,338 before, so the
-   cost is real work rather than runner contention, and the cap of twelve now in
-   place is a holding action rather than an answer. Walkers pick their body at
-   SPAWN, so LOD means exchanging one at runtime: attach a real body when a
-   walker enters the near band, drop back to a mannequin when it leaves.
-   `Population` already bands people and `CrowdWalkerCap` already bounds the
-   near set, so "who is close" exists. What does not exist is a body that can be
-   swapped without losing the rig's state — `RealBody.TryAttachExtra` saves and
-   restores the statics, so the detach side is what is missing.
-   Aim: eight nearby bodies is ~190k vertices, the order the rest of the scene
-   is built at.
+1. **READ THE BODY-LOD THRASH NUMBERS.** *(CI)* Grants and revokes should fall
+   from ~1,486 to something near the number of people who actually walked past.
+   If they do not, the rank slack was not the mechanism and a dwell time is the
+   next lever — but not before, because two guards added together cannot be
+   told apart. Watch `population` in the frame breakdown: it was 4.70ms and the
+   swaps are what is in it.
 
-2. **THE TEXT TAIL — the series has landed and the threshold has not.**
-   `nameFracMedian` reads 0.060 / 0.062 / 0.066 across three runs and
-   `nameFracP90` 0.098 / 0.100 / 0.121, against a worst of 0.320 at
-   `worstNameCentreMetres=1.09`. So the typical label is a sixteenth of the
-   screen and the tail is a third of it, which is what the night stills show. A
-   median cannot see a tail and this is the case it was written about.
-   The work is a cap on how much screen one piece of world text may take, with
-   the number printed before any bound is gated. **Do not set the bound from the
-   three runs above** — they predate the frustum fix, so the population they
-   were measured over excluded the frames with heaps in.
+2. **READ THE NAME CAP AND THE WARDROBE TINT.** *(CI)* Both are one-line
+   readings against numbers that already exist. `namesPinned` non-zero with
+   `worstNameFrac` falling toward 0.12 is the size cap working; a `namePinFloor`
+   that keeps dropping run over run means its one assumption — that a label's
+   own scale starts at 1 — is breaking. `bodyTinted` non-zero is the wardrobe
+   reconnected: texture extraction silently switched it off, so ten models were
+   dressing forty-three people identically.
 
 3. **M21, THE TWO LEDGERS — Core-shaped, no round trip.**
    The largest piece of unwritten game left: empire growth, law as a tool, what
