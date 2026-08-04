@@ -415,6 +415,34 @@ jobs:
               echo "  contention for a Personal licence seat between concurrent builds."
               echo "  Dispatch fewer at once; do not go looking in the Game layer."
             } >> game-design/sim-shots/verdict.txt
+
+            # AND IF IT WAS THE COMPILER, PUT THE ERRORS WHERE THEY CAN BE READ.
+            #
+            # THIS IS RULE 12, AND IT HAD BEEN HALF-DONE FOR MONTHS. The build
+            # step already extracts `error CS` lines — into the step log, which
+            # is a fixed ~4KB tail and evicts them, and into
+            # GITHUB_STEP_SUMMARY, which comes back EMPTY through the API this
+            # environment has. Two channels, both carefully populated, neither
+            # readable from the container that needs them.
+            #
+            # So a Game-layer compile error — the ONE class of fault that
+            # cannot be caught locally, because only Core compiles here — was
+            # costing a blind 25-minute round trip and a guess. On 4 August it
+            # cost one, and I spent the wait inspecting correct code while the
+            # answer sat in a log nobody could open.
+            #
+            # `verdict.txt` is a file in the repository. It is committed by the
+            # step below, which runs on failure, and `git pull` reads it in a
+            # second. That is the whole fix and it is fifteen lines.
+            if [ -f build-log/unity.log ]; then
+              {
+                echo
+                echo "COMPILE ERRORS (from build-log/unity.log):"
+                grep -E "error CS|Compilation failed" build-log/unity.log \
+                  | head -25 | sed 's/^/  /' \
+                  || echo "  none matched — the build failed for another reason"
+              } >> game-design/sim-shots/verdict.txt
+            fi
           fi
 
           # LAYER 3, PIXELS: what moved in the render since the last build.
