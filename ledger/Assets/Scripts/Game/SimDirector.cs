@@ -1525,6 +1525,10 @@ namespace Ledger.Game
             _worldText = worldText;
             _worldTextDepth = worldTextMaterialled;
             _labelsColliding = CollidingNames();
+            // AND AGAIN AT SHOT TIME, so the bubble peak has seen the frames
+            // that actually get committed. One sample per audit could miss
+            // every conversation in a seventeen-day run.
+            _bubbleSampleWanted = true;
             // TWO MORE THINGS THE STILLS SHOWED AND NOTHING MEASURES.
             //
             // MIRRORED TEXT. `review_day2_noon` at fbb1865 has a caption
@@ -1732,16 +1736,32 @@ namespace Ledger.Game
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
                     if (other[i].Overlaps(other[j])) _collidingWorldText++;
-            _collidingBubbles = 0;
-            _bubblesOnScreen = bubbles.Count;
+            // PEAKS, BECAUSE THE FIRST READING WAS A MOMENT AND THE QUESTION
+            // IS ABOUT THE RUN.
+            //
+            // It came back `bubblesOnScreen=0 collidingBubbles=0` while the
+            // night still plainly shows two bubbles drawn through each other.
+            // Both are true: this counter is sampled once, on a frame when
+            // nobody happened to be talking, and a speech bubble lives for a
+            // few seconds. So the instrument was answering a question about a
+            // different instant from the one in the picture — which is exactly
+            // how `nameTagsOffered=2` once printed beside a still with a dozen
+            // names in it.
+            //
+            // A peak, like every other "how bad did it get" number on this
+            // line. Zero now means it never happened, rather than that it was
+            // not happening when somebody looked.
+            int now = 0;
             for (int i = 0; i < bubbles.Count; i++)
                 for (int j = i + 1; j < bubbles.Count; j++)
-                    if (bubbles[i].Overlaps(bubbles[j])) _collidingBubbles++;
+                    if (bubbles[i].Overlaps(bubbles[j])) now++;
+            if (now > _collidingBubbles) _collidingBubbles = now;
+            if (bubbles.Count > _bubblesOnScreen) _bubblesOnScreen = bubbles.Count;
             return pairs;
         }
 
         int _collidingWorldText = -1;
-        int _collidingBubbles = -1, _bubblesOnScreen = -1;
+        int _collidingBubbles = 0, _bubblesOnScreen = 0;
 
         int _worldText = -1, _worldTextDepth = -1;
 
@@ -4066,8 +4086,16 @@ namespace Ledger.Game
         /// fired, and those want telling apart.
         int _shotsWithRingHidden;
 
+        bool _bubbleSampleWanted;
+
         void Shot(string name)
         {
+            // SAMPLE THE TEXT COLLISIONS ON THE FRAME BEING PHOTOGRAPHED.
+            // The audit's own sample is one moment a day; the picture is
+            // another, and it is the one a human looks at. Cheap — it walks the
+            // TextMeshes already in the scene — and it means the number and the
+            // still describe the same instant.
+            if (_bubbleSampleWanted) CollidingNames();
             // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
             // in the sim now — it never used to, which is why the whole
             // cinematic layer went months without executing in a verified
