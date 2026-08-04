@@ -6924,7 +6924,12 @@ namespace Ledger.Game
             // against, and until now every millisecond of it was pooled with
             // the software rasteriser under `render+rest` — where a doubling of
             // it would be invisible next to 297ms of GPU-less rendering.
-            foreach (var name in new[] { "npcs", "population", "sun", "checks", "traffic", "signals", "rigs" })
+            // `bodyLod` SPLIT OUT OF `population`, and it must be in this list
+            // or the split would silently move four milliseconds of real game
+            // work into `render+rest` and read as the gate improving. A
+            // reattribution that changes the total is a fix that isn't one.
+            foreach (var name in new[] { "npcs", "population", "bodyLod", "sun", "checks",
+                                         "traffic", "signals", "rigs" })
             {
                 var c = Perf.Get(name);
                 if (c == null || c.Samples == 0) { perFrame.Add($"{name}=none"); continue; }

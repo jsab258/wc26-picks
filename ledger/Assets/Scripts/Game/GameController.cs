@@ -734,14 +734,29 @@ namespace Ledger.Game
             using (Perf.Time("sun")) UpdateSun();
             // Level of detail before ticking, so a walker spawned this frame
             // starts from the right place rather than the origin.
-            using (Perf.Time("population"))
+            // TWO PASSES, TWO BUCKETS, AND THEY WERE POOLED INTO ONE NUMBER.
+            //
+            // `population=4.08ms` is the largest single item in the only gate
+            // that is red — `frame`, at `game=16.04ms` against a 12ms budget —
+            // and it has been unactionable because it covers two passes with
+            // completely different cadences. `TickPopulation` rebands seven
+            // hundred residents EVERY frame; `TickBodyDetail` instantiates and
+            // destroys prefabs ONCE A SECOND. Four milliseconds spread evenly
+            // over every frame and four milliseconds that is really sixty
+            // concentrated in one frame a second are opposite findings with
+            // opposite fixes, and their mean reads identically.
+            //
+            // A number that cannot say which of two things it is measuring is
+            // the instrument being wrong, not the subject (rule 3), and the
+            // repair is a second scope rather than a guess about which half.
+            //
+            // The ORDER is unchanged and load-bearing: body LOD runs after the
+            // rebanding so a walker spawned by this pass is considered for a
+            // face in the same frame it appears rather than a second later.
             {
                 var at = _player != null ? _player.transform.position : Vector3.zero;
-                TickPopulation(at);
-                // Body LOD inside the same scope and after the rebanding, so a
-                // walker spawned by this pass is considered for a face in the
-                // same frame it appears rather than a second later.
-                TickBodyDetail(at);
+                using (Perf.Time("population")) TickPopulation(at);
+                using (Perf.Time("bodyLod")) TickBodyDetail(at);
             }
             using (Perf.Time("npcs"))
                 for (int i = _npcs.Count - 1; i >= 0; i--)
