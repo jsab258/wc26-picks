@@ -4101,6 +4101,7 @@ namespace Ledger.Game
 
         bool _bubbleSampleWanted;
         int _nearShots;
+        int _restFrameSum, _restFrames, _workFrameSum, _workFrames;
 
         void Shot(string name)
         {
@@ -4116,6 +4117,34 @@ namespace Ledger.Game
             {
                 _nearShots++;
                 Debug.Log(SceneAudit.Near(_game.Player.transform.position + Vector3.up));
+            }
+
+            // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
+            //
+            // The first rest-day still ever taken shows two figures, and
+            // `restNoonCrowd=12 workNoonCrowd=9` says a Saturday has MORE
+            // people out than a Tuesday. Both are true and they are about
+            // different things: that metric counts crowd walkers SPAWNED in the
+            // simulated band, and the camera is looking at one street.
+            //
+            // So the design claim — the week has a shape you can SEE — has
+            // never had a number attached to it. Spawned is not visible, and
+            // the thing being promised is visible. Counted per shot, tagged
+            // rest or work, so the two can finally be compared on the quantity
+            // the promise is about.
+            var shotCam = Camera.main;
+            if (shotCam != null && _npcs != null)
+            {
+                int inFrame = 0;
+                foreach (var n in _npcs)
+                {
+                    if (n == null) continue;
+                    var v = shotCam.WorldToViewportPoint(n.transform.position);
+                    if (v.z > 0 && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1) inFrame++;
+                }
+                bool rest = _game != null && Ledger.Core.Population.IsRestDay(_game.Now.Day);
+                if (rest) { _restFrameSum += inFrame; _restFrames++; }
+                else { _workFrameSum += inFrame; _workFrames++; }
             }
             // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
             // in the sim now — it never used to, which is why the whole
@@ -6292,6 +6321,7 @@ namespace Ledger.Game
                       $"workNoonCrowd={(_workDaysSeen > 0 ? _workDayNoonCrowd / _workDaysSeen : -1)} " +
                       $"restNoonCrowd={(_restDaysSeen > 0 ? _restDayNoonCrowd / _restDaysSeen : -1)} " +
                       $"restDaysSeen={_restDaysSeen} workDaysSeen={_workDaysSeen} " +
+                      $"restInFrame={(_restFrames > 0 ? _restFrameSum / _restFrames : -1)} workInFrame={(_workFrames > 0 ? _workFrameSum / _workFrames : -1)} framesRest={_restFrames} framesWork={_workFrames} " +
                       $"playerHasController={_playerHasController} " +
                       $"speedDriven={CharacterRig.SpeedDriven} " +
                       $"animCulling={CharacterRig.AnimCulling} " +
