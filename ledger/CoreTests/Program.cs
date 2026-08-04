@@ -13052,6 +13052,21 @@ namespace Ledger.CoreTests
             Check(Occupancy.ShopLit("s7", 21) == Occupancy.ShopLit("s7", 22),
                   "and a shop the player learns is open late is open late tomorrow");
 
+            // AT TWENTY-THREE HUNDRED, WHICH IS THE ONLY HOUR THAT MATTERS FOR
+            // THIS. Every night still this project has ever judged is taken at
+            // 23:00 — `SimDirector` shoots `day{n}_night` on `now.Hour == 23` —
+            // so the look decision this rule makes is entirely the look at that
+            // hour, and asserting it anywhere else is asserting something
+            // nobody will ever see. Rule 5b's twin: check the run supplies the
+            // condition before trusting the guard.
+            int at23 = 0;
+            for (int i = 0; i < 2000; i++) if (Occupancy.ShopLit($"s{i}", 23)) at23++;
+            Check(at23 > 400 && at23 < 800,
+                  "at eleven at night, a few shopfronts are lit and most are not",
+                  $"{at23} of 2000");
+            Check(!Occupancy.ShopLit("s3", 0) && !Occupancy.ShopLit("s3", 2),
+                  "and after midnight the ground floors are all dark");
+
             // ---- AND NOW AGAINST THE POPULATION THE GAME ACTUALLY MAKES ----
             //
             // Everything above is a synthetic list with hours I chose, which is
