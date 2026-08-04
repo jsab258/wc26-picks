@@ -2379,6 +2379,31 @@ namespace Ledger.Game
             }
         }
 
+        /// The measured value of every distinct albedo the wash runs over,
+        /// sorted, against the wardrobe's ceiling so the two are readable
+        /// together rather than in two places.
+        ///
+        /// "not measured" and an empty list are different findings — the blit
+        /// chain can fail on a runner with no GPU, and a silent empty would
+        /// read as "the textures are black", which is the confusion that made
+        /// `WashFromWhite` return -1 rather than 0.
+        static string AlbedoRead()
+        {
+            var xs = RealBody.AlbedoValues;
+            if (xs.Count == 0) return "not measured";
+            var c = new List<float>(xs);
+            c.Sort();
+            var sb = new StringBuilder();
+            for (int i = 0; i < c.Count && i < 16; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                sb.Append(c[i].ToString("0.00"));
+            }
+            if (c.Count > 16) sb.Append($" (+{c.Count - 16} more)");
+            sb.Append($" vs wardrobe max {Ledger.Core.Wardrobe.MaxValue:0.00}");
+            return sb.ToString();
+        }
+
         /// HOW DEEP INTO THE ROAD THE STUCK CLUTTER'S OWN WALLS STAND.
         ///
         /// THE WHOLE SERIES, not a summary, and eight numbers is short enough
@@ -6742,6 +6767,39 @@ namespace Ledger.Game
             }
             double residueMs = Math.Max(0, meanFrameMs - attributed);
             perFrame.Add($"game={attributed:0.00}ms render+rest={residueMs:0.00}ms");
+            // AND THE GAME'S SHARE, BECAUSE THE MILLISECONDS ARE MEASURING THE
+            // RUNNER AS MUCH AS THE GAME.
+            //
+            // This gate was moved off the whole frame and onto `attributed` with
+            // a comment promising that "runner noise lands in the residue". It
+            // does not. `attributed` is wall-clock too, and eight consecutive
+            // runs say so:
+            //
+            //     total 482.5  game 14.82  share 3.07%
+            //     total 483.4  game 15.64  share 3.24%
+            //     total 489.4  game 15.37  share 3.14%
+            //     total 369.1  game 11.54  share 3.13%
+            //     total 482.0  game 15.66  share 3.25%
+            //     total 448.2  game 15.35  share 3.42%
+            //     total 449.7  game 15.37  share 3.42%
+            //     total 431.7  game 11.40  share 2.64%
+            //
+            // The absolute figure swings 11.4 to 15.7 — either side of the 12ms
+            // ceiling — while the share sits between 2.6% and 3.4% throughout.
+            // A 369ms run and a 489ms run are the same game on machines that
+            // differ by a third, and the ms reading follows the machine almost
+            // exactly. So a red here currently says "this runner was slow", and
+            // that is the instrument being wrong rather than the subject.
+            //
+            // NOT GATED ON, AND THE GATE IS NOT MOVED. A share has its own
+            // failure mode — make the renderer faster and it rises with nothing
+            // changed — so swapping one unvalidated statistic for another is
+            // the mistake this comment is about. Printed, with the series
+            // accumulating in the kept verdicts, and the bound gets set when
+            // there is something to set it from (rule 2). Leaving it red is
+            // deliberate: moving a bound to make red go away is the thing
+            // CLAUDE.md forbids by name.
+            perFrame.Add($"gameShare={(meanFrameMs > 0 ? 100 * attributed / meanFrameMs : -1):0.00}%");
             string frameWhere = string.Join(" ", perFrame);
 
             // AND THE GATE IS ON THE GAME'S HALF, NOW THAT A RUN HAS SPLIT THEM.
@@ -8873,6 +8931,14 @@ namespace Ledger.Game
                       // whose coat came out under 5. Replicating the shipped
                       // rule over the roster put that last one at 39%.
                       $"bodyWashWhite={RealBody.WashFromWhite:0.0} " +
+                      // AND WHAT IT IS MULTIPLYING, which is the number that
+                      // decides whether the wash's ceiling is in the right
+                      // place. The wardrobe caps a crowd garment at value 0.46;
+                      // a wash whose top end is 1.0 leaves a bright albedo
+                      // exactly as bright as it arrived. Whole series, one line
+                      // per model, because ten numbers is short enough to show
+                      // and the one loud sheet is the finding a median hides.
+                      $"bodyAlbedo=[{AlbedoRead()}] " +
                       $"bodyWashSampled={RealBody.WashSampled} " +
                       $"bodyWashNone={RealBody.WashNearWhite} " +
                       // THE PAINT PATH OVER THE WHOLE RUN. `bodySkinned` and

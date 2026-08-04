@@ -38,51 +38,58 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### THE 16:00 BUILD IS RED AGAIN, AND THE LARGEST FINDING IS A CORRECTION OF MINE
+### THE 17:00 BUILD ANSWERED FIVE THINGS AND CORRECTED ME ON TWO
 
-**THE NAMEPLATE "IMPOSSIBILITY" NEVER EXISTED.** The two numbers I called
-arithmetically impossible all day are printed on DIFFERENT LOG LINES — the
-offer peak on the done line at the end of the run, the same-frame probe on the
-glyphs line which is emitted on every screenshot. Same counters, two moments,
-and the peaks keep climbing after the last shot. Four published explanations,
-each disproved by the next build, and a counter deleted that was never broken.
-It is restored. The reading was mine: grepping across a whole verdict returns
-two values from two lines and gives no sign it has done so.
+**THE WASH WORKS, AND THE STREET STILL LOOKS LOUD.** Distance of the applied
+wardrobe from white went to a median of 19.1, and the people wearing nothing
+distinguishable fell from a predicted 39% of the roster to a measured 7.7% of
+4,904 washes. Both halves landed. The noon frame still shows two women in
+bright yellow trousers, so the rule is right and its ANCHOR is wrong: the wash
+maps the wardrobe onto [0.45, 1.0], and a multiply capped at 1.0 cannot bring
+a value-0.9 albedo under a 0.46 ceiling. `bodyAlbedo` now measures the sheets
+being multiplied, once per model, so the ceiling can be set from evidence
+instead of taste. **Read it before touching the constant.**
 
-The rule generalises and is now in CLAUDE.md: **a peak's denominator must come
-from the same instant, and the LOG LINE is part of the instant.** Five sites
-had been fixed for the frame version of that fault and nobody noticed the line
-version. Grep with line numbers; print run-level numbers on the run-level line.
-The whole name family now sits on the done line for exactly that reason.
+**THE SAMENESS HAS A NUMBER: FOURTEEN PEOPLE, EIGHT FACES.** Median 8 distinct
+models among 14 bodies, worst 8 of 17. That is six duplicates in a typical
+frame, and it is the first time the roadmap's two-day-old sentence has been
+anything but a sentence.
 
-**THE FOOT PLANT WAS INVERTED.** The change asked the blend curve for one phase
-when planted and another when swinging, both picked from an assumption about
-what a phase means, and the function says the opposite in a comment three lines
-from the code. The IK was dragging the SWINGING foot onto the road at full
-weight — the one thing the blend exists to prevent. The run said so within the
-hour and much louder than the reading it replaced: planted feet 0.177 above the
-road against 0.050 overall, anti-correlated rather than merely uninformative.
-Fixed and in flight.
+**I WAS WRONG THAT THE PAINT PATH MIGHT BE DEAD, AND THE LIFETIME COUNTERS
+SAID SO IMMEDIATELY.** `bodySkinnedEver=0 bodyDressedEver=736
+bodyKeptEver=4904` — one renderer in eight IS painted with the wardrobe's coat
+material, so the cast brightness lift is live on the crowd, not dead code.
+Item 6 below is a real fault rather than a cleanup. Also `SkinnedEver=0`
+across a whole run: nothing has ever been painted as flesh, which `BodyParts`
+was written to do and wants its own look.
 
-**The frame gate is red at 483ms, from 369 green.** The inverted IK is a
-candidate — full-weight goals on a swinging foot is work as well as a fault —
-and so is the crowd spread. The phase fix lands first and is the cheaper test.
+**THE FEET ARE FIXED.** Planted feet now sit 0.035 above the road against
+0.046 for every frame — closer, which is the right sign. This morning it was
+0.177 against 0.050, backwards. `ikPlantDisagreed=9785` says how big the old
+error was.
 
-**Two smaller readings.** The crowd gap moved 0.30 to 0.34 against a body width
-of 0.45, so the spread helped and did not finish. The clutter nudge cleared
-NOTHING — zero pulled, eight stuck — so its bound was the wrong question, and
-the reach now goes to four metres and reports the worst distance used, which
-separates "the level fronts onto the road" from "the clutter is placed metres
-off its own wall".
+**THE CROWD IS ESSENTIALLY THERE.** Median gap 0.42m against a body width of
+0.45, from 0.30 five builds ago.
 
-**And the rival rang once and nobody picked up — WHICH I WROTE DOWN AS THE
-MECHANIC WORKING, AN HOUR BEFORE READING THE LOOKUP.** `NearPhone` walks the
-walker list and the crowd, and the player is in neither, so it returned false
-for every line at every hour: taking the call was unreachable code and one
-missed call reads identically to a player who was out on the street. Rule 5b's
-twin — a run in which the thing asserted CAN happen — and the number could
-never have told me. Fixed; the next run is the first where either answer is
-possible.
+**AND THE FRAME GATE IS NOT WHAT I TOLD JAFAR IT WAS.** I said it was the
+runner's software rasteriser and the game was inside budget. The gate reads
+the game's half ONLY, so it is a real red — but the game's half is wall-clock
+too, and across eight runs its share of the frame sits at 2.6-3.4% while the
+absolute figure swings 11.4 to 15.7ms either side of the 12ms ceiling. A
+369ms run and a 489ms run are the same game on machines a third apart. So the
+ms reading is tracking the runner, which is exactly what moving the gate onto
+the game's half was supposed to prevent. `gameShare` is printed now; the gate
+is left RED and unmoved, because moving a bound to make red go away is the
+thing CLAUDE.md forbids by name, and swapping in a share nobody has read a
+series of would be the same mistake wearing a better statistic.
+
+**THE BIN NUDGE WAS WALKING BINS THROUGH WALLS.** `dressedPulled=2
+dressedWorstPull=3.75` read as the bound having been short. `Dressing.
+WallOffset` is a constant 0.45, so a 3.75m pull put a bin 3.3m behind its own
+face plane. The reach is bounded at the wall now and the next run will
+probably read 0 pulled and 8 stuck, which is the honest answer:
+`dressedRoadDepth` prints how far the carriageway runs out from each stuck
+item's wall, as the whole series, and the fix is a level fix.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -154,25 +161,35 @@ AUTO MODE.
    The Core-shaped work that remains is M22, the shape of a playthrough:
    onboarding, pacing, replayability, succession. Entirely unbuilt.
 
-6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD, and it is dead
-   code, and both of those want checking before either is touched.** Found
-   while fixing the wash. `RealBody.TryAttach` lifts the coat's value to 0.68
-   with a comment saying "the player is a named character" — and
-   `TryAttachExtra` calls straight through it, so every walker gets it too.
-   `Wardrobe.MaxValue = 0.46` exists precisely so nobody in the crowd outshines
-   the cast, and the code walks past it for everybody.
+6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD, AND IT IS NOT
+   DEAD CODE — THE COUNTERS I ADDED TO CHECK THAT SAID SO IN ONE RUN.**
+   `RealBody.TryAttach` lifts the coat's value to 0.68 with a comment saying
+   "the player is a named character", and `TryAttachExtra` calls straight
+   through it, so every walker gets it too. `Wardrobe.MaxValue = 0.46` exists
+   precisely so nobody in the crowd outshines the cast, and the code walks
+   past it for everybody.
 
-   **Deliberately not fixed in the same commit.** The lifted value feeds
-   `coatRgb`, which paints only renderers that arrived UNTEXTURED — and the
-   models have textures now, so on today's bodies that material is never used.
-   The proof was a last-wins reading (`bodySkinned=0 bodyDressed=0`), which
-   cannot say "never", so `bodySkinnedEver`/`bodyDressedEver`/`bodyKeptEver`
-   were added to answer it properly. **Read those three first.** If they are
-   zero the whole paint path is dead and the honest fix is to delete it rather
-   than gate it; if they are not, the crowd needs a cast test that does not
-   exist yet — `VoiceBank.Cast` is the nearest thing and its own comment says
-   its ids do not all match the roster, so borrowing it would put a silent
-   mismatch in the wardrobe.
+   I wrote here that this was probably dead on today's models, on the strength
+   of `bodySkinned=0 bodyDressed=0` — a LAST-WINS reading that describes
+   whichever walker the LOD granted last and cannot support a claim about the
+   run. The lifetime versions came back `bodySkinnedEver=0 bodyDressedEver=736
+   bodyKeptEver=4904`: one renderer in eight is painted with the lifted coat.
+   So this is live and visible.
+
+   **What it needs and does not have is a cast test.** `VoiceBank.Cast` is the
+   nearest thing and its own comment says its ids do not all match the roster,
+   so borrowing it would put a silent mismatch in the wardrobe — a named
+   character under one id would get crowd brightness and the same person under
+   another would not. The honest shape is a flag through
+   `TryAttach`/`TryAttachExtra`, except the named cast walk the street as
+   `NpcWalker` too, so the call path does not separate them either.
+   **Decide the test first, then wire it.**
+
+   And a second finding sitting in the same numbers: `bodySkinnedEver=0` over
+   a whole run means nothing in this city has ever been painted as FLESH.
+   `BodyParts.IsFlesh` exists, is tested, has the sur-face fix in it, and has
+   never once returned true in a build. That is rule 6 — built, tested, and
+   not running.
 
 7. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
    retired is a public API that something actually calls.

@@ -321,6 +321,91 @@ namespace Ledger.Game
             return ms.Count == 0 ? -1 : ms[ms.Count / 2];
         }
 
+        /// HOW BRIGHT THE TEXTURE THE WASH IS MULTIPLYING ACTUALLY IS.
+        ///
+        /// THE QUESTION THE WASH FIX LEFT OPEN, and it is the only one that
+        /// decides whether the anchor is right. `Wardrobe.MaxValue` is 0.46 and
+        /// exists so no crowd garment outshines a cast authored at 0.65-0.75.
+        /// The wash maps the wardrobe's whole value range onto [0.45, 1.0], so
+        /// the BRIGHTEST coat leaves the texture untouched — which is correct
+        /// if the texture is a neutral mid-grey and wrong if it is a bright
+        /// yellow. The noon still says it is the second: after the wash landed
+        /// and measurably worked (near-white cases 39% to 7.7%, median distance
+        /// from white 19.1), the two women in front are still in loud yellow
+        /// trousers, and no multiply capped at 1.0 can bring a value-0.9 albedo
+        /// under a 0.46 ceiling.
+        ///
+        /// Which means the ceiling of the wash's range is the thing to change,
+        /// and it must not be guessed. Rule 2: make the run report the value,
+        /// read it, then set it — the same sequence `deedSlotSets` sat ungated
+        /// for days waiting for, correctly.
+        ///
+        /// SUCCESSIVE HALVING RATHER THAN `GetPixels`. Mixamo's textures are
+        /// imported non-readable, so reading them on the CPU throws; and a
+        /// single blit to a 1x1 target is one bilinear TAP at the centre, not
+        /// an average — it would report whatever pixel happens to be in the
+        /// middle of the sheet, which for a character atlas is usually a seam.
+        /// Halving repeatedly makes each step a 2x2 box filter, so the last one
+        /// is a true mean of the whole sheet.
+        ///
+        /// ONCE PER MATERIAL, cached, because body LOD grants and revokes
+        /// bodies continuously and this is a chain of eight blits.
+        static readonly Dictionary<int, float> _albedo = new Dictionary<int, float>();
+
+        /// The measured mean value (HSV V, i.e. max channel) of every distinct
+        /// albedo the wash has been applied over, and how many there were.
+        /// Printed as the series: ten models is short enough to just show, and
+        /// a median would hide the one bright sheet that is doing the damage.
+        public static readonly List<float> AlbedoValues = new List<float>();
+
+        static float AlbedoValueOf(Texture tex)
+        {
+            if (tex == null) return -1;
+            int key = tex.GetInstanceID();
+            if (_albedo.TryGetValue(key, out float cached)) return cached;
+
+            float v = -1;
+            RenderTexture a = null, b = null;
+            var prevActive = RenderTexture.active;
+            try
+            {
+                int size = 64;
+                a = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32);
+                Graphics.Blit(tex, a);
+                while (size > 1)
+                {
+                    size /= 2;
+                    b = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32);
+                    Graphics.Blit(a, b);
+                    RenderTexture.ReleaseTemporary(a);
+                    a = b;
+                    b = null;
+                }
+                RenderTexture.active = a;
+                var one = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                one.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
+                one.Apply();
+                var c = one.GetPixel(0, 0);
+                Object.Destroy(one);
+                // VALUE, not luminance. The wash is an HSV rule and
+                // `Wardrobe.MaxValue` is an HSV V, so the albedo has to be read
+                // on the same axis or the comparison is two scales again — the
+                // fault `Press.Print` shipped with a testimony grade against a
+                // pressure aggregate.
+                v = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
+            }
+            catch (System.Exception) { v = -1; }
+            finally
+            {
+                RenderTexture.active = prevActive;
+                if (a != null) RenderTexture.ReleaseTemporary(a);
+                if (b != null) RenderTexture.ReleaseTemporary(b);
+            }
+            _albedo[key] = v;
+            if (v >= 0) AlbedoValues.Add(v);
+            return v;
+        }
+
         /// WHICH MODEL A NAME WEARS, ASKABLE WITHOUT ATTACHING ONE.
         ///
         /// Ten prefabs against forty-three named people is the sameness problem
@@ -886,6 +971,13 @@ namespace Ledger.Game
                 if (m != null && m.mainTexture != null)
                 {
                     Kept++; KeptEver++;
+                    // The albedo about to be washed, measured once per sheet.
+                    // Here rather than inside `Tint` because the texture is the
+                    // MATERIAL's, not the wash's, and putting it in `Tint`
+                    // would make the reading depend on how often the LOD
+                    // happened to grant this body — a count of grants wearing a
+                    // measurement's name.
+                    AlbedoValueOf(m.mainTexture);
                     // THE RAW `cv`, NOT `coatV`. The lift above places a named
                     // character's coat MATERIAL above the crowd's ceiling; the
                     // wash normalises against that same ceiling, so handing it
