@@ -106,13 +106,25 @@ the reading lands, and every guess made without one tonight was wrong.
    have gone through — `PoseIsDriven`, the prefab controller, the rest capture
    — came back innocent on the way past.**
 
-2. **DID THE RING FIX THE MOB — `crowdHuddle` against `busiestPlace`.** *(CI)*
-   Forty-one people stood within two metres of one person on an 0.8m ring that
-   gave each of them twelve centimetres of arc. The radius is packing-derived
-   now and only ever widens. **`busiestPlace` is the check that this is even
-   the right fault**: a huddle of forty with a busiest place of three would be
-   people who merely ended up near each other, and `crowdSpread` still reading
-   0.80 on a busy run is the push not arriving.
+2. **THE RING WAS NOT THE MOB'S CAUSE, AND THE CHECK I BUILT IN SAID SO.**
+   `crowdSpread=0.88` with `busiestPlace=12` — the packing rule fired exactly
+   as computed (`0.45*sqrt(12/pi) = 0.879`) — and `crowdHuddleWorst` moved only
+   from 41 to 36, `crowdHuddle` from 10 to 9.
+
+   **Twelve at the busiest scheduled place, thirty-six within two metres of one
+   person.** Those cannot be the same people. So the mob is NOT people sent to
+   one point; it is people who END UP near each other, and a wider ring at the
+   schedule cannot touch it. `busiestPlace` was printed for exactly this
+   question and answered it on the first run.
+
+   The ring change stands on its own merits — twelve people on an 0.8m ring got
+   0.42m of arc each and now get 0.46m — but it is not this fault, and reading
+   the huddle drop as a fix would have closed the wrong thing.
+
+   **Where to look next**: the separation nudge (`StepApart`), the walk
+   pathing, or somewhere people converge that is not a schedule point at all.
+   `review_day5_noon` at `2b38df1` shows the mob standing in a JUNCTION next to
+   a parked truck, which is none of their homes or workplaces.
 
 3. **`bodySpell` NAMES THE DWELL TIME.** *(CI)* 1,035 grants and 1,021 revokes
    for a budget of twelve. Seconds is a walker crossing the band; tens of
