@@ -65,6 +65,21 @@ namespace Ledger.Game
             return s;
         }
 
+        /// The real access state, for a measurement rather than for a door.
+        ///
+        /// WHY IT HAS TO BE EXPOSED. `CheckGates` returns immediately when the
+        /// sim is running, so in CI no door has ever been tried with the
+        /// player's ACTUAL standing, money, hour and notoriety — the sim's
+        /// access probe builds a synthetic pauper with everything at zero. That
+        /// probe is right for what it asks (a refused door must teach you why),
+        /// and it structurally cannot answer the M21 question, which is whether
+        /// any of this changes what the player can do.
+        ///
+        /// Read-only by construction: it hands back a fresh state each call and
+        /// nothing here is stored, so a probe cannot alter what a later door
+        /// sees.
+        public AccessState PeekAccessState(Gate gate) => BuildAccessState(gate);
+
         void CheckGates()
         {
             if (_player == null || _ui == null || SimMode.Days > 0) return;

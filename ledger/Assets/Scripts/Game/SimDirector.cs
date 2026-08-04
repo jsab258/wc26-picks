@@ -3098,6 +3098,58 @@ namespace Ledger.Game
         /// have said so.
         int _notorietyApplied;
 
+        /// DOES BEING KNOWN CHANGE WHAT THE PLAYER CAN DO? Two doors, each
+        /// tried twice — once at the notoriety this run actually built and once
+        /// at nothing — and the answer is whether the two disagree.
+        ///
+        /// EVERY OTHER NUMBER ON THIS SUBJECT STOPS SHORT OF THE QUESTION.
+        /// `notoriety` says a value exists, `notorietyApplied` and
+        /// `notorietyFromLaw` say something charged it, and the roadmap's own
+        /// note on this row is that none of it "yet CHANGES anything the player
+        /// can do". A door that opens at 45 and a player who reached 62 are two
+        /// facts that have never been put in the same sentence, because
+        /// `CheckGates` returns immediately while the sim is running and the
+        /// sim's own access probe builds a pauper with every field at zero.
+        ///
+        /// RULE 5b's TWIN, WHICH IS WHY THE SECOND READING IS HERE. A probe
+        /// that only ever asks at the real value cannot tell "notoriety opened
+        /// this" from "this door was open to anybody" — the laundry's other key
+        /// is an introduction from Ada and the yard's are a crew of two or the
+        /// hour being after nine, so both can open for reasons that have
+        /// nothing to do with being known. Asking again at zero plants the
+        /// condition: `differs` is the word that means notoriety did the work.
+        string NotorietyDoorReading()
+        {
+            var host = _game;
+            if (host == null || host.Gates == null) return "no gates";
+            var sb = new System.Text.StringBuilder();
+            int looked = 0;
+            foreach (var gate in host.Gates)
+            {
+                if (gate == null || gate.Keys == null) continue;
+                bool keyed = false;
+                foreach (var k in gate.Keys)
+                    if (k.Kind == KeyKind.Notorious || k.Kind == KeyKind.Quiet) keyed = true;
+                if (!keyed) continue;
+                looked++;
+
+                var real = host.PeekAccessState(gate);
+                bool openNow = Doors.Try(gate, real).Allowed;
+                double had = real.Notoriety;
+                real.Notoriety = 0;
+                bool openUnknown = Doors.Try(gate, real).Allowed;
+
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append(gate.Id).Append(':').Append(openNow ? "open" : "shut")
+                  .Append('@').Append(had.ToString("0.00"))
+                  .Append(openNow == openUnknown ? " same" : " differs");
+            }
+            // THE DENOMINATOR. "No door answered" and "no door was asked" read
+            // identically without it, and the second is what happens the moment
+            // somebody removes the last notoriety key from `AccessSetup`.
+            return looked == 0 ? "no notoriety-keyed gate in the world" : sb.ToString();
+        }
+
         /// THE MOAT'S OWN NUMBERS, and until now they reached nobody.
         ///
         /// The log line that computes these says, in its own comment, that a
@@ -8440,6 +8492,7 @@ namespace Ledger.Game
                       // informed from a run where that wiring broke, and both
                       // leave `notoriety` exactly where the cut put it.
                       $"notorietyFromLaw={LawHost.NotorietyFiled} " +
+                      $"notorietyDoors=[{NotorietyDoorReading()}] " +
                       $"notorietyLastLaw={LawHost.LastNotoriety:0.000} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +
