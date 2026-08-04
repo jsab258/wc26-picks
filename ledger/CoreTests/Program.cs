@@ -9753,6 +9753,79 @@ namespace Ledger.CoreTests
                 $"{FramedBeat.Begun - before}");
             counted.Abort();
             Check(FramedBeat.Begun == before + 1, "and aborting does not un-count it");
+
+            // ---- THE 180-DEGREE RULE, WATCHED ----
+            //
+            // `SideOfLine` and `WouldCrossTheLine` have been on the reach
+            // ledger since they were written — "computed and never consulted",
+            // "the one that would actually stop a bad cut". This is the
+            // measurement that comes before the enforcement: the beat pulls in
+            // along the rig's own line and cannot cross by itself, so whether
+            // the FOLLOW rig crosses during a beat is an open question and
+            // writing a policy against it first would be rule 2 in camera
+            // form.
+            //
+            // THE ACCEPTING CASE FIRST, and it is the one that matters most
+            // here: a camera that orbits a long way and stays on its own side
+            // must NOT be reported as a crossing. A watcher that fires on
+            // ordinary camera movement would condemn the whole rig on its
+            // first run.
+            int watched0 = FramedBeat.LineWatched, crossed0 = FramedBeat.LineCrossed;
+            var lined = new FramedBeat();
+            lined.Begin(0.5, true);
+            // Two speakers on the x axis; camera starts well behind on +z.
+            lined.HoldTheLine(-1, 0, 1, 0, 0, 5);
+            lined.CameraMovedTo(4, 3);
+            lined.CameraMovedTo(-4, 1);
+            lined.CameraMovedTo(0, 0.2);
+            Check(FramedBeat.LineWatched == watched0 + 1
+                  && FramedBeat.LineCrossed == crossed0 && !lined.Crossed,
+                "a camera that swings right across the arc and stays on its own side of "
+                + "the line has not crossed it — the rule is about the SIDE, not the travel",
+                $"{FramedBeat.LineCrossed - crossed0}/{FramedBeat.LineWatched - watched0}");
+
+            // AND THE ONE IT EXISTS FOR.
+            lined.CameraMovedTo(0, -3);
+            Check(FramedBeat.LineCrossed == crossed0 + 1 && lined.Crossed,
+                "and stepping over to the far side is the cut that reverses who is "
+                + "looking at whom");
+            lined.CameraMovedTo(0, -9);
+            Check(FramedBeat.LineCrossed == crossed0 + 1,
+                "LATCHED — one bad move is one bad move. Counting every frame it stays "
+                + "over there would report the same mistake sixty times a second and rank "
+                + "it above a hundred real ones");
+
+            // A BEAT THAT CANNOT FAIL MUST NOT BE COUNTED AS ONE THAT PASSED.
+            // Two speakers standing on the same spot have no line between
+            // them: the cross product is zero wherever the camera goes, so
+            // such a beat would report "never crossed" forever and dilute the
+            // ratio with beats incapable of failing.
+            watched0 = FramedBeat.LineWatched; crossed0 = FramedBeat.LineCrossed;
+            var degenerate = new FramedBeat();
+            degenerate.Begin(0.5, true);
+            degenerate.HoldTheLine(2, 2, 2.1, 2.1, 0, 5);
+            degenerate.CameraMovedTo(0, -5);
+            Check(FramedBeat.LineWatched == watched0 && FramedBeat.LineCrossed == crossed0,
+                "two subjects in the same place have no line to keep, and that beat is "
+                + "not watched rather than watched and passing");
+
+            // A BEAT ABOUT THE STREET HAS NO SECOND SUBJECT EITHER.
+            watched0 = FramedBeat.LineWatched;
+            var wide = new FramedBeat();
+            wide.Begin(0.5, aboutAPerson: false);
+            wide.HoldTheLine(-1, 0, 1, 0, 0, 5);
+            wide.CameraMovedTo(0, -5);
+            Check(FramedBeat.LineWatched == watched0,
+                "and neither does a wide about the street");
+
+            // ON the line at the start is no side to keep.
+            watched0 = FramedBeat.LineWatched;
+            var onIt = new FramedBeat();
+            onIt.Begin(0.5, true);
+            onIt.HoldTheLine(-1, 0, 1, 0, 0, 0);
+            Check(FramedBeat.LineWatched == watched0,
+                "a camera that starts ON the line has no side to keep, so moving off it "
+                + "is never a crossing");
         }
 
         static void TestDetail()

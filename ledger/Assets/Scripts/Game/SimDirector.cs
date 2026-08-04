@@ -7408,6 +7408,14 @@ namespace Ledger.Game
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
+                      // THE 180-DEGREE RULE, MEASURED AND NOT YET ENFORCED.
+                      // Both from the same beat, so they can honestly be
+                      // divided — `lineWatched` counts only beats that HAD a
+                      // line to keep, and `lineCrossed` counts the ones where
+                      // the follow rig walked over it. If this comes back at
+                      // zero over a run of framed beats, enforcement would be
+                      // dead code that looks like a feature.
+                      $"lineWatched={FramedBeat.LineWatched} lineCrossed={FramedBeat.LineCrossed} " +
                       $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
                       $"beatChaseSecs={_beatChaseSeconds:0} beatMarker={_beatMarkerSeen} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +

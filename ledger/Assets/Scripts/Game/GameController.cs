@@ -371,22 +371,44 @@ namespace Ledger.Game
             // exclusion and leaves the layer covered.
             if (ScreenCurtain.Busy || _player == null) return;
             double weight = Feel.Clamp01((seconds - 6f) / 10.0);
-            _player.Beat.Begin(weight, SomebodyInShot());
+            var other = NearestInShot();
+            _player.Beat.Begin(weight, other != null);
+
+            // AND THE LINE THIS BEAT IS ABOUT. The 180-degree rule has been
+            // computed and never consulted since it was written; this is the
+            // first caller, and it MEASURES rather than enforces — the beat
+            // pulls in along the rig's own line and cannot cross by itself, so
+            // whether the follow rig crosses is an open question and a policy
+            // written before the answer is a threshold nobody measured.
+            var eye = Camera.main;
+            if (other != null && eye != null)
+            {
+                var a = _player.transform.position;
+                var b = other.transform.position;
+                var c = eye.transform.position;
+                _player.Beat.HoldTheLine(a.x, a.z, b.x, b.z, c.x, c.z);
+            }
         }
 
-        /// Is there a person close enough for this to be a shot about them?
-        /// A beat with nobody in frame is about the street, and the street
-        /// gets a wide.
-        bool SomebodyInShot()
+        /// The person this shot is about, or null if it is about the street.
+        ///
+        /// It returned a BOOL and now returns who, because the 180-degree rule
+        /// needs the second subject and "somebody is nearby" cannot supply a
+        /// line. NEAREST rather than first-found: the line has to be the one
+        /// the player is actually in a scene with, and picking by list order
+        /// is the fault this project found in two other places tonight.
+        NpcWalker NearestInShot()
         {
-            if (_player == null) return false;
+            if (_player == null) return null;
+            NpcWalker best = null;
+            float bestD = 10f;
             foreach (var n in _npcs)
             {
                 if (n == null || !n.isActiveAndEnabled) continue;
-                if (Vector3.Distance(n.transform.position, _player.transform.position) <= 10f)
-                    return true;
+                float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                if (d <= bestD) { bestD = d; best = n; }
             }
-            return false;
+            return best;
         }
 
         /// Quit to the main menu, under black. The city goes away and the menu

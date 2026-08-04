@@ -370,6 +370,12 @@ namespace Ledger.Game
             Beat.Tick(dt, _lastMoveInput, _lastLookInput);
             _rig.Follow(pivot.x, pivot.y, pivot.z, effort, flat.x, flat.z, dt);
             var target = new Vector3((float)_rig.X, (float)_rig.Y, (float)_rig.Z);
+            // WHERE THE RIG PUT THE CAMERA, against the line the beat is
+            // holding. Here rather than after the push, because the push moves
+            // the camera ALONG its own sight line and cannot change which side
+            // of the two speakers it stands on — measuring after it would be
+            // measuring the same point and calling it a second reading.
+            Beat.CameraMovedTo(target.x, target.z);
             if (Beat.Authority > 0.001)
             {
                 // Pull the camera in ALONG ITS OWN LINE rather than moving it

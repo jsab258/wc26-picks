@@ -247,6 +247,93 @@ namespace Ledger.Core
         /// that never runs looks exactly like one with nothing to frame.
         public static int Begun { get; private set; }
 
+        // ---- the 180-degree rule, MEASURED before it is enforced ------------
+        //
+        // `SideOfLine` and `WouldCrossTheLine` have sat on the reach ledger
+        // since they were written, under the ledger's own note: *"the 180
+        // degree rule, computed and never consulted"* and *"the one that would
+        // actually stop a bad cut"*. Three writers, no readers — rule 6.
+        //
+        // AND THE WIRING IS NOT THE FIRST STEP. The beat does not place the
+        // camera: it pulls in ALONG THE RIG'S OWN LINE, deliberately, because
+        // the rig has already solved collision and lag. So the beat cannot
+        // cross the line by itself; the FOLLOW RIG can, by orbiting as the
+        // player turns, and nobody has ever measured whether it does.
+        //
+        // Writing the enforcement first would be setting a policy against an
+        // unmeasured quantity, which is rule 2 in camera form — and if the rig
+        // turns out never to cross during a beat, the enforcement would be
+        // dead code that looks like a feature. So this counts crossings and
+        // says nothing else, and the fix (if the number asks for one) comes
+        // after a run has been read.
+
+        double _ax, _az, _bx, _bz;
+        double _camX0, _camZ0;
+        bool _watching;
+
+        /// How many beats watched a line, and how many of those saw the camera
+        /// cross it. A ratio, from one instant each — both incremented on the
+        /// same beat, so they CAN be divided.
+        public static int LineWatched { get; private set; }
+        public static int LineCrossed { get; private set; }
+
+        /// Did THIS beat's camera cross? Read by the sim per beat.
+        public bool Crossed { get; private set; }
+
+        /// The line this beat is about, and where the camera stood when it
+        /// began. A beat with nobody in it has no line to keep — the street is
+        /// not a second subject — so it simply is not watched.
+        public void HoldTheLine(double ax, double az, double bx, double bz,
+                                double camX, double camZ)
+        {
+            _watching = false;
+            Crossed = false;
+            if (!Running || !AboutAPerson) return;
+            // TWO SUBJECTS IN THE SAME PLACE HAVE NO LINE BETWEEN THEM, and
+            // the cross product would be zero however the camera moved — so a
+            // degenerate pair would report "never crosses" forever and read as
+            // a clean bill of health.
+            double dx = bx - ax, dz = bz - az;
+            if (dx * dx + dz * dz < 0.25) return;   // half a metre apart, at least
+            _ax = ax; _az = az; _bx = bx; _bz = bz;
+            _camX0 = camX; _camZ0 = camZ;
+            // STARTED ON THE LINE MEANS NO SIDE TO KEEP, and such a beat is
+            // not watched at all rather than watched and never crossing —
+            // counting it would dilute the ratio with beats that are
+            // incapable of failing, which is the "quiet gate" fault in a
+            // denominator.
+            if (Math.Abs(Framing.SideOfLine(ax, az, bx, bz, camX, camZ)) < 1e-9) return;
+            _watching = true;
+            LineWatched++;
+        }
+
+        /// The camera is here now. Latches on the FIRST crossing rather than
+        /// counting every frame it stays over there: one bad move is one bad
+        /// move, and a per-frame count would report the same mistake sixty
+        /// times a second and rank it above a hundred real ones.
+        public void CameraMovedTo(double camX, double camZ)
+        {
+            if (!_watching || Crossed || !Running) return;
+            // AGAINST WHERE THE CAMERA ACTUALLY STARTED, not a point
+            // reconstructed from the side it was on. The first version built a
+            // synthetic "from" by rotating the line — arithmetic that is only
+            // as trustworthy as my sign conventions, to feed a function whose
+            // entire job is to get those signs right. The real starting
+            // position is sitting right there and needs no derivation.
+            if (!Framing.WouldCrossTheLine(_ax, _az, _bx, _bz,
+                                           _camX0, _camZ0, camX, camZ)) return;
+            Crossed = true;
+            LineCrossed++;
+        }
+
+        // NO RESET. The obvious companion here is a `ResetLineCounters()` for
+        // test isolation, and it would be a public Core API with no caller in
+        // the game — rule 6, self-inflicted, to save the tests from doing
+        // arithmetic. The tests beside these already read `Begun` as a DELTA
+        // against what it was before, which is the same discipline and needs
+        // no surface. `WorldText.ResetCounters` is the version of this that
+        // did get written, and it has sat unreachable ever since.
+
         public void Tick(double dt, double moveMagnitude = 0, double lookMagnitude = 0)
         {
             Done = false;
