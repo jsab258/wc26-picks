@@ -430,7 +430,19 @@ namespace Ledger.Game
         /// The rung this walker's own accumulator reached, for the same
         /// reason: it exists, it is real, and the witness path recomputed a
         /// worse one from scratch.
-        public int AttentionRung => _attention.Rung;
+        ///
+        /// `Reached()` RATHER THAN `Rung`, and the difference is the whole
+        /// point of the accumulator. `Rung` is the best identification the
+        /// geometry ever ALLOWED; `Reached()` is what this person would say if
+        /// asked, and it returns 0 unless they actually NOTICED — the two come
+        /// apart for somebody who was in the right light at the right distance
+        /// and never looked long enough for it to register.
+        ///
+        /// Handing the raw rung to the witness path would let a man who walked
+        /// past without a glance carry a floor into a deed he did not attend,
+        /// which is the same shape as naming somebody through a wall and was
+        /// one field away from shipping.
+        public int AttentionRung => _attention.Reached();
 
         /// Nerve, for whether they say something rather than only look. The
         /// crowd's walkers do not all have a `Gossiper` behind them, so this
