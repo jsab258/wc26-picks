@@ -130,6 +130,43 @@ namespace Ledger.Game
             return n >= _hits.Length;
         }
 
+        /// HOW FAR TO THE NEAREST THING IN THE WAY, or -1 when nothing is.
+        ///
+        /// `Occluded` above answers a yes/no and returns on the FIRST blocking
+        /// hit it finds, which is correct and cheap for a boolean.
+        /// `RaycastNonAlloc` does not sort, so that first hit is an arbitrary
+        /// one — fine when you only asked whether any exists, wrong the moment
+        /// you want its distance. A listener localising to "a wall" rather
+        /// than "the near wall" would walk through the near one to reach it.
+        ///
+        /// So this takes the minimum, the same shape as the camera-blocking
+        /// linecast in `SimDirector`, which had it right already.
+        ///
+        /// Returns -1 when the buffer overflowed, because then there may be a
+        /// nearer hit that was never seen and a confident wrong distance is
+        /// worse than admitting none — `Perception.BelievedAt` falls back to
+        /// the heard range on anything non-positive.
+        public static float OccluderDistance(Vector3 from, Vector3 to)
+        {
+            Vector3 a = from + Vector3.up * 1.5f, b = to + Vector3.up * 1.5f;
+            Vector3 d = b - a;
+            float len = d.magnitude;
+            if (len < 0.05f) return -1f;
+            int n = Physics.RaycastNonAlloc(a, d / len, _hits, len, ~0,
+                                            QueryTriggerInteraction.Ignore);
+            if (n >= _hits.Length) return -1f;
+            float nearest = -1f;
+            for (int i = 0; i < n; i++)
+            {
+                var h = _hits[i];
+                if (h.collider == null) continue;
+                if (h.collider.GetComponentInParent<NpcWalker>() != null) continue;
+                if (h.collider.GetComponentInParent<PlayerController>() != null) continue;
+                if (nearest < 0f || h.distance < nearest) nearest = h.distance;
+            }
+            return nearest;
+        }
+
         /// THE AMBIENT FLOOR where this person is standing, which is what makes
         /// loudness relative rather than absolute. Built from things the mixer
         /// already knows: the hour, the weather, and how many people are near.
@@ -193,11 +230,18 @@ namespace Ledger.Game
         public static int LoiterNotices;      // noticed for standing about
         public static int NightRunNotices;    // noticed for running in the dark
         public static int NoiseInvestigations;// walked toward a sound
+        /// Of those, how many went to a WALL rather than to the sound —
+        /// `Perception.BelievedAt` shortening the range because the noise
+        /// arrived through something. This is the proof the belief model is
+        /// running: without it, "wired" and "wired and never triggered" are
+        /// the same green build, which is rule 6's whole complaint.
+        public static int BeliefsShortened;
         public static double PeakHush;        // deepest the street went quiet, 0..1
 
         public static void ResetCounters()
         {
             Looks = Remarks = LoiterNotices = NightRunNotices = NoiseInvestigations = 0;
+            BeliefsShortened = 0;
             PeakHush = 0;
             // AND THE SOUND STATE, which the first version of this method
             // missed while the perception gate was already reading

@@ -64,6 +64,27 @@ namespace Ledger.Game
         public static int SoundsAdmitted { get; private set; }
         public static int SoundsDropped { get; private set; }
         public static int SoundsStolen { get; private set; }
+
+        /// HOW MANY SOUNDS THE BUDGET WAS EVER SHOWN, and how many arrived
+        /// with no clip at all.
+        ///
+        /// The first run of this system read `admitted=0 dropped=0 stolen=0
+        /// peak=0`, four zeros that say "the street never got busy enough to
+        /// need a budget" and are equally consistent with "the budget was
+        /// never called" and with "every sound arrived without a clip". The
+        /// comment above says a budget that never refuses anything is
+        /// indistinguishable from one that is not wired — which was written
+        /// about `Dropped`, and then the very next reading was ambiguous in
+        /// exactly the way it warned about, because `Admit` returns on a null
+        /// clip BEFORE any counter moves.
+        ///
+        /// Same shape as a checker that scans nothing and reports zero
+        /// errors. `Offered` is the denominator that makes the other three
+        /// mean something: offered=0 is nothing calling it, noClip=offered is
+        /// silence upstream, and offered with neither is a budget refusing
+        /// everything.
+        public static int SoundsOffered { get; private set; }
+        public static int SoundsNoClip { get; private set; }
         /// The most that were ever sounding at once on one bus, and which.
         public static int SoundsPeak { get; private set; }
         public static string SoundsPeakBus { get; private set; } = "none";
@@ -77,7 +98,8 @@ namespace Ledger.Game
                           bool authored, out float gain)
         {
             gain = 1f;
-            if (clip == null) return false;
+            SoundsOffered++;
+            if (clip == null) { SoundsNoClip++; return false; }
             if (!_sounding.TryGetValue(bus, out var live))
                 _sounding[bus] = live = new List<Sounding>();
 

@@ -7328,6 +7328,7 @@ namespace Ledger.Game
                  $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
                  $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
                  $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
+                      $"beliefsShortened={Perceivers.BeliefsShortened} " +
                  $"slamInvestigations={_slamInvestigations} " +
                  $"standoffs={Standoff.Beats} awareness={Standoff.LastAwareness} " +
                  $"ringsSized={NoiseRing.Sized} ringsDrawn={NoiseRing.Shown} " +
@@ -7470,6 +7471,7 @@ namespace Ledger.Game
                       $"loiterLooks={_loiterLooks} loiterNotices={Perceivers.LoiterNotices} " +
                       $"nightRunLooks={_nightRunLooks} nightRunNotices={Perceivers.NightRunNotices} " +
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
+                      $"beliefsShortened={Perceivers.BeliefsShortened} " +
                       $"clipsAsked={Audio.DistinctClipsAsked} voicesAsked={Audio.DistinctVoicesAsked} " +
                       $"{(_game != null ? _game.Household.Report() : "household[absent]")} " +
                       $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
@@ -7606,6 +7608,8 @@ namespace Ledger.Game
                       $"contrastFailing={DialogueUI.ContrastFailing} " +
                       $"contrastWorst={DialogueUI.ContrastWorst:0.00} " +
                       $"contrastWorstWhere=[{DialogueUI.ContrastWorstWhere}] " +
+                      $"contrastTightest={DialogueUI.ContrastTightest:0.00} " +
+                      $"contrastTightestWhere=[{DialogueUI.ContrastTightestWhere}] " +
                       $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} " +
                       // BOTH POPULATIONS AND BOTH WEIGHTS. Counts alone cannot
                       // show the mechanic: two racket rumours from a capable
@@ -7818,6 +7822,8 @@ namespace Ledger.Game
                       // the gate is not in the path — and those look
                       // identical from here, which is the state this
                       // system was in for as long as it has existed.
+                      $"soundsOffered={Audio.SoundsOffered} " +
+                      $"soundsNoClip={Audio.SoundsNoClip} " +
                       $"soundsAdmitted={Audio.SoundsAdmitted} " +
                       $"soundsDropped={Audio.SoundsDropped} " +
                       $"soundsStolen={Audio.SoundsStolen} " +

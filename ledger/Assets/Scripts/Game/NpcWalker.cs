@@ -419,9 +419,38 @@ namespace Ledger.Game
                                        alreadyAlarmed: false);
             if (what == Reacted.Investigate)
             {
-                _investigateAt = Perceivers.LastSoundAt;
+                // WHERE THEY THINK IT WAS, WHICH IS NOT WHERE IT WAS.
+                //
+                // This used to be `_investigateAt = Perceivers.LastSoundAt` —
+                // the exact position of the sound, walked to precisely.
+                // Hearing cannot tell anybody that, and it is why
+                // `Perception.HeardAs` is a function rather than a comment:
+                // what a listener gets is a bearing and a range and never an
+                // identity or a point.
+                //
+                // Through a wall you localise to the wall. `BelievedAt` is
+                // not an error term with a magnitude I picked — that would be
+                // rule 2, since nothing here has ever measured how well a
+                // person places a bang. It is the geometry they actually
+                // have: the sound arrived through the nearest surface between
+                // them, so that surface is as far as they can tell.
+                //
+                // The occlusion raycast was already run above, so this is one
+                // more cast on the rare path where somebody actually decides
+                // to go and look, not on the common one.
+                Vector3 toSound = Perceivers.LastSoundAt - current;
+                float wall = occluded
+                    ? Perceivers.OccluderDistance(current, Perceivers.LastSoundAt)
+                    : -1f;
+                var believed = Perception.BelievedAt(
+                    Mathf.Atan2(toSound.x, toSound.z) * Mathf.Rad2Deg, metres,
+                    occluded, wall);
+                Vector3 dir = toSound.sqrMagnitude > 1e-6f
+                    ? toSound.normalized : transform.forward;
+                _investigateAt = current + dir * (float)believed.metres;
                 _investigateUntil = Time.time + 8f;
                 Perceivers.NoiseInvestigations++;
+                if (believed.metres < metres - 0.01) Perceivers.BeliefsShortened++;
             }
             else if (what == Reacted.Alarm)
             {

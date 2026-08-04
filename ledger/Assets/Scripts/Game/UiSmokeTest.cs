@@ -275,12 +275,20 @@ namespace Ledger.Game
         public static int ContrastChecked, ContrastFailing;
         public static double ContrastWorst = 21.0;
         public static string ContrastWorstWhere = "none";
+        /// The worst ratio among everything CHECKED, passing or not — see
+        /// `MeasureContrast`. Its default text says "nothing measured" rather
+        /// than "none" on purpose: if that string survives to the verdict, no
+        /// pair was read, and that must not look like a clean run.
+        public static double ContrastTightest = 21.0;
+        public static string ContrastTightestWhere = "nothing measured";
 
         public void MeasureContrast()
         {
             ContrastChecked = ContrastFailing = 0;
             ContrastWorst = 21.0;
             ContrastWorstWhere = "none";
+            ContrastTightest = 21.0;
+            ContrastTightestWhere = "nothing measured";
             foreach (var panel in new[] { _ledgerPanel, _dialoguePanel, _keyPanel,
                                           _pausePanel, _planPanel, _phonePanel })
             {
@@ -297,6 +305,26 @@ namespace Ledger.Game
                     double c = Typography.Contrast(f.r, f.g, f.b, b.r, b.g, b.b);
                     int points = Mathf.Max(1, t.fontSize);
                     ContrastChecked++;
+                    // THE WORST OF EVERYTHING CHECKED, not the worst FAILURE.
+                    //
+                    // `ContrastWorst` below only moves for a pair that fails,
+                    // so a clean run reports it at its initialiser of 21.0 —
+                    // the ratio of black on white, the best value there is.
+                    // The first reading was `checked=40 failing=0 worst=21.00
+                    // where=[none]`, and I read that as the instrument having
+                    // measured nothing before reading the code and finding it
+                    // correct. Forty passes and zero measurements print the
+                    // same line, which is the fault this file has now hit
+                    // three times in one morning in three different systems.
+                    //
+                    // This one is the honest headroom: how close the WORST
+                    // readable pair came, so the number moves when the UI
+                    // drifts toward the bound instead of only when it crosses.
+                    if (c < ContrastTightest)
+                    {
+                        ContrastTightest = c;
+                        ContrastTightestWhere = $"{panel.name}/{t.name}@{points}pt at {c:0.0}:1";
+                    }
                     if (!Typography.MeetsAa(c, points))
                     {
                         ContrastFailing++;
