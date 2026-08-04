@@ -1785,7 +1785,10 @@ namespace Ledger.Game
                       + $" bubblesTracked={_bubblesTracked}"
                       + $" textWalked={_textWalked}"
                       + $" textProjected={_textProjected}"
-                      + $" namesManagedEver={_namesManagedEver}"
+                      // READ AT THE END OF THE RUN, not snapshotted on a shot.
+                      // `_managed` only grows, so the run-final value is the
+                      // one that can be compared with `nameTagsOffered`.
+                      + $" namesManagedEver={NameTags.ManagedEver}"
                       + $" textNoText={_textNoText}"
                       + $" textInvisible={_textInvisible}"
                       + $" textNoRect={_textNoRect}");
@@ -2585,7 +2588,17 @@ namespace Ledger.Game
             _textInvisible = invisible;
             _textNoRect = noRect;
             _textProjected = boxes.Count + other.Count + bubbles.Count;
-            _namesManagedEver = NameTags.ManagedEver;
+            // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
+            // `CollidingNames`, which fires only on shots, so it froze the
+            // lifetime count at the LAST SHOT while `nameTagsOffered` kept
+            // peaking over the whole run. The two then disagreed impossibly:
+            // 44 labels offered in a single frame against 28 ever managed,
+            // when every offer adds to the managed set.
+            //
+            // Two numbers taken at different instants and printed side by side,
+            // in a field added this morning to stop exactly that — the rule
+            // says the number most likely to be wrong is the one you wrote an
+            // hour ago, and it was.
             // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
             // is per-call and the done-line shows the last call's value, so a
             // pair kept from an earlier call would describe a different frame
@@ -2717,7 +2730,7 @@ namespace Ledger.Game
         /// The three denominators `namesTracked=0` needed and did not have —
         /// what the scene walk saw, what survived the filters, and how many
         /// labels have ever been offered to the declutter at all.
-        int _textWalked = -1, _textProjected = -1, _namesManagedEver = -1;
+        int _textWalked = -1, _textProjected = -1;
         /// The three rejections, so `walked` and `projected` add up. A gap
         /// between two counts with nothing naming it is an invitation to guess,
         /// and the last three readings of this metric were guesses.
