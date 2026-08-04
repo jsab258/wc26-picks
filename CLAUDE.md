@@ -607,6 +607,20 @@ and three more Game-layer commits went out before the verdict came back, so
 three separate answers each moved a round trip further away. When a build comes
 back `NO PLAYER LOG`, stop dispatching and fix it first.
 
+**MEASURED PROPERLY ON 4 AUGUST, AND IT IS MUCH WORSE THAN THREE.** One wrong
+type name — `TrafficHost.` for `GameController.` — rode **18 commits and killed
+4 consecutive builds**. Every one of those builds was dispatched to answer a
+different live question: whether the texture extraction worked, whether foot IK
+ran, whether the typography change landed, whether the loiter guard held. All
+four came back `NO PLAYER LOG` and answered nothing.
+
+The multiplier is auto mode itself. Dispatching in parallel is right and it
+means a compile error is not one lost round trip but every round trip until it
+is noticed — and `NO PLAYER LOG` looks identical whether the cause is a compile
+error or a licence seat, so the instinct is to blame contention and dispatch
+again. **Read the COMPILE ERRORS block in the verdict before re-dispatching. It
+is printed there for this exact case.**
+
 **You can SEE and READ the game — use it.** Every Windows build commits four
 stills and a verdict to `game-design/sim-shots/`, overwritten each run:
 
