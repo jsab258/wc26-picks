@@ -7700,6 +7700,19 @@ namespace Ledger.CoreTests
             Check(again != null && again.Terms == ring.Terms,
                 "and asking twice gives the same call, not a second roll");
 
+            // SHE RINGS IN THE EVENING, WHATEVER HOUR THE QUESTION IS ASKED.
+            // The day turns at eight in the morning, so hanging the call on
+            // that hour would have her telephoning a publican at eight a.m.
+            // about a share of his rackets — and would ask a callbox whether it
+            // was live at an hour it is not, making the miss the world's fault
+            // rather than the player's.
+            Check(ring.Hour == Summoning.RingsAtHour && ring.Hour >= 18,
+                "she rings in the evening even when asked at the day's close",
+                $"asked at 20, rings at {ring.Hour}");
+            var atDawn = Summoning.Due(kest, 5, 8);
+            Check(atDawn != null && atDawn.Hour == ring.Hour,
+                "and asking at eight in the morning does not move it");
+
             // THE ORDERING IS THE DESIGN. Magnitudes are authored; what is
             // asserted is that taking the call is the only answer that can gain
             // standing, that refusing to her face costs most, and that missing

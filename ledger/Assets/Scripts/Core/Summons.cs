@@ -72,6 +72,22 @@ namespace Ledger.Core
         /// into contradicting each other about how often she moves.
         public const int DaysBetween = 3;
 
+        /// WHAT TIME SHE RINGS, AND IT IS NOT WHEN THE DAY CLOSES.
+        ///
+        /// The day turns at eight in the morning — that is the instant the till
+        /// is counted and the fuse advances — and hanging the call on that hour
+        /// would have Sera Kest telephoning a publican at eight a.m. about a
+        /// share of his rackets. Wrong for the fiction, and wrong mechanically
+        /// too: `Phone.LiveAt` closes a callbox outside its hours, so a call
+        /// placed at eight would find the player unreachable for a reason that
+        /// has nothing to do with where he was standing, and the miss would be
+        /// the world's fault rather than his.
+        ///
+        /// Nine in the evening: after the bar is busy and before it closes, so
+        /// a player who is behind his own counter is reachable and one who is
+        /// out on the street at night is taking a risk he chose.
+        public const int RingsAtHour = 21;
+
         /// Has this arm reason to ring today?
         ///
         /// DETERMINISTIC, and that is deliberate rather than convenient. A roll
@@ -79,6 +95,10 @@ namespace Ledger.Core
         /// phone rang, which is exactly the kind of thing this game must never
         /// do — the whole design turns on the player being able to believe that
         /// what happened followed from what they did.
+        /// `hour` is the hour the CALLER is asking at, not the hour she rings —
+        /// the returned call carries `RingsAtHour`. Kept as a parameter so a
+        /// caller that wants to ask about a specific evening can, and so the
+        /// signature does not silently start meaning something else.
         public static Summons Due(RivalArm arm, int day, int hour)
         {
             if (arm == null) return null;
@@ -90,7 +110,7 @@ namespace Ledger.Core
                 ArmId = arm.Id,
                 HeadName = arm.HeadName,
                 Day = day,
-                Hour = hour,
+                Hour = RingsAtHour,
                 Terms = TermsFor(arm),
             };
         }

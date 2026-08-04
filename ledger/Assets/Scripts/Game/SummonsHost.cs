@@ -12,12 +12,20 @@ namespace Ledger.Game
     /// a missing call site. Sixty-one public Core APIs were once found in that
     /// state at once.
     ///
-    /// WHY THE DAY CLOSE. She rings in the evening — this is the moment the
-    /// till is counted and the fuse advances, so it is the one instant every
-    /// other system in the game agrees is "a day". Putting the call anywhere
-    /// else would give the rival a clock of her own, which is the two-clocks
-    /// shape that has already cost this project the arms, the billboards and
-    /// the foot plant.
+    /// WHY THE DAY CLOSE, AND WHY THAT IS NOT THE HOUR SHE RINGS. The close is
+    /// the one instant every system in the game agrees is "a day" — the till is
+    /// counted and the fuse advances there — so it is where the question gets
+    /// ASKED. Giving the rival a timer of her own would be a second clock for
+    /// one idea, which has already cost this project the arms, the billboards
+    /// and the foot plant.
+    ///
+    /// But the close fires at eight in the morning, and she telephones at nine
+    /// at night. This paragraph said "she rings in the evening — this is the
+    /// moment the till is counted" and was wrong the hour after it was written:
+    /// those are different times and the code now says so. The call is
+    /// evaluated at the close and DATED to the evening it belongs to, which
+    /// matters mechanically as well as in the fiction — a callbox is only live
+    /// inside its own hours.
     ///
     /// WHAT ANSWERS THE CALL IN CI. Nobody. There is no player to pick up, and
     /// that is the honest state rather than a limitation to work around: the
@@ -69,8 +77,17 @@ namespace Ledger.Game
             // at it. `GameController.NearPhone` is that test and has been
             // running for weeks; this is the first thing that asks it about
             // the PLAYER rather than about somebody being rung.
+            //
+            // ASKED AT THE HOUR SHE RINGS, NOT THE HOUR THE DAY TURNS. The day
+            // closes at eight in the morning; she calls at nine at night. A
+            // callbox is only live inside its own hours, so asking at eight
+            // would report the player unreachable for a reason that has nothing
+            // to do with where he was standing — the miss would be the world's
+            // fault rather than his, which is the one thing that would make
+            // this mechanic feel arbitrary instead of chosen.
+            var atRing = new GameTime(game.Now.Day, Summoning.RingsAtHour, 0);
             bool reachable = game.Phones != null
-                && game.Phones.ReachableNow("player", game.Now, game.NearPhone);
+                && game.Phones.ReachableNow("player", atRing, game.NearPhone);
 
             // TWO OUTCOMES HERE AND THREE IN THE MODEL, said out loud so the
             // missing one is a known gap rather than a silent simplification.
