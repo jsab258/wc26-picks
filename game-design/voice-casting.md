@@ -1,6 +1,7 @@
 # Voice casting
 
-> **STATUS — LIVE, verified 2026-07-31.** who sounds like what, and the 19 cast voices.
+> **STATUS — LIVE, verified 2026-08-04.** who sounds like what, the 19 cast voices,
+> and what actually generates the audio.
 > Kept current. If it is wrong, that is a bug in this file.
 
 ## CAST — all nineteen, 2026-07-31
@@ -44,8 +45,55 @@ exists for, confirmed against real picks rather than a fixture.
 voice the age filter discarded on the morning of the 31st for being two decades
 short of a fifties brief. The whole day turned on that filter being wrong.
 
-**Still uncast: 15 named characters**, Ossei among them, and he is an Act III
-condition. They fall through to a crowd voice rather than throwing, so the
+## HOW THE AUDIO GETS MADE — added 2026-08-04, because it was asked twice
+
+This file said who sounds like what and never said what turns that into sound,
+so the question had to be answered out of `production-plan-audio-art.md` twice
+in one week. It belongs here too.
+
+**Engine: chatterbox. Local, on Jafar's machine, $0, no API.** Decided
+2026-07-28 on the direction test — §1i of the production plan is headed
+"DECIDED", and the benchmark ran four engines: piper as the deliberate control
+floor, kokoro, xtts and chatterbox. Three failed the direction test
+identically; one passed. Jafar's own verdicts: *"chatterbox sounds pretty
+good"*, bored-vs-grave *"different with chatterbox"*, ten lines in one voice
+*"was, alive"*, and *"don't like the actual voice"*.
+
+**That last verdict is why the table above exists.** The reference clip decides
+IDENTITY and the engine's exaggeration parameter decides DIRECTION — bored 0.25
+through urgent 0.85. So the model's own voice is never heard; it wears one of
+the nineteen picked above.
+
+**There is nothing to record.** The nineteen clips in
+`game-design/picked-clips/` are the reference audio, and they are VCTK speakers
+who donated their voices to speech research. Jafar, 2026-07-31: *"free
+obviously. i won't be recording anything."*
+
+**The one number nobody has: seconds per clip on his GPU.** Everything else
+about the pipeline is decided. The plan's own first step is a run that
+generates twenty clips and reports the rate, and until that lands any schedule
+for the bark bank is a guess.
+
+---
+
+## Who is still uncast — RE-COUNTED 2026-08-04, and it was two numbers
+
+**`verify.py` reports 4 and this file said 15, and both were right about
+different sets.** That is unreadable, so: `tools/voice-cast-check.py` walks the
+TIER-1 ids only — ten of them — and reports **Aldous Vane, Danny Ro, June and
+Zlata** as the four principals with no cast voice. The fifteen this file used
+to claim was a count over all named characters, taken on 31 July and never
+re-taken.
+
+**Ossei is uncast and is not in either list**, which is the sharpest reason to
+write this down: he has no id in `VoiceBank` at all, so the tier-1 check cannot
+see him, and he is an Act III condition. Checked directly rather than inferred
+from a count.
+
+The whole-roster figure is deliberately not restated here until something
+counts it, because a number nobody has re-measured is worse than no number.
+
+Uncast characters fall through to a crowd voice rather than throwing, so the
 symptom is a named character quietly sounding like a passer-by.
 
 ---
