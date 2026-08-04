@@ -2953,9 +2953,30 @@ namespace Ledger.Game
                 }
                 int distinct = Witnesses.DistinctSlotSets();
                 if (distinct > _deedSlotSets) _deedSlotSets = distinct;
-                if (Witnesses.Saw > _deedWitnesses) _deedWitnesses = Witnesses.Saw;
-                if (Witnesses.EyesOpen > _deedEyesOpen) _deedEyesOpen = Witnesses.EyesOpen;
-                if (Witnesses.KnowsYou > _deedKnowsYou) _deedKnowsYou = Witnesses.KnowsYou;
+                // ONE DEED'S BREAKDOWN, NOT THREE SEPARATE MAXIMA.
+                //
+                // These print adjacent — `deedWitnesses=53 deedEyesOpen=50
+                // deedKnowsYou=41` — and that reads unavoidably as "of the 53
+                // who saw it, 50 had their eyes open and 41 knew you". Taken
+                // independently the subset relationship is not guaranteed: the
+                // deed with the most witnesses need not be the deed with the
+                // most open eyes, and the trio could describe three different
+                // events while looking like one.
+                //
+                // Fourth site of peaks-from-different-instants found tonight,
+                // and the first that predates me. The sweep that found it was
+                // mechanical — list every field assigned by a max, then ask
+                // which of them are printed next to each other — which is the
+                // only reason it turned up rather than being tripped over.
+                //
+                // Anchored on the widest-witnessed deed, because that is the
+                // event the line is describing.
+                if (Witnesses.Saw > _deedWitnesses)
+                {
+                    _deedWitnesses = Witnesses.Saw;
+                    _deedEyesOpen = Witnesses.EyesOpen;
+                    _deedKnowsYou = Witnesses.KnowsYou;
+                }
                 if (Witnesses.BestRung() > _deedBestRung) _deedBestRung = Witnesses.BestRung();
                 Debug.Log($"SimDirector: staged deed #{_deedsStaged} "
                           + $"({Witnesses.Considered} considered, {Witnesses.Saw} got something, "
