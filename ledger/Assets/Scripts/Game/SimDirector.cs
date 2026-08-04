@@ -8678,6 +8678,8 @@ namespace Ledger.Game
                       $"ikGroundMissed={FootIk.GroundMissed} " +
                       $"ikWorstDrop={FootIk.WorstDrop:0.000} " +
                       $"ikWorstHit=[{FootIk.WorstHit}] " +
+                      $"ikPlantedGoals={FootIk.PlantedGoals} " +
+                      $"ikPlantedMedian={FootIk.PlantedMedian:0.000} " +
                       // AND THE LEG THE CORRECTION IS MEASURED AGAINST,
                       // because eighteen centimetres means nothing until
                       // you know whether the leg is 0.88m or 0.38m. It was

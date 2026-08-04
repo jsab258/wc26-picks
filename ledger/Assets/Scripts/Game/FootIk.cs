@@ -91,6 +91,14 @@ namespace Ledger.Game
         /// height, which reads as "no correction needed" and is not the same
         /// thing.
         public static int GroundMissed;
+        /// Goals where the blend said the foot was planted, and the middle of
+        /// their corrections. A planted foot ought to be on the ground; a
+        /// swinging one ought not, and mixing them is what makes the overall
+        /// median unable to accuse anything.
+        public static int PlantedGoals;
+        public static double PlantedMedian = -1;
+        static readonly System.Collections.Generic.List<float> _planted =
+            new System.Collections.Generic.List<float>();
         public static double CorrectionMedian = -1;
 
         /// STRIDED AND CAPPED, AND IT SAYS SO. Two feet on sixty-seven bodies
@@ -114,6 +122,9 @@ namespace Ledger.Game
             CorrectionWorst = 0;
             CorrectionMedian = -1;
             _corrections.Clear();
+            _planted.Clear();
+            PlantedGoals = 0;
+            PlantedMedian = -1;
             _seen = 0;
         }
 
@@ -127,6 +138,12 @@ namespace Ledger.Game
             var copy = new System.Collections.Generic.List<float>(_corrections);
             copy.Sort();
             CorrectionMedian = copy[(copy.Count - 1) / 2];
+            if (_planted.Count > 0)
+            {
+                var pl = new System.Collections.Generic.List<float>(_planted);
+                pl.Sort();
+                PlantedMedian = pl[(pl.Count - 1) / 2];
+            }
         }
 
         /// Attached by `CharacterRig`, which owns the phase and the leg length.
@@ -244,6 +261,36 @@ namespace Ledger.Game
             if (System.Math.Abs(ground - animated.y) > Rig.MaxFootAdjustMetres) Clamped++;
             if (_seen++ % Stride == 0 && _corrections.Count < MaxSamples)
                 _corrections.Add((float)correction);
+
+            // AND THE SAME NUMBER FOR A FOOT THAT IS SUPPOSED TO BE PLANTED,
+            // which is the one that can accuse the blend rather than the body.
+            //
+            // The ray is innocent: `ikWorstHit=[Road_10]` and
+            // `ikGroundMissed=0`, so it finds the road every time and my prime
+            // suspect — the body's own capsule — was wrong. What is left is
+            // that the animated foot really is up to half a metre above the
+            // road (`ikWorstDrop=0.498`) and typically a fifth of one.
+            //
+            // A SWINGING foot SHOULD be off the ground, and `PlantBlend`
+            // correctly asks for no correction there, so those samples belong
+            // in the median and drag it nowhere. A PLANTED foot should be ON
+            // it. So the planted-only median is the discriminating number: if
+            // it is small, the body is fine and the overall median is just the
+            // walk cycle; if it is as large as the overall one, the IK is being
+            // applied at the wrong moments.
+            //
+            // THE SUSPECT THIS TESTS. `Rig.PlantBlend` is driven by
+            // `CharacterRig.Phase` — the PROCEDURAL gait phase — while the foot
+            // position comes from a Mixamo CLIP with its own timing. Those two
+            // are independent, so "planted" can land anywhere in the clip's
+            // cycle. That would be one idea with two clocks, which is this
+            // project's most repeated shape.
+            if (blend > 0.9)
+            {
+                PlantedGoals++;
+                if (_seen % Stride == 0 && _planted.Count < MaxSamples)
+                    _planted.Add((float)correction);
+            }
             Goals++;
 
             _animator.SetIKPositionWeight(goal, (float)blend);
