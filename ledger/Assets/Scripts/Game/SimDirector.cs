@@ -9516,6 +9516,14 @@ namespace Ledger.Game
                       // which third — and zero shops at noon is a fault while zero
                       // at four in the morning is the point.
                       $"windowsShop={WorldBuilder.WindowsShop} " +
+                      // AND `windowsShopLit=0` IS NOT THE FAULT IT LOOKS LIKE.
+                      // It has read zero in all 131 kept runs — `gates.py
+                      // --constant` — and that is the LAST-WINS value, written
+                      // at whatever hour the run happened to end, which is
+                      // after midnight every time. The reading that describes a
+                      // picture is `windowsShopLitAtShot`, latched when the
+                      // night still was taken, with `windowsHourAtShot` beside
+                      // it: 154 of 517 at 23:00 on the last build. Read those.
                       $"windowsShopLit={WorldBuilder.WindowsShopLit} " +
                       // AND THE SAME THREE AT THE MOMENT THE NIGHT FRAME WAS
                       // TAKEN, which is the only instant any of this is ever
