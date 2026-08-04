@@ -87,7 +87,32 @@ namespace Ledger.Game
         void Apply()
         {
             if (_group == null) return;
-            _group.alpha = (float)Menus.EaseIn(Fade.Alpha);
+            // TWO CURVES, WHICH IS WHAT CORE SAYS AND WHAT THIS LINE DID NOT DO.
+            //
+            // `Menus` states the intent in one sentence: *"Ease-out on the way
+            // in (fast start, gentle landing) and ease-in on the way out."*
+            // This applied `EaseIn` in BOTH directions, so `Menus.EaseOut` has
+            // sat on the reach ledger since it was written — and its entry
+            // there was pointing at the right gap while describing it slightly
+            // wrong. It is not that the panels never use the menu easing; they
+            // use exactly half of it.
+            //
+            // WHY IT MATTERS RATHER THAN BEING SYMMETRY FOR ITS OWN SAKE. A
+            // panel arriving should commit immediately and settle — the player
+            // asked for it and wants to see it. A panel leaving should let go
+            // gently and then get out of the way, because the thing the player
+            // now wants is BEHIND it. Running the arrival curve backwards makes
+            // a dismissal linger at the exact moment it is in the way, which is
+            // one of the two or three things that make a menu feel slow while
+            // every duration in it is correct.
+            //
+            // `Wanted` is the direction and it is already on the state: it is
+            // true from the tick `Show` is called and false from the tick
+            // `Hide` is, so a panel reversed mid-transition switches curve at
+            // the same instant it switches target. Reading a separate direction
+            // flag would be a second copy of that fact.
+            _group.alpha = (float)(Fade.Wanted ? Menus.EaseIn(Fade.Alpha)
+                                               : Menus.EaseOut(Fade.Alpha));
             _group.interactable = Fade.Interactable;
             _group.blocksRaycasts = Fade.Interactable;
             if (_rect != null && _homeKnown && Fade.RisePixels > 0)
