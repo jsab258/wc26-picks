@@ -686,14 +686,34 @@ namespace Ledger.Game
                     AssetLibrary.Metal);
                 // And the run down to the deck below — one diagonal box, which
                 // at this distance is a flight of stairs.
+                //
+                // THE TILT AXIS IS PERPENDICULAR TO THE TRAVEL, AND I WROTE IT
+                // THE OTHER WAY ROUND FIRST. A fire escape's stair descends
+                // ALONG the wall, so it drops in y while moving in `along` —
+                // which means the rotation axis is the third one, `back`. My
+                // first version rotated around `right` when `along` was x,
+                // which tilts the stair in the plane it is already flat in and
+                // leans it out of the wall instead of down it. Both branches
+                // were inverted, in exactly the way the foot-plant phases were
+                // this morning, and for the same reason: a ternary on an axis
+                // reads as correct whichever way round it is written.
+                //
+                // Derived rather than branched, so there is nothing to invert:
+                // `back` IS the perpendicular, it is already a unit vector, and
+                // the sign of the lean follows the sign of `along`.
+                // LONG IN THE DIRECTION IT TRAVELS, which is `along`, and
+                // narrow across. Getting this the other way round makes a plank
+                // lying sideways that the rotation then stands on its edge —
+                // and it would have looked like a fire escape from far enough
+                // away to pass a still, which is the worst kind of wrong.
+                bool alongX = Mathf.Abs(along.x) > 0.5f;
+                float runLen = floorH * 1.1f;
                 var run = MakeBox($"Escape_{tag}_run{f}",
                     at + new Vector3(0, y - floorH * 0.5f, 0),
-                    new Vector3(Mathf.Abs(along.x) > 0.5f ? 0.7f : depth * 0.8f, 0.06f,
-                                Mathf.Abs(along.x) > 0.5f ? depth * 0.8f : 0.7f),
+                    new Vector3(alongX ? runLen : 0.7f, 0.06f,
+                                alongX ? 0.7f : runLen),
                     AssetLibrary.Metal);
-                run.transform.rotation = Quaternion.AngleAxis(
-                    Mathf.Abs(along.x) > 0.5f ? 42f : -42f,
-                    Mathf.Abs(along.x) > 0.5f ? Vector3.right : Vector3.forward);
+                run.transform.rotation = Quaternion.AngleAxis(42f, back);
                 FireEscapes++;
             }
         }
