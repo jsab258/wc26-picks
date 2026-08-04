@@ -178,6 +178,85 @@ namespace Ledger.Game
             foreach (var r in changed) ApplyBand(r, reach);
         }
 
+        /// SPEND THE SKINNED-BODY BUDGET ON THE NEAREST, NOT ON THE FIRST.
+        ///
+        /// WHAT THIS REPLACES. `NpcWalker.Spawn` used to attach a real body to
+        /// the first twelve walkers that asked and leave everybody else a
+        /// mannequin for the rest of the run, so the twelve went by SPAWN ORDER
+        /// — the woman standing in front of you could be a box while a skinned
+        /// mesh was being drawn four districts away. The cap itself was earned:
+        /// forty-four bodies took skinned vertices from 16,338 to 1,037,694 and
+        /// the frame gate went red, and the geometry says that is real work
+        /// rather than a GPU-less runner's noise. What was wrong was WHO got
+        /// them.
+        ///
+        /// THE BAND IS `Population`'s, NOT A SECOND ONE. `NearMetres` and
+        /// `BandSlack` already define "near the player" for the crowd, with
+        /// hysteresis, and were set from measurement. Inventing a second
+        /// distance here would be one idea with two implementations, which is
+        /// this project's most repeated fault — and the two would then drift
+        /// silently, so a walker could be near enough to talk to and too far
+        /// for a face.
+        ///
+        /// ONCE A SECOND, NOT ONCE A FRAME. The decision is one distance per
+        /// walker and costs nothing; the ACT is a prefab instantiate, and doing
+        /// that on a frame boundary is how a fix for a frame budget becomes a
+        /// frame budget problem.
+        void TickBodyDetail(Vector3 playerPos)
+        {
+            if (Populace == null || _npcs.Count == 0) return;
+            if (Time.time < _nextBodyLod) return;
+            _nextBodyLod = Time.time + BodyLodSeconds;
+            BodyLodPasses++;
+
+            _bodyRank.Clear();
+            foreach (var n in _npcs)
+            {
+                if (n == null || !n.WantsRealBody) continue;
+                float dx = n.transform.position.x - playerPos.x;
+                float dz = n.transform.position.z - playerPos.z;
+                _bodyRank.Add((n, dx * dx + dz * dz));
+            }
+            BodyLodEligible = _bodyRank.Count;
+            if (_bodyRank.Count == 0) return;
+            _bodyRank.Sort((a, b) => a.d2.CompareTo(b.d2));
+
+            // SQUARED, AND THE SLACK GOES ON THE WALKER THAT ALREADY HAS ONE.
+            // That is what makes the boundary sticky: somebody wearing a body
+            // keeps it out to 40m, somebody without one has to come inside 34m
+            // to earn it, so a walker hovering at the line does not trade a
+            // prefab instantiate back and forth every pass.
+            double near = Populace.NearMetres, slack = Populace.BandSlack;
+            double keep = (near + slack) * (near + slack);
+            near *= near;
+
+            int spent = 0;
+            int wanted = 0;
+            foreach (var (n, d2) in _bodyRank)
+            {
+                bool has = n.HasRealBody;
+                bool inBand = d2 <= (has ? keep : near);
+                bool want = inBand && spent < NpcWalker.RealBodyCap;
+                if (want) { spent++; wanted++; }
+                n.SetRealBody(want);
+            }
+            BodyLodNear = wanted;
+        }
+
+        float _nextBodyLod = -1f;
+        /// A PASS A SECOND. Slower than the crowd's rebanding on purpose: that
+        /// one moves who EXISTS and has to keep up with walking, this one moves
+        /// how somebody is DRAWN and a second of being a mannequin while you
+        /// approach is not something a player can see.
+        const float BodyLodSeconds = 1f;
+        readonly List<(NpcWalker n, float d2)> _bodyRank = new List<(NpcWalker, float)>();
+
+        /// THE DENOMINATORS, because `bodyLodNear=0` on its own cannot tell a
+        /// street with nobody on it from a pass that never ran. `Passes` says
+        /// the pass ran, `Eligible` says there was anybody to consider, `Near`
+        /// says how many of them were close enough and inside the budget.
+        public static int BodyLodPasses, BodyLodEligible, BodyLodNear;
+
         /// Distance from the player to wherever this resident's routine has them
         /// right now. Cheap, and it means the crowd around you is the crowd that
         /// would actually be there at this hour.

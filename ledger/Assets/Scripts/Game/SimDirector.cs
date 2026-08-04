@@ -8616,6 +8616,29 @@ namespace Ledger.Game
                       $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +
                       $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +
+                      // BODY LOD, AND `walkerBodies` ABOVE IS NOW A LIFETIME
+                      // COUNT RATHER THAN A HEADCOUNT. It was both while a
+                      // walker chose its body once at spawn; with a budget that
+                      // moves, attachments accumulate and the number of bodies
+                      // currently worn is `walkerBodies - walkerBodiesOff`.
+                      // Saying so here because the metric did not change its
+                      // name when the question it answers moved, which is the
+                      // drift that has already cost this project three wrong
+                      // readings.
+                      $"walkerBodiesOff={RealBody.Detached} " +
+                      $"bodyLodPasses={GameController.BodyLodPasses} " +
+                      $"bodyLodEligible={GameController.BodyLodEligible} " +
+                      $"bodyLodNear={GameController.BodyLodNear} " +
+                      // THE THRASH READING. No dwell time has been invented to
+                      // bound these — the band already carries six metres of
+                      // hysteresis and whether that is enough is a measurement,
+                      // not a guess. Grants roughly matching how many people
+                      // walked past is the working case; thousands is thrash,
+                      // and then a dwell time can come from the series.
+                      $"bodyGrants={NpcWalker.BodyGrants} " +
+                      $"bodyRevokes={NpcWalker.BodyRevokes} " +
+                      $"bodyGrantsFailed={NpcWalker.BodyGrantsFailed} " +
+                      $"bodyGrantWhy=[{NpcWalker.BodyGrantWhy}] " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
                       $"bindPoseRead={RealBody.BindPoseRead} " +

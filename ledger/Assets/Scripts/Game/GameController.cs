@@ -735,7 +735,14 @@ namespace Ledger.Game
             // Level of detail before ticking, so a walker spawned this frame
             // starts from the right place rather than the origin.
             using (Perf.Time("population"))
-                TickPopulation(_player != null ? _player.transform.position : Vector3.zero);
+            {
+                var at = _player != null ? _player.transform.position : Vector3.zero;
+                TickPopulation(at);
+                // Body LOD inside the same scope and after the rebanding, so a
+                // walker spawned by this pass is considered for a face in the
+                // same frame it appears rather than a second later.
+                TickBodyDetail(at);
+            }
             using (Perf.Time("npcs"))
                 for (int i = _npcs.Count - 1; i >= 0; i--)
                 {

@@ -89,7 +89,17 @@ namespace Ledger.Game
         {
             if (host == null) return null;
             var existing = host.GetComponent<Mannequin>();
-            if (existing != null) return existing;
+            // ASSEMBLED, NOT MERELY PRESENT — and the distinction is the whole
+            // of what makes a runtime body swap safe.
+            //
+            // Unity defers `Destroy` to the end of the frame, so a component
+            // torn down and rebuilt in one frame is still found by
+            // `GetComponent` here. The old `if (existing != null) return` would
+            // hand back the husk and the walker would be INVISIBLE — no
+            // mannequin, no skinned body, and nothing in this project measures
+            // invisibility. So `Teardown` leaves the component in place and
+            // drops its pieces, and this asks whether the pieces are there.
+            if (existing != null && existing.Assembled) return existing;
 
             // The capsule mesh goes. Its renderer, not the object — anything
             // holding a reference to the transform still has one.
@@ -98,10 +108,56 @@ namespace Ledger.Game
             var ownMesh = host.GetComponent<MeshFilter>();
             if (ownMesh != null) Destroy(ownMesh);
 
-            var m = host.AddComponent<Mannequin>();
+            var m = existing != null ? existing : host.AddComponent<Mannequin>();
+            m.enabled = true;
             m.Shape = Physique.For(string.IsNullOrEmpty(who) ? host.name : who);
             m.Assemble(skin, cloth);
             return m;
+        }
+
+        /// Is there a body under this component, or only the component?
+        ///
+        /// `Hips` is the test rather than a bool, because a flag is a second
+        /// record of the same fact and the two drift — the shape this project
+        /// has already paid for in the label set and the walker body count.
+        public bool Assembled => Hips != null;
+
+        /// Take the mannequin's pieces off and leave the host ready for a
+        /// skinned body, without destroying the component.
+        ///
+        /// THE COMPONENT STAYS ON PURPOSE. Destroying it and adding another in
+        /// the same frame leaves two on the object — Unity's `Destroy` is
+        /// deferred, so `AddComponent` runs while the first is still there and
+        /// `GetComponent` afterwards may return either. Keeping one and
+        /// emptying it has neither problem and is less code.
+        ///
+        /// Deactivated before destroying for the same reason `RealBody.Detach`
+        /// does it: end-of-frame destruction means the old body renders through
+        /// the frame the new one is built in.
+        public static void Teardown(GameObject host)
+        {
+            var m = host != null ? host.GetComponent<Mannequin>() : null;
+            if (m == null || !m.Assembled) return;
+            // REACHED THROUGH `Hips`, NOT BY `Find("Body")`. A destroyed child
+            // survives to the end of the frame and `Transform.Find` returns
+            // INACTIVE children, so a name lookup here can hand back the corpse
+            // of the body this method just deactivated and leave the live one
+            // standing. The joint chain cannot: `Hips.parent` is by
+            // construction the wrapper this mannequin actually built.
+            var body = m.Hips.parent;
+            if (body != null && body != m.transform)
+            {
+                body.gameObject.SetActive(false);
+                Destroy(body.gameObject);
+            }
+            // EVERY JOINT NULLED, because `CharacterRig` binds to these and a
+            // stale `Hips` pointing at a destroyed transform is the one thing
+            // that would make `Assembled` lie in the direction that costs a
+            // body.
+            m.Hips = m.Chest = m.Neck = m.Head = null;
+            m.LThigh = m.LShin = m.LFoot = m.RThigh = m.RShin = m.RFoot = null;
+            m.LUpperArm = m.LForearm = m.RUpperArm = m.RForearm = null;
+            m.enabled = false;
         }
 
         void Assemble(Color skin, Color cloth)

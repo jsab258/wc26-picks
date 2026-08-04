@@ -468,6 +468,44 @@ namespace Ledger.Game
         public static int Extra, ExtraFailed;
         public static string ExtraWhy = "none asked for";
 
+        /// THE NAME OF THE CHILD, IN ONE PLACE. A detach that looks for a
+        /// different string is a leak that reads as a working swap: the old
+        /// skinned mesh stays in the scene, still costing its 23,000 vertices,
+        /// while a mannequin is built on top of it and every counter says the
+        /// body came off. One idea, one spelling.
+        public const string ChildName = "RealBody";
+
+        /// Is this host currently wearing one? Asked rather than remembered,
+        /// because the walker's own flag and the scene are two records of one
+        /// fact and they drift the moment anything else destroys the child.
+        public static bool Wearing(GameObject host) =>
+            host != null && host.transform.Find(ChildName) != null;
+
+        /// How many skinned bodies have been taken off again. `Extra` counts
+        /// attachments over the whole run and keeps doing so, because a
+        /// lifetime count and a live one answer different questions and this
+        /// project has merged them before. Live is `Extra - Detached`.
+        public static int Detached;
+
+        /// Take the skinned body off and leave the host ready for a mannequin.
+        ///
+        /// DEACTIVATED BEFORE BEING DESTROYED, and that is not belt and braces.
+        /// Unity defers `Destroy` to the end of the frame, so a body torn down
+        /// and replaced in the same frame is still rendering when the
+        /// replacement is built — two bodies in one silhouette for a frame,
+        /// which on a swap that happens as somebody walks toward you is exactly
+        /// when it would be seen.
+        public static bool DetachExtra(GameObject host)
+        {
+            if (host == null) return false;
+            var child = host.transform.Find(ChildName);
+            if (child == null) return false;
+            child.gameObject.SetActive(false);
+            Object.Destroy(child.gameObject);
+            Detached++;
+            return true;
+        }
+
         /// A body for somebody other than the player. Same path, same dressing,
         /// same scaling — and none of the readings.
         public static bool TryAttachExtra(GameObject host, float targetHeightMetres,
@@ -512,7 +550,7 @@ namespace Ledger.Game
 
             var body = Object.Instantiate(prefab, host.transform);
             if (body == null) { Why = "instantiate returned null"; return false; }
-            body.name = "RealBody";
+            body.name = ChildName;
 
             // AND THE CAPSULE GOES, which this did not do and `Mannequin.Build`
             // has always done.

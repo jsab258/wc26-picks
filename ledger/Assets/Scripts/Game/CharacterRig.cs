@@ -115,6 +115,16 @@ namespace Ledger.Game
         /// below rather than the body above.
         void Bind()
         {
+            // THE REST POSE BELONGS TO A BODY, AND THE BODY CAN CHANGE UNDER
+            // US. `_restCaptured` was set once and never cleared, which was
+            // correct while a walker's body was chosen at spawn and kept for
+            // ever. Body LOD swaps a mannequin for a skinned mesh at runtime,
+            // and the stored rest rotations are then a previous skeleton's,
+            // applied to transforms that have nothing to do with them — a body
+            // that binds successfully and stands wrong, which is the failure
+            // mode hardest to see in a still.
+            _restCaptured = false;
+            _posed = false;
             _animator = GetComponentInChildren<Animator>();
             if (_animator != null && _animator.avatar != null && _animator.avatar.isHuman)
             {

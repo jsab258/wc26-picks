@@ -136,6 +136,85 @@ namespace Ledger.Game
         public const int RealBodyCap = 12;
         public static int RealBodies;
 
+        /// SWAPS, BOTH WAYS, AND THE FAILURES. A body budget spent on the
+        /// nearest twelve can thrash: two walkers a centimetre apart at the cap
+        /// boundary would trade a skinned mesh back and forth every pass, which
+        /// costs a prefab instantiate each time and would show up as frame cost
+        /// rather than as anything visibly wrong.
+        ///
+        /// NO COOLDOWN CONSTANT, DELIBERATELY. The obvious fix is a minimum
+        /// dwell time, and picking one now would be inventing a threshold
+        /// before measuring the thing it bounds — rule 2, exactly. The band
+        /// already carries `Population.BandSlack` of hysteresis, which may well
+        /// be enough. These counters are how the next run says whether it is:
+        /// swaps roughly equal to the number of people who walked past is
+        /// normal, swaps in the thousands is thrash and then a dwell time can
+        /// be chosen from the series rather than guessed.
+        public static int BodyGrants, BodyRevokes, BodyGrantsFailed;
+        public static string BodyGrantWhy = "none asked for";
+
+        bool _wantsRealBody;
+        Color _skin, _cloth;
+
+        /// Is this walker eligible for a skinned body at all? The anonymous
+        /// crowd is not, by choice rather than by budget — mannequins read
+        /// perfectly well at the distance the crowd is ever seen, and bounding
+        /// the skinned set to the named cast means the cost is a number
+        /// somebody chose rather than whatever the population happened to be.
+        public bool WantsRealBody => _wantsRealBody;
+        public bool HasRealBody => RealBody.Wearing(gameObject);
+
+        /// Swap this walker between a skinned body and a mannequin.
+        ///
+        /// RETURNS WHETHER THE STATE CHANGED, not whether it is now what was
+        /// asked for. A grant that fails leaves a working mannequin and must
+        /// not be counted as a grant, or the next pass reads the budget as
+        /// spent and the nearest person stays a box for ever while a counter
+        /// says twelve bodies are out.
+        ///
+        /// The rig is rebound rather than kept: `CharacterRig` holds bone
+        /// transforms from whichever body it bound to, and those are about to
+        /// be destroyed. Dropping `_body` makes `DriveBody` rebuild it on the
+        /// next tick, against the body that is actually there.
+        public bool SetRealBody(bool want)
+        {
+            if (!_wantsRealBody && want) return false;
+            bool has = HasRealBody;
+            if (has == want) return false;
+
+            if (want)
+            {
+                Mannequin.Teardown(gameObject);
+                bool ok = RealBody.TryAttachExtra(
+                    gameObject, (float)Physique.For(DisplayName).Height, DisplayName);
+                if (!ok)
+                {
+                    // BACK TO A MANNEQUIN IN THE SAME BREATH. A failed attach
+                    // used to be harmless because the caller built a mannequin
+                    // instead; here the mannequin has already been taken off,
+                    // so returning early would leave a walker with no body at
+                    // all — invisible, and nothing in this project measures
+                    // invisibility.
+                    Mannequin.Build(gameObject, _skin, _cloth, DisplayName);
+                    BodyGrantsFailed++;
+                    BodyGrantWhy = RealBody.ExtraWhy;
+                    _body = null;
+                    return false;
+                }
+                RealBodies++;
+                BodyGrants++;
+            }
+            else
+            {
+                RealBody.DetachExtra(gameObject);
+                Mannequin.Build(gameObject, _skin, _cloth, DisplayName);
+                if (RealBodies > 0) RealBodies--;
+                BodyRevokes++;
+            }
+            _body = null;
+            return true;
+        }
+
         /// `realBody` is false for the anonymous crowd. See the note at the
         /// `Mannequin.Build` call below for why the split is where it is.
         public static NpcWalker Spawn(string name, Color color, (GameTime at, Vector3 pos)[] schedule,
@@ -195,20 +274,24 @@ namespace Ledger.Game
             // lands on exactly the people the player talks to most and the
             // later, thinner cast falls back to mannequins.
             //
-            // IT IS A HOLDING MEASURE AND SAYS SO. The right answer is LOD: a
-            // real body when somebody enters the near band, a mannequin when
-            // they leave, so the cast size is not bounded by a frame budget
-            // when only a handful are ever on screen. Walkers choose their body
-            // at SPAWN today, so that is a real change and not a constant, and
-            // it should be built against a run that proves the geometry is the
-            // cost. This cap is how that run gets made.
-            bool got = realBody && RealBodies < RealBodyCap
-                       && RealBody.TryAttachExtra(go, (float)Physique.For(name).Height, name);
-            if (got) RealBodies++;
-            else Mannequin.Build(go, skin, color, name);
-
+            // THE CAP IS NOW A BUDGET RATHER THAN A RACE. It used to be spent
+            // in spawn order, which meant the twelve skinned bodies went to
+            // whoever `GameController` happened to create first and stayed
+            // there for the run — so the woman standing in front of you could
+            // be a box while a mannequin's worth of detail was being drawn on
+            // somebody four districts away.
+            //
+            // `GameController.TickBodyDetail` now spends it on the twelve
+            // NEAREST, every second, and this line only decides who is ELIGIBLE.
+            // Spawning as a mannequin is deliberate: a walker created far away
+            // should not pay for a skinned mesh it is about to lose, and the
+            // first LOD pass grants one within a second if it really is close.
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
+            npc._wantsRealBody = realBody;
+            npc._skin = skin;
+            npc._cloth = color;
+            Mannequin.Build(go, skin, color, name);
             foreach (var (at, pos) in schedule)
                 npc._schedule.Add(new Entry { MinuteOfDay = at.Hour * 60 + at.Minute, Position = pos });
 
