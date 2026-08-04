@@ -8333,6 +8333,13 @@ namespace Ledger.Game
                       // going to be the first thing that could see it.
                       $"brakeLampsPeak={GameController.BrakeLampsPeak} " +
                       $"vehiclesDrawn={GameController.VehiclesDrawn} " +
+                      // OFF THE ROAD, WITH THE COUNT DRAWN AT THAT SAME FRAME.
+                      // Expected zero: `Traffic` steps vehicles along street
+                      // edges, so anything above it means the stepper leaves
+                      // the carriageway — most likely at a junction, where one
+                      // edge ends and the next has not begun.
+                      $"vehiclesOffRoad={GameController.VehiclesOffRoadPeak} " +
+                      $"vehiclesAtOffRoadWorst={GameController.VehiclesAtOffRoadWorst} " +
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} " +
                       $"gap={(gapMeasured ? tightest.ToString("0.00") : "not-measured")} " +
                       // THE CLAMP COUNT IS THE GATE NOW; the gap is the report.

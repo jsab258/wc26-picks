@@ -139,9 +139,20 @@ namespace Ledger.Game
                 // taken beside `VehiclesDrawn` from the same loop so the two
                 // cannot describe different moments — the two-maxima fault this
                 // project found four of in one night.
-                BrakeLampsLit = VehiclesDrawn = 0;
+                BrakeLampsLit = VehiclesDrawn = VehiclesOffRoad = 0;
                 foreach (var v in Traffic.Vehicles) PlaceBody(v);
                 if (BrakeLampsLit > BrakeLampsPeak) BrakeLampsPeak = BrakeLampsLit;
+                // AND THE DENOMINATOR FROM THE SAME INSTANT, which is the
+                // whole reason this is three lines rather than one. A peak of
+                // vehicles off the road divided by a peak of vehicles drawn is
+                // two different moments quoted as a fraction — the fault this
+                // project found four instances of in one night. The count of
+                // vehicles showing AT the worst frame is captured with it.
+                if (VehiclesOffRoad > VehiclesOffRoadPeak)
+                {
+                    VehiclesOffRoadPeak = VehiclesOffRoad;
+                    VehiclesAtOffRoadWorst = VehiclesDrawn;
+                }
             }
             if (SimMode.Days == 0) HearTraffic();
             CheckCollisions();
@@ -504,6 +515,10 @@ namespace Ledger.Game
         /// running — and this city's cabs demonstrably wait on ranks and its
         /// buses dwell at stops, so a genuine zero would itself be a finding.
         public static int BrakeLampsLit, BrakeLampsPeak, VehiclesDrawn;
+        /// Vehicles whose centre is off every road a car uses, this pass and at
+        /// worst — with the number DRAWN at that same worst pass, so the two can
+        /// honestly be read as a fraction.
+        public static int VehiclesOffRoad, VehiclesOffRoadPeak, VehiclesAtOffRoadWorst;
 
         /// A paint colour that is stable for a given vehicle — nobody wants the
         /// bus changing colour when the crowd re-bands.
@@ -533,6 +548,30 @@ namespace Ledger.Game
             if (v.Dormant) return;
             t.position = new Vector3((float)v.X, 0.05f, (float)v.Z);
             t.rotation = Quaternion.Euler(0, (float)v.Heading, 0);
+
+            // IS IT ON A ROAD AT ALL?
+            //
+            // FROM A STILL, AND THE STILL WAS ONLY HALF RIGHT — which is why
+            // this is a counter rather than a fix. `review_day5_noon` shows
+            // what read as several vehicles across the pavement at odd angles.
+            // The angles are impossible: the line above sets rotation from
+            // heading about Y only, so a vehicle in this game cannot tilt, and
+            // whatever is leaning in that frame is street furniture. A picture
+            // is good evidence that something is wrong and poor evidence of
+            // what — rule 4, third time today.
+            //
+            // What the picture CAN support is the position, and nothing has
+            // ever checked it. `Traffic` steps vehicles along street edges, so
+            // the expected answer is zero and a non-zero one means the stepper
+            // leaves the carriageway somewhere — most likely at a junction,
+            // where an edge ends and the next has not begun.
+            //
+            // THE MARGIN IS THE VEHICLE'S OWN HALF-WIDTH, not a tolerance
+            // picked to make the number small: a car legitimately at the kerb
+            // has its centre inside the road and its body over the edge, and
+            // flagging that would be measuring the model rather than the fault.
+            if (!Ledger.Core.StreetMap.OnRoad(v.X, v.Z, v.Kind.Width * 0.5))
+                VehiclesOffRoad++;
 
             // BRAKE LIGHTS, off `Vehicle.Waiting`. Toggled by the RENDERER
             // rather than the GameObject: `WorldBuilder.RegisterNightLight`
