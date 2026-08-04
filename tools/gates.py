@@ -226,6 +226,26 @@ def main():
         if sha not in have:
             continue
         text = read(have[sha])
+        # NAMED, NOT SKIPPED — the opposite of what `flaky()` does with the
+        # same file, and on purpose.
+        #
+        # A build whose sim never ran dilutes a RATE, so the flakiness table
+        # drops it. But "this commit's build never produced a sim" is exactly
+        # what you want to be told when reading the last few runs, and the
+        # first version of this loop printed it as `??? ` — indistinguishable
+        # from a verdict this tool failed to parse. Two of those in a row is
+        # how ninety minutes went into diagnosing a licence failure as a
+        # compile error.
+        #
+        # Third site of one blindness tonight, and found by grepping for it
+        # rather than by tripping over it, which is the corollary working.
+        if NO_SIM in text:
+            print(f"NOSIM {sha}  {subject[:58]}")
+            print("        the build produced no player — licence or compile, see the verdict")
+            shown += 1
+            if shown >= count:
+                break
+            continue
         m = PASS.search(text)
         verdict = m.group(1) if m else "?"
         fails = FAILING.search(text)
