@@ -2529,6 +2529,17 @@ namespace Ledger.Game
         Injury _harmTreated;
         string _claimVia = "not reached";
         int _denounceWitnesses;
+        /// THE MOAT'S OWN NUMBERS, and until now they reached nobody.
+        ///
+        /// The log line that computes these says, in its own comment, that a
+        /// run where every alibi checks out is indistinguishable from one
+        /// where the contradiction branch is DEAD, and that the branch is the
+        /// moat — an NPC cannot be talked out of what it knows. It then
+        /// printed them on a conditional line that the verdict does not carry,
+        /// so the distinction it exists to make has never been readable.
+        /// `verdict-reach` lists all three as unreachable.
+        double _denounceCorroboration = -1, _denounceContradiction = -1;
+        string _denounceMark = "none";
         float _slamAt = -1f;
         bool _loiterApproaching;
         Vector3 _loiterTarget;
@@ -2998,6 +3009,20 @@ namespace Ledger.Game
                 // alibi checks out is indistinguishable from one where the
                 // contradiction branch is dead, and that branch is the moat:
                 // an NPC cannot be talked out of what it knows.
+                if (d != null)
+                {
+                    _denounceCorroboration = d.Corroboration;
+                    _denounceContradiction = d.Contradiction;
+                    // THE PREDICATE, WHICH IS THE WHOLE INFORMATION.
+                    // `MarkOnYou` is a Fact, not a bool — it is
+                    // (player, informer, no) when nothing stuck and
+                    // (player, lied_to_police, <target>) when it did.
+                    // ShapeCheck caught the bool assumption here rather
+                    // than the Windows build catching it in half an hour,
+                    // which is what that check is for.
+                    _denounceMark = d.MarkOnYou != null
+                        ? d.MarkOnYou.Predicate : "none";
+                }
                 if (d != null)
                     Debug.Log($"SimDirector: denounced kest -> {d.Outcome} "
                               + $"corroboration={d.Corroboration:0.00} "
@@ -7622,6 +7647,9 @@ namespace Ledger.Game
                       $"redirectRelief={_game.Homicides.RedirectReliefOn(_game.Now.Day):0.00} " +
                       $"inquiry={_game.PoliceInquiry} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
+                      $"corroboration={_denounceCorroboration:0.00} " +
+                      $"contradiction={_denounceContradiction:0.00} " +
+                      $"denounceMark={_denounceMark} " +
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
