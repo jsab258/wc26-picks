@@ -5564,6 +5564,40 @@ namespace Ledger.CoreTests
             Check(sim.Vehicles.Exists(v => v.Kind.StopsAtStops), "including a bus");
             Check(sim.BusLoop.Count >= 8 && sim.IsBusStop(sim.BusLoop[0]),
                 "which has a circuit with stops on it", sim.BusLoop.Count.ToString());
+
+            // THINGS THAT WAIT, which nothing has ever asserted.
+            //
+            // `DwellUntil` is honoured by the mover and set on arrival for a
+            // bus at a stop and a cab at a rank. Both were written, both are
+            // live, and the whole mechanism had one mention in this file — the
+            // shape rule 6 is about, one step short of it: not unreached, just
+            // unproven.
+            //
+            // It matters more than a bus timetable. A vehicle that waits is
+            // most of what separates traffic from a conveyor belt, and a cab
+            // standing on a rank is a thing the street has that nobody drives.
+            //
+            // Asserted by RUNNING it rather than by reading the flags, because
+            // the flags are what I would have got wrong: `WaitsAtRanks` being
+            // true on the kind proves nothing about whether any cab ever
+            // reaches a rank.
+            var waits = new TrafficSim(seed: 5);
+            waits.Populate(24);
+            bool taxiWaited = false, busWaited = false;
+            for (int i = 0; i < 3000 && !(taxiWaited && busWaited); i++)
+            {
+                waits.Step(0.5);
+                foreach (var v in waits.Vehicles)
+                {
+                    if (v.DwellUntil <= waits.Clock) continue;
+                    if (v.Kind.WaitsAtRanks) taxiWaited = true;
+                    else if (v.Kind.StopsAtStops) busWaited = true;
+                }
+            }
+            Check(waits.Ranks.Count > 0, "the city has cab ranks to wait on",
+                  waits.Ranks.Count.ToString());
+            Check(busWaited, "a bus dwells at its stops rather than sailing past");
+            Check(taxiWaited, "and a cab actually waits on a rank");
             foreach (var v in sim.Vehicles)
                 Check(v.Edge != null && v.Edge.Driveable || v.Kind.UsesLanes,
                     $"vehicle {v.Id} starts on a road it is allowed to use", v.Edge?.Kind);
