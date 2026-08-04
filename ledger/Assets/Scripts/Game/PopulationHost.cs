@@ -456,6 +456,7 @@ namespace Ledger.Game
             // reports.
             string band = Wardrobe.BandOf(frac);
             WardrobeWorn[band] = WardrobeWorn.TryGetValue(band, out var wc) ? wc + 1 : 1;
+            // CROWD, and this is the only place in the game that spawns any.
             var walker = NpcWalker.Spawn(r.Name, colour, new[]
             {
                 // Their first waypoint is where they ARE, not where they
@@ -476,7 +477,7 @@ namespace Ledger.Game
             // already limits how many of these exist; leaving them as
             // mannequins means the number of skinned bodies is the cast size
             // rather than whatever the population happened to be that run.
-            realBody: false);
+            realBody: false, crowd: true);
             _crowdWalkers[r.Id] = walker;
             _npcs.Add(walker);
         }

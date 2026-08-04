@@ -9136,6 +9136,14 @@ namespace Ledger.Game
                       $"bodySkinnedEver={RealBody.SkinnedEver} " +
                       $"bodyDressedEver={RealBody.DressedEver} " +
                       $"bodyKeptEver={RealBody.KeptEver} " +
+                      // WHO GOT THE CAST'S BRIGHTNESS LIFT. bodyLiftedCrowd
+                      // non-zero is the fault this pair exists to prove was
+                      // fixed — every walker was being raised past the crowd
+                      // value ceiling because TryAttachExtra calls straight
+                      // through the player's path. Zero of BOTH means no body
+                      // was dressed at all, which is a different finding.
+                      $"bodyLiftedCast={RealBody.LiftedCast} " +
+                      $"bodyLiftedCrowd={RealBody.LiftedCrowd} " +
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +

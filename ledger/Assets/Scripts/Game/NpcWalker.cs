@@ -100,6 +100,11 @@ namespace Ledger.Game
 
         public string DisplayName { get; private set; }
 
+        /// One of the seven hundred rather than one of the cast. Decides
+        /// whether the wardrobe may lift this person's coat above the crowd's
+        /// value ceiling.
+        public bool IsCrowd { get; private set; }
+
         /// Every walker currently in the scene, so one can see what it is
         /// about to stand inside.
         ///
@@ -222,7 +227,8 @@ namespace Ledger.Game
             {
                 Mannequin.Teardown(gameObject);
                 bool ok = RealBody.TryAttachExtra(
-                    gameObject, (float)Physique.For(DisplayName).Height, DisplayName);
+                    gameObject, (float)Physique.For(DisplayName).Height, DisplayName,
+                    cast: !IsCrowd);
                 if (!ok)
                 {
                     // BACK TO A MANNEQUIN IN THE SAME BREATH. A failed attach
@@ -253,8 +259,26 @@ namespace Ledger.Game
 
         /// `realBody` is false for the anonymous crowd. See the note at the
         /// `Mannequin.Build` call below for why the split is where it is.
+        /// `crowd` DECIDES WHETHER THIS PERSON MAY OUTSHINE THE CAST, and the
+        /// call path is the only thing that honestly knows.
+        ///
+        /// `RealBody.TryAttach` lifts a coat's value to 0.68 under a comment
+        /// saying "the player is a named character", and `TryAttachExtra` calls
+        /// straight through it — so every walker in the city was being lifted
+        /// past `Wardrobe.MaxValue` 0.46, the constant whose entire job is that
+        /// nobody in the crowd outshines a cast authored at 0.65-0.75.
+        ///
+        /// I looked for a roster to tell them apart and there is not one worth
+        /// using: `VoiceBank.Cast`'s own comment says its ids do not all match
+        /// the game's, so a named character under the wrong id would silently
+        /// get crowd brightness. But the CALLERS know perfectly well —
+        /// `GameController` and `ActThreeHost` spawn the cast by name,
+        /// `PopulationHost` spawns residents in a loop. Defaulting to cast
+        /// means a new authored character is bright unless somebody says
+        /// otherwise, which is the safer direction: a cast member accidentally
+        /// dimmed is a lead the eye slides off.
         public static NpcWalker Spawn(string name, Color color, (GameTime at, Vector3 pos)[] schedule,
-                                      bool realBody = true)
+                                      bool realBody = true, bool crowd = false)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = $"NPC_{name}";
@@ -324,6 +348,7 @@ namespace Ledger.Game
             // first LOD pass grants one within a second if it really is close.
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
+            npc.IsCrowd = crowd;
             npc._wantsRealBody = realBody;
             npc._skin = skin;
             npc._cloth = color;

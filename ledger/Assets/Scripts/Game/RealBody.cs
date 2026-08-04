@@ -598,6 +598,15 @@ namespace Ledger.Game
         /// the street, and the number that says whether it matters.
         public static int WashUnreached { get; private set; }
 
+        /// How many bodies got the cast's brightness lift and how many did not.
+        /// Lifetime, and NOT in the save-and-restore set: these are counts of
+        /// what happened to the city, not statements about the player.
+        /// `bodyLiftedCrowd` non-zero is the fault this pair was added to
+        /// prove was fixed, so a run that reports zero of both means no body
+        /// was dressed at all rather than that the fix worked.
+        public static int LiftedCast { get; private set; }
+        public static int LiftedCrowd { get; private set; }
+
         /// The last wash actually written to a renderer, with the albedo it
         /// was anchored against. Appended to `CoatRead` after the paint loop,
         /// because the wash is not knowable before it.
@@ -824,14 +833,14 @@ namespace Ledger.Game
         /// A body for somebody other than the player. Same path, same dressing,
         /// same scaling — and none of the readings.
         public static bool TryAttachExtra(GameObject host, float targetHeightMetres,
-                                          string wearer)
+                                          string wearer, bool cast = true)
         {
             var saved = Save();
             bool ok = false;
             string why;
             try
             {
-                ok = TryAttach(host, targetHeightMetres, wearer);
+                ok = TryAttach(host, targetHeightMetres, wearer, cast);
             }
             finally
             {
@@ -850,7 +859,7 @@ namespace Ledger.Game
         }
 
         public static bool TryAttach(GameObject host, float targetHeightMetres = 1.8f,
-                                     string wearer = "player")
+                                     string wearer = "player", bool cast = true)
         {
             if (host == null) { Why = "no host"; return false; }
 
@@ -972,7 +981,28 @@ namespace Ledger.Game
             // behaves: a bright grey is just a pale grey, while a bright navy
             // is still navy. No new constant — the multiplier is the
             // saturation the wardrobe already chose.
-            float lift = 0.22f * Mathf.Clamp01((float)cs / 0.35f);
+            // AND THE LIFT IS FOR THE CAST ONLY, WHICH IT NEVER WAS.
+            //
+            // The paragraph above says "the player is a named character" and
+            // then lifts everybody: `TryAttachExtra` calls straight through
+            // here, so every walker in the city was being raised past
+            // `Wardrobe.MaxValue` 0.46 — the constant whose entire job is that
+            // nobody in the crowd outshines a cast authored at 0.65-0.75. A
+            // comment describing one caller while the method has two is the
+            // fault this project has recorded more often than any other, and
+            // this one was load-bearing on a value ceiling with a CoreTest
+            // behind it.
+            //
+            // `cast` comes from the SPAWN PATH rather than a roster.
+            // `VoiceBank.Cast` is the nearest thing to a list and its own
+            // comment says its ids do not all match the game's, so borrowing it
+            // would dim a named character under the wrong id and nothing would
+            // report it. The callers know: `GameController` and `ActThreeHost`
+            // spawn the cast by name, `PopulationHost` spawns residents in a
+            // loop, and the default is cast so a new authored character is
+            // bright unless somebody says otherwise.
+            float lift = cast ? 0.22f * Mathf.Clamp01((float)cs / 0.35f) : 0f;
+            if (cast) LiftedCast++; else LiftedCrowd++;
             float coatV = Mathf.Min(0.68f, (float)cv + lift);
             var coatRgb = Color.HSVToRGB((float)ch, (float)cs, coatV);
             var coat = AssetLibrary.Opaque(coatRgb);
