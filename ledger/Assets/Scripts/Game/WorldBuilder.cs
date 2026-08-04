@@ -1095,6 +1095,26 @@ namespace Ledger.Game
             {
                 var at = new Vector3((float)d.X, 0, (float)d.Z);
                 float sc = (float)d.Scale;
+
+                // IS THIS PIECE OF CLUTTER STANDING IN THE ROAD?
+                //
+                // MEASURED BEFORE ANYTHING IS MOVED, which is the whole of why
+                // this is a counter and not a rejection. Nothing in this
+                // project has ever asked the question — the reach ledger's
+                // entry for `StreetMap.OnStreet` says so in as many words:
+                // "what would actually use it is set-dressing that must not
+                // stand in the carriageway; nothing places street-level props
+                // through a road test". Refusing placements on a bound nobody
+                // has read would be inventing a threshold and could silently
+                // delete a third of the street's clutter.
+                //
+                // `OnRoad` AND NOT `OnStreet`, and the difference is load
+                // bearing. `OnStreet` is true of any tarmac including the lanes
+                // that cross block interiors to reach doors — a bin beside a
+                // service lane is a bin beside a service lane. `OnRoad` asks
+                // only about the ways a CAR uses, which is where a bin would
+                // actually look wrong and be driven through.
+                if (Ledger.Core.StreetMap.OnRoad(at.x, at.z)) DressedInRoad++;
                 switch (d.Kind)
                 {
                     case Ledger.Core.Clutter.Bin:
@@ -1135,6 +1155,11 @@ namespace Ledger.Game
         /// How many pieces of clutter the city put down. Read by the sim, so
         /// "the streets are dressed" is a measured claim rather than a hope.
         public static int Dressed;
+        /// How many of those landed on a road a car uses. A count with
+        /// `Dressed` beside it as its denominator, because "0 in the road" and
+        /// "no dressing was placed at all" are different worlds and read the
+        /// same without one.
+        public static int DressedInRoad;
 
         /// Doors built. Counted separately from `Dressed` because a door is
         /// architecture rather than clutter: bins thin out in a far district by
