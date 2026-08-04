@@ -126,7 +126,10 @@ namespace Ledger.Game
         /// threshold chosen to make a reading come out well.
         const float BodyWidth = 0.45f;
 
-        public static NpcWalker Spawn(string name, Color color, (GameTime at, Vector3 pos)[] schedule)
+        /// `realBody` is false for the anonymous crowd. See the note at the
+        /// `Mannequin.Build` call below for why the split is where it is.
+        public static NpcWalker Spawn(string name, Color color, (GameTime at, Vector3 pos)[] schedule,
+                                      bool realBody = true)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = $"NPC_{name}";
@@ -144,7 +147,35 @@ namespace Ledger.Game
             var skin = new Color(Mathf.Lerp(color.r, 0.72f, 0.65f),
                                  Mathf.Lerp(color.g, 0.58f, 0.65f),
                                  Mathf.Lerp(color.b, 0.47f, 0.65f));
-            Mannequin.Build(go, skin, color, name);
+            // A REAL BODY IF THERE IS ONE, AND THIS IS THE LINE THAT MADE THE
+            // WHOLE TOWN BOXES.
+            //
+            // `RealBody.TryAttach` had exactly one caller — `PlayerController`
+            // — so the player was a person and all sixty-seven walkers were
+            // articulated boxes. The roadmap has called that the largest single
+            // immersion gap for weeks and it was one call site wide.
+            //
+            // NAMED CAST ONLY, and the split is deliberate rather than
+            // budgetary. The people you talk to and remember are the ones worth
+            // a skinned mesh; the anonymous crowd reads perfectly well as
+            // mannequins at the distance you ever see them, and bounding it to
+            // a known set means the cost is a number somebody chose rather than
+            // whatever the population happened to be that run.
+            //
+            // THE HEIGHT COMES FROM `Physique`, so a street of real bodies
+            // keeps the variety the mannequins had. `Physique.For` is
+            // deterministic per name — the same person is the same size every
+            // run, which is the rule `RealBody.PickBody` already follows for
+            // WHICH body they get.
+            //
+            // `TryAttachExtra` rather than `TryAttach`, and that is the whole
+            // reason this could not simply be switched on: `TryAttach`
+            // publishes statics that five clauses of the `bodies` gate read as
+            // THE PLAYER's. See its comment — the extra path runs the identical
+            // attach and puts the player's readings back.
+            bool got = realBody
+                       && RealBody.TryAttachExtra(go, (float)Physique.For(name).Height, name);
+            if (!got) Mannequin.Build(go, skin, color, name);
 
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;

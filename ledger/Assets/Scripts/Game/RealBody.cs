@@ -395,6 +395,107 @@ namespace Ledger.Game
         /// The prefab is written by `Editor/CharacterPrefab` at build time and
         /// carries an `Animator` whose avatar is the model's own — which is
         /// precisely what `CharacterRig.Bind` looks for.
+        /// EVERY STATIC THIS CLASS PUBLISHES, saved and put back — so a body
+        /// that is not the player's can be attached without rewriting the
+        /// player's readings.
+        ///
+        /// WHY THIS HAS TO EXIST BEFORE A SINGLE WALKER GETS A REAL BODY.
+        /// `TryAttach` writes `Attached`, `Why`, `Upright`, `Skinned`,
+        /// `Dressed`, `Kept`, `Parts`, the coverage fractions and the bind and
+        /// scaled pose readings. FIVE clauses of the sim's `bodies` gate read
+        /// those, and the entire point of every one of them is that it
+        /// describes THE PLAYER — is HE upright, is HE dressed, is HE not still
+        /// a capsule. Attach fifty-five walkers and all five quietly become
+        /// about whichever walker attached last, with nothing anywhere saying
+        /// so. A corrupted gate reads exactly like a passing one.
+        ///
+        /// SNAPSHOT AND RESTORE RATHER THAN A GUARD AT EACH WRITE. The writes
+        /// are scattered through the body of `TryAttach` rather than gathered
+        /// behind helper calls, so guarding them one by one is wide and easy to
+        /// do four-fifths of. This is one place to read and one place to review,
+        /// and the field list is the same either way.
+        ///
+        /// `Attached` is restored too, deliberately. The gate reads
+        /// `Attached == 0 || Upright > 0.9` — "if a body attached it must be
+        /// upright" — and it means the PLAYER's body. Letting walkers increment
+        /// it would keep the clause true while changing which body it is about.
+        struct Published
+        {
+            public int Attached, Skinned, Dressed, Kept, BodyChoices;
+            public string Why, Orientation, Parts, CoatRead, CostSeries, TwinWhy;
+            public double Upright, DressedAreaFraction, DressedVertexFraction;
+            public bool CoverageRead, BindPoseRead, ScaledPoseRead, TwinRead, TwinHuman;
+            public float BindHeadAboveHips, BindHipsAboveFeet;
+            public float ScaledHeadAboveHips, ScaledHipsAboveFeet;
+            public float TwinHeadAboveHips, TwinHipsAboveFeet;
+        }
+
+        static Published Save() => new Published
+        {
+            Attached = Attached, Skinned = Skinned, Dressed = Dressed, Kept = Kept,
+            BodyChoices = BodyChoices, Why = Why, Orientation = Orientation,
+            Parts = Parts, CoatRead = CoatRead, CostSeries = CostSeries, TwinWhy = TwinWhy,
+            Upright = Upright, DressedAreaFraction = DressedAreaFraction,
+            DressedVertexFraction = DressedVertexFraction, CoverageRead = CoverageRead,
+            BindPoseRead = BindPoseRead, ScaledPoseRead = ScaledPoseRead,
+            TwinRead = TwinRead, TwinHuman = TwinHuman,
+            BindHeadAboveHips = BindHeadAboveHips, BindHipsAboveFeet = BindHipsAboveFeet,
+            ScaledHeadAboveHips = ScaledHeadAboveHips, ScaledHipsAboveFeet = ScaledHipsAboveFeet,
+            TwinHeadAboveHips = TwinHeadAboveHips, TwinHipsAboveFeet = TwinHipsAboveFeet,
+        };
+
+        static void Restore(Published p)
+        {
+            Attached = p.Attached; Skinned = p.Skinned; Dressed = p.Dressed; Kept = p.Kept;
+            BodyChoices = p.BodyChoices; Why = p.Why; Orientation = p.Orientation;
+            Parts = p.Parts; CoatRead = p.CoatRead; CostSeries = p.CostSeries;
+            TwinWhy = p.TwinWhy; Upright = p.Upright;
+            DressedAreaFraction = p.DressedAreaFraction;
+            DressedVertexFraction = p.DressedVertexFraction;
+            CoverageRead = p.CoverageRead; BindPoseRead = p.BindPoseRead;
+            ScaledPoseRead = p.ScaledPoseRead; TwinRead = p.TwinRead; TwinHuman = p.TwinHuman;
+            BindHeadAboveHips = p.BindHeadAboveHips; BindHipsAboveFeet = p.BindHipsAboveFeet;
+            ScaledHeadAboveHips = p.ScaledHeadAboveHips;
+            ScaledHipsAboveFeet = p.ScaledHipsAboveFeet;
+            TwinHeadAboveHips = p.TwinHeadAboveHips; TwinHipsAboveFeet = p.TwinHipsAboveFeet;
+        }
+
+        /// How many bodies were attached to somebody who is NOT the player, and
+        /// how many of those failed. Counted here because `Attached` is
+        /// restored and therefore cannot see them — a walker body that silently
+        /// failed to attach would otherwise look identical to one that was
+        /// never asked for.
+        public static int Extra, ExtraFailed;
+        public static string ExtraWhy = "none asked for";
+
+        /// A body for somebody other than the player. Same path, same dressing,
+        /// same scaling — and none of the readings.
+        public static bool TryAttachExtra(GameObject host, float targetHeightMetres,
+                                          string wearer)
+        {
+            var saved = Save();
+            bool ok = false;
+            string why;
+            try
+            {
+                ok = TryAttach(host, targetHeightMetres, wearer);
+            }
+            finally
+            {
+                // READ THE REASON BEFORE PUTTING THE PLAYER'S BACK, or the
+                // failure reason reported for a walker is the player's "ok".
+                why = Why;
+                // In a `finally` so a throw mid-attach cannot leave the
+                // player's readings describing a walker — the state this whole
+                // method exists to protect is exactly the state an exception
+                // would corrupt.
+                Restore(saved);
+            }
+            if (ok) Extra++;
+            else { ExtraFailed++; ExtraWhy = why; }
+            return ok;
+        }
+
         public static bool TryAttach(GameObject host, float targetHeightMetres = 1.8f,
                                      string wearer = "player")
         {

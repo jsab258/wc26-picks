@@ -8472,6 +8472,14 @@ namespace Ledger.Game
                       $"crowdConsidered={_crowdConsidered} crowdLumRange={_crowdLumRange} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
+                      // THE WALKERS' BODIES, counted separately because
+                      // `RealBody.Attached` is restored after each one and
+                      // therefore cannot see them. A walker body that
+                      // silently failed to attach would otherwise look
+                      // exactly like one that was never asked for.
+                      $"walkerBodies={RealBody.Extra} " +
+                      $"walkerBodiesFailed={RealBody.ExtraFailed} " +
+                      $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
                       $"bindPoseRead={RealBody.BindPoseRead} " +

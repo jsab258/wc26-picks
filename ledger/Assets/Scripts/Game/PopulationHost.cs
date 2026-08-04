@@ -341,7 +341,18 @@ namespace Ledger.Game
                 (new GameTime(0, Now.Hour, 0), WhereIs(r)),
                 (new GameTime(0, r.WorkFromHour, 0), new Vector3(r.WorkX, 0, r.WorkZ)),
                 (new GameTime(0, r.WorkToHour, 0), new Vector3(r.HomeX, 0, r.HomeZ)),
-            });
+            },
+            // MANNEQUINS, DELIBERATELY. This is the anonymous crowd — bodies
+            // that fill a street and are never spoken to — and a mannequin
+            // reads perfectly well at the distance you ever see one. The named
+            // cast gets skinned meshes because those are the people you talk to
+            // and have to recognise again.
+            //
+            // It also bounds the cost to a set somebody chose. `CrowdWalkerCap`
+            // already limits how many of these exist; leaving them as
+            // mannequins means the number of skinned bodies is the cast size
+            // rather than whatever the population happened to be that run.
+            realBody: false);
             _crowdWalkers[r.Id] = walker;
             _npcs.Add(walker);
         }
