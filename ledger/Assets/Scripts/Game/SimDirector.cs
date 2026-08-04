@@ -7628,6 +7628,13 @@ namespace Ledger.Game
                       $"ringSmall={NoiseRing.SkippedSmall} ringShadowed={NoiseRing.SkippedShadowed} " +
                       $"ringNoMaterial={NoiseRing.SkippedNoMaterial} " +
                       $"ringMax={NoiseRing.MaxRadius:0.0} ringLastSkip={NoiseRing.LastSkip} " +
+                      // THE LAST GENUINELY UNREACHABLE NUMBER, closed.
+                      // Whether the noise ring's last draw was behind
+                      // something was printed only on the door-slam line,
+                      // which the verdict does not carry — so the one fact
+                      // that says whether a sound was heard THROUGH a wall
+                      // could not be read from a build at all.
+                      $"ringLastOccluded={NoiseRing.LastOccluded} " +
                       $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"slamDrewRing={_slamDrewRing} " +
                       $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
