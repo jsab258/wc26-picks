@@ -170,6 +170,13 @@ namespace Ledger.Game
             /// empty for everybody who got nothing. Notoriety is about who
             /// actually saw it.
             public double Notoriety;
+
+            /// Whether the act was meant to kill. `Deed.LeavesBody` is the
+            /// nearest thing already here and it is NOT the same question: it
+            /// comes from the weapon table — what this weapon does to a body —
+            /// while this is what the actor was doing. A cosh leaves no body
+            /// and can still be a killing.
+            public bool Lethal;
         }
 
         public static Aftermath Last { get; private set; }
@@ -319,6 +326,7 @@ namespace Ledger.Game
                 Loudness = loudness,
                 SawSomething = sawSomething,
                 Notoriety = Ledger.Core.Violence.Notoriety(sawSomething, lethal),
+                Lethal = lethal,
             };
             if (Last.Notoriety > PeakNotoriety) PeakNotoriety = Last.Notoriety;
             return Last;

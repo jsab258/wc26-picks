@@ -921,10 +921,18 @@ four contradictory readings and no player will ever see it.
 
 **1. BATCH THE BUILD.** Several changes per dispatch, not one question per
 dispatch. A round trip is ~28 minutes whether it carries one change or six.
-And **two at once, not three**: the licence seat is a single Personal
-activation, four concurrent dispatches killed two builds on 4 August and three
-killed one the same afternoon. Parallel dispatch is still right; three is over
-the line.
+And **ONE AT A TIME**, which is where the evidence has now landed. The licence
+seat is a single Personal activation, and every level of concurrency has cost a
+build: four dispatches killed two, three killed one, and TWO killed both —
+15:23 on 4 August, `c7329a3` and `2cfe851`, each reporting "first licence
+attempt: failure, second: failure". That is three data points in one direction
+and none the other way.
+
+Parallel dispatch was never wrong about the goal — it was answering "how do I
+stop waiting half an hour per question". Batching answers that better and
+costs nothing: six changes in one build is one round trip, six builds is six
+chances at the seat. So the two rules are a pair, and the batching one is what
+makes this one affordable.
 
 **2. A MEASUREMENT THAT CONTRADICTS ITSELF TWICE GETS DELETED, NOT EXPLAINED.**
 The rule this replaces was "measure again with a better instrument", and it is

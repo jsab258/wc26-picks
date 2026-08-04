@@ -1614,7 +1614,10 @@ namespace Ledger.Game
             return st;
         }
 
-        string DistrictOfPlayer() =>
+        /// Public because the paper needs a place name for its headline, and a
+        /// second copy of "where is the player" is how two answers to one
+        /// question start.
+        public string DistrictOfPlayer() =>
             _player != null ? StreetMap.DistrictAt(_player.transform.position.x,
                                                    _player.transform.position.z) : "Hook Street";
 
@@ -1961,6 +1964,11 @@ namespace Ledger.Game
                 // is the two-clocks shape that has already cost this project
                 // the arms, the billboards and the foot plant.
                 SummonsHost.Nightly(this);
+                // AND THE PAPER, for the night that just ended. Same instant as
+                // the call for the same reason: a system with a clock of its
+                // own is a system that drifts from the day everything else
+                // means.
+                PressHost.Nightly(this);
                 int takings = Campaign.CloseDay(heat);
 
                 // M18. THE NIGHT THAT JUST ENDED, and where the player spent it.

@@ -7664,6 +7664,63 @@ namespace Ledger.CoreTests
             Check(fame.Notoriety < known,
                 "but it does fade — being known is not permanent either");
 
+            // ---- THE PAPER: THE ONE CHANNEL WITH NO HOPS -----------------
+            //
+            // Every other way information moves here is person to person and
+            // decays with distance, which is the moat and is right. It also
+            // means a killing in an empty alley is known to nobody for ever,
+            // and notoriety can only be bought with witnesses. A town has a
+            // newspaper; each of its three rules is a refusal.
+
+            // MOST THINGS ARE NOT NEWS, on the scale that already grades how
+            // loud an act is rather than a second one invented here.
+            Check(Press.Print(3, Violence.Notoriety(0, killed: false), 0.9,
+                              lethal: false, place: "Hook Street") == null,
+                "a fight nobody watched is not in the paper");
+            Check(Press.Print(3, Violence.Notoriety(6, killed: false), 0.9,
+                              lethal: false, place: "Hook Street") != null,
+                "a brawl six people watched is");
+
+            // A BODY ALWAYS IS, whatever anybody saw. `HomicideBook`'s own note
+            // says a body does not stay a rumour, and this is the mechanism by
+            // which that becomes true for people who were nowhere near it.
+            var quietKill = Press.Print(3, Violence.Notoriety(0, killed: true), 0.0,
+                                        lethal: true, place: "Hook Street");
+            Check(quietKill != null, "a killing nobody saw is still in the paper");
+
+            // AND IT DOES NOT KNOW SECRETS. With nothing the street would tell
+            // a detective, the story runs WITHOUT the name — which is the more
+            // interesting outcome: the town knows a man was killed and does not
+            // know it was you.
+            Check(!quietKill.NamesYou && quietKill.Content.Subject != "player",
+                "with no case against you it prints the act and not the name",
+                quietKill.Headline);
+            Check(Press.Notoriety(quietKill) == 0,
+                "and an unnamed story makes you no better known — that is a "
+                + "different thing, not a smaller one");
+
+            var named = Press.Print(3, Violence.Notoriety(4, killed: true),
+                                    HomicideBook.TestimonyGrade + 0.1,
+                                    lethal: true, place: "Hook Street");
+            Check(named.NamesYou && named.Content.Subject == "player",
+                "once somebody would say it to a detective, it carries the name",
+                named.Headline);
+
+            // THE PRINTED FACT MUST BE THE SAME FACT A WITNESS HOLDS, or a
+            // story read and a story seen would stack as two separate beliefs
+            // instead of corroborating — the distinction the day-circle heat
+            // reading is built on.
+            Check(named.Content.Predicate == "killed",
+                "and on the same topic a witness would use, so the two corroborate");
+
+            // A READER IS NOT A WITNESS. Reused from the phone layer rather
+            // than picked again, so the game cannot come to hold two opinions
+            // about what secondhand is worth.
+            Check(named.Confidence < Violence.Notoriety(4, killed: true)
+                  && named.Confidence > 0,
+                "a reader believes less than somebody who was there",
+                $"{named.Confidence:0.00}");
+
             // ---- A BODY CANNOT BE MANAGED OFF THE TABLE, ON EITHER PATH --
             //
             // `Tick` has always exempted an indelible rumour from the leash,

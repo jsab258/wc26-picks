@@ -241,6 +241,7 @@ namespace Ledger.Game
             // person who has to react to blood on your coat needs the list.
             ViolenceHost.Reset();
             SummonsHost.Reset();
+            PressHost.Reset();
             ViolenceHost.BindWalkers(_npcs);
             CoatHost.Reset();
             EvidenceHost.Reset();
@@ -8517,6 +8518,15 @@ namespace Ledger.Game
                       $"summonsTaken={SummonsHost.Taken} " +
                       $"summonsMissed={SummonsHost.MissedCalls} " +
                       $"summonsRead=[{SummonsHost.LastRead}] " +
+                      // THE PAPER. `pressEditions` is the denominator:
+                      // `pressNamed=0` reads the same whether the town never
+                      // had a case against the player or the paper never ran,
+                      // and this is exactly a system whose failure mode is
+                      // being quietly absent.
+                      $"pressEditions={PressHost.Editions} " +
+                      $"pressNamed={PressHost.Named} " +
+                      $"pressReaders={PressHost.Readers} " +
+                      $"pressHeadline=[{PressHost.LastHeadline}] " +
                       $"notorietyLastLaw={LawHost.LastNotoriety:0.000} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +
