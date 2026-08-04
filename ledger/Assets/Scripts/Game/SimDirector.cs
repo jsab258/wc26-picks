@@ -373,6 +373,24 @@ namespace Ledger.Game
                 _lastRungDay = now.Day;
                 foreach (var (place, who) in new[] { ("bar", "Lena"), ("boarding_house", "Ada") })
                 {
+                    // ASK FIRST WHETHER THEY COULD BE REACHED AT ALL, which
+                    // is the question `Phones.ReachableNow` was written for and
+                    // which nothing has ever put to it.
+                    //
+                    // Its own comment says it is "the answer the player most
+                    // wants and the one they are never simply told — what makes
+                    // an evening where somebody cannot be found feel like the
+                    // city rather than like a locked door". That has been true
+                    // and unwired since it was written.
+                    //
+                    // It changes what `rangOut` MEANS. Eleven calls ringing out
+                    // reads as a failure; eleven calls to people who were not
+                    // reachable at that hour reads as the schedule working. The
+                    // two are the same number today and they are opposite
+                    // findings, which is this project's most repeated fault in
+                    // its smallest form.
+                    _callsAttempted++;
+                    if (_game.Phones.ReachableNow(who, now, null)) _callsReachable++;
                     var call = _game.RingLine(place, who);
                     if (call.Result == CallResult.Answered) _callsAnswered++;
                     else if (call.Result == CallResult.SomebodyElse) _callsWrongPerson++;
@@ -2574,6 +2592,9 @@ namespace Ledger.Game
         Injury _harmTreated;
         string _claimVia = "not reached";
         int _denounceWitnesses;
+        /// Calls tried, and how many of those were to somebody the phone
+        /// book says could be reached at that hour at all.
+        int _callsAttempted, _callsReachable;
         /// How many people have worked out who the player is, at the worst
         /// instant, with the number merely LOOKING at that same instant — and
         /// the distinct count over the whole run, which is the one that says
@@ -7747,7 +7768,9 @@ namespace Ledger.Game
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
-                      $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
+                      $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} "
+                      + $"callsTried={_callsAttempted} callsReachable={_callsReachable} "
+                      + $"phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} idLeaks={idLeaks} " +
                       // CAN THE TEXT BE READ. Reported, not gated: some
                       // of these pairs are dimmed on purpose and a gate
