@@ -2538,7 +2538,33 @@ namespace Ledger.Game
                 _crowdInside = inside;
                 _crowdSeenAtWorst = _crowdSeen.Count;
             }
-            if (tightest < _crowdTightest) _crowdTightest = tightest;
+            // AND WHEN, BECAUSE THIS IS A RUN MINIMUM AND I READ IT AS A
+            // DESCRIPTION FOR THREE BUILDS.
+            //
+            // `_crowdTightest` is the worst instant in nine days. ONE frame
+            // anywhere — two walkers spawned on the same waypoint and sampled
+            // before either has taken a step — pins it at 0.00 for the rest of
+            // the run, and no amount of separation working afterwards can move
+            // it back. It answers "did it ever happen". I read it as "is this
+            // how it looks", which is the fault CLAUDE.md names twice and
+            // which I had quoted at myself the same morning.
+            //
+            // The median beside it was the real signal and it has moved every
+            // build: 0.00, 0.20, 0.29, 0.33, 0.35. Note it is a median OF
+            // per-frame tightest gaps, so it says "in a typical frame the
+            // closest pair is this far apart" — the question worth asking.
+            //
+            // The peak keeps its job and gets a timestamp, the repair
+            // `bodyReadWhen` got after one metric read 35.7 and 10.8 with no
+            // code change between them. A zero stamped at day 1 is a spawn
+            // artefact; one stamped mid-run is a real pile-up.
+            if (tightest < _crowdTightest)
+            {
+                _crowdTightest = tightest;
+                _crowdTightestWhen = _game != null
+                    ? $"day{_game.Now.Day}h{_game.Now.Hour}n{_crowdSeen.Count}"
+                    : "noworld";
+            }
             _crowdGaps.Add(tightest);
         }
 
@@ -2546,6 +2572,10 @@ namespace Ledger.Game
         readonly List<float> _crowdGaps = new List<float>();
         int _crowdInside, _crowdSeenAtWorst;
         float _crowdTightest = float.MaxValue;
+        /// When the run-minimum above was observed, and how many people
+        /// were in frame at that instant. Without it a spawn artefact and
+        /// a real pile-up print the same number.
+        string _crowdTightestWhen = "never";
 
         /// The typical closest approach in frame, against the worst one. -1
         /// when nothing was ever sampled — a gap of zero is a real reading.
@@ -7871,6 +7901,7 @@ namespace Ledger.Game
                       // interpenetrates.
                       $"crowdInside={_crowdInside} crowdSeenAtWorst={_crowdSeenAtWorst} " +
                       $"crowdTightest={(_crowdTightest == float.MaxValue ? -1f : _crowdTightest):0.00} " +
+                      $"crowdTightestWhen={_crowdTightestWhen} " +
                       $"crowdGapMedian={CrowdGapMedian:0.00} crowdGapSamples={_crowdGaps.Count} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
