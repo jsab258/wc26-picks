@@ -7671,6 +7671,12 @@ namespace Ledger.Game
                       // zero over a run of framed beats, enforcement would be
                       // dead code that looks like a feature.
                       $"lineWatched={FramedBeat.LineWatched} lineCrossed={FramedBeat.LineCrossed} " +
+                      // AND HOW MANY OF THOSE WERE THE RIG RATHER THAN
+                      // THE PLAYER. `lineCrossed` alone cannot say, and
+                      // the two want opposite responses — one is a
+                      // composed shot reversing itself, the other is the
+                      // camera correctly getting out of the way.
+                      $"lineCrossedLive={FramedBeat.LineCrossedLive} " +
                       $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
                       $"beatChaseSecs={_beatChaseSeconds:0} beatMarker={_beatMarkerSeen} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +

@@ -9839,15 +9839,36 @@ namespace Ledger.CoreTests
                 $"{FramedBeat.LineCrossed - crossed0}/{FramedBeat.LineWatched - watched0}");
 
             // AND THE ONE IT EXISTS FOR.
+            int live0 = FramedBeat.LineCrossedLive;
             lined.CameraMovedTo(0, -3);
             Check(FramedBeat.LineCrossed == crossed0 + 1 && lined.Crossed,
                 "and stepping over to the far side is the cut that reverses who is "
                 + "looking at whom");
+            Check(FramedBeat.LineCrossedLive == live0 + 1,
+                "and it counts as the RIG's crossing, because the beat still owns "
+                + "the camera");
+
             lined.CameraMovedTo(0, -9);
             Check(FramedBeat.LineCrossed == crossed0 + 1,
                 "LATCHED — one bad move is one bad move. Counting every frame it stays "
                 + "over there would report the same mistake sixty times a second and rank "
                 + "it above a hundred real ones");
+            // THE SPLIT THAT DECIDES WHETHER THERE IS ANYTHING TO FIX. A
+            // crossing after the player has taken the camera back is the
+            // feature getting out of the way, which is the design. Counting it
+            // beside the rig's own crossings would build a correction against a
+            // number that is mostly the correct behaviour.
+            int crossed1 = FramedBeat.LineCrossed, live1 = FramedBeat.LineCrossedLive;
+            var handedBack = new FramedBeat();
+            handedBack.Begin(0.5, true);
+            handedBack.HoldTheLine(-1, 0, 1, 0, 0, 5);
+            handedBack.Cancel();                       // the player took it
+            handedBack.CameraMovedTo(0, -5);
+            Check(FramedBeat.LineCrossed == crossed1 + 1,
+                "a crossing after the player takes the camera back is still a crossing");
+            Check(FramedBeat.LineCrossedLive == live1,
+                "but it is NOT the rig's, and a fix aimed at it would be the camera "
+                + "fighting the person holding it");
 
             // A BEAT THAT CANNOT FAIL MUST NOT BE COUNTED AS ONE THAT PASSED.
             // Two speakers standing on the same spot have no line between

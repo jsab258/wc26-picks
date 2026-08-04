@@ -277,6 +277,31 @@ namespace Ledger.Core
         public static int LineWatched { get; private set; }
         public static int LineCrossed { get; private set; }
 
+        /// OF THE CROSSINGS, HOW MANY HAPPENED WHILE THE BEAT STILL OWNED THE
+        /// CAMERA — and this is the split that decides whether there is
+        /// anything to fix at all.
+        ///
+        /// The first reading was `lineWatched=43 lineCrossed=9`, and twenty-one
+        /// percent looks like a clear mandate to write the enforcement. It is
+        /// not, because the two ways to get there want opposite responses:
+        ///
+        ///   - the PLAYER swung the camera across. The beat has already
+        ///     cancelled — `PlayerTookOver` fires on look input — and it is
+        ///     handing the camera back over `YieldSeconds`. Nothing is wrong.
+        ///     This file's whole position is that a camera taken away from the
+        ///     player has stopped being the interface, so "correcting" this
+        ///     would be the feature fighting the person using it.
+        ///   - the RIG crossed on its own, following, lagging or sliding off a
+        ///     collision, while the beat was live and composing. That is a
+        ///     composed shot reversing who is looking at whom, and it is the
+        ///     thing the 180-degree rule exists to prevent.
+        ///
+        /// One number cannot tell those apart, and building the correction
+        /// against the pooled count risks a fix that only ever fires on the
+        /// case that was already correct — which is rule 5b's shape, arriving
+        /// before the guard rather than after it for once.
+        public static int LineCrossedLive { get; private set; }
+
         /// Did THIS beat's camera cross? Read by the sim per beat.
         public bool Crossed { get; private set; }
 
@@ -324,6 +349,9 @@ namespace Ledger.Core
                                            _camX0, _camZ0, camX, camZ)) return;
             Crossed = true;
             LineCrossed++;
+            // `_cancelledAt < 0` is "the player has not taken it back yet", so
+            // the beat still owns the frame and this crossing is the RIG's.
+            if (_cancelledAt < 0) LineCrossedLive++;
         }
 
         // NO RESET. The obvious companion here is a `ResetLineCounters()` for
