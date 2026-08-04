@@ -77,6 +77,12 @@ namespace Ledger.Game
         public static int DressedEver { get; private set; }
         public static int KeptEver { get; private set; }
 
+        /// Every distinct `renderer->material` the wardrobe has decided, over
+        /// the whole run. Bounded, because a name that is not distinct after
+        /// ten models is a name that never will be — and this exists to be
+        /// READ, so an unbounded list would defeat it by being unreadable.
+        public static readonly SortedSet<string> PartsEver = new SortedSet<string>();
+
         /// AND HOW MUCH OF THE BODY EACH OF THOSE ACTUALLY COVERS.
         ///
         /// The counts above are of RENDERERS, and a count cannot see
@@ -1016,6 +1022,19 @@ namespace Ledger.Game
                 r.sharedMaterial = flesh ? skin : coat;
                 if (flesh) { Skinned++; SkinnedEver++; }
                 else { Dressed++; DressedEver++; }
+                // EVERY DECISION THIS RULE HAS EVER MADE, distinct, because
+                // `Parts` is rebuilt at every attach and the run ended on a
+                // body that had nothing to paint — so it says "nothing to
+                // paint" and can never explain `bodySkinnedEver=0`.
+                //
+                // Zero flesh over a whole run has two completely different
+                // causes and no number separates them: either no renderer name
+                // matches a bare word, or `Assign`'s single-mesh rule is
+                // firing, which turns an all-bare model into an all-coat one on
+                // purpose and is correct. Guessing between those is how the
+                // sur-face bug survived for weeks. The names decide it.
+                if (PartsEver.Count < 64)
+                    PartsEver.Add($"{r.name}->{(flesh ? "skin" : "coat")}");
 
                 // HOW MUCH OF THE PERSON THIS RENDERER IS. Measured on the
                 // mesh the wardrobe just painted, so the answer cannot drift

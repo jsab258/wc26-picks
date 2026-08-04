@@ -8960,6 +8960,11 @@ namespace Ledger.Game
                       $"bodyFacesOf={ModelMedian(v => v.x)} " +
                       $"bodyFacesAtMost={ModelAtMost()} " +
                       $"bodyFaceSamples={_modelSamples.Count} " +
+                      // AND WHAT THE RULE DECIDED, over the run rather than for
+                      // the last body. `bodyParts` reads "nothing to paint"
+                      // whenever the final walker arrived fully textured, which
+                      // is most runs, so it can never explain a lifetime zero.
+                      $"bodyPartsEver=[{string.Join(" ", RealBody.PartsEver)}] " +
                       $"bodySkinnedEver={RealBody.SkinnedEver} " +
                       $"bodyDressedEver={RealBody.DressedEver} " +
                       $"bodyKeptEver={RealBody.KeptEver} " +
