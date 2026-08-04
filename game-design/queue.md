@@ -105,12 +105,18 @@ AUTO MODE.
    placement nudge rather than a refusal: rejecting placements on a bound
    nobody has read is the ratchet rule five is about.
 
-5. **M21, THE TWO LEDGERS — Core-shaped, no round trip.** The largest piece of
-   unwritten game left. Notoriety landed today with its own accumulation, a
-   second source, and — for the first time — a probe that says whether being
-   known actually opens or closes a door. Next sub-piece: the rival is a person
-   who RINGS you rather than a summit you travel to, and the phone layer has
-   been built since M10.
+5. **M21 — THE NOTORIETY ROW IS CLOSED; THE NEXT SUB-PIECE IS A SURFACE.**
+   Landed 4 Aug: notoriety has its own accumulation and decay, two sources
+   (violence and informing), a proven effect on a real door, a rival who RINGS
+   you instead of a summit you travel to, and a newspaper — the one channel in
+   this game with no hops, so an act can become known to people who were not
+   there. All Core, all tested, all with callers.
+   **What is left needs UI and therefore a round trip each**: a surface the
+   player accuses somebody FROM, and the third answer to the rival's call —
+   picking up and saying no, which needs a prompt because inventing an answer
+   for the bot would put a decision the player owns inside the harness.
+   The Core-shaped work that remains is M22, the shape of a playthrough:
+   onboarding, pacing, replayability, succession. Entirely unbuilt.
 
 6. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
    retired is a public API that something actually calls.
