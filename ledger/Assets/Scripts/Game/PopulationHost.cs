@@ -242,17 +242,44 @@ namespace Ledger.Game
             double keep = (near + slack) * (near + slack);
             near *= near;
 
+            // AND THE SAME STICKINESS ON THE RANK, WHICH THE FIRST VERSION HAD
+            // ONLY ON THE DISTANCE — measured, not suspected.
+            //
+            // That version put six metres of hysteresis on the band and none on
+            // the CAP, and the run said what that costs: 485 passes produced
+            // 1,486 grants and 1,474 revokes. Three swaps a second, for twelve
+            // slots — the set churned almost completely every pass, because
+            // with 43 eligible walkers the twelfth and thirteenth nearest trade
+            // places constantly however sticky the band is. It landed as frame
+            // cost rather than as anything visible: the population scope went
+            // to 4.70ms and the frame gate stayed red.
+            //
+            // THE SLACK IS THE BAND'S OWN, AS A PROPORTION, rather than a new
+            // number: `BandSlack` is 6 metres on a 34-metre band, so a walker
+            // keeps what it has for about a sixth further out than it needed to
+            // earn it. Applied to twelve slots that is two. This deliberately
+            // lets up to fourteen bodies exist at once — the cost of the
+            // hysteresis, bounded and stated, against a thrash that was
+            // instantiating a prefab three times a second.
+            //
+            // NO DWELL TIME STILL. The counters say whether the rank slack was
+            // enough, and a time constant invented on top of an untested one
+            // would make it impossible to tell which fixed it.
+            int slackRanks = (int)System.Math.Round(
+                NpcWalker.RealBodyCap * (Populace.BandSlack / Populace.NearMetres));
             int spent = 0;
             int wanted = 0;
             foreach (var (n, d2) in _bodyRank)
             {
                 bool has = n.HasRealBody;
                 bool inBand = d2 <= (has ? keep : near);
-                bool want = inBand && spent < NpcWalker.RealBodyCap;
+                int limit = NpcWalker.RealBodyCap + (has ? slackRanks : 0);
+                bool want = inBand && spent < limit;
                 if (want) { spent++; wanted++; }
                 n.SetRealBody(want);
             }
             BodyLodNear = wanted;
+            BodyLodSlack = slackRanks;
         }
 
         float _nextBodyLod = -1f;
@@ -267,7 +294,7 @@ namespace Ledger.Game
         /// street with nobody on it from a pass that never ran. `Passes` says
         /// the pass ran, `Eligible` says there was anybody to consider, `Near`
         /// says how many of them were close enough and inside the budget.
-        public static int BodyLodPasses, BodyLodEligible, BodyLodNear;
+        public static int BodyLodPasses, BodyLodEligible, BodyLodNear, BodyLodSlack;
 
         /// The tick list's length and how many of its entries are repeats.
         /// Read by the sim beside the name-duplication counters, because they

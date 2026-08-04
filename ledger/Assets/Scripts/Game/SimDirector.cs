@@ -8715,6 +8715,7 @@ namespace Ledger.Game
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
+                      $"bodyLodSlack={GameController.BodyLodSlack} " +
                       // THE THRASH READING. No dwell time has been invented to
                       // bound these — the band already carries six metres of
                       // hysteresis and whether that is enough is a measurement,
