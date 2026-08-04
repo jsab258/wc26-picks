@@ -91,8 +91,20 @@ namespace Ledger.Game
         bool _phaseSeeded;
         public static int PhasesSeeded { get; private set; }
 
-        /// How far the hips assign moves a DRIVEN body from where its Animator
-        /// put them, in metres, one sample per solved frame.
+        /// How far this class moves a DRIVEN body's hips from where its
+        /// Animator put them, in metres, one sample per solved frame.
+        ///
+        /// AND THE QUESTION IT ANSWERS CHANGED WHEN THE CODE DID, which is the
+        /// drift CLAUDE.md lists four instances of and I have now caused a
+        /// fifth on purpose. Before the compose it measured how much of the
+        /// clip's hip motion was being DISCARDED, and read 0.054 — the same
+        /// order as the bob it was replacing, which is what justified the
+        /// change. After it, the assign is gone and this measures how much the
+        /// expressive layer ADDS: breath, the limp's dip, and the pelvis drop.
+        ///
+        /// Both are worth knowing and they are not the same number. It should
+        /// FALL, because breath and a dip are small and a discarded walk cycle
+        /// was not — and if it does not fall, the compose did not take.
         ///
         /// Shared across rigs on purpose — the question is about the class of
         /// bodies, not about one walker, and twelve bought bodies at a time
@@ -1178,7 +1190,33 @@ namespace Ledger.Game
                 if (PoseIsDriven && _hipOverrides.Count < 20000)
                     _hipOverrides.Add(Mathf.Abs(_hips.localPosition.y - local.y));
 
-                _hips.localPosition = local;
+                // AND THE READING CAME BACK 0.054, SO THIS COMPOSES NOW.
+                //
+                // Five and a half centimetres, median, every frame — the same
+                // order as the walk bob it was replacing, on a body whose
+                // Animator had just written a hip height from a bought clip. So
+                // the assign was not harmless and the measurement was worth
+                // taking before the edit rather than after.
+                //
+                // COMPOSED ON A DRIVEN BODY, ASSIGNED ON A MANNEQUIN, which is
+                // exactly what the pelvis ROTATION six screens down already
+                // does and says why: "An assign here would flatten the clip's
+                // own pelvis rotation and undo half of any walk cycle." The
+                // same sentence was true of position and nobody had applied it.
+                //
+                // WHAT IS ADDED IS THE EXPRESSIVE LAYER ONLY — breath, the
+                // limp's dip, and the pelvis drop that keeps both feet on their
+                // own ground. This file's own note names those as the things
+                // that survive a clip, "the expressive layer the clips cannot
+                // know about — how tired this person is, how hurt". The clip
+                // owns the height; this owns the feeling.
+                if (PoseIsDriven)
+                {
+                    var driven = _hips.localPosition;
+                    driven.y += local.y - _hips0.y;
+                    _hips.localPosition = driven;
+                }
+                else _hips.localPosition = local;
             }
 
             // ---- the lean, on the chest ----
@@ -1296,8 +1334,22 @@ namespace Ledger.Game
             if (_chest != null)
                 _chest.localRotation = _chest.localRotation * Quaternion.Euler(0, (float)chestYaw, 0);
 
-            // The bob rides on the hips with the breath and the limp dip.
-            if (_hips != null)
+            // The bob rides on the hips with the breath and the limp dip —
+            // AND ONLY WHEN NOTHING ELSE IS PROVIDING ONE.
+            //
+            // `Rig.Bob` is a walk cycle's vertical rhythm, computed from
+            // `Phase`. A bought clip has its own, and `Phase` is not the clip's
+            // phase — so on a driven body this was a second bob beating against
+            // the first at a frequency neither of them chose. That is the other
+            // half of the hips finding, and it is the half that cannot be seen
+            // in a number at all: two bobs of similar size average out to
+            // something that looks almost right and never quite reads as
+            // walking.
+            //
+            // The expressive layer above still composes, because breath and a
+            // limp are things no locomotion clip knows about. A bob is not one
+            // of those; it is the walk, and the walk was bought.
+            if (_hips != null && !PoseIsDriven)
             {
                 var p = _hips.localPosition;
                 p.y += (float)Rig.Bob(Phase, gait);
