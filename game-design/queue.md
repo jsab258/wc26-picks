@@ -177,6 +177,41 @@ the reading lands, and every guess made without one tonight was wrong.
    surface to choose one. **It must not be randomised** — CI determinism
    depends on it — so this is a surface, not a change to the default.
 
+11. **THREE KILLINGS, CERTAINTY 1.00, AND THE LAW NEVER ASKED.**
+   `killings[acts=4 killings=3 confidence=1.00]` with `notoriety=0.868`,
+   `denounced=3` — and `inquiry=None` on the done line. The detective never
+   opened an investigation into the player in fifteen days.
+
+   That explains `pressNamed=0` completely and correctly: `Press.Print` names
+   you only at `law >= Inquiry.Investigation`, and its own comment argues at
+   length for using the STAGE rather than a pressure aggregate, because half a
+   manhunt is not "somebody would say it to a detective". The paper is right.
+   Nothing is broken here.
+
+   **What is open is whether the inquiry can rise at all.** Two readings are
+   consistent with `inquiry=None`: the street knowing and the law asking being
+   deliberately different — which is the information pillar and the moat — or
+   nothing driving the stage upward. `redirected=1 pointedAt=kest
+   redirectRelief=0.00` says the redirect ran against a pressure that was
+   already nothing.
+
+   **AND SIXTY KEPT RUNS SAY IT NEVER HAS.** Every `inquiry=` in every verdict
+   under `sim-shots/runs/` reads `None` — sixty for sixty, no exceptions. So
+   this is not "the law was quiet this time": no run in the recorded history of
+   this project has ever entered the stage, and everything gated on
+   `Inquiry.Investigation` has therefore never been exercised — the paper
+   naming you, the redirect having something to relieve, and whatever else
+   reads that stage.
+
+   **This is rule 5b's corollary aimed at a READING rather than a gate**: a
+   number whose subject never occurs reads zero forever and looks like
+   coverage, and the pattern is only visible ACROSS runs — which is exactly
+   what `tools/gates.py --flaky` was built for and why it corrected me within a
+   minute of being written. Start it at the top of a turn; it means reading
+   `HomicideBook` and `EvidenceHost.InquiryOf` properly, and the answer is
+   either "the stage needs a driver" or "the sim needs to plant the
+   condition", which are different afternoons.
+
 ## Next
 
 **CORRECTED — "raise the population" and "make the street busier" are two
