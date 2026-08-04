@@ -179,7 +179,7 @@ AUTO MODE.
    unwired; the models simply do not name a head, which is precisely why
    texture extraction was the thing that mattered. Closed.
 
-7. **KEEP RETIRING THE REACH LEDGER** — 41 entries, three wired today. Each
+7. **KEEP RETIRING THE REACH LEDGER** — 38 entries, five wired today. Each
    one retired is a public API that something actually calls.
 
    **AND READ THE ENTRY'S REASON, NOT JUST ITS NAME.** The ledger was
@@ -325,6 +325,24 @@ for Jafar off a still, not a number for me to move against a measured decision.
   done, ~£0.85. Nothing else is approved and nothing else gets spent.
 
 ## Done, kept here only until the next tidy
+
+- **The night skyline is occupancy** — 1747 windows lit of 2447 against a
+  measured 0.70 of the city being in, and the still shows lit and dark windows
+  on the same floor where there was a wall of identical cream. Shopfronts
+  follow OPENING hours rather than occupancy, about a third late.
+- **Bus stops and cab ranks are signed** — `transit=8` against a 6-to-8
+  prediction written before the dispatch. Both entries described missing
+  behaviour when the real gap was signage.
+- **The wash is anchored per material** — seventeen albedo sheets measured,
+  0.04 to 0.78 against a 0.46 ceiling, and multiplying by wardrobeValue/albedo
+  needs no constant at all. Trousers that were bright yellow all day are olive.
+- **Build, cadence, loop phase and head size** all reach the bought bodies now.
+  Twenty-two distinct breadths, forty-five seeded phases.
+- **The pub's corner is in Hook Street**, 1.5m each way, pinned at two so it
+  can shrink and not grow.
+- **Paying in full and being cleaned out are different days.**
+- **The indoor rain gain was 0.424 where the model said 0.28**, because three
+  places held one idea.
 
 - The upside-down player, closed by looking at the frame: two independent
   faults in our own rig, both fixed, a figure on its feet in the noon still.
