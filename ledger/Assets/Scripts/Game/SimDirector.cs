@@ -9093,6 +9093,13 @@ namespace Ledger.Game
                       $"armWidest={CharacterRig.ArmWidestMedian:0.0} " +
                       $"armWidestWorst={CharacterRig.ArmWidestWorst:0.0} " +
                       $"armP90={CharacterRig.ArmP90Median:0.0} " +
+                      // WITHOUT THE PLAYER. `armWidest=54.2` sits inside the
+                      // band his own clip already holds him at (`preArmDrop=65.3`),
+                      // so the widest body in a frame may simply be him — and
+                      // the scarecrows in the night stills would then be a third
+                      // fault nothing has yet measured. One branch splits them.
+                      $"armCrowdWidest={CharacterRig.CrowdArmWidestMedian:0.0} " +
+                      $"armCrowdWidestWorst={CharacterRig.CrowdArmWidestWorst:0.0} " +
                       $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
                       // AND WHETHER THE STREET'S BODIES ARE ANIMATING AT ALL.
                       // Every other animator reading in this verdict —

@@ -668,7 +668,27 @@ namespace Ledger.Game
             // is the same fault — but the comment has to say what the code
             // does, and for ten minutes it said something else.
             float mine = ArmDropNow();
-            if (mine >= 0f) _armsThisFrame.Add(mine);
+            if (mine >= 0f)
+            {
+                _armsThisFrame.Add(mine);
+                // AND THE SAME SAMPLE WITHOUT THE PLAYER IN IT, which is the one
+                // question `armWidest` came back unable to answer.
+                //
+                // First reading: `armWidest=54.2 armWidestWorst=75.4 armP90=21.3`
+                // over 52 bodies, against a median of 10.7. So roughly one body
+                // in fifty stands wide, in every frame, and the median could
+                // never have seen it — that much the new number settled.
+                //
+                // WHO IT IS, IT CANNOT SAY, and the two answers want opposite
+                // work. `preArmDrop=65.3` says the PLAYER's own bought clip
+                // holds his arms at sixty-five degrees before this class touches
+                // anything, which is within a hair of the 54-to-75 band — so the
+                // widest body in a typical frame may simply be the player, and
+                // the scarecrows in the crowd would be a separate fault that
+                // this number is not seeing either. Excluding him costs one
+                // branch and splits the two apart.
+                if (!IsTheBoughtBody) _crowdArmsThisFrame.Add(mine);
+            }
 
             if (!IsTheBoughtBody) return;
             float a = mine;
@@ -757,8 +777,34 @@ namespace Ledger.Game
                 // three bodies is the widest of three, and a reader who cannot
                 // see that will read it as a distribution.
                 _armBodies.Add(_armsThisFrame.Count);
+                if (_crowdArmsThisFrame.Count > 0)
+                {
+                    _crowdArmsThisFrame.Sort();
+                    _crowdArmWidest.Add(_crowdArmsThisFrame[_crowdArmsThisFrame.Count - 1]);
+                }
             }
             _armsThisFrame.Clear();
+            _crowdArmsThisFrame.Clear();
+        }
+
+        static readonly List<float> _crowdArmsThisFrame = new List<float>();
+        static readonly List<float> _crowdArmWidest = new List<float>();
+
+        /// The widest body in a frame WITHOUT the player in the sample. Read
+        /// against `armWidest`: the same number means the crowd is the wide one
+        /// and the player is innocent; a much smaller one means the widest body
+        /// was always him and the figures in the night stills are a different
+        /// fault that nothing here has caught yet.
+        public static double CrowdArmWidestMedian => MedianOf(_crowdArmWidest);
+
+        public static double CrowdArmWidestWorst
+        {
+            get
+            {
+                double w = -1;
+                foreach (var m in _crowdArmWidest) if (m > w) w = m;
+                return w;
+            }
         }
 
         static readonly List<float> _armWidest = new List<float>();

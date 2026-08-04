@@ -38,38 +38,42 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### WHAT THE 21:02 BUILD SHOWED, READ FROM THE FRAMES BEFORE ANY GATE
+### WHAT THE 21:46 BUILD SAID, AND ALL THREE NEW INSTRUMENTS FIRED
 
-**THERE ARE PEOPLE STANDING IN A T-POSE IN THE MIDDLE OF THE ROAD.**
-`review_day1_night` has three of them — arms straight out at shoulder height,
-motionless, on Copper Row. `review_day2_night` has more. It is the most
-recognisable broken-game artefact there is and it is in two of six stills.
+**THE STREET DOES HAVE SOMEBODY STANDING WIDE, IN EVERY FRAME.**
+`armWidest=54.2 armWidestWorst=75.4 armP90=21.3` over `armBodies=52`, against
+`armStreet=10.7`. So the median body's arms hang, nine in ten are under 21
+degrees, and the WIDEST of fifty-two is at fifty-four degrees in a typical
+frame and seventy-five at worst. Roughly one body in fifty, permanently, and no
+median could ever have seen it. The picture and the number now agree.
 
-**AND BOTH ARM NUMBERS SAID THE STREET'S ARMS HANG.** `armStreet=10.6
-armStreetWorst=14.8` on that same run. Neither is wrong: `armStreet` is a
-median ACROSS BODIES and `armStreetWorst` is the MAXIMUM OVER THOSE MEDIANS —
-a "worst" that never stops being a median. Three scarecrows among thirteen
-solved bodies sit above the seventh value and move neither number by a degree.
-The arms question was closed this morning on a statistic that cannot answer it.
+**WHO IT IS, THE NUMBER CANNOT SAY, AND THAT IS THE NEXT READING.**
+`preArmDrop=65.3` says the PLAYER's own bought clip holds his arms at
+sixty-five degrees before `CharacterRig` touches anything — inside the 54-to-75
+band. So the widest body in a typical frame may simply be him, and the figures
+in the night stills would be a third fault nothing has measured.
+`armCrowdWidest` excludes him and is in the next build.
 
-**That is the second time in an hour, in the same shape.** `crowdGapMedian=0.41`
-reads as a healthy street on a frame with thirty people packed shoulder to
-shoulder, for the same reason. **A MINORITY IS INVISIBLE TO EVERY MEDIAN**, and
-that sentence is now worth grepping the whole verdict for.
+**FORTY-ONE PEOPLE WITHIN TWO METRES OF ONE PERSON.** `crowdHuddle=10`
+median, `crowdHuddleWorst=41`, over 1,623 samples — while `crowdGapMedian=0.44`
+reads as a comfortable street. `review_day5_noon` shows it: about
+twenty-five people packed into a solid block on the right of the frame,
+overlapping, many with their arms out. That is the mob, measured.
 
-**NOBODY IN THIS CITY HAS EVER LIMPED.** `CharacterRig.Capability` drives
-`Rig.Limp` — a whole authored asymmetry with five tests and a matching footstep
-rhythm — and it had exactly one writer, `PlayerController`. Every walker sat at
-the default 1.0 and took the early return. Meanwhile the verdict has been
-printing `samCap=0.70 stillHurt=True` for a man the sim knifes on day one.
-Wired now, keyed on `DisplayName` because that is what harm is actually filed
-under for somebody on the street.
+**THE LIMP IS LIVE AND FIVE PEOPLE USED IT.**
+`limpNames=[Filip,Hana,June,Rocco,Sam]`, `limpNow=3` of fifty walkers, and
+`limpWorst=0.05` — somebody compounded injuries all the way down to
+`HarmBook`'s own floor. Until this build nobody in this city had ever limped.
 
-**966 GRANTS AND 952 REVOKES FOR A SKINNED-BODY BUDGET OF TWELVE.** That is the
-thrash case by the counters' own stated criterion. The count still cannot name
-a cooldown — 966 spread over a long run and 966 made by four people straddling
-one boundary read identically — so `bodySpell` records how long a body is
-actually KEPT.
+**THE EIGHT STUCK CLUTTER ITEMS ARE ON FOUR BUILDINGS, TWO EACH** —
+`warehouse_row`, `boarding_house`, `crescent_houses`, `laurel_letting` — and
+NOT the pub, which this queue named as "certainly one" an hour ago. Waiting for
+the number was right. `dressedRoadWidth=[2.25 4.25 4.50 6.50 10.00 x4]` says
+two of them sit where the carriageway is barely two metres.
+
+**AND THE BODY LOD IS STILL THRASHING**: 1,035 grants against 1,021 revokes for
+a budget of twelve. `bodySpell` measures how long a body is kept and is in the
+next build.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
