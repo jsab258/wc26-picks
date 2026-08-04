@@ -1251,18 +1251,32 @@ namespace Ledger.Game
                         // on into a junction. A building correctly placed at a
                         // kerb reads exactly the same.
                         //
-                        // WHAT IT ACTUALLY SETTLES IS BETTER. `StreetMap` gives
-                        // blocks `MinX = avenue + halfWidth`, so the buildable
-                        // ground begins AT THE KERB and there is no pavement
-                        // anywhere in the map. `Dressing.WallOffset` is 0.45, so
-                        // every facade item on a building flush with its block
-                        // edge is 45cm into the carriageway by construction.
-                        // That is all eight, and it is a level decision — give
-                        // the blocks a pavement inset, or set the buildings back
-                        // — rather than anything a nudge can reach.
+                        // AND THEN I READ THE BLOCK DATA AND NOT THE PLACEMENT,
+                        // AND GOT THE ANSWER WRONG A SECOND TIME.
                         //
-                        // Rule 3, caught before publishing this time: when a
-                        // result is surprising, check the ruler.
+                        // `StreetMap` gives blocks `MinX = avenue + halfWidth`,
+                        // so the buildable GROUND begins at the kerb — from
+                        // which I concluded, and committed, that there is no
+                        // pavement anywhere in the map and all eight items are
+                        // in the road by construction. `BuildBlockSpecs` insets
+                        // every building by `2.6f`, under a comment reading
+                        // "pavement + a doorstep", and the registered places
+                        // push back `size.z / 2f + 2.5f`. There is a pavement,
+                        // it is about two and a half metres, and clutter at
+                        // `WallOffset` 0.45 sits well inside it.
+                        //
+                        // Rule 3 in its exact words: "when your own analysis
+                        // says something is missing, open the file and look." I
+                        // opened `StreetMap` and stopped, which is the same
+                        // mistake as reading a grep hit and not the function —
+                        // and it is the second time today that a claim about
+                        // the world came from the wrong half of it.
+                        //
+                        // SO EIGHT IS A SMALL, SPECIFIC FAULT rather than a
+                        // level-wide one, and the question is WHICH facades.
+                        // The pub is one — its own corner is measurably 1.5m
+                        // inside Hook Street. `dressedStuckOn` names them
+                        // instead of leaving me to guess a third time.
                         var probe = at - outward * (float)Ledger.Core.Dressing.WallOffset;
                         float into = 0;
                         for (int step = 0; step < 40; step++)
@@ -1272,6 +1286,7 @@ namespace Ledger.Game
                             into += 0.25f;
                         }
                         DressedRoadDepth.Add(into);
+                        if (DressedStuckOn.Count < 24) DressedStuckOn.Add(id);
                     }
                 }
                 switch (d.Kind)
@@ -1347,6 +1362,16 @@ namespace Ledger.Game
         /// different findings: a kerb drawn a few centimetres wide, one facade
         /// standing in a lane, or every wall on a street set back wrong.
         public static readonly List<float> DressedRoadDepth = new List<float>();
+
+        /// WHICH FACADES the stuck clutter belongs to.
+        ///
+        /// Eight of a hundred and seventy-six, on a street that does have a
+        /// two-and-a-half metre pavement — so this is a small specific fault
+        /// and the only useful question is which walls. I have now guessed at
+        /// it twice, once from a probe that measured the road's width and once
+        /// from block data that does not describe where buildings go. A list of
+        /// names ends the guessing.
+        public static readonly List<string> DressedStuckOn = new List<string>();
 
         /// Doors built. Counted separately from `Dressed` because a door is
         /// architecture rather than clutter: bins thin out in a far district by

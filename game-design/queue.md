@@ -267,30 +267,27 @@ AUTO MODE.
    interpreting it, and no player will ever see this one. The four numbers now
    come from a single frame, which is the last explanation it gets.
 
-### THE CITY HAS NO PAVEMENT, AND THAT IS WHY THE BINS ARE IN THE ROAD
+### CORRECTION: THE CITY DOES HAVE A PAVEMENT, AND I SAID OTHERWISE AN HOUR AGO
 
-**Settled 4 Aug, and it is a level decision rather than a bug.** `StreetMap`
-builds blocks as `MinX = avenue + halfWidth`, so the buildable ground begins
-exactly at the kerb — there is no footway anywhere in the map. `Dressing.
-WallOffset` is 0.45, so every piece of facade clutter on a building flush with
-its block edge sits 45cm into the carriageway by construction. That is all
-eight of `dressedStuck`, and it is why no nudge could ever clear them: the
-prediction written before the dispatch was "probably 0 pulled and 8 stuck",
-and it read exactly that.
+**Retracted.** I wrote here — and committed — that `StreetMap` starts blocks at
+the kerb so there is no footway anywhere in the map, and that all eight stuck
+clutter items are in the carriageway by construction. That is wrong.
+`BuildBlockSpecs` insets every building by `2.6f` under a comment reading
+"pavement + a doorstep", and the registered places push back `size.z/2 + 2.5`.
+There is a pavement, it is about two and a half metres, and clutter at
+`WallOffset` 0.45 sits well inside it.
 
-It is also why the corner of the pub is in Hook Street.
+I read the block DATA and stopped, without reading the building PLACEMENT.
+Rule 3 in its own words: *"when your own analysis says something is missing,
+open the file and look."* Second time today a claim about the world came from
+the wrong half of it, and the first was `dressedRoadWidth` measuring the road's
+width while claiming to measure how deep a wall sits in it.
 
-**Two ways out and they are not equivalent.** Inset the blocks by a pavement
-width, which moves every building in seven districts and therefore moves every
-number this project has ever measured — expensive, and the right answer for
-how a street READS, because buildings growing straight out of tarmac is what
-the frames show. Or set individual buildings back inside their block, which
-costs nothing measured but leaves the block boundary meaning something
-different from what the map says.
-
-**Do not start this without deciding which.** A pavement is a visible,
-substantial improvement and a large blast radius; picking it in the tail of a
-turn is how a night gets spent re-baselining gates.
+**So eight of a hundred and seventy-six is a small specific fault, not a
+level-wide one, and the only useful question is WHICH walls.** The pub is
+certainly one — its corner is measurably 1.5m inside Hook Street.
+`dressedStuckOn` names them in the next build rather than leaving me to guess a
+third time. **Read that before proposing anything.**
 
 ### The next reach-ledger entry, with its consumer already found
 
