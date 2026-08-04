@@ -235,6 +235,33 @@ def queue_depth():
     return True, "%s queue items ready" % m.group(2)
 
 
+def workflow_size():
+    """Can the Windows build still be DISPATCHED.
+
+    A comment took the build step past GitHub's expression-length limit and
+    `workflow_dispatch` started returning 422 — no Windows build at all, which
+    is the only way to compile the Game layer and the only readable channel out
+    of CI.
+
+    It belongs here rather than nowhere because of WHEN the 422 is raised: at
+    dispatch, not at commit. The commit that breaks it is green, lands, and the
+    breakage is found by whoever next tries to build — which in this project is
+    a person waiting on a twenty-eight-minute round trip that will never start.
+    Checked here, it is a red line before the commit exists.
+
+    The bound is the largest step that has ever dispatched successfully, not
+    the number in GitHub's message: theirs is 21000 and a 23184-character block
+    dispatched fine all morning, so their accounting is not this one and
+    guessing at it would be inventing a threshold."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "workflow-size.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".yml:" in l), "see workflow-size")
+        return False, "WORKFLOW STEP TOO LARGE TO DISPATCH: " + first[:90]
+    m = re.search(r"largest step (\d+) chars \((\d+) under", out)
+    return True, ("workflow steps ok (%s under the dispatch ceiling)" % m.group(2)
+                  if m else "workflow steps ok")
+
+
 def convo_probe():
     """The conversation probe finds the real cards, without spending anything.
 
@@ -507,7 +534,8 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, shipped_cards, convo_probe, queue_depth, frame_drift, verdict_keys, save_chaos, soak,
+               card_writing, shipped_cards, convo_probe, queue_depth, workflow_size,
+               frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok
