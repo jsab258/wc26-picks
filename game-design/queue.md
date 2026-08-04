@@ -170,6 +170,18 @@ Everything below is read off `7dc6334`, which is green.
 
 ### Answered tonight, kept only as evidence
 
+- **The "list order standing in for a real criterion" sweep is DONE — two real
+  sites, both fixed, and the rest are correct.** After the companion recruit
+  turned out to pick by walker-list position, CLAUDE.md's new corollary says to
+  grep for the shape rather than wait to trip over it. The second site was
+  misattribution: every witness was handed the same arbitrary walker to be wrong
+  about, so eight misnamings in a run all pointed at one person chosen by list
+  index. It reads the mill now — whoever a witness holds their strongest rumour
+  about is who comes to mind. Everything else that looked like it (`Arms[0]`
+  twice in the ledger panel, `EllisInterviews[0]`, `OpenTargets.FirstOrDefault`,
+  `Hosts[0]`) is either a max-scan SEED, which is the correct idiom, or a
+  genuine first. **Nobody needs to run this hunt again.**
+
 - `billboardsStale=5 billboardWorstDeg=75.2`, all 54 re-aimed at shot time —
   every still ever committed had been drawn with the previous frame's aim.
 - `bodyCoat=[denim hsv=0.60/0.36/0.59 rgb=96,118,149]` — **reversed me.** The
