@@ -291,6 +291,16 @@ namespace Ledger.Game
         public static double MeasureWorst = 60.0;
         public static string MeasureWorstWhere = "nothing measured";
 
+        /// EVERY failing prose label, not only the worst one. `measureFailing=4`
+        /// beside a single named label is a work item nobody can start: three
+        /// of the four have no address and the only way to get one is another
+        /// round trip. The default text says nothing was measured for the same
+        /// reason `ContrastTightestWhere` does — an empty list reads as a clean
+        /// run, and a clean run and an unrun check are different states.
+        static readonly List<string> _measureFails = new List<string>();
+        public static string MeasureFails =>
+            _measureFails.Count == 0 ? "none failing" : string.Join(" ", _measureFails);
+
         public void MeasureContrast()
         {
             ContrastChecked = ContrastFailing = 0;
@@ -301,6 +311,7 @@ namespace Ledger.Game
             MeasureChecked = MeasureFailing = 0;
             MeasureWorst = 60.0;
             MeasureWorstWhere = "nothing measured";
+            _measureFails.Clear();
             foreach (var panel in new[] { _ledgerPanel, _dialoguePanel, _keyPanel,
                                           _pausePanel, _planPanel, _phonePanel })
             {
@@ -376,6 +387,25 @@ namespace Ledger.Game
                         if (!Typography.MeasureIsReadable(rt.rect.width, points))
                         {
                             MeasureFailing++;
+                            // ALL OF THEM, NOT JUST THE WORST.
+                            //
+                            // `measureFailing=4` beside a `measureWorstWhere`
+                            // naming ONE label is a work item nobody can start:
+                            // three of the four faults have no address, and the
+                            // only way to get one is another 28-minute round
+                            // trip per label. The worst is what to fix FIRST;
+                            // the list is what to fix.
+                            //
+                            // Eight prose labels are checked in total, so the
+                            // list cannot run away — and it is capped anyway,
+                            // out loud, because a cap nobody is told about is
+                            // the fault that made three body prefabs look like
+                            // they had failed to build this morning.
+                            if (_measureFails.Count < 12)
+                                _measureFails.Add(
+                                    $"{panel.name}/{t.name}@{points}pt:{chars:0}");
+                            else if (_measureFails.Count == 12)
+                                _measureFails.Add("(more, not listed)");
                             if (System.Math.Abs(chars - 60) > System.Math.Abs(MeasureWorst - 60))
                             {
                                 MeasureWorst = chars;

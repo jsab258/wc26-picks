@@ -8162,6 +8162,7 @@ namespace Ledger.Game
                       $"measureFailing={DialogueUI.MeasureFailing} " +
                       $"measureWorst={DialogueUI.MeasureWorst:0} " +
                       $"measureWorstWhere=[{DialogueUI.MeasureWorstWhere}] " +
+                      $"measureFails=[{DialogueUI.MeasureFails}] " +
                       $"identifiedPeak={_identifiedPeak} " +
                       $"attendingAtIdentified={_attendingAtIdentifiedPeak} " +
                       $"identifiedEver={_identifiedEver.Count} " +
