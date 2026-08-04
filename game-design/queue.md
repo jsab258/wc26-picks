@@ -38,6 +38,36 @@ scheduling instead of to CI's output.
 
 ## Now
 
+### Startable right now, in order
+
+1. **Read `bc4c689` and `69e03a6` when they land.** The first carries the
+   `ALL GATES` line actually reaching the verdict; the second carries the
+   per-tick bubble sampling and `bodyReadWhen`. Both answer questions that are
+   currently open rather than confirming something already known.
+2. **Then promote the gate-label keys from gate-only to REQUIRED** in
+   `verdict-keys`. They are always present once `ALL GATES` prints, so deleting
+   `atRecruit` from a label would be caught. Needs two or three landed runs
+   first — several labels build their text conditionally and which keys are
+   stable is not yet known. Do not promote blind.
+3. **`lineWatched` / `lineCrossed`.** The 180-degree rule is measured and not
+   enforced. If the follow rig never crosses during a beat, the enforcement is
+   dead code that would look like a feature; if it does, that is a real
+   game-feel fix with the arithmetic already written and tested.
+4. **`shotsBlocked` against `shotsAimed`.** First reading of what stands
+   between the camera and the player. Three stills have been questioned over
+   foreground clutter by eye and none measured.
+5. **The 31 sim log lines that never reach the verdict** (`verdict-reach.py`).
+   Most SHOULD be dropped — narration is not a verdict — but the list has never
+   been read once with judgement applied. Some carry numbers.
+6. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder verified armed for 07:55
+   UTC. This is now the ONLY route to the undressed-player problem — see the
+   reversal below.
+7. **Keep retiring the reach ledger** (69, down from 71). What is left is
+   mostly UI surfaces and one real refactor: `Mixing.*` has no audio choke
+   point.
+
+---
+
 **A GREEN RUN COULD NOT SAY HOW IT PASSED, AND THAT WAS TRUE OF 35 NUMBERS.**
 `companionSight` came back green on `efff6fc` and reported **nothing** — because
 `atRecruit` and `waited`, written an hour earlier for the sole purpose of
