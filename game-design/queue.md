@@ -55,6 +55,31 @@ scheduling instead of to CI's output.
 4. **Read the honest crowd curve, then decide a count.** *(CI)* The first
    reading was culling, not skinning. If cost rises gently, near-crowd skinned
    bodies become worth doing the moment BODIES.bat lands textured models.
+4b. **THE SKINNED CROWD — costed, designed, deliberately NOT shipped tonight.**
+   The measurement is in and it is the one `CharacterRig` demanded in its own
+   words: `crowdCost n=0[10.3] n=8[11.1] n=24[13.1] n=50[12.8]`, so fifty
+   VISIBLE skinned figures cost about 2.5ms on a runner with no GPU at all.
+   Affordable. The blocker is retired.
+
+   **What stopped it going in at midnight, and it is not nerve.**
+   `RealBody.TryAttach` writes about a dozen statics — `Upright`, `Parts`,
+   `DressedAreaFraction`, the bind and scaled pose spans — and every one of
+   them describes THE LAST BODY ATTACHED. Point it at the crowd and `bodiesOk`
+   stops gating the player and starts gating whichever NPC spawned last. That
+   is the metric drift this project has been bitten by three times, introduced
+   on purpose.
+
+   **The design, so tomorrow is twenty minutes and not a fresh decision:** a
+   `TryAttachCrowd` wrapper that snapshots those statics, calls the ONE
+   `TryAttach` (never a second copy of it — see NotePoach and the wardrobe
+   rule, both of which were two implementations of one idea), and restores
+   them. Plus: crowd bodies must NOT get `AlwaysAnimate`, and `SceneAudit`'s
+   `skinned=2` becomes `skinned=100+`, so read anything gating on it first.
+
+   **And it is worth far more after BODIES.bat.** Today it would be fifty
+   copies of two grey bots. Tomorrow it is six textured characters, which is
+   the difference between a crowd and a clone army.
+
 5. **Jafar runs BODIES.bat ~10:00 CEST.** README now opens with the three
    steps; the reminder fires 07:55 UTC. `bodyChoices` 2 - 6, and those models
    are TEXTURED so the wardrobe leaves them alone entirely.
