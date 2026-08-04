@@ -1525,6 +1525,79 @@ namespace Ledger.CoreTests
                 "and so is a possessive");
             Check(!GossipMill.SaysWord("replayer", "player") && !GossipMill.SaysWord(null, "player"),
                 "no match inside a word, and no throw on nothing");
+
+            // -- WHOSE FACE BUILT THE CASE ------------------------------------
+            //
+            // The third competence brick. Not a face count — the street files a
+            // runner's round against the PLAYER on purpose — but a weight: a
+            // capable runner leaves a weak link back to you and a clumsy one a
+            // strong one, and nobody has ever been able to see that.
+            //
+            // THE ACCEPTING CASE FIRST, and here it is the one with no crew at
+            // all: a campaign where nothing was delegated must read as "all of
+            // it is your own face", because a metric that cannot say that
+            // cannot say anything about delegation either.
+            var solo = new GossipMill(new SocialGraph());
+            solo.Add(Agent("ada", "Ada", "day"));
+            solo.Witness("ada", new Fact("player", "night_job_d3", "seen"),
+                "Novak was handling a package past midnight", true, now, 1.0);
+            var eSolo = solo.ExposureOf("player", p => p.StartsWith("racket_"));
+            Check(eSolo.Yours == 1 && eSolo.Delegated == 0 && eSolo.YoursShare == 1.0,
+                  "a player who does their own work owns all of the case",
+                  eSolo.Sentence());
+
+            // AND THE OTHER END, WHICH IS THE ONE THE BRICK EXISTS FOR.
+            var run = new GossipMill(new SocialGraph());
+            run.Add(Agent("ada", "Ada", "day"));
+            run.Add(Agent("bo", "Bo", "night"));
+            run.Witness("ada", new Fact("player", "racket_dock_d4", "seen"),
+                "Sam was working a dock round for Novak", true, now, 0.80);
+            run.Witness("bo", new Fact("player", "racket_dock_d5", "seen"),
+                "Sam was working a dock round for Novak", true, now, 0.80);
+            var eRun = run.ExposureOf("player", p => p.StartsWith("racket_"));
+            Check(eRun.Yours == 0 && eRun.Delegated == 2 && eRun.YoursShare == 0.0,
+                  "and one who hands it all over owns none of it",
+                  eRun.Sentence());
+
+            // THE MECHANIC ITSELF: same two rounds, a BETTER runner, a weaker
+            // case. This is the thing that has been running for weeks unseen,
+            // and it is asserted as a comparison rather than against a number
+            // nobody measured.
+            var clumsy = new GossipMill(new SocialGraph());
+            clumsy.Add(Agent("ada", "Ada", "day"));
+            clumsy.Witness("ada", new Fact("player", "racket_dock_d4", "seen"),
+                "Sam was working a dock round for Novak", true, now, 0.45 + 0.35 * (1.0 - 0.2));
+            var capable = new GossipMill(new SocialGraph());
+            capable.Add(Agent("ada", "Ada", "day"));
+            capable.Witness("ada", new Fact("player", "racket_dock_d4", "seen"),
+                "Sam was working a dock round for Novak", true, now, 0.45 + 0.35 * (1.0 - 0.9));
+            double heavy = clumsy.ExposureOf("player", p => p.StartsWith("racket_")).DelegatedWeight;
+            double light = capable.ExposureOf("player", p => p.StartsWith("racket_")).DelegatedWeight;
+            Check(heavy > light,
+                  "a competent runner leaves a lighter link back to you than a clumsy one",
+                  $"{heavy:0.00} vs {light:0.00}");
+
+            // MIXED, and the share is the thing the sentence is built from.
+            var mixed = new GossipMill(new SocialGraph());
+            mixed.Add(Agent("ada", "Ada", "day"));
+            mixed.Witness("ada", new Fact("player", "night_job_d3", "seen"),
+                "Novak was handling a package past midnight", true, now, 1.0);
+            mixed.Witness("ada", new Fact("player", "racket_dock_d4", "seen"),
+                "Sam was working a dock round for Novak", true, now, 1.0);
+            var eMix = mixed.ExposureOf("player", p => p.StartsWith("racket_"));
+            Check(eMix.Stories == 2 && System.Math.Abs(eMix.YoursShare - 0.5) < 1e-9,
+                  "half and half reads as half and half", eMix.Sentence());
+
+            // NOTHING AT ALL is a legitimate world and not an absence of one.
+            var quiet = new GossipMill(new SocialGraph());
+            quiet.Add(Agent("ada", "Ada", "day"));
+            var eQuiet = quiet.ExposureOf("player", p => p.StartsWith("racket_"));
+            Check(eQuiet.Stories == 0 && eQuiet.YoursShare == -1
+                  && eQuiet.Sentence().Contains("Nothing on the street"),
+                  "an empty street says so rather than dividing by zero",
+                  eQuiet.Sentence());
+            Check(solo.ExposureOf("player", null).Yours == 1,
+                  "and no crew rule means nothing was delegated, not a throw");
         }
 
         static void TestSurvivingLead()

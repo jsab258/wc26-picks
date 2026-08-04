@@ -113,6 +113,18 @@ namespace Ledger.Core
         /// pre-audit stream for anything that never sets it.
         public int Seed = 17;
 
+        /// Who the street is talking ABOUT when a crew member gets clocked.
+        ///
+        /// The racket rumour said "for the new owner" forever, which is right
+        /// on day one and wrong from the moment anybody learns the name — and
+        /// the racket rounds are most of what the ledger screen holds in open
+        /// mode, so that one string was the district's largest opportunity to
+        /// say "Novak" and it never took it.
+        ///
+        /// Defaulted rather than injected so Core tests and the balance lab
+        /// keep working untouched; the game layer overwrites it from the save.
+        public PlayerIdentity Owner = new PlayerIdentity();
+
         public readonly List<Business> Businesses = new List<Business>();
         public readonly List<CrewMember> Crew = new List<CrewMember>();
         public readonly List<Racket> Rackets = new List<Racket>();
@@ -674,7 +686,8 @@ namespace Ledger.Core
                         var w = pool[rng.Next(pool.Count)];
                         double conf = 0.45 + 0.35 * (1.0 - runner.Competence);
                         mill.Witness(w.Id, new Fact("player", $"racket_{r.Id}_d{now.Day}", "seen"),
-                            $"{runner.Name} was working a {r.Name} round for the new owner", true, now, conf);
+                            $"{runner.Name} was working a {r.Name} round for {Owner.InTalk(mill)}",
+                            true, now, conf);
                         events.Add(new EmpireEvent { Kind = "witness", ActorId = w.Id,
                             Text = $"Somebody clocked {runner.Name} on the {r.Name} round." });
                         if (w.Circle != "day")

@@ -5645,6 +5645,27 @@ namespace Ledger.Game
                     doubtWho = h.Card != null ? h.Card.Name : "somebody";
                 }
 
+            // WHOSE FACE BUILT THE CASE — the third competence brick, read off
+            // the run rather than asserted from the fact it compiles.
+            //
+            // Rule 6 is the whole reason this is here: `Brandish`, `MayFrisk`,
+            // `Acquire` and `Misattribute` were all built, tested and never
+            // once called, and the only thing that would have said so is a
+            // number from a run. `exposureDelegated` at 0 on a seventeen-day
+            // open-mode campaign with two rackets running means the sentence
+            // this brick exists to print never appears.
+            int exYours = 0, exTheirs = 0;
+            double exYoursW = 0, exTheirsW = 0;
+            string exSays = "not measured";
+            if (_game != null && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                var ex = _game.Gossip.Mill.ExposureOf("player",
+                    p => p != null && p.StartsWith("racket_"));
+                exYours = ex.Yours; exTheirs = ex.Delegated;
+                exYoursW = ex.YoursWeight; exTheirsW = ex.DelegatedWeight;
+                exSays = ex.Sentence();
+            }
+
             bool uiOk = _uiSmokeRun && panelsBad == 0 && panelsOk >= 7 && glyphsOk && idLeaks == 0;
 
             // P5 BUDGETS. The deterministic ones gate (caps are design
@@ -7181,7 +7202,14 @@ namespace Ledger.Game
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} idLeaks={idLeaks} " +
-                      $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} uiOk={uiOk} " +
+                      $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} " +
+                      // BOTH POPULATIONS AND BOTH WEIGHTS. Counts alone cannot
+                      // show the mechanic: two racket rumours from a capable
+                      // runner and two from a clumsy one are the same COUNT and
+                      // a very different case against you.
+                      $"exposureYours={exYours} exposureTheirs={exTheirs} " +
+                      $"exposureYoursW={exYoursW:0.00} exposureTheirsW={exTheirsW:0.00} " +
+                      $"exposureSays=[{exSays}] uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +

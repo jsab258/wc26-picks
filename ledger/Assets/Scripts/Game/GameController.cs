@@ -654,6 +654,10 @@ namespace Ledger.Game
             Debts.Add(new Debtor { Id = "Rocco", Name = "Rocco", Amount = 60, Note = "the door take, '19" });
             BuildPurses();
             Empire.Seed = PopulationSeed;   // one world, one roll stream (audit 2026-07-27)
+            // THE SAME IDENTITY, NOT A COPY OF IT. The racket rumours name the
+            // player, and a second `PlayerIdentity` would go on saying "Novak"
+            // after a save restored a different surname into this one.
+            Empire.Owner = Me;
 
             TryLoad();
         }

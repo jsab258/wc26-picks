@@ -70,6 +70,32 @@ namespace Ledger.Core
         public string InTalk(bool streetKnowsName) =>
             streetKnowsName ? Surname : Unplaced;
 
+        /// The same answer, worked out from the mill itself.
+        ///
+        /// THE SECOND SITE. `GossipDirector` had this rule and Core did not, so
+        /// every rumour written from Core — the racket rounds, which are the
+        /// bulk of what the ledger screen shows in open mode — hardcoded "the
+        /// new owner" and the district could never learn to say Novak on the
+        /// one page where it matters most.
+        ///
+        /// It is here rather than copied into `Empire` because two places
+        /// deciding separately whether the street has learned your name is how
+        /// a panel ends up saying "Novak" in one line and "the new owner" in
+        /// the next — the same fault, one layer up, that put a raw id into a
+        /// witness account an hour ago.
+        ///
+        /// ANY, not all, which is the mechanic and not laziness: one person
+        /// knowing your name is how the rest of them come to say it.
+        public static bool StreetKnowsName(GossipMill mill)
+        {
+            if (mill == null) return false;
+            foreach (var g in mill.Agents)
+                if (KnowsName(g)) return true;
+            return false;
+        }
+
+        public string InTalk(GossipMill mill) => InTalk(StreetKnowsName(mill));
+
         /// Does this person know what to call you? They do once they have
         /// remembered anything about you at all — which is the same moment the
         /// game starts treating them as somebody who has met you, so there is no

@@ -1156,6 +1156,28 @@ namespace Ledger.Game
                 doubt.AppendLine($"   <color={UiTheme.HexDim}><b>{c.Name}</b>'s envelope has been "
                                  + $"light <b>{c.DaysSkimmed}</b> days running. They count too.</color>");
             }
+            // AND THE THIRD ONE: what handing work over has actually cost you.
+            //
+            // The design note's example is "do this one yourself because the lad
+            // would botch it and four people see your face instead of his", and
+            // the brick is NOT a face count — the street files a runner's round
+            // against the player by design, because connecting your people to
+            // you is the premise. What differs is how HARD it connects them:
+            // a racket rumour lands at `0.45 + 0.35 * (1 - competence)`, so a
+            // capable runner leaves a weak link and a clumsy one a strong one.
+            // That has been running for weeks with nobody able to see it.
+            //
+            // The predicate spelling stays here, in the layer that owns it —
+            // `Empire` writes `racket_<id>_d<day>` and Core does the
+            // arithmetic without learning the game's vocabulary.
+            if (_game.Campaign.OpenMode && _game.Gossip != null && _game.Gossip.Mill != null)
+            {
+                var ex = _game.Gossip.Mill.ExposureOf("player",
+                    p => p != null && p.StartsWith("racket_"));
+                if (ex.Delegated > 0)
+                    doubt.AppendLine($"   <color={UiTheme.HexDim}>{ex.Sentence()}</color>");
+            }
+
             if (doubt.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>DOUBT — who has stopped trusting you</b></color>\n")
                   .Append(doubt);

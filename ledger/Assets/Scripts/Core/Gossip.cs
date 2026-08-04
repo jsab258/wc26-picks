@@ -509,6 +509,96 @@ namespace Ledger.Core
             return list.OrderByDescending(l => l.Confidence).ToList();
         }
 
+        /// How much of what the street holds about you came from YOU being
+        /// seen, and how much from YOUR PEOPLE being seen.
+        ///
+        /// THE THIRD COMPETENCE BRICK, and it is not the shape it first looked
+        /// like. The design note's example is *"do this one yourself because
+        /// the lad would botch it and four people see your face instead of
+        /// his"*, and the obvious build from that is a face-count — yours
+        /// against your crew's.
+        ///
+        /// The game already collapses that distinction, and is right to. A
+        /// witness to a runner's round files a fact whose SUBJECT is the
+        /// player, and the sentence says so out loud: *"{runner} was working a
+        /// {racket} round for Novak."* The street connects your people to you.
+        /// That IS the premise, and a metric that separated them would be
+        /// measuring a game this is not.
+        ///
+        /// WHAT ACTUALLY DIFFERS IS CONFIDENCE. A racket rumour lands at
+        /// `0.45 + 0.35 * (1 - competence)`, so a capable runner produces a
+        /// weak link back to you and a clumsy one a strong link. That mechanic
+        /// has been running for weeks and nobody has ever seen it, which is
+        /// rule 6 with the system already built.
+        ///
+        /// So the brick is the WEIGHT, not the count: how much of the case
+        /// against you is your own face, against how much you delegated into
+        /// existence. Delegation is not free and now it has a visible price.
+        ///
+        /// `viaOthers` decides which topics are somebody else's round. The
+        /// caller passes it because Core must not learn the game's predicate
+        /// spelling — `Empire` owns `racket_<id>_d<day>` and this owns the
+        /// arithmetic. Null means "none of it was delegated", which is the
+        /// honest answer for a campaign with no crew rather than a crash.
+        public Exposure ExposureOf(string subject, Func<string, bool> viaOthers)
+        {
+            var e = new Exposure();
+            var subj = (subject ?? "player").ToLowerInvariant();
+            foreach (var a in _agents.Values)
+            {
+                if (a == null) continue;
+                foreach (var r in a.Rumors)
+                {
+                    if (r == null || r.Content.Subject != subj) continue;
+                    bool theirs = viaOthers != null && viaOthers(r.Content.Predicate);
+                    if (theirs) { e.Delegated++; e.DelegatedWeight += r.Confidence; }
+                    else { e.Yours++; e.YoursWeight += r.Confidence; }
+                }
+            }
+            return e;
+        }
+
+        /// The split, and the sentence a player reads.
+        public struct Exposure
+        {
+            public int Yours, Delegated;
+            public double YoursWeight, DelegatedWeight;
+            public int Stories => Yours + Delegated;
+            public double Weight => YoursWeight + DelegatedWeight;
+
+            /// The share of the case against you that your own face put there.
+            /// -1 when there is no case at all, because a share of zero is a
+            /// legitimate reading — everything came from the crew — and must
+            /// not be confused with nothing having happened.
+            public double YoursShare => Weight <= 0 ? -1 : YoursWeight / Weight;
+
+            /// WORDS, NOT A FIGURE — the legibility law the ledger screen obeys
+            /// and states twice. A player never needs to see 0.62.
+            ///
+            /// The thresholds are not a measurement and do not pretend to be:
+            /// they are the four ways a sentence can end, and each one is true
+            /// of the range it names by construction. Nothing branches on them
+            /// but the wording.
+            public string Sentence()
+            {
+                if (Stories == 0) return "Nothing on the street points at you yet.";
+                if (Delegated == 0)
+                    return "Everything the street has on you, it got from seeing you.";
+                if (Yours == 0)
+                    return "Nothing the street has on you came from your own face. "
+                         + "All of it came from watching your people work.";
+                double s = YoursShare;
+                if (s >= 0.75)
+                    return "Most of what the street has on you, it got from seeing you — "
+                         + "your people have cost you little.";
+                if (s >= 0.45)
+                    return "About half the case against you came from your own face, "
+                         + "and half from watching your people work.";
+                return "Most of the case against you was built by watching your people, "
+                     + "not you. Handing work over has not made you invisible.";
+            }
+        }
+
         // ---- damage control: the player's verbs against the rumor mill ----
 
         public double BribeBase = 50, BribePerConfidence = 150, BribeGreedFloor = 0.3;
