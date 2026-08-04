@@ -86,7 +86,32 @@ shows the camera jammed against a street sign. The series is 1, 0, 0, 0, 0,
 single twenty-shot reading of zero, and the standing "do not reopen" list
 carries that closure. Correct the list: the camera is *usually* clear.
 
-### IN FLIGHT AND STAGED, 08:05 UTC
+### STAGED AND UNDISPATCHED, 08:14 UTC — six commits
+
+One build in flight (the standing-still separation fix plus the hoisted
+numbers). Six commits sit on top of it, all additive reporting, none
+behavioural except a read-only phone lookup:
+
+`simAudible` (so `soundsOffered=0` cannot read as a fault), `worstWorldPair`
+by overlap AREA rather than first-found, the line-length measure,
+`identifiedPeak`/`identifiedEver`, `callsTried`/`callsReachable`, and
+`roomQuiet`. **Dispatch these together the moment the separation build
+lands.**
+
+**Reach ledger: 50, from 71 two nights ago and 55 at 07:00 today.** Six
+retired this morning — `HeardAs`, `BelievedAt`, `MeasureIsReadable`,
+`Attention.Identified`, `PhoneBook.ReachableNow` with `LinesFor`, and
+`MusicModel.RoomHasGoneQuiet` — every one by being wired to something that
+runs rather than re-described.
+
+**NEXT SUBSTANTIAL ITEM: `Reaction.Confront`.** The ledger calls it "the
+single most visible missing reaction in the game": an NPC who saw you do it
+walking over. That is immersion rather than instrumentation, and immersion
+outranks systems. It moves walkers, so it starts once the separation build
+has landed and been read — not before, or a moved crowd number has two
+causes again.
+
+### IN FLIGHT, 08:14 UTC
 
 Two builds are out and a batch is committed but NOT dispatched. If you are a
 cold session reading this, that is the first thing to resolve.
