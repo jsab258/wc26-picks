@@ -2494,6 +2494,27 @@ namespace Ledger.Game
         /// second one with the first beside it.
         readonly List<Vector2Int> _modelSamples = new List<Vector2Int>();
 
+        /// The biggest group standing within conversation distance of one
+        /// another, one entry per sample. MEDIAN and WORST both printed: a
+        /// street that huddles once is a scene and a street that huddles always
+        /// is a bug, and one number cannot tell those apart.
+        readonly List<int> _huddles = new List<int>();
+
+        int HuddleMedian()
+        {
+            if (_huddles.Count == 0) return -1;
+            var c2 = new List<int>(_huddles);
+            c2.Sort();
+            return c2[c2.Count / 2];
+        }
+
+        int HuddleWorst()
+        {
+            int w = -1;
+            foreach (var h in _huddles) if (h > w) w = h;
+            return w;
+        }
+
         /// The window counts as they stood when the NIGHT STILL was taken,
         /// with the hour beside them — because the live counters are rewritten
         /// every game hour and the picture is not.
@@ -3009,6 +3030,45 @@ namespace Ledger.Game
             var cam = Camera.main;
             if (cam == null || _npcs == null) return;
             _crowdSeen.Clear();
+
+            // THE BIGGEST HUDDLE, WHICH THE GAP MEDIAN CANNOT SEE.
+            //
+            // `review_day2_night` shows about thirty people standing in a
+            // packed rectangular block, shoulder to shoulder — a queue, not a
+            // street. `crowdGapMedian=0.41` is perfectly healthy on that frame,
+            // because a median over PAIRS is dominated by the sixty people who
+            // are nowhere near each other, and the huddle is a handful of pairs.
+            // A statistic answering "is the street crowded on average" cannot
+            // answer "is anybody standing in a mob", and I have spent five
+            // builds tuning the first while the second was what the picture
+            // showed.
+            //
+            // WITHIN TWO METRES, which is not a threshold about crowding: it is
+            // `Acoustics`-scale conversation distance, the range at which these
+            // people are modelled as being AT the same place. Anybody closer
+            // than that is at the same place by the game's own definition, so
+            // the count is "how many are at one place" rather than a bound I
+            // picked.
+            //
+            // NO GATE ON IT. Nobody has read the series, and a huddle of six is
+            // a bus stop while a huddle of thirty is a fault — the number that
+            // separates them has to come from the runs (rule 2).
+            int worstHuddle = 0;
+            for (int i = 0; i < _npcs.Length; i++)
+            {
+                var a0 = _npcs[i];
+                if (a0 == null || !a0.isActiveAndEnabled) continue;
+                int near = 1;
+                for (int j = 0; j < _npcs.Length; j++)
+                {
+                    if (i == j) continue;
+                    var b0 = _npcs[j];
+                    if (b0 == null || !b0.isActiveAndEnabled) continue;
+                    if ((a0.transform.position - b0.transform.position).sqrMagnitude <= 4f) near++;
+                }
+                if (near > worstHuddle) worstHuddle = near;
+            }
+            _huddles.Add(worstHuddle);
             // GLANCED AT versus KNOWS WHO YOU ARE, counted in ONE pass so the
             // two describe the same instant. `deedWitnesses/deedEyesOpen` were
             // three separate maxima printed as one event's breakdown, and this
@@ -8807,6 +8867,12 @@ namespace Ledger.Game
                       $"crowdTightestWhen={_crowdTightestWhen} " +
                       $"crowdGapMedian={CrowdGapMedian:0.00} crowdGapSamples={_crowdGaps.Count} " +
                       $"crowdBodyWidth={CrowdWidthRead()} " +
+                      // AND THE BIGGEST HUDDLE, because a median over pairs is
+                      // dominated by the people who are nowhere near each other
+                      // and cannot see thirty of them standing in a block.
+                      $"crowdHuddle={HuddleMedian()} " +
+                      $"crowdHuddleWorst={HuddleWorst()} " +
+                      $"crowdHuddleSamples={_huddles.Count} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
