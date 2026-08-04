@@ -1802,7 +1802,15 @@ namespace Ledger.Game
             // face-to-face conversation would still be told nobody can see
             // anybody, which is the sort of stale flag that produces a
             // character behaving oddly for reasons nobody can trace.
+            // AND THE WIRE GOES QUIET WITH IT. `Audio.CloseLine` stops the line
+            // bed; without it the hiss and the hum would carry on under the
+            // street after the handset went down, which is the shape of stale
+            // flag the paragraph above is already about. Unconditional, because
+            // `CloseLine` on a line that was never open is a no-op and a
+            // condition here would be a second place that has to agree with
+            // `OnTheLine` about whether a call happened.
             if (_current != null) _current.OnTheLine = false;
+            Audio.CloseLine();
             _dialoguePanel.SetActive(false);
             _current = null;
         }
@@ -1871,6 +1879,30 @@ namespace Ledger.Game
             if (history.Count > 0 && history[history.Count - 1].EndsWith("is thinking...</i>"))
                 history.RemoveAt(history.Count - 1);
             history.Add($"<b>{name}:</b> {reply}");
+            // AND IT IS A VOICE, NOT ONLY A CAPTION — BOTH WAYS, WHICH IS THE
+            // POINT.
+            //
+            // `Audio.SpeakOnTheLine` had no caller, and wiring only it would
+            // have made a telephone call the one conversation in the game with
+            // a sound, which is the wrong asymmetry to fix an asymmetry with.
+            // Face-to-face dialogue had no voice request either: `Audio.Speak`
+            // is called from `SpeechBubble` for STREET talk, and a panel
+            // conversation draws no bubble, so every word anybody has ever said
+            // to the player's face has been silent and uncounted.
+            //
+            // The bank does not exist yet and both of these will miss. That is
+            // deliberate and is the same argument `SpeechBubble` makes: the
+            // request is counted, so `speechMissing` measures the real demand a
+            // generator has to satisfy rather than a fraction of it, and the
+            // day the bank lands nothing needs wiring.
+            //
+            // 1.5m for the room, because a conversation panel is somebody at
+            // arm's length and `Acoustics` prices distance rather than guessing
+            // at it. No wall: you are looking at them.
+            var clip = VoiceBank.ClipName(
+                VoiceBank.VoiceFor(host.Card.Id, VoiceBank.Cast), reply);
+            if (host.OnTheLine) Audio.SpeakOnTheLine(clip, Acoustics.LineKind.Handset);
+            else Audio.Speak(clip, 1.5f, false, Audio.ChatterLevel);
             RenderHistory();
         }
 

@@ -36,9 +36,26 @@ namespace Ledger.Game
             // other people's messages, so reaching it is a fact about the day and
             // whoever takes your words does this for a living. The harbourmaster's
             // is official, keeps office hours, and answering it is somebody's job.
+            //
+            // AND WHAT ROOM EACH ONE STANDS IN, which is authored here because
+            // nothing in the world can derive it. `Acoustics.SpaceFor` maps a
+            // position to a space and only ever returns `Outdoors` or `Alley` —
+            // it reads the STREET graph, and a telephone is indoors by
+            // definition except when it is not. Asking it about the bar would
+            // have said "outdoors" and thrown away the whole detail
+            // `Audio.OpenLine` exists for: its own comment says "a hall behind
+            // Ellis tells you which building he is in and nobody wrote a line
+            // of dialogue for it".
+            //
+            // The stall is the one that is genuinely outdoors, and the boarding
+            // houses and the club are halls — a stairwell, a lobby, a room with
+            // a ceiling far enough away to ring. That is the same reasoning the
+            // paragraph above uses to pick which five lines exist.
             Line("bar", "the bar", 10, 24, new[] { "Lena", "Rocco" });
-            Line("boarding_house", "the boarding house", 7, 22, new[] { "Ada", "Sam", "Donna" }, isPublic: true);
-            Line("letter_stall", "the letter-writer's stall", 8, 18, new[] { "Tony Brela", "Mitch Sedlak" });
+            Line("boarding_house", "the boarding house", 7, 22, new[] { "Ada", "Sam", "Donna" },
+                 isPublic: true, space: SpaceKind.Hall);
+            Line("letter_stall", "the letter-writer's stall", 8, 18, new[] { "Tony Brela", "Mitch Sedlak" },
+                 space: SpaceKind.Outdoors);
             Line("harbor_office", "the harbourmaster's office", 9, 17, new[] { "Hal" });
             Line("pawnshop", "Rita's pawnshop", 10, 20, new[] { "Rita", "Victor" });
             // M14: the outer districts' lines. The exchange is official and
@@ -47,14 +64,24 @@ namespace Ledger.Game
             // Gullwing boarding house whenever the keeper is awake, which is
             // most hours; an off-season boarding house is mostly waiting.
             Line("counting_house", "the counting house", 9, 17, new[] { "Hal" });
-            Line("marquee_club", "the Marquee club", 19, 4, new string[0], isPublic: true);
-            Line("gull_boarding", "the Gullwing boarding house", 7, 23, new string[0], isPublic: true);
+            Line("marquee_club", "the Marquee club", 19, 4, new string[0],
+                 isPublic: true, space: SpaceKind.Hall);
+            Line("gull_boarding", "the Gullwing boarding house", 7, 23, new string[0],
+                 isPublic: true, space: SpaceKind.Hall);
 
             Debug.Log($"Phones: {Phones.All.Count} lines on the exchange");
         }
 
-        void Line(string placeId, string name, int from, int to, string[] regulars, bool isPublic = false)
+        /// What each line's room sounds like, for `Audio.OpenLine`. Kept here
+        /// rather than on `Phone` because it is a fact about this city's
+        /// geography and `Core.Phone` is the model — the same reason the
+        /// physical spot lives in `_phoneSpots` and not on the phone.
+        readonly Dictionary<string, SpaceKind> _phoneSpaces = new Dictionary<string, SpaceKind>();
+
+        void Line(string placeId, string name, int from, int to, string[] regulars,
+                  bool isPublic = false, SpaceKind space = SpaceKind.Room)
         {
+            _phoneSpaces[placeId] = space;
             var phone = new Phone
             {
                 PlaceId = placeId, PlaceName = name,
@@ -160,7 +187,33 @@ namespace Ledger.Game
             var host = HostFor(whoId);
             if (host == null) return;
             host.OnTheLine = true;
+            // AND IT SOUNDS LIKE A WIRE, WHICH IT NEVER HAS.
+            //
+            // `Audio.OpenLine` builds the hiss, the caller's room arriving as
+            // a dulled wash, and the mains hum induced in the earpiece — and
+            // had no caller. `ConversationHost` already puts the wire into the
+            // TEXT through `AsHeardOnTheLine`; the sound was the other half of
+            // one idea and it was the half nobody looked at. Until now a voice
+            // on the telephone was sample-identical to the same voice standing
+            // in the room, which `Acoustics` calls throwing away the mechanic's
+            // entire identity.
+            //
+            // `Handset` matches what `BuildPhones` gives `PhoneBook`, so the
+            // acoustic and the social model are reading the same line kind
+            // rather than two constants that happen to agree today.
+            Audio.OpenLine(Acoustics.LineKind.Handset, SpaceOfPhoneNear(whoId));
             _ui?.OpenConversation(host);
+        }
+
+        /// The room the OTHER person is standing in — whichever line they are
+        /// within reach of. Falls back to `Room`, which is what an unknown
+        /// interior sounds like and is the same default `Audio.OpenLine` takes.
+        SpaceKind SpaceOfPhoneNear(string whoId)
+        {
+            foreach (var p in Phones.All)
+                if (NearPhone(whoId, p.PlaceId)
+                    && _phoneSpaces.TryGetValue(p.PlaceId, out var s)) return s;
+            return SpaceKind.Room;
         }
 
         /// Leave word with whoever answered.
