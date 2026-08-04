@@ -1682,7 +1682,10 @@ namespace Ledger.Game
                       + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
                       + $"shader={WorldText.ShaderPresent} "
                       + $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText}"
-                      + $" worstWorldPair=[{_worstWorldPair}]");
+                      + $" worstWorldPair=[{_worstWorldPair}]"
+                      + $" worstNamePair=[{_worstNamePair}]"
+                      + $" namesTracked={_namesTracked}"
+                      + $" worldTextTracked={_worldTextTracked}");
         }
 
         int _labelsColliding = -1;
@@ -2184,6 +2187,7 @@ namespace Ledger.Game
             var boxes = new List<Rect>();
             var other = new List<Rect>();
             var otherText = new List<string>();
+            var boxText = new List<string>();
             var bubbles = new List<Rect>();
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
@@ -2248,11 +2252,40 @@ namespace Ledger.Game
                 // count cannot tell those apart and neither can I from here,
                 // so the run says WHAT OVERLAPPED rather than how much.
                 if (bucket == other) otherText.Add(t.text);
+                else if (bucket == boxes) boxText.Add(t.text);
             }
+            // THE MANAGED BUCKET GETS NAMED TOO, because three night stills in
+            // a row show PEOPLE'S names in an illegible heap — Bruno/Dario/
+            // Zora, then Ines/Tanja, then Iva/Marla/Kata — while
+            // `collidingNames` reads 0 or 1 and `worstWorldPair` keeps coming
+            // back street furniture.
+            //
+            // Two explanations survive and a count cannot separate them:
+            // either those labels are not ones `NameTags` manages, so they sit
+            // in the world-text bucket beside the shop fascias, or they are
+            // managed and their projected rects genuinely do not overlap while
+            // looking as though they do. Naming the worst pair on each side,
+            // with how many labels are in each, settles it in one build.
             int pairs = 0;
             for (int i = 0; i < boxes.Count; i++)
                 for (int j = i + 1; j < boxes.Count; j++)
-                    if (boxes[i].Overlaps(boxes[j])) pairs++;
+                    if (boxes[i].Overlaps(boxes[j]))
+                    {
+                        pairs++;
+                        var bl = Rect.MinMaxRect(
+                            Mathf.Max(boxes[i].xMin, boxes[j].xMin),
+                            Mathf.Max(boxes[i].yMin, boxes[j].yMin),
+                            Mathf.Min(boxes[i].xMax, boxes[j].xMax),
+                            Mathf.Min(boxes[i].yMax, boxes[j].yMax));
+                        float ba = Mathf.Max(0f, bl.width) * Mathf.Max(0f, bl.height);
+                        if (ba > _worstNameArea && i < boxText.Count && j < boxText.Count)
+                        {
+                            _worstNameArea = ba;
+                            _worstNamePair = Trim(boxText[i]) + "|" + Trim(boxText[j]);
+                        }
+                    }
+            _namesTracked = boxes.Count;
+            _worldTextTracked = other.Count;
             // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
             // is per-call and the done-line shows the last call's value, so a
             // pair kept from an earlier call would describe a different frame
@@ -2260,6 +2293,8 @@ namespace Ledger.Game
             _collidingWorldText = 0;
             _worstWorldPair = "none";
             _worstWorldArea = 0f;
+            _worstNamePair = "none";
+            _worstNameArea = 0f;
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
                     if (other[i].Overlaps(other[j]))
@@ -2373,6 +2408,12 @@ namespace Ledger.Game
         string _worstWorldPair = "none";
         /// Overlap area of the pair above, so "worst" means worst.
         float _worstWorldArea;
+        /// The worst overlapping pair among the labels NameTags MANAGES,
+        /// and how many labels are in each bucket. Without the sizes, a
+        /// zero here cannot be told from an empty bucket.
+        string _worstNamePair = "none";
+        float _worstNameArea;
+        int _namesTracked = -1, _worldTextTracked = -1;
 
         /// Labels are free text and this goes on a single-line done-line, so
         /// commas, newlines and length all have to go.

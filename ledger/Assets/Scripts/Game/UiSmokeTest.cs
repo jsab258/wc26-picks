@@ -351,8 +351,25 @@ namespace Ledger.Game
                     // has looked at yet, which is the wrong order. The run
                     // reports the worst line and names it; whether the layout
                     // moves is a judgement off that list.
+                    // PROSE ONLY, and the first version measured everything.
+                    //
+                    // It came back 24 of 40 failing with the worst at twelve
+                    // characters. Twelve characters is a button reading "Hang
+                    // up", and a button is not a readability failure — the
+                    // measure rule is about the eye losing its place on a
+                    // RETURN SWEEP, which only happens when there is a next
+                    // line to return to. Applying a prose rule to chrome
+                    // manufactured 24 faults that are not faults, and a
+                    // checker whose false positives outnumber its findings
+                    // gets switched off within a day.
+                    //
+                    // So: a label qualifies as prose if it actually wraps or
+                    // could — more than a handful of words. That is the
+                    // population the 45-to-75 band describes.
                     var rt = t.GetComponent<RectTransform>();
-                    if (rt != null && rt.rect.width > 1f)
+                    bool isProse = t.text != null
+                        && t.text.Trim().Split(' ').Length >= 8;
+                    if (isProse && rt != null && rt.rect.width > 1f)
                     {
                         MeasureChecked++;
                         double chars = rt.rect.width / (points * 0.5);

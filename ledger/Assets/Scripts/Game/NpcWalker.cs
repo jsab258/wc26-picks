@@ -404,7 +404,24 @@ namespace Ledger.Game
                 if (notable == Notable.Loitering) Perceivers.LoiterNotices++;
                 if (notable == Notable.RunningAtNight) Perceivers.NightRunNotices++;
             }
-            _lastNotableSeen = _attendingNow ? notable : Notable.None;
+            // KEPT ACROSS A LOOK-AWAY, and resetting it was an over-count.
+            //
+            // "Looking back is a fresh reading" sounded right and measured
+            // wrong: `nightRunNotices` went from 4 to 139 in one build. A
+            // walker who glances away and back re-read the player as new, and
+            // in a milling crowd that happens constantly — so it counted
+            // glances rather than realisations.
+            //
+            // `loiterNotices` did not show it, because a loiter is one flip
+            // inside a two-second window and nobody had time to look away and
+            // back. One number confirming a fix while another one silently
+            // inflates is exactly the shape worth grepping for, and this time
+            // both were in the same three lines.
+            //
+            // So the reading persists: a person who looks back at the SAME
+            // behaviour has not noticed anything new, and one who looks back
+            // at a DIFFERENT one has.
+            if (_attendingNow) _lastNotableSeen = notable;
             return _attendingNow;
         }
 
