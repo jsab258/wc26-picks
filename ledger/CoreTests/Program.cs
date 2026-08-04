@@ -13242,6 +13242,54 @@ namespace Ledger.CoreTests
             Wardrobe.Wash(0.5, -1.0, -1.0, out _, out double underS, out double underV);
             Check(underS >= 0.0 && Math.Abs(underV - Wardrobe.WashFloor) < 1e-9,
                   "and a negative one floors", $"s={underS:0.00} v={underV:0.00}");
+
+            // ---- THE WASH, ANCHORED TO A MEASURED ALBEDO ----------------
+            // bodyAlbedo read seventeen sheets from 0.04 to 0.78 against a
+            // wardrobe ceiling of 0.46, so eight of them break MaxValue's
+            // promise on their own and half of them were never the problem.
+
+            // ACCEPTING CASE FIRST, and here it is the one that would be
+            // wrecked by the obvious global fix: a DARK sheet must not be
+            // darkened further. A multiply cannot lift it, so the only thing
+            // available is to leave it alone, and a rule that crushed it would
+            // black out half the street to fix the other half.
+            Wardrobe.Wash(0.6, 0.3, Wardrobe.MaxValue, 0.14,
+                          out _, out _, out double onDark);
+            Check(Math.Abs(onDark - 1.0) < 1e-9,
+                  "a bright coat on a dark sheet is left entirely alone", $"x{onDark:0.000}");
+
+            // And the ceiling enforces itself on the sheet that breaks it.
+            Wardrobe.Wash(0.6, 0.3, Wardrobe.MaxValue, 0.78,
+                          out _, out _, out double onBright);
+            Check(Math.Abs(onBright * 0.78 - Wardrobe.MaxValue) < 1e-9,
+                  "and on the brightest sheet it lands exactly on the cap",
+                  $"x{onBright:0.000} -> {onBright * 0.78:0.000}");
+
+            // THE REJECTING CASE: the rule this replaces. Normalising against
+            // MaxValue put a full-value coat at x1.00 whatever it was painting,
+            // so the brightest sheet stayed at 0.78 — two thirds above a
+            // ceiling whose entire job is that nobody in the crowd outshines
+            // the cast.
+            Wardrobe.Wash(0.6, 0.3, Wardrobe.MaxValue, out _, out _, out double unanchored);
+            Check(unanchored * 0.78 > Wardrobe.MaxValue,
+                  "the unanchored rule leaves the loud sheet above the cap",
+                  $"{unanchored * 0.78:0.000} against {Wardrobe.MaxValue:0.00}");
+
+            // The floor still bites where it should: black on a bright sheet
+            // cannot reach 0.09 and must stop at the floor rather than at zero.
+            Wardrobe.Wash(0.64, 0.05, 0.09, 0.78, out _, out _, out double blackOnBright);
+            Check(Math.Abs(blackOnBright - Wardrobe.WashFloor) < 1e-9,
+                  "a black coat on a loud sheet stops at the floor, not at nothing",
+                  $"x{blackOnBright:0.000}");
+
+            // An unmeasured albedo falls back to the ceiling rule rather than
+            // to 1.0 — a failed probe must not quietly reinstate the
+            // multiply-by-white this whole family exists to remove.
+            Wardrobe.Wash(0.6, 0.3, 0.20, -1, out _, out _, out double unknown);
+            Wardrobe.Wash(0.6, 0.3, 0.20, out _, out _, out double legacy);
+            Check(Math.Abs(unknown - legacy) < 1e-9 && unknown < 1.0,
+                  "an unmeasured sheet falls back to the ceiling rule, not to no wash",
+                  $"x{unknown:0.000}");
         }
 
         static void TestTextureFit()

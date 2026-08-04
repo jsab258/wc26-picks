@@ -322,13 +322,65 @@ namespace Ledger.Core
         ///
         /// Returns HSV, like `Dress`, because Core does not know what a colour
         /// is and the conversion belongs where `Color.HSVToRGB` lives.
-        public static void Wash(double hue, double sat, double val,
+        /// AND THE VERSION THAT KNOWS WHAT IT IS MULTIPLYING, which is the one
+        /// to use wherever the albedo has been measured.
+        ///
+        /// THE MEASUREMENT CAME BACK AND IT CHANGED THE RULE. `bodyAlbedo` read
+        /// seventeen distinct sheets on the bought models:
+        ///
+        ///     0.04 0.14 0.21 0.21 0.22 0.35 0.38 0.44 0.50
+        ///     0.54 0.58 0.61 0.62 0.67 0.73 0.78 (+1)
+        ///
+        /// against a wardrobe ceiling of 0.46. Eight of them are ABOVE it, the
+        /// brightest by two thirds — so `MaxValue`'s promise that no crowd
+        /// garment outshines a cast authored at 0.65-0.75 was being broken by
+        /// the texture, not by the wardrobe. And I had guessed 0.9 for that
+        /// number in three places before measuring it; the real top is 0.78 and
+        /// the real MEDIAN is 0.50, so half the sheets were never the problem
+        /// and a global darkening would have crushed them for nothing.
+        ///
+        /// SO THE ANCHOR IS PER MATERIAL AND NEEDS NO CONSTANT AT ALL. To land
+        /// a garment at the value the wardrobe chose, multiply by
+        /// `wardrobeValue / albedo`. That is not a tuning; it is what a
+        /// multiply IS. A bright sheet gets pulled down to the band, a dark one
+        /// is left alone because a multiply cannot lift it, and the ceiling
+        /// enforces itself:
+        ///
+        ///     coat 0.46 on sheet 0.78 -> x0.59 -> renders 0.46, exactly the cap
+        ///     coat 0.46 on sheet 0.14 -> x1.00 -> renders 0.14, under it
+        ///     coat 0.09 on sheet 0.78 -> floor -> renders 0.35, as dark as
+        ///                                        this is allowed to go
+        ///
+        /// AND THE FLOOR'S JOB CHANGES WITH IT. It used to mean "how dark may a
+        /// coat make a texture", picked off a sweep. It now means "how far may
+        /// a multiply darken before the cloth stops reading", which is a
+        /// statement about legibility rather than about the palette — the same
+        /// number, a better-founded question, and it is worth saying so out
+        /// loud because a constant whose justification quietly changes is how
+        /// `liveArmDrop` came to be read as the wrong thing.
+        ///
+        /// `albedo <= 0` means NOT MEASURED, and falls back to the ceiling
+        /// normalisation below. Not to 1.0: an unmeasured sheet returning "no
+        /// wash" would be the multiply-by-white this whole family exists to
+        /// remove, arriving quietly on any body whose probe failed.
+        public static void Wash(double hue, double sat, double val, double albedo,
                                 out double washHue, out double washSat,
                                 out double washVal)
         {
             washHue = hue;
             washSat = Feel.Clamp01(sat * WashSat);
-            washVal = WashFloor + (1.0 - WashFloor) * Feel.Clamp01(val / MaxValue);
+            if (albedo <= 0)
+            {
+                washVal = WashFloor + (1.0 - WashFloor) * Feel.Clamp01(val / MaxValue);
+                return;
+            }
+            double want = val / albedo;
+            washVal = want < WashFloor ? WashFloor : (want > 1.0 ? 1.0 : want);
         }
+
+        public static void Wash(double hue, double sat, double val,
+                                out double washHue, out double washSat,
+                                out double washVal)
+            => Wash(hue, sat, val, -1, out washHue, out washSat, out washVal);
     }
 }

@@ -574,11 +574,17 @@ namespace Ledger.Game
         /// number that was 39% of the city and had nowhere to be reported.
         public static int WashNearWhite { get; private set; }
 
-        static void Tint(Renderer r, double hue, double saturation, double value)
+        /// The last wash actually written to a renderer, with the albedo it
+        /// was anchored against. Appended to `CoatRead` after the paint loop,
+        /// because the wash is not knowable before it.
+        static string _lastWash = "none applied";
+
+        static void Tint(Renderer r, double hue, double saturation, double value,
+                         double albedo)
         {
             if (r == null) return;
             if (_tint == null) _tint = new MaterialPropertyBlock();
-            Ledger.Core.Wardrobe.Wash(hue, saturation, value,
+            Ledger.Core.Wardrobe.Wash(hue, saturation, value, albedo,
                                       out double wh, out double ws, out double wv);
             var c = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
             r.GetPropertyBlock(_tint);
@@ -594,6 +600,8 @@ namespace Ledger.Game
                                   + (1f - c.g) * (1f - c.g)
                                   + (1f - c.b) * (1f - c.b)) / 3f) * 100f;
             if (d < 5f) WashNearWhite++;
+            _lastWash = $"{(int)(c.r * 255)},{(int)(c.g * 255)},{(int)(c.b * 255)}"
+                        + $" on albedo {albedo:0.00}";
             if (_washes.Count < WashCap) _washes.Add(d);
         }
 
@@ -954,14 +962,19 @@ namespace Ledger.Game
             // bodyKeptMats=1`, so `coatRgb` is a colour computed for a material
             // nothing has been given for weeks. Printing the coat without the
             // wash beside it is printing the branch that is not taken.
-            Ledger.Core.Wardrobe.Wash(ch, cs, cv,
-                                      out double wh, out double ws, out double wv);
-            var washRgb = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
+            //
+            // THE WASH IS APPENDED AFTER THE LOOP, NOT COMPUTED HERE, and that
+            // is not tidiness. The wash now depends on the ALBEDO of the sheet
+            // it is painting, which is not known until the renderers have been
+            // walked — so computing it here would print a number the shader
+            // never saw, which is precisely the class of quietly-wrong reading
+            // this whole family of counters exists to stop. `_lastWash` carries
+            // what was actually applied.
             string coatBand = Ledger.Core.Wardrobe.BandOf(coatRoll);
             CoatRead = coatBand
                      + $" hsv={ch:0.00}/{cs:0.00}/{coatV:0.00}"
-                     + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}"
-                     + $" wash={(int)(washRgb.r * 255)},{(int)(washRgb.g * 255)},{(int)(washRgb.b * 255)}";
+                     + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}";
+            _lastWash = "none applied";
             Skinned = Dressed = Kept = 0;
             double coatArea = 0, totalArea = 0;
             long coatVerts = 0, totalVerts = 0;
@@ -1001,7 +1014,7 @@ namespace Ledger.Game
                     // would make the reading depend on how often the LOD
                     // happened to grant this body — a count of grants wearing a
                     // measurement's name.
-                    AlbedoValueOf(m.mainTexture);
+                    float sheet = AlbedoValueOf(m.mainTexture);
                     // THE RAW `cv`, NOT `coatV`. The lift above places a named
                     // character's coat MATERIAL above the crowd's ceiling; the
                     // wash normalises against that same ceiling, so handing it
@@ -1010,7 +1023,7 @@ namespace Ledger.Game
                     // decision, two consumers, and they need different halves
                     // of it — which is exactly how the first version came to
                     // read `ch`/`cs` and drop `cv` on the floor.
-                    Tint(r, ch, cs, cv);
+                    Tint(r, ch, cs, cv, sheet);
                     continue;
                 }
                 paint.Add(r);
@@ -1114,6 +1127,7 @@ namespace Ledger.Game
             // absence of one.
             DressedAreaFraction = totalArea > 0 ? coatArea / totalArea : -1;
             DressedVertexFraction = totalVerts > 0 ? (double)coatVerts / totalVerts : -1;
+            CoatRead += $" wash={_lastWash}";
             CoverageRead = totalArea > 0 && totalVerts > 0;
 
             // WHICH WAY UP, PRINTED. Setting the instantiated root's rotation to
