@@ -1787,44 +1787,7 @@ namespace Ledger.Game
                       + $" bubblesTracked={_bubblesTracked}"
                       + $" textWalked={_textWalked}"
                       + $" textProjected={_textProjected}"
-                      // READ AT THE END OF THE RUN, not snapshotted on a shot.
-                      // `_managed` only grows, so the run-final value is the
-                      // one that can be compared with `nameTagsOffered`.
-                      + $" namesManagedEver={NameTags.ManagedEver}"
-                      // THE THREE THAT SETTLE IT, and none of them is a
-                      // re-reading of the two above. `namesOfferCalls` counts
-                      // CALLS and cannot be touched by object identity;
-                      // `namesDistinctPeak` counts distinct labels WITHIN one
-                      // frame, where nothing has been destroyed yet;
-                      // `namesManagedDead` is how much of the lifetime set is
-                      // corpses. Distinct below the offer peak means duplicate
-                      // offers; distinct equal to it means the lifetime set is
-                      // the broken instrument. Three readings of this metric
-                      // have produced three wrong answers, all from numbers
-                      // that could not distinguish those two.
-                      + $" namesOfferCalls={NameTags.Offers}"
-                      + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
-                      // THE WORST FRAME, DESCRIBED BY ITSELF. Four peaks taken
-                      // over four possibly different frames produced a reading
-                      // that could not be true; these come from one.
-                      + $" namesWorstOffered={NameTags.OfferedAtWorst}"
-                      + $" namesWorstAlive={NameTags.AliveAtWorst}"
-                      + $" namesWorstObjects={NameTags.DistinctObjectsAtWorst}"
-                      + $" namesWorstIds={NameTags.DistinctIdsAtWorst}"
-                      + $" namesManagedDead={NameTags.ManagedDead}"
-                      // AND THE ANSWER THE LAST RUN GAVE, PLUS THE ONE IT DID
-                      // NOT. Duplicates were the fault — 42 entries from at
-                      // most 7 labels — and the dedupe makes them harmless,
-                      // but nothing yet says WHY a walker offers its name six
-                      // times in a rendered frame. `namesDupOffers` counts the
-                      // repeats and `namesDupWorst` is the most any one label
-                      // managed; `npcsListed` against `npcsDistinct` tests the
-                      // only mechanism the code allows, which is the same
-                      // walker sitting in the tick list more than once.
-                      + $" namesDupOffers={NameTags.DupOffers}"
-                      + $" namesDupWorst={NameTags.DupWorst}"
-                      + $" npcsListed={GameController.WalkersListed}"
-                      + $" npcsDuplicated={GameController.WalkersDuplicated}"
+
                       + $" textNoText={_textNoText}"
                       + $" textInvisible={_textInvisible}"
                       + $" textNoRect={_textNoRect}");
@@ -8635,7 +8598,7 @@ namespace Ledger.Game
                       // means somebody was left with nothing but a text field.
                       $"fewestChips={(DialogueUI.ChipRefreshes > 0 ? DialogueUI.FewestChipsOffered : -1)} " +
                       $"chipRefreshes={DialogueUI.ChipRefreshes} " +
-                      $"nameTagsOffered={NameTags.OfferedAtWorst} nameTagsHidden={NameTags.SuppressedPeak} nameTagsUnresolved={NameTags.UnresolvedPeak} nameTagsOffScreen={NameTags.OffScreenPeak} nameTagsOffScreenCalls={NameTags.OffScreen} " +
+                      $"nameTagsOffered={NameTags.OfferedPeak} nameTagsHidden={NameTags.SuppressedPeak} nameTagsUnresolved={NameTags.UnresolvedPeak} nameTagsOffScreen={NameTags.OffScreenPeak} nameTagsOffScreenCalls={NameTags.OffScreen} " +
                       $"nameTagsActive={NameTags.ActivePeak} " +
                       $"nameTagsUpDot={NameTags.WorstUpDot:0.000} " +
                       $"speechUpDot={SpeechBubble.WorstUpDot:0.000} " +
@@ -8650,6 +8613,44 @@ namespace Ledger.Game
                       // ever applied — it is also the check on this code's one
                       // assumption, that a name's own scale starts at 1.
                       $"namePinCap={NameTags.PinFrac:0.000} " +
+                      // THE WHOLE NAME FAMILY, ON ONE LINE, AT ONE INSTANT —
+                      // AND THIS IS THE CORRECTION FOR EVERY WRONG ANSWER I
+                      // GAVE ABOUT IT TODAY.
+                      //
+                      // These lived on the `glyphs` line, which is emitted on
+                      // every SCREENSHOT. `nameTagsOffered` lives here, on the
+                      // done line, at the end of the run. I spent the day
+                      // comparing the two and calling the difference an
+                      // arithmetic impossibility: 42 against 13, then 40
+                      // against 9. Both were true. They are the same counter
+                      // read at two different moments, and the peaks kept
+                      // climbing after the last shot.
+                      //
+                      // FOUR PUBLISHED EXPLANATIONS, ALL WRONG, AND THE FIFTH
+                      // WAS DELETING THE COUNTER. `OfferedPeak` was never
+                      // broken; it is restored, and the thing that was broken
+                      // was reading it off a different line from its own
+                      // denominator. The rule this file already carries — a
+                      // peak's denominator must come from the SAME INSTANT as
+                      // its numerator — turns out to apply to the LOG LINE as
+                      // well as to the frame, and nothing said so.
+                      //
+                      // So the family is together. Anything about the run as a
+                      // whole belongs here; the shot line keeps only what is
+                      // true of the shot.
+                      + $" namesManagedEver={NameTags.ManagedEver}"
+                      + $" namesOfferCalls={NameTags.Offers}"
+                      + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
+                      + $" namesWorstOffered={NameTags.OfferedAtWorst}"
+                      + $" namesWorstAlive={NameTags.AliveAtWorst}"
+                      + $" namesWorstObjects={NameTags.DistinctObjectsAtWorst}"
+                      + $" namesWorstIds={NameTags.DistinctIdsAtWorst}"
+                      + $" namesManagedDead={NameTags.ManagedDead}"
+                      + $" namesDupOffers={NameTags.DupOffers}"
+                      + $" namesDupWorst={NameTags.DupWorst}"
+                      + $" npcsListed={GameController.WalkersListed}"
+                      + $" npcsDuplicated={GameController.WalkersDuplicated}"
+
                       $"namesPinned={NameTags.NamesPinned} " +
                       $"namePinFloor={NameTags.NamePinFloor:0.000} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +

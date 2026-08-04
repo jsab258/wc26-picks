@@ -159,6 +159,30 @@ sweep that found them is mechanical and takes two minutes — **list every field
 assigned by a max, then ask which of them are printed next to each other.**
 Twenty-two peak fields in `SimDirector`, four bad pairs, one that was right.
 
+**AND THE SAME-INSTANT RULE GOVERNS THE LOG LINE, NOT ONLY THE FRAME. This one
+cost a whole afternoon and five wrong answers.** The rule above is about
+capturing a denominator at the instant its numerator peaks, and five sites in
+`SimDirector` were fixed for it. Every one of those fixes was about the frame.
+None of us noticed that a number is also captured by the LINE it is printed on.
+
+`nameTagsOffered` is on the done line, written once at the end of the run.
+`namesDistinctPeak` and its family were on the `glyphs` line, which is emitted
+on every SCREENSHOT. Same counters, different moments — and the peaks keep
+climbing after the last shot. So the done line said 42 and the glyphs line said
+13, and I called it an arithmetic impossibility, published four explanations
+across four builds, and finally DELETED the counter under the rule that a
+measurement contradicting itself twice gets deleted rather than explained.
+
+The rule was right. It was applied to the wrong thing. `OfferedPeak` was never
+broken; the reading was, and the reading was mine — I had been running
+`grep -o` across the whole verdict file, which happily returns two values from
+two different lines and shows no sign that it has done so.
+
+**Two mechanical steps, and they are cheap.** Before comparing two numbers out
+of a verdict, `grep -n` and check they are on the SAME LINE. And when a number
+describes the whole run, print it on the done line — the shot line keeps only
+what is true of the shot. The family is together now for exactly that reason.
+
 **A PEAK CANNOT SEE A MIDDLE AND A MEDIAN CANNOT SEE A TAIL, AND ON 4 AUGUST I
 GOT CAUGHT BY BOTH BEFORE BREAKFAST.** The rule above says print the series and
 read the median. That is right and it is not sufficient, because the median has
