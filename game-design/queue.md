@@ -94,7 +94,7 @@ cannot both describe a working instrument. `textWalked`, `textProjected`,
 
 `bodyChoices` 5 -> 10, all eight registered with valid human avatars. The noon
 frame shows the player as a real human mesh with proper limbs and a walk pose;
-the foreground walkers are still box mannequins, and everybody is one flat
+the foreground walkers were still box mannequins at that point, and everybody was one flat
 colour.
 
 `bodyKeptMats=0` says why: `RealBody` keeps a renderer's own material only when
@@ -105,41 +105,17 @@ only the two stand-ins have none. Nothing in the model importer has ever
 mentioned materials, so every body imported on an unchosen default. Fixed and in
 flight, with a per-body material report so the next build says which half failed.
 
-### THE BIGGEST IMMERSION GAP, SCOPED — walkers are still boxes
+### DONE — the walkers are not boxes any more
 
-**Measured, not judged from the still:** `RealBody.TryAttach` is called from
-exactly one place, `PlayerController`. Every one of the ~55 named walkers and 12
-crowd walkers gets `Mannequin.Build` instead. So the player is a person and the
-entire rest of the town is articulated boxes, which is what the noon frame shows
-and what the roadmap calls the largest single immersion gap.
+Kept only for the hazard, which is the reusable part. `RealBody.TryAttach`
+publishes `Attached`, `Why`, `Upright`, `Skinned`, `Dressed`, `Kept`, `Parts`,
+the coverage fractions and the bind and scaled pose readings — and FIVE clauses
+of the `bodies` gate read those meaning THE PLAYER. Anything that attaches a
+body which is not his must go through `TryAttachExtra`, which saves and restores
+every one of them. Attaching without that makes all five describe the last body
+attached, silently, and a corrupted gate reads exactly like a passing one.
 
-The spawn paths are already cleanly split, which makes the change small:
-`GameController` spawns the named cast, `PopulationHost` spawns the crowd behind
-`CrowdWalkerCap`. Named cast gets real bodies, crowd keeps mannequins — the
-people you talk to and remember are the ones worth the cost, and background
-figures read fine as mannequins at distance.
-
-**AND THERE IS A TRAP IN IT THAT MUST BE CLEARED FIRST.** `TryAttach` writes
-`Attached`, `Why`, `Upright`, `Skinned`, `Dressed`, `Kept`, `Parts`, the
-coverage fractions and the bind/scaled pose readings — all STATICS describing
-whichever body attached last. Five clauses of the `bodies` gate read them, and
-the whole point of those clauses is that they describe THE PLAYER. Attach
-fifty-five walkers and every one of them silently becomes about the last walker
-instead, with no reading anywhere saying so.
-
-That is the exact fault this project keeps recording, so the prerequisite is its
-own change: **separate the player's readings from everybody else's before
-wiring a single walker.** The writes are scattered through the body of
-`TryAttach` rather than gathered in helper calls, so guarding them is mechanical
-but wide, and half-doing it is worse than not starting — a corrupted gate reads
-as a passing one.
-
-Second-order things to decide with it, not after: `Mannequin.Shape` carries each
-walker's gait bias, bad leg and idle phase, and the real-body path has no
-equivalent, so a street of real bodies currently walks identically. And the cost
-of ~55 skinned meshes cannot be measured on the CI runner at all — it has no
-GPU and software-rasterises everything — so the number that matters is geometric
-(bones, vertices, instances) plus `heapMb`, not a millisecond figure.
+Awaiting its first build; `walkerBodies` is the number that closes it.
 
 ### Startable right now, in order
 
