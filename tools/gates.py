@@ -192,6 +192,65 @@ def series(key):
     return 0
 
 
+KEY_VALUE = r"(?<![\w])([A-Za-z][\w]*)=([^\s\[\(]+)"
+
+# Values that mean "this did not happen". A key stuck on one of these across
+# every run is the shape worth reading; a key stuck on a number that is not one
+# of these is usually a constant somebody printed, which is noise here.
+DID_NOT_HAPPEN = {"0", "0.0", "0.00", "0.000", "0.0000",
+                  "False", "None", "none", "-1"}
+
+
+def constant(minimum_runs=20):
+    """READINGS WHOSE SUBJECT HAS NEVER OCCURRED, across every kept run.
+
+    THE MIRROR OF `--flaky`, AND IT FOUND SOMETHING ON ITS FIRST RUN.
+    `--flaky` asks which gates have ever gone red, because a gate that fails
+    rarely for an unnamed reason teaches everyone to read red as noise. This
+    asks the opposite question: which numbers have NEVER been anything but
+    zero.
+
+    `inquiry=None` in a hundred and thirty-one runs — every verdict this
+    project has kept. So the detective has never once opened an investigation
+    into the player, and everything gated on that stage has never been
+    exercised: the paper naming you (`pressNamed=0`), the redirect having
+    something to relieve (`redirectRelief=0.00`), and whatever else reads it.
+    Not one verdict shows this. It is only visible across all of them.
+
+    MOST OF WHAT THIS PRINTS IS HEALTHY AND THAT IS THE POINT. `errors=0`,
+    `idLeaks=0`, `blankLabels=0`, `panelsBad=0` are fault counters and a
+    permanent zero is them working. The tool cannot tell those from a branch
+    nobody has entered, and it does not try — that judgement needs to know what
+    the number is FOR, which is a person's job. What it removes is the part
+    nobody can do by hand: noticing that a number never moved.
+
+    Rule 5b's corollary is about gates needing a run in which the thing they
+    assert can happen. This is the same corollary aimed at readings, where it
+    is worse: a gate that never fires at least stays green and honest, while a
+    reading whose subject never occurs prints a number that looks like
+    coverage.
+    """
+    runs = ordered_runs()
+    if len(runs) < minimum_runs:
+        print(f"gates --constant: only {len(runs)} measuring run(s) kept; "
+              f"a key that has not varied over fewer than {minimum_runs} has "
+              f"not been given a chance to. Nothing to say yet.")
+        return 0
+    seen = {}
+    for _, path in runs:
+        for k, v in re.findall(KEY_VALUE, read(path)):
+            seen.setdefault(k, set()).add(v)
+    stuck = sorted(k for k, vs in seen.items()
+                   if len(vs) == 1 and next(iter(vs)) in DID_NOT_HAPPEN)
+    print(f"gates --constant: {len(runs)} runs, {len(seen)} keys, "
+          f"{len(stuck)} that have never been anything but zero/false/none.")
+    print("Read each one and ask which it is: a fault counter doing its job, "
+          "or a branch nothing has ever entered.\n")
+    for k in stuck:
+        print(f"  {k}={next(iter(seen[k]))}")
+    return 0
+
+
 def flaky():
     """Which gates have gone red, how often, and HOW LONG AGO.
 
@@ -318,6 +377,8 @@ def pending():
 
 
 def main():
+    if "--constant" in sys.argv:
+        return constant()
     if "--flaky" in sys.argv:
         return flaky()
     if "--pending" in sys.argv:
