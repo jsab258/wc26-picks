@@ -212,6 +212,32 @@ the reading lands, and every guess made without one tonight was wrong.
    either "the stage needs a driver" or "the sim needs to plant the
    condition", which are different afternoons.
 
+12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
+   Sixty keys have never been anything but zero across 131 runs. Most are fault
+   counters doing their job — `errors=0`, `idLeaks=0`, `blankLabels=0`,
+   `panelsBad=0`, `offRoad=0`. These are the ones that are not:
+
+   - **`threat` has only ever seen one outcome.** `brandishes=1` a run, so
+     `called=0 complied=0 undraw=False` are three responses that CANNOT be
+     sampled — one brandish can only produce one answer, and it has been
+     `FleeScreaming` every time. Plant more than one, at people with different
+     nerve, or the other three branches stay theoretical for ever.
+   - **`contradiction=0.00`** — a denouncement has never been contradicted, so
+     the whole contradicted half of `Informing` has never run. `denounced=3`
+     every time and `corroboration=1.00`.
+   - **`companion adds=0 departed=0`** — she is recruited and never leaves and
+     never brings anybody. Two branches, no runs.
+   - **`groundless=False`** — a carry has never been groundless.
+   - **`summonsTaken=0` is FIXED tonight** (the public-callbox flag nothing
+     read) and **`reliabilityFiled=0` is PLANTED tonight** (two skipped drops
+     after day ten). Both should move in the next build, and if they do not
+     the fix did not take.
+
+   **The rule for every one of these is the same and it is rule 5b's
+   corollary: PLANT the condition, never loosen the bound.** And do them one
+   or two at a time — a build carrying five new staged behaviours cannot
+   attribute a red gate to any of them.
+
 ## Next
 
 **CORRECTED — "raise the population" and "make the street busier" are two
