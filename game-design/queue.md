@@ -45,6 +45,17 @@ scheduling instead of to CI's output.
 - **08:29** adds the antisymmetric coincident-shove fix. It is the AFTER.
   Read `crowdTightest` across the two; everything else in them is the same.
 
+### STAGED, 08:35 — the blowback probe
+
+One commit undispatched: a second accusation with a planted contrary witness,
+on its own target so it cannot disturb the charge measured beside it.
+`denounceBlewBack` and `blowbackContradiction` join the done line. Verified
+before writing it that `Denounce` returns null only when the world is
+missing, never for an unknown target — so `-1` can only mean the staging
+never ran, which makes the reading unambiguous either way.
+
+Rides with the next dispatch, after the A/B lands.
+
 ### What the 08:16 build settled
 
 **Green, no failing gates.** `crowdGapMedian` 0.33, up from 0.29, 0.20 and
