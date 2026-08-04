@@ -2387,6 +2387,14 @@ namespace Ledger.Game
         /// chain can fail on a runner with no GPU, and a silent empty would
         /// read as "the textures are black", which is the confusion that made
         /// `WashFromWhite` return -1 rather than 0.
+        ///
+        /// AND IF EVERY VALUE COMES BACK 0.00, SUSPECT THE INSTRUMENT FIRST.
+        /// A `Graphics.Blit` chain on a device that is not really rendering
+        /// produces black, and black albedos would send somebody at exactly the
+        /// wrong conclusion — the noon still shows bright yellow trousers, so a
+        /// city of value-zero textures is disproved by a picture before it is
+        /// disproved by anything else. Rule 3, written down here because this
+        /// reading's failure mode looks like a finding rather than an error.
         static string AlbedoRead()
         {
             var xs = RealBody.AlbedoValues;
