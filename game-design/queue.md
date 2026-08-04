@@ -38,177 +38,65 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### ANSWERED BY THE 07:56 BUILD — read this before picking anything up
+### TWO BUILDS OUT, 08:29 UTC — and they are a clean A/B
 
-**Green, no failing gates.** The three counters dispatched to settle three
-open questions all came back decisive, which is the point of adding a
-denominator rather than guessing.
+- **08:25** carries the belief/measurement batch and the re-classification
+  fix. It is the BEFORE reading for crowd tightness.
+- **08:29** adds the antisymmetric coincident-shove fix. It is the AFTER.
+  Read `crowdTightest` across the two; everything else in them is the same.
 
-- **The wall wiring RUNS.** `beliefsShortened=445` of 3517 investigations —
-  445 listeners went to the wall they heard through instead of walking to the
-  exact spot. Rule 6 satisfied with a number rather than a claim.
-- **THE VOICE BUDGET IS NEVER CALLED AT ALL.** `soundsOffered=0` with
-  `soundsNoClip=0`. Not clips arriving null, not the budget refusing — `Admit`
-  is never reached. So footsteps and impacts are not routed through it in the
-  sim, or `Audio` is not initialised on that path. **This is the next thing to
-  chase**, and it is one grep: find who calls `Audio.Footstep` and whether
-  `_root`/`_foot` are ever non-null in a headless run.
-- **The contrast headroom is real now**: `contrastTightest=4.73` at the ledger
-  title, 20pt, against 21.00 meaning nothing last run. It passes AA; it is the
-  tightest pair and now visible if it drifts.
-- **`claimOverheard=1`** — the planted bystander took. Series 1, 0, 1, 35, 0.
-  One nonzero settles nothing on its own; watch it across runs.
-- `crowdGapMedian` 0.29 (was 0.20, was 0.00) — moved again, as expected, since
-  the belief wiring changes where people walk. `crowdTightest` still 0.00 and
-  `crowdInside=312`: the standing-still fix is what addresses that.
-- `confabs=34`. Joint-lowest of the last ten, and INSIDE the current regime's
-  29–74 with earlier runs at 33, 31 and 29. A single run inside the band says
-  nothing in either direction — do not act on it.
-- `lineCrossedLive=17 lineYielded=17`. Still exact.
+### What the 08:16 build settled
 
-### THE 08:01 BUILD — the name heap is street plates, and a closed item reopened
+**Green, no failing gates.** `crowdGapMedian` 0.33, up from 0.29, 0.20 and
+four runs of 0.00 — people standing still now keep their distance too, and
+`confabs=46` against a baseline of 49 says it did not cost the street its
+conversations, which was the risk worth naming before shipping it.
 
-**Green.** `worstWorldPair=[Copper Row|Market Road]` — the overlapping world
-text is STREET PLATES, and two plates overlapping at a junction is what a
-junction looks like. `collidingWorldText` at 121–134 is furniture, not a fault.
+`claimOverheard=7`. The bystander planting is robust rather than lucky —
+series now 7, 0, 1, 0, 1, 35, 0. Treat overhearing as working.
 
-**But it does not settle the heap of PEOPLE'S names in the frame**, because
-the probe recorded the FIRST overlapping pair while being called
-`worstWorldPair`. My own rule about a number keeping its name, broken three
-hours after writing it down, and wrong on arrival rather than by drift. Now
-worst by overlap AREA — a pair clipping at the corner is a junction, a pair
-sitting on top of each other is the fault. Re-read it next build.
+`beliefsShortened=142`, so the wall wiring keeps running. `lineYielded=20` of
+20 live crossings, still exact.
 
-**"THE REVIEW CAMERA IS NEVER BLOCKED" IS NOT TRUE AND WAS ONE RUN.** This
-build reads `shotsBlocked=1`, a lamp pole at 5.4m, and the day-5 night still
-shows the camera jammed against a street sign. The series is 1, 0, 0, 0, 0,
-1, 3, 0, 0 — median 0, max 3. So it is intermittent, it was closed off a
-single twenty-shot reading of zero, and the standing "do not reopen" list
-carries that closure. Correct the list: the camera is *usually* clear.
+All six hoisted numbers arrived and were unreadable before today:
+`saw=48` people perceived the cut, `marked=True` it left a mark on you,
+`corroboration=1.00` with `contradiction=0.00`, `denounceMark=informer`,
+`ringLastOccluded=False`.
 
-### BASELINE BREAK TO KNOW ABOUT
-
-**`nightRunNotices` moved too, and its history is not comparable.** The
-re-classification fix took BOTH notice counters off the attention rising
-edge, because both had the identical structural bug. The commit message
-called out only `remarks` as a number with a landed history worth
-protecting; `nightRunNotices=4` has one as well and it will read differently
-now for a reason that is a fix rather than a regression. Do not compare the
-next reading against 4. `loiterNotices` has no such problem — it has only
-ever read 0, which was the bug.
-
-### DISPATCHED 08:25 — the whole batch is out
-
-Nothing is staged now. Two builds in flight: the standing-still separation
-fix (dispatched 07:57) and everything since (08:25), which carries
-`simAudible`, `worstWorldPair` by AREA, the line-length measure,
-`identifiedPeak`/`identifiedEver`, `callsTried`/`callsReachable`,
-`roomQuiet`, and the re-classification fix for `loiterNotices`.
-
-Held back until the separation build's answer was already determined, then
-sent — holding longer would have been waiting on CI rather than isolating
-anything.
-
-### WHAT WAS STAGED, 08:14 UTC
-
-One build in flight (the standing-still separation fix plus the hoisted
-numbers). Six commits sit on top of it, all additive reporting, none
-behavioural except a read-only phone lookup:
-
-`simAudible` (so `soundsOffered=0` cannot read as a fault), `worstWorldPair`
-by overlap AREA rather than first-found, the line-length measure,
-`identifiedPeak`/`identifiedEver`, `callsTried`/`callsReachable`, and
-`roomQuiet`. **Dispatch these together the moment the separation build
-lands.**
-
-**Reach ledger: 50, from 71 two nights ago and 55 at 07:00 today.** Six
-retired this morning — `HeardAs`, `BelievedAt`, `MeasureIsReadable`,
-`Attention.Identified`, `PhoneBook.ReachableNow` with `LinesFor`, and
-`MusicModel.RoomHasGoneQuiet` — every one by being wired to something that
-runs rather than re-described.
-
-**NEXT SUBSTANTIAL ITEM: `Reaction.Confront`.** The ledger calls it "the
-single most visible missing reaction in the game": an NPC who saw you do it
-walking over. That is immersion rather than instrumentation, and immersion
-outranks systems. It moves walkers, so it starts once the separation build
-has landed and been read — not before, or a moved crowd number has two
-causes again.
-
-### IN FLIGHT, 08:14 UTC
-
-Two builds are out and a batch is committed but NOT dispatched. If you are a
-cold session reading this, that is the first thing to resolve.
-
-- **Out:** one carrying the belief wiring plus `soundsOffered`/`soundsNoClip`
-  and `contrastTightest`; a second carrying those plus `worstWorldPair`. The
-  second supersedes the first — read whichever names the newer commit.
-- **Dispatched 07:57** — the crowd-separation fix for people STANDING STILL,
-  plus the numbers hoisted onto the done line (`corroboration`,
-  `contradiction`, `denounceMark`, `marked`, `saw`, `ringLastOccluded`). Read
-  `crowdTightest` and `crowdInside` against 0.00 and 312, and `confabs`
-  against the series rather than against one run.
+**`contradiction=0.00` is worth watching.** The comment on that line calls
+the contradiction branch the moat — an NPC who cannot be talked out of what
+it knows. A run where every alibi checks out and a run where the branch is
+dead read the same, which is exactly what that number was hoisted to
+distinguish. One reading of 0.00 is not evidence either way; get a series.
 
 ### Startable right now, in order
 
-**The crowd build landed GREEN on `daf91d5` — pass=True, no failing gates, the
-sim ran.** That closes the three-build compile outage. What it settled:
-
-- **Crowd separation works, partly.** `crowdGapMedian` 0.20 against 0, 0, 0, 0
-  over the four previous runs, on 1627 samples. But `crowdTightest=0.00` and
-  `crowdInside=284`, so the median moved and the worst case did not. Separation
-  is a constraint applied per step; something is still resolving to zero.
-- **Confabs 48**, against a baseline of 49 and a last-ten median of 48.5.
-  Conversation did not collapse. Had the old "74" stayed in this file it would
-  have read as a 35% collapse and been "fixed".
-- **The 180 yield is exact**: `lineWatched=42 lineCrossed=19 lineCrossedLive=19
-  lineYielded=19`. Every live crossing yielded. Closed.
-- **Stamina works**: `staminaLow=0.203 staminaHigh=1.000`. Not pinned at either
-  end, so the breathing model matters over a run. First reading, so this is
-  plausibility and not a baseline.
-- **The player is fine.** Three stills show it pitched forward and day 5 shows
-  it standing straight — it is a run cycle, `bodyPitch=40.8` with
-  `bodyUp=1.000`, `playerPrimitive=False`, `clip=[mixamo.com]`. Nearly reported
-  as a broken rig off a picture, which is the `liveArmDrop` mistake exactly.
-
-1. **THE WORLD TEXT IS THE VISIBLE FAULT AND IT IS MEASURED.** The day-5 night
-   still has a heap of name labels — Bruno, Dario, Zora, Petra, Fabjan, Mitch —
-   overlapping at angles and completely illegible. The numbers agree, but NOT
-   the one you would check: `collidingNames=1` says names are fine.
-   `collidingWorldText=75`, `textFacingAway=70` of `textVisible=140`, and
-   `billboardWorstDeg=116.9` with `billboardsStale=38` of 57 tracked.
-
-   So half the world text faces away from the camera. `billboardStaleMedian` is
-   0.000 and I called billboards fine off it last night — the median is right
-   and the tail is where the fault lives. Fix the aim, not the median.
-2. **Why the voice budget saw nothing.** `soundsOffered` and `soundsNoClip` are
-   dispatched and will separate the three cases: nothing calls it, every clip
-   arrives null, or it refuses everything. Note `speechPlayed=0
-   speechMissing=387 speechNoClip=347` — silence upstream is the likely answer
-   and that is M17.2, which is a spend Jafar has not authorised.
-3. **`claimOverheard=0` WITH THE BYSTANDER PLANTED.** The series is 0, 1, 35, 0.
-   The planting did not take, or the claim and the plant did not coincide.
-   `claimsMade=2 claimsCaught=1 claimVia=[game.Hosts]` — the claim happened, so
-   this is the planting.
-4. **`crowdTightest=0.00` and `crowdInside=284`.** Separation moved the median
-   and not the worst pair. Read `StepApart` for the case that resolves to zero —
-   coincident bodies get a deterministic shove, and two walkers spawned on the
-   same point may be shoving along the same axis.
-5. **`beliefsShortened` on the next verdict** — proof the wall wiring runs. Zero
-   means either nothing investigates through a wall or `OccluderDistance` never
-   finds one, and `investigations=3901` says the first is unlikely.
-6. **`contrastTightest`** — the honest headroom across all 40 checked pairs,
-   rather than 21.00 meaning "nothing failed" and "nothing measured" at once.
-7. **A FIGHT CANNOT BE STARTED FROM THE GAME.** `Combat.` occurs exactly once
-   in the whole Game layer. Built, tested, disconnected — rule 6 in its purest
-   form. A milestone, not a queue item; the roadmap now says so.
-8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
-9. **FOOT IK — the hold is now LIFTED.** Crowd separation is verified working,
-   so the two-suspects argument is spent. `Rig.TwoBone`, `FootHeight` and
-   `PlantBlend` are a complete ground-adaptation model with no caller; feet get
-   `Level()` and nothing else, so they float and clip on any slope or step.
-   This is the next big one.
-10. **Keep retiring the reach ledger** — 55, from 71 two nights ago. `HeardAs`
-   and `BelievedAt` came off today by being wired rather than excused.
+1. **Read the A/B on `crowdTightest`.** It has read exactly 0.00 for five
+   builds. If it is still 0.00 after the antisymmetric fix, the coincident
+   case is not the last cause and the next step is to print WHICH pair.
+2. **`Reaction.Confront` — the next substantial thing.** The ledger calls it
+   "the single most visible missing reaction in the game": an NPC who saw you
+   do it walking over. Immersion rather than instrumentation. Crowd
+   separation is verified working now, so the hold is genuinely spent.
+3. **`worstWorldPair` by area** lands in the 08:25 build. If it names two
+   people rather than two street plates, walker nameplates are not reaching
+   the declutter and that is the visible night-frame fault.
+4. **`measureChecked`/`measureWorst`** — first reading of whether any panel's
+   lines are too long or too short to read comfortably.
+5. **`identifiedEver` and `loiterNotices`** — first readings of how many
+   people work out who you are, and of a counter that could not fire at all
+   before today.
+6. **`callsTried`/`callsReachable`** — turns eleven calls ringing out into
+   either a schedule working or a fault.
+7. **`roomQuiet`** — if it reads 0 over nine days the dread state is
+   unreachable and the music model is decorative.
+8. **FOOT IK.** `Rig.TwoBone`, `FootHeight`, `PlantBlend`: a complete
+   ground-adaptation model with no caller. Feet get `Level()` and nothing
+   else, so they float and clip on any slope or step. Held only behind item 1
+   now.
+9. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
+10. **Keep retiring the reach ledger** — 50, from 71 two nights ago. Six came
+   off today by being wired to something that runs.
 
 ---
 
