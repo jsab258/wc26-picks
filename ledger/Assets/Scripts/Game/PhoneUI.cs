@@ -149,7 +149,7 @@ namespace Ledger.Game
             // that plainly, because a hidden modifier is a lie.
             if (_lastCall.Result == CallResult.Answered)
             {
-                Toast($"{_lastCall.AnsweredByName} is on the line. You cannot see their face, " +
+                Toast($"{(_lastCall.VoiceHeardAs ?? _lastCall.AnsweredByName)} is on the line. You cannot see their face, " +
                       "and they cannot see yours.", 8f);
                 _game.BeginPhoneConversation(_lastCall.AnsweredById);
                 TogglePhone();
@@ -165,7 +165,7 @@ namespace Ledger.Game
             bool left = _game.LeavePhoneMessage(_lastCall,
                 $"{_game.Me.Surname} rang for {wanted}. Wouldn't say what about.");
             Toast(left
-                ? $"You leave word with {_lastCall.AnsweredByName}. They will pass it on, " +
+                ? $"You leave word with {(_lastCall.VoiceHeardAs ?? _lastCall.AnsweredByName)}. They will pass it on, " +
                   "and they will also remember that you rang."
                 : "There is nobody to leave it with.", 9f);
             _lastCall = null;

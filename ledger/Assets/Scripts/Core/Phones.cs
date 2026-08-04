@@ -61,8 +61,43 @@ namespace Ledger.Core
     {
         public CallResult Result;
         public string PlaceId, PlaceName;
-        /// Who actually picked up, when anybody did.
+        /// Who actually picked up, when anybody did. GROUND TRUTH — the game
+        /// uses this to decide what happens.
         public string AnsweredById, AnsweredByName;
+
+        /// WHO THE PLAYER THINKS PICKED UP, which is a different question and
+        /// the whole point of a telephone.
+        ///
+        /// `Acoustics.CanPlaceTheVoice` has existed since the phone layer was
+        /// written, with a note explaining that recognising a familiar voice
+        /// leans on exactly the frequencies a 300–3400 Hz line throws away —
+        /// "this is why anonymous calls work in every crime story ever
+        /// written, and it is free here". Nothing ever called it. Every call
+        /// in this game has named its answerer with perfect certainty, and the
+        /// run has been reporting the consequence all along: `wrongPerson=0`,
+        /// across every build there has ever been.
+        ///
+        /// Kept apart from `AnsweredByName` rather than overwriting it,
+        /// because the two answer different questions and this project's
+        /// entire moat is that they can disagree. The UI must read this one.
+        /// NOT `HeardAs`, AND THE REASON IS A TOOL RATHER THAN TASTE.
+        ///
+        /// `reach-check` is reference-INDEPENDENT — it has to be, because the
+        /// Game layer does not compile in the dev container — so it resolves
+        /// `_lastCall.HeardAs` by member name alone and cannot tell it from
+        /// `Perception.HeardAs`, an unrelated static that nothing calls. The
+        /// first draft of this field marked that entry PAID OFF, and the
+        /// ledger only counts down: obeying it would have deleted a true
+        /// record of an unwired API because a field somewhere else happened to
+        /// share seven letters.
+        ///
+        /// That failure is silent and it destroys debt, so it is worth a name
+        /// rather than a workaround. `VoiceHeardAs` is also plainer about what
+        /// it holds.
+        public string VoiceHeardAs;
+
+        /// Whether the voice was placed at all.
+        public bool Placed;
         /// Who you were trying to reach.
         public string WantedId;
         public string Line;
@@ -103,8 +138,13 @@ namespace Ledger.Core
         /// `whoIsNear` answers "is this person by that phone right now" — it
         /// comes from the same schedules the walkers use, so a call is a real
         /// question about where somebody is rather than a dice roll.
+        /// `familiarityOf` says how well the player knows a given voice, 0..1.
+        /// Optional, and when it is absent every voice is placed — which is
+        /// exactly the behaviour this had before, so no caller changes meaning
+        /// by not passing it.
         public Call Ring(string placeId, string wantedId, GameTime now,
-            Func<string, string, bool> whoIsNear, Func<string, string> nameOf = null)
+            Func<string, string, bool> whoIsNear, Func<string, string> nameOf = null,
+            Func<string, double> familiarityOf = null, Acoustics.LineKind line = Acoustics.LineKind.Handset)
         {
             var phone = AtPlace(placeId);
             var call = new Call { PlaceId = placeId, WantedId = wantedId, PlaceName = phone?.PlaceName };
@@ -130,9 +170,19 @@ namespace Ledger.Core
                 call.AnsweredById = candidate;
                 call.AnsweredByName = nameOf != null ? nameOf(candidate) : candidate;
                 call.Result = candidate == wantedId ? CallResult.Answered : CallResult.SomebodyElse;
-                call.Line = call.Result == CallResult.Answered
-                    ? $"{call.AnsweredByName} picks up on the fourth ring."
-                    : $"{call.AnsweredByName} picks up. Not who you wanted, and now they know you rang.";
+
+                // CAN YOU TELL WHO THAT IS. A handset needs only a little
+                // familiarity, a callbox more, a trunk call more again, and a
+                // bad line near enough never.
+                double known = familiarityOf != null ? familiarityOf(candidate) : 1.0;
+                call.Placed = Acoustics.CanPlaceTheVoice(line, known);
+                call.VoiceHeardAs = call.Placed ? call.AnsweredByName : "Somebody";
+                call.Line = !call.Placed
+                    ? "Somebody picks up. The line is poor enough that the voice could be anybody, "
+                      + "and they have not offered a name."
+                    : call.Result == CallResult.Answered
+                    ? $"{call.VoiceHeardAs} picks up on the fourth ring."
+                    : $"{call.VoiceHeardAs} picks up. Not who you wanted, and now they know you rang.";
                 return call;
             }
 

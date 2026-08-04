@@ -99,8 +99,27 @@ namespace Ledger.Game
         public Call RingLine(string placeId, string wantedId)
         {
             var mill = _gossip != null ? _gossip.Mill : null;
+            // AND WHETHER THE PLAYER CAN PLACE THE VOICE.
+            //
+            // `familiarityOf` reuses `Acquaintance` rather than inventing a
+            // second scale — the same ladder that decides whether somebody can
+            // name the player in the street decides whether the player can name
+            // them down a wire, read from the other end. Two scales for one
+            // idea is how the wardrobe and the poach path each grew a second
+            // implementation that quietly disagreed with the first.
+            //
+            // Every phone here is a `Handset` for now; the callbox and the bad
+            // line are what `Phone` will carry when there is a callbox in the
+            // world to stand at.
             return Phones.Ring(placeId, wantedId, Now, NearPhone,
-                id => mill?.Get(id)?.DisplayName ?? id);
+                id => mill?.Get(id)?.DisplayName ?? id,
+                id =>
+                {
+                    var g = mill?.Get(id);
+                    if (g == null) return Acquaintance.Stranger;
+                    return Acquaintance.Of(false, false, true, true);
+                },
+                Acoustics.LineKind.Handset);
         }
 
         /// Is the PLAYER standing next to this line? Distinct from NearPhone,

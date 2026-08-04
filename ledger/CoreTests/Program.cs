@@ -35,6 +35,7 @@ namespace Ledger.CoreTests
                 TestMemoryStoreRoundtrip();
                 TestMemoryRobustness();
                 TestRetrieval();
+                TestVoiceOnTheLine();
                 TestIntentArguments();
                 TestClaims();
                 TestInforming();
@@ -287,6 +288,59 @@ namespace Ledger.CoreTests
         ///
         /// The last two are the accept cases rule 5b demands: it is not enough
         /// that a stranger fails to name you, the companion has to SUCCEED.
+        static void TestVoiceOnTheLine()
+        {
+            Console.WriteLine("Voice on the line:");
+
+            var book = new PhoneBook();
+            book.Add(new Phone { PlaceId = "bar", PlaceName = "the pub", Regulars = { "rocco" } });
+            var now = new GameTime(3, 20, 0);
+            Func<string, string, bool> near = (who, place) => true;
+            Func<string, string> nameOf = id => id == "rocco" ? "Rocco" : id;
+
+            // THE CASE THAT MUST STILL WORK. No familiarity function means
+            // every voice is placed, which is exactly the old behaviour — so
+            // no existing caller changes meaning by not passing one.
+            var plain = book.Ring("bar", "rocco", now, near, nameOf);
+            Check(plain.Placed && plain.VoiceHeardAs == "Rocco",
+                  "with no familiarity supplied the voice is placed",
+                  plain.Line);
+
+            // A GOOD LINE AND A KNOWN VOICE. Your own handset, somebody you
+            // deal with: you know them the moment they speak.
+            var known = book.Ring("bar", "rocco", now, near, nameOf,
+                                  _ => 0.8, Acoustics.LineKind.Handset);
+            Check(known.Placed && known.VoiceHeardAs == "Rocco",
+                  "a familiar voice on your own handset is placed");
+
+            // AND THE ONE THE WHOLE THING EXISTS FOR. A bad line hides
+            // everybody — this is the anonymous call every crime story runs on.
+            var bad = book.Ring("bar", "rocco", now, near, nameOf,
+                                _ => 0.8, Acoustics.LineKind.BadLine);
+            Check(!bad.Placed && bad.VoiceHeardAs == "Somebody",
+                  "a bad line hides even a voice you know well", bad.Line);
+            Check(bad.AnsweredById == "rocco" && bad.AnsweredByName == "Rocco",
+                  "while the game still knows perfectly well who it was",
+                  "ground truth and belief must be able to disagree");
+
+            // The ladder is a ladder: a callbox is harder than a handset and a
+            // trunk call is harder again.
+            Check(book.Ring("bar", "rocco", now, near, nameOf, _ => 0.45,
+                            Acoustics.LineKind.Handset).Placed,
+                  "0.45 is enough on a handset");
+            Check(!book.Ring("bar", "rocco", now, near, nameOf, _ => 0.45,
+                             Acoustics.LineKind.PayPhone).Placed,
+                  "and not enough from a callbox");
+            Check(!book.Ring("bar", "rocco", now, near, nameOf, _ => 0.60,
+                             Acoustics.LineKind.LongDistance).Placed,
+                  "nor 0.60 down a trunk line");
+
+            // A stranger is a stranger even on the best line.
+            Check(!book.Ring("bar", "rocco", now, near, nameOf, _ => 0.0,
+                             Acoustics.LineKind.Handset).Placed,
+                  "a voice you have never heard is not placed by clarity alone");
+        }
+
         static void TestIntentArguments()
         {
             Console.WriteLine("Intent arguments:");
