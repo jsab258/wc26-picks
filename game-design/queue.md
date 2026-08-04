@@ -90,15 +90,28 @@ scheduling instead of to CI's output.
    material for trousers, or nothing at all is Jafar's call off a still — the
    street calls the player "someone in a runner's coat" in its own rumours, so
    the coat is load-bearing for identification.
-3. **READ `[series] jobs` AND `cutOffNights`.** *(CI, same build)* One run in 64
-   came back `jobsDone=0` and reddened `jobRan` and `verdictSane`. The
-   distribution across every kept run: 49 finish 2/3, eight finish 3/3, **six
-   finish 1/4 with the outfit cutting them off, one finishes 0/3** — so 11% of
-   runs lose the outfit and `jobRan` survived six of those on luck, because the
-   bot had scraped one drop in first. `verdictSane` is fixed (a cut-off outfit
-   posts nothing, so those nights are unachievable exactly like frozen closes —
-   the same subtraction sitting three lines away). `jobRan` is deliberately NOT
-   loosened; see standing work.
+3. ~~**READ `[series] jobs`.**~~ **ANSWERED, AND IT NAMED THE CAUSE:**
+
+       d1:MISSED[from=28m nearest=6m]   d2:done[from=20m nearest=2m]
+       d8:MISSED[from=18m nearest=17m]  d12:MISSED[from=27m nearest=1m]
+       d13:MISSED[from=27m nearest=4m]
+
+   **d8 is the confession.** Eighteen metres away when the drop opened,
+   seventeen at its closest — the bot never went, because day 8 is the first day
+   `StagePerception` may stage its loiter, which walks the bot to somebody and
+   then holds it still, at any hour from 19:00. That overlaps 22:00–02:00 every
+   time. Fixed: the loiter waits for the drop to close. **And d12's `nearest=1m`
+   was my own ruler** — the game completes on a FLAT distance and the trace took
+   the 3D one. Now flat, and it records the hour of closest approach, because
+   "ran out of night" and "the check never fired" are different bugs.
+   **Next build tells which.**
+
+3b. **DO NOT DISPATCH MORE THAN ABOUT THREE BUILDS AT ONCE.** Two of four died
+   on "Activate Unity license" — a Personal licence has limited concurrent
+   seats. It is expensive out of all proportion because the verdict then says
+   `NO PLAYER LOG`, which reads exactly like a Game-layer compile error, the one
+   thing that cannot be checked locally. The step retries once now and the
+   verdict names both attempts. CLAUDE.md carries the limit.
 4. **Read `collidingBubbles` against `bubblesOnScreen`.** *(CI)* The night
    still has two speech bubbles drawn through each other. Fifty-six confabs is
    fifty-six bubbles. `NameTags` already has the declutter and `Manages`
@@ -142,7 +155,18 @@ scheduling instead of to CI's output.
    **`traffic` at 8 runs ago is now the oldest LIVE one and the real next
    target.** It used to say nothing but its name; it prints five readings now.
 
-6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
+8. **THE TRAFFIC ANSWER LANDED AND CONFIRMED THE DIAGNOSIS.**
+   `clamps=20 clampsPerKm=0.49 tailsBehindStart=39`, and
+   `gapWhy=[car#24 lead S=25.77 len=4.20 tail=21.57 over taxi#17 at S=21.57 on
+   j3_4->j3_3]` — leader's tail and follower's nose at the same metre to two
+   decimals, which is the de-overlap clamp's exact signature. So `gap=0.00` on a
+   third of runs was never a clear road. The gate reads clamps-per-metre now.
+   **What is left:** 39 tails behind an edge start in one run is a lot, and
+   whether that is a real overlap at a junction or a measurement crossing a
+   junction it does not model is still open. `Cross` has an entry check; find
+   out whether it is being reached.
+
+9. **Keep retiring the reach ledger.** 90 to 71 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces
    (`OperationPlan.Bringing` needs crew selection) and one real refactor: the
    `Mixing.*` voice budget has no choke point to enforce it, because the audio
