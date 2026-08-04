@@ -951,6 +951,39 @@ namespace Ledger.Game
             _player.AutoMoveTarget = target;
             NoteTargetOwner();
 
+            // RUN FOR THE DROP, WHICH IS PLANTING THE CONDITION RATHER THAN
+            // LOOSENING THE BOUND.
+            //
+            // The trace settled what `jobRan` has actually been measuring. Path
+            // length comes within ~2m of straight-line distance on every drop —
+            // the bot walks almost exactly at the marker, never wanders, is
+            // never blocked. The window is 21 ticks and buys about 24 metres at
+            // walking pace, so a drop posted beyond ~21m cannot complete
+            // however well the bot walks. Two of five opened at 30m and 27m and
+            // were unreachable before the bot took a step; the gate was
+            // measuring where the marker happened to land.
+            //
+            // A PLAYER WOULD RUN. That is the whole justification: this is not
+            // a special case bolted on to make a gate green, it is the obvious
+            // behaviour of somebody with four hours to make a drop and a
+            // distance to cover. `AutoMoveRun` already exists and the night-run
+            // probe already uses it.
+            //
+            // ONLY WHEN THE JOB ACTUALLY OWNS THE TARGET. If a staged probe has
+            // taken the bot, running would carry it away from the drop faster
+            // rather than towards it, and `held:` is the field that knows which.
+            //
+            // AND IT CHANGES WHAT A NEIGHBOURING NUMBER ASKS, so it is counted.
+            // `nightRunNotices` is a run total and means "people who noticed
+            // the player running"; with this, some of them noticed a drop run
+            // rather than the staged night run. `dropRuns` is how many ticks
+            // that was, so the two can be told apart instead of one quietly
+            // absorbing the other — the night-run probe's own reading is a
+            // delta between its markers and is unaffected either way.
+            bool runForDrop = _targetOwner == "job" && _nightRunUntil < 0;
+            if (runForDrop) { _player.AutoMoveRun = true; _dropRuns++; }
+            else if (_nightRunUntil < 0) _player.AutoMoveRun = false;
+
             // Hourly NPC sample.
             if (now.Hour != _lastSampledHour)
             {
@@ -1982,6 +2015,11 @@ namespace Ledger.Game
 
         /// How many loiter holds ended early because a drop opened under them.
         int _loitersCutShort;
+        /// Ticks the bot spent running because a drop was open and the job owned
+        /// the target. Printed so `nightRunNotices` can still be read: it counts
+        /// people who noticed the player RUNNING, and this adds a second reason
+        /// to be running.
+        int _dropRuns;
 
         /// GROUND COVERED DURING THE WINDOW, which is the number the owner
         /// tally could not supply and the second half of the answer.
@@ -8252,6 +8290,7 @@ namespace Ledger.Game
                       $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
                       $"slamsDeferred={_slamsDeferred} " +
                       $"loitersCutShort={_loitersCutShort} " +
+                      $"dropRuns={_dropRuns} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
