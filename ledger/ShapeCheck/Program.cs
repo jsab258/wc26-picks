@@ -241,6 +241,39 @@ static bool MissingName(Diagnostic d, out string name)
 }
 
 int bad = 0;
+
+// SYNTAX ERRORS FIRST, AND UNCONDITIONALLY — THIS FILE MISSED ONE AND IT COST A
+// ROUND TRIP.
+//
+// On 4 August a missing `+` between two adjacent string literals in
+// `SimDirector` produced `CS1003: Syntax error, ',' expected`, and this checker
+// reported ZERO errors on the same file seconds earlier. The build died, the
+// sim never ran, and the question that build was dispatched to answer came
+// back unanswerable.
+//
+// The cause is the filter below: `if (!interesting.Contains(d.Id) ...) continue`
+// is an ALLOW-LIST, and an allow-list silently discards everything nobody
+// thought to add. That is defensible for semantic diagnostics — this
+// compilation has no reference assemblies, so most of them are noise about
+// types we cannot see. It is indefensible for SYNTAX, which is the one class
+// that needs no references at all and is the cheapest, most certain thing a
+// parser can tell you.
+//
+// So these come from the TREES rather than the compilation: `GetDiagnostics`
+// on a syntax tree returns exactly the parser's own errors, by construction,
+// with nothing semantic mixed in. No list to keep up to date and nothing to
+// forget to add.
+foreach (var tree in trees)
+    foreach (var d in tree.GetDiagnostics())
+    {
+        if (d.Severity != DiagnosticSeverity.Error) continue;
+        var pos = d.Location.GetLineSpan();
+        Console.WriteLine($"{pos.Path}({pos.StartLinePosition.Line + 1},"
+                          + $"{pos.StartLinePosition.Character + 1}): "
+                          + $"{d.Id}: {d.GetMessage()}");
+        bad++;
+    }
+
 foreach (var d in compilation.GetDiagnostics())
 {
     if (d.Severity != DiagnosticSeverity.Error) continue;

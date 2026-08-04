@@ -8651,7 +8651,13 @@ namespace Ledger.Game
                       + $" npcsListed={GameController.WalkersListed}"
                       + $" npcsDuplicated={GameController.WalkersDuplicated}"
 
-                      $"namesPinned={NameTags.NamesPinned} " +
+                      // THE `+` THAT WAS MISSING HERE COST A ROUND TRIP, and
+                      // the reason it got through is worth more than the fix:
+                      // ShapeCheck reported zero errors on this file. A
+                      // syntax error is not reference-dependent, so the one
+                      // local check whose whole job is to catch what CI would
+                      // catch should have seen it and did not.
+                      + $"namesPinned={NameTags.NamesPinned} " +
                       $"namePinFloor={NameTags.NamePinFloor:0.000} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +

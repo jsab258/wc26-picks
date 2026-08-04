@@ -609,6 +609,30 @@ A type error against a Unity API is invisible until the Windows CI build, which
 takes ~28 minutes. **Batch Game-layer changes; never claim a phase is done on a
 local green.**
 
+**AND SHAPECHECK WAS DISCARDING SYNTAX ERRORS, WHICH IS THE OPPOSITE FAULT AND
+THE CHEAPER ONE.** 4 August: a missing `+` between two adjacent string literals
+in `SimDirector` produced `CS1003: Syntax error, ',' expected`, the build died,
+the sim never ran, and the question that build was dispatched to answer came
+back unanswerable. ShapeCheck had reported ZERO errors on that same file
+seconds earlier.
+
+The cause was an ALLOW-LIST: `if (!interesting.Contains(d.Id)) continue`, a set
+of diagnostic ids somebody thought to add. That is right for semantic
+diagnostics — this compilation has no reference assemblies, so most of them are
+noise about types it cannot see. It is indefensible for SYNTAX, which is the
+one class that needs no references at all and is the cheapest, most certain
+thing a parser can say.
+
+Syntax diagnostics now come from the TREES rather than the compilation:
+`SyntaxTree.GetDiagnostics()` returns exactly the parser's own errors, by
+construction, with nothing semantic mixed in — no list to maintain and nothing
+to forget to add. Tested both ways, and the rejecting case is the real error
+put back: it lands on the same line and column CI reported.
+
+The lesson generalises past this file. **An allow-list silently discards
+everything nobody thought of, and it looks identical to a clean result.** That
+is rule 3b — a zero needs a denominator — wearing a filter's clothes.
+
 **AND "REFERENCE-INDEPENDENT" IS THE PART THAT BITES.** ShapeCheck can run here
 precisely because it does not need the assemblies — which means every diagnostic
 that requires RESOLVING a name is invisible to it, not just Unity ones. Five
