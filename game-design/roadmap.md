@@ -1,6 +1,6 @@
 # LEDGER — roadmap
 
-> **STATUS — LIVE, verified 2026-08-03.** The plan and the build state. If this
+> **STATUS — LIVE, verified 2026-08-04.** The plan and the build state. If this
 > and another doc disagree, this wins. If it is wrong, that is a bug in this file.
 
 **The plan lives here.** Chronology, post-mortems and superseded plans are in
