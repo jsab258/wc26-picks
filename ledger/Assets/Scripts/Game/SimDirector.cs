@@ -932,7 +932,44 @@ namespace Ledger.Game
                 }
             }
             TraceJob(now);
-            var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
+            // PLANT THE MISSED DROPS, because nothing else ever has.
+            //
+            // `gates.py --constant` across a hundred and thirty-one kept runs
+            // says `reliabilityFiled=0` and `reliabilityHeard=0` — every run
+            // this project has ever kept. `Core/Reliability` turns missed drops
+            // into talk at two misses and a reputation at four, it is tested,
+            // it is wired through `ReliabilityHost`, and its condition has
+            // never once been met: `reliabilityRead=[Fine after 1]`, because
+            // the bot has never missed two drops without a delivery between.
+            //
+            // That is rule 5b's corollary — a probe needs a run in which the
+            // thing it asserts CAN happen — and the fix it names is to PLANT
+            // the condition, never to loosen the bound. Lowering
+            // `TalkedAboutAt` to one would make the street comment on every
+            // single lapse, which the constant's own comment argues against by
+            // name.
+            //
+            // AFTER DAY TEN, AND ONLY TWO. The early windows are what
+            // `jobRan` (`JobsDone >= 1`) and `takingsBanked` (`> 0`) live on,
+            // and a stage that starved those would be a probe breaking the
+            // gates it shares a run with — this project's most expensive shape
+            // of guard. Three drops typically complete before day ten, so both
+            // bounds are already met when this starts, and the windows after it
+            // are left alone so the DELIVERY-CLEARS-IT path runs too.
+            var jobPos = _game.ActiveJobPos;
+            if (jobPos.HasValue && now.Day >= SkipDropsFromDay && _dropsSkipped < SkipDropsCount)
+            {
+                if (_skippingDropDay != now.Day)
+                {
+                    _skippingDropDay = now.Day;
+                    _dropsSkipped++;
+                    Debug.Log($"SimDirector: staging a missed drop on day {now.Day} "
+                              + $"({_dropsSkipped} of {SkipDropsCount}) — nothing has ever "
+                              + "let the reliability rule fire.");
+                }
+                jobPos = null;
+            }
+            var job = jobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
                 : job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
@@ -3293,6 +3330,18 @@ namespace Ledger.Game
         // running. So this stages the two behaviours §3.3 actually promises
         // and counts what happened to the player.
         bool _loiterStaged, _nightRunStaged;
+
+        /// STAGING THE ONE CONDITION THE RELIABILITY RULE NEEDS.
+        ///
+        /// Two consecutive missed drops, after the early windows have already
+        /// satisfied `jobRan` and `takingsBanked`, so the street gets something
+        /// to say about a man who does not turn up — and the windows after
+        /// these are left alone, so a delivery clears it and that path runs
+        /// too. `Reliability.TalkedAboutAt` is 2 and stays 2.
+        const int SkipDropsFromDay = 10;
+        const int SkipDropsCount = 2;
+        int _dropsSkipped;
+        int _skippingDropDay = -1;
 
         /// M21: the run has to actually NAME somebody, or the informer verb is
         /// tested Core with no call site — which is the state it shipped in an
@@ -8896,6 +8945,7 @@ namespace Ledger.Game
                       // is the denominator: `reliabilityHeard=0` reads the same
                       // whether the player never slipped or the filing is
                       // broken, and only the pair separates them.
+                      $"dropsSkipped={_dropsSkipped} " +
                       $"reliabilityFiled={ReliabilityHost.Filed} " +
                       $"reliabilityHeard={ReliabilityHost.Heard} " +
                       $"reliabilityRead=[{ReliabilityHost.LastRead}] " +
