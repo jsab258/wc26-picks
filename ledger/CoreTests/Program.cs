@@ -9795,6 +9795,32 @@ namespace Ledger.CoreTests
             Check(Physique.For("Noor Farid").Height != Physique.For("Ossei Tannen").Height,
                 "and different people are different");
 
+            // ---- HOW BIG A PLACE HAS TO BE TO HOLD THE PEOPLE SENT TO IT ----
+            //
+            // The arithmetic is here rather than in `NpcWalker` because the
+            // Game layer has no compiler in this container and no test, and the
+            // claim "ten people need the 0.80m the constant already was" went
+            // into a commit message before anything had checked it.
+            //
+            // BOTH DIRECTIONS (rule 5b). The case it must REJECT is a crowd
+            // that gets no more room than one person; the case it must ACCEPT —
+            // and this is the half that never gets run — is that a quiet place
+            // is left exactly as it was.
+            Check(System.Math.Abs(Physique.SpreadRadius(10, 0.8) - 0.8) < 0.01,
+                "ten people need the 0.80m ring the constant already was — which is "
+                + "why the typical case does not move at all");
+            Check(Physique.SpreadRadius(41, 0.8) > 1.6 && Physique.SpreadRadius(41, 0.8) < 1.7,
+                "and forty-one need 1.63m, against the twelve centimetres of arc each "
+                + "that an 0.80m ring was giving them");
+            Check(Physique.SpreadRadius(1, 0.8) == 0.8 && Physique.SpreadRadius(0, 0.8) == 0.8
+                  && Physique.SpreadRadius(-3, 0.8) == 0.8,
+                "a place with nobody at it keeps the radius it had — this may only ever "
+                + "widen, or a quiet corner would pull people tighter than they stood "
+                + "all day");
+            Check(Physique.SpreadRadius(60, 0.8) > Physique.SpreadRadius(30, 0.8)
+                  && Physique.SpreadRadius(30, 0.8) > Physique.SpreadRadius(15, 0.8),
+                "and it keeps growing with the crowd rather than saturating");
+
             // GOLDEN VALUES, and the only way this property is testable at
             // all. "Same answer twice in a row" passes inside one process no
             // matter how the hash is seeded — a break that swapped FNV for

@@ -3011,7 +3011,7 @@ namespace Ledger.Game
         /// actually are, on the same log line, so the first person to read
         /// `0.42` can see immediately that it clears a narrow person and does
         /// not clear a broad one.
-        const float BodyWidth = 0.45f;
+        const float BodyWidth = (float)Ledger.Core.Physique.ShoulderWidth;
 
         /// What the crowding bound assumes against what the street now is.
         /// On the gap's own line, because two numbers from two lines are two

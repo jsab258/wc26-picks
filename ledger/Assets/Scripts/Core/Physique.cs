@@ -60,6 +60,50 @@ namespace Ledger.Core
         /// factor is `Height / ReferenceHeight`.
         public const double ReferenceHeight = 1.80;
 
+        /// SHOULDER WIDTH, AND IT WAS WRITTEN TWICE.
+        ///
+        /// `NpcWalker` and `SimDirector` each carried `const float BodyWidth =
+        /// 0.45f` with near-identical paragraphs underneath explaining that a
+        /// person 1.58m to 1.91m tall is about that far across, so two centres
+        /// closer are inside one another by construction. Same fact, two
+        /// implementations, in two files that measure and PLACE the same
+        /// people — which is the shape this project has now found four times in
+        /// one evening, and the one nobody looks at is always the one that
+        /// drifts.
+        ///
+        /// It belongs here because this file already owns how wide a person is:
+        /// `Breadth` multiplies it, 0.86 to 1.18, so the street runs 0.39 to
+        /// 0.53 and the bare constant is the middle of that.
+        public const double ShoulderWidth = 0.45;
+
+        /// HOW BIG A RING HAS TO BE TO HOLD `n` PEOPLE STANDING AT A PLACE.
+        ///
+        /// `NpcWalker` puts each person on a ring round their scheduled point
+        /// so two people sent to one spot are not inside each other, and the
+        /// radius was a constant 0.8m. The run measured the tail:
+        /// `crowdHuddleWorst=41` — forty-one people within two metres of one
+        /// person — which on an 0.8m ring is twelve centimetres of arc each
+        /// against a body forty-five centimetres across.
+        ///
+        /// DERIVED, NOT PICKED. `n` bodies of width `w` need `n*w^2` of floor
+        /// and a disc of radius `R` has `pi*R^2`, so `R = w*sqrt(n/pi)` is the
+        /// radius at which everybody has a body width to stand in. It is here
+        /// rather than in the Game layer for the reason everything else is: the
+        /// Game layer has no compiler in this container and no test, and an
+        /// arithmetic claim in a commit message is exactly the kind that goes
+        /// unchecked.
+        ///
+        /// The floor means this can only ever WIDEN a place. A rule that could
+        /// tighten one would be a ratchet pointed the wrong way — it would let
+        /// a quiet corner pull people closer together than the constant they
+        /// were placed at all day.
+        public static double SpreadRadius(int n, double floorMetres)
+        {
+            if (n < 1) n = 1;
+            double room = ShoulderWidth * System.Math.Sqrt(n / System.Math.PI);
+            return room > floorMetres ? room : floorMetres;
+        }
+
         public static Physique For(string name)
         {
             // Four INDEPENDENT draws. One hash reused with different

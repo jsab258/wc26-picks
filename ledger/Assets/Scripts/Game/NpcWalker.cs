@@ -160,12 +160,12 @@ namespace Ledger.Game
             }
         }
 
-        /// Shoulder width, from the bodies this game actually builds:
-        /// `bodiesOk` measures them at 1.58m to 1.91m tall, and a person that
-        /// tall is about 0.45m across. Two centres closer than this are inside
-        /// one another by construction — a fact about the meshes rather than a
-        /// threshold chosen to make a reading come out well.
-        const float BodyWidth = 0.45f;
+        /// Shoulder width, from `Core/Physique` — which is where it lives now,
+        /// because this file and `SimDirector` each carried their own copy of
+        /// the same 0.45 with near-identical paragraphs underneath. One fact,
+        /// two implementations, in the two files that PLACE and MEASURE the
+        /// same people.
+        const float BodyWidth = (float)Ledger.Core.Physique.ShoulderWidth;
         /// How far from a scheduled point somebody actually stands. Two
         /// shoulders: far enough that two people sent to one place are clear of
         /// each other, near enough that they are still at the place and still
@@ -296,9 +296,8 @@ namespace Ledger.Game
                 // run and every reload.
                 if (!_spreadKnown || _spreadFor != CrowdAtPlace)
                 {
-                    int n = CrowdAtPlace < 1 ? 1 : CrowdAtPlace;
-                    float room = BodyWidth * Mathf.Sqrt(n / Mathf.PI);
-                    float radius = Mathf.Max(SpreadMetres, room);
+                    float radius = (float)Ledger.Core.Physique.SpreadRadius(
+                        CrowdAtPlace, SpreadMetres);
                     float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
                                       * System.Math.PI * 2.0);
                     float u = (float)Ledger.Core.Physique.Fraction(DisplayName, 61);
