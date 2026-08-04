@@ -1116,6 +1116,23 @@ namespace Ledger.Game
                 if (why.Count == 0)
                     doubt.AppendLine($"   <color={UiTheme.HexDim}>nothing you can point to</color>");
             }
+            // AND THE SHAPE OF THE THING YOU KEEP DOING, which is the competence
+            // axis and is deliberately NOT a meter.
+            //
+            // M21: *"a run of individually reasonable decisions that compound —
+            // miss tonight because this job matters, and that is the sixth night
+            // running. The game already punishes every one. What it owes the
+            // player is the ability to SEE the shape forming."* `JobsMissed` is a
+            // total and a total cannot tell one bad week from a habit, so
+            // `Campaign` keeps the nights and this reads them.
+            //
+            // TWO AND OVER, because one missed drop is a Tuesday. The line says
+            // the count and nothing else — no advice, no score, no bar. Seeing
+            // it is the mechanic.
+            int running = _game.Campaign.MissedSinceLastDelivery(_game.Now.Day);
+            if (running >= 2)
+                doubt.AppendLine($"   <color={UiTheme.HexDim}>You have not made a drop in "
+                                 + $"<b>{running}</b> nights. The outfit counts.</color>");
             if (doubt.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>DOUBT — who has stopped trusting you</b></color>\n")
                   .Append(doubt);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ledger.Core
 {
@@ -135,17 +136,92 @@ namespace Ledger.Core
             VerdictReason = reason ?? "";
         }
 
-        public void JobDone()
+        /// WHICH NIGHTS, NOT JUST HOW MANY.
+        ///
+        /// M21's competence axis is explicit that there is NO EGO METER: growth
+        /// is "a run of individually reasonable decisions that compound", and
+        /// the design note's own example is *"miss tonight because this job
+        /// matters, and that is the sixth night running"*. The game already
+        /// punishes it. What it could not do was SAY it — `JobsMissed` is a
+        /// total, and a total cannot tell one bad week from six nights in a row.
+        ///
+        /// So the days are kept. This is the smallest possible brick of that
+        /// axis and it needs no new system: two call sites already know the
+        /// date, and everything downstream reads a list instead of inventing a
+        /// meter.
+        ///
+        /// Bounded, because a save is a file somebody can hand-edit and a
+        /// hundred-day open city should not carry a hundred-entry array for a
+        /// question that only ever looks at the recent past.
+        public const int NightsRemembered = 14;
+        readonly List<int> _missedNights = new List<int>();
+        readonly List<int> _doneNights = new List<int>();
+        public IReadOnlyList<int> MissedNights => _missedNights;
+        public IReadOnlyList<int> DoneNights => _doneNights;
+
+        static void Remember(List<int> nights, int day)
+        {
+            if (day < 0 || nights.Contains(day)) return;
+            nights.Add(day);
+            while (nights.Count > NightsRemembered) nights.RemoveAt(0);
+        }
+
+        /// How many drops you have missed since the last one you delivered.
+        ///
+        /// NAMED FOR WHAT IT COUNTS, and the first draft was not. It was called
+        /// a "run" and its comment said it stopped at the first gap — but a
+        /// night with no drop posted is skipped rather than breaking the count,
+        /// deliberately, because after a cut-off the outfit posts nothing and
+        /// counting silence as failure would say "eleven nights running" to a
+        /// player nobody had asked. Skipping silence is right; calling the
+        /// result a consecutive run was not, and the two disagreed by exactly
+        /// the case the comment used as its example.
+        ///
+        /// So: walk back from `today` through the remembered window, count
+        /// missed nights, and STOP at a delivered one. Missed four, delivered
+        /// one, missed two reads as two. That is the sentence the ledger wants.
+        public int MissedSinceLastDelivery(int today)
+        {
+            int missed = 0;
+            for (int day = today; day > today - NightsRemembered && day >= 0; day--)
+            {
+                if (_doneNights.Contains(day)) break;
+                if (_missedNights.Contains(day)) missed++;
+            }
+            return missed;
+        }
+
+        /// The nights, from a save. Separate from `Restore` because that one
+        /// takes seven positional arguments already and an eighth and ninth
+        /// would be two more places to pass the wrong list.
+        ///
+        /// CLAMPED AND DEDUPED THROUGH THE SAME DOOR the live path uses, so a
+        /// hand-edited file cannot plant a hundred nights or a negative day.
+        /// `SaveChaos` throws malformed values at every field in this class and
+        /// the ones that survived it did so by having exactly one way in.
+        public void RestoreNights(IEnumerable<object> missed, IEnumerable<object> done)
+        {
+            _missedNights.Clear();
+            _doneNights.Clear();
+            if (missed != null)
+                foreach (var o in missed) if (o is double d) Remember(_missedNights, (int)d);
+            if (done != null)
+                foreach (var o in done) if (o is double d) Remember(_doneNights, (int)d);
+        }
+
+        public void JobDone(int day = -1)
         {
             if (Verdict != Verdict.Ongoing) return;
             JobsDone++;
+            Remember(_doneNights, day);
             OutfitPatience = Math.Min(1.0, OutfitPatience + PatienceGainPerJob);
         }
 
-        public void JobMissed()
+        public void JobMissed(int day = -1)
         {
             if (Verdict != Verdict.Ongoing || OutfitCutOff) return;
             JobsMissed++;
+            Remember(_missedNights, day);
             OutfitPatience = Math.Max(0.0, OutfitPatience - PatienceLossPerMiss);
             if (OutfitPatience <= 0.0)
             {

@@ -2073,7 +2073,7 @@ namespace Ledger.Game
             {
                 Destroy(_jobMarker);
                 _jobMarker = null;
-                Campaign.JobMissed();
+                Campaign.JobMissed(Now.Day);
                 // The independence path is systemic: skipping drops IS the break.
                 // When the street already pays you, the silence reads as intent —
                 // to you, and to the Dockside arm, who now call it competition.
@@ -2095,7 +2095,7 @@ namespace Ledger.Game
                 {
                     Destroy(_jobMarker);
                     _jobMarker = null;
-                    Campaign.JobDone();
+                    Campaign.JobDone(Now.Day);
                     Wallet.EarnDirty(Campaign.JobPay);
                     Audio.Ui("coin");
                     double conf = WearingCoat ? CoatWitnessConfidence : 1.0;

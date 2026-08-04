@@ -1513,6 +1513,53 @@ namespace Ledger.CoreTests
 
         static void TestCampaign()
         {
+            // WHICH NIGHTS, NOT JUST HOW MANY — M21's competence axis, and the
+            // design note's own example is the test: "miss tonight because this
+            // job matters, and that is the sixth night running."
+            var nights = new Campaign();
+            // PATIENCE TURNED DOWN SO THE SEQUENCE CAN HAPPEN AT ALL. The first
+            // draft missed four drops and asserted two, and got three — because
+            // PatienceLossPerMiss is 0.34, so the fourth miss casts the player
+            // out and every call after it early-returns on `Verdict != Ongoing`.
+            // The test was asserting a world the rules forbid, which is the
+            // corollary written into CLAUDE.md tonight arriving in my own test
+            // an hour later: a guard needs a run in which the thing it asserts
+            // CAN happen.
+            nights.PatienceLossPerMiss = 0.05;
+            nights.JobMissed(1); nights.JobMissed(2); nights.JobMissed(3); nights.JobMissed(4);
+            nights.JobDone(5);
+            nights.JobMissed(6); nights.JobMissed(7);
+            Check(nights.MissedSinceLastDelivery(7) == 2,
+                  "missed four, delivered one, missed two reads as two",
+                  nights.MissedSinceLastDelivery(7).ToString());
+
+            // SILENCE IS NOT A MISS. After a cut-off the outfit posts nothing,
+            // and counting quiet nights as failures would tell a player they
+            // were on eleven when nobody had asked them for anything.
+            Check(nights.MissedSinceLastDelivery(12) == 2,
+                  "and five quiet nights later it is still two, not seven",
+                  nights.MissedSinceLastDelivery(12).ToString());
+
+            // THE ACCEPT CASE (5b): a player who delivers has nothing to see.
+            var clean2 = new Campaign();
+            clean2.JobDone(1); clean2.JobDone(2);
+            Check(clean2.MissedSinceLastDelivery(2) == 0,
+                  "a player who keeps delivering is on nothing");
+
+            // Bounded, and through one door. A save cannot plant a hundred
+            // nights or a negative day.
+            var many = new Campaign();
+            many.PatienceLossPerMiss = 0.0;   // forty misses need an outfit that stays
+            for (int d = 0; d < 40; d++) many.JobMissed(d);
+            Check(many.MissedNights.Count == Campaign.NightsRemembered,
+                  "the window is bounded however long the city runs",
+                  many.MissedNights.Count.ToString());
+            var restored = new Campaign();
+            restored.RestoreNights(new List<object> { 3.0, 4.0, -9.0, 3.0 }, null);
+            Check(restored.MissedNights.Count == 2,
+                  "a save cannot plant a negative day or a duplicate",
+                  string.Join(",", restored.MissedNights));
+
             Console.WriteLine("Campaign:");
             Check(Campaign.InJobWindow(new GameTime(1, 23, 0)), "campaign: 23:00 is inside the job window");
             Check(Campaign.InJobWindow(new GameTime(2, 1, 30)), "campaign: 01:30 is inside the job window");

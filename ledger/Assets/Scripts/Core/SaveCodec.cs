@@ -84,6 +84,10 @@ namespace Ledger.Core
                 { "clean", wallet.Clean }, { "dirty", wallet.Dirty }, { "washed", wallet.TotalWashed },
                 { "patience", camp.OutfitPatience }, { "exposedStreak", camp.ExposedStreak },
                 { "jobsDone", camp.JobsDone }, { "jobsMissed", camp.JobsMissed },
+                // WHICH nights, not just how many — the competence axis reads
+                // a list and a total cannot tell one bad week from six in a row.
+                { "missedNights", camp.MissedNights.Select(n => (object)n).ToList() },
+                { "doneNights", camp.DoneNights.Select(n => (object)n).ToList() },
                 { "daysClosed", camp.DaysClosed }, { "verdict", camp.Verdict.ToString() },
                 { "verdictReason", camp.VerdictReason },
                 { "openMode", camp.OpenMode }, { "outfitCutOff", camp.OutfitCutOff },
@@ -214,6 +218,8 @@ namespace Ledger.Core
             camp.Restore(Num(root, "patience"), MiniJson.GetInt(root, "exposedStreak"),
                 MiniJson.GetInt(root, "jobsDone"), MiniJson.GetInt(root, "jobsMissed"),
                 MiniJson.GetInt(root, "daysClosed"), verdict, MiniJson.GetString(root, "verdictReason"));
+            camp.RestoreNights(MiniJson.GetList(root, "missedNights"),
+                               MiniJson.GetList(root, "doneNights"));
             camp.RestoreOpen(Flag(root, "openMode"), Flag(root, "outfitCutOff"),
                 Flag(root, "fallPending"), MiniJson.GetInt(root, "falls"));
 
