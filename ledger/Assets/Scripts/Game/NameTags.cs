@@ -60,6 +60,9 @@ namespace Ledger.Game
         /// Reused rather than allocated per frame — this runs inside the frame
         /// budget the `frame` gate is red against.
         static readonly HashSet<TextMesh> _distinct = new HashSet<TextMesh>();
+        /// The same set counted a way Unity's equality cannot reach. See the
+        /// note in `Resolve`: this exists to test the container, not the data.
+        static readonly HashSet<int> _distinctIds = new HashSet<int>();
         static int _frame = -1;
 
         /// How many labels stood down on the last resolved frame, and how many
@@ -476,6 +479,13 @@ namespace Ledger.Game
         /// readings could not manage between them.
         public static int OfferedDistinctPeak { get; private set; }
 
+        /// The worst offering frame, described by four numbers taken from IT
+        /// rather than from four different frames. See the note in `Resolve`.
+        public static int OfferedAtWorst { get; private set; }
+        public static int AliveAtWorst { get; private set; }
+        public static int DistinctObjectsAtWorst { get; private set; }
+        public static int DistinctIdsAtWorst { get; private set; }
+
         /// Is this one of the labels this class is responsible for?
         ///
         /// WHY ANYTHING NEEDS TO ASK. `SimDirector.CollidingNames` reported 182
@@ -590,9 +600,51 @@ namespace Ledger.Game
             if (_offered.Count > 0)
             {
                 _distinct.Clear();
-                foreach (var c in _offered) if (c.Label != null) _distinct.Add(c.Label);
+                _distinctIds.Clear();
+                int alive = 0;
+                foreach (var c in _offered)
+                {
+                    if (c.Label == null) continue;
+                    alive++;
+                    _distinct.Add(c.Label);
+                    _distinctIds.Add(c.Label.GetInstanceID());
+                }
                 if (_distinct.Count > OfferedDistinctPeak)
                     OfferedDistinctPeak = _distinct.Count;
+
+                // ALL FOUR TAKEN AT THE SAME INSTANT, AND THAT IS THE POINT.
+                //
+                // The last build produced a reading I could not explain and
+                // spent twenty minutes failing to: 42 offered in one frame
+                // against a distinct peak of 17, with `namesDupOffers=0` (so no
+                // duplicates reached the list) and `namesManagedDead=0` (so no
+                // label had been destroyed). Those three cannot all be true.
+                //
+                // AND THE FIRST THING TO SUSPECT IS THAT THEY ARE NOT ABOUT THE
+                // SAME FRAME. `OfferedPeak` and `OfferedDistinctPeak` are two
+                // independent maxima over frames, and I wrote the rule about
+                // dividing two maxima into this project's notes this morning
+                // before doing it here by lunchtime. So the four numbers below
+                // are captured together, at whichever frame offered most:
+                // the raw count, how many were still alive, how many distinct
+                // OBJECTS that came to, and how many distinct INSTANCE IDS.
+                //
+                // Those last two are the discriminator and they are different
+                // types on purpose. `_distinct` is a `HashSet<TextMesh>`, so it
+                // dedupes through Unity's own equality; `_distinctIds` is a
+                // `HashSet<int>`, which cannot be influenced by any of it. If
+                // the object set comes out smaller than the id set, Unity is
+                // merging live objects the game considers different, and every
+                // count in this file built on a `HashSet<TextMesh>` — including
+                // `namesManagedEver`, which has produced three wrong answers —
+                // has been under-reporting from the day it was written.
+                if (_offered.Count > OfferedAtWorst)
+                {
+                    OfferedAtWorst = _offered.Count;
+                    AliveAtWorst = alive;
+                    DistinctObjectsAtWorst = _distinct.Count;
+                    DistinctIdsAtWorst = _distinctIds.Count;
+                }
             }
             Suppressed = 0;
             Unresolved = 0;

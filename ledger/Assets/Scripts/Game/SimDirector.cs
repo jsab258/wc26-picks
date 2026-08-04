@@ -1802,6 +1802,13 @@ namespace Ledger.Game
                       // that could not distinguish those two.
                       + $" namesOfferCalls={NameTags.Offers}"
                       + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
+                      // THE WORST FRAME, DESCRIBED BY ITSELF. Four peaks taken
+                      // over four possibly different frames produced a reading
+                      // that could not be true; these come from one.
+                      + $" namesWorstOffered={NameTags.OfferedAtWorst}"
+                      + $" namesWorstAlive={NameTags.AliveAtWorst}"
+                      + $" namesWorstObjects={NameTags.DistinctObjectsAtWorst}"
+                      + $" namesWorstIds={NameTags.DistinctIdsAtWorst}"
                       + $" namesManagedDead={NameTags.ManagedDead}"
                       // AND THE ANSWER THE LAST RUN GAVE, PLUS THE ONE IT DID
                       // NOT. Duplicates were the fault — 42 entries from at
