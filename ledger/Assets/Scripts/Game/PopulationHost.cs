@@ -286,6 +286,47 @@ namespace Ledger.Game
             }
             if (busiest > BusiestPlace) BusiestPlace = busiest;
 
+            // AND HOW MANY ARE HEADING SOMEWHERE NEARBY, WHICH IS A DIFFERENT
+            // QUESTION AND PROBABLY THE REAL ONE.
+            //
+            // `busiestPlace=12` against `crowdHuddleWorst=36` says the mob is
+            // not people sent to one point — the per-cell count is a third of
+            // the pile. But a metre grid calls two schedules a metre apart two
+            // different places, and a dozen such cells inside a few metres is a
+            // packed junction that every per-cell reading calls quiet.
+            //
+            // TWO METRES, WHICH IS THE HUDDLE'S OWN RADIUS. Not a new constant:
+            // it is the distance the crowding sampler already treats as "at the
+            // same place", so this counts exactly the population that number
+            // counts and the two are directly comparable. `busiestNear` near 36
+            // with `busiestPlace` at 12 says the schedules cluster without
+            // sharing a cell, and the ring should be sized by the
+            // NEIGHBOURHOOD. `busiestNear` also near 12 says they converge for
+            // some reason that is not their schedules at all, and the search
+            // moves to the walk rather than the plan.
+            //
+            // O(n squared) over the tick list, once a second, on fifty walkers
+            // — two and a half thousand distance tests a second, which is
+            // nothing beside the prefab instantiates this same pass makes.
+            int busiestNear = 0;
+            for (int i = 0; i < _npcs.Count; i++)
+            {
+                var a = _npcs[i];
+                if (a == null) continue;
+                var pa = a.PlaceFor(Now);
+                int alongside = 0;
+                for (int j = 0; j < _npcs.Count; j++)
+                {
+                    var b = _npcs[j];
+                    if (b == null) continue;
+                    var pb = b.PlaceFor(Now);
+                    float dx = pa.x - pb.x, dz = pa.z - pb.z;
+                    if (dx * dx + dz * dz <= 4f) alongside++;
+                }
+                if (alongside > busiestNear) busiestNear = alongside;
+            }
+            if (busiestNear > BusiestNear) BusiestNear = busiestNear;
+
             // AND HOW MANY OF THE ELIGIBLE ARE CROWD, which is the denominator
             // that makes `bodyLiftedCrowd=0` mean something.
             //
@@ -424,6 +465,10 @@ namespace Ledger.Game
         /// near each other — two different faults with two different fixes.
         readonly Dictionary<Vector3Int, int> _placeCrowd = new Dictionary<Vector3Int, int>();
         public static int BusiestPlace;
+        /// And how many are heading for a point within the huddle's own two
+        /// metres of another. Read against `busiestPlace`: much larger means
+        /// the schedules cluster without sharing a cell.
+        public static int BusiestNear;
 
         /// A metre grid, so a centimetre of float drift does not turn one place
         /// into two. Y is dropped: people sharing a spot on a kerb and a step

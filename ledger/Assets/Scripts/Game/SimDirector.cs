@@ -8991,6 +8991,7 @@ namespace Ledger.Game
                       // wants a different fix entirely — and a spread stuck at
                       // 0.80 on a run with a busy place is the push not arriving.
                       $"busiestPlace={GameController.BusiestPlace} " +
+                      $"busiestNear={GameController.BusiestNear} " +
                       $"crowdSpread={NpcWalker.WidestSpread:0.00} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
