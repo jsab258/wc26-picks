@@ -2942,6 +2942,12 @@ namespace Ledger.Game
         /// drawn ring itself answering, not an inference from a counter.
         bool _slamDrewRing;
         int _ringsShownBeforeSlam;
+        /// How many ticks wanted to slam and could not, because a louder sound
+        /// was still fresh or a ring already owned the ground. Without it, four
+        /// slams landing reads identically whether the street is usually quiet
+        /// or whether the gap was one tick in a thousand — and those have very
+        /// different things to say about how often a player would hear anything.
+        int _slamsDeferred;
         /// One entry per slam: the ring's skip reason and radius at that instant.
         /// See the note where it is filled.
         readonly List<string> _slamRingSkips = new List<string>();
@@ -3442,14 +3448,39 @@ namespace Ledger.Game
             // time at all and cannot move the week's outcome, so gating it on
             // day ten was copy-paste from the loiter rather than reasoning, and
             // it cost two builds' worth of evidence about hearing.
+            // AND THE SLAM WAITS FOR A GAP, WHICH IS RULE 5b's TWIN.
+            //
+            // Four slams staged, four rings absent, and the honest per-slam line
+            // read `noring` for every one of them. The cull was never the fault:
+            // a slam carries 55 and the street talks at 58, so `Perceivers.Emit`
+            // returns before drawing anything whenever a remark is inside its
+            // six-second freshness window. The sim was spending all four of its
+            // chances inside somebody else's sound and then failing itself for
+            // the silence.
+            //
+            // PLANT THE CONDITION, NEVER LOOSEN THE BOUND. Both tests below ask
+            // for exactly what the gate asserts — that a loud noise at 3am puts
+            // a circle on the ground and pulls people toward it — and neither
+            // touches a threshold. A slam is one instantaneous Emit inside a
+            // four-hour window, so deferring it by a frame costs no game time
+            // and it retries on the next tick of the same night.
+            bool louderStillFresh =
+                Time.time - Perceivers.LastSoundTime < Perceivers.SoundFreshSeconds
+                && Perceivers.LastSoundLoudness > Perception.LoudDoorSlam;
+            bool ringWouldBeShadowed =
+                NoiseRing.WouldBeShadowed(Perception.LoudDoorSlam);
+            if (louderStillFresh || ringWouldBeShadowed) _slamsDeferred++;
+
             if (_slams < SlamsWanted && now.Day != _lastSlamDay
                 && now.Hour >= 1 && now.Hour <= 5
+                && !louderStillFresh && !ringWouldBeShadowed
                 && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
                 _slams++;
                 _lastSlamDay = now.Day;
                 _investigationsBeforeSlam = Perceivers.NoiseInvestigations;
                 _ringsShownBeforeSlam = NoiseRing.Shown;
+                int soundsBeforeSlam = Perceivers.SoundsEmitted;
                 Perceivers.Emit(_player.transform.position, Perception.LoudDoorSlam, "slam");
                 if (NoiseRing.Shown > _ringsShownBeforeSlam) _slamDrewRing = true;
                 // WHY EACH SLAM'S RING DID OR DID NOT DRAW, kept per slam.
@@ -3485,14 +3516,38 @@ namespace Ledger.Game
                 // right one. `shown` is the delta across THIS Emit, and
                 // `swallowed` says the guard fired, so the two can no longer
                 // disagree without saying which.
+                // AND `noring` WAS STILL TWO ANSWERS WEARING ONE NAME, which is
+                // rule 3b in the place rule 3b was written about. Swallowed by
+                // the freshness guard and culled by the ring's own presentation
+                // rule have opposite fixes — one is the sim staging into a
+                // crowded moment, the other is the model saying the circle was
+                // not worth drawing — and `noring(swallowed-or-culled)` could
+                // not tell them apart, so it named the ambiguity rather than
+                // resolving it.
+                //
+                // `SoundsEmitted` is the denominator. It moves once per Emit
+                // that gets PAST the guard, and `sounds` equalled `ringsSized`
+                // exactly in the last run, so a slam that reaches the sizing is
+                // a slam that reaches the ring.
                 bool drewThis = NoiseRing.Shown > _ringsShownBeforeSlam;
+                bool heardThis = Perceivers.SoundsEmitted > soundsBeforeSlam;
                 _slamRingSkips.Add(drewThis
                     ? $"#{_slams}:{NoiseRing.LastSkip}@{NoiseRing.LastRadius:0}m"
-                    : $"#{_slams}:noring(swallowed-or-culled)");
+                    : heardThis
+                        ? $"#{_slams}:culled({NoiseRing.LastSkip})@{NoiseRing.LastRadius:0}m"
+                        : $"#{_slams}:swallowed(by {Perceivers.LastSoundKind}"
+                          + $"@{Perceivers.LastSoundLoudness:0})");
                 _slamAt = Time.time;
                 Debug.Log($"SimDirector: slammed a door #{_slams}, {present} people nearby, "
                           + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m"
-                          + $" — ring {NoiseRing.LastSkip} at {NoiseRing.LastRadius:0.0}m"
+                          // THE SAME STALE-GLOBAL READ, ELEVEN LINES UNDER THE
+                          // PARAGRAPH ABOUT IT. The entry above stopped quoting
+                          // `LastSkip` for a swallowed slam and this line went on
+                          // doing it, so the log and the verdict would have
+                          // disagreed about the same event — which is the exact
+                          // shape of the fault that produced `#3:drawn@80m`
+                          // beside `slamDrewRing=False`. One idea, two sites.
+                          + $" — {_slamRingSkips[_slamRingSkips.Count - 1]}"
                           + $" (floor {NoiseRing.LastFloor:0.0}, occluded={NoiseRing.LastOccluded})");
             }
             // A DEED, STAGED, so `Witnesses` is exercised rather than merely
@@ -7924,9 +7979,10 @@ namespace Ledger.Game
                       // that says whether a sound was heard THROUGH a wall
                       // could not be read from a build at all.
                       $"ringLastOccluded={NoiseRing.LastOccluded} " +
-                      $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
+                      $"ringLastRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"slamDrewRing={_slamDrewRing} " +
                       $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
+                      $"slamsDeferred={_slamsDeferred} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +

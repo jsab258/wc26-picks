@@ -229,6 +229,40 @@ namespace Ledger.EditorTools
             Ran++;
             LastPath = path;
 
+            // AND THE MATERIALS, WHICH IS WHY EVERY BODY IS ONE FLAT COLOUR.
+            //
+            // The noon still shows real human meshes — proper anatomy, not
+            // boxes — painted a single pale blue and a single flat green.
+            // `bodyKeptMats=0` says exactly that in a number: `RealBody` keeps a
+            // renderer's own material only when it carries a texture, so zero
+            // kept means not one material on any body has one, and the wardrobe
+            // repainted all seven parts of Michelle over the top.
+            //
+            // THE TEXTURES ARE IN THE FILES. Counted, not assumed — the PNG
+            // signature `\x89PNG\r\n\x1a\n` appears 4 times in Michelle.fbx, 22
+            // in Remy, 6 in Sophie, 6 in Joe, 6 in Martha, 3 in The Boss and
+            // once each in Big Vegas and Sporty Granny. Only X Bot and Y Bot
+            // have none, which is right: they are the grey stand-ins.
+            //
+            // Nothing in this method has ever mentioned materials, so every
+            // body has been importing on whatever the default happens to be in
+            // this Unity version — and a default nobody chose is a setting
+            // nobody can reason about. `ImportViaMaterialDescription` reads the
+            // FBX's own material description, which is where the embedded
+            // texture references live; `InPrefab` keeps the result inside the
+            // model asset, which matches this project tracking zero `.meta`
+            // files and wanting no generated assets to review.
+            //
+            // I HAVE NOT WATCHED THIS WORK, and it is a Game-layer setting so
+            // the first thing that can is CI. `CharacterAudit` now prints the
+            // materials and their textures per body, so the next build says
+            // whether this was the fault or only a setting I tidied — and if it
+            // is still zero, the report names which of the two halves failed
+            // rather than sending me back for another round trip.
+            importer.materialImportMode =
+                ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            importer.materialLocation = ModelImporterMaterialLocation.InPrefab;
+
             importer.importBlendShapes = false;
             importer.importCameras = false;
             importer.importLights = false;
@@ -290,6 +324,7 @@ namespace Ledger.EditorTools
                           + (noAvatar.Count > 0
                                  ? " noAvatar=[" + string.Join(", ", noAvatar) + "]"
                                  : ""));
+                Materials();
             }
             catch (System.Exception e)
             {
@@ -297,6 +332,49 @@ namespace Ledger.EditorTools
                 // runs inside the one entry point the whole Windows pipeline
                 // goes through, and it is a diagnostic, not a gate.
                 Debug.Log($"CharacterAudit: FAILED {e.GetType().Name}: {e.Message}");
+            }
+        }
+
+        /// WHAT UNITY MADE OF THE EMBEDDED TEXTURES, per body.
+        ///
+        /// `bodyKeptMats=0` is a zero with no denominator, and rule 3b is about
+        /// exactly this: it reads as "the wardrobe dressed everybody" and is
+        /// equally consistent with "no material reached the mesh at all". Those
+        /// have completely different fixes and the number cannot tell them
+        /// apart, so this prints the count of what was examined beside it.
+        ///
+        /// BODIES ONLY. The forty-two clips in A/B/C carry a skeleton and no
+        /// mesh worth painting, and forty-seven lines would push the bodies off
+        /// the part of the verdict anybody reads.
+        static void Materials()
+        {
+            const string Folder = CharacterImport.CharacterFolder;
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { "Assets/Characters" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path)) continue;
+                if (path.Substring(Folder.Length).Contains("/")) continue;
+
+                int mats = 0, textured = 0;
+                var detail = new List<string>();
+                foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(path))
+                {
+                    var m = obj as Material;
+                    if (m == null) continue;
+                    mats++;
+                    var tex = m.mainTexture;
+                    if (tex != null) textured++;
+                    // THE SHADER TOO, because a material with a texture on a
+                    // shader that ignores it looks identical to one with no
+                    // texture, and this project has no `.meta` files to read
+                    // the answer out of.
+                    if (detail.Count < 8)
+                        detail.Add($"{m.name}:{(m.shader != null ? m.shader.name : "noshader")}"
+                                   + $":{(tex != null ? tex.name : "notex")}");
+                }
+                Debug.Log($"CharacterMaterials: {System.IO.Path.GetFileName(path)} "
+                          + $"mats={mats} textured={textured} "
+                          + $"[{(detail.Count == 0 ? "no materials on this model" : string.Join(" ", detail))}]");
             }
         }
     }

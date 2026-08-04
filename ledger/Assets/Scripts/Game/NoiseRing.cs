@@ -208,6 +208,26 @@ namespace Ledger.Game
         static double _shownLoudness = -1;
         static NoiseRing _live;
 
+        /// WOULD A SOUND THIS LOUD BE SHADOWED IF IT HAPPENED RIGHT NOW?
+        ///
+        /// Asked by the sim before it STAGES a sound, because rule 5b's twin
+        /// says a guard needs a run in which the thing it asserts can happen.
+        /// `perception` has been red on `ring-drawn` with four slams staged and
+        /// not one ring among them: the sim was spending its four chances inside
+        /// other sounds' shadows and then failing itself for the absence.
+        ///
+        /// The radius argument is a SENTINEL, and it has to be. `RingDraw` asks
+        /// two questions in sequence — is it big enough, then is it shadowed —
+        /// and only the second one is being asked here. Passing one metre over
+        /// the minimum walks past the first branch without pretending to know
+        /// the real radius, which depends on an ambient floor this class is not
+        /// holding. A caller wanting the size question has `Show` and its
+        /// `LastRadius`.
+        public static bool WouldBeShadowed(double loudness) =>
+            Perception.RingDraw(Perception.RingMinRadiusMetres + 1, loudness,
+                                _shownLoudness, Time.time - _shownAt)
+                == Perception.RingVerdict.Shadowed;
+
         /// HIDE THE TEACHING OVERLAY WHILE A REVIEW STILL IS TAKEN.
         ///
         /// `review_day1_night.jpg` is a white arc sweeping the entire frame,

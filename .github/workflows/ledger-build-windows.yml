@@ -376,17 +376,12 @@ jobs:
               grep -q "SimDirector: ALL GATES" sim-run/player.log \
                 || echo "NOTE: no ALL GATES line — build predates it, or the sim died before the summary."
             } >> game-design/sim-shots/verdict.txt
-            # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
-            # character audit runs inside `CiBuild` — Editor, not player — so it
-            # lands in unity.log and grepping player.log for it would report
-            # nothing and look exactly like "the audit never ran".
-            if [ -f build-log/unity.log ]; then
-              {
-                echo
-                grep -E "CharacterAudit: |CharacterPrefab: " build-log/unity.log | head -3 \
-                  || echo "CharacterAudit: (no line — the audit did not run)"
-              } >> game-design/sim-shots/verdict.txt
-            fi
+            # AND THE EDITOR-SIDE LINES, IN A SCRIPT, BECAUSE THIS STEP IS FULL.
+            # `verify.py` refused the inline version at 1,234 characters over the
+            # dispatch limit, and a step that cannot be dispatched is a build
+            # that cannot run. The reasoning lives in the script.
+            bash tools/verdict-characters.sh build-log/unity.log \
+              >> game-design/sim-shots/verdict.txt
             say "verdict.txt written ($(wc -l < game-design/sim-shots/verdict.txt) lines)"
           else
             say "no player.log — the sim did not run"
