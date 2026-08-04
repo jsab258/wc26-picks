@@ -2138,6 +2138,34 @@ namespace Ledger.Game
             text.alignment = align;
             text.color = UiTheme.Ink;
             text.supportRichText = true;
+            // LINE HEIGHT, FROM CORE, WHICH NOTHING HAS EVER SET.
+            //
+            // `Typography.LineHeight` has sat on the reach ledger since it was
+            // written, under a reason that turns out to be exactly right:
+            // "the type scale is computed in Core and the UI sets sizes by hand,
+            // which is how they drift apart". Grepped before believing it —
+            // `lineSpacing` appears NOWHERE in the Game layer, so every
+            // multi-line label in this game is running at Unity's default of
+            // 1.0.
+            //
+            // Body copy at 1.0 is the single most common amateur-typography
+            // tell there is, and this game's panels are wide and full of prose:
+            // rumours, plan text, the phone, the ledger. Core already knows the
+            // answer and states why it is not one number — 1.15 for a title,
+            // 1.30 for a lede, 1.5 for body, because a headline at 1.5 looks
+            // disconnected and a paragraph at 1.1 is unreadable.
+            //
+            // THE UNSCALED SIZE IS THE RIGHT INPUT. `UiTheme.Scaled` adapts to
+            // the screen; the question "is this a title or is this body" is
+            // about the ROLE of the text and does not change when the display
+            // does. Passing the scaled value would move a lede into title
+            // spacing on a large monitor, which is the same class of fault as
+            // measuring a ratio from two different instants.
+            //
+            // One factory, so this reaches all eleven labels built here and
+            // every one added later — which is the whole argument for having
+            // had a factory.
+            text.lineSpacing = (float)Typography.LineHeight(fontSize);
             Place(go, anchor, offset, size);
             return text;
         }

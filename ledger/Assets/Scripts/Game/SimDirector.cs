@@ -8241,10 +8241,12 @@ namespace Ledger.Game
                       // sample size is part of the statistic even though
                       // nothing about the number says so.
                       $"nameFracMedian={NameTags.NameFracMedian:0.000} " +
+                      $"nameFracP90={NameTags.NameFracP90:0.000} " +
                       $"nameFracSamples={NameTags.NameFracSamples} " +
                       $"worstBubbleFrac={NameTags.WorstBubbleFrac:0.000} " +
                       $"worstBubbleMetres={NameTags.WorstBubbleMetres:0.00} " +
                       $"bubbleFracMedian={NameTags.BubbleFracMedian:0.000} " +
+                      $"bubbleFracP90={NameTags.BubbleFracP90:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a
                       // conversation can be carried without typing; it fails when

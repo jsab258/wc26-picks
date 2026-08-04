@@ -220,15 +220,39 @@ namespace Ledger.Game
             }
         }
 
+        /// AND THE TAIL, WHICH IS THE ONE THING THE MEDIAN STRUCTURALLY CANNOT
+        /// SHOW — and on this metric the tail is the entire finding.
+        ///
+        /// First reading: `bubbleFracMedian=0.041` over 1,325 samples and
+        /// `worstBubbleFrac=1.900` at 1.98 metres. A typical bubble is four per
+        /// cent of the screen and is fine; one of them was NEARLY TWICE THE
+        /// SCREEN TALL. Read either number alone and you get a different game.
+        ///
+        /// A ninth decile is what separates "one freak frame" from "a fifth of
+        /// the speech in this game is unreadable", and those want completely
+        /// different fixes — the first is a clamp on a corner case, the second
+        /// is the bubble being sized wrong. No bound goes on this until that
+        /// number lands, which is rule 2 and is why there is no clamp in this
+        /// commit.
+        public static double NameFracP90 { get; private set; }
+        public static double BubbleFracP90 { get; private set; }
+
         /// The middle value of a list, by the same rule everywhere: with an even
         /// count take the lower of the two middles rather than their mean, so
         /// the answer is always a value the system actually produced.
-        static double MedianOf(List<float> xs)
+        static double MedianOf(List<float> xs) => QuantileOf(xs, 0.5);
+
+        /// Nearest-rank, so the answer is always a value that was measured
+        /// rather than an interpolation between two that were not.
+        static double QuantileOf(List<float> xs, double q)
         {
             if (xs.Count == 0) return -1;
             var copy = new List<float>(xs);
             copy.Sort();
-            return copy[(copy.Count - 1) / 2];
+            int i = (int)System.Math.Ceiling(q * copy.Count) - 1;
+            if (i < 0) i = 0;
+            if (i >= copy.Count) i = copy.Count - 1;
+            return copy[i];
         }
 
         /// Folded once, at the end of the run, because sorting thousands of
@@ -238,6 +262,8 @@ namespace Ledger.Game
         {
             NameFracMedian = MedianOf(_nameFracs);
             BubbleFracMedian = MedianOf(_bubbleFracs);
+            NameFracP90 = QuantileOf(_nameFracs, 0.90);
+            BubbleFracP90 = QuantileOf(_bubbleFracs, 0.90);
         }
 
         /// Labels rejected for sitting at or inside the camera's near plane.

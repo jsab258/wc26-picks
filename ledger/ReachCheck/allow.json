@@ -62,7 +62,6 @@
     "TrafficSim.AwakeCount": "BY DESIGN: an LOD measurement the sim's performance gate reads. The game does not choose how many vehicles are awake; TrafficSim does.",
     "TrafficSim.BusLoop": "WIRE: M17 — the bus route exists and no bus is drawn following it.",
     "TrafficSim.Ranks": "WIRE: M17 — and the reason is not what this said. Taxis ALREADY wait on ranks: the mover honours DwellUntil and arrival sets it for a cab on a rank, using the private field. CoreTests now runs the sim and asserts a cab actually reaches one and waits, rather than reading the flag. What has no caller is the public accessor, and its consumer is the GAME layer — nothing draws a rank, signs one, or lets the player hail from it. So this is a world-dressing task, not a behaviour gap.",
-    "Typography.LineHeight": "WIRE: M17 — the type scale is computed in Core and the UI sets sizes by hand, which is how they drift apart.",
     "Vehicle.Waiting": "WIRE: M17 — a stopped vehicle should idle differently from a moving one.",
     "VerbBeat.PhaseProgress": "WIRE: M17 — how far through an interaction beat the player is, for the progress ring nothing draws yet.",
     "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not."
