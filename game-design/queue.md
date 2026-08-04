@@ -317,6 +317,25 @@ items is a refill signal, not a stop signal.
   would let a run that never exercised the drop pipeline pass silently, which is
   rule 6 exactly. The fix is to make one drop reliably complete. `[series] jobs`
   now prints each drop's day, the distance when it opened and the closest the
-  bot got, which says whether it was walking and ran out of night or never went
-  — read that before choosing a mechanism. Prime suspect is `frameWorstMs=43666`:
-  one forty-three-second frame crosses 02:00 while the walk gets a single step.
+  bot got, which says whether it was walking and ran out of night or never went.
+
+  **THAT HAS NOW BEEN READ, AND THE PRIME SUSPECT NAMED HERE IS DEAD.** The
+  suspicion was `frameWorstMs=43666` — one forty-three-second frame crossing
+  02:00 while the walk gets a single step. The traces disprove it: every
+  approach reading is timestamped INSIDE the window, and the failures cluster
+  in the 2–10m band against a 2.5m completion radius. This is a bot that walks
+  most of the way and stops short, not one that runs out of night.
+
+  **The misses split cleanly in two and only one half is fixed.** With the owner
+  tally added, `d8:MISSED[nearest=10.6m held:loiter-hold=21]` showed a staged
+  probe owning every tick of a window while the bot stood still — the loiter
+  refused to START during a drop and had no guard on the HOLD that follows.
+  Fixed, and `loitersCutShort` counts what it costs.
+
+  The other half is not that: `held:job=20 nearest=9.3m` and `held:job=19
+  nearest=6.9m` mean the steering was right for every tick and the bot still did
+  not arrive. Ownership cannot tell "steered and walking" from "steered and not
+  moving" — a conversation, a knockdown or a blocked path all read as `job`
+  holding the target — so the window now counts PATH LENGTH. **Read `walked=`
+  before choosing a mechanism.** `d2` covered 16.5m in 14 ticks and completed;
+  `d13` covered 12.1m in 19. More time, less ground, and nothing yet says why.
