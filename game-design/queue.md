@@ -38,9 +38,26 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**THE BUILD IS GREEN AGAIN — `7dc6334`, `pass=True`, no failing gates**, after
-the CS0119 that cost three round trips. Everything below is read off that
-verdict.
+**RED: `companionSight` — AND ON A COMMIT THAT CHANGED NO CODE.** The newest
+landed verdict fails it with `dist=23.8m`, on a queue-only edit, twenty-two runs
+after it last went red. A gate that fails on identical code is measuring luck.
+
+The distance probe named its own answer: its comment asked for exactly this
+number — *"if it comes back at forty metres the explanation is settled; if it
+comes back at two, the fault is somewhere else entirely and I would have fixed
+proximity for nothing."* Twenty-four metres settles it. The escort was recruited
+by WALKER-LIST ORDER, wherever she happened to be standing in the city, and the
+deed was staged before she had walked over. The roadmap's claim that this was
+fixed covers only the earlier half — she knows where the player is now, and
+knowing does not teleport her.
+
+**Fixed in `efff6fc` and building:** recruit the nearest eligible walker, and
+make the deed wait for her — with a two-day timeout, because a deed that waits
+for ever stages nothing and `deeds=0` fails four other gates for a reason none
+of them could name. `atRecruit` and `waited` are in the label so "she was there
+and saw nothing" and "she never arrived" stay different findings.
+
+Everything below is read off `7dc6334`, which is green.
 
 1. **THE DROPS: `jobsDone` 1 → 2, and the trace names both remaining causes.**
 
