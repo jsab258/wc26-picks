@@ -2226,16 +2226,39 @@ namespace Ledger.Game
             // from the number next to it — the two-maxima fault in miniature.
             _collidingWorldText = 0;
             _worstWorldPair = "none";
+            _worstWorldArea = 0f;
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
                     if (other[i].Overlaps(other[j]))
                     {
                         _collidingWorldText++;
-                        // The FIRST overlapping pair on the photographed
-                        // frame, named. One pair is enough to say which kind
-                        // of text this is, which is the whole question.
-                        if (_worstWorldPair == "none" && i < otherText.Count && j < otherText.Count)
+                        // THE WORST PAIR BY OVERLAP AREA, and the first
+                        // version of this recorded the FIRST pair while being
+                        // called `worstWorldPair`.
+                        //
+                        // That is rule 2's "a number keeps its name when the
+                        // question it answers moves", committed three hours
+                        // after I wrote the rule down — except here the name
+                        // was wrong on arrival. It came back
+                        // [Copper Row|Market Road], which is true, is two
+                        // street plates, and settles nothing about the heap of
+                        // PEOPLE'S names in the frame: first-found says
+                        // nothing about worst-looking.
+                        //
+                        // Area, because that is what makes text unreadable. A
+                        // pair clipping at the corner is a junction; a pair
+                        // sitting on top of each other is the fault.
+                        var lap = Rect.MinMaxRect(
+                            Mathf.Max(other[i].xMin, other[j].xMin),
+                            Mathf.Max(other[i].yMin, other[j].yMin),
+                            Mathf.Min(other[i].xMax, other[j].xMax),
+                            Mathf.Min(other[i].yMax, other[j].yMax));
+                        float area = Mathf.Max(0f, lap.width) * Mathf.Max(0f, lap.height);
+                        if (area > _worstWorldArea && i < otherText.Count && j < otherText.Count)
+                        {
+                            _worstWorldArea = area;
                             _worstWorldPair = Trim(otherText[i]) + "|" + Trim(otherText[j]);
+                        }
                     }
             // PEAKS, BECAUSE THE FIRST READING WAS A MOMENT AND THE QUESTION
             // IS ABOUT THE RUN.
@@ -2315,6 +2338,8 @@ namespace Ledger.Game
         /// furniture (a junction, and correct) or people's names (the
         /// declutter never being offered them) — see `CollidingNames`.
         string _worstWorldPair = "none";
+        /// Overlap area of the pair above, so "worst" means worst.
+        float _worstWorldArea;
 
         /// Labels are free text and this goes on a single-line done-line, so
         /// commas, newlines and length all have to go.

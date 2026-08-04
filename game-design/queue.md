@@ -66,7 +66,27 @@ denominator rather than guessing.
   nothing in either direction — do not act on it.
 - `lineCrossedLive=17 lineYielded=17`. Still exact.
 
-### IN FLIGHT AND STAGED, 07:57 UTC
+### THE 08:01 BUILD — the name heap is street plates, and a closed item reopened
+
+**Green.** `worstWorldPair=[Copper Row|Market Road]` — the overlapping world
+text is STREET PLATES, and two plates overlapping at a junction is what a
+junction looks like. `collidingWorldText` at 121–134 is furniture, not a fault.
+
+**But it does not settle the heap of PEOPLE'S names in the frame**, because
+the probe recorded the FIRST overlapping pair while being called
+`worstWorldPair`. My own rule about a number keeping its name, broken three
+hours after writing it down, and wrong on arrival rather than by drift. Now
+worst by overlap AREA — a pair clipping at the corner is a junction, a pair
+sitting on top of each other is the fault. Re-read it next build.
+
+**"THE REVIEW CAMERA IS NEVER BLOCKED" IS NOT TRUE AND WAS ONE RUN.** This
+build reads `shotsBlocked=1`, a lamp pole at 5.4m, and the day-5 night still
+shows the camera jammed against a street sign. The series is 1, 0, 0, 0, 0,
+1, 3, 0, 0 — median 0, max 3. So it is intermittent, it was closed off a
+single twenty-shot reading of zero, and the standing "do not reopen" list
+carries that closure. Correct the list: the camera is *usually* clear.
+
+### IN FLIGHT AND STAGED, 08:05 UTC
 
 Two builds are out and a batch is committed but NOT dispatched. If you are a
 cold session reading this, that is the first thing to resolve.
