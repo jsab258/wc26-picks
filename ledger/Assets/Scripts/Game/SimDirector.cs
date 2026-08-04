@@ -242,6 +242,7 @@ namespace Ledger.Game
             ViolenceHost.Reset();
             SummonsHost.Reset();
             PressHost.Reset();
+            ReliabilityHost.Reset();
             ViolenceHost.BindWalkers(_npcs);
             CoatHost.Reset();
             EvidenceHost.Reset();
@@ -8771,6 +8772,13 @@ namespace Ledger.Game
                       $"pressEditions={PressHost.Editions} " +
                       $"pressNamed={PressHost.Named} " +
                       $"pressReaders={PressHost.Readers} " +
+                      // MISSING DROPS COSTS SOMETHING NOW. `reliabilityFiled`
+                      // is the denominator: `reliabilityHeard=0` reads the same
+                      // whether the player never slipped or the filing is
+                      // broken, and only the pair separates them.
+                      $"reliabilityFiled={ReliabilityHost.Filed} " +
+                      $"reliabilityHeard={ReliabilityHost.Heard} " +
+                      $"reliabilityRead=[{ReliabilityHost.LastRead}] " +
                       $"pressHeadline=[{PressHost.LastHeadline}] " +
                       $"notorietyLastLaw={LawHost.LastNotoriety:0.000} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +

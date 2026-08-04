@@ -1969,6 +1969,11 @@ namespace Ledger.Game
                 // own is a system that drifts from the day everything else
                 // means.
                 PressHost.Nightly(this);
+                // AND WHETHER THE STREET HAS NOTICED YOU KEEP NOT TURNING UP.
+                // Same instant as the paper and the rival's call, for the same
+                // reason: a system with a clock of its own drifts from the day
+                // everything else means.
+                ReliabilityHost.Nightly(this);
                 int takings = Campaign.CloseDay(heat);
 
                 // M18. THE NIGHT THAT JUST ENDED, and where the player spent it.

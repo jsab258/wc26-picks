@@ -103,6 +103,7 @@ namespace Ledger.CoreTests
                 TestPalette();
                 TestWardrobe();
                 TestOccupancy();
+                TestReliability();
                 TestTextureFit();
                 TestLightModel();
                 TestMusicModel();
@@ -12962,6 +12963,42 @@ namespace Ledger.CoreTests
                 "a wall with no length dresses nothing rather than dividing by it");
             Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
                 "and neither does one too short to put anything against");
+        }
+
+        static void TestReliability()
+        {
+            Console.WriteLine("Reliability — a signal nobody reads is not a consequence:");
+
+            // ACCEPTING CASE FIRST (rule 5b), and here it is the one a
+            // heavy-handed version breaks: a player having a bad night must NOT
+            // be talked about. A street that comments on every lapse is a
+            // street with no sense of proportion, and the player learns to
+            // ignore it — which costs more than saying nothing.
+            Check(Reliability.Of(0) == Reliability.Standing.Fine, "nobody talks about a clean week");
+            Check(Reliability.Of(1) == Reliability.Standing.Fine, "or about one bad night");
+            Check(Reliability.Confidence(1) == 0, "and nothing is filed at one", $"{Reliability.Confidence(1)}");
+
+            Check(Reliability.Of(2) == Reliability.Standing.Slipping, "two is a pattern starting");
+            Check(Reliability.Of(9) == Reliability.Standing.Unreliable, "and nine is a reputation");
+
+            // CONFIDENCE RISES AND STOPS. A rumour that kept getting surer
+            // would eventually be worth more than an eyewitness, which is the
+            // ordering `Press` and `PhoneBook` exist to protect.
+            Check(Math.Abs(Reliability.Confidence(2) - Reliability.FirstMention) < 1e-9,
+                  "a first mention is worth what a first mention of anything is",
+                  $"{Reliability.Confidence(2):0.00}");
+            Check(Reliability.Confidence(9) > Reliability.Confidence(2),
+                  "more misses, more agreement");
+            Check(Reliability.Confidence(99) <= 1.0, "and it never runs past certainty",
+                  $"{Reliability.Confidence(99):0.00}");
+
+            // ONE PREDICATE, so two people hearing it corroborate rather than
+            // starting two stories.
+            Check(Reliability.ContentFor(Reliability.Standing.Slipping).Predicate
+                  == Reliability.ContentFor(Reliability.Standing.Unreliable).Predicate,
+                  "both standings file the same predicate, so they corroborate");
+            Check(Reliability.ContentFor(Reliability.Standing.Slipping).Subject == "player",
+                  "and it is about the player");
         }
 
         static void TestOccupancy()
