@@ -54,8 +54,21 @@ namespace Ledger.Game
                 new Vector2(0, -20), new Vector2(700, 32), 22, TextAnchor.UpperCenter);
             _planTitle.color = UiTheme.Amber;
 
+            // 19pt, NOT 17, AND THE NUMBER COMES FROM ITS OWN SIBLING.
+            //
+            // `measureFails=[... Plan/PlanBody@17pt:82 Plan/PlanWorry@16pt:88]`.
+            // A 700-pixel column at 17pt is 82 characters a line and at 16pt it
+            // is 88, against the 45-to-75 band `Typography` carries with the
+            // reason attached: past about 75 the eye loses the start of the
+            // next line on the return sweep.
+            //
+            // `PlanRead` is 19pt in the SAME 700-pixel column and reads 73.7,
+            // inside the band — so the panel already contains the answer and
+            // two of its three prose labels were simply smaller than the one
+            // somebody sized properly. Nothing is invented here; the three are
+            // one size now, which is also better than three.
             _planBody = MakeText(_planPanel.transform, "PlanBody", new Vector2(0.5f, 1),
-                new Vector2(0, -58), new Vector2(700, 300), 17, TextAnchor.UpperLeft);
+                new Vector2(0, -58), new Vector2(700, 300), 19, TextAnchor.UpperLeft);
 
             // Each row cycles rather than expanding into a submenu: four
             // decisions should fit on one screen you can read at a glance.
@@ -69,7 +82,7 @@ namespace Ledger.Game
                 new Vector2(0, 150), new Vector2(700, 60), 19, TextAnchor.UpperCenter);
             _planRead.color = UiTheme.Amber;
             _planWorry = MakeText(_planPanel.transform, "PlanWorry", new Vector2(0.5f, 0),
-                new Vector2(0, 100), new Vector2(700, 48), 16, TextAnchor.UpperCenter);
+                new Vector2(0, 100), new Vector2(700, 48), 19, TextAnchor.UpperCenter);
             _planWorry.color = UiTheme.Dim;
 
             _planGo = MakeButton(_planPanel.transform, "Go", new Vector2(0.5f, 0), new Vector2(-160, 30), new Vector2(280, 44));

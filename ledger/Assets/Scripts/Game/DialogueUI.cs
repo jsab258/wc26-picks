@@ -911,7 +911,7 @@ namespace Ledger.Game
         void BuildKeyPanel(Transform parent)
         {
             _keyPanel = MakePanel(parent, "KeyPanel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760, 220));
-            MakeText(_keyPanel.transform, "KeyTitle", new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(720, 60), 18, TextAnchor.UpperCenter)
+            MakeText(_keyPanel.transform, "KeyTitle", new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(720, 60), 20, TextAnchor.UpperCenter)
                 .text = "Paste your Anthropic API key (stored only on this PC, never uploaded).\nGet one at console.anthropic.com.";
             _keyInput = MakeInput(_keyPanel.transform, "sk-ant-...", new Vector2(0.5f, 0.5f), new Vector2(0, -10), new Vector2(700, 44));
             var saveBtn = MakeButton(_keyPanel.transform, "Save", new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(140, 44));
@@ -2229,8 +2229,16 @@ namespace Ledger.Game
             img.color = UiTheme.Field;
             Place(go, anchor, offset, size);
 
-            var textComp = MakeText(go.transform, "Text", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 18, TextAnchor.MiddleLeft);
-            var placeholderComp = MakeText(go.transform, "Placeholder", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 18, TextAnchor.MiddleLeft);
+            // BOTH, NOT THE ONE THAT FAILED. `Dialogue/Placeholder@18pt:78`
+            // is over the 75-character measure and the typed text beside it is
+            // not — only because the check counts a label as prose at eight
+            // words or more, and a hint is a sentence while what you type is
+            // usually three words. Raising the placeholder alone would make the
+            // grey hint LARGER than the text that replaces it, which is a
+            // worse fault than the one being fixed and would pass every check
+            // in this file.
+            var textComp = MakeText(go.transform, "Text", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 19, TextAnchor.MiddleLeft);
+            var placeholderComp = MakeText(go.transform, "Placeholder", new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 8), 19, TextAnchor.MiddleLeft);
             placeholderComp.text = placeholder;
             placeholderComp.color = UiTheme.Dim;
             placeholderComp.fontStyle = FontStyle.Italic;
