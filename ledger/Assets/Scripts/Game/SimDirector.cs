@@ -8504,6 +8504,16 @@ namespace Ledger.Game
                       $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
+                      // THE BUILDINGS THAT STAND IN A CARRIAGEWAY, with how far.
+                      // Two today, both the pub — Hook Street over its east
+                      // face and Quay Street over its south, a metre and a half
+                      // each. Reported rather than gated on zero, because zero
+                      // is red on the shipped city for a level fault nobody is
+                      // fixing tonight and a permanently red gate teaches
+                      // everybody to read red as noise. It moves the day
+                      // somebody nudges an avenue array, and it names the
+                      // street when it does.
+                      $"massInRoad=[{string.Join(" ", Ledger.Core.StreetMap.MassOverlaps())}] " +
                       $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +

@@ -13050,6 +13050,45 @@ namespace Ledger.CoreTests
             Check(eveningFrac > 0.15 && eveningFrac < 0.95,
                   "and the evening is neither a blackout nor a block",
                   $"{eveningFrac:0.00}");
+
+            // THE PUB IS NOT IN A ROAD, asserted rather than maintained by hand.
+            //
+            // Both halves run (rule 5b). The accepting case is the map as
+            // authored, which must read zero — a check that fails on the
+            // shipped city is a check nobody will keep. The rejecting case is
+            // an avenue moved onto the pub's own x, which must be caught: a
+            // guard that has never been watched failing is a guard that has
+            // never been watched.
+            // TWO CORNERS OF THE PUB ARE IN THE ROAD, AND THIS IS A BASELINE
+            // RATHER THAN A CERTIFICATION.
+            //
+            // The first version of the check read six and four of them were the
+            // instrument: `AvenueClear` takes one coordinate, which described
+            // an avenue completely when the map had one district and stopped
+            // doing so at seven. Copper Row also has an avenue at x=0, ninety
+            // metres north. Asked in two dimensions the answer is two, and both
+            // are real — Hook Street over the pub's east face and Quay Street
+            // over its south, a metre and a half each.
+            //
+            // PINNED AT TWO, NOT ASSERTED AT ZERO. Zero would be red on the
+            // shipped city for a fault nobody is fixing tonight, and a gate
+            // that is permanently red is how a project learns to read red as
+            // noise. Two says: this is the known size, it may shrink, it may
+            // not grow, and the day somebody nudges an avenue array the number
+            // moves and names the street. The printout is the deliverable.
+            Console.WriteLine("    masses in carriageways: "
+                              + string.Join(" | ", StreetMap.MassOverlaps()));
+            Check(StreetMap.MassOverlaps().Count <= 2,
+                  "the pub's two known corners in the road, and no more",
+                  $"{StreetMap.MassOverlaps().Count}: "
+                  + string.Join(" ", StreetMap.MassOverlaps()));
+            // The rejecting half, so the guard has been watched failing: an
+            // avenue laid on the pub's own centre line is caught by the one-axis
+            // helper the count is built on.
+            Check(!StreetMap.AvenueClear(-8, northSouth: true),
+                  "an avenue on the pub's centre line is not clear");
+            Check(StreetMap.AvenueClear(-40, northSouth: true),
+                  "and one well away from it is");
         }
 
         static void TestWardrobe()

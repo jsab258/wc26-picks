@@ -261,6 +261,102 @@ namespace Ledger.Core
             return true;
         }
 
+        /// HOW MANY AUTHORED AVENUES RUN THROUGH A BUILDING THAT CANNOT MOVE.
+        ///
+        /// `AvenueClear` has sat on the reach ledger since the ledger was
+        /// written, as "whether an avenue is unobstructed, for traffic and for
+        /// the camera" — which is not what it does. It asks whether an avenue
+        /// at a coordinate would cut one of the `BuiltMasses`, and there is
+        /// exactly one of those: the Hook Street pub, hand-built, its door and
+        /// counter referenced by name all over the game, with Act I happening
+        /// inside it.
+        ///
+        /// NOTHING CALLED IT BECAUSE THE ANSWER IS CURRENTLY YES, BY HAND. The
+        /// avenue coordinates are authored arrays and somebody laid them out
+        /// around the pub. That is not a reason to delete the check; it is the
+        /// definition of a check worth having — the invariant holds because a
+        /// person maintained it, and the note above `BuiltMasses` records that
+        /// three of the seven original hand-placed boxes stood exactly where an
+        /// avenue needed to be. The next person to nudge `AvenuesX` puts a road
+        /// through the bar, and the failure is a pub with a carriageway in it,
+        /// noticed in a screenshot if at all.
+        ///
+        /// A COUNT RATHER THAN A REFUSAL, for the reason the clutter probe was
+        /// a count first: silently dropping an avenue would replace a visible
+        /// fault with an invisible one, and rerouting a grid around a building
+        /// is the thing this map deliberately does not do — "buildings fit
+        /// inside blocks; streets do not detour around buildings". So the run
+        /// reports it and the gate reads it.
+        /// AND THE FIRST VERSION OF THIS COUNTED SIX, OF WHICH FOUR WERE THE
+        /// INSTRUMENT. `AvenueClear` takes a single coordinate, which was a
+        /// complete description of an avenue when this map had one district and
+        /// stopped being one the moment it had seven: Copper Row also has an
+        /// avenue at x=0, ninety metres north, and a one-coordinate test cannot
+        /// tell it from Hook Street. Rule 3 — the ruler before the reading, and
+        /// the ruler here is a function whose question the world outgrew.
+        ///
+        /// So this asks in TWO dimensions, against the district's own extent,
+        /// and `AvenueClear` stays as the one-axis helper it actually is.
+        ///
+        /// WHAT IT FINDS IS REAL AND IT IS TWO. Hook Street runs x -4..4 and the
+        /// pub spans -13.5..-2.5, so a metre and a half of the building stands
+        /// in the carriageway; Quay Street runs z -4..4 against the pub's
+        /// 2.5..13.5, the same again on the other face. The corner of the bar is
+        /// in the road, and it has been since the founding cross was laid.
+        ///
+        /// THE SAME FAULT THE CLUTTER PROBE FOUND FROM THE OTHER END. Eight
+        /// pieces of facade dressing could not be pulled out of a carriageway
+        /// because their walls were already in it — `dressedStuck`, measured
+        /// this afternoon, with the note that "the building is in the road, not
+        /// the bin". This is that sentence with a name on it.
+        /// Each overlap as `district:axis@coord over Nm`, so the size is legible
+        /// rather than a count that could be a rounding or a building.
+        public static List<string> MassOverlaps()
+        {
+            var hits = new List<string>();
+            foreach (var d in Districts)
+            {
+                if (d.AvenuesX == null || d.AvenuesZ == null) continue;
+                if (d.AvenuesX.Length == 0 || d.AvenuesZ.Length == 0) continue;
+                // The district's footprint, from its own outermost avenues plus
+                // a block's reach either side — the same +/-12 the district
+                // lookup uses, so two places cannot disagree about where a
+                // district is.
+                double dMinX = d.AvenuesX[0] - 12, dMaxX = d.AvenuesX[d.AvenuesX.Length - 1] + 12;
+                double dMinZ = d.AvenuesZ[0] - 12, dMaxZ = d.AvenuesZ[d.AvenuesZ.Length - 1] + 12;
+                foreach (var m in BuiltMasses)
+                {
+                    double mMinX = m.X - m.W / 2, mMaxX = m.X + m.W / 2;
+                    double mMinZ = m.Z - m.D / 2, mMaxZ = m.Z + m.D / 2;
+                    if (mMaxX < dMinX || mMinX > dMaxX || mMaxZ < dMinZ || mMinZ > dMaxZ) continue;
+
+                    // `AvenueClear` IS THE AXIS TEST AND IS USED AS ONE, rather
+                    // than having its arithmetic copied here. It answers "could
+                    // an avenue at this coordinate touch a mass on this axis",
+                    // which is exactly the cheap reject this needs; the district
+                    // extent above is what it cannot know. Two copies of one
+                    // overlap sum is the fault this project names more than any
+                    // other, and it would have been invisible — both would
+                    // return plausible metres for ever.
+                    foreach (var x in d.AvenuesX)
+                    {
+                        if (AvenueClear(x, northSouth: true)) continue;
+                        double over = Math.Min(x + AvenueWidth / 2, mMaxX)
+                                    - Math.Max(x - AvenueWidth / 2, mMinX);
+                        if (over > 0) hits.Add($"{d.Id}:x@{x:0} over {over:0.0}m");
+                    }
+                    foreach (var z in d.AvenuesZ)
+                    {
+                        if (AvenueClear(z, northSouth: false)) continue;
+                        double over = Math.Min(z + AvenueWidth / 2, mMaxZ)
+                                    - Math.Max(z - AvenueWidth / 2, mMinZ);
+                        if (over > 0) hits.Add($"{d.Id}:z@{z:0} over {over:0.0}m");
+                    }
+                }
+            }
+            return hits;
+        }
+
         /// One city block: the ground between four streets, and the rectangle
         /// inside it that buildings may actually occupy.
         public class Block
