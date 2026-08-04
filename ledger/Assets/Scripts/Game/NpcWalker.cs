@@ -158,6 +158,37 @@ namespace Ledger.Game
         public static int BodyGrants, BodyRevokes, BodyGrantsFailed;
         public static string BodyGrantWhy = "none asked for";
 
+        /// WHERE THIS PERSON STANDS when the schedule says "the market corner",
+        /// as a fixed offset — computed once and kept.
+        ///
+        /// The angle comes from the display name rather than the instance id:
+        /// an id is a session detail and would put the same person in a
+        /// different spot after a reload, which is the quiet non-determinism
+        /// the separation nudge in this same file was already bitten by.
+        ///
+        /// CACHED, AND THE FIRST VERSION WAS NOT. It hashed the name on every
+        /// walker on every frame — fifty-odd string hashes sixty times a second
+        /// for an answer that cannot change, sitting inside the scope the frame
+        /// gate is currently red against. The value is deterministic by
+        /// construction, so computing it twice is pure waste and computing it
+        /// per frame is the kind of waste that hides inside a plausible number.
+        Vector3 SpreadOffset
+        {
+            get
+            {
+                if (!_spreadKnown)
+                {
+                    float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
+                                      * System.Math.PI * 2.0);
+                    _spread = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SpreadMetres;
+                    _spreadKnown = true;
+                }
+                return _spread;
+            }
+        }
+        Vector3 _spread;
+        bool _spreadKnown;
+
         bool _wantsRealBody;
         Color _skin, _cloth;
 
@@ -1209,17 +1240,7 @@ namespace Ledger.Game
             /// Where THIS person stands when the schedule says "the market
             /// corner". A fixed offset on a ring, from the name, so it is the
             /// same every run and every reload.
-            Vector3 Spread(Vector3 place)
-            {
-                // The angle comes from the display name rather than the
-                // instance id: an id is a session detail and would put the same
-                // person in a different spot after a reload, which is the sort
-                // of quiet non-determinism this project has already been bitten
-                // by in the separation nudge itself.
-                float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
-                                  * System.Math.PI * 2.0);
-                return place + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SpreadMetres;
-            }
+            Vector3 Spread(Vector3 place) => place + SpreadOffset;
 
             Vector3 StepApart(Vector3 at)
             {
