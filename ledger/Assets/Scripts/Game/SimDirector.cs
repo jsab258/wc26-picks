@@ -2583,11 +2583,26 @@ namespace Ledger.Game
             // three per-call ones, deliberately, because it is the only one
             // that can say whether the offer path runs at all. Between them
             // there is nothing left to infer.
-            _textWalked = walked;
-            _textNoText = noText;
-            _textInvisible = invisible;
-            _textNoRect = noRect;
-            _textProjected = boxes.Count + other.Count + bubbles.Count;
+            // PEAKS, LIKE THE BUCKET COUNTS THEY ARE PRINTED BESIDE.
+            //
+            // These were LAST-WINS while `namesTracked`, `worldTextTracked` and
+            // `bubblesTracked` three lines up are peaks, so the verdict printed
+            // a peak and four last-wins values side by side as if they described
+            // one moment. Consecutive runs swung `textProjected` 111 to 48 and
+            // `textInvisible` 277 to 346 — not because anything changed, but
+            // because the last shot happened to be pointed somewhere else.
+            //
+            // That is the same fault as the cumulative-count-on-a-sparse-sampler
+            // one fixed an hour ago, in the numbers printed immediately beside
+            // it, which is rule 1's third corollary exactly: one idea, two
+            // implementations, and the one nobody looked at is the one missing
+            // a line.
+            if (walked > _textWalked) _textWalked = walked;
+            if (noText > _textNoText) _textNoText = noText;
+            if (invisible > _textInvisible) _textInvisible = invisible;
+            if (noRect > _textNoRect) _textNoRect = noRect;
+            int projected = boxes.Count + other.Count + bubbles.Count;
+            if (projected > _textProjected) _textProjected = projected;
             // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
             // `CollidingNames`, which fires only on shots, so it froze the
             // lifetime count at the LAST SHOT while `nameTagsOffered` kept

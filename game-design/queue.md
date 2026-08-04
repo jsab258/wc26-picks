@@ -217,7 +217,22 @@ without losing the rig's state.
 **The 12:03 build answered four of the five questions that were in flight, and
 the run is `pass=True` with no failing gate.**
 
-1. **THE NAME HEAP IS FOUND AND HALF-FIXED — read the next `textInvisible`.**
+1. **THE NAME HEAP — my last diagnosis was WRONG and the impossibility survives.**
+
+   I said `namesManagedEver` was frozen by being captured on a sparse sampler,
+   moved it to the run end, and **it still reads 24 against 42 offered in one
+   frame.** Every offer adds to the managed set, so that cannot be true, and the
+   explanation I gave is not the explanation.
+
+   What was found instead, while checking: the four text counters were
+   LAST-WINS while the three bucket counts printed beside them are PEAKS.
+   Consecutive runs swung `textProjected` 111 to 48 and `textInvisible` 277 to
+   346 — nothing changed except where the last shot pointed. All five are peaks
+   now, so the next reading is the first where they can honestly be compared.
+
+   **Do not re-diagnose from the current numbers.** They are a peak and four
+   last-wins values that were never taken at the same moment, which is why three
+   readings of this metric have now produced three wrong answers.
    The denominators settled it: 391 texts walked, **260 rejected as invisible**,
    95 projected, `namesTracked=1` — on a run whose day-2 noon still has a dozen
    names piled illegibly in the corner. `Renderer.isVisible` means "rendered by
