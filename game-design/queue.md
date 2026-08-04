@@ -75,8 +75,14 @@ the reach now goes to four metres and reports the worst distance used, which
 separates "the level fronts onto the road" from "the clutter is placed metres
 off its own wall".
 
-**And the rival rang once and nobody picked up**, which is the mechanic working
-end to end on its first build.
+**And the rival rang once and nobody picked up — WHICH I WROTE DOWN AS THE
+MECHANIC WORKING, AN HOUR BEFORE READING THE LOOKUP.** `NearPhone` walks the
+walker list and the crowd, and the player is in neither, so it returned false
+for every line at every hour: taking the call was unreachable code and one
+missed call reads identically to a player who was out on the street. Rule 5b's
+twin — a run in which the thing asserted CAN happen — and the number could
+never have told me. Fixed; the next run is the first where either answer is
+possible.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
