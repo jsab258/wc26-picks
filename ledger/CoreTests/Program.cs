@@ -656,6 +656,46 @@ namespace Ledger.CoreTests
             forged.FromJson(new Dictionary<string, object> { { "pointedAt", "player" } });
             Check(forged.PointedAt == "",
                   "a hand-edited save is not a quieter route into an impossible state");
+
+            // AND IT HAS TO CHANGE WHAT SHE DOES, NOT JUST WHAT A NUMBER SAYS.
+            //
+            // Rule 6 at the level below wiring: a redirect that moves `Pressure`
+            // and leaves every consequence identical is a number with a nice
+            // shape and no game attached. `Police` is where the stage turns into
+            // behaviour, so the stage moving has to be visible THROUGH it.
+            //
+            // Both directions are asserted, because a predicate that answers the
+            // same way at every stage would pass a one-sided check.
+            var book2 = new HomicideBook();
+            var mill2 = new GossipMill(new SocialGraph());
+            mill2.Add(Agent("ada", "Ada", "day"));
+            var k2 = book2.Record("mick", "Mick Farrow", 1, 23, "the yard");
+            k2.SawYouDoIt.Add("ada");
+            book2.FileWith(mill2, k2, new GameTime(1, 22, 0));
+
+            Check(Police.BarsQuietExit(book2.Stage(mill2, null, 1)),
+                  "before the redirect, a manhunt bars handing the bar over and walking away");
+            double floorBefore = Police.SuspicionFloor(book2.Stage(mill2, null, 1));
+
+            book2.PointAt("kest", 1);
+            Check(!Police.BarsQuietExit(book2.Stage(mill2, null, 1)),
+                  "with the detective pointed elsewhere, the quiet exit reopens");
+            double floorDuring = Police.SuspicionFloor(book2.Stage(mill2, null, 1));
+            Check(floorDuring < floorBefore,
+                  "and the floor under the street's suspicion drops with her attention",
+                  $"{floorBefore:0.00} -> {floorDuring:0.00}");
+
+            // SHE IS STILL ON THE CASE THROUGHOUT. The redirect buys attention,
+            // not innocence — a version where the whole apparatus switched off
+            // would be the exploit `Informing` exists to refuse, and it would
+            // pass every assertion above.
+            Check(Police.SummonsEllis(book2.Stage(mill2, null, 1))
+                  && Police.AsksAboutYou(book2.Stage(mill2, null, 1)),
+                  "she is still assigned and still using your name while it holds");
+
+            Check(Police.BarsQuietExit(book2.Stage(mill2, null, 1 + HomicideBook.RedirectHolds)),
+                  "and four days later the quiet exit closes again",
+                  Police.Describe(book2.Stage(mill2, null, 1 + HomicideBook.RedirectHolds)));
         }
 
         static void TestBodyParts()
