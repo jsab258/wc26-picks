@@ -230,7 +230,31 @@ namespace Ledger.Game
         /// like a quiet downpour.
         static AudioSource _rain, _rainNear;
 
-        public static void Rain(float intensity, float indoors = 0f)
+        /// THREE NUMBERS FOR ONE IDEA, AND NONE OF THEM AGREED.
+        ///
+        /// `Acoustics.OutsideBleed` returns 1.0 outdoors and 0.28 indoors and
+        /// has been on the reach ledger since the ledger existed. This method
+        /// hardcoded `1 - 0.72 * indoors`, where 0.72 is 1 - 0.28 — the same
+        /// number, written out by hand. And `Weather` passed 0.8 rather than
+        /// 1.0 for indoors, so the gain that actually shipped was
+        /// `1 - 0.72*0.8 = 0.424`, which is neither.
+        ///
+        /// That is one idea with two implementations and a third value that is
+        /// the arithmetic of the two colliding — the fault this project names
+        /// more than any other, in a system nobody can hear from CI.
+        ///
+        /// `RoomTone.Current` IS THE AUTHORITY and it is asked directly, so the
+        /// parameter is gone rather than defaulted: an argument that can
+        /// disagree with the room the player is standing in is an argument
+        /// worth deleting.
+        ///
+        /// WHAT CHANGES AUDIBLY: indoor rain goes from 0.424 of its outdoor
+        /// gain to 0.28. Quieter, which is the direction the model always
+        /// said, and NOT SOMETHING A BUILD CAN JUDGE — there is no ear in CI.
+        /// Written down here so the next person to think it sounds wrong knows
+        /// what moved and that the number came from `Acoustics` rather than
+        /// from me.
+        public static void Rain(float intensity)
         {
             if (_root == null) return;
             intensity = Mathf.Clamp01(intensity);
@@ -251,7 +275,8 @@ namespace Ledger.Game
             if (!_rainNear.isPlaying) _rainNear.Play();
 
             var s = GameSettings.Current;
-            float gain = (1f - 0.72f * Mathf.Clamp01(indoors)) * s.MasterVolume * s.SfxVolume;
+            float gain = (float)Ledger.Core.Acoustics.OutsideBleed(RoomTone.Current)
+                         * s.MasterVolume * s.SfxVolume;
             // The bed comes up fast and saturates; the near patter only
             // arrives once it is really raining. A shower and a storm differ
             // mostly in how much of the near layer you get.

@@ -127,7 +127,12 @@ namespace Ledger.Game
             // playing behind glass. Indoors ducks it, because the clearest
             // signal that you have stepped inside is that the weather gets
             // quieter.
-            Audio.Rain(Rain, RoomTone.Current == Ledger.Core.SpaceKind.Outdoors ? 0f : 0.8f);
+            // THE ROOM IS ASKED BY `Audio.Rain` ITSELF NOW. This line passed
+            // 0.8 into a method that multiplied it by 0.72, giving 0.424 where
+            // `Acoustics.OutsideBleed` says 0.28 — one idea, two
+            // implementations, and a shipped value that was the arithmetic of
+            // both colliding.
+            Audio.Rain(Rain);
 
             ApplyWetness();
         }
