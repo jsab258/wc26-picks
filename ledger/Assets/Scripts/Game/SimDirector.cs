@@ -9183,6 +9183,10 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} dressedRoadWidth=[{RoadDepthRead()}] dressedStuckOn=[{string.Join(" ", WorldBuilder.DressedStuckOn)}] doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
+                      // The back of a block has a shape now. Zero means the
+                      // near-core test rejected everything, which is a finding
+                      // about the density ramp rather than about fire escapes.
+                      $"fireEscapes={WorldBuilder.FireEscapes} " +
                       // THE SKYLINE, AND ITS CAUSE ON THE SAME LINE. A third of
                       // the windows lit is right at nine in the evening and a
                       // fault at four in the morning, and only the fraction

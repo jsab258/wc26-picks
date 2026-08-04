@@ -176,6 +176,7 @@ namespace Ledger.Game
         {
             Lamps.Clear();
             Windows.Clear();
+            FireEscapes = 0;
             WindowIsShop.Clear();
             Masses.Clear();
             Masses.AddRange(BuildBlockSpecs());
@@ -619,7 +620,81 @@ namespace Ledger.Game
                 var outward = OutwardFrom(pos);
                 DressFacade($"B{i}", pos, size, outward, hasDoor: true, prosperity: StreetFrontProsperity);
                 DressFacade($"B{i}b", pos, size, -outward, hasDoor: false, prosperity: BackAlleyProsperity);
+                FireEscape($"B{i}", pos, size, -outward);
                 i++;
+            }
+        }
+
+        /// THE BACK OF A BLOCK, WHICH HAS BINS AND DRAINPIPES AND NO SHAPE.
+        ///
+        /// The last thing roadmap 17.7 still names: *"the back of a block gets
+        /// bins and drainpipes but no geometry of its own"*. Both faces are
+        /// already dressed differently — the street front is swept and the back
+        /// is not — but a back wall is still a flat rectangle with clutter at
+        /// the bottom of it, and what actually distinguishes the back of a
+        /// building is what is bolted to it.
+        ///
+        /// A FIRE ESCAPE, because it is the highest silhouette per box there
+        /// is. It is vertical where everything else here is horizontal, it
+        /// breaks the wall at every floor, and it reads as "the back" from
+        /// across a yard with no texture work at all. It is also the reason to
+        /// look UP in an alley, which is the one direction this city currently
+        /// gives nobody a reason to look.
+        ///
+        /// NEAR THE CORE ONLY, on the same ramp the window panes use — this is
+        /// six boxes per building and the frame budget is already red on the
+        /// game's own half.
+        ///
+        /// TWO FLOORS OR MORE. A fire escape on a shed is a joke, and the
+        /// height test is the building's own rather than a new constant: the
+        /// same 3m floor the windows are spaced on, which is why the number is
+        /// read from there rather than written again here.
+        public static int FireEscapes { get; private set; }
+
+        static void FireEscape(string tag, Vector3 pos, Vector3 size, Vector3 back)
+        {
+            const float floorH = 3.0f;
+            if (size.y < floorH * 2f) return;
+            if (Ledger.Core.Dressing.NearestCore(pos.x, pos.z, DenseCores) > NearCoreMetres) return;
+
+            // Against the wall it hangs on, offset out by its own depth so it
+            // sits proud rather than inside the brick.
+            const float depth = 1.1f, width = 2.2f, rail = 0.08f;
+            float faceOut = (Mathf.Abs(back.x) > 0.5f ? size.x : size.z) * 0.5f;
+            // ALONG the wall, off centre, because a fire escape is bolted where
+            // the stairwell is and a stairwell is never in the middle of a
+            // facade. Deterministic from the tag so it does not move between
+            // runs and the stills stay comparable.
+            var along = new Vector3(-back.z, 0, back.x);
+            float shift = (float)(Ledger.Core.Physique.Fraction(tag, 53) - 0.5)
+                          * ((Mathf.Abs(along.x) > 0.5f ? size.x : size.z) * 0.5f);
+            var at = pos + back * (faceOut + depth * 0.5f) + along * shift;
+
+            int floors = Mathf.Clamp(Mathf.FloorToInt(size.y / floorH), 2, 5);
+            for (int f = 1; f < floors; f++)
+            {
+                float y = f * floorH;
+                MakeBox($"Escape_{tag}_deck{f}", at + new Vector3(0, y, 0),
+                    new Vector3(Mathf.Abs(along.x) > 0.5f ? width : depth, 0.08f,
+                                Mathf.Abs(along.x) > 0.5f ? depth : width),
+                    AssetLibrary.Metal);
+                // The rail, which is what makes it read as a walkway rather
+                // than a shelf.
+                MakeBox($"Escape_{tag}_rail{f}", at + back * (depth * 0.45f) + new Vector3(0, y + 0.5f, 0),
+                    new Vector3(Mathf.Abs(along.x) > 0.5f ? width : rail, rail,
+                                Mathf.Abs(along.x) > 0.5f ? rail : width),
+                    AssetLibrary.Metal);
+                // And the run down to the deck below — one diagonal box, which
+                // at this distance is a flight of stairs.
+                var run = MakeBox($"Escape_{tag}_run{f}",
+                    at + new Vector3(0, y - floorH * 0.5f, 0),
+                    new Vector3(Mathf.Abs(along.x) > 0.5f ? 0.7f : depth * 0.8f, 0.06f,
+                                Mathf.Abs(along.x) > 0.5f ? depth * 0.8f : 0.7f),
+                    AssetLibrary.Metal);
+                run.transform.rotation = Quaternion.AngleAxis(
+                    Mathf.Abs(along.x) > 0.5f ? 42f : -42f,
+                    Mathf.Abs(along.x) > 0.5f ? Vector3.right : Vector3.forward);
+                FireEscapes++;
             }
         }
 
