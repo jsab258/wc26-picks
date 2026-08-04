@@ -62,9 +62,20 @@ namespace Ledger.Game
         /// which twelve stills have not managed.
         public const int VehicleCount = 28;
         /// Hazards are gathered from whoever is closest, not from everybody — a
-        /// walker forty metres away is not about to be run over, and scanning
-        /// three thousand residents every frame to discover that is exactly the
-        /// kind of cost that gets baked in before anybody measures it.
+        /// walker forty metres away is not about to be run over.
+        ///
+        /// AND THE REASON THIS CARRIED WAS A COST NOBODY PAYS. It said the
+        /// alternative was "scanning three thousand residents every frame", and
+        /// `GatherHazards` has never done that: it walks `_npcs`, the WALKER
+        /// list, which the crowd cap holds at about forty. The three thousand
+        /// are records in `Population` and no loop here touches them.
+        ///
+        /// The bound is still right and the honest reason is a different one:
+        /// what it saves is not the scan, it is the LIST. Every hazard handed
+        /// to `TrafficSim` is tested against every vehicle on every step, so
+        /// forty hazards against twenty-eight vehicles is the real product —
+        /// and a radius keeps that product about the traffic near the player
+        /// rather than about the size of the crowd.
         public const float HazardRange = 34f;
 
         readonly Dictionary<int, Transform> _vehicleBodies = new Dictionary<int, Transform>();
