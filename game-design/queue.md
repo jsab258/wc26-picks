@@ -189,39 +189,21 @@ AUTO MODE.
    that finished a fortnight ago. That is now written into the ledger's own
    header.
 
-8. **CORRECTION: THE LIMP HALF-REACHES THE BOUGHT BODIES, AND WHAT I FOUND
-   LOOKING IS BIGGER THAN WHAT I WENT LOOKING FOR.**
+8. **THE HIPS COMPOSE NOW; THE LIMP'S STANCE SCALE IS WHAT IS LEFT.**
+   `hipOverride` came back 0.054 — five and a half centimetres of the clip's
+   own hip motion discarded every frame, the same order as the bob replacing
+   it — so the assign became a compose, and `Rig.Bob` stands down on a driven
+   body because a bought clip already has one and `Phase` is not the clip's
+   phase. Read `hipOverride` next build: it should FALL, and if it does not,
+   the compose did not take.
 
-   I wrote here that `BadLegIsLeft` drives `Rig.Limp` through the procedural
-   solve only, so a bought body cannot limp. Reading `LateUpdateBody` says
-   otherwise: the PELVIS DIP is applied to the hips in an unguarded block, so
-   an injured person on a bought body does drop onto their good leg. What is
-   missing is the STANCE SCALE — the shortened bad leg — because that goes
-   through `DriveLimbs`, which is guarded on `PoseIsDriven`. Half a limp, not
-   none. Written from the grep rather than from the function, which is rule 3
-   pointed at my own note.
-
-   **AND THE UNGUARDED BLOCK IS THE FINDING.** It reads
-   `_hips.localPosition = local`, built from the REST position plus breath,
-   dip and pelvis drop — an ASSIGN, on every body, including ones whose
-   Animator wrote a hip height that frame. Six screens down, the pelvis
-   ROTATION is composed on a driven body under a comment saying exactly why:
-   *"An assign here would flatten the clip's own pelvis rotation and undo half
-   of any walk cycle."* The same argument is true of position and nobody
-   applied it there. So a bought body's vertical rhythm is the clip's,
-   discarded, and replaced by `Rig.Bob(Phase)` — a second bob model driven by
-   a phase the clip does not share.
-
-   That is one idea with two implementations again, and it is a candidate for
-   the foot behaviour `FootIk` has been fighting all day: if the hips are
-   being placed from a phase the feet's clip does not agree with, the feet
-   will slide against ground the rig thinks is somewhere else.
-
-   **Deliberately not changed at the end of a turn.** It is delicate, it sits
-   in a file where an inverted assumption cost two builds this morning, and
-   the right first move is a reading — how far the assign moves the hips from
-   where the Animator put them — not an edit. **Start it at the top of a
-   turn, with the measurement first.**
+   **What is still missing is half a limp.** The pelvis DIP reaches a bought
+   body; the STANCE SCALE — the shortened bad leg — goes through `DriveLimbs`,
+   which is guarded on `PoseIsDriven`. So an injured person drops onto their
+   good leg and does not shorten the other one. That is a gameplay signal at
+   half strength rather than absent, and it needs an additive Animator layer
+   or an IK offset. Same file, same care, and it wants its own measurement
+   first — how much of a limp is the dip alone.
 
 9. **DONE 4 Aug — head scale, and the reason it was queued as hard was not
    true.** An Animator writes bone rotations and the hips' position; Mixamo's
