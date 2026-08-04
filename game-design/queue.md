@@ -86,16 +86,25 @@ say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
 
-1. **THE T-POSE FORK — read `armCrowdWidest` beside `armWidest`.** *(CI)*
-   `armWidest=54.2` is the widest of fifty-two bodies in a typical frame, and
-   `preArmDrop=65.3` says the player's own bought clip holds HIS arms at
-   sixty-five degrees. Same band. If the crowd-only number comes back near 54
-   the scarecrows are walkers and the search is `HangArm`; if it comes back
-   near 10 the widest body was always the player and the figures in the night
-   stills are a third fault nothing has caught. **`animAdvancing` lands with
-   it** — how many bodies have a controller whose clip time actually MOVED —
-   and a body counted by `animDriven` and never by `animAdvancing` is a body
-   frozen in its bind pose, which is what a T-pose is from the inside.
+1. **RETRACTED — THERE ARE NO SCARECROWS, AND THE MOB IS THE WHOLE FAULT.**
+   `armWidest=54.5` with `armCrowdWidest=53.5`: taking the player out barely
+   moves it, so the widest body is a walker. And printed off `Rig.ArmSwing`, a
+   normal walk puts the FOREARM — which is what the metric measures — at 45.4
+   degrees from vertical at 1.2 m/s, 48.3 at 1.4, 55.1 at 2.0. **53.5 is a
+   person walking briskly with a bent elbow.** A T-pose is ninety.
+
+   `animBodies=6 animDriven=6 animAdvancing=6` closes the other half: every
+   body with an Animator has a controller and every one of them has a clip
+   whose time is MOVING. Nothing is frozen in a bind pose. Forty-six of the
+   fifty-two solved bodies are mannequins, which have no Animator to freeze.
+
+   So the figures in `review_day1_night` were overlapping bodies in a mob, and
+   at 1280x720 that reads as splayed limbs. Rule 4 exactly — a picture is
+   excellent evidence something is wrong and poor evidence of WHAT. Something
+   was wrong; it was the huddle, which the other number found independently.
+   **The `HangArm` search is closed before it started, and everything it would
+   have gone through — `PoseIsDriven`, the prefab controller, the rest capture
+   — came back innocent on the way past.**
 
 2. **DID THE RING FIX THE MOB — `crowdHuddle` against `busiestPlace`.** *(CI)*
    Forty-one people stood within two metres of one person on an 0.8m ring that

@@ -854,6 +854,30 @@ namespace Ledger.Game
         /// worst single body of the run. A street whose arms hang reads near
         /// the top of the walk cycle here; a street with one scarecrow in it
         /// reads near ninety, every frame, and no median can say so.
+        ///
+        /// AND IT READ THE TOP OF THE WALK CYCLE. `armWidest=54.5` with
+        /// `armCrowdWidest=53.5` — the player excluded barely moves it, so the
+        /// widest body is a walker — against this, printed off `Rig.ArmSwing`:
+        ///
+        ///     speed   peak shoulder   peak elbow   worst forearm from vertical
+        ///      0.0          0.0          0.0                    0.0
+        ///      1.2        -11.6         33.8                   45.4
+        ///      1.4        -12.8         35.5                   48.3
+        ///      2.0        -15.7         39.4                   55.1
+        ///      2.6        -17.7         42.1                   59.8
+        ///
+        /// `ArmDropNow` measures the FOREARM against straight down, so the
+        /// shoulder swing and the elbow flexion add — and 53.5 is a person
+        /// walking briskly with a bent elbow, which is this cycle working. A
+        /// T-pose is ninety and a standing body is zero, and neither is what
+        /// the number says.
+        ///
+        /// SO THE SCARECROWS IN THE NIGHT STILLS WERE NOT SCARECROWS. What
+        /// those frames have in them is a MOB — `crowdHuddleWorst=41` within
+        /// two metres of one person — and overlapping bodies at 1280x720 read
+        /// as splayed limbs. Rule 4 in its own words: a picture is excellent
+        /// evidence that something is wrong and poor evidence of what. The
+        /// something was real and this was not it.
         public static double ArmWidestMedian => MedianOf(_armWidest);
 
         public static double ArmWidestWorst
