@@ -226,6 +226,26 @@ namespace Ledger.Game
             // dead-field smell one file over from where PeakHush had it.
             Perceivers.ResetCounters();
             Standoff.Reset();
+            // AND TWO MORE OF EXACTLY THE SAME SHAPE, found by pointing
+            // `lint-unreached` at the Game layer rather than by noticing.
+            //
+            // `Audio.ResetSpeechCounters` clears the five speech counters and
+            // the two distinct-asked sets — every one of which this file prints
+            // on the done line. `Witnesses.ResetDeliveries` clears the
+            // in-flight walk list and the delivery totals. Both existed, both
+            // were written to be called here, and neither had a caller, which
+            // is the sentence three lines above about two other methods.
+            //
+            // NOT A BUG BEING FIXED TODAY, and saying otherwise would be the
+            // over-claim this file is full of warnings about: CI runs one sim
+            // per process, so the statics start at zero anyway. It becomes one
+            // the moment anything runs a second sim in a session or reloads
+            // into one — and `RecordKilling` calls `SaveNow`, so a restore path
+            // through this scene is not hypothetical. A reset that clears some
+            // of a class's counters is worse than no reset at all, because the
+            // ones it forgets look deliberate.
+            Audio.ResetSpeechCounters();
+            Witnesses.ResetDeliveries();
             // CAPTIONS ON FOR THE RUN. They are off by default and should be
             // — but a channel nobody exercises is a channel nobody finds out
             // is broken, and this one exists precisely for the players least
