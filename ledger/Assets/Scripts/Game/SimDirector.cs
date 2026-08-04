@@ -2214,6 +2214,11 @@ namespace Ledger.Game
         // comparative and a single number cannot carry it. See the gate.
         bool _companionStaged;
         float _companionDist = -1f;
+        /// How far the escort was when she was recruited, and how many days the
+        /// deed waited for her to arrive. Both exist so a red `companionSight`
+        /// says which of the two possible causes it is.
+        float _companionRecruitDist = -1f;
+        int _deedWaitedDays;
         string _companionWith = "";
         int _companionRung = -1, _companionStreetRung = -1;
         bool _carryIsAChoice, _carryCanTakeAll;
@@ -2749,14 +2754,41 @@ namespace Ledger.Game
             if (!_companionStaged && _game != null && _npcs != null
                 && _game.Gossip != null && _game.Gossip.Mill != null)
             {
+                // THE NEAREST ELIGIBLE WALKER, NOT THE FIRST IN THE LIST.
+                //
+                // `companionSight` came back red on a commit that changed no
+                // code at all — a queue edit — which is the definition of a
+                // gate measuring luck rather than the game. `dist=23.8m` is the
+                // reason, and the comment at the distance probe below had
+                // already named it as the leading hypothesis and asked for
+                // exactly this number: *"if it comes back at forty metres the
+                // explanation is settled; if it comes back at two, the fault is
+                // somewhere else entirely."* Twenty-four metres settles it.
+                //
+                // `Ask` has no proximity requirement, and this loop took
+                // whoever came first in `_npcs`, so the escort was recruited
+                // wherever she happened to be standing in the city. Picking the
+                // nearest costs one pass and starts her at the player's
+                // shoulder instead of across the district.
+                NpcWalker pick = null;
+                Gossiper pickG = null;
+                float pickDist = float.MaxValue;
                 foreach (var n in _npcs)
                 {
                     if (n == null || n.DisplayName == "Ellis") continue;
-                    var g = _game.Gossip.Mill.Get(n.DisplayName);
-                    if (g == null) continue;
+                    var gg = _game.Gossip.Mill.Get(n.DisplayName);
+                    if (gg == null) continue;
+                    float d = Vector3.Distance(n.transform.position, _player.transform.position);
+                    if (d < pickDist) { pickDist = d; pick = n; pickG = gg; }
+                }
+                for (int once = 0; once < 1 && pick != null; once++)
+                {
+                    var n = pick;
+                    var g = pickG;
                     g.Loyalty = 0.8;
                     g.Nerve = 0.6;
                     if (!_game.Companion.Ask(g, n, now.Day, _game.Player != null ? _game.Player.transform : null)) continue;
+                    _companionRecruitDist = pickDist;
                     _companionStaged = true;
                     _companionWith = n.DisplayName;
                     Debug.Log($"SimDirector: companion — {n.DisplayName} walks with you "
@@ -2765,7 +2797,30 @@ namespace Ledger.Game
                 }
             }
 
+            // AND THE DEED WAITS FOR HER — BUT NOT FOR EVER.
+            //
+            // The gate asserts that a companion is a full sighting BECAUSE OF
+            // WHERE THEY STAND. Staging the act while she is twenty-four metres
+            // away tests whether she happened to arrive, which is why this gate
+            // fails on identical code. Plant the condition, never loosen the
+            // bound.
+            //
+            // THE TIMEOUT IS NOT A SOFTENING, IT IS THE 5b HALF. A deed that
+            // waits indefinitely for an escort who wandered off would stage
+            // nothing, and `deeds=0` fails four other gates for a reason none
+            // of them could name — a guard that blocks the good case, which is
+            // the exact failure this project keeps shipping. So it waits two
+            // days, then stages anyway and RECORDS how far she was, so "she was
+            // there and saw nothing" and "she never arrived" stay different
+            // findings.
+            bool companionClose = _game == null || _game.Companion.Walking == null
+                || Vector3.Distance(_game.Companion.Walking.transform.position,
+                                    _player.transform.position) <= Perceivers.NearBandMetres;
+            if (!companionClose && _deedsStaged < DeedsWanted && now.Day != _lastDeedDay
+                && nearest != null && nearestDist <= Perceivers.NearBandMetres)
+                _deedWaitedDays++;
             if (_deedsStaged < DeedsWanted && now.Day != _lastDeedDay
+                && (companionClose || _deedWaitedDays >= 2)
                 && nearest != null && nearestDist <= Perceivers.NearBandMetres)
             {
                 _deedsStaged++;
@@ -6499,7 +6554,7 @@ namespace Ledger.Game
                 // and a verdict is the one channel out of CI this environment
                 // can read, so it stays legible.
                 ($"companionSight[with={(_companionWith == "" ? "none" : _companionWith)} "
-                 + $"rung={_companionRung} street={_companionStreetRung} dist={_companionDist:0.0}m] "
+                 + $"rung={_companionRung} street={_companionStreetRung} dist={_companionDist:0.0}m atRecruit={_companionRecruitDist:0.0}m waited={_deedWaitedDays}d] "
                  + $"{(_game != null ? _game.Companion.Report() : "companion[host=absent]")}",
                  _game != null && _companionStaged
                  && _game.Companion.Recruited > 0
