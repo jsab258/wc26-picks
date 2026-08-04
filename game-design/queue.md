@@ -85,8 +85,40 @@ what a junction looks like. That bucket is not the fault.
 5. **Read `denounceBlewBack`** — first time the accusation branch that costs
    you something will have had a world in which it can fire.
 6. **`roomQuiet` — print the distribution** (item above). Local, no CI.
-7. **FOOT IK.** Complete ground-adaptation model with no caller; feet float
-   and clip on any slope. Held only behind item 1.
+7. **FOOT IK — unblocked, and the hazard is mapped. READ THIS BEFORE
+   WRITING ANY OF IT.**
+
+   `Rig.TwoBone`, `FootHeight` and `PlantBlend` are complete and tested: the
+   solver clamps over-extension rather than returning NaN, the height clamps
+   so a foot cannot chase a kerb, and the blend fades IK out through the
+   swing. Feet currently get `Level()` and nothing else, so they float and
+   clip on any slope or step.
+
+   **THE WHOLE DIFFICULTY IS BONE OWNERSHIP, NOT THE MATHS.** `CharacterRig`
+   carries five paragraphs earned over eight builds on exactly this: the
+   upside-down player was two faults, one composing without a rest pose to
+   return to and one assigning over a bought skeleton's rest rotations, and
+   the third face of it was `Swing` overwriting a clip every frame with a
+   stale snapshot — which produced a figure standing with one arm bent up
+   beside its head, "no clip and no rest pose but a blend of both".
+
+   The legs are now driven by a real locomotion clip (`animClipTime` is
+   non-zero, `speedDriven=True`). So foot IK MUST run after the Animator has
+   posed the skeleton — `OnAnimatorIK` or `LateUpdate` — and must never share
+   a bone with `Swing`. `PoseIsDriven` already guards the rest-restore and the
+   arm hang and did NOT guard the thing that writes the limbs; check whether
+   it guards this before assuming it does.
+
+   **Done looks like:** a number, not a picture. Report the per-foot vertical
+   correction actually applied and how many frames the correction was clamped
+   at its limit — a correction stuck at the clamp every frame means the ground
+   raycast is wrong, not the solver. A still is the confirmation, never the
+   evidence: the arms were judged from a frame rendered before the fix being
+   reasoned about.
+
+   Not started blind at the end of a long turn. The Game layer's first
+   compiler is a 28-minute round trip and this is the one area of the codebase
+   where a wrong assumption has cost eight of them.
 8. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
 9. **Keep retiring the reach ledger** — 50, from 71 two nights ago.
 10. **`Reaction.Confront` is a MILESTONE, not an item** — see the note in the
