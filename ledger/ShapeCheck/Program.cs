@@ -36,11 +36,25 @@ var interesting = new HashSet<string>
     "CS1503", // argument type mismatch          <- its two follow-on errors
     "CS0029", // cannot implicitly convert
     "CS1929", // extension method needs a different receiver type
+    "CS0023", // unary operator not applicable — see the note below
     // CS0019 (operator not applicable) was tried and removed the same
     // minute: in this codebase it is almost always about Unity's own maths
     // types — `Vector3? == null` is perfectly legal C# and reads as an error
     // only because Vector3 does not resolve. It bought nothing and cost two
     // false positives, which is how a checker gets ignored.
+    //
+    // CS0023 IS ITS UNARY SIBLING AND IS KEPT, ON EVIDENCE RATHER THAN BY
+    // ANALOGY. A stray leading `+` on a line whose predecessor already ended
+    // with one applies unary plus to a string, which is CS0023 — and that cost
+    // a build on 4 August, one hour after the syntax pass was added for the
+    // CS1003 at the other end of the same paste. Two compile errors from one
+    // edit, two round trips, and the allow-list swallowed both.
+    //
+    // The risk that killed CS0019 is real here too, so it was checked the way
+    // rule 5b asks: run over the whole repository, where every hit is a false
+    // positive by definition because CI compiles this code. Zero. Unlike
+    // CS0019 it fires on a UNARY operator, and the Unity maths types that
+    // produced the false positives are all binary comparisons.
 };
 
 var trees = new List<SyntaxTree>();
@@ -101,7 +115,7 @@ foreach (var name in new[]
 
 // The ids that exist only because of the references above, so the filter
 // below applies to them and to nothing that was already being checked.
-var semantic = new HashSet<string> { "CS1061", "CS1503", "CS0029", "CS1929" };
+var semantic = new HashSet<string> { "CS1061", "CS1503", "CS0029", "CS1929", "CS0023" };
 
 var compilation = CSharpCompilation.Create("UnityLayerCheck", trees,
     references: bcl,

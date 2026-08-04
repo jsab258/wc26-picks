@@ -8638,7 +8638,17 @@ namespace Ledger.Game
                       // So the family is together. Anything about the run as a
                       // whole belongs here; the shot line keeps only what is
                       // true of the shot.
-                      + $" namesManagedEver={NameTags.ManagedEver}"
+                      //
+                      // AND THE `+` AT THE START OF THIS LINE WAS THE SECOND
+                      // ROUND TRIP. The line above ends with `+` already, so a
+                      // leading `+` here is a UNARY plus applied to a string —
+                      // CS0023, a semantic error rather than a syntax one, and
+                      // therefore invisible to the syntax pass added an hour
+                      // ago for the CS1003 at the other end of this same block.
+                      // One paste, two compile errors, two builds, and the
+                      // local checker's allow-list swallowed the second exactly
+                      // as it had swallowed the first.
+                      $" namesManagedEver={NameTags.ManagedEver}"
                       + $" namesOfferCalls={NameTags.Offers}"
                       + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
                       + $" namesWorstOffered={NameTags.OfferedAtWorst}"

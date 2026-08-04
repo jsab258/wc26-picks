@@ -629,9 +629,25 @@ construction, with nothing semantic mixed in — no list to maintain and nothing
 to forget to add. Tested both ways, and the rejecting case is the real error
 put back: it lands on the same line and column CI reported.
 
+**AND THE SAME PASTE HAD A SECOND ERROR AT ITS OTHER END, WHICH THE SYNTAX PASS
+COULD NOT SEE EITHER.** One hour after the fix above, the next build died on
+`CS0023: Operator '+' cannot be applied to operand of type 'string'` — a stray
+leading `+` on a line whose predecessor already ended with one, which is unary
+plus applied to a string. SEMANTIC, not syntactic, so the new tree pass was
+blind to it and the allow-list swallowed it exactly as it had swallowed the
+first. One edit, two compile errors, two round trips.
+
+CS0023 is in the list now, and it was checked rather than assumed, because its
+binary sibling CS0019 was tried once and REMOVED for false positives on Unity's
+maths types. Run over the whole repository, where every hit is a false positive
+by definition because CI compiles this code: zero. It fires on a UNARY operator
+and the Unity comparisons that killed CS0019 are all binary.
+
 The lesson generalises past this file. **An allow-list silently discards
 everything nobody thought of, and it looks identical to a clean result.** That
-is rule 3b — a zero needs a denominator — wearing a filter's clothes.
+is rule 3b — a zero needs a denominator — wearing a filter's clothes. And
+fixing one hole in an allow-list does not fix the allow-list: the second error
+was in the same paste, twenty lines away, and still got through.
 
 **AND "REFERENCE-INDEPENDENT" IS THE PART THAT BITES.** ShapeCheck can run here
 precisely because it does not need the assemblies — which means every diagnostic
