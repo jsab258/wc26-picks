@@ -92,6 +92,24 @@ verdict.
    check is doing its job, and the clamp rate is a tenth of the bound measured
    from CoreTests. `gap=0.00` remains the clamp's signature at sample time.
 
+6b. **READ `bodyReadLum`/`bodyReadSat` AGAINST `crowdReadLum`/`crowdReadSat`.**
+   *(CI)* New probe, and the point of it: `bodyCoat` says the player's coat is a
+   solid denim blue while the noon frame shows a figure that reads as bare
+   plastic. Both are true — every existing body metric asks about the MATERIAL
+   and none asked what the pixels come out as after the grade. A player who
+   reads as dressed sits in the same range as the clothed people around them.
+   **A comparison, never a threshold:** the bound does not exist until the
+   series does, and the bounding box around a person contains pavement, which
+   biases both readings the same way and is exactly why they are only compared
+   with each other.
+
+6c. **THE `[panel]` DUMP HAD ONLY EVER SHOWN ITS FIRST SCREENFUL.** It truncated
+   at 1400 characters from the start, and LIABILITIES alone — twelve rumours at
+   ~120 characters — fills that. So DOUBT, THE STREET and both competence lines
+   added tonight have never been readable through the one channel that can read
+   this game. It keeps both ends now and drops the middle. **Re-read the panel
+   when the next build lands; most of it is being seen for the first time.**
+
 7. **STILL OPEN AND NOT YET LOOKED AT:** `collidingBubbles` against
    `bubblesOnScreen` (sixty-six confabs is sixty-six bubbles, and the night
    still has two drawn through each other); the review camera standing inside a
