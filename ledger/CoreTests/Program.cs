@@ -9149,21 +9149,52 @@ namespace Ledger.CoreTests
                 $"{rising} rising vs {falling} falling samples");
 
             // ---- THE LIMP, ON THE BODY ----
-            Check(Rig.Limp(1.0, true, 0.2).stanceScale == 1.0,
+            Check(Rig.Limp(1.0, true, 0.2).badLeg == 1.0,
                 "an unhurt person does not limp");
             var onBad = Rig.Limp(0.4, true, 0.2);
             var onGood = Rig.Limp(0.4, true, 0.7);
-            Check(onBad.stanceScale < onGood.stanceScale,
+            Check(onBad.badLeg < onBad.goodLeg,
                 "weight comes off the bad leg fast and stays on the good one — the same "
                 + "ASYMMETRY the footstep rhythm already carries");
+            // A LEG'S SCALE DOES NOT CHANGE WITH THE PHASE, and the fact that it
+            // used to is why the pose limp came out at a sixteenth of the audio
+            // one: `DriveLimbs` applied the current frame's number to the bad
+            // leg at every phase, so it was shortened for half the cycle and
+            // LENGTHENED for the other half, cancelling across the stride.
+            Check(onBad.badLeg == onGood.badLeg && onBad.goodLeg == onGood.goodLeg,
+                "a LEG's scale belongs to the leg, not to the moment — the phase "
+                + "question is the dip's, and sharing one number answered it twice");
             Check(onGood.pelvisDip < 0 && onBad.pelvisDip == 0,
                 "and the hips dip onto the leg that can take it");
             var mirrored = Rig.Limp(0.4, false, 0.7);
-            Check(mirrored.stanceScale < Rig.Limp(0.4, false, 0.2).stanceScale,
+            Check(mirrored.pelvisDip == 0 && Rig.Limp(0.4, false, 0.2).pelvisDip < 0,
                 "and it mirrors for a bad right leg");
-            Check(Rig.Limp(0.2, true, 0.2).stanceScale < Rig.Limp(0.7, true, 0.2).stanceScale,
+            Check(Rig.Limp(0.2, true, 0.2).badLeg < Rig.Limp(0.7, true, 0.2).badLeg,
                 "a worse injury is a worse limp, from the SAME capability number the "
                 + "audio uses — a limp you can hear but not see is worse than neither");
+
+            // AND NOW THE SAME SIZE AS THE ONE YOU HEAR, which is what "the same
+            // capability number" was always supposed to buy and did not. The
+            // pose used to shorten Sam's bad step by 2.6cm while the footsteps
+            // shortened it by 43cm on the identical input, because sharing an
+            // INPUT is not agreeing about an OUTPUT and only the input was
+            // being checked. One constant now, so they cannot drift again.
+            double sev = Gait.SeverityFromCapability(0.7);
+            double audioRatio = Gait.StrideFor(1, sev) / Gait.StrideFor(0, sev);
+            var pose = Rig.Limp(0.7, true, 0.2);
+            Check(System.Math.Abs(pose.badLeg / pose.goodLeg - audioRatio) < 1e-9,
+                "the limp you see is the size of the limp you hear — both are "
+                + "Gait.MaxAsymmetry, and there is only one of it");
+
+            // THE KNEE IS A SEPARATE NUMBER, and giving it the stance scale is
+            // what cancelled the step out: less hip is a shorter step, less knee
+            // is a straighter leg reaching further forward, and one multiplier
+            // for both moved the foot in two directions at once.
+            Check(Rig.KneeScale(1.0) == 1.0, "an unhurt knee is not stiffened");
+            Check(Rig.KneeScale(0.3) < Rig.KneeScale(0.7)
+                  && Rig.KneeScale(0.3) >= Rig.StiffestKnee,
+                "a limping leg is stiffer the worse it is, and never a peg leg — "
+                + "a knee that stops bending has nothing to clear a kerb with");
 
             // THE BOUNDARY, FROM BOTH SIDES, because the population pass now
             // COUNTS who is limping using this same constant and a counter that
@@ -9175,9 +9206,9 @@ namespace Ledger.CoreTests
             // outside it — and it is the accepting half that never gets run.
             double justUnder = 1.0 - Rig.LimpsAboveHurt * 0.99;
             double justOver = 1.0 - Rig.LimpsAboveHurt * 1.01;
-            Check(Rig.Limp(justUnder, true, 0.2).stanceScale == 1.0,
+            Check(Rig.Limp(justUnder, true, 0.2).badLeg == 1.0,
                 "a hair inside the dead band is not a limp");
-            Check(Rig.Limp(justOver, true, 0.2).stanceScale < 1.0,
+            Check(Rig.Limp(justOver, true, 0.2).badLeg < 1.0,
                 "and a hair outside it is — the constant the counter reads is the "
                 + "constant the body obeys");
 

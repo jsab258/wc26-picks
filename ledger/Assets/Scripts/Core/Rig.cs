@@ -295,17 +295,104 @@ namespace Ledger.Core
         /// a counter that could quietly disagree with the behaviour it counts.
         public const double LimpsAboveHurt = 0.05;
 
-        public static (double stanceScale, double pelvisDip) Limp(double capability, bool badLegIsLeft,
-                                                                  double phase)
+        /// AND THE TWO LIMPS DISAGREED BY A FACTOR OF SEVENTEEN. Printed off
+        /// this file and `Feel.Gait` rather than reasoned about, at the walking
+        /// pace the street actually uses and through an 0.88m leg:
+        ///
+        ///     capability   the limp you HEAR      the limp you SEE
+        ///                  good/bad step, cm      good/bad stride, cm
+        ///        0.90        167.2 / 152.8          97.2 /  96.4   (0.8 apart)
+        ///        0.70        181.6 / 138.4          97.2 /  94.7   (2.6 apart)
+        ///        0.50        196.0 / 124.0          97.2 /  92.9   (4.3 apart)
+        ///        0.30        210.4 / 109.6          97.2 /  91.1   (6.2 apart)
+        ///
+        /// and the same table after this and `KneeScale` and the per-leg split,
+        /// printed the same way, at the same 1.4 m/s:
+        ///
+        ///        0.90        167.2 / 152.8         100.0 /  94.0   (6.0 apart)
+        ///        0.70        181.6 / 138.4         105.4 /  87.0  (18.3 apart)
+        ///        0.50        196.0 / 124.0         110.6 /  79.6  (31.0 apart)
+        ///        0.30        210.4 / 109.6         115.6 /  71.6  (44.0 apart)
+        ///
+        /// with the bad foot now lifting 11.6cm LESS than the good one at 0.70
+        /// rather than 1.8cm MORE. A stiff leg swung round rather than picked
+        /// up, which is what a limp looks like.
+        ///
+        /// At the capability the sim actually produces — Sam, knifed on day one,
+        /// `samCap=0.70` — the sound shortens his bad step by 43cm and the pose
+        /// shortens it by two and a half centimetres. The comment above promises
+        /// they "cannot disagree" because they share an input, and sharing an
+        /// input is not the same as agreeing: 2.6cm on a person at street
+        /// distance is under a pixel.
+        ///
+        /// THE MECHANISM WAS SELF-CANCELLING. One scalar multiplied BOTH the hip
+        /// swing and the knee flexion, and those move the foot in opposite
+        /// directions — less hip is a shorter step, less knee is a straighter,
+        /// longer leg that reaches further forward. A 10% angle cut came out as
+        /// a 2.6% step cut, and the bad leg ended up lifting 1.8cm HIGHER than
+        /// the good one, which is a limp backwards.
+        ///
+        /// SO THE ASYMMETRY IS NOW `Gait.MaxAsymmetry`, THE AUDIO'S OWN. Not a
+        /// number chosen to make the pose bigger: the sound already commits the
+        /// game to a limp of that size, it carries a stated ceiling — "above
+        /// about 0.5 it stops reading as injured and starts reading as broken
+        /// animation" — and one asymmetry constant cannot drift away from
+        /// itself. The stance scale is now what `Gait.StrideFor` does to a step,
+        /// applied where step length actually comes from.
+        /// AND THE SCALE BELONGS TO A LEG, NOT TO A MOMENT — which is the other
+        /// half of why the pose limp came out at a sixteenth of the audio one.
+        ///
+        /// The old return was ONE `stanceScale` that alternated `1-a` and `1+a`
+        /// by phase, and `DriveLimbs` applied it to the BAD leg at every phase
+        /// and to the good leg never. So the bad leg was shortened for half the
+        /// cycle and LENGTHENED for the other half, the two halves cancelled
+        /// across the stride, and the good leg's compensating longer step was
+        /// computed and thrown away.
+        ///
+        /// The phase question — which foot is bearing weight right now — is
+        /// real, and it is the DIP's question: the hips drop onto the good leg
+        /// at the moment it takes the load. It is not the legs' question. Two
+        /// different questions were sharing one number, which is this project's
+        /// most repeated fault, and the number was answering the wrong one.
+        public static (double badLeg, double goodLeg, double pelvisDip) Limp(
+            double capability, bool badLegIsLeft, double phase)
         {
             double hurt = Feel.Clamp01(1.0 - Feel.Clamp01(capability));
-            if (hurt < LimpsAboveHurt) return (1.0, 0);
+            if (hurt < LimpsAboveHurt) return (1.0, 1.0, 0);
             // Weight comes off the bad leg fast and stays on the good one.
             double p = phase - Math.Floor(phase);
             bool onBadLeg = badLegIsLeft ? p < 0.5 : p >= 0.5;
-            double stance = onBadLeg ? 1.0 - 0.35 * hurt : 1.0 + 0.10 * hurt;
+            // THE SAME SHAPE THE FOOTSTEPS USE — `Gait.StrideFor`'s long step
+            // and short step about an unchanged mean, so a pair of steps still
+            // covers the ground a healthy pair would and the limp changes the
+            // RHYTHM rather than the speed. That sentence is `Gait`'s own, and
+            // it should always have been true of the pose as well.
+            double a = Gait.MaxAsymmetry * hurt;
             double dip = onBadLeg ? 0 : -0.045 * hurt;
-            return (stance, dip);
+            return (1.0 - a, 1.0 + a, dip);
+        }
+
+        /// How much the limp shortens the bad leg's KNEE FLEXION, as a separate
+        /// number from the stance scale, because the two answer different
+        /// questions and one scalar for both is what cancelled the limp out.
+        ///
+        /// A limping leg is STIFF: it is not picked up and swung through, it is
+        /// swung round. So the knee gives up flexion in proportion to the hurt
+        /// — and this is the axis that must NOT be tied to step length, because
+        /// reducing knee flexion lengthens the leg and pushes the foot forward,
+        /// undoing the shortened step it was meant to accompany.
+        ///
+        /// BOUNDED WELL ABOVE ZERO. A knee that stops bending does not read as
+        /// injured, it reads as a peg leg, and the foot then has nothing to
+        /// clear the kerb with — the exact artefact `LegSwing`'s knee curve was
+        /// shaped to avoid.
+        public const double StiffestKnee = 0.55;
+
+        public static double KneeScale(double capability)
+        {
+            double hurt = Feel.Clamp01(1.0 - Feel.Clamp01(capability));
+            if (hurt < LimpsAboveHurt) return 1.0;
+            return 1.0 - (1.0 - StiffestKnee) * hurt;
         }
 
         // ---- the walk cycle ------------------------------------------------

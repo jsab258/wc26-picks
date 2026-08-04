@@ -1135,7 +1135,7 @@ namespace Ledger.Game
 
             var (pitch, roll) = Rig.Lean(AccelMetresPerSecSq, TurnDegreesPerSec, Speed);
             double breath = Rig.Breath(_breathTime, Stamina, Capability);
-            var (stance, dip) = Rig.Limp(Capability, BadLegIsLeft, Phase);
+            var (badLeg, goodLeg, dip) = Rig.Limp(Capability, BadLegIsLeft, Phase);
 
             if (!_posed || !_restCaptured)
             {
@@ -1301,9 +1301,9 @@ namespace Ledger.Game
             if (_chest != null)
                 _chest.localRotation = _chest.localRotation * Quaternion.Euler((float)pitch, 0, (float)roll);
 
-            StanceScale = stance;
+            StanceScale = badLeg;
 
-            DriveLimbs(stance);
+            DriveLimbs(badLeg, goodLeg);
 
             // LAST, after everything that writes a bone. Stamped here rather
             // than anywhere earlier so it reflects the pose that was actually
@@ -1324,7 +1324,7 @@ namespace Ledger.Game
         /// against each other on purpose: a knee flexes the shin backwards,
         /// an elbow flexes the forearm forwards. It looks like a sign bug in
         /// a diff and it is anatomy.
-        void DriveLimbs(double stance)
+        void DriveLimbs(double badLeg, double goodLeg)
         {
             // The bias scales the SPEED the cycle is asked about rather than
             // its output, so a loose-strided person also gets the knee lift
@@ -1338,8 +1338,20 @@ namespace Ledger.Game
             var lArm = Rig.ArmSwing(Phase, gait);
             var rArm = Rig.ArmSwing(Phase + 0.5, gait);
 
-            double lScale = BadLegIsLeft ? stance : 1.0;
-            double rScale = BadLegIsLeft ? 1.0 : stance;
+            // THE HIP AND THE KNEE TAKE DIFFERENT NUMBERS, and giving them the
+            // same one is what cancelled the limp out.
+            //
+            // Step length comes from the HIP swing; foot clearance comes from
+            // the KNEE. Multiplying both by one scalar moves the foot in
+            // opposite directions — less hip is a shorter step, less knee is a
+            // straighter leg that reaches further forward — so a 10% angle cut
+            // came out as a 2.6% shorter step, against 24% in the footstep
+            // audio driven by the same capability. See `Rig.Limp`'s table.
+            double lScale = BadLegIsLeft ? badLeg : goodLeg;
+            double rScale = BadLegIsLeft ? goodLeg : badLeg;
+            double kneeStiff = Rig.KneeScale(Capability);
+            double lKnee = BadLegIsLeft ? kneeStiff : 1.0;
+            double rKnee = BadLegIsLeft ? 1.0 : kneeStiff;
 
             // SWUNG FROM REST, NOT TO AN ABSOLUTE, and that is the rest of the
             // upside-down player.
@@ -1385,9 +1397,9 @@ namespace Ledger.Game
             if (!PoseIsDriven)
             {
                 Swing(_lThigh, _lThigh0, -lLeg.hip * lScale);
-                Swing(_lShin, _lShin0, lLeg.knee * lScale);
+                Swing(_lShin, _lShin0, lLeg.knee * lKnee);
                 Swing(_rThigh, _rThigh0, -rLeg.hip * rScale);
-                Swing(_rShin, _rShin0, rLeg.knee * rScale);
+                Swing(_rShin, _rShin0, rLeg.knee * rKnee);
 
                 Swing(_lUpperArm, _lUpperArm0, -lArm.shoulder);
                 Swing(_lForearm, _lForearm0, -lArm.elbow);
@@ -1484,9 +1496,19 @@ namespace Ledger.Game
             foot.rotation = Quaternion.Euler(0, foot.rotation.eulerAngles.y, 0);
         }
 
-        /// How far the last frame's limp shortened the bad leg's stance. Read
-        /// by the footstep audio, so the sound and the pose come from one
-        /// number rather than two that can drift apart.
+        /// How far the limp shortens the bad leg's stance.
+        ///
+        /// THE COMMENT HERE SAID "read by the footstep audio, so the sound and
+        /// the pose come from one number rather than two that can drift apart",
+        /// AND NOTHING HAS EVER READ IT. A grep of the whole project returns
+        /// this declaration and the one line that assigns it. The footsteps go
+        /// through `Feel.Gait.StrideFor`, which is a second implementation of
+        /// the same idea — and the two drifted apart by a factor of sixteen
+        /// while a comment asserted they could not.
+        ///
+        /// They share a constant now: `Rig.Limp` derives its asymmetry from
+        /// `Gait.MaxAsymmetry`. That is what makes them one number, and this
+        /// property is a READING rather than the mechanism.
         public double StanceScale { get; private set; } = 1.0;
         public bool MustTurn { get; private set; }
 
