@@ -139,6 +139,11 @@ namespace Ledger.Game
         static readonly System.Collections.Generic.List<float> _plantedDrops =
             new System.Collections.Generic.List<float>();
         public static int DropSamples => _drops.Count;
+        /// Frames where the procedural gait phase said "planted" and the feet
+        /// disagreed. The size of the fault the change above fixes, reported
+        /// rather than asserted — and a zero here would mean the two clocks
+        /// happened to agree and the change bought nothing.
+        public static int PlantDisagreed;
         public static int PlantedDropSamples => _plantedDrops.Count;
 
         /// STRIDED AND CAPPED, AND IT SAYS SO. Two feet on sixty-seven bodies
@@ -166,6 +171,7 @@ namespace Ledger.Game
             PlantedGoals = 0;
             PlantedMedian = -1;
             _drops.Clear();
+            PlantDisagreed = 0;
             _plantedDrops.Clear();
             DropMedian = -1;
             PlantedDropMedian = -1;
@@ -233,8 +239,42 @@ namespace Ledger.Game
 
             float legLength = Mathf.Max(0.1f, _rig.LegLength);
             LegLengthSeen = legLength;
-            float lGround = Solve(AvatarIKGoal.LeftFoot, _rig.Phase, legLength);
-            float rGround = Solve(AvatarIKGoal.RightFoot, _rig.Phase + 0.5, legLength);
+
+            // WHICH FOOT IS DOWN — ASKED OF THE FEET, NOT OF A PHASE.
+            //
+            // MEASURED TWICE BEFORE BEING CHANGED. `ikPlantedDropMedian` and
+            // `ikDropMedian` came back 0.059 against 0.055, then 0.043 against
+            // 0.042: the frames the blend calls PLANTED are indistinguishable
+            // from every other frame. If the plant were timed to the clip they
+            // would be far apart, because a planted foot is a foot that is
+            // down. They are not, so it is not.
+            //
+            // The cause was named before either reading, so it cannot be
+            // fitted afterwards: `Rig.PlantBlend` is driven by
+            // `CharacterRig.Phase`, the PROCEDURAL gait phase, while the foot
+            // itself comes from a bought Mixamo clip with its own timing. Two
+            // independent clocks for one idea — the shape that has already cost
+            // this project the arms, the billboards and the ground raycast
+            // twice each.
+            //
+            // THE LOWER FOOT IS THE PLANTED ONE, and that needs no constant at
+            // all — no window height, no threshold to measure, nothing to get
+            // wrong. It is also true of every gait rather than of a walk: in a
+            // run, a limp or a stand, the foot nearer the ground is the one
+            // taking the weight. Compared BEFORE either is corrected, because
+            // the correction is what would erase the difference.
+            float lY = _animator.GetIKPosition(AvatarIKGoal.LeftFoot).y;
+            float rY = _animator.GetIKPosition(AvatarIKGoal.RightFoot).y;
+            // A DEAD BAND, because two feet at exactly the same height is a
+            // stand rather than a step, and in a stand BOTH are planted. A
+            // strict comparison would pick one at random and let the other
+            // float, which is the sort of thing that reads as a limp.
+            const float BothDown = 0.02f;
+            bool lPlanted = lY <= rY + BothDown;
+            bool rPlanted = rY <= lY + BothDown;
+
+            float lGround = Solve(AvatarIKGoal.LeftFoot, _rig.Phase, legLength, lPlanted);
+            float rGround = Solve(AvatarIKGoal.RightFoot, _rig.Phase + 0.5, legLength, rPlanted);
 
             // AND THE PELVIS, so a body straddling a kerb settles onto both
             // feet instead of standing on the higher one with the other in the
@@ -253,7 +293,7 @@ namespace Ledger.Game
         /// One foot. Returns the ground height under it, which the pelvis
         /// drop needs and which is measured here so both feet and the pelvis
         /// read the SAME raycast rather than two taken a line apart.
-        float Solve(AvatarIKGoal goal, double phase, float legLength)
+        float Solve(AvatarIKGoal goal, double phase, float legLength, bool planted)
         {
             Vector3 animated = _animator.GetIKPosition(goal);
 
@@ -290,7 +330,23 @@ namespace Ledger.Game
             // otherwise be indistinguishable from a foot already perfect.
             if (!struck) GroundMissed++;
 
-            double blend = Rig.PlantBlend(phase);
+            // THE BLEND COMES FROM WHICH FOOT IS DOWN NOW.
+            //
+            // `Rig.PlantBlend(phase)` is still what shapes it — a hard 0 or 1
+            // would snap the foot onto the ground at the instant of contact and
+            // off it again, which is the visible fault this whole pass exists
+            // to avoid — but it is asked about a phase that MEANS something to
+            // this foot rather than about the procedural gait clock. A planted
+            // foot is asked at the middle of its stance and a swinging one at
+            // the middle of its swing, so the curve still eases and the timing
+            // now belongs to the clip.
+            //
+            // `PlantedFromPhase` keeps the count of frames where the old
+            // procedural answer and the new one disagreed, which is the number
+            // that says how wrong it was rather than asserting it.
+            double clipPhase = planted ? 0.25 : 0.75;
+            if ((Rig.PlantBlend(phase) > 0.9) != planted) PlantDisagreed++;
+            double blend = Rig.PlantBlend(clipPhase);
             double wantedY = Rig.FootHeight(animated.y, ground, blend);
 
             // WHAT THE LEG CAN ACTUALLY REACH. `Rig.TwoBone` clamps its reach

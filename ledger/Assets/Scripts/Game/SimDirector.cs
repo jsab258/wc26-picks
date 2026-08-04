@@ -8901,6 +8901,13 @@ namespace Ledger.Game
                       $"ikPlantedDropMedian={FootIk.PlantedDropMedian:0.000} " +
                       $"ikDropSamples={FootIk.DropSamples} " +
                       $"ikPlantedDropSamples={FootIk.PlantedDropSamples} " +
+                      // HOW WRONG THE OLD CLOCK WAS, reported rather than
+                      // asserted. Frames where the procedural gait phase said
+                      // "planted" and the feet disagreed; a zero would mean the
+                      // two clocks happened to agree and the change bought
+                      // nothing. The two drop medians beside it are now the
+                      // test of the NEW answer: they should come apart.
+                      $"ikPlantDisagreed={FootIk.PlantDisagreed} " +
                       // AND THE LEG THE CORRECTION IS MEASURED AGAINST,
                       // because eighteen centimetres means nothing until
                       // you know whether the leg is 0.88m or 0.38m. It was
