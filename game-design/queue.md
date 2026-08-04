@@ -62,11 +62,32 @@ scheduling instead of to CI's output.
 5. **`staminaLow`/`staminaHigh`.** Both at 1.000 means the sim never runs far
    enough for the breathing model to matter — a finding about the sim, not the
    model. Pinned at 0 means the drain is too steep.
-6. **Promote the gate-label keys to REQUIRED** in `verdict-keys`. They always
-   print now. Two or three landed runs first; some labels build their text
-   conditionally.
-7. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
-8. **FOOT IK IS THE NEXT BIG ONE, AND IT IS HELD ON PURPOSE.** `Rig.TwoBone`,
+6. **WIRE `HeardAs`, WHICH MEANS BUILDING A BELIEVED POSITION FIRST.** The
+   ledger said it classifies a sound; it does not. It is the identity on
+   `(bearing, metres)`, kept as a function so no caller can pass a NAME
+   through hearing — the asymmetry between "a shot, that way, close" and
+   "Tom fired it". Wiring it as written would change nothing and would still
+   retire the entry, which is the worst outcome on offer.
+
+   The gap it actually points at is one line in `NpcWalker`:
+   `_investigateAt = Perceivers.LastSoundAt` sends the listener to the EXACT
+   spot. Hearing cannot tell them that. **Do not invent an error magnitude**
+   — rule 2 — and note there is one non-invented anchor already in the code:
+   through a wall you localise to the wall, not to the room behind it, and
+   `Perceivers.Occluded` already knows which sounds those are. Start there,
+   print the spread, then decide.
+
+   **Held until the crowd-separation build lands**: it changes where walkers
+   walk to, and that is the same quantity `crowdGapMedian` is measuring.
+7. **A FIGHT CANNOT BE STARTED FROM THE GAME.** `Combat.` occurs exactly once
+   in the whole Game layer, and it is `StaminaAfterMoving`. `Available`,
+   `Resolve` and `StaminaCost` are built, tested and disconnected — and
+   invisible to the reach ledger because their names collide with other Core
+   types' methods, so only `Breathe` was ever listed. Rule 6 in its purest
+   form. This is a milestone, not a queue item; it is here so the next
+   reader does not have to rediscover it, and the ledger entry now says so.
+8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
+9. **FOOT IK IS THE NEXT BIG ONE, AND IT IS HELD ON PURPOSE.** `Rig.TwoBone`,
    `FootHeight` and `PlantBlend` are a complete ground-adaptation model with no
    caller — the solver clamps over-extension rather than returning NaN, the
    height clamps at 0.42m so a foot cannot chase a kerb, and the blend fades IK
@@ -79,7 +100,7 @@ scheduling instead of to CI's output.
    them apart costs another twenty-eight minutes. Batching Game-layer changes
    is right; batching two changes to the same body is not.
 
-9. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
+10. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
    mostly genuinely-blocked UI surfaces plus the type scale, which wants the UI
    to stop setting sizes by hand — a real refactor rather than a wiring.
 

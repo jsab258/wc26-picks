@@ -289,10 +289,22 @@ namespace Ledger.Core
         /// feeding it the literal constant 1.0 since it was written — with a
         /// comment saying *"combat will own this once a fight can start"*.
         ///
-        /// Combat cannot start yet; it is M23 and deliberately last. But the
-        /// player can RUN today, and a man who has just sprinted the length of
-        /// Hook Street breathing fifteen times a minute is the model's whole
-        /// point going unspent for the sake of a system that is not due.
+        /// A FIGHT CANNOT BE STARTED FROM THE GAME TODAY — and the reason is
+        /// not the one this comment used to give. It said "it is M23 and
+        /// deliberately last", which is the roadmap's line about FIREARMS.
+        /// Melee is M16 phase 3 and that shipped: `Available`, `Resolve`,
+        /// `StaminaCost` and `Breathe` are all built and tested. What is
+        /// missing is a caller. `Combat.` occurs exactly once in the whole
+        /// Game layer, and it is the line below this comment.
+        ///
+        /// So the honest statement is rule 6's, not the roadmap's: the melee
+        /// model is built, tested and disconnected. Naming a milestone that
+        /// is genuinely not due made that read as scheduling rather than as
+        /// debt, which is the more comfortable of the two and the wrong one.
+        ///
+        /// Meanwhile the player can RUN today, and a man who has just
+        /// sprinted the length of Hook Street breathing fifteen times a
+        /// minute is the model's whole point going unspent.
         ///
         /// THE COST IS A RELATIONSHIP, NOT A NUMBER I PICKED, and that is the
         /// most I can honestly claim. There is no measurement of how long a
