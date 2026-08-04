@@ -9365,16 +9365,30 @@ namespace Ledger.Game
                       $"bodySkinnedEver={RealBody.SkinnedEver} " +
                       $"bodyDressedEver={RealBody.DressedEver} " +
                       $"bodyKeptEver={RealBody.KeptEver} " +
-                      // WHO GOT THE CAST'S BRIGHTNESS LIFT. bodyLiftedCrowd
-                      // non-zero is the fault this pair exists to prove was
-                      // fixed — every walker was being raised past the crowd
-                      // value ceiling because TryAttachExtra calls straight
-                      // through the player's path. Zero of BOTH means no body
-                      // was dressed at all, which is a different finding.
+                      // WHO GOT THE CAST'S BRIGHTNESS LIFT — AND THE CROWD HALF
+                      // OF THIS PAIR CANNOT CURRENTLY BE ANYTHING BUT ZERO.
+                      //
+                      // The split was built because every walker was being
+                      // raised past the crowd's value ceiling, and
+                      // `bodyLiftedCast=1036 bodyLiftedCrowd=0` reads as that
+                      // fix working. It cannot read as anything else: the body
+                      // LOD only grants to a walker with `WantsRealBody`, and
+                      // the one place in the game that spawns crowd passes
+                      // `realBody: false`. So no crowd walker ever holds a real
+                      // body, `cast: !IsCrowd` is always `cast: true`, and this
+                      // counter is structurally zero.
+                      //
+                      // A zero that could never have been anything else is not
+                      // evidence. `bodyCrowdEligible` is the denominator that
+                      // turns it back into evidence — zero there says the branch
+                      // is unreachable today rather than untaken, and the day
+                      // the crowd gets faces both counters start answering the
+                      // question they were written for.
                       $"bodyLiftedCast={RealBody.LiftedCast} " +
                       $"bodyLiftedCrowd={RealBody.LiftedCrowd} " +
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
+                      $"bodyCrowdEligible={GameController.BodyCrowdEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it

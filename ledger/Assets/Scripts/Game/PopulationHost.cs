@@ -286,10 +286,29 @@ namespace Ledger.Game
             }
             if (busiest > BusiestPlace) BusiestPlace = busiest;
 
+            // AND HOW MANY OF THE ELIGIBLE ARE CROWD, which is the denominator
+            // that makes `bodyLiftedCrowd=0` mean something.
+            //
+            // The cast/crowd brightness split was built because every walker
+            // was being lifted past the crowd's value ceiling, and
+            // `bodyLiftedCast=1036 bodyLiftedCrowd=0` reads as that fix
+            // working. It cannot read as anything else. This method only ever
+            // grants a body to a walker with `WantsRealBody`, and the one place
+            // in the game that spawns crowd passes `realBody: false` — so no
+            // crowd walker can ever hold a real body, `cast: !IsCrowd` is always
+            // `cast: true`, and the crowd counter is structurally zero.
+            //
+            // A zero that could never have been anything else is not evidence.
+            // `bodyCrowdEligible` is what turns it back into evidence: zero
+            // there says the branch is unreachable today, and the day the crowd
+            // gets faces it goes non-zero and the lift counters start answering
+            // the question they were written for.
+            BodyCrowdEligible = 0;
             _bodyRank.Clear();
             foreach (var n in _npcs)
             {
                 if (n == null || !n.WantsRealBody) continue;
+                if (n.IsCrowd) BodyCrowdEligible++;
                 float dx = n.transform.position.x - playerPos.x;
                 float dz = n.transform.position.z - playerPos.z;
                 _bodyRank.Add((n, dx * dx + dz * dz));
@@ -360,6 +379,10 @@ namespace Ledger.Game
         /// the pass ran, `Eligible` says there was anybody to consider, `Near`
         /// says how many of them were close enough and inside the budget.
         public static int BodyLodPasses, BodyLodEligible, BodyLodNear, BodyLodSlack;
+        /// Of the eligible, how many are crowd. See the note at the count: it
+        /// is what stops `bodyLiftedCrowd=0` reading as a fix that worked when
+        /// it is a branch that cannot be taken.
+        public static int BodyCrowdEligible;
 
         /// The tick list's length and how many of its entries are repeats.
         /// Read by the sim beside the name-duplication counters, because they
