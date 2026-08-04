@@ -55,6 +55,8 @@ namespace Ledger.Game
             Denounced = 0;
             MarksFiled = 0;
             Redirected = 0;
+            NotorietyFiled = 0;
+            LastNotoriety = 0;
             LastVerdict = "none";
         }
 
@@ -98,7 +100,11 @@ namespace Ledger.Game
             // applied, so no early return can ever skip the cost — every
             // ordering where the payment comes second is one refactor away from
             // a path that does not pay.
-            if (!string.IsNullOrEmpty(seenById) && mill.Get(seenById) != null)
+            // CAPTURED AS A BOOL, because the same fact is read twice — once
+            // to file the mark and once to weigh the notoriety — and two
+            // spellings of one condition is how they come apart later.
+            bool saw = !string.IsNullOrEmpty(seenById) && mill.Get(seenById) != null;
+            if (saw)
             {
                 string said = d.Outcome == Accusation.BlewBack
                     ? $"He told them about {d.TargetId}, and they knew better."
@@ -145,8 +151,36 @@ namespace Ledger.Game
                     LastVerdict += $", inquiry pointed at {d.TargetId}";
                 }
             }
+
+            // AND THE STREET LEARNS WHO YOU ARE — THE SECOND SOURCE NOTORIETY
+            // HAS, and until now it had exactly one.
+            //
+            // WHY IT BELONGS HERE RATHER THAN IN `Informing`. Core decides what
+            // an accusation is WORTH; the Game layer decides what happens. That
+            // split is the file's own rule and it is also what stopped this
+            // being a maximum: with one source a maximum was harmless, and with
+            // two it would have meant a single witnessed killing silencing
+            // every informing the player ever did.
+            //
+            // `seen` is whether anybody actually watched you walk in, which is
+            // the same fact the mark above is conditional on. Being an informer
+            // nobody saw is not yet being an informer to anybody, and the
+            // weight doubles when they did.
+            if (game.Campaign != null)
+            {
+                double fame = Informing.Notoriety(d.Outcome, d.Corroboration, saw);
+                if (fame > 0) { game.Campaign.Noted(fame); NotorietyFiled++; }
+                LastNotoriety = fame;
+            }
             return d;
         }
+
+        /// How many accusations charged the player's reputation, and what the
+        /// last one was worth. The denominator `notoriety` needs: a run where
+        /// nobody informed and a run where the wiring broke both leave the
+        /// number where violence put it, and only this can tell them apart.
+        public static int NotorietyFiled;
+        public static double LastNotoriety;
 
         /// How many alibis the player has offered, and how many were caught.
         ///

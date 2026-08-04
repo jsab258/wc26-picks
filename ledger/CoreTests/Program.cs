@@ -7558,17 +7558,100 @@ namespace Ledger.CoreTests
             Check(afterBrawl > 0, "a brawl six people watched is worth something",
                 $"{afterBrawl:0.00}");
 
-            // WHAT YOU ARE KNOWN FOR, not a tally of everything you have done.
-            // Summing would let a hundred small acts out-weigh a murder, which
-            // is the opposite of how a street talks about somebody.
-            fame.Noted(Violence.Notoriety(0, false));
-            Check(fame.Notoriety == afterBrawl,
-                "a smaller act afterwards does not make you MORE known");
+            // EACH ACT CLOSES SOME OF THE GAP, AND THE FIRST VERSION TOOK A
+            // MAXIMUM. That assertion read "a smaller act afterwards does not
+            // make you MORE known", and it was defensible for exactly as long
+            // as violence was the only source: reputation is what you are known
+            // FOR, and a brawl does not make a killing worse.
+            //
+            // With a second source it is wrong, and wrong in this project's
+            // most expensive direction. A maximum means the loudest event
+            // permanently silences every other, so informing — wired, tested
+            // and running — could never move the number once anybody had been
+            // killed. Built, and invisible.
+            // ONE WITNESS, NOT ZERO. `Violence.Notoriety(0, false)` is exactly
+            // zero — a fight nobody saw is worth nothing, which is the model
+            // working — and `Noted` returns early on a weight of zero, so the
+            // first version of this assertion compared 0.70 against 0.70 and
+            // would have passed under EITHER rule. A test that cannot fail for
+            // the reason it was written is the shape rule 5b is about.
+            fame.Noted(Violence.Notoriety(1, false));
+            Check(fame.Notoriety > afterBrawl,
+                "a smaller act afterwards still makes you a little better known",
+                $"{afterBrawl:0.00} -> {fame.Notoriety:0.00}");
 
             fame.Noted(Violence.Notoriety(0, true));
             Check(fame.Notoriety >= 0.75,
-                "a killing does — you are known for the worst of it",
+                "and a killing is enormous whatever came before it",
                 $"{fame.Notoriety:0.00}");
+
+            // IT SATURATES, AND THE TEST CORRECTED THE CLAIM I WROTE BESIDE IT.
+            //
+            // The comment said it "approaches one and cannot reach it", which is
+            // true of the algebra and false of the arithmetic. A witnessed
+            // killing is worth 0.75, so the gap shrinks by a factor of four each
+            // time — 0.750, 0.938, 0.984 — and by the twenty-seventh the gap is
+            // 0.25^27, smaller than a double can hold beside 1.0. It lands on
+            // exactly 1.0 and stays there.
+            //
+            // That is the right BEHAVIOUR — somebody who has killed twenty-seven
+            // people in front of witnesses is as known as it is possible to be —
+            // and the wrong SENTENCE, which is the shape rule 2 keeps catching:
+            // a property asserted in prose that the code does not have. What is
+            // asserted now is what is true: it climbs, never exceeds one, and a
+            // realistic career is very well known without being pinned there.
+            var loud = new Campaign();
+            double last = 0;
+            bool climbs = true;
+            for (int i = 0; i < 200; i++)
+            {
+                loud.Noted(Violence.Notoriety(9, true));
+                if (loud.Notoriety < last || loud.Notoriety > 1.0) climbs = false;
+                last = loud.Notoriety;
+            }
+            Check(climbs && loud.Notoriety == 1.0,
+                "two hundred witnessed killings climb monotonically to total notoriety",
+                $"{loud.Notoriety:0.0000}");
+
+            var career = new Campaign();
+            career.Noted(Violence.Notoriety(3, true));
+            career.Noted(Violence.Notoriety(6, false));
+            Check(career.Notoriety > 0.8 && career.Notoriety < 1.0,
+                "one killing and one public brawl is very well known, and not yet maximal",
+                $"{career.Notoriety:0.0000}");
+
+            // ONE ACT LANDS EXACTLY AT ITS OWN WEIGHT, from nothing — identical
+            // to what the maximum did, which is why no existing reading of this
+            // number changes shape.
+            var once = new Campaign();
+            once.Noted(0.42);
+            Check(System.Math.Abs(once.Notoriety - 0.42) < 1e-9,
+                "the first act lands at exactly its own weight",
+                $"{once.Notoriety:0.0000}");
+
+            // ---- INFORMING IS THE SECOND SOURCE, AND THE ORDER IS THE DESIGN
+            //
+            // The magnitudes are authored constants like `Violence.Notoriety`'s
+            // division by six. What is asserted is the ORDERING, because that is
+            // the claim a reader would want to argue with.
+            double charged = Informing.Notoriety(Accusation.Charged, 0.8, seen: false);
+            double blew = Informing.Notoriety(Accusation.BlewBack, 0.8, seen: false);
+            double noted = Informing.Notoriety(Accusation.Noted, 0.8, seen: false);
+            double ignored = Informing.Notoriety(Accusation.Ignored, 0.8, seen: false);
+            Check(charged > blew && blew > noted && noted > ignored,
+                "a charge that sticks is the loudest, and being caught lying is next",
+                $"{charged:0.00} {blew:0.00} {noted:0.00} {ignored:0.00}");
+            Check(Informing.Notoriety(Accusation.Charged, 0.8, seen: true) >
+                  Informing.Notoriety(Accusation.Charged, 0.8, seen: false),
+                "being SEEN going in is worth more than going in");
+            Check(Informing.Notoriety(Accusation.Charged, 0.9, seen: true) <
+                  Violence.Notoriety(0, killed: true),
+                "and none of it reaches what a killing is worth",
+                $"{Informing.Notoriety(Accusation.Charged, 0.9, true):0.00} < "
+                + $"{Violence.Notoriety(0, true):0.00}");
+            Check(Informing.Notoriety(Accusation.Charged, 0.1, seen: false) <
+                  Informing.Notoriety(Accusation.Charged, 0.9, seen: false),
+                "a charge six people would back is louder than one nobody would");
 
             // AND IT FADES ON A DIFFERENT CLOCK FROM HEAT, which is the entire
             // reason it is a second number. Six weeks of complete quiet still

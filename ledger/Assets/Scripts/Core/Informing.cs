@@ -239,6 +239,46 @@ namespace Ledger.Core
         /// about whom, and duplicating it here would give the game two answers
         /// to the same question. The mark on the player is what this file
         /// produces; who hears about it is `Gossip`'s business.
+        /// HOW MUCH BEING THE MAN WHO NAMED SOMEBODY MAKES YOU KNOWN.
+        ///
+        /// The second source notoriety has, and the first was violence. That
+        /// matters more than the arithmetic: with ONE source, `Campaign.Noted`
+        /// could take a maximum and nothing was lost, because there was nothing
+        /// to accumulate against. With two, a maximum means the larger source
+        /// permanently silences the smaller — one witnessed killing at 0.75 and
+        /// no amount of informing could ever move the number again. Notoriety
+        /// is how KNOWN you are, not what you are worst for, so `Noted` now
+        /// closes a fraction of the remaining gap and this can matter.
+        ///
+        /// THE SHAPE, AND WHAT IS ASSERTED RATHER THAN GUESSED. These are
+        /// design constants like `Violence.Notoriety`'s division by six, not
+        /// thresholds read off a measurement, and pretending otherwise would be
+        /// worse than saying so. What the tests hold are the ORDERING claims,
+        /// which are the design:
+        ///
+        ///   - a charge that sticks is the loudest, because the law acting on
+        ///     your word is the version of this the street repeats;
+        ///   - blowback is the next loudest and deliberately not the quietest —
+        ///     being caught lying to a detective is famous in the wrong way;
+        ///   - being SEEN going in doubles whatever it was worth, because this
+        ///     game's premise is that acts are seen, and an informer nobody saw
+        ///     is not yet an informer to anybody;
+        ///   - nothing here reaches what a witnessed killing is worth, which
+        ///     `Violence.Notoriety` floors at 0.75.
+        ///
+        /// Corroboration scales it because a charge nobody would back and a
+        /// charge six people would back are different events wearing one name.
+        public static double Notoriety(Accusation outcome, double corroboration, bool seen)
+        {
+            double baseline =
+                outcome == Accusation.Charged ? 0.30
+                : outcome == Accusation.BlewBack ? 0.20
+                : outcome == Accusation.Noted ? 0.10
+                : 0.04;
+            double weight = baseline * (0.5 + 0.5 * Feel.Clamp01(corroboration));
+            return Feel.Clamp01(seen ? weight * 2.0 : weight);
+        }
+
         public static string Describe(Accusation a) =>
             a == Accusation.Charged ? "It stuck. They are the ones being asked about now."
             : a == Accusation.Noted ? "It went in a file. Files get read."

@@ -8434,6 +8434,13 @@ namespace Ledger.Game
                       $"notoriety={_game.Campaign.Notoriety:0.000} " +
                       $"notorietyPeak={ViolenceHost.PeakNotoriety:0.000} " +
                       $"notorietyApplied={_notorietyApplied} " +
+                      // THE SECOND SOURCE, COUNTED SEPARATELY FROM THE FIRST.
+                      // `notorietyApplied` is violence; this is informing. One
+                      // combined counter could not tell a run where nobody
+                      // informed from a run where that wiring broke, and both
+                      // leave `notoriety` exactly where the cut put it.
+                      $"notorietyFromLaw={LawHost.NotorietyFiled} " +
+                      $"notorietyLastLaw={LawHost.LastNotoriety:0.000} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +
                       $"contradiction={_denounceContradiction:0.00} " +

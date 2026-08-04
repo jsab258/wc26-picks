@@ -76,15 +76,41 @@ namespace Ledger.Core
 
         /// A notable act, on the scale `Violence.Notoriety` returns.
         ///
-        /// TAKES THE MAXIMUM RATHER THAN ACCUMULATING. Reputation is not a
-        /// tally of everything you have ever done — it is what you are known
-        /// FOR, and being known for a killing is not made worse by also having
-        /// been in a brawl. Summing would let a hundred small acts out-weigh a
-        /// murder, which is the opposite of how a street talks.
+        /// CLOSES A FRACTION OF THE REMAINING GAP, AND THE FIRST VERSION TOOK A
+        /// MAXIMUM. That was written when violence was the only caller, and it
+        /// argued itself: reputation is what you are known FOR, and being known
+        /// for a killing is not made worse by also having been in a brawl.
+        ///
+        /// It stops being defensible the moment there is a SECOND source. A
+        /// maximum means the loudest event permanently silences every other —
+        /// one witnessed killing at 0.75 and no amount of informing, poaching
+        /// or being named by the law could ever move the number again, so every
+        /// later source would be wired, tested, running and invisible. That is
+        /// this project's most expensive failure shape wearing a design
+        /// argument.
+        ///
+        /// And the argument was answering the wrong question. `Access` gates a
+        /// door on whether the man is KNOWN, not on what he is worst for. A
+        /// hundred public brawls really should get you recognised.
+        ///
+        /// So each act closes some of the distance to being known by everyone:
+        /// one act of weight w lands exactly at w from nothing — identical to
+        /// the maximum for the first event, which is why no existing reading
+        /// changes — and further acts add less and less.
+        ///
+        /// IT DOES REACH ONE, AND THE FIRST VERSION OF THIS PARAGRAPH SAID IT
+        /// COULD NOT. True of the algebra, false of the arithmetic, and the
+        /// test caught it inside a minute: a witnessed killing is 0.75, so the
+        /// gap falls by a factor of four each time and by the twenty-seventh it
+        /// is smaller than a double can hold beside 1.0. Twenty-seven witnessed
+        /// killings arriving at total notoriety is the right behaviour; the
+        /// sentence claiming otherwise was decoration. What is worth relying on
+        /// is that it needs no clamp to stay in range, which is the tell that
+        /// this is the right shape rather than a sum with a lid on it.
         public void Noted(double weight)
         {
             if (weight <= 0) return;
-            Notoriety = Feel.Clamp01(Math.Max(Notoriety, weight));
+            Notoriety = Feel.Clamp01(Notoriety + (1.0 - Notoriety) * Feel.Clamp01(weight));
         }
 
         /// Called once per day close, after `Noted` has had its chances.
