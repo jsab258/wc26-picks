@@ -3642,7 +3642,7 @@ namespace Ledger.Game
         /// single total could not tell a quiet killing from a public one.
         bool _homicideStaged;
         string _homVictim = "";
-        int _homBodies, _homSaw, _homKnew;
+        int _homBodies, _homSaw, _homKnew, _homWouldTalk;
         double _homPressure;
         Inquiry _homInquiry = Inquiry.None;
 
@@ -5340,8 +5340,30 @@ namespace Ledger.Game
             _homBodies = _game.Homicides.BodyCount;
             _homPressure = _game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, now.Day);
             _homInquiry = _game.PoliceInquiry;
+
+            // AND WHICH OF THEM WOULD ACTUALLY GO TO THE POLICE, which is the
+            // asymmetry the design turns on and a question nothing has ever
+            // been able to ask.
+            //
+            // `EvidenceHost.WhoWouldTalk` had no caller for the same reason
+            // `RecordKilling` had none: it takes the people who WATCHED, and
+            // until this method existed nobody had ever watched anything the
+            // register knew about. Rule 5b's twin — a guard needs a run in
+            // which the thing it asserts can happen, and filing a body is what
+            // supplies the condition.
+            //
+            // Its own comment is the claim being measured: "not the disloyal
+            // ones — the ones with the least nerve AND the least to lose, and
+            // that asymmetry is the interesting part: the man who likes you
+            // least is not the man who talks." `homSaw` is the denominator and
+            // sits beside it, so a zero says which kind of zero it is.
+            var filed = _game.Homicides.Of(id);
+            _homWouldTalk = filed != null
+                ? EvidenceHost.WhoWouldTalk(_game.Gossip?.Mill, filed.SawYouDoIt).Count
+                : 0;
             Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
                       + $"{_homSaw} saw it and {_homKnew} only knew of it, "
+                      + $"{_homWouldTalk} of the watchers would talk, "
                       + $"pressure {_homPressure:0.00}, inquiry {_homInquiry}, "
                       + $"Ellis={_game.EllisSpawned}");
         }
@@ -9134,6 +9156,7 @@ namespace Ledger.Game
                       $"homStaged={_homicideStaged} homVictim=" +
                       $"{(string.IsNullOrEmpty(_homVictim) ? "nobody" : _homVictim)} " +
                       $"homBodies={_homBodies} homSaw={_homSaw} homKnew={_homKnew} " +
+                      $"homWouldTalk={_homWouldTalk} " +
                       $"homPressure={_homPressure:0.00} homInquiry={_homInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
