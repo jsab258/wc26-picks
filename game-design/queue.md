@@ -78,8 +78,19 @@ behind it.
    `NameTags` has the declutter and `Manages` draws the line — offer bubbles to
    it, but only once the number says how bad it is.
 
-6. **The `[panel]` line.** *(CI)* The ledger screen's live text is in the
-   verdict and has never been read back.
+6. ~~**The `[panel]` line.**~~ **READ, AND IT IS CLEAN.** Two suspicions, both
+   checked and both wrong. The `£219 clean |  |` gap is a deliberate spacer, not
+   a missing second book — the unwashed line is conditional on `Dirty > 0` and
+   that run had washed everything. And every liability dating from day 2–3 of an
+   eleven-day run is not a stale list: `PlayerKnowledge.Entries` is
+   `OrderByDescending(LearnedAt)`, so the twelve shown are the twelve most
+   recently learned, and the dates are when the RUMOURS were posted. The
+   warehouse fire and the Quay Street package are early-week events that persist
+   because they are indelible, which is the design working.
+
+   What the panel does show, correctly: real names ("Novak", not `player` — that
+   leak was fixed earlier tonight), real stories, grip words rather than figures,
+   and provenance on every line ("posted day 3 · Rocco warned you").
 
 7. **The review camera stood inside a street sign.** `review_day5_night` at
    4ac2f0f is two black plates at arm's length with almost no city behind them.
