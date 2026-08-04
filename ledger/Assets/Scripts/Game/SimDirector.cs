@@ -2969,8 +2969,14 @@ namespace Ledger.Game
         /// What the crowding bound assumes against what the street now is.
         /// On the gap's own line, because two numbers from two lines are two
         /// readings — the mistake that cost 4 August an afternoon.
+        /// NO SPACES IN A VALUE. The verdict is space-separated `key=value`
+        /// and everything that reads it — `verdict-read.py`, `verdict-keys.py`,
+        /// every grep anybody has ever typed at it — assumes that. This first
+        /// emitted `0.45(narrowest 0.39 broadest 0.53)` and the reader duly
+        /// returned `0.45(narrowest`, silently, which is the whole class of
+        /// fault that tool was written to stop happening one layer down.
         static string CrowdWidthRead() =>
-            $"{BodyWidth:0.00}(narrowest {BodyWidth * 0.86f:0.00} broadest {BodyWidth * 1.18f:0.00})";
+            $"{BodyWidth:0.00}/{BodyWidth * 0.86f:0.00}..{BodyWidth * 1.18f:0.00}";
 
         void SampleCrowding()
         {

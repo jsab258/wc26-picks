@@ -83,7 +83,22 @@ def main():
     found = {}
     for n, line in enumerate(lines, 1):
         for k in keys:
-            m = re.search(r"(?<![\w])" + re.escape(k) + r"=(\[[^\]]*\]|\S+)", line)
+            # BRACKETS, PARENTHESES, OR A RUN OF NON-SPACE. A value with a
+            # space in it breaks the verdict's own format, and this tool
+            # returned the first word of one — `0.45(narrowest` — without a
+            # murmur, which is exactly the silent-wrong-answer this file exists
+            # to prevent. The emitter is fixed; this is the belt to its braces,
+            # because the next person to write a value with a space in it will
+            # not read this comment first.
+            # AND THE FIRST FIX FOR IT DID NOT WORK, which is the point of
+            # this line. Alternating whole-bracket-group OR non-space only
+            # helps when the value STARTS with a bracket; `0.45(narrowest
+            # 0.39 broadest 0.53)` starts with a digit, so `\S+` won the
+            # race and returned `0.45(narrowest` again. A RUN of
+            # either — brackets consumed whole, everything else
+            # character by character — is what actually holds.
+            m = re.search(r"(?<![\w])" + re.escape(k)
+                          + r"=((?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+)", line)
             if m:
                 found.setdefault(k, []).append((n, m.group(1)))
 
