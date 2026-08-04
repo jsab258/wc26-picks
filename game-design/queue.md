@@ -38,95 +38,69 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### THREE FINDINGS FROM THE 09:04 BUILD THAT NOBODY HAS ACTED ON
+### RED — perception, two builds running. THIS LEADS.
 
-**`roomQuiet` is 1656 of 2267 samples — 73% of the run.** The music model
-calls that state "the moment the player should learn to dread". It is the
-DEFAULT, not a moment. Either the condition is mis-tuned or the street is
-genuinely dead most of the time, and those want opposite fixes. **Do not
-pick a new threshold** — rule 2. Make the run print the pulse and unease
-distribution first, look, then decide.
+`perception` fails on `ring-drawn`: the door slam is not producing a visible
+noise ring. It has now gone red on the two newest runs having failed 3 times
+in 95, so this is a change rather than the usual rare flake.
 
-**Everyone who looks at you works out who you are.** `identifiedEver=41`,
-`identifiedPeak=40`, `attendingAtIdentified=41`. Identification takes 1.2
-seconds against a notice at 0.35, so anybody who attends at all gets there.
-Being careful may be structurally impossible, which is a design question
-rather than a bug — but the moat is what the street KNOWS, and if knowing is
-free the moat is shallower than it looks.
+**The diagnostic was lying and is fixed.** It reported `#3:drawn@80m
+#4:drawn@81m` beside `slamDrewRing=False`, which cannot both describe one
+event. `LastSkip`/`LastRadius` are globals read AFTER the Emit, and
+`Perceivers.Emit` returns early — before drawing — when a louder sound is
+still fresh. A swallowed slam therefore leaves the previous ring's verdict
+standing. The per-slam entry now says `noring` when no ring appeared across
+that Emit.
 
-**WITHDRAWN — that was my probe, not the game.** I filed "all 22 calls went
-to reachable people and 12 rang out anyway" as a finding. `ReachableNow`
-treats a null `whoIsNear` as "do not check", and I passed null, so it
-returned true whenever a LINE was live at that hour regardless of whether
-anybody was near it. It was measuring "does this place have a working
-telephone". Fixed to pass `NearPhone`, the predicate `RingLine` itself uses.
-Re-read it next build; there is no known fault in the phones.
+**Do not guess the cause.** Three guesses at this area have each been wrong.
+The next verdict says whether the slam is swallowed by the freshness guard or
+culled after the decision. A standing suspicion, unacted: the belief wiring
+sends more listeners to investigate, investigating raises alarms, and an
+alarm is an Emit louder than a door — if that is the chain then it is a real
+consequence of a working feature, not a bug.
 
-### SETTLED, DO NOT RE-OPEN
+`jobRan` also red, `jobsDone=0` against 2 before. Unexplained. Check whether
+the blowback probe's second accusation costs the bot time it needs.
 
-`worstWorldPair` has now come back street furniture twice — `Copper
-Row|Market Road`, then `Quay Street|Quay Street`, which is the same plate on
-two corners of one junction seen from an angle. Overlapping street signs are
-what a junction looks like. That bucket is not the fault.
+### DECISIVE — the night-frame name heap is ANSWERED
 
-`loiterNotices` 0 -> 37 of 37 looks. The re-classification fix works.
+**`namesTracked=2`, `worldTextTracked=92`.** The declutter manages TWO labels
+while ninety-two world-text items are on screen. So the people's names piled
+up in three consecutive night stills are NOT reaching `NameTags` at all —
+they sit in the world-text bucket beside the shop fascias, which is why
+`collidingNames` has read 0 or 1 throughout while the picture showed a heap.
+
+That is the fault, it is now located, and it is a real UI/immersion job:
+find why walker labels are not offered to the declutter, or are not in
+`_managed` when visible.
+
+### ALSO SETTLED
+
+- **`crowdTightestWhen=day3h6n40`** — day 3, hour 6, forty people in frame.
+  NOT the spawn artefact I hypothesised. A real mid-run pile-up in a crowd.
+- **`denounceBlewBack=True`, contradiction 0.90.** The branch where an
+  accusation comes back at you fired for the first time in the project's
+  history. Planting the contrary witness was the whole fix.
+- **`measureChecked=8 measureFailing=4`** — prose-only scoping worked, 40
+  checks down to 8, and 4 genuine failures remain to look at.
+- **`nightRunNotices=163`, up from 139.** The persist-across-look-away fix
+  did NOT reduce it, so re-firing is not from glancing away — it is genuine
+  run/stop transitions while watched. The number is per-transition and that
+  may be right; its old value of 4 is not a comparable baseline either way.
 
 ### Startable right now, in order
 
-1. **Read the A/B on `crowdTightest`** — 0.00 for six builds; the
-   antisymmetric fix is in the build dispatched at 08:29.
-2. **Read `worstNamePair` and the two bucket sizes** (build dispatched
-   08:55). It settles the night-frame name heap: either those labels are not
-   managed by the declutter, or they are and their rects do not really
-   overlap. Three stills in a row show it, so it is real either way.
-3. **Read `nightRunNotices`** against the 139 that my own reset caused — it
-   should fall a long way. If it lands back near 4 the persist-across-look-
-   away fix went too far the other way.
-4. **Read `measureFailing`** now the measure is prose-only. 24 of 40 was the
-   instrument, not the UI.
-5. **Read `denounceBlewBack`** — first time the accusation branch that costs
-   you something will have had a world in which it can fire.
-6. **`roomQuiet` — print the distribution** (item above). Local, no CI.
-7. **FOOT IK — unblocked, and the hazard is mapped. READ THIS BEFORE
-   WRITING ANY OF IT.**
-
-   `Rig.TwoBone`, `FootHeight` and `PlantBlend` are complete and tested: the
-   solver clamps over-extension rather than returning NaN, the height clamps
-   so a foot cannot chase a kerb, and the blend fades IK out through the
-   swing. Feet currently get `Level()` and nothing else, so they float and
-   clip on any slope or step.
-
-   **THE WHOLE DIFFICULTY IS BONE OWNERSHIP, NOT THE MATHS.** `CharacterRig`
-   carries five paragraphs earned over eight builds on exactly this: the
-   upside-down player was two faults, one composing without a rest pose to
-   return to and one assigning over a bought skeleton's rest rotations, and
-   the third face of it was `Swing` overwriting a clip every frame with a
-   stale snapshot — which produced a figure standing with one arm bent up
-   beside its head, "no clip and no rest pose but a blend of both".
-
-   The legs are now driven by a real locomotion clip (`animClipTime` is
-   non-zero, `speedDriven=True`). So foot IK MUST run after the Animator has
-   posed the skeleton — `OnAnimatorIK` or `LateUpdate` — and must never share
-   a bone with `Swing`. `PoseIsDriven` already guards the rest-restore and the
-   arm hang and did NOT guard the thing that writes the limbs; check whether
-   it guards this before assuming it does.
-
-   **Done looks like:** a number, not a picture. Report the per-foot vertical
-   correction actually applied and how many frames the correction was clamped
-   at its limit — a correction stuck at the clamp every frame means the ground
-   raycast is wrong, not the solver. A still is the confirmation, never the
-   evidence: the arms were judged from a frame rendered before the fix being
-   reasoned about.
-
-   Not started blind at the end of a long turn. The Game layer's first
-   compiler is a 28-minute round trip and this is the one area of the codebase
-   where a wrong assumption has cost eight of them.
-8. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
-9. **Keep retiring the reach ledger** — 50, from 71 two nights ago.
-10. **`Reaction.Confront` is a MILESTONE, not an item** — see the note in the
-   ledger: it is a constable arresting you, not a bystander walking over, and
-   it needs an authored policeman, an arrest outcome and a decision about
-   what being taken does to a save.
+1. **Read the next verdict's `slamRings`** — it now says `noring` honestly.
+   That is the red.
+2. **Find why walker nameplates are not managed by the declutter** —
+   `namesTracked=2` against 92 on screen. Local code reading, no CI needed.
+3. **`jobsDone=0`** — check the blowback probe for stolen time.
+4. **The 4 failing prose measures** — read `measureWorstWhere`.
+5. **`roomQuiet` distribution** — pulse and unease medians are dispatched.
+6. **FOOT IK** — plan and hazard written up below; still the biggest
+   game-feel item.
+7. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
+8. **Keep retiring the reach ledger** — 49, from 71 two nights ago.
 
 ---
 
