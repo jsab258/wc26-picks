@@ -219,6 +219,13 @@ def main():
 
     wanted = [n.strip().lower() for n in args.names.split(",")] if args.names \
         else DEFAULT_BODIES
+    # IF YOU NAMED THEM, YOU GET ALL OF THEM. `--count` defaults to 4 and the
+    # picker stops there, so asking for six by name would have silently
+    # fetched four and said nothing about the other two — a silent cap, which
+    # is the thing this project refuses to ship. The default list is still
+    # bounded by --count; an explicit list bounds itself.
+    if args.names and args.count < len(wanted):
+        args.count = len(wanted)
     chosen, seen = [], set()
     for want in wanted:
         for cid, name in chars:
