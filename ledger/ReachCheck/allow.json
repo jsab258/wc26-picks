@@ -40,7 +40,6 @@
     "Framing.SubjectX": "WIRE: M17 — cinematic framing composes the authored beats; the thirds-placement helper is used only by the shot tests.",
     "Framing.WouldCrossTheLine": "WIRE: M17 — same, and the one that would actually stop a bad cut.",
     "GameTime.HoursUntil": "BY DESIGN: superseded by GameTime.MinutesUntil, which every caller uses. Delete rather than wire — kept listed so the deletion is a decision and not a drift.",
-    "HarmBook.Hottest": "WIRE: M19 — which feud is worst right now, for the Director to author against.",
     "Informing.RedirectsInquiry": "WIRE: M21 law-as-a-tool, and it needs something that does not exist yet. `Inquiry` is DERIVED from HomicideBook's pressure rather than stored, so there is no value to redirect — pointing the detective elsewhere means the book growing a second subject, which is its own change. Weigh is wired and gated as of tonight; this clause is not, and saying so is the point of this ledger.",
     "LightModel.Aces": "BY DESIGN: the ACES tonemap runs in the shader, not on the CPU. The C# copy exists so the pixel gates can predict what the shader will produce, and the sim is its caller.",
     "LightModel.AoDirectRelief": "WIRE: M17 — same.",

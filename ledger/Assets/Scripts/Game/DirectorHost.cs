@@ -85,6 +85,24 @@ namespace Ledger.Game
                 if (c.Cut == "skim") w.Ignored.Add($"{c.Name} has been on a skimmed cut since day {c.RecruitedDay}");
             foreach (var d in Debts.All)
                 if (d.Outstanding) w.Ignored.Add($"{d.Name} still owes Mickey's book £{d.Amount}");
+            // THE WORST FEUD ON THE BOARD. `HarmBook.Hottest` is documented as
+            // existing "for the Director to author against" and the Director
+            // has never been shown one — it is the last entry in this list's
+            // own category and the most obviously dramatic: two of your people
+            // who will not stand next to each other, and it is your problem
+            // because you are the one who needs them both.
+            //
+            // `Ignored` and not `Recent`, because this list's comment is exact
+            // about what belongs in it — "what has been left undone" — and a
+            // feud nobody has settled is precisely that. A feud is only here
+            // while it is live; a settled one is a thing that happened.
+            var worstFeud = Harm != null ? Harm.Hottest() : null;
+            if (worstFeud != null)
+                w.Ignored.Add($"{worstFeud.AName} and {worstFeud.BName} have been at each other "
+                    + $"since day {worstFeud.StartedDay} and nobody has settled it"
+                    + (Harm.WillWorkTogether(worstFeud.AId, worstFeud.BId)
+                        ? "" : " — they will not work together now"));
+
             int unhandled = Knowledge.Entries.Count(k => !k.Handled);
             if (unhandled > 0) w.Ignored.Add($"{unhandled} stories about the player are in the street and unanswered");
             foreach (var d in Demands)
