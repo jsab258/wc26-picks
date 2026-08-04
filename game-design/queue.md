@@ -38,58 +38,31 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **READ THE FIVE BUILDS IN FLIGHT.** *(CI)* Between them they carry six new
-   gates and none has been seen passing yet. `claimsOk`, `lawOk` (the stronger
-   four-clause version), `allegianceOk` (failed once on `poachesHeard=0`, poach
-   now staged), the doubt panel predicate, `confabInJunction`, and the honest
-   crowd-cost curve. **Lead any report with whichever of these is red.**
-2. **RE-LEARN THE VERDICT KEYS once they land.** Twenty-four new measurements
-   are unprotected until a landed verdict carries them: `python3
-   tools/verdict-keys.py --learn` after the pull. The tool reads what LANDED,
-   not the source, which is correct and makes this a real step.
-3. **Read `confabInJunction` against `confabs`.** *(CI)* The road test was
-   rejecting 183 of 190 pairs by asking for something the world never produces
-   — people walk down the middle of the road, mean 1.74m from the centreline.
-   It asks about junctions now. If confabs do not recover, the cause is
-   upstream in `ConfabCandidates` and the pace hypothesis comes back.
-4. **Read the honest crowd curve, then decide a count.** *(CI)* The first
-   reading was culling, not skinning. If cost rises gently, near-crowd skinned
-   bodies become worth doing the moment BODIES.bat lands textured models.
-4b. **THE SKINNED CROWD — costed, designed, deliberately NOT shipped tonight.**
-   The measurement is in and it is the one `CharacterRig` demanded in its own
-   words: `crowdCost n=0[10.3] n=8[11.1] n=24[13.1] n=50[12.8]`, so fifty
-   VISIBLE skinned figures cost about 2.5ms on a runner with no GPU at all.
-   Affordable. The blocker is retired.
-
-   **What stopped it going in at midnight, and it is not nerve.**
-   `RealBody.TryAttach` writes about a dozen statics — `Upright`, `Parts`,
-   `DressedAreaFraction`, the bind and scaled pose spans — and every one of
-   them describes THE LAST BODY ATTACHED. Point it at the crowd and `bodiesOk`
-   stops gating the player and starts gating whichever NPC spawned last. That
-   is the metric drift this project has been bitten by three times, introduced
-   on purpose.
-
-   **The design, so tomorrow is twenty minutes and not a fresh decision:** a
-   `TryAttachCrowd` wrapper that snapshots those statics, calls the ONE
-   `TryAttach` (never a second copy of it — see NotePoach and the wardrobe
-   rule, both of which were two implementations of one idea), and restores
-   them. Plus: crowd bodies must NOT get `AlwaysAnimate`, and `SceneAudit`'s
-   `skinned=2` becomes `skinned=100+`, so read anything gating on it first.
-
-   **And it is worth far more after BODIES.bat.** Today it would be fifty
-   copies of two grey bots. Tomorrow it is six textured characters, which is
-   the difference between a crowd and a clone army.
-
-5. **Jafar runs BODIES.bat ~10:00 CEST.** README now opens with the three
-   steps; the reminder fires 07:55 UTC. `bodyChoices` 2 - 6, and those models
-   are TEXTURED so the wardrobe leaves them alone entirely.
-6. **Keep retiring the reach ledger — it is a to-do list I wrote myself, with
-   reasons.** 90 to 81 tonight and every one was WIRING, not building. Next
-   cheapest: `HarmBook.FeudsOf`/`Hottest` (feuds are recorded and drive
-   nothing — "the cheapest allegiance signal in the game"),
-   `OperationPlan.Bringing` (the plan knows what you are carrying into a job
-   and the player cannot see it), `PurseBook.Owed` and `Payment.InFull` (the
-   debt-collection loop).
+1. **ONE GATE STILL RED: `claims[made=0]`.** *(CI)* Everything else that failed
+   tonight is fixed and confirmed by a landed build — `poachesHeard=1`,
+   `allegianceOk=True`, and the companion no longer appears in any failing
+   list. The claims probe was lifted out of the denunciation's one-shot guard
+   in 79f53c0 and that build has not landed. **Read `claimWhy` when it does**;
+   it names which of the three silent early returns fired.
+2. **Read `collidingBubbles` against `bubblesOnScreen`.** *(CI)* The night
+   still has two speech bubbles drawn through each other. Fifty-six confabs is
+   fifty-six bubbles. `NameTags` already has the declutter and `Manages`
+   already draws the line — offer bubbles to it, but **only once the number
+   says how bad it is**.
+3. **Read the `[panel]` line.** *(CI)* The ledger screen's live text now goes
+   into the verdict. Everything built tonight ships into that panel and none
+   of it has been read back yet.
+4. **Jafar runs BODIES.bat ~10:00 CEST.** README opens with the three steps;
+   reminder fires 07:55 UTC.
+5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
+   more once the six textured models are in.
+6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
+   rather than building. What is left is mostly UI surfaces
+   (`OperationPlan.Bringing` needs crew selection) and one real refactor: the
+   `Mixing.*` voice budget has no choke point to enforce it, because the audio
+   layer plays through several `AudioSource`s directly. That is a design job,
+   not a wiring, and it is the honest reason those five entries survived
+   tonight.
 
 ## Next
 
