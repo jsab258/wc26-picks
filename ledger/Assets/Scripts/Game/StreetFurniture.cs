@@ -202,6 +202,69 @@ namespace Ledger.Game
             }
         }
 
+        /// Bus stops and cab ranks drawn, and the count.
+        public static int TransitCount { get; private set; }
+
+        /// THE BUS ALREADY STOPS; NOTHING SAYS WHERE.
+        ///
+        /// `TrafficSim.BusLoop` and `TrafficSim.Ranks` have been on the reach
+        /// ledger since it was written, and BOTH REASONS WERE WRONG in the
+        /// direction that wastes a day. `BusLoop` said "the bus route exists and
+        /// no bus is drawn following it" — a bus IS spawned onto the loop by
+        /// `Populate`, `RouteBusFrom` keeps it there, `IsBusStop` makes it dwell
+        /// every third junction, and `TrafficHost` draws every vehicle by kind.
+        /// The whole behaviour runs. `Ranks` had already been half-corrected on
+        /// 4 August — taxis do wait on ranks — and its remaining note names the
+        /// real gap in one clause: "nothing draws a rank, signs one".
+        ///
+        /// That is the same gap for both, and it is the interesting one. A bus
+        /// that halts for eight seconds at an unmarked corner is a bug to
+        /// anybody watching; the same halt beside a post with a sign on it is a
+        /// bus route. `StreetFurniture` exists for exactly this argument and
+        /// makes it in its own header — *"a rule the city obeys without telling
+        /// you is indistinguishable from arbitrary behaviour. A car stopping at
+        /// an empty junction looks like a bug until there is a sign there."*
+        /// Written about stop signs, true of this, and nobody applied it.
+        ///
+        /// FROM THE SIM'S OWN ROUTE, NOT A SECOND COPY OF IT. The loop is
+        /// derivable from `StreetMap` alone, so this could have recomputed it
+        /// and been right today — and would be the fourth "one idea, two
+        /// implementations" in this project, with the marker drifting off the
+        /// route the first time either rule changed and nothing to report it.
+        /// The sim is passed in and asked.
+        public static void BuildTransit(TrafficSim sim)
+        {
+            TransitCount = 0;
+            if (sim == null) return;
+
+            foreach (var id in sim.BusLoop)
+            {
+                if (!sim.IsBusStop(id)) continue;
+                var n = StreetMap.Node(id);
+                if (n == null) continue;
+                // OFF THE CARRIAGEWAY, on the same reasoning the bins are
+                // pulled back to their walls: a post standing in a running lane
+                // is a permanent obstruction to a sim that treats geometry as
+                // real. Four metres out along the diagonal clears an avenue
+                // junction's corner without needing a footway lookup that does
+                // not exist.
+                var at = new Vector3((float)n.X + 4f, 0, (float)n.Z + 4f);
+                Post($"BusStop_{id}_post", at, 2.6f);
+                Plate($"BusStop_{id}", at + new Vector3(0, 2.35f, 0), "BUS", 45f);
+                TransitCount++;
+            }
+
+            foreach (var id in sim.Ranks)
+            {
+                var n = StreetMap.Node(id);
+                if (n == null) continue;
+                var at = new Vector3((float)n.X + 4f, 0, (float)n.Z - 4f);
+                Post($"Rank_{id}_post", at, 2.6f);
+                Plate($"Rank_{id}", at + new Vector3(0, 2.35f, 0), "TAXI", -45f);
+                TransitCount++;
+            }
+        }
+
         // ---- pieces ----
 
         static void Post(string name, Vector3 at, float height)

@@ -81,6 +81,12 @@ namespace Ledger.Game
         {
             Traffic = new TrafficSim(seed: PopulationSeed);
             Traffic.Populate(VehicleCount);
+            // HERE RATHER THAN IN `WorldBuilder`, because this is where the
+            // route exists. `StreetFurniture.Build` runs during world
+            // construction and has no sim; asking it to recompute the bus loop
+            // from `StreetMap` would work today and be a second copy of a rule
+            // that only one place owns.
+            StreetFurniture.BuildTransit(Traffic);
             _mpb = new MaterialPropertyBlock();
             foreach (var v in Traffic.Vehicles) EnsureBody(v);
 

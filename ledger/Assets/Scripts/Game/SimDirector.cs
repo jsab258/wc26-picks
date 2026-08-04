@@ -9007,6 +9007,12 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} dressedRoadDepth=[{RoadDepthRead()}] doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
+                      // BUS STOPS AND CAB RANKS DRAWN. Counted for the reason
+                      // `cables` is: "the bus route reads as a route" has to be
+                      // a number, and zero here means the sim's own loop came
+                      // back empty — which would be a map fault reported as
+                      // scenery rather than found six builds later.
+                      $"transit={StreetFurniture.TransitCount} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
