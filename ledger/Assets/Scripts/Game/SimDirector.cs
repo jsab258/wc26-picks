@@ -1658,6 +1658,7 @@ namespace Ledger.Game
             if (cam == null) return -1;
             var boxes = new List<Rect>();
             var other = new List<Rect>();
+            var bubbles = new List<Rect>();
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 if (t == null || string.IsNullOrEmpty(t.text)) continue;
@@ -1682,7 +1683,29 @@ namespace Ledger.Game
                 // identical loop sat one file away doing it again. Split
                 // rather than filtered, so world text keeps being counted and
                 // stops being blamed on the declutter.
-                (NameTags.Manages(t) ? boxes : other).Add(rect);
+                // THREE BUCKETS, BECAUSE A PICTURE FOUND A THIRD THING.
+                //
+                // `review_day1_night.jpg` has two speech bubbles drawn over
+                // each other on the right-hand side — "Ask me agai…are.
+                // Th…ear … the" — which is unreadable and is nobody's fault but
+                // tonight's: the junction fix took confabs from 7 a run to 56,
+                // and fifty-six conversations is fifty-six bubbles.
+                //
+                // `collidingWorldText` already counted it and could not say so,
+                // because it lumps bubbles in with street plates and shop
+                // fascias — and plates overlapping at a junction is a junction.
+                // A number that cannot tell a fault from a feature is the
+                // scope mistake this metric was split to fix, one level down.
+                //
+                // Counted before it is decluttered, deliberately. Rule 4: a
+                // picture is excellent evidence that something is WRONG and
+                // poor evidence of what — so the run reports how many bubbles
+                // actually overlap, and the bound comes off that series rather
+                // than off one JPEG at midnight.
+                var bucket = NameTags.Manages(t) ? boxes
+                           : t.GetComponentInParent<SpeechBubble>() != null ? bubbles
+                           : other;
+                bucket.Add(rect);
             }
             int pairs = 0;
             for (int i = 0; i < boxes.Count; i++)
@@ -1692,10 +1715,16 @@ namespace Ledger.Game
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
                     if (other[i].Overlaps(other[j])) _collidingWorldText++;
+            _collidingBubbles = 0;
+            _bubblesOnScreen = bubbles.Count;
+            for (int i = 0; i < bubbles.Count; i++)
+                for (int j = i + 1; j < bubbles.Count; j++)
+                    if (bubbles[i].Overlaps(bubbles[j])) _collidingBubbles++;
             return pairs;
         }
 
         int _collidingWorldText = -1;
+        int _collidingBubbles = -1, _bubblesOnScreen = -1;
 
         int _worldText = -1, _worldTextDepth = -1;
 
@@ -6072,7 +6101,9 @@ namespace Ledger.Game
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
-                      $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} textMirrored={_textMirrored} " +
+                      $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
+                      $"collidingBubbles={_collidingBubbles} bubblesOnScreen={_bubblesOnScreen} " +
+                      $"textMirrored={_textMirrored} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
                       $"nameTagsTooNear={NameTags.TooNear} nameTagsRects={NameTags.RectCalls} " +
                       $"worstNameMetres={NameTags.WorstNameMetres:0.00} " +
