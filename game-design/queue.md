@@ -85,10 +85,22 @@ distinguish. One reading of 0.00 is not evidence either way; get a series.
 1. **Read the A/B on `crowdTightest`.** It has read exactly 0.00 for five
    builds. If it is still 0.00 after the antisymmetric fix, the coincident
    case is not the last cause and the next step is to print WHICH pair.
-2. **`Reaction.Confront` — the next substantial thing.** The ledger calls it
-   "the single most visible missing reaction in the game": an NPC who saw you
-   do it walking over. Immersion rather than instrumentation. Crowd
-   separation is verified working now, so the hold is genuinely spent.
+2. **`Reaction.Confront` IS NOT WHAT THE LEDGER SAID, and it is a milestone
+   rather than a queue item.** It claimed "an NPC who saw you do it walking
+   over", which is why it kept getting picked up as a quick wiring. Opened it:
+   it takes a CONSTABLE'S observation and returns Arrest, ResistedArrest or
+   NothingToArrest, with deliberately no chase — "a foot chase is a different
+   genre and would be the least distinguished thing in this game".
+
+   The sighting condition is already reachable — it wants Slot.Actor at
+   Rung>=4 and the sim reports `deedBestRung=4`. **What is missing is who the
+   law is.** `Constable` exists only as a frisker role; no NPC is a policeman,
+   nobody holds an observation as one, and there is no arrest state for the
+   player to be in. Wiring it needs an authored constable on a beat, an arrest
+   outcome, and a decision about what being taken DOES to a save.
+
+   So it does not go in this list. The entry now says all of that so the next
+   reader does not spend the third session rediscovering it.
 3. **`worstWorldPair` by area** lands in the 08:25 build. If it names two
    people rather than two street plates, walker nameplates are not reaching
    the declutter and that is the visible night-frame fault.
