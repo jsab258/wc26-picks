@@ -132,6 +132,35 @@ agreement. **When you change what a system DOES, re-read what its numbers ASK**,
 the same sweep as re-reading its comments, and say in the comment which question
 the number is now answering.
 
+**AND A PEAK CANNOT DESCRIBE A STREET, HOWEVER HONEST THE PEAK IS.** 4 August,
+six probes, one fault. A peak answers *"did it ever happen"*. It is read as
+*"is this how it looks"*, and those diverge the moment anything varies:
+
+| probe | said, across consecutive green runs | and the median said |
+|---|---|---|
+| `collidingBubbles` | 91, then 16, then 116 | 0.00 over 166 samples |
+| `billboardsStale` | 5, then 12, then 27 | 0.000 of 53 tracked |
+| `crowdRead` | 24 bodies, then 11, then 6 | the medians moved 19.5 → 2.8 → 3.0 |
+
+The first two were peaks wandering with how many objects happened to be in
+shot. **The third is the sharper lesson, because the sample SIZE is part of the
+statistic and nothing about the number says so.** I published a conclusion off
+the 24-body sample, reversed it off the 6-body one, and withdrew both — two
+opposite claims about the same thing in the same hour, each honest arithmetic
+on a sample that could not carry it.
+
+The repair is the same every time and it is cheap: **accumulate per instant,
+print the median beside the peak, and name what the number is a statistic OF.**
+The peak keeps its job — one still with a line printed backwards is the fault —
+and stops being asked a question it structurally cannot answer.
+
+Two tells that a reading is about to do this to you: the value swings by an
+order of magnitude between runs that changed nothing relevant, or you are about
+to compare two runs without knowing which FRAME each came from. `bodyReadWhen`
+exists because the same metric read 35.7 and 10.8 with no code change between
+them — noon against midnight, quoted side by side as though they were the same
+measurement.
+
 ## 3. Suspect the instrument first
 
 Three times in one month the tool was the thing at fault:
