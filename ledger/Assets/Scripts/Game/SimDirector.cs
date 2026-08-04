@@ -1663,6 +1663,25 @@ namespace Ledger.Game
         int _textVisibleAtAway = 0;
 
         int _billboardsStale = 0;
+        /// How many billboards existed at the instant the worst count was
+        /// taken. The only denominator `billboardsStale` can honestly be
+        /// divided by — same lesson, same shape, as `bubblesAtWorst`.
+        int _billboardsAtWorst = 0;
+        readonly List<float> _billboardStaleFrac = new List<float>();
+
+        /// The typical share of billboards drifting, against the peak's worst
+        /// moment. -1 for "never sampled", because a median of zero is a real
+        /// and welcome reading and must not be confused with no reading.
+        double BillboardStaleMedian
+        {
+            get
+            {
+                if (_billboardStaleFrac.Count == 0) return -1;
+                var s = new List<float>(_billboardStaleFrac);
+                s.Sort();
+                return s[s.Count / 2];
+            }
+        }
         float _billboardWorstDeg = 0f;
         int _billboardsAimed = 0;
         int _billboardsTracked = 0;
@@ -4919,7 +4938,25 @@ namespace Ledger.Game
             // — the same reason `bubblesOnScreen` became a peak the night it
             // read 0 beside a picture with two bubbles in it.
             int staleNow = Billboard.Misaimed(cam, 20f);
-            if (staleNow > _billboardsStale) _billboardsStale = staleNow;
+            int trackedNow = Billboard.Tracked;
+            // THE DENOMINATOR FROM THE SAME INSTANT, and a series beside the
+            // peak — the third probe tonight to need both, and the first to get
+            // them without a wrong reading in between.
+            //
+            // `billboardsStale` went 5 -> 12 -> 27 across three green runs and
+            // I nearly wrote that down as a regression. It is a run PEAK of a
+            // count, and a count rises with how many billboards happen to be
+            // visible: 27 of 55 and 27 of 500 are the same number and opposite
+            // findings. The peak keeps its own denominator now, and the
+            // fraction series says what the run typically looked like — which
+            // is the reading a peak structurally cannot give, as sixteen
+            // bubbles against a hundred and sixteen just demonstrated.
+            if (staleNow > _billboardsStale)
+            {
+                _billboardsStale = staleNow;
+                _billboardsAtWorst = trackedNow;
+            }
+            if (trackedNow > 0) _billboardStaleFrac.Add((float)staleNow / trackedNow);
             float staleDeg = Billboard.WorstDegrees(cam);
             if (staleDeg > _billboardWorstDeg) _billboardWorstDeg = staleDeg;
             _billboardsAimed = Billboard.AimAll(cam);
@@ -7349,7 +7386,8 @@ namespace Ledger.Game
                       $"bubbleOverlapMedian={bubbleMedian:0.00} bubbleSamples={_bubbleOverlap.Count} " +
                       $"textMirrored={_textMirrored} " +
                       $"textFacingAway={_textFacingAway} textVisibleAtAway={_textVisibleAtAway} textVisible={_textVisible} " +
-                      $"billboardsStale={_billboardsStale} " +
+                      $"billboardsStale={_billboardsStale} billboardsAtWorst={_billboardsAtWorst} " +
+                      $"billboardStaleMedian={BillboardStaleMedian:0.000} " +
                       $"billboardWorstDeg={_billboardWorstDeg:0.0} " +
                       $"billboardsAimed={_billboardsAimed} " +
                       $"billboardsTracked={_billboardsTracked} " +

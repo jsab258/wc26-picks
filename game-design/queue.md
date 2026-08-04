@@ -79,9 +79,29 @@ describing the fault exactly: one flat material with no separation between
 coat, trousers, skin and hair, which is what makes the figure read as a
 mannequin next to blocky but clearly-dressed NPCs. `bodyReadSat=0.510` against
 `crowdReadSat=0.699` is the same thing in pixels — the player is the least
-colourful body in the frame. **The build is material ZONES, not a palette
-change**, and it is Game-layer: torso/arms coat, legs darker, head and hands a
-skin tone. A gate that asks how many distinct materials the body carries.
+colourful body in the frame.
+
+**REVERSED BY THE CORRECTED PROBE, AND THE MATERIAL-ZONE BUILD IS OFF.** That
+"least colourful body in the frame" reading came from a crowd number that was a
+pixel-weighted mean over three bodies — one near-camera body setting it almost
+alone. With 24 bodies each contributing one reading and the comparison against
+their median, `f06075e` says: player luminance 10.8 against a crowd median of
+19.5 in a range of **4.0 to 62.9**, player saturation 0.374 against a median
+0.564 in a range of **0.18 to 0.82**.
+
+The player is in the lower half on both axes and **comfortably inside the
+crowd's spread** — not an outlier and not the palest thing on the street. So
+what reads as undressed is the SHAPE: a smooth anatomical mesh among blocky
+clothed ones. **No wardrobe, palette or material-zone change touches that**, and
+a week of colour work would have been spent on a hypothesis a corrected
+instrument refutes in one run. It points at the textured models, which is
+`BODIES.bat`.
+
+**And `bodyReadLum` is not comparable across runs** — 35.7 on one, 10.8 on the
+next, with no change to how the player is measured. The probe runs on every
+shot and the last one wins, so one number came off a noon frame and the other
+off midnight. `bodyReadWhen` names the frame now. Player-vs-crowd within one
+run is unaffected; that was always the comparison.
 
 **Landed and green: `0eeee6d`, `efff6fc`, `6ca5db4`, `180f626` — four in a row.**
 
