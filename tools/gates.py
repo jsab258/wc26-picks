@@ -117,6 +117,81 @@ def ordered_runs():
     return [(s, p) for s, p in out if NO_SIM not in read(p)]
 
 
+NUMBER = r"[-+]?\d+(?:\.\d+)?"
+
+
+def series(key):
+    """Every landed value of one verdict number, newest run first.
+
+    WHY, AND IT IS THE MOST EXPENSIVE HABIT IN THIS PROJECT WRITTEN AS A
+    COMMAND. `queue.md` told me to read the incoming crowd build against
+    "`confabs` was 74". 74 is the single highest reading in the project's
+    history. The actual distribution over 43 runs of the current test is
+    min 29, quartiles 43 / 49 / 60 — so the baseline is 49, and any reading
+    in the low forties would have been reported as conversation collapsing
+    under the crowd change, with a fix then applied to working code.
+
+    A peak standing in for a description. CLAUDE.md names that fault twice
+    and neither warning stopped it, because the failure is not forgetting —
+    it is that getting the series means a loop over a hundred verdicts and
+    quoting the one number already on the page does not. So this is the loop.
+
+    IT PRINTS THE WHOLE SERIES, not just the summary, and that is the part
+    that matters rather than the quartiles. The all-time median of `confabs`
+    is 23, which is a number describing nothing: the older runs were a
+    different test — a flat road rule before junctions — reading 1 to 13. No
+    statistic can see that break and every statistic is ruined by it. A
+    reader looking at the series sees it immediately.
+    """
+    runs = ordered_runs()
+    pat = re.compile(r"\b" + re.escape(key) + r"=(" + NUMBER + r")\b")
+    hits = []
+    for sha, path in runs:
+        m = pat.search(read(path))
+        if m:
+            hits.append((sha, float(m.group(1))))
+
+    if not hits:
+        print(f"gates --series {key}: no landed run carries that name.")
+        print(f"  {len(runs)} runs read. Check the spelling against a verdict, or the")
+        print("  number may never have reached the verdict — see tools/verdict-reach.py.")
+        return 1
+
+    xs = [v for _, v in hits]
+    print(f"{key}: {len(xs)} landed run(s), newest first")
+    print()
+    print("  " + "  ".join(f"{v:g}" for v in xs))
+    print()
+    if len(xs) < 5:
+        print(f"  n={len(xs)} — TOO FEW TO SUMMARISE. The values above are the evidence;")
+        print("  a median of four things is not a baseline. Quote the runs, not a statistic.")
+        return 0
+
+    import statistics
+    # THE RECENT WINDOW LEADS, and the all-time line is the one carrying the
+    # warning — the first version printed them the other way round, which puts
+    # the most misusable number on the most-read line. Ten is a display width,
+    # not a claim about where a regime starts; the series above is the evidence
+    # and this is a convenience over it.
+    recent = xs[:10]
+    print(f"  newest {xs[0]:g}")
+    print(f"  last {len(recent)}:  min {min(recent):g}   median "
+          f"{statistics.median(recent):g}   max {max(recent):g}"
+          f"      <- compare a landing run against THIS")
+    srt = sorted(xs)
+    q = statistics.quantiles(srt, n=4)
+    print(f"  all {len(xs)}:  min {srt[0]:g}   quartiles {q[0]:g} / "
+          f"{statistics.median(srt):g} / {q[2]:g}   max {srt[-1]:g}")
+    print()
+    print("  READ THE SERIES BEFORE EITHER SUMMARY, and distrust the all-runs line.")
+    print("  If the old values sit in a different band from the new ones the test")
+    print("  itself changed, and an average across that break describes nothing.")
+    print("  `confabs` is the live example: 1-13 under the old flat-road rule and")
+    print("  29-74 under the junction one, for an all-time median belonging to")
+    print("  neither. No statistic can see that break. The series makes it obvious.")
+    return 0
+
+
 def flaky():
     """Which gates have gone red, how often, and HOW LONG AGO.
 
@@ -247,6 +322,12 @@ def main():
         return flaky()
     if "--pending" in sys.argv:
         return pending()
+    if "--series" in sys.argv:
+        i = sys.argv.index("--series")
+        if i + 1 >= len(sys.argv):
+            print("gates --series: needs a verdict key, e.g. --series confabs")
+            return 2
+        return series(sys.argv[i + 1])
     count = 12
     if len(sys.argv) > 1:
         try:

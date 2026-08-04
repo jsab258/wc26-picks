@@ -43,9 +43,24 @@ scheduling instead of to CI's output.
 1. **Read the build carrying the crowd separation and the 180 yield.** Both
    are now enforcement rather than measurement, so the numbers to read are
    whether they WORKED and whether they broke anything: `crowdGapMedian`
-   should rise off 0.00 without the confabs collapsing (`confabs` was 74), and
-   `lineYielded` should track `lineCrossedLive` exactly — if it drifts below,
-   a crossing was detected and not acted on.
+   should rise off 0.00 without the confabs collapsing, and `lineYielded`
+   should track `lineCrossedLive` exactly — if it drifts below, a crossing
+   was detected and not acted on.
+
+   **CONFABS IS 49, NOT 74, AND THIS LINE USED TO SAY 74.** That is the
+   single highest reading in the project's history quoted as if it were the
+   baseline — a peak standing in for a description, which CLAUDE.md names
+   twice and which I was about to compare a landing build against. Anything
+   in the low forties would have read as the crowd separation having broken
+   conversation, and the fix would have been applied to working code.
+
+   The series, from every landed verdict under the junction rule (43 runs):
+   min 29, quartiles 43 / **49** / 60, max 74. So the honest test is whether
+   the new reading falls outside 29–74 at all, and a single run inside that
+   band says nothing in either direction. Earlier runs read 1–13 and are a
+   DIFFERENT TEST — the flat-3.0m road rule before junctions — so the
+   all-time median of 23 is three regimes averaged together and means
+   nothing. Do not quote it.
 2. **`claimOverheard` with a bystander planted.** First reading was 0 for a
    whole run because nobody happened to be within fourteen metres. A second
    host now stands two metres away for the duration of the claim and is put
