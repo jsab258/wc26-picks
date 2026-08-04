@@ -2005,6 +2005,43 @@ namespace Ledger.CoreTests
             Check(rocco.Loyalty < 0.6, "being collected on is remembered coolly");
             Check(d.Collect(rocco, w, mill, now) == CollectOutcome.Nothing, "a closed page is closed");
 
+            // PAID IN FULL AND CLEANED OUT IS A DIFFERENT DAY FROM PAID IN
+            // FULL, and until 4 Aug the game could not tell them apart —
+            // `Payment.InFull` and `Payment.Emptied` were both written and
+            // both unread.
+            //
+            // ACCEPTING CASE FIRST (rule 5b), and it is the one a careless fix
+            // would break: a man with money to spare who settles his page must
+            // still cost only the ordinary 0.05, or every debt collected in the
+            // game suddenly costs twice as much standing.
+            var pursesRich = new PurseBook();
+            pursesRich.Add(new Purse { OwnerId = "rocco", Name = "Rocco", Weekly = 300, Ceiling = 900, Cash = 500 });
+            var (millRich, roccoRich, _) = FreshMill();
+            roccoRich.Loyalty = 0.6;
+            var dRich = new Debtor { Id = "rocco", Name = "Rocco", Amount = 60 };
+            double beforeRich = roccoRich.Loyalty;
+            Check(dRich.Collect(roccoRich, new Wallet(0), millRich, now, pursesRich) == CollectOutcome.Paid,
+                  "a debtor with money to spare pays and closes the page");
+            Check(Math.Abs((beforeRich - roccoRich.Loyalty) - 0.05) < 1e-9,
+                  "and it costs the ordinary warmth, not the emptied price",
+                  $"{beforeRich - roccoRich.Loyalty:0.000}");
+
+            // THE REJECTING CASE: exactly enough, and nothing left. Same
+            // outcome, same cleared page, a different man tomorrow.
+            var pursesExact = new PurseBook();
+            pursesExact.Add(new Purse { OwnerId = "rocco", Name = "Rocco", Weekly = 80, Ceiling = 120, Cash = 60 });
+            var (millExact, roccoExact, _) = FreshMill();
+            roccoExact.Loyalty = 0.6;
+            var dExact = new Debtor { Id = "rocco", Name = "Rocco", Amount = 60 };
+            double beforeExact = roccoExact.Loyalty;
+            Check(dExact.Collect(roccoExact, new Wallet(0), millExact, now, pursesExact) == CollectOutcome.Paid,
+                  "paying to the penny still closes the page");
+            Check(Math.Abs((beforeExact - roccoExact.Loyalty) - 0.09) < 1e-9,
+                  "and being cleaned out costs what being emptied costs",
+                  $"{beforeExact - roccoExact.Loyalty:0.000}");
+            Check(roccoExact.Memory.Events.Any(m => m.Text.Contains("nothing left in the place")),
+                  "and he remembers the drawer, not just the debt");
+
             // The nervous beg a day; asking again same day does nothing.
             var (mill2, r2, _) = FreshMill(greed: 0.5, nerve: 0.3);
             r2.Loyalty = 0.3;

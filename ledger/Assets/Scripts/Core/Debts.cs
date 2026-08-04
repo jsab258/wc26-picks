@@ -45,11 +45,16 @@ namespace Ledger.Core
                 // the old behaviour exactly; with one, a man who turns over £90
                 // a week cannot produce £400 because you asked nicely.
                 int paid = Amount;
+                // FALSE WITH NO PURSE BOOK, and that is the old behaviour
+                // exactly: without a book there is no such thing as an empty
+                // drawer, so nobody can be cleaned out by paying.
+                bool cleanedOut = false;
                 if (purses != null)
                 {
                     var payment = purses.Take(Id, Amount, now.Day, g.DisplayName);
                     paid = payment.Paid;
                     LastLine = payment.Line;
+                    cleanedOut = payment.Emptied && payment.InFull;
                 }
                 LastPaid = paid;
 
@@ -76,9 +81,31 @@ namespace Ledger.Core
                 }
 
                 Collected = true;
-                g.Loyalty = Math.Clamp(g.Loyalty - 0.05, 0, 1);
-                g.Memory.Append(new MemoryEvent(now, "conversation", 0.6,
-                    $"Paid the new owner what I owed Mickey. £{paid}. It stung, but fair is fair."));
+
+                // PAID IN FULL AND CLEANED OUT IS NOT THE SAME DAY AS PAID IN
+                // FULL, and until now the game could not tell them apart.
+                //
+                // `Payment` has carried `InFull` and `Emptied` since it was
+                // written and nothing read either — `Payment.InFull` has an
+                // entry on the reach ledger saying "the purse records it and no
+                // UI or reaction reads it". The branch above splits on `paid <
+                // Amount`, which asks whether the DEBT is clear. Whether the
+                // MAN is clear is a different question with the same answer
+                // shape, and it is the one that decides what he is like
+                // tomorrow.
+                //
+                // THE COST IS BEING EMPTIED, NOT BEING SHORT. So this takes the
+                // same 0.09 the part-payment branch does rather than a third
+                // number: somebody who counted out every coin he had resents it
+                // exactly as much whether or not it happened to clear the book.
+                // Reusing the constant is the point — two numbers for one idea
+                // is how the fog came to have two owners.
+                g.Loyalty = Math.Clamp(g.Loyalty - (cleanedOut ? 0.09 : 0.05), 0, 1);
+                g.Memory.Append(new MemoryEvent(now, "conversation", cleanedOut ? 0.7 : 0.6,
+                    cleanedOut
+                        ? $"Paid the new owner Mickey's £{paid} to the penny and there is "
+                          + "nothing left in the place. Fair is fair. I still counted it twice."
+                        : $"Paid the new owner what I owed Mickey. £{paid}. It stung, but fair is fair."));
                 return CollectOutcome.Paid;
             }
             if (g.Nerve <= 0.5)
