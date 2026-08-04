@@ -38,78 +38,89 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### RED — perception, two builds running. THIS LEADS.
+### RED — jobRan, and it is a flaky gate rather than a regression
 
-`perception` fails on `ring-drawn`: the door slam is not producing a visible
-noise ring. It has now gone red on the two newest runs having failed 3 times
-in 95, so this is a change rather than the usual rare flake.
+`jobsDone` over 99 landed runs is 2 in the overwhelming majority, with three
+zeros: the newest run, and two others. `--flaky` puts it at 3 in 99 beside
+`perception` at 4 in 99, and those two are the only gates that have gone red in
+the last ten runs.
 
-**The diagnostic was lying and is fixed.** It reported `#3:drawn@80m
-#4:drawn@81m` beside `slamDrewRing=False`, which cannot both describe one
-event. `LastSkip`/`LastRadius` are globals read AFTER the Emit, and
-`Perceivers.Emit` returns early — before drawing — when a louder sound is
-still fresh. A swallowed slam therefore leaves the previous ring's verdict
-standing. The per-slam entry now says `noring` when no ring appeared across
-that Emit.
+**The frame hypothesis is dead and the trace killed it.** The failing run
+approached its three drops to 5.0m, 3.6m and 19.3m; the run before it reached
+2.8, 1.3, 4.2, 1.8 and 2.8 and banked two. The completion radius is 2.5m flat,
+so this is a bot that walks most of the way and stops a few metres short — not
+one that runs out of night, because every reading is timestamped inside the
+four-hour window.
 
-**Do not guess the cause.** Three guesses at this area have each been wrong.
-The next verdict says whether the slam is swallowed by the freshness guard or
-culled after the decision. A standing suspicion, unacted: the belief wiring
-sends more listeners to investigate, investigating raises alarms, and an
-alarm is an Emit louder than a door — if that is the chain then it is a real
-consequence of a working feature, not a bug.
+**One question is left and the trace could not answer it.** `StagePerception`
+overwrites the player's target twice — `loiter-walk` sends them somewhere else,
+`loiter-hold` pins them where they stand — and the staging has no idea a drop
+is open. The window now counts ticks by owner, per drop, printed in the trace
+beside the approach. If `job` holds every tick and the bot still stops at 3.6m,
+the steering is innocent and arrival is the fault. If a probe holds a third of
+them, the fix is priority and not locomotion. **Do not fix either until the
+next trace says which.**
 
-`jobRan` also red, `jobsDone=0` against 2 before. Unexplained. Check whether
-the blowback probe's second accusation costs the bot time it needs.
+### FIXED, in flight — perception
 
-### WITHDRAWN — the name heap is NOT answered, that was one frame
+The cause is measured, not guessed: `LoudDoorSlam` is 55, `LoudRemark` is 58,
+and `Perceivers.Emit` returns before drawing while a louder sound is inside its
+six-second freshness window. All four slams were being spent inside somebody
+else's sound. The slam now waits for a gap — two tests, neither a threshold —
+and `slamsDeferred` counts the ticks that wanted to slam and could not. The
+`noring` outcome is split into `swallowed` and `culled`, which have opposite
+fixes.
 
-**I read `namesTracked=2 worldTextTracked=92` and called it decisive within
-the hour. It was one arbitrary frame.** Those counters were assigned fresh on
-every shot, so they described whichever shot ran LAST — not the shot with the
-heap in it. Third single-instant over-conclusion today, after the confabs
-baseline and the crowd minimum.
+### SETTLED — the night-still text heap is speech, not nameplates
 
-They are peaks now, with a same-instant denominator beside the worst overlap.
+`namesTracked` peaked at **0** across the whole run, `collidingNames=0`,
+`worstNamePair=[none]`, and the worst overlapping world-text pair is a street
+sign against a copy of itself. The frame's illegible text is **speech bubbles**,
+and nothing in this codebase has ever measured how big a piece of world text
+gets.
 
-What IS known: a walker's label is only shown, and only offered to the
-declutter, within about six metres — `LabelFadeOut` is twice
-`ConversationHost.TalkRange`. So very few labels are managed at any moment by
-design, and `nameTagsActive` peaked at 43 while the sampled instant had 2.
-Those are not in contradiction and I treated them as though they were.
+`worstNameFrac=0.306` is honest and answers the wrong question: at
+`worstNameCentreMetres=1.21` with `worstNameBoundsY=0.29` the arithmetic checks
+out, so a label genuinely 1.2m away IS a third of the screen tall. Both names
+and bubbles now carry a median and a sample count beside the peak. **No
+threshold until the series lands.**
 
-**Still open, and still real**: three consecutive night stills show people's
-names piled illegibly. Read the new peaks and `namesAtWorstName` before
-concluding anything about which bucket they are in.
+And `namesTracked=0` sat beside `nameTagsActive=43` in the same verdict, which
+cannot both describe a working instrument. `textWalked`, `textProjected`,
+`bubblesTracked` and `namesManagedEver` are the denominators that separate
+"nothing survived the filters" from "nothing was ever offered".
 
-### ALSO SETTLED
+### SETTLED — the eight bodies landed
 
-- **`crowdTightestWhen=day3h6n40`** — day 3, hour 6, forty people in frame.
-  NOT the spawn artefact I hypothesised. A real mid-run pile-up in a crowd.
-- **`denounceBlewBack=True`, contradiction 0.90.** The branch where an
-  accusation comes back at you fired for the first time in the project's
-  history. Planting the contrary witness was the whole fix.
-- **`measureChecked=8 measureFailing=4`** — prose-only scoping worked, 40
-  checks down to 8, and 4 genuine failures remain to look at.
-- **`nightRunNotices=163`, up from 139.** The persist-across-look-away fix
-  did NOT reduce it, so re-firing is not from glancing away — it is genuine
-  run/stop transitions while watched. The number is per-transition and that
-  may be right; its old value of 4 is not a comparable baseline either way.
+`bodyChoices` 5 -> 10, all eight registered with valid human avatars. The noon
+frame shows the player as a real human mesh with proper limbs and a walk pose;
+the foreground walkers are still box mannequins, and everybody is one flat
+colour.
+
+`bodyKeptMats=0` says why: `RealBody` keeps a renderer's own material only when
+it carries a texture, so zero kept means no material on any body has one. The
+textures ARE in the files — counted by PNG signature, Michelle 4, Remy 22,
+Sophie 6, Joe 6, Martha 6, The Boss 3, Big Vegas and Sporty Granny 1 each, and
+only the two stand-ins have none. Nothing in the model importer has ever
+mentioned materials, so every body imported on an unchosen default. Fixed and in
+flight, with a per-body material report so the next build says which half failed.
 
 ### Startable right now, in order
 
-1. **Read the next verdict's `slamRings`** — it now says `noring` honestly.
-   That is the red.
-2. **Find why walker nameplates are not managed by the declutter** —
-   `namesTracked=2` against 92 on screen. Local code reading, no CI needed.
-3. **`jobsDone=0`** — check the blowback probe for stolen time.
-4. **The 4 failing prose measures** — read `measureWorstWhere`.
-5. **`roomQuiet` distribution** — pulse and unease medians are dispatched.
-6. **FOOT IK** — plan and hazard written up below; still the biggest
-   game-feel item.
-7. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
+1. **Read the next trace's `held:` tally** — that is the jobRan red, and the
+   fix depends on which side it lands.
+2. **Read the next verdict's `slamRings` and `slamsDeferred`** — confirms the
+   perception fix and says how rare a quiet moment actually is.
+3. **Read `nameFracMedian` and `bubbleFracMedian`** — then, and only then,
+   decide whether world text needs a size clamp.
+4. **Read `CharacterMaterials`** — whether the bodies now arrive textured.
+5. **The 4 failing prose measures** — read `measureWorstWhere`.
+6. **`roomQuiet` distribution** — `pulseMedian=0.000 uneaseMedian=1.000`: the
+   street is pinned at maximum unease. Decide whether that is a music problem
+   or a world problem. **Do not pick a new threshold.**
+7. **FOOT IK** — plan and hazard written up below; still the biggest game-feel
+   item.
 8. **Keep retiring the reach ledger** — 49, from 71 two nights ago.
-
 ---
 
 ## What last night settled, in one line each

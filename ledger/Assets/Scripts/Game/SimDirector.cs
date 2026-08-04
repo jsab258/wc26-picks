@@ -933,6 +933,11 @@ namespace Ledger.Game
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
                 : job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
+            // WHO IS DRIVING THE PLAYER THIS TICK. Set here at the first
+            // assignment and overwritten by every later one, so the value at
+            // the end of the tick is whoever actually won.
+            _targetOwner = beatSpot.HasValue ? "beat"
+                         : job.HasValue ? "job" : "waypoint";
             _player.AutoMoveTarget = target;
             if (!job.HasValue &&
                 Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
@@ -944,6 +949,7 @@ namespace Ledger.Game
             StageProvenance(now);
             StagePerception(now, ref target);
             _player.AutoMoveTarget = target;
+            NoteTargetOwner();
 
             // Hourly NPC sample.
             if (now.Hour != _lastSampledHour)
@@ -1909,12 +1915,64 @@ namespace Ledger.Game
         /// `ActiveJobPos` and the campaign's own counters, so the drop pipeline
         /// is measured without a probe inside it — the harness watches, and a
         /// watcher cannot alter the outcome it reports.
+        /// AND THE TRACE SAID EVERYTHING EXCEPT THE ONE THING THAT MATTERED.
+        ///
+        /// Three runs in ninety-nine finish `jobsDone=0`, and reading the trace
+        /// on two of them settles what the paragraph above suspected — and
+        /// settles it AGAINST the frame. The failing run approached to 5.0m,
+        /// 3.6m and 19.3m; the passing one to 2.8, 1.3, 4.2, 1.8 and 2.8. The
+        /// completion radius is 2.5m flat, so this is a bot that walks most of
+        /// the way and stops a few metres short — not one that runs out of
+        /// night, because every one of those readings is timestamped inside the
+        /// window.
+        ///
+        /// WHICH LEAVES ONE QUESTION AND THE TRACE COULD NOT ANSWER IT: the
+        /// drop is not the only thing steering. `StagePerception` overwrites
+        /// the target twice — `loiter-walk` sends the player somewhere else
+        /// entirely, `loiter-hold` pins them where they stand — and the
+        /// staging has no idea a drop is open. A probe that steals the bot for
+        /// part of a four-hour window is exactly the shape that makes a gate
+        /// fail three times in ninety-nine for a reason nobody has named.
+        ///
+        /// So the window now counts ticks by owner. Not a guess about which
+        /// probe: the count, per drop, in the trace beside the approach. If
+        /// `job` holds every tick and the bot still stops at 3.6m, the steering
+        /// is innocent and the arrival is the fault; if a probe holds a third
+        /// of them, the fix is priority and not locomotion. Those have nothing
+        /// in common but the symptom, and no reading here has separated them.
         readonly List<string> _jobTrace = new List<string>();
         bool _jobOpen;
         int _jobOpenDay;
         double _jobOpenDist, _jobNearest;
         int _jobNearestHour = -1;
         int _jobDoneAtOpen, _jobMissedAtOpen;
+
+        /// Whoever set `AutoMoveTarget` last this tick.
+        string _targetOwner = "none";
+        readonly Dictionary<string, int> _jobOwnerTicks = new Dictionary<string, int>();
+
+        /// Called once per tick, after every stage has had its chance at the
+        /// target. Only while a drop is open: outside the window the bot is
+        /// free to be anywhere and counting it would drown the signal.
+        void NoteTargetOwner()
+        {
+            if (!_jobOpen) return;
+            _jobOwnerTicks.TryGetValue(_targetOwner, out int n);
+            _jobOwnerTicks[_targetOwner] = n + 1;
+        }
+
+        /// `job=812 loiter-hold=310`, newest-largest first, or the words that
+        /// say nothing was counted — because an empty string here would read as
+        /// "the job held it all along", which is the opposite of what no data
+        /// means.
+        string OwnerTally()
+        {
+            if (_jobOwnerTicks.Count == 0) return "unwatched";
+            var parts = new List<string>();
+            foreach (var kv in _jobOwnerTicks) parts.Add($"{kv.Key}={kv.Value}");
+            parts.Sort(System.StringComparer.Ordinal);
+            return string.Join(",", parts);
+        }
 
         void TraceJob(GameTime now)
         {
@@ -1959,6 +2017,10 @@ namespace Ledger.Game
                     _jobNearestHour = now.Hour;
                     _jobDoneAtOpen = _game.Campaign.JobsDone;
                     _jobMissedAtOpen = _game.Campaign.JobsMissed;
+                    // PER DROP, NOT PER RUN. A run total would answer "did any
+                    // probe ever hold the bot", which is yes and is useless;
+                    // the question is whether one held it during THIS window.
+                    _jobOwnerTicks.Clear();
                 }
                 else if (d < _jobNearest) { _jobNearest = d; _jobNearestHour = now.Hour; }
                 return;
@@ -1973,7 +2035,9 @@ namespace Ledger.Game
             string how = _game.Campaign.JobsDone > _jobDoneAtOpen ? "done"
                        : _game.Campaign.JobsMissed > _jobMissedAtOpen ? "MISSED"
                        : "gone";
-            _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h]");
+            _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m "
+                          + $"nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h "
+                          + $"held:{OwnerTally()}]");
         }
 
 
@@ -3434,6 +3498,7 @@ namespace Ledger.Game
             if (_loiterApproaching)
             {
                 target = _loiterTarget;
+                _targetOwner = "loiter-walk";
                 if (nearestDist <= 8f)
                 {
                     _loiterApproaching = false;
@@ -3457,6 +3522,7 @@ namespace Ledger.Game
                     // Stand still. Holding the target AT the player is how the
                     // bot stops without touching the locomotion.
                     target = _player.transform.position;
+                    _targetOwner = "loiter-hold";
                 }
                 else
                 {
