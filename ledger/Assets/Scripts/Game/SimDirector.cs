@@ -390,7 +390,22 @@ namespace Ledger.Game
                     // findings, which is this project's most repeated fault in
                     // its smallest form.
                     _callsAttempted++;
-                    if (_game.Phones.ReachableNow(who, now, null)) _callsReachable++;
+                    // WITH THE SAME PREDICATE `RingLine` USES, and passing
+                    // null was measuring something else entirely.
+                    //
+                    // `ReachableNow` treats a null `whoIsNear` as "do not
+                    // check", so it returned true whenever a LINE was live at
+                    // that hour — regardless of whether the person was
+                    // anywhere near it. That is why the first reading was
+                    // callsTried=22 callsReachable=22 with rangOut=12: not a
+                    // contradiction between reachability and answering, just a
+                    // number answering a weaker question than its name.
+                    //
+                    // `NearPhone` is what `RingLine` itself passes, so the
+                    // probe and the thing it is measuring now ask the same
+                    // question — the mistake rule 2 warns about when a gate
+                    // measures its own opinion instead of the system's.
+                    if (_game.Phones.ReachableNow(who, now, _game.NearPhone)) _callsReachable++;
                     var call = _game.RingLine(place, who);
                     if (call.Result == CallResult.Answered) _callsAnswered++;
                     else if (call.Result == CallResult.SomebodyElse) _callsWrongPerson++;
