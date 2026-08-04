@@ -173,9 +173,10 @@ the run is `pass=True` with no failing gate.**
    survives. **Not done until the numbers come back**: `walkerBodies=0` with
    `walkerBodiesFailed` high means the prefab pick is failing;
    `walkerBodyWhy` names it. Watch `heapMb` and the geometric counts, not a
-   millisecond figure — the runner has no GPU. **And check the noon still for a
-   street that walks in unison**, because gait bias is the one thing the
-   real-body path does not yet carry across.
+   millisecond figure — the runner has no GPU. Gait bias, bad leg and idle
+   phase are carried across from `Physique.For` now, so the street should NOT
+   walk in unison — check the noon still, because that was the one way real
+   bodies could have read as worse than the boxes they replaced.
 5. **`heatMedian`** — decides whether the street pinned at maximum unease is a
    music problem or a harness one.
 6. **`measureFails`** — all four failing prose labels are named now, not one.

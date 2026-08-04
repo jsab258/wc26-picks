@@ -629,6 +629,26 @@ namespace Ledger.Game
                 _body = CharacterRig.Attach(gameObject);
                 _lastBodyPos = transform.position;
                 if (_body == null) return;
+                // THIS PERSON'S OWN WALK, WHICH THE REAL-BODY PATH LOSES.
+                //
+                // `CharacterRig.Bind` reads gait bias, bad leg and idle phase
+                // off `Mannequin.Shape` — and a bought body has no Mannequin,
+                // so every one of the named cast would take the defaults and
+                // the street would walk in perfect unison. A crowd where
+                // everybody has the same stride is the thing the per-person
+                // physique exists to prevent, and it would have read as the
+                // real bodies looking WORSE than the boxes they replaced.
+                //
+                // `Physique.For` is the same deterministic source `Mannequin`
+                // uses, keyed on the same name, so the two tiers cannot
+                // disagree about who walks how. Set unconditionally rather than
+                // only for real bodies: on a mannequin it writes the identical
+                // values `Bind` already read, which is a no-op that cannot
+                // drift from them.
+                var shape = Physique.For(DisplayName);
+                _body.GaitBias = shape.Gait;
+                _body.BadLegIsLeft = shape.BadLegIsLeft;
+                _body.IdleOffset = shape.IdlePhase;
             }
             float dt = Time.deltaTime;
             if (dt <= 0) return;
