@@ -38,77 +38,73 @@ scheduling instead of to CI's output.
 
 ## Now
 
-**THE BLOCKER: the Game layer does not compile, and three commits went unbuilt
-behind two licence failures before anybody noticed.** `0cb2ddd` came back with
-`first licence attempt : success` and no player log, which is the new diagnostic
-doing its job — this is a compile error, not contention. The error itself is in
-one of dc049a8 (the watched-spot search), 5e5a6ea (`textFacingAway`) or baeb74d
-(the inquiry redirect), and **530f2ba is the first build that will print it**,
-because the compile errors now go into `verdict.txt` instead of only into a 4KB
-step tail and an empty step summary. Read that first; everything Game-side is
-behind it.
+**THE BUILD IS GREEN AGAIN — `7dc6334`, `pass=True`, no failing gates**, after
+the CS0119 that cost three round trips. Everything below is read off that
+verdict.
 
-1. **READ THE COMPILE ERRORS in `runs/530f2ba.txt`, fix, rebuild.** *(CI)*
-   Nothing else Game-side can land until this does. Do NOT add more Game code on
-   top of an unbuilt tree — every commit stacked on it widens the search.
+1. **THE DROPS: `jobsDone` 1 → 2, and the trace names both remaining causes.**
 
-2. **`[series] jobs` — READ `nearest` AND ITS HOUR.** *(CI)* The trace already
-   named one cause (the loiter probe holding the bot still through the drop
-   window, now fixed) and exposed one instrument fault (it measured 3D against
-   a flat 2.5m completion radius, now flat). What it cannot yet say is whether
-   the remaining misses are "ran out of night" or "got inside 2.5m and the check
-   never fired". The hour of closest approach answers it.
+       d1:MISSED[from=18m nearest=2.8m@01h]   d2:done[from=6m  nearest=2.1m@22h]
+       d8:MISSED[from=8m  nearest=8.4m@22h]   d12:done[from=15m nearest=1.4m@00h]
+       d13:MISSED[from=16m nearest=7.0m@23h]
 
-3. **`textFacingAway` / `textVisible` — READ THE RATIO, NOT THE COUNT.** *(CI)*
-   Half of every double-sided street plate faces away by construction, so about
-   half with a clean frame means `Cull Back` works and I misread a picture;
-   about half WITH mirrored glyphs in frame means the cull does not work and the
-   shader is the suspect. `textMirrored` structurally cannot answer this — it
-   only counts text that is both facing away and NOT on the culling shader, and
-   every plate is adopted.
+   d12 was a miss before the loiter fix and is a delivery now. **d1 simply ran
+   out of night** — eighteen metres at 22:00, 2.8m by 01:00, against a 2.5m
+   radius, so it was thirty centimetres and one hour short. Not a broken check;
+   the hour stamp is what proves it. **d8 never went at all** — its closest
+   approach EQUALS its starting distance — and `beats=[… evening_d8 …]` is why:
+   an authored evening beat outranks the job in the sim's target selection, the
+   same collision the loiter had. **That one is a design question, not a bug:**
+   a player would face the same choice between an evening scene and a night
+   drop, and whether "evening" should be allowed to run into 22:00–02:00 is
+   Jafar's call. Do not quietly re-rank it.
 
-4. **`crowdedIsWatched` and `slamRings`.** *(CI)* Both are new this session and
-   both exist to settle a gate that fails rarely: `disposal`/`accident` compare
-   a watched place against an unwatched one and may have had two unwatched ones,
-   and `perception` failed on four slams none of whose rings drew. Each now
-   reports its own staging rather than only its verdict.
+2. **THE MIRROR RATIO ANSWERED, AND IT CLEARS THE SHADER.**
+   `textFacingAway=70 textVisible=149 textMirrored=0` — 47%, which is the
+   double-sided street plates by construction, with none of them unculled. So
+   `Cull Back` works and **I misread the picture**. What was backwards in
+   `review_day5_night` will have been a speech bubble: those deliberately skip
+   `WorldText`, which means they also skip its `Cull Back`, and they are the one
+   kind of world text in this game that draws its own reverse. That is written
+   into `SpeechBubble` now. The fix, if the number ever says bubbles are being
+   read backwards, is a third shader with LedgerText's cull and the built-in's
+   depth behaviour.
 
-5. **`collidingBubbles` against `bubblesOnScreen`.** *(CI)* Sixty-six confabs is
-   sixty-six bubbles and the night still has two drawn through each other.
-   `NameTags` has the declutter and `Manages` draws the line — offer bubbles to
-   it, but only once the number says how bad it is.
+3. **THE REDIRECT RAN IN THE GAME.** `redirected=1 pointedAt=kest
+   pointedOnDay=9`, and `redirectRelief=0.00` at the end of a seventeen-day run
+   because the relief decays over four days — which is the mechanism working,
+   read eight days later. M21's law-as-a-tool is now a complete verb end to end.
 
-6. ~~**The `[panel]` line.**~~ **READ, AND IT IS CLEAN.** Two suspicions, both
-   checked and both wrong. The `£219 clean |  |` gap is a deliberate spacer, not
-   a missing second book — the unwashed line is conditional on `Dirty > 0` and
-   that run had washed everything. And every liability dating from day 2–3 of an
-   eleven-day run is not a stale list: `PlayerKnowledge.Entries` is
-   `OrderByDescending(LearnedAt)`, so the twelve shown are the twelve most
-   recently learned, and the dates are when the RUMOURS were posted. The
-   warehouse fire and the Quay Street package are early-week events that persist
-   because they are indelible, which is the design working.
+4. **THE WATCHED SPOT IS GENUINELY WATCHED.** `crowdedWatchers=39
+   crowdedIsWatched=True` against `quietSpotWatchers=0`, so `disposal` and
+   `accident` finally compare a place somebody can see against one nobody can.
+   Both green.
 
-   What the panel does show, correctly: real names ("Novak", not `player` — that
-   leak was fixed earlier tonight), real stories, grip words rather than figures,
-   and provenance on every line ("posted day 3 · Rocco warned you").
+5. **THE SLAM RINGS NAME THEIR OWN CULL.**
+   `slamRings=[#1:shadowed@81m #2:drawn@62m #3:shadowed@81m #4:drawn@62m]` —
+   two of four drew, and the two that did not were **shadowed**, at 81m against
+   the drawn pair's 62m. So `perception`'s one red run was four slams that all
+   happened to land shadowed. The fix is to PLANT one where the ring is not,
+   never to loosen the bound — and the radius difference says where to look.
 
-7. **The review camera stood inside a street sign.** `review_day5_night` at
-   4ac2f0f is two black plates at arm's length with almost no city behind them.
-   The shot follows the player so it is luck rather than a fault — but four
-   stills a run is the whole visual channel and one being a close-up of a sign
-   costs a quarter of it. A minimum-clearance check before the shutter, the same
-   shape as the billboard re-aim.
+6. **TRAFFIC: `clamps=10 clampsPerKm=0.23 tailsBehindStart=0`.** The corrected
+   tails metric reads zero, which is what it should read when `Cross`'s entry
+   check is doing its job, and the clamp rate is a tenth of the bound measured
+   from CoreTests. `gap=0.00` remains the clamp's signature at sample time.
+
+7. **STILL OPEN AND NOT YET LOOKED AT:** `collidingBubbles` against
+   `bubblesOnScreen` (sixty-six confabs is sixty-six bubbles, and the night
+   still has two drawn through each other); the review camera standing inside a
+   street sign; and **the whole Empire — crew, cuts, rackets — is absent from
+   `SaveCodec`**, so everything about your people dies on reload. That last one
+   is a real hole in a project scoring itself 95 on consequence persistence.
 
 8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder fires 07:55 UTC. Then the
-   skinned crowd, which is costed and designed and worth far more once six
-   textured models are in.
+   skinned crowd, costed and designed, worth far more once six textured models
+   are in.
 
-9. **Keep retiring the reach ledger.** 90 to 71 tonight, every one wiring rather
-   than building. What is left is mostly UI surfaces (`OperationPlan.Bringing`
-   needs crew selection) and one real refactor: the `Mixing.*` voice budget has
-   no choke point, because the audio layer plays through several `AudioSource`s
-   directly. That is a design job, not a wiring, and it is the honest reason
-   those entries survive.
+9. **Keep retiring the reach ledger** (71). What is left is mostly UI surfaces
+   and one real refactor: `Mixing.*` has no audio choke point.
 
 ### Answered tonight, kept only as evidence
 
