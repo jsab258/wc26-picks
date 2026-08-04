@@ -3,8 +3,20 @@ using UnityEngine;
 
 namespace Ledger.Game
 {
-    /// TWO NAMES IN THE SAME PLACE ARE WORSE THAN ONE NAME, and the street had
-    /// 185 such pairs.
+    /// TWO NAMES IN THE SAME PLACE ARE WORSE THAN ONE NAME — and the street
+    /// never had 185 such pairs, which took until 4 August to establish.
+    ///
+    /// THE NUMBER IN THIS SENTENCE WAS NEVER ABOUT NAMEPLATES. It came from
+    /// `collidingNames`, which counted every `TextMesh` in the scene: street
+    /// plates, shop fascias, stop signs, speech bubbles. Split by what this
+    /// class actually manages, the same run reads `collidingNames=0` and
+    /// `collidingWorldText=155`. Every one of those overlaps was furniture, and
+    /// furniture clustering at a junction is a junction.
+    ///
+    /// The declutter below is still right and still worth having — six people
+    /// inside talking range really do produce six labels wanting one patch of
+    /// screen. What was wrong was the evidence, and it stayed wrong for as long
+    /// as it sat at the top of this file being quoted.
     ///
     /// The distance rule was already right — a name resolves as you get close
     /// enough to speak to somebody and is not there across the road — and it is
