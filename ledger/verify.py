@@ -565,6 +565,42 @@ def verdict_keys():
     return True, "%s verdict keys%s" % (m.group(1), tail)
 
 
+def verdict_format():
+    """The verdict is space-separated `key=value`, and one value broke it.
+
+    `crowdBodyWidth` was emitted as `0.45(narrowest 0.39 broadest 0.53)` and
+    every reader in the project — including `verdict-read.py` itself — happily
+    returned `0.45(narrowest` with no sign anything had gone wrong. A rule in
+    CLAUDE.md would not have caught it: that value was written an hour after
+    reading the rules that morning.
+
+    NOT WIRED UNTIL A VERDICT PROVED IT GREEN, deliberately, and that took two
+    builds. It reported a hit on the last landed verdict for a fault already
+    corrected in the emitter, so wiring it then would have blocked every commit
+    until CI came back — rule 5b's exact failure, a guard that has never been
+    run against the case it must PASS. `--selftest` is now the standing version
+    of that check: it asserts the accepting case FIRST and the rejecting case
+    second, so the two halves cannot rot apart.
+
+    Both are run here. The selftest says the lint still works at all; the lint
+    says the newest measuring run is well-formed. A green selftest with no
+    verdict to read is still worth having — it is the half that does not depend
+    on CI."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-read.py"),
+                     "--selftest"])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if "FAILED" in l),
+                     "see verdict-read --selftest")
+        return False, "VERDICT LINT BROKEN: " + first[:110]
+    code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-read.py"),
+                     "--lint"])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if l.strip().startswith("line ")),
+                     "see verdict-read --lint")
+        return False, "VERDICT VALUE WITH A SPACE IN IT: " + first[:110]
+    return True, "verdict format ok (selftest + newest run)"
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -642,7 +678,7 @@ def main():
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
-               frame_drift, verdict_keys, save_chaos, soak,
+               frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
         all_ok &= ok

@@ -55,6 +55,79 @@ def newest_measuring_run():
     return None
 
 
+def lint_text(text):
+    """The lint itself, over TEXT rather than a file.
+
+    Split out so `--selftest` can drive it with a line it must reject and a
+    line it must ACCEPT. Rule 5b: a guard has two outcomes and shipping it
+    means having watched both, and the accepting half is the one that never
+    gets run — four guards in one day blocked the good case rather than the
+    bad one, every one of them having passed its failure case.
+    """
+    bad = []
+    for n, line in enumerate(text.split("\n"), 1):
+        if "=" not in line:
+            continue
+        # INNERMOST FIRST, REPEATEDLY, because groups nest: `perception[...
+        # ringPaint[ledger=1.18 ...] ...]`. One pass leaves the outer group's
+        # closing bracket stranded on whatever key came last, which is three of
+        # the five hits the previous version reported. Loop until it stops
+        # changing.
+        # AND REPLACED WITH SOMETHING THAT IS NOT A BRACKET. Substituting `[]`
+        # for the inner group leaves a pair the next pass matches and rewrites
+        # to itself, so the loop reaches a fixpoint with the OUTER group still
+        # standing. A space has no such problem.
+        flat = line
+        for _ in range(8):
+            once = re.sub(r"\[[^\[\]]*\]", " ", flat)
+            if once == flat:
+                break
+            flat = once
+        for m in re.finditer(r"(?<![\w])([A-Za-z][\w]*)=([^\s]+)", flat):
+            v = m.group(2)
+            if v.count("(") != v.count(")") or v.count("[") != v.count("]"):
+                bad.append(f"line {n}: {m.group(1)}={v} …")
+    return bad
+
+
+# A LINE THAT MUST BE REJECTED AND A LINE THAT MUST BE ACCEPTED. Both are real
+# shapes from real verdicts: the first is the emitter fault of 4 August that
+# made this tool return `0.45(narrowest`, and the second is a nested gate group,
+# which is the format working as intended and is what a naive lint flags forty
+# times.
+SELFTEST_BAD = "crowdBodyWidth=0.45(narrowest 0.39 broadest 0.53) crowdGap=0.41"
+SELFTEST_GOOD = ("sky ok=True frame[mean=471.0ms gameShare=3.23% "
+                 "ao[rounds=[28.1 18.0] drop=0.0123]] places=[alley=3 market=53] "
+                 "crowdBodyWidth=0.45/0.39..0.53")
+
+
+def selftest():
+    """Run the lint against both outcomes and say which one failed.
+
+    THE ACCEPTING ASSERTION IS FIRST, deliberately, copying `Tier2Gen
+    --selftest`: the expensive failure mode for a validator is not that it
+    misses something, it is that nothing survives it and the run lands nothing.
+    """
+    ok = True
+    good = lint_text(SELFTEST_GOOD)
+    if good:
+        ok = False
+        print("verdict-read --selftest: FAILED THE CASE IT MUST ACCEPT — a "
+              "well-formed line with nested gate groups was flagged:")
+        for b in good:
+            print("  " + b)
+    bad = lint_text(SELFTEST_BAD)
+    if not bad:
+        ok = False
+        print("verdict-read --selftest: FAILED THE CASE IT MUST REJECT — "
+              "`crowdBodyWidth=0.45(narrowest 0.39 …)` passed, and that is the "
+              "exact value this lint was written for.")
+    if ok:
+        print("verdict-read --selftest: ok — rejects a swallowed space, "
+              "accepts nested gate groups")
+    return 0 if ok else 2
+
+
 def lint(run):
     """FLAG ANY VALUE THAT BREAKS THE VERDICT'S OWN FORMAT.
 
@@ -79,33 +152,7 @@ def lint(run):
     # enforce rule 3, found by running it before shipping it rather than after.
     #
     # So groups are removed first and what remains is the top level.
-    text = run.read_text(encoding="utf-8", errors="replace")
-    bad = []
-    for n, line in enumerate(text.split("\n"), 1):
-        if "=" not in line:
-            continue
-        # INNERMOST FIRST, REPEATEDLY, because groups nest: `perception[...
-        # ringPaint[ledger=1.18 ...] ...]`. One pass leaves the outer group's
-        # closing bracket stranded on whatever key came last, which is three of
-        # the five hits the previous version reported. Loop until it stops
-        # changing.
-        # INNERMOST FIRST, REPEATEDLY, AND REPLACED WITH SOMETHING THAT IS NOT
-        # A BRACKET. Groups nest — `ao[... rounds=[28.1 18.0] drop=0.0123]` —
-        # and substituting `[]` for the inner one leaves a bracket pair the next
-        # pass matches and rewrites to itself, so the loop reaches a fixpoint
-        # with the OUTER group still standing and its closing bracket stranded
-        # on whatever key came last. Three of the five hits the previous version
-        # reported were exactly that. A space has no such problem.
-        flat = line
-        for _ in range(8):
-            once = re.sub(r"\[[^\[\]]*\]", " ", flat)
-            if once == flat:
-                break
-            flat = once
-        for m in re.finditer(r"(?<![\w])([A-Za-z][\w]*)=([^\s]+)", flat):
-            v = m.group(2)
-            if v.count("(") != v.count(")") or v.count("[") != v.count("]"):
-                bad.append(f"line {n}: {m.group(1)}={v} …")
+    bad = lint_text(run.read_text(encoding="utf-8", errors="replace"))
     if not bad:
         return 0
     print("verdict-read: %d value(s) with a space inside them — the file is "
@@ -118,6 +165,8 @@ def lint(run):
 def main():
     argv = sys.argv[1:]
     run = None
+    if "--selftest" in argv:
+        return selftest()
     if "--run" in argv:
         i = argv.index("--run")
         run = SHOTS / "runs" / f"{argv[i + 1]}.txt"
