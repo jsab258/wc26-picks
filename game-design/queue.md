@@ -106,13 +106,24 @@ frame.** That is not advice, it is the only thing that would have caught this.
 5. **KEEP RETIRING THE REACH LEDGER** — 43 entries, every reason verified
    against the code today. Each one retired is a public API with a caller.
 
-6. **WHEN THE NAME-HEAP BUILD LANDS, READ THREE NUMBERS AND NOT THE OLD TWO.**
-   *(CI)* `namesDistinctPeak` below the offer peak means duplicate offers within
-   a frame; equal to it means the lifetime managed set is the broken instrument
-   and pruning its corpses is the repair. `namesOfferCalls` and
-   `namesManagedDead` are the denominators. **Do not re-diagnose from
-   `nameTagsOffered` and `namesManagedEver`** — three readings of that pair have
-   produced three wrong answers, the most recent one this morning.
+6. **THE NAME HEAP IS ANSWERED — DUPLICATES — AND HALF OF IT IS STILL OPEN.**
+   The discriminator came back `nameTagsOffered=42` against
+   `namesDistinctPeak=7` on the same frame: forty-two entries from at most
+   seven labels. `namesManagedDead=0` kills the other candidate outright —
+   nothing in the managed set has been destroyed, so recycled identity was
+   never it.
+   The harm is fixed: the resolve loop was finding the second copy of a label
+   overlapping the rect it had just kept from the FIRST copy — identical rect,
+   so always — marking it blocked and setting its alpha to zero on the same
+   object. Every duplicated name hid itself, which is what `nameTagsHidden`
+   has been reporting beside legible names in the frames. Offers now dedupe
+   within the frame, nearest wins.
+   **What is NOT known is why a walker offers its name six times in a rendered
+   frame.** `Tick` has one caller and it is a single pass per `Update`, so the
+   only mechanism the code allows is the same walker sitting in the tick list
+   twice — eleven `Add` sites, none checking. `npcsDuplicated` tests exactly
+   that, from `GameController`'s list and not the sim's, which is a
+   `FindObjectsByType` snapshot that could only ever have answered zero. *(CI)*
 
 7. **WHEN THE FOOT-IK BUILD LANDS, READ THE DROP MEDIANS.** *(CI)*
    `ikPlantedMedian` against `ikCorrectionMedian` could never have answered the

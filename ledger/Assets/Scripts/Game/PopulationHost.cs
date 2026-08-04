@@ -209,6 +209,18 @@ namespace Ledger.Game
             _nextBodyLod = Time.time + BodyLodSeconds;
             BodyLodPasses++;
 
+            // IS THE SAME WALKER IN THIS LIST TWICE? Folded into a pass that
+            // already walks it, once a second, so it costs a hash insert per
+            // walker and answers the open half of the name-duplication finding:
+            // a label offered six times in one rendered frame, when `Tick` has
+            // exactly one caller and that caller is a single pass over this
+            // list. There are eleven `_npcs.Add` sites and not one checks.
+            _seenWalkers.Clear();
+            WalkersListed = _npcs.Count;
+            WalkersDuplicated = 0;
+            foreach (var n in _npcs)
+                if (n != null && !_seenWalkers.Add(n)) WalkersDuplicated++;
+
             _bodyRank.Clear();
             foreach (var n in _npcs)
             {
@@ -256,6 +268,12 @@ namespace Ledger.Game
         /// the pass ran, `Eligible` says there was anybody to consider, `Near`
         /// says how many of them were close enough and inside the budget.
         public static int BodyLodPasses, BodyLodEligible, BodyLodNear;
+
+        /// The tick list's length and how many of its entries are repeats.
+        /// Read by the sim beside the name-duplication counters, because they
+        /// are two views of the same suspicion.
+        public static int WalkersListed, WalkersDuplicated;
+        readonly HashSet<NpcWalker> _seenWalkers = new HashSet<NpcWalker>();
 
         /// Distance from the player to wherever this resident's routine has them
         /// right now. Cheap, and it means the crowd around you is the crowd that

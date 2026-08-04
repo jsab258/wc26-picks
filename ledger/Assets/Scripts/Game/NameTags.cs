@@ -50,6 +50,9 @@ namespace Ledger.Game
         {
             public TextMesh Label;
             public float Distance;
+            /// How many times this label was offered in the frame this
+            /// candidate belongs to. One is the healthy value.
+            public int Times;
         }
 
         static readonly List<Candidate> _offered = new List<Candidate>();
@@ -381,8 +384,57 @@ namespace Ledger.Game
             Sweep();
             Offers++;
             _managed.Add(label);
-            _offered.Add(new Candidate { Label = label, Distance = distance });
+
+            // ONE ENTRY PER LABEL PER FRAME, AND THE MEASUREMENT SAID SO.
+            //
+            // `nameTagsOffered=42` against `namesDistinctPeak=7` on the same
+            // frame: forty-two entries from at most seven labels. That is not
+            // the declutter being busy, it is the same name arriving six times,
+            // and it did real harm rather than only inflating a number — the
+            // resolve loop below sorts the list, keeps the first, and then
+            // finds the SECOND COPY OF THE SAME LABEL overlapping the rect it
+            // just kept. Identical rect, so it always overlaps. It marks it
+            // blocked and sets its alpha to zero, and because both entries are
+            // the same object that zero lands on the label itself. Every
+            // duplicated name hid itself, which is what `nameTagsHidden=34`
+            // beside legible names in the frames has been reporting.
+            //
+            // NEAREST WINS, not first, because the ordering is the whole point
+            // of this class: a label's distance decides who beats whom for a
+            // patch of screen, and taking whichever copy happened to arrive
+            // first would make that depend on iteration order again.
+            //
+            // THE CAUSE IS NOT FIXED HERE, AND SAYING SO MATTERS. Something
+            // ticks a walker more than once per rendered frame; this makes the
+            // symptom harmless and counts the repeats so the next run can name
+            // it. `namesDupOffers` is the count and `namesDupWorst` is the most
+            // any single label managed in one frame.
+            for (int i = 0; i < _offered.Count; i++)
+            {
+                if (_offered[i].Label != label) continue;
+                DupOffers++;
+                var c = _offered[i];
+                // COUNTED ON THE CANDIDATE, not in a field beside the loop. The
+                // first version kept a running counter reset whenever a new
+                // label arrived, which counts CONSECUTIVE repeats — so offers
+                // arriving A, B, A, B would have reported a worst of one while
+                // every label was being doubled. The count belongs to the
+                // label, so it lives on the label's entry.
+                c.Times++;
+                if (c.Times > DupWorst) DupWorst = c.Times;
+                if (distance < c.Distance) c.Distance = distance;
+                _offered[i] = c;
+                return;
+            }
+            _offered.Add(new Candidate { Label = label, Distance = distance, Times = 1 });
         }
+
+        /// How often a label was offered twice in one frame, and the worst run
+        /// of repeats for a single label. Both lifetime, both printed, because
+        /// `namesDupOffers=0` after the dedupe would otherwise be
+        /// indistinguishable from the offer path having stopped running.
+        public static int DupOffers { get; private set; }
+        public static int DupWorst { get; private set; }
 
         /// HOW MANY TIMES ANYTHING HAS OFFERED A LABEL, EVER. A plain integer
         /// with no object identity in it, which is the entire point.

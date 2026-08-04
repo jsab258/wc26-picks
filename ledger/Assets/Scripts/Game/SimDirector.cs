@@ -1803,6 +1803,19 @@ namespace Ledger.Game
                       + $" namesOfferCalls={NameTags.Offers}"
                       + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
                       + $" namesManagedDead={NameTags.ManagedDead}"
+                      // AND THE ANSWER THE LAST RUN GAVE, PLUS THE ONE IT DID
+                      // NOT. Duplicates were the fault — 42 entries from at
+                      // most 7 labels — and the dedupe makes them harmless,
+                      // but nothing yet says WHY a walker offers its name six
+                      // times in a rendered frame. `namesDupOffers` counts the
+                      // repeats and `namesDupWorst` is the most any one label
+                      // managed; `npcsListed` against `npcsDistinct` tests the
+                      // only mechanism the code allows, which is the same
+                      // walker sitting in the tick list more than once.
+                      + $" namesDupOffers={NameTags.DupOffers}"
+                      + $" namesDupWorst={NameTags.DupWorst}"
+                      + $" npcsListed={GameController.WalkersListed}"
+                      + $" npcsDuplicated={GameController.WalkersDuplicated}"
                       + $" textNoText={_textNoText}"
                       + $" textInvisible={_textInvisible}"
                       + $" textNoRect={_textNoRect}");
@@ -3084,6 +3097,7 @@ namespace Ledger.Game
         /// for weeks in exactly that state, so this is the number that would
         /// have said so.
         int _notorietyApplied;
+
         /// THE MOAT'S OWN NUMBERS, and until now they reached nobody.
         ///
         /// The log line that computes these says, in its own comment, that a
