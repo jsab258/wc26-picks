@@ -539,27 +539,44 @@ rather than something you notice afterwards.
 
 **3. Be woken by the event, not the clock.** Arm it with Bash
 `run_in_background: true`, which re-invokes you within seconds of it exiting.
-**Watch for a verdict naming the sha you dispatched** — not for the branch to
-move:
+**Watch for a build that CONTAINS the commit you care about** — not for the
+branch to move, and not for a run named after the sha you dispatched:
 
-    SHA=<the sha you built>
+    SHA=$(git rev-parse HEAD)
     for i in $(seq 1 100); do sleep 30
       git fetch -q origin claude/game-dev-ai-automation-2h67ix 2>/dev/null
-      V=$(git show origin/claude/game-dev-ai-automation-2h67ix:game-design/sim-shots/verdict.txt 2>/dev/null | head -1)
-      case "$V" in *"$SHA"*) echo "VERDICT LANDED: $V"; exit 0;; esac
-    done; echo "timed out; last verdict line: $V"
+      git merge-base --is-ancestor "$SHA" origin/claude/game-dev-ai-automation-2h67ix 2>/dev/null \
+        && git pull -q --no-rebase origin claude/game-dev-ai-automation-2h67ix 2>/dev/null
+      python3 tools/landed.py --contains "$SHA" && exit 0
+    done; echo "timed out"; python3 tools/landed.py --contains "$SHA"
 
-**THE OBVIOUS VERSION IS WRONG AND I SHIPPED IT INTO THIS FILE.** It watched
-`git ls-remote` for the branch head to change, on the reasoning that the job
-commits stills so the branch advancing IS the build landing. That is true when
-nothing else is pushing. In auto mode I push constantly — and the watcher fired
-forty seconds later on MY OWN COMMIT, reporting "BUILD LANDED" while the verdict
-still named the previous build. A watcher that cannot tell my push from CI's is
-the ruler being wrong, and it would have had me reading a stale verdict as a
-fresh one for the rest of the session.
+**BOTH OBVIOUS VERSIONS ARE WRONG AND I SHIPPED BOTH INTO THIS FILE.**
 
-The verdict's first line carries the sha it was built from. Match on that and
-the signal cannot be forged by anything I do.
+The first watched `git ls-remote` for the branch head to change, reasoning that
+the job commits stills so the branch advancing IS the build landing. True when
+nothing else is pushing. In auto mode I push constantly, and it fired forty
+seconds later on MY OWN COMMIT while the verdict still named the previous build.
+
+The second — the one that stood here until 4 August — matched the verdict's
+first line against the sha I dispatched. That fixed the forgery problem and
+introduced a quieter one: **`workflow_dispatch` does not pin a commit.** It
+takes a BRANCH, and the runner checks out whatever that branch points at when
+it STARTS. Push twice in the ten minutes a job waits for a runner and it builds
+the third commit, not yours.
+
+Measured, not suspected: four builds dispatched at `aa0e906`, `d5b3741`,
+`bdcbe3f` and `69e03a6`, and **not one of those four shas was ever built**. The
+runs that came back are named after later commits, two of them made by the CI
+job committing its own stills. Every watcher armed on those four was waiting
+for a file that could not appear — and none of them looked broken, because they
+had fired correctly on earlier runs where HEAD happened not to move. A watcher
+that works often enough to look right is worse than one that never works.
+
+The question was never "is there a run named X". It is **"is there a run whose
+commit CONTAINS X"**, which is an ancestry test and cannot be forged by my own
+pushes either: my commits are not descendants of themselves-plus-CI's-work
+until CI does the work. `tools/landed.py --contains` is that test, and it names
+which run answered so the next step does not need a second lookup.
 
 Cap it around 50 minutes so a dead run cannot hang the loop. If something else
 blocks you, `send_later` goes down to one-minute granularity.
