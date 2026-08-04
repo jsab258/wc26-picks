@@ -293,6 +293,9 @@ namespace Ledger.Game
         float _nextPerceptionAt;
         float _lastPerceptionAt;
         float _stationaryFor;
+        /// What this walker last read the player AS, while watching. Reset
+        /// when they look away, so looking back is a fresh reading.
+        Notable _lastNotableSeen = Notable.None;
         bool _attendingNow;
         /// Set once per walker so the whole crowd does not evaluate on the
         /// same frame. Without it the cost is a spike every sixth of a second
@@ -367,11 +370,41 @@ namespace Ledger.Game
             if (_attendingNow && !wasAttending)
             {
                 Perceivers.Looks++;
-                if (notable == Notable.Loitering) Perceivers.LoiterNotices++;
-                if (notable == Notable.RunningAtNight) Perceivers.NightRunNotices++;
                 if (Notice.WorthRemarking(notable, Nerve, GameController.NightAmount))
                     Perceivers.Remarks++;
             }
+
+            // THE STREET COULD ONLY EVER CLASSIFY YOU AT THE INSTANT IT FIRST
+            // LOOKED, and that is why `loiterNotices` reads 0 beside
+            // `loiterLooks=35`.
+            //
+            // Both notice counters used to sit inside the rising-edge block
+            // above, so a walker who began watching you at second five of a
+            // loiter fired that edge with `notable == None` and never got
+            // another. `Notice.LoiterSeconds` is 30 and the probe freezes the
+            // player for thirty REAL seconds, so the classification can only
+            // become Loitering at the very end of the window — by which time
+            // every watcher's one and only edge is long spent. Thirty-five
+            // people looked and the answer was structurally always going to
+            // be zero.
+            //
+            // It is not only the probe. A person already watching you when
+            // you START behaving oddly never re-reads you, which is wrong
+            // about people and wrong for a game whose moat is what the street
+            // knows. So a notice now fires when the CLASSIFICATION changes
+            // for somebody who is watching, of which first-look is one case.
+            //
+            // `Remarks` deliberately stays on the original edge. It has a
+            // landed history (`remarks=4`) and moving two numbers at once
+            // would leave neither comparable — whether a remark should also
+            // re-fire is the same question and it gets its own change.
+            bool reclassified = _attendingNow && notable != _lastNotableSeen;
+            if (reclassified)
+            {
+                if (notable == Notable.Loitering) Perceivers.LoiterNotices++;
+                if (notable == Notable.RunningAtNight) Perceivers.NightRunNotices++;
+            }
+            _lastNotableSeen = _attendingNow ? notable : Notable.None;
             return _attendingNow;
         }
 
