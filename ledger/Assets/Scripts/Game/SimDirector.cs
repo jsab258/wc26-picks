@@ -2022,6 +2022,32 @@ namespace Ledger.Game
                 _crowdLumRange = $"{lums[0]:0.00}..{lums[lums.Count - 1]:0.00}";
                 _crowdSatRange = $"{sats[0]:0.00}..{sats[sats.Count - 1]:0.00}";
                 _crowdSampled = _crowdReadings.Count;
+
+                // WHERE THE PLAYER SITS IN THE QUEUE, which is the only
+                // reading that separates the two live hypotheses.
+                //
+                // At night the player reads 11.9 against a crowd MEDIAN of 2.8
+                // — four times brighter, which looks damning. The crowd's own
+                // range is 1.50 to 11.75, so the player is level with its
+                // brightest member and not above it, and the range spans eight
+                // times. That is a spread lighting POSITION can produce all by
+                // itself: this camera follows the player, and the player is
+                // usually the one standing under the lamp.
+                //
+                // The albedo difference is real and deliberate — `Wardrobe`
+                // caps the crowd at value 0.46 and the coat lift takes the
+                // player to 0.68, 1.48x — but 1.48 does not explain 4.25, so
+                // something else is doing most of the work and a palette change
+                // would be a fix aimed at the smaller term.
+                //
+                // A RANK ANSWERS IT AND A RATIO CANNOT. Top of eleven on every
+                // night frame is a property of the player; bouncing around the
+                // order is a property of where they happened to stand. One
+                // number, and it needs no threshold — which is the point,
+                // because inventing one here is what rule 2 forbids.
+                int below = 0;
+                foreach (var l in lums) if (l < _playerLum) below++;
+                _bodyReadRank = $"{below + 1}/{lums.Count}";
             }
         }
 
@@ -2032,6 +2058,11 @@ namespace Ledger.Game
         /// where it is set: without it, two runs' numbers look comparable and
         /// are noon against midnight.
         string _bodyReadWhen = "none";
+        /// The player's place in the crowd's brightness order at that instant,
+        /// e.g. "11/11". A rank rather than a ratio, because a ratio against a
+        /// median cannot tell "this body is bright" from "this body is standing
+        /// under the only lamp".
+        string _bodyReadRank = "none";
         /// One reading per body — x is luminance, y is saturation. Kept rather
         /// than folded so the spread can be printed beside the median.
         readonly List<Vector2> _crowdReadings = new List<Vector2>();
@@ -7591,7 +7622,7 @@ namespace Ledger.Game
                       // fact — what colour "coat" turned out to be.
                       $"bodyCoat=[{RealBody.CoatRead}] " +
                       $"bodyReadLum={_playerLum:0.0} bodyReadSat={_playerSat:0.000} bodyReadPx={_playerPixels} " +
-                      $"bodyReadWhen={_bodyReadWhen} " +
+                      $"bodyReadWhen={_bodyReadWhen} bodyReadRank={_bodyReadRank} " +
                       // MEDIAN, and the SPREAD beside it. Two collapsed numbers
                       // cannot say whether the player's lower saturation is
                       // the player being unusual or the crowd being spread —
