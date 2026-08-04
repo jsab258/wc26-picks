@@ -2529,6 +2529,14 @@ namespace Ledger.Game
         Injury _harmTreated;
         string _claimVia = "not reached";
         int _denounceWitnesses;
+        /// Nullable because "the cut never happened" and "it happened and
+        /// nobody saw" are different facts, and a plain false would merge
+        /// them — the denominator rule, in the smallest form it takes.
+        bool? _cutMarkedYou;
+        /// A COUNT, not a flag — ShapeCheck said so when I assumed
+        /// otherwise. How many people perceived the cut, which is a
+        /// better number than whether any did.
+        int? _cutSawSomething;
         /// THE MOAT'S OWN NUMBERS, and until now they reached nobody.
         ///
         /// The log line that computes these says, in its own comment, that a
@@ -3935,6 +3943,14 @@ namespace Ledger.Game
                                               harm: _game.Harm, familiarityWithActor: 0.2,
                                               familiarityOf: _game != null
                                                   ? _game.FamiliarityWithPlayer : null);
+                // ONTO THE DONE LINE TOO. `marked` is whether cutting somebody
+                // left a mark on YOU and `saw` is whether anybody perceived it
+                // — the two facts that decide whether violence has a social
+                // cost, which is the pillar this whole system serves. Both
+                // printed only here, on a line the verdict does not carry, so
+                // neither has ever been readable from a build.
+                _cutMarkedYou = cut?.MarkedYou;
+                _cutSawSomething = cut?.SawSomething;
                 Debug.Log($"SimDirector: cut {nearestForThreat.DisplayName} with a razor — "
                           + $"marked={cut?.MarkedYou} fleeing={cut?.VictimIsFleeing} "
                           + $"saw={cut?.SawSomething} looksLike="
@@ -7646,6 +7662,8 @@ namespace Ledger.Game
                       $"pointedOnDay={_game.Homicides.PointedOnDay} " +
                       $"redirectRelief={_game.Homicides.RedirectReliefOn(_game.Now.Day):0.00} " +
                       $"inquiry={_game.PoliceInquiry} " +
+                      $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
+                      $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +
                       $"contradiction={_denounceContradiction:0.00} " +
