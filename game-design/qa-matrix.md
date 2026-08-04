@@ -1,13 +1,32 @@
 # QA matrix — the human test plan (P9)
 
-> **STATUS — LIVE, verified 2026-07-31.** the human test plan, layered on the automated harness.
+> **STATUS — LIVE, verified 2026-08-04.** the human test plan, layered on the automated harness.
 > Kept current. If it is wrong, that is a bug in this file.
 
 Layered ON the automated harness, not beside it: every row here is something
-the 1451 CoreTests, the 71-check SimHarness, ShapeCheck, the lint and the CI
-sim's ~30 gates CANNOT establish, mostly because they are questions about how
-the game FEELS or how a human reads it. Where an automated gate half-covers a
-row, the row says so, so a playtest spends its time where automation is blind.
+the automated layer CANNOT establish, mostly because they are questions about
+how the game FEELS or how a human reads it. Where an automated gate
+half-covers a row, the row says so, so a playtest spends its time where
+automation is blind.
+
+**The coverage figures, re-counted 2026-08-04** — they were four days stale and
+this paragraph is the one that decides how much a reader trusts the rest of the
+file. **3,188 CoreTests** (was 1,451 here), **41 gates** on the CI sim's
+done-line, plus 84 adversary checks, 29 save-chaos checks, 3 soak runs of 500
+days, ShapeCheck, three name-matching lints and the reach ledger. Read the
+footer of a green `ledger/verify.py` for the live numbers rather than trusting
+this sentence — it decayed once and will again.
+
+**AND A COUNT OF CHECKS IS NOT A COUNT OF ANSWERS**, which 4 August made
+expensive twice in one morning. A guard that blocks the case it should PASS is
+reported as a clean exit by the step above it: the bodies gate went red on the
+run that FIXED the bodies, because the model finally arrived with its own
+textures and one clause still demanded the wardrobe paint over them. And a
+guard that never gets a run in which its condition can happen fails rarely for
+a reason nobody names — the door-slam probe spent every one of its four chances
+inside a louder sound and then failed itself for the silence. Neither is
+visible in a total. **When a row below says "automation covers this", ask which
+CASE it covers.**
 
 Format: DO / EXPECT / automation coverage. Tick what passed, note what
 surprised you — the surprises are the yield.
