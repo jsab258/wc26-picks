@@ -8712,6 +8712,15 @@ namespace Ledger.Game
                       // drift that has already cost this project three wrong
                       // readings.
                       $"walkerBodiesOff={RealBody.Detached} " +
+                      // THE WARDROBE, RECONNECTED. Ten body prefabs against a
+                      // named cast of forty-three means at least two people on
+                      // screen share a model at all times, and texture
+                      // extraction silently stopped the wardrobe painting them
+                      // — `bodyParts` has read "nothing to paint" since it
+                      // landed. `bodyTinted=0` beside a non-zero `bodyKeptMats`
+                      // is that regression coming back, and it is invisible in
+                      // every other number here.
+                      $"bodyTinted={RealBody.Tinted} " +
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +

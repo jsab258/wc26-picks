@@ -320,6 +320,55 @@ namespace Ledger.Game
             return _bodies[i];
         }
 
+        /// TEN MODELS, FORTY-THREE NAMED PEOPLE — SO THEY MUST NOT BE THE ONLY
+        /// THING THAT TELLS THEM APART.
+        ///
+        /// COUNTED, NOT JUDGED FROM THE STILL. There are ten body prefabs and
+        /// the cast is forty-three, with twelve worn at once, so by pigeonhole
+        /// at least two people on screen share a model at all times. The noon
+        /// frame shows it plainly: two women in the same yellow trousers with
+        /// the same hair, one of them the player.
+        ///
+        /// AND THE CAUSE IS A CHANGE THAT LANDED THIS MORNING. Before texture
+        /// extraction, every renderer arrived untextured, so the wardrobe
+        /// painted all of them and the street was varied — flat, but varied.
+        /// Extraction gave the models their own textures, `Kept` took them, and
+        /// the paint loop below stopped running at all: `bodyParts=[nothing to
+        /// paint — all 1 renderer(s) came textured]`. The wardrobe was
+        /// disconnected by a fix to something else, which is rule 1's second
+        /// corollary happening to a SYSTEM rather than to a comment.
+        ///
+        /// SO THE TEXTURE STAYS AND THE WARDROBE COMES BACK AS A WASH. The
+        /// band's own hue at half saturation and full value: multiplying an
+        /// albedo by that shifts its colour clearly and darkens it barely,
+        /// which is the difference between two people in different coats and
+        /// two people made of coloured plastic — a look this project has
+        /// already shipped once and had to undo.
+        ///
+        /// NO NEW COLOUR AND NO NEW CONSTANT. `ch` and `cs` are the hue and
+        /// saturation `Wardrobe` already chose for this person, deterministic
+        /// per name, and the same pair the coat material is built from twenty
+        /// lines above.
+        ///
+        /// A PROPERTY BLOCK RATHER THAN `r.material`. Touching `.material`
+        /// instantiates a copy per renderer that Unity never reclaims, and body
+        /// LOD grants and revokes bodies continuously — the last run made 1,486
+        /// grants, so that is a leak with a multiplier on it rather than a
+        /// tidiness preference.
+        static readonly int TintId = Shader.PropertyToID("_Color");
+        static MaterialPropertyBlock _tint;
+        public static int Tinted { get; private set; }
+
+        static void Tint(Renderer r, double hue, double saturation)
+        {
+            if (r == null) return;
+            if (_tint == null) _tint = new MaterialPropertyBlock();
+            r.GetPropertyBlock(_tint);
+            _tint.SetColor(TintId, Color.HSVToRGB((float)hue, (float)saturation * 0.5f, 1f));
+            r.SetPropertyBlock(_tint);
+            Tinted++;
+        }
+
         /// The mesh a renderer draws, whether it is skinned or not. One reader,
         /// because the body has both kinds and two lookups would eventually
         /// disagree about which meshes count.
@@ -421,7 +470,7 @@ namespace Ledger.Game
         /// it would keep the clause true while changing which body it is about.
         struct Published
         {
-            public int Attached, Skinned, Dressed, Kept, BodyChoices;
+            public int Attached, Skinned, Dressed, Kept, BodyChoices, Tinted;
             public string Why, Orientation, Parts, CoatRead, CostSeries, TwinWhy;
             public double Upright, DressedAreaFraction, DressedVertexFraction;
             public bool CoverageRead, BindPoseRead, ScaledPoseRead, TwinRead, TwinHuman;
@@ -433,6 +482,7 @@ namespace Ledger.Game
         static Published Save() => new Published
         {
             Attached = Attached, Skinned = Skinned, Dressed = Dressed, Kept = Kept,
+            Tinted = Tinted,
             BodyChoices = BodyChoices, Why = Why, Orientation = Orientation,
             Parts = Parts, CoatRead = CoatRead, CostSeries = CostSeries, TwinWhy = TwinWhy,
             Upright = Upright, DressedAreaFraction = DressedAreaFraction,
@@ -447,6 +497,7 @@ namespace Ledger.Game
         static void Restore(Published p)
         {
             Attached = p.Attached; Skinned = p.Skinned; Dressed = p.Dressed; Kept = p.Kept;
+            Tinted = p.Tinted;
             BodyChoices = p.BodyChoices; Why = p.Why; Orientation = p.Orientation;
             Parts = p.Parts; CoatRead = p.CoatRead; CostSeries = p.CostSeries;
             TwinWhy = p.TwinWhy; Upright = p.Upright;
@@ -693,7 +744,12 @@ namespace Ledger.Game
                 // stand-in has a name too. What distinguishes a material
                 // somebody made from a placeholder is that it has a texture on
                 // it, and that is a property rather than a guess.
-                if (m != null && m.mainTexture != null) { Kept++; continue; }
+                if (m != null && m.mainTexture != null)
+                {
+                    Kept++;
+                    Tint(r, ch, cs);
+                    continue;
+                }
                 paint.Add(r);
             }
 
