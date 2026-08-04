@@ -128,6 +128,26 @@ verdict.
    skinned crowd, costed and designed, worth far more once six textured models
    are in.
 
+8b. **THE THIRD COMPETENCE BRICK — RESEARCHED, NOT GUESSED, AND IT IS NOT THE
+   SHAPE I EXPECTED.** The design note's third example is *"do this one yourself
+   because the lad would botch it and four people see your face instead of
+   his."* The obvious build is a face-count: yours against your crew's. **The
+   game already collapses that distinction and is right to.** A witness to a
+   runner's round files `new Fact("player", "racket_<id>_d<day>", "seen")` — the
+   SUBJECT is the player, and the rumour text says so out loud: *"{runner} was
+   working a {racket} round for the new owner."* The street connects your people
+   to you, which is the whole premise.
+
+   What actually differs is CONFIDENCE: `0.45 + 0.35 * (1 - runner.Competence)`,
+   so a capable runner produces a weaker link to you and a clumsy one a stronger
+   one. That is already a good mechanic and nobody has ever seen it.
+
+   **So the brick is not "count faces", it is "how much of what the street holds
+   about you came from you being seen, against your people being seen".** Both
+   populations are in the mill and separable by predicate — the night job's
+   facts against `racket_*`. Two numbers and a sentence, and the delegation
+   decision finally has a visible price.
+
 9. **Keep retiring the reach ledger** (71). What is left is mostly UI surfaces
    and one real refactor: `Mixing.*` has no audio choke point.
 
