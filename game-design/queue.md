@@ -92,15 +92,31 @@ him. So the top of this list is whatever a player would notice, every time,
 whatever state anything else is in. The full four rules are in CLAUDE.md under
 AUTO MODE.
 
-1. **WHAT THE STREET LOOKS LIKE — the wardrobe wash, and it did not run.**
-   *(CI)* `bodyTinted=1` against 1,586 body attachments: I had added the counter
-   to the set of statics that get snapshotted and restored around a walker's
-   attach, so every walker's wash was undone the instant it happened and the
-   number described the player alone. Out of that set now. The noon frame still
-   shows two women in identical yellow trousers, one of them the player — ten
-   body models against forty-three named people means at least two on screen
-   always share one, so this is the change that stops the street looking
-   duplicated. **Judge it from the frame, then read the count.**
+1. **WHAT THE STREET LOOKS LIKE — the wash ran, and a third of the city was
+   wearing a multiply by white.** *(CI, in the next dispatch)* Two fixes ago
+   the count was `bodyTinted=1` because the counter had been snapshotted and
+   restored around every walker's attach. That was fixed and the count went to
+   5,334, and the frame did not change — two women in the same bright yellow
+   trousers, one of them the player.
+
+   **The count was true and could not answer the question.** A wash of pure
+   white is applied exactly as successfully as any other and changes no pixel.
+   The wash took the band's hue and half its saturation at value **1.0**, and
+   black is v 0.09-0.20 against grey's 0.26-0.44 at the same hue and the same
+   saturation 0.02-0.10 — so value is the only axis separating a fifth of the
+   city from a sixth of it, and value was the axis being discarded. Replicated
+   over the real roster: **39% of people washed to within 5% of white.**
+
+   Fixed in `Core/Wardrobe.Wash`, normalised against `MaxValue` so the
+   brightest coat passes through untouched, with the floor taken from a swept
+   series rather than a preference and a CoreTest holding both ends.
+   `bodyWashWhite` / `bodyWashSampled` / `bodyWashNone` are the readings that
+   would have caught it. **Judge it from the frame, then read the median.**
+
+   Still true and NOT fixed by this: ten body models against forty-three named
+   people means at least two people on screen always share a mesh. The wash is
+   what has to carry the difference, which is why it mattered that it was doing
+   nothing for a third of them.
 
 2. **THE FEET — the fix is in flight and the test is the two drop medians.**
    *(CI)* Two runs agreed that the frames the blend called planted were
@@ -138,10 +154,30 @@ AUTO MODE.
    The Core-shaped work that remains is M22, the shape of a playthrough:
    onboarding, pacing, replayability, succession. Entirely unbuilt.
 
-6. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
+6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD, and it is dead
+   code, and both of those want checking before either is touched.** Found
+   while fixing the wash. `RealBody.TryAttach` lifts the coat's value to 0.68
+   with a comment saying "the player is a named character" — and
+   `TryAttachExtra` calls straight through it, so every walker gets it too.
+   `Wardrobe.MaxValue = 0.46` exists precisely so nobody in the crowd outshines
+   the cast, and the code walks past it for everybody.
+
+   **Deliberately not fixed in the same commit.** The lifted value feeds
+   `coatRgb`, which paints only renderers that arrived UNTEXTURED — and the
+   models have textures now, so on today's bodies that material is never used.
+   The proof was a last-wins reading (`bodySkinned=0 bodyDressed=0`), which
+   cannot say "never", so `bodySkinnedEver`/`bodyDressedEver`/`bodyKeptEver`
+   were added to answer it properly. **Read those three first.** If they are
+   zero the whole paint path is dead and the honest fix is to delete it rather
+   than gate it; if they are not, the crowd needs a cast test that does not
+   exist yet — `VoiceBank.Cast` is the nearest thing and its own comment says
+   its ids do not all match the roster, so borrowing it would put a silent
+   mismatch in the wardrobe.
+
+7. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
    retired is a public API that something actually calls.
 
-7. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
+8. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
    is in and is what mattered: duplicate offers made every duplicated label
    hide itself. The COUNTERS have now contradicted themselves twice.
    **If the next reading is still incoherent, delete them rather than explain
