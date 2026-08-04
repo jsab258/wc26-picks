@@ -9094,6 +9094,19 @@ namespace Ledger.Game
                       $"armWidestWorst={CharacterRig.ArmWidestWorst:0.0} " +
                       $"armP90={CharacterRig.ArmP90Median:0.0} " +
                       $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
+                      // AND WHETHER THE STREET'S BODIES ARE ANIMATING AT ALL.
+                      // Every other animator reading in this verdict —
+                      // `animCulling`, `animClipTime`, `animState` — is gated on
+                      // `IsTheBoughtBody`, which is the player. Twelve crowd
+                      // bodies are skinned at a time and 966 were granted last
+                      // run, and none had ever been asked. `animDriven` minus
+                      // `animAdvancing` is a body with a controller that is not
+                      // moving, which is what a figure standing in its bind pose
+                      // looks like from the inside.
+                      $"animBodies={CharacterRig.AnimBodiesMedian:0} " +
+                      $"animDriven={CharacterRig.AnimDrivenMedian:0} " +
+                      $"animAdvancing={CharacterRig.AnimAdvancingMedian:0} " +
+                      $"animStalledWorst={CharacterRig.AnimStalledWorst} " +
                       $"armFrames={CharacterRig.ArmFrames} " +
                       $"liveArmRead={CharacterRig.LiveArmRead} " +
                       $"preArmDrop={CharacterRig.PreArmDropDegrees:0.0} " +

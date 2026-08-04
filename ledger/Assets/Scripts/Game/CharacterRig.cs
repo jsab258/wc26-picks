@@ -691,6 +691,27 @@ namespace Ledger.Game
         /// that solves them.
         public static void CloseArmFrame()
         {
+            // THE ANIMATOR TALLIES RESET WHATEVER ELSE HAPPENS. They are
+            // per-frame counts and the two early exits below — no arms sampled,
+            // and the twenty-thousand-frame cap — would otherwise leave them
+            // accumulating across frames, so the reading would climb with the
+            // run length and look like a street filling up with bodies. That is
+            // a last-wins field read as a lifetime, which is the fault this
+            // project has now recorded three times.
+            int animBodies = _animBodiesThisFrame, animDriven = _animDrivenThisFrame;
+            int animAdvancing = _animAdvancingThisFrame;
+            _animBodiesThisFrame = 0;
+            _animDrivenThisFrame = 0;
+            _animAdvancingThisFrame = 0;
+            if (animBodies > 0 && _animBodiesPerFrame.Count < 20000)
+            {
+                _animBodiesPerFrame.Add(animBodies);
+                _animDrivenPerFrame.Add(animDriven);
+                _animAdvancingPerFrame.Add(animAdvancing);
+                int stalled = animDriven - animAdvancing;
+                if (stalled > AnimStalledWorst) AnimStalledWorst = stalled;
+            }
+
             if (_armsThisFrame.Count == 0) return;
             _armsThisFrame.Sort();
             // CAPPED, AND THE CAP IS VISIBLE. One entry per solved frame over a
@@ -743,6 +764,37 @@ namespace Ledger.Game
         static readonly List<float> _armWidest = new List<float>();
         static readonly List<float> _armP90 = new List<float>();
         static readonly List<int> _armBodies = new List<int>();
+
+        /// HOW MANY BODIES ARE ACTUALLY ANIMATING, across the street rather
+        /// than on the player alone. Folded at the same frame boundary as the
+        /// arms, so the three counts and the arm width describe one instant.
+        float _lastClipTime = -1f;
+        static int _animBodiesThisFrame, _animDrivenThisFrame, _animAdvancingThisFrame;
+        static readonly List<int> _animBodiesPerFrame = new List<int>();
+        static readonly List<int> _animDrivenPerFrame = new List<int>();
+        static readonly List<int> _animAdvancingPerFrame = new List<int>();
+
+        static double MedianOfInt(List<int> xs)
+        {
+            if (xs.Count == 0) return -1;
+            var c = new List<int>(xs);
+            c.Sort();
+            return c[c.Count / 2];
+        }
+
+        /// Rigs with an Animator, of those the ones with a controller that is
+        /// enabled, and of those the ones whose clip time MOVED this frame.
+        /// A body frozen in its bind pose is counted by the first two and never
+        /// by the third, which is exactly the fault the night stills show and
+        /// nothing has been able to name.
+        public static double AnimBodiesMedian => MedianOfInt(_animBodiesPerFrame);
+        public static double AnimDrivenMedian => MedianOfInt(_animDrivenPerFrame);
+        public static double AnimAdvancingMedian => MedianOfInt(_animAdvancingPerFrame);
+
+        /// The worst frame — fewest advancing against the most driven. A median
+        /// cannot see a minority, which is the lesson this whole file learned
+        /// tonight, so the tail is reported beside it.
+        public static int AnimStalledWorst { get; private set; }
 
         static double MedianOf(List<float> xs)
         {
@@ -1118,6 +1170,34 @@ namespace Ledger.Game
                     // controller", "controller with no motion" and "playing".
                     if (st.normalizedTime > AnimClipTime) AnimClipTime = st.normalizedTime;
                     AnimStateHash = st.shortNameHash;
+                }
+
+                // AND THE SAME THREE QUESTIONS FOR EVERY OTHER BODY, because
+                // every reading above is gated on `IsTheBoughtBody` and that is
+                // THE PLAYER. Up to twelve crowd bodies are skinned at any
+                // moment and 966 were granted over the last run, and not one of
+                // them has ever had its animator asked whether it is animating.
+                //
+                // That is the arm fault again from the other end. `armStreet`
+                // could not see three scarecrows because it was a median;
+                // `animCulling` cannot see them because it only ever looks at
+                // one person. An instrument that describes one subject while
+                // the question is about the street answers a different question
+                // confidently, which is worse than not answering.
+                //
+                // PER FRAME, NOT PER RUN. `AnimAdvancing` counts bodies whose
+                // clip time MOVED since this rig last looked, so a body frozen
+                // in its bind pose is a body that never increments it — and the
+                // denominator is beside it from the same frame, because a
+                // count without one is the mistake this file has shipped four
+                // times.
+                _animBodiesThisFrame++;
+                if (PoseIsDriven)
+                {
+                    _animDrivenThisFrame++;
+                    float t = _animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+                    if (t > _lastClipTime + 1e-5f) _animAdvancingThisFrame++;
+                    _lastClipTime = t;
                 }
             }
             // Beside the pre-solve sample, because they answer the same question
