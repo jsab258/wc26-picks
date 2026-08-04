@@ -102,6 +102,7 @@ namespace Ledger.CoreTests
                 TestHomicide();
                 TestPalette();
                 TestWardrobe();
+                TestOccupancy();
                 TestTextureFit();
                 TestLightModel();
                 TestMusicModel();
@@ -12924,6 +12925,75 @@ namespace Ledger.CoreTests
                 "a wall with no length dresses nothing rather than dividing by it");
             Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
                 "and neither does one too short to put anything against");
+        }
+
+        static void TestOccupancy()
+        {
+            Console.WriteLine("Occupancy — a lit window means somebody is in:");
+
+            // THE ACCEPTING CASE FIRST (rule 5b). The expensive failure here is
+            // a city that goes dark: every window unlit reads as a power cut,
+            // and it would arrive as "the fix worked" because the frame changed
+            // a lot. So the first assertion is that an ordinary person on an
+            // ordinary shift is IN in the evening.
+            var clerk = new Resident { WorkFromHour = 9, WorkToHour = 18, Circle = "day" };
+            Check(Occupancy.AtHome(clerk, 20), "a day-shift clerk is in at eight in the evening");
+            Check(Occupancy.AtHome(clerk, 3), "and at three in the morning");
+            Check(!Occupancy.AtHome(clerk, 12), "and out at noon, which is the only reason to be out");
+
+            // The night circle, which is what makes the skyline a pattern
+            // rather than a block.
+            var barfly = new Resident { WorkFromHour = 9, WorkToHour = 18, Circle = "night" };
+            Check(!Occupancy.AtHome(barfly, 21), "a night-circle person is out at nine");
+            Check(Occupancy.AtHome(barfly, 3), "and back by three");
+
+            // A SHIFT THAT CROSSES MIDNIGHT, because `Population` generates
+            // night trades and a from > to is how it says so. Getting this
+            // wrong lights every night worker's window all night, which is the
+            // opposite of the finding.
+            var janitor = new Resident { WorkFromHour = 22, WorkToHour = 6, Circle = "day" };
+            Check(!Occupancy.AtHome(janitor, 23), "a night janitor is at work at eleven");
+            Check(!Occupancy.AtHome(janitor, 2), "and still at work after midnight");
+            Check(Occupancy.AtHome(janitor, 12), "and home at noon");
+
+            // Half-open at the end, so two adjacent shifts cannot both claim
+            // the hour they meet on.
+            Check(Occupancy.Spans(9, 18, 9) && !Occupancy.Spans(9, 18, 18),
+                  "a span owns its first hour and not its last");
+            Check(!Occupancy.Spans(7, 7, 7), "an empty span owns nothing");
+
+            // THE FRACTION IS THE THING THE FRAME SHOWS, and it must move with
+            // the hour or the skyline is still a block, just a dimmer one.
+            var city = new List<Resident>();
+            for (int i = 0; i < 300; i++)
+                city.Add(new Resident
+                {
+                    WorkFromHour = 9, WorkToHour = 18,
+                    Circle = i % 3 == 0 ? "night" : "day",
+                });
+            double noon = Occupancy.HomeFraction(city, 12);
+            double evening = Occupancy.HomeFraction(city, 21);
+            double small = Occupancy.HomeFraction(city, 4);
+            Check(noon == 0.0, "nobody is home at noon", $"{noon:0.00}");
+            Check(evening > 0.5 && evening < 0.8,
+                  "the evening is a pattern rather than a block or a blackout",
+                  $"{evening:0.00}");
+            Check(small == 1.0, "and the city is in at four", $"{small:0.00}");
+            Check(Occupancy.HomeFraction(null, 12) < 0,
+                  "no population is -1, not an empty city");
+
+            // DETERMINISTIC PER WINDOW. A flat that flickers frame to frame is
+            // noise wearing information's clothes, and a screenshot cannot tell
+            // the two apart.
+            Check(Occupancy.WindowLit("w17", 0.6) == Occupancy.WindowLit("w17", 0.6),
+                  "the same window gives the same answer");
+            int lit = 0;
+            for (int i = 0; i < 2000; i++) if (Occupancy.WindowLit($"w{i}", 0.6)) lit++;
+            double share = lit / 2000.0;
+            Check(share > 0.55 && share < 0.65,
+                  "and the lit share tracks the fraction it was given", $"{share:0.00}");
+            Check(Occupancy.WindowLit("w0", -1),
+                  "an unknown population lights the window rather than blacking it out");
         }
 
         static void TestWardrobe()

@@ -2715,7 +2715,23 @@ namespace Ledger.Game
             }
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
             WorldBuilder.TickNeon(daylight < 0.35f, Time.time);
-            WorldBuilder.SetWindowsLit(daylight < 0.35f); // windows warm up a touch before the street lamps
+            // WINDOWS WARM UP A TOUCH BEFORE THE STREET LAMPS — and which of
+            // them warm up is now a fact about the city rather than all of them.
+            //
+            // `Occupancy.HomeFraction` asks the real population whether each
+            // person is at work, out for the evening, or in, using the work
+            // hours and circle the generator already gave them. The skyline
+            // stops being a wall of identical rectangles, and it stops for a
+            // reason a player can eventually use: a dark window means somebody
+            // is not home.
+            //
+            // `Populace` may not exist yet on the first frames, and -1 is the
+            // "no population" answer rather than "nobody is in" — the
+            // distinction that decides between a normal night and a blackout.
+            WorldBuilder.SetWindowsLit(
+                daylight < 0.35f,
+                Ledger.Core.Occupancy.HomeFraction(
+                    Populace != null ? Populace.Residents : null, Now.Hour));
         }
     }
 }

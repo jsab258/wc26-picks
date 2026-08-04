@@ -1374,17 +1374,57 @@ namespace Ledger.Game
         /// Make the building windows glow (after dusk) or go dark (daytime). Emission is
         /// driven per-renderer via a property block so all windows keep sharing one
         /// material and one draw-call batch.
-        public static void SetWindowsLit(bool lit)
+        /// How many windows are lit and how many exist. A skyline is a claim
+        /// about a city and this is the only number that can check it — and
+        /// `WindowsTotal=0` beside a lit night is a build that drew no windows
+        /// at all, which every other reading here would report as a dark city.
+        public static int WindowsLit { get; private set; }
+        public static int WindowsTotal => Windows.Count;
+        /// The share of the population that was in when the lights were last
+        /// set. Kept so the verdict can print the CAUSE beside the effect: a
+        /// third of the windows lit is right at 21:00 and a fault at 04:00, and
+        /// nothing but the fraction can say which.
+        public static double WindowsHomeFraction { get; private set; } = -1;
+
+        /// EVERY WINDOW WAS THE SAME COLOUR, AND THAT IS THE NIGHT SKYLINE.
+        ///
+        /// This took a bool and wrote one emissive to every window in seven
+        /// districts, so after dusk the city was a wall of identical cream
+        /// rectangles — the loudest thing in `review_day1_night` and the first
+        /// thing the eye goes to.
+        ///
+        /// `homeFraction` is measured over the real population every time the
+        /// lights change (`Core/Occupancy`), so which windows are lit is not a
+        /// decoration: it is how many people are in. Rule 2's shape — the look
+        /// decision is which hours a night-circle person is out, which is
+        /// authored like the wardrobe's bands; the RESULT is measured and
+        /// printed, so a city that goes dark at four is a number rather than a
+        /// surprise in a still.
+        ///
+        /// THE NO-OP GUARD NOW KEYS ON THE FRACTION TOO. It used to return
+        /// early whenever `lit` matched the last call, which was right when
+        /// there were two states and would have frozen the skyline at whatever
+        /// the first evening looked like — a bug that would have shown up as
+        /// "the occupancy feature does nothing" with every number saying it ran.
+        public static void SetWindowsLit(bool lit, double homeFraction = -1)
         {
-            if (lit == _windowsLit && Windows.Count > 0) return; // no-op once settled
+            // Quantised, because the fraction moves continuously with the hour
+            // and rewriting every property block on a hairline change is work
+            // for no visible difference. A twentieth of the city is about one
+            // window in a facade.
+            double q = homeFraction < 0 ? -1 : System.Math.Round(homeFraction * 20) / 20.0;
+            if (lit == _windowsLit && q == WindowsHomeFraction && Windows.Count > 0) return;
             _windowsLit = lit;
-            var color = lit ? WindowLit : WindowDark;
+            WindowsHomeFraction = q;
+            WindowsLit = 0;
             var mpb = new MaterialPropertyBlock();
             foreach (var win in Windows)
             {
                 if (win == null) continue;
+                bool on = lit && Ledger.Core.Occupancy.WindowLit(win.name, q);
+                if (on) WindowsLit++;
                 win.GetPropertyBlock(mpb);
-                mpb.SetColor("_EmissionColor", color);
+                mpb.SetColor("_EmissionColor", on ? WindowLit : WindowDark);
                 win.SetPropertyBlock(mpb);
             }
         }

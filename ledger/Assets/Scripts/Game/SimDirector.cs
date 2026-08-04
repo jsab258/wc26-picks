@@ -9057,6 +9057,16 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} dressedRoadDepth=[{RoadDepthRead()}] doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
+                      // THE SKYLINE, AND ITS CAUSE ON THE SAME LINE. A third of
+                      // the windows lit is right at nine in the evening and a
+                      // fault at four in the morning, and only the fraction
+                      // beside it can say which — two numbers from two lines
+                      // would be two readings again. `windowsTotal=0` is a
+                      // build that drew no windows, which every other number
+                      // here would report as a dark city.
+                      $"windowsLit={WorldBuilder.WindowsLit} " +
+                      $"windowsTotal={WorldBuilder.WindowsTotal} " +
+                      $"windowsHome={WorldBuilder.WindowsHomeFraction:0.00} " +
                       // BUS STOPS AND CAB RANKS DRAWN. Counted for the reason
                       // `cables` is: "the bus route reads as a route" has to be
                       // a number, and zero here means the sim's own loop came
