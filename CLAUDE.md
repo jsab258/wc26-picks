@@ -372,9 +372,20 @@ HISTORY of measurements: that is how the AO ceiling was shown to be sitting
 inside its own instrument's noise across five runs. Adding a number to that file
 costs one line and pays for itself the first time a gate fails.
 
-**DISPATCH BUILDS IN PARALLEL.** The Windows job is `workflow_dispatch` with no
-concurrency group, so nothing queues it — several can run at once, and that is
-how a day of serial hypotheses turns into two waves. Five round trips on the
+**DISPATCH BUILDS IN PARALLEL — BUT NOT MORE THAN ABOUT THREE.** The Windows job
+is `workflow_dispatch` with no concurrency group, so nothing queues it, and that
+is how a day of serial hypotheses turns into two waves. The limit is not the
+runner, it is the **Unity Personal licence**: on 4 August, four builds dispatched
+inside twenty minutes and **two of them died on "Activate Unity license", five
+seconds in**, contending for a seat.
+
+That failure is expensive out of all proportion because it is SILENT in the only
+channel that can be read here. The job still commits a verdict, the verdict says
+`NO PLAYER LOG — the sim did not run on this commit`, and that reads exactly like
+a Game-layer compile error — the one class of fault that cannot be checked
+locally. I read my own correct C# for several minutes before checking the step
+list. The activation step now retries once after a pause, and the verdict names
+both attempts, so the next occurrence is a line rather than a search. Five round trips on the
 upside-down player cost two and a half hours because I sent one question at a
 time when I could have sent three. Each run keeps its own `runs/<sha7>.txt`, so
 concurrent builds are concurrent ANSWERS rather than one answer overwriting

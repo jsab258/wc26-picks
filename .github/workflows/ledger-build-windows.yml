@@ -91,8 +91,46 @@ jobs:
           version-file: ledger/ProjectSettings/ProjectVersion.txt
           build-targets: StandaloneWindows64
 
+      # ACTIVATION IS THE FLAKY STEP, AND IT COSTS A WHOLE ROUND TRIP.
+      #
+      # On 4 August two of four builds dispatched within twenty minutes of each
+      # other died here, five seconds in. A Personal licence allows a limited
+      # number of concurrent activations, and this repo's whole working method
+      # is parallel dispatch — CLAUDE.md says so in as many words, and it is
+      # right up to a point that nobody had measured.
+      #
+      # What made it expensive is that a failure here is SILENT in the only
+      # channel this environment can read. The job still commits a verdict, the
+      # verdict says "NO PLAYER LOG — the sim did not run", and that reads
+      # exactly like a compile error in the Game layer, which is the one thing
+      # that cannot be checked locally. I read my own C# for several minutes
+      # before checking the step list.
+      #
+      # So: try twice, with a pause long enough for another job's licence to be
+      # returned. The first attempt cannot fail the job; the second can, so two
+      # genuine failures still stop the build rather than running it unlicensed.
       - name: Activate Unity license
+        id: unity_license
         timeout-minutes: 2
+        continue-on-error: true
+        uses: buildalon/activate-unity-license@v2
+        with:
+          license: Personal
+          username: ${{ secrets.UNITY_EMAIL }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Wait for a licence seat
+        if: steps.unity_license.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Host "::warning::Unity licence activation failed on the first attempt."
+          Write-Host "Concurrent builds contend for a Personal licence seat. Waiting 45s."
+          Start-Sleep -Seconds 45
+
+      - name: Activate Unity license (second attempt)
+        if: steps.unity_license.outcome == 'failure'
+        id: unity_license_retry
+        timeout-minutes: 3
         uses: buildalon/activate-unity-license@v2
         with:
           license: Personal
@@ -358,6 +396,25 @@ jobs:
             say "no player.log — the sim did not run"
             echo "NO PLAYER LOG — the sim did not run on this commit." \
               >> game-design/sim-shots/verdict.txt
+            # AND WHY, WHICH IS THE WHOLE DIAGNOSIS.
+            #
+            # "The sim did not run" has two completely different causes and the
+            # line above cannot tell them apart: a Game-layer compile error,
+            # which is mine and cannot be caught locally, or a licence
+            # activation failure, which is contention between my own parallel
+            # dispatches and is nothing to do with the code. Reading the second
+            # as the first cost several minutes of staring at correct C#.
+            #
+            # Both attempts are named, because "failed then recovered" is worth
+            # knowing too — it is the measurement that says how close the
+            # dispatch rate is running to the limit.
+            {
+              echo "  first licence attempt : ${{ steps.unity_license.outcome }}"
+              echo "  second licence attempt: ${{ steps.unity_license_retry.outcome || 'not needed' }}"
+              echo "  IF EITHER SAYS failure, THIS IS NOT A COMPILE ERROR — it is"
+              echo "  contention for a Personal licence seat between concurrent builds."
+              echo "  Dispatch fewer at once; do not go looking in the Game layer."
+            } >> game-design/sim-shots/verdict.txt
           fi
 
           # LAYER 3, PIXELS: what moved in the render since the last build.
