@@ -49,10 +49,14 @@ scheduling instead of to CI's output.
    `atRecruit` from a label would be caught. Needs two or three landed runs
    first — several labels build their text conditionally and which keys are
    stable is not yet known. Do not promote blind.
-3. **ANSWERED — BUILD IT. The rig crosses the line on 9 of 43 framed beats.**
-   Twenty-one percent, so the enforcement is not dead code and the arithmetic
-   is already written and tested. The camera reverses who is looking at whom,
-   during an authored beat, roughly once every five.
+3. **NOT YET — 9 of 43 is a mandate only if the RIG did them.** Twenty-one
+   percent looked like a clear reason to build the enforcement, and that was
+   too fast. A crossing after the player takes the camera back is the beat
+   correctly getting out of the way; a crossing while the beat is still
+   composing is a shot reversing itself. `lineCrossed` pools the two and they
+   want opposite responses. `lineCrossedLive` splits them and is building now.
+   **Zero live means the enforcement is dead code that would look like a
+   feature. Nine means write it.** Do not build before that number lands.
 4. **ANSWERED AND CLOSED — nothing ever stands in the way.** Twenty shots
    aimed, **zero** blocked, no blocker to name. The foreground clutter in
    three stills is BESIDE the sight line, not on it, and every judgement made
