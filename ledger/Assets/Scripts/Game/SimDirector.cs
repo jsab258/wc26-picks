@@ -2018,13 +2018,35 @@ namespace Ledger.Game
             for (int i = 0; i < bubbles.Count; i++)
                 for (int j = i + 1; j < bubbles.Count; j++)
                     if (bubbles[i].Overlaps(bubbles[j])) now++;
-            if (now > _collidingBubbles) _collidingBubbles = now;
+            // TWO PEAKS FROM POSSIBLY DIFFERENT INSTANTS CANNOT BE DIVIDED,
+            // and I tried to divide them.
+            //
+            // Before bubble stacking: `collidingBubbles=15 bubblesOnScreen=6` —
+            // six bubbles have exactly fifteen pairs, so every pair overlapped.
+            // After: `91` and `16`, which is 76% of 120 pairs and looks like an
+            // improvement. It may be. It cannot be READ as one, because these
+            // are independent maxima: the worst overlap instant and the busiest
+            // instant need not be the same frame, so the denominator does not
+            // belong to the numerator.
+            //
+            // That is the same fault as every "peak beside a peak" this file
+            // has already fixed once, committed by me while fixing one of them.
+            // The count at the moment of the WORST overlap is the only
+            // denominator that means anything, so it is captured with it.
+            if (now > _collidingBubbles)
+            {
+                _collidingBubbles = now;
+                _bubblesAtWorst = bubbles.Count;
+            }
             if (bubbles.Count > _bubblesOnScreen) _bubblesOnScreen = bubbles.Count;
             return pairs;
         }
 
         int _collidingWorldText = -1;
         int _collidingBubbles = 0, _bubblesOnScreen = 0;
+        /// How many bubbles were on screen at the instant of the worst overlap.
+        /// The only denominator `collidingBubbles` can honestly be divided by.
+        int _bubblesAtWorst = 0;
 
         int _worldText = -1, _worldTextDepth = -1;
 
@@ -6874,7 +6896,7 @@ namespace Ledger.Game
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
-                      $"collidingBubbles={_collidingBubbles} bubblesOnScreen={_bubblesOnScreen} " +
+                      $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
                       $"textMirrored={_textMirrored} " +
                       $"textFacingAway={_textFacingAway} textVisible={_textVisible} " +
                       $"billboardsStale={_billboardsStale} " +

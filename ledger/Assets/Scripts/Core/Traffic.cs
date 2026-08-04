@@ -1081,9 +1081,19 @@ namespace Ledger.Core
             // THE LEADER'S TAIL POSITION IS THE WHOLE DIAGNOSIS, so it is stated
             // rather than left to be worked out from three other numbers.
             double tail = bo.S - bo.Kind.Length;
+            // COLONS, NOT EQUALS, AND THAT IS NOT COSMETIC. `verdict-keys` reads
+            // every `name=` in the verdict as a measurement that must keep
+            // being reported — a simple rule that has caught real losses. This
+            // sentence is prose, and it only takes this branch when two
+            // vehicles share an edge, so `S=` and `tail=` were learned as
+            // required measurements and then went missing the first time the
+            // road was clear. A false alarm on good news, which is the kind
+            // that gets rebaselined on reflex until the checker is worthless.
+            //
+            // The tool's rule is right. The sentence was breaking it.
             TightestGapWhy =
-                $"{bo.Kind.Id}#{bo.Id} lead S={bo.S:0.00} len={bo.Kind.Length:0.00} tail={tail:0.00}"
-                + $" over {bv.Kind.Id}#{bv.Id} at S={bv.S:0.00}"
+                $"{bo.Kind.Id}#{bo.Id} lead S:{bo.S:0.00} len:{bo.Kind.Length:0.00} tail:{tail:0.00}"
+                + $" over {bv.Kind.Id}#{bv.Id} at S:{bv.S:0.00}"
                 + $" on {bo.FromId}->{bo.ToId}"
                 + (tail < 0 ? " — LEADER'S TAIL IS BEHIND THE EDGE START" : "");
             return best;
