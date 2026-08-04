@@ -7664,6 +7664,79 @@ namespace Ledger.CoreTests
             Check(fame.Notoriety < known,
                 "but it does fade — being known is not permanent either");
 
+            // ---- M21: SHE RINGS YOU, AND NOT PICKING UP IS AN ANSWER ------
+            //
+            // The roadmap has said for weeks that the rival is a person rather
+            // than a stage counter, and that what is missing is her RINGING
+            // you: `ResolveTable` already takes accept, defy and counter, and
+            // all three require the player to be in the room. A call has a
+            // fourth answer those cannot express — not being there — and it is
+            // the one the rest of this game is built to make interesting.
+            var she = new EmpireBook();
+            var kest = she.ArmOf("dockside");
+
+            // A QUIET ARM DOES NOT RING. Stage 0 is "quiet"; a call from
+            // somebody who has not noticed you is the game telling the player
+            // they matter rather than the world deciding it.
+            kest.Stage = 0; kest.Attention = 1.0; kest.LastActDay = -1;
+            Check(Summoning.Due(kest, 5, 20) == null,
+                "an arm that has not noticed you does not telephone you");
+
+            // NOR ONE THAT IS NOT THINKING ABOUT YOU.
+            kest.Stage = 2; kest.Attention = 0.2;
+            Check(Summoning.Due(kest, 5, 20) == null,
+                "nor one whose attention you do not have");
+
+            kest.Attention = 0.8;
+            var ring = Summoning.Due(kest, 5, 20);
+            Check(ring != null && ring.ArmId == "dockside" && ring.Day == 5,
+                "a rival at stage two with your attention rings you");
+
+            // DETERMINISTIC, AND THAT IS THE POINT RATHER THAN A CONVENIENCE.
+            // A roll here would mean two loads of one save differ in whether
+            // the phone rang, and this whole design turns on the player being
+            // able to believe what happened followed from what they did.
+            var again = Summoning.Due(kest, 5, 20);
+            Check(again != null && again.Terms == ring.Terms,
+                "and asking twice gives the same call, not a second roll");
+
+            // THE ORDERING IS THE DESIGN. Magnitudes are authored; what is
+            // asserted is that taking the call is the only answer that can gain
+            // standing, that refusing to her face costs most, and that missing
+            // sits between them — a man who is never reachable is telling you
+            // something, but he has not SAID it and she cannot repeat it.
+            Check(Summoning.StandingChange(Answered.Took) > 0,
+                "taking the call is the only answer that can gain you anything");
+            Check(Summoning.StandingChange(Answered.Missed)
+                  > Summoning.StandingChange(Answered.Refused),
+                "missing costs less than refusing to her face",
+                $"{Summoning.StandingChange(Answered.Missed):0.00} vs "
+                + $"{Summoning.StandingChange(Answered.Refused):0.00}");
+            Check(Summoning.StandingChange(Answered.Missed) < 0,
+                "and it is not free — never being reachable is its own answer");
+
+            // MISSING LEAVES THE MATTER LIVE. Taking the call buys attention
+            // back the way a settlement does; refusing spikes it the way defying
+            // her at a table does; missing moves it not at all, so she rings
+            // again.
+            Check(Summoning.AttentionChange(Answered.Took) < 0
+                  && Summoning.AttentionChange(Answered.Missed) == 0
+                  && Summoning.AttentionChange(Answered.Refused) > 0,
+                "a missed call leaves her attention exactly where it was");
+
+            // AND THE CLOCK MOVES ON A MISS, which is the one that would have
+            // been forgotten. `Due` refuses to ring again for three days from
+            // the last act; if a miss did not count as an act she would ring
+            // every day until somebody answered — harassment reachable only
+            // through the answer that does not involve the player at all.
+            kest.LastActDay = -1;
+            var missed = Summoning.Due(kest, 10, 21);
+            Summoning.Apply(she, missed, Answered.Missed, 10);
+            Check(Summoning.Due(kest, 11, 21) == null,
+                "she does not ring again the next day just because nobody answered");
+            Check(Summoning.Due(kest, 13, 21) != null,
+                "but she does three days later");
+
             // ---- THE SYSTEM MUST NOT BE INERT (BalanceLab, 2026-07-28) ----
             //
             // The original constants made a clean strike do 0.86 against a

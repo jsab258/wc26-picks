@@ -240,6 +240,7 @@ namespace Ledger.Game
             // Phase 3 reports witnesses by id, and turning an id back into the
             // person who has to react to blood on your coat needs the list.
             ViolenceHost.Reset();
+            SummonsHost.Reset();
             ViolenceHost.BindWalkers(_npcs);
             CoatHost.Reset();
             EvidenceHost.Reset();
@@ -8507,6 +8508,15 @@ namespace Ledger.Game
                       // leave `notoriety` exactly where the cut put it.
                       $"notorietyFromLaw={LawHost.NotorietyFiled} " +
                       $"notorietyDoors=[{NotorietyDoorReading()}] " +
+                      // M21: THE RIVAL RINGS YOU. `summonsPlaced` is the
+                      // denominator — without it `summonsTaken=0` reads the
+                      // same whether nobody answered or she never rang, and
+                      // this is a system whose whole failure mode is looking
+                      // like it ran quietly.
+                      $"summonsPlaced={SummonsHost.Placed} " +
+                      $"summonsTaken={SummonsHost.Taken} " +
+                      $"summonsMissed={SummonsHost.MissedCalls} " +
+                      $"summonsRead=[{SummonsHost.LastRead}] " +
                       $"notorietyLastLaw={LawHost.LastNotoriety:0.000} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +

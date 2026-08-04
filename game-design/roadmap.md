@@ -49,25 +49,18 @@ Scores per dimension are in `agency-model.md`, re-scored against the code on
 
 ---
 
-## M16 — PERCEPTION, WEAPONS AND VIOLENCE *(shipped)*
+## M16 — PERCEPTION, WEAPONS AND VIOLENCE *(shipped, with one correction)*
 
 Phases 1–4 shipped and gated; phase 5 is firearms and is M23. The §4.7 gate
 holds — *the same killing leaves no witness in an empty alley, several in a
-market, and none in the back room of a busy pub*. Detail and post-mortems in
-`roadmap-history.md`.
+market, and none in the back room of a busy pub*.
 
-**"SHIPPED" IS TRUE OF THE CONSEQUENCE HALF AND NOT OF THE FIGHTING, found
-2026-08-04 by reading the code rather than this table.** A killing is staged
-as an EVENT — `ViolenceHost` sets a lethal flag and resolves the witnesses —
-and everything downstream of that genuinely runs. There is no exchange of
-blows anywhere: `Available`, `Resolve` and `StaminaCost` model stamina,
-footing, guarding and reach, are tested, and **`Combat.` occurs exactly once
-in the whole Game layer**, on an unrelated stamina line. Nothing constructs
-a `Fighter`. It hid here because the gate certifying M16 asks about
-WITNESSES, and a fight that cannot start still leaves an empty alley empty —
-and on the reach ledger because only `Breathe` has a name that does not
-collide with another Core type's method, so a four-method gap showed as one.
-Fixing it is a milestone and it needs a done-condition measuring a FIGHT.
+**"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found
+2026-08-04 by reading the code rather than this table: violence is staged as an
+event, everything downstream of it runs, and there is no exchange of blows
+anywhere. Fixing it is a milestone and it needs a done-condition that measures
+a FIGHT. Full account, and why no gate could have caught it, in
+`roadmap-history.md`.
 
 **The risk it exposed sets the pace of everything below:** the Game layer does
 not compile locally, so every wiring change costs a ~28-minute round trip.
@@ -82,13 +75,13 @@ below is visible in them. Almost nothing here is new design.
 | | what | state | risk |
 |---|---|---|---|
 | 17.1 | **Integrate the Mixamo bodies** | **CLOSED 2026-08-03 except the mesh.** The figure stands, the arms hang, and forty-one imported clips are being played by a locomotion blend tree. It took eight builds and two faults that were both ours, not Mixamo's, and it was closed by LOOKING at `review_day1_noon.jpg` after a gate blind to the fault had certified it once already. Full account in `roadmap-history.md`. What remains is that the body is a grey preview mannequin — that is 17.1b | **arms open; upside-down closed** |
-| 17.1b | **Bodies and faces for EVERYONE** | **RUNNING 2026-08-04, confirmed by build: `walkerBodies=12`, `bodyKeptMats=1`, textures extracted, foot IK driving both feet.** Three things had to be true and now are: eight real Mixamo bodies are on disk (`bodyChoices=10`, all models carrying valid human avatars); their textures are extracted and reaching the mesh (`bodyKeptMats` non-zero, and the noon still shows a figure with skin, hair and clothes rather than a flat silhouette); and the named cast is attached to them. **`RealBody.TryAttach` had exactly ONE caller — `PlayerController` — so the player was a person and all sixty-seven walkers were articulated boxes.** The anonymous crowd keeps mannequins by choice: they are never spoken to and read fine at the distance you see them, and bounding it to the cast means the number of skinned bodies is something somebody chose. Gait bias, bad leg and idle phase come across from `Physique.For`, the same deterministic source `Mannequin` uses, so the cast does not walk in unison — the one way real bodies could have read as worse than the boxes. **`walkerBodies` came back non-zero, so the wiring is closed and what remains is cost.** Forty-four bodies is 1,037,694 skinned vertices against 16,338 for one — about 23k a body, which is what a Mixamo character costs, so it is real work rather than a GPU-less runner's noise. Bounded at twelve; and since 4 Aug the twelve are chosen every second by distance to the player, using `Population`'s own near band rather than a second definition of near, so the person in front of you is the one wearing a face. The prerequisite is the part worth remembering: `TryAttach` publishes statics that five clauses of the `bodies` gate read as THE PLAYER's, so attaching walkers without separating them first would have made all five silently describe the last walker, and a corrupted gate reads exactly like a passing one. History in `roadmap-history.md` | **wired; risk is now cost, not absence** |
+| 17.1b | **Bodies and faces for EVERYONE** | **RUNNING 2026-08-04, confirmed by build: `walkerBodies=12`, `bodyKeptMats=1`, textures extracted, foot IK driving both feet.** Three things had to be true and now are: eight real Mixamo bodies are on disk (`bodyChoices=10`, all models carrying valid human avatars); their textures are extracted and reaching the mesh (`bodyKeptMats` non-zero, and the noon still shows a figure with skin, hair and clothes rather than a flat silhouette); and the named cast is attached to them. **`RealBody.TryAttach` had exactly ONE caller — `PlayerController` — so the player was a person and all sixty-seven walkers were articulated boxes.** The anonymous crowd keeps mannequins by choice: they are never spoken to and read fine at the distance you see them, and bounding it to the cast means the number of skinned bodies is something somebody chose. Gait bias, bad leg and idle phase come across from `Physique.For`, the same deterministic source `Mannequin` uses, so the cast does not walk in unison — the one way real bodies could have read as worse than the boxes. **`walkerBodies` came back non-zero, so the wiring is closed and what remains is cost.** Forty-four bodies is 1,037,694 skinned vertices against 16,338 for one — about 23k a body, which is what a Mixamo character costs, so it is real work rather than a GPU-less runner's noise. Bounded at twelve; and since 4 Aug the twelve are chosen every second by distance to the player, using `Population`'s own near band rather than a second definition of near, so the person in front of you is the one wearing a face. Full account in `roadmap-history.md`. History in `roadmap-history.md` | **wired; risk is now cost, not absence** |
 | 17.2 | **Generate the cast voices** — clones from the 19 reference clips | cast and consent-approved; **19 reference clips picked**. Blocked on a SCOPE decision, not on tooling — see below | **high, and it is scheduling** |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
 | 17.4 | **Bark curation** — the bark bank, read line by line | **DONE 2026-07-31** (884ce9a). 2,604 lines read by family. Everything mechanical was already clean; the two finds were things no check could see — `exchange.tell.certain` had six of fourteen openers starting the same way, and six `ambient.pair.ordinary` replies each answered one specific opener while `Answer()` picks them independently. Both now gated in `BarkGen` at a threshold read off the printed series | closed |
 | 17.5 | **Non-verbal foley** — grunts, pain, exertion | decided: CC0 through the voice pipeline | low |
 | 17.6 | **Surfaces** — a real texture set for the twelve logical surfaces `AssetLibrary` already asks for | **DONE 2026-08-01.** 12 CC0 albedos from ambientCG committed, attributed, `pack_check` green. Verified in a render: the noir tint neutralises the source saturation | closed |
-| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles: per-kind silhouettes, wheels at real proportions, density 28. "Buildings are cubes" was wrong both ways — they are box ASSEMBLIES (body, roof, setback tier, rooftop tank). **2026-08-01:** windows split from one band per floor into panes with piers, ground floor deliberately one wide shopfront light, gated to near-core buildings on the ramp the facades already use; overhead cables strung (`Dressing.CableAt`, off the reach ledger). **"Still open: cornices, and doors as geometry" was wrong on both counts and cost a wasted change on 3 August** — `GroundFloor` has been building a fascia, a recessed door and a parapet cornice on every street-facing mass for as long as it has existed, three lines apart, and I wrote a second door system in Core with four tests before reading it. **And "nothing distinguishes a shop from a house from a warehouse except the sign" is also wrong, checked 2026-08-04 by opening `GroundFloor`.** Premise kind already drives the fascia (a shop gets a signboard band, a house deliberately does not — "a signboard over somebody's front room is the fastest way to make a residential street look like a high street"), the door WIDTH via `Dressing.DoorWidth`, and the door HEIGHT — a warehouse gets 3.2m because a loading door has to take a cart. Third false "still open" in this row: it previously claimed cornices and doors were missing when both were built three lines apart, and that one cost a wasted change. What IS open: the back of a block gets bins and drainpipes but no geometry of its own | medium — volume, not difficulty |
+| 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles: per-kind silhouettes, wheels at real proportions, density 28. "Buildings are cubes" was wrong both ways — they are box ASSEMBLIES (body, roof, setback tier, rooftop tank). **2026-08-01:** windows split from one band per floor into panes with piers, ground floor deliberately one wide shopfront light, gated to near-core buildings on the ramp the facades already use; overhead cables strung (`Dressing.CableAt`, off the reach ledger). What IS open: the back of a block gets bins and drainpipes but no geometry of its own | medium — volume, not difficulty |
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
@@ -288,11 +281,14 @@ reads back why each person stopped trusting you.
 **The empire grows in DEPTH, not area.** Four businesses on a street where you
 know every face beats twelve across a map.
 
-**The rival is a person, not a stage counter — and this was half wrong when
-written.** `ResolveTable` already offers terms, takes accept/defy/counter, moves
-standing and attention, and writes the answer into her people's memory. What is
-actually missing is her RINGING you: the summit is a place you go, not a call
-you take, and `Phones` has been built since M10.
+**The rival is a person, not a stage counter — and she rings you as of
+4 August.** `ResolveTable` took accept, defy or counter, and all three require
+the player to be in the room. A call has a FOURTH answer those cannot express —
+not being there — and being unreachable is now a position you can take and the
+first thing in the game that charges for it. Missing costs less than refusing
+to her face, more than taking the call, and leaves her attention where it was
+so the matter stays live. **Still missing: the third answer.** Picking up and
+saying no needs a prompt, which belongs with the UI.
 
 **Done when.** A player can end a rival without touching them — allegiance
 moves, a charge lands, their access closes because of what the street believes.

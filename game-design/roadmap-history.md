@@ -1803,3 +1803,63 @@ product, not a measurement. Real demand is `clipsAsked=276 voicesAsked=6`, an
 afternoon. Post-mortem in `roadmap-history.md`.
 
 **The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
+
+## 17.1b — the trap that had to be cleared before a single walker body attached
+
+Moved out of `roadmap.md` on 4 August under rule 10: the live plan stays under
+400 lines and this is an account of something solved, not a statement of what
+happens next.
+
+The prerequisite is the part worth remembering: `TryAttach` publishes statics that five clauses of the `bodies` gate read as THE PLAYER's, so attaching walkers without separating them first would have made all five silently describe the last walker, and a corrupted gate reads exactly like a passing one.
+
+The shape is worth keeping because it is not specific to bodies. A function
+that publishes statics, called for a second subject, silently re-points every
+reader of those statics at the new subject — and a gate reading them cannot
+tell that it has changed what it is about. `TryAttachExtra` saves and restores
+the whole published set for exactly this reason, and the five clauses it
+protects are named in `RealBody` itself.
+
+## 17.7 — three false "still open" claims in one roadmap row
+
+Moved out of `roadmap.md` on 4 August under rule 10. Each of these was a
+statement that something was MISSING which was not missing, and the first one
+cost a wasted change — a second door system built in Core, with four tests,
+against a wall that already had a door.
+
+**"Still open: cornices, and doors as geometry" was wrong on both counts and cost a wasted change on 3 August** — `GroundFloor` has been building a fascia, a recessed door and a parapet cornice on every street-facing mass for as long as it has existed, three lines apart, and I wrote a second door system in Core with four tests before reading it. **And "nothing distinguishes a shop from a house from a warehouse except the sign" is also wrong, checked 2026-08-04 by opening `GroundFloor`.** Premise kind already drives the fascia (a shop gets a signboard band, a house deliberately does not — "a signboard over somebody's front room is the fastest way to make a residential street look like a high street"), the door WIDTH via `Dressing.DoorWidth`, and the door HEIGHT — a warehouse gets 3.2m because a loading door has to take a cart. Third false "still open" in this row: it previously claimed cornices and doors were missing when both were built three lines apart, and that one cost a wasted change.
+
+The reusable part is rule 3's corollary: a doc saying something is missing is
+an ANALYSIS, not evidence, and its "still open" lists decay exactly like
+comments do. Grep is not enough either — grep found the call site and I read
+past it. Open the function.
+
+## M16 — why "shipped" hid a system that has never run
+
+Moved out of `roadmap.md` on 4 August under rule 10, which caps the live plan
+at 400 lines so it stays scannable. The finding stays in the live row; this is
+the account of how it stayed hidden for as long as it did.
+
+**"SHIPPED" IS TRUE OF THE CONSEQUENCE HALF AND NOT OF THE FIGHTING, found
+2026-08-04 by reading the code rather than this table.** A killing is staged
+as an EVENT — `ViolenceHost` sets a lethal flag and resolves the witnesses —
+and everything downstream of that genuinely runs. There is no exchange of
+blows anywhere: `Available`, `Resolve` and `StaminaCost` model stamina,
+footing, guarding and reach, are tested, and **`Combat.` occurs exactly once
+in the whole Game layer**, on an unrelated stamina line. Nothing constructs
+a `Fighter`. It hid here because the gate certifying M16 asks about
+WITNESSES, and a fight that cannot start still leaves an empty alley empty —
+and on the reach ledger because only `Breathe` has a name that does not
+collide with another Core type's method, so a four-method gap showed as one.
+Fixing it is a milestone and it needs a done-condition measuring a FIGHT.
+
+**The risk it exposed sets the pace of everything below:** the Game layer does
+not compile locally, so every wiring change costs a ~28-minute round trip.
+
+---
+
+Two mechanisms kept it invisible and both are reusable. The gate certifying
+M16 asks about WITNESSES, and a fight that cannot start still leaves an empty
+alley empty — a gate can only ever fail on the question it asks. And on the
+reach ledger the four-method gap showed as ONE entry, because only `Breathe`
+has a name that does not collide with another Core type's method and the reach
+tool matches by name.

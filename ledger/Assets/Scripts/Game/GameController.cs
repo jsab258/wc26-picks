@@ -1955,6 +1955,12 @@ namespace Ledger.Game
                 // hiding a second decay inside a money function is how the two
                 // would drift apart without anybody noticing.
                 Campaign.FadeNotoriety();
+                // AND SHE MAY RING. Here for the same reason the decay is
+                // here: this instant is the one every system in the game
+                // agrees is "a day", and giving the rival a clock of her own
+                // is the two-clocks shape that has already cost this project
+                // the arms, the billboards and the foot plant.
+                SummonsHost.Nightly(this);
                 int takings = Campaign.CloseDay(heat);
 
                 // M18. THE NIGHT THAT JUST ENDED, and where the player spent it.
