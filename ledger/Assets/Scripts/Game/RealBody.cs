@@ -57,6 +57,26 @@ namespace Ledger.Game
         public static int Dressed { get; private set; }
         public static int Kept { get; private set; }
 
+        /// AND THE SAME THREE OVER THE WHOLE RUN, because the three above are
+        /// RESET AT EVERY ATTACH and therefore describe whichever body was
+        /// attached last.
+        ///
+        /// `bodySkinned=0 bodyDressed=0` is a last-wins reading. I was one
+        /// sentence away from writing "nothing in this city is ever painted"
+        /// off it, which it cannot support — it says the LAST body was not,
+        /// and the last body is whichever walker the LOD happened to grant as
+        /// the run ended. The distinction matters here because the paint path
+        /// carrying zero for the whole run is what makes the wash the only
+        /// route the wardrobe has, and that claim is load-bearing on the
+        /// change beside it.
+        ///
+        /// Same fault as `namesManagedEver`, from the opposite side: there a
+        /// cumulative number was sampled somewhere sparse, here a per-event
+        /// number was read as a lifetime one.
+        public static int SkinnedEver { get; private set; }
+        public static int DressedEver { get; private set; }
+        public static int KeptEver { get; private set; }
+
         /// AND HOW MUCH OF THE BODY EACH OF THOSE ACTUALLY COVERS.
         ///
         /// The counts above are of RENDERERS, and a count cannot see
@@ -338,17 +358,27 @@ namespace Ledger.Game
         /// disconnected by a fix to something else, which is rule 1's second
         /// corollary happening to a SYSTEM rather than to a comment.
         ///
-        /// SO THE TEXTURE STAYS AND THE WARDROBE COMES BACK AS A WASH. The
-        /// band's own hue at half saturation and full value: multiplying an
-        /// albedo by that shifts its colour clearly and darkens it barely,
-        /// which is the difference between two people in different coats and
-        /// two people made of coloured plastic — a look this project has
-        /// already shipped once and had to undo.
+        /// SO THE TEXTURE STAYS AND THE WARDROBE COMES BACK AS A WASH.
         ///
-        /// NO NEW COLOUR AND NO NEW CONSTANT. `ch` and `cs` are the hue and
-        /// saturation `Wardrobe` already chose for this person, deterministic
-        /// per name, and the same pair the coat material is built from twenty
-        /// lines above.
+        /// AND THE FIRST VERSION OF THAT SENTENCE WAS WRONG FOR A THIRD OF THE
+        /// CITY. It read: "the band's own hue at half saturation and full
+        /// value: multiplying an albedo by that shifts its colour clearly and
+        /// darkens it barely". The second clause is true. The first is true of
+        /// denim and false of black and grey, which share a hue range, both sit
+        /// at saturation 0.02-0.10, and are told apart by VALUE — the one axis
+        /// `1f` threw away. Over the real roster, 39% of people washed to
+        /// within 5% of white, and a multiply by white is the identity.
+        ///
+        /// That is a comment being a claim with no test attached, and the claim
+        /// decayed the moment somebody asked it about a band it was not written
+        /// for. The rule now lives in `Core/Wardrobe.Wash`, with the measured
+        /// series beside it and a CoreTest holding both ends — the darkest coat
+        /// separating from the brightest, and the brightest not being dimmed.
+        ///
+        /// NO NEW COLOUR. `ch`, `cs` and `cv` are what `Wardrobe` already chose
+        /// for this person, deterministic per name, and the same triple the
+        /// coat material is built from twenty lines above — which is the point:
+        /// the two paths were reading different parts of one decision.
         ///
         /// A PROPERTY BLOCK RATHER THAN `r.material`. Touching `.material`
         /// instantiates a copy per renderer that Unity never reclaims, and body
@@ -373,14 +403,70 @@ namespace Ledger.Game
         /// about the player", and nothing reads this at all except the verdict.
         public static int Tinted { get; private set; }
 
-        static void Tint(Renderer r, double hue, double saturation)
+        /// HOW MUCH WARDROBE ACTUALLY ARRIVES, and it is the reading that was
+        /// missing rather than a decoration.
+        ///
+        /// `Tinted=5334` was true and meant nothing. It counts renderers the
+        /// wash was APPLIED to, and a wash of pure white is applied just as
+        /// successfully as any other — so the counter proving the system ran
+        /// could not distinguish it running from it doing nothing, which is
+        /// rule 3b with the denominator present and the wrong quantity counted.
+        ///
+        /// This is the distance of each applied wash from white, 0..100, where
+        /// zero means that person's coat changed no pixel. Kept as a list so
+        /// the MEDIAN is available: a peak would answer "did anybody's wardrobe
+        /// ever show", which is not the question the noon still asks, and a
+        /// mean would let one shellsuit carry two hundred people in black.
+        ///
+        /// CAPPED, AND THE CAP SAYS WHEN IT BITES. Body LOD grants and revokes
+        /// continuously, so this would otherwise grow with the run rather than
+        /// with the city. Past the cap it stops sampling and `WashSampled`
+        /// stays below `Tinted`, which is the difference between "measured
+        /// everything" and "measured the first twenty thousand" being legible
+        /// instead of assumed.
+        const int WashCap = 20000;
+        static readonly List<float> _washes = new List<float>();
+        public static int WashSampled => _washes.Count;
+
+        /// The median distance from white, or -1 when nothing was washed —
+        /// which must not read as "the wash is perfectly white", the exact
+        /// confusion `ContrastWorst` shipped with.
+        public static double WashFromWhite
+        {
+            get
+            {
+                if (_washes.Count == 0) return -1;
+                var c = new List<float>(_washes);
+                c.Sort();
+                return c[c.Count / 2];
+            }
+        }
+
+        /// How many people's wardrobe reaches the eye as nothing at all. The
+        /// number that was 39% of the city and had nowhere to be reported.
+        public static int WashNearWhite { get; private set; }
+
+        static void Tint(Renderer r, double hue, double saturation, double value)
         {
             if (r == null) return;
             if (_tint == null) _tint = new MaterialPropertyBlock();
+            Ledger.Core.Wardrobe.Wash(hue, saturation, value,
+                                      out double wh, out double ws, out double wv);
+            var c = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
             r.GetPropertyBlock(_tint);
-            _tint.SetColor(TintId, Color.HSVToRGB((float)hue, (float)saturation * 0.5f, 1f));
+            _tint.SetColor(TintId, c);
             r.SetPropertyBlock(_tint);
             Tinted++;
+
+            // A MULTIPLY BY WHITE IS THE IDENTITY, so distance from white is
+            // exactly how much of the wardrobe survives to the frame. Plain RGB
+            // rather than a perceptual space, because the multiply itself
+            // happens in RGB and the question is what the shader does.
+            float d = Mathf.Sqrt(((1f - c.r) * (1f - c.r)
+                                  + (1f - c.g) * (1f - c.g)
+                                  + (1f - c.b) * (1f - c.b)) / 3f) * 100f;
+            if (d < 5f) WashNearWhite++;
+            if (_washes.Count < WashCap) _washes.Add(d);
         }
 
         /// The mesh a renderer draws, whether it is skinned or not. One reader,
@@ -683,11 +769,20 @@ namespace Ledger.Game
             // tell "the fallback painted everything" from "the model arrived
             // with its own materials", which the last one could not.
             var skin = AssetLibrary.Opaque(new Color(0.72f, 0.58f, 0.47f));
-            // FULLY QUALIFIED, because this file deliberately has no `using
-            // Ledger.Core;` — that import collides `Ledger.Core.Object`-shaped
-            // names with `UnityEngine.Object` and the bare `Object.Destroy`
-            // above becomes CS0104. `lint-usings.py` caught the import I nearly
-            // added instead, which is a 28-minute CI round trip it just saved.
+            // FULLY QUALIFIED, AND THE REASON THIS COMMENT GAVE WAS FALSE. It
+            // said the file "deliberately has no `using Ledger.Core;`" because
+            // that import would collide with `UnityEngine.Object` and make the
+            // bare `Object.Destroy` above a CS0104. Line 2 of this file is
+            // `using Ledger.Core;` and has been since f8ef52b, and it compiles
+            // — Core declares no type called `Object`, so there was never a
+            // collision to avoid. A worked-out reason is the most convincing
+            // kind of wrong comment, and this one survived because nobody
+            // rereads a paragraph that is not in their diff.
+            //
+            // The qualification stays because every neighbour has it and a file
+            // that qualifies half its Core calls is harder to read than one
+            // that qualifies all of them. That is a style reason, which is what
+            // it always actually was.
             double coatRoll = Ledger.Core.Physique.Fraction(wearer ?? "player", 7);
             Ledger.Core.Wardrobe.Dress(coatRoll, out double ch, out double cs, out double cv);
             // The cast sit above the crowd's ceiling on purpose — Rocco 0.75,
@@ -722,10 +817,20 @@ namespace Ledger.Game
             // by it, so a low-saturation band both starts neutral and stays
             // neutral, and that is the shape of a coat that renders as bare
             // plastic.
+            //
+            // AND THE WASH IS ON THE SAME LINE, because on today's models it is
+            // the only one of the two that runs — `bodySkinned=0 bodyDressed=0
+            // bodyKeptMats=1`, so `coatRgb` is a colour computed for a material
+            // nothing has been given for weeks. Printing the coat without the
+            // wash beside it is printing the branch that is not taken.
+            Ledger.Core.Wardrobe.Wash(ch, cs, cv,
+                                      out double wh, out double ws, out double wv);
+            var washRgb = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
             string coatBand = Ledger.Core.Wardrobe.BandOf(coatRoll);
             CoatRead = coatBand
                      + $" hsv={ch:0.00}/{cs:0.00}/{coatV:0.00}"
-                     + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}";
+                     + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}"
+                     + $" wash={(int)(washRgb.r * 255)},{(int)(washRgb.g * 255)},{(int)(washRgb.b * 255)}";
             Skinned = Dressed = Kept = 0;
             double coatArea = 0, totalArea = 0;
             long coatVerts = 0, totalVerts = 0;
@@ -758,8 +863,16 @@ namespace Ledger.Game
                 // it, and that is a property rather than a guess.
                 if (m != null && m.mainTexture != null)
                 {
-                    Kept++;
-                    Tint(r, ch, cs);
+                    Kept++; KeptEver++;
+                    // THE RAW `cv`, NOT `coatV`. The lift above places a named
+                    // character's coat MATERIAL above the crowd's ceiling; the
+                    // wash normalises against that same ceiling, so handing it
+                    // a lifted value would clamp everybody to 1.0 and hand back
+                    // the white multiply this change exists to remove. One
+                    // decision, two consumers, and they need different halves
+                    // of it — which is exactly how the first version came to
+                    // read `ch`/`cs` and drop `cv` on the floor.
+                    Tint(r, ch, cs, cv);
                     continue;
                 }
                 paint.Add(r);
@@ -787,7 +900,8 @@ namespace Ledger.Game
                 var r = paint[i];
                 bool flesh = isFlesh[i];
                 r.sharedMaterial = flesh ? skin : coat;
-                if (flesh) Skinned++; else Dressed++;
+                if (flesh) { Skinned++; SkinnedEver++; }
+                else { Dressed++; DressedEver++; }
 
                 // HOW MUCH OF THE PERSON THIS RENDERER IS. Measured on the
                 // mesh the wardrobe just painted, so the answer cannot drift

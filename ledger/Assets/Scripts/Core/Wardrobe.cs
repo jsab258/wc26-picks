@@ -242,5 +242,82 @@ namespace Ledger.Core
         /// verdict — a distribution that has quietly collapsed onto one band is
         /// a palette failure that every individual colour would pass.
         public static string BandOf(double fraction) => Pick(fraction).Name;
+
+        /// HOW MUCH SATURATION SURVIVES INTO A WASH. Half, unchanged, because
+        /// it was never the broken half: a full-saturation multiply over a
+        /// textured garment reads as coloured plastic, a look this project
+        /// shipped once and had to undo.
+        public const double WashSat = 0.5;
+
+        /// HOW DARK THE DARKEST COAT MAY MAKE A TEXTURE. Measured, not picked.
+        /// See `Wash` below for the series it came from.
+        public const double WashFloor = 0.45;
+
+        /// A WARDROBE ENTRY AS A MULTIPLIER OVER SOMEBODY ELSE'S TEXTURE.
+        ///
+        /// The models arrived with their own textures this morning, so nothing
+        /// is painted any more — `bodySkinned=0 bodyDressed=0` — and this is
+        /// now the ONLY route the wardrobe has to the eye. Which makes it worth
+        /// having a rule with a test on it rather than three lines in a Game
+        /// file nothing here can compile.
+        ///
+        /// WHAT WAS WRONG WITH THE OLD ONE, AND IT IS NOT A TUNING MISS. It
+        /// took the band's hue and half its saturation at value **1.0** — value
+        /// discarded entirely, with a comment claiming the multiply "shifts its
+        /// colour clearly and darkens it barely". Half of that is true. The
+        /// other half is why the noon still shows two women in the same bright
+        /// yellow trousers.
+        ///
+        /// Black is v 0.09-0.20 and grey is v 0.26-0.44 at the SAME hue band
+        /// and the same near-zero saturation. The one axis that tells those two
+        /// apart is VALUE, and value was the axis being thrown away — so 36% of
+        /// the city, by weight, washed to the same colour, and that colour was
+        /// white. Replicating this over the real 40x30 name roster:
+        ///
+        ///     distance of the wash from WHITE, 1200 people
+        ///       min 0.7  p25 2.4  median 9.1  p75 14.4  max 25.7
+        ///       under 5%: 473 of 1200 (39%)
+        ///     within black  median 0.9  max 3.1
+        ///     within grey   median 0.8  max 2.3
+        ///
+        /// A multiply by white is the identity. Thirty-nine percent of the
+        /// population was wearing no wardrobe at all, and the counter that was
+        /// supposed to prove the wash ran — `bodyTinted=5334` — is true and
+        /// says nothing about whether any of it arrived.
+        ///
+        /// WHERE THE FLOOR COMES FROM. Carrying value in as
+        /// `floor + (1-floor) * val/MaxValue` and sweeping the floor:
+        ///
+        ///     floor   wash vs white       two people apart    within black/grey
+        ///     0.25    med 38.0  <5%: 0%   med 16.9  <5%:  8%   5.8 / 8.7
+        ///     0.35    med 34.5  <5%: 0%   med 15.5  <5%:  9%   5.0 / 7.5
+        ///     0.45    med 31.3  <5%: 1%   med 14.2  <5%: 10%   4.3 / 6.5
+        ///     0.55    med 27.4  <5%: 2%   med 13.2  <5%: 11%   3.5 / 5.4
+        ///     0.65    med 23.1  <5%: 3%   med 12.0  <5%: 13%   2.8 / 4.2
+        ///     1.00    med  9.1  <5%: 39%  med 10.7  <5%: 26%   0.9 / 0.8
+        ///
+        /// 1.00 is the shipped code. There is no cliff, so the floor is a look
+        /// decision inside a working range rather than a threshold with a right
+        /// answer — 0.45 halves the darkest coat's albedo, which separates
+        /// black from grey while leaving the cloth legible, and the still is
+        /// what corrects it. What the sweep DOES settle is that every floor
+        /// under 1.0 removes the 39%, which is the fault.
+        ///
+        /// NORMALISED AGAINST `MaxValue`, so the brightest coat the crowd may
+        /// wear passes through untouched and nothing here can make the street
+        /// dimmer than the wardrobe already says it is. That also means this
+        /// cannot drift from the value ceiling: raise `MaxValue` and the wash
+        /// re-spreads itself over the new range without a second edit.
+        ///
+        /// Returns HSV, like `Dress`, because Core does not know what a colour
+        /// is and the conversion belongs where `Color.HSVToRGB` lives.
+        public static void Wash(double hue, double sat, double val,
+                                out double washHue, out double washSat,
+                                out double washVal)
+        {
+            washHue = hue;
+            washSat = Feel.Clamp01(sat * WashSat);
+            washVal = WashFloor + (1.0 - WashFloor) * Feel.Clamp01(val / MaxValue);
+        }
     }
 }

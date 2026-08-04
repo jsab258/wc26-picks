@@ -8772,6 +8772,29 @@ namespace Ledger.Game
                       // is that regression coming back, and it is invisible in
                       // every other number here.
                       $"bodyTinted={RealBody.Tinted} " +
+                      // AND WHETHER ANY OF IT ARRIVED, which `bodyTinted` on
+                      // its own cannot say. A wash of pure white is applied as
+                      // successfully as any other and changes no pixel, so
+                      // 5,334 tints was a true number about a system doing
+                      // nothing for a third of the city. `bodyWashWhite` is the
+                      // MEDIAN distance of the applied wash from white on a
+                      // 0..100 scale — zero is a wardrobe that renders as the
+                      // model's own texture — with `bodyWashSampled` as its
+                      // denominator and `bodyWashNone` counting the people
+                      // whose coat came out under 5. Replicating the shipped
+                      // rule over the roster put that last one at 39%.
+                      $"bodyWashWhite={RealBody.WashFromWhite:0.0} " +
+                      $"bodyWashSampled={RealBody.WashSampled} " +
+                      $"bodyWashNone={RealBody.WashNearWhite} " +
+                      // THE PAINT PATH OVER THE WHOLE RUN. `bodySkinned` and
+                      // `bodyDressed` above are reset at every attach, so they
+                      // describe the last body the LOD happened to grant. These
+                      // three are lifetime, and they are what says whether the
+                      // wash is the wardrobe's only route to the eye or merely
+                      // was for one walker.
+                      $"bodySkinnedEver={RealBody.SkinnedEver} " +
+                      $"bodyDressedEver={RealBody.DressedEver} " +
+                      $"bodyKeptEver={RealBody.KeptEver} " +
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +

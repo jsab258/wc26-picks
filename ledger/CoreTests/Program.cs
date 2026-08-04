@@ -13100,6 +13100,78 @@ namespace Ledger.CoreTests
             Check(negh >= 0 && negh <= 1, "and so does a negative one", $"{negh}");
             Wardrobe.Dress(1.0, out double oneh, out _, out _);
             Check(oneh >= 0 && oneh <= 1, "and exactly 1.0 does not index off the end", $"{oneh}");
+
+            // ---- THE WASH -------------------------------------------------
+            // The models came with their own textures, so nothing is painted
+            // any more and the wash is the only route the wardrobe has to the
+            // eye. It shipped throwing VALUE away, and value is the only axis
+            // that separates black from grey — 36% of the city, washing to the
+            // same near-white colour, which as a multiply is the identity.
+
+            // THE ACCEPTING CASE FIRST, and it is first on purpose (rule 5b):
+            // the expensive failure here is a wash that darkens the whole
+            // street to fix two women. The brightest coat the crowd may wear
+            // passes through UNTOUCHED, so this change cannot dim anybody.
+            Wardrobe.Wash(0.60, 0.40, Wardrobe.MaxValue,
+                          out double bh, out double bs, out double bv);
+            Check(Math.Abs(bv - 1.0) < 1e-9,
+                  "the brightest coat washes at full value — nothing is dimmed", $"{bv:0.000}");
+            Check(Math.Abs(bh - 0.60) < 1e-9, "and the wash keeps the band's hue", $"{bh:0.00}");
+            Check(Math.Abs(bs - 0.20) < 1e-9,
+                  "at half saturation, which was never the broken half", $"{bs:0.00}");
+
+            // AND THE REJECTING CASE, which is the shipped behaviour: a wash
+            // that ignores value would score 0 here. Black's floor against the
+            // wardrobe's ceiling has to cover most of the range or the darkest
+            // coat in the city is still a bright one.
+            var blackBand = Array.Find(Wardrobe.Bands, b => b.Name == "black");
+            var greyBand = Array.Find(Wardrobe.Bands, b => b.Name == "grey");
+            Wardrobe.Wash(blackBand.HueFrom, blackBand.SatFrom, blackBand.ValFrom,
+                          out _, out _, out double darkest);
+            Check(1.0 - darkest > 0.25,
+                  "and the darkest coat is visibly darker than the brightest",
+                  $"span {1.0 - darkest:0.000} of the albedo");
+
+            // THE FAULT ITSELF, NAMED. Black and grey share a hue range and
+            // both sit at saturation 0.02-0.10, so if the wash cannot separate
+            // them it cannot separate a fifth of the city from a sixth of it.
+            // Compared at each band's own midpoint rather than at the touching
+            // edges — adjacent bands SHOULD meet, and asserting otherwise would
+            // be a guard demanding the palette have a gap in it.
+            double blackMid = (blackBand.ValFrom + blackBand.ValTo) / 2;
+            double greyMid = (greyBand.ValFrom + greyBand.ValTo) / 2;
+            Wardrobe.Wash(0.64, 0.05, blackMid, out _, out _, out double wBlack);
+            Wardrobe.Wash(0.58, 0.05, greyMid, out _, out _, out double wGrey);
+            Check(wGrey - wBlack > 0.15,
+                  "black and grey do not wash to the same colour",
+                  $"{wBlack:0.000} against {wGrey:0.000}");
+
+            // MONOTONIC, because a wash that folded would make two different
+            // coats land on one colour somewhere in the middle and nothing
+            // would report it.
+            double prevW = -1;
+            int folds = 0, over = 0;
+            for (int i = 0; i <= 50; i++)
+            {
+                Wardrobe.Wash(0.5, 0.3, Wardrobe.MaxValue * i / 50.0,
+                              out _, out _, out double w);
+                if (w < prevW - 1e-12) folds++;
+                if (w > 1.0 + 1e-12) over++;
+                prevW = w;
+            }
+            Check(folds == 0 && over == 0,
+                  "the wash rises with the coat's value and never exceeds 1",
+                  $"{folds} fold(s), {over} over 1, across 51 steps");
+
+            // Out of range in either direction is clamped rather than thrown
+            // at, the same contract `Dress` has — a value above `MaxValue` is
+            // what a named character wears, and it must not overdrive.
+            Wardrobe.Wash(0.5, 2.0, 5.0, out _, out double overS, out double overV);
+            Check(overS <= 1.0 && overV <= 1.0, "an out-of-range coat clamps",
+                  $"s={overS:0.00} v={overV:0.00}");
+            Wardrobe.Wash(0.5, -1.0, -1.0, out _, out double underS, out double underV);
+            Check(underS >= 0.0 && Math.Abs(underV - Wardrobe.WashFloor) < 1e-9,
+                  "and a negative one floors", $"s={underS:0.00} v={underV:0.00}");
         }
 
         static void TestTextureFit()
