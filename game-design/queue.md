@@ -95,9 +95,16 @@ verdict.
 7. **STILL OPEN AND NOT YET LOOKED AT:** `collidingBubbles` against
    `bubblesOnScreen` (sixty-six confabs is sixty-six bubbles, and the night
    still has two drawn through each other); the review camera standing inside a
-   street sign; and **the whole Empire — crew, cuts, rackets — is absent from
-   `SaveCodec`**, so everything about your people dies on reload. That last one
-   is a real hole in a project scoring itself 95 on consequence persistence.
+   street sign; and speech-bubble
+   decluttering.
+
+   **CORRECTION: the Empire IS saved.** I wrote here and in a commit message
+   that "the whole Empire — crew, cuts, rackets — is absent from `SaveCodec`",
+   off a grep of the wrong file. `SaveCodec.Capture` takes an `extra`
+   dictionary, `GameController.ExtraFlags()` puts `{"empire", Empire.Capture()}`
+   in it, and `EmpireBook.Capture` writes businesses, crew, cuts, rackets, arms
+   and the seed. What was genuinely missing was only the two fields added an
+   hour ago, and they are in now with a round-trip test.
 
 8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder fires 07:55 UTC. Then the
    skinned crowd, costed and designed, worth far more once six textured models

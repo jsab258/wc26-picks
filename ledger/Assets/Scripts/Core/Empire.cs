@@ -893,6 +893,12 @@ namespace Ledger.Core
                     { "competence", c.Competence }, { "day", c.RecruitedDay },
                     { "assignment", c.Assignment ?? "" }, { "departed", c.Departed },
                     { "cut", c.Cut },
+                    // The DURATION of the cut, not just the cut. A skimmed
+                    // month reloading as a fresh policy would delete the
+                    // only record of the shape the competence axis exists
+                    // to show — and a consequence that expires on reload is
+                    // not a consequence.
+                    { "cutDay", c.CutSetOnDay }, { "daysSkimmed", c.DaysSkimmed },
                 }).ToList() },
             { "rackets", Rackets.Select(r => (object)new Dictionary<string, object>
                 {
@@ -944,6 +950,11 @@ namespace Ledger.Core
                     Assignment = string.IsNullOrEmpty(assignment) ? null : assignment,
                     Departed = Is(d, "departed"),
                     Cut = string.IsNullOrEmpty(MiniJson.GetString(d, "cut")) ? "fair" : MiniJson.GetString(d, "cut"),
+                    // Clamped at zero: `SaveChaos` puts negatives and
+                    // infinities through every field here, and a negative
+                    // day count would read as "never skimmed" for ever.
+                    CutSetOnDay = MiniJson.GetInt(d, "cutDay"),
+                    DaysSkimmed = Math.Max(0, MiniJson.GetInt(d, "daysSkimmed")),
                 });
             }
             foreach (var o in MiniJson.GetList(data, "rackets") ?? new List<object>())

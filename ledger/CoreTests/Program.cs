@@ -2315,6 +2315,18 @@ namespace Ledger.CoreTests
             Check(eC.CrewOf("josip").DaysSkimmed == before,
                   "and a fair envelope adds nothing to the count");
 
+            // AND IT SURVIVES A RELOAD. A consequence that expires when the
+            // player quits is not a consequence, and the whole point of this
+            // brick is duration — a skimmed month reloading as a fresh policy
+            // would delete the only record of the shape it exists to show.
+            var reloadedE = new EmpireBook();
+            reloadedE.Restore(MiniJson.Deserialize(MiniJson.Serialize(eC.Capture()))
+                              as Dictionary<string, object>);
+            Check(reloadedE.CrewOf("josip") != null
+                  && reloadedE.CrewOf("josip").DaysSkimmed == before,
+                  "the skimmed days are in the save with the cut",
+                  reloadedE.CrewOf("josip")?.DaysSkimmed.ToString() ?? "no crew");
+
             // A starved round can at worst cover its own envelope: below zero
             // the wallet, the audit counter and the event text used to diverge
             // three ways (audit 2026-07-27).
