@@ -7733,6 +7733,10 @@ namespace Ledger.Game
                       $"contrastWorstWhere=[{DialogueUI.ContrastWorstWhere}] " +
                       $"contrastTightest={DialogueUI.ContrastTightest:0.00} " +
                       $"contrastTightestWhere=[{DialogueUI.ContrastTightestWhere}] " +
+                      $"measureChecked={DialogueUI.MeasureChecked} " +
+                      $"measureFailing={DialogueUI.MeasureFailing} " +
+                      $"measureWorst={DialogueUI.MeasureWorst:0} " +
+                      $"measureWorstWhere=[{DialogueUI.MeasureWorstWhere}] " +
                       $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} " +
                       // BOTH POPULATIONS AND BOTH WEIGHTS. Counts alone cannot
                       // show the mechanic: two racket rumours from a capable

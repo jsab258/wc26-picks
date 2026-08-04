@@ -71,7 +71,6 @@
     "TrafficSim.NearestTo": "WIRE: M17 — nearest vehicle to a point, for the collision and camera work.",
     "TrafficSim.Ranks": "WIRE: M17 — taxi ranks, same.",
     "Typography.LineHeight": "WIRE: M17 — the type scale is computed in Core and the UI sets sizes by hand, which is how they drift apart.",
-    "Typography.MeasureIsReadable": "WIRE: M17 — line-length check for the caption bar and the panels.",
     "Vehicle.Waiting": "WIRE: M17 — a stopped vehicle should idle differently from a moving one.",
     "VerbBeat.PhaseProgress": "WIRE: M17 — how far through an interaction beat the player is, for the progress ring nothing draws yet.",
     "VoiceBank.PoolVoices": "WIRE: M17.2 — the crowd voice pool. The named cast is wired; the pool the crowd draws from is not."

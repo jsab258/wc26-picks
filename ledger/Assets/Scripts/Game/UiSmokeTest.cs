@@ -282,6 +282,15 @@ namespace Ledger.Game
         public static double ContrastTightest = 21.0;
         public static string ContrastTightestWhere = "nothing measured";
 
+        /// LINE LENGTH, the other half of readable. `MeasureWorst` is the
+        /// furthest any failing line sits from the 60-character middle of the
+        /// 45..75 band, so one number says both "too wide" and "too narrow"
+        /// and its sign is in the text beside it. Default text says nothing
+        /// was measured, for the same reason the contrast one does.
+        public static int MeasureChecked, MeasureFailing;
+        public static double MeasureWorst = 60.0;
+        public static string MeasureWorstWhere = "nothing measured";
+
         public void MeasureContrast()
         {
             ContrastChecked = ContrastFailing = 0;
@@ -289,6 +298,9 @@ namespace Ledger.Game
             ContrastWorstWhere = "none";
             ContrastTightest = 21.0;
             ContrastTightestWhere = "nothing measured";
+            MeasureChecked = MeasureFailing = 0;
+            MeasureWorst = 60.0;
+            MeasureWorstWhere = "nothing measured";
             foreach (var panel in new[] { _ledgerPanel, _dialoguePanel, _keyPanel,
                                           _pausePanel, _planPanel, _phonePanel })
             {
@@ -324,6 +336,36 @@ namespace Ledger.Game
                     {
                         ContrastTightest = c;
                         ContrastTightestWhere = $"{panel.name}/{t.name}@{points}pt at {c:0.0}:1";
+                    }
+                    // AND HOW LONG THE LINE IS, which is the other half of
+                    // whether a panel can be read and the half nothing has
+                    // ever asked. `Typography.MeasureIsReadable` has sat in
+                    // Core unwired since it was written: past about 75
+                    // characters the eye loses the start of the next line on
+                    // the return sweep, and under about 45 it breaks the
+                    // rhythm. A dialogue panel spanning a wide screen is the
+                    // case it exists for.
+                    //
+                    // MEASURED, NOT ENFORCED. Nothing is resized here — that
+                    // would change how every panel looks off a number nobody
+                    // has looked at yet, which is the wrong order. The run
+                    // reports the worst line and names it; whether the layout
+                    // moves is a judgement off that list.
+                    var rt = t.GetComponent<RectTransform>();
+                    if (rt != null && rt.rect.width > 1f)
+                    {
+                        MeasureChecked++;
+                        double chars = rt.rect.width / (points * 0.5);
+                        if (!Typography.MeasureIsReadable(rt.rect.width, points))
+                        {
+                            MeasureFailing++;
+                            if (System.Math.Abs(chars - 60) > System.Math.Abs(MeasureWorst - 60))
+                            {
+                                MeasureWorst = chars;
+                                MeasureWorstWhere =
+                                    $"{panel.name}/{t.name}@{points}pt is {chars:0} chars";
+                            }
+                        }
                     }
                     if (!Typography.MeetsAa(c, points))
                     {
