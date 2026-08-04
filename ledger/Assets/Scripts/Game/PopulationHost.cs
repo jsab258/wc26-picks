@@ -251,6 +251,41 @@ namespace Ledger.Game
                 }
             }
 
+            // HOW MANY PEOPLE ARE HEADING FOR THE SAME PLACE, in the pass that
+            // already walks every walker once a second.
+            //
+            // `NpcWalker.SpreadOffset` puts each person on a ring of fixed
+            // radius round their scheduled point so two people sent to one spot
+            // are not inside each other. It works for about ten. The run says
+            // the tail is forty-one within two metres, and a walker cannot count
+            // its own neighbours without sweeping the whole list every frame —
+            // which is why this lives here rather than there.
+            //
+            // BUCKETED ON A ROUNDED POSITION, and the rounding is the join: two
+            // people sent to "the market corner" get the identical Vector3 from
+            // their schedules, but a detour or a float path can leave them a
+            // centimetre apart, and an exact-match key would then call them two
+            // places and spread neither. A metre is well under the ring being
+            // sized and well over any drift.
+            _placeCrowd.Clear();
+            foreach (var n in _npcs)
+            {
+                if (n == null) continue;
+                var key = PlaceKey(n.PlaceFor(Now));
+                _placeCrowd[key] = _placeCrowd.TryGetValue(key, out var c) ? c + 1 : 1;
+            }
+            int busiest = 0;
+            foreach (var n in _npcs)
+            {
+                if (n == null) continue;
+                if (_placeCrowd.TryGetValue(PlaceKey(n.PlaceFor(Now)), out var c))
+                {
+                    n.CrowdAtPlace = c;
+                    if (c > busiest) busiest = c;
+                }
+            }
+            if (busiest > BusiestPlace) BusiestPlace = busiest;
+
             _bodyRank.Clear();
             foreach (var n in _npcs)
             {
@@ -359,6 +394,20 @@ namespace Ledger.Game
         /// idea with two implementations, and one of them would eventually be
         /// the one nobody looked at.
         const double HurtEnoughToShow = 1.0 - Ledger.Core.Rig.LimpsAboveHurt;
+
+        /// How many walkers share each scheduled place, and the busiest one
+        /// seen. `busiestPlace` read beside `crowdHuddle` says whether a mob in
+        /// the frame is people sent to one point or people who merely ended up
+        /// near each other — two different faults with two different fixes.
+        readonly Dictionary<Vector3Int, int> _placeCrowd = new Dictionary<Vector3Int, int>();
+        public static int BusiestPlace;
+
+        /// A metre grid, so a centimetre of float drift does not turn one place
+        /// into two. Y is dropped: people sharing a spot on a kerb and a step
+        /// are at the same place, which is the same flat-versus-3D distinction
+        /// the crowding sampler had to learn.
+        static Vector3Int PlaceKey(Vector3 p) =>
+            new Vector3Int(Mathf.RoundToInt(p.x), 0, Mathf.RoundToInt(p.z));
 
         /// Distance from the player to wherever this resident's routine has them
         /// right now. Cheap, and it means the crowd around you is the crowd that

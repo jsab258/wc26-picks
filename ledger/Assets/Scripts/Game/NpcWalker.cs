@@ -263,18 +263,72 @@ namespace Ledger.Game
         {
             get
             {
-                if (!_spreadKnown)
+                // A RING OF FIXED RADIUS CANNOT HOLD A CROWD, AND THE RUN SAYS
+                // BY HOW MUCH. `crowdHuddleWorst=41` — forty-one people within
+                // two metres of one person — on a street `crowdGapMedian=0.44`
+                // calls comfortable, and `review_day5_noon` shows the block of
+                // them, overlapping, arms through each other.
+                //
+                // 0.8m of radius gives forty-one people 2*pi*0.8/41 = TWELVE
+                // CENTIMETRES of arc each, against a body 45cm across. The
+                // constant was not wrong when it was written — it is right for
+                // about ten people, which is exactly the measured MEDIAN huddle
+                // — it simply never asked how many were coming. Rule 2's other
+                // drift: a number that kept its name when the world moved.
+                //
+                // THE RADIUS IS PACKING, NOT TASTE. N bodies of width w need
+                // N*w^2 of floor; a disc of radius R has pi*R^2, so
+                // R = w * sqrt(N/pi) is the radius at which everybody has a body
+                // width to stand in. Forty-one gives 1.63m, six gives 0.62m, and
+                // ten — the median huddle — gives 0.80m, which is the constant
+                // that is already here. So this does not move the typical case
+                // at all; it only stops the tail piling up.
+                //
+                // FLOORED AT THE OLD VALUE so nobody is ever placed tighter than
+                // they are today, and the whole thing collapses to the old
+                // behaviour when nothing is crowded.
+                //
+                // AND FILLED AS A DISC RATHER THAN A RING. `sqrt(u)` is the
+                // standard uniform-disc radius: taking `u` raw would bunch
+                // everybody toward the middle, which is the fault again in a
+                // smaller radius. The angle is unchanged and still comes from
+                // the display name, so a person stands in the same spot every
+                // run and every reload.
+                if (!_spreadKnown || _spreadFor != CrowdAtPlace)
                 {
+                    int n = CrowdAtPlace < 1 ? 1 : CrowdAtPlace;
+                    float room = BodyWidth * Mathf.Sqrt(n / Mathf.PI);
+                    float radius = Mathf.Max(SpreadMetres, room);
                     float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
                                       * System.Math.PI * 2.0);
-                    _spread = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SpreadMetres;
+                    float u = (float)Ledger.Core.Physique.Fraction(DisplayName, 61);
+                    _spread = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a))
+                              * (radius * Mathf.Sqrt(u));
                     _spreadKnown = true;
+                    _spreadFor = CrowdAtPlace;
+                    if (radius > WidestSpread) WidestSpread = radius;
                 }
                 return _spread;
             }
         }
         Vector3 _spread;
         bool _spreadKnown;
+        int _spreadFor = -1;
+
+        /// How many walkers are heading for the same place as this one, pushed
+        /// in by the population pass once a second — because a walker cannot
+        /// count its neighbours without walking the whole list every frame, and
+        /// that pass already walks it.
+        ///
+        /// ONE, NOT ZERO, when nobody has said otherwise: an unset crowd must
+        /// behave exactly as this file did before, and a zero would collapse the
+        /// radius rather than leave it alone.
+        public int CrowdAtPlace = 1;
+
+        /// The widest ring any place has needed. Read beside `crowdHuddle`: a
+        /// spread that never grows past 0.80 on a run whose worst huddle is
+        /// forty is a push that is not arriving.
+        public static float WidestSpread;
 
         bool _wantsRealBody;
         Color _skin, _cloth;
@@ -502,6 +556,12 @@ namespace Ledger.Game
 
         /// Where the schedule says this NPC should be at the given time — unless
         /// something has taken them out of their routine.
+        /// The place this walker is heading for right now, without the
+        /// personal offset — so the population pass can group people by where
+        /// they are ALL going rather than by where each of them ends up, which
+        /// is the offset's own input and would be circular.
+        public Vector3 PlaceFor(GameTime now) => TargetFor(now);
+
         Vector3 TargetFor(GameTime now)
         {
             if (OnDetour(now)) return _detour;

@@ -8873,6 +8873,15 @@ namespace Ledger.Game
                       $"crowdHuddle={HuddleMedian()} " +
                       $"crowdHuddleWorst={HuddleWorst()} " +
                       $"crowdHuddleSamples={_huddles.Count} " +
+                      // AND WHETHER THE MOB IS PEOPLE SENT TO ONE POINT.
+                      // `busiestPlace` is how many walkers shared a scheduled
+                      // spot; `crowdSpread` is the widest ring that had to be
+                      // built for one. A huddle of forty with a busiest place of
+                      // three is people who merely ended up near each other and
+                      // wants a different fix entirely — and a spread stuck at
+                      // 0.80 on a run with a busy place is the push not arriving.
+                      $"busiestPlace={GameController.BusiestPlace} " +
+                      $"crowdSpread={NpcWalker.WidestSpread:0.00} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
