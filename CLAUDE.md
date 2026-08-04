@@ -423,6 +423,29 @@ A type error against a Unity API is invisible until the Windows CI build, which
 takes ~28 minutes. **Batch Game-layer changes; never claim a phase is done on a
 local green.**
 
+**AND "REFERENCE-INDEPENDENT" IS THE PART THAT BITES.** ShapeCheck can run here
+precisely because it does not need the assemblies — which means every diagnostic
+that requires RESOLVING a name is invisible to it, not just Unity ones. Two have
+now each cost a round trip, both about a name that exists and is in the wrong
+place:
+
+| | | |
+|---|---|---|
+| CS0119 | `EvidenceHost.Watched` shadowed `Core.Watched` | `tools/lint-shadow.py` |
+| CS0426 | `Mixing.Bus` — `Bus` is a SIBLING of `Mixing`, not nested | `tools/lint-nested.py` |
+
+Both tools are name-matching rather than type-resolving, so both were written
+twice: the first CS0426 version flagged thirteen call sites that compile
+perfectly. **The live codebase is the accepting case and it is the best one
+available — every hit on today's code is a false positive by definition**, so
+the check needs no fixture to be trusted and cannot be fooled by one I wrote.
+Run any new lint of this kind against the whole repository before believing it.
+
+**THE COST IS NEVER THE ERROR, IT IS THE COMMITS ON TOP OF IT.** CS0426 landed
+and three more Game-layer commits went out before the verdict came back, so
+three separate answers each moved a round trip further away. When a build comes
+back `NO PLAYER LOG`, stop dispatching and fix it first.
+
 **You can SEE and READ the game — use it.** Every Windows build commits four
 stills and a verdict to `game-design/sim-shots/`, overwritten each run:
 
