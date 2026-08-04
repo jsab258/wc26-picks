@@ -2610,6 +2610,10 @@ namespace Ledger.Game
         /// Calls tried, and how many of those were to somebody the phone
         /// book says could be reached at that hour at all.
         int _callsAttempted, _callsReachable;
+        /// Did an accusation ever come back at the player, and how hard the
+        /// strongest contrary voice pushed. -1 means the probe never ran.
+        bool _denounceBlewBack;
+        double _blowbackContradiction = -1;
         /// How many score samples had the room gone quiet in — pulse at the
         /// floor with unease up. Its denominator is `scoreSamples`, printed
         /// beside it, because a bare count of a per-sample state says
@@ -3049,6 +3053,46 @@ namespace Ledger.Game
                 var d = LawHost.Denounce(_game, nearest.DisplayName, "kest",
                                          "ran", "the_dockside_racket");
                 _denounceStuck = d != null && d.Outcome == Accusation.Charged;
+
+                // AND THE BRANCH THAT MAKES THE VERB DANGEROUS, which has
+                // never once run.
+                //
+                // `contradiction` landed on the done line this morning and read
+                // 0.00, and the comment beside it says exactly why that is
+                // ambiguous: a run where every alibi checks out and a run where
+                // the branch is DEAD print the same number. It is the second.
+                // The probe above plants three witnesses who all AGREE, so
+                // nothing on this street has ever contradicted an accusation
+                // and `BlewBack` has never been reached in a build.
+                //
+                // A contradiction is a witness on the SAME TOPIC with a
+                // DIFFERENT VALUE, so it must be planted rather than hoped for
+                // — rule 5b's corollary, which says a guard needs a run in
+                // which the thing it asserts CAN happen.
+                //
+                // IT GETS ITS OWN TARGET, deliberately. Planting a contrary
+                // voice into the accusation above would flip it from Charged
+                // to BlewBack and take `denounceStuck` with it — a probe that
+                // alters the outcome measured beside it is not a probe, which
+                // is a sentence already written twice in this file. Nothing
+                // bypasses `Informing`: it still weighs the voice, and with no
+                // corroborators on a fresh claim any credible contrary one
+                // wins, which is the rule rather than a rigged number.
+                if (mill != null)
+                {
+                    foreach (var g in mill.Agents)
+                    {
+                        if (g == null || !Watched.WouldTalkToPolice(g)) continue;
+                        mill.Witness(g.Id, new Fact("ferko", "ran", "nothing_at_all"),
+                                     "That is not who runs it.", sensitive: false,
+                                     now: now, confidence: 0.9);
+                        break;
+                    }
+                }
+                var back = LawHost.Denounce(_game, nearest.DisplayName, "ferko",
+                                            "ran", "the_dockside_racket");
+                _denounceBlewBack = back != null && back.Outcome == Accusation.BlewBack;
+                _blowbackContradiction = back != null ? back.Contradiction : -1;
 
                 // AND ALLEGIANCE MOVES, BOTH WAYS, IN THE SAME RUN.
                 //
@@ -7767,6 +7811,8 @@ namespace Ledger.Game
                       $"corroboration={_denounceCorroboration:0.00} " +
                       $"contradiction={_denounceContradiction:0.00} " +
                       $"denounceMark={_denounceMark} " +
+                      $"denounceBlewBack={_denounceBlewBack} " +
+                      $"blowbackContradiction={_blowbackContradiction:0.00} " +
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
