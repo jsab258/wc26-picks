@@ -125,6 +125,11 @@ namespace Ledger.Game
         /// one another by construction — a fact about the meshes rather than a
         /// threshold chosen to make a reading come out well.
         const float BodyWidth = 0.45f;
+        /// How far from a scheduled point somebody actually stands. Two
+        /// shoulders: far enough that two people sent to one place are clear of
+        /// each other, near enough that they are still at the place and still
+        /// inside talking range of it. See `Spread`.
+        const float SpreadMetres = 0.8f;
 
         /// How many walkers may carry a skinned body at once, and how many do.
         ///
@@ -1063,7 +1068,43 @@ namespace Ledger.Game
                 && Vector3.Distance(current, _player.position) > ConversationHost.TalkRange)
                 moveAt = CatchUpSpeed;
 
-            var flatTarget = new Vector3(target.x, current.y, target.z);
+            // A PLACE IS NOT A POINT, AND UNTIL NOW IT WAS.
+            //
+            // THE SEPARATION NUDGE WAS FIGHTING THE SCHEDULE TO A DRAW, and the
+            // series says so more clearly than any argument: `crowdGapMedian`
+            // went 0.00, 0.20, 0.29, 0.33, 0.29 and stopped, against a body
+            // width of 0.45 that the nudge is trying to open up. A fix that
+            // moves a number a third of the way and then plateaus is a fix
+            // pulling against something.
+            //
+            // Here is the something, and it is arithmetic rather than
+            // suspicion. `moving` is false within 0.2m of the target, so
+            // everybody converges to within 0.2m of their scheduled point —
+            // and two people whose schedules name the SAME point therefore
+            // settle within 0.4m of each other, inside the 0.45m the nudge is
+            // trying to keep clear. Every frame the schedule pulls them back
+            // in and the nudge pushes them out, and the standoff lands at
+            // about 0.3m, which is exactly what has been printed for four
+            // builds.
+            //
+            // So a scheduled place stops meaning one metre of ground. Each
+            // person stands at their own spot AROUND it — deterministic from
+            // their name, so the same person takes the same place every run and
+            // the crowd does not shimmer, and the same source `Physique` and
+            // `RealBody.PickBody` already use for per-person variation.
+            //
+            // 0.8m IS TWO SHOULDERS, not a number I liked: two people on
+            // opposite sides of a 0.8m ring are 1.6m apart at worst and 0.8m
+            // apart at the tightest useful angle, both comfortably clear of a
+            // body width, and both comfortably inside the 3m people talk at —
+            // so this cannot break a confab, which is the thing the nudge's own
+            // note was careful about too.
+            //
+            // NOT APPLIED TO AN ESCORT: their target is your shoulder, computed
+            // above from your facing, and standing a metre off it deterministically
+            // is exactly the fault the escort work spent two rounds fixing.
+            var spot = Escorting ? target : Spread(target);
+            var flatTarget = new Vector3(spot.x, current.y, spot.z);
 
             // HOW FAR BEHIND ITS OWN SCHEDULE THIS BODY IS, which nothing has
             // ever asked. `npcsMoved=True` proves the walkers MOVE; it says
@@ -1165,6 +1206,21 @@ namespace Ledger.Game
             // figures at 1.58m to 1.91m tall; a person that tall is about 0.45m
             // across the shoulders, so two centres closer than that are inside
             // one another by construction.
+            /// Where THIS person stands when the schedule says "the market
+            /// corner". A fixed offset on a ring, from the name, so it is the
+            /// same every run and every reload.
+            Vector3 Spread(Vector3 place)
+            {
+                // The angle comes from the display name rather than the
+                // instance id: an id is a session detail and would put the same
+                // person in a different spot after a reload, which is the sort
+                // of quiet non-determinism this project has already been bitten
+                // by in the separation nudge itself.
+                float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
+                                  * System.Math.PI * 2.0);
+                return place + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SpreadMetres;
+            }
+
             Vector3 StepApart(Vector3 at)
             {
                 var push = Vector3.zero;
