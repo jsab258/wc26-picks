@@ -126,11 +126,25 @@ the reading lands, and every guess made without one tonight was wrong.
    `review_day5_noon` at `2b38df1` shows the mob standing in a JUNCTION next to
    a parked truck, which is none of their homes or workplaces.
 
-3. **`bodySpell` NAMES THE DWELL TIME.** *(CI)* 1,035 grants and 1,021 revokes
-   for a budget of twelve. Seconds is a walker crossing the band; tens of
-   milliseconds is a boundary being straddled. A cooldown a little above the
-   median is a number taken from the run — and it is still the case that
-   nothing may be picked before it lands.
+3. **BOTH DWELL NUMBERS HAVE LANDED, AND THE FIX IS NOT OBVIOUSLY WORTH IT.**
+   `bodySpell=5.41` median with `bodySpellShortest=1.00` over 1,143 spells, and
+   the perf split says `bodyLod=2.59ms` against `population=1.31ms` — the LOD
+   pass costs twice the reband it was hiding inside, about 9ms per pass at 465
+   passes a run, and 1,157 prefab instantiates is what it is spending it on.
+
+   **A dwell time is now derivable rather than invented.** `Populace.BandSlack`
+   is six metres of hysteresis and `crowdSpeed=1.28` is what the street walks
+   at, so the band's own distance is 4.7 SECONDS — and the measured median
+   spell is 5.41. Two independent routes to the same number, which is the
+   strongest evidence this project ever gets for a constant.
+
+   **AND IT HAS A REAL COST, WHICH IS WHY IT IS NOT DONE.** The budget is
+   twelve bodies and the whole point of spending it by distance is that "the
+   person in front of you is the one wearing a face". A dwell holds a slot for
+   somebody who has walked away while somebody nearer waits — so it trades a
+   visible fault for an invisible saving, on a frame gate whose milliseconds
+   are known to track the runner rather than the game. **Decide it against
+   `gameShare`, which is stable at 2.6-3.4%, not against the ms.**
 
 4. **`nameShownWidthWorst` DECIDES TWO THINGS, AND THE SECOND IS THE BUBBLE
    BUG'S TWIN.** *(CI)* `nameWidthWorst=0.424` on "Wendell Dujmovic" is PRE-cap;
