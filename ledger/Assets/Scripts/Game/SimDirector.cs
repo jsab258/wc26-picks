@@ -1813,6 +1813,7 @@ namespace Ledger.Game
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
         bool _denounceIgnored, _denounceStuck, _poached, _claimStaged;
+        string _claimVia = "not reached";
         int _denounceWitnesses;
         float _slamAt = -1f;
         bool _loiterApproaching;
@@ -2274,7 +2275,32 @@ namespace Ledger.Game
             // contradiction branch is dead — and that branch is the moat.
             if (!_claimStaged && now.Day >= 9 && _game != null)
             {
+                // WHY IT DID NOT EVEN TRY, because the last build said
+                // `claimWhy=[not tried]` — the initial value, meaning
+                // `LawHost.Claim` was never entered and every reason it can
+                // report was therefore unreachable. The guard that stopped it
+                // was HERE and it was silent, which is the same fault as the
+                // three silent early returns I had just finished labelling one
+                // layer down. A diagnostic that stops at the first door is a
+                // diagnostic with a blind spot exactly where the problem is.
+                //
+                // AND IT NO LONGER DEPENDS ON ONE ACCESSOR. `_game.Hosts` is a
+                // list something else has to have populated; the scene either
+                // contains conversation hosts or it does not. Falling back to
+                // the scene means the probe cannot be defeated by a list that
+                // has not been filled yet, and the reason says which path
+                // found one.
                 var listener = _game.Hosts != null && _game.Hosts.Count > 0 ? _game.Hosts[0] : null;
+                string via = listener != null ? "game.Hosts" : "";
+                if (listener == null)
+                {
+                    var all = FindObjectsByType<ConversationHost>(FindObjectsSortMode.None);
+                    foreach (var h in all)
+                        if (h != null && h.Engine != null) { listener = h; via = $"scene({all.Length})"; break; }
+                    if (listener == null && all.Length > 0) via = $"scene({all.Length}) none with an engine";
+                    if (all.Length == 0) via = "no hosts in the scene at all";
+                }
+                _claimVia = via;
                 if (listener != null && listener.Engine != null)
                 {
                     // The witness is GIVEN what he saw rather than hoped to
@@ -6141,7 +6167,7 @@ namespace Ledger.Game
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +
                       $"claimsMade={LawHost.ClaimsMade} claimsCaught={LawHost.ClaimsCaught} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
-                      $"claimWhy=[{LawHost.ClaimWhy}] " +
+                      $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} uiOk={uiOk} " +
