@@ -9278,6 +9278,13 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
+                      // WHY THEY COLLIDE, if they do. `bubblesAtCeiling` are
+                      // the ones the stack had no room left for and put on top
+                      // of a neighbour anyway; `bubblesMade` is its denominator
+                      // and is counted on the same event, so it is a fraction
+                      // rather than two maxima divided.
+                      $"bubblesMade={SpeechBubble.BubblesMade} " +
+                      $"bubblesAtCeiling={SpeechBubble.BubblesAtCeiling} " +
                       // The peak and the typical, side by side and named as
                       // what they are. The peak is "how bad did one moment
                       // get"; the median is "how does this street read".

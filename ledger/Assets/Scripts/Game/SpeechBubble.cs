@@ -119,6 +119,27 @@ namespace Ledger.Game
             // little higher over the head it belongs to, and it still follows
             // that head every frame.
             b._lift = StackHeightNear(speaker.position);
+            // AND WHETHER THE STACK RAN OUT OF ROOM, which is a cap nobody is
+            // told about when it bites.
+            //
+            // `MaxLift` is 1.8m — four lines — and its comment says "past that
+            // a crowd is a crowd", which is an honest decision and an invisible
+            // one. Every bubble created at the ceiling lands ON TOP of another,
+            // so `collidingBubbles` counts it and nothing says why. That is the
+            // truncation rule: a cap that does not announce itself is
+            // indistinguishable from a finding.
+            //
+            // It matters more than it did when the cap was written. The mob is
+            // real — `crowdHuddleWorst=38` within two metres — and this stacks
+            // over a FOUR metre radius, so a confab inside the huddle can find
+            // a dozen live bubbles rather than the two or three the constant
+            // was chosen for.
+            //
+            // The denominator is on the same line and taken on the same event:
+            // one bubble made, one increment, and the capped count can never
+            // exceed it by construction.
+            BubblesMade++;
+            if (b._lift >= MaxLift - 0.001f) BubblesAtCeiling++;
             go.transform.position = speaker.position + Vector3.up * (2.05f + b._lift);
 
             b._text = go.AddComponent<TextMesh>();
@@ -318,6 +339,15 @@ namespace Ledger.Game
         /// How flat the flattest spoken line got, over the run. Starts above 1
         /// so "never measured" cannot be mistaken for "perfectly upright".
         public static double WorstUpDot = 2.0;
+
+        /// Bubbles created, and how many of those had nowhere left to stack.
+        /// Run totals rather than peaks, and they belong to each other: the
+        /// second is a subset of the first by construction, counted on the same
+        /// event, so the ratio is a real fraction rather than two maxima
+        /// divided. Zero of the second with a large first is the stack working;
+        /// zero of BOTH means nobody spoke, which is a different run entirely.
+        public static int BubblesMade;
+        public static int BubblesAtCeiling;
 
         void LateUpdate()
         {
