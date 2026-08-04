@@ -38,38 +38,38 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### RED — jobRan, and it is a flaky gate rather than a regression
+### NO RED. The newest run is `pass=True` with no failing gate at all.
 
-`jobsDone` over 99 landed runs is 2 in the overwhelming majority, with three
-zeros: the newest run, and two others. `--flaky` puts it at 3 in 99 beside
-`perception` at 4 in 99, and those two are the only gates that have gone red in
-the last ten runs.
+**Perception is fixed and the fix is confirmed, not hoped for.**
+`slamRings=[#1:drawn@62m #2:drawn@61m #3:drawn@62m #4:drawn@58m]` where every
+previous run had `noring` or one lucky draw in four. The cause was arithmetic:
+a street that talks at 58 swallows a door at 55, and the sim spent all four of
+its chances inside somebody else's sound. The slam now waits for a gap.
 
-**The frame hypothesis is dead and the trace killed it.** The failing run
-approached its three drops to 5.0m, 3.6m and 19.3m; the run before it reached
-2.8, 1.3, 4.2, 1.8 and 2.8 and banked two. The completion radius is 2.5m flat,
-so this is a bot that walks most of the way and stops a few metres short — not
-one that runs out of night, because every reading is timestamped inside the
-four-hour window.
+**`slamsDeferred=1188` is the number to keep.** That many ticks wanted to slam
+and could not, which says a quiet moment on this street is genuinely rare. It
+is also the honest denominator for anyone who later reads four clean draws and
+concludes the world is quiet.
 
-**One question is left and the trace could not answer it.** `StagePerception`
-overwrites the player's target twice — `loiter-walk` sends them somewhere else,
-`loiter-hold` pins them where they stand — and the staging has no idea a drop
-is open. The window now counts ticks by owner, per drop, printed in the trace
-beside the approach. If `job` holds every tick and the bot still stops at 3.6m,
-the steering is innocent and arrival is the fault. If a probe holds a third of
-them, the fix is priority and not locomotion. **Do not fix either until the
-next trace says which.**
+**`jobRan` came back green on its own**, which is what a 3-in-99 flaky gate
+does. The `held:` tally is in flight and is still the thing to read — a green
+run does not tell you whether a probe was stealing the bot on the red ones.
 
-### FIXED, in flight — perception
+### THE BODIES ARE UNTEXTURED FOR A REASON NOW NAMED, and it was not the one
+### I fixed first
 
-The cause is measured, not guessed: `LoudDoorSlam` is 55, `LoudRemark` is 58,
-and `Perceivers.Emit` returns before drawing while a louder sound is inside its
-six-second freshness window. All four slams were being spent inside somebody
-else's sound. The slam now waits for a gap — two tests, neither a threshold —
-and `slamsDeferred` counts the ticks that wanted to slam and could not. The
-`noring` outcome is split into `swallowed` and `culled`, which have opposite
-fixes.
+`materialImportMode = ImportViaMaterialDescription` was the first try and the
+per-body report says it was not enough: every body has materials — Michelle 1,
+Remy 6, The Boss 4, thirty across ten models — every one on the Standard shader
+and every one `notex`. The materials import fine; the textures never arrive.
+Checked on disk too: no `.fbm` and no `Textures` folder anywhere under
+`Assets/Characters`, so nothing has ever unpacked the embedded media.
+
+Explicit extraction is in flight, with a force-reimport after it so materials
+can bind to assets that did not exist when the model was last read.
+
+**That round trip was earned by the report disagreeing with me.**
+`bodyKeptMats=0` alone would have sent me back to the importer a second time.
 
 ### SETTLED — the night-still text heap is speech, not nameplates
 
@@ -107,20 +107,29 @@ flight, with a per-body material report so the next build says which half failed
 
 ### Startable right now, in order
 
-1. **Read the next trace's `held:` tally** — that is the jobRan red, and the
-   fix depends on which side it lands.
-2. **Read the next verdict's `slamRings` and `slamsDeferred`** — confirms the
-   perception fix and says how rare a quiet moment actually is.
-3. **Read `nameFracMedian` and `bubbleFracMedian`** — then, and only then,
-   decide whether world text needs a size clamp.
-4. **Read `CharacterMaterials`** — whether the bodies now arrive textured.
-5. **The 4 failing prose measures** — read `measureWorstWhere`.
-6. **`roomQuiet` distribution** — `pulseMedian=0.000 uneaseMedian=1.000`: the
-   street is pinned at maximum unease. Decide whether that is a music problem
-   or a world problem. **Do not pick a new threshold.**
-7. **FOOT IK** — plan and hazard written up below; still the biggest game-feel
-   item.
-8. **Keep retiring the reach ledger** — 49, from 71 two nights ago.
+1. **Read the next trace's `held:` tally** — whether a staged probe steals the
+   bot during a drop window. `jobRan` is green today and was red yesterday;
+   3 in 99 is a flaky gate and a green run is not an answer.
+2. **Read `CharacterMaterials` and `bodyKeptMats`** — whether extraction landed
+   textures on the bodies. The report names the count tried, the count that
+   yielded, and how many textures are on disk.
+3. **Read `ikFrames` / `ikUndriven`** — foot IK is wired and has never run.
+   `ikFrames=0` with `ikUndriven` large means no controller bound;
+   `ikFrames=0` with `ikUndriven` zero means the IK pass is off. Different
+   fixes, identical stills.
+4. **Read `nameFracMedian` and `bubbleFracMedian`** — then, and only then,
+   decide whether world text needs a size clamp. **Do not pick a number first.**
+5. **Read `heatMedian`** — decides whether the street pinned at maximum unease
+   is a music problem or a harness one. Nothing to re-tune until it lands.
+6. **Read `measureFails`** — all four failing prose labels are named now
+   instead of one.
+7. **`Typography.LineHeight`** — checked: zero callers anywhere in the Game
+   layer, so its ledger reason stands. The UI sets font sizes by hand and Core
+   computes the scale, which is how they drift. A real UI item, no CI needed to
+   start.
+8. **Keep retiring the reach ledger** — 46, from 71 two nights ago. 23 of the
+   32 WIRE entries are M17.
+
 ---
 
 ## What last night settled, in one line each
