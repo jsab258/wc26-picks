@@ -278,6 +278,33 @@ namespace Ledger.Game
                 }
             }
 
+            // AND THE PEAK, BECAUSE THE COUNT ABOVE IS LAST-WINS AND ITS OWN
+            // COMMENT SENT ME TO A KEY THAT DOES NOT EXIST.
+            //
+            // `WalkersPrimitive` is reset at the top of every pass, so it
+            // describes the final second of the run and nothing else — and "is
+            // anybody still a capsule" is never a last-wins question. A body
+            // that spawned as a primitive on day two and assembled by day
+            // fifteen reads zero here having stood in the street as a white
+            // capsule for a fortnight. So `walkersPrimitive=0` on 7c87f38 is
+            // NOT yet an answer about the two capsules in that frame.
+            //
+            // AND THE DENOMINATOR IS PRINTED WITH IT. The declaration says
+            // "read against `walkersListed`" and there is no such key in any
+            // verdict: the same number goes out as `npcsListed` and as
+            // `limpOf`, under two other names, on two other lines. A comment
+            // pointing at a key nobody prints is worse than no comment, because
+            // it reads like the denominator is already handled.
+            // TAKEN AT THE INSTANT THE NUMERATOR PEAKS, not as a second maximum
+            // of its own. Two maxima cannot be divided — the worst pass for
+            // capsules need not be the pass with the most walkers in it — and
+            // four pairs in `SimDirector` were got wrong exactly this way.
+            if (WalkersPrimitive > WalkersPrimitiveEver)
+            {
+                WalkersPrimitiveEver = WalkersPrimitive;
+                WalkersPrimitiveOf = _npcs.Count;
+            }
+
             // HOW MANY PEOPLE ARE HEADING FOR THE SAME PLACE, in the pass that
             // already walks every walker once a second.
             //
@@ -481,9 +508,18 @@ namespace Ledger.Game
         public static int WalkersHurtNow;
         /// Walkers still drawing the capsule they were built from — a body that
         /// never assembled, rendered as the primitive it was meant to replace.
-        /// Read against `walkersListed`: this is a count with its denominator
-        /// one line away, and zero of it is the only acceptable value.
+        ///
+        /// THIS ONE IS LAST-WINS — reset at the top of every pass, so it is
+        /// true of the final second and of nothing else. `WalkersPrimitiveEver`
+        /// is the peak and is the one that answers "is anybody"; the pair is
+        /// printed together because a run that ENDS clean and a run that was
+        /// clean throughout are different runs.
         public static int WalkersPrimitive;
+        /// The worst any pass ever saw, with the walker count FROM THAT PASS.
+        /// Zero of the first is the only acceptable value, and the second is
+        /// what tells zero apart from a check that walked nobody.
+        public static int WalkersPrimitiveEver;
+        public static int WalkersPrimitiveOf;
         public static double WalkerCapabilityWorst = 1.0;
         public static readonly SortedSet<string> WalkersHurtEver = new SortedSet<string>();
 

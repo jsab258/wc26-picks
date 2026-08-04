@@ -2582,6 +2582,13 @@ namespace Ledger.Game
         /// street that huddles once is a scene and a street that huddles always
         /// is a bug, and one number cannot tell those apart.
         readonly List<int> _huddles = new List<int>();
+        /// What the worst huddle was DOING at the instant it was worst — see
+        /// `SampleCrowding`. `_huddleWorstSeen` is the peak these were taken
+        /// at, printed with them so a breakdown can never be read against a
+        /// huddle it did not come from.
+        int _huddleWorstSeen;
+        int _huddleTalking, _huddleEscorting, _huddleDetour, _huddleWaiting;
+        string _huddleWhere = "nowhere";
 
         int HuddleMedian()
         {
@@ -3137,6 +3144,7 @@ namespace Ledger.Game
             // a bus stop while a huddle of thirty is a fault — the number that
             // separates them has to come from the runs (rule 2).
             int worstHuddle = 0;
+            NpcWalker worstAt = null;
             for (int i = 0; i < _npcs.Length; i++)
             {
                 var a0 = _npcs[i];
@@ -3149,9 +3157,52 @@ namespace Ledger.Game
                     if (b0 == null || !b0.isActiveAndEnabled) continue;
                     if ((a0.transform.position - b0.transform.position).sqrMagnitude <= 4f) near++;
                 }
-                if (near > worstHuddle) worstHuddle = near;
+                if (near > worstHuddle) { worstHuddle = near; worstAt = a0; }
             }
             _huddles.Add(worstHuddle);
+
+            // AND WHAT THE HUDDLE IS DOING, AT THE INSTANT IT IS WORST.
+            //
+            // `busiestNear=12` equals `busiestPlace=12` on 7c87f38 while
+            // `crowdHuddleWorst=38`. Those are all run maxima, so they compare
+            // fairly, and the plan is exonerated: the schedules never put more
+            // than twelve people within two metres of each other and
+            // thirty-eight end up there. The cause is in the WALK, and nothing
+            // measures which part of the walk.
+            //
+            // `review_day5_noon` shows the mob standing at a road junction —
+            // which is the shape of a specific suspect. `confabs` read 1-13
+            // under the old flat-road conversation rule and 29-74 under the
+            // JUNCTION one; if the huddle is people who stopped to talk, this
+            // is the conversation system gathering them and not the pathing.
+            //
+            // FOUR COUNTS RATHER THAN ONE, because they want opposite fixes: a
+            // knot of talkers is a conversation-siting problem, a knot of
+            // escorts is the companion rule, a knot on detour is an obstacle,
+            // and a knot doing none of those is genuinely the route. The
+            // denominator is the huddle itself, printed beside them.
+            //
+            // SAMPLED ON THE SAME PASS AS THE PEAK, not recomputed later. The
+            // huddle moves every second, and a breakdown taken at a different
+            // instant would describe a different crowd — which is the fault
+            // that put four bad pairs on this file's done line.
+            if (worstAt != null && worstHuddle > _huddleWorstSeen)
+            {
+                _huddleWorstSeen = worstHuddle;
+                _huddleTalking = 0; _huddleEscorting = 0;
+                _huddleDetour = 0; _huddleWaiting = 0;
+                var at = worstAt.transform.position;
+                foreach (var n in _npcs)
+                {
+                    if (n == null || !n.isActiveAndEnabled) continue;
+                    if ((n.transform.position - at).sqrMagnitude > 4f) continue;
+                    if (n.InConfab) _huddleTalking++;
+                    if (n.Escorting) _huddleEscorting++;
+                    if (n.OnDetour(_game.Now)) _huddleDetour++;
+                    if (n.WaitingAsHost) _huddleWaiting++;
+                }
+                _huddleWhere = $"{at.x:0}/{at.z:0}";
+            }
             // GLANCED AT versus KNOWS WHO YOU ARE, counted in ONE pass so the
             // two describe the same instant. `deedWitnesses/deedEyesOpen` were
             // three separate maxima printed as one event's breakdown, and this
@@ -9166,6 +9217,13 @@ namespace Ledger.Game
                       // and cannot see thirty of them standing in a block.
                       $"crowdHuddle={HuddleMedian()} " +
                       $"crowdHuddleWorst={HuddleWorst()} " +
+                      // THE BREAKDOWN AND THE HUDDLE IT CAME FROM, together.
+                      // `huddleAt` is the peak these four were sampled at; if
+                      // it disagrees with `crowdHuddleWorst` the sampler and
+                      // the series have drifted apart and neither is readable.
+                      $"huddleAt={_huddleWorstSeen} huddleTalking={_huddleTalking} " +
+                      $"huddleEscorting={_huddleEscorting} huddleDetour={_huddleDetour} " +
+                      $"huddleWaiting={_huddleWaiting} huddleWhere={_huddleWhere} " +
                       $"crowdHuddleSamples={_huddles.Count} " +
                       // AND WHETHER THE MOB IS PEOPLE SENT TO ONE POINT.
                       // `busiestPlace` is how many walkers shared a scheduled
@@ -9632,6 +9690,8 @@ namespace Ledger.Game
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyCrowdEligible={GameController.BodyCrowdEligible} " +
                       $"walkersPrimitive={GameController.WalkersPrimitive} " +
+                      $"walkersPrimitiveEver={GameController.WalkersPrimitiveEver} " +
+                      $"walkersPrimitiveOf={GameController.WalkersPrimitiveOf} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it
