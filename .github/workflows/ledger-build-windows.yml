@@ -377,8 +377,31 @@ jobs:
               # series carry `[series]` in the line and this matches on that:
               # one pattern, and the next probe is captured without anybody
               # remembering this file exists.
-              grep -E "FAILING GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
+              #
+              # AND IT HAPPENED AGAIN, TO THE COMMIT THAT REPAIRED THIS EXACT
+              # CHANNEL. `ALL GATES:` was added to the sim so that every gate's
+              # label — where 35 of the 39 diagnostics in this game live — is
+              # readable on a GREEN run instead of only on a red one. It built,
+              # it ran, `180f626` is green, and the line is not in the verdict:
+              # it matched none of the patterns above and this allowlist threw
+              # it away in silence.
+              #
+              # Two hours after reading the paragraph directly above, which is
+              # about the same allowlist doing the same thing. The lesson the
+              # `[series]` marker taught was "give a family of lines one token";
+              # what it did not say is that a line which is NOT a series still
+              # has to be named here explicitly, and nothing anywhere fails when
+              # it is not. Adding a Debug.Log is not adding a measurement — the
+              # measurement exists when this pattern matches it.
+              grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
                 sim-run/player.log || echo "(no SimDirector lines matched)"
+              # AND SAY SO WHEN THE LINE THAT WAS JUST ADDED IS MISSING. A
+              # filter that drops a line silently is what made the fault above
+              # cost a round trip to notice; one grep says it in the verdict
+              # itself, on the run where it happens, rather than the next time
+              # somebody happens to look for a number.
+              grep -q "SimDirector: ALL GATES" sim-run/player.log \
+                || echo "NOTE: the sim printed no ALL GATES line — either this build predates it, or the sim exited before the gate summary."
             } >> game-design/sim-shots/verdict.txt
             # AND THE EDITOR-SIDE LINES, WHICH ARE IN A DIFFERENT LOG. The
             # character audit runs inside `CiBuild` — Editor, not player — so it
