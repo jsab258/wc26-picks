@@ -352,6 +352,10 @@ namespace Ledger.Game
             {
                 _uiSmokeRun = true;
                 _uiPanels = _game.Ui.SmokeTestPanels();
+                // AFTER the walk, because the walk is what BUILDS the panels
+                // that have never been opened — measuring first would read
+                // contrast off three panels instead of six.
+                _game.Ui.MeasureContrast();
                 foreach (var r in _uiPanels)
                     if (!r.Ok) Debug.LogWarning($"UI smoke: {r}");
                 MeasureGlyphs();
@@ -7560,6 +7564,14 @@ namespace Ledger.Game
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
                       $"wrongPerson={_callsWrongPerson} rangOut={_callsRangOut} phonesOk={phonesOk} " +
                       $"panelsOk={panelsOk} panelsBad={panelsBad} idLeaks={idLeaks} " +
+                      // CAN THE TEXT BE READ. Reported, not gated: some
+                      // of these pairs are dimmed on purpose and a gate
+                      // at AA would flatten the design before anybody
+                      // decided that was wanted. The list comes first.
+                      $"contrastChecked={DialogueUI.ContrastChecked} " +
+                      $"contrastFailing={DialogueUI.ContrastFailing} " +
+                      $"contrastWorst={DialogueUI.ContrastWorst:0.00} " +
+                      $"contrastWorstWhere=[{DialogueUI.ContrastWorstWhere}] " +
                       $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} " +
                       // BOTH POPULATIONS AND BOTH WEIGHTS. Counts alone cannot
                       // show the mechanic: two racket rumours from a capable

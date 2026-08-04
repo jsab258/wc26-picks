@@ -245,6 +245,91 @@ namespace Ledger.Game
                    + flat.Substring(flat.Length - Half);
         }
 
+        /// CAN THE TEXT ACTUALLY BE READ AGAINST WHAT IS BEHIND IT.
+        ///
+        /// `Core/Typography` implements WCAG 2.1 contrast properly — the gamma
+        /// expansion in `Luminance` is not optional, and doing it on raw sRGB
+        /// (the obvious mistake) overstates dark pairs badly, which is exactly
+        /// the range this interface lives in. `MeetsAa` holds the 4.5:1 bar for
+        /// body text and 3:1 for large. `LiftToMeet` returns the multiplier
+        /// that would fix a failing pair without changing its hue.
+        ///
+        /// Four public members, tested, and called by nothing — with the reach
+        /// ledger noting that the accessibility gate "M22 names and nothing
+        /// enforces". The panels set colours by hand from `UiTheme`, and grey
+        /// on near-black is the whole palette.
+        ///
+        /// MEASURED ON THE RENDERED PAIRING, not on the palette. A static
+        /// check of `UiTheme`'s constants would miss the thing that actually
+        /// decides legibility: which colour ends up on which background, after
+        /// rich-text markup has had its say. This walks the live panel and
+        /// reads each label's own colour against the nearest background behind
+        /// it, which is what a player's eye does.
+        ///
+        /// REPORTED, NOT GATED, and deliberately. Some of these pairs are
+        /// dimmed ON PURPOSE — a `HexDim` timestamp under a rumour is meant to
+        /// recede — and a gate at AA would demand the design be flattened
+        /// before anybody has decided that is what we want. The number comes
+        /// first; the decision about which failures are intentional is Jafar's,
+        /// and it cannot be made without the list.
+        public static int ContrastChecked, ContrastFailing;
+        public static double ContrastWorst = 21.0;
+        public static string ContrastWorstWhere = "none";
+
+        public void MeasureContrast()
+        {
+            ContrastChecked = ContrastFailing = 0;
+            ContrastWorst = 21.0;
+            ContrastWorstWhere = "none";
+            foreach (var panel in new[] { _ledgerPanel, _dialoguePanel, _keyPanel,
+                                          _pausePanel, _planPanel, _phonePanel })
+            {
+                if (panel == null) continue;
+                foreach (var t in panel.GetComponentsInChildren<Text>(includeInactive: true))
+                {
+                    if (t == null || string.IsNullOrWhiteSpace(t.text)) continue;
+                    var behind = BackgroundBehind(t.transform);
+                    // NO BACKGROUND MEANS NOTHING TO COMPARE AGAINST, and
+                    // guessing one would invent the answer. Skipped and not
+                    // counted, so the denominator stays honest.
+                    if (!behind.HasValue) continue;
+                    var f = t.color; var b = behind.Value;
+                    double c = Typography.Contrast(f.r, f.g, f.b, b.r, b.g, b.b);
+                    int points = Mathf.Max(1, t.fontSize);
+                    ContrastChecked++;
+                    if (!Typography.MeetsAa(c, points))
+                    {
+                        ContrastFailing++;
+                        if (c < ContrastWorst)
+                        {
+                            ContrastWorst = c;
+                            double lift = Typography.LiftToMeet(f.r, f.g, f.b, b.r, b.g, b.b, points);
+                            // NAMED, AND WITH THE FIX ATTACHED. "The worst pair
+                            // is 2.1:1" costs a hunt; "this label, at this size,
+                            // needs 1.4x" is something somebody can act on
+                            // without opening the game.
+                            ContrastWorstWhere = $"{panel.name}/{t.name}@{points}pt needs x{lift:0.00}";
+                        }
+                    }
+                }
+            }
+        }
+
+        /// The nearest opaque background behind this label. Walks up, because
+        /// a label sits inside a row inside a panel and only one of those
+        /// carries the colour.
+        static Color? BackgroundBehind(Transform t)
+        {
+            for (var p = t; p != null; p = p.parent)
+            {
+                var img = p.GetComponent<Image>();
+                // Alpha matters: a transparent row is not the background, it is
+                // a hole through to whatever is behind IT.
+                if (img != null && img.color.a > 0.9f) return img.color;
+            }
+            return null;
+        }
+
         static string AllWords(GameObject panel)
         {
             var sb = new System.Text.StringBuilder();
