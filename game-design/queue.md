@@ -162,9 +162,36 @@ the run is `pass=True` with no failing gate.**
    but NOT acted on: the ray uses `~0` and starts inside the host capsule, so it
    may be returning the body's own collider as pavement. The run now says what
    it struck.
-3. **Read `walked=` in the job trace.** Two misses had the job holding the
-   target every tick and still finished 9.3m and 6.9m out. Path length is what
-   separates "steered and not moving" from "moving and too far".
+3. **THE DROP IS A DISTANCE PROBLEM AND THE ARITHMETIC IS NOW COMPLETE.**
+   `walked=` landed and it settles it. Five drops, and path length is within
+   ~2m of straight-line distance in every one — **the bot walks almost exactly
+   at the marker, never wanders, is never diverted or blocked.**
+
+   | day | from | walked | nearest | ticks | |
+   |---|---|---|---|---|---|
+   | d1 | 30m | 23.5m | 8.1m | 21 | MISSED |
+   | d2 | 19m | 16.7m | 2.5m | 14 | done |
+   | d8 | 15m | 8.4m | 8.0m | 21 | MISSED |
+   | d12 | 22m | 20.1m | 2.2m | 17 | done |
+   | d13 | 27m | 23.2m | 4.0m | 21 | MISSED |
+
+   **The window is 21 ticks and buys about 24 metres** — the two successes ended
+   early at 14 and 17 ticks because they ARRIVED; all three misses ran the full
+   21. Travel rate is ~1.15m per tick in four of the five. Completion needs
+   `from` covered to within 2.5m, so **any drop posted beyond about 21m cannot
+   complete, by arithmetic, however well the bot walks.** d1 at 30m and d13 at
+   27m were never reachable and the gate was measuring where the marker
+   happened to land.
+
+   **d8 is a separate, real anomaly**: 8.4m in 21 ticks, 0.40m per tick against
+   1.15 everywhere else — a third of the rate, with the job holding the target
+   the whole time. Injury (`Gait.SpeedFactor`) and crowd shoving are the
+   candidates; nothing measures which.
+
+   **The fix is the standing item's, and it is now specific:** bound where the
+   staged drop is posted so at least one is inside the window's reach. Do NOT
+   loosen the gate — accepting a miss would let a run that never exercised the
+   drop pipeline pass silently.
 4. **THE WALKER BODIES ARE WIRED — read `walkerBodies` and `walkerBodiesFailed`.**
    Done 2026-08-04 with the trap cleared first: `TryAttachExtra` saves and
    restores every static `TryAttach` publishes, so the five `bodies` gate
