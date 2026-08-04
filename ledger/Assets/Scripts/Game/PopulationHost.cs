@@ -102,6 +102,35 @@ namespace Ledger.Game
                 Districts, HomeShares, WorkShares);
             Populace.NearCap = CrowdWalkerCap;
             Populace.MidCap = CrowdMillCap;
+            ApplyDetailToCrowd();
+        }
+
+        /// THE DETAIL SETTING'S CROWD HALF, which has never been applied.
+        ///
+        /// `Detail` already drives the light shafts, the shadow distance and
+        /// the body detail distance — three settings, three Game callers. Its
+        /// fourth, `CrowdFraction`, had none, so choosing Low turned off the
+        /// shafts and left every body in the street. `CostIndex` even weights
+        /// the crowd at 0.12 of the total, so the presets have been claiming a
+        /// saving nothing delivered.
+        ///
+        /// PROTECTED BY DESIGN, and the model says so: Low keeps three
+        /// quarters. Halving the crowd is the largest single frame-time win
+        /// available and is the one thing that must not be taken, because the
+        /// street IS the game. This applies the model's restraint rather than
+        /// inventing its own.
+        ///
+        /// ON THE NEAR CAP ONLY. `MidCap` is the gossip mill's population —
+        /// people who exist and talk without being drawn — and thinning that
+        /// for a graphics setting would make the street FORGET things on a
+        /// slower machine, which is pillar P5 broken by a quality preset.
+        public static void ApplyDetailToCrowd()
+        {
+            if (Populace == null) return;
+            double keep = Ledger.Core.Detail.CrowdFraction(
+                Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+            Populace.NearCap = System.Math.Max(1,
+                (int)System.Math.Round(CrowdWalkerCap * keep));
         }
 
         /// The ids that must never fall out of the simulation whatever the caps
