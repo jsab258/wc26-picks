@@ -1648,7 +1648,8 @@ namespace Ledger.Game
                       + $"depthTested={worldTextMaterialled} "
                       + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
                       + $"shader={WorldText.ShaderPresent} "
-                      + $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText}");
+                      + $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText}"
+                      + $" worstWorldPair=[{_worstWorldPair}]");
         }
 
         int _labelsColliding = -1;
@@ -2149,6 +2150,7 @@ namespace Ledger.Game
             if (cam == null) return -1;
             var boxes = new List<Rect>();
             var other = new List<Rect>();
+            var otherText = new List<string>();
             var bubbles = new List<Rect>();
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
@@ -2197,15 +2199,44 @@ namespace Ledger.Game
                            : t.GetComponentInParent<SpeechBubble>() != null ? bubbles
                            : other;
                 bucket.Add(rect);
+                // AND WHAT IT SAYS, for the world-text bucket only.
+                //
+                // `review_day5_night.jpg` has six PERSON names — Bruno, Dario,
+                // Zora, Petra, Fabjan, Mitch — piled on top of each other in
+                // the corner, illegible. `collidingNames` read 1, and it is a
+                // peak sampled on the photographed frame, so it is not a
+                // stale reading: those labels are not ones `NameTags` manages,
+                // and they landed in this bucket alongside street plates.
+                //
+                // Which matters because the two have OPPOSITE verdicts. Street
+                // plates overlapping at a junction is what a junction looks
+                // like and nothing should declutter it; six people's names in
+                // a heap is the declutter not being offered them at all. The
+                // count cannot tell those apart and neither can I from here,
+                // so the run says WHAT OVERLAPPED rather than how much.
+                if (bucket == other) otherText.Add(t.text);
             }
             int pairs = 0;
             for (int i = 0; i < boxes.Count; i++)
                 for (int j = i + 1; j < boxes.Count; j++)
                     if (boxes[i].Overlaps(boxes[j])) pairs++;
+            // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
+            // is per-call and the done-line shows the last call's value, so a
+            // pair kept from an earlier call would describe a different frame
+            // from the number next to it — the two-maxima fault in miniature.
             _collidingWorldText = 0;
+            _worstWorldPair = "none";
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
-                    if (other[i].Overlaps(other[j])) _collidingWorldText++;
+                    if (other[i].Overlaps(other[j]))
+                    {
+                        _collidingWorldText++;
+                        // The FIRST overlapping pair on the photographed
+                        // frame, named. One pair is enough to say which kind
+                        // of text this is, which is the whole question.
+                        if (_worstWorldPair == "none" && i < otherText.Count && j < otherText.Count)
+                            _worstWorldPair = Trim(otherText[i]) + "|" + Trim(otherText[j]);
+                    }
             // PEAKS, BECAUSE THE FIRST READING WAS A MOMENT AND THE QUESTION
             // IS ABOUT THE RUN.
             //
@@ -2279,6 +2310,20 @@ namespace Ledger.Game
         }
 
         int _collidingWorldText = -1;
+        /// The first overlapping pair of world-text labels on a photographed
+        /// frame, as "a|b". Says whether a heap of overlapping text is street
+        /// furniture (a junction, and correct) or people's names (the
+        /// declutter never being offered them) — see `CollidingNames`.
+        string _worstWorldPair = "none";
+
+        /// Labels are free text and this goes on a single-line done-line, so
+        /// commas, newlines and length all have to go.
+        static string Trim(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "empty";
+            s = s.Replace("\n", " ").Replace("\r", " ").Replace(",", ";").Trim();
+            return s.Length <= 18 ? s : s.Substring(0, 18);
+        }
         int _collidingBubbles = 0, _bubblesOnScreen = 0;
         /// How many bubbles were on screen at the instant of the worst overlap.
         /// The overlap fraction, taken on the sim's own tick rather than only
