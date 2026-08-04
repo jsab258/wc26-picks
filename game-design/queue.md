@@ -267,6 +267,24 @@ AUTO MODE.
    interpreting it, and no player will ever see this one. The four numbers now
    come from a single frame, which is the last explanation it gets.
 
+### The next reach-ledger entry, with its consumer already found
+
+**`VerbBeat.PhaseProgress` — and the entry does not name the beat that is
+already running.** It reads "how far through an interaction beat the player is,
+for the progress ring nothing draws yet", which sounds like a feature waiting
+on a system. The system is live: `DialogueUI._coatVerb` is a real
+`VerbBeat` — 0.35s anticipation, 0.5s consequence, 0.25s recovery — that fires
+every time the player puts the coat on or takes it off.
+
+So there is a **1.1-second action with no visual feedback whatsoever** already
+in the game, on a verb whose own comment argues that "the wind-up is your
+chance to change your mind". A wind-up you cannot see is not a chance to
+change your mind.
+
+That is game feel rather than an API to tick off, and it needs a round trip to
+judge, so it goes here rather than into the tail of a turn. `PhaseProgress` is
+0..1 through the current phase and is exactly what a cue would read.
+
 ## Next
 
 **CORRECTED — "raise the population" and "make the street busier" are two
