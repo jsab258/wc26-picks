@@ -133,7 +133,15 @@ namespace Ledger.Game
                 }
                 GatherHazards();
                 Traffic.Step(step);
+                // PER PASS, NOT PER RUN. A lifetime total would answer "has any
+                // vehicle ever stopped", which is yes and is useless; the peak
+                // over passes is how many were showing red AT ONCE, and it is
+                // taken beside `VehiclesDrawn` from the same loop so the two
+                // cannot describe different moments — the two-maxima fault this
+                // project found four of in one night.
+                BrakeLampsLit = VehiclesDrawn = 0;
                 foreach (var v in Traffic.Vehicles) PlaceBody(v);
+                if (BrakeLampsLit > BrakeLampsPeak) BrakeLampsPeak = BrakeLampsLit;
             }
             if (SimMode.Days == 0) HearTraffic();
             CheckCollisions();
@@ -360,6 +368,30 @@ namespace Ledger.Game
                 float lampY = v.Kind.Id == "truck" || v.Kind.Id == "bus" ? hi * 0.35f : 0.45f;
                 Lamp(root, "lampL", new Vector3(-wid * 0.32f, lampY, nose));
                 Lamp(root, "lampR", new Vector3(wid * 0.32f, lampY, nose));
+
+                // AND THE BACK OF IT, which is the half a street actually sees.
+                //
+                // Headlamps are two lights coming toward you and the note above
+                // says why they matter. Every vehicle in this city has been
+                // driving away from the player with nothing lit at all — and a
+                // stopped car showing red is the one traffic image a noir
+                // street is built out of.
+                //
+                // `Vehicle.Waiting` is what decides it, and this is its first
+                // caller: it has been `Speed < 0.15` in Core, unit-tested and
+                // reachable by nothing, since the day it was written. The
+                // engine audio already fades with speed, so the sound of a
+                // vehicle at rest was right; nothing had ever asked what a
+                // vehicle at rest LOOKS like.
+                //
+                // Smaller and lower than the headlamps because a tail lamp is,
+                // and because two equal pairs at both ends would read as a
+                // vehicle facing both ways at once in fog.
+                float tail = -len / 2f + 0.1f;
+                Lamp(root, "brakeL", new Vector3(-wid * 0.30f, lampY * 0.85f, tail),
+                     new Vector3(0.16f, 0.11f, 0.06f));
+                Lamp(root, "brakeR", new Vector3(wid * 0.30f, lampY * 0.85f, tail),
+                     new Vector3(0.16f, 0.11f, 0.06f));
             }
 
             _vehicleBodies[v.Id] = root;
@@ -454,12 +486,24 @@ namespace Ledger.Game
             }
         }
 
-        void Lamp(Transform parent, string name, Vector3 local)
+        void Lamp(Transform parent, string name, Vector3 local) =>
+            Lamp(parent, name, local, new Vector3(0.22f, 0.16f, 0.08f));
+
+        void Lamp(Transform parent, string name, Vector3 local, Vector3 size)
         {
-            var t = Part(parent, name, local, new Vector3(0.22f, 0.16f, 0.08f), AssetLibrary.Window);
+            var t = Part(parent, name, local, size, AssetLibrary.Window);
             var r = t.GetComponent<Renderer>();
             WorldBuilder.RegisterNightLight(r);
         }
+
+        /// How many vehicles were showing brake lights at once, at the worst,
+        /// and how many were drawn at all beside it.
+        ///
+        /// THE DENOMINATOR, because `brakeLampsLit=0` reads as "the traffic
+        /// never stops" and is equally consistent with the toggle never
+        /// running — and this city's cabs demonstrably wait on ranks and its
+        /// buses dwell at stops, so a genuine zero would itself be a finding.
+        public static int BrakeLampsLit, BrakeLampsPeak, VehiclesDrawn;
 
         /// A paint colour that is stable for a given vehicle — nobody wants the
         /// bus changing colour when the crowd re-bands.
@@ -489,6 +533,26 @@ namespace Ledger.Game
             if (v.Dormant) return;
             t.position = new Vector3((float)v.X, 0.05f, (float)v.Z);
             t.rotation = Quaternion.Euler(0, (float)v.Heading, 0);
+
+            // BRAKE LIGHTS, off `Vehicle.Waiting`. Toggled by the RENDERER
+            // rather than the GameObject: `WorldBuilder.RegisterNightLight`
+            // holds the renderer to drive its emissive after dark, and
+            // deactivating the object would leave that registry pointing at a
+            // thing it can no longer light — the same class of fault as a
+            // declutter holding a label somebody else destroyed.
+            VehiclesDrawn++;
+            bool lit = v.Waiting;
+            if (lit) BrakeLampsLit++;
+            SetLamp(t, "brakeL", lit);
+            SetLamp(t, "brakeR", lit);
+        }
+
+        static void SetLamp(Transform body, string name, bool on)
+        {
+            var lamp = body.Find(name);
+            if (lamp == null) return;
+            var r = lamp.GetComponent<Renderer>();
+            if (r != null && r.enabled != on) r.enabled = on;
         }
 
         // ---- signals ----

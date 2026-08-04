@@ -8007,6 +8007,13 @@ namespace Ledger.Game
                       $"gates={_game.Gates.Count} accessOk={accessOk} " +
                       $"targets={_game.Targets.Count} planRan={_planRan} opsOk={opsOk} " +
                       $"vehicles={(traffic != null ? traffic.Vehicles.Count : 0)} kinds={kindsSeen} " +
+                      // BRAKE LIGHTS, and the count of vehicles drawn in
+                      // the same pass beside it. A peak with no
+                      // denominator cannot say whether four lit out of
+                      // five is a jam or four out of twenty-eight is a
+                      // rank.
+                      $"brakeLampsPeak={TrafficHost.BrakeLampsPeak} " +
+                      $"vehiclesDrawn={TrafficHost.VehiclesDrawn} " +
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} " +
                       $"gap={(gapMeasured ? tightest.ToString("0.00") : "not-measured")} " +
                       // THE CLAMP COUNT IS THE GATE NOW; the gap is the report.
