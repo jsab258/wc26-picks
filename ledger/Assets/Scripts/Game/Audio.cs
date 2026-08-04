@@ -48,9 +48,15 @@ namespace Ledger.Game
         // a slot for the length of its clip and no event says it finished, so
         // the list is pruned by time on every admission. That also makes the
         // count self-healing: a missed release cannot leak a slot for ever.
+        // `Bus`, NOT `Mixing.Bus`. The enum is a SIBLING of the static class in
+        // `Ledger.Core`, not nested inside it, and `Mixing.Bus` is CS0426 — a
+        // type-resolution error, which needs references and is therefore
+        // invisible to ShapeCheck's reference-independent diagnostics. It cost
+        // a full round trip: three commits went out on top of it before the
+        // verdict came back saying the sim had never run.
         struct Sounding { public double Until; public double Loudness; }
-        static readonly Dictionary<Mixing.Bus, List<Sounding>> _sounding =
-            new Dictionary<Mixing.Bus, List<Sounding>>();
+        static readonly Dictionary<Bus, List<Sounding>> _sounding =
+            new Dictionary<Bus, List<Sounding>>();
 
         /// Sounds let through, refused, and displaced. Read by the sim: a
         /// budget that never refuses anything is indistinguishable from one
@@ -67,7 +73,7 @@ namespace Ledger.Game
         /// Returns false when the bus is full of things louder than this one —
         /// which is not a loss: a sound quieter than everything already playing
         /// would have been inaudible, and playing it would only cost the slot.
-        static bool Admit(Mixing.Bus bus, AudioClip clip, double loudness,
+        static bool Admit(Bus bus, AudioClip clip, double loudness,
                           bool authored, out float gain)
         {
             gain = 1f;
@@ -704,7 +710,7 @@ namespace Ledger.Game
             // voice budget was written for.
             float vol = Mathf.Clamp(weight, 0.4f, 1.4f);
             var stepClip = Clip(name, () => Step(v, splash));
-            if (!Admit(Mixing.Bus.Foley, stepClip, vol, authored: false, out float stepGain)) return;
+            if (!Admit(Bus.Foley, stepClip, vol, authored: false, out float stepGain)) return;
             _foot.PlayOneShot(stepClip, vol * stepGain);
         }
 
@@ -754,7 +760,7 @@ namespace Ledger.Game
                         : "hit_soft";
             float hitVol = 0.25f + 0.55f * force;
             var hitClip = Clip(name, () => Hit(material));
-            if (!Admit(Mixing.Bus.Impact, hitClip, hitVol, authored: false, out float hitGain)) return;
+            if (!Admit(Bus.Impact, hitClip, hitVol, authored: false, out float hitGain)) return;
             _ui.PlayOneShot(hitClip, hitVol * hitGain);
             _ui.pitch = 1f;
         }
