@@ -1510,6 +1510,21 @@ namespace Ledger.Game
             // has never been available. If this reads zero over a nine-day
             // run the state is unreachable and the model is decorative.
             if (MusicModel.RoomHasGoneQuiet(mix)) _roomQuietSamples++;
+            // AND THE TWO LAYERS THE CONDITION READS, so the 73% has an
+            // explanation rather than a threshold guess attached to it.
+            //
+            // `roomQuiet` came back 1656 of 2267 samples. The model calls that
+            // state "the moment the player should learn to dread" and it is
+            // the DEFAULT condition of the game. Two completely different
+            // causes fit: the pulse layer sits at its floor almost always
+            // because the street is quiet, or unease sits above half almost
+            // always because the game is tense. They want opposite fixes and
+            // the count cannot tell them apart.
+            //
+            // Rule 2: print the distribution, look, THEN decide. Nothing is
+            // re-tuned here.
+            _pulseSamples.Add((float)mix[(int)MusicLayer.Pulse]);
+            _uneaseSamples.Add((float)mix[(int)MusicLayer.Unease]);
             double e = MusicModel.Energy(mix);
             double heat = _game.CurrentHeat;
             _scoreSamples++;
@@ -2690,6 +2705,19 @@ namespace Ledger.Game
         /// beside it, because a bare count of a per-sample state says
         /// nothing without knowing how many samples there were.
         int _roomQuietSamples;
+        readonly List<float> _pulseSamples = new List<float>();
+        readonly List<float> _uneaseSamples = new List<float>();
+
+        /// Median of a sampled series, or -1 when nothing was sampled — the
+        /// same shape as `CrowdGapMedian`, which is the pattern this file
+        /// already uses for exactly this question.
+        static double MedianOf(List<float> xs)
+        {
+            if (xs == null || xs.Count == 0) return -1;
+            var s = new List<float>(xs);
+            s.Sort();
+            return s[s.Count / 2];
+        }
         /// How many people have worked out who the player is, at the worst
         /// instant, with the number merely LOOKING at that same instant — and
         /// the distinct count over the whole run, which is the one that says
@@ -8166,7 +8194,11 @@ namespace Ledger.Game
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
-                      $"roomQuiet={_roomQuietSamples} scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
+                      $"roomQuiet={_roomQuietSamples} " +
+                      $"pulseMedian={MedianOf(_pulseSamples):0.000} " +
+                      $"uneaseMedian={MedianOf(_uneaseSamples):0.000} " +
+                      $"musicFloor={MusicModel.Floor:0.000} " +
+                      $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
