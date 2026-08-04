@@ -199,6 +199,52 @@ namespace Ledger.Game
         public static int BodyGrants, BodyRevokes, BodyGrantsFailed;
         public static string BodyGrantWhy = "none asked for";
 
+        /// AND THE ANSWER CAME BACK 966 GRANTS AND 952 REVOKES, so this is the
+        /// series the paragraph above says to choose a dwell time from.
+        ///
+        /// A thousand prefab instantiates for a budget of twelve is the thrash
+        /// case by that paragraph's own criterion, but the COUNT still cannot
+        /// name a cooldown: 966 swaps spread evenly over a long run and 966
+        /// swaps made by four people flickering on one boundary want completely
+        /// different fixes, and the count reads identically for both.
+        ///
+        /// HOW LONG A BODY IS KEPT is what separates them, so that is what is
+        /// recorded — seconds from grant to revoke, one entry per completed
+        /// spell. A median in seconds is a walker crossing the band; a median
+        /// in tens of milliseconds is a boundary being straddled, and a dwell
+        /// time chosen to be a little above that median is a number taken from
+        /// the run rather than from taste.
+        ///
+        /// SPELLS STILL OPEN AT THE END ARE NOT COUNTED, which biases the
+        /// median DOWNWARD — the bodies still standing there are the ones that
+        /// were kept longest. That is the safe direction for this question: it
+        /// cannot manufacture thrash that is not there.
+        static readonly List<float> _bodySpells = new List<float>();
+        float _bodyGrantedAt = -1f;
+
+        public static double BodySpellMedian
+        {
+            get
+            {
+                if (_bodySpells.Count == 0) return -1;
+                var c = new List<float>(_bodySpells);
+                c.Sort();
+                return c[c.Count / 2];
+            }
+        }
+
+        public static double BodySpellShortest
+        {
+            get
+            {
+                double s = -1;
+                foreach (var v in _bodySpells) if (s < 0 || v < s) s = v;
+                return s;
+            }
+        }
+
+        public static int BodySpells => _bodySpells.Count;
+
         /// WHERE THIS PERSON STANDS when the schedule says "the market corner",
         /// as a fixed offset — computed once and kept.
         ///
@@ -281,6 +327,7 @@ namespace Ledger.Game
                 }
                 RealBodies++;
                 BodyGrants++;
+                _bodyGrantedAt = Time.time;
             }
             else
             {
@@ -288,6 +335,14 @@ namespace Ledger.Game
                 Mannequin.Build(gameObject, _skin, _cloth, DisplayName);
                 if (RealBodies > 0) RealBodies--;
                 BodyRevokes++;
+                // ONLY A SPELL THAT BEGAN WITH A GRANT WE SAW. A walker that
+                // spawned holding a body has no start time, and stamping one
+                // here would record a spell of zero for the longest-held body
+                // in the run — the exact wrong direction for a number whose job
+                // is to detect flicker.
+                if (_bodyGrantedAt >= 0f && _bodySpells.Count < 20000)
+                    _bodySpells.Add(Time.time - _bodyGrantedAt);
+                _bodyGrantedAt = -1f;
             }
             _body = null;
             return true;

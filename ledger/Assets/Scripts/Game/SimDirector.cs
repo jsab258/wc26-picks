@@ -9281,6 +9281,15 @@ namespace Ledger.Game
                       $"bodyGrants={NpcWalker.BodyGrants} " +
                       $"bodyRevokes={NpcWalker.BodyRevokes} " +
                       $"bodyGrantsFailed={NpcWalker.BodyGrantsFailed} " +
+                      // AND HOW LONG A BODY IS KEPT, which is what the counts
+                      // above cannot say. 966 grants spread over a long run and
+                      // 966 made by four people straddling one boundary read
+                      // identically as a count and want opposite fixes. Seconds
+                      // is a walker crossing the band; milliseconds is flicker,
+                      // and only then does a dwell time have a number to be.
+                      $"bodySpell={NpcWalker.BodySpellMedian:0.00} " +
+                      $"bodySpellShortest={NpcWalker.BodySpellShortest:0.00} " +
+                      $"bodySpells={NpcWalker.BodySpells} " +
                       $"bodyGrantWhy=[{NpcWalker.BodyGrantWhy}] " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
