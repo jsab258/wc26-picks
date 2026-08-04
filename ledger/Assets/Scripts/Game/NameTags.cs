@@ -473,6 +473,61 @@ namespace Ledger.Game
             ClearActive();
         }
 
+        /// A NAME STOPS GROWING ONCE IT IS BIG ENOUGH TO READ.
+        ///
+        /// THE FAULT, AND IT IS THE ONE THE NIGHT STILLS KEPT SHOWING. World
+        /// text is a fixed size in METRES, so its share of the screen goes as
+        /// 1/distance and has no ceiling. A label 1.27m from the camera came
+        /// out 202 pixels tall — 28% of a 720-line frame for one person's
+        /// name — and that is what "the text heap" has been every time it was
+        /// photographed. It was never a declutter failure: `collidingNames=0`
+        /// and `nameTagsUnplaced=0` on the same run.
+        ///
+        /// THE BOUND CAME FROM THE SERIES, NOT FROM TASTE, and the series had
+        /// to land first — the queue item for this said so and refused a
+        /// number for three runs. Four runs now agree: the median name is
+        /// 0.060 / 0.062 / 0.066 / 0.068 of the screen and the P90 is 0.098 /
+        /// 0.100 / 0.102 / 0.121, against worsts of 0.320 / 0.306 / 0.281. So
+        /// 0.12 sits at or above every measured P90 and clamps strictly the
+        /// tail: nine labels in ten are untouched, and the one that was taking
+        /// a third of the frame is brought to an eighth.
+        ///
+        /// MEASURED RATHER THAN DERIVED, which is why there is no field of
+        /// view or text-height arithmetic here. The rect is already projected
+        /// two lines above, so the correction is the ratio of what it is to
+        /// what it may be, applied to the scale that produced it. It converges
+        /// in one frame and unwinds itself when the label is far again,
+        /// because a frac below the cap asks for a scale ABOVE the current one
+        /// and the clamp at 1 stops it there.
+        ///
+        /// ONE, AND THE CODE SAYS WHY IT MAY ASSUME THAT. Nothing else scales
+        /// a name — `NpcWalker` sets `characterSize` and a colour and
+        /// `Billboard.Aim` sets rotation only — and the verdict has read
+        /// `worstNameScale=1.000` on every run that printed it. If that ever
+        /// stops being true this pins to the wrong baseline, so it is measured
+        /// rather than trusted: `NamePinFloor` is the smallest scale ever
+        /// applied, and a floor that keeps falling is this assumption breaking.
+        public const float PinFrac = 0.12f;
+        public static int NamesPinned { get; private set; }
+        public static float NamePinFloor { get; private set; } = 1f;
+
+        static void Pin(TextMesh label, float frac)
+        {
+            if (label == null || frac <= 0f) return;
+            var t = label.transform;
+            float now = t.localScale.y;
+            if (now <= 0f) return;
+            float want = Mathf.Clamp(now * PinFrac / frac, 0.05f, 1f);
+            // A DEAD BAND, because a scale write every frame on every label is
+            // a transform dirty flag every frame on every label, and this runs
+            // inside the budget the `frame` gate is red against. One per cent
+            // is well below anything visible and well above float noise.
+            if (Mathf.Abs(want - now) < 0.01f) return;
+            t.localScale = new Vector3(want, want, want);
+            if (want < now) NamesPinned++;
+            if (want < NamePinFloor) NamePinFloor = want;
+        }
+
         static void Resolve()
         {
             Offered = _offered.Count;
@@ -570,6 +625,7 @@ namespace Ledger.Game
                     // holders — a median of the maxima, which is a statistic
                     // about nothing.
                     _nameFracs.Add(frac);
+                    Pin(c.Label, frac);
                     if (frac > WorstNameFrac)
                     {
                         WorstNameFrac = frac;

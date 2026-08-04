@@ -8532,6 +8532,18 @@ namespace Ledger.Game
                       $"nameTagsUpDot={NameTags.WorstUpDot:0.000} " +
                       $"speechUpDot={SpeechBubble.WorstUpDot:0.000} " +
                       $"nameTagsFrames={NameTags.ResolvedFrames} " +
+                      // THE SIZE CAP AND WHETHER IT BIT. `namePinCap` is the
+                      // bound, printed beside the readings it was taken from so
+                      // nobody has to go looking for where 0.12 came from;
+                      // `namesPinned` is how many times a label was actually
+                      // brought down, which is the denominator that stops
+                      // `worstNameFrac` falling and reading as "the tail went
+                      // away on its own". `namePinFloor` is the smallest scale
+                      // ever applied — it is also the check on this code's one
+                      // assumption, that a name's own scale starts at 1.
+                      $"namePinCap={NameTags.PinFrac:0.000} " +
+                      $"namesPinned={NameTags.NamesPinned} " +
+                      $"namePinFloor={NameTags.NamePinFloor:0.000} " +
                       $"nameTagsUnplaced={NameTags.WorstUnplaced} " +
                       $"worldText={_worldText} depthTested={_worldTextDepth} " +
                       $"realBody={RealBody.Attached} realBodyWhy=[{RealBody.Why}] " +
