@@ -219,6 +219,7 @@ namespace Ledger.Game
             WalkersListed = _npcs.Count;
             WalkersDuplicated = 0;
             WalkersHurtNow = 0;
+            WalkersPrimitive = 0;
             foreach (var n in _npcs)
             {
                 if (n == null) continue;
@@ -236,6 +237,32 @@ namespace Ledger.Game
                 // morning is a consequence the player cannot connect to the
                 // thing they just did. A second is under the reaction time this
                 // project's own feel spec cares about.
+                // STILL DRAWING ITS OWN CAPSULE, which nothing has ever asked
+                // about a walker.
+                //
+                // `review_day5_noon` has two featureless white pills standing in
+                // the road at person height. `NpcWalker.Spawn` builds every
+                // walker from `CreatePrimitive(Capsule)` and `Mannequin.Build`
+                // destroys the mesh that came with it — so a walker still
+                // carrying one is a body that never assembled, drawn as the
+                // thing it was supposed to replace.
+                //
+                // THIS EXACT FAULT HAS ITS OWN PARAGRAPH IN `RealBody`, about
+                // the PLAYER: "the player was still a two-metre white capsule
+                // with a pair of skin-coloured arms poking out of it... Not one
+                // gate could have caught it. Every one of them asks about the
+                // body that was ADDED and none asks what is still being DRAWN."
+                // `playerPrimitive` was added, the sim gates on it, and nobody
+                // asked the same question about the other sixty-seven bodies.
+                //
+                // That is the third instrument tonight built for one subject
+                // when the question was about the street — after the arm width
+                // and the animator readings, both of which were gated on
+                // `IsTheBoughtBody`. The shape is worth more attention than any
+                // one of them: an instrument that describes the player
+                // confidently answers a question about the crowd wrongly.
+                if (n.GetComponent<MeshRenderer>() != null) WalkersPrimitive++;
+
                 double cap = Harm.Capability(n.DisplayName, Now.Day);
                 n.Capability = cap;
                 if (cap < HurtEnoughToShow)
@@ -448,6 +475,11 @@ namespace Ledger.Game
         /// write a verdict line nothing can read. If it ever saturates, the
         /// count is the number to trust and this set is a sample.
         public static int WalkersHurtNow;
+        /// Walkers still drawing the capsule they were built from — a body that
+        /// never assembled, rendered as the primitive it was meant to replace.
+        /// Read against `walkersListed`: this is a count with its denominator
+        /// one line away, and zero of it is the only acceptable value.
+        public static int WalkersPrimitive;
         public static double WalkerCapabilityWorst = 1.0;
         public static readonly SortedSet<string> WalkersHurtEver = new SortedSet<string>();
 

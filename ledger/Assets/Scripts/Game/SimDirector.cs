@@ -9440,6 +9440,7 @@ namespace Ledger.Game
                       $"bodyLodPasses={GameController.BodyLodPasses} " +
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyCrowdEligible={GameController.BodyCrowdEligible} " +
+                      $"walkersPrimitive={GameController.WalkersPrimitive} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it
