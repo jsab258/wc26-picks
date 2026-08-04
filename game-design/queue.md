@@ -49,13 +49,33 @@ scheduling instead of to CI's output.
    `atRecruit` from a label would be caught. Needs two or three landed runs
    first — several labels build their text conditionally and which keys are
    stable is not yet known. Do not promote blind.
-3. **`lineWatched` / `lineCrossed`.** The 180-degree rule is measured and not
-   enforced. If the follow rig never crosses during a beat, the enforcement is
-   dead code that would look like a feature; if it does, that is a real
-   game-feel fix with the arithmetic already written and tested.
-4. **`shotsBlocked` against `shotsAimed`.** First reading of what stands
-   between the camera and the player. Three stills have been questioned over
-   foreground clutter by eye and none measured.
+3. **ANSWERED — BUILD IT. The rig crosses the line on 9 of 43 framed beats.**
+   Twenty-one percent, so the enforcement is not dead code and the arithmetic
+   is already written and tested. The camera reverses who is looking at whom,
+   during an authored beat, roughly once every five.
+4. **ANSWERED AND CLOSED — nothing ever stands in the way.** Twenty shots
+   aimed, **zero** blocked, no blocker to name. The foreground clutter in
+   three stills is BESIDE the sight line, not on it, and every judgement made
+   about it by eye was wrong in the same direction. Rule 4 again: a picture is
+   excellent evidence something is wrong and poor evidence of what. Nothing to
+   do here; do not reopen it without a number.
+
+3b. **THE PLAYER DOES NOT GET DARKER AT NIGHT, AND THAT REVERSES THE REVERSAL
+   BELOW.** Two readings, each with the crowd measured at the same instant:
+
+       noon   player lum 10.8  crowd median 19.5  range  4.00..62.85
+       night  player lum 11.9  crowd median  2.8  range  1.50..11.75
+
+   The crowd's luminance collapses by a factor of seven between noon and
+   midnight. **The player's does not move at all** — 10.8 to 11.9 — so at
+   night they sit at the very top of the crowd's whole range, the brightest
+   body on the street, which is exactly what the night stills show.
+
+   So "it is the shape, not the colour" was right about NOON and wrong as a
+   general claim, and I could only tell because `bodyReadWhen` names the frame.
+   This is not a wardrobe problem and not a mesh problem: the player's material
+   is not responding to the light the way every other body does. That is a
+   rendering fault with a specific shape, and it is findable.
 5. **ANSWERED — 15 numbers, not 31 lines.** `verdict-reach.py` now reports
    only what is dropped here AND absent from everything that always prints
    (the done-line and, since the repair, every gate label). Thirty-two dropped

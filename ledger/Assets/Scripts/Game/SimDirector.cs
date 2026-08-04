@@ -4514,9 +4514,29 @@ namespace Ledger.Game
             // whole frame.
             _vigOn = all.EdgeRatio;
             _vigOff = noVig.EdgeRatio;
-            Debug.Log($"SimDirector: post a/b [{sample}] aoD={aoD:0.00000} grainD={grainD:0.00000} "
+            // `[series]`, WHICH IS THE ONE WORD THAT GETS THIS HOME.
+            //
+            // These two lines are the A/B that decides whether a grade change
+            // did anything at all — ambient occlusion, bloom, grain and the
+            // vignette, each measured with the effect on and off. They have
+            // never once been readable from the environment this project is
+            // developed in: `aoD`, `bloomBright`, `grainLocal` and `vigEdge`
+            // are four of the fifteen numbers `verdict-reach.py` reports as
+            // reaching nothing, and the only four with no other route home.
+            //
+            // The allowlist already matches `[series]` as a FAMILY, precisely
+            // so a new probe does not need anybody to remember the workflow
+            // exists. This line is a series — an effect swept on and off — and
+            // was simply never labelled as one.
+            //
+            // TAGGING THE LINE RATHER THAN WIDENING THE ALLOWLIST, and that is
+            // not only tidiness: the build step is 65 characters under a hard
+            // size limit that broke dispatch outright this morning, so a new
+            // pattern there costs something real and a marker here costs
+            // nothing.
+            Debug.Log($"SimDirector: [series] post a/b [{sample}] aoD={aoD:0.00000} grainD={grainD:0.00000} "
                       + $"aoSpread={_aoSpread:0.00000} grainSpread={_grainSpread:0.00000}");
-            Debug.Log($"SimDirector: post a/b ao={all.Mean:0.0000}/{noAo.Mean:0.0000} "
+            Debug.Log($"SimDirector: [series] post a/b ao={all.Mean:0.0000}/{noAo.Mean:0.0000} "
                       + $"bloomBright={all.Bright:0.0000}/{noBloom.Bright:0.0000} "
                       + $"grainLocal={all.LocalSpread:0.0000000}/{noGrain.LocalSpread:0.0000000} "
                       + $"vigEdge={all.EdgeRatio:0.000}/{noVig.EdgeRatio:0.000}");
