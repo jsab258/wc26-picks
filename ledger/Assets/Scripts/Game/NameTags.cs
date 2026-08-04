@@ -164,6 +164,82 @@ namespace Ledger.Game
         /// Both were true — the sample happened at a moment with no label near.
         public static float WorstNameFrac { get; private set; }
 
+        /// AND THE MIDDLE OF IT, BECAUSE A PEAK CANNOT DESCRIBE A STREET.
+        ///
+        /// `worstNameFrac=0.306` with `worstNameCentreMetres=1.21` and
+        /// `worstNameBoundsY=0.29` is the projection working: a label genuinely
+        /// 1.2 metres from the camera IS a third of the screen tall, and the
+        /// arithmetic checks out at this camera's field of view. So the peak is
+        /// honest and it answers "did a name ever fill the frame", which is not
+        /// the question the night still poses. That question is "is this how
+        /// the street looks", and only a distribution can answer it.
+        ///
+        /// NO THRESHOLD YET, DELIBERATELY. Rule 2: make the system report the
+        /// value, run it, look, then bound it. A clamp picked now would be a
+        /// number invented to make a picture I disliked go away, and this
+        /// project has a table of those.
+        ///
+        /// Every SHOWING label contributes one sample per resolve, so this is a
+        /// statistic over label-instants rather than over frames — a frame with
+        /// twelve names counts twelve times, which is right, because the
+        /// question is what a name typically looks like and not what a frame
+        /// typically contains.
+        public static double NameFracMedian { get; private set; }
+        public static int NameFracSamples => _nameFracs.Count;
+        static readonly List<float> _nameFracs = new List<float>();
+
+        /// The same for a bubble, and it is the SHARPER half of the still.
+        ///
+        /// `review_day1_night.jpg` has overheard speech running edge to edge
+        /// across the right of the frame, plainly larger than any nameplate in
+        /// it, and nothing in this codebase has ever measured how big a bubble
+        /// gets. `textVisible=144` counts them and `textFacingAway=70` says
+        /// which way they point; neither can see a size.
+        public static float WorstBubbleFrac { get; private set; }
+        public static float WorstBubbleMetres { get; private set; }
+        public static double BubbleFracMedian { get; private set; }
+        public static int BubbleFracSamples => _bubbleFracs.Count;
+        static readonly List<float> _bubbleFracs = new List<float>();
+
+        /// Called by `SpeechBubble.Rects` for each bubble it has already
+        /// projected. It takes the RECT rather than the renderer on purpose:
+        /// that method walks the live bubbles and computes the screen rect every
+        /// tick anyway, so projecting a second time here would be a second
+        /// implementation of one idea — the shape of fault this project keeps
+        /// finding in pairs, and the cheapest place to not create one is before
+        /// it exists.
+        public static void NoteBubbleRect(Camera cam, Rect rect, Vector3 centre)
+        {
+            if (cam == null) return;
+            float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
+            _bubbleFracs.Add(frac);
+            if (frac > WorstBubbleFrac)
+            {
+                WorstBubbleFrac = frac;
+                WorstBubbleMetres = Vector3.Distance(cam.transform.position, centre);
+            }
+        }
+
+        /// The middle value of a list, by the same rule everywhere: with an even
+        /// count take the lower of the two middles rather than their mean, so
+        /// the answer is always a value the system actually produced.
+        static double MedianOf(List<float> xs)
+        {
+            if (xs.Count == 0) return -1;
+            var copy = new List<float>(xs);
+            copy.Sort();
+            return copy[(copy.Count - 1) / 2];
+        }
+
+        /// Folded once, at the end of the run, because sorting thousands of
+        /// samples every resolve would show up in `frameWorstMs` and the
+        /// medians are only ever read from the done-line.
+        public static void CloseTextStats()
+        {
+            NameFracMedian = MedianOf(_nameFracs);
+            BubbleFracMedian = MedianOf(_bubbleFracs);
+        }
+
         /// Labels rejected for sitting at or inside the camera's near plane.
         /// Counted rather than silently dropped: if this is large, bodies are
         /// walking through the camera, which is a placement problem wearing a
@@ -278,6 +354,13 @@ namespace Ledger.Game
         public static bool Manages(TextMesh label) =>
             label != null && _managed.Contains(label);
 
+        /// How many distinct labels have EVER been offered. A lifetime figure
+        /// beside three per-call ones, and the only one that can distinguish
+        /// "the offer path never ran" from "it ran and nothing was in shot" —
+        /// which is the fork `namesTracked=0` beside `nameTagsOffered=43` left
+        /// open, because a peak of zero is consistent with both.
+        public static int ManagedEver => _managed.Count;
+
         /// Resolve the previous frame's offers once, at the start of the next.
         ///
         /// DEFERRED BY A FRAME ON PURPOSE. Walkers update in an order nobody
@@ -380,6 +463,12 @@ namespace Ledger.Game
                     // yet, because rule 2 — print the series first, then bound
                     // it from the evidence.
                     float frac = rect.height / Mathf.Max(1f, cam.pixelHeight);
+                    // THE SAMPLE GOES IN BEFORE EITHER BRANCH, so the series
+                    // and the peak describe the same population. Recording it
+                    // inside the `if` would have collected only the record
+                    // holders — a median of the maxima, which is a statistic
+                    // about nothing.
+                    _nameFracs.Add(frac);
                     if (frac > WorstNameFrac)
                     {
                         WorstNameFrac = frac;

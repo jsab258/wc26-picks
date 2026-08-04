@@ -1716,7 +1716,11 @@ namespace Ledger.Game
                       + $" worstNamePair=[{_worstNamePair}]"
                       + $" namesTracked={_namesTracked}"
                       + $" namesAtWorstName={_namesAtWorstName}"
-                      + $" worldTextTracked={_worldTextTracked}");
+                      + $" worldTextTracked={_worldTextTracked}"
+                      + $" bubblesTracked={_bubblesTracked}"
+                      + $" textWalked={_textWalked}"
+                      + $" textProjected={_textProjected}"
+                      + $" namesManagedEver={_namesManagedEver}");
         }
 
         int _labelsColliding = -1;
@@ -2220,8 +2224,10 @@ namespace Ledger.Game
             var otherText = new List<string>();
             var boxText = new List<string>();
             var bubbles = new List<Rect>();
+            int walked = 0;
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
+                walked++;
                 if (t == null || string.IsNullOrEmpty(t.text)) continue;
                 var r = t.GetComponent<Renderer>();
                 if (r == null || !r.isVisible) continue;
@@ -2332,6 +2338,26 @@ namespace Ledger.Game
             // the other question and needs its own number.
             if (boxes.Count > _namesTracked) _namesTracked = boxes.Count;
             if (other.Count > _worldTextTracked) _worldTextTracked = other.Count;
+            if (bubbles.Count > _bubblesTracked) _bubblesTracked = bubbles.Count;
+            // AND THE DENOMINATOR, BECAUSE `namesTracked=0` IS A ZERO WITHOUT
+            // ONE AND RULE 3b IS ABOUT EXACTLY THIS.
+            //
+            // The peak has now read 0 over a whole run while `nameTagsActive`
+            // and `nameTagsOffered` both peaked at 43. Those cannot both
+            // describe a working instrument, and the zero is consistent with
+            // three different worlds: no TextMesh survived the visibility and
+            // projection filters at all; they survived and none was one this
+            // class manages; or none was ever offered in the first place.
+            //
+            // `textWalked` is what the scene walk saw, `textProjected` is what
+            // got past both filters, and `namesManagedEver` is how many labels
+            // have EVER been offered over the run — a lifetime figure against
+            // three per-call ones, deliberately, because it is the only one
+            // that can say whether the offer path runs at all. Between them
+            // there is nothing left to infer.
+            _textWalked = walked;
+            _textProjected = boxes.Count + other.Count + bubbles.Count;
+            _namesManagedEver = NameTags.ManagedEver;
             // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
             // is per-call and the done-line shows the last call's value, so a
             // pair kept from an earlier call would describe a different frame
@@ -2459,7 +2485,11 @@ namespace Ledger.Game
         /// zero here cannot be told from an empty bucket.
         string _worstNamePair = "none";
         float _worstNameArea;
-        int _namesTracked = -1, _worldTextTracked = -1;
+        int _namesTracked = -1, _worldTextTracked = -1, _bubblesTracked = -1;
+        /// The three denominators `namesTracked=0` needed and did not have —
+        /// what the scene walk saw, what survived the filters, and how many
+        /// labels have ever been offered to the declutter at all.
+        int _textWalked = -1, _textProjected = -1, _namesManagedEver = -1;
         /// How many managed labels were on screen AT the worst overlap —
         /// the denominator from the same instant as its numerator, which
         /// this file has now shipped wrong six times.
@@ -7786,6 +7816,10 @@ namespace Ledger.Game
             // what the street typically looks like, and whether those three
             // disagree because the declutter changed or because the sampling
             // did.
+            // AND THE TEXT-SIZE SERIES, folded here beside the overlap one so
+            // both are closed at the same instant of the same run.
+            NameTags.CloseTextStats();
+
             float bubbleMedian = -1f;
             if (_bubbleOverlap.Count > 0)
             {
@@ -8101,6 +8135,18 @@ namespace Ledger.Game
                       $"worstNameScale={NameTags.WorstNameScale:0.000} " +
                       $"worstNameCentreMetres={NameTags.WorstNameCentreMetres:0.00} " +
                       $"worstNamePixels={NameTags.WorstNamePixels:0} " +
+                      // THE MEDIAN BESIDE THE PEAK, AND THE COUNT BESIDE BOTH.
+                      // `worstNameFrac` is honest and it answers "did a name
+                      // ever fill the frame". The night still asks "is this how
+                      // the street looks", which no peak can answer, and the
+                      // sample size is part of the statistic even though
+                      // nothing about the number says so.
+                      $"nameFracMedian={NameTags.NameFracMedian:0.000} " +
+                      $"nameFracSamples={NameTags.NameFracSamples} " +
+                      $"worstBubbleFrac={NameTags.WorstBubbleFrac:0.000} " +
+                      $"worstBubbleMetres={NameTags.WorstBubbleMetres:0.00} " +
+                      $"bubbleFracMedian={NameTags.BubbleFracMedian:0.000} " +
+                      $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a
                       // conversation can be carried without typing; it fails when
                       // the chip row runs dry, and no gate could see that because

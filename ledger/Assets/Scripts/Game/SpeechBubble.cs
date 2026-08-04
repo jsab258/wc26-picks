@@ -209,7 +209,17 @@ namespace Ledger.Game
                 var t = b.GetComponentInChildren<TextMesh>();
                 var r = t != null ? t.GetComponent<Renderer>() : null;
                 if (r == null || !r.isVisible) continue;
-                if (NameTags.ScreenRect(cam, r.bounds, out var rect)) into.Add(rect);
+                if (NameTags.ScreenRect(cam, r.bounds, out var rect))
+                {
+                    into.Add(rect);
+                    // HOW BIG THE SPEECH GETS, sampled here because this is the
+                    // one place a live bubble is already projected. The night
+                    // still has overheard speech running edge to edge across the
+                    // frame and nothing has ever measured it — `textVisible`
+                    // counts bubbles and `textFacingAway` says which way they
+                    // point, and neither can see a size.
+                    NameTags.NoteBubbleRect(cam, rect, r.bounds.center);
+                }
             }
             return into.Count;
         }
