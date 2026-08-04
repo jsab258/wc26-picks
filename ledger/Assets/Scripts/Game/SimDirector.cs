@@ -7684,6 +7684,13 @@ namespace Ledger.Game
                       $"bloomD={_bloomDelta:0.0000} bloomHit={100 * _bloomFraction:0.00} " +
                       $"bloomRise={_bloomRise:0.0000} bloomLit={100 * _bloomHadHighlights:0.0} " +
                       $"grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
+                      // THE TEMPERATURE NUDGE, PROVEN TO BE MOVING. Both
+                      // at exactly 1.000 means `LitAmount` never changes
+                      // or the call never runs, and those look identical
+                      // from here — which is how this model spent weeks
+                      // written, tested and connected to nothing.
+                      $"tempR={FilmGrade.LastTempR:0.0000} tempB={FilmGrade.LastTempB:0.0000} " +
+                      $"tempLit={FilmGrade.LitAmount:0.000} " +
                       $"aoApplied={FilmGrade.Applied} aoDelta={aoDelta:0.0000} aoOk={aoOk} " +
                       $"aoTypical={100 * AoTypicalFraction:0.00} " +
                       $"aoRounds2=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +

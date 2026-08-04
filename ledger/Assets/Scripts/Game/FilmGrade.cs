@@ -146,6 +146,12 @@ namespace Ledger.Game
         /// apart from its own copy once.
         public static float LitAmount = 1f;
 
+        /// What actually reached the shader, for the verdict. Both stuck at
+        /// exactly 1.0000 means either `LitAmount` never moves or this code
+        /// never runs, and from outside those are the same reading — which is
+        /// how the model they come from spent weeks written and unwired.
+        public static double LastTempR = 1.0, LastTempB = 1.0;
+
         /// Pass the frame straight through — no tonemap, no exposure, no
         /// anything. For the sim's light-attribution probe: "is the night
         /// frame bright before the grade touches it, or because of it?" is
@@ -205,6 +211,26 @@ namespace Ledger.Game
             // The aperture opens at night and closes in daylight rain, from
             // the same curve the scene lighting uses.
             _mat.SetFloat("_Exposure", (float)Ledger.Core.LightModel.Exposure(night, Weather.Rain));
+            // EXPOSED COOLS, HIDDEN WARMS — the only prospective signal in the
+            // grade, and it has never once run.
+            //
+            // `LightModel.TemperatureFor` has sat on the reach ledger since it
+            // was written, with a comment stating exactly what it is for:
+            // *"under one percent, which is under the threshold at which
+            // anyone consciously notices a tint and well over the threshold at
+            // which they feel one."* Written, tested, and connected to
+            // nothing.
+            //
+            // `LitAmount` is already here — `PlayerController` refreshes it
+            // every frame from the real light on the player, and the vignette
+            // two lines up has been reading it for weeks. So the input was
+            // wired, the model was written, and the one line between them was
+            // missing: the same shape as the seconds and the rung, an hour
+            // ago, in a different system.
+            var (tempR, tempB) = Ledger.Core.LightModel.TemperatureFor(LitAmount);
+            _mat.SetFloat("_TempR", (float)tempR);
+            _mat.SetFloat("_TempB", (float)tempB);
+            LastTempR = tempR; LastTempB = tempB;
             // A grain that does not move is dirt on the lens. Seeded per
             // frame off unscaled time so it keeps crawling even when the
             // game is paused behind a panel.

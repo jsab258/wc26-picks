@@ -34,6 +34,13 @@ Shader "Hidden/LedgerFilmGrade"
         // projection matrix. This file only multiplies by what comes back.
         sampler2D _AoTex;
         float _Threshold, _Bloom, _Grain, _Vignette, _Seed, _Exposure;
+        // EXPOSED COOLS, HIDDEN WARMS. Two multipliers rather than a colour,
+        // because green is deliberately untouched: a tint that moves all three
+        // channels is a colour grade, and this has to stay under the threshold
+        // where anybody consciously notices while staying over the one where
+        // they feel it. LightModel.TemperatureSwing is 0.008 — under one
+        // percent — and computed in Core so a test can hold it.
+        float _TempR, _TempB;
         float _AoStrength, _AoRelief, _AoFloor;
         float4 _Dir;
 
@@ -111,6 +118,12 @@ Shader "Hidden/LedgerFilmGrade"
                 // else. Exposure is a scene-referred operation and vignette
                 // and grain are display-referred ones; doing them the other
                 // way round grades the vignette instead of the image.
+                // TEMPERATURE BEFORE THE TONEMAP, for the same reason
+                // exposure is: it is a scene-referred operation. Applied
+                // after the tonemap it would tint the shoulder rather than
+                // the light, and the effect would vanish in the highlights —
+                // which are exactly the lit areas it exists to cool.
+                col.rgb *= float3(_TempR, 1.0, _TempB);
                 col.rgb = aces(col.rgb * _Exposure);
 
                 // VIGNETTE. Pulls the eye to the middle and makes the frame

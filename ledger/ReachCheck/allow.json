@@ -37,7 +37,6 @@
     "LightModel.AoMultiplier": "WIRE: M17 — same.",
     "LightModel.AoRangeCheck": "WIRE: M17 — contact shadows; the ambient-occlusion model has no consumer in the scene.",
     "LightModel.ConeBrightness": "WIRE: M17 — the falloff for a lamp cone.",
-    "LightModel.TemperatureFor": "WIRE: M17 — lamp colour temperature is computed and the lights are placed with a hardcoded colour.",
     "LightModel.Transmittance": "WIRE: M17 — fog and rain attenuation, modelled and not applied.",
     "LightModel.VignetteAt": "BY DESIGN: same.",
     "LightModel.VignetteParam": "BY DESIGN: same — the vignette is a shader uniform and this is the gate's model of it.",
