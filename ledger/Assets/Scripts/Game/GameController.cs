@@ -1584,7 +1584,23 @@ namespace Ledger.Game
             _deadIds.Add(victimId);
             _gossip.Mill.Forget(victimId);
             foreach (var n in _npcs)
-                if (n != null && n.name == victimId) { n.gameObject.SetActive(false); break; }
+                // `DisplayName`, NOT `name`, AND THIS COULD NEVER HAVE MATCHED.
+                // `NpcWalker.Spawn` sets `go.name = $"NPC_{name}"` and
+                // `npc.DisplayName = name` three lines apart, so the GameObject
+                // is `NPC_Filip` while every id in the gossip mill, the
+                // homicide book and the observation model is `Filip`. The body
+                // would have gone on walking around the street it died in,
+                // visible in the stills, while `_deadIds` said otherwise.
+                //
+                // Found by writing the first caller this method has ever had —
+                // which is the whole argument for rule 6. Nothing about this
+                // line looks wrong, it compiles, it is the only comparison of
+                // its kind left in the Game layer (grepped), and it was written
+                // beside a comment about containment having to "genuinely work
+                // or the choice is fake". `ViolenceHost.WalkerNamed` has the
+                // correct form and is the one that gets used.
+                if (n != null && n.DisplayName == victimId)
+                { n.gameObject.SetActive(false); break; }
 
             Homicides.FileWith(_gossip.Mill, k, Now, IsAlive);
 

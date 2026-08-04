@@ -3584,6 +3584,16 @@ namespace Ledger.Game
         /// and one boolean cannot say which half went wrong.
         bool _batStaged, _batTook, _batCarried;
         Traces.Item _simRazor, _simBat;
+        /// THE FIRST BODY TO REACH THE REGISTER. `_homSaw` and `_homKnew` are
+        /// the two halves `RecordKilling` splits its witnesses into, printed
+        /// separately because they price differently: seeing you costs
+        /// `NamedWeight`, hearing it through a wall costs nothing at all, and a
+        /// single total could not tell a quiet killing from a public one.
+        bool _homicideStaged;
+        string _homVictim = "";
+        int _homBodies, _homSaw, _homKnew;
+        double _homPressure;
+        Inquiry _homInquiry = Inquiry.None;
 
         // M18 companionship. `_companionRung` is the companion's OWN rung on
         // the staged deed and `_companionStreetRung` is the best rung anybody
@@ -5199,6 +5209,90 @@ namespace Ledger.Game
                               + $"worst social cost {ViolenceHost.WorstStainCost:0.00}");
                 }
             }
+
+            StageAKilling(now, nearestForThreat);
+        }
+
+        /// A BODY REACHES THE REGISTER, AND ONE NEVER HAS.
+        ///
+        /// `GameController.RecordKilling` is the only path into `HomicideBook`
+        /// and it has no callers, so `Pressure` returns zero, `Stage` returns
+        /// `None`, and `inquiry=None` sits on all 131 kept verdicts. Everything
+        /// downstream of it has therefore never executed once: Ellis being
+        /// summoned by a body rather than by heat, the suspicion floor, the
+        /// rumour half-life changing, the paper naming you, and the redirect
+        /// having anything to relieve. One missing call, a whole stage of the
+        /// game, and no instrument was asking — `ReachCheck` covers public CORE
+        /// APIs and this is Game-layer, which is why `lint-unreached.py` was
+        /// written and why this was the largest thing it found.
+        ///
+        /// AFTER THE AUDIT HAS CLOSED, and that gate is the whole safety
+        /// argument rather than a convenience:
+        ///
+        ///   `Police.ForcesActThree` opens Act III at `Investigation` and up.
+        ///   `Police.BarsQuietExit` sets `LedgerState.Hunted` at `Manhunt`.
+        ///
+        /// Both are read while the act is being decided. `ActThree.Result` is a
+        /// STORED field — checked, not assumed — set once when the audit
+        /// closes, and `Opened` is already true by then. So a body filed after
+        /// that instant cannot open an act that is open, cannot rewrite an
+        /// ending that is written, and cannot turn `actThree` or `ending` red.
+        /// Filing one EARLIER could do all three, which is why the first
+        /// version of this note said "record two bodies, not three" and was
+        /// reasoning about the wrong risk entirely.
+        ///
+        /// AND THE ARITHMETIC IS NOT THE ONE I WROTE DOWN. `PerBody` is 0.4, so
+        /// bodies alone go 0.4 / 0.8 / 1.2 and two is the safe number. But
+        /// `Pressure` adds `NamedWeight * bestConfidence` for any living
+        /// witness who can name you, `FileWith` writes them in at
+        /// `Violence.BodyConfidence`, and that constant is 1.0 — measured, not
+        /// remembered. So ONE body seen by ONE person is 0.4 + 0.6 = exactly
+        /// `ManhuntAt`. There is no number of bodies that is safe before the
+        /// audit closes, and the day-count fix would not have helped.
+        ///
+        /// NOTHING IS GATED ON THE RESULT THIS BUILD. The reading comes first:
+        /// `inquiry`, the body count, who saw and who only knew. A gate written
+        /// before the number has landed is a threshold nobody measured.
+        void StageAKilling(GameTime now, NpcWalker victim)
+        {
+            if (_homicideStaged || _game == null || _player == null) return;
+            if (victim == null || !_game.ActThree.AuditClosed) return;
+            // NOT THE CREW AND NOT THE SUCCESSOR. The nearest walker is
+            // whoever the walk left standing there, and killing the person the
+            // handover went to would break a gate for a reason that has nothing
+            // to do with homicide.
+            string id = victim.DisplayName;
+            if (string.IsNullOrEmpty(id)) return;
+            if (_game.Empire.CrewOf(id) != null) return;
+            if (id == _game.ActThree.SuccessorId) return;
+
+            _homicideStaged = true;
+            var cosh = Arsenal.Get("cosh");
+            var killed = ViolenceHost.Commit(cosh, _player.transform, victim,
+                                             "sim-killing", lethal: true, now: now,
+                                             harm: _game.Harm,
+                                             familiarityWithActor: 0.0,
+                                             familiarityOf: _game.FamiliarityWithPlayer);
+            if (killed == null) return;
+
+            // THE BRIDGE, and it is the reason the register was unreachable.
+            // `RecordKilling` asks for the shape `Violence.Saw` returns, and
+            // `lint-usings.py` fails the build if a Game-layer file calls that
+            // function. `ViolenceHost.WitnessesOf` translates the observations
+            // the modern path actually produces.
+            var witnesses = ViolenceHost.WitnessesOf(killed.Seen);
+            _homSaw = 0; _homKnew = 0;
+            foreach (var w in witnesses) { if (w.Occluded) _homKnew++; else _homSaw++; }
+
+            _game.RecordKilling(id, id, witnesses);
+            _homVictim = id;
+            _homBodies = _game.Homicides.BodyCount;
+            _homPressure = _game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, now.Day);
+            _homInquiry = _game.PoliceInquiry;
+            Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
+                      + $"{_homSaw} saw it and {_homKnew} only knew of it, "
+                      + $"pressure {_homPressure:0.00}, inquiry {_homInquiry}, "
+                      + $"Ellis={_game.EllisSpawned}");
         }
 
         /// The transform a held object hangs off — asked of the RIG, which is
@@ -8976,6 +9070,20 @@ namespace Ledger.Game
                       $"pointedOnDay={_game.Homicides.PointedOnDay} " +
                       $"redirectRelief={_game.Homicides.RedirectReliefOn(_game.Now.Day):0.00} " +
                       $"inquiry={_game.PoliceInquiry} " +
+                      // WHY `inquiry` IS WHATEVER IT IS, on the same line as
+                      // the number itself. It has read `None` in every kept run
+                      // and the reading could not say whether that was "no body
+                      // was filed" or "a body was filed and priced at nothing"
+                      // — rule 3b, a zero with no denominator. `homStaged` is
+                      // the denominator: false means the staging never fired,
+                      // which is a different fault from a body that filed
+                      // cheaply. `homPressure` is the raw number the stage is
+                      // cut from, so a stage sitting near a boundary is visible
+                      // rather than inferred.
+                      $"homStaged={_homicideStaged} homVictim=" +
+                      $"{(string.IsNullOrEmpty(_homVictim) ? "nobody" : _homVictim)} " +
+                      $"homBodies={_homBodies} homSaw={_homSaw} homKnew={_homKnew} " +
+                      $"homPressure={_homPressure:0.00} homInquiry={_homInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
                       // THREE NUMBERS, BECAUSE ONE CANNOT ANSWER IT. `notoriety`

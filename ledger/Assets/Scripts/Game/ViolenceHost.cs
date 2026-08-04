@@ -425,5 +425,47 @@ namespace Ledger.Game
                 if (n != null && n.DisplayName == id) return n;
             return null;
         }
+
+        /// THE BRIDGE FROM WHAT A KILLING PRODUCES TO WHAT THE REGISTER TAKES,
+        /// and it is why nothing has ever filed a body.
+        ///
+        /// `GameController.RecordKilling` is the only path into `HomicideBook`
+        /// and it asks for `List&lt;FightWitness&gt;` — the shape the SUPERSEDED
+        /// `Violence.Saw` returns. `lint-usings.py` fails the build if a
+        /// Game-layer file calls that function, and correctly: it knows about
+        /// distance and a wall and nothing about light, facing or the weapon.
+        /// So the only caller the register could have had was one the lint
+        /// forbids, and the register stayed empty in all 131 kept runs while
+        /// `inquiry=None` sat on every verdict. A signature is a dependency,
+        /// and this one pointed at a dead path.
+        ///
+        /// `Commit` returns `Observation`s from the model that replaced it.
+        /// The translation is exact rather than approximate, because
+        /// `RecordKilling` splits its witnesses on one question and so does the
+        /// slot model: whoever resolved the ACTOR slot can put you at the end
+        /// of it and goes to `SawYouDoIt`; whoever got the act without the
+        /// actor knows a man died and cannot say who, which is `KnowsOfIt` and
+        /// is what `Occluded` means to the register. Its own comment says so —
+        /// "through a wall you know something happened and not what".
+        ///
+        /// `Metres` is left at zero deliberately. `RecordKilling` never reads
+        /// it, and filling it with a plausible distance would be inventing a
+        /// number that nothing checks — the exact shape that decays into a
+        /// false comment.
+        public static List<FightWitness> WitnessesOf(List<Observation> seen)
+        {
+            var list = new List<FightWitness>();
+            if (seen == null) return list;
+            foreach (var o in seen)
+            {
+                if (o == null || o.Empty || string.IsNullOrEmpty(o.WitnessId)) continue;
+                list.Add(new FightWitness
+                {
+                    Id = o.WitnessId,
+                    Occluded = !o.Has(Slot.Actor),
+                });
+            }
+            return list;
+        }
     }
 }
