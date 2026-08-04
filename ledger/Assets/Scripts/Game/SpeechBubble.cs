@@ -208,7 +208,15 @@ namespace Ledger.Game
                 if (b == null) { _live.RemoveAt(i); continue; }
                 var t = b.GetComponentInChildren<TextMesh>();
                 var r = t != null ? t.GetComponent<Renderer>() : null;
-                if (r == null || !r.isVisible) continue;
+                // THE SAME WRONG VISIBILITY TEST, one file over. `isVisible`
+                // means "rendered by ANY camera last frame", not "in this
+                // camera's view" — and these rects are measured against the
+                // camera passed in, which at shot time is the review camera
+                // that has not rendered yet. `SimDirector.InView` is the
+                // frustum test that answers the question actually being asked;
+                // this used the same broken one and would have kept the bubble
+                // fraction blind to exactly the frames the stills show.
+                if (r == null || !SimDirector.InView(cam, r)) continue;
                 if (NameTags.ScreenRect(cam, r.bounds, out var rect))
                 {
                     into.Add(rect);

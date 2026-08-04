@@ -2346,6 +2346,33 @@ namespace Ledger.Game
         /// Screen-space AABBs from the text's own bounds, not world distance:
         /// two names three metres apart in depth collide on screen and two names
         /// three metres apart across the view do not.
+        /// IS THIS IN *THIS* CAMERA'S VIEW — which `Renderer.isVisible` does not
+        /// answer, and the miss cost three readings of the name heap.
+        ///
+        /// `isVisible` is "was rendered by ANY camera during the last frame".
+        /// A comment in this file called it a frustum test; it is not, and the
+        /// difference is the whole fault. `CollidingNames` measures against the
+        /// REVIEW camera at shot time, and the review camera has not rendered
+        /// yet when the measurement is taken — so every label only IT can see
+        /// reads as invisible, and the player camera cannot see them because it
+        /// is somewhere else.
+        ///
+        /// MEASURED, and the numbers are not subtle: `textWalked=391
+        /// textInvisible=260 textProjected=95 namesTracked=1`, taken on a run
+        /// whose day-2 noon still has a dozen names piled illegibly in the
+        /// bottom-right corner. Two thirds of the text in the frame was thrown
+        /// away before anything looked at it, which is why three separate
+        /// readings of this metric said the declutter had nothing to declutter.
+        ///
+        /// `TestPlanesAABB` asks the question that was meant: is this bounds
+        /// inside the frustum of the camera I am measuring for. It needs no
+        /// render to have happened and it cannot answer about a different
+        /// camera.
+        public static bool InView(Camera cam, Renderer r) =>
+            cam != null && r != null
+            && GeometryUtility.TestPlanesAABB(
+                   GeometryUtility.CalculateFrustumPlanes(cam), r.bounds);
+
         int CollidingNames()
         {
             var cam = Camera.main;
@@ -2372,7 +2399,7 @@ namespace Ledger.Game
                 walked++;
                 if (t == null || string.IsNullOrEmpty(t.text)) { noText++; continue; }
                 var r = t.GetComponent<Renderer>();
-                if (r == null || !r.isVisible) { invisible++; continue; }
+                if (r == null || !InView(cam, r)) { invisible++; continue; }
                 // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
                 // it gates must agree about what "overlapping" means, or the
                 // gate measures its own opinion — which is how a control came to
