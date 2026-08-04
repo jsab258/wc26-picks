@@ -8548,6 +8548,7 @@ namespace Ledger.Game
                       // silently failed to attach would otherwise look
                       // exactly like one that was never asked for.
                       $"walkerBodies={RealBody.Extra} " +
+                      $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +
                       $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +

@@ -126,6 +126,16 @@ namespace Ledger.Game
         /// threshold chosen to make a reading come out well.
         const float BodyWidth = 0.45f;
 
+        /// How many walkers may carry a skinned body at once, and how many do.
+        ///
+        /// Twelve rather than forty-four, and the number is chosen rather than
+        /// derived: it is `CrowdWalkerCap`'s value, which was itself set from a
+        /// measurement of how many people are out of doors within earshot at
+        /// midday. A dozen skinned bodies is roughly 280k vertices, which is
+        /// the order the rest of this scene is built at.
+        public const int RealBodyCap = 12;
+        public static int RealBodies;
+
         /// `realBody` is false for the anonymous crowd. See the note at the
         /// `Mannequin.Build` call below for why the split is where it is.
         public static NpcWalker Spawn(string name, Color color, (GameTime at, Vector3 pos)[] schedule,
@@ -173,9 +183,29 @@ namespace Ledger.Game
             // publishes statics that five clauses of the `bodies` gate read as
             // THE PLAYER's. See its comment — the extra path runs the identical
             // attach and puts the player's readings back.
-            bool got = realBody
+            // AND BOUNDED, because forty-four of them broke the frame budget and
+            // the geometry says the cost is real rather than a runner artefact:
+            // skinned vertices went 16,338 to 1,037,694 — sixty-three-fold,
+            // about 23k a body, which is what a Mixamo character costs. That is
+            // work on any machine, GPU or not.
+            //
+            // SPAWN ORDER IS THE PRINCIPALS, which is why this crude bound is
+            // defensible rather than arbitrary. `GameController` spawns the
+            // named cast first — Rocco, Ada, Sam, Marla, Joey — so the cap
+            // lands on exactly the people the player talks to most and the
+            // later, thinner cast falls back to mannequins.
+            //
+            // IT IS A HOLDING MEASURE AND SAYS SO. The right answer is LOD: a
+            // real body when somebody enters the near band, a mannequin when
+            // they leave, so the cast size is not bounded by a frame budget
+            // when only a handful are ever on screen. Walkers choose their body
+            // at SPAWN today, so that is a real change and not a constant, and
+            // it should be built against a run that proves the geometry is the
+            // cost. This cap is how that run gets made.
+            bool got = realBody && RealBodies < RealBodyCap
                        && RealBody.TryAttachExtra(go, (float)Physique.For(name).Height, name);
-            if (!got) Mannequin.Build(go, skin, color, name);
+            if (got) RealBodies++;
+            else Mannequin.Build(go, skin, color, name);
 
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
