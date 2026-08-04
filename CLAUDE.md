@@ -98,6 +98,29 @@ the same evidence as choosing the threshold — and one run is not evidence.
 Print the series first. When a gate asks two questions, give each the statistic
 that answers it, and do not move the bound to make red go away.
 
+**AND A FORK YOU WRITE INTO A COMMENT CAN ITSELF BE FALSE — TWO NUMBERS
+DERIVED FROM ONE VARIABLE ARE ONE NUMBER TWICE.** This is not comment decay;
+the comment was wrong the day it was written, and being careful is what made it
+convincing. `roomQuiet` was 73% of a run, and the paragraph beside it set up the
+honest-looking fork: *either* the pulse layer sits at its floor because the
+street is quiet, *or* unease sits high because the game is tense, "and they want
+opposite fixes". The distribution came back `pulseMedian=0.000
+uneaseMedian=1.000`, which reads as both at once, and it is neither.
+
+`MusicModel.Mix` computes ONE variable and derives both layers from it: pulse is
+zero for any exposure at or above 0.667 and unease is one at or above 0.8, so
+unease at its ceiling FORCES pulse to its floor, arithmetically. Two findings
+were one finding double-counted, and the real question — why is exposure at 0.8
+for the median sample — had never been asked because the fork looked like it
+had already framed everything.
+
+**The check is mechanical and takes a minute: before printing two numbers side
+by side as evidence, read the code that produces them and ask whether either
+can move while the other stands still.** If it cannot, they are one measurement
+and the variable behind them is what to print. Here that was `heatMedian`, and
+it is also the number that decides whether the fault is a music problem or a
+harness one — a distinction neither of the original two could express.
+
 **TWO MAXIMA CANNOT BE DIVIDED, AND FOUR PAIRS IN THIS PROJECT WERE.** A peak is
 the right statistic for "how bad did it get" and the wrong one for the other
 half of a fraction, because the worst instant for the numerator need not be the
@@ -279,6 +302,26 @@ what was examined.** `lint-static` now prints "354 static bodies walked", `Audio
 has `soundsOffered`, the contrast check has a `contrastTightest` whose default
 text is the words "nothing measured" so that case cannot read as clean. It is
 the same repair every time and it is one line: **the denominator.**
+
+**AND A TRUNCATION IS A ZERO WITH THE SAME PROBLEM: IT READS AS A FINDING.**
+Same morning, and it cost the longest wrong turn of it. The workflow step that
+extracts the character lines into the verdict ended `| head -3`. That was
+correct when a build produced one audit line and two prefab lines. The moment
+the cast grew to eight bodies it produced seventeen — and the verdict showed
+Michelle, Remy and nothing else.
+
+I read that as *three of the five bodies failed to produce a prefab* and went
+looking for the bug in `CharacterPrefab`. `bodyChoices=5`, in the same file,
+had been right all along. Nothing was broken; a filter had quietly stopped
+telling me things and there was no way to tell that from the output.
+
+**The rule is rule 3b's, one layer out: any cap on what gets reported must say
+when it bites.** `tools/verdict-characters.sh` prints `(+N more character lines
+not shown)` and prints a count of log lines examined when it finds nothing, so
+"the audit did not run" and "the audit ran and had nothing to say" stop looking
+identical. A cap nobody is told about is indistinguishable from a finding, and
+it is worse than a zero, because a zero at least looks like a number somebody
+should check.
 
 This is rule 5b's sibling. 5b says a guard must be run against the case it
 should PASS. This says a guard's PASS must be legible as a pass rather than as
