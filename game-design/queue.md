@@ -40,44 +40,35 @@ scheduling instead of to CI's output.
 
 ### Startable right now, in order
 
-1. **Read the build carrying the overhearing, crowd and rung-floor work.**
-   Four numbers land together and each answers an open question:
-   `claimOverheard` (does anybody ever catch an alibi on this street),
-   `crowdInside`/`crowdTightest` (how badly the crowd interpenetrates),
-   `lineCrossedLive` (is the 180 enforcement worth writing), and
-   `bodyReadRank` (is the player genuinely the brightest body at night, or
-   just the one under the lamp).
-2. **Then decide the two that are waiting on those numbers.** The 180
-   enforcement is written and tested and needs `lineCrossedLive > 0` to be
-   worth wiring. The crowd separation needs a distance, and the distance comes
-   off `crowdGapMedian` — a crowd that never touches is as wrong as one that
-   interpenetrates, so no bound before the series.
-3. **Promote the gate-label keys from gate-only to REQUIRED** in
-   `verdict-keys`. They always print now, so deleting `atRecruit` from a label
-   would be caught. Two or three landed runs first — some labels build their
-   text conditionally and which keys are stable is not yet known.
-4. **ANSWERED AND REPAIRED — the crowd sample was 24, then 11, then 6.** With
-   six bodies a median is barely a statistic, and I drew a conclusion from one
-   twice and got opposite answers. Each shot now contributes its own
-   outshone-fraction and the run reports the median across all twenty.
-   **Both brightness claims are withdrawn until that series lands.** The
-   palette work stays cancelled — not because the noon reading supported
-   cancelling it, but because nothing supports doing it yet.
-
-4b. **BILLBOARDS ARE FINE, CLOSED.** `billboardStaleMedian=0.000` against a
-   peak of 9 stale out of 53 tracked. The typical frame has NO billboard
-   drifting; 5 → 12 → 27 across three runs was a peak wandering with how many
-   were visible, exactly as suspected. Do not reopen without a median.
-5. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
-   Still the only route to the player mesh.
-6. **Keep retiring the reach ledger** (65, from 71 last night). What is left is
-   mostly UI surfaces and one real refactor: `Mixing.*` has no audio choke
-   point.
-7. **The eleven stranded numbers that are not the post A/B.** The denounce
-   breakdown, the frisk and coat one-liners, the blood and cut readings — each
-   is a narration line whose totals arrive but whose breakdown does not. Decide
-   per line whether the breakdown is worth a marker, and do not blanket-add
-   one: a verdict full of narration is a log again.
+1. **Read the build carrying the crowd separation and the 180 yield.** Both
+   are now enforcement rather than measurement, so the numbers to read are
+   whether they WORKED and whether they broke anything: `crowdGapMedian`
+   should rise off 0.00 without the confabs collapsing (`confabs` was 74), and
+   `lineYielded` should track `lineCrossedLive` exactly — if it drifts below,
+   a crossing was detected and not acted on.
+2. **`claimOverheard` with a bystander planted.** First reading was 0 for a
+   whole run because nobody happened to be within fourteen metres. A second
+   host now stands two metres away for the duration of the claim and is put
+   back afterwards. If it still reads 0 the fault is in the acoustics path,
+   not the world.
+3. **`soundsDropped` and `soundsPeak`.** The voice budget has a choke point
+   for the first time. Zero drops over a run means either the street never
+   gets busy enough to need it or the gate is not in the path — and the peak
+   bus says which.
+4. **`contrastFailing` and the worst pair.** First reading of whether the
+   panels can actually be read. Reported, not gated: some pairs are dim on
+   purpose, and which ones are intentional is a judgement for Jafar off the
+   list rather than a bound for me to pick.
+5. **`staminaLow`/`staminaHigh`.** Both at 1.000 means the sim never runs far
+   enough for the breathing model to matter — a finding about the sim, not the
+   model. Pinned at 0 means the drain is too steep.
+6. **Promote the gate-label keys to REQUIRED** in `verdict-keys`. They always
+   print now. Two or three landed runs first; some labels build their text
+   conditionally.
+7. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
+8. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
+   mostly genuinely-blocked UI surfaces plus the type scale, which wants the UI
+   to stop setting sizes by hand — a real refactor rather than a wiring.
 
 ---
 
