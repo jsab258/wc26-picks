@@ -222,6 +222,29 @@ say so in the commit rather than assuming that half works. `Tier2Gen
 accepted, and that assertion is first precisely because the expensive failure
 is a validator nothing survives.
 
+**Corollary, and it is 5b's twin: A GUARD ALSO NEEDS A RUN IN WHICH THE THING
+IT ASSERTS CAN HAPPEN.** Rule 5b is about the guard. This is about the world
+you point it at, and on 4 August it was the single largest cause of red in the
+project — three of the five intermittent gates, found by one table:
+
+| gate | asserts | and the run |
+|---|---|---|
+| `allegiance` | the street hears about a poach | never poached anyone: the sim recruits Sam and Rocco, and dockside is Joey and Ferko |
+| `disposal` + `accident` | being SEEN costs more than not being seen | picked the most crowded spot it could find, which on some runs has nobody in it |
+| `perception` | somebody notices you loitering | loitered where 32 people GLANCED and nobody stayed long enough to notice |
+
+Every one passes most of the time, because most runs happen to supply the
+condition. That is what makes them dangerous: they fail rarely, for a reason
+nobody has named, and rare unexplained red is what teaches everyone to read red
+as noise. `tools/gates.py --flaky` exists to find them — it reads every kept run
+and reports which gates have ever failed and how often, and it corrected me
+within a minute of being written (I had called a 4-in-60 failure "a one-off").
+
+**The fix is always to PLANT the condition, never to loosen the bound.** Set the
+standing before pledging, learn the fact into the witness before telling the
+lie, put a body at the crowded spot. A probe that only fires on a lucky run is
+not a probe, and moving the bound to make it green is the thing rule 2 forbids.
+
 **Corollary: a guard that cannot tell a regression from an improvement is a
 ratchet** (rule 5). "Refuse unless perfect" throws away partial success, and
 partial success is what real work looks like.
