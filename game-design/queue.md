@@ -86,7 +86,18 @@ shows the camera jammed against a street sign. The series is 1, 0, 0, 0, 0,
 single twenty-shot reading of zero, and the standing "do not reopen" list
 carries that closure. Correct the list: the camera is *usually* clear.
 
-### STAGED AND UNDISPATCHED, 08:14 UTC — six commits
+### BASELINE BREAK TO KNOW ABOUT
+
+**`nightRunNotices` moved too, and its history is not comparable.** The
+re-classification fix took BOTH notice counters off the attention rising
+edge, because both had the identical structural bug. The commit message
+called out only `remarks` as a number with a landed history worth
+protecting; `nightRunNotices=4` has one as well and it will read differently
+now for a reason that is a fix rather than a regression. Do not compare the
+next reading against 4. `loiterNotices` has no such problem — it has only
+ever read 0, which was the bug.
+
+### STAGED AND UNDISPATCHED, 08:14 UTC — seven commits
 
 One build in flight (the standing-still separation fix plus the hoisted
 numbers). Six commits sit on top of it, all additive reporting, none
