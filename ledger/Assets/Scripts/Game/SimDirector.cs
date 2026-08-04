@@ -8843,6 +8843,8 @@ namespace Ledger.Game
                       // letters and the name says so in one reading.
                       $"nameWidthMedian={NameTags.NameWidthMedian:0.000} " +
                       $"nameWidthP90={NameTags.NameWidthP90:0.000} " +
+                      $"nameShownWidth={NameTags.NameShownWidthMedian:0.000} " +
+                      $"nameShownWidthP90={NameTags.NameShownWidthP90:0.000} " +
                       $"nameWidthWorst={NameTags.WorstNameWidthFrac:0.000} " +
                       $"nameWidthWorstText={NameTags.WorstNameWidthText} " +
                       $"nameFracSamples={NameTags.NameFracSamples} " +

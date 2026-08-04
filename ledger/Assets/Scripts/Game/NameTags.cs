@@ -235,6 +235,13 @@ namespace Ledger.Game
         public static string WorstNameWidthText { get; private set; } = "none";
         public static int NameWidthSamples => _nameWidths.Count;
         static readonly List<float> _nameWidths = new List<float>();
+        /// The same widths AFTER the cap — what the player actually sees.
+        /// Kept apart from the pre-cap series because 0.610 shrinking to 0.12
+        /// is the system working and 0.610 staying put is a label the cap never
+        /// reached, and one list cannot say which happened.
+        static readonly List<float> _nameShownWidths = new List<float>();
+        public static double NameShownWidthMedian { get; private set; }
+        public static double NameShownWidthP90 { get; private set; }
 
         /// The same for a bubble, and it is the SHARPER half of the still.
         ///
@@ -325,9 +332,11 @@ namespace Ledger.Game
 
             NameFracMedian = MedianOf(_nameFracs);
             NameWidthMedian = MedianOf(_nameWidths);
+            NameShownWidthMedian = MedianOf(_nameShownWidths);
             BubbleFracMedian = MedianOf(_bubbleFracs);
             NameFracP90 = QuantileOf(_nameFracs, 0.90);
             NameWidthP90 = QuantileOf(_nameWidths, 0.90);
+            NameShownWidthP90 = QuantileOf(_nameShownWidths, 0.90);
             BubbleFracP90 = QuantileOf(_bubbleFracs, 0.90);
         }
 
@@ -614,21 +623,30 @@ namespace Ledger.Game
         public static int NamesPinned { get; private set; }
         public static float NamePinFloor { get; private set; } = 1f;
 
-        static void Pin(TextMesh label, float frac)
+        /// Returns the scale RELATIVE to what the rect was measured at, or
+        /// -1 when nothing could be pinned — so a caller can turn a pre-cap
+        /// measurement into the post-cap one without projecting twice.
+        static float Pin(TextMesh label, float frac)
         {
-            if (label == null || frac <= 0f) return;
+            if (label == null || frac <= 0f) return -1f;
             var t = label.transform;
             float now = t.localScale.y;
-            if (now <= 0f) return;
+            if (now <= 0f) return -1f;
             float want = Mathf.Clamp(now * PinFrac / frac, 0.05f, 1f);
             // A DEAD BAND, because a scale write every frame on every label is
             // a transform dirty flag every frame on every label, and this runs
             // inside the budget the `frame` gate is red against. One per cent
             // is well below anything visible and well above float noise.
-            if (Mathf.Abs(want - now) < 0.01f) return;
+            // THE RATIO IS RETURNED EVEN INSIDE THE DEAD BAND. `want / now` is
+            // what the caller needs to convert its pre-cap measurement, and a
+            // dead band that skipped the WRITE must not also skip the ANSWER —
+            // that would report a label as unscaled on exactly the frames where
+            // it was already the right size, which is the majority of them.
+            if (Mathf.Abs(want - now) < 0.01f) return want / now;
             t.localScale = new Vector3(want, want, want);
             if (want < now) NamesPinned++;
             if (want < NamePinFloor) NamePinFloor = want;
+            return want / now;
         }
 
         static void Resolve()
@@ -788,12 +806,38 @@ namespace Ledger.Game
                     // (rule 2), which is the same discipline the height had.
                     float wfrac = rect.width / Mathf.Max(1f, cam.pixelWidth);
                     _nameWidths.Add(wfrac);
-                    if (wfrac > WorstNameWidthFrac)
+
+                    // AND THE WIDTH AFTER THE CAP, WHICH IS THE ONE ON SCREEN.
+                    //
+                    // The first reading of this measured 0.610 on a label
+                    // saying "Carl" — four letters at three fifths of the
+                    // frame — and I nearly wrote that up as a long-name
+                    // problem. It is not: this sample is taken BEFORE `Pin`
+                    // runs, so it describes the label's size as the projection
+                    // found it, not as the player sees it. So does the height
+                    // series beside it, and has since it was written.
+                    //
+                    // `Pin` scales uniformly, so the post-cap width is the
+                    // pre-cap width times the scale it settles on. That is what
+                    // the eye gets, and it is the number a bound would ever be
+                    // set from.
+                    //
+                    // BOTH KEPT. The pre-cap value says how hard the cap is
+                    // working; the post-cap one says whether it is enough, and
+                    // they are different questions — 0.610 shrinking to 0.12
+                    // is the system doing its job, and 0.610 staying at 0.610
+                    // is a label the cap never reached.
+                    float scale = Pin(c.Label, frac);
+                    if (scale > 0f)
                     {
-                        WorstNameWidthFrac = wfrac;
-                        WorstNameWidthText = c.Label.text ?? "";
+                        float shown = wfrac * scale;
+                        _nameShownWidths.Add(shown);
+                        if (shown > WorstNameWidthFrac)
+                        {
+                            WorstNameWidthFrac = shown;
+                            WorstNameWidthText = c.Label.text ?? "";
+                        }
                     }
-                    Pin(c.Label, frac);
                     if (frac > WorstNameFrac)
                     {
                         WorstNameFrac = frac;
