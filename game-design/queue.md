@@ -81,76 +81,76 @@ next build.
 nothing and the honest half of the answer was that most of it was invisible to
 him. So the top of this list is whatever a player would notice.
 
-1. **READ `armWidest` THE MOMENT IT LANDS, AND IT FORKS THE SEARCH.** *(CI, in
-   flight)* Near 90 in a typical frame means a body standing in its BIND POSE —
-   `HangArm` is guarded on `!PoseIsDriven`, so a body with an Animator and a
-   controller is left entirely to the Animator, and if that Animator has
-   nothing to play the bones stay where the FBX put them. Near 65 means a clip
-   IS playing and its arms are simply wide — a completely different fix, and
-   `preArmDrop=64.8` on the player says 65 is a real number this rig produces.
-   `armP90` beside it says whether it is one body or a tenth of them.
-   **Do not touch `HangArm` before reading both.**
+Most of tonight's work was INSTRUMENTS, and the next two builds are what they
+say. Nine of these ten items are "read the number, then decide" — which is the
+discipline, not a stall: every one of them has a fix that is one edit long once
+the reading lands, and every guess made without one tonight was wrong.
 
-2. **READ `crowdHuddle` AND THEN LOOK AT `NpcWalker.SpreadMetres`.** *(CI, in
-   flight)* The suspect is named and deliberately not yet changed: `SpreadMetres
-   = 0.8f` is a FIXED ring radius, so a place with twenty-five people scheduled
-   to it gives each of them about 0.2m of arc — a constant that stopped
-   answering its question when the crowd got bigger, which is rule 2's drift.
-   A radius that grows with the number of people assigned to a place is the
-   obvious fix and it needs the huddle series first: a huddle of six is a bus
-   stop, a huddle of thirty is a fault, and only the runs can say which this is.
+1. **THE T-POSE FORK — read `armCrowdWidest` beside `armWidest`.** *(CI)*
+   `armWidest=54.2` is the widest of fifty-two bodies in a typical frame, and
+   `preArmDrop=65.3` says the player's own bought clip holds HIS arms at
+   sixty-five degrees. Same band. If the crowd-only number comes back near 54
+   the scarecrows are walkers and the search is `HangArm`; if it comes back
+   near 10 the widest body was always the player and the figures in the night
+   stills are a third fault nothing has caught. **`animAdvancing` lands with
+   it** — how many bodies have a controller whose clip time actually MOVED —
+   and a body counted by `animDriven` and never by `animAdvancing` is a body
+   frozen in its bind pose, which is what a T-pose is from the inside.
 
-3. **THE LIMP'S STANCE SCALE STILL DOES NOT REACH A BOUGHT BODY.** The pelvis
-   DIP composes onto a driven body; the shortened bad leg goes through
-   `DriveLimbs`, which is guarded on `PoseIsDriven` in its entirety. So an
-   injured cast member drops onto their good leg and does not shorten the other
-   one — a gameplay signal at half strength. The file's own pattern is the fix:
-   compose a delta onto whatever the Animator wrote, exactly as the chest lean
-   and the pelvis counterturn already do, rather than assigning a swing it does
-   not own. **It wants a measurement first — how much of a limp is the dip
-   alone** — and that measurement is a Core arithmetic question that can be
-   answered here without a round trip, off `Rig.Limp` and `Rig.LegSwing`
-   printed rather than reasoned about.
+2. **DID THE RING FIX THE MOB — `crowdHuddle` against `busiestPlace`.** *(CI)*
+   Forty-one people stood within two metres of one person on an 0.8m ring that
+   gave each of them twelve centimetres of arc. The radius is packing-derived
+   now and only ever widens. **`busiestPlace` is the check that this is even
+   the right fault**: a huddle of forty with a busiest place of three would be
+   people who merely ended up near each other, and `crowdSpread` still reading
+   0.80 on a busy run is the push not arriving.
 
-4. **`review_day5_noon` IS A WALL OF TEXT AND NOTHING ELSE.** Two "Another
-   time" bubbles at roughly a fifth of the frame height each, fourteen name
-   labels overlapping into illegibility, and the street behind them invisible.
-   Whatever else is true, that frame is what a player would see standing in a
-   crowd, and no number names it: `nameShownWidth` bounds a label's WIDTH and
-   nothing bounds a bubble's height or the total ink on screen. **Turn it into
-   a number before proposing anything** — the tallest label as a fraction of
-   frame height, and how many labels overlap another.
+3. **`bodySpell` NAMES THE DWELL TIME.** *(CI)* 1,035 grants and 1,021 revokes
+   for a budget of twelve. Seconds is a walker crossing the band; tens of
+   milliseconds is a boundary being straddled. A cooldown a little above the
+   median is a number taken from the run — and it is still the case that
+   nothing may be picked before it lands.
 
-5. **`dressedStuckOn` NAMES WHICH WALLS THE EIGHT STUCK ITEMS SIT ON.** *(CI)*
-   The pub's corner is certainly one, measurably 1.5m inside Hook Street. Read
-   it before proposing a level fix; the last two guesses about the world came
-   from the wrong half of it.
+4. **`nameShownWidthWorst` DECIDES THE WIDTH CAP.** *(CI)* `nameWidthWorst=
+   0.424` on "Wendell Dujmovic" is PRE-cap; the post-cap twin was computed and
+   never printed, and it is now. `PinFrac` bounds HEIGHT, and `NameTags`' own
+   comment says a bound on one axis of a two-axis object is not a bound.
 
-6. **KEEP RETIRING THE REACH LEDGER** — 36 entries. **AND READ THE ENTRY'S
-   REASON, NOT JUST ITS NAME**: two reasons were still wrong by the evening,
-   both describing behaviour that has been running for weeks when the real gap
-   was that nothing DREW the thing. A wrong reason sends somebody at work that
-   finished a fortnight ago.
+5. **`placeFacesInRoad` / `placeFacesInLane` DECIDE THE SETBACK FIX.** *(CI)*
+   All eight pieces of clutter in a carriageway belong to registered places,
+   which are set back from an authored map coordinate while block buildings are
+   inset from a kerb. Moving buildings re-baselines `massInRoad`, the places
+   gate and every framing shot, so it happens off the reading and not off a
+   still.
 
-7. **RE-READ `crowdGapMedian` AGAINST THE NEW BREADTH RANGE.** The gate compares
-   a median spacing to a body width of 0.45, one constant. Bodies are now
-   0.86–1.18 times as wide, so the widest is 0.53 and the narrowest 0.39. This
-   is the "a number keeps its name when the question moves" case, and the change
-   that moved it has shipped.
+6. **THE FRAME GATE'S BIGGEST ITEM IS NOW TWO NUMBERS.** *(CI)* `population=
+   4.08ms` covered a pass that runs every frame and one that runs once a
+   second. Read `population` and `bodyLod` apart before touching either.
 
-8. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix is
-   in and is what mattered. The COUNTERS have contradicted themselves twice.
-   **If the next reading is still incoherent, delete them rather than explain
-   them.** The four numbers now come from a single frame, which is the last
-   explanation they get.
+7. **THE SECOND DROP MISS HAS NO EXPLANATION YET.**
+   `d13:MISSED[from=16m nearest=6.9m walked=10.0m held:job=19]` — ten of
+   sixteen metres covered, steered the whole window, stalled seven metres out.
+   The first miss was the waypoint's own collider and is fixed. No obstacle
+   explains this one, and the trace has no reading that can say what does.
+   **A new column is the next move, not a mechanism.**
 
-9. **M22, THE SHAPE OF A PLAYTHROUGH** — the largest Core-shaped piece left, and
-   one concrete sub-item is startable now: `PopulationSeed = 20260726` is
-   hardcoded, a second seed gives 699 of 700 different people, and there is no
-   new-game surface to choose one. **It must not be randomised** — CI
-   determinism depends on it — so this is a surface, not a change to the
-   default.
+8. **KEEP RETIRING THE REACH LEDGER — 35 entries**, `StreetMap.OnStreet` off it
+   tonight because the place-setback question needed exactly the wider
+   containment test the entry said it was waiting for. **AND READ THE ENTRY'S
+   REASON, NOT JUST ITS NAME**: two were wrong this morning, and the two
+   sampled tonight (`Combat.Breathe`, `VoiceBank.PoolVoices`) were both honest.
 
+9. **JUDGE THE LIMP FROM A FRAME.** The pose limp was a sixteenth of the audio
+   one and is now the same size; at capability 0.30 the bad leg's stride is
+   44cm shorter than the good one, which is a lot. `Gait.MaxAsymmetry`'s own
+   comment says above about 0.5 it stops reading as injured and starts reading
+   as broken animation. Nobody has looked at one yet.
+
+10. **M22, THE SHAPE OF A PLAYTHROUGH** — the largest Core-shaped piece left.
+   One sub-item is startable now: `PopulationSeed = 20260726` is hardcoded, a
+   second seed gives 699 of 700 different people, and there is no new-game
+   surface to choose one. **It must not be randomised** — CI determinism
+   depends on it — so this is a surface, not a change to the default.
 
 ## Next
 
