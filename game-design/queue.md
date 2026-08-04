@@ -45,16 +45,25 @@ CLAUDE.md under AUTO MODE.
   ninety and `review_day2_night` has a figure with its arms straight out to
   both sides. The drop angle measures against straight DOWN and cannot tell
   forward from sideways; a walk is entirely fore-and-aft and a T-pose entirely
-  lateral. `armSide` settles it next build.
-- **The mob is real and neither the plan nor the ring causes it.** 700
-  residents put at most six within two metres, the busiest scheduled place
-  holds twelve, and thirty-nine stood within two metres of one person.
-  `busiestNear` separates the last two next build.
-- **Two white capsules are standing in the road** and no reading names them —
-  `playerPrimitive` was built for the player alone; `walkersPrimitive` counts
-  them next build. Twenty-two registered places have a facade in a
-  carriageway, and the frame gate's biggest item was two passes sharing one
-  number: the reband is 1.31ms, the body LOD 2.59ms.
+  lateral. `armSide` was committed AFTER `7c87f38` and lands next build.
+- **THE PLAN IS EXONERATED AND THE MOB IS IN THE WALK.** `7c87f38`:
+  `busiestNear=12 busiestPlace=12 crowdHuddleWorst=38`. All three are run
+  maxima so they compare fairly — the schedules never put more than twelve
+  within two metres and thirty-eight end up there. `review_day5_noon` shows the
+  knot standing at a ROAD JUNCTION, and `confabs` read 1-13 under the old
+  flat-road conversation rule against 29-74 under the junction one.
+  `huddleTalking/Escorting/Detour/Waiting` at the instant the huddle peaks
+  separate a conversation-siting fault from the companion rule, an obstacle and
+  the route. Next build.
+- **`walkersPrimitive=0` IS NOT AN ANSWER ABOUT THE CAPSULES.** It is reset at
+  the top of every once-a-second pass, so it describes the final second of a
+  fifteen-day run — a body that spawned as a primitive and assembled by the end
+  reads zero having stood in the street as a capsule for a fortnight. "Is
+  anybody" is never a last-wins question. `walkersPrimitiveEver` is the peak
+  and `walkersPrimitiveOf` is the walker count from the pass that peaked.
+  Twenty-two registered places still have a facade in a carriageway, and the
+  frame gate's biggest item was two passes sharing one number: the reband is
+  1.31ms, the body LOD 2.59ms.
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 **The order is Jafar's, 4 August.** He asked why a day looked like almost
@@ -66,96 +75,59 @@ say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
 
-1. **THE LAW HAS NEVER OPENED A CASE BECAUSE NOTHING TELLS IT ABOUT A BODY —
-   AND THIS IS THE TOP OF THE LIST.** *(start at the top of a turn)*
+1. **THE BODY IS FILED. READ WHAT IT COST.** *(CI, dispatched)*
 
-   `GameController.RecordKilling` is the only path into `HomicideBook`, and it
-   HAS NO CALLERS. So the register is empty in every run, `Pressure` returns
-   zero, `Stage` returns `None`, and `inquiry=None` in all 131 kept verdicts.
-   Everything downstream of `Inquiry.Investigation` has therefore never
-   executed: the paper naming you, the redirect having anything to relieve,
-   `Police.ForcesActThree`, `Police.BarsQuietExit`. One missing call, a whole
-   stage of the game.
+   `RecordKilling` has a caller for the first time. It could not have had one:
+   it asks for `List<FightWitness>`, the shape the SUPERSEDED `Violence.Saw`
+   returns, and `lint-usings` fails the build if a Game-layer file calls that.
+   `ViolenceHost.WitnessesOf` bridges from the observations the modern path
+   produces — ACTOR slot resolved means they can name you, act without actor
+   means they know a man died and cannot say who.
 
-   **It is not a wiring slip.** The roadmap already records that M16's fighting
-   is Core-only and nothing calls it, so there is no real killing path yet.
-   What exists is the SIM's staged killings — `ViolenceHost.Commit` with
-   `lethal: true`, three times, inside the places probe — and those never reach
-   the register either.
+   **And the containment could never have matched.** `n.name == victimId`
+   against `go.name = "NPC_" + name` while every id everywhere is the bare
+   name, so the victim would have gone on walking around the street it died in,
+   in the stills, while `_deadIds` said otherwise. Only comparison of its kind
+   left in the Game layer (grepped). Fixed.
 
-   **The arithmetic decides how many to record, and it is unforgiving.**
-   `PerBody = 0.4`, `InvestigationAt = 0.7`, `ManhuntAt = 1.0`. So one staged
-   body gives 0.4 and `Procedure`; TWO give 0.8 and `Investigation`, which is
-   exactly the stage that unlocks the paper and the redirect; three give 1.2
-   and jump straight to `Manhunt`, which `ForcesActThree` reads and which would
-   very likely rewrite Act III's ending and turn green gates red.
+   **The arithmetic in the old version of this item was wrong.** "Record two,
+   not three" reasoned from `PerBody` alone. `Pressure` also adds
+   `NamedWeight * bestConfidence`, `FileWith` writes witnesses in at
+   `Violence.BodyConfidence`, and that constant is **1.0** — measured. One body
+   seen by one person is 0.4 + 0.6 = exactly `ManhuntAt`. There is no safe
+   number of bodies before the audit closes, so the staging is gated on
+   `ActThree.AuditClosed`: `Result` is a stored field set once at that instant,
+   so a body filed after it cannot open an act that is open or rewrite an
+   ending that is written.
 
-   **So: record TWO, not three, and watch `actThree` and `ending` on the run
-   that does it.** Plant the condition, never loosen the bound — and this is
-   the one place tonight where planting it carelessly could break more than it
-   proves.
+   **READ NEXT BUILD:** `homStaged homBodies homSaw homKnew homPressure
+   homInquiry` beside `inquiry`, and whether `actThree`/`ending` moved (they
+   must not). Then decide whether the stage wants a gate, and whether Ellis
+   spawning off a body rather than off heat shows in a frame.
 
-   **AND THE TOOL COULD NOT HAVE FOUND THIS.** `ReachCheck` covers public CORE
-   APIs; `RecordKilling` is Game-layer, so nothing has ever asked whether it
-   has a caller. The reach ledger's 35 entries are the Core half of a question
-   nobody asks about the other half — and the largest unwired thing found
-   tonight was on the side with no instrument.
+2. **CLOSED — NO SCARECROWS, AND THE RING WAS NOT THE MOB'S CAUSE.**
+   `armWidest=54.5` against `armCrowdWidest=53.5` says the widest body is a
+   walker, and printed off `Rig.ArmSwing` a normal walk puts the FOREARM at
+   45.4 degrees at 1.2 m/s, 48.3 at 1.4, 55.1 at 2.0. 53.5 is a person walking
+   briskly with a bent elbow; a T-pose is ninety. `animBodies=6 animDriven=6
+   animAdvancing=6` closes the other half — nothing is frozen in a bind pose,
+   and forty-six of the fifty-two solved bodies are mannequins with no Animator
+   to freeze. The `HangArm` search is closed before it started. **The tail is
+   still open** — `armCrowdWidestWorst=76.6`, and `armSide` is what tells
+   fore-and-aft from lateral.
 
-1. **RETRACTED — THERE ARE NO SCARECROWS, AND THE MOB IS THE WHOLE FAULT.**
-   `armWidest=54.5` with `armCrowdWidest=53.5`: taking the player out barely
-   moves it, so the widest body is a walker. And printed off `Rig.ArmSwing`, a
-   normal walk puts the FOREARM — which is what the metric measures — at 45.4
-   degrees from vertical at 1.2 m/s, 48.3 at 1.4, 55.1 at 2.0. **53.5 is a
-   person walking briskly with a bent elbow.** A T-pose is ninety.
+   The ring: `crowdSpread=0.88` with `busiestPlace=12`, the packing rule firing
+   exactly as computed (`0.45*sqrt(12/pi) = 0.879`), and the huddle moved only
+   41 to 36. The change stands on its own merits — twelve people on an 0.8m
+   ring got 0.42m of arc each and now get 0.46m — but it is not this fault.
 
-   `animBodies=6 animDriven=6 animAdvancing=6` closes the other half: every
-   body with an Animator has a controller and every one of them has a clip
-   whose time is MOVING. Nothing is frozen in a bind pose. Forty-six of the
-   fifty-two solved bodies are mannequins, which have no Animator to freeze.
-
-   So the figures in `review_day1_night` were overlapping bodies in a mob, and
-   at 1280x720 that reads as splayed limbs. Rule 4 exactly — a picture is
-   excellent evidence something is wrong and poor evidence of WHAT. Something
-   was wrong; it was the huddle, which the other number found independently.
-   **The `HangArm` search is closed before it started, and everything it would
-   have gone through — `PoseIsDriven`, the prefab controller, the rest capture
-   — came back innocent on the way past.**
-
-2. **THE RING WAS NOT THE MOB'S CAUSE, AND THE CHECK I BUILT IN SAID SO.**
-   `crowdSpread=0.88` with `busiestPlace=12` — the packing rule fired exactly
-   as computed (`0.45*sqrt(12/pi) = 0.879`) — and `crowdHuddleWorst` moved only
-   from 41 to 36, `crowdHuddle` from 10 to 9.
-
-   **Twelve at the busiest scheduled place, thirty-six within two metres of one
-   person.** Those cannot be the same people. So the mob is NOT people sent to
-   one point; it is people who END UP near each other, and a wider ring at the
-   schedule cannot touch it. `busiestPlace` was printed for exactly this
-   question and answered it on the first run.
-
-   The ring change stands on its own merits — twelve people on an 0.8m ring got
-   0.42m of arc each and now get 0.46m — but it is not this fault, and reading
-   the huddle drop as a fix would have closed the wrong thing.
-
-   **THE GENERATED SCHEDULES DO NOT CLUSTER — measured locally off the real
-   generator with the real seed, no round trip.** 700 residents, 688 distinct
-   home points and 687 distinct work points, and the most that share a point
-   within two metres is SIX at home and FIVE at work. Only 38 are within ten
-   metres of each other. The city plan spreads people properly.
-
-   **The AUTHORED schedules do share exact points, and that is what
-   `busiestPlace=12` is seeing.** `GameController`'s cast waypoints repeat by
-   hand: `(10,0,-14)` is the market corner for three different people,
-   `(18,0,14)` the docks for two, `(-16,0,-12)` and `(-12,0,14)` are two homes
-   with two residents each. Twelve on one point is exactly what the packing
-   ring was built for and it now gives them 0.88m.
-
-   **NEITHER EXPLAINS THIRTY-SIX.** There are 42 walkers in the run and 36 of
-   them stood within two metres of one person — 86% of everybody, in a disc
-   the size of a small room, while the authored points are twenty metres
-   apart. `busiestNear` lands next build and separates the last two
-   candidates: near 36 means the targets cluster after all in a way the metre
-   grid cannot see, and near 6 means the walk gathers them and the plan is
-   innocent.
+   **The generated schedules do not cluster**, measured locally off the real
+   generator with the real seed: 700 residents, 688 distinct home points, 687
+   distinct work points, at most six sharing a point within two metres. The
+   AUTHORED cast waypoints do repeat by hand — `(10,0,-14)` is the market
+   corner for three people — which is what `busiestPlace=12` sees. Neither
+   explains thirty-eight, and `busiestNear=12` has now closed the question: it
+   is the walk. See the settled section.
 
 3. **BOTH DWELL NUMBERS HAVE LANDED, AND THE FIX IS NOT OBVIOUSLY WORTH IT.**
    `bodySpell=5.41` median with `bodySpellShortest=1.00` over 1,143 spells, and
