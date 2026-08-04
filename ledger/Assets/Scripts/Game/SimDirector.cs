@@ -7744,6 +7744,11 @@ namespace Ledger.Game
                       // composed shot reversing itself, the other is the
                       // camera correctly getting out of the way.
                       $"lineCrossedLive={FramedBeat.LineCrossedLive} " +
+                      // AND HOW MANY OF THOSE THE BEAT ACTED ON. If this
+                      // ever drifts below `lineCrossedLive`, a crossing
+                      // was detected and not acted on — a guard that
+                      // reports and does not guard.
+                      $"lineYielded={FramedBeat.LineYielded} " +
                       $"beatTried={_beatBotTried ?? "none"} beatClosest={_beatClosestApproach:0.0}m " +
                       $"beatChaseSecs={_beatChaseSeconds:0} beatMarker={_beatMarkerSeen} " +
                       $"nightFull={_nightFull:0.0000} nightNoShafts={_nightNoShafts:0.0000} " +

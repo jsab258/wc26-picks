@@ -9913,6 +9913,47 @@ namespace Ledger.CoreTests
                 "but it is NOT the rig's, and a fix aimed at it would be the camera "
                 + "fighting the person holding it");
 
+            // -- AND THE BEAT YIELDS WHEN THE GEOMETRY REVERSES ---------------
+            //
+            // THE ACCEPTING CASE FIRST, and it is the one that matters: a beat
+            // whose camera stays on its own side must run its full length. An
+            // enforcement that ended beats early on ordinary camera movement
+            // would delete the entire framing layer while looking like it was
+            // protecting it — and `framedBeats` would still count them as
+            // begun, so the gate would stay green.
+            int yield0 = FramedBeat.LineYielded;
+            var stays = new FramedBeat();
+            stays.Begin(0.5, true);
+            stays.HoldTheLine(-1, 0, 1, 0, 0, 5);
+            stays.CameraMovedTo(4, 3);
+            stays.CameraMovedTo(-4, 1);
+            stays.Tick(0.2, 0, 0);
+            Check(stays.Running && FramedBeat.LineYielded == yield0,
+                  "a beat whose camera stays on its side runs on, untouched");
+
+            // AND THE ONE IT EXISTS FOR: crossing hands the frame back, over
+            // the same yield the player gets rather than as a snap.
+            stays.CameraMovedTo(0, -4);
+            Check(FramedBeat.LineYielded == yield0 + 1,
+                  "and one that reverses gives the frame back");
+            stays.Tick(Framing.YieldSeconds + 0.01, 0, 0);
+            Check(!stays.Running && stays.Done,
+                  "handing back over YieldSeconds, which is the graceful exit "
+                  + "already written for the player taking the camera");
+
+            // NOT TWICE. The crossing latches, so a beat cannot yield again on
+            // every subsequent frame it spends over there — which would count
+            // one mistake dozens of times and make the number useless.
+            int yield1 = FramedBeat.LineYielded;
+            var once = new FramedBeat();
+            once.Begin(0.5, true);
+            once.HoldTheLine(-1, 0, 1, 0, 0, 5);
+            once.CameraMovedTo(0, -4);
+            once.CameraMovedTo(0, -9);
+            once.CameraMovedTo(0, -14);
+            Check(FramedBeat.LineYielded == yield1 + 1,
+                  "and it yields once, not once per frame it stays over there");
+
             // A BEAT THAT CANNOT FAIL MUST NOT BE COUNTED AS ONE THAT PASSED.
             // Two speakers standing on the same spot have no line between
             // them: the cross product is zero wherever the camera goes, so

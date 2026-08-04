@@ -302,6 +302,13 @@ namespace Ledger.Core
         /// before the guard rather than after it for once.
         public static int LineCrossedLive { get; private set; }
 
+        /// Beats that ended early because the geometry reversed under them.
+        /// Distinct from `LineCrossedLive` so the fix can be told from the
+        /// fault: if these ever diverge, a crossing has been detected and NOT
+        /// acted on, which is the shape of a guard that reports and does not
+        /// guard.
+        public static int LineYielded { get; private set; }
+
         /// Did THIS beat's camera cross? Read by the sim per beat.
         public bool Crossed { get; private set; }
 
@@ -351,7 +358,37 @@ namespace Ledger.Core
             LineCrossed++;
             // `_cancelledAt < 0` is "the player has not taken it back yet", so
             // the beat still owns the frame and this crossing is the RIG's.
-            if (_cancelledAt < 0) LineCrossedLive++;
+            if (_cancelledAt >= 0) return;
+            LineCrossedLive++;
+
+            // AND THE BEAT GIVES UP RATHER THAN FIGHTING.
+            //
+            // 24 crossings of 53 watched beats, and ALL 24 were live — not one
+            // was the player taking the camera back. So this is the rig, and
+            // the enforcement is worth having.
+            //
+            // WHAT IT IS NOT is a corrected camera position. The rig has
+            // already solved collision and lag, and the beat's whole design is
+            // that it pulls in ALONG the rig's line rather than composing a
+            // shot — because "a camera that is taken away has stopped being
+            // the interface" is this file's stated position and the reason the
+            // framing layer is a push rather than a cutscene.
+            //
+            // AND THE CAMERA IS USUALLY NOT WHAT MOVED. Two people walking
+            // rotate the line between them under a camera that never turned,
+            // so most of these are the line sweeping past rather than the lens
+            // crossing it. Holding a side would mean moving the camera as the
+            // subjects move, which IS composing, and is the feature this layer
+            // exists instead of.
+            //
+            // So the beat yields. A push-in emphasises a shot whose geometry
+            // has just reversed, which is the jarring part; handing the frame
+            // back over `YieldSeconds` is the same graceful exit the player
+            // gets, and the same one already written. Nothing is taken from
+            // anybody — a moment simply stops being emphasised once it stops
+            // being the shot it was composed as.
+            Cancel();
+            LineYielded++;
         }
 
         // NO RESET. The obvious companion here is a `ResetLineCounters()` for
