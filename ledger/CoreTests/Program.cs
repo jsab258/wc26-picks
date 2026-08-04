@@ -11231,6 +11231,25 @@ namespace Ledger.CoreTests
             Check(Notice.What(8, 0, 0, false, false, false) == Notable.None,
                   "notice: waiting eight seconds is not");
 
+            // THE BOUNDARY, PINNED, because a fix in the Game layer leans on
+            // it. `loiterNotices` read 0 next to `loiterLooks=35` on every run
+            // ever taken: the notice fired only when a walker STARTED
+            // attending, and the sim's loiter runs for LoiterSeconds + 2, so
+            // the Loitering state exists for the last two seconds only. Every
+            // watcher had latched on long before, spent their one edge on
+            // Notable.None, and could never spend another.
+            //
+            // The repair lets a watcher RE-READ the player, so what matters
+            // now is that the state genuinely arrives at the threshold and not
+            // a moment later. If this boundary ever moves to exclusive, that
+            // two-second window becomes zero and the counter silently returns
+            // to reading 0 for a completely different reason.
+            Check(Notice.What(Notice.LoiterSeconds, 0, 0, false, false, false) == Notable.Loitering,
+                  "notice: the loiter threshold is INCLUSIVE, which is what gives "
+                  + "the sim's two-second window anything to observe");
+            Check(Notice.What(Notice.LoiterSeconds - 0.01, 0, 0, false, false, false) == Notable.None,
+                  "notice: and a hair under it is still nothing");
+
             // Priority order: the street reacts to the loudest thing about you.
             Check(Notice.What(60, run, 1.0, true, true, true) == Notable.WeaponVisible,
                   "notice: a visible weapon beats everything else about you");
