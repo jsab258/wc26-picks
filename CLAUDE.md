@@ -593,7 +593,7 @@ other than where it was written:
 | CS0426 | `Mixing.Bus` — `Bus` is a SIBLING of `Mixing`, not nested | `tools/lint-nested.py` |
 | CS0120 | a static body reaching an instance member | `tools/lint-static.py` |
 | CS0103 | `TrafficHost.BrakeLampsPeak` — **there is no type called `TrafficHost`** | `tools/lint-filetype.py` |
-| CS0118 | `Game.Campaign` in a static class — `Game` bound to the NAMESPACE | none yet |
+| CS0118 | `Game.Campaign` in a static class — `Game` bound to the NAMESPACE | `tools/lint-namespace.py` |
 
 The fifth is the family's purest form and cost two builds. Inside
 `namespace Ledger.Game`, the bare identifier `Game` resolves to that namespace,

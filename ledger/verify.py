@@ -286,6 +286,34 @@ def filename_as_type():
                   % (m.group(1), m.group(3)) if m else "0 filename-as-type errors")
 
 
+def namespace_as_value():
+    """A namespace used as a value — CS0118.
+
+    `ViolenceHost` is a static class with no game in scope and contained
+    `if (Game != null && Game.Campaign != null)`. Inside `namespace
+    Ledger.Game` the bare name `Game` binds to the NAMESPACE, so two builds
+    came back NO PLAYER LOG and ten commits piled up on a branch that did not
+    compile.
+
+    Fifth member of the reference-resolution family, and the one that looks
+    most normal: `PlayerController` has a real `public GameController Game;`
+    and reads `Game.Harm` correctly three lines apart. What makes it an error
+    in one file and legal in another is whether the enclosing type declares a
+    member of that name — a per-file fact no reader checks.
+
+    Reads only the positions no namespace can occupy: compared to null, `?.`,
+    `?[`, incremented. `Game.Campaign` is deliberately NOT read, because that
+    is what a namespace qualifier looks like and `Ledger.Core.Violence` is one
+    on hundreds of lines."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-namespace.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-namespace")
+        return False, "CS0118 WAITING TO HAPPEN: " + first[:90]
+    m = re.search(r"\((\d+) file\(s\) scanned, (\d+) namespace segment", out)
+    return True, ("0 namespace-as-value errors (%s files, %s segments in scope)"
+                  % (m.group(1), m.group(2)) if m else "0 namespace-as-value errors")
+
+
 def static_instance():
     """A static method reaching an instance member — CS0120.
 
@@ -613,7 +641,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, nested_types,
-               static_instance, filename_as_type, workflow_size,
+               static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
