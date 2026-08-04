@@ -642,11 +642,19 @@ namespace Ledger.Game
             //
             // A picture is good evidence something is wrong and poor evidence
             // of what (rule 4), so this is the number rather than a change: the
-            // MEDIAN arm drop across every bought body, per sample. No
+            // MEDIAN arm drop across every SOLVED body, per sample. No
             // threshold on it — nobody has read the series, and inventing an
             // angle for "out" is what rule 2 forbids. Median because the
             // question is what the street looks like, and one person mid-stride
             // is not a street.
+            //
+            // EVERY SOLVED BODY MEANS BOXES AS WELL AS BOUGHT ONES, and I wrote
+            // "bought" here first and then read the call site. `StampPose` runs
+            // for every rig that solves, and a mannequin has an upper arm like
+            // anything else. That is the better metric — the question is what
+            // the STREET looks like and thirteen boxes standing like scarecrows
+            // is the same fault — but the comment has to say what the code
+            // does, and for ten minutes it said something else.
             float mine = ArmDropNow();
             if (mine >= 0f) _armsThisFrame.Add(mine);
 

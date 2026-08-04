@@ -8959,8 +8959,9 @@ namespace Ledger.Game
                       // all — and it is a worst-over-run, so it cannot tell
                       // one frozen scarecrow from everybody swinging through
                       // the top of a stride. These two are medians ACROSS
-                      // BODIES: the typical frame, and the frame where the
-                      // street as a whole stood widest.
+                      // BODIES — boxes as well as bought ones, because the
+                      // question is what the STREET looks like: the typical
+                      // frame, and the frame where it stood widest.
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
                       $"armFrames={CharacterRig.ArmFrames} " +
