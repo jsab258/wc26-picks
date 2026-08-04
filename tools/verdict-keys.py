@@ -37,6 +37,11 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+# WHAT THE JOB WRITES WHEN THE BUILD NEVER PRODUCED A PLAYER. Quoted from the
+# workflow rather than paraphrased — a marker this tool matches loosely is a
+# marker that stops matching the day somebody rewords the sentence.
+NO_SIM = "NO PLAYER LOG"
+
 VERDICT = ROOT / "game-design" / "sim-shots" / "verdict.txt"
 MANIFEST = ROOT / "game-design" / "sim-shots" / "verdict-keys.json"
 
@@ -176,9 +181,34 @@ def newest_run_text():
         ).stdout.split()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None, "no git"
+    # A RUN THAT NEVER RAN IS NOT A RUN WITH NOTHING IN IT.
+    #
+    # On 4 August a build died on "Activate Unity license" — four dispatched at
+    # once, and the licence server refused the fourth. The job still committed a
+    # verdict, eleven lines long, saying in as many words: "NO PLAYER LOG — the
+    # sim did not run on this commit." That file was the newest commit's, so
+    # this returned it, and every one of 466 keys came back GONE.
+    #
+    # The alarm was total, instant, and about nothing. Worse, it is the exact
+    # ratchet rule 5 warns about pointed at a manifest: `--learn` against that
+    # file would have erased the entire baseline, and a key deleted from the
+    # manifest is a measurement that can vanish for ever with nothing to say so.
+    #
+    # I spent several minutes reading my own C# for a compile error that was
+    # never there, which is what an instrument that cannot tell "not measured"
+    # from "measured zero" costs every time. Skip and keep walking back.
+    skipped = []
     for sha in log:                      # newest first
-        if sha in have:
-            return have[sha].read_text(encoding="utf-8", errors="replace"), sha
+        if sha not in have:
+            continue
+        text = have[sha].read_text(encoding="utf-8", errors="replace")
+        if NO_SIM in text:
+            skipped.append(sha)
+            continue
+        note = sha if not skipped else f"{sha} (skipped {len(skipped)} no-sim: {', '.join(skipped)})"
+        return text, note
+    if skipped:
+        return None, f"no commit has a verdict with a sim in it — {len(skipped)} ran no sim"
     return None, "no run file matches any recent commit"
 
 def main():
@@ -188,6 +218,29 @@ def main():
         return 0
 
     text = VERDICT.read_text(encoding="utf-8", errors="replace")
+
+    # AND IF THAT BUILD NEVER RAN A SIM, THERE IS NOTHING TO CHECK.
+    #
+    # A build that dies on "Activate Unity license" still commits a verdict —
+    # eleven lines, saying so in words. Checking a manifest of 466 measurements
+    # against it reports 465 of them GONE, which is a total alarm about nothing
+    # and cost me several minutes reading my own C# for a compile error that was
+    # never there. A guard that cannot tell "not measured" from "measured zero"
+    # is the ratchet rule 5 warns about, and this is the third instrument tonight
+    # with that shape.
+    #
+    # Not silent: it says which commit produced nothing, because a build that
+    # fails to build is worth knowing about even though it is not this tool's
+    # business to fail on.
+    if NO_SIM in text:
+        print(f"verdict-keys: the landed verdict ran no sim "
+              f"({VERDICT.name} line 1: {text.splitlines()[0].strip()}) — nothing to check")
+        newer, why = newest_run_text()
+        if newer is None:
+            return 0
+        print(f"verdict-keys: checking the newest commit that DID run one instead — {why}")
+        text = newer
+
     # LEARNING USES THE NEWEST COMMIT'S RUN; CHECKING USES WHAT LANDED.
     #
     # They want different things. A check should ask "is the thing that just
