@@ -1625,6 +1625,12 @@ namespace Ledger.Game
         /// how many there were to correct. See the block in `Shot` — these are
         /// sampled BEFORE the aim, which is the only ordering that can measure
         /// the fault rather than the repair.
+        /// Visible TextMeshes facing away from the camera, and visible
+        /// TextMeshes in total. Half of every double-sided street plate faces
+        /// away BY CONSTRUCTION, so this is a ratio to read, not a fault to
+        /// count. See `MeasureTextFaults`.
+        int _textFacingAway = 0, _textVisible = 0;
+
         int _billboardsStale = 0;
         float _billboardWorstDeg = 0f;
         int _billboardsAimed = 0;
@@ -1636,7 +1642,7 @@ namespace Ledger.Game
         {
             var cam = Camera.main;
             if (cam == null) return;
-            int mirrored = 0;
+            int mirrored = 0, away = 0, seen = 0;
             foreach (var tm in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 if (tm == null || string.IsNullOrEmpty(tm.text)) continue;
@@ -1678,12 +1684,35 @@ namespace Ledger.Game
                 // So the question narrows to the one that has an answer: text
                 // facing away that is NOT back-face culled, and therefore
                 // really does render as a mirror image.
+                // AND THE OTHER HALF OF THE COUNT, WHICH THIS COULD NEVER SEE.
+                //
+                // `mirrored` only rises for text that is facing away AND is not
+                // on the culling shader. Every street plate IS on it — the whole
+                // point of `WorldText.Adopt` — so no plate can ever contribute,
+                // however it renders. The number is therefore a claim about
+                // speech bubbles wearing the name of a claim about the city, and
+                // `review_day5_night` at 4ac2f0f has what looks like a plate's
+                // reverse face printed backwards over a lit window while this
+                // reads 0. Both can be true, and only one of them is what a
+                // player sees.
+                //
+                // So the raw population is counted too. `facingAway` alone is
+                // NOT a fault — `StreetFurniture.Label` builds every plate twice,
+                // at yaw and yaw+180, deliberately, so exactly half of them face
+                // away by construction and `Cull Back` is what makes that
+                // correct. The number to watch is the RATIO: if backs are being
+                // culled, roughly half the plates in frustum face away and the
+                // frame is clean. If the frame shows mirrored glyphs while this
+                // sits at half, the cull is not working and the shader is the
+                // suspect rather than the geometry.
                 if (facingAway)
                 {
+                    away++;
                     var mat = r.sharedMaterial;
                     var sh = mat != null ? mat.shader : null;
                     if (sh == null || sh.name != "Hidden/LedgerText") mirrored++;
                 }
+                seen++;
 
                 // THE HEIGHT MEASUREMENT MOVED, and the comment that used to sit
                 // here is why. It said "only the NPC nameplates are in question
@@ -1709,6 +1738,11 @@ namespace Ledger.Game
             // moment when one was. A single sample cannot answer "does this
             // ever get absurd", which is the question.
             if (mirrored > _textMirrored) _textMirrored = mirrored;
+            // PEAKS, like every other reading here, and the pair is the
+            // point: `away` with no `seen` beside it cannot be read as a
+            // ratio, and the ratio is the whole diagnosis.
+            if (away > _textFacingAway) _textFacingAway = away;
+            if (seen > _textVisible) _textVisible = seen;
         }
 
         /// EVERY DROP THE OUTFIT POSTED, AND WHAT HAPPENED TO IT.
@@ -6601,6 +6635,7 @@ namespace Ledger.Game
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesOnScreen={_bubblesOnScreen} " +
                       $"textMirrored={_textMirrored} " +
+                      $"textFacingAway={_textFacingAway} textVisible={_textVisible} " +
                       $"billboardsStale={_billboardsStale} " +
                       $"billboardWorstDeg={_billboardWorstDeg:0.0} " +
                       $"billboardsAimed={_billboardsAimed} " +

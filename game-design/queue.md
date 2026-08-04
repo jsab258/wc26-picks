@@ -38,7 +38,34 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **READ `billboardsStale` AND THE FOUR STILLS.** *(CI, in flight on 4ac2f0f)*
+0. **THE BUILD IS GREEN — three consecutive runs, 4ac2f0f, 50a1d34, 4dd1a2d.**
+   Every gate that was red overnight is fixed and confirmed by a landed verdict.
+   `claims` was the last one and `claimsMade=2 claimsCaught=1 claimWhy=[ok]`
+   closed it.
+
+1. ~~**READ `billboardsStale`.**~~ **ANSWERED: `billboardsStale=5
+   billboardWorstDeg=75.2`, `billboardsAimed=54` of `billboardsTracked=54`.**
+   The bug was real — five billboards more than 20° out at the instant a still
+   was taken, worst 75°— and every one is re-aimed before the shutter now.
+   **What is NOT closed:** `review_day5_night` at 4ac2f0f still shows what looks
+   like a street plate's reverse face printed backwards over a lit window, while
+   `textMirrored=0`. That metric structurally cannot see it — it only counts
+   text facing away AND not on the culling shader, and every plate is adopted,
+   so no plate can ever contribute however it renders. `textFacingAway` and
+   `textVisible` now print the raw population. Half of every double-sided plate
+   faces away by construction, so **read the RATIO, not the count**: about half
+   with a clean frame means `Cull Back` is working and I misread the picture;
+   about half with mirrored glyphs in frame means the cull is not working and
+   the shader is the suspect.
+
+1b. **THE REVIEW CAMERA STOOD INSIDE A STREET SIGN.** `review_day5_night` at
+   4ac2f0f is two black plates filling the frame at arm's length with almost no
+   city behind them. The shot follows the player, so this is luck rather than a
+   fault — but four stills a run is the entire visual channel, and one of them
+   being a close-up of a sign costs a quarter of it. Worth a minimum-clearance
+   check before the shutter, the same shape as the billboard re-aim.
+
+1c. **READ `billboardsStale` AND THE FOUR STILLS.** *(CI, in flight on 4ac2f0f)*
    `review_day5_night` prints two rumour lines across the frame BACKWARDS while
    `textMirrored=0`, `speechUpDot=1.000` and `nameTagsUpDot=1.000` all say the
    text is fine. Cause: bubbles aim in `LateUpdate`, `Shot` renders from
@@ -48,14 +75,21 @@ scheduling instead of to CI's output.
    `billboardsStale` is how far out they were BEFORE the fix; it should be
    non-zero and the mirrored text should be gone from the frame. **Look at the
    frame first, then the number.**
-2. **READ `bodyCoat`.** *(CI, same build)* The player reads as a bare mannequin
-   in `day2_noon` and `day5_noon` while `bodyCoatArea=1.000 bodyClothed=True`.
-   Both can be true — the meshes are painted, and painted a near-neutral. The
-   coverage metric asks whether a coat material reached every mesh; nothing
-   asked whether that colour is a coat. **If the band comes back grey or stone,
-   it is a decision, not a bug:** the street identifies the player as "someone
-   in a runner's coat" in its own rumours, so the protagonist rolling a neutral
-   is a writing problem too. Do not change the palette off the JPEG.
+2. ~~**READ `bodyCoat`.**~~ **ANSWERED, AND IT REVERSED ME.**
+   `bodyCoat=[denim hsv=0.60/0.36/0.59 rgb=96,118,149]` — the player's coat is a
+   solid denim blue, not grey and not near-white. I had read the pale figure in
+   `day2_noon` and `day5_noon` as an undressed mannequin and was one step from
+   re-rolling the palette; a 1280x720 JPEG through a noir grade at street
+   distance is what made a mid-blue coat look like bare plastic. That is rule 4
+   landing for the fifth time in this project — three textures, a bench, a set
+   of wheels, and now a coat.
+
+   **What survives is a judgement, not a bug.** The figure still READS as
+   undressed at noon even though the material is correct, and "reads as" is the
+   only thing a player has. Whether that needs a darker value, a second
+   material for trousers, or nothing at all is Jafar's call off a still — the
+   street calls the player "someone in a runner's coat" in its own rumours, so
+   the coat is load-bearing for identification.
 3. **READ `[series] jobs` AND `cutOffNights`.** *(CI, same build)* One run in 64
    came back `jobsDone=0` and reddened `jobRan` and `verdictSane`. The
    distribution across every kept run: 49 finish 2/3, eight finish 3/3, **six
