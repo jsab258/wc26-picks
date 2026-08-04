@@ -82,6 +82,15 @@ namespace Ledger.Game
         /// median answers "is this how it walks", and this project has twice
         /// published a conclusion off whichever of those it happened to print.
         public static double CorrectionWorst;
+        /// What the ground ray struck at the worst correction, and how far the
+        /// animated foot was above it. A distance with no idea what it was
+        /// measured TO is the denominator fault wearing a third coat.
+        public static string WorstHit = "nothing measured";
+        public static double WorstDrop;
+        /// Rays that found no ground at all. Those fall back to the animated
+        /// height, which reads as "no correction needed" and is not the same
+        /// thing.
+        public static int GroundMissed;
         public static double CorrectionMedian = -1;
 
         /// STRIDED AND CAPPED, AND IT SAYS SO. Two feet on sixty-seven bodies
@@ -98,7 +107,9 @@ namespace Ledger.Game
 
         public static void Reset()
         {
-            Frames = FramesUndriven = Goals = Clamped = 0;
+            Frames = FramesUndriven = Goals = Clamped = GroundMissed = 0;
+            WorstHit = "nothing measured";
+            WorstDrop = 0;
             LegLengthSeen = -1;
             CorrectionWorst = 0;
             CorrectionMedian = -1;
@@ -177,10 +188,32 @@ namespace Ledger.Game
             // be a second implementation of one idea, and this file's whole
             // argument is against that.
             var from = animated + Vector3.up * 0.5f;
-            float ground = Physics.Raycast(from, Vector3.down, out var hit, 1.5f,
-                                           ~0, QueryTriggerInteraction.Ignore)
-                           ? hit.point.y
-                           : animated.y;
+            bool struck = Physics.Raycast(from, Vector3.down, out var hit, 1.5f,
+                                          ~0, QueryTriggerInteraction.Ignore);
+            float ground = struck ? hit.point.y : animated.y;
+
+            // WHAT THE RAY ACTUALLY HIT, because a 17cm typical correction is
+            // not IK polishing a small error and every guess at why would be a
+            // guess.
+            //
+            // First reading with a real leg length: `ikCorrectionMedian=0.174`
+            // against `ikLegLength=0.832` — a fifth of the leg, on a median
+            // frame, on flat pavement. Either the animation puts feet well off
+            // the ground or this ray is not finding the ground.
+            //
+            // The suspect worth naming is the body's OWN collider. The host is
+            // a capsule, `~0` hits every layer including itself, and a ray
+            // starting half a metre above a foot starts INSIDE that capsule —
+            // so it can return the capsule's underside and call it pavement.
+            // That would produce a plausible-looking number that is wrong by a
+            // constant, which is the hardest kind to notice.
+            //
+            // Named at the WORST correction rather than last-wins, so the
+            // reading describes the frame the peak came from. `ikGroundMissed`
+            // is the other half: a ray that hits nothing falls back to the
+            // animated height, which silently means "no correction" and would
+            // otherwise be indistinguishable from a foot already perfect.
+            if (!struck) GroundMissed++;
 
             double blend = Rig.PlantBlend(phase);
             double wantedY = Rig.FootHeight(animated.y, ground, blend);
@@ -200,7 +233,14 @@ namespace Ledger.Game
             if (solved.knee <= 0) return ground;
 
             double correction = System.Math.Abs(wantedY - animated.y);
-            if (correction > CorrectionWorst) CorrectionWorst = correction;
+            if (correction > CorrectionWorst)
+            {
+                CorrectionWorst = correction;
+                WorstHit = struck
+                    ? (hit.collider != null ? hit.collider.name : "hit, no collider")
+                    : "nothing under the foot";
+                WorstDrop = animated.y - ground;
+            }
             if (System.Math.Abs(ground - animated.y) > Rig.MaxFootAdjustMetres) Clamped++;
             if (_seen++ % Stride == 0 && _corrections.Count < MaxSamples)
                 _corrections.Add((float)correction);
