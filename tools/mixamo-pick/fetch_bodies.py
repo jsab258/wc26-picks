@@ -189,6 +189,8 @@ def main():
     ap.add_argument("--token", default=None)
     ap.add_argument("--names", default=None, help="comma-separated, overrides the defaults")
     ap.add_argument("--count", type=int, default=4)
+    ap.add_argument("--force", action="store_true",
+                    help="re-download bodies that are already present")
     args = ap.parse_args()
 
     tokfile = args.token or os.path.join(args.harvester, "mixamo_token.txt")
@@ -242,6 +244,34 @@ def main():
     if not chosen:
         print("Nothing to download. Pass --names with one of the names above.")
         return 2
+
+    # ALREADY HAVE IT? DO NOT FETCH IT AGAIN.
+    #
+    # The first real run got three of four — "shae" is not in this account's
+    # catalogue — and the obvious next move is to run it again with a
+    # different fourth name. Without this that costs a fresh download of the
+    # three that already landed: ninety-five megabytes and the better part of
+    # an hour of somebody's morning, to end up where they already were.
+    #
+    # `--force` is there because "skip what exists" is exactly the guard that
+    # blocks the good case when a file is half-written or wrong, and rule 5b
+    # says a guard needs an escape hatch you can reach without editing it.
+    kept = []
+    if not args.force:
+        fresh = []
+        for cid, name in chosen:
+            safe = "".join(c for c in name if c.isalnum() or c in " -_").strip()
+            if os.path.exists(os.path.join(args.out, f"{safe}.fbx")):
+                kept.append(name)
+            else:
+                fresh.append((cid, name))
+        chosen = fresh
+    if kept:
+        print(f"Already have, skipping: {', '.join(kept)}")
+        print("   (pass --force to fetch them again anyway)")
+    if not chosen:
+        print("Nothing new to download — everything asked for is already here.")
+        return 0
 
     print(f"Downloading {len(chosen)} body/bodies with skin:")
     ok = sum(1 for cid, name in chosen if export_body(token, cid, name, args.out))

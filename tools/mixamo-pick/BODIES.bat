@@ -49,7 +49,15 @@ echo.
 
 echo  [2/3] Downloading bodies with skin...
 echo.
-python "%SCRIPTS%\fetch_bodies.py" --harvester "%MH%" --out "%CHARS%"
+REM  OPTIONAL NAMES. `BODIES.bat vanguard` fetches just that one, which is
+REM  what the second run needs: three bodies landed and "shae" is not in
+REM  this account's catalogue, so the fourth has to be named by hand.
+REM  With no argument it behaves exactly as before.
+if "%~1"=="" (
+  python "%SCRIPTS%\fetch_bodies.py" --harvester "%MH%" --out "%CHARS%"
+) else (
+  python "%SCRIPTS%\fetch_bodies.py" --harvester "%MH%" --out "%CHARS%" --names "%~1"
+)
 if errorlevel 1 goto :failed
 echo.
 
