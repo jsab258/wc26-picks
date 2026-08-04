@@ -197,9 +197,56 @@ def flaky():
     return 0
 
 
+def pending():
+    """Commits that have no verdict yet — what is still in flight.
+
+    WHY. `gates.py` answers "of the runs that came back, which are red".
+    Overnight the more urgent question is the other one: **which of the things I
+    dispatched have not come back at all.** I answered it by hand a dozen times
+    in one night with the same `for sha in ...; do git show ...` loop, and a
+    question asked a dozen times is a command — the same reasoning that produced
+    `--flaky`.
+
+    It matters beyond convenience. The rule is *"check what LANDED, not what
+    reported success"*, and the failure mode it guards against is working hard
+    on something that silently is not landing. A commit with no verdict is
+    invisible to every other tool here: `gates.py` skips it, `verdict-keys`
+    skips it, and the branch moving proves nothing because I push constantly.
+
+    Walks back from HEAD and stops at the first commit that HAS a verdict —
+    everything newer is either building, queued, or was never dispatched, and
+    this cannot tell those apart. It says so rather than guessing.
+    """
+    if not RUNS.is_dir():
+        print("gates: no runs directory yet")
+        return 0
+    have = {p.stem for p in RUNS.glob("*.txt")}
+    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h\t%s", "-60"],
+                         capture_output=True, text=True).stdout.splitlines()
+    waiting = []
+    for entry in log:
+        sha, _, subject = entry.partition("\t")
+        if sha in have:
+            print(f"{len(waiting)} commit(s) with no verdict, newest first. "
+                  f"Last answered: {sha}  {subject[:52]}")
+            break
+        waiting.append((sha, subject))
+    else:
+        print(f"{len(waiting)} commit(s) with no verdict — none of the last 60 has one")
+    for sha, subject in waiting:
+        print(f"  ....  {sha}  {subject[:58]}")
+    if not waiting:
+        print("  nothing in flight — every commit back to the last verdict is answered")
+    else:
+        print("  building, queued, or never dispatched — this cannot tell those apart.")
+    return 0
+
+
 def main():
     if "--flaky" in sys.argv:
         return flaky()
+    if "--pending" in sys.argv:
+        return pending()
     count = 12
     if len(sys.argv) > 1:
         try:
