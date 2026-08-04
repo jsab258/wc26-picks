@@ -91,11 +91,95 @@ namespace Ledger.EditorTools
 
         public static void Build()
         {
+            ExtractTextures();
             Variants = 0;
             _locomotion = null;
             foreach (var path in BodyModels())
                 BuildOne(path, path == BodyModel);
             Debug.Log($"CharacterPrefab: {Variants} body prefab(s) written");
+        }
+
+        /// THE EMBEDDED TEXTURES, PULLED OUT OF THE FBX, because Unity does not
+        /// do it and every body has been a flat colour for want of this.
+        ///
+        /// MEASURED, NOT GUESSED, AND IT TOOK A REPORT TO GET HERE. Setting
+        /// `materialImportMode` to `ImportViaMaterialDescription` was the first
+        /// try and it was not enough: the run came back with materials on every
+        /// body — Michelle 1, Remy 6, The Boss 4, thirty across ten models —
+        /// every one of them on the Standard shader and every one of them
+        /// `notex`. So the materials import fine and the textures never arrive,
+        /// which is a different fault from the one I fixed and would have been
+        /// invisible without the per-body line.
+        ///
+        /// The textures ARE in the files: counted by PNG signature, Michelle 4,
+        /// Remy 22, Sophie 6, Joe 6, Martha 6, The Boss 3, Big Vegas and Sporty
+        /// Granny 1 each, and only X Bot and Y Bot none — which is right,
+        /// they are the grey stand-ins. Checked on disk here too: no `.fbm`
+        /// folder and no `Textures` folder exists anywhere under
+        /// `Assets/Characters`, so nothing has ever unpacked them.
+        ///
+        /// `ExtractTextures` writes them out as real assets and triggers a
+        /// reimport, which is why it CANNOT live in `OnPreprocessModel` — that
+        /// runs during an import and this starts one. It runs once, here,
+        /// before any prefab is built.
+        ///
+        /// IDEMPOTENT BY THE FOLDER, so a second CI run does not re-extract
+        /// twenty-two PNGs it already has. Cheap to check and it keeps the
+        /// commit that lands the textures readable.
+        public static int TexturesExtracted, TexturesModelsTried;
+
+        static void ExtractTextures()
+        {
+            TexturesExtracted = TexturesModelsTried = 0;
+            const string dir = CharacterImport.CharacterFolder + "Textures";
+            try
+            {
+                if (!AssetDatabase.IsValidFolder(dir))
+                    AssetDatabase.CreateFolder(
+                        CharacterImport.CharacterFolder.TrimEnd('/'), "Textures");
+
+                var extracted = new System.Collections.Generic.List<string>();
+                foreach (var path in BodyModels())
+                {
+                    TexturesModelsTried++;
+                    var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+                    if (importer == null) continue;
+                    if (importer.ExtractTextures(dir))
+                    {
+                        TexturesExtracted++;
+                        extracted.Add(System.IO.Path.GetFileName(path));
+                        // The model has to be read again for its materials to
+                        // bind to textures that did not exist when it was last
+                        // imported. Without this the extraction succeeds and
+                        // the bodies stay exactly as flat as before, which
+                        // would read as the extraction having failed.
+                        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                    }
+                }
+                AssetDatabase.Refresh();
+
+                // THE DENOMINATOR. `TexturesExtracted=0` is consistent with
+                // "already done on a previous run", "no model carries embedded
+                // media" and "the call failed on every one of them", and those
+                // have nothing in common. The count tried, the count that
+                // yielded, and the names.
+                int onDisk = AssetDatabase.FindAssets("t:Texture2D", new[] { dir }).Length;
+                Debug.Log($"CharacterMaterials: extracted from {TexturesExtracted}"
+                          + $" of {TexturesModelsTried} model(s), {onDisk} texture(s)"
+                          + $" now in {dir}"
+                          + (extracted.Count > 0
+                                 ? " [" + string.Join(", ", extracted) + "]"
+                                 : " [none needed extraction this run]"));
+            }
+            catch (System.Exception e)
+            {
+                // A DIAGNOSTIC THAT KILLS THE BUILD IS WORSE THAN NO
+                // DIAGNOSTIC — the same rule `CharacterAudit` states, and this
+                // one sits even earlier in the only entry point the whole
+                // Windows pipeline goes through.
+                Debug.Log($"CharacterMaterials: extraction FAILED "
+                          + $"{e.GetType().Name}: {e.Message}");
+            }
         }
 
         /// `isDefault` writes the extra copy at `Body.prefab`, which is what
