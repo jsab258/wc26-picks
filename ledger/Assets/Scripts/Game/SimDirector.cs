@@ -363,9 +363,9 @@ namespace Ledger.Game
                 _harmStaged = true;
                 _game.Harm.Inflict("Sam", "Sam", InjuryKind.Cut, now.Day,
                     "opened his arm on the ferry rail and would not go and get it seen to");
-                var seen = _game.Harm.Inflict("Rocco", "Rocco", InjuryKind.Cut, now.Day,
+                _harmTreated = _game.Harm.Inflict("Rocco", "Rocco", InjuryKind.Cut, now.Day,
                     "the same rail, the same night");
-                _game.Harm.Treat(seen, null, now.Day);   // no wallet: the sim is proving the mechanism
+                _game.Harm.Treat(_harmTreated, null, now.Day);   // no wallet: the sim is proving the mechanism
                 _game.Harm.Flare("Sam", "Sam", "Rocco", "Rocco", now.Day, heat: 0.7);
                 _harmCapabilityAtInjury = _game.Harm.Capability("Sam", now.Day);
             }
@@ -1833,6 +1833,9 @@ namespace Ledger.Game
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
         bool _denounceIgnored, _denounceStuck, _poached, _claimStaged;
+        /// The one wound the harm probe treated, held so the gate can ask
+        /// about THAT one rather than about Rocco in general.
+        Injury _harmTreated;
         string _claimVia = "not reached";
         int _denounceWitnesses;
         float _slamAt = -1f;
@@ -4782,9 +4785,24 @@ namespace Ledger.Game
             {
                 bool stillHurt = _harmSampled && _harmStillHurt;
                 bool turned = _harmSampled && _harmTurned;
-                bool roccoFine = true;
-                foreach (var i in _game.Harm.All)
-                    if (i.PersonId == "Rocco" && i.WentBad) roccoFine = false;
+                // THE INJURY WE TREATED, NOT EVERY INJURY ROCCO HAS.
+                //
+                // This scanned `Harm.All` for any Rocco wound that went bad,
+                // and the clause it was standing in means "while the treated
+                // one did not". Those are different questions the moment Rocco
+                // picks up a SECOND injury from anywhere else — and he does:
+                // the collision layer hands out real wounds, `injuries=6` in a
+                // typical run, and nothing treats those.
+                //
+                // So the gate went red on two runs while the thing it exists to
+                // prove worked perfectly. `roccoUntreated=True` was the truth
+                // about a wound this probe never staged.
+                //
+                // Third instance of this exact scope error found tonight, after
+                // `collidingNames` counting every TextMesh in the city and
+                // `worstTextHeightFrac` before it. A gate has to measure the
+                // population its sentence is about.
+                bool roccoFine = _harmTreated == null || !_harmTreated.WentBad;
                 harmOk = _harmStaged
                     && stillHurt                                        // days later, still carrying it (sampled day 8)
                     && turned                                           // and it got worse for being ignored (sampled day 8)
@@ -5709,7 +5727,11 @@ namespace Ledger.Game
                  // `Harm.All` is an IReadOnlyList, which has no `.Exists` —
                  // the fully-qualified LINQ form is what the rest of this file
                  // uses, and it is also what the missing-usings linter accepts.
-                 + $"roccoUntreated={System.Linq.Enumerable.Any(_game.Harm.All, i => i.PersonId == "Rocco" && i.WentBad)} "
+                 + $"treatedHeld={_harmTreated == null || !_harmTreated.WentBad} "
+                 // AND WHAT ELSE HAPPENED TO HIM, printed but not
+                 // gated. A collision wound going bad is the harm
+                 // system WORKING; it is only noise in this gate.
+                 + $"roccoOtherBad={System.Linq.Enumerable.Count(_game.Harm.All, i => i.PersonId == "Rocco" && i.WentBad && i != _harmTreated)} "
                  + $"samScars={_game.Harm.ScarsOf("Sam")} "
                  + $"samCap={_harmCapabilityAtInjury:0.0000} "
                  + $"feudLive={_harmFeudLive} feudBlocks={_harmFeudBlocks}]",

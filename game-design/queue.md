@@ -56,22 +56,24 @@ scheduling instead of to CI's output.
    reminder fires 07:55 UTC.
 5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
    more once the six textured models are in.
-5b. **THREE GATES ARE INTERMITTENT, and that is worse than three broken
-   ones.** `harm`, `disposal` and `accident` have each gone red on runs where
-   nothing relevant changed — `accident`+`disposal` together on one older
-   run, `harm` on another, all three on 31332c2 — while passing on either
-   side. Checked before blaming tonight's change, which touched none of them.
+5b. **ONE OF THE THREE INTERMITTENT GATES IS SOLVED, AND MY FIRST READING
+   OF IT WAS WRONG.** I said `harm` was over-specified on `samCap` — it is
+   not; 0.70 satisfies its clause fine. The failing clause was
+   `roccoUntreated=True`, which I skimmed past because every neighbouring
+   field in that label means True-is-good and that one means True-is-bad.
 
-   The one lead: `harm` prints `samCap=0.7000` on the failing run against
-   `samCap=1.00` on passing ones. That is `Watched.LoyaltyCeiling`, which
-   only moves when Sam WITNESSES a killing — so the gate asserts something
-   that stops being true in a legitimate world state, rather than catching a
-   fault. Over-specified, not flaky.
+   The real fault: the clause means "the injury we TREATED did not get
+   worse" and the code asked "did ANY Rocco injury get worse". Rocco picks up
+   other wounds — the collision layer hands out six or so a run and nothing
+   treats those — so the gate went red twice while the mechanism it exists to
+   prove worked perfectly. Now holds the staged injury and asks about that
+   one; the label reads `treatedHeld` (True is good, like its neighbours)
+   with `roccoOtherBad` printed beside it and NOT gated.
 
-   **Fix the assertion, not the world.** And soon: a gate that is red for a
-   reason nobody can name trains everyone to read red as noise, which is the
-   failure mode that lets a real one through. Read all three failing verdicts
-   side by side against a passing one before touching anything.
+   **`disposal` and `accident` are still open** and failed together on one
+   older run. Read their labels the same way — clause by clause against the
+   assertion — rather than looking for a differing number, which is what sent
+   me down the wrong path here.
 
 6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces
