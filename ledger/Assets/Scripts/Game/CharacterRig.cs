@@ -673,7 +673,13 @@ namespace Ledger.Game
         {
             if (_armsThisFrame.Count == 0) return;
             _armsThisFrame.Sort();
-            _armMedians.Add(_armsThisFrame[_armsThisFrame.Count / 2]);
+            // CAPPED, AND THE CAP IS VISIBLE. One entry per solved frame over a
+            // twenty-day run is tens of thousands; `armFrames` stopping short of
+            // the frame count is how a reader sees that the sample is the first
+            // twenty thousand frames rather than the run. A silent truncation
+            // reads as "covered everything" when it did not.
+            if (_armMedians.Count < 20000)
+                _armMedians.Add(_armsThisFrame[_armsThisFrame.Count / 2]);
             _armsThisFrame.Clear();
         }
 
