@@ -37,6 +37,22 @@ namespace Ledger.Core
         public string Assignment;     // racket id or null
         public bool Departed;         // poached or walked — betrayal is visible, never silent
         public string Cut = "fair";   // fair | generous | skim — §6.5: loyalty is cuts paid
+
+        /// The day the current cut was set, and how many days of this run have
+        /// been skimmed. -1 until it changes from the default.
+        ///
+        /// M21's competence axis, second brick, and the design note's own second
+        /// example: *"take the bigger cut because you earned it and loyalty
+        /// erodes."* The erosion already happens — `Payday` moves loyalty by
+        /// -0.25 a day on a skimmed envelope against -0.05 on a generous one —
+        /// and the crew member's memory already records the moment. What was
+        /// missing is the SHAPE: one skimmed week and one skimmed month look
+        /// identical from every number the game keeps, and "individually
+        /// reasonable decisions that compound" is a claim about duration.
+        ///
+        /// No meter. A count of days, read where the player can see it.
+        public int CutSetOnDay = -1;
+        public int DaysSkimmed;
     }
 
     public class Racket
@@ -510,6 +526,7 @@ namespace Ledger.Core
             if (policy != "fair" && policy != "generous" && policy != "skim") return;
             if (crew.Cut == policy) return;
             crew.Cut = policy;
+            crew.CutSetOnDay = now.Day;
             var g = mill?.Get(crew.Id);
             g?.Memory.Append(new MemoryEvent(now, "observation", 0.7,
                 policy == "generous" ? "The new owner bumped my cut without being asked. I notice things like that."
@@ -581,6 +598,13 @@ namespace Ledger.Core
                     else if (runner.Cut == "skim")
                     {
                         income += 15;
+                        // COUNTED WHERE IT IS PAID, not where it is chosen. A
+                        // policy set on day 3 and left alone is not three days
+                        // of skimming until three paydays have gone through it,
+                        // and a runner with no racket is not being skimmed at
+                        // all however the cut is labelled. This is inside the
+                        // branch that actually takes the fifteen.
+                        runner.DaysSkimmed++;
                         runnerG.Loyalty = Math.Clamp(runnerG.Loyalty - 0.05, 0, 1);
                         if (now.Day % 3 == 0)
                             runnerG.Memory.Append(new MemoryEvent(now, "observation", 0.65,

@@ -2286,6 +2286,35 @@ namespace Ledger.CoreTests
             Check(wC.Dirty >= 45 + 75 && josipC.Loyalty < loyC, "empire: skimming their pay earns more and burns loyalty");
             Check(josipC.Memory.Events.Exists(ev => ev.Text.Contains("envelope")), "empire: the shorted envelope is in their book");
 
+            // HOW LONG, NOT JUST WHETHER — M21's competence axis, second brick.
+            // A skimmed week and a skimmed month move loyalty by the same
+            // per-day amount and are indistinguishable from every other number
+            // the game keeps, and "individually reasonable decisions that
+            // compound" is a claim about duration.
+            //
+            // COUNTED WHERE IT IS PAID rather than where it is chosen: the
+            // policy alone is not a day of skimming until a payday has gone
+            // through it, and a runner with no racket is not being skimmed at
+            // all however the cut is labelled.
+            Check(eC.CrewOf("josip").DaysSkimmed == 1,
+                  "one skimmed payday counts as one",
+                  eC.CrewOf("josip").DaysSkimmed.ToString());
+            eC.DailyTick(new GameTime(11, 8, 0), wC, mC);
+            eC.DailyTick(new GameTime(12, 8, 0), wC, mC);
+            Check(eC.CrewOf("josip").DaysSkimmed == 3,
+                  "and three paydays as three",
+                  eC.CrewOf("josip").DaysSkimmed.ToString());
+            Check(eC.CrewOf("josip").CutSetOnDay == now.Day,
+                  "the day the policy changed is kept too");
+
+            // THE ACCEPT CASE (5b): paying fairly counts nothing at all, so the
+            // ledger stays silent for a player who is not doing this.
+            eC.SetCut(eC.CrewOf("josip"), "fair", mC, now);
+            int before = eC.CrewOf("josip").DaysSkimmed;
+            eC.DailyTick(new GameTime(13, 8, 0), wC, mC);
+            Check(eC.CrewOf("josip").DaysSkimmed == before,
+                  "and a fair envelope adds nothing to the count");
+
             // A starved round can at worst cover its own envelope: below zero
             // the wallet, the audit counter and the event text used to diverge
             // three ways (audit 2026-07-27).

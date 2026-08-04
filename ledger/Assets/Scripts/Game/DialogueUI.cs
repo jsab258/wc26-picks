@@ -1133,6 +1133,23 @@ namespace Ledger.Game
             if (running >= 2)
                 doubt.AppendLine($"   <color={UiTheme.HexDim}>You have not made a drop in "
                                  + $"<b>{running}</b> nights. The outfit counts.</color>");
+
+            // AND THE OTHER HALF OF THE SAME SENTENCE: "take the bigger cut
+            // because you earned it and loyalty erodes." The erosion is already
+            // there — a skimmed envelope costs 0.05 loyalty a day — and the
+            // crew member already writes it in their own memory. What nobody
+            // could see is DURATION: one skimmed week and one skimmed month are
+            // the same number everywhere else in the game.
+            //
+            // Counted per person, because the player skims individuals rather
+            // than a payroll, and named, because "somebody" is not a
+            // consequence you can act on.
+            foreach (var c in _game.Empire.Crew)
+            {
+                if (c == null || c.Departed || c.DaysSkimmed < 3) continue;
+                doubt.AppendLine($"   <color={UiTheme.HexDim}><b>{c.Name}</b>'s envelope has been "
+                                 + $"light <b>{c.DaysSkimmed}</b> days running. They count too.</color>");
+            }
             if (doubt.Length > 0)
                 sb.Append($"\n<color={UiTheme.HexDim}><b>DOUBT — who has stopped trusting you</b></color>\n")
                   .Append(doubt);
