@@ -178,10 +178,14 @@ broken; the reading was, and the reading was mine — I had been running
 `grep -o` across the whole verdict file, which happily returns two values from
 two different lines and shows no sign that it has done so.
 
-**Two mechanical steps, and they are cheap.** Before comparing two numbers out
-of a verdict, `grep -n` and check they are on the SAME LINE. And when a number
-describes the whole run, print it on the done line — the shot line keeps only
-what is true of the shot. The family is together now for exactly that reason.
+**Two mechanical steps, and they are cheap.** When a number describes the whole
+run, print it on the done line — the shot line keeps only what is true of the
+shot. And do not read a verdict with `grep -o` again: **`tools/verdict-read.py`
+takes the keys you want, prints each with its LINE NUMBER, and refuses with
+exit 2 when they do not share one**, saying why. It catches the exact pair that
+cost this afternoon, and it exists because a rule that depends on my
+remembering to add `-n` is a rule that decays — which is what the rest of this
+file is a list of.
 
 **A PEAK CANNOT SEE A MIDDLE AND A MEDIAN CANNOT SEE A TAIL, AND ON 4 AUGUST I
 GOT CAUGHT BY BOTH BEFORE BREAKFAST.** The rule above says print the series and
