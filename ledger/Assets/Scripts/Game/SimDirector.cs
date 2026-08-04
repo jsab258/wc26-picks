@@ -9076,6 +9076,15 @@ namespace Ledger.Game
                       // frame, and the frame where it stood widest.
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
+                      // AND THE WIDEST BODY, because both of the above are
+                      // medians across bodies and the night frame plainly shows
+                      // three people in a T-pose. A minority is invisible to a
+                      // median; `armWidest` near ninety in a typical frame is a
+                      // scarecrow standing there all run.
+                      $"armWidest={CharacterRig.ArmWidestMedian:0.0} " +
+                      $"armWidestWorst={CharacterRig.ArmWidestWorst:0.0} " +
+                      $"armP90={CharacterRig.ArmP90Median:0.0} " +
+                      $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
                       $"armFrames={CharacterRig.ArmFrames} " +
                       $"liveArmRead={CharacterRig.LiveArmRead} " +
                       $"preArmDrop={CharacterRig.PreArmDropDegrees:0.0} " +

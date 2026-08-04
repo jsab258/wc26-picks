@@ -699,24 +699,102 @@ namespace Ledger.Game
             // twenty thousand frames rather than the run. A silent truncation
             // reads as "covered everything" when it did not.
             if (_armMedians.Count < 20000)
+            {
                 _armMedians.Add(_armsThisFrame[_armsThisFrame.Count / 2]);
+                // AND THE WIDEST BODY IN THIS FRAME, WHICH IS THE QUESTION THE
+                // MEDIAN WAS BUILT TO ANSWER AND CANNOT.
+                //
+                // `review_day1_night` at ce96827 has three figures in a clean
+                // T-pose — arms straight out at shoulder height, standing still
+                // — and on that same run `armStreet=10.6 armStreetWorst=14.8`,
+                // which says the street's arms hang. Both readings are correct.
+                // `armStreet` is a median ACROSS BODIES and `armStreetWorst` is
+                // the MAXIMUM OVER THOSE MEDIANS, so a "worst" that never stops
+                // being a median: three scarecrows among thirteen solved bodies
+                // sit above the seventh value and move neither number at all.
+                //
+                // This is the same mistake as `crowdGapMedian`, found the same
+                // way, in the same hour — a statistic answering "what does the
+                // street look like on average" being read for "is anybody
+                // standing like a scarecrow". Once is a slip; twice in one
+                // evening is the shape to grep for. A minority is invisible to
+                // every median, and a minority standing in a T-pose is the most
+                // recognisable broken-game artefact there is.
+                //
+                // NO THRESHOLD, WHICH IS WHY IT IS A MAX AND A PERCENTILE
+                // RATHER THAN A COUNT. "How many are standing too wide" needs an
+                // angle for "too wide" and nobody has read the series (rule 2).
+                // The widest body needs no constant to be damning: an arm hangs
+                // near 0 from straight down and a T-pose is near 90, and there
+                // is nothing in between that a walk cycle produces.
+                _armWidest.Add(_armsThisFrame[_armsThisFrame.Count - 1]);
+                // The ninth decile, so one person mid-stride does not read as a
+                // street of scarecrows the way a bare max would. Between them
+                // the two say whether it is one body or a tenth of them.
+                _armP90.Add(_armsThisFrame[(_armsThisFrame.Count * 9) / 10]);
+                // THE DENOMINATOR, from the same instant. A ninth decile over
+                // three bodies is the widest of three, and a reader who cannot
+                // see that will read it as a distribution.
+                _armBodies.Add(_armsThisFrame.Count);
+            }
             _armsThisFrame.Clear();
         }
 
-        /// The typical street's arm drop, and the worst frame's. Both medians
-        /// ACROSS BODIES; the second is the frame where the street as a whole
-        /// stood widest, which is a different question from one person's peak
-        /// and is the one `liveArmDrop` was being misread as answering.
-        public static double ArmDropStreetMedian
+        static readonly List<float> _armWidest = new List<float>();
+        static readonly List<float> _armP90 = new List<float>();
+        static readonly List<int> _armBodies = new List<int>();
+
+        static double MedianOf(List<float> xs)
+        {
+            if (xs.Count == 0) return -1;
+            var c = new List<float>(xs);
+            c.Sort();
+            return c[c.Count / 2];
+        }
+
+        /// How wide the WIDEST body in a typical frame is standing, and the
+        /// worst single body of the run. A street whose arms hang reads near
+        /// the top of the walk cycle here; a street with one scarecrow in it
+        /// reads near ninety, every frame, and no median can say so.
+        public static double ArmWidestMedian => MedianOf(_armWidest);
+
+        public static double ArmWidestWorst
         {
             get
             {
-                if (_armMedians.Count == 0) return -1;
-                var c = new List<float>(_armMedians);
+                double worst = -1;
+                foreach (var m in _armWidest) if (m > worst) worst = m;
+                return worst;
+            }
+        }
+
+        /// The ninth decile of a typical frame, with how many bodies that
+        /// decile was taken over.
+        public static double ArmP90Median => MedianOf(_armP90);
+
+        public static double ArmBodiesMedian
+        {
+            get
+            {
+                if (_armBodies.Count == 0) return -1;
+                var c = new List<int>(_armBodies);
                 c.Sort();
                 return c[c.Count / 2];
             }
         }
+
+        /// The typical street's arm drop, and the widest the street AS A WHOLE
+        /// ever stood. Both are medians across bodies — the second is a maximum
+        /// over those medians, so it is still a median and still cannot see a
+        /// minority.
+        ///
+        /// AND THAT IS THE LIMIT OF WHAT THEY ANSWER, which is why `armWidest`
+        /// exists beside them. These two closed the scarecrow question on
+        /// 4 August at `armStreet=10.6`, and the night frame two builds later
+        /// had three people in a T-pose in it. They were not wrong; they were
+        /// asked something a median cannot answer. Read them for "is the street
+        /// walking", and `armWidest` for "is anybody standing like a scarecrow".
+        public static double ArmDropStreetMedian => MedianOf(_armMedians);
 
         public static double ArmDropStreetWorst
         {
