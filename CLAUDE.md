@@ -475,6 +475,15 @@ THE FILE.** A green run writes `ledger/.verify-footer`; a red run deletes it.
     $(cat ledger/.verify-footer)
     EOF
 
+**AND WRITE THE MESSAGE TO A FILE, NOT INTO AN UNQUOTED HEREDOC.** Twice now a
+message containing a `backticked` identifier has been fed to `<<EOF` and the
+shell has EXECUTED the word, committing a sentence with a hole in it — the
+second time inside a paragraph about instruments quietly losing information.
+`<<'EOF'` quotes it, but then `$(cat ledger/.verify-footer)` does not expand
+either. So: write the prose to a file with no shell in the loop, `cat` the
+footer onto the end, and commit with `-F`. Both halves work and neither can eat
+a word.
+
 It exists because I put unmeasured test counts in two commit messages, and the
 FILE exists because printing "NOT GREEN — do not paste this into a commit
 message as if it were" underneath the footer did not stop me doing it a third
