@@ -153,7 +153,13 @@ namespace Ledger.Game
             }
             ClaimWhy = "ok";
             ClaimsMade++;
-            var was = host.Engine.ProcessClaim(claim, game.Now);
+            // A LIE ON THE TELEPHONE IS A SMALLER LIE, and that cuts both
+            // ways — the alibi that checks out also buys you less. `OnTheLine`
+            // already changes what the model is told; this is the mechanical
+            // half, which `PhoneBook.Damped` has been sitting there to provide
+            // since the phone layer was written.
+            double weight = host.OnTheLine ? PhoneBook.Damped(1.0) : 1.0;
+            var was = host.Engine.ProcessClaim(claim, game.Now, weight);
             if (was == ClaimResult.Contradiction) ClaimsCaught++;
             // AND THE STREET CARRIES IT. `ProcessClaim` moves one person's
             // suspicion; `PlayerClaims` is what makes the alibi a thing that

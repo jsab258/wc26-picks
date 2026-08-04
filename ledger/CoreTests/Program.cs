@@ -323,6 +323,26 @@ namespace Ledger.CoreTests
                   "while the game still knows perfectly well who it was",
                   "ground truth and belief must be able to disagree");
 
+            // A LIE ON THE LINE IS A SMALLER LIE, and the alibi that holds
+            // buys you less too. Asserted end to end rather than by reading
+            // the constant, because the point is that the move actually lands
+            // smaller — the same reason `Informing` checks the mark rather
+            // than trusting the caller.
+            var faceKb = new KnowledgeBase();
+            faceKb.Learn(new Fact("player", "location_d3_evening", "warehouse"));
+            var inRoom = new SuspicionTracker();
+            var onWire = new SuspicionTracker();
+            var lie = new Fact("player", "location_d3_evening", "cinema");
+            Check(faceKb.CheckClaim(lie) == ClaimResult.Contradiction,
+                  "the lie is a lie either way");
+            inRoom.Raise(0.15, "face"); onWire.Raise(0.15 * PhoneBook.Damped(1.0), "line");
+            Check(onWire.Value < inRoom.Value && onWire.Value > 0,
+                  "a contradiction on the phone moves suspicion less, but it moves",
+                  $"{onWire.Value:0.000} against {inRoom.Value:0.000}");
+            Check(PhoneBook.Damped(1.0) < 1.0 && PhoneBook.Damped(1.0) > 0.0,
+                  "and the damping is a fraction rather than a mute",
+                  $"{PhoneBook.Damped(1.0)}");
+
             // The ladder is a ladder: a callbox is harder than a handset and a
             // trunk call is harder again.
             Check(book.Ring("bar", "rocco", now, near, nameOf, _ => 0.45,

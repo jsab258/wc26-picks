@@ -69,7 +69,6 @@
     "Payment.InFull": "WIRE: M19 — a debt settled completely rather than partially; the purse records it and no UI or reaction reads it.",
     "Perception.HeardAs": "WIRE: M16 phase 3 — how a sound is classified by somebody who did not see it. The fight makes sounds and nobody classifies them.",
     "Perception.SymmetryPredictsSeen": "BY DESIGN: an invariant the perception tests assert — that seeing is symmetric — rather than a function the game calls.",
-    "PhoneBook.Damped": "WIRE: M18 — line quality; pairs with Acoustics.LineIntelligibility.",
     "PhoneBook.LinesFor": "WIRE: M18 — who can be reached at which number.",
     "PhoneBook.ReachableNow": "WIRE: M18 — whether they would pick up at this hour.",
     "PlayerIdentity.InTalk": "WIRE: M18 — how the player refers to themselves in conversation, which changes once anybody knows them by name.",

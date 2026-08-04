@@ -146,18 +146,32 @@ namespace Ledger.Core
         /// Game-state gate for lies: run BEFORE or alongside SayToAsync when the
         /// player makes a checkable claim. The result — not the LLM — decides
         /// whether the lie lands.
-        public ClaimResult ProcessClaim(Fact claim, GameTime now)
+        /// `weight` scales how far the suspicion moves. 1.0 is a face across a
+        /// table; `PhoneBook.Damped(1.0)` is a voice on a line.
+        ///
+        /// WHY IT IS A PARAMETER AND NOT A FLAG. This type has no idea a
+        /// telephone exists and should not learn — the thing it models is a
+        /// claim being checked against what somebody knows, which is the same
+        /// in a room, on a wire, or through a door. What differs is how much of
+        /// it lands, and that is a number the caller already has.
+        ///
+        /// Default 1.0, so every existing caller means exactly what it meant.
+        public ClaimResult ProcessClaim(Fact claim, GameTime now, double weight = 1.0)
         {
             var result = Knowledge.CheckClaim(claim);
+            weight = Feel.Clamp(weight, 0.0, 1.0);
             if (result == ClaimResult.Contradiction)
             {
-                Suspicion.Raise(0.15, $"caught contradiction on {claim.Subject}.{claim.Predicate}");
+                Suspicion.Raise(0.15 * weight,
+                    weight < 1.0
+                        ? $"caught contradiction on {claim.Subject}.{claim.Predicate}, on the telephone"
+                        : $"caught contradiction on {claim.Subject}.{claim.Predicate}");
                 Memory.Append(new MemoryEvent(now, "observation", 0.8,
                     $"The player claimed {claim} but I know otherwise. They lied to me."));
             }
             else if (result == ClaimResult.Consistent)
             {
-                Suspicion.Lower(0.03, "story checked out");
+                Suspicion.Lower(0.03 * weight, "story checked out");
             }
             return result;
         }
