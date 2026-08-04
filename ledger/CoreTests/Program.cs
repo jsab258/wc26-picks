@@ -10776,6 +10776,53 @@ namespace Ledger.CoreTests
             junk.Tick(0, true, 1.0, 1.0, 4);
             junk.Tick(-1, true, 1.0, 1.0, 4);
             Check(junk.Seconds == 0 && !junk.Noticed, "attention: NaN, zero and negative dt do nothing");
+
+            // ---- where a listener goes to look ----
+            //
+            // THE ACCEPTING CASE FIRST (rule 5b), and here it is by far the
+            // more important of the two: with a clear line to the sound the
+            // listener must still go to the sound. The expensive failure for
+            // a "hearing is imprecise" model is not that it is too precise,
+            // it is that every listener starts wandering off to a wall that
+            // is not there and the whole investigate behaviour stops working
+            // in the open street, where most of it happens.
+            var clear = Perception.BelievedAt(37.0, 12.0, occluded: false, metresToOccluder: 4.0);
+            Check(clear.bearing == 37.0 && clear.metres == 12.0,
+                  "believed: with a clear line you believe what you heard, wall distance ignored",
+                  $"{clear.bearing:0.#} deg, {clear.metres:0.#}m");
+
+            // AND THE CASE IT EXISTS FOR: through a wall you localise to the
+            // wall, so the listener comes to the near side of it.
+            var thruWall = Perception.BelievedAt(37.0, 12.0, occluded: true, metresToOccluder: 4.0);
+            Check(thruWall.metres == 4.0 && thruWall.bearing == 37.0,
+                  "believed: heard through a wall, you believe the wall — same direction, nearer",
+                  $"{thruWall.metres:0.#}m of the 12m it really was");
+
+            // THE BEARING IS NEVER TOUCHED. A wall shortens what you believe;
+            // it does not turn you around. If this ever fails, listeners will
+            // converge on somewhere nobody has been.
+            Check(Perception.BelievedAt(-140.0, 30.0, true, 2.0).bearing == -140.0
+                  && Perception.BelievedAt(0.0, 30.0, true, 2.0).bearing == 0.0,
+                  "believed: a wall changes the range and never the direction");
+
+            // The caller's raycast and its distance disagreeing must not push
+            // the listener FURTHER away than the thing they heard.
+            Check(Perception.BelievedAt(10.0, 5.0, true, 5.0).metres == 5.0
+                  && Perception.BelievedAt(10.0, 5.0, true, 9.0).metres == 5.0,
+                  "believed: a surface at or beyond the source is not between you and it");
+
+            // No surface found, and the junk a raycast returns when it misses.
+            Check(Perception.BelievedAt(10.0, 8.0, true, 0.0).metres == 8.0
+                  && Perception.BelievedAt(10.0, 8.0, true, -3.0).metres == 8.0
+                  && Perception.BelievedAt(10.0, 8.0, true, double.NaN).metres == 8.0,
+                  "believed: occluded with no usable surface falls back to what was heard");
+
+            // IT STILL CANNOT CARRY A NAME, which is the whole reason HeardAs
+            // is a function. This asserts the shape rather than the values:
+            // two of a listener's own numbers out, and nothing else.
+            var believed = Perception.BelievedAt(90.0, 20.0, true, 6.0);
+            Check(believed.GetType() == Perception.HeardAs(0, 0).GetType(),
+                  "believed: what comes back is a bearing and a range, the same pair as HeardAs");
         }
 
 

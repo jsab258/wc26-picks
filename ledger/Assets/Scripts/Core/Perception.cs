@@ -370,6 +370,45 @@ namespace Ledger.Core
         public static (double bearing, double metres) HeardAs(
             double bearingDegrees, double metres) => (bearingDegrees, metres);
 
+        /// WHERE A LISTENER GOES TO LOOK, which is not where the sound was.
+        ///
+        /// `HeardAs` says what hearing GIVES you — a direction and a range,
+        /// never a name. This says what those two numbers actually contain
+        /// when something is in the way, and it is the reason `HeardAs` is a
+        /// function rather than a comment.
+        ///
+        /// THROUGH A WALL YOU LOCALISE TO THE WALL. That is the whole model
+        /// and it is deliberately not an error term. "Hearing is imprecise"
+        /// is usually implemented as noise with a magnitude somebody picked,
+        /// and picking one here would be rule 2's exact failure — there is no
+        /// measurement in this project of how well anybody localises a bang.
+        /// What there IS, already, is the occlusion raycast: the sound reached
+        /// the listener through the nearest surface between them, so that
+        /// surface is where it came from as far as they can tell. No constant,
+        /// no seed, no jitter, and it is deterministic, which means the same
+        /// listener does not shimmer between two beliefs on consecutive ticks.
+        ///
+        /// It buys the behaviour the exact-position version cannot have: a man
+        /// who hears a killing in a back room comes to the WALL. He can be
+        /// stood on the wrong side of it while you leave by the other door,
+        /// and that is a thing that can happen to a player rather than a
+        /// number in a table.
+        ///
+        /// `metresToOccluder` is the distance to the first blocking surface,
+        /// or anything non-positive when there was none. A surface at or
+        /// beyond the source is not between you and it, so it is ignored
+        /// rather than trusted — that case means the caller's raycast and its
+        /// distance disagree, and believing it would put the listener FURTHER
+        /// away than the thing they heard.
+        public static (double bearing, double metres) BelievedAt(
+            double bearingDegrees, double metres, bool occluded, double metresToOccluder)
+        {
+            var heard = HeardAs(bearingDegrees, metres);
+            if (!occluded || !(metresToOccluder > 0) || metresToOccluder >= heard.metres)
+                return heard;
+            return HeardAs(heard.bearing, metresToOccluder);
+        }
+
         // ---------------------------------------------------------------
         // ATTENTION — the accumulator, which is where the bugs live
         // ---------------------------------------------------------------
