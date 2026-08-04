@@ -52,9 +52,8 @@ CLAUDE.md under AUTO MODE.
   `playerPrimitive` was built for the player alone. `walkersPrimitive` counts
   them next build.
 - **The clutter in the road belongs to registered places**, twenty-two of whose
-  facades stand in a carriageway.
-- **The frame gate's biggest item was two passes sharing one number** — the
-  reband is 1.31ms and the body LOD 2.59ms.
+  facades stand in a carriageway; and the frame gate's biggest item was two
+  passes sharing one number — the reband is 1.31ms, the body LOD 2.59ms.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
