@@ -583,7 +583,7 @@ local green.**
 
 **AND "REFERENCE-INDEPENDENT" IS THE PART THAT BITES.** ShapeCheck can run here
 precisely because it does not need the assemblies — which means every diagnostic
-that requires RESOLVING a name is invisible to it, not just Unity ones. Four
+that requires RESOLVING a name is invisible to it, not just Unity ones. Five
 have now each cost a round trip, every one about a name that exists somewhere
 other than where it was written:
 
@@ -593,6 +593,17 @@ other than where it was written:
 | CS0426 | `Mixing.Bus` — `Bus` is a SIBLING of `Mixing`, not nested | `tools/lint-nested.py` |
 | CS0120 | a static body reaching an instance member | `tools/lint-static.py` |
 | CS0103 | `TrafficHost.BrakeLampsPeak` — **there is no type called `TrafficHost`** | `tools/lint-filetype.py` |
+| CS0118 | `Game.Campaign` in a static class — `Game` bound to the NAMESPACE | none yet |
+
+The fifth is the family's purest form and cost two builds. Inside
+`namespace Ledger.Game`, the bare identifier `Game` resolves to that namespace,
+so writing `Game.Campaign.Noted(...)` in a class with no `Game` member compiles
+the sentence against `Ledger.Game` and fails with "is a namespace but is used
+like a variable". `PlayerController` has a real `public GameController Game`
+field, which is why the shape reads as normal — and is also the accepting case
+any lint for it must pass. The tell is unmistakable and greppable: a namespace
+can never be compared to null, so `Game != null` in a file that declares no
+`Game` member is the error every time.
 
 The last is the cheapest of the four and the most embarrassing: `TrafficHost.cs`
 declares `partial class GameController`, and so do thirteen other Game-layer
@@ -684,6 +695,26 @@ workflow now keeps whichever verdict came from the newer commit and lets the
 loser contribute only its `runs/` file. **Check the sha on line 1 anyway**, and
 when you dispatched a specific question, read `runs/<sha7>.txt` and not the
 default.
+
+**AND A BUILD THAT RENDERED NOTHING STILL COMMITS STILLS — ITS OWN CHECKOUT'S.**
+The newer-wins rule above fixed which run's answer survives. It did not fix
+what a run is allowed to claim as its answer, and on 4 August that cost the
+morning. A build on `c61047f` came back `NO PLAYER LOG` with three compile
+errors and its commit — "Sim stills from c61047f" — replaced all six JPEGs and
+rewrote `frames.tsv`. It cannot have rendered anything. `git add
+game-design/sim-shots` carried the directory it had CHECKED OUT, seven commits
+behind the tip, so the branch went backwards and the frames landed indexed
+under the sha of the build that failed to make them. **I opened all six and
+read them as evidence about that commit.** The `verdict-keys.json` exclusion
+was this same fault found earlier on one file, and excluding one file was too
+narrow: "everything in the directory" is not a description of what a run
+produced. `tools/sim-shots-stage.sh` now names the output — always the verdict
+and the per-run copy, the stills only if the sim reached a screenshot, the
+ledger only if it wrote one.
+
+So the still-reading rule gains a first step: **read line 1 and the `NO PLAYER
+LOG` line before looking at any frame.** A picture in this directory is only
+evidence about the commit named beside it if that commit ran.
 
 **Always run `ledger/verify.py` before committing, and PASTE THE FOOTER FROM
 THE FILE.** A green run writes `ledger/.verify-footer`; a red run deletes it.

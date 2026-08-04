@@ -38,314 +38,84 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### NO RED. The newest run is `pass=True` with no failing gate at all.
+### THE BRANCH DID NOT COMPILE FOR TEN COMMITS, AND THE CHANNEL THAT SHOULD HAVE SAID SO LIED
 
-**Perception is fixed and the fix is confirmed, not hoped for.**
-`slamRings=[#1:drawn@62m #2:drawn@61m #3:drawn@62m #4:drawn@58m]` where every
-previous run had `noring` or one lucky draw in four. The cause was arithmetic:
-a street that talks at 58 swallows a door at 55, and the sim spent all four of
-its chances inside somebody else's sound. The slam now waits for a gap.
+`ViolenceHost` is a static class with no game in scope and I wrote
+`Game.Campaign.Noted(...)` in it. Inside `namespace Ledger.Game` the bare name
+`Game` binds to the NAMESPACE, so two builds came back `NO PLAYER LOG` with
+CS0118. Fixed; the act now REPORTS what it is worth as a topic and the caller
+charges it, which also stops the place-reading probe making the player notorious
+for three killings it committed only to measure them.
 
-**`slamsDeferred=1188` is the number to keep.** That many ticks wanted to slam
-and could not, which says a quiet moment on this street is genuinely rare. It
-is also the honest denominator for anyone who later reads four clean draws and
-concludes the world is quiet.
+**The instrument was worse than the bug.** The build that failed to compile
+still committed "Sim stills from c61047f" — six replaced JPEGs and a rewritten
+frame ledger, from a run that rendered nothing. It committed its own CHECKOUT's
+copies, because dispatch takes a BRANCH and the runner was seven commits behind
+the tip. The branch went backwards and the frames landed indexed under the sha
+of the build that could not have made them. I opened all six and read them as
+evidence about that commit before checking line one.
 
-**`jobRan` came back green on its own**, which is what a 3-in-99 flaky gate
-does. The `held:` tally is in flight and is still the thing to read — a green
-run does not tell you whether a probe was stealing the bot on the red ones.
+`tools/sim-shots-stage.sh` now names what a run actually produced — always the
+verdict and the per-run copy, the stills only if the sim reached a screenshot,
+the ledger only if it wrote one. Tested on both cases before it went near CI.
 
-### THE BODIES ARE UNTEXTURED FOR A REASON NOW NAMED, and it was not the one
-### I fixed first
-
-`materialImportMode = ImportViaMaterialDescription` was the first try and the
-per-body report says it was not enough: every body has materials — Michelle 1,
-Remy 6, The Boss 4, thirty across ten models — every one on the Standard shader
-and every one `notex`. The materials import fine; the textures never arrive.
-Checked on disk too: no `.fbm` and no `Textures` folder anywhere under
-`Assets/Characters`, so nothing has ever unpacked the embedded media.
-
-Explicit extraction is in flight, with a force-reimport after it so materials
-can bind to assets that did not exist when the model was last read.
-
-**That round trip was earned by the report disagreeing with me.**
-`bodyKeptMats=0` alone would have sent me back to the importer a second time.
-
-### SETTLED — the night-still text heap is speech, not nameplates
-
-`namesTracked` peaked at **0** across the whole run, `collidingNames=0`,
-`worstNamePair=[none]`, and the worst overlapping world-text pair is a street
-sign against a copy of itself. The frame's illegible text is **speech bubbles**,
-and nothing in this codebase has ever measured how big a piece of world text
-gets.
-
-`worstNameFrac=0.306` is honest and answers the wrong question: at
-`worstNameCentreMetres=1.21` with `worstNameBoundsY=0.29` the arithmetic checks
-out, so a label genuinely 1.2m away IS a third of the screen tall. Both names
-and bubbles now carry a median and a sample count beside the peak. **No
-threshold until the series lands.**
-
-And `namesTracked=0` sat beside `nameTagsActive=43` in the same verdict, which
-cannot both describe a working instrument. `textWalked`, `textProjected`,
-`bubblesTracked` and `namesManagedEver` are the denominators that separate
-"nothing survived the filters" from "nothing was ever offered".
-
-### SETTLED — the eight bodies landed
-
-`bodyChoices` 5 -> 10, all eight registered with valid human avatars. The noon
-frame shows the player as a real human mesh with proper limbs and a walk pose;
-the foreground walkers were still box mannequins at that point, and everybody was one flat
-colour.
-
-`bodyKeptMats=0` says why: `RealBody` keeps a renderer's own material only when
-it carries a texture, so zero kept means no material on any body has one. The
-textures ARE in the files — counted by PNG signature, Michelle 4, Remy 22,
-Sophie 6, Joe 6, Martha 6, The Boss 3, Big Vegas and Sporty Granny 1 each, and
-only the two stand-ins have none. Nothing in the model importer has ever
-mentioned materials, so every body imported on an unchosen default. Fixed and in
-flight, with a per-body material report so the next build says which half failed.
-
-### DONE — the walkers are not boxes any more
-
-Kept only for the hazard, which is the reusable part. `RealBody.TryAttach`
-publishes `Attached`, `Why`, `Upright`, `Skinned`, `Dressed`, `Kept`, `Parts`,
-the coverage fractions and the bind and scaled pose readings — and FIVE clauses
-of the `bodies` gate read those meaning THE PLAYER. Anything that attaches a
-body which is not his must go through `TryAttachExtra`, which saves and restores
-every one of them. Attaching without that makes all five describe the last body
-attached, silently, and a corrupted gate reads exactly like a passing one.
-
-Awaiting its first build; `walkerBodies` is the number that closes it.
-
-### NOTORIETY IS HEAT WEARING A SECOND NAME — decomposed from M21, no CI needed
-
-The roadmap says "a number that gates doors, with no press and no reputation
-events". Read the code: **the gating half already exists and the driver is the
-fault.**
-
-- `Access.KeyKind.Notoriety` gates doors on `s.Notoriety`, and has for weeks.
-- `AccessHost` feeds it **`Notoriety = CurrentHeat`**. That is one variable
-  under two names — the fault the rules picked up this morning on the music
-  layers, in a completely different system.
-- `Violence.Notoriety(witnessCount, killed)` — the real "how notorious was this
-  act" model, with the comment *"a brawl outside the bar at noon is the day's
-  news; the same fight in an alley at three is a sound somebody half-heard"* —
-  is unit-tested and **has no game caller at all**.
-
-**Why it matters rather than being tidy.** Heat is how hot you are RIGHT NOW and
-it falls when the police lose interest. Notoriety is how KNOWN you are and it
-should not fall for the same reason — a famous man stays famous after the heat
-dies. Wiring them together means a door that opens because the law stopped
-looking, which is the opposite of what a reputation gate is for, and it means
-the player can never build the one thing an empire needs.
-
-**The work, and it is Core-shaped so it needs no round trip:** give notoriety
-its own accumulation — it rises on notable acts through `Violence.Notoriety`,
-witnessed deeds and denouncements, and decays far more slowly than heat. Then
-`AccessHost` feeds it that instead of the heat it currently mirrors.
-`CoreTests` can prove the two diverge, which is the whole claim.
-
-**Check the roadmap row when it lands** — it currently describes a gap that is
-half closed and half misdiagnosed.
-
-### RED — the frame gate, and the walker bodies did it. THIS LEADS.
-
-**44 walker bodies attached, 0 failed, and the noon still shows a street with
-no boxes in it.** That is the change working. It also broke the frame budget and
-the series says so unambiguously rather than by suspicion.
-
-`meanFrame` over 111 landed runs: median 342, quartiles 334/340/347, never once
-above 369. The two newest are **570 and 668**. That is outside everything the
-project has ever recorded, so it is not runner noise.
-
-| | before | after |
-|---|---|---|
-| game (attributed) | 7.92ms | **13.37ms** against a 12ms budget |
-| rigs | 1.08 | 2.33 |
-| traffic | 1.72 | **3.78** |
-| sun | 1.72 | 2.77 |
-| npcs | 2.45 | 3.10 |
-| render+rest | 307 | 557 |
-
-**READ THE TABLE BEFORE ACTING ON IT.** Traffic more than doubled and the sun
-went up 61%, and neither has the faintest connection to skinned meshes. That
-rules out "the bodies cost game CPU" as a complete explanation and points at the
-thing this runner does: **it has no GPU and software-rasterises everything, so
-rendering competes with game code for the same core.** When render cost rises,
-every wall-clock game-side timer inflates with it. `game=13.37ms` is therefore
-NOT a clean game-side number here, and the gate is attributing to game code a
-cost that is mostly render.
-
-**So do not loosen the budget and do not "optimise" traffic.**
-
-**AND THE GEOMETRIC NUMBERS WERE ALREADY THERE — I said they were missing and
-they were not.** They also settle it, and they say the cost is REAL rather than
-an artefact:
-
-| | before | after |
-|---|---|---|
-| skinned renderers | 1 | **221** |
-| skinned bones | 52 | **8,353** |
-| skinned vertices | 16,338 | **1,037,694** |
-
-A million skinned vertices a frame, up sixty-three-fold, across 44 bodies —
-about 23k each, which is what a Mixamo character costs. **That is genuine work
-on any machine, GPU or not**, so the earlier reading of "mostly render
-contention" was half right and the wrong half was the comforting one. The render
-cost rose because there is sixty-three times more skinned geometry to render.
-
-That makes the LOD answer not a nicety but the actual fix, and it now has a
-number to aim at: eight nearby bodies would be ~190k vertices, which is the
-order the rest of this scene is built at.
-
-**The decision this actually poses:** 44 simultaneous skinned bodies is the
-named cast, which was the deliberate choice. The proper answer if it is too many
-is LOD — real bodies for walkers near the player, mannequins beyond — because
-the cast size should not be bounded by a frame budget when only a handful are
-ever on screen. Walkers currently choose their body at SPAWN, so that is a real
-change rather than a constant.
-
-**The work, and it is now specific:** walkers choose their body at SPAWN, so LOD
-means swapping at runtime — attach a real body when a walker enters the near
-band and drop back to a mannequin when it leaves. `Population` already bands
-people and `CrowdWalkerCap` already bounds the near set, so the machinery to ask
-"who is close" exists; what does not exist is a body that can be exchanged
-without losing the rig's state.
+**Read the verdict's first line and its NO PLAYER LOG line before reading any
+frame.** That is not advice, it is the only thing that would have caught this.
 
 ### Startable right now, in order
 
-**The 12:03 build answered four of the five questions that were in flight, and
-the run is `pass=True` with no failing gate.**
+1. **BODY LOD — the frame gate is red and this is the actual fix.**
+   44 skinned bodies is 1,037,694 vertices a frame against 16,338 before, so the
+   cost is real work rather than runner contention, and the cap of twelve now in
+   place is a holding action rather than an answer. Walkers pick their body at
+   SPAWN, so LOD means exchanging one at runtime: attach a real body when a
+   walker enters the near band, drop back to a mannequin when it leaves.
+   `Population` already bands people and `CrowdWalkerCap` already bounds the
+   near set, so "who is close" exists. What does not exist is a body that can be
+   swapped without losing the rig's state — `RealBody.TryAttachExtra` saves and
+   restores the statics, so the detach side is what is missing.
+   Aim: eight nearby bodies is ~190k vertices, the order the rest of the scene
+   is built at.
 
-1. **THE NAME HEAP — my last diagnosis was WRONG and the impossibility survives.**
+2. **THE TEXT TAIL — the series has landed and the threshold has not.**
+   `nameFracMedian` reads 0.060 / 0.062 / 0.066 across three runs and
+   `nameFracP90` 0.098 / 0.100 / 0.121, against a worst of 0.320 at
+   `worstNameCentreMetres=1.09`. So the typical label is a sixteenth of the
+   screen and the tail is a third of it, which is what the night stills show. A
+   median cannot see a tail and this is the case it was written about.
+   The work is a cap on how much screen one piece of world text may take, with
+   the number printed before any bound is gated. **Do not set the bound from the
+   three runs above** — they predate the frustum fix, so the population they
+   were measured over excluded the frames with heaps in.
 
-   I said `namesManagedEver` was frozen by being captured on a sparse sampler,
-   moved it to the run end, and **it still reads 24 against 42 offered in one
-   frame.** Every offer adds to the managed set, so that cannot be true, and the
-   explanation I gave is not the explanation.
+3. **M21, THE TWO LEDGERS — Core-shaped, no round trip.**
+   The largest piece of unwritten game left: empire growth, law as a tool, what
+   expansion costs you. Notoriety is the first brick and it landed today with
+   its own decay and its own accumulation, so the next one is what a rival
+   actually does with a reputation once you have one. Decomposed from standing
+   work; take one sub-piece at a time and keep each inside a round trip.
 
-   What was found instead, while checking: the four text counters were
-   LAST-WINS while the three bucket counts printed beside them are PEAKS.
-   Consecutive runs swung `textProjected` 111 to 48 and `textInvisible` 277 to
-   346 — nothing changed except where the last shot pointed. All five are peaks
-   now, so the next reading is the first where they can honestly be compared.
+4. **SIX CARDS STILL LACK EXAMPLE LINES**, down from sixty. Small, local, needs
+   no key and no build.
 
-   **Do not re-diagnose from the current numbers.** They are a peak and four
-   last-wins values that were never taken at the same moment, which is why three
-   readings of this metric have now produced three wrong answers.
-   The denominators settled it: 391 texts walked, **260 rejected as invisible**,
-   95 projected, `namesTracked=1` — on a run whose day-2 noon still has a dozen
-   names piled illegibly in the corner. `Renderer.isVisible` means "rendered by
-   ANY camera last frame", not "in this camera's view", and the review camera
-   has not rendered when the measurement is taken. Replaced with a real frustum
-   test in both `CollidingNames` and `SpeechBubble.Rects`. **The next run's
-   `collidingNames`, `nameFracP90` and `bubbleFracP90` are the first honest
-   readings of any of them** — every earlier value was taken over a population
-   that excluded the frames with heaps in.
-2. **FOOT IK — the ray is innocent, read `ikPlantedMedian` next.**
-   `ikWorstHit=[Road_10]` and `ikGroundMissed=0`: the ground ray finds the road
-   every time, so the body's own capsule — the suspect that was plausible enough
-   to act on — is not it. The animated foot really is off the ground, half a
-   metre at worst and about a fifth typically.
+5. **KEEP RETIRING THE REACH LEDGER** — 43 entries, every reason verified
+   against the code today. Each one retired is a public API with a caller.
 
-   The overall median cannot accuse anything, because a SWINGING foot should be
-   off the ground and the blend correctly asks for no correction there. The
-   planted-only median is the discriminating number and it is in flight.
+6. **WHEN THE NAME-HEAP BUILD LANDS, READ THREE NUMBERS AND NOT THE OLD TWO.**
+   *(CI)* `namesDistinctPeak` below the offer peak means duplicate offers within
+   a frame; equal to it means the lifetime managed set is the broken instrument
+   and pruning its corpses is the repair. `namesOfferCalls` and
+   `namesManagedDead` are the denominators. **Do not re-diagnose from
+   `nameTagsOffered` and `namesManagedEver`** — three readings of that pair have
+   produced three wrong answers, the most recent one this morning.
 
-   **Suspect, named before the reading so it cannot be fitted afterwards:**
-   `Rig.PlantBlend` is driven by `CharacterRig.Phase`, the PROCEDURAL gait
-   phase, while the foot comes from a Mixamo clip with its own timing. Two
-   independent clocks for one idea — the shape that has already cost this
-   project the arms, the billboards and the ground raycast twice each. If
-   `ikPlantedMedian` comes back near the overall median, that is it, and the fix
-   is to derive the plant from the foot's own height rather than from a phase
-   that knows nothing about the clip.
-3. **THE DROP IS FIXED — 4 of 6, up from 2 of 5.** Making the bot run while a
-   drop is open did it, and the traces confirm the mechanism rather than just
-   the outcome: `d12` covered 22.2m in 13 ticks where walking managed 1.15m per
-   tick, and two drops that opened at 3m and 7m completed in 2 and 3 ticks.
-   Planting the condition, not loosening the bound.
-
-   **The predicted side effect happened and was already counted.**
-   `nightRunNotices` went 143 to 320 because there is now a second reason to be
-   running; `dropRuns=214` is how many ticks that was, so the two can be told
-   apart. That number was added in the same commit as the change precisely so
-   this would not read as the night-run probe going haywire.
-
-   **The 30cm case is CHECKED and it is not a braking bug.** `d13` missed at
-   2.8m against a 2.5m radius, and the obvious suspect was the approach easing.
-   Read it: `want *= Clamp01(far / 2f)`, so the bot moves at FULL speed at any
-   distance above two metres and 2.8m is nowhere near the taper. It walked 20.9m
-   of a 22m approach and the window closed while it was still moving.
-
-   So it is a timing boundary rather than a mechanism, and there is nothing to
-   fix in the bot. **Do not widen the completion radius** — that is the gate
-   measuring itself. If it recurs, the honest lever is which day the drop is
-   posted on, not how close counts as close.
-
-4. **THE WALKER BODIES ARE WIRED — read `walkerBodies` and `walkerBodiesFailed`.**
-   Done 2026-08-04 with the trap cleared first: `TryAttachExtra` saves and
-   restores every static `TryAttach` publishes, so the five `bodies` gate
-   clauses keep describing the player. Named cast gets skinned bodies, crowd
-   keeps mannequins by choice, heights come from `Physique.For` so the variety
-   survives. **Not done until the numbers come back**: `walkerBodies=0` with
-   `walkerBodiesFailed` high means the prefab pick is failing;
-   `walkerBodyWhy` names it. Watch `heapMb` and the geometric counts, not a
-   millisecond figure — the runner has no GPU. Gait bias, bad leg and idle
-   phase are carried across from `Physique.For` now, so the street should NOT
-   walk in unison — check the noon still, because that was the one way real
-   bodies could have read as worse than the boxes they replaced.
-5. **`heatMedian`** — decides whether the street pinned at maximum unease is a
-   music problem or a harness one.
-6. **`measureFails`** — all four failing prose labels are named now, not one.
-7. **Keep retiring the reach ledger** — 43, and every remaining reason was
-   verified against the code today.
-
-### SETTLED by the 12:03 build
-
-- **The textures work.** `bodyKeptMats=1`, `bodyParts=[nothing to paint — all 1
-  renderer(s) came textured]`, and the noon still shows a properly textured
-  figure — skin, hair, a white top, yellow trousers — where yesterday she was a
-  flat blue silhouette. Extraction pulled 54 textures from 10 of 10 models.
-- **The ratchet fix holds.** The bodies gate passes the run that fixed the
-  bodies instead of failing it for not having been painted over.
-- **Foot IK is running**, first time: 2,299 frames, both feet, no undriven
-  frames, and the IK pass really is enabled.
-- **The compile outage is over.** One wrong type name rode 18 commits and killed
-  4 builds, each dispatched to answer a different question.
-
----
-
-## What last night settled, in one line each
-
-Full accounts are in the commit messages; this is the index, and it is here
-only so a reader does not re-open a closed question. **Anything with a number
-beside it was measured, not judged from a still.**
-
-- The ledger screen called the player by their database key in four rumours,
-  and printed one repeated reason three times where three different ones fit.
-  Both fixed and confirmed green.
-- The escort was recruited by walker-list position, twenty-four metres away;
-  she is picked by proximity now and arrives at nine.
-- The third competence brick is a WEIGHT, not a face count, and it runs: thirty
-  rumours from your own face against two from your crew.
-- `ALL GATES` prints every run, so the 35 diagnostics that were readable only on
-  a failing run are readable on a passing one. Confirmed landing.
-- A comment took the build step past a hard size limit and broke dispatch
-  outright; `workflow-size` now catches that at commit time.
-- Bubbles are fine — 166 samples, median zero overlapping pairs. The peak of
-  116 was a real crowd pile-up, not the normal state.
-- The camera never stands in front of the player: twenty shots, zero blocked.
-  Three stills' worth of eye-judgement about foreground clutter was wrong.
-- Overhearing exists: an alibi told to one person is now heard by whoever is
-  close enough to make out the words, capped below knowledge.
-- Twenty seconds of watching somebody now carries an identification floor into
-  what they witness. It never did.
-- The grade cools when the player is exposed and warms when hidden — written,
-  tested and unwired since it was written.
-- **`workflow_dispatch` does not pin a commit.** Four builds were dispatched at
-  named shas and none of those shas was ever built. Watchers must ask whether a
-  run CONTAINS the commit, not whether one is named after it.
+7. **WHEN THE FOOT-IK BUILD LANDS, READ THE DROP MEDIANS.** *(CI)*
+   `ikPlantedMedian` against `ikCorrectionMedian` could never have answered the
+   question: `correction` is derived from `blend`, so a swinging foot
+   contributes an arithmetic zero and the overall median is the planted one
+   diluted. `ikPlantedDropMedian` well below `ikDropMedian` means the plant
+   blend is timed to the clip; the two landing together means it is not, and the
+   fix is to derive the plant from the foot's own height.
 
 ## Next
 
@@ -361,21 +131,19 @@ a dozen people in a plaza reads as a street or as a demonstration is a judgement
 for Jafar off a still, not a number for me to move against a measured decision.
 
 
-6. **Raise the population instead of cutting districts.** Measured, and it
+8. **Raise the population instead of cutting districts.** Measured, and it
    reverses the plan: seven districts at 1,400 people gives 43.5 distinct faces
    a week against 47.4 for three at 700, and 2,100 beats the cut outright. What
    is NOT measured is whether a fuller city still reads as a port rather than a
    crowd — that is a question for a still. Change the headcount, look, decide.
-7. **Tier the cast — and the runtime is not the constraint.** All three sides
+9. **Tier the cast — and the runtime is not the constraint.** All three sides
    measured. Design: 47 distinct faces a week, 13 near enough to read, a knee at
    ~50 people covering 92% of a resident's week. Witnesses: no fewer than ~20
    near an event. Runtime: 68 rigs cost 1.1ms of a 12ms budget. **The machine
    does not bound the cast at fifty; only authoring does.**
-8. **M17.2 voices** — no longer held. The writing verdict came back 78 and the
+10. **M17.2 voices** — no longer held. The writing verdict came back 78 and the
    risk it was gating (paying to voice something that needs rewriting) is
    retired. Note this is a SPEND and Jafar has not authorised it.
-9. **Six cards still lack example lines**, down from sixty. Small, local, no key
-   needed to identify them.
 
 - **IS FIFTY-SIX CONVERSATIONS A RUN TOO MANY?** A judgement about how
   talkative a street should feel, which is Jafar's off a still and not mine
