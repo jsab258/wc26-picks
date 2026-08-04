@@ -24,7 +24,7 @@
     "Attention.Identified": "WIRE: M16 phase 2 — the top of the ID ladder, reached in tests and never read by the game.",
     "CharacterCard.Section": "BY DESIGN: prompt-text assembly for the LLM harness. SimHarness and ConversationEngine build cards; the Unity layer never formats a prompt itself.",
     "Combat.Breathe": "WIRE: M16 phase 3 — stamina recovery between exchanges.",
-    "Detail.CostIndex": "WIRE: M17 — the budget side of the same system.",
+    "Detail.CostIndex": "BY DESIGN: it exists only to prove the presets are ORDERED — that each step down is genuinely cheaper rather than a relabelling — and CoreTests is where that proof belongs. Its WIRE note was inherited from CrowdFraction, which was real debt and is wired as of 4 Aug; this one has no game-side decision to make.",
     "DoorSwing.AtRest": "WIRE: M17 — same; the audio cue for a door finishing its swing has no trigger.",
     "DoorSwing.Set": "WIRE: M17 — doors animate through DoorSwing.Step; the explicit set is used when a door is opened by something other than the player, which nothing yet is.",
     "DoorSwing.Toggle": "WIRE: M17 — same.",

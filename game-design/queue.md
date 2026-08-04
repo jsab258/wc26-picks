@@ -66,7 +66,20 @@ scheduling instead of to CI's output.
    print now. Two or three landed runs first; some labels build their text
    conditionally.
 7. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
-8. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
+8. **FOOT IK IS THE NEXT BIG ONE, AND IT IS HELD ON PURPOSE.** `Rig.TwoBone`,
+   `FootHeight` and `PlantBlend` are a complete ground-adaptation model with no
+   caller — the solver clamps over-extension rather than returning NaN, the
+   height clamps at 0.42m so a foot cannot chase a kerb, and the blend fades IK
+   out through the swing so it does not drag. Feet currently get `Level()` and
+   nothing else, so they float and clip on any slope or step.
+
+   **Not started until the crowd separation is verified.** That change moves
+   walker POSITIONS and this one moves walker LEGS; shipping both unverified
+   means a wrong-looking frame has two suspects and the round trip that tells
+   them apart costs another twenty-eight minutes. Batching Game-layer changes
+   is right; batching two changes to the same body is not.
+
+9. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
    mostly genuinely-blocked UI surfaces plus the type scale, which wants the UI
    to stop setting sizes by hand — a real refactor rather than a wiring.
 
