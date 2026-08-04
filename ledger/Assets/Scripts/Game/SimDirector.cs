@@ -2083,12 +2083,51 @@ namespace Ledger.Game
                 _bubblesAtWorst = bubbles.Count;
             }
             if (bubbles.Count > _bubblesOnScreen) _bubblesOnScreen = bubbles.Count;
+
+            // AND THE PEAK CANNOT ANSWER THE QUESTION ANYWAY. THREE RUNS SAID
+            // 91, 16 AND 116.
+            //
+            // Fixing the denominator was right and did not make the number
+            // readable, because `collidingBubbles` is a MAXIMUM and the thing
+            // it is being asked is "are speech bubbles legible on this street".
+            // A maximum answers "did they ever pile up" — and it rises with
+            // sampling, with the day's talkativeness, and with anything that
+            // puts a crowd in shot. Sixteen on one run and a hundred and
+            // sixteen on the next is not the declutter getting eight times
+            // worse; it is a statistic that cannot tell those apart.
+            //
+            // That is the AO ceiling exactly: a bound placed on a maximum,
+            // which maximises the quantity the bound exists to keep small, so
+            // more rounds made it trip on itself. One run read 80% and the
+            // round series read a median of 23.
+            //
+            // So the FRACTION, per sample, kept as a series — what share of
+            // the pairs that COULD overlap actually do, at each instant where
+            // there were at least two bubbles to overlap. The median of that
+            // is the street as it typically reads, the peak beside it is still
+            // the worst moment, and the two answer different questions on
+            // purpose. No bound until the series exists (rule 2).
+            if (bubbles.Count >= 2)
+            {
+                int couldPair = bubbles.Count * (bubbles.Count - 1) / 2;
+                _bubbleOverlap.Add((float)now / couldPair);
+            }
             return pairs;
         }
 
         int _collidingWorldText = -1;
         int _collidingBubbles = 0, _bubblesOnScreen = 0;
         /// How many bubbles were on screen at the instant of the worst overlap.
+        /// Every sampled instant's overlap FRACTION, for the median. Unbounded
+        /// by design — it grows once per sample, and the sampler runs on the
+        /// same cadence as the rest of this file's probes rather than per
+        /// frame, so a seventeen-day run puts tens of entries in it, not
+        /// thousands. If that ever stops being true this wants a reservoir,
+        /// not a cap: dropping the tail would bias the median toward the
+        /// quiet early days, which is the half of the run that has nobody
+        /// talking in it.
+        readonly List<float> _bubbleOverlap = new List<float>();
+
         /// The only denominator `collidingBubbles` can honestly be divided by.
         int _bubblesAtWorst = 0;
 
@@ -6876,6 +6915,33 @@ namespace Ledger.Game
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
             bool pass = failed.Count == 0;
 
+            // THE BUBBLE OVERLAP SERIES, printed before any bound is put on it.
+            // The peak said 91, 16 and 116 on three consecutive runs; this says
+            // what the street typically looks like, and whether those three
+            // disagree because the declutter changed or because the sampling
+            // did.
+            float bubbleMedian = -1f;
+            if (_bubbleOverlap.Count > 0)
+            {
+                var sorted = new List<float>(_bubbleOverlap);
+                sorted.Sort();
+                bubbleMedian = sorted[sorted.Count / 2];
+                var show = new System.Text.StringBuilder();
+                // Evenly spaced through the run rather than the first twelve:
+                // the first twelve samples are day one, when almost nobody is
+                // out, and a series that only shows the quiet end is the
+                // truncation fault this file fixed in the panel dump.
+                int want = System.Math.Min(12, sorted.Count);
+                for (int i = 0; i < want; i++)
+                {
+                    int at = _bubbleOverlap.Count * i / want;
+                    show.Append($" {_bubbleOverlap[at]:0.00}");
+                }
+                Debug.Log($"SimDirector: [series] bubbleOverlap n={_bubbleOverlap.Count} "
+                          + $"median={bubbleMedian:0.00} worst={sorted[sorted.Count - 1]:0.00} "
+                          + $"through the run:{show}");
+            }
+
             // EVERY GATE'S LABEL, GREEN OR RED — and this is a repair to the
             // one channel out of CI this environment can read, so it outranks
             // whatever else was next (rule 12).
@@ -7078,6 +7144,10 @@ namespace Ledger.Game
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
+                      // The peak and the typical, side by side and named as
+                      // what they are. The peak is "how bad did one moment
+                      // get"; the median is "how does this street read".
+                      $"bubbleOverlapMedian={bubbleMedian:0.00} bubbleSamples={_bubbleOverlap.Count} " +
                       $"textMirrored={_textMirrored} " +
                       $"textFacingAway={_textFacingAway} textVisibleAtAway={_textVisibleAtAway} textVisible={_textVisible} " +
                       $"billboardsStale={_billboardsStale} " +
