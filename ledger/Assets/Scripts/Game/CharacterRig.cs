@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
 
@@ -82,6 +83,29 @@ namespace Ledger.Game
         /// somebody has to notice.
         bool _phaseSeeded;
         public static int PhasesSeeded { get; private set; }
+
+        /// How far the hips assign moves a DRIVEN body from where its Animator
+        /// put them, in metres, one sample per solved frame.
+        ///
+        /// Shared across rigs on purpose — the question is about the class of
+        /// bodies, not about one walker, and twelve bought bodies at a time
+        /// makes a per-rig median a sample of one person's gait.
+        static readonly List<float> _hipOverrides = new List<float>();
+        public static int HipOverrideSamples => _hipOverrides.Count;
+
+        /// The median, or -1 when nothing driven was solved — which is a
+        /// different finding from "the assign moves nothing" and must not read
+        /// as one.
+        public static double HipOverrideMedian
+        {
+            get
+            {
+                if (_hipOverrides.Count == 0) return -1;
+                var c = new List<float>(_hipOverrides);
+                c.Sort();
+                return c[c.Count / 2];
+            }
+        }
 
         float _breathTime;
         Quaternion _chest0, _neck0, _head0;
@@ -1010,6 +1034,34 @@ namespace Ledger.Game
                 local.y += (float)(breath + dip);
                 // Both feet on their ground, so a kerb does not do the splits.
                 local.y += (float)Rig.PelvisDrop(GroundUnder(_lFoot), GroundUnder(_rFoot), LegLength);
+
+                // HOW FAR THIS ASSIGN MOVES A DRIVEN BODY'S HIPS FROM WHERE THE
+                // ANIMATOR PUT THEM — a reading, and deliberately only that.
+                //
+                // This line ASSIGNS from the rest position. Six screens down
+                // the pelvis ROTATION is composed on a driven body instead,
+                // under a comment giving the reason: "An assign here would
+                // flatten the clip's own pelvis rotation and undo half of any
+                // walk cycle." The same argument is true of POSITION and
+                // nobody applied it here, so a bought body's vertical rhythm is
+                // the clip's, discarded, and replaced by `Rig.Bob(Phase)` — a
+                // second bob driven by a phase the clip does not share.
+                //
+                // WHETHER THAT MATTERS IS A NUMBER I DO NOT HAVE. If the clip
+                // barely moves its hips the assign is harmless; if it carries
+                // the whole bob, this is throwing away the animation and is a
+                // candidate for the foot behaviour `FootIk` has been chasing
+                // all day. Changing it blind, in the file where an inverted
+                // assumption cost two builds this morning, is how that morning
+                // happened. So: measure, read, then decide (rule 2).
+                //
+                // MEDIAN OVER THE RUN, not a peak: the question is "is the
+                // clip's hip motion being discarded", which is about the
+                // typical frame, and a maximum would be whichever frame the
+                // pelvis drop caught somebody on a kerb.
+                if (PoseIsDriven && _hipOverrides.Count < 20000)
+                    _hipOverrides.Add(Mathf.Abs(_hips.localPosition.y - local.y));
+
                 _hips.localPosition = local;
             }
 

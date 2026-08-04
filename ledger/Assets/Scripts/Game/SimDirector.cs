@@ -8909,6 +8909,18 @@ namespace Ledger.Game
                       // still stepping in lockstep — the failure this seeds
                       // against, and one that only ever shows in a still.
                       $"phasesSeeded={CharacterRig.PhasesSeeded} " +
+                      // HOW MUCH OF THE CLIP'S HIP MOTION IS BEING THROWN AWAY.
+                      // The rig assigns the hips from a rest position plus its
+                      // own breath, dip and bob, on bodies whose Animator wrote
+                      // a hip height that frame — while composing the pelvis
+                      // ROTATION on the same bodies, under a comment giving the
+                      // reason. Near zero means the clips barely move their
+                      // hips and the assign is harmless; a few centimetres
+                      // means the bought animation's vertical rhythm is being
+                      // discarded and replaced by a phase it does not share.
+                      // Read before touching it.
+                      $"hipOverride={CharacterRig.HipOverrideMedian:0.000} " +
+                      $"hipOverrideSamples={CharacterRig.HipOverrideSamples} " +
                       $"animCulling={CharacterRig.AnimCulling} " +
                       $"animClipTime={CharacterRig.AnimClipTime:0.00} " +
                       $"animState={CharacterRig.AnimStateHash} " +
