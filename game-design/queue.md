@@ -120,10 +120,26 @@ the reading lands, and every guess made without one tonight was wrong.
    median is a number taken from the run — and it is still the case that
    nothing may be picked before it lands.
 
-4. **`nameShownWidthWorst` DECIDES THE WIDTH CAP.** *(CI)* `nameWidthWorst=
-   0.424` on "Wendell Dujmovic" is PRE-cap; the post-cap twin was computed and
-   never printed, and it is now. `PinFrac` bounds HEIGHT, and `NameTags`' own
-   comment says a bound on one axis of a two-axis object is not a bound.
+4. **`nameShownWidthWorst` DECIDES TWO THINGS, AND THE SECOND IS THE BUBBLE
+   BUG'S TWIN.** *(CI)* `nameWidthWorst=0.424` on "Wendell Dujmovic" is PRE-cap;
+   the post-cap twin was computed and never printed, and it is now. `PinFrac`
+   bounds HEIGHT, and `NameTags`' own comment says a bound on one axis of a
+   two-axis object is not a bound.
+
+   **AND IT ALSO TESTS WHETHER NAMEPLATES ARE STALE AT THE SHOT.** The bubble
+   cap turned out to be applied a frame LATE — `LateUpdate` pins against
+   wherever the camera was last, and `SimDirector.Shot` moves a camera and
+   renders by hand inside `Update`, so `bubbleFracPreCap=0.659` sat beside
+   `worstBubbleFrac=1.245`. `NameTags.Resolve` pins on exactly the same
+   schedule, from `Camera.main`, in the frame before. `Billboard` re-aims at
+   the shot and `SpeechBubble` now re-pins there; names are the third site of
+   that idea and the only one still unfixed.
+
+   **NOT FIXED BLIND, DELIBERATELY.** A post-cap width above what `PinFrac`
+   allows is the staleness proving itself, exactly as it did for bubbles, and
+   that number lands in the next build. Shipping the re-pin now would be fixing
+   a twin on the strength of it being a twin — which is right often enough to
+   be dangerous.
 
 5. **`placeFacesInRoad` / `placeFacesInLane` DECIDE THE SETBACK FIX.** *(CI)*
    All eight pieces of clutter in a carriageway belong to registered places,
