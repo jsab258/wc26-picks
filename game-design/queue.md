@@ -237,11 +237,12 @@ AUTO MODE.
    where the Animator put them — not an edit. **Start it at the top of a
    turn, with the measurement first.**
 
-9. **HEAD SCALE, SAME FAMILY, DIFFERENT DIFFICULTY.** `Mannequin` varies it
-   0.93-1.07 by scaling a child transform. On a skinned mesh the head is a
-   BONE, so holding a scale on it means writing to the humanoid rig every
-   frame or the Animator overwrites it — `CharacterRig`'s own comments record
-   that exact failure twice. Worth doing after the limp, in the same layer.
+9. **DONE 4 Aug — head scale, and the reason it was queued as hard was not
+   true.** An Animator writes bone rotations and the hips' position; Mixamo's
+   clips animate no scale, so a scale written once is not overwritten. One
+   write beside the phase seed, `headsScaled` counting it, and the failure
+   mode named in the code: uniform heads in a still WITH a non-zero count
+   means the write ran and lost, which is a different bug from it not running.
 
 10. **AND CHECK THE CROWD GAP AGAINST THE NEW BREADTH BEFORE READING IT.**
    The gap gate compares a median spacing to a body width of 0.45, a single
