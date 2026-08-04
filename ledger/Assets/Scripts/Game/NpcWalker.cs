@@ -105,6 +105,42 @@ namespace Ledger.Game
         /// value ceiling.
         public bool IsCrowd { get; private set; }
 
+        /// HOW MUCH OF THEMSELVES THIS PERSON CURRENTLY IS, 0..1, pushed in by
+        /// the population pass — and until now nobody in this city has ever
+        /// limped.
+        ///
+        /// `CharacterRig.Capability` drives `Rig.Limp`, which is a whole
+        /// authored asymmetry with its own Core function, its own tests and a
+        /// footstep rhythm built to match it so that "a limp you can hear but
+        /// not see is worse than neither". It had exactly ONE writer:
+        /// `PlayerController`. Every one of the sixty-odd walkers sat at the
+        /// default 1.0, `Rig.Limp` took its `hurt < 0.05` early return, and the
+        /// street walked perfectly evenly no matter what had been done to it.
+        ///
+        /// The world already knows better. `HarmBook` records the injury, the
+        /// sim's own verdict prints `samCap=0.70` for a man it beat on day one,
+        /// `Perception` offers "the one with the limp" as a way to describe
+        /// somebody — and the body it belonged to walked like everybody else.
+        /// That is rule 6 exactly: built, tested, and never once running.
+        ///
+        /// KEYED ON `DisplayName` because that is what harm is FILED under for
+        /// a person on the street — `TrafficHost.GatherHazards` registers each
+        /// walker as `Id = npc.DisplayName` and the strike is inflicted on that
+        /// same string, and the named cast are their own ids. Keying on a
+        /// resident's `rNNNN` would have been a lookup that never matched for
+        /// anybody the player can actually see, which is this fault again one
+        /// layer down.
+        public double Capability
+        {
+            get => _capability;
+            set
+            {
+                _capability = value;
+                if (_body != null) _body.Capability = value;
+            }
+        }
+        double _capability = 1.0;
+
         /// Every walker currently in the scene, so one can see what it is
         /// about to stand inside.
         ///
@@ -824,6 +860,12 @@ namespace Ledger.Game
                 _body.BadLegIsLeft = shape.BadLegIsLeft;
                 _body.IdleOffset = shape.IdlePhase;
                 _body.HeadScale = shape.HeadScale;
+                // The rig binds LAZILY, several passes after the population
+                // pass first pushed a capability in, so the setter's write had
+                // nowhere to go. Anybody already hurt when their body arrives
+                // would otherwise walk evenly until the next push — which for a
+                // body granted and dropped by the LOD band is most of a run.
+                _body.Capability = _capability;
             }
             float dt = Time.deltaTime;
             if (dt <= 0) return;

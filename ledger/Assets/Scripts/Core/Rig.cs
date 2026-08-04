@@ -289,11 +289,17 @@ namespace Ledger.Core
         /// dip the pelvis onto the good one. Driven by the SAME capability
         /// number as the audio, so the two cannot disagree — a limp you can
         /// hear but not see is worse than neither.
+        /// Below this much hurt there is no limp at all. NAMED rather than
+        /// inlined because it is now read from outside: the population pass
+        /// counts who is limping, and a second copy of 0.05 over there would be
+        /// a counter that could quietly disagree with the behaviour it counts.
+        public const double LimpsAboveHurt = 0.05;
+
         public static (double stanceScale, double pelvisDip) Limp(double capability, bool badLegIsLeft,
                                                                   double phase)
         {
             double hurt = Feel.Clamp01(1.0 - Feel.Clamp01(capability));
-            if (hurt < 0.05) return (1.0, 0);
+            if (hurt < LimpsAboveHurt) return (1.0, 0);
             // Weight comes off the bad leg fast and stays on the good one.
             double p = phase - Math.Floor(phase);
             bool onBadLeg = badLegIsLeft ? p < 0.5 : p >= 0.5;

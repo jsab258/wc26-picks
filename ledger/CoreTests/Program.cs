@@ -9165,6 +9165,22 @@ namespace Ledger.CoreTests
                 "a worse injury is a worse limp, from the SAME capability number the "
                 + "audio uses — a limp you can hear but not see is worse than neither");
 
+            // THE BOUNDARY, FROM BOTH SIDES, because the population pass now
+            // COUNTS who is limping using this same constant and a counter that
+            // disagreed with the behaviour by one epsilon would report a street
+            // of limpers who all walk evenly, or none while somebody does.
+            //
+            // Both directions on purpose (rule 5b): the case it must reject is
+            // a hair inside the dead band, and the case it must ACCEPT is a hair
+            // outside it — and it is the accepting half that never gets run.
+            double justUnder = 1.0 - Rig.LimpsAboveHurt * 0.99;
+            double justOver = 1.0 - Rig.LimpsAboveHurt * 1.01;
+            Check(Rig.Limp(justUnder, true, 0.2).stanceScale == 1.0,
+                "a hair inside the dead band is not a limp");
+            Check(Rig.Limp(justOver, true, 0.2).stanceScale < 1.0,
+                "and a hair outside it is — the constant the counter reads is the "
+                + "constant the body obeys");
+
             // ---- THE WALK CYCLE ----
             //
             // Everything above modulates a gait that did not exist. The limp

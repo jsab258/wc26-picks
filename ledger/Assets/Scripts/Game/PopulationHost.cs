@@ -218,8 +218,38 @@ namespace Ledger.Game
             _seenWalkers.Clear();
             WalkersListed = _npcs.Count;
             WalkersDuplicated = 0;
+            WalkersHurtNow = 0;
             foreach (var n in _npcs)
-                if (n != null && !_seenWalkers.Add(n)) WalkersDuplicated++;
+            {
+                if (n == null) continue;
+                if (!_seenWalkers.Add(n)) WalkersDuplicated++;
+
+                // AND WHETHER THEY ARE HURT, folded into the same pass for the
+                // same reason: it is one dictionary-free scan of the injury
+                // list per walker, once a second, and it is the only thing in
+                // the game that can make anybody but the player limp.
+                //
+                // ONCE A SECOND RATHER THAN ONCE A DAY, and that is not
+                // laziness about a cheaper trigger. Capability changes the
+                // instant somebody is hit by a car or comes off worse in an
+                // alley, not at midnight, and a limp that starts the following
+                // morning is a consequence the player cannot connect to the
+                // thing they just did. A second is under the reaction time this
+                // project's own feel spec cares about.
+                double cap = Harm.Capability(n.DisplayName, Now.Day);
+                n.Capability = cap;
+                if (cap < HurtEnoughToShow)
+                {
+                    WalkersHurtNow++;
+                    if (cap < WalkerCapabilityWorst) WalkerCapabilityWorst = cap;
+                    // NAMED, because a count of zero has two completely
+                    // different causes — nobody in this run got hurt, or the
+                    // lookup never matched anybody — and only a name can tell
+                    // them apart. That distinction is the whole reason this
+                    // wiring was missing for weeks without anything going red.
+                    if (WalkersHurtEver.Count < 40) WalkersHurtEver.Add(n.DisplayName);
+                }
+            }
 
             _bodyRank.Clear();
             foreach (var n in _npcs)
@@ -301,6 +331,34 @@ namespace Ledger.Game
         /// are two views of the same suspicion.
         public static int WalkersListed, WalkersDuplicated;
         readonly HashSet<NpcWalker> _seenWalkers = new HashSet<NpcWalker>();
+
+        /// WHO IS LIMPING, and it is a reading rather than a gate.
+        ///
+        /// NOW versus EVER, and both are needed for opposite reasons. `Now` is
+        /// how many of the people currently on the tick list are hurt, so it
+        /// can be read against `WalkersListed` from the same instant. `Ever` is
+        /// the names, because zero-now and zero-ever mean different things: a
+        /// street where nobody happens to be hurt right this second is normal,
+        /// and a run where nobody was EVER hurt is a run that cannot say
+        /// whether this wiring works at all. That is the corollary rule 5b
+        /// picked up on 4 August — a probe needs a run in which the thing it
+        /// asserts CAN happen — and the sim plants exactly that condition on
+        /// day one when it puts a knife through Sam.
+        ///
+        /// BOUNDED AT FORTY NAMES so a run that hurts half the city cannot
+        /// write a verdict line nothing can read. If it ever saturates, the
+        /// count is the number to trust and this set is a sample.
+        public static int WalkersHurtNow;
+        public static double WalkerCapabilityWorst = 1.0;
+        public static readonly SortedSet<string> WalkersHurtEver = new SortedSet<string>();
+
+        /// The capability below which a body visibly limps — `Rig.Limp`'s own
+        /// early return expressed the other way round, so the number that
+        /// decides whether somebody is COUNTED as limping is the same number
+        /// that decides whether they limp. Two copies of this would be one
+        /// idea with two implementations, and one of them would eventually be
+        /// the one nobody looked at.
+        const double HurtEnoughToShow = 1.0 - Ledger.Core.Rig.LimpsAboveHurt;
 
         /// Distance from the player to wherever this resident's routine has them
         /// right now. Cheap, and it means the crowd around you is the crowd that

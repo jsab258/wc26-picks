@@ -9252,6 +9252,17 @@ namespace Ledger.Game
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
+                      // WHO IS LIMPING. `Rig.Limp` has had one writer since it
+                      // was built — the player — so the city has never limped,
+                      // whatever was done to it. `limpNames` is the half that
+                      // matters: a zero count means nobody was hurt OR the
+                      // lookup matched nobody, and only a name separates those.
+                      // Printed against the tick list from the same pass, so
+                      // the fraction is two numbers from one instant.
+                      $"limpNow={GameController.WalkersHurtNow} " +
+                      $"limpOf={GameController.WalkersListed} " +
+                      $"limpWorst={GameController.WalkerCapabilityWorst:0.00} " +
+                      $"limpNames=[{string.Join(",", GameController.WalkersHurtEver)}] " +
                       // THE THRASH READING. No dwell time has been invented to
                       // bound these — the band already carries six metres of
                       // hysteresis and whether that is enough is a measurement,
