@@ -141,6 +141,26 @@ one, so its all-time median of 34 describes neither test. No aggregate can see
 that break. A human looking at the row of numbers sees it in a second, which is
 the whole argument for printing the series.
 
+**AND WHEN YOU CATCH ONE, CHECK THE NUMBERS BESIDE IT — 4 August, twice on one
+line, four hours apart.** At 07:20 I corrected `queue.md` for quoting `confabs`
+74 as a baseline when 74 was the all-time peak. At 11:30 I had spent three
+builds and two real code changes chasing `crowdTightest=0.00`, which is a run
+MINIMUM: one frame anywhere in nine days — two walkers spawned on the same
+waypoint, sampled before either has stepped — pins it at 0.00 for ever and no
+later separation can lift it. Its neighbour `crowdGapMedian` had been moving
+every build, 0.00 → 0.20 → 0.29 → 0.33 → 0.35, and was the signal the whole
+time.
+
+Having the rule written down, quoting it at myself in a commit message, and
+correcting somebody else's instance of it that same morning were all
+insufficient. **So the mechanical step is the one from rule 1's third
+corollary, applied to statistics: the moment you find a peak being read as a
+description, look at every other number printed next to it and ask which
+question each one answers.** They are usually written by the same hand in the
+same hour and they usually share the fault. Both fixes I made underneath the
+wrong reasoning were correct on their own terms — that is what makes this hard
+to notice, and it is not the same as having been right.
+
 **AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
 night, all mine, all in metrics I had written hours earlier:
 
