@@ -153,6 +153,35 @@ namespace Ledger.Core
         public double AmbientFloor;     // at the witness
         public double Alertness;
         public double SecondsWatching;  // how long they had been looking
+
+        /// The best identification this witness had ALREADY reached before the
+        /// deed, from watching. A floor under the instantaneous rung, never a
+        /// replacement for it.
+        ///
+        /// WHY THIS WAS MISSING AND WHAT IT COSTS. `Resolve` computes the rung
+        /// from the geometry at the INSTANT of the deed — distance, light,
+        /// familiarity, whether the face is toward you. That is right for a
+        /// stranger who turns round at the noise, and wrong for the man who has
+        /// been watching you across the bar for twenty seconds: he gets the
+        /// same rung as the stranger, because nothing carried what he had
+        /// already worked out.
+        ///
+        /// `Perception.Attention` has been accruing exactly this the whole
+        /// time. It keeps `_rung` — the best identification reached — and
+        /// decays it rather than resetting, precisely so that watching somebody
+        /// for a while means being able to name them afterwards. `NpcWalker`
+        /// exposes it as `AttentionRung`. **Nothing anywhere read it**, so the
+        /// top of the ID ladder was computed every tick for every walker in the
+        /// band and thrown away — rule 6 on the mechanic the moat is named
+        /// after.
+        ///
+        /// A FLOOR, NOT A REPLACEMENT, and the asymmetry is the design. Knowing
+        /// who somebody is does not decay the moment the light does: if you
+        /// have already placed a face, a lamp going out does not un-place it.
+        /// But standing closer than you were still IMPROVES the reading, so the
+        /// instantaneous value has to be able to win.
+        public int RungFloor;
+
         public bool ArrivedLater;       // found it rather than saw it
 
         /// The common case: actor and victim close enough together that one
@@ -276,6 +305,18 @@ namespace Ledger.Core
             {
                 o.Rung = Perception.IdRung(v.ToActor.Metres, v.ToActor.LightLevel,
                                            v.Familiarity, v.ActorHasMark, v.FaceToward);
+                // WHAT THEY HAD ALREADY WORKED OUT, as a floor. See
+                // `Vantage.RungFloor`: a man who has been watching you across
+                // the bar does not un-place your face because the deed happens
+                // in worse light than the watching did.
+                //
+                // ONLY WHEN THEY CAN STILL SEE THE ACTOR. Inside this branch on
+                // purpose — a floor that applied to somebody who cannot see the
+                // actor at all would let a witness name a man they never
+                // looked at, which is the suppressed-pistol case running
+                // backwards and would be a far worse bug than the one being
+                // fixed.
+                if (v.RungFloor > o.Rung) o.Rung = v.RungFloor;
                 if (o.Rung >= 1) o.Slots |= Slot.Actor;
                 if (o.Rung >= 4) o.AccusedId = deed.ActorId;
             }

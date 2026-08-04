@@ -186,6 +186,18 @@ namespace Ledger.Game
                     SecondsWatching = System.Math.Max(
                         npc.Stance >= StanceKind.Watches ? 3.0 : 0.0,
                         npc.SecondsAttendingPlayer),
+                    // AND WHAT THE WATCHING ALREADY BOUGHT THEM. The same
+                    // accumulator, one field further in: it keeps the best
+                    // identification reached and decays it rather than
+                    // resetting, and `AttentionRung` has exposed that with no
+                    // consumer anywhere since it was written.
+                    //
+                    // The seconds were wired here two days ago for exactly this
+                    // reason — "the instrument was already running" — and the
+                    // rung sitting beside them was left behind. One idea, two
+                    // fields, and the one nobody looked at is the one missing a
+                    // line.
+                    RungFloor = npc.AttentionRung,
                     Alertness = npc.Stance >= StanceKind.Watches ? 0.5 : 0.0,
                     ArrivedLater = false,
                 };

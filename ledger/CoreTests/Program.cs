@@ -10941,6 +10941,64 @@ namespace Ledger.CoreTests
             var carried = mill.Get("w1").Best("player.killed");
             Check(carried != null && !carried.Indelible,
                   "hardening: a hardened FALSE accusation stays discreditable");
+
+            // -- WHAT WATCHING ALREADY BOUGHT THEM ----------------------------
+            //
+            // `Resolve` reads the rung off the geometry AT THE INSTANT of the
+            // deed, which is right for a stranger who turns round at the noise
+            // and wrong for the man who has been watching across the bar for
+            // twenty seconds. `Perception.Attention` has been accruing the best
+            // rung reached, and decaying rather than resetting it, precisely so
+            // that watching means being able to name somebody afterwards.
+            // Nothing read it.
+            //
+            // THE ACCEPTING CASE FIRST, and here it is the NO-FLOOR one:
+            // without a floor nothing may change, or this is not a floor, it is
+            // a rewrite of every existing reading.
+            // FAR ENOUGH FOR A LOW RUNG, CLOSE ENOUGH TO STILL SEE HIM. The
+            // first draft used twenty-six metres in quarter light, and the
+            // floor correctly refused to apply because `seesActor` was false —
+            // the guard doing exactly its job, on a test that had asserted a
+            // world where the thing being tested cannot happen. Rule 5b's
+            // twin, caught by the accepting case failing rather than by the
+            // rejecting one passing.
+            var distantEye = At("far", 9, 0.6, 0.1, face: false);
+            var baseRung = Observe.Resolve(deed, distantEye);
+            distantEye.RungFloor = 0;
+            Check(Observe.Resolve(deed, distantEye).Rung == baseRung.Rung,
+                  "a witness who had worked nothing out reads exactly as before",
+                  $"{baseRung.Rung}");
+
+            // AND THE CASE IT EXISTS FOR.
+            distantEye.RungFloor = 4;
+            var placedEye = Observe.Resolve(deed, distantEye);
+            Check(placedEye.Rung == 4 && placedEye.AccusedId == "player",
+                  "somebody who had already placed the face can still name them "
+                  + "when the light goes",
+                  $"{baseRung.Rung} -> {placedEye.Rung}");
+
+            // NEVER DOWNWARD. Standing closer than you were still improves the
+            // reading, so the instant has to be able to win — a floor that
+            // replaced the live value would make walking up to somebody make
+            // them harder to recognise.
+            var nearEye = At("near", 2, 1.0, 0.95);
+            int liveNear = Observe.Resolve(deed, nearEye).Rung;
+            nearEye.RungFloor = 1;
+            Check(Observe.Resolve(deed, nearEye).Rung == liveNear,
+                  "and a stale low reading never drags a good live one down",
+                  $"{liveNear} with a floor of 1");
+
+            // AND IT CANNOT NAME SOMEBODY THEY CANNOT SEE. A floor outside the
+            // sight branch would let a witness who never looked at the actor
+            // accuse them — the suppressed-pistol case running backwards, and a
+            // far worse bug than the one being fixed.
+            var walledEye = At("blind", 6, 1.0, 0.9, occ: true);
+            walledEye.RungFloor = 4;
+            var walledOut = Observe.Resolve(deed, walledEye);
+            Check(walledOut.AccusedId == null && walledOut.Rung == 0,
+                  "somebody behind a wall names nobody, whatever they worked out "
+                  + "earlier",
+                  $"rung={walledOut.Rung}");
         }
 
 
