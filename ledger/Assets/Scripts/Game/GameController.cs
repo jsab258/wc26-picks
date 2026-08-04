@@ -312,8 +312,16 @@ namespace Ledger.Game
         public HomicideBook Homicides { get; } = new HomicideBook();
         readonly HashSet<string> _deadIds = new HashSet<string>();
         public bool IsAlive(string id) => !_deadIds.Contains(id);
+        /// THE DAY IS PASSED, and without it the redirect does nothing.
+        ///
+        /// `HomicideBook.RedirectReliefOn` returns zero for a caller that cannot
+        /// say what day it is — deliberately, because a discount nobody asked
+        /// for is worse than no discount — so this property is the difference
+        /// between `PointAt` being wired and being decorative. That is the whole
+        /// rule-6 failure mode in one argument: the mechanism existed, the
+        /// caller existed, and the value never reached it.
         public Inquiry PoliceInquiry =>
-            _gossip?.Mill == null ? Inquiry.None : Homicides.Stage(_gossip.Mill, IsAlive);
+            _gossip?.Mill == null ? Inquiry.None : Homicides.Stage(_gossip.Mill, IsAlive, Now.Day);
         Inquiry _lastInquiry = Inquiry.None;
 
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and

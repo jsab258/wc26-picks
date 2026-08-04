@@ -3087,8 +3087,11 @@ namespace Ledger.Game
             var thread = EvidenceHost.StrongestThread(out threadRisk);
             _provThread = thread != null ? thread.InstanceId : "none";
             _provThreadRisk = threadRisk;
+            // THE DAY, because without it a redirect is invisible here and the
+            // sim would report Ellis asking about you on a run where she had
+            // been pointed somewhere else that morning.
             _provEllisAsking = EvidenceHost.EllisIsAskingAboutYou(
-                _game.Homicides, _game.Gossip != null ? _game.Gossip.Mill : null);
+                _game.Homicides, _game.Gossip != null ? _game.Gossip.Mill : null, _game.Now.Day);
 
             _emptyWatchers = emptyWatchers;
             Debug.Log($"SimDirector: quiet spot has {emptyWatchers} watcher(s) within "
@@ -5702,10 +5705,28 @@ namespace Ledger.Game
             // Denounced` and went green on a run whose only accusation was
             // `Ignored (0 of 0)` — the method was called, nothing was weighed,
             // and every branch that gives the verb meaning sat untested.
+            // AND THE REDIRECT, AS AN IMPLICATION RATHER THAN A COUNT.
+            //
+            // `LawHost.Redirected >= 1` is the clause I nearly wrote, and it is
+            // the exact mistake this file learned about tonight: a redirect only
+            // happens when a charge sticks WHILE the inquiry is below
+            // `Investigation`, and a run with bodies and witnesses in it may
+            // never be in that state. Asserting it would be a guard the world
+            // does not owe — the same root as `allegiance` on a run that poached
+            // nobody, and as `disposal` on a crowded spot with nobody in it.
+            //
+            // What the run DOES guarantee is consistency: if the counter moved,
+            // the book must be pointed at somebody. That fails only when the
+            // wiring is broken and passes on both branches — a run that
+            // redirected and a run that never got the chance — which is the pair
+            // rule 5b asks to have watched before shipping a guard.
+            bool redirectSane = LawHost.Redirected == 0
+                || !string.IsNullOrEmpty(_game.Homicides.PointedAt);
             bool lawOk = LawHost.Denounced >= 2
                 && LawHost.MarksFiled == LawHost.Denounced
                 && _denounceIgnored            // unbacked accusations do nothing
-                && _denounceStuck;             // and a corroborated one lands
+                && _denounceStuck              // and a corroborated one lands
+                && redirectSane;               // and a redirect that fired landed somewhere
 
             bool bodiesOk = _bodySamples > 0 && _bodyRigs >= 2
                 && _bodyMaxKnee - _bodyMinKnee > 10
@@ -6148,7 +6169,7 @@ namespace Ledger.Game
                  + $"shader={WorldText.ShaderPresent}]",
                  _worldText <= 0 || (WorldText.ShaderPresent && _worldTextDepth > 0
                                      && WorldText.Refused == 0)),
-                ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} ignored={_denounceIgnored} stuck={_denounceStuck} backers={_denounceWitnesses} {LawHost.LastVerdict}]", lawOk),
+                ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} ignored={_denounceIgnored} stuck={_denounceStuck} backers={_denounceWitnesses} redirected={LawHost.Redirected} pointedAt={(string.IsNullOrEmpty(_game.Homicides.PointedAt) ? "nobody" : _game.Homicides.PointedAt)} {LawHost.LastVerdict}]", lawOk),
                 ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} poached={_poached} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
                 ($"claims[made={LawHost.ClaimsMade} caught={LawHost.ClaimsCaught} held={_claimHeld}]", claimsOk),
                 ("budgets", budgetsOk),
@@ -6622,6 +6643,16 @@ namespace Ledger.Game
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
                       $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
+                      // WHERE THE DETECTIVE IS LOOKING, and how many days
+                      // of relief are left. `redirected` alone cannot say
+                      // whether the redirect is still holding or has already
+                      // decayed to nothing, and those are the two states the
+                      // whole mechanism exists to move between.
+                      $"redirected={LawHost.Redirected} " +
+                      $"pointedAt={(string.IsNullOrEmpty(_game.Homicides.PointedAt) ? "nobody" : _game.Homicides.PointedAt)} " +
+                      $"pointedOnDay={_game.Homicides.PointedOnDay} " +
+                      $"redirectRelief={_game.Homicides.RedirectReliefOn(_game.Now.Day):0.00} " +
+                      $"inquiry={_game.PoliceInquiry} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"pledged={_pledged} pledgeRefused={_pledgeRefused} brokeWith={_brokeWith} " +
                       $"allegianceMoves={GameController.AllegianceChanges} poachesHeard={(_game != null && _game.Empire != null ? _game.Empire.PoachesHeard : -1)} allegianceOk={allegianceOk} " +

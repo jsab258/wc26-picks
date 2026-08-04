@@ -183,25 +183,36 @@ namespace Ledger.Game
 
         /// Whether the detective is asking about the player by name yet, and
         /// how much of the pressure a body is responsible for.
-        public static bool EllisIsAskingAboutYou(HomicideBook book, GossipMill mill)
+        public static bool EllisIsAskingAboutYou(HomicideBook book, GossipMill mill, int today = -1)
         {
             if (book == null) return false;
-            return Police.AsksAboutYou(InquiryOf(book, mill));
+            return Police.AsksAboutYou(InquiryOf(book, mill, today));
         }
 
         /// The inquiry level, which follows from bodies and from who can still
         /// name you rather than from street noise.
-        public static Inquiry InquiryOf(HomicideBook book, GossipMill mill)
-        {
-            if (book == null || book.BodyCount == 0) return Inquiry.None;
-            double weight = book.BodyCount * HomicideBook.PerBody;
-            var live = book.LiveWitnesses(mill);
-            if (live.Count > 0) weight += HomicideBook.NamedWeight;
-            if (live.Count > 1) weight += (live.Count - 1) * HomicideBook.PerExtraWitness;
-            return weight >= HomicideBook.ManhuntAt ? Inquiry.Manhunt
-                 : weight >= HomicideBook.InvestigationAt ? Inquiry.Investigation
-                 : Inquiry.Procedure;
-        }
+        ///
+        /// ONE IMPLEMENTATION NOW. This used to compute the stage itself —
+        /// bodies, plus a flat `NamedWeight` if anybody could name you, plus
+        /// corroboration — beside `HomicideBook.Stage`, which computes the same
+        /// stage scaled by how sure the strongest witness is. Two answers to one
+        /// question, agreeing most of the time and differing whenever the
+        /// strongest witness was under certain, and this is the fifth pair of
+        /// this shape found in a night. The redirect made it urgent rather than
+        /// merely untidy: `PointAt` moves `Stage` and could never have moved
+        /// this, so the game would have had a detective who was looking
+        /// elsewhere according to one call and at you according to the other.
+        ///
+        /// THE BEHAVIOUR CHANGE IS DELIBERATE AND SMALL, and it is stated rather
+        /// than slipped in. `LiveWitnesses` only returns people at or above
+        /// `TestimonyGrade` (0.50), so the flat version was reading 0.60 for a
+        /// witness the mill grades between 0.50 and 1.00 — pessimistic by up to
+        /// 0.30 of pressure. `Stage` uses the grade the mill actually holds,
+        /// which is the number every other consequence in this game is decided
+        /// by, so the divergence resolves toward the rest of the project rather
+        /// than away from it.
+        public static Inquiry InquiryOf(HomicideBook book, GossipMill mill, int today = -1) =>
+            book == null || book.BodyCount == 0 ? Inquiry.None : book.Stage(mill, null, today);
 
         /// Who among the people who watched would actually go to the police.
         ///

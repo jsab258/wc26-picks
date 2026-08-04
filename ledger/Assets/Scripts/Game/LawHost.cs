@@ -37,6 +37,15 @@ namespace Ledger.Game
         public static int Denounced { get; private set; }
         public static int MarksFiled { get; private set; }
 
+        /// How many charges actually moved the detective off the player.
+        ///
+        /// SEPARATE FROM `Denounced`, because a charge that sticks and a charge
+        /// that sticks AND redirects are different events — most charges land
+        /// while she is already asking about you by name, and `RedirectsInquiry`
+        /// refuses those on purpose. One counter for both would report the verb
+        /// working on a run where the redirect never once fired.
+        public static int Redirected { get; private set; }
+
         /// The last one, in words, for the verdict. A count says the code ran;
         /// this says what it decided, which is the thing worth reading.
         public static string LastVerdict { get; private set; } = "none";
@@ -45,6 +54,7 @@ namespace Ledger.Game
         {
             Denounced = 0;
             MarksFiled = 0;
+            Redirected = 0;
             LastVerdict = "none";
         }
 
@@ -111,6 +121,29 @@ namespace Ledger.Game
                     mill.Witness(teller, new Fact(d.TargetId, "charged", claim.Predicate),
                                  $"They have {d.TargetId} in for it.", sensitive: false,
                                  now: game.Now, confidence: 0.9);
+
+                // AND THE DETECTIVE LOOKS AT THEM INSTEAD, FOR FOUR DAYS.
+                //
+                // `RedirectsInquiry` returned a bool that nothing acted on until
+                // now, which is rule 6 on the file beside it: the roadmap's own
+                // note says `Inquiry` was derived from the homicide book rather
+                // than stored, so there was nowhere to put the answer.
+                // `HomicideBook.PointAt` is that place, and the relief it buys
+                // decays to nothing over `RedirectHolds` days.
+                //
+                // The guard stays in `Informing` rather than moving here: a
+                // manhunt cannot be talked away, an investigation already about
+                // you by name cannot be turned, and below that she was not
+                // looking at you anyway. Asking the current stage BEFORE
+                // pointing, because pointing changes it and a test against the
+                // state you just altered is a test of nothing.
+                if (game.Homicides != null
+                    && Informing.RedirectsInquiry(d.Outcome, game.PoliceInquiry))
+                {
+                    game.Homicides.PointAt(d.TargetId, game.Now.Day);
+                    Redirected++;
+                    LastVerdict += $", inquiry pointed at {d.TargetId}";
+                }
             }
             return d;
         }

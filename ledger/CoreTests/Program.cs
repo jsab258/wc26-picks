@@ -572,6 +572,90 @@ namespace Ledger.CoreTests
                   && Informing.StandsAt == HomicideBook.TestimonyGrade,
                   "the magistrate is the same magistrate",
                   $"{Informing.StandsAt}");
+
+            // -- AND WHERE THE REDIRECT LANDS ------------------------------
+            //
+            // `RedirectsInquiry` returned a bool nothing could act on: the
+            // roadmap's own note said `Inquiry` is derived from the book rather
+            // than stored, so there was no value to point elsewhere. A verb
+            // whose effect has nowhere to land is rule 6, on code four hours
+            // old. `HomicideBook.PointAt` is that place.
+            var book = new HomicideBook();
+            var mill = new GossipMill(new SocialGraph());
+            mill.Add(Agent("ada", "Ada", "day"));
+            var t0 = new GameTime(1, 22, 0);
+            var kill = book.Record("mick", "Mick Farrow", 1, 23, "the yard");
+            kill.SawYouDoIt.Add("ada");
+            book.FileWith(mill, kill, t0);
+
+            // THE ACCEPT CASE FIRST, and here that means the UNREDIRECTED one:
+            // if a certain witness does not produce a manhunt, every reading
+            // below it is measuring the wrong thing.
+            double bare = book.Pressure(mill, null, 1);
+            Check(book.Stage(mill, null, 1) == Inquiry.Manhunt,
+                  "one body and a witness who is certain is a manhunt",
+                  $"{bare:0.00}");
+
+            book.PointAt("kest", 1);
+            double day0 = book.Pressure(mill, null, 1);
+            Check(book.Stage(mill, null, 1) == Inquiry.Investigation,
+                  "a charge that sticks walks the manhunt back to an investigation",
+                  $"{bare:0.00} -> {day0:0.00}");
+
+            // NEVER TO NOTHING. The bodies are not redirected — only the part of
+            // the pressure that comes from somebody naming you — so this cannot
+            // clear an inquiry however well it goes. Same lesson, and the same
+            // arithmetic, as killing the one witness to your killing.
+            Check(book.Stage(mill, null, 1) != Inquiry.None && day0 > 0,
+                  "and never to nothing, because the body is still on her desk",
+                  $"{day0:0.00}");
+
+            // AND IT GIVES BACK EXACTLY WHAT IT TOOK. Printed as a series rather
+            // than asserted at one point: a decay is a shape, and one sample
+            // cannot tell a decay from a step.
+            var series = new List<string>();
+            for (int d = 1; d <= 1 + HomicideBook.RedirectHolds; d++)
+                series.Add($"d{d}={book.Pressure(mill, null, d):0.00}");
+            Console.WriteLine($"  .. redirect decay: {string.Join(" ", series)} (bare {bare:0.00})");
+            Check(book.Pressure(mill, null, 1 + HomicideBook.RedirectHolds) == bare,
+                  "four days later she is back, and the relief is gone entirely",
+                  series[series.Count - 1]);
+            Check(book.Pressure(mill, null, 2) > day0
+                  && book.Pressure(mill, null, 2) < bare,
+                  "with the days in between rising monotonically toward it");
+
+            // A CALLER THAT DOES NOT KNOW THE DATE GETS NO DISCOUNT. An absent
+            // measurement is not a passing one — the same principle that stopped
+            // `perfOk` going green on zero samples.
+            Check(book.Pressure(mill, null) == bare,
+                  "and a caller who cannot say what day it is gets no relief at all",
+                  $"{book.Pressure(mill, null):0.00}");
+
+            // Pointing at the player is refused, in code and from a save file.
+            book.PointAt("player", 1);
+            Check(book.PointedAt == "kest", "the law cannot be pointed at the player");
+
+            // THE REDIRECT SURVIVES A SAVE. A consequence that expires on reload
+            // is not a consequence, and this project scores itself 95 on that.
+            //
+            // THROUGH THE SERIALISER, NOT DICTIONARY TO DICTIONARY. `ToJson`
+            // writes a boxed `int` and `MiniJson.GetInt` only accepts a
+            // `double`, because after a real parse every JSON number is one —
+            // so handing the dictionary straight across tests a path the game
+            // never takes and reported `pointedOnDay=0` for a field that
+            // round-trips correctly. The first version of this test did exactly
+            // that, and it would have had me "fixing" working code. Suspect the
+            // instrument.
+            var reloaded = new HomicideBook();
+            reloaded.FromJson(MiniJson.Deserialize(MiniJson.Serialize(book.ToJson()))
+                              as Dictionary<string, object>);
+            Check(reloaded.PointedAt == "kest" && reloaded.PointedOnDay == 1,
+                  "and it is in the save file with the bodies",
+                  $"{reloaded.PointedAt}@{reloaded.PointedOnDay}");
+            var forged = new HomicideBook();
+            forged.FromJson(new Dictionary<string, object> { { "pointedAt", "player" } });
+            Check(forged.PointedAt == "",
+                  "a hand-edited save is not a quieter route into an impossible state");
         }
 
         static void TestBodyParts()

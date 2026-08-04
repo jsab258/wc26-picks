@@ -112,6 +112,84 @@ namespace Ledger.Core
 
         public Killing Of(string victimId) => _killings.FirstOrDefault(k => k.VictimId == victimId);
 
+        // -- WHERE THE DETECTIVE IS LOOKING ---------------------------------
+
+        /// Who the law is currently asking about instead of you, and the day the
+        /// charge stuck. Empty when nobody has been pointed at.
+        ///
+        /// THIS IS THE HALF OF `Informing` THAT DID NOT EXIST. `RedirectsInquiry`
+        /// was written last night and returns a bool that nothing could act on,
+        /// because the roadmap's own note says why: *"`Inquiry` is derived from
+        /// the homicide book rather than stored, so there is no value to point
+        /// elsewhere."* A verb whose effect has nowhere to land is rule 6 on
+        /// four-hour-old code.
+        public string PointedAt { get; private set; } = "";
+        public int PointedOnDay { get; private set; } = -1;
+
+        /// How much of the NAMED pressure a fresh redirect takes off, and how
+        /// long before it is entirely gone.
+        ///
+        /// IT SUBTRACTS FROM THE NAMED TERM ONLY, and that is the design rather
+        /// than a safety clamp. `Pressure` is bodies plus whoever will name you;
+        /// a detective who has been pointed at somebody else stops weighing the
+        /// witness, and the bodies are still on her desk. So a redirect can walk
+        /// a manhunt back to an investigation and can never walk it to nothing —
+        /// the same arithmetic, and the same lesson, as killing the one witness
+        /// to your killing, which this book has always priced that way.
+        ///
+        /// AND IT DECAYS, WHICH IS THE WHOLE POINT. Buying time is a decision
+        /// with a shape: four days of quiet, then she is back, and you have a
+        /// `lied_to_police` fact on you for the rest of the save if it blew back.
+        /// A permanent redirect would be the most exploitable thing in the game —
+        /// `Informing`'s own comment says exactly that about manhunts — and a
+        /// consequence that expires cleanly is the opposite of consequence
+        /// persistence 95, which is the moat this project is built on.
+        /// THE SIZE COMES OUT OF THE EXISTING NUMBERS, not out of the air. The
+        /// strongest case there is — one body, one witness certain — is
+        /// `PerBody + NamedWeight` = 1.00, a manhunt. For a redirect to walk
+        /// that back to an investigation and no further it must leave at least
+        /// `InvestigationAt - PerBody` = 0.30 of the named 0.60 standing, so the
+        /// relief cannot exceed 0.50. 0.45 sits just inside that rather than on
+        /// the boundary, because a gate decided by the last bit of a double is a
+        /// gate decided by nothing.
+        ///
+        /// My first draft was 0.60, written before any of this was worked out,
+        /// and it took a manhunt to 0.64 — straight past investigation into
+        /// procedure, which is most of the way to the exploit `Informing`
+        /// exists to refuse. The test caught it in a second because it asserted
+        /// the SENTENCE in the comment rather than the number in the code.
+        public const double RedirectRelief = 0.45;
+        public const int RedirectHolds = 4;
+
+        /// A charge stuck. She is asking about them now.
+        ///
+        /// Only ever called with `Accusation.Charged` and an inquiry that was
+        /// below `Investigation` — `Informing.RedirectsInquiry` is the gate, and
+        /// it lives there rather than here so the police machinery does not have
+        /// to know what an accusation is.
+        public void PointAt(string suspectId, int day)
+        {
+            if (string.IsNullOrEmpty(suspectId) || suspectId == "player") return;
+            PointedAt = suspectId;
+            PointedOnDay = day;
+        }
+
+        /// How much of the named pressure is currently lifted, 0..1.
+        ///
+        /// `today` below the day it was pointed means the caller does not know
+        /// what day it is, and the answer is then zero rather than full relief:
+        /// an un-wired caller must not get a discount it never asked for. That
+        /// is the same principle as `perfOk` refusing to pass on no samples —
+        /// an absent measurement is not a passing one.
+        public double RedirectReliefOn(int today)
+        {
+            if (string.IsNullOrEmpty(PointedAt) || PointedOnDay < 0) return 0;
+            if (today < PointedOnDay) return 0;
+            int elapsed = today - PointedOnDay;
+            if (elapsed >= RedirectHolds) return 0;
+            return RedirectRelief * (1.0 - (double)elapsed / RedirectHolds);
+        }
+
         /// Plant every witness's version in the mill, as facts rather than
         /// stories. `alive` answers whether a given id is still walking around
         /// — a dead witness carries nothing, and that is the entire point of
@@ -173,7 +251,30 @@ namespace Ledger.Core
         /// to an investigation — not to procedure, and never to nothing. Do it
         /// once more and you are past where the first body put you. Violence
         /// works, and it costs more than it saves, and here that is arithmetic.
-        public double Pressure(GossipMill mill, Func<string, bool> alive = null)
+        ///
+        /// AND ONE MORE LINE, SINCE 4 AUGUST. If a charge against somebody else
+        /// has stuck, the named half is reduced while it holds:
+        ///
+        ///   one body, one witness certain              1.00  manhunt
+        ///   the same, day the redirect lands           0.73  investigation
+        ///   the same, one day later                    0.80  investigation
+        ///   the same, two days later                   0.87  investigation
+        ///   the same, three days later                 0.93  investigation
+        ///   the same, four days later                  1.00  manhunt again
+        ///
+        /// Read the first and last lines together: pointing a detective at
+        /// somebody buys you four days and gives back exactly what it took.
+        ///
+        /// A THINNER CASE MOVES FURTHER, and that is right rather than a bug.
+        /// One witness at 0.6 is 0.76, an investigation; redirected on the day
+        /// it lands it is 0.60, procedure. The relief is a fixed fraction of the
+        /// named pressure, so it is worth more when less of the street is
+        /// naming you — which is what having less to redirect away from means.
+        ///
+        /// `today` defaults to -1, meaning the caller does not know the date, and
+        /// then no relief applies at all. A discount nobody asked for is worse
+        /// than no discount.
+        public double Pressure(GossipMill mill, Func<string, bool> alive = null, int today = -1)
         {
             if (_killings.Count == 0) return 0;
             double p = _killings.Count * PerBody;
@@ -187,15 +288,18 @@ namespace Ledger.Core
                         var r = mill.Get(id)?.BestOfValue(k.TopicKey, "true");
                         if (r != null && r.Confidence > best) best = r.Confidence;
                     }
-                p += NamedWeight * best;
-                p += PerExtraWitness * (live.Count - 1);
+                double named = NamedWeight * best + PerExtraWitness * (live.Count - 1);
+                // THE BODIES ARE NOT REDIRECTED. Only the part of the pressure
+                // that comes from somebody naming you is, which is what makes
+                // this incapable of clearing an inquiry however well it goes.
+                p += named * (1.0 - RedirectReliefOn(today));
             }
             return p;
         }
 
-        public Inquiry Stage(GossipMill mill, Func<string, bool> alive = null)
+        public Inquiry Stage(GossipMill mill, Func<string, bool> alive = null, int today = -1)
         {
-            double p = Pressure(mill, alive);
+            double p = Pressure(mill, alive, today);
             if (p <= 0) return Inquiry.None;
             if (p >= ManhuntAt) return Inquiry.Manhunt;
             if (p >= InvestigationAt) return Inquiry.Investigation;
@@ -204,8 +308,15 @@ namespace Ledger.Core
 
         // -- save/load ----------------------------------------------------
 
+        // THE REDIRECT SAVES. A consequence that survives until you reload is
+        // not a consequence, and this project scores itself 95 on persistence —
+        // so where the detective is looking has to be in the file with the
+        // bodies. `SaveChaos` throws malformed values at every field here, and
+        // `RedirectReliefOn` already refuses a day it cannot make sense of.
         public Dictionary<string, object> ToJson() => new Dictionary<string, object>
         {
+            { "pointedAt", PointedAt },
+            { "pointedOnDay", PointedOnDay },
             { "killings", _killings.Select(k => (object)new Dictionary<string, object>
                 {
                     { "victim", k.VictimId }, { "name", k.VictimName },
@@ -218,7 +329,20 @@ namespace Ledger.Core
         public void FromJson(Dictionary<string, object> d)
         {
             _killings.Clear();
+            PointedAt = "";
+            PointedOnDay = -1;
             if (d == null) return;
+            // NAMING THE PLAYER FROM A FILE IS THE SAME REFUSAL AS NAMING THEM
+            // FROM CODE. `PointAt` will not do it and neither will a save — a
+            // hand-edited file must not be a second, quieter route into a state
+            // the game says is impossible. Same shape as `Restore` clamping
+            // negative job counts, which `SaveChaos` found fifteen of.
+            string who = MiniJson.GetString(d, "pointedAt");
+            if (!string.IsNullOrEmpty(who) && who != "player")
+            {
+                PointedAt = who;
+                PointedOnDay = MiniJson.GetInt(d, "pointedOnDay");
+            }
             foreach (var o in MiniJson.GetList(d, "killings") ?? new List<object>())
             {
                 var k = o as Dictionary<string, object>;
