@@ -503,6 +503,16 @@ namespace Ledger.Game
         /// one field away from shipping.
         public int AttentionRung => _attention.Reached();
 
+        /// HAS THIS PERSON WORKED OUT WHO YOU ARE, as distinct from having
+        /// looked at you. `Noticed` is a glance that stuck; `Identified` is
+        /// long enough in the acuity band to put a name to a face, and the
+        /// gap between them is most of what being careful in this city
+        /// means. Core has drawn the distinction since it was written and
+        /// nothing in the game has ever asked for it — `Reached()` folds it
+        /// into a rung, which is not the same as being able to COUNT the
+        /// people who got there.
+        public bool HasIdentifiedPlayer => _attention.Identified;
+
         /// Nerve, for whether they say something rather than only look. The
         /// crowd's walkers do not all have a `Gossiper` behind them, so this
         /// defaults to the middle of the range rather than pretending.

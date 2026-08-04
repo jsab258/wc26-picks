@@ -2413,12 +2413,32 @@ namespace Ledger.Game
             var cam = Camera.main;
             if (cam == null || _npcs == null) return;
             _crowdSeen.Clear();
+            // GLANCED AT versus KNOWS WHO YOU ARE, counted in ONE pass so the
+            // two describe the same instant. `deedWitnesses/deedEyesOpen` were
+            // three separate maxima printed as one event's breakdown, and this
+            // is the same shape of number one system over.
+            int attending = 0, identified = 0;
             foreach (var n in _npcs)
             {
                 if (n == null || !n.isActiveAndEnabled) continue;
+                if (n.AttendingPlayer) attending++;
+                if (n.HasIdentifiedPlayer)
+                {
+                    identified++;
+                    // DisplayName, because that is the identifier a walker
+                    // has — there is no Id on this type, which grepping for
+                    // one before writing the line established rather than
+                    // the compiler establishing it in half an hour.
+                    if (!string.IsNullOrEmpty(n.DisplayName)) _identifiedEver.Add(n.DisplayName);
+                }
                 var v = cam.WorldToViewportPoint(n.transform.position);
                 if (v.z <= 0 || v.x < 0 || v.x > 1 || v.y < 0 || v.y > 1) continue;
                 _crowdSeen.Add(n.transform.position);
+            }
+            if (identified > _identifiedPeak)
+            {
+                _identifiedPeak = identified;
+                _attendingAtIdentifiedPeak = attending;
             }
             if (_crowdSeen.Count < 2) return;
             int inside = 0;
@@ -2554,6 +2574,12 @@ namespace Ledger.Game
         Injury _harmTreated;
         string _claimVia = "not reached";
         int _denounceWitnesses;
+        /// How many people have worked out who the player is, at the worst
+        /// instant, with the number merely LOOKING at that same instant — and
+        /// the distinct count over the whole run, which is the one that says
+        /// whether being careful is possible at all.
+        int _identifiedPeak, _attendingAtIdentifiedPeak;
+        readonly HashSet<string> _identifiedEver = new HashSet<string>();
         /// Nullable because "the cut never happened" and "it happened and
         /// nobody saw" are different facts, and a plain false would merge
         /// them — the denominator rule, in the smallest form it takes.
@@ -7737,6 +7763,9 @@ namespace Ledger.Game
                       $"measureFailing={DialogueUI.MeasureFailing} " +
                       $"measureWorst={DialogueUI.MeasureWorst:0} " +
                       $"measureWorstWhere=[{DialogueUI.MeasureWorstWhere}] " +
+                      $"identifiedPeak={_identifiedPeak} " +
+                      $"attendingAtIdentified={_attendingAtIdentifiedPeak} " +
+                      $"identifiedEver={_identifiedEver.Count} " +
                       $"doubtShown={doubtShown} doubtHeld={doubtHeld} doubtWho={doubtWho} " +
                       // BOTH POPULATIONS AND BOTH WEIGHTS. Counts alone cannot
                       // show the mechanic: two racket rumours from a capable
