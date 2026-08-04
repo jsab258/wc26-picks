@@ -173,7 +173,7 @@ def main():
         if head not in dropped:
             continue
         window = src[m.start():m.start() + 900]
-        for key in re.findall(r"([A-Za-z][A-Za-z0-9]{2,})=\{", window):
+        for key, expr in re.findall(r"([A-Za-z][A-Za-z0-9]{2,})=\{([^}]*)\}", window):
             # A PREFIXED NAME IS THE SAME NUMBER. The done-line spells these
             # `nightNoBloom` and `ringSprites` where the narration line spells
             # them `noBloom` and `sprites` — the same reading, disambiguated for
@@ -187,8 +187,37 @@ def main():
             # over-report a number as REACHABLE — a false "this is fine" costs
             # a read, a false "this is missing" costs a hunt for a bug that
             # does not exist. So the match is deliberately generous.
-            if (key + "=").lower() not in done.lower():
-                stranded.setdefault(key, head)
+            # AND THE SAME VALUE UNDER ANOTHER LABEL IS STILL THE SAME VALUE.
+            #
+            # Fifth narrowing, same shape as the other four: it claimed
+            # something was missing that is plainly there. The frisk line
+            # prints `happened={_friskGroundlessHappened}` and the gate
+            # labels print that identical field as `groundless=`, so the
+            # number arrives every run under a clearer name. The tool saw
+            # only the label and said unreachable.
+            #
+            # That false positive is worse than it looks, because the
+            # obvious way to clear it is to add a DUPLICATE key to the
+            # done-line — noise added to a two-hundred-key line to make a
+            # checker green, which is rule 2's failure wearing a different
+            # coat. I was one edit from doing it.
+            #
+            # So the field behind the label counts too. This is the same
+            # deliberate generosity the comment above argues for: a false
+            # "this is fine" costs a read, a false "this is missing" costs
+            # a hunt for a bug that does not exist.
+            # `_field` and `Type.Property` both, because the done-line
+            # prints plenty of each. `NoiseRing.LastOccluded` is the
+            # live example, and it stays flagged after this — it is
+            # genuinely absent, which is how a widened match should
+            # behave on a real finding.
+            fields = (re.findall(r"_[A-Za-z][A-Za-z0-9_]*", expr)
+                      + re.findall(r"\b[A-Z][A-Za-z0-9]*\.[A-Za-z][A-Za-z0-9]*", expr))
+            if (key + "=").lower() in done.lower():
+                continue
+            if any(f in done for f in fields):
+                continue
+            stranded.setdefault(key, head)
     print(f"\n  of those, {len(stranded)} number(s) appear NOWHERE on the "
           f"always-printed done-line — the only genuinely unreachable ones:")
     for key, head in sorted(stranded.items()):
