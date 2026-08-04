@@ -56,6 +56,23 @@ scheduling instead of to CI's output.
    reminder fires 07:55 UTC.
 5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
    more once the six textured models are in.
+5b. **THREE GATES ARE INTERMITTENT, and that is worse than three broken
+   ones.** `harm`, `disposal` and `accident` have each gone red on runs where
+   nothing relevant changed — `accident`+`disposal` together on one older
+   run, `harm` on another, all three on 31332c2 — while passing on either
+   side. Checked before blaming tonight's change, which touched none of them.
+
+   The one lead: `harm` prints `samCap=0.7000` on the failing run against
+   `samCap=1.00` on passing ones. That is `Watched.LoyaltyCeiling`, which
+   only moves when Sam WITNESSES a killing — so the gate asserts something
+   that stops being true in a legitimate world state, rather than catching a
+   fault. Over-specified, not flaky.
+
+   **Fix the assertion, not the world.** And soon: a gate that is red for a
+   reason nobody can name trains everyone to read red as noise, which is the
+   failure mode that lets a real one through. Read all three failing verdicts
+   side by side against a passing one before touching anything.
+
 6. **Keep retiring the reach ledger.** 90 to 77 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces
    (`OperationPlan.Bringing` needs crew selection) and one real refactor: the
