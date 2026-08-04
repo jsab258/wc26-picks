@@ -255,6 +255,31 @@ peak / median / last-wins / at-worst it is, and whether that answers the
 question being asked of it. It takes one sentence. All three above would have
 been caught by it, and two of them cost a build each.
 
+**AND A MINORITY IS INVISIBLE TO EVERY MEDIAN.** Twice inside one hour on
+4 August, in two systems, and both times the picture was right and the number
+was right and they disagreed:
+
+| the frame showed | the number said | why both were true |
+|---|---|---|
+| thirty people packed shoulder to shoulder in a block | `crowdGapMedian=0.41`, a healthy street | a median over PAIRS is dominated by the sixty people nowhere near each other; the huddle is a handful of pairs |
+| three figures standing in a clean T-pose on Copper Row | `armStreet=10.6 armStreetWorst=14.8`, arms hanging | `armStreet` is a median ACROSS BODIES and the "worst" is the MAXIMUM OVER THOSE MEDIANS — a worst that never stops being a median |
+
+Both had been used to CLOSE their question. The second one closed it that
+morning, in writing, and the T-poses were in the stills of the next two builds.
+
+This is not the peak/median confusion above, which is about reading a number as
+the wrong statistic. This is a statistic that is exactly what it says and
+**structurally cannot see the thing being asked about**: a median describes the
+middle, so any fault affecting fewer than half the population is invisible to it
+no matter how severe, and dressing it up as a "worst" over frames does not help
+if the per-frame value was itself a median.
+
+The tell is the shape of the question. "What does the street look like" is a
+median question. **"Is anybody ..." is never a median question** — it is a max,
+a decile, or a count, and it needs the denominator from the same instant beside
+it. When a picture and a number disagree, ask which fraction of the population
+the fault would touch before believing either.
+
 **AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
 night, all mine, all in metrics I had written hours earlier:
 

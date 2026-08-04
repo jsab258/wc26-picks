@@ -432,7 +432,7 @@ namespace Ledger.Game
             // be a box while a mannequin's worth of detail was being drawn on
             // somebody four districts away.
             //
-            // `GameController.TickBodyDetail` now spends it on the twelve
+            // `PopulationHost.TickBodyDetail` now spends it on the twelve
             // NEAREST, every second, and this line only decides who is ELIGIBLE.
             // Spawning as a mannequin is deliberate: a walker created far away
             // should not pay for a skinned mesh it is about to lose, and the
