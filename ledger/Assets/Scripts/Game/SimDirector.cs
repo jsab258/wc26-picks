@@ -3449,7 +3449,26 @@ namespace Ledger.Game
                 // something other than the emission — and if it comes back
                 // `shadowed` the cull is right and the gate is asserting
                 // something the world does not owe it.
-                _slamRingSkips.Add($"#{_slams}:{NoiseRing.LastSkip}@{NoiseRing.LastRadius:0}m");
+                // WHETHER A RING ACTUALLY APPEARED FOR THIS SLAM, not what a
+                // global last-value happened to hold afterwards.
+                //
+                // The red run reported `#3:drawn@80m #4:drawn@81m` beside
+                // `slamDrewRing=False`, which cannot both be true of the same
+                // event. `LastSkip` and `LastRadius` are GLOBALS read after the
+                // Emit — and `Perceivers.Emit` returns EARLY, before drawing
+                // anything, when a louder sound is still fresh. So a swallowed
+                // slam leaves the previous ring's verdict standing and the
+                // diagnostic reports somebody else's "drawn".
+                //
+                // The same stale-global read this project keeps shipping: a
+                // number taken at the wrong instant, next to one taken at the
+                // right one. `shown` is the delta across THIS Emit, and
+                // `swallowed` says the guard fired, so the two can no longer
+                // disagree without saying which.
+                bool drewThis = NoiseRing.Shown > _ringsShownBeforeSlam;
+                _slamRingSkips.Add(drewThis
+                    ? $"#{_slams}:{NoiseRing.LastSkip}@{NoiseRing.LastRadius:0}m"
+                    : $"#{_slams}:noring(swallowed-or-culled)");
                 _slamAt = Time.time;
                 Debug.Log($"SimDirector: slammed a door #{_slams}, {present} people nearby, "
                           + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m"
