@@ -69,7 +69,6 @@
     "Perception.SymmetryPredictsSeen": "BY DESIGN: an invariant the perception tests assert — that seeing is symmetric — rather than a function the game calls.",
     "PhoneBook.LinesFor": "WIRE: M18 — who can be reached at which number.",
     "PhoneBook.ReachableNow": "WIRE: M18 — whether they would pick up at this hour.",
-    "PlayerIdentity.InTalk": "WIRE: M18 — how the player refers to themselves in conversation, which changes once anybody knows them by name.",
     "Population.InBand": "BY DESIGN: the LOD band query used by the population tests and by BalanceLab's distribution checks. The game asks for residents by district, never by band.",
     "Reaction.Confront": "WIRE: M16 phase 3 — an NPC who saw you do it walking over. The single most visible missing reaction in the game.",
     "ResponseValidator.TellCount": "BY DESIGN: a measurement the LLM harness reports on generated dialogue. The game validates a response with Validate; the count is for the report.",

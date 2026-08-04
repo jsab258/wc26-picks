@@ -75,6 +75,36 @@ namespace Ledger.Game
             return false;
         }
 
+        /// HAS THE NAME GOT OUT. True once anybody on the street knows what to
+        /// call the player.
+        ///
+        /// `PlayerIdentity.InTalk` has sat on the reach ledger under "how the
+        /// player refers to themselves in conversation" — the ledger's own
+        /// description was wrong, incidentally; it is how the STREET refers to
+        /// them in a rumour, third person. Its comment explains the mechanic
+        /// exactly: *"Talk travels further than acquaintance does, so a rumor
+        /// about you can carry your surname into mouths that have never met
+        /// you. That is exactly how a name gets around a district."*
+        ///
+        /// Nothing called it, so every rumour in this game hardcoded "the new
+        /// owner" — the panel readback is full of them — and the district could
+        /// never learn to say Novak. That is a whole beat of the game's central
+        /// idea, sitting one string away.
+        ///
+        /// ANY, not all, and that is the mechanic rather than laziness. One
+        /// person knowing your name is how the rest of them come to say it.
+        public bool StreetKnowsName()
+        {
+            if (_mill == null) return false;
+            foreach (var g in _mill.Agents)
+                if (PlayerIdentity.KnowsName(g)) return true;
+            return false;
+        }
+
+        /// The player as the street would name them in talk, right now.
+        string Talked => _game != null && _game.Me != null
+            ? _game.Me.InTalk(StreetKnowsName()) : "the new owner";
+
         public void Begin(GameController game, List<NpcWalker> npcs, List<ConversationHost> hosts)
         {
             _game = game;
@@ -154,7 +184,7 @@ namespace Ledger.Game
             // find out about. It will leak toward the day circle as the NPCs mingle.
             _mill.Witness("Rocco",
                 new Fact("player", "location_d2_evening", "warehouse"),
-                "the new owner was at the old warehouse the night of the fire", true, _game.Now);
+                $"{Talked} was at the old warehouse the night of the fire", true, _game.Now);
         }
 
         /// Fired with every batch of real gossip exchanges (organic ticks and
@@ -645,8 +675,8 @@ namespace Ledger.Game
             var seen = new List<string>();
             if (_mill == null) return seen;
             var summary = confidence >= 0.95
-                ? "the new owner was handling a package in the street past midnight"
-                : "someone in a runner's coat — maybe the new owner — was handling a package past midnight";
+                ? $"{Talked} was handling a package in the street past midnight"
+                : $"someone in a runner's coat — maybe {Talked} — was handling a package past midnight";
             if (!string.IsNullOrEmpty(address)) summary += $", on {address}";
             if (!string.IsNullOrEmpty(vehicle)) summary += $", and {vehicle} was standing there with them";
             foreach (var kv in _walkers)
