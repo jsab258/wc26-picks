@@ -145,6 +145,31 @@ namespace Ledger.Game
             /// What it sounded like at the source, in dB.
             public double Loudness;
             public int SawSomething;
+
+            /// WHAT THIS ACT IS WORTH AS A TOPIC, 0..1. `Violence.Notoriety`
+            /// was unit-tested and uncalled since it was written — the model
+            /// that says a brawl outside the bar at noon is the day's news and
+            /// the same fight in an alley at three is a sound somebody
+            /// half-heard, and nothing had ever asked it.
+            ///
+            /// REPORTED HERE, APPLIED BY THE CALLER, and the first attempt did
+            /// the opposite: `ViolenceHost` is a static class with no game in
+            /// scope, so `Game.Campaign.Noted(...)` bound `Game` to the
+            /// NAMESPACE and cost a round trip (CS0118).
+            ///
+            /// Being forced to move it turned out to be right on its own terms.
+            /// One of the two callers is the place-reading probe, which commits
+            /// THE SAME KILLING three times to compare alley against market —
+            /// a measurement, not an event. Applying reputation inside `Commit`
+            /// would have had the instrument make the player notorious for a
+            /// killing that never happened, three times a run, and nothing
+            /// would have looked wrong.
+            ///
+            /// Counted off `SawSomething` and not `Seen.Count`: `Seen` is the
+            /// CONSIDERED set, one entry per person the resolver looked at,
+            /// empty for everybody who got nothing. Notoriety is about who
+            /// actually saw it.
+            public double Notoriety;
         }
 
         public static Aftermath Last { get; private set; }
@@ -154,6 +179,16 @@ namespace Ledger.Game
         /// The best killing-confidence any act in the run produced. Latched,
         /// because the gate reads it at the end and `Last` is only the last.
         public static double PeakKillingConfidence { get; private set; }
+
+        /// The loudest topic any act OFFERED, latched for the same reason.
+        ///
+        /// A PEAK, AND SAID SO, because `Campaign.Notoriety` next to it is a
+        /// high-water mark that then decays and the two will be read side by
+        /// side. This one answers "did any act this run deserve to be news";
+        /// the campaign's answers "how well known is the player now". Neither
+        /// answers the other, and `Acts` above is the denominator that stops a
+        /// zero here reading as a quiet street when it means nothing happened.
+        public static double PeakNotoriety { get; private set; }
 
         /// The player's coat, stained. One stain, deliberately: this is a coat,
         /// not a damage model.
@@ -170,6 +205,7 @@ namespace Ledger.Game
             Brandishes = ThreatsThatFled = ThreatsCalled = ThreatsComplied = 0;
             StainsTaken = StainsWashed = StainsNoticed = 0;
             PeakKillingConfidence = 0;
+            PeakNotoriety = 0;
             WorstStainCost = 0;
             PlayerStain = null;
             LastThreat = Arsenal.Threat.Freeze;
@@ -212,18 +248,6 @@ namespace Ledger.Game
             // every reason in the world to talk.
             var victimView = Reaction.AsVictim(deed, victimId, familiarityWithActor,
                                                survived: !lethal);
-            // AND THE STREET LEARNS WHO YOU ARE. `Violence.Notoriety` has been
-            // unit-tested and uncalled since it was written — it is the model
-            // that says a brawl outside the bar at noon is the day's news and
-            // the same fight in an alley at three is a sound somebody
-            // half-heard, and nothing had ever asked it.
-            //
-            // The witness count is the one already gathered for this deed, so
-            // the reputation and the perception agree about how public it was
-            // rather than each counting its own crowd.
-            if (Game != null && Game.Campaign != null)
-                Game.Campaign.Noted(Violence.Notoriety(seen.Count, lethal));
-
             var reacted = lethal ? Reacted.Ignore : Reacted.Flee;
             bool fleeing = Reaction.IsFleeingVictim(victimView, reacted);
             if (fleeing)
@@ -294,7 +318,9 @@ namespace Ledger.Game
                 MarkedYou = marked,
                 Loudness = loudness,
                 SawSomething = sawSomething,
+                Notoriety = Ledger.Core.Violence.Notoriety(sawSomething, lethal),
             };
+            if (Last.Notoriety > PeakNotoriety) PeakNotoriety = Last.Notoriety;
             return Last;
         }
 

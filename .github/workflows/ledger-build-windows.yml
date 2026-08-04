@@ -291,6 +291,7 @@ jobs:
           else
             say "${#shots[@]} still(s) rendered"
             cp "${shots[@]}" game-design/sim-shots/
+            STILLS_MINE=1
           fi
           ls -la game-design/sim-shots/
 
@@ -477,6 +478,7 @@ jobs:
           } >> game-design/sim-shots/verdict.txt
           if [ -f "$RUNNER_TEMP/frames-stamped.tsv" ]; then
             cp "$RUNNER_TEMP/frames-stamped.tsv" game-design/sim-shots/frames.tsv
+            FRAMES_MINE=1
             # COUNTED, NOT SUBTRACTED. This said `wc -l ... - 4` for the four
             # non-data lines, and adding the commit stamp above made it five —
             # a magic number falsified by the commit that changed the file it
@@ -512,30 +514,16 @@ jobs:
 
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          # SAVED BEFORE THE COMMIT, because the retry loop below has to be able
-          # to put these back on top of whatever another run pushed meanwhile.
-          rm -rf "$RUNNER_TEMP/ours"
-          cp -r game-design/sim-shots "$RUNNER_TEMP/ours"
-          # NEVER THE KEY MANIFEST, WHICH THIS RUN DID NOT PRODUCE.
-          #
-          # `verdict-keys.json` lives in this directory and is authored on the
-          # dev side: it is the list of measurements that must keep being
-          # reported, and `verdict-keys.py` fails a commit when one goes
-          # missing. The runner is checked out at the commit it BUILT, so a
-          # `git add` of the whole directory carries that commit's copy — and a
-          # build landing late, on an older commit, reverts the manifest and
-          # deletes every key added since.
-          #
-          # It happened tonight: a run on 5e0e5b5 dropped six entries that
-          # newer commits had added, and it surfaced only as a merge conflict.
-          # Silently, it is the worst possible failure of this guard — a lost
-          # measurement stops being noticed because the record of it having
-          # existed was deleted by the thing that was supposed to notice.
-          #
-          # Rule 5, exactly: scope what you commit to what the operation
-          # produced. This run produced stills, a verdict and a per-run copy.
-          # It did not produce the manifest.
-          git add game-design/sim-shots ':(exclude)game-design/sim-shots/verdict-keys.json'
+
+          # WHAT THIS RUN PRODUCED, AND NOTHING ELSE — the reasoning, and the
+          # build that reverted six stills it never rendered, are in the script.
+          mapfile -t ours < <(bash tools/sim-shots-stage.sh "${GITHUB_SHA:0:7}" \
+                              "${STILLS_MINE:-0}" "${FRAMES_MINE:-0}" "$RUNNER_TEMP/ours")
+          say "committing ${#ours[@]} file(s) this run produced (stills=${STILLS_MINE:-0} frames=${FRAMES_MINE:-0})"
+
+          # The script also stocks $RUNNER_TEMP/ours, which the retry loop puts
+          # back on top of whatever another run pushed meanwhile.
+          git add "${ours[@]}"
           if git diff --cached --quiet; then
             say "stills identical to the committed ones — nothing to commit"
             exit 0
@@ -620,7 +608,8 @@ jobs:
                 mine_wins=0
               fi
               if [ "$mine_wins" = "1" ]; then
-                rm -f "$RUNNER_TEMP/ours/verdict-keys.json"
+                # `ours` now holds only what this run produced, so this copy can
+                # no longer reinstate the checkout's stills over a newer run's.
                 cp -r "$RUNNER_TEMP/ours/." game-design/sim-shots/
                 say "ours is newer than ${theirs:-nothing} — updating the latest verdict and stills"
               else

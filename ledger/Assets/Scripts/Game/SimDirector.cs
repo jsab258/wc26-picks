@@ -3062,6 +3062,14 @@ namespace Ledger.Game
         /// otherwise. How many people perceived the cut, which is a
         /// better number than whether any did.
         int? _cutSawSomething;
+        /// HOW MANY TIMES A REAL ACT CHARGED THE PLAYER'S REPUTATION.
+        ///
+        /// The denominator for `notoriety`, which is otherwise a zero that
+        /// cannot tell "the street never learned anything" from "nothing ever
+        /// called the model". `Violence.Notoriety` sat unit-tested and uncalled
+        /// for weeks in exactly that state, so this is the number that would
+        /// have said so.
+        int _notorietyApplied;
         /// THE MOAT'S OWN NUMBERS, and until now they reached nobody.
         ///
         /// The log line that computes these says, in its own comment, that a
@@ -4618,6 +4626,24 @@ namespace Ledger.Game
                 // neither has ever been readable from a build.
                 _cutMarkedYou = cut?.MarkedYou;
                 _cutSawSomething = cut?.SawSomething;
+
+                // AND THE STREET LEARNS WHO YOU ARE — the one place in the
+                // project where a real act pays a reputation cost.
+                //
+                // APPLIED HERE AND NOT INSIDE `Commit`, which is where I put it
+                // first. Two things are true at once: `ViolenceHost` is static
+                // and has no game in scope (that cost a round trip, CS0118),
+                // and the OTHER caller of `Commit` is `MeasurePlace`, which
+                // commits the same killing three times to compare an alley with
+                // a market. That is an instrument. Had the reputation been
+                // charged inside `Commit`, every run would have made the player
+                // notorious for three murders nobody committed, and the number
+                // would have looked plausible.
+                if (_game != null && cut != null)
+                {
+                    _game.Campaign.Noted(cut.Notoriety);
+                    _notorietyApplied++;
+                }
                 Debug.Log($"SimDirector: cut {nearestForThreat.DisplayName} with a razor — "
                           + $"marked={cut?.MarkedYou} fleeing={cut?.VictimIsFleeing} "
                           + $"saw={cut?.SawSomething} looksLike="
@@ -8370,6 +8396,16 @@ namespace Ledger.Game
                       $"inquiry={_game.PoliceInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
+                      // THREE NUMBERS, BECAUSE ONE CANNOT ANSWER IT. `notoriety`
+                      // is what the campaign carries NOW, after decay;
+                      // `notorietyPeak` is the loudest any single act offered;
+                      // `notorietyApplied` is how many times anything charged
+                      // it at all. A zero in the first is a quiet week, an
+                      // unwired model, or a decayed reputation, and only the
+                      // other two can say which.
+                      $"notoriety={_game.Campaign.Notoriety:0.000} " +
+                      $"notorietyPeak={ViolenceHost.PeakNotoriety:0.000} " +
+                      $"notorietyApplied={_notorietyApplied} " +
                       $"denounceIgnored={_denounceIgnored} denounceStuck={_denounceStuck} denounceWitnesses={_denounceWitnesses} " +
                       $"corroboration={_denounceCorroboration:0.00} " +
                       $"contradiction={_denounceContradiction:0.00} " +
