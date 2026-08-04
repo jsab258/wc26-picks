@@ -235,6 +235,28 @@ def queue_depth():
     return True, "%s queue items ready" % m.group(2)
 
 
+def nested_types():
+    """A Core type qualified by another Core type — CS0426.
+
+    `Mixing.Bus` where `Bus` is a SIBLING of `Mixing`, not nested in it. Roslyn
+    reports it instantly and ShapeCheck cannot, because CS0426 is type
+    resolution and ShapeCheck runs reference-independent diagnostics only —
+    which is the very property that lets it run at all on a side with no Unity
+    assemblies.
+
+    So it was a twenty-eight-minute round trip, and the cost was not the error:
+    three commits went out on top of it before the verdict said the sim had
+    never run. Same shape and same remedy as `lint-shadow`, which exists
+    because CS0119 cost a round trip the same way."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-nested.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-nested")
+        return False, "CS0426 WAITING TO HAPPEN: " + first[:90]
+    m = re.search(r"\((\d+) top-level Core types checked\)", out)
+    return True, ("0 nested-type errors (%s Core types)" % m.group(1) if m
+                  else "0 nested-type errors")
+
+
 def workflow_size():
     """Can the Windows build still be DISPATCHED.
 
@@ -534,7 +556,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, shipped_cards, convo_probe, queue_depth, workflow_size,
+               card_writing, shipped_cards, convo_probe, queue_depth, nested_types, workflow_size,
                frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
