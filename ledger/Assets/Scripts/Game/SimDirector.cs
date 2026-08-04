@@ -124,6 +124,30 @@ namespace Ledger.Game
         bool _discreditExercised;
         bool? _discreditWorked;   // null = the secret never reached the day circle
         int _frozenCloses;   // closes the lost-week end screen ate before the day-8 reopen
+
+        /// THE NIGHT THE OUTFIT STOPPED CALLING, and the nights it never called
+        /// after. Zero when it never happened.
+        ///
+        /// WHY THIS IS HERE AND NOT A BALANCE QUESTION. `verdictSane` requires
+        /// that "while the campaign is live, most nights must actually post a
+        /// job" — and `GameController` reads
+        /// `InJobWindow(Now) && !Campaign.OutfitCutOff`, so once patience runs
+        /// out the outfit posts NOTHING. That is the design working: three
+        /// missed drops and they drop you. The clause was asking for job-nights
+        /// the game had deliberately stopped providing.
+        ///
+        /// It is the same repair as `_frozenCloses`, whose comment already says
+        /// it in as many words — *"the gates baseline on ACHIEVABLE counts, not
+        /// ideal ones"* — for closes eaten by the frozen end screen. Second site
+        /// of one idea, and the second site is the one nobody looked at.
+        ///
+        /// IT HAD BEEN PASSING FOR THE WRONG REASON. Across 64 kept runs the
+        /// outfit cuts the player off on SEVEN, and on six of those the bot had
+        /// scraped one drop in first, so `jobsDone=1` and the clause cleared its
+        /// bound anyway. Only the seventh — a miss before any completion — made
+        /// it visible. A gate that survives on luck is not a gate that works.
+        int _cutOffDay;
+        int _cutOffNights;
         // P5 budgets: frame times accumulated every Update, reported at Finish.
         int _frames; double _frameSum; double _frameWorst;
         bool _actThreeStaged;
@@ -867,6 +891,7 @@ namespace Ledger.Game
                               + $"{d:0.0}m away, marker={_game.HasBeatMarker}");
                 }
             }
+            TraceJob(now);
             var job = _game.ActiveJobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
@@ -1684,6 +1709,80 @@ namespace Ledger.Game
             // moment when one was. A single sample cannot answer "does this
             // ever get absurd", which is the question.
             if (mirrored > _textMirrored) _textMirrored = mirrored;
+        }
+
+        /// EVERY DROP THE OUTFIT POSTED, AND WHAT HAPPENED TO IT.
+        ///
+        /// WHY. `jobsDone=0 jobsMissed=3` came back on one run in 64 and reddened
+        /// two gates, and the run could say nothing at all about WHY the bot
+        /// missed three drops in a row — only that it had. The distribution says
+        /// this is not noise: 49 runs finish 2/3, eight finish 3/3, six finish
+        /// 1/4 with the outfit cutting them off, one finishes 0/3. So a quarter
+        /// of the spread is the bot losing drops, and no number anywhere says
+        /// what it lost them to.
+        ///
+        /// THE SUSPECT IS THE FRAME, NOT THE ROUTE. The bot heads straight for
+        /// `ActiveJobPos` the moment one opens, and the window is four in-game
+        /// hours. But `frameWorstMs=43666` — a single forty-three-second frame —
+        /// and on a frame that long the clock crosses 02:00 while the walk gets
+        /// one step. That is a hypothesis, which is exactly what this exists to
+        /// settle: closest approach says whether the bot was walking and ran out
+        /// of night, or never got near the thing at all. Rule 2, print the
+        /// series before touching anything.
+        ///
+        /// OBSERVED, NOT INSTRUMENTED INTO THE GAME. Everything here is read off
+        /// `ActiveJobPos` and the campaign's own counters, so the drop pipeline
+        /// is measured without a probe inside it — the harness watches, and a
+        /// watcher cannot alter the outcome it reports.
+        readonly List<string> _jobTrace = new List<string>();
+        bool _jobOpen;
+        int _jobOpenDay;
+        double _jobOpenDist, _jobNearest;
+        int _jobDoneAtOpen, _jobMissedAtOpen;
+
+        void TraceJob(GameTime now)
+        {
+            if (_game == null || _player == null) return;
+
+            // THE CUT-OFF, WATCHED RATHER THAN ASKED FOR. `Campaign` records the
+            // flag but not the day it flipped, and the day is what turns "the
+            // outfit went quiet" into a count of nights. Observing the edge here
+            // needs no new Core field and no save-format change.
+            if (_cutOffDay == 0 && _game.Campaign != null && _game.Campaign.OutfitCutOff)
+            {
+                _cutOffDay = now.Day;
+                Debug.Log($"SimDirector: the outfit cut us off on day {_cutOffDay} — "
+                          + $"no drop is posted after this, by design.");
+            }
+            if (_cutOffDay > 0) _cutOffNights = Mathf.Max(0, now.Day - _cutOffDay);
+
+            var pos = _game.ActiveJobPos;
+            if (pos.HasValue)
+            {
+                double d = Vector3.Distance(_player.transform.position, pos.Value);
+                if (!_jobOpen)
+                {
+                    _jobOpen = true;
+                    _jobOpenDay = now.Day;
+                    _jobOpenDist = d;
+                    _jobNearest = d;
+                    _jobDoneAtOpen = _game.Campaign.JobsDone;
+                    _jobMissedAtOpen = _game.Campaign.JobsMissed;
+                }
+                else if (d < _jobNearest) _jobNearest = d;
+                return;
+            }
+
+            if (!_jobOpen) return;
+            _jobOpen = false;
+            // WHICH COUNTER MOVED, not which one we hoped moved. A marker can
+            // also vanish without either counter changing — the campaign ending
+            // mid-window does exactly that — and calling every disappearance a
+            // miss would invent a fault out of a legitimate ending.
+            string how = _game.Campaign.JobsDone > _jobDoneAtOpen ? "done"
+                       : _game.Campaign.JobsMissed > _jobMissedAtOpen ? "MISSED"
+                       : "gone";
+            _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m nearest={_jobNearest:0}m]");
         }
 
         /// The player's own pose, swept. See the note beside where it is read.
@@ -4559,6 +4658,12 @@ namespace Ledger.Game
 
             Application.logMessageReceived -= OnLog;
 
+            // EVERY DROP AND WHAT BECAME OF IT, printed before any gate reads a
+            // job count. `jobsDone=0` was a number with no story attached; this
+            // is the story. See `TraceJob` for why the frame is the suspect.
+            Debug.Log("SimDirector: [series] jobs "
+                      + (_jobTrace.Count == 0 ? "none posted" : string.Join(" ", _jobTrace)));
+
             bool npcsMoved = false;
             foreach (var npc in _npcs)
                 if (Vector3.Distance(npc.transform.position, _startPositions[npc.DisplayName]) > 2f)
@@ -5049,8 +5154,21 @@ namespace Ledger.Game
             // to Ongoing at day 8, which made the cast-out clause unfalsifiable
             // (audit 2026-07-27) — the sampled copy is the honest record.
             bool verdictSane = camp.Verdict != Verdict.LostCastOut && _weekLostVerdict != Verdict.LostCastOut &&
-                // While the campaign is live, most nights must actually post a job.
-                (camp.Verdict != Verdict.Ongoing || camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2 - _frozenCloses);
+                // While the campaign is live AND THE OUTFIT IS STILL CALLING,
+                // most nights must actually post a job. The second half of that
+                // sentence was missing and is not a softening: a cut-off outfit
+                // posts nothing, because `GameController` asks
+                // `InJobWindow(Now) && !Campaign.OutfitCutOff`, so those nights
+                // could not have posted a job however well the run went. Same
+                // subtraction as `_frozenCloses` immediately beside it, for the
+                // same stated reason — achievable counts, not ideal ones.
+                //
+                // WHAT IT STILL CATCHES, because a bound nobody can fail is not
+                // a gate (rule 5b): a live campaign with a calling outfit that
+                // stops posting drops. That is the pipeline breaking, which is
+                // the thing this clause exists for, and it is untouched.
+                (camp.Verdict != Verdict.Ongoing ||
+                 camp.JobsDone + camp.JobsMissed >= SimMode.Days - 2 - _frozenCloses - _cutOffNights);
 
             // Act I in-engine proof (act1-draft.md): PP1/PP2 fired on their days,
             // PP4 tracked the lena_ledger transition exactly, Noor is in the mill,
@@ -6266,7 +6384,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} actThreeOk={actThreeOk} " +

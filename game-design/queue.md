@@ -38,40 +38,67 @@ scheduling instead of to CI's output.
 
 ## Now
 
-1. **ONE GATE STILL RED: `claims[made=0]`.** *(CI)* Everything else that failed
-   tonight is fixed and confirmed by a landed build — `poachesHeard=1`,
-   `allegianceOk=True`, and the companion no longer appears in any failing
-   list. The claims probe was lifted out of the denunciation's one-shot guard
-   in 79f53c0 and that build has not landed. **Read `claimWhy` when it does**;
-   it names which of the three silent early returns fired.
-2. **Read `collidingBubbles` against `bubblesOnScreen`.** *(CI)* The night
+1. **READ `billboardsStale` AND THE FOUR STILLS.** *(CI, in flight on 4ac2f0f)*
+   `review_day5_night` prints two rumour lines across the frame BACKWARDS while
+   `textMirrored=0`, `speechUpDot=1.000` and `nameTagsUpDot=1.000` all say the
+   text is fine. Cause: bubbles aim in `LateUpdate`, `Shot` renders from
+   `Update`, so **every still ever committed was drawn with the previous
+   frame's aim** — a third of a second of camera movement at `meanFrame=334ms`.
+   The aim is one implementation now and `Shot` re-aims before rendering.
+   `billboardsStale` is how far out they were BEFORE the fix; it should be
+   non-zero and the mirrored text should be gone from the frame. **Look at the
+   frame first, then the number.**
+2. **READ `bodyCoat`.** *(CI, same build)* The player reads as a bare mannequin
+   in `day2_noon` and `day5_noon` while `bodyCoatArea=1.000 bodyClothed=True`.
+   Both can be true — the meshes are painted, and painted a near-neutral. The
+   coverage metric asks whether a coat material reached every mesh; nothing
+   asked whether that colour is a coat. **If the band comes back grey or stone,
+   it is a decision, not a bug:** the street identifies the player as "someone
+   in a runner's coat" in its own rumours, so the protagonist rolling a neutral
+   is a writing problem too. Do not change the palette off the JPEG.
+3. **READ `[series] jobs` AND `cutOffNights`.** *(CI, same build)* One run in 64
+   came back `jobsDone=0` and reddened `jobRan` and `verdictSane`. The
+   distribution across every kept run: 49 finish 2/3, eight finish 3/3, **six
+   finish 1/4 with the outfit cutting them off, one finishes 0/3** — so 11% of
+   runs lose the outfit and `jobRan` survived six of those on luck, because the
+   bot had scraped one drop in first. `verdictSane` is fixed (a cut-off outfit
+   posts nothing, so those nights are unachievable exactly like frozen closes —
+   the same subtraction sitting three lines away). `jobRan` is deliberately NOT
+   loosened; see standing work.
+4. **Read `collidingBubbles` against `bubblesOnScreen`.** *(CI)* The night
    still has two speech bubbles drawn through each other. Fifty-six confabs is
    fifty-six bubbles. `NameTags` already has the declutter and `Manages`
    already draws the line — offer bubbles to it, but **only once the number
    says how bad it is**.
-3. **Read the `[panel]` line.** *(CI)* The ledger screen's live text now goes
+5. **Read the `[panel]` line.** *(CI)* The ledger screen's live text now goes
    into the verdict. Everything built tonight ships into that panel and none
    of it has been read back yet.
+6. **`claims[made=0]` — fix landed in 0ef0b10, not yet in a landed verdict.**
+   *(CI)* `ProcessClaim` hung off the LLM-backed engine, which is null in the
+   sim; it is `Claims.Process` now and `LawHost` calls it directly. Every
+   verdict up to 264d29f predates that. **Read `claimWhy` when the next one
+   lands.**
 4. **Jafar runs BODIES.bat ~10:00 CEST.** README opens with the three steps;
    reminder fires 07:55 UTC.
 5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
    more once the six textured models are in.
-5b. **THE FLAKINESS TABLE, and it corrected me twice.** `python3
+7. **THE FLAKINESS TABLE, and it has now corrected me three times.** `python3
    tools/gates.py --flaky` reads every kept run and reports which gates have
-   ever gone red and how often. Across 60 runs:
+   ever gone red and how often. Across 64 runs:
 
    | rate | gate | note |
    |---|---|---|
-   | 18/60 | claims | diagnosed and fixed — bookkeeping hung off the LLM engine |
-   | 13/60 | companionSight | fixed — the escort had no player reference |
-   | 6/60 | bodies | **never investigated** |
-   | 5/60 | allegiance | fixed — the run never poached anyone |
-   | 4/60 | traffic | **I called this a one-off two hours ago. It is not.** Now prints its five readings; it used to say nothing but its name |
-   | 2/60 | harm | fixed — asked about every Rocco injury, meant the one it treated |
-   | 2/60 | disposal, accident | open — the "crowded" spot may have nobody in it; `crowdedWatchers` now prints |
-   | 1/60 | perception, confab | open, unexamined |
+   | 22/64 | claims | fixed — bookkeeping hung off the LLM engine; awaiting a landed verdict |
+   | 13/64 | companionSight | fixed — the escort had no player reference |
+   | 6/64 | bodies | **still never investigated — the biggest untouched one** |
+   | 5/64 | allegiance | fixed — the run never poached anyone |
+   | 4/64 | traffic | **I called this a one-off. It is not.** Now prints its five readings |
+   | 2/64 | harm | fixed — asked about every Rocco injury, meant the one it treated |
+   | 2/64 | disposal, accident | open — the "crowded" spot may have nobody in it; `crowdedWatchers` now prints |
+   | 1/64 | jobRan, verdictSane | verdictSane fixed; jobRan is a real coverage hole, see standing work |
+   | 1/64 | perception, confab | open — confab is the old total-failure gate and is moot at 66 confabs |
 
-   **`bodies` at 6/60 is the biggest untouched one.** Read its label across
+   **`bodies` at 6/64 is the biggest untouched one.** Read its label across
    the six before touching anything — that is the method that worked for
    `harm` and the method I skipped the first time and got it wrong.
 
@@ -186,7 +213,21 @@ items is a refill signal, not a stop signal.
   project has at least one comment that is now false; three were found today,
   one of them in the file being edited at the time. The supply is effectively
   unlimited and each one found is a bug that would otherwise have been believed.
-- **Turn a still into a number.** Four faults have now been found by opening a
-  frame and none by a gate — the newest being a naked body with a metric
-  reporting it clothed. Anything a frame shows that no metric names is a metric
-  worth adding.
+- **Turn a still into a number.** Five faults have now been found by opening a
+  frame and none by a gate — the newest being rumour text printed backwards
+  across `day5_night` while three separate orientation metrics read perfect.
+  Anything a frame shows that no metric names is a metric worth adding.
+
+- **PLANT A COMPLETED DROP, so `jobRan` proves the pipeline instead of the
+  bot's luck.** The gate says `JobsDone >= 1` and means "a drop can be made end
+  to end: posted, walked to, completed, paid, laundered". What it measures is
+  whether the bot won a footrace. Across 64 runs the outfit cuts the player off
+  on seven, and on six of those `jobsDone=1` cleared the bound by accident — so
+  the gate has been passing for the wrong reason far more often than it has
+  failed. **Deliberately not loosened**: accepting "cut off before any drop"
+  would let a run that never exercised the drop pipeline pass silently, which is
+  rule 6 exactly. The fix is to make one drop reliably complete. `[series] jobs`
+  now prints each drop's day, the distance when it opened and the closest the
+  bot got, which says whether it was walking and ran out of night or never went
+  — read that before choosing a mechanism. Prime suspect is `frameWorstMs=43666`:
+  one forty-three-second frame crosses 02:00 while the walk gets a single step.
