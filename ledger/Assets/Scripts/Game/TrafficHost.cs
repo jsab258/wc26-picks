@@ -575,10 +575,33 @@ namespace Ledger.Game
         public string VehicleSeenAt(Vector3 where, float within = 12f)
         {
             var car = PlayerCar.Instance;
-            if (car == null) return null;
-            var p = car.transform.position;
-            float dx = p.x - where.x, dz = p.z - where.z;
-            return dx * dx + dz * dz <= within * within ? PlayerCar.Kind.Witness : null;
+            if (car != null)
+            {
+                var p = car.transform.position;
+                float dx = p.x - where.x, dz = p.z - where.z;
+                if (dx * dx + dz * dz <= within * within) return PlayerCar.Kind.Witness;
+            }
+
+            // AND ANY OTHER VEHICLE THAT HAPPENED TO BE STANDING THERE.
+            //
+            // This only ever looked at the player's OWN car, so arriving on
+            // foot meant no witness ever mentioned a vehicle — even with a van
+            // at the kerb. `TrafficSim.NearestTo` exists for exactly this and
+            // has never been called; its own comment says it is "how a witness
+            // comes to say 'somebody came in a car' instead of 'somebody was
+            // about'", and every `VehicleKind` already carries the words to say
+            // it with, because "a truck is not a bicycle".
+            //
+            // THE POINT IS THAT THIS CAN BE WRONG ABOUT YOU. A witness reports
+            // the vehicle that was there, not the vehicle that was involved. If
+            // a delivery van was at the kerb while you walked up, the street
+            // now says a delivery van was there and the investigation has a
+            // description to chase that has nothing to do with you. That is the
+            // misattribution side of the moat — `Misattribute` sat at zero call
+            // sites for the same reason, and a street that can only ever be
+            // right about you is a street with no bluffs in it.
+            var near = Traffic?.NearestTo(where.x, where.z, within);
+            return near?.Kind?.Witness;
         }
 
         /// Get in, or get out. The car has to be in reach, and you cannot climb

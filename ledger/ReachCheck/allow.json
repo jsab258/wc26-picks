@@ -64,7 +64,6 @@
     "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way.",
     "TrafficSim.AwakeCount": "BY DESIGN: an LOD measurement the sim's performance gate reads. The game does not choose how many vehicles are awake; TrafficSim does.",
     "TrafficSim.BusLoop": "WIRE: M17 — the bus route exists and no bus is drawn following it.",
-    "TrafficSim.NearestTo": "WIRE: M17 — nearest vehicle to a point, for the collision and camera work.",
     "TrafficSim.Ranks": "WIRE: M17 — taxi ranks, same.",
     "Typography.LineHeight": "WIRE: M17 — the type scale is computed in Core and the UI sets sizes by hand, which is how they drift apart.",
     "Vehicle.Waiting": "WIRE: M17 — a stopped vehicle should idle differently from a moving one.",
