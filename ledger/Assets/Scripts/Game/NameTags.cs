@@ -885,7 +885,35 @@ namespace Ledger.Game
                     // they are different questions — 0.610 shrinking to 0.12
                     // is the system doing its job, and 0.610 staying at 0.610
                     // is a label the cap never reached.
-                    float scale = Pin(c.Label, frac);
+                    // CAP THE LARGER AXIS, MEASURED IN THE SAME UNIT.
+                    //
+                    // `PinFrac` bounded HEIGHT only, and this file has said for
+                    // days that a bound on one axis of a two-axis object is not
+                    // a bound. The run now proves it with no room left for
+                    // argument: `nameWidthWorst=0.431` and
+                    // `nameShownWidthWorst=0.431` on the same line, identical
+                    // to three decimals, for a label reading "Dolores Cavett".
+                    // The cap did not shave a pixel off a name taking
+                    // forty-three per cent of the screen, because its HEIGHT
+                    // was legal the whole time.
+                    //
+                    // NO NEW CONSTANT, AND THE CONVERSION IS THE WHOLE IDEA. A
+                    // width fraction and a height fraction are not comparable
+                    // on a 16:9 frame — 0.43 of the width is less ink than 0.43
+                    // of the height. Multiplying by the aspect puts the width
+                    // into units of frame HEIGHT, and then one bound means the
+                    // same physical size whichever way the label is long. This
+                    // is `PinFrac` applied to the right quantity rather than a
+                    // second number for a second axis.
+                    //
+                    // AND IT CLAMPS THE TAIL ONLY, which the landed series says
+                    // rather than my hoping so: the width P90 is 0.140, which
+                    // is 0.079 in height units, comfortably under the 0.12 cap.
+                    // Nine labels in ten are untouched and "Dolores Cavett" comes
+                    // from 0.43 of the frame to about 0.21 of it.
+                    float aspect = cam.pixelWidth > 0
+                        ? (float)cam.pixelHeight / cam.pixelWidth : 1f;
+                    float scale = Pin(c.Label, Mathf.Max(frac, wfrac * aspect));
                     if (scale > 0f)
                     {
                         float shown = wfrac * scale;
