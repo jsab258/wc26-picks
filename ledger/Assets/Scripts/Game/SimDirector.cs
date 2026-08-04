@@ -2040,6 +2040,7 @@ namespace Ledger.Game
         /// the remaining ones it is.
         Vector3 _jobLastPos;
         double _jobMetresWalked;
+        float _jobWorstSeverity;
 
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
@@ -2113,6 +2114,7 @@ namespace Ledger.Game
                     _jobOwnerTicks.Clear();
                     _jobLastPos = p0;
                     _jobMetresWalked = 0;
+                    _jobWorstSeverity = 0;
                 }
                 else
                 {
@@ -2126,6 +2128,21 @@ namespace Ledger.Game
                     var flatWas = new Vector3(_jobLastPos.x, 0, _jobLastPos.z);
                     _jobMetresWalked += Vector3.Distance(flatNow, flatWas);
                     _jobLastPos = p0;
+                    // HOW HURT HE WAS, at his worst, during THIS window.
+                    //
+                    // `Gait.SpeedFactor` slows a hurt man, and one drop moved
+                    // at a third of the rate of the other four with the job
+                    // holding the target the whole time. Injury is the one
+                    // candidate the code makes plausible; the alternative is
+                    // crowd shoving, and these two numbers separate them
+                    // without another round trip of guessing.
+                    //
+                    // Worst rather than mean, because the question is whether
+                    // he was hurt AT ALL during a window that under-performed —
+                    // an average over twenty-one ticks would dilute a bad
+                    // stretch into nothing.
+                    float sev = _player.SeverityNow;
+                    if (sev > _jobWorstSeverity) _jobWorstSeverity = sev;
                 }
                 return;
             }
@@ -2142,6 +2159,7 @@ namespace Ledger.Game
             _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m "
                           + $"nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h "
                           + $"walked={_jobMetresWalked:0.0}m "
+                          + $"hurt={_jobWorstSeverity:0.00} "
                           + $"held:{OwnerTally()}]");
         }
 

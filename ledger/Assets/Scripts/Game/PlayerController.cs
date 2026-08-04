@@ -110,6 +110,18 @@ namespace Ledger.Game
         /// How hurt the player is, 0..1, straight off the harm system. The
         /// injury has been simulated since the harm system landed and never
         /// once shown; this is the wire that finally connects it to the body.
+        /// The same number, readable from outside — the sim's job trace needs it
+        /// and had to guess without it.
+        ///
+        /// One drop covered 8.4 metres in twenty-one ticks while four others
+        /// managed 1.15 per tick, with the job holding the target throughout, so
+        /// the bot was steered right and moving at a third of the rate. Injury
+        /// is the candidate `Gait.SpeedFactor` makes plausible and nothing
+        /// measured it. Exposed rather than recomputed in the sim, because a
+        /// second copy of "how hurt is the player" would be free to disagree
+        /// with the one that actually slows him.
+        public float SeverityNow => Severity();
+
         float Severity()
         {
             if (Time.time - _severityCheckedAt < 1f) return _severity;
