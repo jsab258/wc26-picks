@@ -629,11 +629,77 @@ namespace Ledger.Game
 
         void StampArmsNow()
         {
+            // THE CROWD FIRST, AND IT WAS NEVER SAMPLED AT ALL.
+            //
+            // `liveArmDrop` cannot answer the question the night stills raise,
+            // for two separate reasons that both had to be found by reading it.
+            // It is a WORST-over-run, so it cannot tell one body frozen with
+            // its arms out from everybody swinging through the top of a walk
+            // cycle — CLAUDE.md already records that exact drift happening to
+            // this number. And it returns early unless `IsTheBoughtBody`, so it
+            // has only ever described THE PLAYER, while the figures standing
+            // like scarecrows in `review_day1_night` at c101f35 are walkers.
+            //
+            // A picture is good evidence something is wrong and poor evidence
+            // of what (rule 4), so this is the number rather than a change: the
+            // MEDIAN arm drop across every bought body, per sample. No
+            // threshold on it — nobody has read the series, and inventing an
+            // angle for "out" is what rule 2 forbids. Median because the
+            // question is what the street looks like, and one person mid-stride
+            // is not a street.
+            float mine = ArmDropNow();
+            if (mine >= 0f) _armsThisFrame.Add(mine);
+
             if (!IsTheBoughtBody) return;
-            float a = ArmDropNow();
+            float a = mine;
             if (a < 0f) return;
             if (a > LiveArmDropDegrees) LiveArmDropDegrees = a;
             LiveArmRead = true;
+        }
+
+        /// Arm drops gathered this frame, and the per-frame medians over the
+        /// run. Cleared by whoever closes a frame — see `CloseArmFrame`.
+        static readonly List<float> _armsThisFrame = new List<float>();
+        static readonly List<float> _armMedians = new List<float>();
+        public static int ArmFrames => _armMedians.Count;
+
+        /// Fold this frame's samples into one median and start the next.
+        ///
+        /// A SEPARATE CALL RATHER THAN A TIMER, because the whole point is that
+        /// the numerator and denominator come from the same instant, and the
+        /// only code that knows when a frame's rigs have all solved is the code
+        /// that solves them.
+        public static void CloseArmFrame()
+        {
+            if (_armsThisFrame.Count == 0) return;
+            _armsThisFrame.Sort();
+            _armMedians.Add(_armsThisFrame[_armsThisFrame.Count / 2]);
+            _armsThisFrame.Clear();
+        }
+
+        /// The typical street's arm drop, and the worst frame's. Both medians
+        /// ACROSS BODIES; the second is the frame where the street as a whole
+        /// stood widest, which is a different question from one person's peak
+        /// and is the one `liveArmDrop` was being misread as answering.
+        public static double ArmDropStreetMedian
+        {
+            get
+            {
+                if (_armMedians.Count == 0) return -1;
+                var c = new List<float>(_armMedians);
+                c.Sort();
+                return c[c.Count / 2];
+            }
+        }
+
+        public static double ArmDropStreetWorst
+        {
+            get
+            {
+                double worst = -1;
+                foreach (var m in _armMedians) if (m > worst) worst = m;
+                return worst;
+            }
         }
 
         /// Widest the arms got over the run, in degrees from straight down.
@@ -816,6 +882,12 @@ namespace Ledger.Game
                 _solvedFrame = Time.frameCount;
                 _solvedShown = _solved;
                 _solved = 0;
+                // The frame the rigs just finished is the instant the arm
+                // samples belong to. Folding here rather than on a timer is
+                // what keeps a median across BODIES from becoming a median
+                // across bodies-and-moments, which is the fault this project
+                // has now shipped five times in one file.
+                CloseArmFrame();
             }
             // THE BISECT, TAKEN HERE RATHER THAN IN A SEPARATE BUILD.
             //

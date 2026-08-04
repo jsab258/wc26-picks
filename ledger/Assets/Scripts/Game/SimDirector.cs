@@ -8940,6 +8940,17 @@ namespace Ledger.Game
                       $"restArmDrop={CharacterRig.RestArmDropDegrees:0.0} " +
                       $"restArmRead={CharacterRig.RestArmRead} " +
                       $"liveArmDrop={CharacterRig.LiveArmDropDegrees:0.0} " +
+                      // THE STREET, NOT THE PLAYER, AND A MEDIAN NOT A PEAK.
+                      // liveArmDrop returns early unless it is the bought
+                      // player body, so it has never described the crowd at
+                      // all — and it is a worst-over-run, so it cannot tell
+                      // one frozen scarecrow from everybody swinging through
+                      // the top of a stride. These two are medians ACROSS
+                      // BODIES: the typical frame, and the frame where the
+                      // street as a whole stood widest.
+                      $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
+                      $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
+                      $"armFrames={CharacterRig.ArmFrames} " +
                       $"liveArmRead={CharacterRig.LiveArmRead} " +
                       $"preArmDrop={CharacterRig.PreArmDropDegrees:0.0} " +
                       $"preArmRead={CharacterRig.PreArmRead} " +
