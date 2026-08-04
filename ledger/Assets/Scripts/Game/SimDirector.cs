@@ -1835,6 +1835,82 @@ namespace Ledger.Game
             _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h]");
         }
 
+
+        /// HOW THE PLAYER READS AGAINST THE CROWD, in rendered pixels.
+        ///
+        /// THE STANDING ITEM: turn a still into a number. `bodyCoat` came back
+        /// `denim hsv=0.60/0.36/0.59 rgb=96,118,149` — a solid mid-blue — and
+        /// the noon frame still shows a figure that reads as bare plastic. Both
+        /// are true, and the gap between them is the only thing a player
+        /// experiences. Every existing body metric asks about the MATERIAL:
+        /// whether a coat reached every mesh, what colour it was, how much area
+        /// it covers. None asks what the pixels come out as after the noir
+        /// grade, the exposure and the fog.
+        ///
+        /// So: average the player's own pixels, average the crowd's, and print
+        /// both. A player who reads as dressed is one whose colour sits in the
+        /// same range as the clothed people around them; one who reads as a
+        /// mannequin is paler and greyer than all of them. That is a
+        /// comparison, not a threshold — rule 2 forbids inventing the bound
+        /// before the series exists, and this is the run that produces it.
+        ///
+        /// SAMPLED AT SHOT TIME against the shot camera, because the question is
+        /// about the committed frame and every metric tonight that sampled a
+        /// different instant was answering a different question.
+        void MeasureBodyRead(Camera cam)
+        {
+            if (cam == null || _game == null || _game.Player == null) return;
+            var px = FramePixels(cam);
+            if (px == null) return;
+            const int W = 640, H = 360;
+
+            bool Average(Renderer r, out double lum, out double sat, out int n)
+            {
+                lum = sat = 0; n = 0;
+                if (r == null || !r.isVisible) return false;
+                if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) return false;
+                int x0 = Mathf.Clamp((int)(rect.xMin * W / Screen.width), 0, W - 1);
+                int x1 = Mathf.Clamp((int)(rect.xMax * W / Screen.width), 0, W - 1);
+                int y0 = Mathf.Clamp((int)(rect.yMin * H / Screen.height), 0, H - 1);
+                int y1 = Mathf.Clamp((int)(rect.yMax * H / Screen.height), 0, H - 1);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                    {
+                        var c = px[y * W + x];
+                        double mx = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
+                        double mn = Mathf.Min(c.r, Mathf.Min(c.g, c.b));
+                        lum += (c.r + c.g + c.b) / 3.0;
+                        sat += mx <= 0 ? 0 : (mx - mn) / mx;
+                        n++;
+                    }
+                return n > 0;
+            }
+
+            // THE RECT IS THE WHOLE BODY INCLUDING WHAT IS BEHIND IT, and that
+            // is the honest limitation rather than a bug to hide: a bounding
+            // box around a person contains pavement. It biases both readings
+            // the same way, which is why they are only ever compared with each
+            // other and never against an absolute.
+            var body = _game.Player.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (Average(body, out double pl, out double ps, out int pn))
+            {
+                _playerLum = pl / pn; _playerSat = ps / pn; _playerPixels = pn;
+            }
+            double cl = 0, cs = 0; int cn = 0, people = 0;
+            if (_npcs != null)
+                foreach (var n in _npcs)
+                {
+                    if (n == null || people >= 6) continue;
+                    var rr = n.GetComponentInChildren<Renderer>();
+                    if (!Average(rr, out double l, out double sa, out int c)) continue;
+                    cl += l; cs += sa; cn += c; people++;
+                }
+            if (cn > 0) { _crowdLum = cl / cn; _crowdSat = cs / cn; _crowdSampled = people; }
+        }
+
+        double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
+        int _playerPixels, _crowdSampled;
+
         /// The player's own pose, swept. See the note beside where it is read.
         bool _playerPoseSeen;
         float _playerPoseMin, _playerPoseMax;
@@ -4482,6 +4558,7 @@ namespace Ledger.Game
             // either number as the other is how a fix gets declared from the
             // wrong evidence.
             MeasureTextFaults();
+            MeasureBodyRead(cam);
 
             RenderTexture rt = null;
             Texture2D tex = null;
@@ -6782,6 +6859,8 @@ namespace Ledger.Game
                       // reads as bare plastic. `bodyCoat` is the missing third
                       // fact — what colour "coat" turned out to be.
                       $"bodyCoat=[{RealBody.CoatRead}] " +
+                      $"bodyReadLum={_playerLum:0.0} bodyReadSat={_playerSat:0.000} bodyReadPx={_playerPixels} " +
+                      $"crowdReadLum={_crowdLum:0.0} crowdReadSat={_crowdSat:0.000} crowdRead={_crowdSampled} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +

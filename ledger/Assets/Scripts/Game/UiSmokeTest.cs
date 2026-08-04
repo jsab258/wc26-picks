@@ -219,7 +219,30 @@ namespace Ledger.Game
                 sb.Append(c == '\n' ? " | " : c.ToString());
             }
             var flat = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), " +", " ").Trim();
-            return flat.Length > 1400 ? flat.Substring(0, 1400) + " …" : flat;
+
+            // BOTH ENDS, NOT THE FIRST 1400 CHARACTERS.
+            //
+            // The panel is money, then LIABILITIES, then DOUBT, then THE STREET.
+            // LIABILITIES lists up to twelve rumours at roughly 120 characters
+            // each, so it alone fills the budget — and a straight head-truncation
+            // cut the dump off mid-rumour every single time. Everything below
+            // that list has therefore NEVER been readable through the one
+            // channel that can read this game, including both competence lines
+            // added tonight and the whole second book.
+            //
+            // A tool that always truncates in the same place is not sampling the
+            // artefact, it is sampling its first screenful — which is the same
+            // fault as a metric that samples one instant, and the fourth of that
+            // family found tonight.
+            //
+            // The middle is what gets dropped, because the middle is the long
+            // repetitive list and the ends are the headline and the sections
+            // nobody has seen.
+            const int Half = 700;
+            if (flat.Length <= Half * 2) return flat;
+            return flat.Substring(0, Half)
+                   + $" … [{flat.Length - Half * 2} chars of liabilities cut] … "
+                   + flat.Substring(flat.Length - Half);
         }
 
         static string AllWords(GameObject panel)
