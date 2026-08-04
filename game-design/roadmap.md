@@ -14,10 +14,10 @@ what happens next.
 | | | |
 |---|---|---|
 | **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 CLOSED except for the mesh: the player stands, the arms hang at the sides, and forty-one imported animations are finally being played. What remains is that the body is a grey preview mannequin — a free Mixamo download, not a purchase, and it is 17.1b** |
-| **also now** | M18 — the second life | family verified running · **companion still the one failing gate: she walks at 1.7m and sees the deed WORSE than the street does** · vice and lifestyle deferred |
+| **also now** | M18 — the second life | family verified running · **the companion's cause is found, 4 Aug: she was never walking too slowly, she had no idea where the player WAS.** A walker learns the player's transform from one proximity sweep, and both the escort's target and its catch-up speed are guarded on having it — so falling behind is what stops you following, and it compounds. Bound at recruit time now; the gate had read `dist=29.4m` through a catch-up-speed fix that could not have helped · vice and lifestyle deferred |
 | **next** | M19 — the people are thinking | inputs judged and fixed · **input parity done: a conversation can be carried without typing** · **outputs now judged too: the dialogue benchmark is a measured 78, no longer the word `unjudged`** |
 | | M20 — the town you learn | **days now differ from each other** · **the district cut is OFF — filling the city beats shrinking it, measured** · the cast tiering is what remains |
-| | M21 — the two ledgers | empire growth, law as a tool, and what expansion costs you |
+| | M21 — the two ledgers | **started 4 Aug, and both first pieces run.** Law as a tool: an accusation is weighed by what the street will tell a detective rather than by whether it is true, and making one marks you. Allegiance shifts: pledge, refuse, walk out — three methods that existed, were tested, and had no callers. What remains is empire growth, notoriety and the competence axis |
 | | M22 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M23 — firearms | M16 phase 5, deliberately last |
 | | M24 — ship | performance, platforms, controller, QA, licences, packaging |
