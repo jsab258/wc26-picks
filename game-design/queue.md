@@ -203,13 +203,39 @@ AUTO MODE.
    that finished a fortnight ago. That is now written into the ledger's own
    header.
 
-8. **THE INJURED WALK LIKE THE UNINJURED ON THE TWELVE NEAREST PEOPLE.**
-   `BadLegIsLeft` drives `Rig.Limp` through the procedural solve only, so a
-   mannequin limps and a bought body does not — and the bought bodies go to
-   whoever is closest. That is a GAMEPLAY signal going missing, not a
-   cosmetic one: a beating is supposed to be readable off how somebody moves.
-   Needs an additive Animator layer or an IK offset, which is a different job
-   from the two one-liners that landed with it. **Do not wire it as one.**
+8. **CORRECTION: THE LIMP HALF-REACHES THE BOUGHT BODIES, AND WHAT I FOUND
+   LOOKING IS BIGGER THAN WHAT I WENT LOOKING FOR.**
+
+   I wrote here that `BadLegIsLeft` drives `Rig.Limp` through the procedural
+   solve only, so a bought body cannot limp. Reading `LateUpdateBody` says
+   otherwise: the PELVIS DIP is applied to the hips in an unguarded block, so
+   an injured person on a bought body does drop onto their good leg. What is
+   missing is the STANCE SCALE — the shortened bad leg — because that goes
+   through `DriveLimbs`, which is guarded on `PoseIsDriven`. Half a limp, not
+   none. Written from the grep rather than from the function, which is rule 3
+   pointed at my own note.
+
+   **AND THE UNGUARDED BLOCK IS THE FINDING.** It reads
+   `_hips.localPosition = local`, built from the REST position plus breath,
+   dip and pelvis drop — an ASSIGN, on every body, including ones whose
+   Animator wrote a hip height that frame. Six screens down, the pelvis
+   ROTATION is composed on a driven body under a comment saying exactly why:
+   *"An assign here would flatten the clip's own pelvis rotation and undo half
+   of any walk cycle."* The same argument is true of position and nobody
+   applied it there. So a bought body's vertical rhythm is the clip's,
+   discarded, and replaced by `Rig.Bob(Phase)` — a second bob model driven by
+   a phase the clip does not share.
+
+   That is one idea with two implementations again, and it is a candidate for
+   the foot behaviour `FootIk` has been fighting all day: if the hips are
+   being placed from a phase the feet's clip does not agree with, the feet
+   will slide against ground the rig thinks is somewhere else.
+
+   **Deliberately not changed at the end of a turn.** It is delicate, it sits
+   in a file where an inverted assumption cost two builds this morning, and
+   the right first move is a reading — how far the assign moves the hips from
+   where the Animator put them — not an edit. **Start it at the top of a
+   turn, with the measurement first.**
 
 9. **HEAD SCALE, SAME FAMILY, DIFFERENT DIFFICULTY.** `Mannequin` varies it
    0.93-1.07 by scaling a child transform. On a skinned mesh the head is a
