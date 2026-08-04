@@ -97,7 +97,19 @@ now for a reason that is a fix rather than a regression. Do not compare the
 next reading against 4. `loiterNotices` has no such problem — it has only
 ever read 0, which was the bug.
 
-### STAGED AND UNDISPATCHED, 08:14 UTC — seven commits
+### DISPATCHED 08:25 — the whole batch is out
+
+Nothing is staged now. Two builds in flight: the standing-still separation
+fix (dispatched 07:57) and everything since (08:25), which carries
+`simAudible`, `worstWorldPair` by AREA, the line-length measure,
+`identifiedPeak`/`identifiedEver`, `callsTried`/`callsReachable`,
+`roomQuiet`, and the re-classification fix for `loiterNotices`.
+
+Held back until the separation build's answer was already determined, then
+sent — holding longer would have been waiting on CI rather than isolating
+anything.
+
+### WHAT WAS STAGED, 08:14 UTC
 
 One build in flight (the standing-still separation fix plus the hoisted
 numbers). Six commits sit on top of it, all additive reporting, none
