@@ -1142,8 +1142,27 @@ namespace Ledger.Game
                     // are left where they are and counted, because a silent
                     // "fixed" that walked an object into a wall would be worse
                     // than the fault.
+                    // A METRE AND A QUARTER CLEARED NOTHING — 0 pulled, 8
+                    // stuck — so the bound was the wrong question rather than
+                    // the wrong number. Two explanations survive and they want
+                    // opposite fixes: either these facades genuinely front onto
+                    // the carriageway, in which case no pull can help and the
+                    // level is the fault; or the clutter is being placed a long
+                    // way off its own wall, in which case the pull is fine and
+                    // the placement is not.
+                    //
+                    // So the reach goes to four metres and the run reports the
+                    // WORST distance actually used. A small answer means the
+                    // first bound was simply short; a large one means an item
+                    // is being put three metres from the wall it belongs to,
+                    // which is a placement bug this could otherwise hide for
+                    // ever by quietly succeeding.
+                    //
+                    // Four metres is where a nudge stops being a nudge: past
+                    // that the bin is not beside the building any more, and
+                    // leaving it stuck is the honest answer.
                     const float PullStep = 0.25f;
-                    const int PullSteps = 5;
+                    const int PullSteps = 16;
                     var pulled = at;
                     bool cleared = false;
                     for (int step = 0; step < PullSteps; step++)
@@ -1155,7 +1174,13 @@ namespace Ledger.Game
                             break;
                         }
                     }
-                    if (cleared) { at = pulled; DressedPulled++; }
+                    if (cleared)
+                    {
+                        float used = Vector3.Distance(at, pulled);
+                        if (used > DressedWorstPull) DressedWorstPull = used;
+                        at = pulled;
+                        DressedPulled++;
+                    }
                     else DressedStuckInRoad++;
                 }
                 switch (d.Kind)
@@ -1209,6 +1234,11 @@ namespace Ledger.Game
         /// this cannot fix and must not paper over by walking an object into a
         /// wall.
         public static int DressedPulled, DressedStuckInRoad;
+        /// The furthest any item had to be pulled to clear the carriageway.
+        /// Small means the first bound was simply short; large means clutter is
+        /// being placed metres from its own wall, which is a placement fault
+        /// that a successful pull would otherwise hide for ever.
+        public static float DressedWorstPull;
 
         /// Doors built. Counted separately from `Dressed` because a door is
         /// architecture rather than clutter: bins thin out in a far district by
