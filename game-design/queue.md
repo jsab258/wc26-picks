@@ -38,6 +38,22 @@ scheduling instead of to CI's output.
 
 ## Now
 
+### IN FLIGHT AND STAGED, 07:55 UTC
+
+Two builds are out and a batch is committed but NOT dispatched. If you are a
+cold session reading this, that is the first thing to resolve.
+
+- **Out:** one carrying the belief wiring plus `soundsOffered`/`soundsNoClip`
+  and `contrastTightest`; a second carrying those plus `worstWorldPair`. The
+  second supersedes the first — read whichever names the newer commit.
+- **Staged, undispatched:** the crowd-separation fix for people STANDING
+  STILL, plus the numbers hoisted onto the done line (`corroboration`,
+  `contradiction`, `denounceMark`, `marked`, `saw`, `ringLastOccluded`).
+  **Dispatch it the moment one of the two above lands.** It is held only
+  because it moves `crowdGapMedian`, which the in-flight pair is measuring,
+  and because three concurrent builds is how two of four died on a Unity
+  licence seat this morning.
+
 ### Startable right now, in order
 
 **The crowd build landed GREEN on `daf91d5` — pass=True, no failing gates, the
