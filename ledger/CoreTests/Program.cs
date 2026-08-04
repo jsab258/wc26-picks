@@ -7705,17 +7705,17 @@ namespace Ledger.CoreTests
 
             // MOST THINGS ARE NOT NEWS, on the scale that already grades how
             // loud an act is rather than a second one invented here.
-            Check(Press.Print(3, Violence.Notoriety(0, killed: false), 0.9,
+            Check(Press.Print(3, Violence.Notoriety(0, killed: false), Inquiry.Manhunt,
                               lethal: false, place: "Hook Street") == null,
                 "a fight nobody watched is not in the paper");
-            Check(Press.Print(3, Violence.Notoriety(6, killed: false), 0.9,
+            Check(Press.Print(3, Violence.Notoriety(6, killed: false), Inquiry.Manhunt,
                               lethal: false, place: "Hook Street") != null,
                 "a brawl six people watched is");
 
             // A BODY ALWAYS IS, whatever anybody saw. `HomicideBook`'s own note
             // says a body does not stay a rumour, and this is the mechanism by
             // which that becomes true for people who were nowhere near it.
-            var quietKill = Press.Print(3, Violence.Notoriety(0, killed: true), 0.0,
+            var quietKill = Press.Print(3, Violence.Notoriety(0, killed: true), Inquiry.Procedure,
                                         lethal: true, place: "Hook Street");
             Check(quietKill != null, "a killing nobody saw is still in the paper");
 
@@ -7724,17 +7724,17 @@ namespace Ledger.CoreTests
             // interesting outcome: the town knows a man was killed and does not
             // know it was you.
             Check(!quietKill.NamesYou && quietKill.Content.Subject != "player",
-                "with no case against you it prints the act and not the name",
+                "with the law not asking about you it prints the act and not the name",
                 quietKill.Headline);
             Check(Press.Notoriety(quietKill) == 0,
                 "and an unnamed story makes you no better known — that is a "
                 + "different thing, not a smaller one");
 
             var named = Press.Print(3, Violence.Notoriety(4, killed: true),
-                                    HomicideBook.TestimonyGrade + 0.1,
+                                    Inquiry.Investigation,
                                     lethal: true, place: "Hook Street");
             Check(named.NamesYou && named.Content.Subject == "player",
-                "once somebody would say it to a detective, it carries the name",
+                "once the law is asking about you by name, so does the paper",
                 named.Headline);
 
             // THE PRINTED FACT MUST BE THE SAME FACT A WITNESS HOLDS, or a

@@ -92,16 +92,32 @@ namespace Ledger.Core
 
         /// Would a paper run this, and does it have the name?
         ///
-        /// `streetCase` is the strongest thing anybody would say to a detective
-        /// about the player — `HomicideBook` and `Informing` both already
-        /// compute it, and the caller passes whichever it has rather than this
-        /// file growing a third opinion.
-        public static Story Print(int day, double loudness, double streetCase,
+        /// `law` IS A STAGE AND NOT A NUMBER, AND THE FIRST VERSION MIXED TWO
+        /// SCALES. It took a `streetCase` double and compared it against
+        /// `HomicideBook.TestimonyGrade`, which is 0.5 — and the caller had
+        /// nothing on that scale to give it. `Pressure` was what it passed, and
+        /// pressure is an AGGREGATE that reaches 1.0 at a manhunt, while a
+        /// testimony grade is one witness's confidence. Half a manhunt is not
+        /// "somebody would say it to a detective"; with a single body and one
+        /// certain witness the comparison is already true, so the paper would
+        /// have named the player on essentially every killing.
+        ///
+        /// Found by reading rather than by a build, which is the only way a
+        /// units mismatch between two plausible 0..1 numbers ever surfaces —
+        /// both are in range, both look like probabilities, and the arithmetic
+        /// never complains.
+        ///
+        /// The stage is the honest input and it is already computed. The design
+        /// sentence is "a paper prints what the police and the street already
+        /// have", and `Inquiry.Investigation` is precisely the game's existing
+        /// statement of "she is asking about you by name". Below that she is
+        /// not, whatever the pressure reads.
+        public static Story Print(int day, double loudness, Inquiry law,
                                   bool lethal, string place)
         {
             if (loudness < RunsAbove && !lethal) return null;
 
-            bool named = streetCase >= HomicideBook.TestimonyGrade;
+            bool named = law >= Inquiry.Investigation;
             var s = new Story
             {
                 Day = day,

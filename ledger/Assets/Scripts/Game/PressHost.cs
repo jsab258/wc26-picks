@@ -60,16 +60,16 @@ namespace Ledger.Game
             // says so in a comment.
             if (last.Deed.EventId == _printed) return false;
 
-            // WHAT THE STREET WOULD TELL A DETECTIVE, and the paper is not
-            // allowed a better source than that. `Pressure` is the police's own
-            // reading of how much of a case there is; passing it means the
+            // WHAT THE LAW HAS, and the paper is not allowed a better source.
+            // `PoliceInquiry` is already derived from the homicide book and the
+            // street's willingness to talk, so passing the STAGE means the
             // paper and the law can never disagree about whether the player is
-            // nameable, which is a disagreement no reader could interpret.
-            double streetCase = game.Homicides != null
-                ? game.Homicides.Pressure(game.Gossip.Mill, game.IsAlive, game.Now.Day)
-                : 0;
-
-            var story = Press.Print(game.Now.Day, last.Notoriety, streetCase,
+            // nameable — a disagreement no reader could interpret.
+            //
+            // The first version passed `Pressure`, a double, and `Press`
+            // compared it against a per-witness testimony grade. Two different
+            // scales, both 0..1-looking, and the arithmetic never complains.
+            var story = Press.Print(game.Now.Day, last.Notoriety, game.PoliceInquiry,
                                     last.Lethal, game.DistrictOfPlayer());
             if (story == null) return false;
 
@@ -96,7 +96,7 @@ namespace Ledger.Game
 
             Debug.Log($"PressHost: {story.Headline} (named={story.NamesYou} "
                       + $"confidence={story.Confidence:0.00} readers={Readers} "
-                      + $"streetCase={streetCase:0.00})");
+                      + $"inquiry={game.PoliceInquiry})");
             return true;
         }
 
