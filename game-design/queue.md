@@ -83,7 +83,29 @@ colourful body in the frame. **The build is material ZONES, not a palette
 change**, and it is Game-layer: torso/arms coat, legs darker, head and hands a
 skin tone. A gate that asks how many distinct materials the body carries.
 
-**Landed and green: `0eeee6d`, `efff6fc`. Still in flight: `6ca5db4`.**
+**Landed and green: `0eeee6d`, `efff6fc`, `6ca5db4`, `180f626` — four in a row.**
+
+**CONFIRMED ON `180f626`, and each of these was unreadable this morning:**
+`idLeaks=0` — no rumour calls the player by their database key any more.
+`doubtShown=3 doubtHeld=24 doubtWho=Lena` — Lena carries twenty-four reasons
+and the panel shows three DIFFERENT ones, where it used to show one sentence
+three times. `companionAtRecruit=9.2` against the 23.8m that made the gate red,
+`companionDist=4.2`, `deedWaitedDays=0` — the escort is recruited near, so the
+two-day wait never has to fire. That gate is green for a REASON now, and the
+distinction between that and green-by-luck is what the whole `ALL GATES` repair
+bought.
+
+**`textVisibleAtAway=130` EQUALS `textVisible=130`,** so the worst
+facing-away instant was also the busiest instant and the ratio is honest: 65 of
+130 visible world texts face away at that moment. With `textMirrored=0` that is
+`Cull Back` doing its job, not a fault.
+
+**NOT YET READ, and do not read them as a regression without a series:**
+`billboardsStale` went 5 → 27 and `billboardWorstDeg` 157.9 → 160.9 between two
+green runs. Both are run PEAKS, which is the statistic that just turned out to
+be unable to tell sixteen bubbles from a hundred and sixteen. Wait for
+`bubbleOverlap`'s series to land and give billboards the same treatment before
+touching anything.
 
 ---
 
