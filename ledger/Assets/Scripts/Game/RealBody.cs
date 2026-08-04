@@ -93,6 +93,31 @@ namespace Ledger.Game
         public static bool Clothed =>
             !CoverageRead || DressedAreaFraction >= BodyParts.MinDressedArea;
 
+        /// THE MODEL BROUGHT ITS OWN CLOTHES, so the wardrobe stood down.
+        ///
+        /// The exemption above was written for `Clothed` and the gate has a
+        /// SECOND clause one line down — `RealBody.Dressed > 0` — that never
+        /// got it. The moment the texture extraction started working, that
+        /// clause turned red: `dressed=0 skinned=0 clothed=True coat=-1.000
+        /// parts=()` with `bodyKeptMats=1`, which is the whole system doing
+        /// exactly what it was built to do. Every renderer arrived with a
+        /// texture, so `Kept` took all of them, nothing needed painting, and
+        /// the gate demanded paint.
+        ///
+        /// That is rule 5's ratchet in its purest form: a guard that cannot
+        /// tell a regression from an improvement, failing the run that fixed
+        /// the thing. And it is rule 1's third corollary again — one idea, two
+        /// implementations, and the one nobody looked at is the one missing a
+        /// line. The exemption is named here so there is one of it rather than
+        /// three.
+        ///
+        /// It is not a loosened bound. `Kept` only counts a renderer whose
+        /// material carries a real texture, which is a stronger statement about
+        /// the figure being clothed than the coat-area fraction is — the coat
+        /// area asks whether OUR paint covered enough of him, and this asks
+        /// whether the artist's did.
+        public static bool WearsOwnSkin => Kept > 0;
+
         /// The skeleton as IMPORTED, before anything animates it. See the note
         /// where these are measured: this is what tells a bad import apart from
         /// a bad animation without spending a CI round trip on each guess.
@@ -587,7 +612,17 @@ namespace Ledger.Game
                      .Append((share * 100.0).ToString("0.0")).Append("%->")
                      .Append(isFlesh[i] ? "skin" : "coat");
             }
-            Parts = parts.ToString();
+            // AND AN EMPTY LIST SAYS WHY IT IS EMPTY. `parts=()` in the verdict
+            // reads as "the measurement did not run", and on the run that
+            // fixed the bodies it meant the opposite: every renderer arrived
+            // textured, `Kept` took all of them, and there was nothing left to
+            // paint. Rule 3b — a zero ships with the count of what was
+            // examined, and here the count is `Kept`.
+            Parts = paint.Count > 0
+                ? parts.ToString()
+                : Kept > 0
+                    ? $"nothing to paint — all {Kept} renderer(s) came textured"
+                    : "no paintable renderers and none textured";
 
             // TWO MEASUREMENTS, TWO GATES, and the first run is why.
             //

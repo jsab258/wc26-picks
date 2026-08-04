@@ -7280,7 +7280,15 @@ namespace Ledger.Game
                 // material on every renderer. `SceneAudit`'s `noMaterial`
                 // check, which exists for exactly this family of fault, was
                 // right to pass. A naked man is not a missing material.
-                && (RealBody.Attached == 0 || RealBody.Dressed > 0)
+                // …OR THE MODEL CAME DRESSED, which is the case that turned this
+                // clause red on the run that FIXED the bodies. See
+                // `RealBody.WearsOwnSkin`: the exemption existed one clause up
+                // on `Clothed` and this twin never got it, so a body whose
+                // every renderer arrived with its own texture — the outcome the
+                // whole extraction exists for — failed for not having been
+                // painted over.
+                && (RealBody.Attached == 0 || RealBody.Dressed > 0
+                    || RealBody.WearsOwnSkin)
                 // AND THE SCENE ITSELF IS SOUND. Missing materials, error
                 // shaders, NaN transforms, hundredfold scales, buried geometry —
                 // the classes that make a frame WRONG rather than merely
