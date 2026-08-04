@@ -8965,6 +8965,14 @@ namespace Ledger.Game
                       // whenever the final walker arrived fully textured, which
                       // is most runs, so it can never explain a lifetime zero.
                       $"bodyPartsEver=[{string.Join(" ", RealBody.PartsEver)}] " +
+                      // BUILD, WHICH THE BOXES HAD AND THE BOUGHT BODIES THREW
+                      // AWAY. `bodyBreadth` is the player's; `bodyBreadths` is
+                      // every distinct one the street has worn, which is the
+                      // half that answers "does the crowd vary" — one value
+                      // cannot, and `crowdLum` already learned that lesson the
+                      // expensive way.
+                      $"bodyBreadth={RealBody.Breadth:0.00} " +
+                      $"bodyBreadths=[{string.Join(" ", RealBody.BreadthsEver)}] " +
                       $"bodySkinnedEver={RealBody.SkinnedEver} " +
                       $"bodyDressedEver={RealBody.DressedEver} " +
                       $"bodyKeptEver={RealBody.KeptEver} " +

@@ -77,6 +77,21 @@ namespace Ledger.Game
         public static int DressedEver { get; private set; }
         public static int KeptEver { get; private set; }
 
+        /// The breadth applied to the last body attached — a statement ABOUT
+        /// THE PLAYER when a gate reads it, so it goes in the save-and-restore
+        /// set with `Why`, unlike the lifetime counters below it.
+        public static float Breadth { get; private set; } = -1;
+
+        /// AND THE SPREAD ACROSS THE CROWD, which is the half that matters.
+        ///
+        /// One breadth says the player is 1.04 wide. It cannot say whether the
+        /// street varies, and "the street varies" is the entire claim — the
+        /// same distinction `crowdLum` had to learn when one body near the
+        /// camera was setting the crowd's reading by itself. Distinct values,
+        /// because breadth is a function of the name and repeating a walker
+        /// would weight it by how often the LOD happened to grant them a body.
+        public static readonly SortedSet<string> BreadthsEver = new SortedSet<string>();
+
         /// Every distinct `renderer->material` the wardrobe has decided, over
         /// the whole run. Bounded, because a name that is not distinct after
         /// ten models is a name that never will be — and this exists to be
@@ -684,6 +699,7 @@ namespace Ledger.Game
         struct Published
         {
             public int Attached, Skinned, Dressed, Kept, BodyChoices;
+            public float Breadth;
             public string Why, Orientation, Parts, CoatRead, CostSeries, TwinWhy;
             public double Upright, DressedAreaFraction, DressedVertexFraction;
             public bool CoverageRead, BindPoseRead, ScaledPoseRead, TwinRead, TwinHuman;
@@ -695,7 +711,8 @@ namespace Ledger.Game
         static Published Save() => new Published
         {
             Attached = Attached, Skinned = Skinned, Dressed = Dressed, Kept = Kept,
-            BodyChoices = BodyChoices, Why = Why, Orientation = Orientation,
+            BodyChoices = BodyChoices, Breadth = Breadth,
+            Why = Why, Orientation = Orientation,
             Parts = Parts, CoatRead = CoatRead, CostSeries = CostSeries, TwinWhy = TwinWhy,
             Upright = Upright, DressedAreaFraction = DressedAreaFraction,
             DressedVertexFraction = DressedVertexFraction, CoverageRead = CoverageRead,
@@ -709,7 +726,8 @@ namespace Ledger.Game
         static void Restore(Published p)
         {
             Attached = p.Attached; Skinned = p.Skinned; Dressed = p.Dressed; Kept = p.Kept;
-            BodyChoices = p.BodyChoices; Why = p.Why; Orientation = p.Orientation;
+            BodyChoices = p.BodyChoices; Breadth = p.Breadth;
+            Why = p.Why; Orientation = p.Orientation;
             Parts = p.Parts; CoatRead = p.CoatRead; CostSeries = p.CostSeries;
             TwinWhy = p.TwinWhy; Upright = p.Upright;
             DressedAreaFraction = p.DressedAreaFraction;
@@ -1150,12 +1168,45 @@ namespace Ledger.Game
             // measured. `Mannequin` builds people 1.58-1.90m and the sim gates
             // on that range, so a body arriving at 100x would fail a gate rather
             // than quietly tower over the street.
+            // AND BREADTH ACROSS, WHICH THIS THREW AWAY AND THE BOXES DID NOT.
+            //
+            // `Physique.For` draws breadth 0.86-1.18 from its OWN salt, with a
+            // comment explaining why: one hash reused with different arithmetic
+            // "gives correlated traits — everybody tall is also broad, and the
+            // crowd collapses back onto one axis of variation wearing a
+            // disguise". Four independent draws, deliberately, and this scaled
+            // `Vector3.one * k` — height only. Two people the same height came
+            // out geometrically identical.
+            //
+            // `Mannequin` has had it all along: `new Vector3(scale * Breadth,
+            // scale, scale)`, one line, thirteen boxes. So upgrading a walker
+            // from a box to a bought body LOST a shape trait, and body LOD
+            // grants those bodies to the nearest twelve — the people you can
+            // see best. The closer somebody got, the less their build varied.
+            // That is the sameness the roadmap has been describing, with a
+            // mechanism rather than a shrug, and it arrived with the feature
+            // that was supposed to fix it.
+            //
+            // Found by grepping `Breadth` after `bodyFaces` measured 8 distinct
+            // models among 14 bodies — the number said the models cannot carry
+            // it alone, and this is what else was available and switched off.
+            //
+            // HEAD SCALE IS NOT HERE and that is not an oversight. `Mannequin`
+            // scales a head that is a child transform; on a skinned mesh the
+            // head is a BONE, and moving it means writing to the humanoid rig
+            // every frame or the animator overwrites it. Different job, its own
+            // failure mode, and it goes on the queue rather than into this
+            // line.
             float measured = HeightOf(body);
             if (measured > 0.01f)
             {
                 float k = targetHeightMetres / measured;
-                body.transform.localScale = Vector3.one * k;
-                Why = $"ok (raw {measured:0.00}m scaled x{k:0.000})";
+                float breadth = (float)Ledger.Core.Physique.For(wearer ?? "player").Breadth;
+                body.transform.localScale = new Vector3(k * breadth, k, k * breadth);
+                Breadth = breadth;
+                if (BreadthsEver.Count < 64)
+                    BreadthsEver.Add(breadth.ToString("0.00"));
+                Why = $"ok (raw {measured:0.00}m scaled x{k:0.000} breadth x{breadth:0.000})";
             }
             else
             {
