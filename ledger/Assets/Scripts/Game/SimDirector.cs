@@ -8969,6 +8969,23 @@ namespace Ledger.Game
                       $"nameWidthP90={NameTags.NameWidthP90:0.000} " +
                       $"nameShownWidth={NameTags.NameShownWidthMedian:0.000} " +
                       $"nameShownWidthP90={NameTags.NameShownWidthP90:0.000} " +
+                      // AND THE POST-CAP WORST, WHICH WAS COMPUTED AND NEVER
+                      // PRINTED. `nameWidthWorst=0.424` on "Wendell Dujmovic" is
+                      // the label as the PROJECTION found it, before `Pin` runs;
+                      // its post-cap twin is kept in the same pass, in a field
+                      // beside it, and only the alarming half reached the
+                      // verdict. So the reader gets a name at two fifths of the
+                      // frame and no way to tell whether the cap already fixed
+                      // it — which is the exact question a width bound would
+                      // have to answer, and `NameTags`' own comment says no
+                      // bound goes on until the series is read.
+                      //
+                      // The medians agree to three decimals (0.067 and 0.140
+                      // both ways) because the cap bites 29 times in 2,226
+                      // samples. The tail is the only place these two can
+                      // differ, and the tail is what the still shows.
+                      $"nameShownWidthWorst={NameTags.WorstNameWidthFrac:0.000} " +
+                      $"nameShownWidthWorstText=[{NameTags.WorstNameWidthText}] " +
                       $"nameWidthWorst={NameTags.WorstNameWidthFrac:0.000} " +
                       $"nameWidthWorstText={NameTags.WorstNameWidthText} " +
                       $"nameFracSamples={NameTags.NameFracSamples} " +
