@@ -189,10 +189,20 @@ namespace Ledger.Game
         /// WORLD SPACE, NOT SCREEN SPACE, and deliberately: a screen-space test
         /// would have to be redone every frame as the camera moves, and a line
         /// that jumps up and down while somebody walks past is worse than one
-        /// that overlaps. Speakers within `CrowdMetres` of each other are the
-        /// ones whose bubbles can plausibly collide from any angle, which is
-        /// the conservative choice — it lifts a few lines that did not need it
-        /// and never fails to lift one that did.
+        /// that overlaps.
+        ///
+        /// AND IT DOES NOT CATCH EVERYTHING, WHICH THE FIRST DRAFT OF THIS
+        /// PARAGRAPH CLAIMED IT DID. It said the four-metre rule "never fails to
+        /// lift one that did" need it. False: `collidingBubbles` is measured on
+        /// SCREEN rects, and two speakers ten metres apart ALONG THE VIEW AXIS
+        /// project to nearly the same point while being far outside this radius.
+        /// Those are not lifted and will still overlap from that one angle.
+        ///
+        /// What it does catch is the huddle — people standing near each other —
+        /// which is what a confab IS and therefore the overwhelming majority of
+        /// the fifteen pairs. The residue is what the next reading of
+        /// `collidingBubbles` will be, and if it is not small the answer is a
+        /// screen-space pass with hysteresis, not a wider radius.
         const float CrowdMetres = 4.0f;
         const float LineLift = 0.45f;
         const float MaxLift = 1.8f;      // four lines; past that a crowd is a crowd
