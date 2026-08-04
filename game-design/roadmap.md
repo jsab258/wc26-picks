@@ -21,7 +21,7 @@ what happens next.
 | | M22 — the shape of a playthrough | onboarding, pacing, replayability, succession |
 | | M23 — firearms | M16 phase 5, deliberately last |
 | | M24 — ship | performance, platforms, controller, QA, licences, packaging |
-| **shipped** | M0–M16, Acts I–III, the perception and consequence engine | |
+| **shipped** | M0–M16, Acts I–III, the perception and consequence engine | **with one correction, 4 Aug: M16's fighting does not run.** The consequence half is real and gated; the exchange of blows is Core-only and nothing calls it — see M16 below |
 | **waiting on Jafar** | one Mixamo fetch, ~10:00 CEST 4 August | 17.1b. NOT a purchase — Mixamo characters are free and the harvester that got the 44 animation clips fetches bodies too. `tools/mixamo-pick/BODIES.bat` downloads michelle, remy, sophie and shae WITH skin; it needs a browser token that only lasts an hour, so it runs on his machine. `bodyChoices` goes 2 to 6 and, because those models arrive TEXTURED, the wardrobe leaves them alone entirely. Today's body is `X Bot.fbx`, Mixamo's free grey mannequin. Nothing else is blocked on him — the API spend he approved on 3 August is spent and delivered |
 
 **The strategy every milestone below is judged against.**
@@ -35,11 +35,6 @@ there is nothing. Here, what a person thinks of you is computed from what they
 saw or were told, then spoken in their own character by a model — so they can be
 WRONG about you, be argued with, and hold a grudge over a thing that never
 happened. The one axis where we do not approximate KCD2 but beat it.
-
-**Replaced 2026-08-01.** The old line was *"be incomparable on three axes and
-honest about the rest"* — a differentiation strategy, and following it faithfully
-produced a 95-scoring consequence engine attached to a town of silent boxes.
-Post-mortem in `roadmap-history.md`.
 
 The consequence engine is not wasted by this. It stops being the product and
 becomes the reason the conversations matter: the person talking to you knows
@@ -61,6 +56,19 @@ holds — *the same killing leaves no witness in an empty alley, several in a
 market, and none in the back room of a busy pub*. Detail and post-mortems in
 `roadmap-history.md`.
 
+**"SHIPPED" IS TRUE OF THE CONSEQUENCE HALF AND NOT OF THE FIGHTING, found
+2026-08-04 by reading the code rather than this table.** A killing is staged
+as an EVENT — `ViolenceHost` sets a lethal flag and resolves the witnesses —
+and everything downstream of that genuinely runs. There is no exchange of
+blows anywhere: `Available`, `Resolve` and `StaminaCost` model stamina,
+footing, guarding and reach, are tested, and **`Combat.` occurs exactly once
+in the whole Game layer**, on an unrelated stamina line. Nothing constructs
+a `Fighter`. It hid here because the gate certifying M16 asks about
+WITNESSES, and a fight that cannot start still leaves an empty alley empty —
+and on the reach ledger because only `Breathe` has a name that does not
+collide with another Core type's method, so a four-method gap showed as one.
+Fixing it is a milestone and it needs a done-condition measuring a FIGHT.
+
 **The risk it exposed sets the pace of everything below:** the Game layer does
 not compile locally, so every wiring change costs a ~28-minute round trip.
 
@@ -73,7 +81,7 @@ below is visible in them. Almost nothing here is new design.
 
 | | what | state | risk |
 |---|---|---|---|
-| 17.1 | **Integrate the Mixamo bodies** | **The standing-up half is CLOSED, 2026-08-03, and closed the way it should have been the first time — by opening `review_day1_noon.jpg` and seeing a figure on its feet, with `preHeadAboveHips=0.520` and `headAboveHips=0.522` agreeing on either side of the solve.** It took eight builds and a four-stage bracket because `bodyUp=1.000` reads the ROOT and structurally cannot see the skeleton, so the first close was certified by an instrument blind to the fault. Two independent faults in our own rig, both ours: the rest-restore asked whether an Animator EXISTED rather than whether anything was DRIVING the pose, so the body composed onto its own previous output for ever; and `Swing` composed onto a live rotation instead of assigning from a rest one. **The arms are closed too, 2026-08-03.** They were never a rig fault: nothing had ever animated this body. Forty-one clips were imported and audited every build — `clips=44` reported as a success for days — and not one was ever bound to anything. A locomotion blend tree now plays idle/walk/run, and the giveaway was a reading of EXACTLY 90.0° on both sides of our solve: a clip being evaluated lands anywhere, not on the bind pose to a tenth. `CullUpdateTransforms` skips retargeting when no camera reports the renderer visible, and the sim renders on demand into a RenderTexture rather than running a live camera, so the body sat frozen between shots. `AlwaysAnimate` on the one bought body. `animClipTime=473.97` where it would have been 0, and the noon frame shows arms at the sides. **Note the metric changed meaning:** `liveArmDrop` is worst-over-run, which asked "do they EVER stick out" of a static bind pose and now catches the peak of an arm swing — 63° is a walk cycle, not a fault. **Still open: the figure reads bare, and that is 17.1b.** | **arms open; upside-down closed** |
+| 17.1 | **Integrate the Mixamo bodies** | **CLOSED 2026-08-03 except the mesh.** The figure stands, the arms hang, and forty-one imported clips are being played by a locomotion blend tree. It took eight builds and two faults that were both ours, not Mixamo's, and it was closed by LOOKING at `review_day1_noon.jpg` after a gate blind to the fault had certified it once already. Full account in `roadmap-history.md`. What remains is that the body is a grey preview mannequin — that is 17.1b | **arms open; upside-down closed** |
 | 17.1b | **Bodies and faces for EVERYONE** | new 2026-08-01, and the largest single immersion gap. **2026-08-03, from the frame: the player is not "skinned but undressed", it is Mixamo's free `X Bot` mannequin** — `CharacterPrefab.BodyModel` names it, and the 44 imported files are animation clips carrying no mesh of their own. So `bodyDressed=1` is true and useless: the coat went on, onto a placeholder. The whole town is coloured boxes and the one skinned body is a shop dummy. Buying a real character mesh is Jafar's call and nothing here substitutes for it | **open — the biggest immersion gap** |
 | 17.2 | **Generate the cast voices** — clones from the 19 reference clips | cast and consent-approved; **19 reference clips picked**. Blocked on a SCOPE decision, not on tooling — see below | **high, and it is scheduling** |
 | 17.3 | **Cast the 15 named characters with no voice** | Ossei among them, and he is an Act III condition | low |
@@ -88,11 +96,6 @@ below is visible in them. Almost nothing here is new design.
 was derived from the work queue rather than from a definition of done, so it was
 silent about nine whole categories. Cause in `completeness-audit-2026-07-31.md`.
 
-**17.2 was never blocked on Jafar** — the 15,624-clip figure was a cross
-product, not a measurement. Real demand is `clipsAsked=276 voicesAsked=6`, an
-afternoon. Post-mortem in `roadmap-history.md`.
-
-**The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
 §4 chose stylised noir for the reason that still holds — a game about what people
 think they saw should look subjective and half-obscured, and weather and fog cut
 draw distance, hide low-detail geometry and make mood at once. One palette across

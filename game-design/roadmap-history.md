@@ -1773,3 +1773,33 @@ Moved here because roadmap.md is a LIVE plan capped at 400 lines and a shipped
 milestone's detail is chronology. The cap fired the moment M21 gained the
 paragraph describing what actually landed, which is the cap working: the plan
 stays about what happens next.
+
+---
+
+## M17.1 — the upside-down player and the arms, closed 2026-08-03
+
+Moved out of `roadmap.md` on 2026-08-04 because it is chronology, and rule 10
+says the plan holds the plan. Kept whole: two of the three lessons in it are
+about instruments certifying what they cannot see, and that keeps happening.
+
+**The standing-up half is CLOSED, 2026-08-03, and closed the way it should have been the first time — by opening `review_day1_noon.jpg` and seeing a figure on its feet, with `preHeadAboveHips=0.520` and `headAboveHips=0.522` agreeing on either side of the solve.** It took eight builds and a four-stage bracket because `bodyUp=1.000` reads the ROOT and structurally cannot see the skeleton, so the first close was certified by an instrument blind to the fault. Two independent faults in our own rig, both ours: the rest-restore asked whether an Animator EXISTED rather than whether anything was DRIVING the pose, so the body composed onto its own previous output for ever; and `Swing` composed onto a live rotation instead of assigning from a rest one. **The arms are closed too, 2026-08-03.** They were never a rig fault: nothing had ever animated this body. Forty-one clips were imported and audited every build — `clips=44` reported as a success for days — and not one was ever bound to anything. A locomotion blend tree now plays idle/walk/run, and the giveaway was a reading of EXACTLY 90.0° on both sides of our solve: a clip being evaluated lands anywhere, not on the bind pose to a tenth. `CullUpdateTransforms` skips retargeting when no camera reports the renderer visible, and the sim renders on demand into a RenderTexture rather than running a live camera, so the body sat frozen between shots. `AlwaysAnimate` on the one bought body. `animClipTime=473.97` where it would have been 0, and the noon frame shows arms at the sides. **Note the metric changed meaning:** `liveArmDrop` is worst-over-run, which asked "do they EVER stick out" of a static bind pose and now catches the peak of an arm swing — 63° is a walk cycle, not a fault. **Still open: the figure reads bare, and that is 17.1b.**
+
+---
+
+## Two post-mortems moved out of the plan, 2026-08-04
+
+Both record a decision that still stands; neither is the plan. Moved when the
+M16 fighting correction took `roadmap.md` over its 400-line budget, because
+trimming the new fact to keep old chronology would have been the wrong way
+round.
+
+**Replaced 2026-08-01.** The old line was *"be incomparable on three axes and
+honest about the rest"* — a differentiation strategy, and following it faithfully
+produced a 95-scoring consequence engine attached to a town of silent boxes.
+Post-mortem in `roadmap-history.md`.
+
+**17.2 was never blocked on Jafar** — the 15,624-clip figure was a cross
+product, not a measurement. Real demand is `clipsAsked=276 voicesAsked=6`, an
+afternoon. Post-mortem in `roadmap-history.md`.
+
+**The visual target is coherence, not fidelity.** `production-plan-audio-art.md`
