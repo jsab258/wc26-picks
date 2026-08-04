@@ -38,31 +38,45 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### THE 15:00 BUILD IS GREEN — NO FAILING GATE, AND THE FRAME IS BACK IN BAND
+### THE 16:00 BUILD IS RED AGAIN, AND THE LARGEST FINDING IS A CORRECTION OF MINE
 
-`meanFrame` 369 against a hundred-run median of 342 and a historical ceiling of
-369, from 449 an hour ago. Every gate passes.
+**THE NAMEPLATE "IMPOSSIBILITY" NEVER EXISTED.** The two numbers I called
+arithmetically impossible all day are printed on DIFFERENT LOG LINES — the
+offer peak on the done line at the end of the run, the same-frame probe on the
+glyphs line which is emitted on every screenshot. Same counters, two moments,
+and the peaks keep climbing after the last shot. Four published explanations,
+each disproved by the next build, and a counter deleted that was never broken.
+It is restored. The reading was mine: grepping across a whole verdict returns
+two values from two lines and gives no sign it has done so.
 
-**A door in the world is now shut against the player because of what the street
-knows.** The loft above the laundry is closed at 0.87 notoriety and would be
-open at nothing; the repair yard is open either way, carried by its other keys.
-One door of two, tried twice each so the difference is evidence rather than a
-coincidence. That is the M21 claim proven end to end: acts charge a number, the
-number decays on its own clock, a doorman turns the player away.
+The rule generalises and is now in CLAUDE.md: **a peak's denominator must come
+from the same instant, and the LOG LINE is part of the instant.** Five sites
+had been fixed for the frame version of that fault and nobody noticed the line
+version. Grep with line numbers; print run-level numbers on the run-level line.
+The whole name family now sits on the done line for exactly that reason.
 
-**The nameplate counter is deleted rather than explained.** Fourth
-contradiction, and the standing rule now says that is where explaining stops.
-The behaviour fix under it was real and stays.
+**THE FOOT PLANT WAS INVERTED.** The change asked the blend curve for one phase
+when planted and another when swinging, both picked from an assumption about
+what a phase means, and the function says the opposite in a comment three lines
+from the code. The IK was dragging the SWINGING foot onto the road at full
+weight — the one thing the blend exists to prevent. The run said so within the
+hour and much louder than the reading it replaced: planted feet 0.177 above the
+road against 0.050 overall, anti-correlated rather than merely uninformative.
+Fixed and in flight.
 
-**Two readings closed by measurement, both cheap.** Vehicles are not off the
-road — the still that suggested it was half wrong and the impossible half was
-named before the number arrived. Eight pieces of facade clutter ARE standing in
-a carriageway, out of 176, which nothing had ever asked.
+**The frame gate is red at 483ms, from 369 green.** The inverted IK is a
+candidate — full-weight goals on a swinging foot is work as well as a fault —
+and so is the crowd spread. The phase fix lands first and is the cheaper test.
 
-**And one that did not work.** Rank hysteresis did not cut the body-LOD churn:
-1,586 grants over 494 passes, the same three a second as before. It is no
-longer blocking anything — the frame gate is green — so it is recorded and
-NOT chased. A dwell time is the next lever if it ever matters again.
+**Two smaller readings.** The crowd gap moved 0.30 to 0.34 against a body width
+of 0.45, so the spread helped and did not finish. The clutter nudge cleared
+NOTHING — zero pulled, eight stuck — so its bound was the wrong question, and
+the reach now goes to four metres and reports the worst distance used, which
+separates "the level fronts onto the road" from "the clutter is placed metres
+off its own wall".
+
+**And the rival rang once and nobody picked up**, which is the mechanic working
+end to end on its first build.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
