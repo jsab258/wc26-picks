@@ -1114,7 +1114,50 @@ namespace Ledger.Game
                 // service lane is a bin beside a service lane. `OnRoad` asks
                 // only about the ways a CAR uses, which is where a bin would
                 // actually look wrong and be driven through.
-                if (Ledger.Core.StreetMap.OnRoad(at.x, at.z)) DressedInRoad++;
+                if (Ledger.Core.StreetMap.OnRoad(at.x, at.z))
+                {
+                    DressedInRoad++;
+
+                    // MEASURED FIRST, MOVED SECOND, AND THE ORDER WAS THE
+                    // POINT. The count landed before this did: 8 of 176 facade
+                    // items standing in a carriageway, which is small enough to
+                    // fix by nudging and far too small to justify REFUSING a
+                    // placement. Refusing on a bound nobody had read could have
+                    // deleted a third of the street's clutter on a bad guess —
+                    // the ratchet rule 5 is about, and the same shape as the
+                    // guard that threw away a corrected clip set for being
+                    // smaller than the one it replaced.
+                    //
+                    // BACK TOWARDS THE WALL, which is the one direction that is
+                    // always right here. `outward` is the facade's own normal,
+                    // so stepping against it moves the bin from the road onto
+                    // the pavement it belongs on and never sideways into a
+                    // neighbour's doorway.
+                    //
+                    // BOUNDED AT THE STEPS BELOW AND COUNTED WHEN IT FAILS. A
+                    // loop that pulls until it clears would push a bin through
+                    // its own wall on a facade that fronts directly onto the
+                    // carriageway, and there is nothing to do about that from
+                    // here — the building is in the road, not the bin. Those
+                    // are left where they are and counted, because a silent
+                    // "fixed" that walked an object into a wall would be worse
+                    // than the fault.
+                    const float PullStep = 0.25f;
+                    const int PullSteps = 5;
+                    var pulled = at;
+                    bool cleared = false;
+                    for (int step = 0; step < PullSteps; step++)
+                    {
+                        pulled -= outward * PullStep;
+                        if (!Ledger.Core.StreetMap.OnRoad(pulled.x, pulled.z))
+                        {
+                            cleared = true;
+                            break;
+                        }
+                    }
+                    if (cleared) { at = pulled; DressedPulled++; }
+                    else DressedStuckInRoad++;
+                }
                 switch (d.Kind)
                 {
                     case Ledger.Core.Clutter.Bin:
@@ -1160,6 +1203,12 @@ namespace Ledger.Game
         /// "no dressing was placed at all" are different worlds and read the
         /// same without one.
         public static int DressedInRoad;
+        /// Of those, how many were pulled back onto the pavement and how many
+        /// could not be. `Stuck` is not a failure of the nudge — it is a facade
+        /// that fronts directly onto the carriageway, which is a level fact
+        /// this cannot fix and must not paper over by walking an object into a
+        /// wall.
+        public static int DressedPulled, DressedStuckInRoad;
 
         /// Doors built. Counted separately from `Dressed` because a door is
         /// architecture rather than clutter: bins thin out in a far district by
