@@ -2014,6 +2014,32 @@ namespace Ledger.Game
                 // called, one step subtler.
                 if (Companion.Current != null && _gossip != null)
                     Companion.CheckLoyalty(_gossip.Mill.Get(Companion.Current.Id), Now.Day);
+                // AND WHAT THEY SEE THAT YOU DO NOT, which nothing has ever
+                // asked for.
+                //
+                // `WatchersTheyAdd` is the half of the companion trade the
+                // PLAYER gets — who is watching from where she stands that is
+                // not watching from where you stand — and it is what makes
+                // where she walks a real thing rather than a modifier on a
+                // stat. It had no callers, so `LastAdds` sat at its
+                // initialiser and `adds=0` has been in every verdict this
+                // project has kept.
+                //
+                // TWO INSTRUMENTS AGREED BEFORE ANYTHING WAS CHANGED.
+                // `gates.py --constant` listed `adds=0` as a reading that has
+                // never been anything else across 131 runs, and
+                // `lint-unreached.py` listed the method as one nothing names.
+                // Neither could have found it alone: the first cannot say why a
+                // number is stuck, and the second cannot say whether an unnamed
+                // method matters.
+                //
+                // NIGHTLY, LIKE THE LOYALTY CHECK IT SITS BESIDE, and for a
+                // harder reason than symmetry: it sweeps every walker in the
+                // scene with a sightline test apiece, and the frame gate is
+                // already red. Once a night is what a reading costs; once a
+                // frame is what a reading costs when nobody checks.
+                if (Companion.Current != null && _player != null)
+                    Companion.WatchersTheyAdd(_player.transform);
                 // The licence is under review: the bar's own till stays shut.
                 if (ActTwo.BarFrozen(Now)) takings = 0;
                 // Owned fronts pay clean and get heat-taxed exactly like the bar
