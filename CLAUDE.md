@@ -98,6 +98,24 @@ the same evidence as choosing the threshold — and one run is not evidence.
 Print the series first. When a gate asks two questions, give each the statistic
 that answers it, and do not move the bound to make red go away.
 
+**TWO MAXIMA CANNOT BE DIVIDED, AND FOUR PAIRS IN THIS PROJECT WERE.** A peak is
+the right statistic for "how bad did it get" and the wrong one for the other
+half of a fraction, because the worst instant for the numerator need not be the
+worst instant for the denominator. Found on 4 August, four sites in one night:
+
+| printed as | and they were |
+|---|---|
+| `collidingBubbles=91 bubblesOnScreen=16` | the worst overlap frame and the busiest frame, not the same frame |
+| `textFacingAway=70 textVisible=149` | two independent peaks I quoted as "47%" — in a queue item I had written telling myself to read the ratio |
+| `deedWitnesses=53 deedEyesOpen=50 deedKnowsYou=41` | three maxima over three possibly different deeds, printed as one event's breakdown |
+| `companionRung` vs `companionStreetRung` | **correct** — both taken in one loop over the same witness set, and its comment says why |
+
+The fix is always the same shape: capture the denominator AT THE INSTANT the
+numerator peaks, and name it so (`bubblesAtWorst`, `textVisibleAtAway`). The
+sweep that found them is mechanical and takes two minutes — **list every field
+assigned by a max, then ask which of them are printed next to each other.**
+Twenty-two peak fields in `SimDirector`, four bad pairs, one that was right.
+
 **AND A NUMBER KEEPS ITS NAME WHEN THE QUESTION IT ANSWERS MOVES.** Three in one
 night, all mine, all in metrics I had written hours earlier:
 
