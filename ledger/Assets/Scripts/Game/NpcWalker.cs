@@ -695,15 +695,45 @@ namespace Ledger.Game
             HearLastSound(current, dt);
 
             _stationaryFor = speed < 0.1f ? _stationaryFor + dt : 0f;
+            // BLOOD ON YOU IS NOTABLE, AND THIS SAID `false`.
+            //
+            // `ViolenceHost.PlayerStain` is a modelled thing with a noticeable
+            // range, a social cost and a wash — the run reports
+            // `blood[taken=1 noticed=5 washed=1]` — and the street's ordinary
+            // attention ladder was told, in a literal, that there was never any
+            // blood and never any mark. So a man walking home covered in it was
+            // placed exactly as fast as a man who was not, by every stranger he
+            // passed.
+            //
+            // `StainIsAMark` is the function for the second half and had no
+            // callers at all; `lint-unreached.py` found it forty minutes after
+            // being written. Its own comment says what it is for: "a stain is a
+            // distinguishing mark, exactly like a limp: it feeds the
+            // identification ladder rather than the case file." The ladder is
+            // right here and was passing a constant.
+            //
+            // THE OTHER SITE WAS ALREADY CORRECT, which is what makes this the
+            // usual shape. `Observation` asks the same question through
+            // `v.ActorHasMark`, properly wired, because a deed's witnesses were
+            // built with care. The street's everyday noticing is the copy
+            // nobody looked at.
+            //
+            // NOT THE LIMP, YET. The player's own capability is knowable here
+            // too and would belong in the same two arguments, but a limp is
+            // common where a stain is rare — one run in one, briefly — and
+            // changing how fast the whole street places the player on every
+            // ordinary day is a decision to make at the top of a turn against
+            // the perception numbers, not at the end of one.
+            bool bloodOnMe = ViolenceHost.PlayerStain != null;
             var notable = Notice.What(_stationaryFor, speed, GameController.NightAmount,
                                       whereTheyShouldNotBe: false,
-                                      bloodVisible: false, weaponVisible: false);
+                                      bloodVisible: bloodOnMe, weaponVisible: false);
             // A noteworthy person is noticed FASTER through the same
             // accumulator rather than through a second code path.
             double pull = 1.0 + Notice.Interest(notable, GameController.NightAmount);
 
             int rung = Perception.IdRung(metres, light, familiarity: 0.5,
-                                         hasDistinguishingMark: false);
+                                         hasDistinguishingMark: ViolenceHost.StainIsAMark());
             bool wasAttending = _attendingNow;
             _attention.Tick(dt, inSight, Perception.ConeWeight(offAxis),
                             Perception.MotionFactor(speed) * pull, rung);
