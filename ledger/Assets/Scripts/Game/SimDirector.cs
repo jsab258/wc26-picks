@@ -3224,6 +3224,10 @@ namespace Ledger.Game
                 // ships into that panel and none of it has ever been read back.
                 if (_game.Ui != null)
                     Debug.Log($"SimDirector: [panel] ledger — {_game.Ui.LedgerWords()}");
+                // AND WHAT IS STANDING NEXT TO HIM. There is a glowing cube at
+                // the player's chest in the night still and no way to tell what
+                // it is from the picture.
+                Debug.Log(SceneAudit.Near(_game.Player.transform.position + Vector3.up));
             }
         }
 

@@ -216,6 +216,49 @@ namespace Ledger.Game
         public static int SkinnedBones { get; private set; }
         public static int SkinnedVerts { get; private set; }
 
+        /// WHAT IS ACTUALLY STANDING NEXT TO THE PLAYER, biggest first.
+        ///
+        /// WHY. `review_day2_night.jpg` has a large glowing yellow cube
+        /// floating at the player's chest, dead centre of frame. It is
+        /// unmistakably wrong and I cannot tell from the picture what it is —
+        /// the candidates are a courier satchel drawn as a held object, a
+        /// dispatch marker (wrong colour and half the height, but markers move),
+        /// a detached window quad, or a lamp housing.
+        ///
+        /// Rule 4, in the half people skip: a picture is excellent evidence
+        /// that something is WRONG and poor evidence of WHAT. Four reversals in
+        /// one night came from acting on the second half — three textures and a
+        /// bench condemned off a JPEG and every one of them correct. So this
+        /// does not guess. It names the objects, with their size, and the next
+        /// verdict says which one it is in one round trip instead of three.
+        ///
+        /// Two metres, because that is arm's length plus the width of a person:
+        /// anything inside it is something the player is wearing, carrying, or
+        /// standing in.
+        public static string Near(Vector3 where, float metres = 2f)
+        {
+            var found = new List<(string name, float size, float dist)>();
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (r == null || !r.enabled) continue;
+                float d = Vector3.Distance(r.bounds.center, where);
+                if (d > metres) continue;
+                var e = r.bounds.size;
+                found.Add((r.name, Mathf.Max(e.x, Mathf.Max(e.y, e.z)), d));
+            }
+            found.Sort((a, b) => b.size.CompareTo(a.size));
+            var sb = new StringBuilder("SceneAudit: near[");
+            int n = 0;
+            foreach (var f in found)
+            {
+                if (n++ >= 8) { sb.Append(" …"); break; }
+                sb.Append(n == 1 ? "" : " ").Append(f.name)
+                  .Append(':').Append(f.size.ToString("0.00")).Append('m')
+                  .Append('@').Append(f.dist.ToString("0.0"));
+            }
+            return sb.Append("] of ").Append(found.Count).ToString();
+        }
+
         public static string Report()
         {
             var sb = new StringBuilder();
