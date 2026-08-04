@@ -7664,6 +7664,48 @@ namespace Ledger.CoreTests
             Check(fame.Notoriety < known,
                 "but it does fade — being known is not permanent either");
 
+            // ---- A BODY CANNOT BE MANAGED OFF THE TABLE, ON EITHER PATH --
+            //
+            // `Tick` has always exempted an indelible rumour from the leash,
+            // from suppression and from the confidence floor, on the design
+            // that no amount of information landscaping makes Ellis's case
+            // answerable once there is a corpse. `CompareNotes` — a detective
+            // asking somebody straight out — exempted it from none of them, so
+            // a hook bought silence about a body under direct questioning while
+            // the same witness would have volunteered it in ordinary talk.
+            var hushGraph = new SocialGraph();
+            var hush = new GossipMill(hushGraph);
+            var witnessToBody = Agent("saw", "Vera", "day");
+            var detective = Agent("asks", "Ellis", "day");
+            hush.Add(witnessToBody);
+            hush.Add(detective);
+            hushGraph.Link("asks", "saw", 0.9);
+            var body = new Fact("player", "killed", "yes");
+            hush.Witness("saw", body, "I watched him do it.", sensitive: true,
+                         now: new GameTime(1, 22, 0), confidence: 0.9, indelible: true);
+            witnessToBody.Leashed = true;
+            var told = hush.CompareNotes("asks", "saw", new GameTime(1, 23, 0));
+            Check(detective.Rumors.Exists(r => r.Content.Predicate == "killed"),
+                "a leashed witness asked straight out about a body still answers",
+                $"{detective.Rumors.Count} rumour(s) passed, {told.Count} event(s)");
+
+            // AND THE LEASH STILL HOLDS FOR EVERYTHING ELSE, which is the half
+            // that makes the exemption a design rather than a hole.
+            var quietGraph = new SocialGraph();
+            var quiet = new GossipMill(quietGraph);
+            var seen2 = Agent("seen2", "Remy", "day");
+            var asks2 = Agent("asks2", "Ellis", "day");
+            quiet.Add(seen2);
+            quiet.Add(asks2);
+            quietGraph.Link("asks2", "seen2", 0.9);
+            quiet.Witness("seen2", new Fact("player", "met", "Rocco"),
+                          "He was talking to Rocco.", sensitive: true,
+                          now: new GameTime(1, 22, 0), confidence: 0.9);
+            seen2.Leashed = true;
+            quiet.CompareNotes("asks2", "seen2", new GameTime(1, 23, 0));
+            Check(!asks2.Rumors.Exists(r => r.Content.Predicate == "met"),
+                "but a leashed witness still says nothing about anything else");
+
             // ---- M21: SHE RINGS YOU, AND NOT PICKING UP IS AN ANSWER ------
             //
             // The roadmap has said for weeks that the rival is a person rather

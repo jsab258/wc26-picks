@@ -410,12 +410,34 @@ namespace Ledger.Core
                 $"I asked {partner.DisplayName} straight out what they knew about the new owner."));
 
             double tie = System.Math.Max(_graph.Tie(checkerId, partnerId), 0.5); // asking directly beats a weak tie
+            // A BODY SURVIVES ALL THREE OF THESE, AND HERE IT DID NOT.
+            //
+            // `Tick` exempts an INDELIBLE rumour from the confidence floor,
+            // from suppression and from the leash, on the stated design that a
+            // body "is the one lead that cannot be managed off the table, so no
+            // amount of information landscaping makes Ellis's case answerable
+            // once there is one". `Ellis` reads it that way too.
+            //
+            // This method exempted it from none of them, so a hook or a bribe
+            // on a witness stopped them answering a direct question about a
+            // corpse they saw — while the same witness would still have
+            // volunteered it in ordinary conversation through `Tick`. One idea,
+            // two implementations, and the one nobody looks at is the one
+            // missing a line. Found 2026-08-04 by reading the file rather than
+            // by a build, which is the only way this class of fault ever
+            // surfaces: both paths compile, both are tested, and they simply
+            // disagree.
+            //
+            // AND THE PARTNER'S LEASH IS NO LONGER TESTED INSIDE THE LOOP. It
+            // does not depend on the rumour, so it belongs where it is decided
+            // once — and sitting after two per-rumour filters it read as though
+            // it might.
             foreach (var r in partner.Rumors.ToList())
             {
                 if (r.Content.Subject != "player") continue;
-                if (r.Confidence < MinConfidenceToShare) continue;
-                if (partner.Suppressed.Contains(r.TopicKey)) continue;
-                if (partner.Leashed) break;
+                if (r.Confidence < MinConfidenceToShare && !r.Indelible) continue;
+                if (!r.Indelible && partner.Suppressed.Contains(r.TopicKey)) continue;
+                if (!r.Indelible && partner.Leashed) continue;
 
                 double passed = r.Confidence * tie * HopDecay;
                 if (passed < MinConfidenceToShare) continue;
