@@ -143,28 +143,50 @@ GPU and software-rasterises everything — so the number that matters is geometr
 
 ### Startable right now, in order
 
-1. **Read the next trace's `held:` tally** — whether a staged probe steals the
-   bot during a drop window. `jobRan` is green today and was red yesterday;
-   3 in 99 is a flaky gate and a green run is not an answer.
-2. **Read `CharacterMaterials` and `bodyKeptMats`** — whether extraction landed
-   textures on the bodies. The report names the count tried, the count that
-   yielded, and how many textures are on disk.
-3. **Read `ikFrames` / `ikUndriven`** — foot IK is wired and has never run.
-   `ikFrames=0` with `ikUndriven` large means no controller bound;
-   `ikFrames=0` with `ikUndriven` zero means the IK pass is off. Different
-   fixes, identical stills.
-4. **Read `nameFracMedian` and `bubbleFracMedian`** — then, and only then,
-   decide whether world text needs a size clamp. **Do not pick a number first.**
-5. **Read `heatMedian`** — decides whether the street pinned at maximum unease
-   is a music problem or a harness one. Nothing to re-tune until it lands.
-6. **Read `measureFails`** — all four failing prose labels are named now
-   instead of one.
-7. **`Typography.LineHeight`** — checked: zero callers anywhere in the Game
-   layer, so its ledger reason stands. The UI sets font sizes by hand and Core
-   computes the scale, which is how they drift. A real UI item, no CI needed to
-   start.
-8. **Keep retiring the reach ledger** — 46, from 71 two nights ago. 23 of the
-   32 WIRE entries are M17.
+**The 12:03 build answered four of the five questions that were in flight, and
+the run is `pass=True` with no failing gate.**
+
+1. **THE NAME HEAP IS FOUND AND HALF-FIXED — read the next `textInvisible`.**
+   The denominators settled it: 391 texts walked, **260 rejected as invisible**,
+   95 projected, `namesTracked=1` — on a run whose day-2 noon still has a dozen
+   names piled illegibly in the corner. `Renderer.isVisible` means "rendered by
+   ANY camera last frame", not "in this camera's view", and the review camera
+   has not rendered when the measurement is taken. Replaced with a real frustum
+   test in both `CollidingNames` and `SpeechBubble.Rects`. **The next run's
+   `collidingNames`, `nameFracP90` and `bubbleFracP90` are the first honest
+   readings of any of them** — every earlier value was taken over a population
+   that excluded the frames with heaps in.
+2. **Read `ikWorstHit` and `ikGroundMissed`.** Foot IK runs (`ikFrames=2299`,
+   `ikUndriven=0`, leg measured at 0.832m) but `ikCorrectionMedian=0.174` is a
+   fifth of the leg on a median frame, on flat pavement. Prime suspect, named
+   but NOT acted on: the ray uses `~0` and starts inside the host capsule, so it
+   may be returning the body's own collider as pavement. The run now says what
+   it struck.
+3. **Read `walked=` in the job trace.** Two misses had the job holding the
+   target every tick and still finished 9.3m and 6.9m out. Path length is what
+   separates "steered and not moving" from "moving and too far".
+4. **THE WALKER BODIES.** Now unblocked — the base is green and the textures
+   work. Read the hazard written up above before touching it: `TryAttach` writes
+   statics that five gate clauses read as THE PLAYER's, and wiring 55 walkers
+   without separating those first corrupts all five silently.
+5. **`heatMedian`** — decides whether the street pinned at maximum unease is a
+   music problem or a harness one.
+6. **`measureFails`** — all four failing prose labels are named now, not one.
+7. **Keep retiring the reach ledger** — 43, and every remaining reason was
+   verified against the code today.
+
+### SETTLED by the 12:03 build
+
+- **The textures work.** `bodyKeptMats=1`, `bodyParts=[nothing to paint — all 1
+  renderer(s) came textured]`, and the noon still shows a properly textured
+  figure — skin, hair, a white top, yellow trousers — where yesterday she was a
+  flat blue silhouette. Extraction pulled 54 textures from 10 of 10 models.
+- **The ratchet fix holds.** The bodies gate passes the run that fixed the
+  bodies instead of failing it for not having been painted over.
+- **Foot IK is running**, first time: 2,299 frames, both feet, no undriven
+  frames, and the IK pass really is enabled.
+- **The compile outage is over.** One wrong type name rode 18 commits and killed
+  4 builds, each dispatched to answer a different question.
 
 ---
 
