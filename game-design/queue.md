@@ -38,7 +38,35 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### IN FLIGHT AND STAGED, 07:55 UTC
+### ANSWERED BY THE 07:56 BUILD — read this before picking anything up
+
+**Green, no failing gates.** The three counters dispatched to settle three
+open questions all came back decisive, which is the point of adding a
+denominator rather than guessing.
+
+- **The wall wiring RUNS.** `beliefsShortened=445` of 3517 investigations —
+  445 listeners went to the wall they heard through instead of walking to the
+  exact spot. Rule 6 satisfied with a number rather than a claim.
+- **THE VOICE BUDGET IS NEVER CALLED AT ALL.** `soundsOffered=0` with
+  `soundsNoClip=0`. Not clips arriving null, not the budget refusing — `Admit`
+  is never reached. So footsteps and impacts are not routed through it in the
+  sim, or `Audio` is not initialised on that path. **This is the next thing to
+  chase**, and it is one grep: find who calls `Audio.Footstep` and whether
+  `_root`/`_foot` are ever non-null in a headless run.
+- **The contrast headroom is real now**: `contrastTightest=4.73` at the ledger
+  title, 20pt, against 21.00 meaning nothing last run. It passes AA; it is the
+  tightest pair and now visible if it drifts.
+- **`claimOverheard=1`** — the planted bystander took. Series 1, 0, 1, 35, 0.
+  One nonzero settles nothing on its own; watch it across runs.
+- `crowdGapMedian` 0.29 (was 0.20, was 0.00) — moved again, as expected, since
+  the belief wiring changes where people walk. `crowdTightest` still 0.00 and
+  `crowdInside=312`: the standing-still fix is what addresses that.
+- `confabs=34`. Joint-lowest of the last ten, and INSIDE the current regime's
+  29–74 with earlier runs at 33, 31 and 29. A single run inside the band says
+  nothing in either direction — do not act on it.
+- `lineCrossedLive=17 lineYielded=17`. Still exact.
+
+### IN FLIGHT AND STAGED, 07:57 UTC
 
 Two builds are out and a batch is committed but NOT dispatched. If you are a
 cold session reading this, that is the first thing to resolve.
@@ -46,13 +74,11 @@ cold session reading this, that is the first thing to resolve.
 - **Out:** one carrying the belief wiring plus `soundsOffered`/`soundsNoClip`
   and `contrastTightest`; a second carrying those plus `worstWorldPair`. The
   second supersedes the first — read whichever names the newer commit.
-- **Staged, undispatched:** the crowd-separation fix for people STANDING
-  STILL, plus the numbers hoisted onto the done line (`corroboration`,
-  `contradiction`, `denounceMark`, `marked`, `saw`, `ringLastOccluded`).
-  **Dispatch it the moment one of the two above lands.** It is held only
-  because it moves `crowdGapMedian`, which the in-flight pair is measuring,
-  and because three concurrent builds is how two of four died on a Unity
-  licence seat this morning.
+- **Dispatched 07:57** — the crowd-separation fix for people STANDING STILL,
+  plus the numbers hoisted onto the done line (`corroboration`,
+  `contradiction`, `denounceMark`, `marked`, `saw`, `ringLastOccluded`). Read
+  `crowdTightest` and `crowdInside` against 0.00 and 312, and `confabs`
+  against the series rather than against one run.
 
 ### Startable right now, in order
 
