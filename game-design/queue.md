@@ -61,23 +61,34 @@ scheduling instead of to CI's output.
    DIFFERENT TEST — the flat-3.0m road rule before junctions — so the
    all-time median of 23 is three regimes averaged together and means
    nothing. Do not quote it.
-2. **`claimOverheard` with a bystander planted.** First reading was 0 for a
-   whole run because nobody happened to be within fourteen metres. A second
-   host now stands two metres away for the duration of the claim and is put
-   back afterwards. If it still reads 0 the fault is in the acoustics path,
-   not the world.
-3. **`soundsDropped` and `soundsPeak`.** The voice budget has a choke point
+2. **`claimOverheard` with a bystander planted.** The series is **0, 1, 35, 0**
+   newest first — not "always 0", which is what this item used to say off a
+   single run. So the acoustics path demonstrably works and what varies is
+   whether anybody happened to be standing within fourteen metres. That is
+   rule 5b's corollary exactly: a probe that only fires on a lucky run.
+
+   A second host now stands two metres away for the duration of the claim and
+   is put back afterwards. **One nonzero reading does not settle it** — 35 was
+   also a lucky run. It is settled when it is nonzero across several, so read
+   it with `gates.py --series claimOverheard` rather than off one verdict.
+3. **FIVE OF THESE NUMBERS HAVE NEVER REACHED A VERDICT**: `lineYielded`,
+   `soundsDropped`, `soundsPeak`, `contrastFailing`, `staminaLow`/`High`. The
+   three builds that carried them were all NOSIM, so the landing one is their
+   first reading and there is no baseline to compare against. A single value
+   can be checked for PLAUSIBILITY and nothing else — do not call anything a
+   regression or an improvement off it, and do not set a bound from it.
+4. **`soundsDropped` and `soundsPeak`.** The voice budget has a choke point
    for the first time. Zero drops over a run means either the street never
    gets busy enough to need it or the gate is not in the path — and the peak
    bus says which.
-4. **`contrastFailing` and the worst pair.** First reading of whether the
+5. **`contrastFailing` and the worst pair.** First reading of whether the
    panels can actually be read. Reported, not gated: some pairs are dim on
    purpose, and which ones are intentional is a judgement for Jafar off the
    list rather than a bound for me to pick.
-5. **`staminaLow`/`staminaHigh`.** Both at 1.000 means the sim never runs far
+6. **`staminaLow`/`staminaHigh`.** Both at 1.000 means the sim never runs far
    enough for the breathing model to matter — a finding about the sim, not the
    model. Pinned at 0 means the drain is too steep.
-6. **WIRE `HeardAs`, WHICH MEANS BUILDING A BELIEVED POSITION FIRST.** The
+7. **WIRE `HeardAs`, WHICH MEANS BUILDING A BELIEVED POSITION FIRST.** The
    ledger said it classifies a sound; it does not. It is the identity on
    `(bearing, metres)`, kept as a function so no caller can pass a NAME
    through hearing — the asymmetry between "a shot, that way, close" and
@@ -94,15 +105,15 @@ scheduling instead of to CI's output.
 
    **Held until the crowd-separation build lands**: it changes where walkers
    walk to, and that is the same quantity `crowdGapMedian` is measuring.
-7. **A FIGHT CANNOT BE STARTED FROM THE GAME.** `Combat.` occurs exactly once
+8. **A FIGHT CANNOT BE STARTED FROM THE GAME.** `Combat.` occurs exactly once
    in the whole Game layer, and it is `StaminaAfterMoving`. `Available`,
    `Resolve` and `StaminaCost` are built, tested and disconnected — and
    invisible to the reach ledger because their names collide with other Core
    types' methods, so only `Breathe` was ever listed. Rule 6 in its purest
    form. This is a milestone, not a queue item; it is here so the next
    reader does not have to rediscover it, and the ledger entry now says so.
-8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
-9. **FOOT IK IS THE NEXT BIG ONE, AND IT IS HELD ON PURPOSE.** `Rig.TwoBone`,
+9. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder armed for 07:55 UTC.
+10. **FOOT IK IS THE NEXT BIG ONE, AND IT IS HELD ON PURPOSE.** `Rig.TwoBone`,
    `FootHeight` and `PlantBlend` are a complete ground-adaptation model with no
    caller — the solver clamps over-extension rather than returning NaN, the
    height clamps at 0.42m so a foot cannot chase a kerb, and the blend fades IK
@@ -115,7 +126,7 @@ scheduling instead of to CI's output.
    them apart costs another twenty-eight minutes. Batching Game-layer changes
    is right; batching two changes to the same body is not.
 
-10. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
+11. **Keep retiring the reach ledger** (56, from 71 last night). What is left is
    mostly genuinely-blocked UI surfaces plus the type scale, which wants the UI
    to stop setting sizes by hand — a real refactor rather than a wiring.
 
