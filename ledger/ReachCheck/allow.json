@@ -20,9 +20,7 @@
     "M16 phase 3 and 4 worklist as much as it is a debt."
   ],
   "allow": {
-    "Acoustics.AsHeardOnTheLine": "WIRE: M18 — the render side of the two above; no caller until they have one.",
     "Acoustics.CanMakeOutWords": "WIRE: M16 phase 3 — whether a witness heard words or only a noise, which decides what they can retell.",
-    "Acoustics.LineIntelligibility": "WIRE: M18 — the phone layer carries calls but never degrades them; PhoneBook.Damped is the same gap.",
     "Acoustics.OutsideBleed": "WIRE: M17 audio — a 0..1 MIXER GAIN for ducking the street bed when the player steps through a door, NOT a dB attenuation. Phase 3 tried to use it to quieten a killing in a back room and that is dimensionally wrong; walls are Perception.WallAttenuation and the room is its ambient floor.",
     "Acoustics.OverheardConfidence": "WIRE: M16 phase 3 — a witness who hears the killing without seeing it. Pairs with Violence.KillingConfidence.",
     "Attention.Identified": "WIRE: M16 phase 2 — the top of the ID ladder, reached in tests and never read by the game.",

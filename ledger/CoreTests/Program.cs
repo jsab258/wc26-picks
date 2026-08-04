@@ -355,6 +355,23 @@ namespace Ledger.CoreTests
                              Acoustics.LineKind.LongDistance).Placed,
                   "nor 0.60 down a trunk line");
 
+            // THE WIRE EATS WORDS, and a good handset does not.
+            const string said = "I told you already, the man came in on Tuesday "
+                                + "and left the package behind the counter";
+            string clean = Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.Handset, 0.0, 7);
+            string rough = Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.BadLine, 0.6, 7);
+            Check(clean == said,
+                  "a good handset in a quiet room returns the line whole", clean);
+            Check(rough != said && rough.Length > 0,
+                  "a bad line does not, and does not return nothing either", rough);
+            // SEEDED, because a line that re-garbles itself every redraw is a
+            // bug rather than atmosphere.
+            Check(Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.BadLine, 0.6, 7) == rough,
+                  "the same call heard twice reads the same way");
+            Check(Acoustics.AsHeardOnTheLine(said, Acoustics.LineKind.BadLine, 0.6, 8) != rough
+                  || rough == said,
+                  "and a different call does not");
+
             // A stranger is a stranger even on the best line.
             Check(!book.Ring("bar", "rocco", now, near, nameOf, _ => 0.0,
                              Acoustics.LineKind.Handset).Placed,

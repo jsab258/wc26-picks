@@ -108,7 +108,28 @@ namespace Ledger.Game
                              "they would question in a room.";
                 var reply = await _engine.SayToAsync(playerInput, _game.Now, scene);
                 // §9: nothing fourth-wall-breaking or essay-length reaches the player.
-                return ResponseValidator.Validate(reply, Card.Name);
+                reply = ResponseValidator.Validate(reply, Card.Name);
+                // AND THE WIRE EATS SOME OF IT. `Acoustics.AsHeardOnTheLine`
+                // has sat unwired with the note "the phone layer carries calls
+                // but never degrades them" — so a call has been a conversation
+                // with perfect diction, which is the one thing a telephone in
+                // this period is not.
+                //
+                // AFTER the validator, never before. The validator is checking
+                // what the MODEL said — its job is to catch an essay or a
+                // fourth-wall break — and handing it a sentence with words
+                // already missing would have it judging the line quality
+                // instead. Elide last, so what is dropped is dropped from the
+                // thing that was going to be shown.
+                //
+                // Seeded on the day and hour so the same call reads the same
+                // way twice; a line that re-garbles itself on a redraw is a
+                // bug, not atmosphere.
+                if (OnTheLine)
+                    reply = Acoustics.AsHeardOnTheLine(reply, Acoustics.LineKind.Handset,
+                        Perceivers.PresentNearby > 6 ? 0.5 : 0.15,
+                        _game.Now.Day * 24 + _game.Now.Hour);
+                return reply;
             }
             catch (LlmApiException e)
             {
