@@ -13067,6 +13067,65 @@ namespace Ledger.CoreTests
             Check(!Occupancy.ShopLit("s3", 0) && !Occupancy.ShopLit("s3", 2),
                   "and after midnight the ground floors are all dark");
 
+            // ---- M22 REPLAYABILITY: IS A SECOND CITY A SECOND GAME? --------
+            //
+            // THE UNTESTED CLAIM, AND THE ROADMAP SAYS SO IN ITS OWN WORDS:
+            // "Whether a second run feels different is the untested claim, and
+            // the Director plus the gossip mill are the two systems that could
+            // make it true — different people knowing different things is a
+            // different game." Nothing has ever asked it.
+            //
+            // AND THE FIRST THING TO KNOW IS THAT TODAY THERE IS NO SECOND
+            // CITY AT ALL. `PopulationHost.BuildPopulation` hardcodes
+            // `PopulationSeed = 20260726`, under a comment saying "Fixed for
+            // now so every playthrough shares a street; when new-game options
+            // exist this becomes a choice". So every campaign has the same
+            // seven hundred people in the same houses with the same trades.
+            //
+            // THAT IS NOT A BUG AND MUST NOT BE "FIXED" BY RANDOMISING IT.
+            // Every gate this project owns reads numbers off one deterministic
+            // city; a seed that moved per run would make every measurement
+            // incomparable with every previous one, which is a far more
+            // expensive loss than the variety it would buy. The question worth
+            // answering first is what a second seed would ACTUALLY buy, and
+            // that is arithmetic rather than a decision.
+            //
+            // MEASURED, NOT ASSERTED. No threshold on the difference — the
+            // series has never been read, and this exists to print it so the
+            // new-game decision is made from evidence rather than from the
+            // word "replayability".
+            var cityA = Population.Generate(700, 20260726, CityPlan.Districts,
+                                            CityPlan.HomeShares, CityPlan.WorkShares);
+            var cityB = Population.Generate(700, 20260727, CityPlan.Districts,
+                                            CityPlan.HomeShares, CityPlan.WorkShares);
+            Check(cityA.Residents.Count == cityB.Residents.Count && cityA.Residents.Count == 700,
+                  "two seeds make two cities of the same size", $"{cityA.Residents.Count}");
+
+            var namesA = new HashSet<string>();
+            foreach (var r in cityA.Residents) namesA.Add(r.Name);
+            int sharedNames = 0;
+            foreach (var r in cityB.Residents) if (namesA.Contains(r.Name)) sharedNames++;
+
+            // SAME PERSON, DIFFERENT LIFE — the interesting axis. A name that
+            // appears in both cities is only a repeat if it is also the same
+            // trade in the same district; otherwise it is a different person
+            // wearing a familiar name, which is what a second run wants.
+            var lifeA = new HashSet<string>();
+            foreach (var r in cityA.Residents) lifeA.Add($"{r.Name}|{r.Trade}|{r.District}");
+            int sharedLives = 0;
+            foreach (var r in cityB.Residents)
+                if (lifeA.Contains($"{r.Name}|{r.Trade}|{r.District}")) sharedLives++;
+
+            int nightA = 0, nightB = 0;
+            foreach (var r in cityA.Residents) if (r.Circle != "day") nightA++;
+            foreach (var r in cityB.Residents) if (r.Circle != "day") nightB++;
+
+            Console.WriteLine($"    two seeds, 700 people each: {sharedNames} shared names, "
+                              + $"{sharedLives} identical lives, night circle {nightA} vs {nightB}");
+            Check(sharedLives < cityA.Residents.Count,
+                  "a second seed is not simply the same city again",
+                  $"{sharedLives} of {cityA.Residents.Count} lives identical");
+
             // ---- AND NOW AGAINST THE POPULATION THE GAME ACTUALLY MAKES ----
             //
             // Everything above is a synthetic list with hours I chose, which is
