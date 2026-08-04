@@ -1772,6 +1772,7 @@ namespace Ledger.Game
         bool _jobOpen;
         int _jobOpenDay;
         double _jobOpenDist, _jobNearest;
+        int _jobNearestHour = -1;
         int _jobDoneAtOpen, _jobMissedAtOpen;
 
         void TraceJob(GameTime now)
@@ -1793,17 +1794,32 @@ namespace Ledger.Game
             var pos = _game.ActiveJobPos;
             if (pos.HasValue)
             {
-                double d = Vector3.Distance(_player.transform.position, pos.Value);
+                // MEASURED THE WAY THE GAME MEASURES IT, which the first version
+                // was not. `GameController` completes a drop on
+                // `Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z))
+                // < 2.5f` — a FLAT distance — and this took the full 3D one. The
+                // trace came back `d12:MISSED[nearest=1m]`, which under a 2.5m
+                // radius reads as the completion check being broken, and the
+                // first thing I nearly did was go and read it.
+                //
+                // A number that answers a slightly different question than the
+                // one it is being compared against is the fault this project
+                // finds most often, and here it was mine, in an instrument
+                // written an hour ago to diagnose exactly this.
+                var p0 = _player.transform.position;
+                double d = Vector3.Distance(new Vector3(p0.x, 0, p0.z),
+                                            new Vector3(pos.Value.x, 0, pos.Value.z));
                 if (!_jobOpen)
                 {
                     _jobOpen = true;
                     _jobOpenDay = now.Day;
                     _jobOpenDist = d;
                     _jobNearest = d;
+                    _jobNearestHour = now.Hour;
                     _jobDoneAtOpen = _game.Campaign.JobsDone;
                     _jobMissedAtOpen = _game.Campaign.JobsMissed;
                 }
-                else if (d < _jobNearest) _jobNearest = d;
+                else if (d < _jobNearest) { _jobNearest = d; _jobNearestHour = now.Hour; }
                 return;
             }
 
@@ -1816,7 +1832,7 @@ namespace Ledger.Game
             string how = _game.Campaign.JobsDone > _jobDoneAtOpen ? "done"
                        : _game.Campaign.JobsMissed > _jobMissedAtOpen ? "MISSED"
                        : "gone";
-            _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m nearest={_jobNearest:0}m]");
+            _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h]");
         }
 
         /// The player's own pose, swept. See the note beside where it is read.
@@ -2340,7 +2356,23 @@ namespace Ledger.Game
             // cast's evening schedules simply do not coincide. A probe that has
             // to be lucky is not a probe, so this one WALKS to the nearest
             // person and then stands still.
-            if (!_loiterStaged && now.Day >= 8 && now.Hour >= 19 && nearest != null)
+            // AND NOT WHILE THE OUTFIT'S DROP IS OPEN. This probe walks the bot
+            // to somebody and then HOLDS IT STILL for `LoiterSeconds`, and it
+            // may start at any hour from 19:00 — which overlaps the 22:00-02:00
+            // drop window on every day it can fire.
+            //
+            // The job trace is what caught it: `d8:MISSED[from=18m nearest=17m]`
+            // — eighteen metres away when the drop opened, seventeen at its
+            // closest, so the bot never went. Day 8 is the first day this probe
+            // is allowed to stage, which is not a coincidence.
+            //
+            // "A probe that alters the outcome measured beside it is not a
+            // probe" is already written in this file, about staging a
+            // confrontation inside the campaign week. Same fault, second site.
+            // The loiter has twenty other hours of the day and the drop has
+            // four, so the drop wins and nothing is lost.
+            bool dropOpen = _game.ActiveJobPos.HasValue;
+            if (!_loiterStaged && !dropOpen && now.Day >= 8 && now.Hour >= 19 && nearest != null)
             {
                 _loiterApproaching = true;
                 _loiterTarget = nearest.transform.position;
