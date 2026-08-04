@@ -38,32 +38,31 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### WHAT IS IN FLIGHT, AND WHAT THE LAST FOUR BUILDS SAID
+### THE 15:00 BUILD IS GREEN — NO FAILING GATE, AND THE FRAME IS BACK IN BAND
 
-**The compile outage is closed.** Ten commits had ridden a branch that would
-not build — a static class writing `Game.Campaign`, where the bare name binds
-to the NAMESPACE. Fixed, a lint written for it, and the sim has run green
-since.
+`meanFrame` 369 against a hundred-run median of 342 and a historical ceiling of
+369, from 449 an hour ago. Every gate passes.
 
-**The stills channel could go BACKWARDS and now cannot.** A build that failed
-to compile still committed six JPEGs and a frame ledger from its own checkout,
-seven commits behind the tip, and indexed them under its own sha. A run now
-commits only what it produced. **Read line one and the NO PLAYER LOG line
-before looking at any frame.**
+**A door in the world is now shut against the player because of what the street
+knows.** The loft above the laundry is closed at 0.87 notoriety and would be
+open at nothing; the repair yard is open either way, carried by its other keys.
+One door of two, tried twice each so the difference is evidence rather than a
+coincidence. That is the M21 claim proven end to end: acts charge a number, the
+number decays on its own clock, a doorman turns the player away.
 
-**Body LOD landed and works and thrashes.** Forty-three eligible, twelve
-carried, none failed, and the noon frame has real people in the foreground
-where there were boxes. It also made 1,486 grants across 485 passes — three
-swaps a second — because the hysteresis was on the distance and not on the
-cap. Rank slack is in flight; the counters that found it were added in the
-same commit as the feature, which is the only reason it took minutes.
+**The nameplate counter is deleted rather than explained.** Fourth
+contradiction, and the standing rule now says that is where explaining stops.
+The behaviour fix under it was real and stays.
 
-**Notoriety has a second source and a way to see whether it matters.**
-Informing charges it now as well as violence, which is what forced the
-accumulation to stop being a maximum. And the two notoriety-keyed doors in the
-world are tried twice each — at the run's real value and at zero — because a
-single reading cannot tell "notoriety opened this" from "this was open to
-anybody".
+**Two readings closed by measurement, both cheap.** Vehicles are not off the
+road — the still that suggested it was half wrong and the impossible half was
+named before the number arrived. Eight pieces of facade clutter ARE standing in
+a carriageway, out of 176, which nothing had ever asked.
+
+**And one that did not work.** Rank hysteresis did not cut the body-LOD churn:
+1,586 grants over 494 passes, the same three a second as before. It is no
+longer blocking anything — the frame gate is green — so it is recorded and
+NOT chased. A dwell time is the next lever if it ever matters again.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -73,33 +72,38 @@ him. So the top of this list is whatever a player would notice, every time,
 whatever state anything else is in. The full four rules are in CLAUDE.md under
 AUTO MODE.
 
-1. **WHAT THE STREET LOOKS LIKE — the wardrobe wash and the name cap.** *(CI)*
-   Ten body models dress forty-three named people, so at least two on screen
-   are always wearing the same face; texture extraction silently switched the
-   wardrobe off this morning and the noon frame shows two women in identical
-   yellow trousers, one of them the player. The wash is in flight. Beside it,
-   a name could take a third of the screen as you walked up to somebody and now
-   stops growing once it is readable. **Both are judged from the frame first
-   and the numbers second.**
+1. **WHAT THE STREET LOOKS LIKE — the wardrobe wash, and it did not run.**
+   *(CI)* `bodyTinted=1` against 1,586 body attachments: I had added the counter
+   to the set of statics that get snapshotted and restored around a walker's
+   attach, so every walker's wash was undone the instant it happened and the
+   number described the player alone. Out of that set now. The noon frame still
+   shows two women in identical yellow trousers, one of them the player — ten
+   body models against forty-three named people means at least two on screen
+   always share one, so this is the change that stops the street looking
+   duplicated. **Judge it from the frame, then read the count.**
 
-2. **THE FEET — read the two drop medians.** *(CI)* The planted foot sits about
-   six centimetres above the road and, on the last reading, planted frames were
-   indistinguishable from any other frame — which is the two-clocks answer: the
-   plant is driven by the procedural gait phase while the foot comes from a
-   bought clip with its own timing. If the next run agrees, derive the plant
-   from the foot's own height. A body that skates is the most visible rig fault
-   there is.
+2. **THE FEET — the fix is in flight and the test is the two drop medians.**
+   *(CI)* Two runs agreed that the frames the blend called planted were
+   indistinguishable from every other frame, which is the two-clocks answer.
+   The plant now comes from the feet: the LOWER foot is the planted one, which
+   needs no constant at all and is true of a run, a limp and a stand as well as
+   a walk. `ikPlantDisagreed` says how often the old procedural answer differed,
+   so the size of the fault is reported rather than claimed — and the two drop
+   medians, which have landed on top of each other twice, should now come apart.
 
-3. **THE FRAME RATE, WHICH IS FELT RATHER THAN SEEN.** *(CI)* Body LOD works and
-   churned three times a second, instantiating a prefab each time; rank
-   hysteresis is in flight. If grants do not fall to roughly the number of
-   people who walked past, a dwell time is next — but not before, because two
-   guards added together cannot be told apart.
+3. **THE CROWD STOPS STANDING INSIDE ITSELF.** *(CI)* The median gap between
+   two people has been pinned near 0.30m against a body width of 0.45 for five
+   builds, and the arithmetic says why: a walker counts as arrived within 0.2m
+   of its scheduled point, so two people sent to the SAME point settle within
+   0.4m of each other and the separation nudge fights the schedule to a draw. A
+   place is now a small ring rather than a metre of ground, with each person's
+   spot fixed by name. In flight. Read the median, and look at the night frame.
 
-4. **THINGS STANDING WHERE THEY SHOULD NOT.** *(CI)* Two counts land next run
-   and neither has ever been taken: facade clutter whose centre is on a
-   carriageway, and vehicles whose centre is off every road a car uses. Both
-   are expected to be zero and both are visible in a still if they are not.
+4. **EIGHT BINS ARE STANDING IN THE ROAD**, of 176 pieces of facade clutter,
+   measured for the first time today. Vehicles are clean — that half of the
+   same picture was disproved. Small, visible in a still, and the fix is a
+   placement nudge rather than a refusal: rejecting placements on a bound
+   nobody has read is the ratchet rule five is about.
 
 5. **M21, THE TWO LEDGERS — Core-shaped, no round trip.** The largest piece of
    unwritten game left. Notoriety landed today with its own accumulation, a
