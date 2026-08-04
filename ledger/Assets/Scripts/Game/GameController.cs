@@ -2731,7 +2731,8 @@ namespace Ledger.Game
             WorldBuilder.SetWindowsLit(
                 daylight < 0.35f,
                 Ledger.Core.Occupancy.HomeFraction(
-                    Populace != null ? Populace.Residents : null, Now.Hour));
+                    Populace != null ? Populace.Residents : null, Now.Hour),
+                Now.Hour);
         }
     }
 }

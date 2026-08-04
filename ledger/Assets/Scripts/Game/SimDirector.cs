@@ -9152,6 +9152,12 @@ namespace Ledger.Game
                       $"windowsLit={WorldBuilder.WindowsLit} " +
                       $"windowsTotal={WorldBuilder.WindowsTotal} " +
                       $"windowsHome={WorldBuilder.WindowsHomeFraction:0.00} " +
+                      // Shopfronts counted apart from flats, because "a third of
+                      // the windows are lit" is a different finding depending on
+                      // which third — and zero shops at noon is a fault while zero
+                      // at four in the morning is the point.
+                      $"windowsShop={WorldBuilder.WindowsShop} " +
+                      $"windowsShopLit={WorldBuilder.WindowsShopLit} " +
                       // BUS STOPS AND CAB RANKS DRAWN. Counted for the reason
                       // `cables` is: "the bus route reads as a route" has to be
                       // a number, and zero here means the sim's own loop came

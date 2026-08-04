@@ -13032,6 +13032,26 @@ namespace Ledger.CoreTests
             Check(Occupancy.WindowLit("w0", -1),
                   "an unknown population lights the window rather than blacking it out");
 
+            // ---- SHOPFRONTS, WHICH ARE NOT FLATS ----
+            // ACCEPTING CASE FIRST, and it is the one that matters most: the
+            // expensive failure is a street of dead shopfronts in the middle of
+            // the working day, which would arrive looking like the fix working
+            // because the frame changes so much.
+            Check(Occupancy.ShopLit("s1", 11), "a shop is lit at eleven in the morning");
+            Check(Occupancy.ShopLit("s1", 18), "and at six in the evening");
+            Check(!Occupancy.ShopLit("s1", 4), "and dark at four in the morning");
+
+            // The late third, so a row of shopfronts does not go out on one
+            // stroke and read as a power cut.
+            int late = 0;
+            for (int i = 0; i < 2000; i++) if (Occupancy.ShopLit($"s{i}", 21)) late++;
+            double lateShare = late / 2000.0;
+            Check(lateShare > 0.25 && lateShare < 0.35,
+                  "about a third keep late hours, so nine at night is a row and not a wall",
+                  $"{lateShare:0.00}");
+            Check(Occupancy.ShopLit("s7", 21) == Occupancy.ShopLit("s7", 22),
+                  "and a shop the player learns is open late is open late tomorrow");
+
             // ---- AND NOW AGAINST THE POPULATION THE GAME ACTUALLY MAKES ----
             //
             // Everything above is a synthetic list with hours I chose, which is

@@ -98,6 +98,40 @@ namespace Ledger.Core
             return (double)home / residents.Count;
         }
 
+        /// WHEN A SHOP IS LIT, WHICH IS NOT WHEN A FLAT IS.
+        ///
+        /// The occupancy rule above is about people being IN. A ground-floor
+        /// shopfront is not somebody's front room — it is a business, and the
+        /// night still shows what treating it as a flat costs: after the
+        /// skyline became a pattern, the two biggest bright objects left in the
+        /// frame are shopfront slabs blazing at ten at night, because the flats
+        /// above them are and they were being asked the same question.
+        ///
+        /// AUTHORED, LIKE THE NIGHT CIRCLE'S HOURS AND THE WARDROBE'S BANDS.
+        /// These say what a port town is like; they are not a bound applied to
+        /// a measurement, and the RESULT is measured — `windowsShopLit` against
+        /// `windowsShop` — so a street where every shop is shut at noon is a
+        /// number rather than a surprise.
+        ///
+        /// A LATE THIRD RATHER THAN ALL OR NOTHING. A row of shopfronts that
+        /// all go dark on the same stroke reads as a power cut, and a city
+        /// where the chip shop and the chemist keep the same hours reads as a
+        /// spreadsheet. `LateShare` is the fraction that stay lit until
+        /// `LateTo` — the pub, the cafe, the launderette — picked per shop by
+        /// the same stable hash the flats use, so a shop the player learns is
+        /// open late is open late tomorrow.
+        public const int ShopFrom = 8;
+        public const int ShopTo = 19;
+        public const int LateTo = 24;
+        public const double LateShare = 0.3;
+
+        public static bool ShopLit(string windowId, int hour)
+        {
+            if (Spans(ShopFrom, ShopTo, hour)) return true;
+            if (!Spans(ShopTo, LateTo, hour)) return false;
+            return Physique.Fraction(windowId ?? "", 37) < LateShare;
+        }
+
         /// Should THIS window be lit, given that share?
         ///
         /// DETERMINISTIC PER WINDOW, so a flat does not flicker between frames

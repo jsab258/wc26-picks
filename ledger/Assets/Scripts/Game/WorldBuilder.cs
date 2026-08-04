@@ -15,6 +15,16 @@ namespace Ledger.Game
 
         static readonly List<Light> Lamps = new List<Light>();
         static readonly List<Renderer> Windows = new List<Renderer>();
+        /// Whether each window is a ground-floor SHOPFRONT, in step with
+        /// `Windows`.
+        ///
+        /// A PARALLEL LIST RATHER THAN PARSING THE NAME BACK OUT. The names do
+        /// encode the floor — `..._win_xP_0_0` — and reading it back would work
+        /// today and break the first time somebody renames a window, silently,
+        /// by making every shopfront a flat again. The build already knows
+        /// which is which; the honest thing is to keep the answer rather than
+        /// re-derive it from a string.
+        static readonly List<bool> WindowIsShop = new List<bool>();
         /// Warm interior glow, HDR emission.
         ///
         /// A SUSPECT, NOT A VERDICT, and it is written down so nobody — me
@@ -166,6 +176,7 @@ namespace Ledger.Game
         {
             Lamps.Clear();
             Windows.Clear();
+            WindowIsShop.Clear();
             Masses.Clear();
             Masses.AddRange(BuildBlockSpecs());
             _windowsLit = false;
@@ -669,23 +680,23 @@ namespace Ledger.Game
                 {
                     float off = ground ? 0f : -runZ / 2f + paneZ / 2f + k * (paneZ + gap);
                     float w = ground ? runZ * 0.92f : paneZ;
-                    Windows.Add(WinBox($"{tag}_win_xP_{floor}_{k}",
+                    AddWindow(WinBox($"{tag}_win_xP_{floor}_{k}",
                         new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off),
-                        new Vector3(0.08f, bandH, w)));
-                    Windows.Add(WinBox($"{tag}_win_xN_{floor}_{k}",
+                        new Vector3(0.08f, bandH, w)), ground);
+                    AddWindow(WinBox($"{tag}_win_xN_{floor}_{k}",
                         new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off),
-                        new Vector3(0.08f, bandH, w)));
+                        new Vector3(0.08f, bandH, w)), ground);
                 }
                 for (int k = 0; k < (ground ? 1 : nx); k++)
                 {
                     float off = ground ? 0f : -runX / 2f + paneX / 2f + k * (paneX + gap);
                     float w = ground ? runX * 0.92f : paneX;
-                    Windows.Add(WinBox($"{tag}_win_zP_{floor}_{k}",
+                    AddWindow(WinBox($"{tag}_win_zP_{floor}_{k}",
                         new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud),
-                        new Vector3(w, bandH, 0.08f)));
-                    Windows.Add(WinBox($"{tag}_win_zN_{floor}_{k}",
+                        new Vector3(w, bandH, 0.08f)), ground);
+                    AddWindow(WinBox($"{tag}_win_zN_{floor}_{k}",
                         new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud),
-                        new Vector3(w, bandH, 0.08f)));
+                        new Vector3(w, bandH, 0.08f)), ground);
                 }
             }
         }
@@ -816,7 +827,11 @@ namespace Ledger.Game
         /// single list walk instead of a scene search.
         public static void RegisterNightLight(Renderer r)
         {
-            if (r != null) Windows.Add(r);
+            // NOT A SHOPFRONT. A headlamp is on because a car is being driven,
+            // which is neither a flat's occupancy nor a shop's opening hours —
+            // so it takes the residential path and is lit whenever the lamps
+            // are, which is what it did before either schedule existed.
+            if (r != null) AddWindow(r, shopfront: false);
         }
 
         /// How many window renderers the city built, and how many of those are
@@ -829,6 +844,15 @@ namespace Ledger.Game
         /// place. Guessing that from the still is how three correct things got
         /// condemned in one night.
         public static int WindowPanes, WindowBands;
+
+        /// Keep the two lists in step in ONE place. Two `Add` calls at four
+        /// sites is four chances for them to drift by one, and an off-by-one
+        /// here would light the wrong windows for ever with nothing to say so.
+        static void AddWindow(Renderer r, bool shopfront)
+        {
+            Windows.Add(r);
+            WindowIsShop.Add(shopfront);
+        }
 
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
         {
@@ -871,7 +895,12 @@ namespace Ledger.Game
 
             // Hanging sign by the door — an emissive panel that lights up at night.
             MakeBox("Bar_SignBracket", new Vector3(-6f, 2.9f, 5.4f), new Vector3(0.08f, 0.5f, 0.5f), AssetLibrary.Metal);
-            Windows.Add(WinBox("Bar_Sign", new Vector3(-6f, 2.6f, 5.1f), new Vector3(0.1f, 0.7f, 1.6f)));
+            // THE BAR'S SIGN IS A SHOPFRONT, and it is the one the player
+            // navigates by. It keeps late hours by the same rule as any other —
+            // which is right: a pub sign that went dark at seven would be a
+            // pub that shut before the game's evening starts.
+            AddWindow(WinBox("Bar_Sign", new Vector3(-6f, 2.6f, 5.1f), new Vector3(0.1f, 0.7f, 1.6f)),
+                      shopfront: true);
 
             var barLightGo = new GameObject("Bar_Light");
             barLightGo.transform.position = new Vector3(-8.5f, 3.0f, 8.5f);
@@ -1406,28 +1435,53 @@ namespace Ledger.Game
         /// there were two states and would have frozen the skyline at whatever
         /// the first evening looked like — a bug that would have shown up as
         /// "the occupancy feature does nothing" with every number saying it ran.
-        public static void SetWindowsLit(bool lit, double homeFraction = -1)
+        public static void SetWindowsLit(bool lit, double homeFraction = -1, int hour = -1)
         {
             // Quantised, because the fraction moves continuously with the hour
             // and rewriting every property block on a hairline change is work
             // for no visible difference. A twentieth of the city is about one
             // window in a facade.
             double q = homeFraction < 0 ? -1 : System.Math.Round(homeFraction * 20) / 20.0;
-            if (lit == _windowsLit && q == WindowsHomeFraction && Windows.Count > 0) return;
+            if (lit == _windowsLit && q == WindowsHomeFraction && hour == _windowsHour
+                && Windows.Count > 0) return;
             _windowsLit = lit;
+            _windowsHour = hour;
             WindowsHomeFraction = q;
             WindowsLit = 0;
+            WindowsShop = WindowsShopLit = 0;
             var mpb = new MaterialPropertyBlock();
-            foreach (var win in Windows)
+            for (int i = 0; i < Windows.Count; i++)
             {
+                var win = Windows[i];
                 if (win == null) continue;
-                bool on = lit && Ledger.Core.Occupancy.WindowLit(win.name, q);
-                if (on) WindowsLit++;
+                // A SHOPFRONT IS NOT SOMEBODY'S FRONT ROOM. Once the flats
+                // became a pattern, the two biggest bright objects left in the
+                // night frame were ground-floor slabs blazing at ten at night —
+                // lit because the flats above them were, having been asked the
+                // same question. A shop is lit when it is OPEN.
+                bool shop = i < WindowIsShop.Count && WindowIsShop[i];
+                if (shop) WindowsShop++;
+                bool on = lit && (shop
+                    // `hour < 0` means nobody passed one, which is every
+                    // existing caller and every test. Those keep the old
+                    // behaviour exactly rather than going dark on a default —
+                    // a shipped street blacking out because an argument was
+                    // omitted is the worst way for this to fail.
+                    ? (hour < 0 || Ledger.Core.Occupancy.ShopLit(win.name, hour))
+                    : Ledger.Core.Occupancy.WindowLit(win.name, q));
+                if (on) { WindowsLit++; if (shop) WindowsShopLit++; }
                 win.GetPropertyBlock(mpb);
                 mpb.SetColor("_EmissionColor", on ? WindowLit : WindowDark);
                 win.SetPropertyBlock(mpb);
             }
         }
+
+        /// Ground-floor shopfronts, and how many of them are open. Beside the
+        /// flats rather than folded into them, because "a third of the windows
+        /// are lit" is a completely different finding depending on which third.
+        public static int WindowsShop { get; private set; }
+        public static int WindowsShopLit { get; private set; }
+        static int _windowsHour = -2;
 
         // ---- primitive helpers ----
 
