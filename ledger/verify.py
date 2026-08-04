@@ -257,6 +257,33 @@ def nested_types():
                   else "0 nested-type errors")
 
 
+def static_instance():
+    """A static method reaching an instance member — CS0120.
+
+    The THIRD reference-resolution error in one morning, after CS0119
+    (`lint-shadow`) and CS0426 (`nested_types`). `GameController` is spread
+    across fourteen files, so a method cannot see from its own file whether
+    what it touches is static, and `static` is the reflex modifier for
+    anything that looks like a pure mapping. `ApplyDetailToCrowd` looked
+    exactly like one and its whole job was the instance's own population.
+
+    THE CHECKER'S OWN FIRST VERSION MISSED IT. It walked braces from the
+    signature line, which in Allman carries none, so it closed every body
+    before entering it — and passed a three-case self-test in which every
+    fixture was written on one line. It reported zero against the exact file
+    that had produced the error. That is why its self-test now contains the
+    real method's shape, and why this wiring went in only after running it
+    against the pre-fix file and getting back lines 129 and 132 — the two
+    the Windows build had reported."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-static.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-static")
+        return False, "CS0120 WAITING TO HAPPEN: " + first[:90]
+    m = re.search(r"\((\d+) instance members.*?(\d+) static bodies walked\)", out)
+    return True, ("0 static/instance errors (%s members, %s bodies)" % (m.group(1), m.group(2))
+                  if m else "0 static/instance errors")
+
+
 def workflow_size():
     """Can the Windows build still be DISPATCHED.
 
@@ -556,7 +583,8 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, shipped_cards, convo_probe, queue_depth, nested_types, workflow_size,
+               card_writing, shipped_cards, convo_probe, queue_depth, nested_types,
+               static_instance, workflow_size,
                frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()

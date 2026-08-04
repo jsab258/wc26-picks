@@ -124,7 +124,13 @@ namespace Ledger.Game
         /// people who exist and talk without being drawn — and thinning that
         /// for a graphics setting would make the street FORGET things on a
         /// slower machine, which is pillar P5 broken by a quality preset.
-        public static void ApplyDetailToCrowd()
+        // NOT STATIC. `Populace` is an instance member of `GameController` and
+        // this file is one of its partials, so a static method here cannot
+        // reach it — CS0120, and the second type-resolution error in one hour
+        // that ShapeCheck structurally cannot see. `static` was reflex: the
+        // method looked like a pure settings-to-cap mapping, and the one thing
+        // it touches is the instance's own population.
+        public void ApplyDetailToCrowd()
         {
             if (Populace == null) return;
             double keep = Ledger.Core.Detail.CrowdFraction(
