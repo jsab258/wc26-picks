@@ -117,6 +117,37 @@ attached, silently, and a corrupted gate reads exactly like a passing one.
 
 Awaiting its first build; `walkerBodies` is the number that closes it.
 
+### NOTORIETY IS HEAT WEARING A SECOND NAME — decomposed from M21, no CI needed
+
+The roadmap says "a number that gates doors, with no press and no reputation
+events". Read the code: **the gating half already exists and the driver is the
+fault.**
+
+- `Access.KeyKind.Notoriety` gates doors on `s.Notoriety`, and has for weeks.
+- `AccessHost` feeds it **`Notoriety = CurrentHeat`**. That is one variable
+  under two names — the fault the rules picked up this morning on the music
+  layers, in a completely different system.
+- `Violence.Notoriety(witnessCount, killed)` — the real "how notorious was this
+  act" model, with the comment *"a brawl outside the bar at noon is the day's
+  news; the same fight in an alley at three is a sound somebody half-heard"* —
+  is unit-tested and **has no game caller at all**.
+
+**Why it matters rather than being tidy.** Heat is how hot you are RIGHT NOW and
+it falls when the police lose interest. Notoriety is how KNOWN you are and it
+should not fall for the same reason — a famous man stays famous after the heat
+dies. Wiring them together means a door that opens because the law stopped
+looking, which is the opposite of what a reputation gate is for, and it means
+the player can never build the one thing an empire needs.
+
+**The work, and it is Core-shaped so it needs no round trip:** give notoriety
+its own accumulation — it rises on notable acts through `Violence.Notoriety`,
+witnessed deeds and denouncements, and decays far more slowly than heat. Then
+`AccessHost` feeds it that instead of the heat it currently mirrors.
+`CoreTests` can prove the two diverge, which is the whole claim.
+
+**Check the roadmap row when it lands** — it currently describes a gap that is
+half closed and half misdiagnosed.
+
 ### Startable right now, in order
 
 **The 12:03 build answered four of the five questions that were in flight, and
@@ -132,12 +163,24 @@ the run is `pass=True` with no failing gate.**
    `collidingNames`, `nameFracP90` and `bubbleFracP90` are the first honest
    readings of any of them** — every earlier value was taken over a population
    that excluded the frames with heaps in.
-2. **Read `ikWorstHit` and `ikGroundMissed`.** Foot IK runs (`ikFrames=2299`,
-   `ikUndriven=0`, leg measured at 0.832m) but `ikCorrectionMedian=0.174` is a
-   fifth of the leg on a median frame, on flat pavement. Prime suspect, named
-   but NOT acted on: the ray uses `~0` and starts inside the host capsule, so it
-   may be returning the body's own collider as pavement. The run now says what
-   it struck.
+2. **FOOT IK — the ray is innocent, read `ikPlantedMedian` next.**
+   `ikWorstHit=[Road_10]` and `ikGroundMissed=0`: the ground ray finds the road
+   every time, so the body's own capsule — the suspect that was plausible enough
+   to act on — is not it. The animated foot really is off the ground, half a
+   metre at worst and about a fifth typically.
+
+   The overall median cannot accuse anything, because a SWINGING foot should be
+   off the ground and the blend correctly asks for no correction there. The
+   planted-only median is the discriminating number and it is in flight.
+
+   **Suspect, named before the reading so it cannot be fitted afterwards:**
+   `Rig.PlantBlend` is driven by `CharacterRig.Phase`, the PROCEDURAL gait
+   phase, while the foot comes from a Mixamo clip with its own timing. Two
+   independent clocks for one idea — the shape that has already cost this
+   project the arms, the billboards and the ground raycast twice each. If
+   `ikPlantedMedian` comes back near the overall median, that is it, and the fix
+   is to derive the plant from the foot's own height rather than from a phase
+   that knows nothing about the clip.
 3. **THE DROP IS A DISTANCE PROBLEM AND THE ARITHMETIC IS NOW COMPLETE.**
    `walked=` landed and it settles it. Five drops, and path length is within
    ~2m of straight-line distance in every one — **the bot walks almost exactly
