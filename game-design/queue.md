@@ -257,10 +257,16 @@ the run is `pass=True` with no failing gate.**
    apart. That number was added in the same commit as the change precisely so
    this would not read as the night-run probe going haywire.
 
-   **What is left is a 30cm boundary case.** `d13` missed at 2.8m against a
-   2.5m completion radius — it arrived and stopped just outside. Worth one
-   reading of whether the bot's approach easing stops it short, and NOT worth
-   widening the radius.
+   **The 30cm case is CHECKED and it is not a braking bug.** `d13` missed at
+   2.8m against a 2.5m radius, and the obvious suspect was the approach easing.
+   Read it: `want *= Clamp01(far / 2f)`, so the bot moves at FULL speed at any
+   distance above two metres and 2.8m is nowhere near the taper. It walked 20.9m
+   of a 22m approach and the window closed while it was still moving.
+
+   So it is a timing boundary rather than a mechanism, and there is nothing to
+   fix in the bot. **Do not widen the completion radius** — that is the gate
+   measuring itself. If it recurs, the honest lever is which day the drop is
+   posted on, not how close counts as close.
 
 4. **THE WALKER BODIES ARE WIRED — read `walkerBodies` and `walkerBodiesFailed`.**
    Done 2026-08-04 with the trap cleared first: `TryAttachExtra` saves and
