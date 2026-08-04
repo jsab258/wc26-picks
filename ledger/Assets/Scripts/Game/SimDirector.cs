@@ -2017,6 +2017,12 @@ namespace Ledger.Game
 
         /// How many loiter holds ended early because a drop opened under them.
         int _loitersCutShort;
+        /// Evenings the loiter probe had to give up and try again, because a
+        /// drop opened under it before anybody looked. Non-zero is a finding
+        /// about the schedule rather than a failure; four is the cap, and
+        /// hitting it means the drop window and the loiter window overlap by
+        /// design and one of them has to move.
+        int _loiterRetries;
         /// Ticks the bot spent running because a drop was open and the job owned
         /// the target. Printed so `nightRunNotices` can still be read: it counts
         /// people who noticed the player RUNNING, and this adds a second reason
@@ -3956,8 +3962,46 @@ namespace Ledger.Game
                 }
                 else
                 {
-                    if (dropWaiting && Time.time < _loiterUntil) _loitersCutShort++;
-                    _loiterLooks = Perceivers.Looks - _looksBeforeLoiter;
+                    bool cutShort = dropWaiting && Time.time < _loiterUntil;
+                    if (cutShort) _loitersCutShort++;
+                    int looks = Perceivers.Looks - _looksBeforeLoiter;
+
+                    // CUT SHORT WITH NOTHING TO SHOW IS NOT A MEASUREMENT, AND
+                    // RECORDING IT AS ZERO IS HOW THE PERCEPTION GATE WENT RED
+                    // FOR A REASON NOBODY HAD NAMED.
+                    //
+                    // The paragraph above says the loiter "has already done its
+                    // work by this point (`loiterNotices` has read 37 of 37) and
+                    // what is lost is the tail of a hold, not the probe". That
+                    // was true of the run it was written from. On c101f35 it
+                    // reads `loiterLooks=0 loiterNotices=0 loitersCutShort=1` —
+                    // the drop was already open when the hold began, so the
+                    // probe was cut before anybody could turn a head, and a
+                    // comment claiming otherwise sat directly above the code
+                    // that proved it wrong. Third decayed claim of the day.
+                    //
+                    // `perception` then failed on `loiter`, which is rule 5b's
+                    // twin exactly: a guard asserting something the run never
+                    // supplied the condition for. Ten of the last hundred and
+                    // twenty-five runs have gone red here, and rare red with no
+                    // named cause is what teaches everybody to read red as
+                    // noise.
+                    //
+                    // SO THE CONDITION IS PLANTED AGAIN, NOT THE BOUND
+                    // LOOSENED. A cut-short loiter that gathered nothing is
+                    // un-staged and re-approached, so a twenty-day run gets
+                    // another evening; the assertion stays at "somebody looked".
+                    // Bounded, because a run whose drops are always open would
+                    // otherwise retry for ever, and `loiterRetries` says how
+                    // many evenings it took — a probe that needs five goes is a
+                    // finding about the schedule, not a success.
+                    if (cutShort && looks < 1 && _loiterRetries < 4)
+                    {
+                        _loiterRetries++;
+                        _loiterStaged = false;
+                        _loiterApproaching = false;
+                    }
+                    else _loiterLooks = looks;
                     _loiterUntil = -1f;
                     Debug.Log($"SimDirector: loiter over, {_loiterLooks} heads turned, "
                               + $"{Perceivers.LoiterNotices} of them for loitering"
@@ -8627,7 +8671,8 @@ namespace Ledger.Game
                       // reached, and neither was in the report — so two builds
                       // were spent inferring it from a -1.
                       $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
-                      $"loiterStaged={_loiterStaged} slams={_slams} " +
+                      $"loiterStaged={_loiterStaged} loiterRetries={_loiterRetries} "
+                      + $"slams={_slams} " +
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
                       $"denounceVerdict=[{LawHost.LastVerdict}] lawOk={lawOk} " +
