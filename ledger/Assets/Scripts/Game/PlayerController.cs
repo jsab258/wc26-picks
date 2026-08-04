@@ -269,6 +269,15 @@ namespace Ledger.Game
 
         /// The smallest follow-distance fraction the framing has ever pulled
         /// the camera to. 1 means it never pulled at all.
+        /// The range of wind the run actually saw. PRINTED rather than gated,
+        /// because the drain rate is a stated relationship and not a measured
+        /// one: if a seventeen-day run never drops below 0.95 the player never
+        /// runs far enough for the model to matter, and if it pins at 0 the
+        /// drain is too steep. Either way the correction comes off this rather
+        /// than off my opinion — the `deedSlotSets` pattern, where refusing to
+        /// invent a threshold was right and printing the series was the fix.
+        public static double LowestStamina = 1.0, HighestStamina = 0.0;
+
         public static float TightestFraming = 1f;
 
         /// HOW FAST THE PLAYER IS MOVING, for anyone who needs it and is not
@@ -311,7 +320,19 @@ namespace Ledger.Game
             _lastFacing = facing;
 
             _body.Capability = Game != null ? Game.Harm.Capability("player", Game.Now.Day) : 1.0;
-            _body.Stamina = 1.0;   // combat will own this once a fight can start
+            // WIND, DRIVEN BY RUNNING RATHER THAN BY A COMBAT THAT CANNOT
+            // START YET. This read `= 1.0` with a note saying combat would own
+            // it — and combat is M23, deliberately last, so `Rig.BreathRate`'s
+            // whole range from fifteen breaths a minute to fifty-one has been
+            // fed a constant since it was written. A man who had just sprinted
+            // the length of Hook Street breathed exactly like one who had been
+            // standing at the bar.
+            //
+            // Combat takes this over when it arrives; the model is the same
+            // one either way, which is why the arithmetic lives in `Combat`.
+            _body.Stamina = Ledger.Core.Combat.StaminaAfterMoving(_body.Stamina, speed, dt);
+            if (_body.Stamina < LowestStamina) LowestStamina = _body.Stamina;
+            if (_body.Stamina > HighestStamina) HighestStamina = _body.Stamina;
             // ONE phase for the pose and the sound, so the limp you see and
             // the limp you hear cannot drift apart. Two steps make one cycle.
             float stride = Mathf.Max(0.01f, (float)Gait.StrideFor(_footfall, severity));

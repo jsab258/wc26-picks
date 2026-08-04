@@ -7712,6 +7712,12 @@ namespace Ledger.Game
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
+                      // THE WIND THE RUN ACTUALLY SAW. Both at 1.0000
+                      // means the player never ran far enough to spend
+                      // any, which is a finding about the sim rather
+                      // than about the model.
+                      $"staminaLow={PlayerController.LowestStamina:0.000} " +
+                      $"staminaHigh={PlayerController.HighestStamina:0.000} " +
                       // THE 180-DEGREE RULE, MEASURED AND NOT YET ENFORCED.
                       // Both from the same beat, so they can honestly be
                       // divided — `lineWatched` counts only beats that HAD a

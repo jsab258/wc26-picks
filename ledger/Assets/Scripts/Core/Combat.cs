@@ -264,6 +264,49 @@ namespace Ledger.Core
             if (f == null || seconds <= 0) return;
             f.Stamina = Feel.Clamp01(f.Stamina + StaminaRecovery * seconds);
         }
+
+        /// What MOVING costs, and what standing still gives back.
+        ///
+        /// `Rig.BreathRate` runs from 0.25 breaths a second at rest to 0.85
+        /// when spent, and `BreathDepth` opens the chest as the wind goes. It
+        /// is a complete and careful model, and `PlayerController` has been
+        /// feeding it the literal constant 1.0 since it was written — with a
+        /// comment saying *"combat will own this once a fight can start"*.
+        ///
+        /// Combat cannot start yet; it is M23 and deliberately last. But the
+        /// player can RUN today, and a man who has just sprinted the length of
+        /// Hook Street breathing fifteen times a minute is the model's whole
+        /// point going unspent for the sake of a system that is not due.
+        ///
+        /// THE COST IS A RELATIONSHIP, NOT A NUMBER I PICKED, and that is the
+        /// most I can honestly claim. There is no measurement of how long a
+        /// person in this game should be able to sprint, so inventing one
+        /// would be rule 2's exact failure. What exists is `StaminaRecovery`,
+        /// already tuned, already meaning "the rate you get your wind back" —
+        /// so the drain is expressed against it: at full sprint you lose wind
+        /// as fast as you regain it standing still, and between walking pace
+        /// and a sprint it scales with how far over walking you are.
+        ///
+        /// That makes a sprint and the rest after it the same length, which is
+        /// generous, and it is a stated relationship rather than a guess. The
+        /// run PRINTS the range of stamina it sees so the number can be
+        /// corrected from evidence — the `deedSlotSets` pattern, where
+        /// refusing to invent a threshold was right and the fix was to make
+        /// the run report the series.
+        public static double StaminaAfterMoving(double stamina, double metresPerSecond,
+                                                double seconds)
+        {
+            if (seconds <= 0) return stamina;
+            // Below walking pace nothing is being spent, so the recovery term
+            // is the whole story — standing and strolling both give wind back.
+            double over = (metresPerSecond - Locomotion.WalkSpeed)
+                        / (Locomotion.RunSpeed - Locomotion.WalkSpeed);
+            over = Feel.Clamp01(over);
+            double delta = over > 0
+                ? -StaminaRecovery * over * seconds
+                : StaminaRecovery * seconds;
+            return Feel.Clamp01(stamina + delta);
+        }
     }
 
     // ---------------------------------------------------------------------

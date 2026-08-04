@@ -7586,6 +7586,49 @@ namespace Ledger.CoreTests
             Check(eyes.Knowledge.CheckClaim(killing) == ClaimResult.Consistent,
                 "so unlike EVERY other thing in this game, it becomes hard knowledge — "
                 + "which is exactly what makes killing terrifying rather than efficient");
+
+            // -- WIND, SPENT BY RUNNING ---------------------------------------
+            //
+            // `Rig.BreathRate` runs from fifteen breaths a minute to fifty-one
+            // and `PlayerController` fed it the literal 1.0 since it was
+            // written, waiting for a combat system that is deliberately last.
+            //
+            // THE ACCEPTING CASE FIRST, and here it is the ordinary one:
+            // walking must GIVE wind back. A drain that fired at walking pace
+            // would leave the player permanently winded from crossing a room,
+            // and it would look exactly like the model working.
+            double walked = Combat.StaminaAfterMoving(0.5, Locomotion.WalkSpeed, 1.0);
+            Check(walked > 0.5, "walking pace gives wind back, it does not cost any",
+                  $"0.50 -> {walked:0.000}");
+            double stood = Combat.StaminaAfterMoving(0.5, 0.0, 1.0);
+            Check(stood > 0.5 && System.Math.Abs(stood - walked) < 1e-9,
+                  "and standing still is the same — below walking pace nothing is spent",
+                  $"{stood:0.000}");
+
+            // AND THE CASE IT EXISTS FOR.
+            double sprinted = Combat.StaminaAfterMoving(1.0, Locomotion.RunSpeed, 1.0);
+            Check(sprinted < 1.0, "a sprint costs wind", $"1.00 -> {sprinted:0.000}");
+
+            // THE RELATIONSHIP, ASSERTED RATHER THAN THE NUMBER. The drain is
+            // stated as "at full sprint you lose it as fast as you regain it
+            // standing", which is a claim a test can hold and a picked constant
+            // is not.
+            double regained = Combat.StaminaAfterMoving(0.0, 0.0, 1.0);
+            Check(System.Math.Abs((1.0 - sprinted) - regained) < 1e-9,
+                  "and at full sprint it costs exactly what standing still returns, "
+                  + "which is the stated relationship rather than a number I picked",
+                  $"{1.0 - sprinted:0.000} vs {regained:0.000}");
+
+            // BETWEEN THE TWO IT SCALES, so a jog is not a sprint.
+            double jogged = Combat.StaminaAfterMoving(1.0,
+                (Locomotion.WalkSpeed + Locomotion.RunSpeed) / 2.0, 1.0);
+            Check(jogged > sprinted && jogged < 1.0,
+                  "a jog costs something, and less than a sprint",
+                  $"{jogged:0.000} between {sprinted:0.000} and 1.000");
+
+            Check(Combat.StaminaAfterMoving(1.0, Locomotion.RunSpeed, 0.0) == 1.0
+                  && Combat.StaminaAfterMoving(0.0, Locomotion.RunSpeed, 999.0) >= 0.0,
+                  "no time is no change, and it never goes below empty");
         }
 
         static void TestHomicide()
