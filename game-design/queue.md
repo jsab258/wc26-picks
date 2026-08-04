@@ -161,10 +161,16 @@ scheduling instead of to CI's output.
    j3_4->j3_3]` — leader's tail and follower's nose at the same metre to two
    decimals, which is the de-overlap clamp's exact signature. So `gap=0.00` on a
    third of runs was never a clear road. The gate reads clamps-per-metre now.
-   **What is left:** 39 tails behind an edge start in one run is a lot, and
-   whether that is a real overlap at a junction or a measurement crossing a
-   junction it does not model is still open. `Cross` has an entry check; find
-   out whether it is being reached.
+   **AND THE 39 TAILS WERE MY OWN METRIC, NOT A JUNCTION BUG.** I put "39 is a
+   lot, find out whether `Cross`'s entry check is reached" here as an open
+   question. It is reached: `RoomOn(v.ToId, nextId, v.Kind.Length + v.Kind.Gap)`
+   requires every vehicle already on the far edge to have its tail a full
+   follower-length along it, so a leader whose tail is behind the origin cannot
+   have acquired a follower through the junction. The counter was incrementing
+   on every pair where `lead.S < lead.Kind.Length` — an ordinary geometric fact,
+   true of any 10.5m bus for its first 10.5 metres, follower or no follower. It
+   now counts only pairs the clamp had to act on, where it should be zero and a
+   non-zero reading is a real interpenetration.
 
 9. **Keep retiring the reach ledger.** 90 to 71 tonight, every one wiring
    rather than building. What is left is mostly UI surfaces

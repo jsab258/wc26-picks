@@ -451,16 +451,42 @@ namespace Ledger.Core
                 // `lead.S - lead.Kind.Length` with `lead.S` small, nothing more
                 // exotic.
                 //
-                // Counted rather than clamped away, because which of the two it
-                // is cannot be settled from here: either the junction let the
-                // follower in before the leader cleared it, which is a real
-                // overlap, or the two edges bend apart and the bodies never
-                // touch in the world, which makes it a measurement crossing a
-                // junction it does not model. `Cross` has an entry check for
-                // exactly this; whether it is being reached is the question.
-                if (limit < 0) { limit = 0; TailsBehindStart++; }
+                // AND THE QUESTION IS SETTLED. `Cross` calls `RoomOn(v.ToId,
+                // nextId, v.Kind.Length + v.Kind.Gap)` before it lets anybody
+                // onto the next edge, and that requires every vehicle already
+                // there to have its TAIL at least a full follower-length along
+                // it. So a leader whose tail is behind the origin cannot have
+                // acquired a follower through the junction, and the negative
+                // readings are an arclength measured across a junction rather
+                // than two bodies in the same place.
+                //
+                // Which is why the counter below only fires when the clamp had
+                // to act as well.
+                // COUNTED ONLY WHEN IT MATTERED, and the first version was not.
+                //
+                // It incremented on every pair where `lead.S < lead.Kind.Length`,
+                // and that is an ordinary geometric fact rather than a fault: a
+                // 10.5m bus that has just crossed a junction has its tail behind
+                // this edge's origin for the first 10.5 metres, whether or not
+                // anybody is following it. One run read 39 and I put "39 tails
+                // behind an edge start is a lot" on the queue as an open
+                // question about junction entry.
+                //
+                // It is not open. `Cross` calls `RoomOn(v.ToId, nextId,
+                // v.Kind.Length + v.Kind.Gap)` before entering, which requires
+                // every vehicle already on the far edge to have its TAIL at
+                // least a full follower-length along it — so the entry check
+                // does prevent the overlap, and the count was measuring
+                // something else entirely while being read as evidence about it.
+                //
+                // The number that means what the name says is the intersection:
+                // a pair the clamp had to act on, whose limit could not separate
+                // them. That one is a real fault if it is ever non-zero.
+                bool tailBehind = limit < 0;
+                if (tailBehind) limit = 0;
                 if (v.S > limit)
                 {
+                    if (tailBehind) TailsBehindStart++;
                     // OVERLAPS RESOLVED, AND THE COUNT IS THE POINT. The clamp
                     // leaves the pair at a gap of EXACTLY `lead.S - length - v.S`
                     // = 0, so `gap=0.00` in the verdict does not mean "traffic
@@ -1001,9 +1027,18 @@ namespace Ledger.Core
         /// gap of exactly zero and zero passes every bound this has ever had.
         public long OverlapsResolved { get; private set; }
 
-        /// How many times the clamp found the leader's tail sitting behind the
-        /// start of the edge, where clamping to zero cannot separate the pair.
-        /// The generator of every negative `TightestGap` reading. See `Enforce`.
+        /// How many times the clamp HAD TO ACT on a pair whose leader's tail was
+        /// behind the start of the edge — the one case where clamping to zero
+        /// cannot separate them, and therefore the only case where a negative
+        /// `TightestGap` is a real interpenetration rather than an arclength
+        /// that crosses a junction.
+        ///
+        /// SHOULD BE ZERO. `Cross` refuses to enter an edge unless every vehicle
+        /// already on it has its tail a full follower-length along, so the
+        /// condition should be unreachable; a non-zero reading means that check
+        /// is being bypassed. See `Enforce` for the version of this that counted
+        /// an ordinary geometric fact instead, read 39, and sent me looking for
+        /// a junction bug that was not there.
         public long TailsBehindStart { get; private set; }
 
         /// The pair behind the last `TightestGap()` reading, in words.
