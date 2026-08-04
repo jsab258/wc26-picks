@@ -80,7 +80,7 @@ namespace Ledger.Game
         /// ONE SOURCE, deliberately: a companion whose loyalty lived in its own
         /// field would drift from the loyalty everything else consults, and the
         /// entire design is that these are the same number.
-        public bool Ask(Gossiper g, NpcWalker body, int day)
+        public bool Ask(Gossiper g, NpcWalker body, int day, Transform player = null)
         {
             if (g == null || body == null) return false;
             if (Current != null && !Current.Departed) return false;
@@ -106,6 +106,27 @@ namespace Ledger.Game
             Current = c;
             Walking = body;
             body.Escorting = true;
+
+            // AND TELL THEM WHERE YOU ARE, HERE, ONCE, PERMANENTLY.
+            //
+            // THE BUG THIS FIXES, and it was self-reinforcing. `NpcWalker`
+            // learns the player's transform from exactly one place —
+            // `GossipDirector.TickStances`, a proximity sweep over the bodies
+            // that are live right now. An escort who falls behind drops out of
+            // that sweep, so `_player` stops being refreshed; and both the
+            // escort's target selection AND its catch-up speed are guarded on
+            // `_player != null`. Fall behind, stop being told where to go, fall
+            // further behind.
+            //
+            // `companionSight[dist=29.4m]` is that loop, and it survived the
+            // catch-up-speed fix untouched because the speed was never the
+            // problem: a walker with no player reference does not hurry
+            // anywhere, it just keeps its schedule.
+            //
+            // The companion is the one walker whose relationship to the player
+            // is permanent, so it must not depend on a proximity sweep to know
+            // who they are following.
+            if (player != null) body.SetPlayer(player);
             // Already looking, which is what `Vantage.SecondsWatching` reads.
             // Not a cheat: somebody walking beside you IS watching you, and
             // the alternative — an escort mid-stride and oblivious — is the

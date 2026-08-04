@@ -2354,7 +2354,7 @@ namespace Ledger.Game
                     if (g == null) continue;
                     g.Loyalty = 0.8;
                     g.Nerve = 0.6;
-                    if (!_game.Companion.Ask(g, n, now.Day)) continue;
+                    if (!_game.Companion.Ask(g, n, now.Day, _game.Player != null ? _game.Player.transform : null)) continue;
                     _companionStaged = true;
                     _companionWith = n.DisplayName;
                     Debug.Log($"SimDirector: companion — {n.DisplayName} walks with you "
