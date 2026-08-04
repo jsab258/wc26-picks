@@ -4712,6 +4712,19 @@ namespace Ledger.Game
 
         bool _bubbleSampleWanted;
         int _nearShots;
+
+        /// The worst obstruction between the camera and the player across every
+        /// shot, and how many shots had one at all.
+        ///
+        /// TWO NUMBERS, NOT ONE, and the pair is the point. "The closest thing
+        /// ever to block the shot was 0.4m away" is a peak and says nothing
+        /// about whether it happens; "eighteen of twenty shots were blocked"
+        /// says it is the normal state of the camera and not a bad moment.
+        /// Reporting a peak on its own is the fault this file has now found in
+        /// four places tonight.
+        float _shotBlockNearest = float.MaxValue;
+        string _shotBlockWhat = "none";
+        int _shotsBlocked, _shotsAimed;
         int _restFrameSum, _restFrames, _workFrameSum, _workFrames;
 
         void Shot(string name)
@@ -4728,6 +4741,51 @@ namespace Ledger.Game
             {
                 _nearShots++;
                 Debug.Log(SceneAudit.Near(_game.Player.transform.position + Vector3.up));
+            }
+
+            // AND WHAT IS STANDING BETWEEN THE CAMERA AND THE PLAYER, which is
+            // a different question from what is standing NEAR them and is the
+            // one three stills have raised.
+            //
+            // `SceneAudit.Near` is centred on the PLAYER. It answers "what is
+            // around them", and it has been read as if it answered "what is in
+            // the way" — the two agree only when the camera is behind the
+            // player, which is exactly when nothing is in the way. Every still
+            // with a pole across the middle of it, a black slab in the corner,
+            // or a brown disc filling the bottom-left has been judged by eye
+            // and never measured, and rule 4 says a visual judgement is a
+            // hypothesis until a number settles it.
+            //
+            // A LINECAST, not a proximity test, because "close to the camera"
+            // and "occluding the subject" are not the same thing: a lamp post
+            // a metre to the left of the lens is in the frame and harmless,
+            // and a sign four metres out on the sight line hides the player
+            // completely. Named with its distance, so one round trip says
+            // which object rather than that there is one.
+            var blockCam = Camera.main;
+            if (blockCam != null && _game != null && _game.Player != null)
+            {
+                var eye = blockCam.transform.position;
+                var at = _game.Player.transform.position + Vector3.up * 1.2f;
+                var hits = Physics.RaycastAll(eye, (at - eye).normalized,
+                                              Vector3.Distance(eye, at));
+                float nearest = float.MaxValue;
+                string what = "clear";
+                foreach (var h in hits)
+                {
+                    if (h.collider == null) continue;
+                    // The player's own colliders are not an obstruction, and
+                    // neither is anything parented under them.
+                    if (h.collider.transform.IsChildOf(_game.Player.transform)) continue;
+                    if (h.distance < nearest) { nearest = h.distance; what = h.collider.name; }
+                }
+                if (nearest < _shotBlockNearest)
+                {
+                    _shotBlockNearest = nearest;
+                    _shotBlockWhat = $"{what}@{nearest:0.00}m in {name}";
+                }
+                if (nearest < float.MaxValue) _shotsBlocked++;
+                _shotsAimed++;
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -7209,7 +7267,14 @@ namespace Ledger.Game
                       // a very different case against you.
                       $"exposureYours={exYours} exposureTheirs={exTheirs} " +
                       $"exposureYoursW={exYoursW:0.00} exposureTheirsW={exTheirsW:0.00} " +
-                      $"exposureSays=[{exSays}] uiOk={uiOk} " +
+                      $"exposureSays=[{exSays}] " +
+                      // WHAT STOOD IN FRONT OF THE PLAYER, per shot and at
+                      // worst. Reported, not gated: a city has street furniture
+                      // in it and a camera that never passes behind anything is
+                      // a camera in an empty world. The bound, if there is one,
+                      // comes off this series (rule 2).
+                      $"shotsAimed={_shotsAimed} shotsBlocked={_shotsBlocked} " +
+                      $"shotBlocker=[{_shotBlockWhat}] uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
