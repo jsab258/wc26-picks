@@ -7916,6 +7916,7 @@ namespace Ledger.Game
             // AND THE TEXT-SIZE SERIES, folded here beside the overlap one so
             // both are closed at the same instant of the same run.
             NameTags.CloseTextStats();
+            FootIk.Close();
 
             float bubbleMedian = -1f;
             if (_bubbleOverlap.Count > 0)
@@ -8446,6 +8447,17 @@ namespace Ledger.Game
                       $"scoreAudible={scoreAudible} " +
                       $"busMusic={_busMusicMin:0.000}..{_busMusicMax:0.000} " +
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
+                      // FOOT IK, AND WHETHER IT RAN BEFORE WHETHER IT WORKED.
+                      // `ikFrames=0` with `ikUndriven` large means no body ever
+                      // bound a controller; `ikFrames=0` with `ikUndriven` zero
+                      // means the IK pass is off and `OnAnimatorIK` is never
+                      // delivered. Those look identical in a still and have
+                      // different fixes, which is why both are printed.
+                      $"ikFrames={FootIk.Frames} ikUndriven={FootIk.FramesUndriven} " +
+                      $"ikGoals={FootIk.Goals} ikClamped={FootIk.Clamped} " +
+                      $"ikCorrectionWorst={FootIk.CorrectionWorst:0.000} " +
+                      $"ikCorrectionMedian={FootIk.CorrectionMedian:0.000} " +
+                      $"ikCorrectionSamples={FootIk.CorrectionSamples} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
                       $"roomQuiet={_roomQuietSamples} " +

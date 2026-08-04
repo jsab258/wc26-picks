@@ -137,6 +137,14 @@ namespace Ledger.Game
                 _rHand = _animator.GetBoneTransform(HumanBodyBones.RightHand);
                 _handAnchor = null;
                 CaptureRest();
+                // FEET ON THE GROUND, and attached HERE rather than in
+                // `LateUpdate` because Unity delivers `OnAnimatorIK` only to
+                // components sharing a GameObject with the Animator — and on a
+                // bought body that object is the instantiated model, a level
+                // below this one. A method on this class would compile, read
+                // correctly, and never be called on exactly the bodies foot IK
+                // exists for.
+                FootIk.Attach(_animator, this);
                 return;
             }
 
@@ -427,6 +435,13 @@ namespace Ledger.Game
         bool PoseIsDriven => _animator != null
                              && _animator.runtimeAnimatorController != null
                              && _animator.enabled;
+
+        /// The same question, asked from outside. `FootIk` has to stand down on
+        /// exactly the bodies `Swing` stands UP on, and two copies of that test
+        /// would drift apart the first time either changed — which is the fault
+        /// this file's own comments record happening to the ground raycast and
+        /// to the billboard aim.
+        public bool PoseDriven => PoseIsDriven;
 
         /// The same angle as `RestArmDropDegrees`, measured AFTER the solve.
         ///

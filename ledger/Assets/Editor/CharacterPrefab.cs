@@ -303,6 +303,29 @@ namespace Ledger.EditorTools
                 if (run != null) { tree.AddChild(run, 4.0f); ClipsBound++; }
 
                 controller.layers[0].stateMachine.defaultState = state;
+
+                // THE IK PASS, WITHOUT WHICH `OnAnimatorIK` NEVER FIRES AT ALL.
+                //
+                // This is the setting that makes foot IK possible rather than
+                // the foot IK itself, and it belongs here because a controller
+                // is built in code and has no inspector anybody can tick. It
+                // defaults OFF, so `FootIk` would have shipped as a component
+                // whose one method is never called — a system built, plausible
+                // and never once running, which is rule 6 and has happened to
+                // the noise ring and the caption bar before.
+                //
+                // `controller.layers` RETURNS A COPY, which is the trap in this
+                // API and is why the line above it works by luck: mutating a
+                // reference type reached through the copy (a state machine)
+                // reaches the real thing, and assigning a value field (a bool)
+                // on the copy does not. So the array is taken, changed, and
+                // assigned back. `FootIk` reports `ikFrames`, so a build where
+                // this silently failed says so in a number rather than in a
+                // picture of feet sinking into the road.
+                var layers = controller.layers;
+                layers[0].iKPass = true;
+                controller.layers = layers;
+
                 AssetDatabase.SaveAssets();
                 ControllerWhy = $"ok (idle{(walk != null ? "+walk" : "")}{(run != null ? "+run" : "")})";
                 return controller;

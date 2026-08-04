@@ -262,6 +262,12 @@ namespace Ledger.Game
             _reportFrame = -1;
             // Including the ring's own counters, for the same reason.
             NoiseRing.Reset();
+            // AND THE FOOT IK'S, which is not a perception counter and is here
+            // anyway — because this is the one place the run says "start
+            // again", and a reset method nothing calls is a reset that does not
+            // happen. The alternative was a second reset site, and the comment
+            // eighteen lines above is about exactly how those go wrong.
+            FootIk.Reset();
         }
 
         /// Currently-attending walkers, maintained by `NpcWalker` so the hush
