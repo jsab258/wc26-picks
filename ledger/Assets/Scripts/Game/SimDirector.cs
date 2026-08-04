@@ -1536,16 +1536,42 @@ namespace Ledger.Game
             //
             // `roomQuiet` came back 1656 of 2267 samples. The model calls that
             // state "the moment the player should learn to dread" and it is
-            // the DEFAULT condition of the game. Two completely different
-            // causes fit: the pulse layer sits at its floor almost always
-            // because the street is quiet, or unease sits above half almost
-            // always because the game is tense. They want opposite fixes and
-            // the count cannot tell them apart.
+            // the DEFAULT condition of the game.
             //
-            // Rule 2: print the distribution, look, THEN decide. Nothing is
-            // re-tuned here.
+            // THE DISTRIBUTION LANDED AND IT KILLED THE FORK THIS PARAGRAPH
+            // SET UP. It said two completely different causes fit — the pulse
+            // sits at its floor because the street is quiet, OR unease sits
+            // high because the game is tense — and that they want opposite
+            // fixes. `pulseMedian=0.000 uneaseMedian=1.000` came back, which
+            // reads as both at once, and it is neither: those two layers are
+            // not independent and never were.
+            //
+            // `MusicModel.Mix` computes ONE variable and derives both from it.
+            // `Pulse = Clamp01(1 - exposure*1.5) * ...` is zero for any
+            // exposure at or above 0.667; `Unease = Clamp01((exposure-0.2)/0.6)`
+            // is one for any exposure at or above 0.8. So unease at its
+            // ceiling FORCES pulse to its floor, arithmetically, and reading
+            // them as two findings double-counts a single one.
+            //
+            // Which leaves exactly one question — why is exposure at 0.8 for
+            // the median sample of a run — and exposure is
+            // `max(heat, lead*0.9)`. So the heat series is the thing to print,
+            // and it is the number that says whether this is the score being
+            // wrong about a normal week or the SIM living at maximum heat
+            // because a bot commits every crime in the game inside seventeen
+            // days. Those are a music problem and a harness problem and they
+            // have nothing in common but the symptom.
+            //
+            // NOTE THE SHAPE, because it is the one this project keeps
+            // shipping: I wrote a fork into a comment, the run answered it,
+            // and the answer was that the fork was false. Two numbers derived
+            // from one variable are one number twice.
+            //
+            // Rule 2 still: print the distribution, look, THEN decide. Nothing
+            // is re-tuned here.
             _pulseSamples.Add((float)mix[(int)MusicLayer.Pulse]);
             _uneaseSamples.Add((float)mix[(int)MusicLayer.Unease]);
+            _heatSamples.Add((float)_game.CurrentHeat);
             double e = MusicModel.Energy(mix);
             double heat = _game.CurrentHeat;
             _scoreSamples++;
@@ -2836,6 +2862,11 @@ namespace Ledger.Game
         int _roomQuietSamples;
         readonly List<float> _pulseSamples = new List<float>();
         readonly List<float> _uneaseSamples = new List<float>();
+        /// The variable BOTH of those are derived from. Without it the two
+        /// medians look like two findings and are one, and there is no way to
+        /// tell a score that misreads a normal week from a harness that runs
+        /// the week at maximum heat.
+        readonly List<float> _heatSamples = new List<float>();
 
         /// Median of a sampled series, or -1 when nothing was sampled — the
         /// same shape as `CrowdGapMedian`, which is the pattern this file
@@ -8420,6 +8451,8 @@ namespace Ledger.Game
                       $"roomQuiet={_roomQuietSamples} " +
                       $"pulseMedian={MedianOf(_pulseSamples):0.000} " +
                       $"uneaseMedian={MedianOf(_uneaseSamples):0.000} " +
+                      $"heatMedian={MedianOf(_heatSamples):0.000} " +
+                      $"heatSamples={_heatSamples.Count} " +
                       $"musicFloor={MusicModel.Floor:0.000} " +
                       $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
