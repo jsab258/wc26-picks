@@ -121,13 +121,9 @@ namespace Ledger.Game
         /// in a killing and somebody watched you get rid of it.
         public static double ResidualRisk(Traces.Item it) => Traces.ResidualRisk(it);
 
-        /// Anybody with an unobstructed line to this spot, close enough to make
-        /// out what a pair of hands is doing. Deliberately shorter than the
-        /// sighting range: recognising that a man threw something is a closer
-        /// question than recognising that a man is there.
-        /// The same question, asked from outside, so a caller staging a
-        /// "somebody is watching" case can CHOOSE a spot that satisfies it
-        /// instead of picking one that looks right and hoping.
+        /// The same question `Dispose` asks, asked from outside, so a caller
+        /// staging a "somebody is watching" case can CHOOSE a spot that
+        /// satisfies it instead of picking one that looks right and hoping.
         ///
         /// WHY THIS IS PUBLIC. `disposal` and `accident` both compare a watched
         /// place against an unwatched one, and both went red together on a run
@@ -142,9 +138,21 @@ namespace Ledger.Game
         /// second, so the selection criterion and the test criterion were
         /// different questions — the scope mismatch this project keeps finding
         /// in a new place. Now the stager asks the predicate.
-        public static bool Watched(Vector3 at, IEnumerable<NpcWalker> npcs) =>
+        /// NOT CALLED `Watched`, WHICH IS WHAT IT WAS AND WHAT BROKE THE BUILD.
+        /// `Ledger.Core.Watched` is a type, this file calls
+        /// `Watched.WouldTalkToPolice` eighty lines below, and a static method
+        /// of the same name shadows the type inside this class — CS0119, three
+        /// times, on a line I had not touched. A name that reads perfectly in
+        /// isolation and collides with something already in scope is the kind
+        /// of break only a compiler finds, and the Game layer's compiler is
+        /// twenty-five minutes away.
+        public static bool AnybodyWatching(Vector3 at, IEnumerable<NpcWalker> npcs) =>
             SomebodyWatching(at, npcs);
 
+        /// Anybody with an unobstructed line to this spot, close enough to make
+        /// out what a pair of hands is doing. Deliberately shorter than the
+        /// sighting range: recognising that a man threw something is a closer
+        /// question than recognising that a man is there.
         static bool SomebodyWatching(Vector3 at, IEnumerable<NpcWalker> npcs)
         {
             if (npcs == null) return false;

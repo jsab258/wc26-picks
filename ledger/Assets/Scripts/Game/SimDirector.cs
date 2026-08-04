@@ -3082,7 +3082,7 @@ namespace Ledger.Game
                 byCrowd.Sort((a, b) => b.near.CompareTo(a.near));
                 foreach (var cand in byCrowd)
                 {
-                    if (!EvidenceHost.Watched(cand.pos, _npcs)) continue;
+                    if (!EvidenceHost.AnybodyWatching(cand.pos, _npcs)) continue;
                     crowded = cand.pos;
                     most = cand.near;
                     _crowdedIsWatched = true;
