@@ -177,6 +177,7 @@ namespace Ledger.Game
             Lamps.Clear();
             Windows.Clear();
             FireEscapes = 0;
+            Mullions = 0;
             WindowIsShop.Clear();
             Masses.Clear();
             Masses.AddRange(BuildBlockSpecs());
@@ -651,6 +652,11 @@ namespace Ledger.Game
         /// read from there rather than written again here.
         public static int FireEscapes { get; private set; }
 
+        /// Shopfront dividers drawn. Zero beside a non-zero `windowsShop` means
+        /// the near-core test rejected every shopfront, which is a finding
+        /// about the density ramp rather than about mullions.
+        public static int Mullions { get; private set; }
+
         static void FireEscape(string tag, Vector3 pos, Vector3 size, Vector3 back)
         {
             const float floorH = 3.0f;
@@ -855,6 +861,44 @@ namespace Ledger.Game
             // as paint. A house does not get one — a signboard over somebody's
             // front room is the fastest way to make a residential street look
             // like a high street.
+            // MULLIONS, BECAUSE A LIT SHOPFRONT IS OTHERWISE ONE GLOWING SLAB.
+            //
+            // The ground floor is deliberately ONE wide light — that decision
+            // is right and it is what makes a block read as having a bottom.
+            // But `SetWindowsLit` gave it an emissive tonight, and the night
+            // still shows the result: the two biggest bright objects in the
+            // frame are ground-floor rectangles two metres by six, glowing flat.
+            // Real shopfront glass is divided; the dividers are why a lit window
+            // reads as a window rather than as a light box.
+            //
+            // THREE THIN DARK BOXES OVER THE GLASS, not a change to the glass.
+            // The window stays one renderer, so `Windows` and its occupancy
+            // logic are untouched and there is nothing to keep in step — the
+            // mullions are geometry in front of it, which is what a mullion
+            // physically is.
+            //
+            // STREET SIDE ONLY and near the core only, on the same two tests
+            // everything else at this level uses.
+            if (Ledger.Core.Dressing.NearestCore(pos.x, pos.z, DenseCores) <= NearCoreMetres)
+            {
+                var alongDir = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+                for (int m = 1; m <= 3; m++)
+                {
+                    float t = -width * 0.5f + width * (m / 4f);
+                    var bar = MakeBox($"{tag}_mullion{m}",
+                        face + outward * 0.06f + alongDir * t + new Vector3(0, 2.0f, 0),
+                        new Vector3(alongX ? 0.10f : 0.12f, 2.6f, alongX ? 0.12f : 0.10f),
+                        AssetLibrary.Metal);
+                    var col = bar.GetComponent<Collider>();
+                    // NO COLLIDER, because a mullion is 10cm of trim and a
+                    // player who can be stopped by it is a player fighting the
+                    // scenery. `StreetFurniture` strips its own for the same
+                    // reason; this file has no helper, so it is done here.
+                    if (col != null) Object.Destroy(col);
+                    Mullions++;
+                }
+            }
+
             if (Ledger.Core.Dressing.HasFascia(kind))
             {
                 var fasciaSize = alongX
