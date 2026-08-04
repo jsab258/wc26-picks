@@ -8010,7 +8010,20 @@ namespace Ledger.Game
                 // Five clauses, five readings: enough vehicles, nobody inside
                 // anybody, nobody on the pavement, more than one kind of
                 // vehicle, and it went somewhere.
-                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
+                // AWAKE, BESIDE THE TOTAL, AND THE LEDGER SAID THIS WAS
+                // ALREADY HERE. `TrafficSim.AwakeCount`'s entry reads "BY
+                // DESIGN: an LOD measurement the sim's performance gate reads"
+                // — and nothing in the Game layer referenced it at all. Third
+                // decayed reason found on this ledger today, and the pattern in
+                // all three is a reason describing the consumer somebody
+                // intended rather than one that exists.
+                //
+                // It matters right now: the frame gate is red on the GAME's
+                // half and traffic is 3.5ms of it. Fourteen vehicles at 3.5ms
+                // and forty at 3.5ms are completely different findings, and
+                // `vehicles` alone cannot separate them because the whole point
+                // of the LOD is that most of them are asleep.
+                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} awake={(traffic != null ? traffic.AwakeCount() : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
                 ("perf", perfOk), ("witnessCar", witnessCarOk),
                 // NAMED CLAUSE BY CLAUSE, because this gate went red as the
                 // single word "harm".
