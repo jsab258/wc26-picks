@@ -1130,6 +1130,25 @@ namespace Ledger.Game
                 // and gated is taken before any A/B has touched the scene,
                 // so no future probe added here can quietly darken it.
                 Shot($"day{now.Day}_night");
+                // LATCHED AT THE SHOT, BECAUSE THE COUNTERS ARE LAST-WINS AND
+                // THE STILL IS NOT.
+                //
+                // `windowsShopLit` came back 0 on a build whose night frame
+                // plainly shows lit shopfronts, and I started to read that as
+                // the rule being broken. It is not: `SetWindowsLit` rewrites on
+                // every game hour, so the counters describe whatever hour the
+                // RUN ended on — 0.70 home, which the occupancy curve puts
+                // after midnight, when every shop is shut by design. The still
+                // is taken at 23:00. Two moments, one pair of numbers, and the
+                // number was right about a question nobody was asking.
+                //
+                // Same fault as the nameplate pair that cost an afternoon, and
+                // the fifth site of it. The shot is the instant every visual
+                // judgement is made at, so it is the instant these belong to.
+                _windowsLitAtShot = WorldBuilder.WindowsLit;
+                _windowsShopAtShot = WorldBuilder.WindowsShop;
+                _windowsShopLitAtShot = WorldBuilder.WindowsShopLit;
+                _windowsHourAtShot = now.Hour;
                 MeasureNightLight();
             }
             // ONE A/B, ONCE. The only way to prove an image effect reaches
@@ -2473,6 +2492,12 @@ namespace Ledger.Game
         /// median answers "is this how the street looks", and this needs the
         /// second one with the first beside it.
         readonly List<Vector2Int> _modelSamples = new List<Vector2Int>();
+
+        /// The window counts as they stood when the NIGHT STILL was taken,
+        /// with the hour beside them — because the live counters are rewritten
+        /// every game hour and the picture is not.
+        int _windowsLitAtShot = -1, _windowsShopAtShot = -1;
+        int _windowsShopLitAtShot = -1, _windowsHourAtShot = -1;
 
         double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
         int _playerPixels, _crowdSampled, _crowdConsidered;
@@ -9208,6 +9233,15 @@ namespace Ledger.Game
                       // at four in the morning is the point.
                       $"windowsShop={WorldBuilder.WindowsShop} " +
                       $"windowsShopLit={WorldBuilder.WindowsShopLit} " +
+                      // AND THE SAME THREE AT THE MOMENT THE NIGHT FRAME WAS
+                      // TAKEN, which is the only instant any of this is ever
+                      // judged at. The live ones describe whatever hour the run
+                      // ended on, and after midnight every shop is shut by
+                      // design — a zero that reads as a broken rule.
+                      $"windowsLitAtShot={_windowsLitAtShot} " +
+                      $"windowsShopAtShot={_windowsShopAtShot} " +
+                      $"windowsShopLitAtShot={_windowsShopLitAtShot} " +
+                      $"windowsHourAtShot={_windowsHourAtShot} " +
                       // BUS STOPS AND CAB RANKS DRAWN. Counted for the reason
                       // `cables` is: "the bus route reads as a route" has to be
                       // a number, and zero here means the sim's own loop came
