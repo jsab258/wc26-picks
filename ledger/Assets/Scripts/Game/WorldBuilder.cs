@@ -1237,15 +1237,32 @@ namespace Ledger.Game
                     else
                     {
                         DressedStuckInRoad++;
-                        // HOW FAR INTO THE CARRIAGEWAY THE WALL ITSELF IS, which
-                        // is the only question left once the pull is bounded at
-                        // the wall. Measured by walking OUT from the face plane
-                        // until the road ends, so a small number means the kerb
-                        // is a hand's width away and a large one means the
-                        // facade stands in a lane. Nothing acts on it — it is
-                        // the reading the level fix will be sized from, and a
-                        // number nobody has is how the last bound came to be
-                        // guessed twice.
+                        // HOW WIDE THE ROAD IN FRONT OF THIS WALL IS — AND THAT
+                        // IS NOT WHAT THIS COMMENT SAID FIRST.
+                        //
+                        // It claimed to measure "how far into the carriageway
+                        // the wall itself is", and the first reading came back
+                        // `[2.25 4.25 4.50 6.50 10.00 10.00 10.00 10.00]`. I was
+                        // one sentence from writing up four buildings standing
+                        // in the middle of a road. They are not: this walks
+                        // OUTWARD from the face plane, so it crosses the whole
+                        // carriageway, and 10.00 is this probe's own cap being
+                        // hit while crossing an eight-metre avenue and carrying
+                        // on into a junction. A building correctly placed at a
+                        // kerb reads exactly the same.
+                        //
+                        // WHAT IT ACTUALLY SETTLES IS BETTER. `StreetMap` gives
+                        // blocks `MinX = avenue + halfWidth`, so the buildable
+                        // ground begins AT THE KERB and there is no pavement
+                        // anywhere in the map. `Dressing.WallOffset` is 0.45, so
+                        // every facade item on a building flush with its block
+                        // edge is 45cm into the carriageway by construction.
+                        // That is all eight, and it is a level decision — give
+                        // the blocks a pavement inset, or set the buildings back
+                        // — rather than anything a nudge can reach.
+                        //
+                        // Rule 3, caught before publishing this time: when a
+                        // result is surprising, check the ruler.
                         var probe = at - outward * (float)Ledger.Core.Dressing.WallOffset;
                         float into = 0;
                         for (int step = 0; step < 40; step++)

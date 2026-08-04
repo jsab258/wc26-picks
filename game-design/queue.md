@@ -267,6 +267,31 @@ AUTO MODE.
    interpreting it, and no player will ever see this one. The four numbers now
    come from a single frame, which is the last explanation it gets.
 
+### THE CITY HAS NO PAVEMENT, AND THAT IS WHY THE BINS ARE IN THE ROAD
+
+**Settled 4 Aug, and it is a level decision rather than a bug.** `StreetMap`
+builds blocks as `MinX = avenue + halfWidth`, so the buildable ground begins
+exactly at the kerb — there is no footway anywhere in the map. `Dressing.
+WallOffset` is 0.45, so every piece of facade clutter on a building flush with
+its block edge sits 45cm into the carriageway by construction. That is all
+eight of `dressedStuck`, and it is why no nudge could ever clear them: the
+prediction written before the dispatch was "probably 0 pulled and 8 stuck",
+and it read exactly that.
+
+It is also why the corner of the pub is in Hook Street.
+
+**Two ways out and they are not equivalent.** Inset the blocks by a pavement
+width, which moves every building in seven districts and therefore moves every
+number this project has ever measured — expensive, and the right answer for
+how a street READS, because buildings growing straight out of tarmac is what
+the frames show. Or set individual buildings back inside their block, which
+costs nothing measured but leaves the block boundary meaning something
+different from what the map says.
+
+**Do not start this without deciding which.** A pavement is a visible,
+substantial improvement and a large blast radius; picking it in the tail of a
+turn is how a night gets spent re-baselining gates.
+
 ### The next reach-ledger entry, with its consumer already found
 
 **`VerbBeat.PhaseProgress` — and the entry does not name the beat that is
