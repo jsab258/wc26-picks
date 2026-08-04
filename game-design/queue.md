@@ -3,77 +3,48 @@
 > **STATUS — LIVE**, verified 2026-08-04. What gets picked up next, in order.
 > The plan is `roadmap.md` and it wins; this is the next few hours of it.
 
-## Why this file exists
+## Why this file exists, and how to use it
 
-On 3 August I dispatched five Windows builds in two hours and, four times,
-**ended the turn instead of picking up the next thing** — twenty, thirty-two,
-nineteen and twenty-eight minutes with nothing of mine landing. AUTO MODE rule 2
-already forbade exactly that, in my own words, and I broke it four times in one
-afternoon.
+The moment after a dispatch is a decision point, and a decision point at the
+end of a long turn is where turns end. On 3 August that cost four gaps of
+twenty to thirty minutes with nothing landing. So the next items are written
+down BEFORE the dispatch and taken from the top afterwards, with no judgement
+required at the exact point where judgement was failing. The full account is in
+CLAUDE.md under AUTO MODE.
 
-The cause was not forgetting the rule. It was that **the moment after a dispatch
-is a decision point**, and a decision point at the end of a long turn is where
-turns end. Nothing was written down, so "what next" meant re-deriving priorities
-from a 400-line roadmap, and that is enough friction to lose to.
-
-So the queue is written BEFORE the dispatch, and the rule becomes mechanical:
-dispatch, then take the top non-CI item off this list. No judgement required at
-the point where judgement was failing.
-
-It lives in the repository rather than in a task list because the container is
-ephemeral and the task list is not — rule 12's principle, applied to my own
-scheduling instead of to CI's output.
-
-## How to use it
-
-- **Every item is sized to fit inside one build round trip (~28 min).** An item
-  that cannot be finished in that window gets split until it can, or it will be
-  abandoned half-done when the build lands.
-- **CI-needed items are marked.** Those get batched into the next dispatch;
-  they are never a reason to stop working.
-- Take from the top. Move finished items out — this file records what is NEXT,
-  not what happened. Done work is in the git log.
+- **Every item fits inside one build round trip (~28 min)**, or it gets split,
+  or it will be abandoned half-done when the build lands.
+- **CI-needed items are marked.** They are batched into the next dispatch and
+  are never a reason to stop working.
+- **Take from the top. Move finished items out** — this records what is NEXT.
+  Done work is in the git log.
+- **`## Standing work` never empties.** When `## Now` has nothing startable,
+  decompose a standing item into it. Running out of short items is a refill
+  signal, not a stop signal.
 
 ---
 
 ## Now
 
-### WHAT THE 21:46 BUILD SAID, AND ALL THREE NEW INSTRUMENTS FIRED
+### WHAT THE LAST TWO BUILDS SETTLED
 
-**THE STREET DOES HAVE SOMEBODY STANDING WIDE, IN EVERY FRAME.**
-`armWidest=54.2 armWidestWorst=75.4 armP90=21.3` over `armBodies=52`, against
-`armStreet=10.7`. So the median body's arms hang, nine in ten are under 21
-degrees, and the WIDEST of fifty-two is at fifty-four degrees in a typical
-frame and seventy-five at worst. Roughly one body in fifty, permanently, and no
-median could ever have seen it. The picture and the number now agree.
-
-**WHO IT IS, THE NUMBER CANNOT SAY, AND THAT IS THE NEXT READING.**
-`preArmDrop=65.3` says the PLAYER's own bought clip holds his arms at
-sixty-five degrees before `CharacterRig` touches anything — inside the 54-to-75
-band. So the widest body in a typical frame may simply be him, and the figures
-in the night stills would be a third fault nothing has measured.
-`armCrowdWidest` excludes him and is in the next build.
-
-**FORTY-ONE PEOPLE WITHIN TWO METRES OF ONE PERSON.** `crowdHuddle=10`
-median, `crowdHuddleWorst=41`, over 1,623 samples — while `crowdGapMedian=0.44`
-reads as a comfortable street. `review_day5_noon` shows it: about
-twenty-five people packed into a solid block on the right of the frame,
-overlapping, many with their arms out. That is the mob, measured.
-
-**THE LIMP IS LIVE AND FIVE PEOPLE USED IT.**
-`limpNames=[Filip,Hana,June,Rocco,Sam]`, `limpNow=3` of fifty walkers, and
-`limpWorst=0.05` — somebody compounded injuries all the way down to
-`HarmBook`'s own floor. Until this build nobody in this city had ever limped.
-
-**THE EIGHT STUCK CLUTTER ITEMS ARE ON FOUR BUILDINGS, TWO EACH** —
-`warehouse_row`, `boarding_house`, `crescent_houses`, `laurel_letting` — and
-NOT the pub, which this queue named as "certainly one" an hour ago. Waiting for
-the number was right. `dressedRoadWidth=[2.25 4.25 4.50 6.50 10.00 x4]` says
-two of them sit where the carriageway is barely two metres.
-
-**AND THE BODY LOD IS STILL THRASHING**: 1,035 grants against 1,021 revokes for
-a budget of twelve. `bodySpell` measures how long a body is kept and is in the
-next build.
+- **There are no scarecrows.** 53.5 degrees is a bent elbow at walking pace,
+  and every body with an Animator has a clip whose time is moving.
+- **The mob is real and neither the plan nor the ring causes it.** 700
+  residents put at most six within two metres of each other; the busiest
+  scheduled place holds twelve; thirty-six stood within two metres of one
+  person. `busiestNear` separates the last two candidates next build.
+- **The limp is on the street** — five named people used it — and the pose
+  limp is the same size as the audio one for the first time.
+- **The clutter in the road belongs to registered places**, twenty-two of whose
+  facades stand in a carriageway, because places are set back from an authored
+  coordinate while block buildings are inset from a kerb.
+- **The name cap never touched the widest name**: pre- and post-cap widths were
+  identical at 0.431 because `PinFrac` bounds height only. Now it bounds the
+  larger axis in the same unit.
+- **The frame gate's biggest item was two passes sharing one number** — the
+  reband is 1.31ms and the body LOD 2.59ms, and only the second was worth
+  looking at.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -85,6 +56,41 @@ Most of tonight's work was INSTRUMENTS, and the next two builds are what they
 say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
+
+1. **THE LAW HAS NEVER OPENED A CASE BECAUSE NOTHING TELLS IT ABOUT A BODY —
+   AND THIS IS THE TOP OF THE LIST.** *(start at the top of a turn)*
+
+   `GameController.RecordKilling` is the only path into `HomicideBook`, and it
+   HAS NO CALLERS. So the register is empty in every run, `Pressure` returns
+   zero, `Stage` returns `None`, and `inquiry=None` in all 131 kept verdicts.
+   Everything downstream of `Inquiry.Investigation` has therefore never
+   executed: the paper naming you, the redirect having anything to relieve,
+   `Police.ForcesActThree`, `Police.BarsQuietExit`. One missing call, a whole
+   stage of the game.
+
+   **It is not a wiring slip.** The roadmap already records that M16's fighting
+   is Core-only and nothing calls it, so there is no real killing path yet.
+   What exists is the SIM's staged killings — `ViolenceHost.Commit` with
+   `lethal: true`, three times, inside the places probe — and those never reach
+   the register either.
+
+   **The arithmetic decides how many to record, and it is unforgiving.**
+   `PerBody = 0.4`, `InvestigationAt = 0.7`, `ManhuntAt = 1.0`. So one staged
+   body gives 0.4 and `Procedure`; TWO give 0.8 and `Investigation`, which is
+   exactly the stage that unlocks the paper and the redirect; three give 1.2
+   and jump straight to `Manhunt`, which `ForcesActThree` reads and which would
+   very likely rewrite Act III's ending and turn green gates red.
+
+   **So: record TWO, not three, and watch `actThree` and `ending` on the run
+   that does it.** Plant the condition, never loosen the bound — and this is
+   the one place tonight where planting it carelessly could break more than it
+   proves.
+
+   **AND THE TOOL COULD NOT HAVE FOUND THIS.** `ReachCheck` covers public CORE
+   APIs; `RecordKilling` is Game-layer, so nothing has ever asked whether it
+   has a caller. The reach ledger's 35 entries are the Core half of a question
+   nobody asks about the other half — and the largest unwired thing found
+   tonight was on the side with no instrument.
 
 1. **RETRACTED — THERE ARE NO SCARECROWS, AND THE MOB IS THE WHOLE FAULT.**
    `armWidest=54.5` with `armCrowdWidest=53.5`: taking the player out barely
@@ -282,42 +288,21 @@ the reading lands, and every guess made without one tonight was wrong.
 
 ## Next
 
-**CORRECTED — "raise the population" and "make the street busier" are two
-different changes and this queue conflated them.** `CrowdWalkerCap = 12` bounds
-how many bodies are out of doors within earshot, whatever `CityPlan.Count` is,
-and it was set from measurement rather than ambition: at 3,000 residents there
-were 333 people standing within 34m of the bar door, so the caps were not
-thinning a crowd, they were choosing 28 out of a mob and spawning every one on
-top of the player. Raising the count from 700 to 1,400 buys FAMILIARITY — 43.5
-distinct faces a week against 47.4 — and changes the frame not at all. Whether
-a dozen people in a plaza reads as a street or as a demonstration is a judgement
-for Jafar off a still, not a number for me to move against a measured decision.
-
-
-8. **Raise the population instead of cutting districts.** Measured, and it
-   reverses the plan: seven districts at 1,400 people gives 43.5 distinct faces
-   a week against 47.4 for three at 700, and 2,100 beats the cut outright. What
-   is NOT measured is whether a fuller city still reads as a port rather than a
-   crowd — that is a question for a still. Change the headcount, look, decide.
-9. **Tier the cast — and the runtime is not the constraint.** All three sides
-   measured. Design: 47 distinct faces a week, 13 near enough to read, a knee at
-   ~50 people covering 92% of a resident's week. Witnesses: no fewer than ~20
-   near an event. Runtime: 68 rigs cost 1.1ms of a 12ms budget. **The machine
-   does not bound the cast at fifty; only authoring does.**
-10. **M17.2 voices** — no longer held. The writing verdict came back 78 and the
-   risk it was gating (paying to voice something that needs rewriting) is
-   retired. Note this is a SPEND and Jafar has not authorised it.
-
-- **IS FIFTY-SIX CONVERSATIONS A RUN TOO MANY?** A judgement about how
-  talkative a street should feel, which is Jafar's off a still and not mine
-  off a number. The history: 16–42 a run (mean ~24) under the old flat-3.0m
-  road test, 7 after the walking pace slowed, and 56 now the test asks about
-  junctions instead. So the junction rule is more permissive than the old one
-  was even before the regression. It is defensible — the old test was
-  rejecting 96% of pairs by asking for something the world never produces —
-  but "defensible" is not the same as "right", and the number that decides it
-  is how the street READS, not how it counts. Worth a look at the night still
-  once the speech bubbles stop overlapping.
+- **Raise the population rather than cutting districts.** Measured and it
+  reverses the old plan: seven districts at 1,400 people gives 43.5 distinct
+  faces a week against 47.4 for three at 700, and 2,100 beats the cut outright.
+  What is NOT measured is whether a fuller city still reads as a port rather
+  than a crowd — a question for a still. Note `CrowdWalkerCap = 12` bounds how
+  many are out of doors within earshot whatever the headcount is, so this buys
+  FAMILIARITY and changes the frame not at all.
+- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee at
+  ~50 people covering 92% of a resident's week; 68 rigs cost 1.1ms of a 12ms
+  budget. **The machine does not bound the cast at fifty; only authoring does.**
+- **M17.2 voices** — no longer held on the writing verdict, which came back 78.
+  Note this is a SPEND and Jafar has not authorised it.
+- **Is fifty-six conversations a run too many?** A judgement off a still rather
+  than a number. The history: 16-42 a run under the old flat-road test, 7 after
+  the walking pace slowed, 30-56 now the test asks about junctions.
 
 ## Blocked, and on whom
 
@@ -395,35 +380,11 @@ items is a refill signal, not a stop signal.
   across `day5_night` while three separate orientation metrics read perfect.
   Anything a frame shows that no metric names is a metric worth adding.
 
-- **PLANT A COMPLETED DROP, so `jobRan` proves the pipeline instead of the
-  bot's luck.** The gate says `JobsDone >= 1` and means "a drop can be made end
-  to end: posted, walked to, completed, paid, laundered". What it measures is
-  whether the bot won a footrace. Across 64 runs the outfit cuts the player off
-  on seven, and on six of those `jobsDone=1` cleared the bound by accident — so
-  the gate has been passing for the wrong reason far more often than it has
-  failed. **Deliberately not loosened**: accepting "cut off before any drop"
-  would let a run that never exercised the drop pipeline pass silently, which is
-  rule 6 exactly. The fix is to make one drop reliably complete. `[series] jobs`
-  now prints each drop's day, the distance when it opened and the closest the
-  bot got, which says whether it was walking and ran out of night or never went.
-
-  **THAT HAS NOW BEEN READ, AND THE PRIME SUSPECT NAMED HERE IS DEAD.** The
-  suspicion was `frameWorstMs=43666` — one forty-three-second frame crossing
-  02:00 while the walk gets a single step. The traces disprove it: every
-  approach reading is timestamped INSIDE the window, and the failures cluster
-  in the 2–10m band against a 2.5m completion radius. This is a bot that walks
-  most of the way and stops short, not one that runs out of night.
-
-  **The misses split cleanly in two and only one half is fixed.** With the owner
-  tally added, `d8:MISSED[nearest=10.6m held:loiter-hold=21]` showed a staged
-  probe owning every tick of a window while the bot stood still — the loiter
-  refused to START during a drop and had no guard on the HOLD that follows.
-  Fixed, and `loitersCutShort` counts what it costs.
-
-  The other half is not that: `held:job=20 nearest=9.3m` and `held:job=19
-  nearest=6.9m` mean the steering was right for every tick and the bot still did
-  not arrive. Ownership cannot tell "steered and walking" from "steered and not
-  moving" — a conversation, a knockdown or a blocked path all read as `job`
-  holding the target — so the window now counts PATH LENGTH. **Read `walked=`
-  before choosing a mechanism.** `d2` covered 16.5m in 14 ticks and completed;
-  `d13` covered 12.1m in 19. More time, less ground, and nothing yet says why.
+- **THE DROP PIPELINE, AND WHAT IS LEFT OF IT.** `jobRan` says `JobsDone >= 1`
+  and means "a drop can be made end to end". Two of six windows miss in a
+  typical run and both causes are now named: the first was the waypoint's own
+  collider, thirty centimetres outside its completion radius, and it is fixed.
+  The second — ten of sixteen metres covered, steered the whole window, stalled
+  seven metres out — has no explanation, and `stalled=` lands next build to say
+  whether he stopped or merely walked slowly. **Deliberately not loosened**:
+  accepting a run that never exercised the pipeline is rule 6 exactly.
