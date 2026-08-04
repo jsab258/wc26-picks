@@ -46,6 +46,25 @@ re-read the comments on everything it touched — including the ones you did not
 edit — and grep for the claim you have just falsified elsewhere.** The
 `persist-credentials: false` comment was eleven lines above the step I broke.
 
+**Third corollary: WHEN YOU FIX A BUG, GREP FOR THE SAME BUG.** The corollary
+above is about comments. This is about the fault itself, and on 4 August it was
+the single most repeated mistake of the night — three times, each time within an
+hour of writing down that it happens:
+
+| fixed | the twin I did not look for |
+|---|---|
+| `SpeechBubble`'s billboard aim | `NpcWalker` had the identical maths, and its own paragraph admitting nobody had grepped for the second site |
+| `verdict-keys` reading a verdict from a build that never ran | `gates.py` counted those same blanks as five quiet runs and moved three gates from live to quiet |
+| `TightestGap` measured in 3D against a flat 2.5m radius | the job trace I had written an hour earlier to diagnose it had the same mismatch |
+
+The shape is always: one idea, two implementations, and the one nobody looks at
+is the one missing a line. It is not forgetting — I wrote the rule into three
+commit messages that night and walked into it anyway. **The fix is mechanical:
+the moment a fix works, grep for its distinguishing token** — a method name, a
+constant, a string marker — and read every other hit before moving on. The grep
+takes ten seconds and each of the three above cost between twenty minutes and a
+round trip.
+
 ## 2. Never set a threshold you have not measured
 
 - `nightNotDarker` compared one noon frame to one night frame and failed at
