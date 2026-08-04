@@ -180,6 +180,40 @@ namespace Ledger.Game
         /// would otherwise grow for the life of the process.
         static readonly List<SpeechBubble> _live = new List<SpeechBubble>();
 
+        /// How many bubbles are alive right now, and their screen rects.
+        ///
+        /// WHY THIS EXISTS SEPARATELY FROM `CollidingNames`. That one walks
+        /// every TextMesh in the scene with `FindObjectsByType` — too expensive
+        /// to run often, so it runs once per audit and once per shot. The
+        /// bubble series that came back from `f06075e` had **two samples**,
+        /// both zero, while the run before it peaked at 116 overlapping pairs.
+        ///
+        /// Two samples cannot describe anything, and the reason is the
+        /// instrument rather than the street: bubbles live a few seconds, and
+        /// a probe that looks twice in seventeen days is sampling when nobody
+        /// happens to be talking. It is the same fault the bubble counter
+        /// already had once — "an instrument that samples when nothing is
+        /// happening reports that nothing happens" — reappearing one layer up,
+        /// in the SERIES rather than the count.
+        ///
+        /// The bubbles already keep their own list, so counting them needs no
+        /// scene walk and can run every tick.
+        public static int Rects(Camera cam, List<Rect> into)
+        {
+            into.Clear();
+            if (cam == null) return 0;
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var b = _live[i];
+                if (b == null) { _live.RemoveAt(i); continue; }
+                var t = b.GetComponentInChildren<TextMesh>();
+                var r = t != null ? t.GetComponent<Renderer>() : null;
+                if (r == null || !r.isVisible) continue;
+                if (NameTags.ScreenRect(cam, r.bounds, out var rect)) into.Add(rect);
+            }
+            return into.Count;
+        }
+
         /// The lift this bubble carries above its speaker's head.
         float _lift;
 

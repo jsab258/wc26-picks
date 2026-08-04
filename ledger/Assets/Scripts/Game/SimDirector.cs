@@ -1041,6 +1041,7 @@ namespace Ledger.Game
             SampleReflections();
             SampleBodies();
             SampleMix();
+            SampleBubbles();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23)
             {
@@ -1939,6 +1940,21 @@ namespace Ledger.Game
             if (Average(body, out double pl, out double ps, out int pn))
             {
                 _playerLum = pl / pn; _playerSat = ps / pn; _playerPixels = pn;
+                // WHICH FRAME THIS IS, because the answer depends entirely on
+                // it and two runs were compared as if it did not.
+                //
+                // `0eeee6d` read `bodyReadLum=35.7`, `f06075e` read `10.8`, and
+                // nothing about how the player is measured changed between
+                // them. Both are correct: this runs on every shot and the last
+                // one wins, so one run's number came off a noon frame and the
+                // other's off a night frame. Comparing them across runs was
+                // comparing noon with midnight.
+                //
+                // The player and the crowd are still read at the SAME instant,
+                // which is the comparison this probe exists for and is
+                // unaffected. What was missing is the label that says a
+                // cross-run comparison is not on offer.
+                _bodyReadWhen = _lastShotName;
             }
             // ONE PERSON IS NOT A CROWD, AND A PIXEL-WEIGHTED MEAN MAKES IT ONE.
             //
@@ -1992,6 +2008,10 @@ namespace Ledger.Game
         double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
         int _playerPixels, _crowdSampled, _crowdConsidered;
         string _crowdLumRange = "none", _crowdSatRange = "none";
+        /// Which committed frame the body/crowd reading came off. See the note
+        /// where it is set: without it, two runs' numbers look comparable and
+        /// are noon against midnight.
+        string _bodyReadWhen = "none";
         /// One reading per body — x is luminance, y is saturation. Kept rather
         /// than folded so the spread can be printed beside the median.
         readonly List<Vector2> _crowdReadings = new List<Vector2>();
@@ -2159,6 +2179,37 @@ namespace Ledger.Game
         int _collidingWorldText = -1;
         int _collidingBubbles = 0, _bubblesOnScreen = 0;
         /// How many bubbles were on screen at the instant of the worst overlap.
+        /// The overlap fraction, taken on the sim's own tick rather than only
+        /// when something else happens to look.
+        ///
+        /// The first version rode on `CollidingNames`, which walks every
+        /// TextMesh in the scene and therefore runs twice: once per audit and
+        /// once per shot. `f06075e` came back with `n=2`, both zero, one run
+        /// after a peak of 116 overlapping pairs — a series of two cannot
+        /// describe a street, and the emptiness was the probe's, not the
+        /// game's.
+        ///
+        /// It reuses `_bubbleOverlap`, so the peak and the median stay two
+        /// readings of ONE quantity rather than two quantities with similar
+        /// names.
+        void SampleBubbles()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            int n = SpeechBubble.Rects(cam, _bubbleRects);
+            if (n < 2) return;
+            int now = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
+                    if (_bubbleRects[i].Overlaps(_bubbleRects[j])) now++;
+            _bubbleOverlap.Add((float)now / (n * (n - 1) / 2));
+            if (now > _collidingBubbles) { _collidingBubbles = now; _bubblesAtWorst = n; }
+            if (n > _bubblesOnScreen) _bubblesOnScreen = n;
+        }
+
+        /// Reused across ticks so the per-tick sample allocates nothing.
+        readonly List<Rect> _bubbleRects = new List<Rect>();
+
         /// Every sampled instant's overlap FRACTION, for the median. Unbounded
         /// by design — it grows once per sample, and the sampler runs on the
         /// same cadence as the rest of this file's probes rather than per
@@ -4727,8 +4778,14 @@ namespace Ledger.Game
         int _shotsBlocked, _shotsAimed;
         int _restFrameSum, _restFrames, _workFrameSum, _workFrames;
 
+        /// The frame the last shot-time probe read. Several probes run inside
+        /// `Shot` and the last shot wins, so every one of them is a reading of
+        /// a NAMED moment rather than of the run.
+        string _lastShotName = "none";
+
         void Shot(string name)
         {
+            _lastShotName = name;
             // SAMPLE THE TEXT COLLISIONS ON THE FRAME BEING PHOTOGRAPHED.
             // The audit's own sample is one moment a day; the picture is
             // another, and it is the one a human looks at. Cheap — it walks the
@@ -7057,8 +7114,16 @@ namespace Ledger.Game
                     int at = _bubbleOverlap.Count * i / want;
                     show.Append($" {_bubbleOverlap[at]:0.00}");
                 }
+                // PREFIXED NAMES. `median=` and `worst=` were learned by
+                // `verdict-keys` as required measurements the moment this line
+                // first landed — generic words that any other series could
+                // also use, so the manifest would demand "median" forever and
+                // be satisfied by anybody's. Exactly what `S=` and `tail=` did
+                // from the traffic sentence, caught this time before learning
+                // rather than after.
                 Debug.Log($"SimDirector: [series] bubbleOverlap n={_bubbleOverlap.Count} "
-                          + $"median={bubbleMedian:0.00} worst={sorted[sorted.Count - 1]:0.00} "
+                          + $"bubbleMedian={bubbleMedian:0.00} "
+                          + $"bubbleWorst={sorted[sorted.Count - 1]:0.00} "
                           + $"through the run:{show}");
             }
 
@@ -7368,6 +7433,7 @@ namespace Ledger.Game
                       // fact — what colour "coat" turned out to be.
                       $"bodyCoat=[{RealBody.CoatRead}] " +
                       $"bodyReadLum={_playerLum:0.0} bodyReadSat={_playerSat:0.000} bodyReadPx={_playerPixels} " +
+                      $"bodyReadWhen={_bodyReadWhen} " +
                       // MEDIAN, and the SPREAD beside it. Two collapsed numbers
                       // cannot say whether the player's lower saturation is
                       // the player being unusual or the crowd being spread —
