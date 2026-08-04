@@ -1940,20 +1940,61 @@ namespace Ledger.Game
             {
                 _playerLum = pl / pn; _playerSat = ps / pn; _playerPixels = pn;
             }
-            double cl = 0, cs = 0; int cn = 0, people = 0;
+            // ONE PERSON IS NOT A CROWD, AND A PIXEL-WEIGHTED MEAN MAKES IT ONE.
+            //
+            // This summed every sampled NPC's pixels and divided by the TOTAL
+            // pixel count, so a body near the camera — whose bounding box is
+            // twenty times the area of one down the street — set the "crowd"
+            // reading almost by itself. The first run read `crowdRead=3`, and
+            // three bodies weighted like that is one body with two witnesses.
+            //
+            // That is the corpus diagnostic again: it read sixty consecutive
+            // rows of a speaker-ordered set and reported on "the corpus",
+            // having seen one person. Same instrument fault, different data.
+            //
+            // So each body contributes ONE reading, the readings are kept, and
+            // the comparison is against their MEDIAN. A median because the
+            // question is "does the player sit among the clothed people" and a
+            // mean can be dragged out of the crowd by one bright shellsuit —
+            // the same reason the AO ceiling stopped reading a maximum.
+            //
+            // AND THE SERIES IS PRINTED. Two collapsed numbers cannot say
+            // whether a 0.19 saturation gap is the player being unusual or the
+            // crowd being spread from 0.3 to 0.9; only the spread can, and no
+            // bound goes anywhere near this until it has been read (rule 2).
+            _crowdReadings.Clear();
+            int considered = 0;
             if (_npcs != null)
                 foreach (var n in _npcs)
                 {
-                    if (n == null || people >= 6) continue;
+                    if (n == null) continue;
+                    considered++;
+                    if (_crowdReadings.Count >= 24) break;
                     var rr = n.GetComponentInChildren<Renderer>();
                     if (!Average(rr, out double l, out double sa, out int c)) continue;
-                    cl += l; cs += sa; cn += c; people++;
+                    _crowdReadings.Add(new Vector2((float)(l / c), (float)(sa / c)));
                 }
-            if (cn > 0) { _crowdLum = cl / cn; _crowdSat = cs / cn; _crowdSampled = people; }
+            _crowdConsidered = considered;
+            if (_crowdReadings.Count > 0)
+            {
+                var lums = new List<float>();
+                var sats = new List<float>();
+                foreach (var v in _crowdReadings) { lums.Add(v.x); sats.Add(v.y); }
+                lums.Sort(); sats.Sort();
+                _crowdLum = lums[lums.Count / 2];
+                _crowdSat = sats[sats.Count / 2];
+                _crowdLumRange = $"{lums[0]:0.00}..{lums[lums.Count - 1]:0.00}";
+                _crowdSatRange = $"{sats[0]:0.00}..{sats[sats.Count - 1]:0.00}";
+                _crowdSampled = _crowdReadings.Count;
+            }
         }
 
         double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
-        int _playerPixels, _crowdSampled;
+        int _playerPixels, _crowdSampled, _crowdConsidered;
+        string _crowdLumRange = "none", _crowdSatRange = "none";
+        /// One reading per body — x is luminance, y is saturation. Kept rather
+        /// than folded so the spread can be printed beside the median.
+        readonly List<Vector2> _crowdReadings = new List<Vector2>();
 
         /// The player's own pose, swept. See the note beside where it is read.
         bool _playerPoseSeen;
@@ -7234,7 +7275,16 @@ namespace Ledger.Game
                       // fact — what colour "coat" turned out to be.
                       $"bodyCoat=[{RealBody.CoatRead}] " +
                       $"bodyReadLum={_playerLum:0.0} bodyReadSat={_playerSat:0.000} bodyReadPx={_playerPixels} " +
+                      // MEDIAN, and the SPREAD beside it. Two collapsed numbers
+                      // cannot say whether the player's lower saturation is
+                      // the player being unusual or the crowd being spread —
+                      // and `crowdConsidered` against `crowdRead` says how many
+                      // bodies were skipped for being off-screen, which is the
+                      // difference between "the crowd reads like this" and
+                      // "three bodies read like this".
                       $"crowdReadLum={_crowdLum:0.0} crowdReadSat={_crowdSat:0.000} crowdRead={_crowdSampled} " +
+                      $"crowdConsidered={_crowdConsidered} crowdLumRange={_crowdLumRange} " +
+                      $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +
