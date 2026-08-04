@@ -6,7 +6,40 @@
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
 
-## NOTHING IS WAITING ON JAFAR — still true 2026-08-04
+## ONE IS WAITING, ADDED 2026-08-04 EVENING
+
+### What does the player get BETTER at?
+
+**The design scorecard's largest relative gap, and it is a design question
+rather than a wiring one.** Character competence scores 10 against a target of
+40, and the row's reason is one clause: *"crew have it; the player has none,
+and `Harm` only ever subtracts."* Your runners have a competence that changes
+how strong a link they leave in a rumour. The player has a capability number
+that goes down when they are hurt and never goes up at anything.
+
+**Why it cannot be answered from here.** Every other gap on that table was a
+thing built and unwired, and those get fixed by finding the caller. This one is
+a statement about what the game is: it decides what a playthrough is FOR,
+which is squarely M22 and squarely yours.
+
+**Three shapes, and they are not compatible.**
+
+| | what improves | what it feels like | what it costs |
+|---|---|---|---|
+| A | **Nothing.** The player is a publican, not an operative. What changes is the WORLD — who owes you, who fears you, which doors opened. | Closest to the moat: the progression is social memory, which is the thing this game is already best at. Also the bravest, because a player who feels no personal growth may read it as flat. | Nothing to build. The competence row gets closed as "deliberately none" and the scorecard target moves. |
+| B | **Being believed.** A lie holds better, an alibi survives more scrutiny, people take your word further. Grows by getting away with things. | The double life becoming a SKILL. Fits the information pillar exactly, and the systems to hang it on — `Claims`, `Informing`, `HomicideBook.TestimonyGrade` — already exist and are tested. | A number threaded through the accusation and alibi paths, plus a way to see it. Medium. |
+| C | **The body.** Fighting, carrying, not being seen — the conventional axis. | Familiar, and it is the one KCD2 does properly with a real training loop. Competing there is competing where we are weakest. | Large, and it depends on M16's fighting actually running, which it does not. |
+
+**My recommendation is B**, and A is a serious answer rather than a cop-out. B
+buys the most for the least because the machinery is already built and tested;
+A is defensible and would let the row close honestly tomorrow. C is the one to
+say no to explicitly, because it is the default a systems-first project drifts
+into and it plays to the one strength we have decided not to chase.
+
+**Nothing is blocked on this** — there is other work for weeks. It is here
+because it is the largest thing on the scorecard that I should not decide.
+
+## NOTHING ELSE IS WAITING ON JAFAR — still true 2026-08-04
 
 The queue is empty for the first time since it was opened. The last three were
 answered together:
