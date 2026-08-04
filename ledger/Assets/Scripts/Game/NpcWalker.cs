@@ -877,6 +877,33 @@ namespace Ledger.Game
                 if (dir.sqrMagnitude > 0.001f)
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
             }
+            else
+            {
+                // STANDING STILL IS WHEN PEOPLE BUNCH UP, and the first version
+                // of the separation could not see that case at all.
+                //
+                // `StepApart` sat inside the `moving` branch, so it only ever
+                // applied to walkers on their way somewhere. The reading says
+                // exactly that: `crowdGapMedian` rose from 0.00 to 0.20, which
+                // is the moving crowd coming apart, while `crowdTightest`
+                // stayed at 0.00 and 284 pairs were still inside one another.
+                // A median that moves and a worst case that does not is the
+                // signature of a fix applied on the wrong path.
+                //
+                // And it is the wrong path in the specific way that matters:
+                // people interpenetrate when they STOP. A confab is two people
+                // standing to talk, a queue is people standing, and the day-5
+                // noon still is eight figures bunched at a corner, none of them
+                // going anywhere. The one branch that skipped the nudge is the
+                // one where the whole crowd ends up.
+                //
+                // IT CANNOT BREAK A CONFAB. The nudge stops at 0.45m, a body's
+                // width, and people talk at up to 3m — so a pair pushed out of
+                // interpenetration is still comfortably inside talking range.
+                // `confabs` is the number that would say otherwise.
+                var apart = StepApart(current);
+                if ((apart - current).sqrMagnitude > 1e-8f) transform.position = apart;
+            }
 
             // PEOPLE DO NOT STAND INSIDE EACH OTHER, and until now they did.
             //
