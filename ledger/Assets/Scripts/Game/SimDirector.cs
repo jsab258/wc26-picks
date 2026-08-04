@@ -7920,6 +7920,21 @@ namespace Ledger.Game
                       // the gate is not in the path — and those look
                       // identical from here, which is the state this
                       // system was in for as long as it has existed.
+                      // AND WHETHER A SOUND COULD HAVE BEEN PLAYED AT ALL.
+                      //
+                      // `soundsOffered=0` came back and I read it as the
+                      // budget never being reached, which is true and is not
+                      // a fault: `PlayerController.Footsteps` has
+                      // `audible = SimMode.Days == 0`, so the sim skips
+                      // PLAYING a step while still emitting it as something
+                      // the city can hear. Deliberate, and its comment says so.
+                      //
+                      // So the denominator I added an hour ago to stop a zero
+                      // being ambiguous was itself ambiguous, for the reason
+                      // rule 5b's corollary names: the run cannot produce the
+                      // condition the number asks about. This says so on the
+                      // line, so nobody chases it — including me, twice.
+                      $"simAudible={SimMode.Days == 0} " +
                       $"soundsOffered={Audio.SoundsOffered} " +
                       $"soundsNoClip={Audio.SoundsNoClip} " +
                       $"soundsAdmitted={Audio.SoundsAdmitted} " +
