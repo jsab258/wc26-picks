@@ -165,10 +165,17 @@ the run is `pass=True` with no failing gate.**
 3. **Read `walked=` in the job trace.** Two misses had the job holding the
    target every tick and still finished 9.3m and 6.9m out. Path length is what
    separates "steered and not moving" from "moving and too far".
-4. **THE WALKER BODIES.** Now unblocked — the base is green and the textures
-   work. Read the hazard written up above before touching it: `TryAttach` writes
-   statics that five gate clauses read as THE PLAYER's, and wiring 55 walkers
-   without separating those first corrupts all five silently.
+4. **THE WALKER BODIES ARE WIRED — read `walkerBodies` and `walkerBodiesFailed`.**
+   Done 2026-08-04 with the trap cleared first: `TryAttachExtra` saves and
+   restores every static `TryAttach` publishes, so the five `bodies` gate
+   clauses keep describing the player. Named cast gets skinned bodies, crowd
+   keeps mannequins by choice, heights come from `Physique.For` so the variety
+   survives. **Not done until the numbers come back**: `walkerBodies=0` with
+   `walkerBodiesFailed` high means the prefab pick is failing;
+   `walkerBodyWhy` names it. Watch `heapMb` and the geometric counts, not a
+   millisecond figure — the runner has no GPU. **And check the noon still for a
+   street that walks in unison**, because gait bias is the one thing the
+   real-body path does not yet carry across.
 5. **`heatMedian`** — decides whether the street pinned at maximum unease is a
    music problem or a harness one.
 6. **`measureFails`** — all four failing prose labels are named now, not one.
