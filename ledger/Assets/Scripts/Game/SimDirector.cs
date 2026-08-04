@@ -2069,6 +2069,10 @@ namespace Ledger.Game
         Vector3 _jobLastPos;
         double _jobMetresWalked;
         float _jobWorstSeverity;
+        /// The longest run of consecutive ticks the bot did not move during a
+        /// drop window, and the run in progress. See the note at the sample
+        /// site: a total covers a slow walk and a dead stop identically.
+        int _jobLongestStall, _jobStillRun;
 
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
@@ -2143,6 +2147,8 @@ namespace Ledger.Game
                     _jobLastPos = p0;
                     _jobMetresWalked = 0;
                     _jobWorstSeverity = 0;
+                    _jobLongestStall = 0;
+                    _jobStillRun = 0;
                 }
                 else
                 {
@@ -2154,8 +2160,39 @@ namespace Ledger.Game
                     // because the completion test is flat.
                     var flatNow = new Vector3(p0.x, 0, p0.z);
                     var flatWas = new Vector3(_jobLastPos.x, 0, _jobLastPos.z);
-                    _jobMetresWalked += Vector3.Distance(flatNow, flatWas);
+                    float step = Vector3.Distance(flatNow, flatWas);
+                    _jobMetresWalked += step;
                     _jobLastPos = p0;
+
+                    // AND WHETHER HE WAS STANDING STILL, WHICH THE TOTAL CANNOT
+                    // SAY AND IS THE LAST QUESTION THIS TRACE CANNOT ANSWER.
+                    //
+                    // `d13:MISSED[from=16m nearest=6.9m walked=10.0m
+                    // held:job=19]` — ten of sixteen metres covered, the job
+                    // steering for every tick of the window, stalled seven
+                    // metres out. The first miss beside it turned out to be the
+                    // waypoint's own collider; no obstacle explains this one.
+                    //
+                    // TEN METRES IN NINETEEN TICKS IS THE SAME TOTAL whether he
+                    // walked slowly the whole time or walked briskly for eight
+                    // ticks and stood still for eleven, and those are completely
+                    // different faults: the first is a speed problem — a hurt
+                    // man, a crowd — and the second is something taking him over
+                    // that ownership cannot see, because a conversation holds
+                    // his POSITION without ever touching the job's TARGET.
+                    //
+                    // LONGEST RUN, NOT A COUNT. Eleven still ticks scattered
+                    // through a window is a man weaving through a crowd; eleven
+                    // in a row is a man who stopped, and only the second is
+                    // worth a mechanism. Five centimetres is not a design bound
+                    // — a walking step is most of a metre — it is the line
+                    // between "moved" and "float noise".
+                    if (step < 0.05f)
+                    {
+                        _jobStillRun++;
+                        if (_jobStillRun > _jobLongestStall) _jobLongestStall = _jobStillRun;
+                    }
+                    else _jobStillRun = 0;
                     // HOW HURT HE WAS, at his worst, during THIS window.
                     //
                     // `Gait.SpeedFactor` slows a hurt man, and one drop moved
@@ -2188,6 +2225,11 @@ namespace Ledger.Game
                           + $"nearest={_jobNearest:0.0}m@{_jobNearestHour:00}h "
                           + $"walked={_jobMetresWalked:0.0}m "
                           + $"hurt={_jobWorstSeverity:0.00} "
+                          // The longest DEAD STOP in the window, which
+                          // `walked` cannot show: ten metres in nineteen
+                          // ticks reads the same for a slow walk and for
+                          // a brisk one that stopped halfway.
+                          + $"stalled={_jobLongestStall} "
                           + $"held:{OwnerTally()}]");
         }
 
