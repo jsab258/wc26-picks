@@ -232,6 +232,45 @@ namespace Ledger.Game
             return into.Count;
         }
 
+        /// PIN EVERY LIVE BUBBLE AT THIS CAMERA, NOW — and the first build with
+        /// the cap in it is what said this was needed.
+        ///
+        /// `bubbleFracPreCap=0.659` beside `worstBubbleFrac=1.245`: the cap
+        /// never saw a bubble above two thirds of the frame, and the sampler saw
+        /// one TALLER THAN THE WHOLE FRAME. A post-cap reading cannot exceed its
+        /// own pre-cap reading, so the two are not describing the same moment —
+        /// and they are not. `LateUpdate` pins against wherever the camera was
+        /// when it last ran; `SimDirector.Shot` moves a camera and renders BY
+        /// HAND inside `Update`, so the committed still is drawn with whatever
+        /// scale the previous frame left behind.
+        ///
+        /// `Billboard` has this exact paragraph and this exact fix — the shot
+        /// re-aims every registered transform before rendering, because a
+        /// rotation set for the last camera position is wrong for this one. A
+        /// SCALE set for the last camera position is wrong for the same reason
+        /// and nobody had applied the argument twice. Third site of one idea
+        /// tonight, and this one I built myself two hours ago.
+        ///
+        /// Returns how many were pinned, so a shot that pins nothing is legible
+        /// as a shot with no speech in it rather than as a working cap.
+        public static int PinAll(Camera cam)
+        {
+            if (cam == null) return 0;
+            int pinned = 0;
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var b = _live[i];
+                if (b == null) { _live.RemoveAt(i); continue; }
+                if (b._text == null) continue;
+                var rend = b._text.GetComponent<Renderer>();
+                if (rend == null) continue;
+                if (!NameTags.ScreenRect(cam, rend.bounds, out var rect)) continue;
+                NameTags.PinBubble(b._text, rect.height / Mathf.Max(1f, cam.pixelHeight));
+                pinned++;
+            }
+            return pinned;
+        }
+
         /// The lift this bubble carries above its speaker's head.
         float _lift;
 

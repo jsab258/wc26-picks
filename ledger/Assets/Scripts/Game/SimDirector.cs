@@ -1851,6 +1851,10 @@ namespace Ledger.Game
         }
         float _billboardWorstDeg = 0f;
         int _billboardsAimed = 0;
+        /// How many bubbles the SHOT re-pinned. Zero on a shot with speech in
+        /// it means the re-pin is not running; zero with no speech is a quiet
+        /// street, and only the count beside `bubblesOnScreen` separates them.
+        int _bubblesPinnedAtShot;
         int _billboardsTracked = 0;
 
         /// See the note at the call site. Two numbers, each answering one
@@ -6336,6 +6340,15 @@ namespace Ledger.Game
             if (staleDeg > _billboardWorstDeg) _billboardWorstDeg = staleDeg;
             _billboardsAimed = Billboard.AimAll(cam);
             _billboardsTracked = Billboard.Tracked;
+            // AND RE-PIN THE SPEECH AT THE SAME MOMENT, for the same reason and
+            // one line later. A bubble's SCALE is set against wherever the
+            // camera was when its `LateUpdate` last ran, exactly as its rotation
+            // was — so the still is committed with the previous frame's size.
+            // The run said so before anybody looked: `bubbleFracPreCap=0.659`
+            // against `worstBubbleFrac=1.245`, a post-cap reading larger than
+            // its own pre-cap reading, which is only possible if the two are
+            // describing different instants.
+            _bubblesPinnedAtShot = SpeechBubble.PinAll(cam);
             // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
             // because that is the frame that gets written. It used to run once,
             // at the audit moment, and reported 0 for a run whose committed
@@ -9043,6 +9056,7 @@ namespace Ledger.Game
                       // which is a different fault from it not being needed.
                       $"bubbleFracPreCap={NameTags.WorstBubbleFracPreCap:0.000} " +
                       $"bubblesPinned={NameTags.BubblesPinned} " +
+                      $"bubblesPinnedAtShot={_bubblesPinnedAtShot} " +
                       $"bubblePinFloor={NameTags.BubblePinFloor:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a
