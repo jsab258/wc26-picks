@@ -38,147 +38,84 @@ scheduling instead of to CI's output.
 
 ## Now
 
-0. **THE BUILD IS GREEN — three consecutive runs, 4ac2f0f, 50a1d34, 4dd1a2d.**
-   Every gate that was red overnight is fixed and confirmed by a landed verdict.
-   `claims` was the last one and `claimsMade=2 claimsCaught=1 claimWhy=[ok]`
-   closed it.
+**THE BLOCKER: the Game layer does not compile, and three commits went unbuilt
+behind two licence failures before anybody noticed.** `0cb2ddd` came back with
+`first licence attempt : success` and no player log, which is the new diagnostic
+doing its job — this is a compile error, not contention. The error itself is in
+one of dc049a8 (the watched-spot search), 5e5a6ea (`textFacingAway`) or baeb74d
+(the inquiry redirect), and **530f2ba is the first build that will print it**,
+because the compile errors now go into `verdict.txt` instead of only into a 4KB
+step tail and an empty step summary. Read that first; everything Game-side is
+behind it.
 
-1. ~~**READ `billboardsStale`.**~~ **ANSWERED: `billboardsStale=5
-   billboardWorstDeg=75.2`, `billboardsAimed=54` of `billboardsTracked=54`.**
-   The bug was real — five billboards more than 20° out at the instant a still
-   was taken, worst 75°— and every one is re-aimed before the shutter now.
-   **What is NOT closed:** `review_day5_night` at 4ac2f0f still shows what looks
-   like a street plate's reverse face printed backwards over a lit window, while
-   `textMirrored=0`. That metric structurally cannot see it — it only counts
-   text facing away AND not on the culling shader, and every plate is adopted,
-   so no plate can ever contribute however it renders. `textFacingAway` and
-   `textVisible` now print the raw population. Half of every double-sided plate
-   faces away by construction, so **read the RATIO, not the count**: about half
-   with a clean frame means `Cull Back` is working and I misread the picture;
-   about half with mirrored glyphs in frame means the cull is not working and
-   the shader is the suspect.
+1. **READ THE COMPILE ERRORS in `runs/530f2ba.txt`, fix, rebuild.** *(CI)*
+   Nothing else Game-side can land until this does. Do NOT add more Game code on
+   top of an unbuilt tree — every commit stacked on it widens the search.
 
-1b. **THE REVIEW CAMERA STOOD INSIDE A STREET SIGN.** `review_day5_night` at
-   4ac2f0f is two black plates filling the frame at arm's length with almost no
-   city behind them. The shot follows the player, so this is luck rather than a
-   fault — but four stills a run is the entire visual channel, and one of them
-   being a close-up of a sign costs a quarter of it. Worth a minimum-clearance
-   check before the shutter, the same shape as the billboard re-aim.
+2. **`[series] jobs` — READ `nearest` AND ITS HOUR.** *(CI)* The trace already
+   named one cause (the loiter probe holding the bot still through the drop
+   window, now fixed) and exposed one instrument fault (it measured 3D against
+   a flat 2.5m completion radius, now flat). What it cannot yet say is whether
+   the remaining misses are "ran out of night" or "got inside 2.5m and the check
+   never fired". The hour of closest approach answers it.
 
-1c. **READ `billboardsStale` AND THE FOUR STILLS.** *(CI, in flight on 4ac2f0f)*
-   `review_day5_night` prints two rumour lines across the frame BACKWARDS while
-   `textMirrored=0`, `speechUpDot=1.000` and `nameTagsUpDot=1.000` all say the
-   text is fine. Cause: bubbles aim in `LateUpdate`, `Shot` renders from
-   `Update`, so **every still ever committed was drawn with the previous
-   frame's aim** — a third of a second of camera movement at `meanFrame=334ms`.
-   The aim is one implementation now and `Shot` re-aims before rendering.
-   `billboardsStale` is how far out they were BEFORE the fix; it should be
-   non-zero and the mirrored text should be gone from the frame. **Look at the
-   frame first, then the number.**
-2. ~~**READ `bodyCoat`.**~~ **ANSWERED, AND IT REVERSED ME.**
-   `bodyCoat=[denim hsv=0.60/0.36/0.59 rgb=96,118,149]` — the player's coat is a
-   solid denim blue, not grey and not near-white. I had read the pale figure in
-   `day2_noon` and `day5_noon` as an undressed mannequin and was one step from
-   re-rolling the palette; a 1280x720 JPEG through a noir grade at street
-   distance is what made a mid-blue coat look like bare plastic. That is rule 4
-   landing for the fifth time in this project — three textures, a bench, a set
-   of wheels, and now a coat.
+3. **`textFacingAway` / `textVisible` — READ THE RATIO, NOT THE COUNT.** *(CI)*
+   Half of every double-sided street plate faces away by construction, so about
+   half with a clean frame means `Cull Back` works and I misread a picture;
+   about half WITH mirrored glyphs in frame means the cull does not work and the
+   shader is the suspect. `textMirrored` structurally cannot answer this — it
+   only counts text that is both facing away and NOT on the culling shader, and
+   every plate is adopted.
 
-   **What survives is a judgement, not a bug.** The figure still READS as
-   undressed at noon even though the material is correct, and "reads as" is the
-   only thing a player has. Whether that needs a darker value, a second
-   material for trousers, or nothing at all is Jafar's call off a still — the
-   street calls the player "someone in a runner's coat" in its own rumours, so
-   the coat is load-bearing for identification.
-3. ~~**READ `[series] jobs`.**~~ **ANSWERED, AND IT NAMED THE CAUSE:**
+4. **`crowdedIsWatched` and `slamRings`.** *(CI)* Both are new this session and
+   both exist to settle a gate that fails rarely: `disposal`/`accident` compare
+   a watched place against an unwatched one and may have had two unwatched ones,
+   and `perception` failed on four slams none of whose rings drew. Each now
+   reports its own staging rather than only its verdict.
 
-       d1:MISSED[from=28m nearest=6m]   d2:done[from=20m nearest=2m]
-       d8:MISSED[from=18m nearest=17m]  d12:MISSED[from=27m nearest=1m]
-       d13:MISSED[from=27m nearest=4m]
+5. **`collidingBubbles` against `bubblesOnScreen`.** *(CI)* Sixty-six confabs is
+   sixty-six bubbles and the night still has two drawn through each other.
+   `NameTags` has the declutter and `Manages` draws the line — offer bubbles to
+   it, but only once the number says how bad it is.
 
-   **d8 is the confession.** Eighteen metres away when the drop opened,
-   seventeen at its closest — the bot never went, because day 8 is the first day
-   `StagePerception` may stage its loiter, which walks the bot to somebody and
-   then holds it still, at any hour from 19:00. That overlaps 22:00–02:00 every
-   time. Fixed: the loiter waits for the drop to close. **And d12's `nearest=1m`
-   was my own ruler** — the game completes on a FLAT distance and the trace took
-   the 3D one. Now flat, and it records the hour of closest approach, because
-   "ran out of night" and "the check never fired" are different bugs.
-   **Next build tells which.**
+6. **The `[panel]` line.** *(CI)* The ledger screen's live text is in the
+   verdict and has never been read back.
 
-3b. **DO NOT DISPATCH MORE THAN ABOUT THREE BUILDS AT ONCE.** Two of four died
-   on "Activate Unity license" — a Personal licence has limited concurrent
-   seats. It is expensive out of all proportion because the verdict then says
-   `NO PLAYER LOG`, which reads exactly like a Game-layer compile error, the one
-   thing that cannot be checked locally. The step retries once now and the
-   verdict names both attempts. CLAUDE.md carries the limit.
-4. **Read `collidingBubbles` against `bubblesOnScreen`.** *(CI)* The night
-   still has two speech bubbles drawn through each other. Fifty-six confabs is
-   fifty-six bubbles. `NameTags` already has the declutter and `Manages`
-   already draws the line — offer bubbles to it, but **only once the number
-   says how bad it is**.
-5. **Read the `[panel]` line.** *(CI)* The ledger screen's live text now goes
-   into the verdict. Everything built tonight ships into that panel and none
-   of it has been read back yet.
-6. **`claims[made=0]` — fix landed in 0ef0b10, not yet in a landed verdict.**
-   *(CI)* `ProcessClaim` hung off the LLM-backed engine, which is null in the
-   sim; it is `Claims.Process` now and `LawHost` calls it directly. Every
-   verdict up to 264d29f predates that. **Read `claimWhy` when the next one
-   lands.**
-4. **Jafar runs BODIES.bat ~10:00 CEST.** README opens with the three steps;
-   reminder fires 07:55 UTC.
-5. **Then the skinned crowd — costed, designed, item 4b below.** Worth far
-   more once the six textured models are in.
-7. **THE FLAKINESS TABLE — AND THE TABLE ITSELF WAS THE THIRD THING IT
-   CORRECTED.** `python3 tools/gates.py --flaky` had no time axis, so it
-   reported `bodies 6/64, 9.4%` beside `claims 22/64` and I wrote "bodies is
-   the biggest untouched one" onto this queue off the back of it. All six
-   `bodies` failures are from a hundred-minute window on 3 August — the runs
-   during which the upside-down player was being repaired — and the forty
-   runs since have all passed. It was the most thoroughly FIXED thing in the
-   project, ranked third-worst. Rule 3: suspect the instrument. It now reports
-   how many runs ago each gate last went red, and splits live from quiet:
+7. **The review camera stood inside a street sign.** `review_day5_night` at
+   4ac2f0f is two black plates at arm's length with almost no city behind them.
+   The shot follows the player so it is luck rather than a fault — but four
+   stills a run is the whole visual channel and one being a close-up of a sign
+   costs a quarter of it. A minimum-clearance check before the shutter, the same
+   shape as the billboard re-aim.
 
-   | rate | last red | gate | note |
-   |---|---|---|---|
-   | 23/66 | 1 run ago | claims | fixed in 0ef0b10; first green verdict is dc42046 |
-   | 4/66 | 8 runs ago | traffic | **I called this a one-off. It is not.** Now prints its five readings |
-   | 1/66 | 3 runs ago | jobRan | real coverage hole — see standing work |
-   | 1/66 | 3 runs ago | verdictSane | fixed — a cut-off outfit posts nothing |
-   | 1/66 | 10 runs ago | perception | open — 32 glances, nobody stayed to notice |
-   | 2/66 | 13 runs ago | harm, disposal, accident | harm fixed; the other two await `crowdedWatchers` |
-   | 5/66 | 20 runs ago | allegiance | fixed — the run never poached anyone |
-   | 13/66 | 22 runs ago | companionSight | fixed — the escort had no player reference |
-   | 1/66 | 36 runs ago | confab | moot — the old total-failure gate, and there are 66 confabs |
-   | 6/66 | 60 runs ago | bodies | fixed with the rig; `worstAt` in flight in case it returns |
+8. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder fires 07:55 UTC. Then the
+   skinned crowd, which is costed and designed and worth far more once six
+   textured models are in.
 
-   **`traffic` at 8 runs ago is now the oldest LIVE one and the real next
-   target.** It used to say nothing but its name; it prints five readings now.
+9. **Keep retiring the reach ledger.** 90 to 71 tonight, every one wiring rather
+   than building. What is left is mostly UI surfaces (`OperationPlan.Bringing`
+   needs crew selection) and one real refactor: the `Mixing.*` voice budget has
+   no choke point, because the audio layer plays through several `AudioSource`s
+   directly. That is a design job, not a wiring, and it is the honest reason
+   those entries survive.
 
-8. **THE TRAFFIC ANSWER LANDED AND CONFIRMED THE DIAGNOSIS.**
-   `clamps=20 clampsPerKm=0.49 tailsBehindStart=39`, and
-   `gapWhy=[car#24 lead S=25.77 len=4.20 tail=21.57 over taxi#17 at S=21.57 on
-   j3_4->j3_3]` — leader's tail and follower's nose at the same metre to two
-   decimals, which is the de-overlap clamp's exact signature. So `gap=0.00` on a
-   third of runs was never a clear road. The gate reads clamps-per-metre now.
-   **AND THE 39 TAILS WERE MY OWN METRIC, NOT A JUNCTION BUG.** I put "39 is a
-   lot, find out whether `Cross`'s entry check is reached" here as an open
-   question. It is reached: `RoomOn(v.ToId, nextId, v.Kind.Length + v.Kind.Gap)`
-   requires every vehicle already on the far edge to have its tail a full
-   follower-length along it, so a leader whose tail is behind the origin cannot
-   have acquired a follower through the junction. The counter was incrementing
-   on every pair where `lead.S < lead.Kind.Length` — an ordinary geometric fact,
-   true of any 10.5m bus for its first 10.5 metres, follower or no follower. It
-   now counts only pairs the clamp had to act on, where it should be zero and a
-   non-zero reading is a real interpenetration.
+### Answered tonight, kept only as evidence
 
-9. **Keep retiring the reach ledger.** 90 to 71 tonight, every one wiring
-   rather than building. What is left is mostly UI surfaces
-   (`OperationPlan.Bringing` needs crew selection) and one real refactor: the
-   `Mixing.*` voice budget has no choke point to enforce it, because the audio
-   layer plays through several `AudioSource`s directly. That is a design job,
-   not a wiring, and it is the honest reason those five entries survived
-   tonight.
+- `billboardsStale=5 billboardWorstDeg=75.2`, all 54 re-aimed at shot time —
+  every still ever committed had been drawn with the previous frame's aim.
+- `bodyCoat=[denim hsv=0.60/0.36/0.59 rgb=96,118,149]` — **reversed me.** The
+  player's coat is mid-blue, not grey; a JPEG through a noir grade made it look
+  like bare plastic and I was one step from re-rolling the palette. What
+  survives is a judgement for Jafar: it still READS as undressed at noon.
+- Traffic: `gap=0.00` on a third of runs is the de-overlap clamp, proven by
+  `gapWhy` showing leader tail and follower nose at the same metre. The gate
+  reads clamps-per-metre now. The 39 "tails behind an edge start" were my own
+  metric counting a bus being long; `Cross`'s entry check is reached and works.
+- `verdictSane` required job-nights from an outfit that had cut the player off.
+  11% of runs end that way and `jobRan` had been passing on luck in six of seven.
+- The flakiness table had no time axis and ranked `bodies` — fixed 60 runs ago —
+  as the third-worst live gate.
+- `verdict-keys` reported 465 measurements missing from a build that never ran.
 
 ## Next
 
