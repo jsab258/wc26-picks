@@ -54,6 +54,13 @@ namespace Ledger.Game
         /// pass being off, which is the state this ships in unless
         /// `CharacterPrefab` sets `iKPass` and that is a line in an Editor
         /// script nothing local compiles.
+        /// THE LEG THE CORRECTIONS ARE MEASURED AGAINST. Eighteen centimetres
+        /// means nothing until you know whether the leg is 0.88m or 0.38m, and
+        /// until this run every bought body reported the mannequin's default
+        /// while its mesh was scaled by 0.434. A correction without the limb it
+        /// is a fraction of is the denominator fault in a different coat.
+        public static double LegLengthSeen = -1;
+
         public static int Frames;
         /// Frames on which a body was present but its pose was NOT clip-driven,
         /// so the feet belong to `Swing` and this stood down. Counted rather
@@ -92,6 +99,7 @@ namespace Ledger.Game
         public static void Reset()
         {
             Frames = FramesUndriven = Goals = Clamped = 0;
+            LegLengthSeen = -1;
             CorrectionWorst = 0;
             CorrectionMedian = -1;
             _corrections.Clear();
@@ -138,6 +146,7 @@ namespace Ledger.Game
             Frames++;
 
             float legLength = Mathf.Max(0.1f, _rig.LegLength);
+            LegLengthSeen = legLength;
             float lGround = Solve(AvatarIKGoal.LeftFoot, _rig.Phase, legLength);
             float rGround = Solve(AvatarIKGoal.RightFoot, _rig.Phase + 0.5, legLength);
 

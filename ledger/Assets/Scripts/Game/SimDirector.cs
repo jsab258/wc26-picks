@@ -8532,6 +8532,12 @@ namespace Ledger.Game
                       $"ikCorrectionWorst={FootIk.CorrectionWorst:0.000} " +
                       $"ikCorrectionMedian={FootIk.CorrectionMedian:0.000} " +
                       $"ikCorrectionSamples={FootIk.CorrectionSamples} " +
+                      // AND THE LEG THE CORRECTION IS MEASURED AGAINST,
+                      // because eighteen centimetres means nothing until
+                      // you know whether the leg is 0.88m or 0.38m. It was
+                      // the mannequin default on every bought body until
+                      // this run.
+                      $"ikLegLength={FootIk.LegLengthSeen:0.000} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
                       $"roomQuiet={_roomQuietSamples} " +

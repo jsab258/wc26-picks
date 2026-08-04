@@ -137,6 +137,37 @@ namespace Ledger.Game
                 _rHand = _animator.GetBoneTransform(HumanBodyBones.RightHand);
                 _handAnchor = null;
                 CaptureRest();
+
+                // THIS BODY'S OWN LEG, NOT THE MANNEQUIN'S.
+                //
+                // `LegLength` is assigned in the MANNEQUIN branch below and
+                // nowhere else, so every bought body has been carrying the
+                // default 0.88 — while `realBodyWhy` reports the mesh arriving
+                // at 4.15m and being scaled by 0.434. The leg the code believed
+                // in and the leg on screen were not the same object.
+                //
+                // TWO CALL SITES, ONE FAULT, and the older one is not mine:
+                // `Rig.PelvisDrop` has bounded its drop at a quarter of this
+                // number since bought bodies existed, and `FootIk` started
+                // reading it an hour ago. The first reading from that build is
+                // what exposed it — `ikCorrectionMedian=0.181`, a TYPICAL foot
+                // being moved eighteen centimetres, which is not IK polishing a
+                // small error but the animation and the ground disagreeing by a
+                // large one.
+                //
+                // Measured from the bones in world space at bind time, so the
+                // scale is already in it and no second scaling factor has to be
+                // remembered anywhere. Falls back to the default rather than to
+                // zero if a bone is missing, because a leg length of nothing
+                // would make `PelvisDrop` clamp everything to zero and read as
+                // the drop being disabled.
+                float thighToShin = _lThigh != null && _lShin != null
+                    ? Vector3.Distance(_lThigh.position, _lShin.position) : 0f;
+                float shinToFoot = _lShin != null && _lFoot != null
+                    ? Vector3.Distance(_lShin.position, _lFoot.position) : 0f;
+                if (thighToShin > 0.01f && shinToFoot > 0.01f)
+                    LegLength = thighToShin + shinToFoot;
+
                 // FEET ON THE GROUND, and attached HERE rather than in
                 // `LateUpdate` because Unity delivers `OnAnimatorIK` only to
                 // components sharing a GameObject with the Animator — and on a
