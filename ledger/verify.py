@@ -75,6 +75,25 @@ def lint():
     return m.group(2) == "0", "%s lint errors" % m.group(2)
 
 
+def shadow():
+    """A Game method must not be named after a Core type the file uses.
+
+    Cost one CS0119 and three round trips on 4 August: `EvidenceHost.Watched`
+    shadowed `Ledger.Core.Watched`, which the same file calls eighty lines
+    below, and the error landed on a line nobody had touched. Only Core
+    compiles here, so the Game layer's first compiler is twenty-five minutes
+    away — every cheap static catch is worth a round trip.
+    """
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-shadow.py")])
+    m = re.search(r"lint-shadow: (\d+) shadowed Core types", out)
+    if m:
+        return True, "0 shadowed Core types"
+    m = re.search(r"lint-shadow: (\d+) Game member", out)
+    if m:
+        return False, "%s SHADOWED CORE TYPE(S) — see tools/lint-shadow.py" % m.group(1)
+    return False, "lint-shadow did not report"
+
+
 def reach():
     """Layer 1 of the testing system: does anything actually call it.
 
@@ -487,7 +506,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, tools_tracked, reach, shape_files, voice_cast,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()
