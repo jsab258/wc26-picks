@@ -94,7 +94,23 @@ def strip_comments(text):
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
     text = re.sub(r"^\s*///.*$", " ", text, flags=re.M)
     text = re.sub(r"//.*$", " ", text, flags=re.M)
-    text = re.sub(r'"(?:\\.|[^"\\])*"', '""', text)
+    # PLAIN strings only. `$"..."` IS CODE and throwing it away made this check
+    # blind to the place the mistake actually happens.
+    #
+    # The docstring above says "a verdict line with `Traces.` in it is prose
+    # that happens to be quoted". True of a plain string; FALSE of an
+    # interpolated one, and `SimDirector`'s done-line is a single interpolated
+    # string hundreds of expressions long — the largest concentration of
+    # Game-layer static reads in the project. Every CS0119 in it was invisible
+    # here.
+    #
+    # Found on 4 August while writing `lint-filetype`, which scored zero on the
+    # very line that prompted it for exactly this reason, and then found the
+    # same fault sitting in this file. One idea, two implementations.
+    text = re.sub(r'\$"(?:\\.|[^"\\])*"',
+                  lambda m: " ".join(re.findall(r"\{([^{}]*)\}", m.group(0))),
+                  text, flags=re.S)
+    text = re.sub(r'(?<!\$)"(?:\\.|[^"\\])*"', '""', text)
     return text
 
 

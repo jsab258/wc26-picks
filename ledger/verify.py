@@ -257,6 +257,35 @@ def nested_types():
                   else "0 nested-type errors")
 
 
+def filename_as_type():
+    """A filename used as a type name — CS0103.
+
+    `SimDirector` read `TrafficHost.BrakeLampsPeak`. There is no type called
+    `TrafficHost`: that file declares `partial class GameController`, like
+    thirteen others in the Game layer. The build came back NO PLAYER LOG and
+    three commits were already sitting on top of it.
+
+    Fourth member of the family that exists because ShapeCheck runs
+    reference-independent diagnostics only — CS0119 (`lint-shadow`), CS0426
+    (`nested_types`), CS0120 (`static_instance`) and now this. It needs no type
+    resolution at all: it is a set difference between the filenames somebody
+    might mistake for a type and the type names that exist.
+
+    Writing it found a fault in `lint-shadow` too. Both stripped every
+    double-quoted run before scanning, and `$"..."` IS CODE — so both were
+    blind to `SimDirector`'s done-line, which is one interpolated string
+    hundreds of expressions long and the largest concentration of Game-layer
+    static reads in the project. The new check scored zero on the very line
+    that prompted it until that was fixed."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-filetype.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-filetype")
+        return False, "CS0103 WAITING TO HAPPEN: " + first[:90]
+    m = re.search(r"\((\d+) file\(s\) scanned, (\d+) type\(s\) declared, (\d+) filename", out)
+    return True, ("0 filename-as-type errors (%s files, %s filenames that are not types)"
+                  % (m.group(1), m.group(3)) if m else "0 filename-as-type errors")
+
+
 def static_instance():
     """A static method reaching an instance member — CS0120.
 
@@ -584,7 +613,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, nested_types,
-               static_instance, workflow_size,
+               static_instance, filename_as_type, workflow_size,
                frame_drift, verdict_keys, save_chaos, soak,
                adversary, stale_anchors, core_tests):
         ok, text = fn()

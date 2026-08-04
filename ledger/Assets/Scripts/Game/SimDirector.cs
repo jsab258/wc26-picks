@@ -8105,8 +8105,17 @@ namespace Ledger.Game
                       // denominator cannot say whether four lit out of
                       // five is a jam or four out of twenty-eight is a
                       // rank.
-                      $"brakeLampsPeak={TrafficHost.BrakeLampsPeak} " +
-                      $"vehiclesDrawn={TrafficHost.VehiclesDrawn} " +
+                      // `GameController`, NOT `TrafficHost`. The statics live in
+                      // `TrafficHost.cs` and that file declares
+                      // `partial class GameController` — there is no type called
+                      // `TrafficHost` anywhere in this project. I took a type
+                      // name off a filename without opening the file, which is
+                      // rule 1 with no excuse attached, and it cost a NO PLAYER
+                      // LOG round trip. CS0103 is a name-RESOLUTION error, so
+                      // ShapeCheck is structurally blind to it and CI was always
+                      // going to be the first thing that could see it.
+                      $"brakeLampsPeak={GameController.BrakeLampsPeak} " +
+                      $"vehiclesDrawn={GameController.VehiclesDrawn} " +
                       $"trafficMetres={(traffic != null ? traffic.TotalDistance : 0):0} " +
                       $"gap={(gapMeasured ? tightest.ToString("0.00") : "not-measured")} " +
                       // THE CLAMP COUNT IS THE GATE NOW; the gap is the report.
