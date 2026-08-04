@@ -128,6 +128,74 @@ def main():
           "also on the `done.` line is not lost:")
     for h in dropped:
         print(f"    ..   {h}")
+
+    # AND THE ONLY PART OF THAT LIST THAT IS ACTIONABLE.
+    #
+    # "Thirty-two lines are dropped" is not a finding, it is a reading task,
+    # and the reading task is what nobody does. Most of those lines are
+    # narration — "staging a loiter beside the market" — and a verdict full of
+    # narration is a log again, which is the thing this whole channel exists
+    # instead of.
+    #
+    # What MATTERS is a NUMBER that is dropped here AND absent from the
+    # always-printed `done.` line, because that one is genuinely unreachable
+    # from this environment. Everything else is a duplicate of something that
+    # does arrive.
+    #
+    # The done-line is found the same way the allowlist is — read out of the
+    # source, never a copy — so this cannot drift from what the sim prints.
+    # WHAT ALWAYS PRINTS IS TWO THINGS NOW, NOT ONE.
+    #
+    # The done-line, and — since the `ALL GATES` repair — every gate's LABEL,
+    # green or red. Checking only the done-line reported `inCompany` and
+    # `unseen` as unreachable while `bc4c689` prints both, because they live in
+    # a gate label and gate labels are no longer conditional.
+    #
+    # Fourth narrowing of this tool in half an hour and the last honest one:
+    # the earlier three were about reading the SOURCE properly, this one is
+    # about the channel having genuinely changed underneath it. A checker
+    # whose model of "what arrives" predates a change to what arrives is the
+    # instrument being stale rather than wrong, which is its own rule-3 case.
+    done = ""
+    at = src.find('"SimDirector: done.')
+    if at >= 0:
+        done = src[at:at + 40000]
+    gates_at = src.find("var gates = new (string name, bool ok)[]")
+    if gates_at >= 0:
+        done += src[gates_at:gates_at + 60000]
+    if not done:
+        print("\n  (could not find the done-line in the source, so the "
+              "genuinely-unreachable list is NOT being reported)")
+        return 0
+    stranded = {}
+    for m in LOGGED.finditer(src):
+        head = m.group(1)
+        if head not in dropped:
+            continue
+        window = src[m.start():m.start() + 900]
+        for key in re.findall(r"([A-Za-z][A-Za-z0-9]{2,})=\{", window):
+            # A PREFIXED NAME IS THE SAME NUMBER. The done-line spells these
+            # `nightNoBloom` and `ringSprites` where the narration line spells
+            # them `noBloom` and `sprites` — the same reading, disambiguated for
+            # a line where hundreds of keys sit together. A checker that missed
+            # that reported eighteen "unreachable" numbers, every one of which
+            # is printed every run.
+            #
+            # Third accuracy repair to this tool in half an hour, and all three
+            # the same shape: it kept claiming something was missing that was
+            # plainly there. The safe direction of error for a to-do list is to
+            # over-report a number as REACHABLE — a false "this is fine" costs
+            # a read, a false "this is missing" costs a hunt for a bug that
+            # does not exist. So the match is deliberately generous.
+            if (key + "=").lower() not in done.lower():
+                stranded.setdefault(key, head)
+    print(f"\n  of those, {len(stranded)} number(s) appear NOWHERE on the "
+          f"always-printed done-line — the only genuinely unreachable ones:")
+    for key, head in sorted(stranded.items()):
+        print(f"    !!   {key:22} from {head.strip()[:46]}")
+    if not stranded:
+        print("    every dropped line's numbers are also on the done-line. "
+              "Nothing is lost.")
     return 0
 
 

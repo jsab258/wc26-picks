@@ -56,9 +56,27 @@ scheduling instead of to CI's output.
 4. **`shotsBlocked` against `shotsAimed`.** First reading of what stands
    between the camera and the player. Three stills have been questioned over
    foreground clutter by eye and none measured.
-5. **The 31 sim log lines that never reach the verdict** (`verdict-reach.py`).
-   Most SHOULD be dropped — narration is not a verdict — but the list has never
-   been read once with judgement applied. Some carry numbers.
+5. **ANSWERED — 15 numbers, not 31 lines.** `verdict-reach.py` now reports
+   only what is dropped here AND absent from everything that always prints
+   (the done-line and, since the repair, every gate label). Thirty-two dropped
+   lines reduce to **fifteen genuinely unreachable numbers**, spot-checked
+   five-for-five against a landed verdict:
+
+       aoD  bloomBright  grainLocal  vigEdge      — the post-processing A/B
+       contradiction  corroboration  mark  backers — the denounce breakdown
+       happened (frisk)  isAChoice / canTakeEverything (coat)
+       public / home (blood)  marked / saw (cut)  matches  occluded
+
+   The four post-processing ones are the interesting group: they are the A/B
+   that decides whether a grade change did anything, and they have never been
+   readable from this environment. The rest are one-line breakdowns of
+   outcomes whose totals do arrive.
+
+   **Next: add `[series]` or a named marker to the post A/B line only.** It is
+   one word in the allowlist and it opens the only measurement family here
+   with no other route home. The narration lines stay dropped — a verdict full
+   of narration is a log again, which is the thing this channel exists instead
+   of.
 6. **Jafar runs `BODIES.bat` ~10:00 CEST**; reminder verified armed for 07:55
    UTC. This is now the ONLY route to the undressed-player problem — see the
    reversal below.
