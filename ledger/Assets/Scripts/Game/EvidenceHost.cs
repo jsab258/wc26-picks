@@ -125,6 +125,26 @@ namespace Ledger.Game
         /// out what a pair of hands is doing. Deliberately shorter than the
         /// sighting range: recognising that a man threw something is a closer
         /// question than recognising that a man is there.
+        /// The same question, asked from outside, so a caller staging a
+        /// "somebody is watching" case can CHOOSE a spot that satisfies it
+        /// instead of picking one that looks right and hoping.
+        ///
+        /// WHY THIS IS PUBLIC. `disposal` and `accident` both compare a watched
+        /// place against an unwatched one, and both went red together on a run
+        /// reading `seen=False` against `seen=False`, `risk=0.30` against
+        /// `risk=0.30`, and an accident available in company. All three are what
+        /// you get when the "crowded" spot has nobody watching it.
+        ///
+        /// The sim was picking that spot by counting NEIGHBOURS within
+        /// `Rung2MarkMetres`, while this asks for range AND an unobstructed line
+        /// AND the watcher to be facing within half the field of view. A knot of
+        /// people all looking the other way maximises the first and fails the
+        /// second, so the selection criterion and the test criterion were
+        /// different questions — the scope mismatch this project keeps finding
+        /// in a new place. Now the stager asks the predicate.
+        public static bool Watched(Vector3 at, IEnumerable<NpcWalker> npcs) =>
+            SomebodyWatching(at, npcs);
+
         static bool SomebodyWatching(Vector3 at, IEnumerable<NpcWalker> npcs)
         {
             if (npcs == null) return false;

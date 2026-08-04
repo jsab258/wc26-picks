@@ -2116,6 +2116,12 @@ namespace Ledger.Game
         /// fact about the world rather than about the code.
         int _emptyWatchers = -1;
         int _crowdedWatchers = -1;
+        /// Did the staged "somebody can see you" spot actually satisfy the
+        /// predicate the gate then tests? See where it is set. False means the
+        /// run fell back to the fullest place it could find and the comparison
+        /// below it is between two unwatched spots — which is a fact about the
+        /// harness, not a finding about the game, and must not read as one.
+        bool _crowdedIsWatched;
         bool _bloodStaged;
 
         /// PHASE 2's REMAINDER — the ghost, retelling, comparing notes.
@@ -2970,9 +2976,32 @@ namespace Ledger.Game
             //
             // So the quiet spot is now searched for and MEASURED rather than
             // borrowed, and the run prints how empty it managed to get.
+            // AND THE CROWDED SPOT IS NOW CHOSEN WITH THE PREDICATE THAT WILL BE
+            // ASKED ABOUT IT, which is the other half of the same repair.
+            //
+            // Counting neighbours within `Rung2MarkMetres` is not the question
+            // `EvidenceHost.Dispose` asks. That one wants range AND an
+            // unobstructed line AND the watcher facing within half the field of
+            // view — so a knot of people all looking the other way maximises the
+            // count and fails the test. The selection criterion and the test
+            // criterion were different questions, which is how both gates came
+            // back `seen=False` against `seen=False` on a street with forty-two
+            // people in it.
+            //
+            // Ordered by crowd and then FILTERED by `Watched`, rather than
+            // `Watched`-tested exhaustively: the predicate raycasts, and asking
+            // it about every one of forty-two positions from every one of
+            // forty-two people is a few thousand casts for an answer the first
+            // candidate usually gives. Falls back to the fullest spot when
+            // nobody in the city can see anywhere, and says so, because a
+            // fallback that looks like a success is the thing this file exists
+            // to stop.
             Vector3 crowded = _player.transform.position;
             int most = -1;
+            _crowdedIsWatched = false;
             if (_npcs != null)
+            {
+                var byCrowd = new List<(int near, Vector3 pos)>();
                 foreach (var n in _npcs)
                 {
                     if (n == null) continue;
@@ -2981,8 +3010,19 @@ namespace Ledger.Game
                         if (o != null && o != n
                             && Vector3.Distance(o.transform.position, n.transform.position)
                                < Perception.Rung2MarkMetres) near++;
+                    byCrowd.Add((near, n.transform.position));
                     if (near > most) { most = near; crowded = n.transform.position; }
                 }
+                byCrowd.Sort((a, b) => b.near.CompareTo(a.near));
+                foreach (var cand in byCrowd)
+                {
+                    if (!EvidenceHost.Watched(cand.pos, _npcs)) continue;
+                    crowded = cand.pos;
+                    most = cand.near;
+                    _crowdedIsWatched = true;
+                    break;
+                }
+            }
             // HOW CROWDED THE CROWDED SPOT ACTUALLY WAS, which nothing has
             // ever asked. Both these gates compare a watched place against an
             // unwatched one, and both failed together on a run reading
@@ -6349,7 +6389,7 @@ namespace Ledger.Game
                  + $"unseen={_provDisposalUnseen} risk={_provRiskUnseen:0.00} "
                  + $"disposals={EvidenceHost.Disposed} watched={EvidenceHost.DisposalsSeen} "
                  + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking} "
-                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers}]",
+                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers} crowdedIsWatched={_crowdedIsWatched}]",
                  _provenanceStaged && EvidenceHost.Disposed >= 2
                  && !_provDisposalUnseen && _provRiskSeen > _provRiskUnseen),
 
@@ -6376,7 +6416,7 @@ namespace Ledger.Game
                  Witnesses.Retellings > 0),
 
                 ($"accident[inCompany={_accidentInCompany} alone={_accidentAlone} "
-                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers}]",
+                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers} crowdedIsWatched={_crowdedIsWatched}]",
                  _provenanceStaged && !_accidentInCompany && _accidentAlone),
 
                 ($"killings[acts={ViolenceHost.Acts} killings={ViolenceHost.Killings} "
@@ -6492,6 +6532,16 @@ namespace Ledger.Game
                       // different positions, DIFFERENT slot sets. One means
                       // everybody resolved identically, which would say
                       // something upstream is handing them the same geometry.
+                      // ON THE DONE-LINE, NOT ONLY IN THE GATE LABEL. A label
+                      // prints when the gate FAILS, so a green run said nothing
+                      // about whether the condition it needed had been staged —
+                      // and "both spots were unwatched and the comparison came
+                      // out equal" can satisfy a clause as easily as it can
+                      // break one. That is the shape of a gate passing for the
+                      // wrong reason, which is the half of flakiness nobody
+                      // sees.
+                      $"crowdedWatchers={_crowdedWatchers} crowdedIsWatched={_crowdedIsWatched} " +
+                      $"quietSpotWatchers={_emptyWatchers} " +
                       $"deeds={_deedsStaged} deedWitnesses={_deedWitnesses} " +
                       $"deedEyesOpen={_deedEyesOpen} deedKnowsYou={_deedKnowsYou} " +
                       $"deedSlotSets={_deedSlotSets} deedBestRung={_deedBestRung} " +
