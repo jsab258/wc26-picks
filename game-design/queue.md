@@ -38,88 +38,61 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### TWO BUILDS OUT, 08:29 UTC — and they are a clean A/B
+### THREE FINDINGS FROM THE 09:04 BUILD THAT NOBODY HAS ACTED ON
 
-- **08:25** carries the belief/measurement batch and the re-classification
-  fix. It is the BEFORE reading for crowd tightness.
-- **08:29** adds the antisymmetric coincident-shove fix. It is the AFTER.
-  Read `crowdTightest` across the two; everything else in them is the same.
+**`roomQuiet` is 1656 of 2267 samples — 73% of the run.** The music model
+calls that state "the moment the player should learn to dread". It is the
+DEFAULT, not a moment. Either the condition is mis-tuned or the street is
+genuinely dead most of the time, and those want opposite fixes. **Do not
+pick a new threshold** — rule 2. Make the run print the pulse and unease
+distribution first, look, then decide.
 
-### STAGED, 08:35 — the blowback probe
+**Everyone who looks at you works out who you are.** `identifiedEver=41`,
+`identifiedPeak=40`, `attendingAtIdentified=41`. Identification takes 1.2
+seconds against a notice at 0.35, so anybody who attends at all gets there.
+Being careful may be structurally impossible, which is a design question
+rather than a bug — but the moat is what the street KNOWS, and if knowing is
+free the moat is shallower than it looks.
 
-One commit undispatched: a second accusation with a planted contrary witness,
-on its own target so it cannot disturb the charge measured beside it.
-`denounceBlewBack` and `blowbackContradiction` join the done line. Verified
-before writing it that `Denounce` returns null only when the world is
-missing, never for an unknown target — so `-1` can only mean the staging
-never ran, which makes the reading unambiguous either way.
+**All 22 calls were to people the phone book says were reachable, and 12 rang
+out anyway.** So reachability is not why calls fail, which is the opposite of
+what the number was hoisted to check. Read `RingLine` against `ReachableNow`:
+either being reachable and answering are genuinely different things, or the
+two disagree and one of them is wrong.
 
-Rides with the next dispatch, after the A/B lands.
+### SETTLED, DO NOT RE-OPEN
 
-### What the 08:16 build settled
+`worstWorldPair` has now come back street furniture twice — `Copper
+Row|Market Road`, then `Quay Street|Quay Street`, which is the same plate on
+two corners of one junction seen from an angle. Overlapping street signs are
+what a junction looks like. That bucket is not the fault.
 
-**Green, no failing gates.** `crowdGapMedian` 0.33, up from 0.29, 0.20 and
-four runs of 0.00 — people standing still now keep their distance too, and
-`confabs=46` against a baseline of 49 says it did not cost the street its
-conversations, which was the risk worth naming before shipping it.
-
-`claimOverheard=7`. The bystander planting is robust rather than lucky —
-series now 7, 0, 1, 0, 1, 35, 0. Treat overhearing as working.
-
-`beliefsShortened=142`, so the wall wiring keeps running. `lineYielded=20` of
-20 live crossings, still exact.
-
-All six hoisted numbers arrived and were unreadable before today:
-`saw=48` people perceived the cut, `marked=True` it left a mark on you,
-`corroboration=1.00` with `contradiction=0.00`, `denounceMark=informer`,
-`ringLastOccluded=False`.
-
-**`contradiction=0.00` is worth watching.** The comment on that line calls
-the contradiction branch the moat — an NPC who cannot be talked out of what
-it knows. A run where every alibi checks out and a run where the branch is
-dead read the same, which is exactly what that number was hoisted to
-distinguish. One reading of 0.00 is not evidence either way; get a series.
+`loiterNotices` 0 -> 37 of 37 looks. The re-classification fix works.
 
 ### Startable right now, in order
 
-1. **Read the A/B on `crowdTightest`.** It has read exactly 0.00 for five
-   builds. If it is still 0.00 after the antisymmetric fix, the coincident
-   case is not the last cause and the next step is to print WHICH pair.
-2. **`Reaction.Confront` IS NOT WHAT THE LEDGER SAID, and it is a milestone
-   rather than a queue item.** It claimed "an NPC who saw you do it walking
-   over", which is why it kept getting picked up as a quick wiring. Opened it:
-   it takes a CONSTABLE'S observation and returns Arrest, ResistedArrest or
-   NothingToArrest, with deliberately no chase — "a foot chase is a different
-   genre and would be the least distinguished thing in this game".
-
-   The sighting condition is already reachable — it wants Slot.Actor at
-   Rung>=4 and the sim reports `deedBestRung=4`. **What is missing is who the
-   law is.** `Constable` exists only as a frisker role; no NPC is a policeman,
-   nobody holds an observation as one, and there is no arrest state for the
-   player to be in. Wiring it needs an authored constable on a beat, an arrest
-   outcome, and a decision about what being taken DOES to a save.
-
-   So it does not go in this list. The entry now says all of that so the next
-   reader does not spend the third session rediscovering it.
-3. **`worstWorldPair` by area** lands in the 08:25 build. If it names two
-   people rather than two street plates, walker nameplates are not reaching
-   the declutter and that is the visible night-frame fault.
-4. **`measureChecked`/`measureWorst`** — first reading of whether any panel's
-   lines are too long or too short to read comfortably.
-5. **`identifiedEver` and `loiterNotices`** — first readings of how many
-   people work out who you are, and of a counter that could not fire at all
-   before today.
-6. **`callsTried`/`callsReachable`** — turns eleven calls ringing out into
-   either a schedule working or a fault.
-7. **`roomQuiet`** — if it reads 0 over nine days the dread state is
-   unreachable and the music model is decorative.
-8. **FOOT IK.** `Rig.TwoBone`, `FootHeight`, `PlantBlend`: a complete
-   ground-adaptation model with no caller. Feet get `Level()` and nothing
-   else, so they float and clip on any slope or step. Held only behind item 1
-   now.
-9. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
-10. **Keep retiring the reach ledger** — 50, from 71 two nights ago. Six came
-   off today by being wired to something that runs.
+1. **Read the A/B on `crowdTightest`** — 0.00 for six builds; the
+   antisymmetric fix is in the build dispatched at 08:29.
+2. **Read `worstNamePair` and the two bucket sizes** (build dispatched
+   08:55). It settles the night-frame name heap: either those labels are not
+   managed by the declutter, or they are and their rects do not really
+   overlap. Three stills in a row show it, so it is real either way.
+3. **Read `nightRunNotices`** against the 139 that my own reset caused — it
+   should fall a long way. If it lands back near 4 the persist-across-look-
+   away fix went too far the other way.
+4. **Read `measureFailing`** now the measure is prose-only. 24 of 40 was the
+   instrument, not the UI.
+5. **Read `denounceBlewBack`** — first time the accusation branch that costs
+   you something will have had a world in which it can fire.
+6. **`roomQuiet` — print the distribution** (item above). Local, no CI.
+7. **FOOT IK.** Complete ground-adaptation model with no caller; feet float
+   and clip on any slope. Held only behind item 1.
+8. **Jafar runs `BODIES.bat`** — fresh Mixamo token first, then UPDATE.bat.
+9. **Keep retiring the reach ledger** — 50, from 71 two nights ago.
+10. **`Reaction.Confront` is a MILESTONE, not an item** — see the note in the
+   ledger: it is a constable arresting you, not a bystander walking over, and
+   it needs an authored policeman, an arrest outcome and a decision about
+   what being taken does to a save.
 
 ---
 
