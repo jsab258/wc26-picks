@@ -87,7 +87,7 @@ def split_keys(text):
     line must keep appearing, and a key only ever seen inside one is allowed to
     come and go with its gate.
 
-    ALL GATES IS THE SAME CLASS, FOR NOW, AND THAT IS A CHOICE.
+    ALL GATES IS NO LONGER THE SAME CLASS — PROMOTED 4 AUGUST ON EVIDENCE.
 
     The sim now prints every gate's label on every run, green or red, because
     35 of the 39 quantities inside those labels were unreadable on a passing
@@ -95,18 +95,33 @@ def split_keys(text):
     requiring them would be a real ratchet: deleting `atRecruit` from a label
     would then be caught.
 
-    It does not, yet, and the reason is rule 2. Promoting ninety-odd keys on
-    the strength of ZERO landed runs is setting a threshold I have not
-    measured: label text is built with conditionals in several places, and I
-    do not know which of those keys are stable across runs. The cheap thing is
-    to read two or three verdicts first and promote deliberately. Doing it the
-    other way round means a red build on good news, which is the failure this
-    docstring already describes one paragraph up.
+    It did not, at first, and the reason was rule 2: promoting ninety-odd keys
+    on the strength of ZERO landed runs is setting a threshold nobody has
+    measured. Two readings settled it.
+
+    FIRST, six landed runs now carry an `ALL GATES` line and all 207 of its
+    keys appear in every one. That is suggestive and not sufficient — six runs
+    of a similar world can all be alike.
+
+    SECOND, and this is the one that decided it: the SOURCE says the keys are
+    structural. Twenty gate labels do contain ternaries, which is what made me
+    hesitate — but every one of them is inside a VALUE (`{(traffic != null ?
+    x : -1)}`), so `vehicles=` prints unconditionally and only its number
+    changes. Not one label emits a whole `key=` fragment conditionally, which
+    is the shape that could make a key vanish.
+
+    So they are always present by construction rather than by luck, and
+    requiring them is a real ratchet: deleting `atRecruit` from a label now
+    fails the build instead of quietly removing a diagnostic.
     """
+    # `FAILING GATES` ONLY. `ALL GATES` prints every run and its keys are
+    # structural, so it is an always-line — and leaving it in the gate class
+    # after promoting its keys made every one of them report as DEMOTED,
+    # because "required always, present conditionally" is exactly what that
+    # warning means. Both halves of the promotion or neither.
     gate_lines, other_lines = [], []
     for line in text.split("\n"):
-        gateish = "FAILING GATES" in line or "ALL GATES" in line
-        (gate_lines if gateish else other_lines).append(line)
+        (gate_lines if "FAILING GATES" in line else other_lines).append(line)
     always = keys_in("\n".join(other_lines))
     conditional = keys_in("\n".join(gate_lines)) - always
     return always, conditional
