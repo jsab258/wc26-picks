@@ -62,17 +62,25 @@ consequence of a working feature, not a bug.
 `jobRan` also red, `jobsDone=0` against 2 before. Unexplained. Check whether
 the blowback probe's second accusation costs the bot time it needs.
 
-### DECISIVE — the night-frame name heap is ANSWERED
+### WITHDRAWN — the name heap is NOT answered, that was one frame
 
-**`namesTracked=2`, `worldTextTracked=92`.** The declutter manages TWO labels
-while ninety-two world-text items are on screen. So the people's names piled
-up in three consecutive night stills are NOT reaching `NameTags` at all —
-they sit in the world-text bucket beside the shop fascias, which is why
-`collidingNames` has read 0 or 1 throughout while the picture showed a heap.
+**I read `namesTracked=2 worldTextTracked=92` and called it decisive within
+the hour. It was one arbitrary frame.** Those counters were assigned fresh on
+every shot, so they described whichever shot ran LAST — not the shot with the
+heap in it. Third single-instant over-conclusion today, after the confabs
+baseline and the crowd minimum.
 
-That is the fault, it is now located, and it is a real UI/immersion job:
-find why walker labels are not offered to the declutter, or are not in
-`_managed` when visible.
+They are peaks now, with a same-instant denominator beside the worst overlap.
+
+What IS known: a walker's label is only shown, and only offered to the
+declutter, within about six metres — `LabelFadeOut` is twice
+`ConversationHost.TalkRange`. So very few labels are managed at any moment by
+design, and `nameTagsActive` peaked at 43 while the sampled instant had 2.
+Those are not in contradiction and I treated them as though they were.
+
+**Still open, and still real**: three consecutive night stills show people's
+names piled illegibly. Read the new peaks and `namesAtWorstName` before
+concluding anything about which bucket they are in.
 
 ### ALSO SETTLED
 

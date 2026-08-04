@@ -1715,6 +1715,7 @@ namespace Ledger.Game
                       + $" worstWorldPair=[{_worstWorldPair}]"
                       + $" worstNamePair=[{_worstNamePair}]"
                       + $" namesTracked={_namesTracked}"
+                      + $" namesAtWorstName={_namesAtWorstName}"
                       + $" worldTextTracked={_worldTextTracked}");
         }
 
@@ -2312,10 +2313,25 @@ namespace Ledger.Game
                         {
                             _worstNameArea = ba;
                             _worstNamePair = Trim(boxText[i]) + "|" + Trim(boxText[j]);
+                            _namesAtWorstName = boxes.Count;
                         }
                     }
-            _namesTracked = boxes.Count;
-            _worldTextTracked = other.Count;
+            // PEAKS, NOT LAST-WINS, and I published a conclusion off the
+            // last-wins version within the hour.
+            //
+            // `CollidingNames` runs on EVERY shot, and these were assigned
+            // fresh each call — so they described whichever shot happened to
+            // run last, which is not the shot with the name heap in it. I read
+            // `namesTracked=2 worldTextTracked=92` off one arbitrary frame and
+            // wrote "the declutter manages two labels" into the queue as
+            // DECISIVE. It was one instant, again, for the third time today.
+            //
+            // A peak answers "how many were ever on screen at once", which is
+            // the question the heap poses. `namesAtWorstName` is the
+            // same-instant denominator for the overlap pair above, which is
+            // the other question and needs its own number.
+            if (boxes.Count > _namesTracked) _namesTracked = boxes.Count;
+            if (other.Count > _worldTextTracked) _worldTextTracked = other.Count;
             // RESET WITH THE COUNT IT IS PRINTED BESIDE. `_collidingWorldText`
             // is per-call and the done-line shows the last call's value, so a
             // pair kept from an earlier call would describe a different frame
@@ -2444,6 +2460,10 @@ namespace Ledger.Game
         string _worstNamePair = "none";
         float _worstNameArea;
         int _namesTracked = -1, _worldTextTracked = -1;
+        /// How many managed labels were on screen AT the worst overlap —
+        /// the denominator from the same instant as its numerator, which
+        /// this file has now shipped wrong six times.
+        int _namesAtWorstName = -1;
 
         /// Labels are free text and this goes on a single-line done-line, so
         /// commas, newlines and length all have to go.
