@@ -121,6 +121,26 @@ and the variable behind them is what to print. Here that was `heatMedian`, and
 it is also the number that decides whether the fault is a music problem or a
 harness one — a distinction neither of the original two could express.
 
+**AND A LIFETIME COUNT SAMPLED BY A SPARSE SAMPLER FREEZES AT THE LAST SAMPLE.**
+A third instant fault, same day, and the first two were about pairs — this one
+is a single number that is simply not from the moment it claims.
+
+`namesManagedEver` is a cumulative count of every label ever offered to the
+declutter. I captured it inside `CollidingNames`, which runs only when a
+screenshot is taken. So it froze at the LAST SHOT while `nameTagsOffered` — a
+peak over every frame — kept rising, and the verdict printed **44 offered in one
+frame against 28 ever managed**, which cannot both be true because every offer
+adds to the managed set.
+
+The tell was the impossibility, not the size: a lifetime total can never be
+smaller than a single frame's count of the same thing. **When a number is
+CUMULATIVE, read it where the run ends, not inside whatever function happened to
+be convenient** — and when a cumulative number sits beside a per-frame peak, ask
+whether they were even taken on the same day of the run.
+
+Both of the numbers involved were written the same morning, which is the rule
+above doing exactly what it warns about.
+
 **TWO MAXIMA CANNOT BE DIVIDED, AND FOUR PAIRS IN THIS PROJECT WERE.** A peak is
 the right statistic for "how bad did it get" and the wrong one for the other
 half of a fraction, because the worst instant for the numerator need not be the
