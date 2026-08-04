@@ -309,6 +309,17 @@ namespace Ledger.Core
         /// cannot drift from the value ceiling: raise `MaxValue` and the wash
         /// re-spreads itself over the new range without a second edit.
         ///
+        /// BOTH HALVES OF THE GUARD WERE RUN, which is rule 5b and is the half
+        /// that normally goes unrun. Setting `WashFloor` back to 1.00 — the
+        /// shipped behaviour — and running CoreTests gives
+        ///
+        ///     ok     - the brightest coat washes at full value, nothing is dimmed
+        ///     FAILED - and the darkest coat is visibly darker — span 0.000
+        ///
+        /// so the accepting assertion passes under both rules (which is what
+        /// makes it worth having) and the rejecting one scores exactly zero on
+        /// the code this replaces.
+        ///
         /// Returns HSV, like `Dress`, because Core does not know what a colour
         /// is and the conversion belongs where `Color.HSVToRGB` lives.
         public static void Wash(double hue, double sat, double val,
