@@ -2128,6 +2128,9 @@ namespace Ledger.Game
         /// drawn ring itself answering, not an inference from a counter.
         bool _slamDrewRing;
         int _ringsShownBeforeSlam;
+        /// One entry per slam: the ring's skip reason and radius at that instant.
+        /// See the note where it is filled.
+        readonly List<string> _slamRingSkips = new List<string>();
 
         /// Which perception sub-claims are failing, by name. Empty when green.
         string PerceptionWhy()
@@ -2531,6 +2534,24 @@ namespace Ledger.Game
                 _ringsShownBeforeSlam = NoiseRing.Shown;
                 Perceivers.Emit(_player.transform.position, Perception.LoudDoorSlam, "slam");
                 if (NoiseRing.Shown > _ringsShownBeforeSlam) _slamDrewRing = true;
+                // WHY EACH SLAM'S RING DID OR DID NOT DRAW, kept per slam.
+                //
+                // `perception` has gone red once in 66 runs, on `ring-drawn`,
+                // with `slams=4` and `ringsDrawn=109` in the same verdict — so
+                // rings drew all night and not one of the four slams was among
+                // them. The skip reason is already in the log line below and the
+                // log is unreadable from here (rule 12), so the only channel that
+                // works is the verdict, and it carried the outcome without the
+                // reason.
+                //
+                // `ringSmall=151 ringShadowed=132` are run totals and cannot say
+                // which cull caught a SLAM. This can. A slam at 3am carries 48
+                // metres by `AudibleRadius`, which is not a small ring, so if the
+                // answer comes back `small` the floor is being computed against
+                // something other than the emission — and if it comes back
+                // `shadowed` the cull is right and the gate is asserting
+                // something the world does not owe it.
+                _slamRingSkips.Add($"#{_slams}:{NoiseRing.LastSkip}@{NoiseRing.LastRadius:0}m");
                 _slamAt = Time.time;
                 Debug.Log($"SimDirector: slammed a door #{_slams}, {present} people nearby, "
                           + $"carries {Perception.AudibleRadius(Perception.LoudDoorSlam, Perception.AmbientNight3am):0.0}m"
@@ -6495,6 +6516,7 @@ namespace Ledger.Game
                       $"ringMax={NoiseRing.MaxRadius:0.0} ringLastSkip={NoiseRing.LastSkip} " +
                       $"ringRadius={NoiseRing.LastRadius:0.0} ringOk={_ringOk} " +
                       $"slamDrewRing={_slamDrewRing} " +
+                      $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
