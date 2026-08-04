@@ -93,13 +93,13 @@ namespace Ledger.Game
         ///
         /// ANY, not all, and that is the mechanic rather than laziness. One
         /// person knowing your name is how the rest of them come to say it.
-        public bool StreetKnowsName()
-        {
-            if (_mill == null) return false;
-            foreach (var g in _mill.Agents)
-                if (PlayerIdentity.KnowsName(g)) return true;
-            return false;
-        }
+        /// ONE IMPLEMENTATION, and it moved to Core the moment a second caller
+        /// appeared. `Empire` writes the racket rumours and could not reach
+        /// this, so it said "the new owner" forever — and copying the loop
+        /// there would have been two places deciding separately whether the
+        /// street has learned your name, which is how a panel comes to say
+        /// "Novak" in one line and "the new owner" in the next.
+        public bool StreetKnowsName() => PlayerIdentity.StreetKnowsName(_mill);
 
         /// The player as the street would name them in talk, right now.
         ///

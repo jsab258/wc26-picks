@@ -175,8 +175,14 @@ namespace Ledger.Game
             if (whoId != "player" && mill != null)
             {
                 var victim = mill.Get(whoId);
+                // THE NAME, not the placeholder. This is a crew member's own
+                // memory of being hurt on your business, and it goes into the
+                // prompt they answer from — so it is one of the lines where
+                // being called by name matters most, and it was the third site
+                // of the hardcoded "the new owner" found by grepping for the
+                // first two rather than tripping over it.
                 victim?.Memory.Append(new MemoryEvent(Now, "observation", 0.95,
-                    $"I got hurt working {target.Name} for the new owner. {LastInjury?.Look ?? "It shows."}"));
+                    $"I got hurt working {target.Name} for {Me.InTalk(mill)}. {LastInjury?.Look ?? "It shows."}"));
                 // Getting hurt for somebody costs them your goodwill, not gains
                 // it. Loyalty is cuts paid and risks shared, and this was neither.
                 if (victim != null) victim.Loyalty = Mathf.Clamp01((float)(victim.Loyalty - 0.12));
