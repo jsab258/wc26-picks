@@ -754,6 +754,25 @@ time when I could have sent three. Each run keeps its own `runs/<sha7>.txt`, so
 concurrent builds are concurrent ANSWERS rather than one answer overwriting
 another.
 
+**A VERDICT VALUE MAY NOT CONTAIN A SPACE.** The file is space-separated
+`key=value` and everything that reads it assumes that — `verdict-read.py`,
+`verdict-keys.py`, and every grep anybody has ever typed at it. On 4 August
+`crowdBodyWidth` was emitted as `0.45(narrowest 0.39 broadest 0.53)` and the
+reader returned `0.45(narrowest`, silently, with no sign it had truncated
+anything. That is the exact class of quietly-wrong answer `verdict-read.py`
+exists to prevent, happening to the tool one layer down. Use `/` and `..`
+(`0.45/0.39..0.53`) or a bracketed list, which the reader consumes whole.
+
+**AND A REASON ON THE REACH LEDGER DECAYS EXACTLY LIKE A COMMENT.** The tool
+proves an API has no caller; nothing proves the sentence explaining why is
+still true. Three were wrong on 4 August alone — the bus route and the cab
+ranks both described BEHAVIOUR as missing when it had been running for weeks
+and the real gap was signage, and `TrafficSim.AwakeCount` claimed "the sim's
+performance gate reads" it when nothing in the Game layer referenced it at
+all. The pattern in all three is a reason describing the consumer somebody
+INTENDED rather than one that exists, and a wrong reason sends the next person
+at work that finished a fortnight ago. Read the entry AND the code.
+
 **`verdict.txt` is the last run to LAND, which is not the newest commit.** Two
 builds ran together and the one on the older commit finished second and laid
 its output over the newer one's — so the file everything treats as "latest"
