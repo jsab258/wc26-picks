@@ -203,7 +203,30 @@ AUTO MODE.
    that finished a fortnight ago. That is now written into the ledger's own
    header.
 
-8. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
+8. **THE INJURED WALK LIKE THE UNINJURED ON THE TWELVE NEAREST PEOPLE.**
+   `BadLegIsLeft` drives `Rig.Limp` through the procedural solve only, so a
+   mannequin limps and a bought body does not — and the bought bodies go to
+   whoever is closest. That is a GAMEPLAY signal going missing, not a
+   cosmetic one: a beating is supposed to be readable off how somebody moves.
+   Needs an additive Animator layer or an IK offset, which is a different job
+   from the two one-liners that landed with it. **Do not wire it as one.**
+
+9. **HEAD SCALE, SAME FAMILY, DIFFERENT DIFFICULTY.** `Mannequin` varies it
+   0.93-1.07 by scaling a child transform. On a skinned mesh the head is a
+   BONE, so holding a scale on it means writing to the humanoid rig every
+   frame or the Animator overwrites it — `CharacterRig`'s own comments record
+   that exact failure twice. Worth doing after the limp, in the same layer.
+
+10. **AND CHECK THE CROWD GAP AGAINST THE NEW BREADTH BEFORE READING IT.**
+   The gap gate compares a median spacing to a body width of 0.45, a single
+   constant. Bodies are now 0.86-1.18 times as wide, so the widest person is
+   0.53 and the narrowest 0.39, and a fixed 0.45 is a threshold that has
+   quietly stopped asking one question. `crowdGapMedian=0.42` was read against
+   the old world. **Re-read the number's question before trusting the next
+   value** — this is exactly the "a number keeps its name when the question
+   moves" case, and I have now shipped the change that moves it.
+
+11. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
    is in and is what mattered: duplicate offers made every duplicated label
    hide itself. The COUNTERS have now contradicted themselves twice.
    **If the next reading is still incoherent, delete them rather than explain

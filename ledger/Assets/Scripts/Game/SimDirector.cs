@@ -2933,7 +2933,30 @@ namespace Ledger.Game
         /// roughly 0.45m across the shoulders, so two centres closer than that
         /// are inside one another by construction. It is a fact about the
         /// meshes rather than a number chosen to make a reading look good.
+        ///
+        /// AND IT STOPPED BEING ONE FACT THE MOMENT BODIES GAINED BREADTH.
+        /// `Physique.Breadth` runs 0.86 to 1.18 and, as of 4 Aug, reaches the
+        /// bought meshes as well as the boxes — so the widest person on the
+        /// street is 0.53 across and the narrowest 0.39, and a single 0.45 is
+        /// now an average wearing a fact's clothes. `crowdGapMedian=0.42` was
+        /// read against a world where everybody was the same width.
+        ///
+        /// DELIBERATELY NOT CHANGED TO A PER-PAIR WIDTH YET, and the reason is
+        /// rule 2 rather than laziness: this counts pairs over a whole run and
+        /// a per-pair bound would change what the median MEANS as well as what
+        /// it reads, so the next value would be incomparable with every value
+        /// in the kept verdicts. The range is printed beside it instead —
+        /// `crowdBodyWidth` says what the constant assumes and what the extremes
+        /// actually are, on the same log line, so the first person to read
+        /// `0.42` can see immediately that it clears a narrow person and does
+        /// not clear a broad one.
         const float BodyWidth = 0.45f;
+
+        /// What the crowding bound assumes against what the street now is.
+        /// On the gap's own line, because two numbers from two lines are two
+        /// readings — the mistake that cost 4 August an afternoon.
+        static string CrowdWidthRead() =>
+            $"{BodyWidth:0.00}(narrowest {BodyWidth * 0.86f:0.00} broadest {BodyWidth * 1.18f:0.00})";
 
         void SampleCrowding()
         {
@@ -8663,6 +8686,7 @@ namespace Ledger.Game
                       $"crowdTightest={(_crowdTightest == float.MaxValue ? -1f : _crowdTightest):0.00} " +
                       $"crowdTightestWhen={_crowdTightestWhen} " +
                       $"crowdGapMedian={CrowdGapMedian:0.00} crowdGapSamples={_crowdGaps.Count} " +
+                      $"crowdBodyWidth={CrowdWidthRead()} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
