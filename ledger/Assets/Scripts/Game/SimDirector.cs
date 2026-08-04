@@ -1630,6 +1630,9 @@ namespace Ledger.Game
         /// away BY CONSTRUCTION, so this is a ratio to read, not a fault to
         /// count. See `MeasureTextFaults`.
         int _textFacingAway = 0, _textVisible = 0;
+        /// Visible text at the instant the facing-away count peaked — the only
+        /// denominator that one can honestly be divided by.
+        int _textVisibleAtAway = 0;
 
         int _billboardsStale = 0;
         float _billboardWorstDeg = 0f;
@@ -1741,7 +1744,21 @@ namespace Ledger.Game
             // PEAKS, like every other reading here, and the pair is the
             // point: `away` with no `seen` beside it cannot be read as a
             // ratio, and the ratio is the whole diagnosis.
-            if (away > _textFacingAway) _textFacingAway = away;
+            // AND THE DENOMINATOR IS TAKEN WITH THE NUMERATOR, because I wrote
+            // "read the RATIO, not the count" onto the queue about these two and
+            // then peaked them independently — the same fault found in
+            // `collidingBubbles` twenty minutes ago and fixed there first.
+            //
+            // The frame with the most text facing away is not necessarily the
+            // frame with the most text in it, so two independent maxima do not
+            // divide. 70 over 149 read as 47%, which happened to support the
+            // right conclusion for the wrong reason: the real evidence that
+            // `Cull Back` works is `textMirrored=0`, not that fraction.
+            if (away > _textFacingAway)
+            {
+                _textFacingAway = away;
+                _textVisibleAtAway = seen;
+            }
             if (seen > _textVisible) _textVisible = seen;
         }
 
@@ -6898,7 +6915,7 @@ namespace Ledger.Game
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
                       $"textMirrored={_textMirrored} " +
-                      $"textFacingAway={_textFacingAway} textVisible={_textVisible} " +
+                      $"textFacingAway={_textFacingAway} textVisibleAtAway={_textVisibleAtAway} textVisible={_textVisible} " +
                       $"billboardsStale={_billboardsStale} " +
                       $"billboardWorstDeg={_billboardWorstDeg:0.0} " +
                       $"billboardsAimed={_billboardsAimed} " +

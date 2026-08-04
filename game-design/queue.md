@@ -76,10 +76,19 @@ Everything below is read off `7dc6334`, which is green.
    drop, and whether "evening" should be allowed to run into 22:00–02:00 is
    Jafar's call. Do not quietly re-rank it.
 
-2. **THE MIRROR RATIO ANSWERED, AND IT CLEARS THE SHADER.**
-   `textFacingAway=70 textVisible=149 textMirrored=0` — 47%, which is the
-   double-sided street plates by construction, with none of them unculled. So
-   `Cull Back` works and **I misread the picture**. What was backwards in
+2. **THE SHADER IS CLEARED — BUT NOT BY THE RATIO I QUOTED.**
+   `textMirrored=0` is the evidence and it is sound: no text is facing away
+   while off the culling shader, so `Cull Back` works and **I misread the
+   picture**. What was backwards will have been a speech bubble, which skips
+   `WorldText` deliberately and therefore skips its cull.
+
+   **The 47% I quoted alongside it was not a legitimate figure.**
+   `textFacingAway=70` and `textVisible=149` were independent run-peaks — the
+   frame with the most text facing away need not be the frame with the most text
+   in it — and I wrote "read the RATIO" onto this queue about two numbers that
+   could not be divided. `textVisibleAtAway` is captured with the numerator now.
+   Third instance tonight of peaks-from-different-instants, and the second in my
+   own code. What was backwards in
    `review_day5_night` will have been a speech bubble: those deliberately skip
    `WorldText`, which means they also skip its `Cull Back`, and they are the one
    kind of world text in this game that draws its own reverse. That is written
