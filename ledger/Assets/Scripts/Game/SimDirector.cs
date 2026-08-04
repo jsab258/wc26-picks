@@ -9238,6 +9238,13 @@ namespace Ledger.Game
                       // fault nothing has yet measured. One branch splits them.
                       $"armCrowdWidest={CharacterRig.CrowdArmWidestMedian:0.0} " +
                       $"armCrowdWidestWorst={CharacterRig.CrowdArmWidestWorst:0.0} " +
+                      // AND HOW FAR OUT TO THE SIDE, which the drop angle
+                      // cannot tell you: a walk swings arms fore and aft and
+                      // produces no lateral component at all, while a T-pose is
+                      // entirely lateral. Near zero settles the retraction;
+                      // near ninety un-settles it.
+                      $"armSide={CharacterRig.ArmSideMedian:0.0} " +
+                      $"armSideWorst={CharacterRig.ArmSideWorst:0.0} " +
                       $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
                       // AND WHETHER THE STREET'S BODIES ARE ANIMATING AT ALL.
                       // Every other animator reading in this verdict —

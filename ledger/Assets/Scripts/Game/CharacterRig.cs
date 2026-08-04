@@ -635,6 +635,58 @@ namespace Ledger.Game
             return Vector3.Angle(arm.normalized, down);
         }
 
+        /// HOW FAR OUT TO THE SIDE, WHICH THE DROP ANGLE CANNOT TELL YOU.
+        ///
+        /// `ArmDropNow` measures the forearm against straight DOWN, so an arm
+        /// swung forward and an arm held out sideways read the same. That is
+        /// fine for "are the arms hanging" and useless for the question the
+        /// stills keep raising, because a walk cycle swings arms FORE AND AFT —
+        /// `Rig.ArmSwing` is a rotation about X and produces no lateral
+        /// component at all — while a T-pose is entirely lateral.
+        ///
+        /// I RETRACTED THE SCARECROWS AN HOUR AGO AND THIS IS THE CHECK ON THAT.
+        /// `armCrowdWidest=53.5` is a bent elbow at walking pace, measured off
+        /// the real `ArmSwing`, and that retraction stands for the MEDIAN — the
+        /// street walks. But `armCrowdWidestWorst=76.6` is close to ninety, and
+        /// `review_day2_night` at 955e531 has one figure alone in a dark square
+        /// with its arms straight out to both sides. A median that says the
+        /// street is fine and a worst that might be a splay are not in conflict;
+        /// they are two questions, and only one of them has ever had an
+        /// instrument.
+        ///
+        /// The sideways component separates them with no threshold: near zero
+        /// is a walk however wide the drop angle reads, and near ninety is an
+        /// arm held out from the body, which no code in this project produces
+        /// on purpose.
+        float ArmSideNow()
+        {
+            if (_lUpperArm == null) return -1f;
+            var arm = _lForearm != null
+                ? (_lForearm.position - _lUpperArm.position)
+                : -_lUpperArm.up;
+            if (arm.sqrMagnitude <= 1e-6f) return -1f;
+            // Against the body's OWN right, not the world's, or a walker facing
+            // east reads as splayed for standing perfectly normally.
+            float side = Mathf.Abs(Vector3.Dot(arm.normalized, transform.right));
+            return Mathf.Asin(Mathf.Clamp01(side)) * Mathf.Rad2Deg;
+        }
+
+        static readonly List<float> _armSideWidest = new List<float>();
+        static readonly List<float> _armSideThisFrame = new List<float>();
+
+        /// The most sideways arm in a typical frame, and the worst of the run.
+        public static double ArmSideMedian => MedianOf(_armSideWidest);
+
+        public static double ArmSideWorst
+        {
+            get
+            {
+                double w = -1;
+                foreach (var m in _armSideWidest) if (m > w) w = m;
+                return w;
+            }
+        }
+
         /// Widest the arms got BEFORE this class touched them, over the run.
         public static float PreArmDropDegrees { get; private set; }
         public static bool PreArmRead { get; private set; }
@@ -688,6 +740,8 @@ namespace Ledger.Game
                 // this number is not seeing either. Excluding him costs one
                 // branch and splits the two apart.
                 if (!IsTheBoughtBody) _crowdArmsThisFrame.Add(mine);
+                float side = ArmSideNow();
+                if (side >= 0f) _armSideThisFrame.Add(side);
             }
 
             if (!IsTheBoughtBody) return;
@@ -782,9 +836,15 @@ namespace Ledger.Game
                     _crowdArmsThisFrame.Sort();
                     _crowdArmWidest.Add(_crowdArmsThisFrame[_crowdArmsThisFrame.Count - 1]);
                 }
+                if (_armSideThisFrame.Count > 0)
+                {
+                    _armSideThisFrame.Sort();
+                    _armSideWidest.Add(_armSideThisFrame[_armSideThisFrame.Count - 1]);
+                }
             }
             _armsThisFrame.Clear();
             _crowdArmsThisFrame.Clear();
+            _armSideThisFrame.Clear();
         }
 
         static readonly List<float> _crowdArmsThisFrame = new List<float>();
