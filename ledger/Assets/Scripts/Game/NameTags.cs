@@ -84,7 +84,26 @@ namespace Ledger.Game
         /// system disagreeing on what a run-level number means is the drift
         /// worth removing.
         public static int Offered { get; private set; }
-        public static int OfferedPeak { get; private set; }
+
+        /// `OfferedPeak` IS DELETED, AND THAT IS THE RULE RATHER THAN A TIDY-UP.
+        ///
+        /// It read 42 in a run where the same-frame probe read 13 — and both
+        /// were `max(_offered.Count)` written in the same method, three lines
+        /// apart, from the same value, guarded by the same condition, with one
+        /// writer each and no other path into either. That cannot happen, and I
+        /// have now failed to explain this counter four separate times, each
+        /// time publishing an explanation that the next build disproved.
+        ///
+        /// The standing rule from 4 August, Jafar's: **a measurement that
+        /// contradicts itself twice gets deleted, not explained.** The
+        /// behaviour fix underneath it was real and is keeping — duplicate
+        /// offers were making every duplicated label hide itself — but the
+        /// number has cost four round trips and no player will ever see it.
+        ///
+        /// `nameTagsOffered` keeps its name in the verdict, because the key is
+        /// a contract and a measurement that vanishes is worse than one that is
+        /// wrong. It now reads `OfferedAtWorst`, which comes from ONE frame
+        /// alongside the three numbers that describe that same frame.
 
         /// PEAKS, FOR THE SAME REASON `Offered` NEEDED ONE — third instance of
         /// this drift in one file, and I wrote the rule about it an hour before
@@ -593,7 +612,6 @@ namespace Ledger.Game
         static void Resolve()
         {
             Offered = _offered.Count;
-            if (Offered > OfferedPeak) OfferedPeak = Offered;
             // COUNTED WITHIN THE FRAME, where every label is still alive and
             // its identity cannot be in question — which is exactly what makes
             // this comparable with `OfferedPeak` when the lifetime set is not.

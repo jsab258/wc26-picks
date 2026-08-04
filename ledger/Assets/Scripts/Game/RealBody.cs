@@ -357,6 +357,20 @@ namespace Ledger.Game
         /// tidiness preference.
         static readonly int TintId = Shader.PropertyToID("_Color");
         static MaterialPropertyBlock _tint;
+        /// NOT IN THE SAVE-AND-RESTORE SET, AND IT WAS, WHICH IS WHY IT READ 1.
+        ///
+        /// `TryAttachExtra` snapshots every static this class publishes and puts
+        /// them back, so that attaching a walker's body cannot rewrite the five
+        /// gate clauses that describe THE PLAYER. I added this counter to that
+        /// set by reflex and the build said what it costs: `bodyTinted=1`
+        /// against 1,586 body attachments. Every walker's tint was restored
+        /// away the instant it happened, so the number described the player and
+        /// only the player.
+        ///
+        /// It does not belong there, because it is not a statement ABOUT a
+        /// body — it is a lifetime count of how many renderers have been
+        /// washed. The rule for that set is "does a gate read this as being
+        /// about the player", and nothing reads this at all except the verdict.
         public static int Tinted { get; private set; }
 
         static void Tint(Renderer r, double hue, double saturation)
@@ -470,7 +484,7 @@ namespace Ledger.Game
         /// it would keep the clause true while changing which body it is about.
         struct Published
         {
-            public int Attached, Skinned, Dressed, Kept, BodyChoices, Tinted;
+            public int Attached, Skinned, Dressed, Kept, BodyChoices;
             public string Why, Orientation, Parts, CoatRead, CostSeries, TwinWhy;
             public double Upright, DressedAreaFraction, DressedVertexFraction;
             public bool CoverageRead, BindPoseRead, ScaledPoseRead, TwinRead, TwinHuman;
@@ -482,7 +496,6 @@ namespace Ledger.Game
         static Published Save() => new Published
         {
             Attached = Attached, Skinned = Skinned, Dressed = Dressed, Kept = Kept,
-            Tinted = Tinted,
             BodyChoices = BodyChoices, Why = Why, Orientation = Orientation,
             Parts = Parts, CoatRead = CoatRead, CostSeries = CostSeries, TwinWhy = TwinWhy,
             Upright = Upright, DressedAreaFraction = DressedAreaFraction,
@@ -497,7 +510,6 @@ namespace Ledger.Game
         static void Restore(Published p)
         {
             Attached = p.Attached; Skinned = p.Skinned; Dressed = p.Dressed; Kept = p.Kept;
-            Tinted = p.Tinted;
             BodyChoices = p.BodyChoices; Why = p.Why; Orientation = p.Orientation;
             Parts = p.Parts; CoatRead = p.CoatRead; CostSeries = p.CostSeries;
             TwinWhy = p.TwinWhy; Upright = p.Upright;
