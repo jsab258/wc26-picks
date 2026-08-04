@@ -344,7 +344,28 @@ namespace Ledger.Game
             // `PlantedFromPhase` keeps the count of frames where the old
             // procedural answer and the new one disagreed, which is the number
             // that says how wrong it was rather than asserting it.
-            double clipPhase = planted ? 0.25 : 0.75;
+            //
+            // I HAD THESE BACKWARDS AND THE RUN SAID SO WITHIN THE HOUR. The
+            // first version asked for 0.25 when planted and 0.75 when
+            // swinging, on an assumption about what a phase means that I never
+            // checked against the function. `Rig.PlantBlend` says it plainly:
+            // "Down through 0.15..0.35, planted 0.35..0.75, up through
+            // 0.75..0.9." So 0.25 is mid-DESCENT and comes out at 0.5, and
+            // 0.75 is the last instant of the plant and comes out at 1.0 —
+            // exactly inverted. The IK was pulling the SWINGING foot onto the
+            // ground at full weight, which is the one thing the blend exists
+            // to prevent.
+            //
+            // The measurement caught it and could not have been clearer: the
+            // feet being called planted read 0.177 above the road against an
+            // overall 0.050, anti-correlated rather than merely uninformative,
+            // and the planted share fell from about half of all goals to 14%.
+            // Both are the signature of picking the wrong foot.
+            //
+            // 0.55 is the middle of the planted band and 0.0 is outside every
+            // band, so the two answers are now the extremes the curve was
+            // written to produce rather than two points I guessed at.
+            double clipPhase = planted ? 0.55 : 0.0;
             if ((Rig.PlantBlend(phase) > 0.9) != planted) PlantDisagreed++;
             double blend = Rig.PlantBlend(clipPhase);
             double wantedY = Rig.FootHeight(animated.y, ground, blend);
