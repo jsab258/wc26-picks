@@ -3006,11 +3006,45 @@ namespace Ledger.Game
                     // The witness is GIVEN what he saw rather than hoped to
                     // have it, so the reject case is reachable on every run.
                     listener.Knowledge.Learn(new Fact("player", Claims.LocationKey(now), "docks"));
+
+                    // AND SOMEBODY IS PUT WITHIN EARSHOT, because the first
+                    // reading came back `claimOverheard=0` for the whole run.
+                    //
+                    // That is the failure this project has most of: a probe
+                    // that only fires on a lucky world, reporting zero, and
+                    // reading exactly like a mechanic that is not wired. The
+                    // rule is to PLANT the condition and never to loosen the
+                    // bound — set the standing before pledging, learn the fact
+                    // into the witness before telling the lie, put a body at
+                    // the crowded spot.
+                    //
+                    // Here the condition is a second person close enough to
+                    // make out words. `Acoustics.SpeechCarry` is 14m and
+                    // intelligibility has to clear `WordsThreshold`, so two
+                    // metres is comfortably inside and is also a real distance
+                    // for two people at the same bar — this stages a plausible
+                    // world, not a degenerate one.
+                    //
+                    // MOVED, NOT TELEPORTED-AND-LEFT: the walker's own schedule
+                    // takes it back, and a bystander that stayed welded to the
+                    // speaker for the rest of the run would corrupt every other
+                    // proximity reading in the sim.
+                    ConversationHost bystander = null;
+                    foreach (var h in _game.Hosts)
+                        if (h != null && h != listener) { bystander = h; break; }
+                    Vector3 stood = default;
+                    if (bystander != null)
+                    {
+                        stood = bystander.transform.position;
+                        bystander.transform.position =
+                            listener.transform.position + new Vector3(2f, 0, 0);
+                    }
                     _claimHeld = LawHost.Claim(_game, listener, "I was at the docks all evening")
                                  == ClaimResult.Consistent;
                     _claimCaught = LawHost.Claim(_game, listener, "I was at the Hook Street pub")
                                    == ClaimResult.Contradiction;
                     _claimStaged = LawHost.ClaimsMade > 0;
+                    if (bystander != null) bystander.transform.position = stood;
                 }
             }
             if (_loiterApproaching)
