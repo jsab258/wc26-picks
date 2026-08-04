@@ -1151,23 +1151,47 @@ namespace Ledger.Game
                     // way off its own wall, in which case the pull is fine and
                     // the placement is not.
                     //
-                    // So the reach goes to four metres and the run reports the
-                    // WORST distance actually used. A small answer means the
-                    // first bound was simply short; a large one means an item
-                    // is being put three metres from the wall it belongs to,
-                    // which is a placement bug this could otherwise hide for
-                    // ever by quietly succeeding.
+                    // FOUR METRES ANSWERED IT, AND THE ANSWER WAS THAT FOUR
+                    // METRES IS NOT A NUDGE. `dressedInRoad=8 dressedPulled=2
+                    // dressedStuck=6 dressedWorstPull=3.75` — and the fork
+                    // above is decided by a constant that was in the code the
+                    // whole time.
                     //
-                    // Four metres is where a nudge stops being a nudge: past
-                    // that the bin is not beside the building any more, and
-                    // leaving it stuck is the honest answer.
-                    const float PullStep = 0.25f;
-                    const int PullSteps = 16;
+                    // `Dressing.WallOffset` is 0.45. EVERY facade item is
+                    // placed exactly that far out from its wall — it is a
+                    // constant, not a distribution, so "the clutter is metres
+                    // off its own wall" was never possible and half the fork
+                    // was dead on arrival. Which means a 3.75m pull walked a
+                    // bin 3.3m BEHIND the face plane, through its own wall and
+                    // into the building, and `DressedPulled++` reported that as
+                    // a success. The bound written to prevent exactly this
+                    // ("would push a bin through its own wall", three
+                    // paragraphs up) stopped preventing it the moment the reach
+                    // was widened, and nothing said so — the number got better
+                    // while the world got worse, which is rule 5's ratchet
+                    // running in the flattering direction.
+                    //
+                    // SO THE BOUND IS THE WALL, and it is not a number I chose.
+                    // Pulling clutter back to the face it leans on is always
+                    // right; pulling it past that face is never right, whatever
+                    // the road says. `WallOffset` is where those two meet, so
+                    // the reach is exactly `WallOffset` and cannot drift from
+                    // the placement it is undoing.
+                    //
+                    // AND THE ANSWER THIS PRODUCES IS PROBABLY WORSE-LOOKING,
+                    // WHICH IS THE POINT. If the eight are in the road at 0.45m
+                    // from their walls, then those eight walls front onto the
+                    // carriageway and no nudge can help: the building is in the
+                    // road, not the bin. `dressedStuck` rising to 8 is that
+                    // finding being reported instead of hidden, and it moves
+                    // the work to the level where it belongs.
+                    const int PullSteps = 4;
+                    float pullStep = (float)Ledger.Core.Dressing.WallOffset / PullSteps;
                     var pulled = at;
                     bool cleared = false;
                     for (int step = 0; step < PullSteps; step++)
                     {
-                        pulled -= outward * PullStep;
+                        pulled -= outward * pullStep;
                         if (!Ledger.Core.StreetMap.OnRoad(pulled.x, pulled.z))
                         {
                             cleared = true;
@@ -1181,7 +1205,28 @@ namespace Ledger.Game
                         at = pulled;
                         DressedPulled++;
                     }
-                    else DressedStuckInRoad++;
+                    else
+                    {
+                        DressedStuckInRoad++;
+                        // HOW FAR INTO THE CARRIAGEWAY THE WALL ITSELF IS, which
+                        // is the only question left once the pull is bounded at
+                        // the wall. Measured by walking OUT from the face plane
+                        // until the road ends, so a small number means the kerb
+                        // is a hand's width away and a large one means the
+                        // facade stands in a lane. Nothing acts on it — it is
+                        // the reading the level fix will be sized from, and a
+                        // number nobody has is how the last bound came to be
+                        // guessed twice.
+                        var probe = at - outward * (float)Ledger.Core.Dressing.WallOffset;
+                        float into = 0;
+                        for (int step = 0; step < 40; step++)
+                        {
+                            probe += outward * 0.25f;
+                            if (!Ledger.Core.StreetMap.OnRoad(probe.x, probe.z)) break;
+                            into += 0.25f;
+                        }
+                        DressedRoadDepth.Add(into);
+                    }
                 }
                 switch (d.Kind)
                 {
@@ -1235,10 +1280,27 @@ namespace Ledger.Game
         /// wall.
         public static int DressedPulled, DressedStuckInRoad;
         /// The furthest any item had to be pulled to clear the carriageway.
-        /// Small means the first bound was simply short; large means clutter is
-        /// being placed metres from its own wall, which is a placement fault
-        /// that a successful pull would otherwise hide for ever.
+        ///
+        /// IT ASKED A QUESTION THAT COULD ONLY HAVE ONE ANSWER, and read 3.75
+        /// before anybody noticed. The comment said "small means the first
+        /// bound was simply short; large means clutter is being placed metres
+        /// from its own wall" — but `Dressing.WallOffset` is a CONSTANT 0.45,
+        /// so the second case does not exist and a large reading could only
+        /// ever mean the pull had walked an object through its own wall. Now
+        /// that the reach is bounded at the wall this can never exceed 0.45,
+        /// which makes it a check on the bound rather than a fork.
         public static float DressedWorstPull;
+
+        /// FOR EACH ITEM THE WALL COULD NOT SAVE: how deep the carriageway runs
+        /// outward from its face plane.
+        ///
+        /// Once the pull stops at the wall, "stuck" stops being a tuning
+        /// question and becomes a level one — the building is in the road. This
+        /// is the number that level fix gets sized from, and it is kept as a
+        /// series because eight items against a median and a worst are three
+        /// different findings: a kerb drawn a few centimetres wide, one facade
+        /// standing in a lane, or every wall on a street set back wrong.
+        public static readonly List<float> DressedRoadDepth = new List<float>();
 
         /// Doors built. Counted separately from `Dressed` because a door is
         /// architecture rather than clutter: bins thin out in a far district by

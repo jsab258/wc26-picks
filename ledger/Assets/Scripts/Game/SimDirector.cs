@@ -2379,6 +2379,34 @@ namespace Ledger.Game
             }
         }
 
+        /// HOW DEEP INTO THE ROAD THE STUCK CLUTTER'S OWN WALLS STAND.
+        ///
+        /// THE WHOLE SERIES, not a summary, and eight numbers is short enough
+        /// to just print. This is the reading that decides whether the level
+        /// fix is a kerb width or a street — and every summary of it answers a
+        /// different question than the one being asked. A median would hide one
+        /// facade standing in a lane; a maximum would make eight items look
+        /// like a catastrophe when seven are a hand's width over a kerb.
+        ///
+        /// The words when it is empty say which empty it is: nothing stuck is
+        /// the good outcome and no clutter measured is a broken probe, and
+        /// `dressedInRoad` beside it is the denominator that tells them apart.
+        static string RoadDepthRead()
+        {
+            var xs = WorldBuilder.DressedRoadDepth;
+            if (xs.Count == 0) return "none stuck";
+            var c = new List<float>(xs);
+            c.Sort();
+            var sb = new StringBuilder();
+            for (int i = 0; i < c.Count && i < 24; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                sb.Append(c[i].ToString("0.00"));
+            }
+            if (c.Count > 24) sb.Append($" (+{c.Count - 24} more)");
+            return sb.ToString();
+        }
+
         /// -1 for "nothing sampled", never 0, because zero distinct models and
         /// no samples at all are opposite findings and they read identically.
         int ModelMedian(System.Func<Vector2Int, int> pick)
@@ -8905,7 +8933,7 @@ namespace Ledger.Game
                       $"mid={(_game.Populace != null ? _game.Populace.CountIn(Lod.Mid) : 0)} crowdOk={crowdOk} " +
                       $"beats=[{string.Join(",", beatStates)}] attended={beatsAttended} skipped={beatsSkipped} " +
                       $"shafts={LightShaft.Count} wet={SceneLighting.Wetness:0.00} " +
-                      $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] perNear={perNear:0.00} perFar={perFar:0.00} " +
+                      $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} dressedRoadDepth=[{RoadDepthRead()}] doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
