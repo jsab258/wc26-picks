@@ -95,8 +95,13 @@ frame.** That is not advice, it is the only thing that would have caught this.
    actually does with a reputation once you have one. Decomposed from standing
    work; take one sub-piece at a time and keep each inside a round trip.
 
-4. **SIX CARDS STILL LACK EXAMPLE LINES**, down from sixty. Small, local, needs
-   no key and no build.
+4. **RETIRE A STANDING ITEM BY CHECKING IT.** "Six cards still lack example
+   lines" was here this morning and is false: all sixty carry three lines each
+   and the rule asks for two or three, checked against the manifest on 4 Aug.
+   The same stale sentence was sitting in `Tier2Gen`'s own comment. Both fixed.
+   The reusable item is the one underneath: **every claim in this file that
+   says something is MISSING is an analysis, not evidence, and decays exactly
+   like a comment.** Take the oldest one and go and look.
 
 5. **KEEP RETIRING THE REACH LEDGER** — 43 entries, every reason verified
    against the code today. Each one retired is a public API with a caller.

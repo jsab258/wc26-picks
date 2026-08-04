@@ -64,9 +64,20 @@ namespace Ledger.Tier2Gen
 
             // ENRICH, NOT REGENERATE, and the distinction is the whole task.
             //
-            // The sixty existing cards fail exactly ONE rule — no example lines
-            // — and nothing else. Regenerating them fresh would fix that and
-            // mint sixty NEW ids, while the current ones are wired into
+            // The sixty existing cards failed exactly ONE rule — no example
+            // lines — and nothing else.
+            //
+            // THAT IS NOW PAST TENSE AND THE COMMENT KEPT SAYING IT WAS
+            // PRESENT. Checked 4 Aug against the manifest rather than against
+            // this paragraph: all sixty carry three lines each, and the rule
+            // asks for two or three. The queue was still listing "six cards
+            // lack example lines" on the same evidence — one stale sentence
+            // read twice, in two files, which is exactly how a decayed comment
+            // costs somebody an afternoon.
+            //
+            // The reasoning below is unaffected and is why the path exists at
+            // all. Regenerating fresh would have minted sixty NEW ids, while
+            // the current ones are wired into
             // secrets, connections, schedules and promotions, five of them
             // already pulled up into the hand-written ring. That is spending
             // money to break references.
