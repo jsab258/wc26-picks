@@ -54,11 +54,13 @@ Being careful may be structurally impossible, which is a design question
 rather than a bug — but the moat is what the street KNOWS, and if knowing is
 free the moat is shallower than it looks.
 
-**All 22 calls were to people the phone book says were reachable, and 12 rang
-out anyway.** So reachability is not why calls fail, which is the opposite of
-what the number was hoisted to check. Read `RingLine` against `ReachableNow`:
-either being reachable and answering are genuinely different things, or the
-two disagree and one of them is wrong.
+**WITHDRAWN — that was my probe, not the game.** I filed "all 22 calls went
+to reachable people and 12 rang out anyway" as a finding. `ReachableNow`
+treats a null `whoIsNear` as "do not check", and I passed null, so it
+returned true whenever a LINE was live at that hour regardless of whether
+anybody was near it. It was measuring "does this place have a working
+telephone". Fixed to pass `NearPhone`, the predicate `RingLine` itself uses.
+Re-read it next build; there is no known fault in the phones.
 
 ### SETTLED, DO NOT RE-OPEN
 
