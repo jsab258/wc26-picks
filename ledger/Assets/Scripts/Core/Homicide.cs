@@ -447,6 +447,29 @@ namespace Ledger.Core
         /// Would this person go to the police about it? The ones with the least
         /// to lose and the least nerve for it — which is not the same set as
         /// the disloyal ones, and that asymmetry is the interesting part.
+        ///
+        /// AND A LEASH SILENCES THIS ONE EVEN ABOUT A BODY, WHICH IS
+        /// DELIBERATE — checked 4 August after fixing four OTHER sites that
+        /// were wrong the opposite way, and left alone.
+        ///
+        /// The four were about TALK: a hooked witness still tells people about
+        /// a killing, still shows up as a lead, still counts towards what the
+        /// day circle believes. Every one of those had an indelible exemption
+        /// in `Tick` and was missing it elsewhere. This is not talk. It is
+        /// standing up in front of a detective and saying it, which is a
+        /// different act with different stakes, and the design doc puts
+        /// "corrupted officials (hooks!)" in the list of things that reduce
+        /// heat precisely because leverage is supposed to buy that silence.
+        ///
+        /// The body is not managed off the table by it either, and that is what
+        /// keeps both halves true at once: `GossipMill`'s case loop DOES exempt
+        /// an indelible rumour from the leash, so the corpse still drives the
+        /// pressure and the inquiry. The police know. Nobody will say it in
+        /// court. That gap is the mechanic rather than a bug in it.
+        ///
+        /// Written down because the shape of a missing exemption is what four
+        /// sites looked like, and the fifth read looks identical from the
+        /// outside.
         public static bool WouldTalkToPolice(Gossiper g) =>
             g != null && g.Nerve < 0.35 && g.Loyalty < 0.5 && !g.Leashed;
     }
