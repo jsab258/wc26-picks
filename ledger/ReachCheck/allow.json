@@ -39,7 +39,22 @@
     "explaining why the call was REMOVED — which is the entry being right.",
     "",
     "A debt ledger whose reasons decay is a list of invitations to build the wrong",
-    "thing, and this project has already built a second door system off one."
+    "thing, and this project has already built a second door system off one.",
+    "",
+    "AND TWO MORE REASONS WERE WRONG LATER THE SAME DAY, which is the point of",
+    "this paragraph rather than a footnote to the one above. That verification",
+    "checked whether the remaining entries still had zero Game-layer CALLERS, and",
+    "they did. It did not re-read what each entry SAID, and `TrafficSim.BusLoop`",
+    "and `TrafficSim.Ranks` were both describing missing behaviour that has been",
+    "running for weeks: a bus is spawned onto the loop, routed along it, made to",
+    "dwell at every third junction, and drawn by kind like every other vehicle.",
+    "The real gap in both was the same one and neither entry named it — nothing",
+    "DREW a stop or a rank, so the city obeyed a rule it never told anybody. Both",
+    "are wired and deleted as of 4 Aug.",
+    "",
+    "So: `zero callers` and `the reason is still true` are two different checks,",
+    "the tool only performs the first, and an entry that passes the tool can still",
+    "send somebody at work that was finished a fortnight ago."
   ],
   "allow": {
     "Acoustics.OutsideBleed": "WIRE: M17 audio — a 0..1 MIXER GAIN for ducking the street bed when the player steps through a door, NOT a dB attenuation. Phase 3 tried to use it to quieten a killing in a back room and that is dimensionally wrong; walls are Perception.WallAttenuation and the room is its ambient floor.",

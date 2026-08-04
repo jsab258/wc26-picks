@@ -191,8 +191,17 @@ AUTO MODE.
    never once returned true in a build. That is rule 6 — built, tested, and
    not running.
 
-7. **KEEP RETIRING THE REACH LEDGER** — 43 entries, one wired today. Each one
-   retired is a public API that something actually calls.
+7. **KEEP RETIRING THE REACH LEDGER** — 41 entries, three wired today. Each
+   one retired is a public API that something actually calls.
+
+   **AND READ THE ENTRY'S REASON, NOT JUST ITS NAME.** The ledger was
+   reason-verified this morning and two more reasons were still wrong by the
+   evening — the bus route and the cab ranks both described behaviour that has
+   been running for weeks, when the actual gap was that nothing DREW a stop or
+   a rank. The tool proves an API has no caller; nothing proves the sentence
+   explaining why is still true, and a wrong reason sends somebody at work
+   that finished a fortnight ago. That is now written into the ledger's own
+   header.
 
 8. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
    is in and is what mattered: duplicate offers made every duplicated label
