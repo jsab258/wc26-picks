@@ -39,6 +39,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RUNS = ROOT / "game-design" / "sim-shots" / "runs"
 
+# What the job writes when the build produced no player. Quoted, not
+# paraphrased — see tools/verdict-keys.py, which matches the same marker.
+NO_SIM = "NO PLAYER LOG"
+
 FAILING = re.compile(r"FAILING GATES:\s*(.+)")
 PASS = re.compile(r"\bpass=(True|False)\b")
 
@@ -96,7 +100,21 @@ def ordered_runs():
             out.append((sha, have[sha]))
             seen.add(sha)
     out.extend((s, p) for s, p in sorted(have.items()) if s not in seen)
-    return out
+    # A BUILD THAT NEVER RAN A SIM IS NOT A RUN, and counting it as one makes
+    # every gate look quieter than it is.
+    #
+    # Five builds on 4 August produced an eleven-line verdict — two on a Unity
+    # licence seat, three on a compile error — and each one says so in words.
+    # They have no gates in them, so they can never contribute a failure, and
+    # leaving them in pushes "last N runs ago" up by one apiece and dilutes
+    # every rate in the table. The first reading after those five showed the
+    # live section EMPTY, which is a pleasant thing to be told by an instrument
+    # that had just been handed five blanks.
+    #
+    # Exactly the repair made to `verdict-keys` an hour earlier, in this same
+    # session, for the same reason — and rule 1's corollary says to grep for the
+    # claim you have just falsified elsewhere, which I did not.
+    return [(s, p) for s, p in out if NO_SIM not in read(p)]
 
 
 def flaky():
