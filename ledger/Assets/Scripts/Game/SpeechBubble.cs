@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ledger.Core;
 using UnityEngine;
 
@@ -97,10 +98,28 @@ namespace Ledger.Game
             }
 
             var go = new GameObject("Speech");
-            go.transform.position = speaker.position + Vector3.up * 2.05f;
             var b = go.AddComponent<SpeechBubble>();
             b._follow = speaker;
             b._base = colour;
+            // STACKED, NOT OVERLAPPED, AND NEVER HIDDEN.
+            //
+            // `collidingBubbles=15` beside `bubblesOnScreen=6` is the whole
+            // argument: six bubbles have exactly fifteen possible pairs, so
+            // EVERY pair was overlapping. `collidingNames=0` in the same run —
+            // the nameplate declutter is perfect — which made "offer bubbles to
+            // NameTags" the obvious fix and the wrong one. That declutter HIDES
+            // what it cannot place, and its own comment says why that is right
+            // for a name: putting a name over the wrong person is a lie, and
+            // this game is about who saw whom.
+            //
+            // A line is not a name. A hidden nameplate costs you nothing you
+            // cannot get by walking closer; a hidden bubble costs you the words,
+            // and the words are the content. So bubbles stack UPWARD instead,
+            // which cannot lose anything — the worst case is a line sitting a
+            // little higher over the head it belongs to, and it still follows
+            // that head every frame.
+            b._lift = StackHeightNear(speaker.position);
+            go.transform.position = speaker.position + Vector3.up * (2.05f + b._lift);
 
             b._text = go.AddComponent<TextMesh>();
             b._text.text = Wrap(line, 34);
@@ -151,7 +170,48 @@ namespace Ledger.Game
             // mirror image from anywhere south of the speaker.
             Billboard.Register(go.transform);
             Billboard.Aim(go.transform, Camera.main);
+            _live.Add(b);
             return b;
+        }
+
+        /// Every bubble currently alive, so a new one can see what it would
+        /// land on top of. Registered on creation, swept lazily on read —
+        /// destroyed Unity objects compare equal to null and a list of them
+        /// would otherwise grow for the life of the process.
+        static readonly List<SpeechBubble> _live = new List<SpeechBubble>();
+
+        /// The lift this bubble carries above its speaker's head.
+        float _lift;
+
+        /// How far up a new bubble has to start to clear the ones already
+        /// talking near this spot.
+        ///
+        /// WORLD SPACE, NOT SCREEN SPACE, and deliberately: a screen-space test
+        /// would have to be redone every frame as the camera moves, and a line
+        /// that jumps up and down while somebody walks past is worse than one
+        /// that overlaps. Speakers within `CrowdMetres` of each other are the
+        /// ones whose bubbles can plausibly collide from any angle, which is
+        /// the conservative choice — it lifts a few lines that did not need it
+        /// and never fails to lift one that did.
+        const float CrowdMetres = 4.0f;
+        const float LineLift = 0.45f;
+        const float MaxLift = 1.8f;      // four lines; past that a crowd is a crowd
+
+        static float StackHeightNear(Vector3 at)
+        {
+            float lift = 0f;
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var b = _live[i];
+                if (b == null || b._follow == null) { _live.RemoveAt(i); continue; }
+                if (Vector3.Distance(b._follow.position, at) > CrowdMetres) continue;
+                // Sit above the highest thing already in this huddle rather than
+                // counting heads: two bubbles that already stacked leave a gap
+                // at the bottom, and filling it would put the third one back on
+                // top of the first.
+                if (b._lift + LineLift > lift) lift = b._lift + LineLift;
+            }
+            return Mathf.Min(lift, MaxLift);
         }
 
         /// How flat the flattest spoken line got, over the run. Starts above 1
@@ -161,7 +221,11 @@ namespace Ledger.Game
         void LateUpdate()
         {
             if (_follow == null) { Destroy(gameObject); return; }
-            transform.position = _follow.position + Vector3.up * 2.05f;
+            // The lift is part of where this line lives, so it is reapplied
+            // every frame with the follow. Setting it once at creation and
+            // letting this line overwrite it was the first draft, and the
+            // bubble dropped back onto its neighbour on the very next frame.
+            transform.position = _follow.position + Vector3.up * (2.05f + _lift);
 
             // YAW ONLY, AND THIS WAS THE SECOND SITE OF A BUG THAT WAS FIXED
             // ONCE AND NEVER GREPPED FOR — so the maths now lives in exactly one
