@@ -570,9 +570,33 @@ namespace Ledger.Game
             }
         }
 
-        /// How many people's wardrobe reaches the eye as nothing at all. The
-        /// number that was 39% of the city and had nowhere to be reported.
+        /// How many people's wardrobe reaches the eye as nothing at all.
+        ///
+        /// AND THE QUESTION THIS ANSWERS MOVED UNDER IT WITHIN THE HOUR, which
+        /// is the fault CLAUDE.md lists three separate instances of and I have
+        /// now shipped the change that causes a fourth.
+        ///
+        /// Under the old rule a wash near white meant the wardrobe had failed
+        /// to arrive, and 39% of the roster was that. Under the anchored rule a
+        /// wash of exactly 1.0 is the CORRECT answer for a sheet already darker
+        /// than the band wants — a multiply cannot lift it, so leaving it alone
+        /// is right. The count duly went 303 to 446 on the build that fixed the
+        /// thing it was measuring, and read as a regression.
+        ///
+        /// Kept, because "how much colour is imposed" is still worth knowing,
+        /// and paired with the number that answers the question the old one
+        /// used to: `WashUnreached` counts the people whose sheet is too dark
+        /// for their band, so they render below the wardrobe rather than at it.
+        /// That is the honest residue of the anchored rule and it is a
+        /// different fault from the one this used to catch.
         public static int WashNearWhite { get; private set; }
+
+        /// People rendering DARKER than the band the wardrobe chose, because
+        /// the sheet they are painted on is darker than the band and a multiply
+        /// only subtracts. Not a bug in the wash — the wash did the only thing
+        /// available — but a real limit on how much of the palette can reach
+        /// the street, and the number that says whether it matters.
+        public static int WashUnreached { get; private set; }
 
         /// The last wash actually written to a renderer, with the albedo it
         /// was anchored against. Appended to `CoatRead` after the paint loop,
@@ -600,6 +624,9 @@ namespace Ledger.Game
                                   + (1f - c.g) * (1f - c.g)
                                   + (1f - c.b) * (1f - c.b)) / 3f) * 100f;
             if (d < 5f) WashNearWhite++;
+            // The sheet was already darker than the band asked for, so the
+            // garment lands below the wardrobe rather than on it.
+            if (albedo > 0 && albedo < value) WashUnreached++;
             _lastWash = $"{(int)(c.r * 255)},{(int)(c.g * 255)},{(int)(c.b * 255)}"
                         + $" on albedo {albedo:0.00}";
             if (_washes.Count < WashCap) _washes.Add(d);

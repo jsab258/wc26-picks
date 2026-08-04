@@ -161,35 +161,23 @@ AUTO MODE.
    The Core-shaped work that remains is M22, the shape of a playthrough:
    onboarding, pacing, replayability, succession. Entirely unbuilt.
 
-6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD, AND IT IS NOT
-   DEAD CODE — THE COUNTERS I ADDED TO CHECK THAT SAID SO IN ONE RUN.**
+6. **THE CAST BRIGHTNESS LIFT IS APPLIED TO THE WHOLE CROWD — and the second
+   finding under it is CLOSED by the reading, not by a fix.**
    `RealBody.TryAttach` lifts the coat's value to 0.68 with a comment saying
    "the player is a named character", and `TryAttachExtra` calls straight
    through it, so every walker gets it too. `Wardrobe.MaxValue = 0.46` exists
-   precisely so nobody in the crowd outshines the cast, and the code walks
-   past it for everybody.
+   precisely so nobody in the crowd outshines the cast. Still open, and still
+   needs a cast test that does not exist — `VoiceBank.Cast`'s own comment says
+   its ids do not all match the roster, and the named cast walk the street as
+   `NpcWalker` too, so neither the roster nor the call path separates them.
 
-   I wrote here that this was probably dead on today's models, on the strength
-   of `bodySkinned=0 bodyDressed=0` — a LAST-WINS reading that describes
-   whichever walker the LOD granted last and cannot support a claim about the
-   run. The lifetime versions came back `bodySkinnedEver=0 bodyDressedEver=736
-   bodyKeptEver=4904`: one renderer in eight is painted with the lifted coat.
-   So this is live and visible.
-
-   **What it needs and does not have is a cast test.** `VoiceBank.Cast` is the
-   nearest thing and its own comment says its ids do not all match the roster,
-   so borrowing it would put a silent mismatch in the wardrobe — a named
-   character under one id would get crowd brightness and the same person under
-   another would not. The honest shape is a flag through
-   `TryAttach`/`TryAttachExtra`, except the named cast walk the street as
-   `NpcWalker` too, so the call path does not separate them either.
-   **Decide the test first, then wire it.**
-
-   And a second finding sitting in the same numbers: `bodySkinnedEver=0` over
-   a whole run means nothing in this city has ever been painted as FLESH.
-   `BodyParts.IsFlesh` exists, is tested, has the sur-face fix in it, and has
-   never once returned true in a build. That is rule 6 — built, tested, and
-   not running.
+   **`bodySkinnedEver=0` IS NOT A BUG AND `bodyPartsEver` SAID SO IN ONE
+   RUN.** Four distinct renderer names have ever gone through the paint path:
+   `Alpha_Joints`, `Alpha_Surface`, `Beta_Joints`, `Beta_Surface`. Not one is
+   a flesh word, so `IsFlesh` can never fire — these models have no separately
+   named head, face or hands at all. `BodyParts` is neither broken nor
+   unwired; the models simply do not name a head, which is precisely why
+   texture extraction was the thing that mattered. Closed.
 
 7. **KEEP RETIRING THE REACH LEDGER** — 41 entries, three wired today. Each
    one retired is a public API that something actually calls.

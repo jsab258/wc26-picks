@@ -9062,6 +9062,12 @@ namespace Ledger.Game
                       $"bodyAlbedo=[{AlbedoRead()}] " +
                       $"bodyWashSampled={RealBody.WashSampled} " +
                       $"bodyWashNone={RealBody.WashNearWhite} " +
+                      // People whose sheet is darker than their band, so they
+                      // render below the wardrobe rather than at it. The
+                      // question bodyWashNone used to answer before the
+                      // anchored rule made a white multiply the correct
+                      // outcome for a dark sheet.
+                      $"bodyWashUnreached={RealBody.WashUnreached} " +
                       // THE PAINT PATH OVER THE WHOLE RUN. `bodySkinned` and
                       // `bodyDressed` above are reset at every attach, so they
                       // describe the last body the LOD happened to grant. These
