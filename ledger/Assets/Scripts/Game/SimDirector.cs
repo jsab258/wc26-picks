@@ -951,25 +951,37 @@ namespace Ledger.Game
                 int landed = Witnesses.Tick(
                     gameMinutes,
                     _game.Gossip.Mill, now,
-                    d =>
-                    {
-                        string who = "player";
-                        if (_deedAccused.ContainsKey(d.WitnessId)
-                            && !string.IsNullOrEmpty(_deedAccused[d.WitnessId]))
-                            who = _deedAccused[d.WitnessId];
-                        return new Fact(who, "violence", "hook_street");
-                    },
-                    d =>
-                    {
-                        string who = _deedAccused.ContainsKey(d.WitnessId)
-                            ? _deedAccused[d.WitnessId] : "player";
-                        return $"{d.WitnessId} says it was {who}, and came to say so";
-                    });
+                    d => new Fact(Accused(d.WitnessId), "violence", "hook_street"),
+                    d => $"{d.WitnessId} says it was {Accused(d.WitnessId)}, "
+                         + "and came to say so");
                 if (landed > 0)
                     Debug.Log($"SimDirector: {landed} witness account(s) arrived and "
                               + $"went indelible ({Witnesses.Arrived} total, "
                               + $"{Witnesses.Interceptions} intercepted)");
             }
+
+            // WHO THIS WITNESS SAYS DID IT — one answer, because there were
+            // two and they disagreed.
+            //
+            // FOUND BY READING THE LEDGER SCREEN BACK, which nothing had ever
+            // done: `Zora — "Vera Mathis says it was , and came to say so"`.
+            // An empty slot in a sentence shipped to the player, and repeated
+            // for Rocco, Tomas, Tanja and Luka in the same run, so not rare.
+            //
+            // The two lambdas sat three lines apart. The one building the FACT
+            // guarded `!string.IsNullOrEmpty` and fell back to "player"; the
+            // one building the SENTENCE checked only `ContainsKey` and printed
+            // whatever was there, including "". So the fact was right and the
+            // words were wrong, which is the worst possible split — the
+            // mechanics behaved and only the reader was lied to.
+            //
+            // Same shape as the two poach paths and the two wardrobe rules
+            // repaired tonight: one idea, two implementations, and the one
+            // nobody looks at is the one missing a line. This one also feeds
+            // the model, so the hole was in a prompt as well as on a screen.
+            string Accused(string witnessId) =>
+                _deedAccused.TryGetValue(witnessId, out var w) && !string.IsNullOrEmpty(w)
+                    ? w : "player";
 
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
