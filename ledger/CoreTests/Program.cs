@@ -12994,6 +12994,62 @@ namespace Ledger.CoreTests
                   "and the lit share tracks the fraction it was given", $"{share:0.00}");
             Check(Occupancy.WindowLit("w0", -1),
                   "an unknown population lights the window rather than blacking it out");
+
+            // ---- AND NOW AGAINST THE POPULATION THE GAME ACTUALLY MAKES ----
+            //
+            // Everything above is a synthetic list with hours I chose, which is
+            // the fault `Wardrobe.Mix` records in its own comment: a weighting
+            // test fed `i / n` is fed a perfectly uniform ramp and cannot fail
+            // no matter how the real input behaves. Here the real generator
+            // does something my hand-built list never did — a night resident
+            // gets a 20:00-04:00 SHIFT as well as a night circle, so the two
+            // rules overlap, and only the real roster can say what that leaves.
+            //
+            // THIS IS THE READING THAT DECIDES THE SKYLINE, so it is printed as
+            // a series rather than asserted at a point (rule 2). What is
+            // asserted is the SHAPE, which is a claim about a city: mostly
+            // empty at noon, mostly full in the small hours, and neither
+            // extreme in the evening — because an evening that is 0% or 100% is
+            // the wall of identical rectangles again in a different colour.
+            var real = Population.Generate(1200, 20260804,
+                                           new[] { "hook", "copper_row", "ironside" });
+            var curve = new List<string>();
+            double eveningFrac = 0, noonFrac = 0, smallFrac = 0;
+            for (int h = 0; h < 24; h++)
+            {
+                double f = Occupancy.HomeFraction(real.Residents, h);
+                curve.Add($"{h:00}:{f:0.00}");
+                if (h == 12) noonFrac = f;
+                if (h == 21) eveningFrac = f;
+                if (h == 4) smallFrac = f;
+            }
+            Console.WriteLine("    home fraction by hour: " + string.Join(" ", curve));
+            // THE BOUNDS BELOW COME FROM THE LINE ABOVE, and the first version
+            // of them did not. I asserted `noon < 0.25` from the synthetic
+            // list, where a 9-18 shift puts everybody out and noon reads 0.00.
+            // The real roster reads 0.28, because a third of it works nights
+            // and is asleep at midday — a fact about the city that my hand-made
+            // population could not contain. Red on the first run, from the
+            // ruler rather than the subject, which is exactly why rule 2 says
+            // print the series before choosing the number.
+            //
+            //   00:0.72 04:1.00 08:0.52 12:0.28 16:0.47 18:0.81 21:0.72
+            //
+            // ORDINAL FIRST, because that is what the claim actually is — a
+            // city empties for the working day, fills in the evening, and is
+            // fullest in the small hours — and an ordering survives a change to
+            // the trade mix that any absolute number would break.
+            Check(noonFrac < eveningFrac && eveningFrac < smallFrac,
+                  "the city empties for the day, fills in the evening, is fullest at four",
+                  $"noon {noonFrac:0.00} < evening {eveningFrac:0.00} < small hours {smallFrac:0.00}");
+            // Then loose absolutes, so a curve that keeps its shape while
+            // collapsing to a flat street still fails. Wide on purpose: these
+            // catch a broken rule, not a retuned trade mix.
+            Check(noonFrac < 0.40, "and the working day is a minority at home",
+                  $"{noonFrac:0.00}");
+            Check(eveningFrac > 0.15 && eveningFrac < 0.95,
+                  "and the evening is neither a blackout nor a block",
+                  $"{eveningFrac:0.00}");
         }
 
         static void TestWardrobe()
