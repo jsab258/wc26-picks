@@ -1495,6 +1495,21 @@ namespace Ledger.Game
                 if (busMusic > _busMusicMax) _busMusicMax = busMusic;
                 if (busMusic < _busMusicMin) _busMusicMin = busMusic;
             }
+            // THE STATE THE DESIGN CARES ABOUT, which the score has been able
+            // to name since it was written and nothing has ever asked for.
+            //
+            // `RoomHasGoneQuiet` is pulse at the floor with unease above half
+            // — its comment calls it "the moment the player should learn to
+            // dread", and it is a STATE rather than a consequence of the
+            // numbers, which is why it is a named function and not an
+            // inequality somebody rewrites at each call site.
+            //
+            // Counted rather than acted on. Whether the room going quiet
+            // should DO something is a design decision off a still and a
+            // listen; whether it ever happens at all is a fact, and the fact
+            // has never been available. If this reads zero over a nine-day
+            // run the state is unreachable and the model is decorative.
+            if (MusicModel.RoomHasGoneQuiet(mix)) _roomQuietSamples++;
             double e = MusicModel.Energy(mix);
             double heat = _game.CurrentHeat;
             _scoreSamples++;
@@ -2595,6 +2610,11 @@ namespace Ledger.Game
         /// Calls tried, and how many of those were to somebody the phone
         /// book says could be reached at that hour at all.
         int _callsAttempted, _callsReachable;
+        /// How many score samples had the room gone quiet in — pulse at the
+        /// floor with unease up. Its denominator is `scoreSamples`, printed
+        /// beside it, because a bare count of a per-sample state says
+        /// nothing without knowing how many samples there were.
+        int _roomQuietSamples;
         /// How many people have worked out who the player is, at the worst
         /// instant, with the number merely LOOKING at that same instant — and
         /// the distinct count over the whole run, which is the one that says
@@ -8028,7 +8048,7 @@ namespace Ledger.Game
                       $"rigs={_bodyRigs} rigSolved={_bodyMaxSolved} " +
                       $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                       $"height={_bodyShortest:0.00}..{_bodyTallest:0.00} bodiesOk={bodiesOk} " +
-                      $"scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
+                      $"roomQuiet={_roomQuietSamples} scoreSamples={_scoreSamples} scoreRange={_scoreEnergyRange:0.000} " +
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +

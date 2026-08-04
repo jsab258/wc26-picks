@@ -43,7 +43,6 @@
     "MotionDatabase.ClipOf": "WIRE: M17.1 — motion matching queries the database; the whole system is waiting on the Mixamo clips being imported as Humanoid.",
     "MotionDatabase.FrameOf": "WIRE: M17.1 — same.",
     "MotionMatcher.BlendOut": "WIRE: M17.1 — same.",
-    "MusicModel.RoomHasGoneQuiet": "WIRE: M17 — the music layer reacts to tension and not to a room emptying, which is the better cue of the two.",
     "OperationPlan.Bringing": "WIRE: M19 — visible odds. The plan knows what you are carrying into a job and the player cannot see it.",
     "Palette.NaiveScale": "BY DESIGN: the deliberately-wrong scaling, kept as the contrast case in the palette tests. Wiring it would be a bug.",
     "Palette.Saturation": "BY DESIGN: the palette sweep is applied in the post shader; the C# model is what the pixel gates compare against.",
