@@ -1160,13 +1160,29 @@ namespace Ledger.Game
                 // once that is on paper. `Dressing.WallOffset` is 0.45, so a
                 // face less than that from the carriageway CANNOT have clutter
                 // on a pavement, whatever else is true.
+                // ROAD AND STREET ARE DIFFERENT QUESTIONS AND A FACADE WANTS THE
+                // WIDER ONE. `OnRoad` asks about ways a CAR uses; `OnStreet` is
+                // true of the lanes that cross block interiors to reach doors as
+                // well. A BIN beside a service lane is a bin beside a service
+                // lane — which is why the clutter check asks the narrow question
+                // — but a BUILDING FACE inside a lane is a building standing in
+                // a right of way, and somebody has to be able to get to the
+                // doors behind it. `OnStreet` has sat on the reach ledger since
+                // it was written waiting for something that needed the wider
+                // question; this is it.
                 var face = pos - dir * (size.z / 2f);
                 if (Ledger.Core.StreetMap.OnRoad(stop.x, stop.z)) PlaceStopsInRoad++;
-                if (Ledger.Core.StreetMap.OnRoad(face.x, face.z))
+                bool faceInRoad = Ledger.Core.StreetMap.OnRoad(face.x, face.z);
+                bool faceInStreet = Ledger.Core.StreetMap.OnStreet(face.x, face.z);
+                if (faceInRoad)
                 {
                     PlaceFacesInRoad++;
                     if (PlaceFacesInRoadWho.Count < 12) PlaceFacesInRoadWho.Add(place.Id);
                 }
+                // COUNTED SEPARATELY, NOT FOLDED IN. A face in a lane but not on
+                // a road is a different fault with a different fix, and adding
+                // the two would report a number nobody can act on.
+                if (faceInStreet && !faceInRoad) PlaceFacesInLane++;
 
                 var facade = facades[i % facades.Length];
                 var body = MakeBox($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
@@ -1519,6 +1535,9 @@ namespace Ledger.Game
         /// a constant 0.45 and a face that close to a road cannot put anything
         /// on a pavement.
         public static int PlaceStopsInRoad, PlaceFacesInRoad;
+        /// And in a LANE but not a road, which is the wider containment
+        /// question `StreetMap.OnStreet` answers and nothing had needed.
+        public static int PlaceFacesInLane;
         public static readonly System.Collections.Generic.List<string> PlaceFacesInRoadWho
             = new System.Collections.Generic.List<string>();
         /// Of those, how many were pulled back onto the pavement and how many
