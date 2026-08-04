@@ -517,6 +517,22 @@ as noise. `tools/gates.py --flaky` exists to find them — it reads every kept r
 and reports which gates have ever failed and how often, and it corrected me
 within a minute of being written (I had called a 4-in-60 failure "a one-off").
 
+**AND THE SAME COROLLARY AIMED AT A READING IS WORSE, because a reading cannot
+go red.** `tools/gates.py --constant` is `--flaky`'s mirror: it reads every kept
+verdict and lists the keys that have NEVER been anything but zero. First run,
+sixty of them across 131 runs — and one was `inquiry=None`, meaning the
+detective has never once opened an investigation into the player in the entire
+recorded history of this project. Everything gated on that stage has therefore
+never executed: the paper naming you, the redirect having anything to relieve.
+`summonsTaken=0` was another, and its cause was a `Public` flag set on three
+phone lines, saved, restored, and read by nothing at all.
+
+Most of what it prints is healthy — `errors=0` and `idLeaks=0` are fault
+counters doing their job — and the tool cannot tell those from a branch nobody
+has entered. **That judgement needs to know what the number is FOR, which is a
+person's job. What the tool removes is the part a person cannot do: noticing
+that a number never moved.**
+
 **The fix is always to PLANT the condition, never to loosen the bound.** Set the
 standing before pledging, learn the fact into the witness before telling the
 lie, put a body at the crowded spot. A probe that only fires on a lucky run is
