@@ -232,19 +232,33 @@ namespace Ledger.Game
         /// does not guess. It names the objects, with their size, and the next
         /// verdict says which one it is in one round trip instead of three.
         ///
-        /// Two metres, because that is arm's length plus the width of a person:
-        /// anything inside it is something the player is wearing, carrying, or
-        /// standing in.
-        public static string Near(Vector3 where, float metres = 2f)
+        /// FOUR metres, not two, and sampled at SHOT time rather than at the
+        /// night measurement. The two-metre version came back with the player's
+        /// own two meshes and six nameplates and no cube at all — which is a
+        /// true answer about a different instant and a smaller sphere. Exactly
+        /// the mistake the speech-bubble counter made in the same hour: an
+        /// instrument that samples when nothing is happening reports that
+        /// nothing happens.
+        ///
+        /// A glowing object also marks itself with a star, because "forty
+        /// things are near the player" is not an answer and the thing being
+        /// hunted is LIT.
+        public static string Near(Vector3 where, float metres = 4f)
         {
-            var found = new List<(string name, float size, float dist)>();
+            var found = new List<(string name, float size, float dist, bool glows)>();
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (r == null || !r.enabled) continue;
                 float d = Vector3.Distance(r.bounds.center, where);
                 if (d > metres) continue;
                 var e = r.bounds.size;
-                found.Add((r.name, Mathf.Max(e.x, Mathf.Max(e.y, e.z)), d));
+                // AND WHETHER IT GLOWS, because the thing being hunted is a
+                // LIT cube and "there are forty objects near the player" is not
+                // an answer. An emissive marker in a list of ordinary geometry
+                // identifies itself.
+                var m = r.sharedMaterial;
+                bool glows = m != null && m.IsKeywordEnabled("_EMISSION");
+                found.Add((r.name, Mathf.Max(e.x, Mathf.Max(e.y, e.z)), d, glows));
             }
             found.Sort((a, b) => b.size.CompareTo(a.size));
             var sb = new StringBuilder("SceneAudit: near[");
@@ -254,7 +268,8 @@ namespace Ledger.Game
                 if (n++ >= 8) { sb.Append(" …"); break; }
                 sb.Append(n == 1 ? "" : " ").Append(f.name)
                   .Append(':').Append(f.size.ToString("0.00")).Append('m')
-                  .Append('@').Append(f.dist.ToString("0.0"));
+                  .Append('@').Append(f.dist.ToString("0.0"))
+                  .Append(f.glows ? "*" : "");
             }
             return sb.Append("] of ").Append(found.Count).ToString();
         }

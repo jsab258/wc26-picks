@@ -1978,6 +1978,7 @@ namespace Ledger.Game
         /// is what the accident and disposal claims need; anything else is a
         /// fact about the world rather than about the code.
         int _emptyWatchers = -1;
+        int _crowdedWatchers = -1;
         bool _bloodStaged;
 
         /// PHASE 2's REMAINDER — the ghost, retelling, comparing notes.
@@ -2824,6 +2825,15 @@ namespace Ledger.Game
                                < Perception.Rung2MarkMetres) near++;
                     if (near > most) { most = near; crowded = n.transform.position; }
                 }
+            // HOW CROWDED THE CROWDED SPOT ACTUALLY WAS, which nothing has
+            // ever asked. Both these gates compare a watched place against an
+            // unwatched one, and both failed together on a run reading
+            // `risk=0.30` against `risk=0.30` and an accident available in
+            // company — all three of which are what you get when the crowded
+            // spot has nobody at it. The quiet spot has printed its emptiness
+            // since the day it was searched for rather than borrowed; its
+            // opposite number never printed anything.
+            _crowdedWatchers = most;
             int emptyWatchers;
             Vector3 empty = QuietSpot(out emptyWatchers);
 
@@ -4090,6 +4100,7 @@ namespace Ledger.Game
         int _shotsWithRingHidden;
 
         bool _bubbleSampleWanted;
+        int _nearShots;
 
         void Shot(string name)
         {
@@ -4099,6 +4110,13 @@ namespace Ledger.Game
             // TextMeshes already in the scene — and it means the number and the
             // still describe the same instant.
             if (_bubbleSampleWanted) CollidingNames();
+            // AND WHAT IS STANDING BY THE PLAYER IN THE FRAME BEING TAKEN,
+            // which is the only instant the picture can be compared against.
+            if (_game != null && _game.Player != null && _nearShots < 2)
+            {
+                _nearShots++;
+                Debug.Log(SceneAudit.Near(_game.Player.transform.position + Vector3.up));
+            }
             // A COMPOSED FRAME IS NOT THE FRAME WE MEASURE. Framing runs
             // in the sim now — it never used to, which is why the whole
             // cinematic layer went months without executing in a verified
@@ -6034,7 +6052,7 @@ namespace Ledger.Game
                  + $"unseen={_provDisposalUnseen} risk={_provRiskUnseen:0.00} "
                  + $"disposals={EvidenceHost.Disposed} watched={EvidenceHost.DisposalsSeen} "
                  + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking} "
-                 + $"quietSpotWatchers={_emptyWatchers}]",
+                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers}]",
                  _provenanceStaged && EvidenceHost.Disposed >= 2
                  && !_provDisposalUnseen && _provRiskSeen > _provRiskUnseen),
 
@@ -6061,7 +6079,7 @@ namespace Ledger.Game
                  Witnesses.Retellings > 0),
 
                 ($"accident[inCompany={_accidentInCompany} alone={_accidentAlone} "
-                 + $"quietSpotWatchers={_emptyWatchers}]",
+                 + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers}]",
                  _provenanceStaged && !_accidentInCompany && _accidentAlone),
 
                 ($"killings[acts={ViolenceHost.Acts} killings={ViolenceHost.Killings} "
