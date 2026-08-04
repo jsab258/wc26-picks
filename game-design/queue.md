@@ -38,271 +38,115 @@ scheduling instead of to CI's output.
 
 ## Now
 
-### THE 17:00 BUILD ANSWERED FIVE THINGS AND CORRECTED ME ON TWO
+### WHAT THE 21:02 BUILD SHOWED, READ FROM THE FRAMES BEFORE ANY GATE
 
-**THE WASH WORKS, AND THE STREET STILL LOOKS LOUD.** Distance of the applied
-wardrobe from white went to a median of 19.1, and the people wearing nothing
-distinguishable fell from a predicted 39% of the roster to a measured 7.7% of
-4,904 washes. Both halves landed. The noon frame still shows two women in
-bright yellow trousers, so the rule is right and its ANCHOR is wrong: the wash
-maps the wardrobe onto [0.45, 1.0], and a multiply capped at 1.0 cannot bring
-a value-0.9 albedo under a 0.46 ceiling. `bodyAlbedo` now measures the sheets
-being multiplied, once per model, so the ceiling can be set from evidence
-instead of taste. **Read it before touching the constant.**
+**THERE ARE PEOPLE STANDING IN A T-POSE IN THE MIDDLE OF THE ROAD.**
+`review_day1_night` has three of them — arms straight out at shoulder height,
+motionless, on Copper Row. `review_day2_night` has more. It is the most
+recognisable broken-game artefact there is and it is in two of six stills.
 
-**THE SAMENESS HAS A NUMBER: FOURTEEN PEOPLE, EIGHT FACES.** Median 8 distinct
-models among 14 bodies, worst 8 of 17. That is six duplicates in a typical
-frame, and it is the first time the roadmap's two-day-old sentence has been
-anything but a sentence.
+**AND BOTH ARM NUMBERS SAID THE STREET'S ARMS HANG.** `armStreet=10.6
+armStreetWorst=14.8` on that same run. Neither is wrong: `armStreet` is a
+median ACROSS BODIES and `armStreetWorst` is the MAXIMUM OVER THOSE MEDIANS —
+a "worst" that never stops being a median. Three scarecrows among thirteen
+solved bodies sit above the seventh value and move neither number by a degree.
+The arms question was closed this morning on a statistic that cannot answer it.
 
-**I WAS WRONG THAT THE PAINT PATH MIGHT BE DEAD, AND THE LIFETIME COUNTERS
-SAID SO IMMEDIATELY.** `bodySkinnedEver=0 bodyDressedEver=736
-bodyKeptEver=4904` — one renderer in eight IS painted with the wardrobe's coat
-material, so the cast brightness lift is live on the crowd, not dead code.
-Item 6 below is a real fault rather than a cleanup. Also `SkinnedEver=0`
-across a whole run: nothing has ever been painted as flesh, which `BodyParts`
-was written to do and wants its own look.
+**That is the second time in an hour, in the same shape.** `crowdGapMedian=0.41`
+reads as a healthy street on a frame with thirty people packed shoulder to
+shoulder, for the same reason. **A MINORITY IS INVISIBLE TO EVERY MEDIAN**, and
+that sentence is now worth grepping the whole verdict for.
 
-**THE FEET ARE FIXED.** Planted feet now sit 0.035 above the road against
-0.046 for every frame — closer, which is the right sign. This morning it was
-0.177 against 0.050, backwards. `ikPlantDisagreed=9785` says how big the old
-error was.
+**NOBODY IN THIS CITY HAS EVER LIMPED.** `CharacterRig.Capability` drives
+`Rig.Limp` — a whole authored asymmetry with five tests and a matching footstep
+rhythm — and it had exactly one writer, `PlayerController`. Every walker sat at
+the default 1.0 and took the early return. Meanwhile the verdict has been
+printing `samCap=0.70 stillHurt=True` for a man the sim knifes on day one.
+Wired now, keyed on `DisplayName` because that is what harm is actually filed
+under for somebody on the street.
 
-**THE CROWD IS ESSENTIALLY THERE.** Median gap 0.42m against a body width of
-0.45, from 0.30 five builds ago.
-
-**AND THE FRAME GATE IS NOT WHAT I TOLD JAFAR IT WAS.** I said it was the
-runner's software rasteriser and the game was inside budget. The gate reads
-the game's half ONLY, so it is a real red — but the game's half is wall-clock
-too, and across eight runs its share of the frame sits at 2.6-3.4% while the
-absolute figure swings 11.4 to 15.7ms either side of the 12ms ceiling. A
-369ms run and a 489ms run are the same game on machines a third apart. So the
-ms reading is tracking the runner, which is exactly what moving the gate onto
-the game's half was supposed to prevent. `gameShare` is printed now; the gate
-is left RED and unmoved, because moving a bound to make red go away is the
-thing CLAUDE.md forbids by name, and swapping in a share nobody has read a
-series of would be the same mistake wearing a better statistic.
-
-**THE BIN NUDGE WAS WALKING BINS THROUGH WALLS.** `dressedPulled=2
-dressedWorstPull=3.75` read as the bound having been short. `Dressing.
-WallOffset` is a constant 0.45, so a 3.75m pull put a bin 3.3m behind its own
-face plane. The reach is bounded at the wall now and the next run will
-probably read 0 pulled and 8 stuck, which is the honest answer:
-`dressedRoadDepth` prints how far the carriageway runs out from each stuck
-item's wall, as the whole series, and the fix is a level fix.
+**966 GRANTS AND 952 REVOKES FOR A SKINNED-BODY BUDGET OF TWELVE.** That is the
+thrash case by the counters' own stated criterion. The count still cannot name
+a cooldown — 966 spread over a long run and 966 made by four people straddling
+one boundary read identically — so `bodySpell` records how long a body is
+actually KEPT.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 **The order is Jafar's, 4 August.** He asked why a day looked like almost
 nothing and the honest half of the answer was that most of it was invisible to
-him. So the top of this list is whatever a player would notice, every time,
-whatever state anything else is in. The full four rules are in CLAUDE.md under
-AUTO MODE.
+him. So the top of this list is whatever a player would notice.
 
-1. **WHAT THE STREET LOOKS LIKE — the wash ran, and a third of the city was
-   wearing a multiply by white.** *(CI, in the next dispatch)* Two fixes ago
-   the count was `bodyTinted=1` because the counter had been snapshotted and
-   restored around every walker's attach. That was fixed and the count went to
-   5,334, and the frame did not change — two women in the same bright yellow
-   trousers, one of them the player.
+1. **READ `armWidest` THE MOMENT IT LANDS, AND IT FORKS THE SEARCH.** *(CI, in
+   flight)* Near 90 in a typical frame means a body standing in its BIND POSE —
+   `HangArm` is guarded on `!PoseIsDriven`, so a body with an Animator and a
+   controller is left entirely to the Animator, and if that Animator has
+   nothing to play the bones stay where the FBX put them. Near 65 means a clip
+   IS playing and its arms are simply wide — a completely different fix, and
+   `preArmDrop=64.8` on the player says 65 is a real number this rig produces.
+   `armP90` beside it says whether it is one body or a tenth of them.
+   **Do not touch `HangArm` before reading both.**
 
-   **The count was true and could not answer the question.** A wash of pure
-   white is applied exactly as successfully as any other and changes no pixel.
-   The wash took the band's hue and half its saturation at value **1.0**, and
-   black is v 0.09-0.20 against grey's 0.26-0.44 at the same hue and the same
-   saturation 0.02-0.10 — so value is the only axis separating a fifth of the
-   city from a sixth of it, and value was the axis being discarded. Replicated
-   over the real roster: **39% of people washed to within 5% of white.**
+2. **READ `crowdHuddle` AND THEN LOOK AT `NpcWalker.SpreadMetres`.** *(CI, in
+   flight)* The suspect is named and deliberately not yet changed: `SpreadMetres
+   = 0.8f` is a FIXED ring radius, so a place with twenty-five people scheduled
+   to it gives each of them about 0.2m of arc — a constant that stopped
+   answering its question when the crowd got bigger, which is rule 2's drift.
+   A radius that grows with the number of people assigned to a place is the
+   obvious fix and it needs the huddle series first: a huddle of six is a bus
+   stop, a huddle of thirty is a fault, and only the runs can say which this is.
 
-   Fixed in `Core/Wardrobe.Wash`, normalised against `MaxValue` so the
-   brightest coat passes through untouched, with the floor taken from a swept
-   series rather than a preference and a CoreTest holding both ends.
-   `bodyWashWhite` / `bodyWashSampled` / `bodyWashNone` are the readings that
-   would have caught it. **Judge it from the frame, then read the median.**
+3. **THE LIMP'S STANCE SCALE STILL DOES NOT REACH A BOUGHT BODY.** The pelvis
+   DIP composes onto a driven body; the shortened bad leg goes through
+   `DriveLimbs`, which is guarded on `PoseIsDriven` in its entirety. So an
+   injured cast member drops onto their good leg and does not shorten the other
+   one — a gameplay signal at half strength. The file's own pattern is the fix:
+   compose a delta onto whatever the Animator wrote, exactly as the chest lean
+   and the pelvis counterturn already do, rather than assigning a swing it does
+   not own. **It wants a measurement first — how much of a limp is the dip
+   alone** — and that measurement is a Core arithmetic question that can be
+   answered here without a round trip, off `Rig.Limp` and `Rig.LegSwing`
+   printed rather than reasoned about.
 
-   Still true and NOT fixed by this: ten body models against forty-three named
-   people means at least two people on screen always share a mesh. The wash is
-   what has to carry the difference, which is why it mattered that it was doing
-   nothing for a third of them.
+4. **`review_day5_noon` IS A WALL OF TEXT AND NOTHING ELSE.** Two "Another
+   time" bubbles at roughly a fifth of the frame height each, fourteen name
+   labels overlapping into illegibility, and the street behind them invisible.
+   Whatever else is true, that frame is what a player would see standing in a
+   crowd, and no number names it: `nameShownWidth` bounds a label's WIDTH and
+   nothing bounds a bubble's height or the total ink on screen. **Turn it into
+   a number before proposing anything** — the tallest label as a fraction of
+   frame height, and how many labels overlap another.
 
-2. **THE FEET — the fix is in flight and the test is the two drop medians.**
-   *(CI)* Two runs agreed that the frames the blend called planted were
-   indistinguishable from every other frame, which is the two-clocks answer.
-   The plant now comes from the feet: the LOWER foot is the planted one, which
-   needs no constant at all and is true of a run, a limp and a stand as well as
-   a walk. `ikPlantDisagreed` says how often the old procedural answer differed,
-   so the size of the fault is reported rather than claimed — and the two drop
-   medians, which have landed on top of each other twice, should now come apart.
+5. **`dressedStuckOn` NAMES WHICH WALLS THE EIGHT STUCK ITEMS SIT ON.** *(CI)*
+   The pub's corner is certainly one, measurably 1.5m inside Hook Street. Read
+   it before proposing a level fix; the last two guesses about the world came
+   from the wrong half of it.
 
-3. **THE CROWD STOPS STANDING INSIDE ITSELF.** *(CI)* The median gap between
-   two people has been pinned near 0.30m against a body width of 0.45 for five
-   builds, and the arithmetic says why: a walker counts as arrived within 0.2m
-   of its scheduled point, so two people sent to the SAME point settle within
-   0.4m of each other and the separation nudge fights the schedule to a draw. A
-   place is now a small ring rather than a metre of ground, with each person's
-   spot fixed by name. In flight. Read the median, and look at the night frame.
+6. **KEEP RETIRING THE REACH LEDGER** — 36 entries. **AND READ THE ENTRY'S
+   REASON, NOT JUST ITS NAME**: two reasons were still wrong by the evening,
+   both describing behaviour that has been running for weeks when the real gap
+   was that nothing DREW the thing. A wrong reason sends somebody at work that
+   finished a fortnight ago.
 
-4. **EIGHT BINS ARE STANDING IN THE ROAD**, of 176 pieces of facade clutter,
-   measured for the first time today. Vehicles are clean — that half of the
-   same picture was disproved. Small, visible in a still, and the fix is a
-   placement nudge rather than a refusal: rejecting placements on a bound
-   nobody has read is the ratchet rule five is about.
+7. **RE-READ `crowdGapMedian` AGAINST THE NEW BREADTH RANGE.** The gate compares
+   a median spacing to a body width of 0.45, one constant. Bodies are now
+   0.86–1.18 times as wide, so the widest is 0.53 and the narrowest 0.39. This
+   is the "a number keeps its name when the question moves" case, and the change
+   that moved it has shipped.
 
-5. **M21 — THE NOTORIETY ROW IS CLOSED; THE NEXT SUB-PIECE IS A SURFACE.**
-   Landed 4 Aug: notoriety has its own accumulation and decay, two sources
-   (violence and informing), a proven effect on a real door, a rival who RINGS
-   you instead of a summit you travel to, and a newspaper — the one channel in
-   this game with no hops, so an act can become known to people who were not
-   there. All Core, all tested, all with callers.
-   **What is left needs UI and therefore a round trip each**: a surface the
-   player accuses somebody FROM, and the third answer to the rival's call —
-   picking up and saying no, which needs a prompt because inventing an answer
-   for the bot would put a decision the player owns inside the harness.
-   The Core-shaped work that remains is M22, the shape of a playthrough:
-   onboarding, pacing, replayability, succession. Entirely unbuilt.
-
-6. **DONE 4 Aug — the cast's brightness lift no longer goes to the whole
-   city.** It was blocked all afternoon on not having a way to tell cast from
-   crowd, and the answer was never a roster: the SPAWN PATH knows.
-   `GameController` and `ActThreeHost` spawn the cast by name,
-   `PopulationHost` spawns residents in a loop and is the only place in the
-   game that makes a crowd walker. One flag through `NpcWalker.Spawn`,
-   defaulting to cast — a cast member accidentally dimmed is a lead the eye
-   slides off, a crowd member accidentally bright is one person.
-   `bodyLiftedCast`/`bodyLiftedCrowd` prove it, and zero of both means no body
-   was dressed rather than that it worked.
-
-   `bodySkinnedEver=0` was closed earlier by `bodyPartsEver`: four renderer
-   names have ever reached the paint path and not one is a flesh word, so
-   these models have no separately named head or hands and `IsFlesh` can never
-   fire. Not a bug.
-
-7. **KEEP RETIRING THE REACH LEDGER** — 36 entries, seven wired today. Each
-   one retired is a public API that something actually calls.
-
-   **AND READ THE ENTRY'S REASON, NOT JUST ITS NAME.** The ledger was
-   reason-verified this morning and two more reasons were still wrong by the
-   evening — the bus route and the cab ranks both described behaviour that has
-   been running for weeks, when the actual gap was that nothing DREW a stop or
-   a rank. The tool proves an API has no caller; nothing proves the sentence
-   explaining why is still true, and a wrong reason sends somebody at work
-   that finished a fortnight ago. That is now written into the ledger's own
-   header.
-
-8. **THE HIPS COMPOSE NOW; THE LIMP'S STANCE SCALE IS WHAT IS LEFT.**
-   `hipOverride` came back 0.054 — five and a half centimetres of the clip's
-   own hip motion discarded every frame, the same order as the bob replacing
-   it — so the assign became a compose, and `Rig.Bob` stands down on a driven
-   body because a bought clip already has one and `Phase` is not the clip's
-   phase. Read `hipOverride` next build: it should FALL, and if it does not,
-   the compose did not take.
-
-   **What is still missing is half a limp.** The pelvis DIP reaches a bought
-   body; the STANCE SCALE — the shortened bad leg — goes through `DriveLimbs`,
-   which is guarded on `PoseIsDriven`. So an injured person drops onto their
-   good leg and does not shorten the other one. That is a gameplay signal at
-   half strength rather than absent, and it needs an additive Animator layer
-   or an IK offset. Same file, same care, and it wants its own measurement
-   first — how much of a limp is the dip alone.
-
-9. **DONE 4 Aug — head scale, and the reason it was queued as hard was not
-   true.** An Animator writes bone rotations and the hips' position; Mixamo's
-   clips animate no scale, so a scale written once is not overwritten. One
-   write beside the phase seed, `headsScaled` counting it, and the failure
-   mode named in the code: uniform heads in a still WITH a non-zero count
-   means the write ran and lost, which is a different bug from it not running.
-
-10. **AND CHECK THE CROWD GAP AGAINST THE NEW BREADTH BEFORE READING IT.**
-   The gap gate compares a median spacing to a body width of 0.45, a single
-   constant. Bodies are now 0.86-1.18 times as wide, so the widest person is
-   0.53 and the narrowest 0.39, and a fixed 0.45 is a threshold that has
-   quietly stopped asking one question. `crowdGapMedian=0.42` was read against
-   the old world. **Re-read the number's question before trusting the next
-   value** — this is exactly the "a number keeps its name when the question
-   moves" case, and I have now shipped the change that moves it.
-
-11. **EVERY WINDOW IN THE CITY IS LIT TO ONE COLOUR BY ONE CALL, AND IT IS
-   THE LOUDEST THING IN THE NIGHT FRAME.** `WorldBuilder.SetWindowsLit` walks
-   every window and writes the same emissive to all of them, so the skyline
-   after dusk is a wall of identical cream rectangles — which is exactly what
-   `review_day1_night` shows and what the eye goes to first.
-
-   **The fix is not a jitter, it is occupancy.** A lit window means somebody
-   is in. That is the information pillar this game is built on, it is free
-   visual variety as a side effect, and it makes a dark window at a known
-   address into something a player can use. Doing it properly means asking
-   the population where people actually are at that hour rather than picking
-   a lit fraction out of the air — `Household` and `DayJob` already model it,
-   and a fraction I invent is the threshold rule 2 forbids.
-
-   Sized honestly: this is a Core lookup plus a Game-side write plus a
-   reading (`windowsLit` against `windowsTotal`), and it does not fit in the
-   tail of a turn. **Start it at the top of one.**
-
-12. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix
-   is in and is what mattered: duplicate offers made every duplicated label
-   hide itself. The COUNTERS have now contradicted themselves twice.
+8. **THE NAME HEAP — AND RULE 2 NOW APPLIES TO IT.** *(CI)* The behaviour fix is
+   in and is what mattered. The COUNTERS have contradicted themselves twice.
    **If the next reading is still incoherent, delete them rather than explain
-   them** — a metric nobody can interpret is worth less than the hours spent
-   interpreting it, and no player will ever see this one. The four numbers now
-   come from a single frame, which is the last explanation it gets.
+   them.** The four numbers now come from a single frame, which is the last
+   explanation they get.
 
-### CORRECTION: THE CITY DOES HAVE A PAVEMENT, AND I SAID OTHERWISE AN HOUR AGO
+9. **M22, THE SHAPE OF A PLAYTHROUGH** — the largest Core-shaped piece left, and
+   one concrete sub-item is startable now: `PopulationSeed = 20260726` is
+   hardcoded, a second seed gives 699 of 700 different people, and there is no
+   new-game surface to choose one. **It must not be randomised** — CI
+   determinism depends on it — so this is a surface, not a change to the
+   default.
 
-**Retracted.** I wrote here — and committed — that `StreetMap` starts blocks at
-the kerb so there is no footway anywhere in the map, and that all eight stuck
-clutter items are in the carriageway by construction. That is wrong.
-`BuildBlockSpecs` insets every building by `2.6f` under a comment reading
-"pavement + a doorstep", and the registered places push back `size.z/2 + 2.5`.
-There is a pavement, it is about two and a half metres, and clutter at
-`WallOffset` 0.45 sits well inside it.
-
-I read the block DATA and stopped, without reading the building PLACEMENT.
-Rule 3 in its own words: *"when your own analysis says something is missing,
-open the file and look."* Second time today a claim about the world came from
-the wrong half of it, and the first was `dressedRoadWidth` measuring the road's
-width while claiming to measure how deep a wall sits in it.
-
-**So eight of a hundred and seventy-six is a small specific fault, not a
-level-wide one, and the only useful question is WHICH walls.** The pub is
-certainly one — its corner is measurably 1.5m inside Hook Street.
-`dressedStuckOn` names them in the next build rather than leaving me to guess a
-third time. **Read that before proposing anything.**
-
-### WIRE `verdict-read.py --lint` INTO verify.py ONCE A VERDICT IS GREEN
-
-Written and working: it reads the newest measuring verdict and flags any
-top-level value with a space inside it, which is the fault that made the
-reader return `0.45(narrowest` today. It knows about nested gate groups now —
-the first version reported forty-one hits, forty of them the last key inside a
-bracketed group carrying the group's closing bracket, and the second still
-reported three because substituting `[]` for an inner group leaves a pair the
-next pass rewrites to itself.
-
-**NOT WIRED YET, DELIBERATELY.** It currently finds one hit — `crowdBodyWidth`
-in the last landed verdict — and that value is already fixed in the emitter,
-so the check is red on a fault that no longer exists. Wiring it now would block
-every commit until a build lands, which is rule 5b's failure exactly: a guard
-that has never been run against the case it must PASS. Land a verdict, confirm
-it reports nothing, then add it to `verify.py`.
-
-### The next reach-ledger entry, with its consumer already found
-
-**`VerbBeat.PhaseProgress` — and the entry does not name the beat that is
-already running.** It reads "how far through an interaction beat the player is,
-for the progress ring nothing draws yet", which sounds like a feature waiting
-on a system. The system is live: `DialogueUI._coatVerb` is a real
-`VerbBeat` — 0.35s anticipation, 0.5s consequence, 0.25s recovery — that fires
-every time the player puts the coat on or takes it off.
-
-So there is a **1.1-second action with no visual feedback whatsoever** already
-in the game, on a verb whose own comment argues that "the wind-up is your
-chance to change your mind". A wind-up you cannot see is not a chance to
-change your mind.
-
-That is game feel rather than an API to tick off, and it needs a round trip to
-judge, so it goes here rather than into the tail of a turn. `PhaseProgress` is
-0..1 through the current phase and is exactly what a cue would read.
 
 ## Next
 
