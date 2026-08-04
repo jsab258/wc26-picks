@@ -52,9 +52,20 @@ SIM = ROOT / "ledger" / "Assets" / "Scripts" / "Game" / "SimDirector.cs"
 # picked up by accident.
 ALLOWLIST = re.compile(r'grep -E "([^"]+)"\s*\\\s*\n\s*sim-run/player\.log')
 
-# `Debug.Log($"SimDirector: ...` — the literal head of the format string, up to
-# the first interpolation. That head is what the allowlist can match on.
-LOGGED = re.compile(r'Debug\.Log(?:Error)?\(\s*\$?"([^"{]{0,60})')
+# THE WHOLE STRING LITERAL, not the head up to the first interpolation.
+#
+# The first version stopped at `{`, and reported `SimDirector: <section> places`
+# as DROPPED when it plainly arrives in every verdict: the allowlist matches it
+# on `alley eyes=`, which sits deeper in that line than the head, past two
+# interpolations. The workflow's own comment says it matches "on distinctive
+# ASCII substrings rather than on a prefix" — and I wrote a checker that could
+# only see prefixes, twenty minutes after writing it to suspect a different
+# instrument.
+#
+# Interpolations stay in as `{...}` and cannot match a pattern, which is
+# correct: whether an allowlist entry matches inside a computed value is not
+# something this can promise, and claiming it would be the same overreach.
+LOGGED = re.compile(r'Debug\.Log(?:Error)?\(\s*\$?"((?:[^"\\]|\\.){0,400})"')
 
 
 def allow_patterns():
@@ -81,10 +92,29 @@ def main():
         return 0
 
     src = SIM.read_text(encoding="utf-8")
-    heads = sorted({h for h in LOGGED.findall(src) if h.startswith("SimDirector: ")})
-    kept, dropped = [], []
-    for h in heads:
-        (kept if any(a in h for a in allow) else dropped).append(h)
+    # THE WHOLE CALL, NOT THE FIRST LITERAL IN IT.
+    #
+    # Second correction to this tool in ten minutes, and the same fault twice:
+    # it kept reporting the places line as dropped when it arrives in every
+    # verdict. Widening from "up to the first interpolation" to "the whole
+    # string literal" was not enough either, because that line is built by
+    # CONCATENATING literals and `alley eyes=` lives in a later fragment of the
+    # same `Debug.Log(...)`.
+    #
+    # So the window is the call: from the head, forward through the source far
+    # enough to cover the concatenation. Crude, and honest about being crude —
+    # it can only over-report a line as REACHING, never as dropped, which is
+    # the safe direction for a tool whose output is a to-do list.
+    seen = {}
+    for m in LOGGED.finditer(src):
+        head = m.group(1)
+        if not head.startswith("SimDirector: "):
+            continue
+        window = src[m.start():m.start() + 900]
+        seen[head] = seen.get(head, False) or any(a in window for a in allow)
+    kept = sorted(h for h, ok in seen.items() if ok)
+    dropped = sorted(h for h, ok in seen.items() if not ok)
+    heads = kept + dropped
 
     show_all = "--all" in sys.argv
     print(f"verdict-reach: {len(heads)} distinct SimDirector log prefixes, "
