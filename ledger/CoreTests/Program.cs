@@ -4513,9 +4513,47 @@ namespace Ledger.CoreTests
             Check(!book.ReachableNow("Lena", new GameTime(3, 4, 0), everyone),
                 "and cannot at four in the morning");
             Check(!book.ReachableNow("Lena", noon, lenaOut), "or when she simply is not there");
-            Check(!book.ReachableNow("Hal", noon, everyone), "somebody with no line is never on one");
-            Check(book.LinesFor("Sam").Count == 1 && book.LinesFor("nobody").Count == 0,
+            // SOMEBODY WITH NO LINE OF THEIR OWN IS NOT ON A PRIVATE ONE — and
+            // this used to read "is never on one", which stopped being the rule
+            // the moment `Phone.Public` was read at all.
+            //
+            // At eleven at night the bar is open and the boarding house is
+            // shut, so the only line live is a private one Hal is not on. That
+            // is the assertion that still means something, and it is sharper
+            // than the old one: it pins what PUBLIC buys rather than what
+            // having no number costs.
+            var lateNight = new GameTime(3, 23, 0);
+            Check(!book.ReachableNow("Hal", lateNight, everyone),
+                "somebody with no line of their own is not on a private one");
+            Check(book.ReachableNow("Lena", lateNight, everyone),
+                "and its regular still is, at the same hour — so it is the LINE that "
+                + "changed and not the clock");
+            Check(book.LinesFor("Sam").Count == 1,
                 "you can ask what numbers somebody might be on");
+
+            // A PUBLIC LINE IS ONE ANYBODY CAN USE, AND NOTHING READ THE FLAG.
+            //
+            // `Phone.Public` was set by `PhoneSetup` on three lines, saved and
+            // restored, and consulted nowhere — so `LinesFor` matched regulars
+            // only, the player is nobody's regular, and `ReachableNow("player")`
+            // was false at every hour. `summonsTaken=0` in a hundred and
+            // thirty-one runs is that field never being read.
+            //
+            // BOTH DIRECTIONS, and the second is the one that matters: a
+            // stranger reaches the callbox and does NOT reach the private line
+            // beside it, or "public" would mean nothing at all.
+            var box = new PhoneBook();
+            box.Add(new Phone { PlaceId = "hall", PlaceName = "the hall phone",
+                                OpenFrom = 7, OpenTo = 22, Public = true });
+            box.Add(new Phone { PlaceId = "office", PlaceName = "the office",
+                                OpenFrom = 9, OpenTo = 17 });
+            Check(box.LinesFor("a stranger").Count == 1
+                  && box.LinesFor("a stranger")[0].PlaceId == "hall",
+                "a stranger can use the hall phone and not the office line");
+            Check(box.ReachableNow("a stranger", noon, everyone),
+                "so somebody with no number of their own is still reachable at a callbox");
+            Check(!box.ReachableNow("a stranger", new GameTime(3, 4, 0), everyone),
+                "and not when the hall is shut, which is the hours still deciding");
 
             // FIDELITY is the price of reach, and it cuts both ways: a call
             // cannot read a face, so your lies land better AND so do theirs.

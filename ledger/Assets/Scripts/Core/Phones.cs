@@ -126,10 +126,38 @@ namespace Ledger.Core
         }
 
         /// Every line this person could conceivably be reached on.
+        /// AND A PUBLIC LINE IS A LINE ANYBODY CAN USE, which this did not know.
+        ///
+        /// This matched on `Regulars` alone, and `Phone.Public` — set on three
+        /// lines by `PhoneSetup`, saved by `Capture`, restored by `Restore` —
+        /// was read by NOTHING. A field written, persisted and never consulted.
+        ///
+        /// What it cost is one mechanic, entirely. `ReachableNow` is this
+        /// method's only consumer, and the player is nobody's regular, so
+        /// `LinesFor("player")` returned an empty list at every hour of every
+        /// day and the rival's summons could only ever be missed.
+        /// `gates.py --constant` says `summonsTaken=0` across a hundred and
+        /// thirty-one runs — every verdict this project has kept — and
+        /// `summonsMissWhy=[no line was live at that hour]`, which is the
+        /// diagnosis this method made impossible to trust: three lines WERE
+        /// live at nine at night. The boarding house closes at ten, the
+        /// Marquee opens at seven and runs to four, and the Gullwing keeps
+        /// eleven. The hour was never the problem.
+        ///
+        /// `SummonsHost` even carries a paragraph about adding the player
+        /// branch to `NearPhone` "which made `Took` REACHABLE". It could not
+        /// have. The proximity test was fixed and the list it filters was empty.
+        ///
+        /// The public flag's own comment says what it is for: "a hall phone in
+        /// a boarding house is answered by whoever is passing." Whoever is
+        /// passing includes the player. Proximity still decides — `ReachableNow`
+        /// asks `whoIsNear` about every line this returns — so a public line is
+        /// a callbox you have to be standing at, not a number everybody owns.
         public List<Phone> LinesFor(string personId)
         {
             var list = new List<Phone>();
-            foreach (var p in _phones) if (p.Regulars.Contains(personId)) list.Add(p);
+            foreach (var p in _phones)
+                if (p.Public || p.Regulars.Contains(personId)) list.Add(p);
             return list;
         }
 
