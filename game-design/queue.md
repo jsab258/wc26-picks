@@ -94,6 +94,17 @@ for Jafar off a still, not a number for me to move against a measured decision.
 9. **Six cards still lack example lines**, down from sixty. Small, local, no key
    needed to identify them.
 
+- **IS FIFTY-SIX CONVERSATIONS A RUN TOO MANY?** A judgement about how
+  talkative a street should feel, which is Jafar's off a still and not mine
+  off a number. The history: 16–42 a run (mean ~24) under the old flat-3.0m
+  road test, 7 after the walking pace slowed, and 56 now the test asks about
+  junctions instead. So the junction rule is more permissive than the old one
+  was even before the regression. It is defensible — the old test was
+  rejecting 96% of pairs by asking for something the world never produces —
+  but "defensible" is not the same as "right", and the number that decides it
+  is how the street READS, not how it counts. Worth a look at the night still
+  once the speech bubbles stop overlapping.
+
 ## Blocked, and on whom
 
 - **THE MONEY DOES NOT MATCH THE DECADE, and it is a decision rather than a
