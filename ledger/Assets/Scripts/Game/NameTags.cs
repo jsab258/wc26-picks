@@ -54,6 +54,9 @@ namespace Ledger.Game
 
         static readonly List<Candidate> _offered = new List<Candidate>();
         static readonly HashSet<TextMesh> _managed = new HashSet<TextMesh>();
+        /// Reused rather than allocated per frame — this runs inside the frame
+        /// budget the `frame` gate is red against.
+        static readonly HashSet<TextMesh> _distinct = new HashSet<TextMesh>();
         static int _frame = -1;
 
         /// How many labels stood down on the last resolved frame, and how many
@@ -260,6 +263,21 @@ namespace Ledger.Game
         /// medians are only ever read from the done-line.
         public static void CloseTextStats()
         {
+            // HOW MANY OF THE "MANAGED" LABELS NO LONGER EXIST.
+            //
+            // `_managed` is never pruned and `PopulationHost` destroys crowd
+            // walkers all run, so this set holds a dead reference for every
+            // label that has ever left the street. Counting them is a
+            // MEASUREMENT and not a repair on purpose: pruning would change
+            // what `ManagedEver` means in the same build that is finally
+            // testing what it means, and this metric has already produced three
+            // wrong answers from readings taken at cross purposes.
+            //
+            // Unity's `==` is true for a destroyed object, which is what makes
+            // this countable at all.
+            ManagedDead = 0;
+            foreach (var l in _managed) if (l == null) ManagedDead++;
+
             NameFracMedian = MedianOf(_nameFracs);
             BubbleFracMedian = MedianOf(_bubbleFracs);
             NameFracP90 = QuantileOf(_nameFracs, 0.90);
@@ -361,9 +379,50 @@ namespace Ledger.Game
         {
             if (label == null) return;
             Sweep();
+            Offers++;
             _managed.Add(label);
             _offered.Add(new Candidate { Label = label, Distance = distance });
         }
+
+        /// HOW MANY TIMES ANYTHING HAS OFFERED A LABEL, EVER. A plain integer
+        /// with no object identity in it, which is the entire point.
+        ///
+        /// `ManagedEver` was supposed to be this number and cannot be trusted
+        /// to be: it is the size of a `HashSet<TextMesh>`, and this counter
+        /// exists because that set has now produced an arithmetic
+        /// impossibility three readings running — `nameTagsOffered=42` in a
+        /// single frame against `namesManagedEver=24` for the whole run, when
+        /// every offer adds to the set. Three explanations have been published
+        /// for that and all three were wrong, so this one is built to be
+        /// unfalsifiable in the useful direction: it counts CALLS, and nothing
+        /// about a destroyed object, a recycled instance id or a duplicate can
+        /// touch it.
+        public static int Offers { get; private set; }
+
+        /// DISTINCT LABELS IN A SINGLE FRAME'S OFFER LIST, AT THE WORST FRAME.
+        ///
+        /// THE DISCRIMINATOR, and it is the only new number here that can name
+        /// the fault rather than route around it. Two explanations survive
+        /// reading the code:
+        ///
+        ///   - `_offered` collects DUPLICATES within one frame, so the peak
+        ///     counts one walker twice. Then this comes back below
+        ///     `OfferedPeak`, and the resolve loop has been comparing labels
+        ///     against themselves, marking them blocked and setting their alpha
+        ///     to zero — which would also explain `nameTagsHidden=33` beside
+        ///     names still legible in the frames.
+        ///
+        ///   - `_managed` is failing to GROW for genuinely distinct labels.
+        ///     `PopulationHost` destroys crowd walkers constantly and their
+        ///     labels go with them; the set is never pruned, so it holds
+        ///     hundreds of dead references, and Unity does not promise an
+        ///     instance id is unique for the life of a session. Then this comes
+        ///     back EQUAL to `OfferedPeak` and the lifetime set is the broken
+        ///     thing.
+        ///
+        /// Both are reachable and they disagree, which is what the last three
+        /// readings could not manage between them.
+        public static int OfferedDistinctPeak { get; private set; }
 
         /// Is this one of the labels this class is responsible for?
         ///
@@ -386,6 +445,12 @@ namespace Ledger.Game
         /// which is the fork `namesTracked=0` beside `nameTagsOffered=43` left
         /// open, because a peak of zero is consistent with both.
         public static int ManagedEver => _managed.Count;
+
+        /// Entries in that set whose label has since been destroyed. The
+        /// denominator `ManagedEver` never had: a set of 24 that is 20 corpses
+        /// is describing four live labels, and reads identically to a set of 24
+        /// live ones.
+        public static int ManagedDead { get; private set; }
 
         /// Resolve the previous frame's offers once, at the start of the next.
         ///
@@ -412,6 +477,16 @@ namespace Ledger.Game
         {
             Offered = _offered.Count;
             if (Offered > OfferedPeak) OfferedPeak = Offered;
+            // COUNTED WITHIN THE FRAME, where every label is still alive and
+            // its identity cannot be in question — which is exactly what makes
+            // this comparable with `OfferedPeak` when the lifetime set is not.
+            if (_offered.Count > 0)
+            {
+                _distinct.Clear();
+                foreach (var c in _offered) if (c.Label != null) _distinct.Add(c.Label);
+                if (_distinct.Count > OfferedDistinctPeak)
+                    OfferedDistinctPeak = _distinct.Count;
+            }
             Suppressed = 0;
             Unresolved = 0;
             OffScreenNow = 0;

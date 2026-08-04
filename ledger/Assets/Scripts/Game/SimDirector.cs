@@ -1789,6 +1789,20 @@ namespace Ledger.Game
                       // `_managed` only grows, so the run-final value is the
                       // one that can be compared with `nameTagsOffered`.
                       + $" namesManagedEver={NameTags.ManagedEver}"
+                      // THE THREE THAT SETTLE IT, and none of them is a
+                      // re-reading of the two above. `namesOfferCalls` counts
+                      // CALLS and cannot be touched by object identity;
+                      // `namesDistinctPeak` counts distinct labels WITHIN one
+                      // frame, where nothing has been destroyed yet;
+                      // `namesManagedDead` is how much of the lifetime set is
+                      // corpses. Distinct below the offer peak means duplicate
+                      // offers; distinct equal to it means the lifetime set is
+                      // the broken instrument. Three readings of this metric
+                      // have produced three wrong answers, all from numbers
+                      // that could not distinguish those two.
+                      + $" namesOfferCalls={NameTags.Offers}"
+                      + $" namesDistinctPeak={NameTags.OfferedDistinctPeak}"
+                      + $" namesManagedDead={NameTags.ManagedDead}"
                       + $" textNoText={_textNoText}"
                       + $" textInvisible={_textInvisible}"
                       + $" textNoRect={_textNoRect}");
