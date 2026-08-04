@@ -1042,6 +1042,7 @@ namespace Ledger.Game
             SampleBodies();
             SampleMix();
             SampleBubbles();
+            SampleCrowding();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
             if (!_tookNightShot && now.Hour == 23)
             {
@@ -2228,6 +2229,90 @@ namespace Ledger.Game
 
         /// Reused across ticks so the per-tick sample allocates nothing.
         readonly List<Rect> _bubbleRects = new List<Rect>();
+
+        /// ARE THE PEOPLE STANDING INSIDE EACH OTHER.
+        ///
+        /// `review_day1_night` from `bc4c689` shows the dockside crowd as a
+        /// stack: six or seven figures occupying one body's worth of pavement,
+        /// layered rather than gathered. Every gate on that frame was green,
+        /// and correctly — they all ask whether a system ADDED something, and
+        /// none of them asks what the frame LOOKS like, which is the third
+        /// time that exact sentence has been true this week.
+        ///
+        /// A grep confirms the cause rather than a guess about it: `NpcWalker`
+        /// has no separation, no avoidance and no personal space at all. Two
+        /// walkers heading for the same doorway occupy the same metre and
+        /// nothing anywhere objects.
+        ///
+        /// MEASURED, NOT FIXED, and in that order for the usual reason. A
+        /// crowd that never touches is as wrong as one that interpenetrates —
+        /// people in a queue stand close — so the repair is a distance and I do
+        /// not have one. This prints the series and the series decides it.
+        ///
+        /// 0.45m IS A BODY, NOT A THRESHOLD I PICKED. `bodiesOk` already
+        /// measures these figures at 1.58m to 1.91m tall; a person that tall is
+        /// roughly 0.45m across the shoulders, so two centres closer than that
+        /// are inside one another by construction. It is a fact about the
+        /// meshes rather than a number chosen to make a reading look good.
+        const float BodyWidth = 0.45f;
+
+        void SampleCrowding()
+        {
+            var cam = Camera.main;
+            if (cam == null || _npcs == null) return;
+            _crowdSeen.Clear();
+            foreach (var n in _npcs)
+            {
+                if (n == null || !n.isActiveAndEnabled) continue;
+                var v = cam.WorldToViewportPoint(n.transform.position);
+                if (v.z <= 0 || v.x < 0 || v.x > 1 || v.y < 0 || v.y > 1) continue;
+                _crowdSeen.Add(n.transform.position);
+            }
+            if (_crowdSeen.Count < 2) return;
+            int inside = 0;
+            float tightest = float.MaxValue;
+            for (int i = 0; i < _crowdSeen.Count; i++)
+                for (int j = i + 1; j < _crowdSeen.Count; j++)
+                {
+                    // FLAT. Two people on a kerb and a step are not standing in
+                    // each other, and a 3D distance would call them separate
+                    // when they are side by side — the same 3D-against-flat
+                    // mismatch that made `TightestGap` disagree with its own
+                    // job trace.
+                    var a = _crowdSeen[i]; var b = _crowdSeen[j];
+                    float d = new Vector2(a.x - b.x, a.z - b.z).magnitude;
+                    if (d < tightest) tightest = d;
+                    if (d < BodyWidth) inside++;
+                }
+            // THE DENOMINATOR FROM THE SAME INSTANT. Twelve overlapping pairs
+            // among fifty people and among thirteen are opposite findings, and
+            // this file has now shipped that mistake four times.
+            if (inside > _crowdInside)
+            {
+                _crowdInside = inside;
+                _crowdSeenAtWorst = _crowdSeen.Count;
+            }
+            if (tightest < _crowdTightest) _crowdTightest = tightest;
+            _crowdGaps.Add(tightest);
+        }
+
+        readonly List<Vector3> _crowdSeen = new List<Vector3>();
+        readonly List<float> _crowdGaps = new List<float>();
+        int _crowdInside, _crowdSeenAtWorst;
+        float _crowdTightest = float.MaxValue;
+
+        /// The typical closest approach in frame, against the worst one. -1
+        /// when nothing was ever sampled — a gap of zero is a real reading.
+        double CrowdGapMedian
+        {
+            get
+            {
+                if (_crowdGaps.Count == 0) return -1;
+                var s = new List<float>(_crowdGaps);
+                s.Sort();
+                return s[s.Count / 2];
+            }
+        }
 
         /// Every sampled instant's overlap FRACTION, for the median. Unbounded
         /// by design — it grows once per sample, and the sampler runs on the
@@ -7365,6 +7450,13 @@ namespace Ledger.Game
                       // every run, the condition wants PLANTING, not a looser
                       // bound.
                       $"claimOverheard={LawHost.ClaimOverheard} " +
+                      // THE CROWD AS A CROWD RATHER THAN A STACK. Reported, not
+                      // gated — the bound does not exist until the series does,
+                      // and a crowd that never touches is as wrong as one that
+                      // interpenetrates.
+                      $"crowdInside={_crowdInside} crowdSeenAtWorst={_crowdSeenAtWorst} " +
+                      $"crowdTightest={(_crowdTightest == float.MaxValue ? -1f : _crowdTightest):0.00} " +
+                      $"crowdGapMedian={CrowdGapMedian:0.00} crowdGapSamples={_crowdGaps.Count} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +
                       $"lines={_game.Phones.All.Count} answered={_callsAnswered} " +
