@@ -1288,7 +1288,34 @@ namespace Ledger.Game
                             if (prig.HeadAboveHips < _worstHeadAboveHips)
                                 _worstHeadAboveHips = prig.HeadAboveHips;
                             if (prig.HipsAboveFeet < _worstHipsAboveFeet)
+                            {
                                 _worstHipsAboveFeet = prig.HipsAboveFeet;
+                                // WHEN, AND WHAT THE BODY WAS DOING.
+                                //
+                                // All six `bodies` failures in sixty kept runs
+                                // read `hipsOverFeet=-0.78`, identical to two
+                                // decimals. A value that accumulates GROWS; a
+                                // wrong absolute is CONSTANT, and this project
+                                // has diagnosed a rig fault off exactly that
+                                // signature before — a number sitting at
+                                // -0.775 all run.
+                                //
+                                // So this is not noise and it is not drift: it
+                                // is one specific state, entered on about one
+                                // run in ten. A worst-over-run number cannot
+                                // say WHICH state, so it now records the day,
+                                // the hour and the clip that was playing when
+                                // the worst reading was taken. If it is the
+                                // Fall — the run stages one — the gate is
+                                // over-specified and the fix is the assertion;
+                                // if it is an ordinary walking hour, the rig
+                                // inverts sometimes and the fix is the rig.
+                                // Those are completely different searches and
+                                // guessing between them costs a round trip.
+                                _worstPoseDay = _game != null ? _game.Now.Day : -1;
+                                _worstPoseHour = _game != null ? _game.Now.Hour : -1;
+                                _worstPoseClip = prig.ClipName ?? "none";
+                            }
                         }
                     }
                 }
@@ -1297,6 +1324,8 @@ namespace Ledger.Game
 
         bool _postureSeen;
         float _worstHeadAboveHips, _worstHipsAboveFeet;
+        int _worstPoseDay = -1, _worstPoseHour = -1;
+        string _worstPoseClip = "none";
         bool _prePostureSeen;
         float _worstPreHeadAboveHips, _worstPreHipsAboveFeet;
         float _worstBodyPitch, _worstBodyRoll;
@@ -5853,6 +5882,7 @@ namespace Ledger.Game
                  $"knee={_bodyMinKnee:0.0}..{_bodyMaxKnee:0.0} cull={_bodyCulled}/{_bodyCullable} " +
                  $"h={_bodyShortest:0.00}..{_bodyTallest:0.00} primitive={PlayerPrimitiveShowing()} up={RealBody.Upright:0.00} "
                  + $"headOverHips={_worstHeadAboveHips:0.00} hipsOverFeet={_worstHipsAboveFeet:0.00} "
+                 + $"worstAt=day{_worstPoseDay}h{_worstPoseHour}[{_worstPoseClip}] "
                  + $"dressed={RealBody.Dressed} skinned={RealBody.Skinned} "
                  + $"clothed={RealBody.Clothed} coat={RealBody.DressedAreaFraction:0.000} "
                  + $"parts=({RealBody.Parts})]", bodiesOk),
