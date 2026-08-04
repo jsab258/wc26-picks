@@ -8732,6 +8732,18 @@ namespace Ledger.Game
                       $"ikWorstHit=[{FootIk.WorstHit}] " +
                       $"ikPlantedGoals={FootIk.PlantedGoals} " +
                       $"ikPlantedMedian={FootIk.PlantedMedian:0.000} " +
+                      // THE PAIR THAT CAN ACTUALLY ACCUSE THE BLEND. The two
+                      // correction medians above cannot: `correction` is
+                      // derived from `blend`, so a swinging foot contributes an
+                      // arithmetic zero and the overall median is the planted
+                      // one diluted. These are the raw foot-above-road, which
+                      // the blend does not touch, so both outcomes are
+                      // reachable. Signed, and with counts, because a drop can
+                      // legitimately be negative and -1 is the empty sentinel.
+                      $"ikDropMedian={FootIk.DropMedian:0.000} " +
+                      $"ikPlantedDropMedian={FootIk.PlantedDropMedian:0.000} " +
+                      $"ikDropSamples={FootIk.DropSamples} " +
+                      $"ikPlantedDropSamples={FootIk.PlantedDropSamples} " +
                       // AND THE LEG THE CORRECTION IS MEASURED AGAINST,
                       // because eighteen centimetres means nothing until
                       // you know whether the leg is 0.88m or 0.38m. It was

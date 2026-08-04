@@ -101,6 +101,46 @@ namespace Ledger.Game
             new System.Collections.Generic.List<float>();
         public static double CorrectionMedian = -1;
 
+        /// HOW FAR THE ANIMATED FOOT IS ABOVE THE ROAD, before the IK touches
+        /// it — over every goal, and over the planted ones alone.
+        ///
+        /// THESE EXIST BECAUSE THE FORK ABOVE COULD NOT ANSWER ITS OWN
+        /// QUESTION, and the comment that set it up is fifty lines below this
+        /// one. It said: if the planted median is small the body is fine, and
+        /// if it is "as large as the overall one" the IK is being applied at
+        /// the wrong moments. The second half is unreachable.
+        ///
+        /// `correction` is `|wantedY - animated.y|` and `wantedY` comes from
+        /// `Rig.FootHeight(animated.y, ground, blend)`, which returns
+        /// `animated.y` when the blend is zero. So a swinging foot contributes
+        /// a STRUCTURAL zero — not a small number, an arithmetic one — and
+        /// roughly half of every walk cycle is swinging. The overall median is
+        /// the planted median diluted by those zeros and can only ever be
+        /// SMALLER. `ikCorrectionMedian=0.031` against `ikPlantedMedian=0.073`
+        /// is that dilution and nothing else; the two were one measurement
+        /// twice, which is the shape this project keeps writing into comments
+        /// and believing.
+        ///
+        /// The drop is the quantity the blend does not touch. If `PlantBlend`
+        /// is timed to the clip, planted frames are the frames the foot is
+        /// DOWN, and `PlantedDropMedian` should be far below `DropMedian`. If
+        /// the two clocks are independent, "planted" is a random slice of the
+        /// cycle and the two medians land on top of each other. That test
+        /// cannot be satisfied by construction, which is the whole difference.
+        ///
+        /// SIGNED, deliberately. A foot under the road and a foot above it are
+        /// different faults — one is a clip walking through geometry, the other
+        /// is a rig floating — and `System.Math.Abs` would print them as the
+        /// same number.
+        public static double DropMedian = -1;
+        public static double PlantedDropMedian = -1;
+        static readonly System.Collections.Generic.List<float> _drops =
+            new System.Collections.Generic.List<float>();
+        static readonly System.Collections.Generic.List<float> _plantedDrops =
+            new System.Collections.Generic.List<float>();
+        public static int DropSamples => _drops.Count;
+        public static int PlantedDropSamples => _plantedDrops.Count;
+
         /// STRIDED AND CAPPED, AND IT SAYS SO. Two feet on sixty-seven bodies
         /// for two thousand frames is a quarter of a million samples, which is
         /// megabytes held for one number. Every sixteenth is taken instead, and
@@ -125,6 +165,10 @@ namespace Ledger.Game
             _planted.Clear();
             PlantedGoals = 0;
             PlantedMedian = -1;
+            _drops.Clear();
+            _plantedDrops.Clear();
+            DropMedian = -1;
+            PlantedDropMedian = -1;
             _seen = 0;
         }
 
@@ -134,16 +178,30 @@ namespace Ledger.Game
         /// read off the done-line.
         public static void Close()
         {
-            if (_corrections.Count == 0) { CorrectionMedian = -1; return; }
-            var copy = new System.Collections.Generic.List<float>(_corrections);
+            CorrectionMedian = Middle(_corrections);
+            PlantedMedian = Middle(_planted);
+            DropMedian = Middle(_drops);
+            PlantedDropMedian = Middle(_plantedDrops);
+        }
+
+        /// ONE MEDIAN, FOUR CALLERS. The first version inlined it twice and the
+        /// second copy carried an early `return` that skipped the planted one
+        /// whenever the corrections list was empty — a guard on one list
+        /// silently deciding another list's answer. Four copies of that would
+        /// have been four chances at it.
+        ///
+        /// -1 FOR EMPTY, WHICH IS NOT SAFE ON ITS OWN FOR THE DROPS. A drop of
+        /// 0.000 is a foot exactly on the road — the best possible reading — so
+        /// zero cannot mean "nothing sampled"; but the drop series is SIGNED,
+        /// and a foot a metre under the road would print -1 too. The counts
+        /// below are the denominator that separates them, and they are printed
+        /// for exactly that reason.
+        static double Middle(System.Collections.Generic.List<float> xs)
+        {
+            if (xs.Count == 0) return -1;
+            var copy = new System.Collections.Generic.List<float>(xs);
             copy.Sort();
-            CorrectionMedian = copy[(copy.Count - 1) / 2];
-            if (_planted.Count > 0)
-            {
-                var pl = new System.Collections.Generic.List<float>(_planted);
-                pl.Sort();
-                PlantedMedian = pl[(pl.Count - 1) / 2];
-            }
+            return copy[(copy.Count - 1) / 2];
         }
 
         /// Attached by `CharacterRig`, which owns the phase and the leg length.
@@ -259,8 +317,20 @@ namespace Ledger.Game
                 WorstDrop = animated.y - ground;
             }
             if (System.Math.Abs(ground - animated.y) > Rig.MaxFootAdjustMetres) Clamped++;
-            if (_seen++ % Stride == 0 && _corrections.Count < MaxSamples)
+
+            // ONE STRIDE DECISION FOR ALL FOUR SERIES, TAKEN BEFORE THE
+            // COUNTER MOVES. The first version wrote `_seen++ % Stride` here
+            // and `_seen % Stride` twenty lines down, so the planted samples
+            // came from a stride offset by one from the corrections — two
+            // series that read as the same sample set and were not. Harmless
+            // to a median and not harmless to anybody comparing them frame by
+            // frame later, which is the only reason to print them together.
+            bool sample = _seen % Stride == 0;
+            _seen++;
+            double drop = animated.y - ground;
+            if (sample && _corrections.Count < MaxSamples)
                 _corrections.Add((float)correction);
+            if (sample && _drops.Count < MaxSamples) _drops.Add((float)drop);
 
             // AND THE SAME NUMBER FOR A FOOT THAT IS SUPPOSED TO BE PLANTED,
             // which is the one that can accuse the blend rather than the body.
@@ -285,11 +355,29 @@ namespace Ledger.Game
             // are independent, so "planted" can land anywhere in the clip's
             // cycle. That would be one idea with two clocks, which is this
             // project's most repeated shape.
+            //
+            // THE FORK ABOVE IS RIGGED AND `ikPlantedMedian=0.073` AGAINST
+            // `ikCorrectionMedian=0.031` DID NOT TEST IT. `correction` is
+            // computed FROM `blend`: at blend zero `Rig.FootHeight` returns the
+            // animated height unchanged, so every swinging goal contributes an
+            // arithmetic zero. The overall median is the planted one diluted by
+            // those zeros and is therefore always the smaller of the two,
+            // whatever the rig is doing. Two numbers out of one variable, read
+            // as agreement — the fault this project keeps writing into its own
+            // comments, three sites now.
+            //
+            // `drop` is what the blend cannot touch. Planted frames should be
+            // the frames the foot is DOWN, so `ikPlantedDropMedian` well below
+            // `ikDropMedian` means the blend is timed to the clip, and the two
+            // landing together means it is not. Both outcomes are reachable,
+            // which is the only property the first test lacked.
             if (blend > 0.9)
             {
                 PlantedGoals++;
-                if (_seen % Stride == 0 && _planted.Count < MaxSamples)
+                if (sample && _planted.Count < MaxSamples)
                     _planted.Add((float)correction);
+                if (sample && _plantedDrops.Count < MaxSamples)
+                    _plantedDrops.Add((float)drop);
             }
             Goals++;
 
