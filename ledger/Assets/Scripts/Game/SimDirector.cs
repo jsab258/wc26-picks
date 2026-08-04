@@ -1596,6 +1596,15 @@ namespace Ledger.Game
         int _labelsColliding = -1;
         int _textMirrored = 0;
 
+        /// How far out the billboards were at the instant a still was taken, and
+        /// how many there were to correct. See the block in `Shot` — these are
+        /// sampled BEFORE the aim, which is the only ordering that can measure
+        /// the fault rather than the repair.
+        int _billboardsStale = 0;
+        float _billboardWorstDeg = 0f;
+        int _billboardsAimed = 0;
+        int _billboardsTracked = 0;
+
         /// See the note at the call site. Two numbers, each answering one
         /// question a still asked and no gate could.
         void MeasureTextFaults()
@@ -4201,6 +4210,50 @@ namespace Ledger.Game
             // like one where the hiding worked.
             if (NoiseRing.SetHiddenForCapture(true)) _shotsWithRingHidden++;
 
+            // THE BILLBOARDS ARE AIMED AT LAST FRAME'S CAMERA UNTIL THIS LINE.
+            //
+            // `review_day5_night.jpg` prints two rumour lines across the frame
+            // BACKWARDS, mirrored and skewed, while the nameplates beside them
+            // read correctly. `SpeechBubble` aims in `LateUpdate` and
+            // `NpcWalker` aims from `Tick`; this method runs in `Update` and
+            // calls `cam.Render()` by hand — so every still ever committed was
+            // drawn with the previous frame's aim, and at `meanFrame=334ms`
+            // that is a third of a second of camera movement. On a bubble two
+            // metres from the lens it is enough to swing past it, and the
+            // built-in text shader is `Cull Off`, so the reverse face draws
+            // instead of vanishing.
+            //
+            // MEASURED FIRST, THEN FIXED, and in that order deliberately.
+            // After `AimAll` the count is zero by construction and would be a
+            // gate certifying its own fix; taken before, it is the size of the
+            // fault in the frame that is about to be written. Worst over the
+            // run, because one still with a line printed backwards is the fault
+            // — the same reason `bubblesOnScreen` became a peak the night it
+            // read 0 beside a picture with two bubbles in it.
+            int staleNow = Billboard.Misaimed(cam, 20f);
+            if (staleNow > _billboardsStale) _billboardsStale = staleNow;
+            float staleDeg = Billboard.WorstDegrees(cam);
+            if (staleDeg > _billboardWorstDeg) _billboardWorstDeg = staleDeg;
+            _billboardsAimed = Billboard.AimAll(cam);
+            _billboardsTracked = Billboard.Tracked;
+            // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
+            // because that is the frame that gets written. It used to run once,
+            // at the audit moment, and reported 0 for a run whose committed
+            // still has mirrored text in it: right scope, wrong instant, the
+            // third metric this week with exactly that fault.
+            //
+            // SO THE TWO NUMBERS ASK DIFFERENT QUESTIONS AND BOTH ARE NEEDED.
+            // `billboardsStale` is how wrong the aim was before this line —
+            // the size of the bug, and it stays non-zero forever because
+            // billboards genuinely drift for a frame. `textMirrored` is whether
+            // any visible text is backwards, peaked over every instant it is
+            // sampled at, and this call adds the twenty instants that matter
+            // most: the ones that become files. The audit-moment call is kept,
+            // because a frame the player sees is worth checking too. Reading
+            // either number as the other is how a fix gets declared from the
+            // wrong evidence.
+            MeasureTextFaults();
+
             RenderTexture rt = null;
             Texture2D tex = null;
             var prevTarget = cam.targetTexture;
@@ -6318,6 +6371,10 @@ namespace Ledger.Game
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesOnScreen={_bubblesOnScreen} " +
                       $"textMirrored={_textMirrored} " +
+                      $"billboardsStale={_billboardsStale} " +
+                      $"billboardWorstDeg={_billboardWorstDeg:0.0} " +
+                      $"billboardsAimed={_billboardsAimed} " +
+                      $"billboardsTracked={_billboardsTracked} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
                       $"nameTagsTooNear={NameTags.TooNear} nameTagsRects={NameTags.RectCalls} " +
                       $"worstNameMetres={NameTags.WorstNameMetres:0.00} " +
@@ -6390,6 +6447,13 @@ namespace Ledger.Game
                       $"bodyCoverageRead={RealBody.CoverageRead} " +
                       $"bodyClothed={RealBody.Clothed} " +
                       $"bodyParts=[{RealBody.Parts}] " +
+                      // BESIDE THE COVERAGE, because they contradict each other
+                      // in the stills and only together do they say why. The
+                      // coverage numbers ask whether a coat material reached
+                      // every mesh and answer yes; the frame shows a figure that
+                      // reads as bare plastic. `bodyCoat` is the missing third
+                      // fact — what colour "coat" turned out to be.
+                      $"bodyCoat=[{RealBody.CoatRead}] " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       $"bindHeadAboveHips={RealBody.BindHeadAboveHips:0.000} " +
                       $"bindHipsAboveFeet={RealBody.BindHipsAboveFeet:0.000} " +

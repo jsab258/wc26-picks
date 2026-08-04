@@ -128,6 +128,13 @@ namespace Ledger.Game
 
             b._until = Time.time + seconds;
             b._fadeFrom = seconds * 0.7f;
+            // AIMED ONCE HERE, BEFORE ANY FRAME DRAWS IT. A bubble created
+            // during `Update` gets its first `LateUpdate` after the frame it was
+            // born in has already been rendered — so without this it spends its
+            // first frame at identity rotation, facing world north, which is a
+            // mirror image from anywhere south of the speaker.
+            Billboard.Register(go.transform);
+            Billboard.Aim(go.transform, Camera.main);
             return b;
         }
 
@@ -140,34 +147,24 @@ namespace Ledger.Game
             if (_follow == null) { Destroy(gameObject); return; }
             transform.position = _follow.position + Vector3.up * 2.05f;
 
-            // YAW ONLY, AND THIS IS THE SECOND SITE OF A BUG THAT WAS FIXED
-            // ONCE AND NEVER GREPPED FOR.
-            //
-            // One-argument `LookRotation` takes world up as its hint, so when
-            // the forward vector is near-vertical the basis is degenerate. The
-            // review camera looks DOWN at the street, which is exactly that
-            // case, and `review_day1_night.jpg` shows the result: spoken lines
-            // lying flat across the pavement, stretched in perspective, over a
-            // crowd of nameplates doing the same thing.
-            //
-            // `NpcWalker` carries a paragraph explaining this precisely, for
-            // the nameplates, ending "flattening the direction to the
-            // horizontal plane is the whole fix". It was the whole fix there.
-            // Nobody asked which other TextMesh billboarded itself the same
-            // way, and this one has been lying in the road ever since — which
-            // is rule 1's corollary about grepping for the claim you have just
-            // falsified elsewhere, owed and unpaid.
-            var cam = Camera.main;
-            if (cam != null)
-            {
-                var to = transform.position - cam.transform.position;
-                to.y = 0f;
-                if (to.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(to);
-            }
+            // YAW ONLY, AND THIS WAS THE SECOND SITE OF A BUG THAT WAS FIXED
+            // ONCE AND NEVER GREPPED FOR — so the maths now lives in exactly one
+            // place and this calls it. `Billboard` carries the paragraph about
+            // the degenerate basis and the paragraph about why the SHOT has to
+            // re-aim as well; both are about this object.
+            Billboard.Aim(transform, Camera.main);
 
             // PROVEN, NOT ASSERTED. Dot of the bubble's own up-vector with
             // world up: 1.0 standing, 0.0 flat on the ground. Worst over the
             // run, because one line lying down is the fault.
+            //
+            // AND IT ANSWERS A NARROWER QUESTION THAN IT LOOKS. It is sampled
+            // one line after the aim, so it reports the rotation this method
+            // just set — never the rotation the committed still was rendered
+            // at, which is the previous frame's. `speechUpDot=1.000` sat beside
+            // a frame with two lines printed backwards and both were true.
+            // `billboardsStale` is the number for the picture; this one only
+            // says the aim itself is not degenerate.
             double up = Vector3.Dot(transform.up, Vector3.up);
             if (up < WorstUpDot) WorstUpDot = up;
 

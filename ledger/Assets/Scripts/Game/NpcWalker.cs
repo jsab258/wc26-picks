@@ -140,6 +140,11 @@ namespace Ledger.Game
             // ZTest Always, and a screenshot caught "Lucille Salas" lying
             // across the rooftops at noon.
             WorldText.Adopt(npc._label);
+            // AND THE SHOT HAS TO BE ABLE TO RE-AIM IT. The aim below happens in
+            // `Tick`; `SimDirector.Shot` renders by hand from `Update`, so the
+            // committed frame is drawn with whatever rotation the last tick left
+            // behind. Registering here is what lets the shot correct that.
+            Billboard.Register(labelGo.transform);
             labelGo.SetActive(false);
 
             return npc;
@@ -876,23 +881,13 @@ namespace Ledger.Game
                 {
                     if (!_label.gameObject.activeSelf) _label.gameObject.SetActive(true);
                     var c = _label.color; c.a = alpha; _label.color = c;
-                    // YAW ONLY, AND THAT IS THE WHOLE BUG. One-argument
-                    // `LookRotation` takes world up as its hint, so when the
-                    // forward vector is near-vertical the basis is degenerate —
-                    // and the review camera looks DOWN at the street, which is
-                    // exactly that case. The names in `review_day1_night.jpg`
-                    // are not overlapping so much as LYING IN THE ROAD,
-                    // stretched across the pavement in perspective.
-                    //
-                    // A nameplate should stand upright whatever the camera's
-                    // pitch — it is a label on a person, not a decal on the
-                    // ground. Flattening the direction to the horizontal plane
-                    // is the whole fix, and it removes the degeneracy rather
-                    // than working around it.
-                    var to = _label.transform.position - cam;
-                    to.y = 0f;
-                    if (to.sqrMagnitude > 1e-6f)
-                        _label.transform.rotation = Quaternion.LookRotation(to);
+                    // YAW ONLY, and the paragraph explaining why moved to
+                    // `Billboard` along with the maths — it was written twice,
+                    // here and in `SpeechBubble`, and only one copy ever got the
+                    // fix. One implementation now, and the shot path calls the
+                    // same one so a committed frame cannot be drawn with a
+                    // stale aim.
+                    Billboard.Aim(_label.transform, Camera.main);
                     NameTags.Offer(_label, d);
                     // COUNTED WHERE IT IS SWITCHED ON, not where it is offered.
                     // A label the declutter never sees is still a label on the

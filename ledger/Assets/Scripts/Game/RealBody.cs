@@ -127,6 +127,29 @@ namespace Ledger.Game
         static GameObject[] _bodies;
         public static int BodyChoices { get; private set; }
 
+        /// WHAT COLOUR THE PLAYER'S COAT ACTUALLY CAME OUT, and which band chose
+        /// it. Printed rather than argued about.
+        ///
+        /// WHY. `review_day2_noon` and `review_day5_noon` show the player as a
+        /// pale blue-white figure that reads as an undressed mannequin, while
+        /// every number in the same run says it is dressed —
+        /// `bodyCoatArea=1.000 bodyClothed=True bodyParts=[...->coat ...->coat]`.
+        /// Both can be true at once: the meshes ARE painted, and painted a
+        /// near-neutral that looks like bare plastic. The coverage metric asks
+        /// "is a coat material on every mesh" and answers it correctly; nothing
+        /// asks "is that colour a coat".
+        ///
+        /// So this is a hypothesis being turned into a reading before anything
+        /// is changed, which is rule 4: a picture is good evidence something is
+        /// wrong and poor evidence of what. Three textures, a bench and a set of
+        /// wheels were nearly "fixed" off a JPEG in this project already.
+        ///
+        /// The street calls the player "someone in a runner's coat" in its own
+        /// rumours — the coat is how they are identified — so a protagonist who
+        /// rolls stone-grey is a writing problem as much as a rendering one.
+        /// That decision waits on this number.
+        public static string CoatRead { get; private set; } = "not tried";
+
         /// WHAT A CROWD OF SKINNED BODIES WOULD COST, measured on the runner
         /// that has to draw it.
         ///
@@ -438,9 +461,8 @@ namespace Ledger.Game
             // names with `UnityEngine.Object` and the bare `Object.Destroy`
             // above becomes CS0104. `lint-usings.py` caught the import I nearly
             // added instead, which is a 28-minute CI round trip it just saved.
-            Ledger.Core.Wardrobe.Dress(
-                Ledger.Core.Physique.Fraction(wearer ?? "player", 7),
-                out double ch, out double cs, out double cv);
+            double coatRoll = Ledger.Core.Physique.Fraction(wearer ?? "player", 7);
+            Ledger.Core.Wardrobe.Dress(coatRoll, out double ch, out double cs, out double cv);
             // The cast sit above the crowd's ceiling on purpose — Rocco 0.75,
             // Ada 0.75, Sam 0.65 — and the player is a named character.
             // `Wardrobe.MaxValue` is 0.46 and exists so nobody in the crowd
@@ -464,7 +486,19 @@ namespace Ledger.Game
             // saturation the wardrobe already chose.
             float lift = 0.22f * Mathf.Clamp01((float)cs / 0.35f);
             float coatV = Mathf.Min(0.68f, (float)cv + lift);
-            var coat = AssetLibrary.Opaque(Color.HSVToRGB((float)ch, (float)cs, coatV));
+            var coatRgb = Color.HSVToRGB((float)ch, (float)cs, coatV);
+            var coat = AssetLibrary.Opaque(coatRgb);
+            // THE READING, taken here because this is the only place that has
+            // all of it: the band the wardrobe chose, the saturation that
+            // decided how much lift it got, and the RGB that actually reached
+            // the material. `sat` is the one that matters — the lift is scaled
+            // by it, so a low-saturation band both starts neutral and stays
+            // neutral, and that is the shape of a coat that renders as bare
+            // plastic.
+            string coatBand = Ledger.Core.Wardrobe.BandOf(coatRoll);
+            CoatRead = coatBand
+                     + $" hsv={ch:0.00}/{cs:0.00}/{coatV:0.00}"
+                     + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}";
             Skinned = Dressed = Kept = 0;
             double coatArea = 0, totalArea = 0;
             long coatVerts = 0, totalVerts = 0;
