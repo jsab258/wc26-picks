@@ -2951,11 +2951,57 @@ namespace Ledger.Game
                 foreach (var o in Witnesses.Last)
                 {
                     if (o == null || o.Empty) continue;
+                    // WHO *THIS* WITNESS WOULD THINK OF, not whoever is first
+                    // in the walker list.
+                    //
+                    // `Observe.Misattribute`'s own line is "a long coat, at
+                    // night, near the docks is Nikos to somebody who EXPECTS
+                    // Nikos" — expectation belongs to the person doing the
+                    // misidentifying. This loop handed every witness the same
+                    // arbitrary walker, so eight misnamings in a run all pointed
+                    // at one person chosen by list position, and the mechanic
+                    // that makes the street WRONG about you in interesting ways
+                    // was producing one uniform wrongness.
+                    //
+                    // Second site of the fault fixed in the companion recruit
+                    // twenty minutes ago: list order standing in for a real
+                    // criterion. Found by grepping for the shape rather than by
+                    // tripping over it.
+                    //
+                    // The expectation comes from the mill, which is where this
+                    // game keeps what people think about. Whoever they hold
+                    // their strongest rumour about IS who comes to mind — no
+                    // new state, no new number, and it makes the misnaming
+                    // different per witness for the first time.
                     string expected = null;
-                    if (_npcs != null)
+                    var wg = _game != null && _game.Gossip != null && _game.Gossip.Mill != null
+                        ? _game.Gossip.Mill.Get(o.WitnessId) : null;
+                    if (wg != null)
+                    {
+                        double best = -1;
+                        foreach (var r in wg.Rumors)
+                        {
+                            if (r == null || r.Content == null) continue;
+                            string subj = r.Content.Subject;
+                            if (string.IsNullOrEmpty(subj) || subj == "player"
+                                || subj == o.WitnessId || subj == "Ellis") continue;
+                            if (r.Confidence > best) { best = r.Confidence; expected = subj; }
+                        }
+                    }
+                    // Nobody on their mind: fall back to the nearest walker, so
+                    // a witness who holds nothing still has somebody plausible
+                    // to be wrong about rather than nobody at all.
+                    if (expected == null && _npcs != null)
+                    {
+                        float near2 = float.MaxValue;
                         foreach (var n in _npcs)
-                            if (n != null && n.DisplayName != o.WitnessId
-                                && n.DisplayName != "Ellis") { expected = n.DisplayName; break; }
+                        {
+                            if (n == null || n.DisplayName == o.WitnessId
+                                || n.DisplayName == "Ellis") continue;
+                            float d2 = Vector3.Distance(n.transform.position, _player.transform.position);
+                            if (d2 < near2) { near2 = d2; expected = n.DisplayName; }
+                        }
+                    }
                     string named = Observe.Misattribute(o, expected, _deedsStaged * 31 + 7);
                     _deedAccused[o.WitnessId] = named;
                     if (!string.IsNullOrEmpty(named) && named == expected
