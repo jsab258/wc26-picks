@@ -798,6 +798,7 @@ namespace Ledger.Game
                 _body.GaitBias = shape.Gait;
                 _body.BadLegIsLeft = shape.BadLegIsLeft;
                 _body.IdleOffset = shape.IdlePhase;
+                _body.HeadScale = shape.HeadScale;
             }
             float dt = Time.deltaTime;
             if (dt <= 0) return;

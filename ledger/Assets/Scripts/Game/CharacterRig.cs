@@ -72,6 +72,13 @@ namespace Ledger.Game
         /// animated furniture.
         public double IdleOffset;
 
+        /// This person's head size, 0.93-1.07 from `Physique`. Zero means
+        /// nobody set it, which is why the write is guarded on it rather than
+        /// on `!= 1.0` — a body whose trait never arrived and a body whose
+        /// trait is exactly average must not look the same to the counter.
+        public double HeadScale;
+        public static int HeadsScaled { get; private set; }
+
         /// Whether this rig has offset its Animator's loop yet, and how many
         /// have across the run.
         ///
@@ -897,6 +904,29 @@ namespace Ledger.Game
                     var seed = _animator.GetCurrentAnimatorStateInfo(0);
                     _animator.Play(seed.shortNameHash, 0, (float)IdleOffset);
                     PhasesSeeded++;
+
+                    // AND THE HEAD, THE THIRD TRAIT THE BOUGHT BODIES DROPPED.
+                    //
+                    // `Mannequin` varies it 0.93-1.07 by scaling a child
+                    // transform. On a skinned mesh the head is a BONE, which is
+                    // why this was queued as harder than breadth and cadence —
+                    // and reading the file rather than assuming shows it is
+                    // not. An Animator writes bone ROTATIONS and the hips'
+                    // POSITION; Mixamo's clips animate no scale at all, so a
+                    // scale written once is not overwritten and does not need
+                    // holding every frame.
+                    //
+                    // ONCE, WITH THE PHASE SEED, for that reason and one more:
+                    // a scale reasserted every frame would fight anything that
+                    // ever does animate it, and would hide the day something
+                    // starts to. If heads come out uniform in a still, this
+                    // line ran and lost, which is a different bug from this
+                    // line not running — `headsScaled` says which.
+                    if (_head != null && HeadScale > 0)
+                    {
+                        _head.localScale = Vector3.one * (float)HeadScale;
+                        HeadsScaled++;
+                    }
                 }
                 // WHAT THE ANIMATOR IS ACTUALLY DOING, because "it has a
                 // controller" and "it is animating" turned out to be different

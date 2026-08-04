@@ -8909,6 +8909,10 @@ namespace Ledger.Game
                       // still stepping in lockstep — the failure this seeds
                       // against, and one that only ever shows in a still.
                       $"phasesSeeded={CharacterRig.PhasesSeeded} " +
+                      // The third shape trait, and zero beside a non-zero
+                      // walkerBodies means the write never ran; uniform heads in
+                      // a still WITH a non-zero count means it ran and lost.
+                      $"headsScaled={CharacterRig.HeadsScaled} " +
                       // HOW MUCH OF THE CLIP'S HIP MOTION IS BEING THROWN AWAY.
                       // The rig assigns the hips from a rest position plus its
                       // own breath, dip and bob, on bodies whose Animator wrote
