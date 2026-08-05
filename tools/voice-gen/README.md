@@ -60,11 +60,28 @@ That is not general caution: a CI run once committed an empty output directory
 over 24 clips that had already been listened to and picked from, and reported
 success.
 
-## What is authored rather than measured
+## The direction values — authored, then confirmed
 
-The direction values are a judgement about how each kind of line is said —
-`recognition.avoids` at 0.30 is muttered at the pavement, `recognition.confronts`
-at 0.80 is the loudest thing in the game. They cannot be measured from a
-container with no GPU and no model, so they are written down, printed beside the
-brief they came from by `--plan -v`, and meant to be argued with after the first
-listen. Nothing here should read them as tuned.
+They are a judgement about how each kind of line is said. `recognition.avoids`
+at 0.30 is muttered at the pavement; `recognition.confronts` at 0.80 is the
+loudest thing in the game. They could not be measured from a container with no
+GPU and no model, so they shipped as a named guess and `--rate` was built to
+sample one line per band rather than the first twenty, so the first listen
+would settle it.
+
+**Confirmed 5 August.** Bands 0.25, 0.30, 0.45, 0.60 and 0.80 were rendered and
+listened to; they read as different people in different moods. Still open to
+argument, no longer unverified.
+
+## Resume, and why it is not just "does the file exist"
+
+Each clip records what it was rendered FROM: the line, the voice, the direction.
+A re-run skips only what still matches. The first version compared filenames
+alone, and a filename is `slot.index.voice.wav` — it carries none of the text.
+So when an encoding bug was fixed in the bark bank, the clips already on disk
+kept their names, kept being skipped, and would have shipped with the mangled
+words spoken into them.
+
+Four states: **missing**, **fresh**, **stale** (text, voice or direction moved
+since), and **unknown** (on disk with nothing recording what it came from —
+re-rendered rather than trusted, because a clip with no record is not evidence).

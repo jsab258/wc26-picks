@@ -40,13 +40,16 @@ listened to and picked from, and reported success. Rendering is resumable by
 SKIPPING what exists; `--force` prints what it is about to replace, and counts
 it, before it replaces anything.
 
-And it does not pretend the direction map is measured. Rule 2 says never set a
-number you have not measured, and the exaggeration values below cannot be
-measured from this container — there is no GPU and the model is not here. So
-they are AUTHORED, they are printed beside the brief they came from by
-`--plan`, and `--rate` deliberately renders one line from each direction band
-so the first thing anybody hears is whether the bands are distinguishable at
-all. That is the measurement, named and deferred rather than skipped.
+THE DIRECTION MAP WAS AUTHORED AND IS NOW CONFIRMED. Rule 2 says never set a
+number you have not measured, and these could not be measured from this
+container — no GPU, no model. So they shipped as a named guess, `--rate`
+sampled one line per band rather than the first twenty so the first listen
+would answer it, and on 5 August Jafar listened to bands 0.25, 0.30, 0.45,
+0.60 and 0.80 and said they sound good.
+
+That is the deferred measurement actually being taken rather than quietly
+forgotten, which is the half of rule 2 that usually goes missing. The values
+are still open to argument; they are no longer unverified.
 """
 import argparse
 import hashlib
@@ -65,9 +68,19 @@ CLIPS = ROOT / "game-design" / "picked-clips"
 # of this task as "which characters get a voice" was aimed at the wrong thing.
 CROWD = ["crowd_f1", "crowd_f2", "crowd_f3", "crowd_m1", "crowd_m2", "crowd_m3"]
 
-# AUTHORED, NOT MEASURED — see the module docstring. The scale is chatterbox's
-# own: 0.25 is bored, 0.85 is urgent. Each value is a claim about how the line
-# is said, and every one should be argued with after the first listen.
+# AUTHORED, THEN CONFIRMED BY EAR ON 5 AUGUST — see the module docstring. The
+# scale is chatterbox's own: 0.25 is bored, 0.85 is urgent. Five bands were
+# rendered and listened to (0.25, 0.30, 0.45, 0.60, 0.80) and they read as
+# different people in different moods, which is the whole question.
+#
+# This comment said "AUTHORED, NOT MEASURED" for as long as that was true and
+# stopped being true the moment somebody listened. A comment that survives the
+# fact it describes is most of what CLAUDE.md is a list of, so it is updated
+# in the same commit as the listening rather than the next time anybody
+# happens to read it.
+#
+# Each value is still a claim about how a line is said and still open to
+# argument. It is no longer unverified.
 DIRECTION = {
     "exchange.tell.doubtful":         0.35,  # hedging, does not want to own it
     "exchange.tell.secondhand":       0.40,  # passing it on, no stake
