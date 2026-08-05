@@ -46,24 +46,46 @@ CLAUDE.md under AUTO MODE.
   both sides. The drop angle measures against straight DOWN and cannot tell
   forward from sideways; a walk is entirely fore-and-aft and a T-pose entirely
   lateral. `armSide` was committed AFTER `7c87f38` and lands next build.
-- **THE PLAN IS EXONERATED AND THE MOB IS IN THE WALK.** `7c87f38`:
-  `busiestNear=12 busiestPlace=12 crowdHuddleWorst=38`. All three are run
-  maxima so they compare fairly — the schedules never put more than twelve
-  within two metres and thirty-eight end up there. `review_day5_noon` shows the
-  knot standing at a ROAD JUNCTION, and `confabs` read 1-13 under the old
-  flat-road conversation rule against 29-74 under the junction one.
-  `huddleTalking/Escorting/Detour/Waiting` at the instant the huddle peaks
-  separate a conversation-siting fault from the companion rule, an obstacle and
-  the route. Next build.
+- **THE MOB IS THE CAST'S OWN WAYPOINTS, IN THE ROAD, OUTSIDE THE PUB.**
+  `0720f52` at the worst huddle of 41: `huddleTalking=0 huddleDetour=0
+  huddleWaiting=0 huddleEscorting=1`. Not conversation, not an obstacle, not
+  the companion rule — four candidates, three killed by one line. And
+  `huddleWhere=-1/-3`, which is ON A ROAD: **seven authored cast waypoints sit
+  inside a six-metre disc centred there and six of them are in a carriageway.**
+  `busiestNear=12` missed it because that probe asks about a TWO-metre radius
+  and the cluster is six metres across — a statistic cannot see a shape it was
+  not cut to fit, and "the plan is innocent" was an honest conclusion from a
+  probe that could not have found this.
+- **THE ADDRESSES ARE FIXED; THE CAST'S WAYPOINTS ARE NOT.**
+  `placeStopsInRoad=31` was printed beside `placeFacesInRoad=22` the whole
+  time and is the actual fault — no placement rule fixes an address in the
+  middle of a road. `StreetMap.SetPlacesBackFromRoads` now snaps them:
+  **31 stops to 3, 22 faces to 3**, moved 32, worst 6.66m, median 3.60m, and
+  the three refusals are `cut_bridge`, `night_gate` and `clerks_steps`, which
+  belong in a right of way. The 8m drift cap came from the series, not taste.
+  Fourteen of the thirty-four authored CAST waypoints are still in a
+  carriageway; `headingIntoRoad`/`headingCounted` count it from the real
+  targets next build.
+- **THE CROWD HAS NEVER BEEN ABLE TO REMEMBER ANYTHING.** The biggest thing
+  found tonight. A resident's mill agent is registered under `r.Id`
+  (`r0000`, `r0001`…) and their body is spawned with `r.Name`, so every
+  `Mill.Get(walker.DisplayName)` returned null for all seven hundred of them,
+  and `GossipMill.Witness` drops an unknown witness *silently*. Measured by the
+  first filed body: `homSaw=29 homPressure=0.40` — twenty-nine people watched a
+  killing and the pressure is `PerBody` exactly. `NpcWalker.GossipId` separates
+  the nameplate from the identity; `WitnessesOffered`/`WitnessesDropped` make
+  the next one a number instead of a silence.
+- **THE FIRST BODY EVER REACHED THE REGISTER.** `inquiry=Procedure`, off `None`
+  for the first time in 132 kept runs, with `actThree=True ending=BurnBoth`
+  both unmoved — exactly what gating the staging on `ActThree.AuditClosed`
+  predicted. And `weaponNotices=157 batCarried=True`: the street can see a
+  carried bat, where that argument was a hardcoded `false` this morning.
 - **`walkersPrimitive=0` IS NOT AN ANSWER ABOUT THE CAPSULES.** It is reset at
   the top of every once-a-second pass, so it describes the final second of a
-  fifteen-day run — a body that spawned as a primitive and assembled by the end
-  reads zero having stood in the street as a capsule for a fortnight. "Is
-  anybody" is never a last-wins question. `walkersPrimitiveEver` is the peak
-  and `walkersPrimitiveOf` is the walker count from the pass that peaked.
-  Twenty-two registered places still have a facade in a carriageway, and the
-  frame gate's biggest item was two passes sharing one number: the reband is
-  1.31ms, the body LOD 2.59ms.
+  fifteen-day run. "Is anybody" is never a last-wins question.
+  `walkersPrimitiveEver` is the peak and `walkersPrimitiveOf` is the walker
+  count from the pass that peaked. The frame gate's biggest item was two passes
+  sharing one number: the reband is 1.31ms, the body LOD 2.59ms.
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 **The order is Jafar's, 4 August.** He asked why a day looked like almost
@@ -75,35 +97,41 @@ say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
 
-1. **THE BODY IS FILED. READ WHAT IT COST.** *(CI, dispatched)*
+1. **MOVE THE CAST'S WAYPOINTS OUT OF THE ROAD.** *(the mob, on screen)*
 
-   `RecordKilling` has a caller for the first time. It could not have had one:
-   it asks for `List<FightWitness>`, the shape the SUPERSEDED `Violence.Saw`
-   returns, and `lint-usings` fails the build if a Game-layer file calls that.
-   `ViolenceHost.WitnessesOf` bridges from the observations the modern path
-   produces — ACTOR slot resolved means they can name you, act without actor
-   means they know a man died and cannot say who.
+   The single most visible fault in the frames, and now fully diagnosed rather
+   than suspected. Seven authored waypoints inside a six-metre disc at
+   `(-1,-3)`, six of them in a carriageway, and 41 bodies converging there with
+   nobody talking, detouring or waiting. Fourteen of the thirty-four distinct
+   authored waypoints are in a road.
 
-   **And the containment could never have matched.** `n.name == victimId`
-   against `go.name = "NPC_" + name` while every id everywhere is the bare
-   name, so the victim would have gone on walking around the street it died in,
-   in the stills, while `_deadIds` said otherwise. Only comparison of its kind
-   left in the Game layer (grepped). Fixed.
+   **Not a mechanical snap like the addresses.** Some are RIGHT — `crossing` is
+   at `(0,-8)` and a crossing IS in the road; the cluster near the origin is the
+   pub door on Hook Street, which is where the cast belongs. So the decision is
+   which of the fourteen are deliberate, and it wants reading rather than a
+   threshold. Read `headingIntoRoad`/`headingCounted` first: they count from
+   the targets every walker is ACTUALLY using, generated residents included,
+   where the fourteen is a grep over the literals somebody typed.
 
-   **The arithmetic in the old version of this item was wrong.** "Record two,
-   not three" reasoned from `PerBody` alone. `Pressure` also adds
-   `NamedWeight * bestConfidence`, `FileWith` writes witnesses in at
-   `Violence.BodyConfidence`, and that constant is **1.0** — measured. One body
-   seen by one person is 0.4 + 0.6 = exactly `ManhuntAt`. There is no safe
-   number of bodies before the audit closes, so the staging is gated on
-   `ActThree.AuditClosed`: `Result` is a stored field set once at that instant,
-   so a body filed after it cannot open an act that is open or rewrite an
-   ending that is written.
+   **AND SPREADING IS THE OTHER HALF.** Seven points inside six metres is a
+   knot whatever the road says. `Physique.SpreadRadius` sizes a ring from the
+   per-CELL count (`CrowdAtPlace`); the cluster is multi-cell, so each ring is
+   sized for its own dozen and they overlap. That is a hypothesis, not a
+   finding — the number that would settle it is the ring radius beside the
+   neighbourhood count, and neither is printed yet.
 
-   **READ NEXT BUILD:** `homStaged homBodies homSaw homKnew homPressure
-   homInquiry` beside `inquiry`, and whether `actThree`/`ending` moved (they
-   must not). Then decide whether the stage wants a gate, and whether Ellis
-   spawning off a body rather than off heat shows in a frame.
+1. **READ WHAT THE ID FIX BOUGHT.** *(CI, next dispatch)*
+
+   `witnessOffered`/`witnessDropped` say whether the crowd can hear at all now:
+   a large offered with a zero dropped is the fix landing. Then `homSaw` beside
+   `homNamed` and `homPressure` — if the twenty-nine can now name the player,
+   pressure goes past `ManhuntAt` and `inquiry` jumps from `Procedure` to
+   `Manhunt`. **That is expected and it is safe** (the staging is after
+   `AuditClosed`), but check `actThree` and `ending` did not move anyway.
+
+   Also landing: `armSide`/`armSideWorst` for the lateral splay,
+   `walkersPrimitiveEver`, `bubblesMade`/`bubblesAtCeiling`,
+   `addressesSetBack`/`addressDriftMedian`, `homWouldTalk`.
 
 2. **CLOSED — NO SCARECROWS, AND THE RING WAS NOT THE MOB'S CAUSE.**
    `armWidest=54.5` against `armCrowdWidest=53.5` says the widest body is a
