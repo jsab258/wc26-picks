@@ -67,137 +67,18 @@ CLAUDE.md under AUTO MODE.
   `"player.killed_"+VictimId`. `homWantKey` and `homTopics` print both sides
   next build. Stop deducing; print the strings.
 
-### WHAT `52037ba` SETTLED, AND TWO THINGS IT REFUTED
+### What the earlier builds settled
 
-- **THE LEAN IS THE BOUGHT CLIP, NOT THE WRITE.** `preLeanDriven=41.6`
-  measured before this project touches the spine, `leanWorst=41.7` after —
-  peak against peak, so the write contributes a tenth of a degree. The
-  accumulation theory is dead and the comment arguing for it has been
-  replaced with the measurement that killed it.
-  **The fork in that comment was wrong on BOTH arms**, which is rule 2's
-  warning about a fork written into a comment: it offered "driven far higher
-  than rest means the composition" and "both at 36 means the pitch value",
-  and the truth — the clip arrives leaning — was neither.
-  **AND `lean` HAS NEVER MEANT WHAT IT WAS QUOTED AS MEANING.** `leanDriven`
-  is a median of per-frame MAXIMA, so with a dozen driven bodies in shot it is
-  about a 92nd percentile. This file called it "a MEDIAN, so it is the whole
-  street". `leanTypical` is the middle body and lands next build.
-  **What is still open is which clip.** The tree blends a walk at 1.4 m/s and
-  a run at 4.0, an escort hurries at 2.6, and a run leans by design.
-  `leanWorstSpeed` is captured beside the peak instant to say which.
+Two blocks of per-build findings lived here and were cut on 5 August: this
+file is what happens NEXT, and `docs-check` caps a live plan at 400 lines
+for the reason the header already gives — done work is in the git log, and
+the commit messages carry the reasoning in more detail than a summary of a
+summary could. The block above is kept because its readings are still open.
 
-- **THE KILLING REGISTER'S BROKEN LINK IS LOCATED AND CORE IS INNOCENT.**
-  `homSawStored=32 homHoldsIt=0` — the register takes every witness and not
-  one holds the belief. A local probe of the same sequence against real Core
-  (32 agents, `FileWith`, `BestOfValue`) returns **32 of 32**, so the fault is
-  in the Game layer. Every link then checked out by reading, which is where
-  the rules say stop reading: `homSameMill`, `homFileOffered/Dropped` across
-  the call, `homHasAgent` and `homAnyRumour` land next build and the first
-  zero among them names it.
-  Note `witnessDropped=2` looked like proof the 32 were accepted and is not —
-  it is a LIFETIME total on the mill, and a lifetime count cannot say what
-  happened during one call.
-
-- **THE THREAT FIX WORKED.** `complied=1 called=1` after 136 runs of zero.
-
-- **THE BUBBLE CEILING FELL AND THE FIX DID NOT DO IT.** 39% to 20%, but
-  `bubblesScreenLifted=2` — the screen-space pass fired twice, and
-  `bubblesMade` also halved, 156 to 75. The rate change is fewer bubbles.
-  `bubblesNoBounds=0` does close the one stated uncertainty: a TextMesh built
-  this frame HAS usable bounds, so the pass can ask. **Keep the counter next
-  to every visible fix** — without it this would have been filed as a win.
-
-- **THE PAVEMENT WENT THE WRONG WAY.** `headingIntoRoad` 10 to 16 against a
-  predicted 7. It counts scheduled TARGETS on a carriageway, so `StepApart`
-  cannot be the cause; the corner exemption is, and it is doing exactly what
-  it was told. Nine addresses at junctions is either right or it is not, and
-  that is a judgement nobody has made yet.
-
-- **THE MOB IS WORSE AND IT IS IN THE FRAMES.** `crowdHuddleWorst=41`
-  unchanged, `crowdGapMedian` 0.37 to 0.30 — third build falling. Day-2 noon
-  shows about thirty bodies in one overlapping block on Quay Street, several
-  standing inside each other. This is the most visible fault in the game.
-  **AND THE TWO NUMBERS USED TO CHASE IT ARE DIFFERENT POPULATIONS:**
-  `busiestNear=12` counts TARGETS within two metres, `crowdHuddleWorst=41`
-  counts BODIES within two metres. They have been read as the same number in
-  two separate fixes I shipped saying they would work.
-  `huddleStanding`/`huddleMoving` split it at the peak instant next build:
-  standing high means the rings are undersized, moving high means it is a jam
-  on a route and the rings were never the fault.
-  **`StepApart` already exists** — a grep-before-writing caught me about to
-  build a second one — and its accumulated push had no bound, so a thirty-body
-  pile could move somebody metres in a frame from a function whose comment
-  calls it a nudge. Capped at half a body width, with `crowdApartCapped`
-  against `crowdApartCalls` to say whether the cap ever bites.
-
-### WHAT THE THREE BUILDS BEFORE THAT SETTLED
-
-- **Settled and closed:** the summons zero is honest (`summonsMissWhy` moved to
-  "a line was live and he was not near it"); the reliability rule fired for the
-  first time in 132 runs (`reliabilityRead=[Slipping after 3]`); the two-axis
-  name cap is IN but undemonstrated — both worsts read 0.171, which is a quiet
-  run rather than a confirmation.
-- **THE ARMS CARRY REAL LATERAL SWING.** `armSide=43.8 armSideWorst=68.5` on
-  `8f6243f` — the first reading that can tell fore-and-aft from sideways, and a
-  walk is entirely fore-and-aft. The median retraction (53.5 is a bent elbow at
-  walking pace) stands; the LATERAL component does not obviously belong to a
-  walk and wants the same treatment `ArmSwing` got — print what the model says
-  a correct walk should give, then compare.
-- **THE MOB IS NOT SOLVED AND I SAID IT WAS.** `huddleCells=21` at a huddle of
-  41 is real: the bodies come from twenty-one different cells, so sizing each
-  ring from its own cell cannot separate them. The fix sized it from the
-  two-metre neighbourhood instead — and `c7e841b` says that changed NOTHING.
-  `crowdSpread=0.88`, the widest ring ever issued, identical to the build
-  before. **The refutation was on the same line the whole time:**
-  `busiestNear=12` equals `busiestPlace=12`, so a two-metre disc holds no more
-  people than a one-metre cell, and `SpreadRadius(12)` is 0.88 either way. I
-  read that pair as "the plan is innocent" hours earlier and never read it as
-  "these two counts are the same number".
-  Reverted. **A 19-cell knot needs a radius sized from the KNOT** — 19 gives
-  1.11m, 41 gives 1.63m — and no small radius can see one. The next attempt
-  needs a count at the scale of the thing being separated.
-  **AND THE MEDIAN HUDDLE GOT WORSE IN THE SAME BUILD**, 11 to 20, with
-  `crowdGapMedian` 0.42 to 0.37. Not attributable to the ring, which did not
-  move; the other candidates in that batch are the corner exemption putting
-  nine addresses back at junctions and the four routines now following moved
-  places. `headingIntoRoad` went 10 to 16, which is the corner exemption doing
-  exactly what it was asked to.
-  **The day-5 frame looks clear, and that is not evidence.** One instant
-  against a run peak, which is the trap this project has written down six
-  times — read from the other side for once.
-- **THE STREET WALKS BENT DOUBLE.** `lean=36.3 leanWorst=41.7` over 74,410
-  readings — a MEDIAN, so it is the whole street. Not a rest-pose artefact:
-  `Mannequin` puts `Chest` directly above `Hips`. The suspect is the write —
-  every other bone composes from a stored rest and the lean alone does
-  `_chest.localRotation * Euler(pitch...)`, and the line that re-establishes
-  rest is guarded on `!PoseIsDriven`. `leanDriven`/`leanRest` say next build
-  whether accumulation is the whole of it. **Not fixed blind: this is the pose
-  code that produced the upside-down player.**
-- **THE YELLOW TROUSERS ARE THE MODEL, NOT THE WARDROBE.** Texture extraction
-  switched the paint path off, so `bodySkinnedEver=0` and the wash maps over a
-  kept Mixamo albedo. A number that exonerates one system says nothing about a
-  second system standing in front of it.
-- **THE FIRST BODY EVER REACHED THE REGISTER.** `inquiry=Procedure`, off `None`
-  for the first time in 132 kept runs, with `actThree=True ending=BurnBoth`
-  both unmoved — exactly what gating the staging on `ActThree.AuditClosed`
-  predicted. And `weaponNotices=157 batCarried=True`: the street can see a
-  carried bat, where that argument was a hardcoded `false` this morning.
-- **`walkersPrimitive=0` IS NOT AN ANSWER ABOUT THE CAPSULES.** It is reset at
-  the top of every once-a-second pass, so it describes the final second of a
-  fifteen-day run. "Is anybody" is never a last-wins question.
-  `walkersPrimitiveEver` is the peak and `walkersPrimitiveOf` is the walker
-  count from the pass that peaked. The frame gate's biggest item was two passes
-  sharing one number: the reband is 1.31ms, the body LOD 2.59ms.
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-**The order is Jafar's, 4 August.** He asked why a day looked like almost
-nothing and the honest half of the answer was that most of it was invisible to
-him. So the top of this list is whatever a player would notice.
-
-Most of tonight's work was INSTRUMENTS, and the next two builds are what they
-say. Nine of these ten items are "read the number, then decide" — which is the
-discipline, not a stall: every one of them has a fix that is one edit long once
-the reading lands, and every guess made without one tonight was wrong.
+**The order is Jafar's, 4 August**: the top of this list is whatever a player
+would notice, whatever state anything else is in.
 
 1. **THE NAMES ARE THE SIZE OF HEADLINES AND SIT ON TOP OF EACH OTHER.**
    *(on screen — the most visible thing in any still tonight)*
@@ -228,30 +109,13 @@ the reading lands, and every guess made without one tonight was wrong.
    rule 2, and `nameFrac` already prints a median over 3,128 samples, so the
    bound comes off that series and off a still at the size it will be played.
 
-1. **READ WHAT FOUR VISIBLE FIXES DID.** *(CI, dispatched)*
-
-   Four changes to what a player sees are in flight together and each has a
-   number that says whether it worked and one that says whether it overshot.
-
-   **The mob.** `SpreadRadius` now reads the neighbourhood count instead of the
-   cell. Watch `crowdHuddleWorst` fall and `crowdGapMedian` rise. If the deed,
-   places or companion gates move, the ring is too wide for a street this size
-   and the answer is fewer people at one address, not a smaller disc.
-
-   **The bubbles.** The stack asks the screen rather than a four-metre world
-   radius. `bubblesAtCeiling` should fall from 61 of 156; `bubblesScreenLifted`
-   says the pass ran and `bubblesNoBounds` is the one uncertainty — a TextMesh
-   built this frame may have no renderer bounds yet, and a zero lift with a
-   large no-bounds count means it never got to ask.
-
-   **The pavement.** Three cast routines drank standing in Hook Street; all six
-   bar-door offsets go through `OffTheCarriageway` now. `headingIntoRoad` was
-   10 of 56 and should fall to about 7.
-
-   **The threats.** `complied` and `called` have been zero for 136 runs because
-   one staged threat at one nerve value reaches one branch of five. Two more
-   are staged, ordered so the fiction's own threat runs last and leaves the
-   stance today's runs leave.
+1. **CLOSED — ALL FOUR OF THOSE FIXES HAVE BEEN READ.** The threats worked
+   (`complied=1 called=1` after 136 zeros). The bubble ceiling fell 39% to 20%
+   and the fix did NOT do it (`bubblesScreenLifted=2`, and `bubblesMade`
+   halved) — though `bubblesNoBounds=0` closes the stated uncertainty: a
+   TextMesh built this frame does have usable bounds. The pavement went the
+   wrong way, `headingIntoRoad` 10 to 16, which is the corner exemption doing
+   what it was told. The mob did not move and the reason is above.
 
 1. **TWO IN FIVE SPEECH BUBBLES LAND ON TOP OF A NEIGHBOUR.** *(on screen)*
 

@@ -235,6 +235,32 @@ def queue_depth():
     return True, "%s queue items ready" % m.group(2)
 
 
+def docs_shape():
+    """Every doc in `game-design/` declares LIVE/SPEC/LOG and stays scannable.
+
+    THE TOOL EXISTED AND NOTHING RAN IT. CLAUDE.md says in as many words that
+    `tools/docs-check.py` enforces the documents rule, and it was never wired
+    into this file — so it only ever ran when somebody thought to type it.
+    Nobody did for long enough that `queue.md` reached 536 lines against its
+    own 400-line cap, and every `verify.py` in between reported green.
+
+    That is rule 6 pointed at a tool rather than at the game: built, tested,
+    plausible, and never once executing where it mattered. It is also why the
+    cap exists at all — a live plan nobody can scan is the 1,525-line roadmap
+    that got a status banner stapled on it instead of being fixed.
+
+    Reported like every other check, so the count is in the footer and a drift
+    is a number somebody reads rather than a thing somebody remembers."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "docs-check.py")])
+    m = re.search(r"(\d+)/(\d+) clean", out)
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "DOCS: " + (bad[0][5:105].strip() if bad else "see docs-check")
+    if not m:
+        return False, "docs-check did not report"
+    return True, "docs %s" % m.group(0)
+
+
 def nested_types():
     """A Core type qualified by another Core type — CS0426.
 
@@ -676,7 +702,8 @@ def main():
 
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
-               card_writing, shipped_cards, convo_probe, queue_depth, nested_types,
+               card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
+               nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):
