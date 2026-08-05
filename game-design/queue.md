@@ -335,10 +335,32 @@ the reading lands, and every guess made without one tonight was wrong.
    - **`companion adds=0 departed=0`** — she is recruited and never leaves and
      never brings anybody. Two branches, no runs.
    - **`groundless=False`** — a carry has never been groundless.
-   - **`summonsTaken=0` is FIXED tonight** (the public-callbox flag nothing
-     read) and **`reliabilityFiled=0` is PLANTED tonight** (two skipped drops
-     after day ten). Both should move in the next build, and if they do not
-     the fix did not take.
+   - **`summonsTaken=0` WAS NOT FIXED, AND THE ENTRY SAYING SO STOOD FOR FOUR
+     BUILDS.** Nineteen runs carry the key and every one reads 0. The callbox
+     flag was a real fix and it was not the last one: `SummonsHost.Nightly`
+     runs at the day close — eight in the morning — and tested the player's
+     LIVE position against lines live at hour 21, so the hour came from the
+     ring and the position came from breakfast. `summonsMissWhy=[a line was
+     live and he was not near it]` is a true sentence about the wrong moment
+     and read twice as the mechanic working. Fixed 5 August by sampling
+     `PlayerAtRing` in the once-per-game-hour branch. A third miss reason —
+     "the ring hour never came round" — keeps the new case from reading as the
+     old one. **The plant is deliberately NOT in the same build**, so a moving
+     `summonsTaken` is attributable to this and nothing else.
+   - **`reliabilityFiled` MOVED AND THEN CAME BACK, AND THAT IS HONEST.**
+     The series is 0,1,1,2,1,1,1 then 0 newest — and `reliabilityRead` says
+     why: `[Slipping after 2]` for five runs, `[Fine after 0]` in the newest.
+     Zero drops were skipped in that run, so zero filed is correct. The plant
+     works when the condition occurs and the condition is not guaranteed —
+     rule 5b's corollary, and the fix is to make the skip deterministic rather
+     than to read the zero as a regression.
+     **`gates --series` could not read either of these until 5 August.** It
+     matched numbers only, so `inquiry`, `ending`, `handed` and `pointedAt`
+     all answered "no landed run carries that name"; the categorical fix then
+     still could not read `[Fine after 0]`, because it excluded the bracket
+     that CLAUDE.md names as the sanctioned form for a value with spaces. Two
+     implementations of one idea, an hour apart, the second written without
+     reading the first. It now uses `verdict-read.py`'s grammar verbatim.
 
    **The rule for every one of these is the same and it is rule 5b's
    corollary: PLANT the condition, never loosen the bound.** And do them one

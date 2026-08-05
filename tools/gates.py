@@ -144,7 +144,22 @@ def series(key):
     reader looking at the series sees it immediately.
     """
     runs = ordered_runs()
-    pat = re.compile(r"(?<![\w])" + re.escape(key) + r"=([^\s\[\(]+)")
+    # THE SAME VALUE GRAMMAR `verdict-read.py` USES, COPIED DELIBERATELY.
+    #
+    # The first version of the categorical fix matched `[^\s\[\(]+`, which
+    # cannot read `reliabilityRead=[Fine after 0]` at all — the value STARTS
+    # with a bracket, so nothing matches and the tool says the key does not
+    # exist. That is the same false sentence this whole function was fixed for,
+    # an hour later, in the fix itself: one idea, two implementations, and the
+    # second one written without looking at the first.
+    #
+    # Brackets are the sanctioned form for a value with spaces, so a reader
+    # that cannot consume them cannot read a large part of the verdict. The
+    # comment beside the original in `verdict-read.py` also records that the
+    # obvious version — whole-group OR non-space — loses the race whenever the
+    # value starts with a digit. A RUN of either is what holds.
+    pat = re.compile(r"(?<![\w])" + re.escape(key)
+                     + r"=((?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+)")
     hits = []
     for sha, path in runs:
         m = pat.search(read(path))
