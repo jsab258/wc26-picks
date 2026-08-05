@@ -448,7 +448,7 @@ namespace Ledger.Game
             foreach (var b in Ledger.Core.StreetMap.Blocks)
             {
                 var rng = new System.Random(9001 + bi * 131);
-                float inset = 2.6f;                       // pavement + a doorstep
+                float inset = BlockSetback;               // pavement + a doorstep
                 float minX = (float)b.MinX + inset, maxX = (float)b.MaxX - inset;
                 float minZ = (float)b.MinZ + inset, maxZ = (float)b.MaxZ - inset;
                 float w = maxX - minX, d = maxZ - minZ;
@@ -1535,6 +1535,57 @@ namespace Ledger.Game
         /// a constant 0.45 and a face that close to a road cannot put anything
         /// on a pavement.
         public static int PlaceStopsInRoad, PlaceFacesInRoad;
+
+        /// PAVEMENT PLUS A DOORSTEP, named once instead of twice. A block
+        /// building was inset by a local `2.6f` with exactly this comment
+        /// beside it. Naming it does not fix the fault below — that is data,
+        /// not code — but it removes the half of "two implementations" that
+        /// was a literal nobody could grep for.
+        public const float BlockSetback = 2.6f;
+
+        /// AND THE ANSWER IS THAT NO PLACEMENT RULE CAN FIX IT, MEASURED
+        /// LOCALLY AGAINST THE REAL STREET GRAPH RATHER THAN GUESSED.
+        ///
+        /// The note above proposed pushing a place back until its face clears
+        /// the carriageway, and said the move waits until the run says which
+        /// places are wrong and by how much. It said so; the answer is that the
+        /// move is the wrong fix and the reading that says so was ALREADY ON
+        /// THE SAME LINE.
+        ///
+        /// `placeStopsInRoad=31 placeFacesInRoad=22`. I had been reading the 22
+        /// as the fault for three builds. **31 of the 52 planned places have an
+        /// authored coordinate standing in a carriageway** — the 22 are the
+        /// subset whose building geometry then lands there too. A door cannot
+        /// be moved out of the road while the ADDRESS is in the middle of it;
+        /// all you can do is walk the building away from the stop the schedules
+        /// send people to.
+        ///
+        /// Three variants were run against `HookMap` and `StreetMap` in a local
+        /// probe, no build:
+        ///
+        ///   push back until the face clears      22 -> 13, 19 places capped
+        ///   fix the fallback DIRECTION as well   22 -> 11, 13 capped, median
+        ///                                        push 7.75m
+        ///   the direction fix on its own         22 -> 22, nothing moved
+        ///
+        /// The second is the instructive one: it "improves" the headline number
+        /// while dragging the median building nearly eight metres off its own
+        /// front door, which is worse game than a facade in a road and would
+        /// have looked like progress. The third shows the direction is not the
+        /// problem either.
+        ///
+        /// AND THE FALLBACK IS STILL WRONG, which is worth knowing separately:
+        /// every one of the 22 has `BlockAt(stop) == null` — the coordinate is
+        /// in a road, so it is inside no block — and the fallback then points
+        /// the building radially outward from the WORLD ORIGIN. Measured
+        /// against the true outward normal, six of the twenty-two are aimed
+        /// across the road rather than off it. Fixing that alone changes
+        /// nothing today because the stop is the fault, but it is a real bug
+        /// waiting under this one.
+        ///
+        /// So the fix is in `HookMap`: move the 31 stops onto a pavement. That
+        /// is authored data, it moves where schedules send people, and it wants
+        /// its own change with its own before-and-after frame.
         /// And in a LANE but not a road, which is the wider containment
         /// question `StreetMap.OnStreet` answers and nothing had needed.
         public static int PlaceFacesInLane;
