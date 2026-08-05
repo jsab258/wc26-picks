@@ -108,6 +108,24 @@ would notice, whatever state anything else is in.
    **And this loop takes `Camera.main` under a doc comment saying it measures
    against the review camera** — the second site of the fault the size cap had.
 
+1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
+
+   `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the newest.
+   Everything else is quiet — `perf` last failed a run ago, nothing else in
+   sixteen.
+
+   **Read the breakdown, not the mean.** `mean=483.7ms` is a software
+   rasteriser and says nothing; `game=17.55ms` against `gameBudget=12ms` is a
+   46% overrun in OUR code and it is a real number on a real machine.
+   `bodyLod=4.39 traffic=3.72 sun=3.15 npcs=2.77 rigs=2.06 population=1.32`.
+
+   **`sun=3.15ms` is the odd one and is not an obvious loop** — `UpdateSun`
+   has none, so it is Unity-side light or shadow work being triggered every
+   frame by something that only changes each game-hour. That is a real
+   investigation and a plausible 3ms, which is a quarter of the whole budget.
+   The queue has been dismissing this item as "not worth touching while
+   render+rest is 458ms", which confuses the runner's cost with ours.
+
 1. **CLOSED — ALL FOUR OF THOSE FIXES HAVE BEEN READ.** The threats worked
    (`complied=1 called=1` after 136 zeros). The bubble ceiling fell 39% to 20%
    and the fix did NOT do it (`bubblesScreenLifted=2`, and `bubblesMade`
@@ -138,18 +156,11 @@ would notice, whatever state anything else is in.
    So this drops down the list: a pass that never runs is rule 6, but it is
    guarding a residue rather than two in five.
 
-2. **CLOSED — NO SCARECROWS, AND THE RING WAS NOT THE MOB'S CAUSE.**
-   `armWidest=54.5` against `armCrowdWidest=53.5` says the widest body is a
-   walker, and off the real `Rig.ArmSwing` a normal walk puts the FOREARM at
-   45.4 degrees at 1.2 m/s and 55.1 at 2.0 — so 53.5 is somebody walking
-   briskly with a bent elbow, and a T-pose is ninety. `animBodies=6
-   animDriven=6 animAdvancing=6` closes the other half: nothing is frozen in a
-   bind pose, and forty-six of the fifty-two solved bodies are mannequins with
-   no Animator to freeze. The ring: `crowdSpread=0.88` with `busiestPlace=12`,
-   the packing rule firing exactly as computed, and the huddle moved only 41 to
-   36 — the change stands on its own merits and is not this fault. The
-   generated schedules do not cluster either: 700 residents, 688 distinct home
-   points, at most six sharing a point within two metres.
+2. **CLOSED — NO SCARECROWS.** `armWidest=54.5` against `armCrowdWidest=53.5`,
+   and off the real `Rig.ArmSwing` a normal walk puts the forearm at 45.4
+   degrees at 1.2 m/s — so that is somebody walking briskly with a bent elbow
+   and a T-pose is ninety. `animBodies=6 animDriven=6 animAdvancing=6`: nothing
+   is frozen in a bind pose. What those frames showed was the mob.
 
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
    `bodySpell=5.41` median over 1,143 spells against a derivable 4.7s
