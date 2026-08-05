@@ -3662,7 +3662,7 @@ namespace Ledger.Game
         /// single total could not tell a quiet killing from a public one.
         bool _homicideStaged;
         string _homVictim = "";
-        int _homBodies, _homSaw, _homKnew, _homWouldTalk;
+        int _homBodies, _homSaw, _homKnew, _homWouldTalk, _homNamed;
         double _homPressure;
         Inquiry _homInquiry = Inquiry.None;
 
@@ -5381,9 +5381,35 @@ namespace Ledger.Game
             _homWouldTalk = filed != null
                 ? EvidenceHost.WhoWouldTalk(_game.Gossip?.Mill, filed.SawYouDoIt).Count
                 : 0;
+
+            // AND HOW MANY OF THE WATCHERS CAN ACTUALLY NAME YOU, which the
+            // first filed body in this project's history says is NONE.
+            //
+            // `0720f52`: `homSaw=29 homKnew=17 homPressure=0.40`. Twenty-nine
+            // people watched a killing and the pressure is `PerBody` exactly —
+            // bodies only, with no named term at all. `Pressure` adds
+            // `NamedWeight * best` for any LIVING witness who can name you, and
+            // `FileWith` writes each of them in at `Violence.BodyConfidence`,
+            // which is 1.0, so one witness alone should have taken it to
+            // `ManhuntAt`. It did not, so `LiveWitnesses` came back empty.
+            //
+            // `GossipMill.Witness` is why: `var w = Get(witnessId); if (w ==
+            // null) return;` — a witness who is not a mill AGENT is dropped
+            // silently, and `Get` never creates one. So a murder in front of a
+            // crowd files exactly like a murder nobody saw.
+            //
+            // THE ARITHMETIC IS WHAT FOUND IT, and only because both numbers
+            // were printed. `homPressure=0.40` on its own reads as a correct
+            // low-pressure answer; beside `homSaw=29` it is impossible. This
+            // makes it a stated fact rather than a subtraction: `homNamed` is
+            // the count of watchers the register can actually hear from, and a
+            // zero of it beside a large `homSaw` is the fault in one line.
+            _homNamed = filed != null
+                ? _game.Homicides.LiveWitnesses(_game.Gossip?.Mill, _game.IsAlive).Count
+                : 0;
             Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
                       + $"{_homSaw} saw it and {_homKnew} only knew of it, "
-                      + $"{_homWouldTalk} of the watchers would talk, "
+                      + $"{_homWouldTalk} of the watchers would talk, {_homNamed} can name you, "
                       + $"pressure {_homPressure:0.00}, inquiry {_homInquiry}, "
                       + $"Ellis={_game.EllisSpawned}");
         }
@@ -9177,6 +9203,7 @@ namespace Ledger.Game
                       $"{(string.IsNullOrEmpty(_homVictim) ? "nobody" : _homVictim)} " +
                       $"homBodies={_homBodies} homSaw={_homSaw} homKnew={_homKnew} " +
                       $"homWouldTalk={_homWouldTalk} " +
+                      $"homNamed={_homNamed} " +
                       $"homPressure={_homPressure:0.00} homInquiry={_homInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
