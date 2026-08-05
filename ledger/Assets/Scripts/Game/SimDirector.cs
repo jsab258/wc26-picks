@@ -5237,7 +5237,23 @@ namespace Ledger.Game
             // between two and four in the morning; gating on it gives blood the
             // whole of its own window and gives the bat every hour after. Both
             // numbers become readable and neither is invented.
-            if (!_batStaged && _carryStaged && _friskStaged && _washTried)
+            // AND A FALLBACK, BECAUSE I JUST GATED A PROBE ON SOMETHING THAT
+            // MIGHT NEVER HAPPEN.
+            //
+            // `_washTried` is only set inside `if (PlayerStain != null)` and
+            // only between two and four in the morning, and the stain only
+            // exists if the staged cut found a walker near the player. No
+            // walker, no cut, no stain, no wash — and the bat would never be
+            // carried at all, silently killing `weaponNotices`, which is the
+            // reading this whole staging exists for. That is rule 5b's twin
+            // walked into within a minute of applying it: a probe that only
+            // fires on a lucky run is not a probe.
+            //
+            // Two days is the whole blood window and more. The run reaches day
+            // fifteen, so the bat is always carried and blood always gets first
+            // refusal on its own hours.
+            if (!_batStaged && _carryStaged && _friskStaged
+                && (_washTried || now.Day > CarryStagesOnDay + 1))
             {
                 _batStaged = true;
                 if (_simRazor != null) CoatHost.Store(_simRazor);
