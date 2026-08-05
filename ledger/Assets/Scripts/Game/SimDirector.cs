@@ -9640,6 +9640,15 @@ namespace Ledger.Game
                       // near ninety un-settles it.
                       $"armSide={CharacterRig.ArmSideMedian:0.0} " +
                       $"armSideWorst={CharacterRig.ArmSideWorst:0.0} " +
+                      // AND HOW FAR FORWARD THE TORSO IS PITCHED, because two
+                      // bodies in review_day1_noon are leaning at the waist
+                      // while walking and nothing in the project measures a
+                      // spine. `leanBodies` is the denominator: every
+                      // mannequin returns nothing, so a zero without it
+                      // cannot tell "upright" from "never read".
+                      $"lean={CharacterRig.LeanMedian:0.0} " +
+                      $"leanWorst={CharacterRig.LeanWorst:0.0} " +
+                      $"leanBodies={CharacterRig.LeanBodies} " +
                       $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
                       // AND WHETHER THE STREET'S BODIES ARE ANIMATING AT ALL.
                       // Every other animator reading in this verdict —

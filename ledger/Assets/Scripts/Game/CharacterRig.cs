@@ -671,6 +671,60 @@ namespace Ledger.Game
             return Mathf.Asin(Mathf.Clamp01(side)) * Mathf.Rad2Deg;
         }
 
+        /// HOW FAR FORWARD THE TORSO IS PITCHED, in degrees off vertical.
+        ///
+        /// `review_day1_noon` has two foreground bodies leaning perhaps thirty
+        /// degrees at the waist while walking, and rule 4 says a still that
+        /// shows something wrong gets a NUMBER rather than a fix — a picture is
+        /// excellent evidence that something is off and poor evidence of what.
+        /// Nothing in this project measures the spine at all: the arm readings
+        /// are about the arms, `bodyUp` is about the whole object being on its
+        /// back, and a body walking bent double sits between them.
+        ///
+        /// Hips to chest, against the body's OWN forward rather than the
+        /// world's, for the same reason `ArmSideNow` uses `transform.right` —
+        /// otherwise a walker heading north reads as pitched for standing
+        /// perfectly straight. Returns -1 when there is no spine to read, which
+        /// is every mannequin, so "not measured" cannot be mistaken for
+        /// "upright".
+        float LeanNow()
+        {
+            if (_hips == null || _chest == null) return -1f;
+            var spine = _chest.position - _hips.position;
+            if (spine.sqrMagnitude <= 1e-6f) return -1f;
+            spine = spine.normalized;
+            // The component along the body's own forward, as an angle off
+            // vertical. Signed deliberately: leaning BACK is a different fault
+            // from leaning forward and averaging them would cancel.
+            float fwd = Vector3.Dot(spine, transform.forward);
+            return Mathf.Asin(Mathf.Clamp(fwd, -1f, 1f)) * Mathf.Rad2Deg;
+        }
+
+        static readonly List<float> _leanThisFrame = new List<float>();
+        static readonly List<float> _leanWorst = new List<float>();
+
+        /// The typical worst lean in a frame, and the worst of the whole run.
+        /// Both are needed and neither answers the other: a median says what
+        /// the street looks like, a worst says whether anybody was ever bent
+        /// double, and this project has spent five builds reading one as the
+        /// other.
+        public static double LeanMedian => MedianOf(_leanWorst);
+
+        public static double LeanWorst
+        {
+            get
+            {
+                double w = -999;
+                foreach (var m in _leanWorst) if (m > w) w = m;
+                return w;
+            }
+        }
+
+        /// How many bodies were readable at all — every mannequin returns -1,
+        /// so a lean of zero with a denominator of zero means nothing was
+        /// measured rather than everybody standing straight.
+        public static int LeanBodies { get; private set; }
+
         static readonly List<float> _armSideWidest = new List<float>();
         static readonly List<float> _armSideThisFrame = new List<float>();
 
@@ -742,6 +796,8 @@ namespace Ledger.Game
                 if (!IsTheBoughtBody) _crowdArmsThisFrame.Add(mine);
                 float side = ArmSideNow();
                 if (side >= 0f) _armSideThisFrame.Add(side);
+                float lean = LeanNow();
+                if (lean > -900f) { _leanThisFrame.Add(lean); LeanBodies++; }
             }
 
             if (!IsTheBoughtBody) return;
@@ -841,10 +897,20 @@ namespace Ledger.Game
                     _armSideThisFrame.Sort();
                     _armSideWidest.Add(_armSideThisFrame[_armSideThisFrame.Count - 1]);
                 }
+                // THE MOST PITCHED BODY IN THE FRAME, folded the same way. The
+                // list is signed, so the "worst" is the largest FORWARD lean —
+                // taking an absolute maximum would let a body leaning back
+                // stand in for one bent double, and they are different faults.
+                if (_leanThisFrame.Count > 0)
+                {
+                    _leanThisFrame.Sort();
+                    _leanWorst.Add(_leanThisFrame[_leanThisFrame.Count - 1]);
+                }
             }
             _armsThisFrame.Clear();
             _crowdArmsThisFrame.Clear();
             _armSideThisFrame.Clear();
+            _leanThisFrame.Clear();
         }
 
         static readonly List<float> _crowdArmsThisFrame = new List<float>();
