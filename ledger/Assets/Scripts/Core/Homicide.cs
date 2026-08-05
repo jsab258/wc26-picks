@@ -39,11 +39,39 @@ namespace Ledger.Core
         /// made it. They escalate the police without convicting anybody.
         public readonly List<string> KnowsOfIt = new List<string>();
 
+        public Fact Fact => new Fact("player", "killed_" + VictimId, "true");
+
         /// The topic key this killing occupies in the mill. Per victim, so two
         /// killings are two facts and containing one never touches the other.
-        public string TopicKey => "player.killed_" + VictimId;
-
-        public Fact Fact => new Fact("player", "killed_" + VictimId, "true");
+        ///
+        /// DERIVED FROM THE FACT, BECAUSE BUILDING IT BY HAND WAS WRONG FOR
+        /// EVERY VICTIM WHOSE NAME HAS A CAPITAL IN IT — WHICH IS ALL OF THEM.
+        ///
+        /// This read `"player.killed_" + VictimId`. `Fact`'s constructor
+        /// lowercases subject, predicate and value on the way in, deliberately,
+        /// so that facts compare reliably. `GossipMill.Witness` files a rumour
+        /// under `content.Subject + "." + content.Predicate` — lowercased, by
+        /// construction. So a killing of "Hal" was STORED as
+        /// `player.killed_hal` and LOOKED UP as `player.killed_Hal`, and the
+        /// lookup could never match.
+        ///
+        /// What that cost: `LiveWitnesses` returned nobody, so `Pressure` had
+        /// no named term, so the inquiry could not pass Procedure, so the paper
+        /// never named the player, the redirect had nothing to relieve, and
+        /// `CoatHost.Arrested` has no caller in the whole Game layer. Every one
+        /// of those reads as a deliberately quiet design and every one was this
+        /// missing `ToLowerInvariant`.
+        ///
+        /// It took four builds to find because every count around it was
+        /// healthy: the mill was the same object, forty-nine witnesses were
+        /// offered and two refused, thirty-three agents existed and all
+        /// thirty-three carried rumours. Only printing the two STRINGS side by
+        /// side showed it, and they differ by one character.
+        ///
+        /// One idea, two implementations, and the one nobody looked at was
+        /// missing a line. Now there is one: the key is the fact's key, so it
+        /// cannot drift from what the mill actually filed.
+        public string TopicKey => Fact.Subject + "." + Fact.Predicate;
 
         public string Summary =>
             $"the new owner killed {VictimName}";

@@ -4289,6 +4289,48 @@ namespace Ledger.CoreTests
                     $"width {w:0.0} at ({mx:0},{mz:0})");
                 break;   // one is enough; the property is structural
             }
+            // A KILLING'S TOPIC KEY MUST BE THE KEY THE MILL ACTUALLY FILED,
+            // AND FOR EVERY VICTIM IN THIS GAME IT WAS NOT.
+            //
+            // `TopicKey` built `"player.killed_" + VictimId` by hand while
+            // `Fact` lowercases its parts in the constructor, so a killing of
+            // "Hal" was stored as `player.killed_hal` and looked up as
+            // `player.killed_Hal`. `LiveWitnesses` therefore returned nobody in
+            // every run this project has kept, the inquiry could not pass
+            // Procedure, and `CoatHost.Arrested` has never had a caller.
+            //
+            // Found by printing the two strings side by side after four builds
+            // of counters that were all healthy. This is the guard so it cannot
+            // come back: the accepting case is a capitalised name, because
+            // capitalised is what every name in the cast is.
+            {
+                var mill = new GossipMill(new SocialGraph());
+                var ids = new List<string> { "w0", "w1", "w2" };
+                foreach (var id in ids) mill.Add(new Gossiper(id, id, null, null, null));
+
+                var book = new HomicideBook();
+                var when = new GameTime { Day = 5, Hour = 22 };
+                var k = book.Record("Hal", "Hal", when.Day, when.Hour, "hook");
+                foreach (var id in ids) k.SawYouDoIt.Add(id);
+                book.FileWith(mill, k, when, _ => true);
+
+                var held = mill.Get("w0").Rumors[0].Content;
+                Check(k.TopicKey == held.Subject + "." + held.Predicate,
+                      "a killing's topic key is the key the mill filed it under",
+                      $"want {k.TopicKey} filed {held.Subject}.{held.Predicate}");
+
+                int holds = 0;
+                foreach (var id in k.SawYouDoIt)
+                    if (mill.Get(id)?.BestOfValue(k.TopicKey, "true") != null) holds++;
+                Check(holds == ids.Count,
+                      "and every witness to a capitalised name can be found again",
+                      $"{holds} of {ids.Count}");
+
+                Check(book.LiveWitnesses(mill, _ => true).Count == ids.Count,
+                      "so LiveWitnesses returns them, which is what drives the inquiry",
+                      book.LiveWitnesses(mill, _ => true).Count.ToString());
+            }
+
             // No two districts may overlap: every junction must sit in exactly
             // the district that claims it, or DistrictAt would lie somewhere.
             foreach (var d in StreetMap.Districts)
