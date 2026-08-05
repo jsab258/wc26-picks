@@ -4331,6 +4331,95 @@ namespace Ledger.CoreTests
                       book.LiveWitnesses(mill, _ => true).Count.ToString());
             }
 
+            // NEGOTIATION — the design claim, asserted rather than described.
+            //
+            // The comment in `Negotiation.cs` says the fast levers cost you the
+            // person. That is the whole thesis of the game in one object, and a
+            // thesis living only in a comment is the thing this project has
+            // been caught by more than any other. So it is a test.
+            {
+                Func<double, double, double, Gossiper> who = (greed, nerve, loyal) =>
+                {
+                    var g = new Gossiper("x", "X", null, null, null);
+                    g.Greed = greed; g.Nerve = nerve; g.Loyalty = loyal;
+                    return g;
+                };
+
+                // THE ACCEPTING CASE FIRST. An honest, well-aimed offer to a
+                // greedy man gets there, and costs nothing afterwards.
+                var greedy = who(0.9, 0.5, 0.5);
+                var p = Negotiation.Open(greedy, 0.6);
+                Check(p.Resistance > 0 && !p.Agreed, "a real ask opens as a no",
+                      p.Resistance.ToString("0.00"));
+                for (int i = 0; i < 4 && !p.Agreed && !p.Walked; i++)
+                    Negotiation.Push(p, greedy, Lever.Money, 1.0);
+                Check(p.Agreed, "money moves a greedy man to yes", p.Why);
+                Check(Negotiation.LoyaltyCost(p) == 0,
+                      "and paying somebody costs you nothing afterwards");
+
+                // THE CLAIM ITSELF: the same yes, bought with a threat, costs.
+                var timid = who(0.5, 0.1, 0.5);
+                var q = Negotiation.Open(timid, 0.6);
+                Negotiation.Push(q, timid, Lever.Threat, 1.0);
+                Check(q.Resentment > 0, "a threat always costs, even when it works",
+                      q.Resentment.ToString("0.00"));
+                Check(Negotiation.LoyaltyCost(q) > 0,
+                      "and the cost outlives the scene");
+
+                // AND IT CAN END THE RELATIONSHIP. Two hard threats and they
+                // stop dealing with you at all — a negotiation you can LOSE by
+                // winning too hard.
+                var brave = who(0.5, 0.9, 0.5);
+                var r = Negotiation.Open(brave, 1.0);
+                Negotiation.Push(r, brave, Lever.Threat, 1.0);
+                Negotiation.Push(r, brave, Lever.Threat, 1.0);
+                Check(r.Walked, "leaning on a brave man twice ends the relationship", r.Why);
+                Check(!r.Agreed, "and walking is not agreeing");
+                Check(r.Resistance > 0.3,
+                      "he was never close to yes either — threats do not move nerve",
+                      r.Resistance.ToString("0.00"));
+
+                // REPEATING YOURSELF IS WORTH LESS. The third push of one lever
+                // must move strictly less than the first, or a player grinds
+                // one idea into a yes and there is no negotiation to have.
+                var a1 = who(0.5, 0.5, 0.5); var s1 = Negotiation.Open(a1, 1.0);
+                double before1 = s1.Resistance;
+                Negotiation.Push(s1, a1, Lever.Money, 0.5);
+                double first = before1 - s1.Resistance;
+                Negotiation.Push(s1, a1, Lever.Money, 0.5);
+                double beforeThird = s1.Resistance;
+                Negotiation.Push(s1, a1, Lever.Money, 0.5);
+                Check(beforeThird - s1.Resistance < first,
+                      "the third push of one lever moves less than the first");
+
+                // A LIE THEY CAN CHECK MOVES NOTHING AND COSTS LIKE A THREAT,
+                // or claiming a favour would be strictly better than doing one.
+                var honestMan = who(0.5, 0.5, 0.5);
+                var t = Negotiation.Open(honestMan, 0.5);
+                double held = t.Resistance;
+                Negotiation.Push(t, honestMan, Lever.Need, 1.0, honest: false);
+                Check(t.Resistance == held, "a lie moves nobody", t.Resistance.ToString("0.00"));
+                Check(t.Resentment > 0, "and being taken for a fool costs");
+
+                // RESPECT COMPOUNDS WHERE THE OTHERS DECAY: it is the only
+                // lever that works better on somebody who already trusts you,
+                // which is what makes having been decent earlier pay.
+                var warm = who(0.5, 0.5, 0.9); var cold = who(0.5, 0.5, 0.1);
+                var pw = Negotiation.Open(warm, 1.0); var pc = Negotiation.Open(cold, 1.0);
+                double bw = pw.Resistance, bc = pc.Resistance;
+                Negotiation.Push(pw, warm, Lever.Respect, 1.0);
+                Negotiation.Push(pc, cold, Lever.Respect, 1.0);
+                Check((bw - pw.Resistance) > (bc - pc.Resistance),
+                      "respect moves somebody who trusts you further than somebody who does not");
+
+                // AND THE MODEL IS HANDED A STANCE, NEVER A LINE. If this ever
+                // starts containing dialogue, the file has stopped obeying
+                // "game state decides, the model performs".
+                var stance = Negotiation.Stance(q, timid);
+                Check(stance.Length > 0 && !stance.Contains("\""),
+                      "the stance handed to the model is a position, not a script");
+            }
+
             // No two districts may overlap: every junction must sit in exactly
             // the district that claims it, or DistrictAt would lie somewhere.
             foreach (var d in StreetMap.Districts)
