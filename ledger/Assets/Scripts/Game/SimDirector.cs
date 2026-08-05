@@ -3600,6 +3600,11 @@ namespace Ledger.Game
         bool _pledged, _pledgeRefused, _brokeWith;
         bool _claimHeld, _claimCaught;
         bool _denounceIgnored, _denounceStuck, _poached, _claimStaged;
+
+        /// Whether the one crew member who is not feuding was given something
+        /// to run. False means `Establish` refused and the succession is still
+        /// blocked for a reason `successorWhy` will name.
+        bool _joeyRuns;
         /// The one wound the harm probe treated, held so the gate can ask
         /// about THAT one rather than about Rocco in general.
         Injury _harmTreated;
@@ -4250,6 +4255,40 @@ namespace Ledger.Game
                         _game.Wallet.EarnDirty(120);   // the probe must not fail for being skint
                         _poached = em.RecruitByNeed(joey, "Joey", 100, _game.Wallet, now,
                                                     _game.Gossip.Mill);
+
+                        // AND GIVE HIM SOMETHING TO RUN, WHICH IS THE ONLY
+                        // REASON THE GAME HAS NEVER BEEN ABLE TO END.
+                        //
+                        // `handed=False` in all 138 kept runs, and `successorWhy`
+                        // finally said why on `a050815`:
+                        // `Sam:feuding/c0.55l0.60, Rocco:feuding/c0.70l0.85,
+                        // Joey:noAssignment/c0.65l0.70`. Every competence and
+                        // loyalty bar is cleared. The blockers are a feud and a
+                        // missing assignment, and BOTH are this sim's own doing:
+                        // it establishes `collection` for Sam and `fencing` for
+                        // Rocco, then flares a feud between exactly those two on
+                        // day 4 to prove the injury layer — and `feuding` is
+                        // true for anyone at war with ANY living crew member, so
+                        // one staged feud disqualifies both runners at once.
+                        // Joey, the one man left, was recruited and never given
+                        // anything to run.
+                        //
+                        // So a probe for the harm system has been suppressing
+                        // the ending of the game for a hundred and thirty-eight
+                        // runs. "A probe that alters the outcome measured beside
+                        // it is not a probe" is already written twice in this
+                        // file, about smaller things than the ending.
+                        //
+                        // PLANTED, NOT LOOSENED. The feud stays exactly as it
+                        // is and no bar moves: `protection` is the one racket
+                        // nobody runs and the only one needing no front, so this
+                        // adds a legitimate world state rather than editing the
+                        // rule. `Establish` still refuses if he is already
+                        // assigned or the racket is taken, so it cannot
+                        // double-book him.
+                        var joeyCrew = em.CrewOf("Joey");
+                        if (joeyCrew != null)
+                            _joeyRuns = em.Establish(em.RacketOf("protection"), joeyCrew, now);
                     }
                 }
 
@@ -9374,6 +9413,12 @@ namespace Ledger.Game
                       // all 137 kept runs and a conjunction of four
                       // conditions tells you none of them — the same
                       // argument `actThreeWhy` twelve lines up already won.
+                      // DID THE PLANT TAKE. `handed` moving with `joeyRuns`
+                      // false would mean something else fixed the succession;
+                      // `joeyRuns` true with `handed` still false means the
+                      // assignment was never the last blocker and
+                      // `successorWhy` names the next one.
+                      $"joeyRuns={_joeyRuns} " +
                       $"successorWhy={GameController.SuccessorWhy} " +
                       $"actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
