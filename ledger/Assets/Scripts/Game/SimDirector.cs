@@ -1889,6 +1889,14 @@ namespace Ledger.Game
 
                       + $" textNoText={_textNoText}"
                       + $" textInvisible={_textInvisible}"
+                      // THE SPLIT `namesTracked=0` HAS NEVER HAD. `seen` counts
+                      // managed labels BEFORE the visibility cull and `culled`
+                      // counts the ones that cull threw away. seen=0 means
+                      // `Manages` does not know these objects; seen>0 with
+                      // culled=seen means the frustum test is eating them and
+                      // the declutter is fine.
+                      + $" namesManagedSeen={_namesManagedSeen}"
+                      + $" namesManagedCulled={_namesManagedCulled}"
                       + $" textNoRect={_textNoRect}");
         }
 
@@ -2814,12 +2822,39 @@ namespace Ledger.Game
             // line that makes it, so the next verdict names the gate rather
             // than leaving it to be deduced.
             int walked = 0, noText = 0, invisible = 0, noRect = 0;
+            int managedSeen = 0, managedCulled = 0;
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 walked++;
                 if (t == null || string.IsNullOrEmpty(t.text)) { noText++; continue; }
+                // MANAGED, COUNTED BEFORE THE VISIBILITY CULL.
+                //
+                // `namesTracked=0` beside `worldTextTracked=102` says the
+                // managed bucket was empty while a hundred and two world labels
+                // were in shot, and `namesManagedEver=124 namesManagedDead=81`
+                // says forty-three managed labels were alive at the time. Those
+                // cannot all be true of a working instrument, and the two
+                // explanations want opposite work: either `Manages` is asking
+                // about a set that does not contain these objects — the
+                // id-space mismatch this project has now found five times — or
+                // the managed labels are simply being culled by `InView` and
+                // are sitting inside `textInvisible=304`.
+                //
+                // The cull is three lines below, so every count taken after it
+                // is blind to the difference. This one is taken before it.
+                // `namesManagedSeen` against `namesTracked` is the whole split:
+                // equal means the cull is innocent and the bucket is honestly
+                // empty; much larger means the labels ARE managed and the
+                // frustum test is throwing them away.
+                //
+                // It matters because `collidingNames=0` has been read three
+                // times as "the declutter has nothing to declutter" while the
+                // night stills show six people's names in a heap, and a gate
+                // reading an empty bucket cannot go red however bad the frame.
+                bool managed = NameTags.Manages(t);
+                if (managed) managedSeen++;
                 var r = t.GetComponent<Renderer>();
-                if (r == null || !InView(cam, r)) { invisible++; continue; }
+                if (r == null || !InView(cam, r)) { invisible++; if (managed) managedCulled++; continue; }
                 // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
                 // it gates must agree about what "overlapping" means, or the
                 // gate measures its own opinion — which is how a control came to
@@ -2962,6 +2997,16 @@ namespace Ledger.Game
             if (noText > _textNoText) _textNoText = noText;
             if (invisible > _textInvisible) _textInvisible = invisible;
             if (noRect > _textNoRect) _textNoRect = noRect;
+            // TAKEN AT THE SAME CALL AS EACH OTHER, not as independent peaks.
+            // Two maxima cannot be subtracted any more than they can be
+            // divided, and `seen` minus `culled` is the number that matters —
+            // so the pair is replaced together, on the call with the most
+            // managed labels seen, or they would describe two different shots.
+            if (managedSeen > _namesManagedSeen)
+            {
+                _namesManagedSeen = managedSeen;
+                _namesManagedCulled = managedCulled;
+            }
             int projected = boxes.Count + other.Count + bubbles.Count;
             if (projected > _textProjected) _textProjected = projected;
             // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
@@ -3107,6 +3152,12 @@ namespace Ledger.Game
         /// what the scene walk saw, what survived the filters, and how many
         /// labels have ever been offered to the declutter at all.
         int _textWalked = -1, _textProjected = -1;
+
+        /// Managed labels seen by the text walk, and how many of those the
+        /// visibility cull removed. Both from the SAME call — see where they
+        /// are assigned. `-1` is "the walk never ran", which is a third answer
+        /// neither zero can give.
+        int _namesManagedSeen = -1, _namesManagedCulled = -1;
         /// The three rejections, so `walked` and `projected` add up. A gap
         /// between two counts with nothing naming it is an invitation to guess,
         /// and the last three readings of this metric were guesses.
