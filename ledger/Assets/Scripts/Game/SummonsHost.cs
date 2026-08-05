@@ -102,8 +102,26 @@ namespace Ledger.Game
             // fault rather than his, which is the one thing that would make
             // this mechanic feel arbitrary instead of chosen.
             var atRing = new GameTime(game.Now.Day, Summoning.RingsAtHour, 0);
-            bool reachable = game.Phones != null
-                && game.Phones.ReachableNow("player", atRing, game.NearPhone);
+
+            // AND ASKED ABOUT WHERE HE WAS AT THAT HOUR, NOT WHERE HE IS NOW.
+            //
+            // This ran `game.NearPhone`, which reads the player's transform at
+            // the instant of the call — and the instant of the call is the day
+            // close, EIGHT IN THE MORNING, thirteen hours after the ring. The
+            // hour was right and the position was from another part of the day
+            // entirely, so `summonsMissWhy=[a line was live and he was not near
+            // it]` was a true sentence about the wrong moment and read as the
+            // mechanic working. Nobody could ever have taken this call except
+            // by standing at a callbox at breakfast.
+            //
+            // `PlayerAtRing` is sampled in the once-per-game-hour branch, so it
+            // is the position at nine at night by construction rather than by
+            // timing luck.
+            bool sampled = game.PlayerAtRingDay >= 0;
+            var whereHeWas = game.PlayerAtRing;
+            bool reachable = game.Phones != null && sampled
+                && game.Phones.ReachableNow("player", atRing,
+                    (_, placeId) => game.PhoneNear(placeId, whereHeWas));
 
             // TWO OUTCOMES HERE AND THREE IN THE MODEL, said out loud so the
             // missing one is a known gap rather than a silent simplification.
@@ -129,7 +147,13 @@ namespace Ledger.Game
             {
                 bool anyLive = game.Phones != null
                                && game.Phones.ReachableNow("player", atRing, (_, __) => true);
-                MissWhy = anyLive ? "a line was live and he was not near it"
+                // THREE REASONS NOW, because the new case must not read as the
+                // old one. "Never sampled" means the ring hour has not elapsed
+                // in this run at all — a world that never reached nine at night
+                // — and collapsing it into "he was not near it" would blame the
+                // player for a clock that never turned.
+                MissWhy = !sampled ? "the ring hour never came round"
+                        : anyLive ? "a line was live and he was not near it"
                                   : "no line was live at that hour";
             }
             else MissWhy = "";

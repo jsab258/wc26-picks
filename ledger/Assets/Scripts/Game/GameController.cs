@@ -292,6 +292,14 @@ namespace Ledger.Game
         int _lastReflectedDay;
         int _lastAgedHour = -1;
 
+        /// Where the player stood at the hour the rival's line rings, and which
+        /// day that sample belongs to. `-1` means the ring hour has not elapsed
+        /// yet this run — which is a different answer from "he was somewhere
+        /// else", and the summons could not tell them apart because it was
+        /// reading a live transform at an unrelated hour.
+        public Vector3 PlayerAtRing { get; private set; }
+        public int PlayerAtRingDay { get; private set; } = -1;
+
         // Detective Ellis (design-doc §8): spawns once the street's talk gets loud
         // enough to reach a precinct desk; while she works it, rumors refuse to die.
         public bool EllisSpawned { get; private set; }
@@ -820,6 +828,30 @@ namespace Ledger.Game
             {
                 _lastAgedHour = Now.Hour;
                 _gossip?.Mill?.Age(Now);
+
+                // AND WHERE HE WAS WHEN THE TELEPHONE RANG.
+                //
+                // `SummonsHost.Nightly` runs at the day close — EIGHT IN THE
+                // MORNING — and asks `ReachableNow` about lines live at nine at
+                // NIGHT, using `NearPhone`, which reads the player's transform
+                // right now. So the hour comes from the ring and the position
+                // comes from breakfast: a numerator and a denominator taken
+                // thirteen hours apart, which is the fault this project has
+                // found in four different systems and had not looked for here.
+                //
+                // `summonsMissWhy=[a line was live and he was not near it]` is
+                // therefore a true sentence about the wrong moment, and it has
+                // been read as evidence that the mechanic works and the player
+                // simply wanders. Nobody could have been near it except by
+                // standing at a callbox at eight in the morning.
+                //
+                // Sampled here because this branch is the only place in the
+                // game that fires exactly once per game-hour.
+                if (Now.Hour == Ledger.Core.Summoning.RingsAtHour && _player != null)
+                {
+                    PlayerAtRing = _player.transform.position;
+                    PlayerAtRingDay = Now.Day;
+                }
             }
 
             // Nightly reflection: distill the day's memories into beliefs once, from 23:00.
