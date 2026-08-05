@@ -58,14 +58,25 @@ CLAUDE.md under AUTO MODE.
   every case; the blocker is the feud flag and a missing assignment, which is
   a different fix from the one 137 runs of `handed=False` suggested.
 
-- **THE KILLING REGISTER IS DOWN TO ONE LINE.** `homSameMill=True`,
-  `homFileOffered=49 homFileDropped=2` so the writes landed,
-  `homHasAgent=21 homAnyRumour=21` so the agents exist and carry rumours —
-  and `homHoldsIt=0`. By the three-way split that means the topic key, and
-  reading says it cannot be: `FileWith` writes
-  `Fact("player","killed_"+VictimId,"true")` and the read asks
-  `"player.killed_"+VictimId`. `homWantKey` and `homTopics` print both sides
-  next build. Stop deducing; print the strings.
+- **CLOSED — A CAPITAL LETTER HAD SUPPRESSED THE LAW FOR THE WHOLE PROJECT.**
+  `homWantKey=[player.killed_Hal]` against
+  `homTopics=[...,player.killed_hal=true]`. `Killing.TopicKey` built its key
+  by hand while `Fact`'s constructor lowercases, so every victim — all of
+  whom have capitalised names — was stored under one key and looked up under
+  another. `LiveWitnesses` returned nobody in every run ever kept, so
+  `Pressure` had no named term, the inquiry could not pass Procedure, the
+  paper never named the player, the redirect had nothing to relieve, and
+  `CoatHost.Arrested` still has no caller anywhere. **All of it read as
+  deliberate design and all of it was one missing `ToLowerInvariant`.**
+  `TopicKey` is now the Fact's own key. Proven against real Core by probe
+  (5 of 5 for `Hal`, `hal` and `O'Dea`) and guarded by a CoreTest tested
+  both ways. **Expect `homNamed`, `homPressure` and `inquiry` to move next
+  build — and check `actThree` and `ending` did not.**
+
+- **CLOSED — THE NAME LABELS ARE THE RIGHT SIZE NOW.** `nameFracMedian=0.037`
+  against the 0.038 the arithmetic predicted, where the previous 39 runs all
+  read 0.060–0.072. Just under the bubble median, which is the order
+  `NameTags.Pin` argues for and had inverted.
 
 ### What the earlier builds settled
 
@@ -80,34 +91,22 @@ summary could. The block above is kept because its readings are still open.
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **THE NAMES ARE THE SIZE OF HEADLINES AND SIT ON TOP OF EACH OTHER.**
-   *(on screen — the most visible thing in any still tonight)*
+1. **THE NAMEPLATE GATE STILL CANNOT SEE THE HEAP.** *(on screen)*
 
-   `review_day5_night.jpg` has six people's names in a heap; "Petra" and
-   "Zora" overlap into one word and four more pile up above them. A player
-   would notice this before anything else in this list.
+   `review_day5_night.jpg` has six people's names drawn on top of each other.
+   `collidingNames=0` and `worstNamePair=[none]` are trivially true because
+   `namesTracked=0` — the managed bucket is empty — while `worldTextTracked`
+   is around a hundred. The size half of this is closed; the blindness is not.
 
-   **TWO SEPARATE FAULTS, and only one of them is measured.**
-
-   **The gate is blind.** `collidingNames=0` and `worstNamePair=[none]` are
-   trivially true because `namesTracked=0` — the managed bucket is EMPTY —
-   while `worldTextTracked=102` and `namesManagedEver=124 namesManagedDead=81`
-   say forty-three managed labels were alive. `namesManagedSeen` and
-   `namesManagedCulled`, counted either side of the visibility cull, land next
-   build and choose between an id-space mismatch in `Manages` and the frustum
-   test eating them. Nothing else distinguishes those and the loop's own
-   comment says so.
-   **And it is the second site of the camera fault fixed tonight** — the size
-   cap was applied against `Camera.main` while the still renders from a
-   repositioned camera, and this loop takes `Camera.main` too, under a doc
-   comment that says it measures against the review camera.
-
-   **The size is its own fault and it is not fixed.** `nameFracMedian=0.072` —
-   the median label is seven per cent of screen height, about fifty pixels at
-   720p, against a `namePinCap` of 0.120. Even where nothing overlaps the
-   frame reads as captions rather than as a street. **Do not guess a new cap**:
-   rule 2, and `nameFrac` already prints a median over 3,128 samples, so the
-   bound comes off that series and off a still at the size it will be played.
+   `namesManagedSeen=0 namesManagedCulled=0` says the cull is innocent, which
+   by the fork means an id-space mismatch in `Manages`. **Do not conclude that
+   yet:** `FindObjectsByType` skips inactive objects and a walker deactivates
+   its label out of range, so "no walker label was present when the loop ran"
+   is a third reading the fork did not have. `textPersonLabels` lands next
+   build and separates them — zero means the loop and the still are looking at
+   different moments, non-zero means the set is genuinely broken.
+   **And this loop takes `Camera.main` under a doc comment saying it measures
+   against the review camera** — the second site of the fault the size cap had.
 
 1. **CLOSED — ALL FOUR OF THOSE FIXES HAVE BEEN READ.** The threats worked
    (`complied=1 called=1` after 136 zeros). The bubble ceiling fell 39% to 20%
