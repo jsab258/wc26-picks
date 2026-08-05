@@ -703,6 +703,23 @@ namespace Ledger.Game
         static readonly List<float> _leanThisFrame = new List<float>();
         static readonly List<float> _leanWorst = new List<float>();
 
+        /// The lateral arm angle, split by how the body is built. See the note
+        /// where they are filled: a mannequin's swing is provably fore-and-aft
+        /// and a bought skeleton's is whatever its rest orientation makes it,
+        /// so one median over both answers nothing.
+        static readonly List<float> _armSideMannequinFrame = new List<float>();
+        static readonly List<float> _armSideSkinnedFrame = new List<float>();
+        static readonly List<float> _armSideMannequinWorst = new List<float>();
+        static readonly List<float> _armSideSkinnedWorst = new List<float>();
+
+        public static double ArmSideMannequin => MedianOf(_armSideMannequinWorst);
+        public static double ArmSideSkinned => MedianOf(_armSideSkinnedWorst);
+        /// The denominators. A median of -1 with a count of zero is "no body of
+        /// this kind was readable", which is a different run from one where
+        /// every arm hung straight.
+        public static int ArmSideMannequinFrames => _armSideMannequinWorst.Count;
+        public static int ArmSideSkinnedFrames => _armSideSkinnedWorst.Count;
+
         /// The typical worst lean in a frame, and the worst of the whole run.
         /// Both are needed and neither answers the other: a median says what
         /// the street looks like, a worst says whether anybody was ever bent
@@ -798,6 +815,31 @@ namespace Ledger.Game
                 if (side >= 0f) _armSideThisFrame.Add(side);
                 float lean = LeanNow();
                 if (lean > -900f) { _leanThisFrame.Add(lean); LeanBodies++; }
+                // AND THE SAME LATERAL ANGLE SPLIT BY BODY TIER, because the
+                // two tiers swing an arm through completely different maths and
+                // one number over both cannot say which is splayed.
+                //
+                // `Swing` applies `rest * Quaternion.Euler(degrees, 0, 0)` — a
+                // rotation about the joint's LOCAL X, composed after its rest
+                // orientation. A mannequin's joints are built with identity
+                // rest and its arms hang on a pure Y offset, so local X is the
+                // body's right and the swing is purely fore-and-aft: it should
+                // read near zero here. A bought Humanoid FBX carries a real
+                // rest rotation on every limb, and its arm bone's local X is
+                // whatever the rigger chose — which need not be the sagittal
+                // axis at all.
+                //
+                // So `armSide=43.8` over both tiers is unreadable, and split it
+                // is a diagnosis: mannequins near zero with skinned bodies high
+                // means the axis convention, and both high means something
+                // else entirely. This is the population-splitting lesson the
+                // arm width and the animator readings both had to learn, and
+                // it is cheaper to apply it before the reading than after.
+                if (side >= 0f)
+                {
+                    if (IsTheBoughtBody) _armSideSkinnedFrame.Add(side);
+                    else _armSideMannequinFrame.Add(side);
+                }
             }
 
             if (!IsTheBoughtBody) return;
@@ -906,11 +948,25 @@ namespace Ledger.Game
                     _leanThisFrame.Sort();
                     _leanWorst.Add(_leanThisFrame[_leanThisFrame.Count - 1]);
                 }
+                if (_armSideMannequinFrame.Count > 0)
+                {
+                    _armSideMannequinFrame.Sort();
+                    _armSideMannequinWorst.Add(
+                        _armSideMannequinFrame[_armSideMannequinFrame.Count - 1]);
+                }
+                if (_armSideSkinnedFrame.Count > 0)
+                {
+                    _armSideSkinnedFrame.Sort();
+                    _armSideSkinnedWorst.Add(
+                        _armSideSkinnedFrame[_armSideSkinnedFrame.Count - 1]);
+                }
             }
             _armsThisFrame.Clear();
             _crowdArmsThisFrame.Clear();
             _armSideThisFrame.Clear();
             _leanThisFrame.Clear();
+            _armSideMannequinFrame.Clear();
+            _armSideSkinnedFrame.Clear();
         }
 
         static readonly List<float> _crowdArmsThisFrame = new List<float>();

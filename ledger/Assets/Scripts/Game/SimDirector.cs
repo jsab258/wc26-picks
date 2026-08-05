@@ -9649,6 +9649,10 @@ namespace Ledger.Game
                       $"lean={CharacterRig.LeanMedian:0.0} " +
                       $"leanWorst={CharacterRig.LeanWorst:0.0} " +
                       $"leanBodies={CharacterRig.LeanBodies} " +
+                      $"armSideMannequin={CharacterRig.ArmSideMannequin:0.0} " +
+                      $"armSideSkinned={CharacterRig.ArmSideSkinned:0.0} " +
+                      $"armSideMannequinFrames={CharacterRig.ArmSideMannequinFrames} " +
+                      $"armSideSkinnedFrames={CharacterRig.ArmSideSkinnedFrames} " +
                       $"armBodies={CharacterRig.ArmBodiesMedian:0} " +
                       // AND WHETHER THE STREET'S BODIES ARE ANIMATING AT ALL.
                       // Every other animator reading in this verdict —
