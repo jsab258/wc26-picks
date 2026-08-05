@@ -261,6 +261,29 @@ def docs_shape():
     return True, "docs %s" % m.group(0)
 
 
+def attribution():
+    """Every third-party asset is accounted for in THIRD-PARTY.md.
+
+    THE SECOND TOOL FOUND BY THE SAME SWEEP AS `docs_shape`, and the one with
+    a licence attached rather than a style rule. Its own opening paragraph says
+    the original breach — 19 cast voices from a CC BY 4.0 corpus with no
+    attribution file anywhere — "survived because nothing in the plan owned it
+    and nothing in CI looked for it". That stayed true OF THE CHECK for five
+    days: it was never wired in here, so it only ran when somebody typed it.
+
+    Nobody did, and it was red the whole time. A font had been shipping since
+    31 July while THIRD-PARTY.md's font section still read "NOTHING SHIPS, AND
+    THAT IS A BUG". The licence file did travel with the font, because the
+    fetcher writes it — what was wrong was the record, and for a licence the
+    record is the part that has to be right."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "attribution-check.py")])
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "ATTRIBUTION: " + (bad[0][5:105].strip() if bad else "see attribution-check")
+    n = len(re.findall(r"^\s+ok\s", out, re.M))
+    return True, "%d attribution check(s)" % n
+
+
 def nested_types():
     """A Core type qualified by another Core type — CS0426.
 
@@ -703,7 +726,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
-               nested_types,
+               attribution, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):

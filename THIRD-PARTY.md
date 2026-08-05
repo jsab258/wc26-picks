@@ -58,10 +58,35 @@ latter; the FBX files are tracked because they are project inputs.
 | **Licence** | Unity Personal |
 | **Obligation** | Unity Personal requires the "Made with Unity" splash. It is not currently in the build — M22.3 |
 
-## Fonts — NOTHING SHIPS, AND THAT IS A BUG
+## Fonts — PT SANS SHIPS, UNDER THE SIL OPEN FONT LICENCE 1.1
 
-`UiTheme.LoadFont` calls `Font.CreateDynamicFontFromOSFont(["Segoe UI",
-"Arial"])`, so the game borrows whatever the machine has.
+| | |
+|---|---|
+| **File** | `ledger/Assets/Resources/LedgerSans.ttf` |
+| **Family** | PT Sans, installed under the project name `LedgerSans` |
+| **Author** | ParaType Ltd. — Copyright (c) 2010, reserved names "PT Sans", "ParaType" |
+| **Licence** | SIL Open Font License, Version 1.1 |
+| **Licence file** | `ledger/Assets/Resources/LedgerSans.LICENCE.txt`, beside the font |
+| **Obligation** | The OFL requires the licence to travel with the font. It does, in the same directory, and `tools/citypack/fetch_font.py` writes it there rather than leaving it to a document somebody updates by hand. |
+
+**THIS SECTION SAID "NOTHING SHIPS, AND THAT IS A BUG" UNTIL 5 AUGUST, AND A
+FONT HAD BEEN SHIPPING SINCE 31 JULY.** `tools/attribution-check.py` was
+written for exactly this — it fails when an asset lives outside a directory
+this file accounts for — and it caught it the first time anything ran it,
+because nothing ever had: it was not wired into `verify.py`. Its own opening
+paragraph says the original breach "survived because nothing in the plan owned
+it and nothing in CI looked for it", and that stayed true of the check itself
+for five days. It runs in `verify.py` now.
+
+The obligation was never actually breached: the licence file travelled with the
+font from the day it landed, because the fetcher writes it. What was wrong was
+the RECORD — and for a licence, the record is the part that has to be right.
+
+### What the game used before
+
+`UiTheme.LoadFont` fell back to `Font.CreateDynamicFontFromOSFont(["Segoe UI",
+"Arial"])`, borrowing whatever the machine had. That path remains as the
+fallback when the shipped face is missing.
 
 - **Segoe UI is licensed by Microsoft and is not redistributable.** The game
   does not redistribute it — it asks the OS — which is legal and is also why the
