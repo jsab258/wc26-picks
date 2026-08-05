@@ -9204,6 +9204,12 @@ namespace Ledger.Game
                       $"homBodies={_homBodies} homSaw={_homSaw} homKnew={_homKnew} " +
                       $"homWouldTalk={_homWouldTalk} " +
                       $"homNamed={_homNamed} " +
+                      // AND WHETHER THE MILL REFUSED ANYBODY. A dropped
+                      // witness was an early return with no trace until
+                      // tonight, and it is what emptied the crowd's
+                      // memory. `witnessOffered` is the denominator.
+                      $"witnessOffered={(_game.Gossip?.Mill != null ? _game.Gossip.Mill.WitnessesOffered : -1)} " +
+                      $"witnessDropped={(_game.Gossip?.Mill != null ? _game.Gossip.Mill.WitnessesDropped : -1)} " +
                       $"homPressure={_homPressure:0.00} homInquiry={_homInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +

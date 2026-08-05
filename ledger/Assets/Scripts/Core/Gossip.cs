@@ -179,6 +179,21 @@ namespace Ledger.Core
             id != null && _agents.TryGetValue(id, out var g) ? g : null;
         public IEnumerable<Gossiper> Agents => _agents.Values;
 
+        /// HOW MANY SIGHTINGS WERE OFFERED TO THIS MILL, AND HOW MANY IT
+        /// REFUSED BECAUSE IT HAD NEVER HEARD OF THE WITNESS.
+        ///
+        /// Instance fields rather than statics: a test builds several mills and
+        /// a static count would sum them into a number describing no world at
+        /// all. `Dropped` is a subset of `Offered` by construction — both are
+        /// incremented on the same call, before and after the one branch — so
+        /// the ratio is a real fraction and not two counters that happen to sit
+        /// near each other.
+        ///
+        /// A non-zero `Dropped` is not automatically a bug. It IS automatically
+        /// a question, and there was no way to ask it before.
+        public int WitnessesOffered { get; private set; }
+        public int WitnessesDropped { get; private set; }
+
         /// How many rumour summaries say `word` out loud.
         ///
         /// WHY THIS IS IN CORE AND NOT A GREP. A rumour has two halves that
@@ -248,7 +263,29 @@ namespace Ledger.Core
             double confidence = 1.0, bool indelible = false)
         {
             var w = Get(witnessId);
-            if (w == null) return;
+            // A DROPPED WITNESS IS NOW A NUMBER, BECAUSE IT WAS NOTHING AT ALL
+            // AND IT COST THE PROJECT ITS ENTIRE CROWD.
+            //
+            // This line was `if (w == null) return;` — an early return with no
+            // trace. Every crowd walker's body was spawned under a person's
+            // name while their agent was registered under `r0000`-style ids, so
+            // seven hundred people witnessed things for months and not one
+            // observation was ever stored. Nothing anywhere went red: a mill
+            // that files nothing and a mill that is never told anything produce
+            // identical output, which is rule 3b in its purest form.
+            //
+            // The behaviour is unchanged on purpose — refusing an unknown
+            // witness is CORRECT, and creating one here would invent people the
+            // world does not have. What changes is that it now leaves a mark,
+            // so the next id-space mismatch is a non-zero count somebody reads
+            // rather than a silence somebody has to notice.
+            //
+            // `WitnessesOffered` is the denominator and it counts BEFORE the
+            // refusal, so "nothing was offered" and "everything offered was
+            // refused" cannot read the same. That is the whole lesson of the
+            // three zeroes on 4 August.
+            WitnessesOffered++;
+            if (w == null) { WitnessesDropped++; return; }
             confidence = Math.Clamp(confidence, 0.0, 1.0);
             if (confidence >= 0.95) w.Knowledge.Learn(content); // only certainty becomes hard knowledge
             var already = w.BestOfValue(content.Subject + "." + content.Predicate, content.Value);
