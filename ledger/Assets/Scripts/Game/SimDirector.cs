@@ -3843,6 +3843,11 @@ namespace Ledger.Game
         string _homVictim = "";
         int _homBodies, _homSaw, _homKnew, _homWouldTalk, _homNamed;
         int _homSawStored, _homHoldsIt, _homHasAgent, _homAnyRumour;
+
+        /// The key the register asks for, and the keys one witness actually
+        /// carries. Both sides of a comparison that every count so far could
+        /// only tell me had failed, never why.
+        string _homWantKey = "none", _homTopics = "";
         int _homFileOffered = -1, _homFileDropped = -1;
         bool _homSameMill;
         double _homPressure;
@@ -5733,7 +5738,44 @@ namespace Ledger.Game
                     _homHasAgent++;
                     if (g.Rumors.Count > 0) _homAnyRumour++;
                     if (g.BestOfValue(filed.TopicKey, "true") != null) _homHoldsIt++;
+
+                    // AND WHAT THE FIRST WITNESS ACTUALLY HOLDS, SPELLED OUT.
+                    //
+                    // `a050815` closed every other branch: homSameMill=True,
+                    // homFileOffered=49 homFileDropped=2 so the writes landed,
+                    // homHasAgent=21 homAnyRumour=21 so the agents exist and
+                    // carry rumours — and homHoldsIt=0. By the three-way split
+                    // written here yesterday that means the topic key is wrong,
+                    // and reading the code says it cannot be: `FileWith` writes
+                    // `Fact("player", "killed_" + VictimId, "true")` and this
+                    // asks `"player.killed_" + VictimId`, which are the same
+                    // string, and a local probe of that pair against real Core
+                    // returns 32 of 32.
+                    //
+                    // So stop deducing and print both sides. The key being
+                    // asked for, and the keys one witness is actually holding.
+                    // Whatever the mismatch is, it is visible in one line and
+                    // invisible to every count taken so far.
+                    //
+                    // Bracketed and comma-joined because a verdict value may
+                    // not contain a space, and the reader consumes a bracketed
+                    // run whole.
+                    if (_homTopics.Length == 0 && g.Rumors.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        foreach (var r in g.Rumors)
+                        {
+                            if (r?.Content == null) continue;
+                            if (sb.Length > 0) sb.Append(',');
+                            sb.Append(r.Content.Subject).Append('.')
+                              .Append(r.Content.Predicate).Append('=')
+                              .Append(r.Content.Value);
+                            if (sb.Length > 220) { sb.Append(",..."); break; }
+                        }
+                        _homTopics = sb.ToString().Replace(' ', '_');
+                    }
                 }
+            _homWantKey = filed != null ? filed.TopicKey.Replace(' ', '_') : "none";
             Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
                       + $"{_homSaw} saw it and {_homKnew} only knew of it, "
                       + $"{_homWouldTalk} of the watchers would talk, {_homNamed} can name you, "
@@ -9567,6 +9609,8 @@ namespace Ledger.Game
                       $"homSameMill={_homSameMill} " +
                       $"homFileOffered={_homFileOffered} homFileDropped={_homFileDropped} " +
                       $"homHasAgent={_homHasAgent} homAnyRumour={_homAnyRumour} " +
+                      $"homWantKey=[{_homWantKey}] " +
+                      $"homTopics=[{(_homTopics.Length == 0 ? "nothing" : _homTopics)}] " +
                       // AND WHETHER THE MILL REFUSED ANYBODY. A dropped
                       // witness was an early return with no trace until
                       // tonight, and it is what emptied the crowd's

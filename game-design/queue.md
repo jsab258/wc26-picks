@@ -26,6 +26,47 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
+### WHAT `a050815` SETTLED — THREE CLOSED, ONE NARROWED TO A LINE
+
+- **THE MOB IS A JAM. IT WAS NEVER THE SPREAD RING.** `huddleStanding=0
+  huddleMoving=41` — every single body in the worst huddle was in transit and
+  **not one was standing at its scheduled place.** So `SpreadRadius` could
+  never have separated them at any radius, and the two builds spent widening
+  it were aimed at a system that is not involved. `busiestNear` counts targets
+  and `crowdHuddleWorst` counts bodies; reading them as one number is what
+  sent both attempts.
+  **The work is now routing**, not placement: bodies converging on the same
+  path with nothing to make them file past each other. `crowdApartCapped=3291
+  of 73902 calls` with `crowdApartWorst=0.84` says the separation nudge was
+  being asked for eighty-four centimetres in a single frame before the cap
+  landed, so the cap was doing real work and is not the answer either.
+
+- **THE STREET IS NOT BENT DOUBLE — ONE BODY PER FRAME IS.** `leanTypical=-5.1`:
+  the MIDDLE driven body leans five degrees BACKWARD. This file has led with
+  "THE STREET WALKS BENT DOUBLE ... a MEDIAN, so it is the whole street" for
+  four builds, off `leanDriven=36.4`, which is a median of per-frame MAXIMA.
+  The number added to test that claim refutes it on its first run.
+  **And it is the walk clip, not the run clip.** `leanWorstSpeed=1.14` — below
+  the 1.4 m/s walk threshold, so the blend is idle-to-walk and "somebody was
+  running" is out. `preLeanDriven=50.7` against `leanWorst=50.6` says the write
+  still adds nothing. So: the bought walk leans hard at its worst, on one body
+  at a time, and the rest of the street stands up straight.
+
+- **NOBODY CAN TAKE THE PUB BECAUSE TWO ARE FEUDING AND ONE IS UNASSIGNED.**
+  `successorWhy=Sam:feuding/c0.55l0.60,Rocco:feuding/c0.70l0.85,
+  Joey:noAssignment/c0.65l0.70`. Competence and loyalty clear the bars in
+  every case; the blocker is the feud flag and a missing assignment, which is
+  a different fix from the one 137 runs of `handed=False` suggested.
+
+- **THE KILLING REGISTER IS DOWN TO ONE LINE.** `homSameMill=True`,
+  `homFileOffered=49 homFileDropped=2` so the writes landed,
+  `homHasAgent=21 homAnyRumour=21` so the agents exist and carry rumours —
+  and `homHoldsIt=0`. By the three-way split that means the topic key, and
+  reading says it cannot be: `FileWith` writes
+  `Fact("player","killed_"+VictimId,"true")` and the read asks
+  `"player.killed_"+VictimId`. `homWantKey` and `homTopics` print both sides
+  next build. Stop deducing; print the strings.
+
 ### WHAT `52037ba` SETTLED, AND TWO THINGS IT REFUTED
 
 - **THE LEAN IS THE BOUGHT CLIP, NOT THE WRITE.** `preLeanDriven=41.6`
