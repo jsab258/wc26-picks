@@ -26,57 +26,51 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### WHAT `a050815` SETTLED — THREE CLOSED, ONE NARROWED TO A LINE
+### WHAT `4e3eef3` SETTLED — THE LAW WORKS NOW
 
-- **THE MOB IS A JAM. IT WAS NEVER THE SPREAD RING.** `huddleStanding=0
-  huddleMoving=41` — every single body in the worst huddle was in transit and
-  **not one was standing at its scheduled place.** So `SpreadRadius` could
-  never have separated them at any radius, and the two builds spent widening
-  it were aimed at a system that is not involved. `busiestNear` counts targets
-  and `crowdHuddleWorst` counts bodies; reading them as one number is what
-  sent both attempts.
-  **The work is now routing**, not placement: bodies converging on the same
-  path with nothing to make them file past each other. `crowdApartCapped=3291
-  of 73902 calls` with `crowdApartWorst=0.84` says the separation nudge was
-  being asked for eighty-four centimetres in a single frame before the cap
-  landed, so the cap was doing real work and is not the answer either.
+- **THE POLICE CAN COME AFTER YOU, FOR THE FIRST TIME EVER.** `homHoldsIt=27`
+  of 27 stored (was 0 of 21), `homNamed=27` (was 0), `homPressure=7.50`
+  (was 0.40), **`homInquiry=Manhunt`** — a stage no run has ever reached.
+  `actThree=True ending=BurnBoth` both unmoved, which is what the staging
+  after `AuditClosed` predicted. The capital-letter fix did all of it.
+  **OPEN, AND IT IS THE NEXT THING:** `inquiry=Procedure` on the done line,
+  which is the stage at the END of the run against `homInquiry` at the
+  killing. So it escalated and settled back, `redirected=0 pointedAt=nobody`
+  so the redirect is not the cause, and I do not yet know what is. Two
+  candidates: rumour confidence ageing below `TestimonyGrade`, or `Pressure`
+  reading a day. **Do not assume heat fading by design — measure it.**
 
-- **THE STREET IS NOT BENT DOUBLE — ONE BODY PER FRAME IS.** `leanTypical=-5.1`:
-  the MIDDLE driven body leans five degrees BACKWARD. This file has led with
-  "THE STREET WALKS BENT DOUBLE ... a MEDIAN, so it is the whole street" for
-  four builds, off `leanDriven=36.4`, which is a median of per-frame MAXIMA.
-  The number added to test that claim refutes it on its first run.
-  **And it is the walk clip, not the run clip.** `leanWorstSpeed=1.14` — below
-  the 1.4 m/s walk threshold, so the blend is idle-to-walk and "somebody was
-  running" is out. `preLeanDriven=50.7` against `leanWorst=50.6` says the write
-  still adds nothing. So: the bought walk leans hard at its worst, on one body
-  at a time, and the rest of the street stands up straight.
+- **THE SUCCESSION MOVED ONE LINK ON.** `joeyRuns=True`, and `successorWhy`
+  now lists only Sam and Rocco — **Joey has dropped off it, so he passes
+  `CouldHold`.** `handed=False` still, so `ReadySuccessor` returns a man and
+  something after it refuses. That is a different function and a much smaller
+  search than the 138 runs of nothing.
 
-- **NOBODY CAN TAKE THE PUB BECAUSE TWO ARE FEUDING AND ONE IS UNASSIGNED.**
-  `successorWhy=Sam:feuding/c0.55l0.60,Rocco:feuding/c0.70l0.85,
-  Joey:noAssignment/c0.65l0.70`. Competence and loyalty clear the bars in
-  every case; the blocker is the feud flag and a missing assignment, which is
-  a different fix from the one 137 runs of `handed=False` suggested.
+- **THE LANES HELPED THE STREET AND NOT THE KNOT.** `crowdGapMedian` 0.26 →
+  **0.45**, the best ever recorded, with `crowdHuddleWorst` 41 → 40 and
+  `huddleStanding=0 huddleMoving=40` unchanged. The branch counts say why:
+  `steerDirect=52193` is 87% of all steering, `steerJunction=1564` is 2.6%,
+  and `steerOrigin=0` — so the origin fallback never fires and that
+  hypothesis is dead. Spreading the 13% who route via a shared point
+  improved typical spacing a lot and cannot touch a knot that forms
+  elsewhere. **The knot is inside the direct branch.**
 
-- **CLOSED — A CAPITAL LETTER HAD SUPPRESSED THE LAW FOR THE WHOLE PROJECT.**
-  `homWantKey=[player.killed_Hal]` against
-  `homTopics=[...,player.killed_hal=true]`. `Killing.TopicKey` built its key
-  by hand while `Fact`'s constructor lowercases, so every victim — all of
-  whom have capitalised names — was stored under one key and looked up under
-  another. `LiveWitnesses` returned nobody in every run ever kept, so
-  `Pressure` had no named term, the inquiry could not pass Procedure, the
-  paper never named the player, the redirect had nothing to relieve, and
-  `CoatHost.Arrested` still has no caller anywhere. **All of it read as
-  deliberate design and all of it was one missing `ToLowerInvariant`.**
-  `TopicKey` is now the Fact's own key. Proven against real Core by probe
-  (5 of 5 for `Hal`, `hal` and `O'Dea`) and guarded by a CoreTest tested
-  both ways. **Expect `homNamed`, `homPressure` and `inquiry` to move next
-  build — and check `actThree` and `ending` did not.**
+- **THE LEAN IS A WALKER, NOT THE PLAYER.** `leanWorstIsWalker=True` with
+  `leanTypical=-7.1`. One body in a crowd of fifty, bent over, while the
+  street stands upright — nearly invisible. Drops down the list.
 
-- **CLOSED — THE NAME LABELS ARE THE RIGHT SIZE NOW.** `nameFracMedian=0.037`
-  against the 0.038 the arithmetic predicted, where the previous 39 runs all
-  read 0.060–0.072. Just under the bubble median, which is the order
-  `NameTags.Pin` argues for and had inverted.
+- **THE RELIABILITY PLANT WORKS NOW.** `reliabilityFiled=1 dropsSkipped=3
+  reliabilityRead=[Slipping after 2]`. Stopping on the outcome rather than at
+  a fixed count of two is what did it: it needed three skips to land two
+  consecutive ones.
+
+- **THE SUMMONS IS NOW HONESTLY MISSED.** `summonsTaken=0` still, and
+  `summonsMissWhy=[a line was live and he was not near it]` — but that
+  sentence now describes NINE AT NIGHT rather than breakfast, which is the
+  whole point of the same-instant fix. The mechanic is right and the
+  condition is unplanted. **Plant it next: stand the player at a live box at
+  the ring hour.** Held back deliberately so a moving `summonsTaken` could be
+  attributed; it did not move, so the plant is now unambiguous.
 
 ### What the earlier builds settled
 
