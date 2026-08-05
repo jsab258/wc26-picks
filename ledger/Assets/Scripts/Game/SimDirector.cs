@@ -9674,6 +9674,23 @@ namespace Ledger.Game
                       $"pointedOnDay={_game.Homicides.PointedOnDay} " +
                       $"redirectRelief={_game.Homicides.RedirectReliefOn(_game.Now.Day):0.00} " +
                       $"inquiry={_game.PoliceInquiry} " +
+                      // THE ARITHMETIC BESIDE THE STAGE, ON THE SAME LINE.
+                      //
+                      // `Pressure` opens with `_killings.Count * PerBody`, and
+                      // `PerBody` is 0.4 with `ManhuntAt` 1.0 — so three bodies
+                      // is a manhunt on their own, whatever any witness says.
+                      // `4e3eef3` printed `killings=4` on the gates line and
+                      // `inquiry=Procedure` on this one, which is arithmetically
+                      // impossible; but they are two lines, so they are two
+                      // readings and the difference means nothing yet. That is
+                      // the rule this project wrote after losing an afternoon
+                      // to exactly this shape, so the fix is to put them side
+                      // by side rather than to reason about the gap.
+                      //
+                      // `inquiryBodies` and `inquiryPressure` are read HERE, at
+                      // the same instant as the stage above, off the same book.
+                      $"inquiryBodies={_game.Homicides.BodyCount} " +
+                      $"inquiryPressure={_game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, _game.Now.Day):0.00} " +
                       // WHY `inquiry` IS WHATEVER IT IS, on the same line as
                       // the number itself. It has read `None` in every kept run
                       // and the reading could not say whether that was "no body
