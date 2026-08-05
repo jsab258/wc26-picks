@@ -9825,6 +9825,12 @@ namespace Ledger.Game
                       // 0.80 on a run with a busy place is the push not arriving.
                       $"busiestPlace={GameController.BusiestPlace} " +
                       $"busiestNear={GameController.BusiestNear} headingIntoRoad={GameController.WalkersHeadingIntoRoad} headingCounted={GameController.WalkersHeadingCounted} " +
+                      // HOW MANY SPOTS, against `addressesLeftInRoad`.
+                      // Sixteen walkers heading for nine corners the map
+                      // deliberately left in a right of way is a busy
+                      // morning; sixteen heading for sixteen patches of
+                      // tarmac is sixteen people standing in traffic.
+                      $"headingIntoRoadCells={GameController.WalkersHeadingIntoRoadCells} " +
                       $"crowdSpread={NpcWalker.WidestSpread:0.00} " +
                       $"claimHeld={_claimHeld} claimCaught={_claimCaught} claimsOk={claimsOk} " +
                       $"claimWhy=[{LawHost.ClaimWhy}] claimVia=[{_claimVia}] " +

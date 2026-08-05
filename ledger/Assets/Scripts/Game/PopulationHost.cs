@@ -441,6 +441,7 @@ namespace Ledger.Game
             // wants a person.
             WalkersHeadingIntoRoad = 0;
             WalkersHeadingCounted = 0;
+            _roadCells.Clear();
             int busiestNear = 0;
             for (int i = 0; i < _npcs.Count; i++)
             {
@@ -448,7 +449,26 @@ namespace Ledger.Game
                 if (a == null) continue;
                 var pa = a.PlaceFor(Now);
                 WalkersHeadingCounted++;
-                if (Ledger.Core.StreetMap.OnRoad(pa.x, pa.z)) WalkersHeadingIntoRoad++;
+                if (Ledger.Core.StreetMap.OnRoad(pa.x, pa.z))
+                {
+                    WalkersHeadingIntoRoad++;
+                    // WHICH SPOTS, NOT HOW MANY PEOPLE — because the two
+                    // answer different questions and only one of them is a
+                    // fault.
+                    //
+                    // This went 10 to 16 after the corner exemption, and was
+                    // read as the pavement fix going backwards. It cannot say
+                    // that: `StreetMap` deliberately LEAVES corner places in
+                    // the carriageway, because a crossing or a gate belongs in
+                    // a right of way, and `AddressesLeftInRoad` counts nine of
+                    // them. Sixteen walkers heading for nine legitimate corners
+                    // is a busy morning; sixteen heading for sixteen different
+                    // patches of tarmac is sixteen people standing in traffic.
+                    //
+                    // Distinct cells against that nine is the whole comparison,
+                    // and it costs a hash of a number already computed.
+                    _roadCells.Add(GameController.PlaceKey(pa));
+                }
                 int alongside = 0;
                 for (int j = 0; j < _npcs.Count; j++)
                 {
@@ -638,6 +658,12 @@ namespace Ledger.Game
         /// metres of another. Read against `busiestPlace`: much larger means
         /// the schedules cluster without sharing a cell.
         public static int BusiestNear;
+
+        /// Distinct metre cells that in-road targets fall in, against
+        /// `addressesLeftInRoad`, which is how many corner places the map
+        /// deliberately left in a carriageway. See where it is filled.
+        static readonly HashSet<Vector3Int> _roadCells = new HashSet<Vector3Int>();
+        public static int WalkersHeadingIntoRoadCells => _roadCells.Count;
 
         /// How many walkers are heading for a point in a CARRIAGEWAY, and how
         /// many were asked. Last-wins per pass on purpose — it is "where is the
