@@ -5218,7 +5218,26 @@ namespace Ledger.Game
             // concealment cannot be missed. Swapping first would have tripled
             // `_friskFound`, moved a landed gate number, and done it while
             // planting a condition that has nothing to do with frisking.
-            if (!_batStaged && _carryStaged && _friskStaged)
+            // AND AFTER THE WASH, BECAUSE THE BAT SUPPRESSES THE BLOOD.
+            //
+            // `weaponNotices=157 bloodNotices=0` on `e7953a7`, and those two
+            // are not independent readings of one street: `Notice.What` returns
+            // `WeaponVisible` on its FIRST line and only reaches
+            // `BloodOnClothes` if the weapon check fails. So from the instant
+            // this swap runs, no walker in the game can ever classify the
+            // player as bloodied again — and the zero is my own staging, not a
+            // fact about blood.
+            //
+            // That is the two-numbers-from-one-variable trap: printing them
+            // side by side reads as "the street sees weapons and not blood",
+            // and the truth is that one is a gate in front of the other.
+            //
+            // `_washTried` is the natural boundary. The stain is taken by the
+            // cut, offered to everybody near enough to see it, and washed
+            // between two and four in the morning; gating on it gives blood the
+            // whole of its own window and gives the bat every hour after. Both
+            // numbers become readable and neither is invented.
+            if (!_batStaged && _carryStaged && _friskStaged && _washTried)
             {
                 _batStaged = true;
                 if (_simRazor != null) CoatHost.Store(_simRazor);
