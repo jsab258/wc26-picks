@@ -443,6 +443,17 @@ namespace Ledger.Game
                     float dx = pa.x - pb.x, dz = pa.z - pb.z;
                     if (dx * dx + dz * dz <= 4f) alongside++;
                 }
+                // AND ONTO THE WALKER, because this is the number their ring
+                // should have been sized from all along.
+                //
+                // `huddleCells=21` at a huddle of 41 settles it: the forty-one
+                // bodies belong to TWENTY-ONE distinct scheduled cells, so
+                // every ring is correctly sized for its own handful and the
+                // cells simply sit on top of each other. `CrowdAtPlace` counts
+                // one metre cell; `Physique.SpreadRadius` needs to know how
+                // many people are coming to the NEIGHBOURHOOD, and that is
+                // exactly what this loop already computes and threw away.
+                a.CrowdNearPlace = alongside;
                 if (alongside > busiestNear) busiestNear = alongside;
             }
             if (busiestNear > BusiestNear) BusiestNear = busiestNear;

@@ -331,17 +331,34 @@ namespace Ledger.Game
                 // smaller radius. The angle is unchanged and still comes from
                 // the display name, so a person stands in the same spot every
                 // run and every reload.
-                if (!_spreadKnown || _spreadFor != CrowdAtPlace)
+                // SIZED FROM THE NEIGHBOURHOOD, NOT THE CELL, and the run is
+                // what changed the answer. `busiestNear=12` equals
+                // `busiestPlace=12` — so a 2m radius round one target holds no
+                // more people than the target's own metre cell — while
+                // `crowdHuddleWorst=41` and `huddleCells=21` say the forty-one
+                // bodies in the frame come from twenty-one different cells.
+                // Every ring was correctly sized for its own handful and they
+                // were laid on top of each other.
+                //
+                // `CrowdNearPlace` is the same count this walker's neighbours
+                // are already being counted with, once a second, in the pass
+                // that computes `busiestNear` — it was computed and discarded.
+                // Nothing new is measured and nothing new is guessed.
+                //
+                // STILL FLOORED at `SpreadMetres` by `SpreadRadius` itself, so
+                // nobody is placed tighter than they are today and an uncrowded
+                // street is byte-identical.
+                if (!_spreadKnown || _spreadFor != CrowdNearPlace)
                 {
                     float radius = (float)Ledger.Core.Physique.SpreadRadius(
-                        CrowdAtPlace, SpreadMetres);
+                        CrowdNearPlace, SpreadMetres);
                     float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
                                       * System.Math.PI * 2.0);
                     float u = (float)Ledger.Core.Physique.Fraction(DisplayName, 61);
                     _spread = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a))
                               * (radius * Mathf.Sqrt(u));
                     _spreadKnown = true;
-                    _spreadFor = CrowdAtPlace;
+                    _spreadFor = CrowdNearPlace;
                     if (radius > WidestSpread) WidestSpread = radius;
                 }
                 return _spread;
@@ -360,6 +377,11 @@ namespace Ledger.Game
         /// behave exactly as this file did before, and a zero would collapse the
         /// radius rather than leave it alone.
         public int CrowdAtPlace = 1;
+        /// How many people are heading for a point within two metres of this
+        /// one — the NEIGHBOURHOOD rather than the cell. Pushed in by the same
+        /// once-a-second pass that computes `busiestNear`, which was already
+        /// counting it and keeping only the maximum.
+        public int CrowdNearPlace = 1;
 
         /// The widest ring any place has needed. Read beside `crowdHuddle`: a
         /// spread that never grows past 0.80 on a run whose worst huddle is
