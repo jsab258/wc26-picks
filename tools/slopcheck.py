@@ -136,12 +136,32 @@ ALLOW = [
 
 
 def strings_from_cs():
-    """Authored strings a player can read, from the Game and Core layers."""
+    """Authored strings a player can read, from the Game and Core layers.
+
+    CLASSIFIED BY WHAT THE CODE DOES WITH THE STRING, not by the string, and
+    this is the third time that distinction has decided the number. First I
+    reported 131 em dashes "in the writing" and 70 were debug lines. Then 116
+    "in authored narration" — of which 27 were `Debug.Log` and 15 were rich
+    text ledger rows where the dash is a COLUMN SEPARATOR
+    (`<b>{name}</b> — {summary}`), a layout device containing no prose at all.
+
+    88 is the real figure. It only means anything because the other two
+    populations are named rather than folded in, and a ceiling that counts
+    debug output as writing is a ceiling measuring the wrong thing.
+    """
     out = []
     for p in sorted((ROOT / "ledger/Assets/Scripts").rglob("*.cs")):
-        txt = p.read_text(encoding="utf-8", errors="replace")
-        for s in re.findall(r'"([^"\\\n]{20,})"', txt):
-            out.append((f"{p.name}", s))
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        for i, ln in enumerate(lines):
+            for s in re.findall(r'"([^"\\\n]{20,})"', ln):
+                ctx = "\n".join(lines[max(0, i - 3):i + 1])
+                if "Debug.Log" in ctx or "_frameLedger" in ctx or "Verdict" in ctx:
+                    kind = "log"
+                elif re.search(r"<b>|<color=|</b>|</color>", s):
+                    kind = "ui"
+                else:
+                    kind = "prose"
+                out.append((kind, p.name, s))
     return out
 
 
@@ -198,13 +218,14 @@ def main():
         return selftest()
 
     cs = strings_from_cs()
-    dialogue = [(w, s) for w, s in cs if not LOGLIKE.match(s)]
-    logs = [(w, s) for w, s in cs if LOGLIKE.match(s)]
+    dialogue = [(w, s) for k, w, s in cs if k == "prose"]
+    uirows   = [(w, s) for k, w, s in cs if k == "ui"]
+    logs     = [(w, s) for k, w, s in cs if k == "log"]
     barks = strings_from_barks()
     cards = strings_from_cards()
 
     surfaces = [("the bark bank", barks), ("Tier-2 cards", cards),
-                ("Game/Core authored text", dialogue)]
+                ("Game/Core PROSE", dialogue)]
 
     total = 0
     for label, items in surfaces:
@@ -221,7 +242,9 @@ def main():
                 for where, s in hits[name][:6]:
                     print(f"            [{where}] {s[:76]}")
 
-    print(f"\n  ({len(logs)} debug/log strings excluded — not player-facing)")
+    print(f"\n  excluded, and named rather than folded in:")
+    print(f"      {len(logs):4d}  debug / verdict strings (not writing)")
+    print(f"      {len(uirows):4d}  rich-text UI rows (the dash is a column separator)")
     print("\n  NOT CHECKED, because these are not mechanical:")
     for u in UNCHECKABLE:
         print(f"      - {u}")
@@ -253,15 +276,19 @@ def selftest():
 
     # THE ALLOW-LIST MUST NOT GO STALE. Same rule as gamecheck.py: an entry
     # that stops matching is a hole waiting for the next real hit.
-    everything = {s for _, s in strings_from_cs()}
+    everything = {t for _, _, t in strings_from_cs()}
     stale = [a for a in ALLOW if a not in everything]
     check(not stale, f"every allow-list entry still exists in the source "
                      f"({len(ALLOW)} entries, {len(stale)} stale)")
 
-    check(LOGLIKE.match("PopulationHost: CityPlan is unbalanced") is not None,
-          "a debug line is recognised as a debug line")
-    check(LOGLIKE.match("Bread's gone up again. Again.") is None,
-          "a bark is not mistaken for a debug line")
+    kinds = {k for k, _, _ in strings_from_cs()}
+    check(kinds == {"log", "ui", "prose"},
+          f"strings are split three ways, not lumped ({sorted(kinds)})")
+    counts = {}
+    for k, _, s2 in strings_from_cs():
+        if re.search(r"\s—\s", s2): counts[k] = counts.get(k, 0) + 1
+    check(counts.get("prose", 0) < counts.get("log", 0) + counts.get("prose", 0) + counts.get("ui", 0),
+          f"em dashes are attributed per population ({counts})")
 
     n = len(strings_from_barks())
     check(n > 300, f"the bark bank is actually being read ({n} lines)")

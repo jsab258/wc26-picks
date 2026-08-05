@@ -513,10 +513,18 @@ def slop():
     return True, "slop %d/%d (%s patterns, %s strings)" % (hits, SLOP_CEILING, pats, strings)
 
 
-# THE CEILING ONLY EVER COMES DOWN. Measured, not chosen: 117 on 5 August, all
-# of them in Game-layer narration, every other surface at zero. Lower it when
-# you clear some; never raise it.
-SLOP_CEILING = 117
+# THE CEILING ONLY EVER COMES DOWN, AND IT CAME DOWN THE SAME DAY IT WAS SET.
+# 117 counted debug output and rich-text ledger rows as writing. With the three
+# populations separated it is 93 — 92 spaced em dashes in prose and one stray
+# ellipsis character, every other surface at zero and all nineteen other
+# patterns at zero everywhere.
+#
+# Two numbers were quoted for this before the tool settled it: 116 from a scan
+# that counted logs, and 88 from an ad-hoc script with a slightly different
+# context window. Neither was the instrument. 93 is what the instrument says,
+# and the instrument is what the ceiling tracks — which is the whole argument
+# for having one.
+SLOP_CEILING = 93
 
 
 def voice_gen():
