@@ -74,22 +74,39 @@ namespace Ledger.Core
         /// The wardrobe itself. Ordered, and the order is part of the identity:
         /// changing it re-dresses the whole city.
         ///
-        /// CHECKED AND INNOCENT, 5 August, so nobody re-opens it. I read
+        /// CHECKED, 5 August, and the table is innocent — but read the second
+        /// half before concluding anything from that. I read
         /// `review_day1_noon`, saw two foreground bodies in bright saturated
         /// trousers, and filed it as off-brief for a noir game. Printed rather
         /// than argued: seven of the eight bands top out between 0.09 and 0.55
         /// saturation, and the only hot one is `shellsuit` at 0.62-0.85 with a
         /// WEIGHT OF 1 IN 31 — three per cent of the city, deliberately, which
-        /// is what a shellsuit was. `crowdSatRange=0.06..0.73` in the landed
-        /// verdict is that band doing exactly its job.
+        /// is what a shellsuit was.
         ///
-        /// AND THE HUE SAYS MY EYES WERE WRONG. `shellsuit` sits at hue
-        /// 0.82-0.90, which is magenta, and no band covers 0.12-0.36 above
-        /// 0.26 saturation at all — so a saturated YELLOW cannot come out of
-        /// this table. Either what I saw was `stone` (0.08-0.12, orange, capped
-        /// at 0.26) lit by a warm noon sun, or it was a JPEG at 1280x720 doing
-        /// what rule 4 says a JPEG does. Three textures, a bench and a set of
-        /// wheels have now been condemned off a still and cleared by a number.
+        /// AND THE HUE SAYS THE YELLOW IS NOT FROM THIS TABLE AT ALL, WHICH IS
+        /// NOT THE SAME AS SAYING IT IS NOT THERE — and the first version of
+        /// this note got that wrong, in writing, an hour before the next frame
+        /// contradicted it.
+        ///
+        /// `shellsuit` sits at hue 0.82-0.90, which is magenta, and no band
+        /// covers 0.12-0.36 above 0.26 saturation. I concluded from that that
+        /// my eyes were the unreliable instrument and filed it as the sixth
+        /// thing condemned off a still and cleared by a number.
+        ///
+        /// It is the opposite. The trousers ARE bright yellow in every frame,
+        /// and the reason no band explains them is that **these bodies are not
+        /// wearing the wardrobe**. `roadmap.md` says it plainly: texture
+        /// extraction switched the paint path off the morning it landed — the
+        /// models arrive textured, `bodySkinnedEver=0` because nothing is
+        /// painted, and the wash maps over a kept Mixamo albedo instead. The
+        /// yellow is the MODEL's own texture. `crowdSatRange=0.06..0.73` is
+        /// measuring that albedo, not this table.
+        ///
+        /// THE LESSON IS ABOUT WHERE I LOOKED, not about the eyes. Checking the
+        /// palette was right; concluding from a clean palette that the RENDER
+        /// was clean assumed the palette reaches the render, and for these
+        /// twelve bodies it does not. A number that exonerates one system says
+        /// nothing about a second system standing in front of it.
         public static readonly Band[] Bands =
         {
             // BLACK, and it leads because it is what the decade actually wore:
