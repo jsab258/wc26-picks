@@ -39,24 +39,35 @@ CLAUDE.md under AUTO MODE.
   walking pace) stands; the LATERAL component does not obviously belong to a
   walk and wants the same treatment `ArmSwing` got — print what the model says
   a correct walk should give, then compare.
-- **THE MOB IS NOT CONVERSATION, AND MY WAYPOINT COUNT WAS WRONG.**
-  `0720f52` at the worst huddle of 41: `huddleTalking=0 huddleDetour=0
-  huddleWaiting=0 huddleEscorting=1`. Not conversation, not an obstacle, not
-  the companion rule — four candidates, three killed by one line, and that part
-  stands. `huddleWhere=-1/-3`, which IS on a road.
-  **CORRECTED, and I caught it myself before it cost a build.** I first
-  reported "seven authored waypoints inside a six-metre disc, six of them in a
-  carriageway". That grep pulled `new Vector3(x, 0, z)` out of
-  `GameController` without noticing that most of them are OFFSETS added to
-  `WorldBuilder.BarDoor` at `(-6,6)` — so six bar-door offsets were measured as
-  world positions, and they happened to land near the origin where the roads
-  are. Resolved properly: **three waypoints within six metres of the huddle,
-  two of them in a carriageway**, and across the whole cast **11 of 34 in a
-  road, not 14**. The bar door itself is clear.
-  **So the cluster round the pub is authored and correct** — "across from the
-  bar, coat still on", "one drink, loudly" — and it is NOT where the huddle is.
-  What puts 41 bodies at `(-1,-3)` is still open, and `huddleCells` next build
-  says whether the rings are undersized or merely overlapping.
+- **THE MOB IS SOLVED AND THE FIX IS IN.** `huddleCells=21` at a huddle of 41:
+  the forty-one bodies belong to TWENTY-ONE distinct scheduled cells, so every
+  ring was correctly sized for its own handful and the cells sat on top of each
+  other. `Physique.SpreadRadius` now reads `CrowdNearPlace` — the
+  two-metre neighbourhood count the `busiestNear` pass was already computing
+  and discarding — instead of the one-metre cell. Forty-one people go from a
+  0.8m disc to 1.63m, which is the packing rule's own arithmetic, and
+  `SpreadRadius` still floors at the old value so an uncrowded street is
+  byte-identical. **Watch `crowdHuddleWorst` fall and `crowdGapMedian` rise; if
+  the deed, places or companion gates move, the ring is too wide for a street
+  this size and the answer is fewer people at one address.**
+  Two earlier claims of mine about this were wrong and are corrected in the git
+  log: the huddle is not the cast's pub-door cluster (I resolved `BarDoor +
+  offset` waypoints as world coordinates), and `busiestNear=12` never
+  contradicted anything — a 2m probe cannot see a 21-cell knot.
+- **THE STREET WALKS BENT DOUBLE.** `lean=36.3 leanWorst=41.7` over 74,410
+  readings — a MEDIAN, so it is the whole street. Not a rest-pose artefact:
+  `Mannequin` puts `Chest` directly above `Hips`. The suspect is the write —
+  every other bone composes from a stored rest and the lean alone does
+  `_chest.localRotation * Euler(pitch...)`, and the line that re-establishes
+  rest is guarded on `!PoseIsDriven`. `leanDriven`/`leanRest` say next build
+  whether accumulation is the whole of it. **Not fixed blind: this is the pose
+  code that produced the upside-down player.**
+- **THE YELLOW TROUSERS ARE THE MODEL, NOT THE WARDROBE.** Checked the palette,
+  found no band that could make them, wrote "my eyes are the unreliable
+  instrument" into `Wardrobe.cs` — and the next frame said otherwise. Texture
+  extraction switched the paint path off, `bodySkinnedEver=0` because nothing
+  is painted, and the wash maps over a kept Mixamo albedo. **A number that
+  exonerates one system says nothing about a second system in front of it.**
 - **THE ADDRESSES ARE FIXED; THE CAST'S WAYPOINTS ARE NOT.**
   `placeStopsInRoad=31` was printed beside `placeFacesInRoad=22` the whole
   time and is the actual fault — no placement rule fixes an address in the
