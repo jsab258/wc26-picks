@@ -201,6 +201,66 @@ DID_NOT_HAPPEN = {"0", "0.0", "0.00", "0.000", "0.0000",
                   "False", "None", "none", "-1"}
 
 
+# ZEROS SOMEBODY HAS ALREADY READ AND UNDERSTOOD, with a one-line reason and
+# a pointer to where the real one lives.
+#
+# WHY THIS EXISTS. `--constant` printed sixty-one keys and its own docstring
+# says telling a fault counter from an unentered branch "needs to know what the
+# number is FOR, which is a person's job". Fine — but a person did that job for
+# several of them, wrote the reasoning into the code where it belongs, and the
+# tool went on printing all sixty-one every time. A warning nobody can clear
+# stops being a warning, and the sixty-second entry would have arrived as one
+# more line in a block already being scrolled past.
+#
+# THE REASON HERE IS DELIBERATELY ONE LINE. The real account is a paragraph in
+# the file that owns the number, because that is where somebody chasing it will
+# be standing; duplicating it here would be one idea with two implementations
+# and this file would be the copy that decays. What this buys is the
+# distinction between "nobody has looked" and "somebody looked".
+#
+# AND AN EXPLAINED KEY THAT STARTS MOVING IS REPORTED, because a reason is a
+# claim and claims decay — the reach ledger has now had three reasons go stale
+# describing work that had already been done.
+EXPLAINED_ZEROS = {
+    "soundsOffered": "no audio device on the runner; read simAudible first",
+    "soundsAdmitted": "no audio device on the runner; read simAudible first",
+    "soundsDropped": "no audio device on the runner; read simAudible first",
+    "soundsNoClip": "no audio device on the runner; read simAudible first",
+    "soundsStolen": "no audio device on the runner; read simAudible first",
+    "soundsPeak": "no audio device on the runner; read simAudible first",
+    "soundsPeakBus": "no audio device on the runner; read simAudible first",
+    "speechPlayed": "no audio device, and the voice bank does not exist yet",
+    "speechNoAudio": "no audio device on the runner; read simAudible first",
+    "simAudible": "the runner has no audio device — this is the key that says so",
+    "windowsShopLit": "last-wins, written after midnight when every shop is "
+                      "shut by design; read windowsShopLitAtShot",
+    "walkersPrimitive": "last-wins over a once-a-second pass; read "
+                        "walkersPrimitiveEver",
+    "huddleTalking": "measured 4 Aug and it is the FINDING — the mob is not a "
+                     "conversation",
+    "huddleDetour": "measured 4 Aug and it is the FINDING — the mob is not an "
+                    "obstacle",
+    "huddleWaiting": "measured 4 Aug and it is the FINDING — the mob is not a "
+                     "host waiting",
+    "deedWaitedDays": "zero is the goal: the escort is recruited near, so the "
+                      "wait never fires",
+    "fontless": "a fault counter doing its job since 17.9 shipped",
+    "errors": "a fault counter doing its job",
+    "idLeaks": "a fault counter doing its job",
+    "blankLabels": "a fault counter doing its job",
+    "panelsBad": "a fault counter doing its job",
+    "contrastFailing": "a fault counter; read contrastChecked beside it",
+    "offRoad": "a fault counter doing its job — no vehicle leaves the tarmac",
+    "stemsUnbound": "a fault counter doing its job",
+    "unbound": "a fault counter doing its job",
+    "textNoText": "a fault counter doing its job",
+    "bodyGrantsFailed": "a fault counter doing its job",
+    "walkerBodiesFailed": "a fault counter doing its job",
+    "playerPrimitive": "false is correct — the player is not a capsule",
+    "primitive": "false is correct — see playerPrimitive",
+}
+
+
 def constant(minimum_runs=20):
     """READINGS WHOSE SUBJECT HAS NEVER OCCURRED, across every kept run.
 
@@ -242,12 +302,31 @@ def constant(minimum_runs=20):
             seen.setdefault(k, set()).add(v)
     stuck = sorted(k for k, vs in seen.items()
                    if len(vs) == 1 and next(iter(vs)) in DID_NOT_HAPPEN)
+    known = EXPLAINED_ZEROS
+    fresh = [k for k in stuck if k not in known]
+    settled = [k for k in stuck if k in known]
     print(f"gates --constant: {len(runs)} runs, {len(seen)} keys, "
-          f"{len(stuck)} that have never been anything but zero/false/none.")
+          f"{len(stuck)} that have never been anything but zero/false/none — "
+          f"{len(fresh)} unexamined, {len(settled)} already explained.")
     print("Read each one and ask which it is: a fault counter doing its job, "
           "or a branch nothing has ever entered.\n")
-    for k in stuck:
+    for k in fresh:
         print(f"  {k}={next(iter(seen[k]))}")
+    if settled:
+        print(f"\n  ---- {len(settled)} already read and understood; "
+              f"the reason is in the code, not here ----")
+        for k in settled:
+            print(f"  ({k}={next(iter(seen[k]))} — {known[k]})")
+    # A KEY THAT LEAVES THE LIST IS A REASON THAT HAS EXPIRED. If somebody
+    # explains a zero and it later starts moving, the explanation is stale and
+    # nobody would ever be told — the same decay the reach ledger's reasons
+    # have, which this project has now been bitten by three times.
+    gone = sorted(k for k in known if k not in stuck)
+    if gone:
+        print(f"\n  ---- {len(gone)} explained key(s) NO LONGER STUCK — the "
+              f"reason has expired and wants deleting ----")
+        for k in gone:
+            print(f"  {k} moved: {known[k]}")
     return 0
 
 
