@@ -53,3 +53,9 @@ Tier2Gen/obj/
 # ShapeCheck build output (the tool is source + csproj only)
 ShapeCheck/bin/
 ShapeCheck/obj/
+
+# GameCheck build output. The project and its four uGUI shims are source and
+# are tracked; the compiled Unity reference assemblies come from NuGet on
+# demand and must never be committed.
+GameCheck/bin/
+GameCheck/obj/

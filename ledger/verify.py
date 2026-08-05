@@ -235,6 +235,30 @@ def queue_depth():
     return True, "%s queue items ready" % m.group(2)
 
 
+def game_compiles():
+    """THE GAME LAYER, COMPILED, HERE, IN SIX SECONDS.
+
+    This is the check this project has never had and has paid for daily. The
+    Game layer's first compiler was a ~28-minute Windows build, so a wrong type
+    name was not one lost round trip but every round trip until somebody
+    noticed — measured at 18 commits and 4 consecutive dead builds for a single
+    bad name, each build dispatched to answer a different question and each
+    coming back `NO PLAYER LOG`.
+
+    It compiles against Unity's OWN reference assemblies from NuGet, so these
+    are real signatures rather than a name-matcher's opinion. See
+    `tools/gamecheck.py` for the four uGUI shims and the one allow-listed
+    reference-assembly gap, and for why that allow-list fails in both
+    directions."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "gamecheck.py")])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines()
+                      if ".cs(" in l or "NO LONGER OCCUR" in l), "see gamecheck")
+        return False, "GAME LAYER DOES NOT COMPILE: " + first[:110]
+    m = re.search(r"(\d+) files", out)
+    return True, "Game layer compiles (%s files)" % (m.group(1) if m else "?")
+
+
 def docs_shape():
     """Every doc in `game-design/` declares LIVE/SPEC/LOG and stays scannable.
 
@@ -726,7 +750,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
-               attribution, nested_types,
+               attribution, game_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):
