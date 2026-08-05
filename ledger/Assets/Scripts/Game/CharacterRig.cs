@@ -752,6 +752,20 @@ namespace Ledger.Game
         public static int LeanDrivenFrames => _leanDrivenWorst.Count;
         public static int LeanRestFrames => _leanRestWorst.Count;
 
+        /// The MIDDLE driven body in a frame rather than the worst one, so
+        /// there is finally a number that describes the street instead of its
+        /// most pitched member. See where it is filled for why the old one
+        /// could never answer that.
+        static readonly List<float> _leanDrivenTypical = new List<float>();
+        public static double LeanDrivenTypical => MedianOf(_leanDrivenTypical);
+
+        /// The single worst lean of the run and the speed of the body that
+        /// produced it, captured together. A walk is 1.4 m/s and a run is 4.0,
+        /// so the speed is what tells a bent walk cycle from somebody running.
+        public static float LeanWorstEver { get; private set; } = -999f;
+        public static float LeanWorstSpeed { get; private set; } = -1f;
+        public static bool LeanWorstDriven { get; private set; }
+
         /// The lateral arm angle, split by how the body is built. See the note
         /// where they are filled: a mannequin's swing is provably fore-and-aft
         /// and a bought skeleton's is whatever its rest orientation makes it,
@@ -883,25 +897,66 @@ namespace Ledger.Game
                     // at `(0, ChestRise, 0)` from `Hips`, directly above, so a
                     // body at rest reads zero.
                     //
-                    // The suspect is the write itself. Every other bone in this
-                    // file composes from a STORED rest — `_chest0 * Euler(...)`
-                    // at the look-at, `rest * Euler(...)` in `Swing` — and the
-                    // lean alone does `_chest.localRotation * Euler(pitch,...)`,
-                    // multiplying into whatever is already there. That is only
-                    // safe if something re-establishes the rest first, and the
-                    // line that does is guarded on `!PoseIsDriven`. So a body
-                    // playing a bought clip never gets reset and the pitch
-                    // compounds every frame; a mannequin does and does not.
+                    // THE ACCUMULATION THEORY IS DEAD, AND THE FORK THAT USED
+                    // TO STAND HERE WAS FALSE ON BOTH ARMS.
                     //
-                    // NOT FIXED HERE, DELIBERATELY. This is the pose code that
-                    // produced the upside-down player, and the fix has to
-                    // preserve the look-at yaw written just before it — so it
-                    // needs the reading that says whether accumulation is the
-                    // whole of it. If driven bodies read far higher than
-                    // mannequins it is the composition; if both read 36 it is
-                    // the pitch value and a different edit entirely.
+                    // It said: driven far higher than mannequins means the
+                    // composition, both at 36 means the pitch value. On
+                    // `52037ba` driven read 36.1 against a rest of 8.2 — "far
+                    // higher", so by that fork the answer was the composition.
+                    // It is not. `preLeanDriven=41.6` is measured in
+                    // `StampArmsPre` BEFORE this class writes anything, and
+                    // `leanWorst=41.7` is the same statistic after: the write
+                    // contributes a tenth of a degree. The bought clip arrives
+                    // already leaning and the suspicion below it was wrong.
+                    //
+                    // (The comparable pair is peak against peak. `preLean` is a
+                    // run maximum and `leanDriven` is a median of frame maxima,
+                    // and reading 41.6 against 36.1 as "the write REMOVES five
+                    // degrees" is the mistake this file has made four times.)
+                    //
+                    // The suspicion, kept because the shape is still real and
+                    // still worth watching: every other bone composes from a
+                    // STORED rest — `_chest0 * Euler(...)` at the look-at,
+                    // `rest * Euler(...)` in `Swing` — and the lean alone does
+                    // `_chest.localRotation * Euler(pitch,...)`, multiplying
+                    // into whatever is already there, with the line that
+                    // re-establishes rest guarded on `!PoseIsDriven`. That
+                    // would compound, and measurably it does not, which means
+                    // something else is resetting the transform each frame:
+                    // the Animator itself, which rewrites every bone it owns
+                    // before `LateUpdate`. Driven bodies are exactly the ones
+                    // it owns. So the guard is not the bug — it is redundant
+                    // with the Animator, and that is why it never bit.
+                    //
+                    // WHAT IS STILL OPEN IS WHICH CLIP. The tree puts a walk at
+                    // 1.4 m/s and a run at 4.0, an escort hurries at 2.6, and a
+                    // run leans by design. `leanWorstSpeed` is captured beside
+                    // the peak for exactly that question.
                     if (PoseIsDriven) _leanDrivenFrame.Add(lean);
                     else _leanRestFrame.Add(lean);
+
+                    // AND HOW FAST THAT BODY WAS GOING, TAKEN AT THE SAME
+                    // INSTANT AS THE LEAN ITSELF.
+                    //
+                    // The blend tree puts a walk at 1.4 m/s and a run at 4.0,
+                    // so a body at 2.6 — which is what an escort in a hurry
+                    // does — is nearly half a run, and a run clip leans by
+                    // design. Without the speed beside it the peak cannot tell
+                    // "the walk cycle is bent double", which is a fault, from
+                    // "somebody was running", which is the animation working.
+                    //
+                    // Captured HERE rather than next to the peak, because a
+                    // speed read anywhere else is a different body at a
+                    // different moment — the four bad pairs of 4 August were
+                    // all a denominator taken at its own worst instant instead
+                    // of the numerator's.
+                    if (lean > LeanWorstEver)
+                    {
+                        LeanWorstEver = lean;
+                        LeanWorstSpeed = (float)Speed;
+                        LeanWorstDriven = PoseIsDriven;
+                    }
                 }
                 // AND THE SAME LATERAL ANGLE SPLIT BY BODY TIER, because the
                 // two tiers swing an arm through completely different maths and
@@ -1040,6 +1095,20 @@ namespace Ledger.Game
                 {
                     _leanDrivenFrame.Sort();
                     _leanDrivenWorst.Add(_leanDrivenFrame[_leanDrivenFrame.Count - 1]);
+                    // AND THE MIDDLE BODY, WHICH IS THE ONE NOBODY HAS EVER HAD.
+                    //
+                    // `leanDriven` is a median of these frame MAXIMA, so with a
+                    // dozen driven bodies in shot it is about a 92nd percentile
+                    // and it cannot answer "what does a body look like". It has
+                    // been quoted as "a MEDIAN, so it is the whole street" — in
+                    // `queue.md`, off this exact list — and that is the
+                    // `armStreet` shape CLAUDE.md names: a worst that never
+                    // stops being a median, read here in the mirror.
+                    //
+                    // Both are wanted and neither answers the other. The worst
+                    // says whether anybody is bent double; this says whether
+                    // the street is.
+                    _leanDrivenTypical.Add(_leanDrivenFrame[_leanDrivenFrame.Count / 2]);
                 }
                 if (_leanRestFrame.Count > 0)
                 {

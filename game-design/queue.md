@@ -26,7 +26,70 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### WHAT THE LAST THREE BUILDS SETTLED
+### WHAT `52037ba` SETTLED, AND TWO THINGS IT REFUTED
+
+- **THE LEAN IS THE BOUGHT CLIP, NOT THE WRITE.** `preLeanDriven=41.6`
+  measured before this project touches the spine, `leanWorst=41.7` after —
+  peak against peak, so the write contributes a tenth of a degree. The
+  accumulation theory is dead and the comment arguing for it has been
+  replaced with the measurement that killed it.
+  **The fork in that comment was wrong on BOTH arms**, which is rule 2's
+  warning about a fork written into a comment: it offered "driven far higher
+  than rest means the composition" and "both at 36 means the pitch value",
+  and the truth — the clip arrives leaning — was neither.
+  **AND `lean` HAS NEVER MEANT WHAT IT WAS QUOTED AS MEANING.** `leanDriven`
+  is a median of per-frame MAXIMA, so with a dozen driven bodies in shot it is
+  about a 92nd percentile. This file called it "a MEDIAN, so it is the whole
+  street". `leanTypical` is the middle body and lands next build.
+  **What is still open is which clip.** The tree blends a walk at 1.4 m/s and
+  a run at 4.0, an escort hurries at 2.6, and a run leans by design.
+  `leanWorstSpeed` is captured beside the peak instant to say which.
+
+- **THE KILLING REGISTER'S BROKEN LINK IS LOCATED AND CORE IS INNOCENT.**
+  `homSawStored=32 homHoldsIt=0` — the register takes every witness and not
+  one holds the belief. A local probe of the same sequence against real Core
+  (32 agents, `FileWith`, `BestOfValue`) returns **32 of 32**, so the fault is
+  in the Game layer. Every link then checked out by reading, which is where
+  the rules say stop reading: `homSameMill`, `homFileOffered/Dropped` across
+  the call, `homHasAgent` and `homAnyRumour` land next build and the first
+  zero among them names it.
+  Note `witnessDropped=2` looked like proof the 32 were accepted and is not —
+  it is a LIFETIME total on the mill, and a lifetime count cannot say what
+  happened during one call.
+
+- **THE THREAT FIX WORKED.** `complied=1 called=1` after 136 runs of zero.
+
+- **THE BUBBLE CEILING FELL AND THE FIX DID NOT DO IT.** 39% to 20%, but
+  `bubblesScreenLifted=2` — the screen-space pass fired twice, and
+  `bubblesMade` also halved, 156 to 75. The rate change is fewer bubbles.
+  `bubblesNoBounds=0` does close the one stated uncertainty: a TextMesh built
+  this frame HAS usable bounds, so the pass can ask. **Keep the counter next
+  to every visible fix** — without it this would have been filed as a win.
+
+- **THE PAVEMENT WENT THE WRONG WAY.** `headingIntoRoad` 10 to 16 against a
+  predicted 7. It counts scheduled TARGETS on a carriageway, so `StepApart`
+  cannot be the cause; the corner exemption is, and it is doing exactly what
+  it was told. Nine addresses at junctions is either right or it is not, and
+  that is a judgement nobody has made yet.
+
+- **THE MOB IS WORSE AND IT IS IN THE FRAMES.** `crowdHuddleWorst=41`
+  unchanged, `crowdGapMedian` 0.37 to 0.30 — third build falling. Day-2 noon
+  shows about thirty bodies in one overlapping block on Quay Street, several
+  standing inside each other. This is the most visible fault in the game.
+  **AND THE TWO NUMBERS USED TO CHASE IT ARE DIFFERENT POPULATIONS:**
+  `busiestNear=12` counts TARGETS within two metres, `crowdHuddleWorst=41`
+  counts BODIES within two metres. They have been read as the same number in
+  two separate fixes I shipped saying they would work.
+  `huddleStanding`/`huddleMoving` split it at the peak instant next build:
+  standing high means the rings are undersized, moving high means it is a jam
+  on a route and the rings were never the fault.
+  **`StepApart` already exists** — a grep-before-writing caught me about to
+  build a second one — and its accumulated push had no bound, so a thirty-body
+  pile could move somebody metres in a frame from a function whose comment
+  calls it a nudge. Capped at half a body width, with `crowdApartCapped`
+  against `crowdApartCalls` to say whether the cap ever bites.
+
+### WHAT THE THREE BUILDS BEFORE THAT SETTLED
 
 - **Settled and closed:** the summons zero is honest (`summonsMissWhy` moved to
   "a line was live and he was not near it"); the reliability rule fired for the

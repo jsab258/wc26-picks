@@ -203,6 +203,20 @@ namespace Ledger.Game
         /// two implementations, in the two files that PLACE and MEASURE the
         /// same people.
         const float BodyWidth = (float)Ledger.Core.Physique.ShoulderWidth;
+
+        /// The most `StepApart` may move a body in one frame. A resolved pair
+        /// needs 0.225m — half the overlap of two coincident bodies — so half a
+        /// body width is four times the ordinary case and bites only in a pile.
+        const float MaxApartStep = BodyWidth * 0.5f;
+
+        /// How often the cap bit, how far the uncapped push wanted to go, and
+        /// the denominator that says the pass ran at all. A zero `ApartCapped`
+        /// beside a zero `ApartCalls` is "separation never executed" and beside
+        /// a large one is "no pile ever needed it" — rule 3b, and the two look
+        /// identical without the second number.
+        public static int ApartCapped, ApartCalls;
+        public static float ApartWorst;
+
         /// How far from a scheduled point somebody actually stands. Two
         /// shoulders: far enough that two people sent to one place are clear of
         /// each other, near enough that they are still at the place and still
@@ -1603,6 +1617,39 @@ namespace Ledger.Game
                         away = new Vector3(Mathf.Cos(ang) * sign, 0, Mathf.Sin(ang) * sign);
                     }
                     push -= away * (BodyWidth - dist) * 0.5f;
+                }
+                ApartCalls++;
+                // A NUDGE HAS TO STAY A NUDGE, AND IN A PILE THIS ONE STOPPED
+                // BEING ONE.
+                //
+                // The sum is over EVERY neighbour inside a body width with no
+                // bound on the total. Two people overlapping give at most
+                // 0.225m, which is the nudge this function's comment describes
+                // and defends. Thirty people in a knot — which the day-2 noon
+                // still shows and `crowdHuddleWorst=41` measures — can sum to
+                // several metres in a single frame, and the one place that
+                // happens is the one place it must not: a dense huddle, where
+                // it reads as a body flicking across the street rather than
+                // easing out of a crowd.
+                //
+                // Capped at half a body width per frame. That is still four
+                // times what a resolved pair needs, so nothing about the
+                // ordinary two-person case changes — checked against the
+                // arithmetic above rather than assumed — and the pile now
+                // relaxes over several frames instead of exploding in one.
+                //
+                // `crowdApartCapped` says how often the cap bit. If it is zero
+                // the pile was never the problem and this comment is wrong;
+                // that is the point of counting it rather than asserting it.
+                // The last build shipped a screen-space bubble pass whose own
+                // "did it fire" counter read 2, and without that counter I
+                // would have credited it with a change it did not make.
+                float far = push.magnitude;
+                if (far > MaxApartStep)
+                {
+                    push *= MaxApartStep / far;
+                    ApartCapped++;
+                    if (far > ApartWorst) ApartWorst = far;
                 }
                 return at + push;
             }

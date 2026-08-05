@@ -2658,6 +2658,7 @@ namespace Ledger.Game
         /// huddle it did not come from.
         int _huddleWorstSeen;
         int _huddleTalking, _huddleEscorting, _huddleDetour, _huddleWaiting;
+        int _huddleStanding, _huddleMoving;
         /// Distinct scheduled place cells among the huddle's members. 1 means
         /// the ring is undersized; many means the rings overlap and the radius
         /// wants sizing from the neighbourhood rather than the cell.
@@ -3265,6 +3266,7 @@ namespace Ledger.Game
                 _huddleWorstSeen = worstHuddle;
                 _huddleTalking = 0; _huddleEscorting = 0;
                 _huddleDetour = 0; _huddleWaiting = 0;
+                _huddleStanding = 0; _huddleMoving = 0;
                 var cells = new HashSet<Vector3Int>();
                 var at = worstAt.transform.position;
                 foreach (var n in _npcs)
@@ -3292,6 +3294,30 @@ namespace Ledger.Game
                     // and this is the live crowd, generated residents included.
                     var cell = GameController.PlaceKey(n.PlaceFor(_game.Now));
                     if (!cells.Contains(cell)) cells.Add(cell);
+
+                    // AND ARE THEY STANDING WHERE THEY MEANT TO BE, OR STILL
+                    // WALKING? This is the split that picks the fix, and every
+                    // number taken so far has been blind to it.
+                    //
+                    // `busiestNear=12` counts TARGETS within two metres.
+                    // `crowdHuddleWorst=41` counts BODIES within two metres.
+                    // Those are different populations and they have been read as
+                    // the same one — twice, in two different fixes I shipped
+                    // saying they would work. If most of the forty-one are at
+                    // their place, the rings genuinely are too small and
+                    // `SpreadRadius` is the edit. If most are still en route,
+                    // the rings are innocent and this is a jam: bodies piling up
+                    // on a route with nothing separating them while they move,
+                    // which is a different system entirely.
+                    //
+                    // Half a metre because the ring itself is 0.88m, so "at my
+                    // place" has to be tighter than the ring or everyone counts
+                    // as arrived by construction.
+                    var want = n.PlaceFor(_game.Now);
+                    var body = n.transform.position;
+                    float ddx = want.x - body.x, ddz = want.z - body.z;
+                    if (ddx * ddx + ddz * ddz <= 0.25f) _huddleStanding++;
+                    else _huddleMoving++;
                 }
                 _huddleCells = cells.Count;
                 _huddleWhere = $"{at.x:0}/{at.z:0}";
@@ -3736,7 +3762,9 @@ namespace Ledger.Game
         bool _homicideStaged;
         string _homVictim = "";
         int _homBodies, _homSaw, _homKnew, _homWouldTalk, _homNamed;
-        int _homSawStored, _homHoldsIt;
+        int _homSawStored, _homHoldsIt, _homHasAgent, _homAnyRumour;
+        int _homFileOffered = -1, _homFileDropped = -1;
+        bool _homSameMill;
         double _homPressure;
         Inquiry _homInquiry = Inquiry.None;
 
@@ -5491,7 +5519,39 @@ namespace Ledger.Game
             _homSaw = 0; _homKnew = 0;
             foreach (var w in witnesses) { if (w.Occluded) _homKnew++; else _homSaw++; }
 
+            // WHAT THE MILL DID DURING THE FILING, MEASURED ACROSS THE CALL.
+            //
+            // `homSawStored=32 homHoldsIt=0` on `52037ba` located the break
+            // between `FileWith` writing and `BestOfValue` reading — and then
+            // every link in it checked out by reading, which is where this
+            // project's rules say stop reading. A probe of the same sequence
+            // against real Core (32 agents, `FileWith`, `BestOfValue`) returns
+            // 32 of 32, so Core is innocent and the difference is here.
+            //
+            // `witnessDropped` is a LIFETIME total on the mill and it read 2,
+            // which looks like proof that the 32 were accepted — but a lifetime
+            // count cannot say what happened during one call, and reading it as
+            // though it could is the frozen-cumulative fault of 4 August. These
+            // two are the same counters sampled either side of `RecordKilling`,
+            // so the delta belongs to the filing and nothing else.
+            var millAt = _game.Gossip?.Mill;
+            int offeredBefore = millAt != null ? millAt.WitnessesOffered : -1;
+            int droppedBefore = millAt != null ? millAt.WitnessesDropped : -1;
+
             _game.RecordKilling(id, id, witnesses);
+
+            var millAfter = _game.Gossip?.Mill;
+            _homFileOffered = millAt != null && millAfter != null
+                ? millAfter.WitnessesOffered - offeredBefore : -1;
+            _homFileDropped = millAt != null && millAfter != null
+                ? millAfter.WitnessesDropped - droppedBefore : -1;
+            // AND WHETHER IT IS EVEN THE SAME MILL. The write goes through
+            // `GameController._gossip.Mill` and the read through
+            // `_game.Gossip?.Mill`; if a save, a load or a new day swaps the
+            // object between them, every other number here is honest and the
+            // belief is simply in a mill nobody asks. One reference comparison
+            // settles a question three counters cannot.
+            _homSameMill = millAt != null && ReferenceEquals(millAt, millAfter);
             _homVictim = id;
             _homBodies = _game.Homicides.BodyCount;
             _homPressure = _game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, now.Day);
@@ -5573,12 +5633,26 @@ namespace Ledger.Game
             // ambiguous.
             _homSawStored = filed != null ? filed.SawYouDoIt.Count : 0;
             _homHoldsIt = 0;
+            _homHasAgent = 0;
+            _homAnyRumour = 0;
             var millNow = _game.Gossip?.Mill;
             if (filed != null && millNow != null)
                 foreach (var wid in filed.SawYouDoIt)
                 {
                     var g = millNow.Get(wid);
-                    if (g != null && g.BestOfValue(filed.TopicKey, "true") != null) _homHoldsIt++;
+                    // THREE QUESTIONS, NOT ONE, because `homHoldsIt=0` is a zero
+                    // with no denominator and cannot say which of them failed.
+                    // `homHasAgent` is "the mill knows this id at all",
+                    // `homAnyRumour` is "that agent carries anything whatever",
+                    // and `homHoldsIt` is "it carries THIS belief". A run where
+                    // the first is 0 is an id-space fault; where the second is 0
+                    // the agents are empty shells; where only the third is 0 the
+                    // topic key is wrong. Nothing else distinguishes them, and
+                    // reading the code distinguished none of them.
+                    if (g == null) continue;
+                    _homHasAgent++;
+                    if (g.Rumors.Count > 0) _homAnyRumour++;
+                    if (g.BestOfValue(filed.TopicKey, "true") != null) _homHoldsIt++;
                 }
             Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
                       + $"{_homSaw} saw it and {_homKnew} only knew of it, "
@@ -9405,6 +9479,14 @@ namespace Ledger.Game
                       $"homWouldTalk={_homWouldTalk} " +
                       $"homNamed={_homNamed} " +
                       $"homSawStored={_homSawStored} homHoldsIt={_homHoldsIt} " +
+                      // THE THREE-WAY SPLIT UNDER `homHoldsIt`, and the mill's
+                      // own behaviour across the filing call. Read in this
+                      // order: same mill, then offered/dropped for the call,
+                      // then hasAgent, then anyRumour, then holdsIt. The first
+                      // one that is zero names the broken link.
+                      $"homSameMill={_homSameMill} " +
+                      $"homFileOffered={_homFileOffered} homFileDropped={_homFileDropped} " +
+                      $"homHasAgent={_homHasAgent} homAnyRumour={_homAnyRumour} " +
                       // AND WHETHER THE MILL REFUSED ANYBODY. A dropped
                       // witness was an early return with no trace until
                       // tonight, and it is what emptied the crowd's
@@ -9488,6 +9570,14 @@ namespace Ledger.Game
                       $"crowdTightest={(_crowdTightest == float.MaxValue ? -1f : _crowdTightest):0.00} " +
                       $"crowdTightestWhen={_crowdTightestWhen} " +
                       $"crowdGapMedian={CrowdGapMedian:0.00} crowdGapSamples={_crowdGaps.Count} " +
+                      // WHETHER THE SEPARATION NUDGE IS STILL A NUDGE. `capped`
+                      // against `calls` is the rate the pile case fires at, and
+                      // `worst` is how far the uncapped push wanted to travel —
+                      // anything over a metre is a body crossing the pavement in
+                      // one frame, which is what the cap now prevents.
+                      $"crowdApartCapped={NpcWalker.ApartCapped} " +
+                      $"crowdApartCalls={NpcWalker.ApartCalls} " +
+                      $"crowdApartWorst={NpcWalker.ApartWorst:0.00} " +
                       $"crowdBodyWidth={CrowdWidthRead()} " +
                       // AND THE BIGGEST HUDDLE, because a median over pairs is
                       // dominated by the people who are nowhere near each other
@@ -9501,6 +9591,12 @@ namespace Ledger.Game
                       $"huddleAt={_huddleWorstSeen} huddleTalking={_huddleTalking} " +
                       $"huddleEscorting={_huddleEscorting} huddleDetour={_huddleDetour} " +
                       $"huddleWaiting={_huddleWaiting} huddleCells={_huddleCells} " +
+                      // STANDING versus MOVING at the huddle's worst instant.
+                      // These two sum to `huddleAt` by construction, so a pair
+                      // that does not is the sampler having moved on. Standing
+                      // high means the rings are undersized; moving high means
+                      // it is a jam on a route and the rings are innocent.
+                      $"huddleStanding={_huddleStanding} huddleMoving={_huddleMoving} " +
                       $"huddleWhere={_huddleWhere} " +
                       $"crowdHuddleSamples={_huddles.Count} " +
                       // AND WHETHER THE MOB IS PEOPLE SENT TO ONE POINT.
@@ -9794,13 +9890,27 @@ namespace Ledger.Game
                       $"leanRest={CharacterRig.LeanRest:0.0} " +
                       $"leanDrivenFrames={CharacterRig.LeanDrivenFrames} " +
                       $"leanRestFrames={CharacterRig.LeanRestFrames} " +
+                      // THE MIDDLE DRIVEN BODY, NOT THE WORST ONE IN THE FRAME.
+                      // `leanDriven` is a median of frame MAXIMA — about a 92nd
+                      // percentile with a dozen bodies in shot — and it was
+                      // quoted as "a MEDIAN, so it is the whole street", which
+                      // it structurally cannot be. This is that number.
+                      $"leanTypical={CharacterRig.LeanDrivenTypical:0.0} " +
                       // AND THE SAME SPINE BEFORE THIS PROJECT WRITES IT.
-                      // preLeanDriven near 36 means the bought clip leans and
-                      // the lean write is innocent; near 8 means the write is
-                      // adding twenty-eight degrees of its own.
+                      // ANSWERED on 52037ba: preLeanDriven=41.6 against a
+                      // leanWorst of 41.7, peak against peak, so the write adds
+                      // a tenth of a degree and the bought clip arrives already
+                      // leaning. Kept because it is the control for every later
+                      // change to the pose code.
                       $"preLeanDriven={CharacterRig.PreLeanDriven:0.0} " +
                       $"preLeanRest={CharacterRig.PreLeanRest:0.0} " +
                       $"preLeanReads={CharacterRig.PreLeanReads} " +
+                      // THE SPEED OF THE BODY AT THE WORST LEAN, SAME INSTANT.
+                      // A walk blends at 1.4 m/s and a run at 4.0, so near 1.4
+                      // the walk cycle itself is bent double and near 2.6 it is
+                      // an escort hurrying and the animation is correct.
+                      $"leanWorstSpeed={CharacterRig.LeanWorstSpeed:0.00} " +
+                      $"leanWorstDriven={CharacterRig.LeanWorstDriven} " +
                       $"armSideMannequin={CharacterRig.ArmSideMannequin:0.0} " +
                       $"armSideSkinned={CharacterRig.ArmSideSkinned:0.0} " +
                       $"armSideMannequinFrames={CharacterRig.ArmSideMannequinFrames} " +
