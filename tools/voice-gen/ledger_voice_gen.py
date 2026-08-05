@@ -61,6 +61,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 BARKS = ROOT / "game-design" / "barks.json"
+NAMES = ROOT / "game-design" / "bark-names.json"
 CLIPS = ROOT / "game-design" / "picked-clips"
 
 # THE SIX STREET VOICES. Barks carry no speaker — they are lines any passer-by
@@ -151,60 +152,46 @@ def is_pair(slot):
     return any(PAIR_SEP in ln for ln in slot.get("lines", []))
 
 
-def plan(atomic, pair, voices_per_line):
-    """Every line that will be rendered, with its voice and direction.
+def plan(atomic, pair, voices_per_line=None):
+    """Every clip the game will ask for, NAMED BY THE GAME.
 
-    DETERMINISTIC BY POSITION, not by hash — a re-run must produce the exact
-    same assignment or skipping-what-exists re-renders the world under new
-    names. Slot order comes from the JSON array and lines from within it, so
-    both are stable.
+    THE FIRST VERSION INVENTED ITS OWN SCHEME AND NOT ONE CLIP COULD PLAY.
+    Files went out as `{slot}.{index}.{voice}.wav` into `Resources/`; the game
+    calls `Audio.Speak(VoiceBank.ClipName(voice, text))` and loads from
+    `StreamingAssets/Audio/Voice/`. Two mismatches, 335 unplayable files, and a
+    comment in `SpeechBubble` promising "the day the bank lands nothing needs
+    wiring" that was true of the game and false of the renderer.
 
-    AND THE COUNTER IS GLOBAL, NOT PER SLOT, which is a correction to the
-    first version of this function. Every slot holds 14 lines and there are 6
-    voices; 14 % 6 = 2, so a per-slot counter handed the first two voices an
-    extra line in EVERY slot and the spread came out [48 48 48 48 72 72]. Two
-    of the six street voices would have carried half again as much of the
-    street as the others, for a reason nobody chose.
+    `ClipName` is a hash of the VOICE and the WORDS, and its docstring says
+    why: "no slot id, no line index — a filename that changes when the words
+    did not is how a bank rots." My names did exactly that. Skipping the
+    wordless line shifted every index after it and orphaned five clips.
 
-    Worse, the self-test passed it, because I had written the evenness bound
-    loose enough to accept exactly the gap it produced. That is rule 2 in its
-    purest form — a threshold set to make a reading green rather than from
-    what the reading should be. 336 lines over 6 voices is 56 each with no
-    remainder, so the honest bound is equality, and it is asserted as such.
+    So the names are not computed here. `BarkGen --names` emits them from
+    `VoiceBank` itself and the result is committed; this reads that file.
+    Porting the hash into Python would be one idea with two implementations,
+    which is the fault this project makes more than any other — and Jafar's
+    machine has no .NET SDK, so generating on his side was never an option
+    either.
+
+    AND IT IS EVERY VOICE, NOT ONE. `VoiceBank.VoiceFor` picks the voice from
+    the SPEAKER's id, not the line, so any walker can say any bark and each
+    line must exist in all six street voices. One voice per line left five
+    walkers in six silent — the batch was never 335, it was 2,010.
     """
+    if not NAMES.exists():
+        return []
+    data = json.loads(NAMES.read_text(encoding="utf-8"))
     jobs = []
-    g = 0
-    for slot in atomic:
-        sid = slot["id"]
-        ex = DIRECTION.get(sid)
-        for i, line in enumerate(slot.get("lines", [])):
-            # A LINE WITH NO WORDS IN IT IS SILENCE, AND SILENCE IS NOT A CLIP.
-            # `recognition.avoids` holds "..." — a real bark, somebody looking
-            # away and not answering — and the first run spent twelve seconds
-            # rendering it into a wave of nothing. The game plays that beat by
-            # playing NO clip, so there is nothing to generate.
-            #
-            # Skipped rather than failed. A guard that refuses the whole batch
-            # over one correct line is the ratchet CLAUDE.md rule 5 warns
-            # about: it cannot tell a regression from a thing that was always
-            # meant to be that way. `--plan` prints the count instead, so the
-            # skip is visible rather than silent.
-            if not HAS_WORDS.search(line):
-                continue
-            for m in range(voices_per_line):
-                # +m, so the k voices for one line are always k DISTINCT
-                # voices for any k <= len(CROWD). A stride wider than 1 looks
-                # tidier and collides at k=6.
-                voice = CROWD[(g + m) % len(CROWD)]
-                jobs.append({
-                    "slot": sid,
-                    "index": i,
-                    "line": line,
-                    "voice": voice,
-                    "exaggeration": ex,
-                    "file": f"{sid}.{i:03d}.{voice}.wav",
-                })
-            g += 1
+    for r in data.get("renders", []):
+        jobs.append({
+            "slot": r["slot"],
+            "index": r["index"],
+            "line": r["line"],
+            "voice": r["voice"],
+            "exaggeration": DIRECTION.get(r["slot"]),
+            "file": r["clip"] + ".wav",
+        })
     return jobs
 
 
@@ -223,7 +210,7 @@ def cmd_plan(args):
 
     na = sum(len(s["lines"]) for s in atomic)
     npair = sum(len(s["lines"]) for s in pair)
-    jobs = plan(atomic, pair, args.voices_per_line)
+    jobs = plan(atomic, pair)
 
     print(f"  bark bank            {na + npair} lines in {len(atomic) + len(pair)} slots")
     print(f"  PAIR slots           {len(pair):3d} slots, {npair} lines — assembled at run time, "
@@ -233,7 +220,7 @@ def cmd_plan(args):
     if skipped:
         print(f"  wordless             {skipped} line(s) skipped — silence, "
               f"the game plays these by playing no clip")
-    print(f"  voices per line      {args.voices_per_line} of {len(CROWD)} street voices")
+    print(f"  street voices        {len(CROWD)} — every line in every one, because\n                       the game picks the voice from the SPEAKER, not the line")
     print(f"  RENDERS              {len(jobs)}")
     print()
 
@@ -357,10 +344,28 @@ def cmd_selftest(args):
     # RENDERABLE lines, not all lines — the wordless one is deliberately not
     # among them, and comparing against the raw total is how this check went
     # red on a correct skip a minute after the skip was added.
+    # EVERY SPEAKABLE LINE IN EVERY STREET VOICE. Not "one clip per line" —
+    # that was the check when the renderer picked a voice per line, and it was
+    # wrong in the same way the renderer was: `VoiceBank.VoiceFor` picks the
+    # voice from the SPEAKER, so a line the walker's own voice never recorded
+    # is a walker who says nothing.
     renderable = sum(1 for s in atomic for ln in s["lines"] if HAS_WORDS.search(ln))
-    check(len(jobs) == renderable,
-          f"one voice per line renders each speakable line exactly once "
-          f"({len(jobs)} of {sum(len(s['lines']) for s in atomic)} lines)")
+    check(len(jobs) == renderable * len(CROWD),
+          f"every speakable line exists in all {len(CROWD)} street voices "
+          f"({len(jobs)} = {renderable} x {len(CROWD)})")
+    per_line = {}
+    for j in jobs:
+        per_line.setdefault((j["slot"], j["index"]), set()).add(j["voice"])
+    check(all(len(v) == len(CROWD) for v in per_line.values()),
+          "no line is missing a voice")
+
+    # THE NAMES COME FROM THE GAME. Asserted against the committed file rather
+    # than recomputed here, because recomputing is the second implementation.
+    if NAMES.exists():
+        want = {r["clip"] + ".wav" for r in
+                json.loads(NAMES.read_text(encoding="utf-8"))["renders"]}
+        check({j["file"] for j in jobs} == want,
+              f"every filename is one VoiceBank.ClipName produced ({len(want)})")
     check(len({j["file"] for j in jobs}) == len(jobs),
           "no two renders collide on a filename")
 
@@ -394,17 +399,6 @@ def cmd_selftest(args):
           f"{len(jobs)} allows (gap {gap}, tightest possible {allowed}) "
           f"{sorted(spread.values())}")
 
-    for k in (2, 3, 6):
-        multi = plan(atomic, pair, k)
-        check(len(multi) == k * len(jobs), f"{k} voices per line scales the batch ({len(multi)})")
-        check(len({j["file"] for j in multi}) == len(multi),
-              f"no filename collisions at {k} voices per line")
-        per_line = {}
-        for j in multi:
-            per_line.setdefault((j["slot"], j["index"]), set()).add(j["voice"])
-        check(all(len(v) == k for v in per_line.values()),
-              f"every line gets {k} DISTINCT voices, never the same one twice")
-
     # THE FOUR RESUME STATES, on real files in a temp directory, because this
     # is the check that would have let five corrupted clips ship. Rule 5b: the
     # accepting case (fresh) is asserted alongside the rejecting ones.
@@ -413,6 +407,7 @@ def cmd_selftest(args):
     try:
         j = plan(atomic, pair, 1)[0]
         check(state_of(j, tmp, {}) == "missing", "a clip that is not there is 'missing'")
+        (tmp / j["file"]).parent.mkdir(parents=True, exist_ok=True)
         (tmp / j["file"]).write_bytes(b"x")
         check(state_of(j, tmp, {}) == "unknown",
               "a clip with no ledger entry is 'unknown', not assumed good")
@@ -442,9 +437,9 @@ def cmd_selftest(args):
         with _c.redirect_stdout(buf):
             rc1 = cmd_all(a2)
             rc2 = cmd_all(a2)
-        made = len(list(tmp2.glob("*.wav")))
+        made = len(list(tmp2.rglob("*.wav")))   # voice subdirectories
         check(rc1 == 0 and rc2 == 0, f"the batch runs twice without erroring ({rc1}, {rc2})")
-        check(made == len(plan(atomic, pair, 1)),
+        check(made == len(plan(atomic, pair)),
               f"the first pass renders every job ({made})")
         check("0 rendered" in buf.getvalue(),
               "the second pass renders nothing, because the ledger says so")
@@ -552,6 +547,7 @@ def render_one(job, out_dir, model, stamps):
     if state_of(job, out_dir, stamps) == "fresh":
         return None
     dest = out_dir / job["file"]
+    dest.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     wav = model.generate(job["line"],
                          audio_prompt_path=str(job["ref"]),
@@ -677,7 +673,7 @@ def cmd_rate(args):
 
     ordered = sorted(series)
     med = ordered[len(ordered) // 2]
-    total = len(plan(atomic, pair, args.voices_per_line))
+    total = len(plan(atomic, pair))
     print()
     print(f"  series (render order) : {[round(s, 2) for s in series]}")
     print(f"  first render          : {series[0]:.2f}s  <- includes model load, not typical")
@@ -695,7 +691,7 @@ def cmd_all(args):
               f"at a guessed number. Run --plan.")
         return 1
 
-    jobs = plan(atomic, pair, args.voices_per_line)
+    jobs = plan(atomic, pair)
     for j in jobs:
         j["ref"] = CLIPS / next(iter(sorted(p.name for p in CLIPS.glob(j["voice"] + ".*"))), "")
 
@@ -798,7 +794,7 @@ def main():
                     help="walk the whole batch with no model, to exercise the code path")
     ap.add_argument("--verbose", "-v", action="store_true")
     ap.add_argument("--out", type=Path,
-                    default=ROOT / "ledger" / "Assets" / "Resources" / "voice" / "barks")
+                    default=ROOT / "ledger" / "Assets" / "StreamingAssets" / "Audio" / "Voice")
     args = ap.parse_args()
 
     if args.selftest:

@@ -19,7 +19,7 @@ one. **If you add assets, add a row. The build fails otherwise.**
 | **What** | Reference recordings for all 19 cast voices |
 | **Source** | **CVSTR VCTK Corpus** (Centre for Speech Technology Research, University of Edinburgh) |
 | **Licence** | Creative Commons Attribution 4.0 International (CC BY 4.0) |
-| **Where in the repo** | `game-design/picked-clips/` (the references), `voice-candidates/` (the listening pass), `ledger/Assets/Resources/voice/barks/` (335 clips synthesised from them, 5 Aug) |
+| **Where in the repo** | `game-design/picked-clips/` (the references), `voice-candidates/` (the listening pass), `ledger/Assets/StreamingAssets/Audio/Voice/` (the synthesised bark bank, 5 Aug) |
 | **Speakers used** | p227 p228 p231 p238 p241 p244 p245 p249 p256 p263 p265 p266 p272 p273 p276 p282 p287 p288 p292 |
 
 **Required attribution text, to appear in the shipped credits:**
@@ -37,9 +37,9 @@ the reason no commercial voice library was considered.
 with chatterbox. A derived voice is still a derivative of a CC BY work, so this
 attribution stays regardless — synthesis does not launder the obligation.
 
-**And on 5 August that stopped being hypothetical.** 335 bark clips were
+**And on 5 August that stopped being hypothetical.** The bark bank is
 rendered from these nineteen references and committed to
-`ledger/Assets/Resources/voice/barks/`. Every one is a derivative of a CC BY
+`ledger/Assets/StreamingAssets/Audio/Voice/`. Every one is a derivative of a CC BY
 4.0 work and carries the same obligation as its reference — the credit text
 above covers them, unchanged, because it was written to.
 

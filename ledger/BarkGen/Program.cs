@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -46,6 +47,7 @@ static class Program
 
     static int Main(string[] args)
     {
+        if (Array.IndexOf(args, "--names") >= 0) return EmitNames(args);
         var slots = new List<Slot>();
         slots.AddRange(EnumerateExchange());
         slots.AddRange(EnumerateRecognition());
@@ -482,4 +484,94 @@ static class Program
         if (!d.TryGetValue(key, out var set)) d[key] = set = new HashSet<string>();
         set.Add(line);
     }
+
+    /// WHAT THE GAME WILL ASK FOR, EMITTED BY THE CODE THAT DECIDES IT.
+    ///
+    /// The renderer wrote files called `{slot}.{index}.{voice}.wav` and the
+    /// game asks `Audio.Speak` for `VoiceBank.ClipName(voice, text)` — a hash
+    /// of the voice and the words. Not one of the 335 clips in the first batch
+    /// could ever have played.
+    ///
+    /// The naming scheme was not the renderer's to invent, and `ClipName`'s own
+    /// docstring says why it is built the way it is: "no slot id, no line
+    /// index... a filename that changes when the words did not is how a bank
+    /// rots." That is exactly what happened — skipping the wordless line
+    /// shifted every index after it and orphaned five clips.
+    ///
+    /// SO THE NAME COMES FROM HERE, in C#, from `VoiceBank` itself. Porting
+    /// the hash into Python would be one idea with two implementations, which
+    /// is the fault this project makes more than any other, and the copy
+    /// nobody looks at is always the one that drifts.
+    static int EmitNames(string[] args)
+    {
+        int at = Array.IndexOf(args, "--names");
+        string outPath = at + 1 < args.Length && !args[at + 1].StartsWith("-")
+            ? args[at + 1] : "bark-names.json";
+
+        var barks = Path.Combine("..", "..", "game-design", "barks.json");
+        if (!File.Exists(barks)) barks = Path.Combine("game-design", "barks.json");
+        if (!File.Exists(barks)) { Console.Error.WriteLine("no barks.json"); return 1; }
+
+        var doc = JsonDocument.Parse(File.ReadAllText(barks));
+        var voices = new List<string>();
+        voices.AddRange(VoiceBank.PoolMasculine);
+        voices.AddRange(VoiceBank.PoolFeminine);
+
+        var rows = new List<string>();
+        int lines = 0, skipped = 0;
+        foreach (var slot in doc.RootElement.GetProperty("slots").EnumerateArray())
+        {
+            var id = slot.GetProperty("id").GetString();
+            var arr = slot.GetProperty("lines");
+            bool pair = false;
+            foreach (var l in arr.EnumerateArray())
+                if (l.GetString().Contains("||")) { pair = true; break; }
+            if (pair) continue;   // assembled at run time from lines already here
+
+            int i = -1;
+            foreach (var l in arr.EnumerateArray())
+            {
+                i++;
+                var text = l.GetString();
+                bool speakable = false;
+                foreach (var ch in text) if (char.IsLetterOrDigit(ch)) { speakable = true; break; }
+                if (!speakable) { skipped++; continue; }
+                lines++;
+                foreach (var v in voices)
+                {
+                    var name = VoiceBank.ClipName(v, text);
+                    if (name == null) continue;
+                    rows.Add("{\"slot\":" + Esc(id) + ",\"index\":" + i
+                             + ",\"voice\":" + Esc(v) + ",\"clip\":" + Esc(name)
+                             + ",\"line\":" + Esc(text) + "}");
+                }
+            }
+        }
+
+        // THE DENOMINATOR, rule 3b: "wrote nothing" and "wrote everything" must
+        // not print the same way.
+        File.WriteAllText(outPath,
+            "{\n \"voices\": " + rows.Count / Math.Max(lines, 1) + ",\n"
+            + " \"lines\": " + lines + ",\n"
+            + " \"wordlessSkipped\": " + skipped + ",\n"
+            + " \"renders\": [\n  " + string.Join(",\n  ", rows) + "\n ]\n}\n");
+        Console.WriteLine($"BarkGen --names: {lines} speakable line(s) x {voices.Count} voice(s) "
+                          + $"= {rows.Count} clip name(s), {skipped} wordless skipped");
+        Console.WriteLine($"  written to {outPath}");
+        return 0;
+    }
+
+    static string Esc(string s)
+    {
+        var sb = new System.Text.StringBuilder("\"");
+        foreach (var c in s)
+        {
+            if (c == '"' || c == '\\') sb.Append('\\').Append(c);
+            else if (c == '\n') sb.Append("\\n");
+            else if (c < 32) sb.Append("\\u").Append(((int)c).ToString("x4"));
+            else sb.Append(c);
+        }
+        return sb.Append('"').ToString();
+    }
+
 }

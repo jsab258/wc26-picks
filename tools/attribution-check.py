@@ -40,7 +40,7 @@ WATCHED = {
     # app icons are ours because nothing outside this repo went into them; the
     # sim stills are ours because the game drew them. A cloned voice fails
     # that test no matter whose GPU produced it.
-    "ledger/Assets/Resources/voice/barks": "VCTK",
+    "ledger/Assets/StreamingAssets/Audio/Voice": "VCTK",
     "ledger/Assets/StreamingAssets/CityPack": "CityPack",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not

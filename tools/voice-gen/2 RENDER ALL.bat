@@ -42,8 +42,15 @@ echo.
 "%PY%" ledger_voice_gen.py --plan
 echo.
 echo  ------------------------------------------------------------------
-echo   That is what will be rendered. Close this window now if the
-echo   numbers look wrong.
+echo   ABOUT TEN HOURS. Every bark has to exist in all six street voices,
+echo   because the game picks a walker's voice from WHO THEY ARE, not from
+echo   the line - so a line your voice never recorded is a walker who says
+echo   nothing. The 335 already done are kept; the rest is the overnight.
+echo.
+echo   Safe to leave. It saves its place every 25 clips, so closing the
+echo   window or losing power costs you 25 clips, not the night.
+echo.
+echo   Close this window now if the numbers look wrong.
 echo  ------------------------------------------------------------------
 pause
 
@@ -56,7 +63,7 @@ echo  Rendered. Pushing...
 REM  The same tested push the Mixamo drop and the voice installer use,
 REM  parameterised by environment because %1 is already taken by its
 REM  own TEMP-relaunch flag.
-set "LEDGER_PUSH_PATH=ledger/Assets/Resources/voice/barks"
+set "LEDGER_PUSH_PATH=ledger/Assets/StreamingAssets/Audio/Voice"
 set "LEDGER_PUSH_MSG=Bark bank rendered: the street has a voice"
 call "%REPO%\tools\mixamo-pick\PUSH.bat"
 set "LEDGER_PUSH_PATH="
