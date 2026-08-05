@@ -665,6 +665,11 @@ namespace Ledger.Core
         /// moves and no refusals is a different world from one reporting many
         /// of both, and a single "moved" count cannot tell them apart.
         public static int AddressesSetBack, AddressesRefused;
+        /// Corners, left where they were ON PURPOSE. A third category, not a
+        /// refusal: a refused address wanted to move and could not, and one
+        /// of these was never asked to. Folding them together would have
+        /// made a deliberate exemption look like nine failures.
+        public static int AddressesLeftInRoad;
         public static double AddressDriftWorst;
         static readonly List<double> _addressDrifts = new List<double>();
 
@@ -699,11 +704,35 @@ namespace Ledger.Core
         /// further each time would be the worst kind of bug to find.
         static void SetPlacesBackFromRoads()
         {
-            AddressesSetBack = AddressesRefused = 0;
+            AddressesSetBack = AddressesRefused = AddressesLeftInRoad = 0;
             AddressDriftWorst = 0;
             _addressDrifts.Clear();
             foreach (var place in HookMap.Places)
             {
+                // A CORNER BELONGS IN THE ROAD, and moving one is the fault
+                // rather than the fix.
+                //
+                // The first version snapped everything and moved nine of them:
+                // `crossing`, `cab_rank`, `cut_bridge`, `night_gate`,
+                // `clerks_steps`, `stage_door`, `gaslight_end`, `garden_gate`,
+                // `esplanade_shelter`. Read the names — a crossing, a cab rank,
+                // a bridge, a gate, a flight of steps, a stage door, the end of
+                // a street, a garden gate and a shelter. Every one is a thing
+                // that stands at or in a right of way by definition, and
+                // `crossing` was pushed 4.6m off the carriageway it IS.
+                //
+                // `Kind` already carries the distinction and the district
+                // builder already reads it: a corner gets a 4x3x4 box that its
+                // own comment calls "a shelter, not a building". A thing with
+                // no facade cannot have a facade in a road.
+                //
+                // MEASURED, AND IT IS A BETTER RULE THAN THE DRIFT CAP. With
+                // corners exempt, EIGHT planned stops remain in a carriageway
+                // and all eight are corners — so every address with a building
+                // on it is clear, and the residue is exactly the set that
+                // should be there. The cap stays for the genuinely boxed-in
+                // case, but it is no longer what is doing the work.
+                if (place.Kind == "corner") { AddressesLeftInRoad++; continue; }
                 double x = place.X, z = place.Z;
                 bool moved = false;
                 for (int pass = 0; pass < 6; pass++)

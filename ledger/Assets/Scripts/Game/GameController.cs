@@ -310,6 +310,34 @@ namespace Ledger.Game
         // playthroughs — a whole game can and should be finishable without
         // ever opening it.
         public HomicideBook Homicides { get; } = new HomicideBook();
+
+        /// A REGISTERED PLACE'S CURRENT POSITION, so a routine stops repeating
+        /// a coordinate that can move underneath it.
+        ///
+        /// `StreetMap.SetPlacesBackFromRoads` moves an address that stands in a
+        /// carriageway onto the pavement, and it moved thirty-two of them. Six
+        /// cast waypoints had been hand-written to sit EXACTLY on a place — the
+        /// pawnshop, the teahouse, the boarding house, the ferry, the crossing,
+        /// the cab rank — and were stranded by up to 5.6 metres the moment that
+        /// landed. Rita would have kept her shop hours three and a half metres
+        /// from her own shop.
+        ///
+        /// Found by grepping for what AGREED with the thing I changed rather
+        /// than by a build coming back wrong, which is the only reason it cost
+        /// nothing. Two of the six fixed themselves when corners were exempted;
+        /// these four had to be pointed at the place instead.
+        ///
+        /// Falls back to the raw coordinate rather than to the origin: a
+        /// mistyped id should put somebody in the wrong street, not in the sea,
+        /// and it logs so the typo is findable.
+        public static Vector3 PlaceAt(string id)
+        {
+            var p = HookMap.Get(id);
+            if (p != null) return new Vector3((float)p.X, 0, (float)p.Z);
+            Debug.LogError($"GameController.PlaceAt: no registered place \"{id}\" — "
+                           + "a routine is pointing at an address that does not exist.");
+            return Vector3.zero;
+        }
         readonly HashSet<string> _deadIds = new HashSet<string>();
         public bool IsAlive(string id) => !_deadIds.Contains(id);
         /// THE DAY IS PASSED, and without it the redirect does nothing.
@@ -485,9 +513,9 @@ namespace Ledger.Game
             }));
             _npcs.Add(NpcWalker.Spawn("Victor", new Color(0.6f, 0.5f, 0.3f), new[]
             {
-                (new GameTime(0, 9, 0), new Vector3(-28, 0, -6)),  // his shop, now standing
+                (new GameTime(0, 9, 0), PlaceAt("pawnshop")),      // his shop, now standing
                 (new GameTime(0, 13, 0), new Vector3(10, 0, -14)), // errands at the market corner
-                (new GameTime(0, 17, 0), new Vector3(-26, 0, 14)), // the teahouse, per his card
+                (new GameTime(0, 17, 0), PlaceAt("teahouse")),     // the teahouse, per his card
                 (new GameTime(0, 22, 0), new Vector3(-16, 0, -12)), // home on the west row
             }));
 
@@ -500,7 +528,7 @@ namespace Ledger.Game
             }));
             _npcs.Add(NpcWalker.Spawn("Rita", new Color(0.5f, 0.35f, 0.45f), new[]
             {
-                (new GameTime(0, 10, 0), new Vector3(-28, 0, -6)),  // the pawnshop back room
+                (new GameTime(0, 10, 0), PlaceAt("pawnshop")),      // the pawnshop back room
                 (new GameTime(0, 15, 0), new Vector3(18, 0, 14)),   // the docks, collecting
                 (new GameTime(0, 20, 0), new Vector3(-20, 0, -16)), // home in the south tenements
             }));
@@ -509,7 +537,7 @@ namespace Ledger.Game
                 (new GameTime(0, 7, 0), new Vector3(-34, 0, 10)),   // the chapel
                 (new GameTime(0, 12, 0), new Vector3(10, 0, -14)),  // the market for the Father's table
                 (new GameTime(0, 16, 0), new Vector3(-34, 0, 10)),
-                (new GameTime(0, 21, 0), new Vector3(-30, 0, 2)),   // the boarding house
+                (new GameTime(0, 21, 0), PlaceAt("boarding_house")),// the boarding house
             }));
             _npcs.Add(NpcWalker.Spawn("Tibor", new Color(0.55f, 0.55f, 0.4f), new[]
             {
@@ -525,7 +553,7 @@ namespace Ledger.Game
             {
                 (new GameTime(0, 15, 0), new Vector3(-2, 0, 1)),    // across from the bar, coat still on
                 (new GameTime(0, 17, 0), new Vector3(-34, 0, 10)),  // the chapel, for a while
-                (new GameTime(0, 20, 0), new Vector3(30, 0, 18)),   // the ferry, back across town to her shift
+                (new GameTime(0, 20, 0), PlaceAt("ferry_stop")),    // the ferry, back across town to her shift
             }));
             _npcs.Add(NpcWalker.Spawn("Emil", CastTier1.EmilColor, new[]
             {
