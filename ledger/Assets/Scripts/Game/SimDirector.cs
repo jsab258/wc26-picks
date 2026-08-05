@@ -1030,6 +1030,7 @@ namespace Ledger.Game
             StageCarryAndThreat(now);
             StageProvenance(now);
             StagePerception(now, ref target);
+            StageTheCallbox(now, ref target);
             _player.AutoMoveTarget = target;
             NoteTargetOwner();
 
@@ -5892,6 +5893,43 @@ namespace Ledger.Game
         /// measurement rather than authored as coordinates. Every number the
         /// witnesses are judged on is the live world; only the act is
         /// synthetic, exactly as the Phase 2 deed staging is.
+        /// STAND HIM AT A LIVE CALLBOX WHEN THE RIVAL RINGS.
+        ///
+        /// `summonsTaken=0` in every run that carries the key, and after the
+        /// same-instant fix the reason is finally trustworthy: `summonsMissWhy`
+        /// says a line WAS live and he was not near it, describing nine at
+        /// night rather than the day close thirteen hours away. So the mechanic
+        /// works and its condition has never occurred — and the rule for that
+        /// is to plant the condition, never to loosen the bound.
+        ///
+        /// ONE HOUR, ONE DAY, AND ONLY AS A TARGET. It steers him toward a box
+        /// on the ring hour of one day and does not teleport him — a harness
+        /// that puts the player somewhere impossible proves nothing about a
+        /// mechanic a real player has to reach on foot. If he does not make it,
+        /// `summonsMissWhy` says so and that is a real answer about distance
+        /// rather than a rigged pass.
+        ///
+        /// It runs LAST among the stagers and writes `target` by reference, so
+        /// it overrides the day's job for that hour rather than fighting it —
+        /// and only on `SummonsWalkDay`, so the other fourteen days keep
+        /// exercising the routines this would otherwise trample.
+        void StageTheCallbox(GameTime now, ref Vector3 target)
+        {
+            if (now.Day != SummonsWalkDay) return;
+            if (now.Hour != Ledger.Core.Summoning.RingsAtHour) return;
+            if (!_game.TryLiveLineSpot(now, out var box)) { _callboxWhy = "noLiveLine"; return; }
+            target = new Vector3(box.x, 0, box.z);
+            _callboxStaged = true;
+            _callboxWhy = "steered";
+        }
+
+        /// Which day the sim walks the player to a telephone. Late enough that
+        /// the drops, the frisk and the killing have all had their run, so this
+        /// cannot starve a probe that came first.
+        const int SummonsWalkDay = 12;
+        bool _callboxStaged;
+        string _callboxWhy = "hourNeverCame";
+
         void StageThePlaces(GameTime now)
         {
             if (_placesStaged || now.Day < PlacesStageOnDay) return;
@@ -9748,6 +9786,11 @@ namespace Ledger.Game
                       // same whether nobody answered or she never rang, and
                       // this is a system whose whole failure mode is looking
                       // like it ran quietly.
+                      // DID THE HARNESS EVEN TRY. `summonsTaken=0` with
+                      // `callboxStaged=False` is a plant that never ran;
+                      // with True it is a plant that ran and he did not
+                      // arrive, which is a fact about distance.
+                      $"callboxStaged={_callboxStaged} callboxWhy=[{_callboxWhy}] " +
                       $"summonsPlaced={SummonsHost.Placed} " +
                       $"summonsTaken={SummonsHost.Taken} " +
                       // WHICH KIND OF MISS. "No line was live" is a world

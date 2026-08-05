@@ -179,6 +179,39 @@ namespace Ledger.Game
             _phoneSpots.TryGetValue(placeId, out var spot)
             && Vector3.Distance(where, spot) <= PhoneReach;
 
+        /// WHERE A LINE THE PLAYER COULD ANSWER IS LIVE AT A GIVEN HOUR.
+        ///
+        /// `ReachableNow` answers whether he could pick up from where he is.
+        /// Nothing could answer where he would have to STAND, and that is the
+        /// difference between a mechanic that works and one that has never run.
+        ///
+        /// Written, then deleted the same night for having no caller, and now
+        /// back WITH one — because the reading it was waiting for arrived.
+        /// `4e3eef3` still says `summonsTaken=0` with `summonsMissWhy=[a line
+        /// was live and he was not near it]`, and that sentence now describes
+        /// nine at night rather than breakfast, which is what the same-instant
+        /// fix bought. So the bound is right, the mechanic is right, and the
+        /// condition has simply never been planted — rule 5b's corollary,
+        /// which says plant it and never loosen anything.
+        ///
+        /// The FIRST live line, not the nearest. Nearest would need the
+        /// player's position, which makes this a question about him instead of
+        /// about the world, and the caller is a harness standing him somewhere
+        /// on purpose.
+        public bool TryLiveLineSpot(GameTime when, out Vector3 spot)
+        {
+            spot = Vector3.zero;
+            if (Phones == null) return false;
+            foreach (var p in Phones.LinesFor("player"))
+            {
+                if (!p.LiveAt(when.Hour)) continue;
+                if (!_phoneSpots.TryGetValue(p.PlaceId, out var at)) continue;
+                spot = at;
+                return true;
+            }
+            return false;
+        }
+
         /// They picked up. Open the conversation, and tell the engine that this
         /// one is happening down a wire: a voice on a line is not a face across
         /// a table, so what either party can read in the other is damped.
