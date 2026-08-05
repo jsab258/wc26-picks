@@ -7763,7 +7763,13 @@ namespace Ledger.Game
             // or the split would silently move four milliseconds of real game
             // work into `render+rest` and read as the gate improving. A
             // reattribution that changes the total is a fix that isn't one.
-            foreach (var name in new[] { "npcs", "population", "bodyLod", "sun", "checks",
+            // `mix` IS NEW AND IT USED TO BE PART OF `sun`. The whole audio
+            // mix ran inside the sun's timer, so a line reading 3.15ms — a
+            // quarter of the game budget — looked like a directional light
+            // being expensive. Both are listed so the pair still sums to what
+            // the old single number was, and the frame gate can finally say
+            // which of the two it is complaining about.
+            foreach (var name in new[] { "npcs", "population", "bodyLod", "sun", "mix", "checks",
                                          "traffic", "signals", "rigs" })
             {
                 var c = Perf.Get(name);

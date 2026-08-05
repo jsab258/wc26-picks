@@ -787,7 +787,29 @@ namespace Ledger.Game
             // a GPU-less runner is expected to be most of it. The next run
             // says which, and the number moves only once something has been
             // attributed.
+            // NAMED `sun` AND MOSTLY NOT THE SUN, which is why the budget line
+            // has never pointed at anything actionable.
+            //
+            // `frame` is the only gate red on the newest run and has failed 28
+            // of 141, and its breakdown reads `game=17.55ms` against a 12ms
+            // budget — ours, not the software rasteriser's. `sun=3.15ms` is a
+            // quarter of that budget and reads as a directional light being
+            // expensive, which it cannot be.
+            //
+            // `UpdateSun` sets the sun in four lines and then does the entire
+            // audio mix — `SetNight`, `SetDaylight`, `SetScore`, `StepMix`,
+            // `Standoff.Step` — plus the ambient gradient and the fog, which
+            // are `RenderSettings` writes and are not free either. Anybody
+            // optimising "the sun" off this number would be reading the wrong
+            // system, which is rule 2's warning about a metric keeping its name
+            // when the question moves.
+            //
+            // Split so the reading says which. The work is unchanged and in the
+            // same order — `UpdateSun` still owns the sequence, because the
+            // comment inside it argues that light and sound must come off ONE
+            // daylight number or dusk arrives twice.
             using (Perf.Time("sun")) UpdateSun();
+            using (Perf.Time("mix")) UpdateMix();
             // Level of detail before ticking, so a walker spawned this frame
             // starts from the right place rather than the origin.
             // TWO PASSES, TWO BUCKETS, AND THEY WERE POOLED INTO ONE NUMBER.
@@ -2765,26 +2787,21 @@ namespace Ledger.Game
         /// 0 at noon, 1 in the dead of night. Read by the film grade.
         public static float NightAmount { get; private set; }
 
-        void UpdateSun()
+        /// THE AUDIO MIX, LIFTED OUT OF `UpdateSun` SO THE BUDGET CAN NAME IT.
+        ///
+        /// Every line here ran inside the `sun` timer, which is why that line
+        /// read 3.15ms — a quarter of the whole 12ms game budget — for what
+        /// looks like a directional light. Same work, same order, same frame;
+        /// only the label changes, and `mix` against `sun` finally says which
+        /// of the two the frame gate is actually complaining about.
+        ///
+        /// It reads `NightAmount`, which `UpdateSun` sets immediately before,
+        /// so the argument that light and sound must come off ONE daylight
+        /// number is preserved by ordering rather than by being in one method.
+        void UpdateMix()
         {
             if (_sun == null) return;
-            // The room changes with the light: day tone, night tone.
-            // The music still swaps on a boundary — it is a different piece
-            // of music, not a different time of day — but the ROOM now
-            // crossfades continuously, below.
             if (Audio.Ready) Audio.SetNight(Now.Hour >= 20 || Now.Hour < 6);
-            // 06:00 sunrise, 18:00 sunset mapped across a full rotation.
-            float dayFraction = (Now.Hour * 60 + Now.Minute) / 1440f;
-            float sunAngle = dayFraction * 360f - 90f;
-            _sun.transform.rotation = Quaternion.Euler(sunAngle, 35f, 0);
-
-            float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
-            // Published so the film grade pushes the stock at night off the
-            // SAME number the sun uses. Two independent notions of "how dark
-            // is it" would drift, and the grain would peak at the wrong hour.
-            NightAmount = 1f - daylight;
-            // Light and sound off the SAME number, so dusk cannot arrive at
-            // two different times.
             if (Audio.Ready) Audio.SetDaylight(NightAmount);
             if (Audio.Ready) Audio.SetScore(ScoreNow(), Time.deltaTime);
             // The duck envelope, next to the score because they are the same
@@ -2796,6 +2813,30 @@ namespace Ledger.Game
             // mix, and a second driver for one envelope is how a duck gets
             // stuck open.
             Standoff.Step();
+        }
+
+        void UpdateSun()
+        {
+            if (_sun == null) return;
+            // The room changes with the light: day tone, night tone.
+            // The music still swaps on a boundary — it is a different piece
+            // of music, not a different time of day — but the ROOM now
+            // crossfades continuously, below.
+            // 06:00 sunrise, 18:00 sunset mapped across a full rotation.
+            float dayFraction = (Now.Hour * 60 + Now.Minute) / 1440f;
+            float sunAngle = dayFraction * 360f - 90f;
+            _sun.transform.rotation = Quaternion.Euler(sunAngle, 35f, 0);
+
+            float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
+            // Published so the film grade pushes the stock at night off the
+            // SAME number the sun uses. Two independent notions of "how dark
+            // is it" would drift, and the grain would peak at the wrong hour.
+            NightAmount = 1f - daylight;
+            // The mix moved to `UpdateMix`, called on the very next line of
+            // `Update` and reading `NightAmount` which is set four lines up —
+            // so light and sound still come off the SAME number and dusk still
+            // cannot arrive at two different times. See the note at the call
+            // site for why they are timed apart.
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;
