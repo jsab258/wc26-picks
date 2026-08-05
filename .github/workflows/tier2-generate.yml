@@ -112,7 +112,33 @@ jobs:
       # references. One call per card, each validated by the same rules as a
       # fresh one and rolled back individually on failure, so a bad reply
       # cannot take the other fifty-nine with it.
+      # DOES ANY CARD ACTUALLY NEED THIS? The step below spends one call per
+      # card, and it had NO GUARD — so every dispatch of this workflow re-bought
+      # finished work. On 5 August that was sixty calls to change nothing: the
+      # audit says 60 of 60 already pass.
+      #
+      # The comment four lines above the probe describes this exact fault being
+      # fixed for the probe — "re-dispatching this workflow to run the SECOND
+      # task re-ran the first one and spent again" — and the fix was applied to
+      # one step and not to the one it was written about. One idea, two
+      # implementations, and the one nobody looked at was the one still paying.
+      #
+      # Guarded on its own OUTCOME rather than on a dispatch input, because
+      # `workflow_dispatch` validates inputs against the DEFAULT branch and this
+      # file only runs from this one — a flag I cannot pass is not a guard.
+      - name: Does any card still need a voice (no key, no spend)
+        id: needvoice
+        run: |
+          n=$(dotnet run --project ledger/Tier2Gen -c Release -- \
+                --audit game-design/tier2-batch-1.json 2>/dev/null \
+              | sed -nE 's/^ *[0-9]+ card\(s\), [0-9]+ pass the current rules, ([0-9]+) do not.*/\1/p' \
+              | head -1)
+          n=${n:-0}
+          echo "cards needing a voice: $n"
+          echo "n=$n" >> "$GITHUB_OUTPUT"
+
       - name: Give the existing cards a voice
+        if: ${{ steps.needvoice.outputs.n != '0' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
