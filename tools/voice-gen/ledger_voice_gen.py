@@ -410,6 +410,30 @@ def cmd_selftest(args):
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
+    # THE BATCH LOOP ITSELF, WALKED END TO END. This is the check that was
+    # missing when `--all` shipped with a NameError on its working line: every
+    # other mode runs without a model, so every other mode was tested, and the
+    # one the tool exists for was not. Rule 5b, aimed at the author.
+    tmp2 = Path(tempfile.mkdtemp())
+    try:
+        class A2:
+            pass
+        a2 = A2()
+        a2.out, a2.voices_per_line, a2.force, a2.dry_run = tmp2, 1, False, True
+        import io as _io, contextlib as _c
+        buf = _io.StringIO()
+        with _c.redirect_stdout(buf):
+            rc1 = cmd_all(a2)
+            rc2 = cmd_all(a2)
+        made = len(list(tmp2.glob("*.wav")))
+        check(rc1 == 0 and rc2 == 0, f"the batch runs twice without erroring ({rc1}, {rc2})")
+        check(made == len(plan(atomic, pair, 1)),
+              f"the first pass renders every job ({made})")
+        check("0 rendered" in buf.getvalue(),
+              "the second pass renders nothing, because the ledger says so")
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+
     # THE REFERENCE CLIPS THE RENDER WILL NEED. A denominator, rule 3b: "0
     # missing" and "nothing was checked" must not print the same way.
     want = set(CROWD)
@@ -483,6 +507,29 @@ def state_of(job, out_dir, stamps):
     return "fresh" if had == stamp(job) else "stale"
 
 
+class DryModel:
+    """A renderer that writes a placeholder instead of audio.
+
+    THE ONLY PATH THAT NEEDED A GPU WAS THE ONLY PATH NEVER EXECUTED HERE, and
+    it shipped with a `NameError` in it — `stamps` used and never defined — on
+    the line that does the actual work. `--plan` and `--selftest` both passed,
+    because neither of them enters this loop.
+
+    That is rule 5b aimed at myself: a guard has two outcomes and shipping it
+    means having watched both, and I had watched every path except the one the
+    tool exists for. It cost Jafar a failed two-hour batch he had already
+    pressed the key on.
+
+    So the batch loop can now be walked end to end with no model, no GPU and
+    no download. It proves nothing about the AUDIO. It proves the code around
+    the audio runs, which is the part that was broken."""
+    sr = 24000
+    dry = True
+
+    def generate(self, text, audio_prompt_path=None, exaggeration=None):
+        return None
+
+
 def render_one(job, out_dir, model, stamps):
     """One line to one file. Returns seconds taken, or None if skipped."""
     if state_of(job, out_dir, stamps) == "fresh":
@@ -492,8 +539,11 @@ def render_one(job, out_dir, model, stamps):
     wav = model.generate(job["line"],
                          audio_prompt_path=str(job["ref"]),
                          exaggeration=job["exaggeration"])
-    import torchaudio  # noqa: F401  — only ever imported on a real render
-    torchaudio.save(str(dest), wav, model.sr)
+    if getattr(model, "dry", False):
+        dest.write_bytes(b"DRY RUN - not audio")
+    else:
+        import torchaudio  # noqa: F401  — only ever imported on a real render
+        torchaudio.save(str(dest), wav, model.sr)
     stamps[job["file"]] = stamp(job)
     return time.time() - t0
 
@@ -617,7 +667,19 @@ def cmd_all(args):
         j["ref"] = CLIPS / next(iter(sorted(p.name for p in CLIPS.glob(j["voice"] + ".*"))), "")
 
     args.out.mkdir(parents=True, exist_ok=True)
-    existing = [j for j in jobs if (args.out / j["file"]).exists()]
+    stamps = load_stamps(args.out)
+
+    # THE FOUR STATES, NOT "DOES THE FILE EXIST". This block still said
+    # "skipping 10 already rendered" after the ledger went in — the ledger was
+    # wired into `--rate` and this path kept its old filename test, so the ten
+    # clips it was about to skip were exactly the ten the ledger had just
+    # classified as unknown provenance. Two implementations of one idea, and
+    # the one nobody looked at was the one missing the line.
+    by_state = {}
+    for j in jobs:
+        by_state.setdefault(state_of(j, args.out, stamps), []).append(j)
+    fresh = by_state.get("fresh", [])
+    stale = by_state.get("stale", []) + by_state.get("unknown", [])
 
     # THE MODEL LOADS BEFORE ANYTHING IS DELETED, and the first version of
     # this function got that backwards — it unlinked the existing renders
@@ -629,26 +691,34 @@ def cmd_all(args):
     # 5. The CI run that cost 24 picked clips did the same thing in the same
     # order: destroy first, find out afterwards. Nothing may be removed until
     # the thing that would replace it is known to exist.
-    model, device = load_model()
+    if args.dry_run:
+        model, device = DryModel(), "dry-run"
+        print("  DRY RUN — walking every job, writing placeholders, no audio")
+    else:
+        model, device = load_model()
     if model is None:
-        if existing and args.force:
-            print(f"  ({len(existing)} existing render(s) NOT deleted — "
+        if fresh and args.force:
+            print(f"  ({len(fresh)} correct render(s) NOT deleted — "
                   f"nothing could have replaced them)")
         return 2
 
     # RULE 5 AGAIN, the other half: nothing is replaced silently, and the
-    # count is printed BEFORE the work rather than after.
-    if existing and args.force:
-        print(f"voice-gen: --force will REPLACE {len(existing)} existing render(s).")
-        for j in existing[:5]:
+    # count is printed BEFORE the work rather than after. `--force` is only
+    # about the clips that are ALREADY CORRECT — stale and unknown ones are
+    # re-rendered without asking, because leaving them is the bug.
+    if fresh and args.force:
+        print(f"voice-gen: --force will REPLACE {len(fresh)} correct render(s).")
+        for j in fresh[:5]:
             print(f"    {j['file']}")
-        if len(existing) > 5:
-            print(f"    (+{len(existing) - 5} more)")
-        for j in existing:
-            (args.out / j["file"]).unlink()
-    elif existing:
-        print(f"voice-gen: skipping {len(existing)} already rendered "
-              f"(--force to replace them)")
+        if len(fresh) > 5:
+            print(f"    (+{len(fresh) - 5} more)")
+        for j in fresh:
+            stamps.pop(j["file"], None)
+    elif fresh:
+        print(f"voice-gen: {len(fresh)} already correct, skipping "
+              f"(--force to redo them)")
+    if stale:
+        print(f"voice-gen: {len(stale)} stale or unrecorded — re-rendering these")
 
     done, series = 0, []
     for n, j in enumerate(jobs, 1):
@@ -660,7 +730,13 @@ def cmd_all(args):
                 med = sorted(series)[len(series) // 2]
                 left = (len(jobs) - n) * med / 60
                 print(f"  {n}/{len(jobs)}  median {med:.2f}s  ~{left:.0f} min left")
+                # SAVED AS IT GOES, not at the end. Two hours of rendering
+                # behind a single write at the finish means one crash, one
+                # closed window or one power cut turns every clip on disk back
+                # into "unknown provenance" and the next run redoes all of it.
+                save_stamps(args.out, stamps)
 
+    save_stamps(args.out, stamps)
     manifest = args.out / "barks-manifest.json"
     # UTF-8 ON THE WAY OUT TOO. Same default, same platform split: the
     # manifest carries the bark text, so writing it in cp1252 would put the
@@ -685,6 +761,8 @@ def main():
     ap.add_argument("--voices-per-line", type=int, default=1,
                     help="how many of the six street voices each line is rendered in")
     ap.add_argument("--force", action="store_true", help="replace existing renders")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="walk the whole batch with no model, to exercise the code path")
     ap.add_argument("--verbose", "-v", action="store_true")
     ap.add_argument("--out", type=Path,
                     default=ROOT / "ledger" / "Assets" / "Resources" / "voice" / "barks")
