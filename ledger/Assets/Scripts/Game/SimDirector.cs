@@ -1912,6 +1912,10 @@ namespace Ledger.Game
         /// it means the re-pin is not running; zero with no speech is a quiet
         /// street, and only the count beside `bubblesOnScreen` separates them.
         int _bubblesPinnedAtShot;
+        /// How many nameplates the SHOT re-pinned. Zero on a shot with people
+        /// in it means the re-pin is not running; zero with nobody on screen
+        /// is an empty street.
+        int _namesPinnedAtShot;
         int _billboardsTracked = 0;
 
         /// See the note at the call site. Two numbers, each answering one
@@ -6846,6 +6850,12 @@ namespace Ledger.Game
             // its own pre-cap reading, which is only possible if the two are
             // describing different instants.
             _bubblesPinnedAtShot = SpeechBubble.PinAll(cam);
+            // AND THE NAMEPLATES, for the identical reason one line up.
+            // `nameShownWidthWorst=0.171` against a `PinFrac` of 0.120 is a
+            // label that went through the clamp and came out wider than the
+            // clamp allows, which is what a cap applied against last frame's
+            // camera looks like.
+            _namesPinnedAtShot = NameTags.PinAll(cam);
             // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
             // because that is the frame that gets written. It used to run once,
             // at the audit moment, and reported 0 for a run whose committed
@@ -9627,6 +9637,7 @@ namespace Ledger.Game
                       $"bubbleFracPreCap={NameTags.WorstBubbleFracPreCap:0.000} " +
                       $"bubblesPinned={NameTags.BubblesPinned} " +
                       $"bubblesPinnedAtShot={_bubblesPinnedAtShot} " +
+                      $"namesPinnedAtShot={_namesPinnedAtShot} " +
                       $"bubblePinFloor={NameTags.BubblePinFloor:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a

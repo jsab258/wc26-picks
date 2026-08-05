@@ -671,6 +671,40 @@ namespace Ledger.Game
             return r;
         }
 
+        /// RE-PIN EVERY MANAGED LABEL AGAINST THE CAMERA A SHOT IS ABOUT TO
+        /// USE — the third site of an idea whose first two are already fixed.
+        ///
+        /// `Resolve` pins from `Camera.main` on the ordinary schedule, and
+        /// `SimDirector.Shot` moves a camera and renders BY HAND inside
+        /// `Update`. So every label in a still was sized against wherever the
+        /// camera was standing the frame before. `Billboard` re-aims at the
+        /// shot for exactly this reason and `SpeechBubble.PinAll` re-pins for
+        /// it; names were the one left.
+        ///
+        /// AND THE RUN SAYS IT MATTERS RATHER THAN THAT IT MIGHT.
+        /// `nameShownWidthWorst=0.171` is the POST-cap width on `c7e841b`,
+        /// against a `PinFrac` of 0.120 — a label that has been through the
+        /// clamp and is still forty per cent wider than the clamp allows. A
+        /// cap applied against the wrong camera is not a cap.
+        ///
+        /// Returns how many it touched, so a zero on a shot with people in it
+        /// says the re-pin is not running rather than that nothing needed it —
+        /// the same denominator argument `bubblesPinnedAtShot` carries.
+        public static int PinAll(Camera cam)
+        {
+            if (cam == null) return 0;
+            int pinned = 0;
+            foreach (var label in _managed)
+            {
+                if (label == null) continue;
+                var r = label.GetComponent<Renderer>();
+                if (r == null || !ScreenRect(cam, r.bounds, out var rect)) continue;
+                Pin(label, rect.height / Mathf.Max(1f, cam.pixelHeight));
+                pinned++;
+            }
+            return pinned;
+        }
+
         static float Pin(TextMesh label, float frac)
         {
             float now = label != null ? label.transform.localScale.y : -1f;
