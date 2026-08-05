@@ -3732,6 +3732,7 @@ namespace Ledger.Game
         bool _homicideStaged;
         string _homVictim = "";
         int _homBodies, _homSaw, _homKnew, _homWouldTalk, _homNamed;
+        int _homSawStored, _homHoldsIt;
         double _homPressure;
         Inquiry _homInquiry = Inquiry.None;
 
@@ -5503,6 +5504,43 @@ namespace Ledger.Game
             _homNamed = filed != null
                 ? _game.Homicides.LiveWitnesses(_game.Gossip?.Mill, _game.IsAlive).Count
                 : 0;
+
+            // AND WHERE THE 32 BECOME 0, BECAUSE READING THE CODE HAS STOPPED
+            // NARROWING IT.
+            //
+            // `e7953a7`: `witnessOffered=790 witnessDropped=2` — the mill takes
+            // 788 of 790 now, so the id fix landed. `homSaw=32 homWouldTalk=5
+            // homNamed=0 homPressure=0.40`. Those cannot all be true of the
+            // same story by reading alone:
+            //
+            //   `homWouldTalk` walks `SawYouDoIt`, calls `mill.Get(id)` and
+            //   asks `Watched.WouldTalkToPolice` — it found five, so the list
+            //   is populated AND those ids have agents.
+            //
+            //   `LiveWitnesses` walks the same list, gets the same agents, and
+            //   additionally asks `BestOfValue(TopicKey, "true")` for a
+            //   confidence at or above `TestimonyGrade`. It found none.
+            //
+            // So the agents exist and the belief does not, while `FileWith`
+            // writes exactly that belief at `Violence.BodyConfidence` = 1.0 and
+            // only two witnesses were refused all run. Three readings that
+            // cannot be reconciled by staring at them, which is the point at
+            // which this project's own rules say stop staring.
+            //
+            // `homSawStored` is what the REGISTER kept, against `homSaw` which
+            // is what the bridge offered; `homHoldsIt` is how many of those
+            // agents hold the belief at ANY confidence. Between them they say
+            // which of the three links is broken, and no combination of them is
+            // ambiguous.
+            _homSawStored = filed != null ? filed.SawYouDoIt.Count : 0;
+            _homHoldsIt = 0;
+            var millNow = _game.Gossip?.Mill;
+            if (filed != null && millNow != null)
+                foreach (var wid in filed.SawYouDoIt)
+                {
+                    var g = millNow.Get(wid);
+                    if (g != null && g.BestOfValue(filed.TopicKey, "true") != null) _homHoldsIt++;
+                }
             Debug.Log($"SimDirector: killed {id} — filed {_homBodies} body(ies), "
                       + $"{_homSaw} saw it and {_homKnew} only knew of it, "
                       + $"{_homWouldTalk} of the watchers would talk, {_homNamed} can name you, "
@@ -9300,6 +9338,7 @@ namespace Ledger.Game
                       $"homBodies={_homBodies} homSaw={_homSaw} homKnew={_homKnew} " +
                       $"homWouldTalk={_homWouldTalk} " +
                       $"homNamed={_homNamed} " +
+                      $"homSawStored={_homSawStored} homHoldsIt={_homHoldsIt} " +
                       // AND WHETHER THE MILL REFUSED ANYBODY. A dropped
                       // witness was an early return with no trace until
                       // tonight, and it is what emptied the crowd's
