@@ -164,12 +164,9 @@ talking to him like he is the electric meter. Both faults found were closed at
 the source the same hour: a stage direction instead of speech, and an
 out-of-period word repeated back.
 
-- **UNCONFIRMED — A SPEND DECISION.** Nothing re-generated since those fixes,
-  so the 78 and both closures describe the BEFORE state.
+- **CONFIRMED 5 AUGUST, and the re-read found worse than either closure.** Both original faults are closed. **But all four voices answered "what's the mood" with the single word "Quiet.", in both paid runs, eight for eight** — every reply good alone, so it passed two readings and both checks, because the fault lives BETWEEN replies and nothing looked there. Each card now has a `What You Notice First` so they answer from different places. **And the cast was inventing people** — Frank Doyle's two-year tab, old Duffy's chair, Mrs Bartholomew, Vic, Ray, none of whom exist — the law breaking at its most expensive point, since a model that mints a person with a history has taken over deciding. Names are now limited to what the prompt already contains. **Checking is free from here**: `ConvoProbe --dump-prompts` needs no API call. Transcript and full account in `writing-check-free.md`.
 - Then make it good: voice held under pressure, memory of what you did.
-- **Negotiation as the empire's verb.** Recruiting, bribing, threatening, being
-  talked round — scenes rather than menu picks. This is where the model earns
-  its place, because no authored tree affords it at scale.
+- **Negotiation as the empire's verb — THE NEXT THING, and it is rule 6.** Recruiting, bribing, threatening, being talked round as scenes rather than menu picks; no authored tree affords it at scale. `Core/Negotiation` is complete and tested — five levers, resistance, resentment, novelty decay, a walk-out, and a `LoyaltyCost` charged after the scene whether you won or lost, so a negotiation can be won and still be a mistake. **It has NO Game-layer caller, so not one line has ever run** — the same shape the law layer had until yesterday, and indistinguishable from working when read from inside Core.
 - NPCs who are **wrong about you** and can be argued with.
 
 **INPUT PARITY — a rule, checked, not promised.** Every conversational action is
