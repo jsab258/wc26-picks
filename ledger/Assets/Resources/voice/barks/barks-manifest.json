@@ -1,0 +1,2684 @@
+{
+ "renders": [
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 0,
+   "line": "Bit of nonsense going about. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.000.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 1,
+   "line": "Don't quote me. The new owner was at the warehouse on Tuesday, maybe.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.001.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 2,
+   "line": "Half the street reckons the new owner was at the warehouse on Tuesday. Half the street's wrong.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.002.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 3,
+   "line": "I heard the new owner was at the warehouse on Tuesday, but I heard it from Sam.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.003.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 4,
+   "line": "I'd give it a week before somebody says the opposite: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.004.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 5,
+   "line": "Somebody's saying the new owner was at the warehouse on Tuesday. Somebody's always saying something.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.005.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 6,
+   "line": "The new owner was at the warehouse on Tuesday, or so I'm told, by people who weren't there.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.006.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 7,
+   "line": "The new owner was at the warehouse on Tuesday, supposedly. People talk.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.007.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 8,
+   "line": "The new owner was at the warehouse on Tuesday? I'd want it from somebody sober.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.008.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 9,
+   "line": "There's a story going round that the new owner was at the warehouse on Tuesday. Probably nothing.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.009.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 10,
+   "line": "There's a whisper that the new owner was at the warehouse on Tuesday. Not worth much.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.010.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 11,
+   "line": "They'll tell you the new owner was at the warehouse on Tuesday. They'll tell you anything.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.011.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 12,
+   "line": "You hear all sorts. The new owner was at the warehouse on Tuesday, apparently.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.012.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.doubtful",
+   "index": 13,
+   "line": "You know how it is. The new owner was at the warehouse on Tuesday, they say.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.tell.doubtful.013.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 0,
+   "line": "I had it off someone who'd know: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.000.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 1,
+   "line": "I'd not repeat it, but the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.001.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 2,
+   "line": "I'll say this much: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.002.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 3,
+   "line": "It's going round that the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.003.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 4,
+   "line": "Somebody at the docks reckons the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.004.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 5,
+   "line": "Somebody told me the new owner was at the warehouse on Tuesday. Make of it what you like.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.005.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 6,
+   "line": "The new owner was at the warehouse on Tuesday, if you believe the market.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.006.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 7,
+   "line": "The new owner was at the warehouse on Tuesday. That's the third time this week I've heard it.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.007.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 8,
+   "line": "The talk is the new owner was at the warehouse on Tuesday. Take that how you like.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.008.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 9,
+   "line": "There's a version where the new owner was at the warehouse on Tuesday. I've heard worse ones.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.009.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 10,
+   "line": "They're saying the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.010.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 11,
+   "line": "Two people told me the new owner was at the warehouse on Tuesday. Different two people.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.011.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 12,
+   "line": "Word is the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.012.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.secondhand",
+   "index": 13,
+   "line": "You've heard, then. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "exchange.tell.secondhand.013.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 0,
+   "line": "Ask me again in a year and I'll tell you the same: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.000.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 1,
+   "line": "Don't look at me like that. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.001.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 2,
+   "line": "I was there. The new owner was at the warehouse on Tuesday, and that's the end of it.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.002.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 3,
+   "line": "I wish I hadn't seen it, but I did: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.003.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 4,
+   "line": "I'm not guessing. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.004.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 5,
+   "line": "I'm telling you, the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.005.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 6,
+   "line": "I've not slept right since. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.006.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 7,
+   "line": "My own eyes, not somebody's mouth. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.007.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 8,
+   "line": "Nobody's done a thing about it. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.008.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 9,
+   "line": "The new owner was at the warehouse on Tuesday. I know what I saw.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.009.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 10,
+   "line": "The new owner was at the warehouse on Tuesday. I'd say it in front of him.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.010.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 11,
+   "line": "There's no other way to read it: the new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.011.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 12,
+   "line": "You can believe what you like. The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.012.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.tell.certain",
+   "index": 13,
+   "line": "You want to know why I'm quiet lately? The new owner was at the warehouse on Tuesday.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "exchange.tell.certain.013.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 0,
+   "line": "Are you sure it was him?",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.000.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 1,
+   "line": "God. And here?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.001.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 2,
+   "line": "Hm. Does Lena know?",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.002.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 3,
+   "line": "I'd rather not have heard that, if I'm honest.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.003.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 4,
+   "line": "On this street?",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.004.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 5,
+   "line": "Since when has anybody round here been surprised by that?",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.005.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 6,
+   "line": "Since when?",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.006.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 7,
+   "line": "That would explain a few things.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.007.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 8,
+   "line": "That's the first I've heard of it.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.008.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 9,
+   "line": "There's always something.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.009.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 10,
+   "line": "Well. That's the week made interesting.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.010.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 11,
+   "line": "What, and nobody's said anything?",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.011.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 12,
+   "line": "Who told you that?",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.012.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.neutral",
+   "index": 13,
+   "line": "You're serious.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "exchange.answer.neutral.013.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 0,
+   "line": "And what's he doing about it, that's the question.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.000.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 1,
+   "line": "Does he know you know?",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.001.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 2,
+   "line": "Everything's worth something to the right ear.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.002.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 3,
+   "line": "How long have you been sitting on it?",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.003.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 4,
+   "line": "I'd not give that away for nothing.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.004.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 5,
+   "line": "Interesting, that. Worth something to somebody.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.005.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 6,
+   "line": "Keep it to yourself for a day or two. Do us both a favour.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.006.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 7,
+   "line": "Now that IS worth hearing.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.007.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 8,
+   "line": "Say that again, slowly.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.008.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 9,
+   "line": "That's not gossip. That's leverage.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.009.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 10,
+   "line": "There's people who'd want that. Paying people.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.010.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 11,
+   "line": "Who else knows?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.011.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 12,
+   "line": "Who'd you tell before me?",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.012.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.greedy",
+   "index": 13,
+   "line": "You could do something with that, you know.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "exchange.answer.greedy.013.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 0,
+   "line": "And you believed it, did you?",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.000.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 1,
+   "line": "Give it a month. It'll be somebody else's turn.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.001.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 2,
+   "line": "Half of that's true and the wrong half's the loud one.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.002.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 3,
+   "line": "I'd want to hear it from him before I said it again.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.003.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 4,
+   "line": "I'll not be the one carrying that any further.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.004.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 5,
+   "line": "I've heard that story before, about somebody else.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.005.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 6,
+   "line": "I've known better people do worse for less.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.006.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 7,
+   "line": "Mickey's family. That still means something to me.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.007.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 8,
+   "line": "People are quick to have an opinion about a stranger.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.008.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 9,
+   "line": "That's a hard thing to say about a man who's been decent to me.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.009.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 10,
+   "line": "That's not the man I know.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.010.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 11,
+   "line": "That's talk. People love talk.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.011.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 12,
+   "line": "There'll be a reason. There usually is.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.012.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.loyal",
+   "index": 13,
+   "line": "You'd say the same about anyone with a bit of money coming in.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "exchange.answer.loyal.013.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 0,
+   "line": "I didn't hear that. Understand me. I didn't hear it.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.000.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 1,
+   "line": "I'd keep that behind my teeth if I were you.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.001.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 2,
+   "line": "I'm going to walk off now, and you're going to let me.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.002.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 3,
+   "line": "I've got children. Talk about the weather.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.003.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 4,
+   "line": "Not here. Not with that door open.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.004.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 5,
+   "line": "Say it quieter or don't say it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.005.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 6,
+   "line": "Say that where it can be heard and see what it costs you.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.006.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 7,
+   "line": "Some things you carry. You don't hand them round.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.007.crowd_f2.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 8,
+   "line": "Stop. I mean it. Stop.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.008.crowd_f3.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 9,
+   "line": "That's the kind of talk that ends with somebody moving away.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.009.crowd_m1.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 10,
+   "line": "There's people who'd pay to hear you say that again.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.010.crowd_m2.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 11,
+   "line": "Whatever you think you know, unknow it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.011.crowd_m3.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 12,
+   "line": "You want to be careful whose name you put in a sentence.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.012.crowd_f1.wav"
+  },
+  {
+   "slot": "exchange.answer.nervous",
+   "index": 13,
+   "line": "You're a braver man than me, saying it out loud.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.65,
+   "file": "exchange.answer.nervous.013.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 0,
+   "line": "All right.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.000.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 1,
+   "line": "Cold enough for you?",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.001.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 2,
+   "line": "Evening.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.002.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 3,
+   "line": "Good to see the lights on down there.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.003.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 4,
+   "line": "How's the pub treating you?",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.004.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 5,
+   "line": "Long day?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.005.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 6,
+   "line": "Mickey's one. Still standing, then.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.006.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 7,
+   "line": "Mind how you go.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.007.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 8,
+   "line": "Still open, is it?",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.008.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 9,
+   "line": "Tell Lena I said hello.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.009.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 10,
+   "line": "That step of yours needs seeing to.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.010.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 11,
+   "line": "You'll be at the market Thursday, I expect.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.011.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 12,
+   "line": "You've the look of him, you know. Around the eyes.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.012.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.comments_plain",
+   "index": 13,
+   "line": "Your uncle'd have hated this weather.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "recognition.comments_plain.013.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 0,
+   "line": "Busy week, was it.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.000.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 1,
+   "line": "Careful on that corner. People watch it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.001.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 2,
+   "line": "Funny hours you keep.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.002.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 3,
+   "line": "Heard your name this week. More than once.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.003.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 4,
+   "line": "I'd not say what I've heard. But I've heard it.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.004.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 5,
+   "line": "Odd, the places a name turns up.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.005.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 6,
+   "line": "Sleeping all right?",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.006.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 7,
+   "line": "Someone was asking after you. I said I hadn't seen you.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.007.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 8,
+   "line": "Still standing. That surprises some.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.008.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 9,
+   "line": "There they are. The busy one.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.009.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 10,
+   "line": "You and I should have a proper talk one day.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.010.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 11,
+   "line": "You get about, don't you.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.011.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 12,
+   "line": "You want to be careful, a man as talked-about as you.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.012.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.comments_sensitive",
+   "index": 13,
+   "line": "You'll know what people are saying.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "recognition.comments_sensitive.013.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 1,
+   "line": "...Evening.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.001.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 2,
+   "line": "Another time.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.002.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 3,
+   "line": "Can't stop.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.003.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 4,
+   "line": "Excuse me.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.004.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 5,
+   "line": "I'm late as it is.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.005.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 6,
+   "line": "I've got to be somewhere.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.006.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 7,
+   "line": "Mind yourself.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.007.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 8,
+   "line": "Mm.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.008.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 9,
+   "line": "Not now. Sorry.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.009.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 10,
+   "line": "Right. Right.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.010.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 11,
+   "line": "Somebody's waiting on me.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.011.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 12,
+   "line": "Sorry, in a hurry.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.012.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.avoids",
+   "index": 13,
+   "line": "Yes. No. Sorry.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "recognition.avoids.013.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 0,
+   "line": "Ask me in a year.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.000.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 1,
+   "line": "Door's shut. Try somebody else.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.001.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 2,
+   "line": "I'd rather not, and I'd rather not explain why.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.002.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 3,
+   "line": "I've heard enough to know my answer.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.003.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 4,
+   "line": "I've made up my mind about you.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.004.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 5,
+   "line": "I've nothing for you today.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.005.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 6,
+   "line": "No. And don't ask twice.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.006.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 7,
+   "line": "Not for you. Not any more.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.007.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 8,
+   "line": "Not today. Not tomorrow either.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.008.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 9,
+   "line": "Save your breath.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.009.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 10,
+   "line": "There's nothing here you want.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.010.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 11,
+   "line": "We're closed. To you.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.011.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 12,
+   "line": "Whatever it is, no.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.012.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.refuses",
+   "index": 13,
+   "line": "You'll want to ask somebody who doesn't know you.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "recognition.refuses.013.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 0,
+   "line": "A word. It won't take long and it won't be pleasant.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.000.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 1,
+   "line": "Don't walk past me. Not today.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.001.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 2,
+   "line": "I want to hear you say it to my face.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.002.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 3,
+   "line": "I'd like an answer, and I'd like it today.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.003.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 4,
+   "line": "I've been rehearsing this. Give me a minute of it.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.004.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 5,
+   "line": "I've been waiting to see you, as it happens.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.005.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 6,
+   "line": "Look at me when I'm talking to you.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.006.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 7,
+   "line": "No. You don't get to nod and keep walking.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.007.crowd_m2.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 8,
+   "line": "Stop there. You know why.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.008.crowd_m3.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 9,
+   "line": "There you are. I've had four days to think about this.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.009.crowd_f1.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 10,
+   "line": "Two minutes. You owe me that much.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.010.crowd_f2.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 11,
+   "line": "You and I need a word. Not here.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.011.crowd_f3.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 12,
+   "line": "You're going to stand there and hear it.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.012.crowd_m1.wav"
+  },
+  {
+   "slot": "recognition.confronts",
+   "index": 13,
+   "line": "You've been avoiding this street. I noticed.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.8,
+   "file": "recognition.confronts.013.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 0,
+   "line": "Even the market's thin.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.000.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 1,
+   "line": "Half these shutters weren't down last year.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.001.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 2,
+   "line": "I'll give it till the spring and then I don't know.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.002.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 3,
+   "line": "I've had four people in since I opened.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.003.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 4,
+   "line": "I've laid the boy off. I hated doing it.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.004.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 5,
+   "line": "I've started taking payment in bits.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.005.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 6,
+   "line": "It's gone quiet in a way that doesn't feel temporary.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.006.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 7,
+   "line": "It's the waiting I can't stand.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.007.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 8,
+   "line": "Nobody's got it to spend, that's the truth of it.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.008.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 9,
+   "line": "Nobody's spending. You can feel it on the street.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.009.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 10,
+   "line": "People are walking past looking, not coming in.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.010.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 11,
+   "line": "There's no work at the docks. None.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.011.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 12,
+   "line": "Third quiet week. I've started counting them.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.012.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.slump",
+   "index": 13,
+   "line": "You can hear the clock in my shop. That's how quiet.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.slump.013.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 0,
+   "line": "Don't smile at me.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.000.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 1,
+   "line": "Don't. Just don't.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.001.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 2,
+   "line": "I saw you coming and I stayed anyway. Don't make me regret it.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.002.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 3,
+   "line": "I'd cross the road but I got here first.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.003.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 4,
+   "line": "I've nothing to say to you.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.004.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 5,
+   "line": "I've said all I'm saying.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.005.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 6,
+   "line": "Not in front of people.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.006.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 7,
+   "line": "Say what you came to say or move.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.007.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 8,
+   "line": "There's nothing left to talk about.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.008.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 9,
+   "line": "Walk on.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.009.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 10,
+   "line": "We're not doing this.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.010.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 11,
+   "line": "Whatever it is, it's too late for it.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.011.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 12,
+   "line": "You know what you did.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.012.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.feud",
+   "index": 13,
+   "line": "You've a nerve, standing there.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.6,
+   "file": "ambient.open.feud.013.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 0,
+   "line": "Can't lift with it. Can't do the work either.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.000.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 1,
+   "line": "Doctor wants money I haven't got.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.001.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 2,
+   "line": "Don't. Don't touch it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.002.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 3,
+   "line": "Every step. Every single step.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.003.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 4,
+   "line": "I daren't stop. If I stop I don't start again.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.004.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 5,
+   "line": "I'd have it looked at if looking at was free.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.005.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 6,
+   "line": "I've been doing it one-handed a fortnight now.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.006.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 7,
+   "line": "I've been strapping it up and hoping.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.007.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 8,
+   "line": "It wakes me. That's the worst of it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.008.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 9,
+   "line": "It was nothing. A week ago it was nothing.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.009.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 10,
+   "line": "It's not healing. I've stopped pretending it is.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.010.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 11,
+   "line": "It's worse in the cold. It's always worse in the cold.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.011.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 12,
+   "line": "They'll not keep me on if I can't carry.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.012.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.injured",
+   "index": 13,
+   "line": "You can smell it going bad. I'm not imagining that.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "ambient.open.injured.013.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 0,
+   "line": "Bread's gone up again. Again.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.000.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 1,
+   "line": "Everything's dearer and nobody will say why.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.001.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 2,
+   "line": "Have you seen what they want for coal?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.002.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 3,
+   "line": "I asked why and got a shrug for my trouble.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.003.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 4,
+   "line": "I paid what I paid last month and got less of it.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.004.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 5,
+   "line": "I stopped buying it. That's my answer to it.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.005.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 6,
+   "line": "I've started keeping a list. It's not cheering reading.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.006.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 7,
+   "line": "It's not the price. It's that they say it like it's normal.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.007.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 8,
+   "line": "My rent's the same, my wages are the same, and yet.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.008.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 9,
+   "line": "Same basket, half the basket.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.009.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 10,
+   "line": "Somebody's making that money. It's not us.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.010.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 11,
+   "line": "The little ones are the ones that get you. Penny here, penny there.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.011.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 12,
+   "line": "There's no shortage. I've seen the store rooms.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.012.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.prices",
+   "index": 13,
+   "line": "Twice this month. Twice.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.45,
+   "file": "ambient.open.prices.013.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 0,
+   "line": "Cold gets in at this hour.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.000.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 1,
+   "line": "Couldn't sleep either?",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.001.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 2,
+   "line": "I like it now. Nobody wants anything.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.002.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 3,
+   "line": "It's a different street after eleven.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.003.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 4,
+   "line": "Long shift?",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.004.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 5,
+   "line": "Nothing good happens at this hour.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.005.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 6,
+   "line": "Off home?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.006.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 7,
+   "line": "Quiet, isn't it. Properly quiet.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.007.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 8,
+   "line": "That's the second time round the block for me.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.008.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 9,
+   "line": "Watch the corner. It's dark since the lamp went.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.009.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 10,
+   "line": "You'll catch your death standing about.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.010.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 11,
+   "line": "You're keeping strange hours lately.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.011.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 12,
+   "line": "You're out late.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.012.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.night",
+   "index": 13,
+   "line": "You're the third person I've passed. On a Tuesday.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.open.night.013.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 0,
+   "line": "Any word from your brother?",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.000.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 1,
+   "line": "Cold one.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.001.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 2,
+   "line": "Did the roof hold?",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.002.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 3,
+   "line": "Did you settle that business with the landlord?",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.003.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 4,
+   "line": "Have you a minute? No, it'll keep.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.004.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 5,
+   "line": "How's your mother keeping?",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.005.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 6,
+   "line": "I've been meaning to catch you.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.006.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 7,
+   "line": "I've got that thing you asked about, when you want it.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.007.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 8,
+   "line": "That's the rain coming, that is.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.008.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 9,
+   "line": "They've dug the road up again.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.009.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 10,
+   "line": "You look better than you did.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.010.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 11,
+   "line": "You'll be at the market Thursday?",
+   "voice": "crowd_f3",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.011.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 12,
+   "line": "You're the fourth person to say that to me today.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.012.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.open.ordinary",
+   "index": 13,
+   "line": "Your lad's got tall.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.35,
+   "file": "ambient.open.ordinary.013.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 0,
+   "line": "Come round Sunday. We'll not talk about money.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.000.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 1,
+   "line": "Everybody's saying it. That's how I know it's real.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.001.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 2,
+   "line": "Give it till the season changes.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.002.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 3,
+   "line": "Hold on. That's all any of us can do.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.003.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 4,
+   "line": "I'd not shut. Once you shut you don't open.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.004.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 5,
+   "line": "I've been saying that for six months.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.005.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 6,
+   "line": "It'll turn. It always turns.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.006.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 7,
+   "line": "It's not you. Don't let it be you.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.007.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 8,
+   "line": "My takings are down a third and I'm one of the lucky ones.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.008.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 9,
+   "line": "Same for everybody. If that helps, which it doesn't.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.009.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 10,
+   "line": "Says who? I've not seen it turn yet.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.010.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 11,
+   "line": "There'll be work when the boats come back.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.011.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 12,
+   "line": "There's still money on this street. It's just not moving.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.012.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.slump",
+   "index": 13,
+   "line": "You've weathered worse than this.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.slump.013.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 0,
+   "line": "As you like.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.000.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 1,
+   "line": "Fine.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.001.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 2,
+   "line": "Have it your way. You always do.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.002.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 3,
+   "line": "I wasn't going to.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.003.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 4,
+   "line": "I'll be here when you've calmed down.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.004.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 5,
+   "line": "One of us has to be the bigger, and it won't be you.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.005.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 6,
+   "line": "Right.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.006.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 7,
+   "line": "Suit yourself.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.007.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 8,
+   "line": "Suits me.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.008.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 9,
+   "line": "That's a shame. That's genuinely a shame.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.009.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 10,
+   "line": "That's how it is, then.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.010.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 11,
+   "line": "Then we're done.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.011.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 12,
+   "line": "Understood.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.012.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.feud",
+   "index": 13,
+   "line": "You'll come round. You always come round.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.55,
+   "file": "ambient.reply.feud.013.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 0,
+   "line": "Get it seen to before it goes bad.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.000.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 1,
+   "line": "How much do you need?",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.001.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 2,
+   "line": "I'd not let a dog go on like that.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.002.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 3,
+   "line": "Let me see it. No, properly.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.003.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 4,
+   "line": "My father did the same and he never worked again.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.004.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 5,
+   "line": "Promise me you'll go this week.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.005.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 6,
+   "line": "Sit down, at least. Sit down.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.006.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 7,
+   "line": "Take the day. The work'll still be there.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.007.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 8,
+   "line": "That's not a wound any more, that's a decision.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.008.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 9,
+   "line": "There's a woman on Copper Row does it cheap.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.009.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 10,
+   "line": "There's no shame in it costing money.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.010.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 11,
+   "line": "You said that last week.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.011.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 12,
+   "line": "You'll lose the arm being proud.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.012.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.injured",
+   "index": 13,
+   "line": "You've been saying it's fine since Easter.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.5,
+   "file": "ambient.reply.injured.013.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 0,
+   "line": "Complain to who? That's the trouble.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.000.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 1,
+   "line": "Don't get me started.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.001.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 2,
+   "line": "I buy less and eat less and there we are.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.002.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 3,
+   "line": "I've gone back to the market. Costs me an hour, saves me a shilling.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.003.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 4,
+   "line": "It'll settle. It usually settles.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.004.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 5,
+   "line": "It's the deliveries. Ask anyone who takes one.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.005.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 6,
+   "line": "It's the same everywhere. That's what they tell me, anyway.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.006.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 7,
+   "line": "My money's the same money it was.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.007.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 8,
+   "line": "My mother said the same in her day. Doesn't help.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.008.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 9,
+   "line": "Nobody's putting wages up to match, funny that.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.009.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 10,
+   "line": "There's men getting rich off that shrug.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.010.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 11,
+   "line": "Wait till the winter.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.011.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 12,
+   "line": "You should see what they charge across the water.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.012.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.prices",
+   "index": 13,
+   "line": "You'll get used to it. We always do.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.4,
+   "file": "ambient.reply.prices.013.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 0,
+   "line": "Aye. Goodnight to you.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.000.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 1,
+   "line": "Couldn't settle. You know how it is.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.001.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 2,
+   "line": "Half an hour and I'm in.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.002.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 3,
+   "line": "I'll sleep when the bill's paid.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.003.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 4,
+   "line": "I've stopped trying to sleep before two.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.004.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 5,
+   "line": "It's the only quiet part of the day.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.005.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 6,
+   "line": "It's the only time I get to think.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.006.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 7,
+   "line": "Nearly. Nearly.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.007.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 8,
+   "line": "Nowhere to be, that's the trouble.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.008.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 9,
+   "line": "Same as you, by the look of it.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.009.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 10,
+   "line": "Someone has to be.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.010.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 11,
+   "line": "Walking helps. Don't ask me why.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.011.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 12,
+   "line": "Work. What else.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.012.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.night",
+   "index": 13,
+   "line": "You take care going back.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.25,
+   "file": "ambient.reply.night.013.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 0,
+   "line": "All being well.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.000.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 1,
+   "line": "Ask me tomorrow and you'll get a different answer.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.001.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 2,
+   "line": "Aye, well. It passes.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.002.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 3,
+   "line": "Better this week, any road.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.003.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 4,
+   "line": "Can't complain. Well. I could.",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.004.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 5,
+   "line": "Don't ask. Not today.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.005.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 6,
+   "line": "Getting on with it, you know.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.006.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 7,
+   "line": "I'll catch you Friday, if that suits.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.007.crowd_m2.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 8,
+   "line": "Just about holding. That's the size of it.",
+   "voice": "crowd_m3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.008.crowd_m3.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 9,
+   "line": "Mustn't grumble.",
+   "voice": "crowd_f1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.009.crowd_f1.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 10,
+   "line": "Not so bad. You?",
+   "voice": "crowd_f2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.010.crowd_f2.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 11,
+   "line": "Same as ever.",
+   "voice": "crowd_f3",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.011.crowd_f3.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 12,
+   "line": "Somebody was asking after you, as it happens.",
+   "voice": "crowd_m1",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.012.crowd_m1.wav"
+  },
+  {
+   "slot": "ambient.reply.ordinary",
+   "index": 13,
+   "line": "There's always something, isn't there.",
+   "voice": "crowd_m2",
+   "exaggeration": 0.3,
+   "file": "ambient.reply.ordinary.013.crowd_m2.wav"
+  }
+ ]
+}
