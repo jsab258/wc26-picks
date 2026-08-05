@@ -340,7 +340,22 @@ namespace Ledger.Game
             // of its own. Two maxima cannot be divided — the worst pass for
             // capsules need not be the pass with the most walkers in it — and
             // four pairs in `SimDirector` were got wrong exactly this way.
-            if (WalkersPrimitive > WalkersPrimitiveEver)
+            // `>=`, NOT `>`, AND THE REASON IS THE FAULT I KEEP WRITING RULES
+            // ABOUT AND SHIPPED ANYWAY.
+            //
+            // `c7e841b` came back `walkersPrimitiveEver=0 walkersPrimitiveOf=0`
+            // — the fix worked, no walker is a capsule. But the DENOMINATOR is
+            // zero too, and a count of zero out of zero is exactly the reading
+            // rule 3b exists to forbid: it cannot tell "nobody is a capsule"
+            // from "nothing was examined". It happened because the denominator
+            // was only assigned when the peak MOVED, and on a clean run the
+            // peak never moves off its initialiser.
+            //
+            // That is `contrastWorst` again, one file over: a number that only
+            // updates on the bad case, so the good case leaves it reading like
+            // a fault that never ran. Taking ties as well means a run that
+            // stays at zero still records a real walker count.
+            if (WalkersPrimitive >= WalkersPrimitiveEver)
             {
                 WalkersPrimitiveEver = WalkersPrimitive;
                 WalkersPrimitiveOf = _npcs.Count;

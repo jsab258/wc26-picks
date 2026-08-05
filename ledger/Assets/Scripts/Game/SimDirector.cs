@@ -9762,6 +9762,13 @@ namespace Ledger.Game
                       $"leanRest={CharacterRig.LeanRest:0.0} " +
                       $"leanDrivenFrames={CharacterRig.LeanDrivenFrames} " +
                       $"leanRestFrames={CharacterRig.LeanRestFrames} " +
+                      // AND THE SAME SPINE BEFORE THIS PROJECT WRITES IT.
+                      // preLeanDriven near 36 means the bought clip leans and
+                      // the lean write is innocent; near 8 means the write is
+                      // adding twenty-eight degrees of its own.
+                      $"preLeanDriven={CharacterRig.PreLeanDriven:0.0} " +
+                      $"preLeanRest={CharacterRig.PreLeanRest:0.0} " +
+                      $"preLeanReads={CharacterRig.PreLeanReads} " +
                       $"armSideMannequin={CharacterRig.ArmSideMannequin:0.0} " +
                       $"armSideSkinned={CharacterRig.ArmSideSkinned:0.0} " +
                       $"armSideMannequinFrames={CharacterRig.ArmSideMannequinFrames} " +

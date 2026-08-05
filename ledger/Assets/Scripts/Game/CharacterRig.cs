@@ -571,6 +571,43 @@ namespace Ledger.Game
 
         void StampArmsPre()
         {
+            // THE SPINE BEFORE THIS FILE TOUCHES IT, and it is the number that
+            // separates two explanations I cannot separate by reading.
+            //
+            // `leanDriven=36.6` against `leanRest=8.2` over the same 1497
+            // frames says a body playing a bought clip is pitched four times
+            // further forward than a mannequin. Two candidates: the lean write
+            // is `_chest.localRotation * Euler(pitch...)` where every sibling
+            // composes from a stored rest, so it could be COMPOUNDING; or the
+            // Mixamo clip simply leans its torso thirty-six degrees and the
+            // write is innocent.
+            //
+            // Compounding needs the Animator NOT to write the chest every
+            // frame. If it does write it, it overwrites and nothing
+            // accumulates — which is why the accumulation theory is a
+            // hypothesis and not a finding, and why I have not touched the
+            // pose code that produced the upside-down player on the strength
+            // of it.
+            //
+            // `preLean` is measured here, before any write, on the same
+            // sampling this file already uses for `preArmDrop` — which exists
+            // for exactly this question about arms. Near 36 means the clip
+            // leans and the write is innocent; near 8 means the write is
+            // adding twenty-eight degrees of its own.
+            //
+            // ON EVERY BODY, NOT JUST THE BOUGHT ONE. `preArmDrop` returns
+            // early on `!IsTheBoughtBody` and that is the instrument-for-one-
+            // subject fault this project has now found four times; the
+            // comparison being made here is BETWEEN the tiers, so measuring one
+            // of them would answer nothing.
+            float pre = LeanNow();
+            if (pre > -900f)
+            {
+                if (PoseIsDriven) { if (pre > PreLeanDriven) PreLeanDriven = pre; }
+                else if (pre > PreLeanRest) PreLeanRest = pre;
+                PreLeanReads++;
+            }
+
             if (!IsTheBoughtBody) return;
             float a = ArmDropNow();
             if (a < 0f) return;
@@ -772,6 +809,13 @@ namespace Ledger.Game
 
         /// Widest the arms got BEFORE this class touched them, over the run.
         public static float PreArmDropDegrees { get; private set; }
+        /// The worst forward pitch seen BEFORE this file writes the chest,
+        /// split by whether an Animator owns the pose. `PreLeanReads` is the
+        /// denominator: a zero pair with a zero count is nothing measured,
+        /// which is a different run from every spine being upright.
+        public static float PreLeanDriven { get; private set; }
+        public static float PreLeanRest { get; private set; }
+        public static int PreLeanReads { get; private set; }
         public static bool PreArmRead { get; private set; }
 
         void StampArmsNow()
