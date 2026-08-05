@@ -217,6 +217,23 @@ namespace Ledger.Game
         public static int ApartCapped, ApartCalls;
         public static float ApartWorst;
 
+        /// Which branch of `Steer` each walker took. Four counters because the
+        /// four have completely different consequences: `Direct` is a clear
+        /// walk to the real destination and is the healthy case, the two street
+        /// branches share a point per street, `Junction` shares one point
+        /// across a whole neighbourhood, and `Origin` sends everybody to
+        /// (0,0) — and only a count can say which of them the crowd is
+        /// actually using.
+        public static int SteerDirect, SteerTargetStreet, SteerOwnStreet,
+                          SteerJunction, SteerOrigin;
+
+        /// How far sideways a walker may be shifted off a shared WAYPOINT.
+        /// Half the footway `NearestStreetPoint` leaves around the point it
+        /// aims at, so a walker fanned out across a junction cannot be pushed
+        /// into the carriageway or through a shopfront. Not the destination
+        /// ring — see `Steer` for why a waypoint wants a different bound.
+        const float LaneMetres = 0.55f;
+
         /// How far from a scheduled point somebody actually stands. Two
         /// shoulders: far enough that two people sent to one place are clear of
         /// each other, near enough that they are still at the place and still
@@ -1793,23 +1810,68 @@ namespace Ledger.Game
         ///
         /// Stateless and re-evaluated every tick, so a schedule change mid-walk
         /// just bends the route, and the accelerated CI sim stays deterministic.
+        /// AN INTERMEDIATE WAYPOINT IS A SHARED AIM POINT, AND THAT IS THE MOB.
+        ///
+        /// `a050815`: `huddleStanding=0 huddleMoving=41` — every body in the
+        /// worst huddle was in transit and not one was standing at its place,
+        /// with `huddleCells=22`, so forty-one people bound for twenty-two
+        /// different destinations were inside two metres of each other. Two
+        /// builds were spent widening `SpreadRadius`, which spreads people
+        /// around a DESTINATION and can do nothing about that.
+        ///
+        /// This function is why. Three of its four returns are a single point
+        /// that many walkers share — the same junction node, the same nearest
+        /// street point — and `Spread` is applied to the destination only, so
+        /// everybody funnelling through a junction aims at its exact
+        /// coordinates. `huddleWhere` has read -1/-1, -1/-3, -1/-5, 1/1 and
+        /// 2/2 across runs: a few metres from the origin every time, which is
+        /// what a shared node looks like when it is plotted.
+        ///
+        /// So the per-person offset that already exists for standing at a
+        /// place is applied to the waypoint too. It is deterministic from the
+        /// name, so nobody shimmers and everybody takes the same line every
+        /// run; it is the same vector the destination uses, so there is no
+        /// second constant to drift; and the FIRST return is left alone —
+        /// a clear path to the real target must stay exact or people stop
+        /// arriving, which is the regression `scheduleLag` exists to catch.
+        ///
+        /// `steerVia` counts which branch each walker took. Without it the
+        /// claim above is a guess about a four-way if, and the last two guesses
+        /// about this mob were both wrong.
         Vector3 Steer(Vector3 cur, Vector3 target)
         {
-            if (WorldBuilder.SegmentClear(cur, target)) return target;
+            if (WorldBuilder.SegmentClear(cur, target)) { SteerDirect++; return target; }
+
+            // BOUNDED BY THE PAVEMENT, NOT BY `SpreadOffset`'S OWN SIZE.
+            //
+            // The destination ring runs from 0.8m to about 1.6m, sized for how
+            // many people are standing at a place. A waypoint is not a place:
+            // `NearestStreetPoint` puts walkers `edge.Width/2 + 1.1` from the
+            // road centre, so there is roughly 1.1m of footway around the point
+            // being aimed at, and a 1.6m sideways shove would put somebody in
+            // the carriageway or through a shopfront. Half that band cannot
+            // reach either, which is where 0.55 comes from — the same number
+            // `NearestStreetPoint` already uses, halved, rather than a new one.
+            var lane = SpreadOffset;
+            float wide = lane.magnitude;
+            if (wide > LaneMetres) lane *= LaneMetres / wide;
 
             // Aim for the street outside the destination first.
             var targetStreet = NearestStreetPoint(target);
-            if (WorldBuilder.SegmentClear(cur, targetStreet)) return targetStreet;
+            if (WorldBuilder.SegmentClear(cur, targetStreet))
+            { SteerTargetStreet++; return targetStreet + lane; }
 
             // Otherwise get onto our own street and follow it round.
             var myStreet = NearestStreetPoint(cur);
             if ((myStreet - cur).sqrMagnitude > 0.04f && WorldBuilder.SegmentClear(cur, myStreet))
-                return myStreet;
+            { SteerOwnStreet++; return myStreet + lane; }
 
             // Last resort: the nearest junction, which is always on tarmac and
             // always connected to everywhere else.
             var j = Ledger.Core.StreetMap.NearestNode(cur.x, cur.z, junctionsOnly: true);
-            return j != null ? new Vector3((float)j.X, cur.y, (float)j.Z) : new Vector3(0, cur.y, 0);
+            if (j == null) { SteerOrigin++; return new Vector3(0, cur.y, 0) + lane; }
+            SteerJunction++;
+            return new Vector3((float)j.X, cur.y, (float)j.Z) + lane;
         }
 
         /// Closest point on any street, pulled a little toward the pavement so

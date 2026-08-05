@@ -9699,6 +9699,16 @@ namespace Ledger.Game
                       // `worst` is how far the uncapped push wanted to travel —
                       // anything over a metre is a body crossing the pavement in
                       // one frame, which is what the cap now prevents.
+                      // WHICH ROUTE THE CROWD IS ACTUALLY TAKING. `direct` is
+                      // the healthy case — a clear walk to the real
+                      // destination. The others all share an aim point, and
+                      // `junction` shares one across a whole neighbourhood,
+                      // which is the shape a forty-one body knot has.
+                      $"steerDirect={NpcWalker.SteerDirect} " +
+                      $"steerTargetStreet={NpcWalker.SteerTargetStreet} " +
+                      $"steerOwnStreet={NpcWalker.SteerOwnStreet} " +
+                      $"steerJunction={NpcWalker.SteerJunction} " +
+                      $"steerOrigin={NpcWalker.SteerOrigin} " +
                       $"crowdApartCapped={NpcWalker.ApartCapped} " +
                       $"crowdApartCalls={NpcWalker.ApartCalls} " +
                       $"crowdApartWorst={NpcWalker.ApartWorst:0.00} " +
