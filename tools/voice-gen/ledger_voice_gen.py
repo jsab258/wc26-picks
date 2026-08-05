@@ -322,15 +322,39 @@ def render_one(job, out_dir, model):
 
 
 def load_model():
-    """Imported here and nowhere else, so every free mode runs without it."""
+    """Imported here and nowhere else, so every free mode runs without it.
+
+    IT NAMES THE DEVICE, because a rate with no device beside it cannot be
+    read at all. The engine benchmark measured chatterbox at about 6x slower
+    than real time on a CPU, and a GPU moves that by more than an order of
+    magnitude — so "24 seconds a line" means "leave it running overnight" or
+    "it is already finished" depending entirely on a fact the number does not
+    carry. Rule 3b: the reading ships with what produced it.
+
+    The first version hardcoded device="cuda", which at least fails loudly on
+    a machine without one. Falling silently back to CPU and reporting a rate
+    is the failure that wastes a night, so this reports the fall rather than
+    taking it quietly."""
     try:
         from chatterbox.tts import ChatterboxTTS
     except ImportError:
         print("voice-gen: chatterbox is not installed in this environment.")
         print("  This is expected in CI and in the dev container — the render")
         print("  runs on Jafar's machine. --plan and --selftest work here.")
-        return None
-    return ChatterboxTTS.from_pretrained(device="cuda")
+        return None, None
+    try:
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        name = torch.cuda.get_device_name(0) if device == "cuda" else "no CUDA device"
+    except Exception as e:
+        device, name = "cpu", f"torch would not report ({e})"
+
+    print(f"  device: {device.upper()} — {name}")
+    if device == "cpu":
+        print("  WARNING: this is running on the CPU. The benchmark put chatterbox")
+        print("  at about 6x slower than real time there, so the full batch is")
+        print("  hours. The rate below is real, but it is not a GPU's rate.")
+    return ChatterboxTTS.from_pretrained(device=device), device
 
 
 def cmd_rate(args):
@@ -354,7 +378,7 @@ def cmd_rate(args):
     for j in sample:
         j["ref"] = CLIPS / next(iter(sorted(p.name for p in CLIPS.glob(j["voice"] + ".*"))), "")
 
-    model = load_model()
+    model, device = load_model()
     if model is None:
         print(f"\n  the sample it WOULD have rendered: {len(sample)} lines, "
               f"one per direction band, {sorted(by_dir)}")
@@ -380,7 +404,7 @@ def cmd_rate(args):
     print(f"  first render          : {series[0]:.2f}s  <- includes model load, not typical")
     print(f"  median                : {med:.2f}s")
     print(f"  FULL BATCH PROJECTION : {total} renders x {med:.2f}s = "
-          f"{total * med / 3600:.1f} hours")
+          f"{total * med / 3600:.1f} hours   ON {device.upper()}")
     return 0
 
 
@@ -399,8 +423,25 @@ def cmd_all(args):
     args.out.mkdir(parents=True, exist_ok=True)
     existing = [j for j in jobs if (args.out / j["file"]).exists()]
 
-    # RULE 5, AND IT IS THE ONE THAT COST 24 CLIPS. Nothing is replaced
-    # silently, and the count is printed BEFORE the work rather than after.
+    # THE MODEL LOADS BEFORE ANYTHING IS DELETED, and the first version of
+    # this function got that backwards — it unlinked the existing renders
+    # under --force and THEN discovered whether chatterbox was installed. On a
+    # machine without it that is a command which deletes a night of audio,
+    # renders nothing, and exits.
+    #
+    # Which is rule 5 exactly, in the file whose own docstring points at rule
+    # 5. The CI run that cost 24 picked clips did the same thing in the same
+    # order: destroy first, find out afterwards. Nothing may be removed until
+    # the thing that would replace it is known to exist.
+    model, device = load_model()
+    if model is None:
+        if existing and args.force:
+            print(f"  ({len(existing)} existing render(s) NOT deleted — "
+                  f"nothing could have replaced them)")
+        return 2
+
+    # RULE 5 AGAIN, the other half: nothing is replaced silently, and the
+    # count is printed BEFORE the work rather than after.
     if existing and args.force:
         print(f"voice-gen: --force will REPLACE {len(existing)} existing render(s).")
         for j in existing[:5]:
@@ -412,10 +453,6 @@ def cmd_all(args):
     elif existing:
         print(f"voice-gen: skipping {len(existing)} already rendered "
               f"(--force to replace them)")
-
-    model = load_model()
-    if model is None:
-        return 2
 
     done, series = 0, []
     for n, j in enumerate(jobs, 1):
