@@ -256,6 +256,9 @@ EXPLAINED_ZEROS = {
     "textNoText": "a fault counter doing its job",
     "bodyGrantsFailed": "a fault counter doing its job",
     "walkerBodiesFailed": "a fault counter doing its job",
+    "bodyCrowdEligible": "crowd walkers are spawned with realBody:false, "
+                          "so WantsRealBody is never true for one — zero "
+                          "by construction until the crowd gets faces",
     "bodySkinnedEver": "the paint path is skipped when a model arrives "
                        "textured; read bodyKeptMats beside it",
     "groundless": "false is the ASSERTED value — nobody with no grounds "
