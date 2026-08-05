@@ -1863,3 +1863,38 @@ alley empty — a gate can only ever fail on the question it asks. And on the
 reach ledger the four-method gap showed as ONE entry, because only `Breathe`
 has a name that does not collide with another Core type's method and the reach
 tool matches by name.
+
+---
+
+## 2026-08-05 — what the screen table used to carry
+
+Moved out of `roadmap.md`'s screen table, which had grown two cells of four
+thousand characters each — a diary in a table row, which is rule 10's failure
+mode in miniature and makes the one document that is supposed to be scannable
+in a minute unscannable. The reasoning is worth keeping; it is not worth
+keeping where the plan lives.
+
+### M17, as the screen table carried it
+
+| **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 CLOSED, and 17.1b is no longer waiting on anybody. Jafar ran the fetch on 4 Aug: eight real bodies landed, `bodyChoices` went 2 to 10, all fifty-two models carry valid human avatars, and the noon frame shows the player as a human mesh with limbs and a walk pose rather than a box.** **The textures are fixed and confirmed: extraction pulled 54 of them from 10 of 10 models, `bodyKeptMats=1`, and the noon frame shows skin, hair, a white top and yellow trousers where the day before there was a flat blue silhouette.** Unity does not unpack embedded FBX media and had never been asked to. **Foot IK runs** — 46,786 frames, both feet, none undriven. What is open is the COST and the SAMENESS. 44 skinned bodies took the frame budget red, so the set is bounded at twelve and spent on the twelve NEAREST rather than the twelve first — the noon frame has real people in the foreground where boxes stood. But ten body models dress forty-three named people, so at least two on screen always share one, and the frame shows two women in identical trousers with one of them the player. Texture extraction silently switched the wardrobe off the morning it landed — the paint step reports "nothing to paint, all renderers came textured" — so the models are now the only thing telling people apart. A per-person wash over the kept texture is the mechanism, and it has now been wrong twice. The first attempt reported one renderer tinted against 1,586 body attachments because I had put its counter inside the save-and-restore set that protects the player's gate clauses. **The second ran 5,334 times and changed nothing for a third of the city**: it took the band's hue and half its saturation at value 1.0, and black and grey share a hue range and a saturation floor, so VALUE is the only axis separating a fifth of the street from a sixth of it and value was the axis being discarded. Replicated over the real roster, 39% of people washed to within 5% of white — and a multiply by white is the identity, so the counter proving the system ran could never tell it running from it doing nothing. Fixed in `Core/Wardrobe.Wash` with the floor taken from a swept series, a CoreTest holding both ends, and `bodyWashWhite` as the reading that would have caught it. **The wash then measurably worked and the frame still looked loud**: near-white cases fell from a predicted 39% to a measured 7.7% of 4,904 washes, and the two women are still in bright yellow — because the wash maps the wardrobe onto [0.45, 1.0] and no multiply capped at 1.0 brings a value-0.9 albedo under a 0.46 ceiling. `bodyAlbedo` measures the sheets so the ceiling comes from evidence. **AND THE SAMENESS HAS A NUMBER AT LAST: fourteen people on screen wearing eight faces.** Which sent a grep at what else varies, and found that the bought bodies were scaled by height alone while the thirteen-box mannequins had always varied in build — so upgrading a walker to a real body LOST a shape trait, on the twelve nearest people. Breadth, cadence and loop phase are wired and CONFIRMED — `bodyBreadths` lists twenty-two distinct values from 0.87 to 1.16 and `phasesSeeded=45`, so build varies and nobody steps in lockstep. Head scale followed once reading the file showed the Animator writes no scale at all. The limp is the fourth and is NOT wired, and reading it found something under it: the rig ASSIGNS a driven body's hip position from a rest pose while COMPOSING its rotation, so the bought animation's vertical rhythm is discarded and replaced by a phase the clip does not share. `hipOverride` measures it before anything touches it. **And the wash's anchor is per-material now**: `bodyAlbedo` read seventeen sheets from 0.04 to 0.78 against a 0.46 ceiling, eight of them above it, so multiplying by wardrobeValue/albedo lands a garment on its band and needs no constant — `bodyWashWhite` went 22.3 to 37.1 and the noon still shows muted olive where the trousers were bright yellow all day |
+
+### M18, as the screen table carried it
+
+| **also now** | M18 — the second life | family verified running · **the companion's cause is found, 4 Aug: she was never walking too slowly, she had no idea where the player WAS.** A walker learns the player's transform from one proximity sweep, and both the escort's target and its catch-up speed are guarded on having it — so falling behind is what stops you following, and it compounds. Bound at recruit time now; the gate had read `dist=29.4m` through a catch-up-speed fix that could not have helped. **CONFIRMED GREEN 4 Aug on `180f626`: `companionAtRecruit=9.2` against the 23.8m that made it red, `companionDist=4.2` at the deed, `deedWaitedDays=0` — she is recruited near, so the two-day wait never has to fire.** The escort was being picked by walker-list position, wherever she happened to be standing in the city; she is picked by proximity now · vice and lifestyle deferred |
+
+### And one claim in it is now settled by measurement
+
+The M17 cell ended on the wardrobe wash and "the noon still shows muted olive
+where the trousers were bright yellow all day". On 5 August I read
+`review_day1_noon` again, saw bright yellow trousers, and went to check the
+palette rather than argue: seven of the eight bands top out between 0.09 and
+0.55 saturation, the only hot one is `shellsuit` at 0.62-0.85 with a weight of
+one in thirty-one, and `shellsuit` sits at hue 0.82-0.90, which is magenta. No
+band covers 0.12-0.36 above 0.26 saturation, so a saturated yellow cannot come
+out of the table at all. `crowdSatRange=0.06..0.73` in the landed verdict is
+the shellsuit band doing its job.
+
+Which means the wash story here is probably right and my eyes are the
+unreliable instrument — the sixth thing condemned off a still and cleared by a
+number. The note is in `Core/Wardrobe.cs` beside the band table, where the next
+person will hit it before re-opening the question.
