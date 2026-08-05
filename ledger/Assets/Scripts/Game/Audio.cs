@@ -83,6 +83,30 @@ namespace Ledger.Game
         /// mean something: offered=0 is nothing calling it, noClip=offered is
         /// silence upstream, and offered with neither is a budget refusing
         /// everything.
+        /// AND IN CI ALL FOUR ARE STRUCTURALLY ZERO, WHICH IS NOT A FINDING
+        /// ABOUT THE BUDGET AND LOOKS EXACTLY LIKE ONE.
+        ///
+        /// `gates.py --constant` lists `soundsOffered`, `soundsAdmitted`,
+        /// `soundsDropped`, `soundsNoClip`, `soundsStolen`, `soundsPeak` and
+        /// `speechPlayed` among sixty-one keys that have never been anything
+        /// but zero across 136 runs — and the paragraph above says an
+        /// `offered` of zero means "nothing is calling it", which sends you
+        /// looking for a missing call site.
+        ///
+        /// There is no missing call site. `Audio.Footstep` calls `Admit` and
+        /// `PlayerController` calls `Footstep` every step of every run, but
+        /// `Footstep` opens with `if (_root == null || _foot == null) return;`
+        /// and the build runner has no audio device, so `_root` is null and
+        /// every entry point in this file returns before reaching the budget.
+        /// The key that says so is in the same `--constant` list four lines
+        /// down: `simAudible=False`.
+        ///
+        /// So: read `simAudible` BEFORE reading any of these. False means the
+        /// audio family cannot move and its zeros carry no information at all;
+        /// only a run with audio can say whether the budget works. This is
+        /// rule 3b one layer out — the denominator was added so a zero could be
+        /// interpreted, and it still needed a second number to say whether the
+        /// question was even asked.
         public static int SoundsOffered { get; private set; }
         public static int SoundsNoClip { get; private set; }
         /// The most that were ever sounding at once on one bus, and which.
