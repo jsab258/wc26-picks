@@ -104,10 +104,26 @@ namespace Ledger.Game
             return false;
         }
 
+        /// WHY THERE IS NO SUCCESSOR, which is the question `handed=False` in
+        /// every kept run cannot answer.
+        ///
+        /// `CouldHold` is a conjunction of four things — competent enough,
+        /// loyal enough, running something unsupervised, and at war with
+        /// nobody — and a false tells you none of them. `_actThreeWhy` exists
+        /// eighty lines away for exactly this reason about the act OPENING,
+        /// and the same argument applies harder here: the handover is the
+        /// ending of the game, `handed` has been false in all 137 kept runs,
+        /// and reading the four functions involved does not separate them.
+        ///
+        /// One line per living crew member, so a crew of two prints two
+        /// verdicts rather than one summary that hides which of them was close.
+        public static string SuccessorWhy { get; private set; } = "unasked";
+
         public CrewMember ReadySuccessor()
         {
             CrewMember best = null;
             double bestScore = -1;
+            var why = new System.Text.StringBuilder();
             foreach (var c in Empire.Crew)
             {
                 if (c.Departed) continue;
@@ -120,10 +136,26 @@ namespace Ledger.Game
                     if (other == c || other.Departed) continue;
                     if (Harm.FeudBetween(c.Id, other.Id) != null) { feuding = true; break; }
                 }
-                if (!ActThreeState.CouldHold(c.Competence, g.Loyalty, independent, feuding)) continue;
+                if (!ActThreeState.CouldHold(c.Competence, g.Loyalty, independent, feuding))
+                {
+                    // NAME THE CLAUSE, not the conjunction. Every value that
+                    // went in, so the reading says "loyal enough but running
+                    // nothing" rather than "no".
+                    if (why.Length > 0) why.Append(',');
+                    why.Append(c.Id).Append(':');
+                    if (!independent) why.Append("noAssignment/");
+                    if (feuding) why.Append("feuding/");
+                    if (c.Competence < ActThreeState.HoldsCompetence) why.Append("comp/");
+                    if (g.Loyalty < ActThreeState.HoldsLoyalty) why.Append("loyal/");
+                    why.Append($"c{c.Competence:0.00}l{g.Loyalty:0.00}");
+                    continue;
+                }
                 double score = c.Competence + g.Loyalty;
                 if (score > bestScore) { bestScore = score; best = c; }
             }
+            SuccessorWhy = best != null ? "ready:" + best.Id
+                         : why.Length > 0 ? why.ToString()
+                         : "noCrew";
             return best;
         }
 

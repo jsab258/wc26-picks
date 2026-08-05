@@ -374,8 +374,14 @@ namespace Ledger.Core
         /// competence, loyalty, standing on their own feet, and nobody in the
         /// crew who will not work with them. The player is never shown the
         /// number, because being asked to judge somebody is the point.
+        /// The two bars, named so the Game layer can say WHICH one a candidate
+        /// missed rather than repeating the literals in a second file — the
+        /// drift that put a wet-road value in two places and let them disagree.
+        public const double HoldsCompetence = 0.55;
+        public const double HoldsLoyalty = 0.6;
+
         public static bool CouldHold(double competence, double loyalty, bool independent, bool feuding) =>
-            independent && !feuding && competence >= 0.55 && loyalty >= 0.6;
+            independent && !feuding && competence >= HoldsCompetence && loyalty >= HoldsLoyalty;
 
         // ---- authored text ----
 
