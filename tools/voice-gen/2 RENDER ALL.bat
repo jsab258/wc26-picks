@@ -13,17 +13,30 @@ REM  SAFE TO INTERRUPT. It skips what is already rendered, so closing
 REM  the window and running it again picks up where it stopped. It
 REM  never deletes anything.
 REM ===================================================================
-cd /d "%~dp0"
 
-if not exist "env\Scripts\python.exe" (
-  echo.
-  echo  No environment yet - run "1 RATE TEST.bat" first. It builds
-  echo  everything this needs and tells you whether the voices are right
-  echo  before you commit a few hours to them.
-  echo.
-  pause & exit /b 1
-)
-set "PY=%~dp0env\Scripts\python.exe"
+REM ---- RUN FROM A COPY, same reason as step 1: this pulls -----------
+if /i "%~1"=="--fromtemp" goto :begin
+copy /y "%~f0" "%TEMP%\ledger-renderall.bat" >nul
+"%TEMP%\ledger-renderall.bat" --fromtemp
+exit /b %errorlevel%
+:begin
+
+set "REPO=%USERPROFILE%\wc26-picks"
+set "TOOL=%REPO%\tools\voice-gen"
+set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+
+if not exist "%REPO%\.git" goto :norepo
+
+echo.
+echo  Updating...
+pushd "%REPO%"
+git pull origin "%BRANCH%"
+if errorlevel 1 goto :nopull
+popd
+
+cd /d "%TOOL%"
+if not exist "env\Scripts\python.exe" goto :noenv
+set "PY=%TOOL%\env\Scripts\python.exe"
 
 echo.
 "%PY%" ledger_voice_gen.py --plan
@@ -45,10 +58,31 @@ REM  parameterised by environment because %1 is already taken by its
 REM  own TEMP-relaunch flag.
 set "LEDGER_PUSH_PATH=ledger/Assets/Resources/voice/barks"
 set "LEDGER_PUSH_MSG=Bark bank rendered: the street has a voice"
-call "%~dp0..\mixamo-pick\PUSH.bat"
+call "%REPO%\tools\mixamo-pick\PUSH.bat"
 set "LEDGER_PUSH_PATH="
 set "LEDGER_PUSH_MSG="
 exit /b %errorlevel%
+
+:norepo
+echo.
+echo  No project at %REPO%
+echo.
+pause & exit /b 1
+
+:nopull
+popd
+echo.
+echo  The PULL failed, so nothing was rendered. The reason is above.
+echo.
+pause & exit /b 1
+
+:noenv
+echo.
+echo  No environment yet - run "1 RATE TEST.bat" first. It builds
+echo  everything this needs and tells you whether the voices are right
+echo  before you commit a few hours to them.
+echo.
+pause & exit /b 1
 
 :nomodel
 echo.

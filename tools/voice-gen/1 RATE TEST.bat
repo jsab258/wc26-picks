@@ -2,25 +2,47 @@
 setlocal
 title LEDGER - voice rate test
 REM ===================================================================
-REM  LEDGER 17.2, step 1 of 2. DOUBLE-CLICK THIS.
+REM  LEDGER 17.2, step 1 of 2. DOUBLE-CLICK THIS. Nothing to do first.
 REM
-REM  It installs what it needs into its own folder, renders twenty bark
-REM  lines on your GPU, prints how long each took, and opens the folder
-REM  so you can listen to them.
+REM  It pulls the newest code, installs what it needs into its own
+REM  folder, renders twenty bark lines on your GPU, prints how long each
+REM  took, and opens the folder so you can listen to them.
 REM
 REM  Nothing here touches the rest of your machine: the packages go in
 REM  tools\voice-gen\env, and deleting that folder undoes all of it.
 REM ===================================================================
-cd /d "%~dp0"
 
-where python >nul 2>nul || (
-  echo.
-  echo  Python is not installed. Get it from https://python.org/downloads
-  echo  On the installer's FIRST screen, tick "Add python.exe to PATH".
-  echo.
-  pause
-  exit /b 1
-)
+REM ---- RUN FROM A COPY, BECAUSE THIS FILE IS ABOUT TO PULL ----------
+REM  A pull can rewrite this script while cmd.exe is still reading it by
+REM  byte offset. That is not hypothetical here: it produced 'nloads' is
+REM  not recognized - the tail of a URL - from a script replaced
+REM  underneath itself mid-run. Same guard as UPDATE.bat and PUSH.bat.
+if /i "%~1"=="--fromtemp" goto :begin
+copy /y "%~f0" "%TEMP%\ledger-ratetest.bat" >nul
+"%TEMP%\ledger-ratetest.bat" --fromtemp
+exit /b %errorlevel%
+:begin
+
+REM  ABSOLUTE PATHS FROM HERE ON. The copy runs from TEMP, so %~dp0 is
+REM  no longer the tool folder and every relative path would miss.
+set "REPO=%USERPROFILE%\wc26-picks"
+set "TOOL=%REPO%\tools\voice-gen"
+set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+
+if not exist "%REPO%\.git" goto :norepo
+
+echo.
+echo  LEDGER - voice rate test
+echo  ========================
+echo.
+echo  Updating...
+pushd "%REPO%"
+git pull origin "%BRANCH%"
+if errorlevel 1 goto :nopull
+popd
+
+where python >nul 2>nul || goto :nopython
+cd /d "%TOOL%"
 
 REM ---- the environment, built once ---------------------------------
 REM  Its own venv rather than your global python, because chatterbox
@@ -33,7 +55,7 @@ if not exist "env\Scripts\python.exe" (
   echo.
   python -m venv env || goto :novenv
 )
-set "PY=%~dp0env\Scripts\python.exe"
+set "PY=%TOOL%\env\Scripts\python.exe"
 
 "%PY%" -c "import chatterbox" >nul 2>nul
 if errorlevel 1 (
@@ -65,7 +87,7 @@ REM  The rate is half the point. The other half is whether a line at
 REM  0.30 and a line at 0.80 actually sound differently directed - the
 REM  sample is one line per direction band for exactly that reason, and
 REM  a number cannot answer it.
-set "OUT=%~dp0..\..\ledger\Assets\Resources\voice\barks"
+set "OUT=%REPO%\ledger\Assets\Resources\voice\barks"
 if exist "%OUT%" start "" "%OUT%"
 
 echo.
@@ -83,6 +105,29 @@ echo  ------------------------------------------------------------------
 echo.
 pause
 exit /b 0
+
+:norepo
+echo.
+echo  No project at %REPO%
+echo  That is where every other LEDGER script expects it too, so if you
+echo  have it somewhere else, tell me and I will fix the path.
+echo.
+pause & exit /b 1
+
+:nopull
+popd
+echo.
+echo  The PULL failed, so nothing was rendered - you would have been
+echo  testing yesterday's code. The reason is above. Send me those lines.
+echo.
+pause & exit /b 1
+
+:nopython
+echo.
+echo  Python is not installed. Get it from https://python.org/downloads
+echo  On the installer's FIRST screen, tick "Add python.exe to PATH".
+echo.
+pause & exit /b 1
 
 :novenv
 echo.
@@ -110,9 +155,9 @@ echo.
 pause & exit /b 2
 
 :failed
-REM  THIS USED TO BE AN UNCONDITIONAL BANNER in the sibling script, and
-REM  "1 LISTEN.bat" carries the note about it: the first real run failed
-REM  to reach any corpus and cheerfully announced a page had opened.
+REM  NO UNCONDITIONAL SUCCESS BANNER. "1 LISTEN.bat" carries the note
+REM  about why: its first real run failed to reach any corpus and
+REM  cheerfully announced that a page had opened.
 echo.
 echo  The render FAILED and there is no rate - the reason is above.
 echo  Nothing is broken on your machine; send me those lines.

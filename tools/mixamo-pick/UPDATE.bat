@@ -38,7 +38,17 @@ if errorlevel 1 goto :failed
 popd
 echo.
 echo  ------------------------------------------------------------
-echo   Up to date. Everything in tools\mixamo-pick is current.
+REM  IT PULLS THE WHOLE REPOSITORY, and this line used to say only
+REM  "everything in tools\mixamo-pick is current" - true when this
+REM  folder was the only one with scripts in it, and quietly wrong
+REM  once voice-gen existed. Somebody looking for the newest voice
+REM  tools would have read that as "this did not update them".
+echo   Up to date - the whole project, not just this folder.
+echo.
+echo   The scripts you can double-click live in:
+echo     tools\voice-gen      the bark voices  (start with "1 RATE TEST")
+echo     tools\voice-fetch    picking reference voices
+echo     tools\mixamo-pick    bodies and animations
 echo  ------------------------------------------------------------
 pause & exit /b 0
 
