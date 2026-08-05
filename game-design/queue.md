@@ -158,6 +158,35 @@ say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
 
+1. **THE NAMES ARE THE SIZE OF HEADLINES AND SIT ON TOP OF EACH OTHER.**
+   *(on screen — the most visible thing in any still tonight)*
+
+   `review_day5_night.jpg` has six people's names in a heap; "Petra" and
+   "Zora" overlap into one word and four more pile up above them. A player
+   would notice this before anything else in this list.
+
+   **TWO SEPARATE FAULTS, and only one of them is measured.**
+
+   **The gate is blind.** `collidingNames=0` and `worstNamePair=[none]` are
+   trivially true because `namesTracked=0` — the managed bucket is EMPTY —
+   while `worldTextTracked=102` and `namesManagedEver=124 namesManagedDead=81`
+   say forty-three managed labels were alive. `namesManagedSeen` and
+   `namesManagedCulled`, counted either side of the visibility cull, land next
+   build and choose between an id-space mismatch in `Manages` and the frustum
+   test eating them. Nothing else distinguishes those and the loop's own
+   comment says so.
+   **And it is the second site of the camera fault fixed tonight** — the size
+   cap was applied against `Camera.main` while the still renders from a
+   repositioned camera, and this loop takes `Camera.main` too, under a doc
+   comment that says it measures against the review camera.
+
+   **The size is its own fault and it is not fixed.** `nameFracMedian=0.072` —
+   the median label is seven per cent of screen height, about fifty pixels at
+   720p, against a `namePinCap` of 0.120. Even where nothing overlaps the
+   frame reads as captions rather than as a street. **Do not guess a new cap**:
+   rule 2, and `nameFrac` already prints a median over 3,128 samples, so the
+   bound comes off that series and off a still at the size it will be played.
+
 1. **READ WHAT FOUR VISIBLE FIXES DID.** *(CI, dispatched)*
 
    Four changes to what a player sees are in flight together and each has a
