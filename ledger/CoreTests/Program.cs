@@ -4236,6 +4236,43 @@ namespace Ledger.CoreTests
                 "and asking twice moves nobody — the set-back is idempotent",
                 drifted.ToString());
 
+            // ---- ONE POINT OFF THE CARRIAGEWAY -----------------------------
+            //
+            // The accepting case FIRST, because it is the one that matters and
+            // the one that goes unwritten: a point already on the pavement must
+            // not move at all. A rule that shuffles everything it is handed is
+            // useless for authored positions, which is what this is for.
+            {
+                var door = new { X = -6.0, Z = 6.0 };   // WorldBuilder.BarDoor
+                Check(!StreetMap.OnRoad(door.X, door.Z),
+                      "the bar door is not itself in a carriageway");
+                StreetMap.OffTheCarriageway(door.X, door.Z, out var dx, out var dz);
+                Check(Math.Abs(dx - door.X) < 1e-9 && Math.Abs(dz - door.Z) < 1e-9,
+                      "and a point already clear of the road is left exactly alone",
+                      $"({dx:0.00},{dz:0.00})");
+
+                // AND THE REJECTING CASE, planted rather than hoped for: a
+                // point ON a known centreline, which must come out clear.
+                var e = StreetMap.Edges.Find(x => x.Driveable);
+                Check(e != null, "there is a driveable road to stand in");
+                var a = StreetMap.Node(e.A);
+                var b = StreetMap.Node(e.B);
+                double mx = (a.X + b.X) / 2, mz = (a.Z + b.Z) / 2;
+                Check(StreetMap.OnRoad(mx, mz),
+                      "the midpoint of a driveable edge is in a carriageway");
+                StreetMap.OffTheCarriageway(mx, mz, out var ox, out var oz);
+                Check(!StreetMap.OnRoad(ox, oz),
+                      "and OffTheCarriageway takes it out of one",
+                      $"({mx:0.0},{mz:0.0}) -> ({ox:0.0},{oz:0.0})");
+
+                // IDEMPOTENT, same argument as the address set-back: a caller
+                // may pass everything through this without deciding first, so
+                // it has to be safe to apply twice.
+                StreetMap.OffTheCarriageway(ox, oz, out var ox2, out var oz2);
+                Check(Math.Abs(ox2 - ox) < 1e-9 && Math.Abs(oz2 - oz) < 1e-9,
+                      "and applying it again moves nothing");
+            }
+
             // `NearestOnRoad` MUST IGNORE LANES, which is the whole reason it
             // exists beside `NearestOnStreet`: snapping off the nearest STREET
             // cleared 14 of 31 because a place beside a service lane snapped

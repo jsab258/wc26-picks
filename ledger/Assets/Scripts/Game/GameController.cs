@@ -330,6 +330,26 @@ namespace Ledger.Game
         /// Falls back to the raw coordinate rather than to the origin: a
         /// mistyped id should put somebody in the wrong street, not in the sea,
         /// and it logs so the typo is findable.
+        /// A SPOT NEAR THE BAR DOOR THAT IS NOT IN THE ROAD.
+        ///
+        /// Six of the cast's routines are authored as offsets from
+        /// `WorldBuilder.BarDoor` — "across from the bar, coat still on", "one
+        /// drink, loudly" — and the intent is exactly right: people gather
+        /// outside the pub and that is where the cast belongs. Three of the six
+        /// land in Hook Street, because the offsets were picked by eye and
+        /// nothing told them where the kerb is.
+        ///
+        /// `StreetMap.OffTheCarriageway` is the same rule the addresses use, so
+        /// the pavement is defined once. The bar door itself is already clear,
+        /// so this only ever moves the offset, and it moves it perpendicular —
+        /// a person's position ALONG the street survives.
+        public static Vector3 NearBar(float dx, float dz)
+        {
+            var at = WorldBuilder.BarDoor + new Vector3(dx, 0, dz);
+            Ledger.Core.StreetMap.OffTheCarriageway(at.x, at.z, out var x, out var z);
+            return new Vector3((float)x, 0, (float)z);
+        }
+
         public static Vector3 PlaceAt(string id)
         {
             var p = HookMap.Get(id);
@@ -483,7 +503,7 @@ namespace Ledger.Game
             _npcs.Add(NpcWalker.Spawn("Rocco", new Color(0.75f, 0.3f, 0.25f), new[]
             {
                 (new GameTime(0, 7, 0), new Vector3(18, 0, 14)),   // docks
-                (new GameTime(0, 12, 0), WorldBuilder.BarDoor + new Vector3(2, 0, 1)),
+                (new GameTime(0, 12, 0), NearBar(2, 1)),
                 (new GameTime(0, 19, 0), new Vector3(-16, 0, -12)), // home
             }));
             _npcs.Add(NpcWalker.Spawn("Ada", new Color(0.3f, 0.5f, 0.75f), new[]
@@ -508,7 +528,7 @@ namespace Ledger.Game
             _npcs.Add(NpcWalker.Spawn("Joey", new Color(0.35f, 0.45f, 0.5f), new[]
             {
                 (new GameTime(0, 6, 0), new Vector3(18, 0, 14)),   // docks
-                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(3, 0, -1)),
+                (new GameTime(0, 20, 0), NearBar(3, -1)),
                 (new GameTime(0, 23, 0), new Vector3(16, 0, 12)),  // home by the water
             }));
             _npcs.Add(NpcWalker.Spawn("Victor", new Color(0.6f, 0.5f, 0.3f), new[]
@@ -566,7 +586,7 @@ namespace Ledger.Game
                 (new GameTime(0, 7, 30), DispatchBoard),            // the board, before anyone else
                 (new GameTime(0, 14, 0), new Vector3(18, 0, 14)),   // chasing a late courier at the docks
                 (new GameTime(0, 17, 0), DispatchBoard),
-                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(4, 0, 2)), // one drink, loudly
+                (new GameTime(0, 20, 0), NearBar(4, 2)), // one drink, loudly
             }));
             _npcs.Add(NpcWalker.Spawn("Hal", CastTier1.HalColor, new[]
             {
@@ -591,7 +611,7 @@ namespace Ledger.Game
             var lenaWalker = NpcWalker.Spawn("Lena", new Color(0.55f, 0.4f, 0.6f), new[]
             {
                 (new GameTime(0, 8, 0), WorldBuilder.BarCounter),
-                (new GameTime(0, 23, 30), WorldBuilder.BarDoor + new Vector3(-1, 0, -1)),
+                (new GameTime(0, 23, 30), NearBar(-1, -1)),
             });
             _npcs.Add(lenaWalker);
             _lena = lenaWalker.gameObject.AddComponent<ConversationHost>();
@@ -619,7 +639,7 @@ namespace Ledger.Game
                 (new GameTime(0, 7, 30), new Vector3(18, 0, 14)),   // docks, working the beat
                 (new GameTime(0, 11, 0), new Vector3(10, 0, -14)),  // market corner
                 (new GameTime(0, 14, 0), new Vector3(-14, 0, 12)),  // the room above Ada's, writing
-                (new GameTime(0, 20, 0), WorldBuilder.BarDoor + new Vector3(-2, 0, 2)),
+                (new GameTime(0, 20, 0), NearBar(-2, 2)),
                 (new GameTime(0, 23, 0), new Vector3(-14, 0, 12)),  // home
             });
             _npcs.Add(noorWalker);
@@ -1746,7 +1766,7 @@ namespace Ledger.Game
             var walker = NpcWalker.Spawn("Ellis", EllisSetup.Color, new[]
             {
                 (new GameTime(0, 9, 0), new Vector3(10, 0, -14)),   // market corner, listening
-                (new GameTime(0, 12, 0), WorldBuilder.BarDoor + new Vector3(3, 0, 2)),
+                (new GameTime(0, 12, 0), NearBar(3, 2)),
                 (new GameTime(0, 15, 0), new Vector3(18, 0, 14)),   // the docks
                 (new GameTime(0, 19, 0), new Vector3(-14, 0, 10)),  // apartment row
                 (new GameTime(0, 22, 0), new Vector3(4, 0, -4)),    // a corner with a view, at night

@@ -688,6 +688,40 @@ namespace Ledger.Core
             }
         }
 
+        /// MOVE ONE POINT OFF THE CARRIAGEWAY, and nothing else.
+        ///
+        /// The set-back below does this for every registered address; this is
+        /// the same rule for a single authored coordinate, because the cast's
+        /// waypoints have the identical fault and are not in `HookMap`.
+        /// Measured: three of the six positions authored as offsets from the
+        /// bar door — "across from the bar, coat still on", "one drink, loudly"
+        /// — land in Hook Street, and this moves them 1.6 to 2.6 metres, which
+        /// keeps them at the pub door and takes them off the road.
+        ///
+        /// PERPENDICULAR ONLY, so a point's position ALONG a street survives.
+        /// Two people standing at different depths into the same road do end up
+        /// at the same kerb, and that is correct — they are both at the kerb,
+        /// and the spread ring is what separates two people at one place.
+        ///
+        /// Returns the point unchanged when it is already clear, so a caller
+        /// can pass everything through it without deciding first.
+        public static void OffTheCarriageway(double x, double z,
+                                             out double outX, out double outZ)
+        {
+            outX = x; outZ = z;
+            for (int pass = 0; pass < 6; pass++)
+            {
+                if (!OnRoad(outX, outZ)) return;
+                if (!NearestOnRoad(outX, outZ, out var nx, out var nz, out var width)) return;
+                double ox = outX - nx, oz = outZ - nz;
+                double len = Math.Sqrt(ox * ox + oz * oz);
+                if (len < 0.01) { ox = 1; oz = 0; len = 1; }
+                ox /= len; oz /= len;
+                double want = width / 2.0 + PavementStand;
+                outX = nx + ox * want; outZ = nz + oz * want;
+            }
+        }
+
         /// Put every address that stands in a carriageway onto the pavement
         /// beside the road it is addressed from.
         ///
