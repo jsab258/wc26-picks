@@ -485,6 +485,32 @@ def shape_files():
                                    bad[0][:90] if bad else "did not report")
 
 
+def voice_gen():
+    """M17.2: the bark renderer's own self-test, run on every commit.
+
+    It cannot render here — chatterbox needs a GPU and lives on Jafar's
+    machine — so everything that DECIDES a render is what gets checked: which
+    slots are real lines rather than the pair slots the game assembles at run
+    time, that every slot has an authored direction, that the six street
+    voices carry an equal share, and that no two renders collide on a name.
+
+    Wired in here rather than left as a command somebody remembers, because a
+    self-test nobody runs is rule 6 wearing a lab coat. It also guards the
+    finding the whole batch size rests on: 2,268 of the bank's 2,604 lines are
+    `telling || reply` concatenations of lines that already exist, so the real
+    batch is 336. If somebody adds a pair slot under a new name, or an atomic
+    slot with no direction, this goes red on the commit that did it rather
+    than after a night of rendering the wrong thing."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "voice-gen" / "ledger_voice_gen.py"),
+                     "--selftest"])
+    m = re.search(r"(\d+) checks", out)
+    n = m.group(1) if m else "0"
+    if code == 0:
+        return True, "voice-gen ok (%s checks, 336-line batch)" % n
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "VOICE GEN: " + (bad[0][:90] if bad else "did not report")
+
+
 def voice_cast():
     """M17.3: a principal whose cast voice cannot reach them.
 
@@ -748,7 +774,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
