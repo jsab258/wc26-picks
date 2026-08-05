@@ -595,7 +595,36 @@ namespace Ledger.Game
             labelGo.transform.localPosition = new Vector3(0, 1.4f, 0);
             npc._label = labelGo.AddComponent<TextMesh>();
             npc._label.text = name;
-            npc._label.characterSize = 0.055f;   // was 0.12: legible, not a banner
+            // DERIVED FROM THE PROJECT'S OWN STATED ORDER, NOT PICKED.
+            //
+            // `NameTags.Pin` says it in as many words: one cap for names and
+            // bubbles, and "a bubble is allowed to be the bigger of the two
+            // because it is content and a name is not". Measured, the order is
+            // the wrong way round — `nameFracMedian=0.064` against
+            // `bubbleFracMedian=0.041`, so the label that is not content is
+            // more than half again the size of the label that is.
+            //
+            // AND THE CAP CANNOT FIX IT, which is the part worth writing down
+            // because it is where the obvious edit goes wrong. `PinFrac` is
+            // 0.12 and the name P90 is 0.113, so the cap barely engages;
+            // lowering it would clamp the top decile and leave the median —
+            // the thing that makes the frame read as captions — untouched.
+            // The size is set here, by the base character size, and nowhere
+            // else.
+            //
+            // 0.033 is 0.055 scaled by 0.038/0.064. Screen fraction is world
+            // height over distance, so it is linear in this number at a fixed
+            // distance distribution, and the median lands just under the
+            // bubble median instead of half again over it. The series is the
+            // check: `nameFracMedian` has read 0.060 to 0.072 across all 39
+            // runs that carry it — structural, not noise — so a step to about
+            // 0.038 is unmistakable and a step to anything else means this
+            // arithmetic was wrong.
+            //
+            // Somebody already halved this once, from 0.12, with the note
+            // "legible, not a banner". That was right and it was not enough,
+            // and there was no series to say so at the time.
+            npc._label.characterSize = 0.033f;
             npc._label.fontSize = 48;
             npc._label.anchor = TextAnchor.MiddleCenter;
             npc._label.color = new Color(1f, 1f, 1f, 0f);   // fades in on approach
