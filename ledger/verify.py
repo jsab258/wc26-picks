@@ -485,6 +485,40 @@ def shape_files():
                                    bad[0][:90] if bad else "did not report")
 
 
+def slop():
+    """Every player-facing word against the signs-of-AI-writing list.
+
+    Jafar saw one em dash in a bark and asked whether the dialogue had been
+    run through the humanizer. It had not. Then, when I came back having
+    checked em dashes: "em dash is just one sign, you need to run everything
+    through /humanizer." Both corrections were right, and the second is the
+    one worth a guard — checking the tell you happen to have in mind is how
+    you certify a body of text as clean.
+
+    A RATCHET ON THE BACKLOG, not a wall. The bark bank and the Tier-2 cards
+    are at zero and must stay there. The Game layer's authored narration
+    carries 116 spaced em dashes, which is a real backlog and not something to
+    fail the build over — but the number may only ever go DOWN. That makes new
+    slop a red commit while leaving the existing debt payable in any order,
+    which is the difference between a guard and the ratchet rule 5 warns
+    about."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "slopcheck.py")])
+    m = re.search(r"slopcheck: (\d+) hit\(s\) across (\d+) patterns and (\d+)", out)
+    if not m:
+        return False, "slopcheck did not report"
+    hits, pats, strings = int(m.group(1)), m.group(2), m.group(3)
+    if hits > SLOP_CEILING:
+        return False, ("SLOP: %d hit(s), above the %d ceiling — new AI-writing "
+                       "tells landed" % (hits, SLOP_CEILING))
+    return True, "slop %d/%d (%s patterns, %s strings)" % (hits, SLOP_CEILING, pats, strings)
+
+
+# THE CEILING ONLY EVER COMES DOWN. Measured, not chosen: 117 on 5 August, all
+# of them in Game-layer narration, every other surface at zero. Lower it when
+# you clear some; never raise it.
+SLOP_CEILING = 117
+
+
 def voice_gen():
     """M17.2: the bark renderer's own self-test, run on every commit.
 
@@ -774,7 +808,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
