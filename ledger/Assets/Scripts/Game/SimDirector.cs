@@ -9244,6 +9244,21 @@ namespace Ledger.Game
                       $"sounds={Perceivers.SoundsEmitted} investigations={Perceivers.NoiseInvestigations} " +
                       $"beliefsShortened={Perceivers.BeliefsShortened} " +
                       $"clipsAsked={Audio.DistinctClipsAsked} voicesAsked={Audio.DistinctVoicesAsked} " +
+                      // AND HOW MANY THE BANK OFFERS, which is the
+                      // denominator `voicesAsked` has never had.
+                      //
+                      // `voicesAsked` alone cannot say whether the
+                      // street sounds varied: twelve of twelve is a
+                      // bank fully used and twelve of two hundred is
+                      // a street drawing on a twentieth of what it
+                      // has. `VoiceBank.PoolVoices` is the count and
+                      // it has sat on the reach ledger under a reason
+                      // that is now FALSE — it said the crowd pool is
+                      // unwired, and `VoiceFor` falls through to the
+                      // pools for anybody not in the cast, which is
+                      // every street line `SpeechBubble` speaks. The
+                      // POOL is wired; only its count had no reader.
+                      $"voicePool={VoiceBank.PoolVoices} " +
                       $"{(_game != null ? _game.Household.Report() : "household[absent]")} " +
                       $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
                       $"speechNoClip={Audio.SpeechNoClip} " +
