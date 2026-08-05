@@ -256,6 +256,10 @@ EXPLAINED_ZEROS = {
     "textNoText": "a fault counter doing its job",
     "bodyGrantsFailed": "a fault counter doing its job",
     "walkerBodiesFailed": "a fault counter doing its job",
+    "bodySkinnedEver": "the paint path is skipped when a model arrives "
+                       "textured; read bodyKeptMats beside it",
+    "groundless": "false is the ASSERTED value — nobody with no grounds "
+                  "gets to search you, and the gate requires it",
     "playerPrimitive": "false is correct — the player is not a capsule",
     "primitive": "false is correct — see playerPrimitive",
 }
