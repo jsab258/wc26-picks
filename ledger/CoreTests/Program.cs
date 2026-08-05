@@ -4163,6 +4163,95 @@ namespace Ledger.CoreTests
                 StreetMap.Blocks.Count.ToString());
             Check(StreetMap.Districts.Length == 7,
                 "all seven of the design doc's districts are on the ground (M14, 2026-07-28)");
+
+            // ---- ADDRESSES OFF THE CARRIAGEWAY -----------------------------
+            //
+            // Shipped without a test, which rule 5b is explicitly about, and
+            // the accepting case is the half that goes unwritten: the ones that
+            // must NOT move matter more here than the ones that must, because a
+            // normalisation that over-reaches walks a crossing off its own
+            // crossing and looks like progress while doing it.
+            // NOT `AddressesSetBack > 0`, which is what I wrote first and the
+            // test rejected on its first run. That counter is only non-zero on
+            // the pass that actually MOVES somebody, and by the time this test
+            // runs an earlier one has already touched `StreetMap` and snapped
+            // them — so it reads zero, correctly, because the idempotence two
+            // assertions below is working. An order-dependent assertion in a
+            // suite that grows by appending is a failure waiting for somebody
+            // else to be blamed for.
+            //
+            // The INVARIANT is the thing worth asserting and it holds on every
+            // pass: whatever the order, no building stands in a carriageway
+            // afterwards. `AddressesLeftInRoad` is recomputed from scratch on
+            // each rebuild and is order-independent for the same reason.
+            Check(HookMap.Places.Count > 0,
+                "there are addresses to normalise at all",
+                HookMap.Places.Count.ToString());
+
+            // THE ACCEPTING CASE. A corner is a crossing, a cab rank, a bridge,
+            // a gate — it belongs in a right of way and must be left alone.
+            int cornersInRoad = 0, cornersTotal = 0;
+            foreach (var pl in HookMap.Places)
+            {
+                if (pl.Kind != "corner") continue;
+                cornersTotal++;
+                if (StreetMap.OnRoad(pl.X, pl.Z)) cornersInRoad++;
+            }
+            Check(cornersTotal > 0, "there are corners to leave alone at all",
+                cornersTotal.ToString());
+            Check(StreetMap.AddressesLeftInRoad == cornersTotal,
+                "and every one of them is left where it was, counted as exempt "
+                + "rather than as a failure",
+                $"{StreetMap.AddressesLeftInRoad} of {cornersTotal}");
+            Check(cornersInRoad > 0,
+                "some of them really are in a carriageway, so the exemption is "
+                + "doing something rather than describing an empty set",
+                cornersInRoad.ToString());
+
+            // THE REJECTING CASE, stated as the thing that must not be true: no
+            // address with a BUILDING on it may stand on tarmac a car uses.
+            var stillIn = new List<string>();
+            foreach (var pl in HookMap.Places)
+            {
+                if (!pl.Planned || pl.Kind == "corner") continue;
+                if (StreetMap.OnRoad(pl.X, pl.Z)) stillIn.Add(pl.Id);
+            }
+            Check(stillIn.Count == 0,
+                "and no address with a building on it is left in a carriageway",
+                stillIn.Count == 0 ? "none" : string.Join(",", stillIn));
+
+            // IDEMPOTENT. A normalisation that drifted a little further every
+            // time `Ensure` was reached would be the worst kind of bug to find,
+            // and `Rebuild` is the only way to ask it twice.
+            var was = new Dictionary<string, (double, double)>();
+            foreach (var pl in HookMap.Places) was[pl.Id] = (pl.X, pl.Z);
+            StreetMap.Rebuild();
+            int drifted = 0;
+            foreach (var pl in HookMap.Places)
+            {
+                var (wx, wz) = was[pl.Id];
+                if (Math.Abs(pl.X - wx) > 1e-9 || Math.Abs(pl.Z - wz) > 1e-9) drifted++;
+            }
+            Check(drifted == 0,
+                "and asking twice moves nobody — the set-back is idempotent",
+                drifted.ToString());
+
+            // `NearestOnRoad` MUST IGNORE LANES, which is the whole reason it
+            // exists beside `NearestOnStreet`: snapping off the nearest STREET
+            // cleared 14 of 31 because a place beside a service lane snapped
+            // relative to the lane and landed back in the avenue.
+            foreach (var e in StreetMap.Edges)
+            {
+                if (e.Driveable) continue;
+                var a = StreetMap.Node(e.A);
+                var b = StreetMap.Node(e.B);
+                double mx = (a.X + b.X) / 2, mz = (a.Z + b.Z) / 2;
+                StreetMap.NearestOnRoad(mx, mz, out var px, out var pz, out var w);
+                Check(w >= 6.0,
+                    "the nearest ROAD to a lane's midpoint is never that lane",
+                    $"width {w:0.0} at ({mx:0},{mz:0})");
+                break;   // one is enough; the property is structural
+            }
             // No two districts may overlap: every junction must sit in exactly
             // the district that claims it, or DistrictAt would lie somewhere.
             foreach (var d in StreetMap.Districts)
