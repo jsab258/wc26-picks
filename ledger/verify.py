@@ -503,10 +503,10 @@ def voice_gen():
     than after a night of rendering the wrong thing."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "voice-gen" / "ledger_voice_gen.py"),
                      "--selftest"])
-    m = re.search(r"(\d+) checks", out)
-    n = m.group(1) if m else "0"
+    m = re.search(r"(\d+) checks, (\d+) renders", out)
+    n, renders = (m.group(1), m.group(2)) if m else ("0", "0")
     if code == 0:
-        return True, "voice-gen ok (%s checks, 336-line batch)" % n
+        return True, "voice-gen ok (%s checks, %s-line batch)" % (n, renders)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
     return False, "VOICE GEN: " + (bad[0][:90] if bad else "did not report")
 

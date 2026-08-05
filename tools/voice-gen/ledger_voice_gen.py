@@ -28,8 +28,9 @@ already present as atomic lines, enumerated so a human could review distinct
 conversations. `BarkGen.Answer()` picks an opener and a reply INDEPENDENTLY at
 run time, so those 2,268 strings are never spoken as written. Rendering them
 would be seven times the work, and every file would be a line the game cannot
-play. **336 lines is the real batch**, and `--plan` prints the split so nobody
-has to take that on trust.
+play. **336 atomic lines, of which 335 render** — one is "...", a real bark
+that is silence and that the game plays by playing no clip. `--plan` prints
+every one of those numbers so none of them has to be taken on trust.
 
 TWO THINGS THIS TOOL WILL NOT DO.
 
@@ -97,11 +98,28 @@ DIRECTION = {
 
 PAIR_SEP = "||"
 
+# A renderable line needs at least one letter or digit. Anything else is a
+# beat the game plays as silence, not a clip to generate.
+HAS_WORDS = re.compile(r"[A-Za-z0-9]")
+
 
 def load_slots():
     if not BARKS.exists():
         return [], []
-    data = json.loads(BARKS.read_text())
+    # UTF-8, SAID OUT LOUD, AND IT WAS IN THE AUDIO BEFORE IT WAS SAID.
+    #
+    # `read_text()` with no encoding uses the platform default, which is UTF-8
+    # here and cp1252 on Jafar's Windows box. So the first real run on his
+    # machine handed the model
+    #     "Bit of nonsense going about â€” the new owner..."
+    # where the bark says "—". Not a console artefact: the string itself was
+    # decoded wrong, so those three characters were rendered into the wave.
+    #
+    # It could not happen on the machine the tool was written on, which is the
+    # whole shape of it — a default that differs per platform is a bug that
+    # only exists on somebody else's computer, and the only reason this was
+    # caught is that the render prints the line it is speaking.
+    data = json.loads(BARKS.read_text(encoding="utf-8"))
     atomic, pair = [], []
     for s in data.get("slots", []):
         (pair if is_pair(s) else atomic).append(s)
@@ -146,6 +164,19 @@ def plan(atomic, pair, voices_per_line):
         sid = slot["id"]
         ex = DIRECTION.get(sid)
         for i, line in enumerate(slot.get("lines", [])):
+            # A LINE WITH NO WORDS IN IT IS SILENCE, AND SILENCE IS NOT A CLIP.
+            # `recognition.avoids` holds "..." — a real bark, somebody looking
+            # away and not answering — and the first run spent twelve seconds
+            # rendering it into a wave of nothing. The game plays that beat by
+            # playing NO clip, so there is nothing to generate.
+            #
+            # Skipped rather than failed. A guard that refuses the whole batch
+            # over one correct line is the ratchet CLAUDE.md rule 5 warns
+            # about: it cannot tell a regression from a thing that was always
+            # meant to be that way. `--plan` prints the count instead, so the
+            # skip is visible rather than silent.
+            if not HAS_WORDS.search(line):
+                continue
             for m in range(voices_per_line):
                 # +m, so the k voices for one line are always k DISTINCT
                 # voices for any k <= len(CROWD). A stride wider than 1 looks
@@ -183,7 +214,11 @@ def cmd_plan(args):
     print(f"  bark bank            {na + npair} lines in {len(atomic) + len(pair)} slots")
     print(f"  PAIR slots           {len(pair):3d} slots, {npair} lines — assembled at run time, "
           f"rendering NONE")
+    skipped = sum(1 for s in atomic for ln in s["lines"] if not HAS_WORDS.search(ln))
     print(f"  atomic slots         {len(atomic):3d} slots, {na} lines — the real batch")
+    if skipped:
+        print(f"  wordless             {skipped} line(s) skipped — silence, "
+              f"the game plays these by playing no clip")
     print(f"  voices per line      {args.voices_per_line} of {len(CROWD)} street voices")
     print(f"  RENDERS              {len(jobs)}")
     print()
@@ -250,14 +285,39 @@ def cmd_selftest(args):
     check(sampled > 0 and covered == sampled,
           f"every sampled pair line is two existing atomic lines ({covered}/{sampled})")
 
+    # THE MOJIBAKE GUARD. UTF-8 read as cp1252 has an unmistakable signature —
+    # "â€”" for an em-dash, "â€™" for an apostrophe — and the first real run on
+    # Windows put exactly that into the model's mouth. Asserted on the loaded
+    # strings rather than on the call, because the call is what was wrong and
+    # checking my own fix by reading my own line is not a check.
+    mojibake = [ln for s in atomic for ln in s["lines"]
+                if "â€" in ln or "Ã" in ln]
+    check(not mojibake,
+          f"no line was decoded as cp1252 ({len(mojibake)} mojibake line(s))")
+
+    # AND A LINE WITH NOTHING TO SAY. `recognition.avoids` holds "...", which
+    # took twelve seconds to render into a wave of nothing. It is a real bark —
+    # somebody looking away and not answering — but it is SILENCE, and silence
+    # is a thing the game should play by playing no clip at all.
+    speechless = [ln for s in atomic for ln in s["lines"] if not HAS_WORDS.search(ln)]
+    rendered = {j["line"] for j in plan(atomic, pair, 1)}
+    check(speechless and not (set(speechless) & rendered),
+          f"wordless lines are skipped, not rendered "
+          f"({len(speechless)} skipped: {speechless[:3]})")
+
     check(not unmapped(atomic),
           f"every atomic slot has an authored direction ({len(DIRECTION)} mapped)")
     check(all(0.2 <= v <= 0.9 for v in DIRECTION.values()),
           "every direction sits inside chatterbox's 0.25-0.85 range")
 
     jobs = plan(atomic, pair, 1)
-    check(len(jobs) == sum(len(s["lines"]) for s in atomic),
-          f"one voice per line renders each line exactly once ({len(jobs)})")
+    # RENDERABLE lines, not all lines — the wordless one is deliberately not
+    # among them, and comparing against the raw total is how this check went
+    # red on a correct skip a minute after the skip was added.
+    renderable = sum(1 for s in atomic for ln in s["lines"] if HAS_WORDS.search(ln))
+    check(len(jobs) == renderable,
+          f"one voice per line renders each speakable line exactly once "
+          f"({len(jobs)} of {sum(len(s['lines']) for s in atomic)} lines)")
     check(len({j["file"] for j in jobs}) == len(jobs),
           "no two renders collide on a filename")
 
@@ -267,17 +327,29 @@ def cmd_selftest(args):
     check([j["file"] for j in plan(atomic, pair, 1)] == [j["file"] for j in jobs],
           "the plan is deterministic across calls")
 
-    # EQUALITY, NOT A TOLERANCE. 336 lines over 6 voices divides exactly, so
-    # any gap at all is an assignment bug — and the first version of this
-    # check carried a tolerance wide enough to accept the [48 48 48 48 72 72]
-    # the first version of `plan` produced. A bound chosen to make a reading
-    # pass is the fault CLAUDE.md rule 2 exists for, and I wrote one into the
-    # guard for it.
+    # THE BOUND IS DERIVED FROM THE ARITHMETIC, EVERY TIME IT IS ASKED.
+    #
+    # This has now been wrong in both directions in one afternoon, which is
+    # why it is computed rather than typed. First it was a tolerance loose
+    # enough to accept [48 48 48 48 72 72] — a bound picked to make a reading
+    # green, the exact thing rule 2 forbids. Then it was hard equality, which
+    # was right for 336 renders over 6 voices and went red the moment skipping
+    # the wordless line made it 335.
+    #
+    # An N that divides by V admits a perfect split and anything else is a
+    # bug; an N that does not can be off by at most one, and demanding better
+    # would be demanding the impossible. So the tightest TRUE bound is
+    # `1 if N % V else 0`, and writing it that way means it can never again be
+    # loosened to pass or left too tight to be satisfiable.
     spread = {}
     for j in jobs:
         spread[j["voice"]] = spread.get(j["voice"], 0) + 1
-    check(len(spread) == len(CROWD) and len(set(spread.values())) == 1,
-          f"all {len(CROWD)} street voices carry an equal share ({sorted(spread.values())})")
+    allowed = 1 if len(jobs) % len(CROWD) else 0
+    gap = max(spread.values()) - min(spread.values()) if spread else -1
+    check(len(spread) == len(CROWD) and gap == allowed,
+          f"all {len(CROWD)} voices share {len(jobs)} renders as evenly as "
+          f"{len(jobs)} allows (gap {gap}, tightest possible {allowed}) "
+          f"{sorted(spread.values())}")
 
     for k in (2, 3, 6):
         multi = plan(atomic, pair, k)
@@ -302,8 +374,14 @@ def cmd_selftest(args):
     # while running 14 — a number in the output that no longer described the
     # thing it was next to, which is what most of CLAUDE.md is about.
     print()
+    # THE RENDER COUNT GOES IN THE SUMMARY so `verify.py` can read it instead
+    # of carrying its own copy. It carried "336-line batch" as a literal, and
+    # skipping the wordless line made that 335 — a number typed from memory in
+    # the footer whose entire reason for existing is that I once typed
+    # "2764 CoreTests" when it was 2742.
     print(f"voice-gen --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
-          f"{len(ran)} checks, none of which touch the network or the model")
+          f"{len(ran)} checks, {len(jobs)} renders, none of which touch the "
+          f"network or the model")
     return 0 if not fails else 1
 
 
@@ -351,9 +429,19 @@ def load_model():
 
     print(f"  device: {device.upper()} — {name}")
     if device == "cpu":
-        print("  WARNING: this is running on the CPU. The benchmark put chatterbox")
-        print("  at about 6x slower than real time there, so the full batch is")
-        print("  hours. The rate below is real, but it is not a GPU's rate.")
+        # NOT A WARNING, BECAUSE IT IS NOT A FAULT. The first version of this
+        # message shouted WARNING and told him a GPU would be faster, which
+        # is true, useless, and sends him hunting for a driver that cannot
+        # exist: production-plan-audio-art §1g settled this on 28 July — his
+        # card is AMD, PyTorch has no Windows AMD backend, ROCm is Linux only.
+        # CPU is the expected state here and always was.
+        #
+        # The plan also records somebody reading "gpu: none detected" as a
+        # PATH problem and chasing it. A message that implies a fix exists,
+        # when none does, is how that happens twice.
+        print("  This is the CPU, which is correct here and not a fault — the")
+        print("  card is AMD and PyTorch has no Windows AMD backend (decided")
+        print("  28 July, production-plan-audio-art §1g). Nothing to fix.")
     return ChatterboxTTS.from_pretrained(device=device), device
 
 
@@ -466,8 +554,14 @@ def cmd_all(args):
                 print(f"  {n}/{len(jobs)}  median {med:.2f}s  ~{left:.0f} min left")
 
     manifest = args.out / "barks-manifest.json"
+    # UTF-8 ON THE WAY OUT TOO. Same default, same platform split: the
+    # manifest carries the bark text, so writing it in cp1252 would put the
+    # mojibake back into the file the game reads even after the render is
+    # right. `ensure_ascii=False` keeps the em-dash an em-dash rather than
+    # an escape, so the file stays readable by a person.
     manifest.write_text(json.dumps(
-        {"renders": [{k: v for k, v in j.items() if k != "ref"} for j in jobs]}, indent=1))
+        {"renders": [{k: v for k, v in j.items() if k != "ref"} for j in jobs]},
+        indent=1, ensure_ascii=False), encoding="utf-8")
     print(f"voice-gen: {done} rendered, {len(jobs) - done} already present, "
           f"manifest at {manifest}")
     return 0

@@ -59,12 +59,22 @@ set "PY=%TOOL%\env\Scripts\python.exe"
 
 "%PY%" -c "import chatterbox" >nul 2>nul
 if errorlevel 1 (
-  echo  Installing torch with CUDA support...
+  echo  Installing torch...
   "%PY%" -m pip install --quiet --upgrade pip
-  REM  CUDA 12.1 wheels. If your card wants a different build this is the
-  REM  one line to change, and the script says so rather than failing at
-  REM  a rate of nought.
-  "%PY%" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+  REM  CPU WHEELS, DELIBERATELY, AND THIS WAS WRONG IN THE FIRST VERSION.
+  REM
+  REM  I wrote CUDA 12.1 wheels here without reading a document that had
+  REM  already answered the question. production-plan-audio-art.md §1g is
+  REM  headed "THE TEST MACHINE IS AMD": Jafar's card is AMD, PyTorch has
+  REM  no Windows AMD backend, ROCm is Linux only, and torch-directml does
+  REM  not carry models of this shape. So everything here runs on the CPU,
+  REM  and that is the settled expected state rather than a fault.
+  REM
+  REM  The CUDA build works - it just downloads several GB of kernels that
+  REM  can never be used, and then reports "no CUDA device" in a way that
+  REM  reads like something is broken. The plan even records that the last
+  REM  person to see "gpu: none detected" wrongly chased it as a PATH bug.
+  "%PY%" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
   echo  Installing chatterbox...
   "%PY%" -m pip install chatterbox-tts
   if errorlevel 1 goto :noinstall
@@ -138,8 +148,6 @@ pause & exit /b 1
 :noinstall
 echo.
 echo  The install FAILED - the reason is above, and nothing was rendered.
-echo  Most likely it is the torch line: if your card is not CUDA 12.x,
-echo  the --index-url in this .bat is the one thing to change.
 echo  Send me those lines.
 echo.
 pause & exit /b 1

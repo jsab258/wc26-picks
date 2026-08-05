@@ -319,7 +319,7 @@ def ensure_venv(assume_yes, core_only=False):
     # a pin added here would never reach a machine that had already built the
     # environment — the fix would ship and nothing would happen.
     spec = "\n".join(need)
-    if stamp.exists() and py.exists() and stamp.read_text().strip() != spec.strip():
+    if stamp.exists() and py.exists() and stamp.read_text(encoding="utf-8").strip() != spec.strip():
         print("  dependencies changed since this environment was built; rebuilding")
         shutil.rmtree(VENV, ignore_errors=True)
         py = venv_python()
@@ -346,7 +346,7 @@ def ensure_venv(assume_yes, core_only=False):
         subprocess.run([str(py), "-m", "pip", "install", "-q", "--upgrade", "pip"], check=True)
     subprocess.run([str(py), "-m", "pip", "install", "-q", *need], check=True)
     subprocess.run([str(py), "-c", probe_import], check=True)
-    stamp.write_text(spec + "\n")
+    stamp.write_text(spec + "\n", encoding="utf-8")
     return py
 
 
