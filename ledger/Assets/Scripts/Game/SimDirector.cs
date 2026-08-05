@@ -2134,6 +2134,13 @@ namespace Ledger.Game
         /// drop window, and the run in progress. See the note at the sample
         /// site: a total covers a slow walk and a dead stop identically.
         int _jobLongestStall, _jobStillRun;
+        /// How many bodies were within two metres of the player AT THE
+        /// INSTANT the longest stall was recorded, and where he stood. The
+        /// pair separates "he was in the mob" from "he was alone and stuck
+        /// on geometry", which are the only two things left once ownership
+        /// and injury are ruled out — and `d13` ruled both out.
+        int _jobStallCrowd;
+        string _jobStallWhere = "nowhere";
 
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
@@ -2209,6 +2216,7 @@ namespace Ledger.Game
                     _jobMetresWalked = 0;
                     _jobWorstSeverity = 0;
                     _jobLongestStall = 0;
+                    _jobStallCrowd = 0; _jobStallWhere = "nowhere";
                     _jobStillRun = 0;
                 }
                 else
@@ -2251,7 +2259,44 @@ namespace Ledger.Game
                     if (step < 0.05f)
                     {
                         _jobStillRun++;
-                        if (_jobStillRun > _jobLongestStall) _jobLongestStall = _jobStillRun;
+                        if (_jobStillRun > _jobLongestStall)
+                        {
+                            _jobLongestStall = _jobStillRun;
+                            // WHO WAS STANDING ON HIM AT THE WORST OF IT, taken
+                            // at the instant the record is set rather than at
+                            // the end of the window — the crowd moves, and a
+                            // count from thirty seconds later describes a
+                            // different street.
+                            //
+                            // `0720f52` says d13 is a different fault from d12
+                            // and both looked like one. d12:
+                            // `walked=24.5m stalled=0 held:job=7,waypoint=8` —
+                            // never stopped, always moving, and a WAYPOINT took
+                            // the target off the job for eight ticks. d13:
+                            // `walked=10.1m stalled=13 hurt=0.00 held:job=19` —
+                            // the job held the target for all nineteen ticks,
+                            // he was not hurt, and he stood dead still for
+                            // thirteen of them. Ownership is innocent and speed
+                            // is innocent, so something was physically in the
+                            // way, which is the case the paragraph above named
+                            // and nothing could measure.
+                            //
+                            // AND THERE IS NOW A SUSPECT. The mob is 41 bodies
+                            // inside two metres at `(-1,-3)`, in the road,
+                            // outside the pub — a man walking a job through
+                            // that would stop exactly like this. This says
+                            // whether he was in it.
+                            _jobStallCrowd = 0;
+                            if (_npcs != null)
+                                foreach (var n in _npcs)
+                                {
+                                    if (n == null || !n.isActiveAndEnabled) continue;
+                                    if ((n.transform.position - _player.transform.position)
+                                        .sqrMagnitude <= 4f) _jobStallCrowd++;
+                                }
+                            var p = _player.transform.position;
+                            _jobStallWhere = $"{p.x:0}/{p.z:0}";
+                        }
                     }
                     else _jobStillRun = 0;
                     // HOW HURT HE WAS, at his worst, during THIS window.
@@ -2291,6 +2336,7 @@ namespace Ledger.Game
                           // ticks reads the same for a slow walk and for
                           // a brisk one that stopped halfway.
                           + $"stalled={_jobLongestStall} "
+                          + $"stalledWith={_jobStallCrowd}@{_jobStallWhere} "
                           + $"held:{OwnerTally()}]");
         }
 
