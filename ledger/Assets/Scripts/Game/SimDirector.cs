@@ -9532,6 +9532,14 @@ namespace Ledger.Game
                       // rather than two maxima divided.
                       $"bubblesMade={SpeechBubble.BubblesMade} " +
                       $"bubblesAtCeiling={SpeechBubble.BubblesAtCeiling} " +
+                      // AND WHETHER THE SCREEN TEST RAN AT ALL.
+                      // `bubblesNoBounds` is the one uncertainty in it: a
+                      // TextMesh built this frame may have no renderer
+                      // bounds yet, and without this a `screenLifted` of
+                      // zero would read as "nothing overlapped" when it may
+                      // mean "nothing could be measured".
+                      $"bubblesScreenLifted={SpeechBubble.BubblesScreenLifted} " +
+                      $"bubblesNoBounds={SpeechBubble.BubblesNoBounds} " +
                       // The peak and the typical, side by side and named as
                       // what they are. The peak is "how bad did one moment
                       // get"; the median is "how does this street read".

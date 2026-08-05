@@ -191,6 +191,32 @@ namespace Ledger.Game
             // mirror image from anywhere south of the speaker.
             Billboard.Register(go.transform);
             Billboard.Aim(go.transform, Camera.main);
+
+            // AND NOW ASK THE SCREEN, WHICH IS THE QUESTION THAT WAS ALWAYS
+            // MEANT — STAGED, WITH ITS ONE UNCERTAINTY COUNTED RATHER THAN
+            // GAMBLED ON.
+            //
+            // `bubblesMade=156 bubblesAtCeiling=61` — two in five bubbles had
+            // nowhere left to stack and landed on a neighbour anyway. The world
+            // radius is why: two bubbles four metres apart overlap on screen at
+            // thirty metres and do not at three, and `CrowdMetres` cannot
+            // express that. This file's own comment named the fix — "a
+            // screen-space pass with hysteresis, not a wider radius".
+            //
+            // THE UNCERTAINTY IS THE BOUNDS. A TextMesh built this frame may
+            // not have generated its mesh yet, so `renderer.bounds` can be
+            // empty until something renders. That is not something to find out
+            // from a still: if the bounds are unusable this counts
+            // `BubblesNoBounds` and keeps the world-space lift exactly as it
+            // is. So the worst case is today's behaviour with a number
+            // explaining why, and the best case is the overlap gone.
+            //
+            // ADDITIVE ONLY. It can raise a bubble and never lower one, so
+            // nothing that reads correctly today starts reading worse, and
+            // `MaxLift` still bounds the total — this changes WHEN the ceiling
+            // is reached, not what it is.
+            b.LiftClearOfScreen(speaker);
+
             _live.Add(b);
             return b;
         }
@@ -318,6 +344,53 @@ namespace Ledger.Game
         const float CrowdMetres = 4.0f;
         const float LineLift = 0.45f;
         const float MaxLift = 1.8f;      // four lines; past that a crowd is a crowd
+
+        /// Bubbles whose screen rect could not be read, and bubbles the screen
+        /// test actually raised. Both are needed: the first says whether the
+        /// pass is even running, and without it a `ScreenLifted` of zero reads
+        /// as "nothing overlapped" when it may mean "nothing could be
+        /// measured". Rule 3b, applied before the reading rather than after it.
+        public static int BubblesNoBounds;
+        public static int BubblesScreenLifted;
+
+        /// Raise this bubble until its screen rect clears every live one, or
+        /// until `MaxLift` says a crowd is a crowd.
+        ///
+        /// Called once, at creation, after the billboard has been aimed —
+        /// `LateUpdate` re-applies the lift every frame from `_lift`, so this
+        /// only has to decide the number once. Re-deciding it per frame would
+        /// make a bubble hop as its neighbours moved, which is worse than an
+        /// overlap.
+        void LiftClearOfScreen(Transform speaker)
+        {
+            var cam = Camera.main;
+            if (cam == null || _text == null) return;
+            var mine = _text.GetComponent<Renderer>();
+            if (mine == null) return;
+
+            // AN EMPTY BOUND IS THE MESH NOT BEING BUILT YET, WHICH IS THE ONE
+            // THING THIS COULD NOT BE TESTED FOR LOCALLY. Counted and stepped
+            // over rather than guessed at.
+            if (mine.bounds.size.sqrMagnitude < 1e-6f) { BubblesNoBounds++; return; }
+
+            for (int step = 0; step < 8 && _lift < MaxLift; step++)
+            {
+                if (!NameTags.ScreenRect(cam, mine.bounds, out var mineRect)) return;
+                bool hit = false;
+                foreach (var other in _live)
+                {
+                    if (other == null || other == this || other._text == null) continue;
+                    var r = other._text.GetComponent<Renderer>();
+                    if (r == null || r.bounds.size.sqrMagnitude < 1e-6f) continue;
+                    if (!NameTags.ScreenRect(cam, r.bounds, out var otherRect)) continue;
+                    if (mineRect.Overlaps(otherRect)) { hit = true; break; }
+                }
+                if (!hit) break;
+                _lift = Mathf.Min(_lift + LineLift, MaxLift);
+                transform.position = speaker.position + Vector3.up * (2.05f + _lift);
+                if (step == 0) BubblesScreenLifted++;
+            }
+        }
 
         static float StackHeightNear(Vector3 at)
         {
