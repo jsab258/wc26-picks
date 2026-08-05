@@ -109,28 +109,30 @@ say. Nine of these ten items are "read the number, then decide" — which is the
 discipline, not a stall: every one of them has a fix that is one edit long once
 the reading lands, and every guess made without one tonight was wrong.
 
-1. **MOVE THE CAST'S WAYPOINTS OUT OF THE ROAD.** *(the mob, on screen)*
+1. **READ WHAT FOUR VISIBLE FIXES DID.** *(CI, dispatched)*
 
-   The single most visible fault in the frames, and now fully diagnosed rather
-   than suspected. Seven authored waypoints inside a six-metre disc at
-   `(-1,-3)`, six of them in a carriageway, and 41 bodies converging there with
-   nobody talking, detouring or waiting. Fourteen of the thirty-four distinct
-   authored waypoints are in a road.
+   Four changes to what a player sees are in flight together and each has a
+   number that says whether it worked and one that says whether it overshot.
 
-   **Not a mechanical snap like the addresses.** Some are RIGHT — `crossing` is
-   at `(0,-8)` and a crossing IS in the road; the cluster near the origin is the
-   pub door on Hook Street, which is where the cast belongs. So the decision is
-   which of the fourteen are deliberate, and it wants reading rather than a
-   threshold. Read `headingIntoRoad`/`headingCounted` first: they count from
-   the targets every walker is ACTUALLY using, generated residents included,
-   where the fourteen is a grep over the literals somebody typed.
+   **The mob.** `SpreadRadius` now reads the neighbourhood count instead of the
+   cell. Watch `crowdHuddleWorst` fall and `crowdGapMedian` rise. If the deed,
+   places or companion gates move, the ring is too wide for a street this size
+   and the answer is fewer people at one address, not a smaller disc.
 
-   **AND SPREADING IS THE OTHER HALF.** Seven points inside six metres is a
-   knot whatever the road says. `Physique.SpreadRadius` sizes a ring from the
-   per-CELL count (`CrowdAtPlace`); the cluster is multi-cell, so each ring is
-   sized for its own dozen and they overlap. That is a hypothesis, not a
-   finding — the number that would settle it is the ring radius beside the
-   neighbourhood count, and neither is printed yet.
+   **The bubbles.** The stack asks the screen rather than a four-metre world
+   radius. `bubblesAtCeiling` should fall from 61 of 156; `bubblesScreenLifted`
+   says the pass ran and `bubblesNoBounds` is the one uncertainty — a TextMesh
+   built this frame may have no renderer bounds yet, and a zero lift with a
+   large no-bounds count means it never got to ask.
+
+   **The pavement.** Three cast routines drank standing in Hook Street; all six
+   bar-door offsets go through `OffTheCarriageway` now. `headingIntoRoad` was
+   10 of 56 and should fall to about 7.
+
+   **The threats.** `complied` and `called` have been zero for 136 runs because
+   one staged threat at one nerve value reaches one branch of five. Two more
+   are staged, ordered so the fiction's own threat runs last and leaves the
+   stance today's runs leave.
 
 1. **TWO IN FIVE SPEECH BUBBLES LAND ON TOP OF A NEIGHBOUR.** *(on screen)*
 
