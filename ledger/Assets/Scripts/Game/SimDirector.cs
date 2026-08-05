@@ -786,6 +786,24 @@ namespace Ledger.Game
                 && _game.ActThree.Pp1Fired && now.Hour >= 14)
             {
                 var ready = _game.ReadySuccessor();
+                // WHO WAS ELIGIBLE AT THIS INSTANT, WHICH IS THE ONLY INSTANT
+                // THAT COUNTS — and the line below is why.
+                //
+                // `AuditClosesDay = now.Day` closes the audit on this same
+                // pass, so `!AuditClosed` is false ever after and this block
+                // never runs twice. One attempt, one chance.
+                //
+                // `4e3eef3` reads `joeyRuns=True` with `successorWhy` listing
+                // only Sam and Rocco — so Joey passes `CouldHold` BY THE END OF
+                // THE RUN. That says nothing about whether he passed HERE, and
+                // if the racket is established after this pass then `ready` was
+                // null at the only moment anybody asked. A reading taken at the
+                // end of a run cannot answer a question about hour fourteen,
+                // which is the fault this project has now found in the summons,
+                // the huddle and the killing register.
+                _handedTried = true;
+                _handedReady = ready != null ? ready.Id : "nobody";
+                _handedWhyAtTry = GameController.SuccessorWhy;
                 if (ready != null && _game.ActThree.SuccessorId == null)
                     _actThreeHandedOver = _game.HandOver(ready.Id);
                 _game.ActThree.AuditClosesDay = now.Day;   // the letter's date, brought forward
@@ -3638,6 +3656,12 @@ namespace Ledger.Game
         /// to run. False means `Establish` refused and the succession is still
         /// blocked for a reason `successorWhy` will name.
         bool _joeyRuns;
+
+        /// The succession, sampled at the ONE pass that attempts it. The audit
+        /// closes on that same pass, so there is no second try and an
+        /// end-of-run reading describes a world that no longer matters.
+        bool _handedTried;
+        string _handedReady = "neverTried", _handedWhyAtTry = "neverTried";
         /// The one wound the harm probe treated, held so the gate can ask
         /// about THAT one rather than about Rocco in general.
         Injury _harmTreated;
@@ -9501,6 +9525,9 @@ namespace Ledger.Game
                       // assignment was never the last blocker and
                       // `successorWhy` names the next one.
                       $"joeyRuns={_joeyRuns} " +
+                      // AT THE ATTEMPT, not at the end of the run.
+                      $"handedTried={_handedTried} handedReady=[{_handedReady}] " +
+                      $"handedWhyAtTry={_handedWhyAtTry} " +
                       $"successorWhy={GameController.SuccessorWhy} " +
                       $"actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
