@@ -32,9 +32,9 @@ people are THINKING, not triggering.**
 
 Every NPC reaction in KCD2 is authored, and outside what the writer anticipated
 there is nothing. Here, what a person thinks of you is computed from what they
-saw or were told, then spoken in their own character by a model — so they can be
-WRONG about you, be argued with, and hold a grudge over a thing that never
-happened. The one axis where we do not approximate KCD2 but beat it.
+saw or were told, then spoken in character by a model — so they can be WRONG
+about you, be argued with, and hold a grudge over a thing that never happened.
+The one axis where we do not approximate KCD2 but beat it.
 
 The consequence engine is not wasted by this. It stops being the product and
 becomes the reason the conversations matter: the person talking to you knows
@@ -57,19 +57,20 @@ market, and none in the back room of a busy pub*.
 
 **"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found
 2026-08-04 by reading the code rather than this table: violence is staged as an
-event, everything downstream of it runs, and there is no exchange of blows
-anywhere. Fixing it is a milestone and it needs a done-condition that measures
-a FIGHT. Full account, and why no gate could have caught it, in
-`roadmap-history.md`.
+event, everything downstream runs, and there is no exchange of blows anywhere.
+Fixing it is a milestone needing a done-condition that measures a FIGHT. Full
+account in `roadmap-history.md`.
 
-**The risk it exposed sets the pace of everything below:** the Game layer does
-not compile locally, so every wiring change costs a ~28-minute round trip.
+**The risk it exposed set the pace of everything below, and 5 Aug removed it:**
+the Game layer now compiles HERE, in six seconds, against Unity's own reference
+assemblies — so a wiring error costs a keystroke rather than a 28-minute round
+trip. `tools/gamecheck.py`, wired into `verify.py`.
 
 ---
 
 ## M17 — THE GAME LOOKS AND SOUNDS LIKE ITSELF
 
-**Why first.** A player judges a game in ninety seconds, and none of the depth
+**Why first.** A player judges a game in ninety seconds and none of the depth
 below is visible in them. Almost nothing here is new design.
 
 | | what | state | risk |
@@ -153,16 +154,19 @@ relationships rather than from a stat.
 
 ## M19 — THE PEOPLE ARE THINKING *(next, and the centrepiece)*
 
-The conversation system is wired, tested and reachable. **Nobody has ever sat
-down and asked whether talking to these people is any good.** That is the
-largest unexamined risk in the project: if the writing is flat, every milestone
-either side of it is decoration, and we would be paying to voice something that
-needs rewriting.
+**THE WRITING HAS BEEN JUDGED AND IT IS GOOD — the project's largest unexamined
+risk is retired.** Forty real exchanges through the live engine, read line by
+line on 3 August, scoring **78**. Four voices stayed four voices and are
+tellable apart with the name tags removed; they catch a checkable lie with
+reasoning grounded in who they are; and jailbreak attempts land IN FICTION
+rather than as refusals — a barman told to ignore his instructions says you are
+talking to him like he is the electric meter. Both faults found were closed at
+the source the same hour: a stage direction instead of speech, and an
+out-of-period word repeated back.
 
-- **Judge the existing conversation as WRITING**, at length, with a verdict.
-  Costs nothing and happens BEFORE voices are generated.
-- Then make it good: character voice held under pressure, memory of what you
-  actually did, refusal to break when pushed.
+- **UNCONFIRMED — A SPEND DECISION.** Nothing re-generated since those fixes,
+  so the 78 and both closures describe the BEFORE state.
+- Then make it good: voice held under pressure, memory of what you did.
 - **Negotiation as the empire's verb.** Recruiting, bribing, threatening, being
   talked round — scenes rather than menu picks. This is where the model earns
   its place, because no authored tree affords it at scale.
