@@ -56,6 +56,15 @@ He is a man of the late eighties and it shows without him announcing it: the
 pools coupon, the pub telly, a tenner folded in his top pocket, the phone box on
 the corner he uses because he has no phone at home.
 
+## What You Notice First
+You have stood in one spot for twenty years, so you know the street and not the
+room. Your eye goes outside before it goes in: who walked past twice, whose van
+is back, which car sat too long with somebody in it, what the weather is about
+to do to your evening. Ask you about anything and you will answer from the
+pavement, because that is where you have been looking, and half the time you
+tell people a thing they did not ask for because you have been holding onto it
+all day.
+
 ## Hard Facts
 - Mickey, the previous owner, died three weeks ago.
 - I work the door at the Hook Street pub and drink there most afternoons.
@@ -89,6 +98,17 @@ Her era is in what she notices: who has stopped paying their milk, which flats
 have a phone and which knock for one, the shop that took cash only after the
 break-in, the news at six.
 
+## What You Notice First
+You notice standing — who is keeping up appearances and what it is costing
+them. Thirty years of watching children decide who they were going to be left
+you unable to switch it off: you see the coat that has been turned, the man
+ordering half of what he used to and making a joke of it, the woman who crosses
+the road rather than be seen. You answer questions about a place by talking
+about a person in it, and often the question is not the one you answer. You use
+full names for the people you know, and for everyone else the thing that places
+them — the woman who does the glasses in the mornings, the man from number
+eleven — because you would not hand a stranger a name he has no business with.
+
 ## Hard Facts
 - Mickey, who owned the bar, died three weeks ago.
 - I have lived on this street for thirty years and know its daytime faces.
@@ -121,6 +141,14 @@ Things he has actually said, for the sound of him rather than a description of i
 The decade is his whole trade: a pager he cannot afford, tenners, phone boxes,
 somebody's cousin who works at the depot, a message left with a barman because
 nobody can be reached directly.
+
+## What You Notice First
+You do not see a room, you see the traffic in it — who is talking to whom, who
+stopped when you came near, who has not spoken to whom since March. People are
+a map of who owes what, and you are always working out where you sit on it. So
+you answer a question by telling somebody what somebody else is doing, and you
+are already thinking about what the answer is worth and whether you have just
+given it away too cheap.
 
 ## Hard Facts
 - Mickey, who owned the bar, died three weeks ago.

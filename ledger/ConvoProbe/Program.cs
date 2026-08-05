@@ -104,6 +104,48 @@ static class Program
         // `--dry` runs the whole path except the call: finds the cards, builds
         // the real system prompt for each, and prints what it got. No key
         // needed, no tokens spent.
+        // DUMP THE PROMPTS AND SPEND NOTHING. Jafar, 5 August: "why do you need
+        // api spend to write? you can do that on your own with your agents?"
+        // He is right, and the distinction is worth writing down because I had
+        // been treating one spend as if it bought both things.
+        //
+        // AUTHORING the writing — these rules, the cards, what each character
+        // notices — is free and always was. The paid probe buys exactly one
+        // thing: what the SHIPPED model does with them at runtime, on the
+        // player's machine, through the real prompt builder. That is a runtime
+        // measurement, not a way to write.
+        //
+        // And the check in between is free too, which is the part I had missed.
+        // This writes each character's real system prompt to a file, so any
+        // other model — including the one reading this — can be handed the
+        // exact instructions the game gives and asked to answer as that person.
+        // It is not the shipped model and it does not prove what ships. It does
+        // catch what the last two paid runs were actually for: four characters
+        // opening the same question with the same word.
+        int dumpAt = Array.IndexOf(args, "--dump-prompts");
+        if (dumpAt >= 0)
+        {
+            var outDir = dumpAt + 1 < args.Length && !args[dumpAt + 1].StartsWith("-")
+                ? args[dumpAt + 1] : "prompts";
+            Directory.CreateDirectory(outDir);
+            foreach (var c in cards)
+            {
+                var e = new ConversationEngine(null, c, new MemoryStore(c.Id),
+                    new KnowledgeBase(), new SuspicionTracker(), new CostTracker(), model);
+                var prompt = e.BuildSystemPrompt(Script[0].Say,
+                    new GameTime { Day = 2, Hour = 20 },
+                    "In the bar, after closing, talking with the new owner.");
+                var path = Path.Combine(outDir, c.Id + ".txt");
+                File.WriteAllText(path, prompt);
+                Console.WriteLine($"  {path}  {prompt.Length} chars");
+            }
+            // THE DENOMINATOR, rule 3b — "wrote 0 prompts" and "wrote every
+            // prompt" must not print the same way.
+            Console.WriteLine($"ConvoProbe --dump-prompts: {cards.Count} prompt(s) "
+                              + $"written to '{outDir}'. No API calls, nothing spent.");
+            return 0;
+        }
+
         bool dry = Array.IndexOf(args, "--dry") >= 0;
         if (dry)
         {
