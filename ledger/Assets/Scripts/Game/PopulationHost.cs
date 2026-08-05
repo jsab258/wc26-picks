@@ -585,7 +585,11 @@ namespace Ledger.Game
         /// into two. Y is dropped: people sharing a spot on a kerb and a step
         /// are at the same place, which is the same flat-versus-3D distinction
         /// the crowding sampler had to learn.
-        static Vector3Int PlaceKey(Vector3 p) =>
+        /// PUBLIC so the crowding sampler can bucket a huddle by the SAME grid
+        /// the schedules are bucketed by. A second rounding in `SimDirector`
+        /// would be one idea with two implementations, and the two would
+        /// disagree the first time either moved.
+        public static Vector3Int PlaceKey(Vector3 p) =>
             new Vector3Int(Mathf.RoundToInt(p.x), 0, Mathf.RoundToInt(p.z));
 
         /// Distance from the player to wherever this resident's routine has them

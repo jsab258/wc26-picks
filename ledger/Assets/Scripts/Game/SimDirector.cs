@@ -2608,6 +2608,10 @@ namespace Ledger.Game
         /// huddle it did not come from.
         int _huddleWorstSeen;
         int _huddleTalking, _huddleEscorting, _huddleDetour, _huddleWaiting;
+        /// Distinct scheduled place cells among the huddle's members. 1 means
+        /// the ring is undersized; many means the rings overlap and the radius
+        /// wants sizing from the neighbourhood rather than the cell.
+        int _huddleCells;
         string _huddleWhere = "nowhere";
 
         int HuddleMedian()
@@ -3211,6 +3215,7 @@ namespace Ledger.Game
                 _huddleWorstSeen = worstHuddle;
                 _huddleTalking = 0; _huddleEscorting = 0;
                 _huddleDetour = 0; _huddleWaiting = 0;
+                var cells = new HashSet<Vector3Int>();
                 var at = worstAt.transform.position;
                 foreach (var n in _npcs)
                 {
@@ -3220,7 +3225,25 @@ namespace Ledger.Game
                     if (n.Escorting) _huddleEscorting++;
                     if (n.OnDetour(_game.Now)) _huddleDetour++;
                     if (n.WaitingAsHost) _huddleWaiting++;
+                    // AND WHICH PLACE CELL THEY BELONG TO, which is the one
+                    // number that settles the spreading question.
+                    //
+                    // `Physique.SpreadRadius` sizes each person's ring from
+                    // `CrowdAtPlace` — the count in their OWN metre cell. If
+                    // this huddle is one cell, the ring is simply undersized
+                    // and the fix is the radius. If it is seven, every ring is
+                    // correctly sized for its own dozen and they overlap
+                    // anyway, and the fix is to size it from the neighbourhood
+                    // instead. Those are different edits and no landed number
+                    // could tell them apart.
+                    //
+                    // The authored waypoints say seven — six metres across,
+                    // seven distinct points — but that is a grep over literals
+                    // and this is the live crowd, generated residents included.
+                    var cell = GameController.PlaceKey(n.PlaceFor(_game.Now));
+                    if (!cells.Contains(cell)) cells.Add(cell);
                 }
+                _huddleCells = cells.Count;
                 _huddleWhere = $"{at.x:0}/{at.z:0}";
             }
             // GLANCED AT versus KNOWS WHO YOU ARE, counted in ONE pass so the
@@ -9299,7 +9322,8 @@ namespace Ledger.Game
                       // the series have drifted apart and neither is readable.
                       $"huddleAt={_huddleWorstSeen} huddleTalking={_huddleTalking} " +
                       $"huddleEscorting={_huddleEscorting} huddleDetour={_huddleDetour} " +
-                      $"huddleWaiting={_huddleWaiting} huddleWhere={_huddleWhere} " +
+                      $"huddleWaiting={_huddleWaiting} huddleCells={_huddleCells} " +
+                      $"huddleWhere={_huddleWhere} " +
                       $"crowdHuddleSamples={_huddles.Count} " +
                       // AND WHETHER THE MOB IS PEOPLE SENT TO ONE POINT.
                       // `busiestPlace` is how many walkers shared a scheduled
