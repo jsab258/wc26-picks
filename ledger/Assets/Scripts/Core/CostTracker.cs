@@ -40,7 +40,19 @@ namespace Ledger.Core
             var sb = new System.Text.StringBuilder();
             foreach (var kv in _byModel)
                 sb.AppendLine($"{kv.Key}: {kv.Value.Calls} calls, {kv.Value.InputTokens} in / {kv.Value.OutputTokens} out tokens");
-            sb.AppendLine($"Estimated total: £{EstimateUsd():0.0000}");
+            // US DOLLARS, SAID SO. `Models.Cost` is a rate card in USD and
+            // `EstimateUsd` says so in its own name, and this line put a £ on
+            // the front of it — so every transcript footer quoted a dollar
+            // figure as pounds, and that is the number Jafar read and asked
+            // about. He settles this bill in francs; the £ belongs to the pub,
+            // which is British by design, and to nothing else in the project.
+            //
+            // NO CONVERSION HERE ON PURPOSE. A hard-coded FX rate is a comment
+            // that decays without a diff touching it, which is most of what
+            // CLAUDE.md is a list of. The honest thing a tool can print is the
+            // unit it was actually billed in; converting for a human is done at
+            // the day's rate, by whoever quotes it.
+            sb.AppendLine($"Estimated total: US${EstimateUsd():0.0000}");
             return sb.ToString();
         }
     }

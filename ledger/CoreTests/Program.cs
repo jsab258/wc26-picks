@@ -6786,6 +6786,44 @@ namespace Ledger.CoreTests
                       "Sam? Never heard of him.", "Sam"),
                 "a name followed by a question mark is not narration");
 
+            // THE ONE THAT GOT THROUGH, VERBATIM FROM THE 5 AUGUST TRANSCRIPT.
+            // The guard tested the first token of `Name` only, Ada's card is
+            // headed "# Ada", and the model narrated her as "Mrs Vane" — a name
+            // the card gives her ("You will call me Mrs Vane") and the guard had
+            // never been handed.
+            var vane = new List<string> { "Mrs Vane", "Vane" };
+            Check(ResponseValidator.ReadsAsNarration(
+                      "Mrs Vane looks you over the way she'd size up a new face at the back of a classroom.",
+                      "Ada", vane),
+                "a character narrating themselves by a name off their card is caught");
+            Check(ResponseValidator.ReadsAsNarration(
+                      "Vane considers that for a moment.", "Ada", vane),
+                "the bare surname is the same fault with the honorific dropped");
+
+            // AND THE CASE IT MUST PASS, which is the half rule 5b says goes
+            // unrun. The self-name set is PER CHARACTER, so the identical
+            // sentence out of somebody else's mouth is ordinary gossip and must
+            // survive — widening the guard is only safe because of this.
+            Check(!ResponseValidator.ReadsAsNarration(
+                      "Mrs Vane looks you over the way she'd size up a new face at the back of a classroom.",
+                      "Rocco"),
+                "the same sentence from another speaker is talk about a third party");
+            Check(!ResponseValidator.ReadsAsNarration(
+                      "Sammy grins like he knows something.", "Sam"),
+                "a longer name that merely starts with the speaker's is not narration");
+            Check(ResponseValidator.Validate(
+                      "Mrs Vane looks you over.", "Ada", vane).Contains("Ada"),
+                "Validate deflects the narration it is handed the names for");
+
+            // THE HARVEST ITSELF, on the real card text rather than a fixture.
+            var adaNames = new List<string>();
+            CharacterCard.HarvestCalledNames(
+                "- \"You will call me Mrs Vane or you will call me nothing at all.\"", adaNames);
+            Check(adaNames.Contains("Mrs Vane") && adaNames.Contains("Vane"),
+                "the card line yields the name the character goes by");
+            Check(!adaNames.Contains("Nothing") && adaNames.Count == 2,
+                "\"call me nothing at all\" in the same sentence yields no name");
+
             Check(CityPlan.Balanced,
                 "the city's districts and its home/work shares are the same length and total 100",
                 $"{CityPlan.Districts.Length} districts, "

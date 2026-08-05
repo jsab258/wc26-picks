@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ledger.Core
 {
@@ -17,7 +18,12 @@ namespace Ledger.Core
             "i'm an assistant", "i am an assistant", "my instructions", "as a chatbot",
         };
 
-        public static string Validate(string reply, string characterName)
+        /// `alsoCalled` is `CharacterCard.AlsoCalled` — the other names the card
+        /// gives this person. Optional so the dozens of existing call sites that
+        /// only have a name still compile and still catch the first-name case;
+        /// the game passes it, because the game has the card.
+        public static string Validate(string reply, string characterName,
+                                      IReadOnlyList<string> alsoCalled = null)
         {
             if (string.IsNullOrWhiteSpace(reply))
                 return Deflect(characterName);
@@ -44,7 +50,7 @@ namespace Ledger.Core
             // themselves by name when quoting what others call them. Only a
             // reply that OPENS with their own name and a verb is the shape
             // that went wrong.
-            if (ReadsAsNarration(reply, characterName)) return Deflect(characterName);
+            if (ReadsAsNarration(reply, characterName, alsoCalled)) return Deflect(characterName);
 
             // LAYER 2 — SHAPE, on the one text in this game that nobody wrote
             // and nobody reviewed.
@@ -109,24 +115,58 @@ namespace Ledger.Core
         /// broader test would catch a character talking about a third party,
         /// which is most of what anybody says in this game, and deflecting
         /// those would be far worse than the fault it fixes.
-        public static bool ReadsAsNarration(string reply, string characterName)
+        ///
+        /// AND "THE SPEAKER'S OWN NAME" WAS THE WRONG HALF TO BE NARROW ABOUT.
+        /// This tested `characterName.Split(' ')[0]` and nothing else, so it
+        /// caught the three cases in the transcript it was written from and
+        /// missed the next one entirely: Ada's card is headed "# Ada" and says
+        /// "You will call me Mrs Vane", and the model wrote "Mrs Vane looks you
+        /// over the way she'd size up a new face at the back of a classroom."
+        /// Same fault, same shape, a name the guard did not hold.
+        ///
+        /// So the SHAPE stays exactly as narrow as it was — own name, then a
+        /// lowercase verb — and the NAME SET grows to every name the card gives
+        /// this character: all tokens of `Name`, plus `CharacterCard.AlsoCalled`.
+        /// That set is per-character, which is what keeps the third-party case
+        /// safe: "Vane" is a self-name on Ada's card only, so Rocco saying
+        /// "Vane keeps her curtains shut" is still speech and still passes.
+        public static bool ReadsAsNarration(string reply, string characterName,
+                                            IReadOnlyList<string> alsoCalled = null)
         {
             if (string.IsNullOrWhiteSpace(reply) || string.IsNullOrWhiteSpace(characterName))
                 return false;
-            var first = characterName.Split(' ')[0];
+
             var t = reply.TrimStart();
-            if (!t.StartsWith(first, StringComparison.OrdinalIgnoreCase)) return false;
-            var rest = t.Substring(first.Length).TrimStart();
-            // A quote or a comma after the name is somebody being addressed or
-            // quoted, not narrated. A bare word after it is a verb.
-            if (rest.Length == 0) return false;
-            char c = rest[0];
-            if (c == ',' || c == '?' || c == '!' || c == '.' || c == ':' || c == '"') return false;
-            int end = rest.IndexOf(' ');
-            var word = end < 0 ? rest : rest.Substring(0, end);
-            // Lowercase word straight after the speaker's own name: "Sam
-            // squints", "Ada considers". Capitalised would be another name.
-            return word.Length > 2 && char.IsLower(word[0]);
+            // LONGEST FIRST, so "Mrs Vane looks" is tested against "Mrs Vane"
+            // before "Vane" — otherwise the short match leaves "Vane looks" as
+            // the remainder and the next character read is 'V', not a verb.
+            var names = new List<string>();
+            foreach (var tok in characterName.Split(' '))
+                if (tok.Length > 2) names.Add(tok);
+            if (alsoCalled != null)
+                foreach (var n in alsoCalled)
+                    if (!string.IsNullOrWhiteSpace(n)) names.Add(n.Trim());
+            names.Sort((a, b) => b.Length.CompareTo(a.Length));
+
+            foreach (var name in names)
+            {
+                if (!t.StartsWith(name, StringComparison.OrdinalIgnoreCase)) continue;
+                var rest = t.Substring(name.Length);
+                // The name must END here: "Sammy grins" is not Sam narrating.
+                if (rest.Length > 0 && (char.IsLetterOrDigit(rest[0]) || rest[0] == '\'')) continue;
+                rest = rest.TrimStart();
+                // A quote or a comma after the name is somebody being addressed
+                // or quoted, not narrated. A bare word after it is a verb.
+                if (rest.Length == 0) continue;
+                char c = rest[0];
+                if (c == ',' || c == '?' || c == '!' || c == '.' || c == ':' || c == '"') continue;
+                int end = rest.IndexOf(' ');
+                var word = end < 0 ? rest : rest.Substring(0, end);
+                // Lowercase word straight after the speaker's own name: "Sam
+                // squints", "Ada considers". Capitalised would be another name.
+                if (word.Length > 2 && char.IsLower(word[0])) return true;
+            }
+            return false;
         }
 
         public static string Humanize(string reply)

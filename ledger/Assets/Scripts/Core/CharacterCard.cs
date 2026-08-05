@@ -30,8 +30,56 @@ namespace Ledger.Core
         public Dictionary<string, string> Sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public List<string> HardFacts = new List<string>();
 
+        /// OTHER NAMES THIS CHARACTER GOES BY, harvested from the card rather
+        /// than guessed. `ResponseValidator.ReadsAsNarration` needs them and
+        /// `Name` is not enough: Ada's card is headed "# Ada" and contains the
+        /// line "You will call me Mrs Vane or you will call me nothing at all",
+        /// so the model opened a reply with "Mrs Vane looks you over the way
+        /// she'd size up a new face" — third-person narration of herself, using
+        /// a name the guard had never heard of. It sailed through, into the
+        /// transcript, and I reported the fault as fixed.
+        ///
+        /// HARVESTED FROM "call me X" AND NOTHING ELSE. That phrase means
+        /// exactly the thing wanted here — what this person is addressed as —
+        /// and it keeps the list per-character, which is what makes widening
+        /// the guard safe: "Vane" is a self-name on Ada's card only, so Rocco
+        /// saying "Mrs Vane keeps her curtains shut" is still ordinary speech
+        /// about somebody else and still passes.
+        public List<string> AlsoCalled = new List<string>();
+
         public string Section(string name) =>
             Sections.TryGetValue(name, out var v) ? v : "";
+
+        /// Pull "call me Mrs Vane" out of a card line. Stops at the first word
+        /// that is not capitalised or an honorific, so "call me nothing at all"
+        /// in the same sentence yields nothing rather than "Nothing".
+        internal static void HarvestCalledNames(string line, List<string> into)
+        {
+            const string cue = "call me ";
+            int at = 0;
+            while ((at = line.IndexOf(cue, at, StringComparison.OrdinalIgnoreCase)) >= 0)
+            {
+                at += cue.Length;
+                var words = line.Substring(at).Split(new[] { ' ', '"', '\'', ',', '.', '!', '?' },
+                                                     StringSplitOptions.RemoveEmptyEntries);
+                var taken = new List<string>();
+                foreach (var w in words)
+                {
+                    if (w.Length == 0 || !char.IsUpper(w[0])) break;
+                    taken.Add(w);
+                    if (taken.Count == 3) break;   // "Mrs Ada Vane" is the ceiling
+                }
+                if (taken.Count > 0)
+                {
+                    var full = string.Join(" ", taken);
+                    if (!into.Contains(full)) into.Add(full);
+                    // The bare surname too: "Vane looks you over" is the same
+                    // fault with the honorific dropped.
+                    var last = taken[taken.Count - 1];
+                    if (last.Length > 2 && !into.Contains(last)) into.Add(last);
+                }
+            }
+        }
 
         public static CharacterCard Parse(string markdown)
         {
@@ -61,6 +109,10 @@ namespace Ledger.Core
             foreach (var raw in markdown.Replace("\r\n", "\n").Split('\n'))
             {
                 var line = raw;
+                // Every line, whatever section it is in — the one instance in
+                // the shipped cast sits in a quoted speech sample, not in a
+                // field anybody would have thought to look at.
+                HarvestCalledNames(line, card.AlsoCalled);
                 if (line.StartsWith("# ") && card.Name.Length == 0)
                 {
                     card.Name = line.Substring(2).Trim();

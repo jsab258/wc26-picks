@@ -116,7 +116,14 @@ static class Program
                 Console.WriteLine($"  {c.Name,-8} id={c.Id,-8} tier={c.Tier,-8} "
                                   + $"sections={c.Sections.Count} facts={c.HardFacts.Count} "
                                   + $"prompt={prompt.Length} chars "
-                                  + $"lines={(HasSpokenLines(c) ? "yes" : "NO")}");
+                                  + $"lines={(HasSpokenLines(c) ? "yes" : "NO")} "
+                                  // THE NAMES THE NARRATION GUARD WILL HOLD FOR
+                                  // THIS CARD. Printed because the guard failed
+                                  // silently on Ada — it had "Ada" and the model
+                                  // used "Mrs Vane" — and a name set that is
+                                  // empty for the wrong reason looks exactly
+                                  // like one that is empty for the right one.
+                                  + $"alsoCalled=[{string.Join(" ", c.AlsoCalled)}]");
             }
             Console.WriteLine($"ConvoProbe --dry: {cards.Count} card(s), "
                               + $"{Script.Length} scripted turns each = "
@@ -167,6 +174,15 @@ static class Program
                 {
                     reply = await engine.SayToAsync(p.Say, now,
                         "In the bar, after closing, talking with the new owner.");
+                    // THROUGH THE OUTPUT GUARD, because the player never sees
+                    // what `SayToAsync` returns. `ResponseValidator` runs one
+                    // layer out, in `ConversationHost`, and does the deflection,
+                    // the em-dash and curly-quote cleanup and the bare-decimal
+                    // scrub. Without this line the transcript is raw model
+                    // output judged as if it were shipped text — and it was: the
+                    // stage direction I reported as fixed is exactly the thing
+                    // the guard is for, and the guard never saw it here.
+                    reply = ResponseValidator.Validate(reply, card.Name, card.AlsoCalled);
                 }
                 catch (Exception e)
                 {

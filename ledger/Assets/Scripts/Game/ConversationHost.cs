@@ -108,7 +108,7 @@ namespace Ledger.Game
                              "they would question in a room.";
                 var reply = await _engine.SayToAsync(playerInput, _game.Now, scene);
                 // §9: nothing fourth-wall-breaking or essay-length reaches the player.
-                reply = ResponseValidator.Validate(reply, Card.Name);
+                reply = ResponseValidator.Validate(reply, Card.Name, Card.AlsoCalled);
                 // AND THE WIRE EATS SOME OF IT. `Acoustics.AsHeardOnTheLine`
                 // has sat unwired with the note "the phone layer carries calls
                 // but never degrades them" — so a call has been a conversation
