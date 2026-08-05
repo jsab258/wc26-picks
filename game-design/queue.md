@@ -116,42 +116,27 @@ would notice, whatever state anything else is in.
    wrong way, `headingIntoRoad` 10 to 16, which is the corner exemption doing
    what it was told. The mob did not move and the reason is above.
 
-1. **TWO IN FIVE SPEECH BUBBLES LAND ON TOP OF A NEIGHBOUR.** *(on screen)*
+1. **THE BUBBLE STACK'S SCREEN PASS HAS NEVER ONCE RUN.**
 
-   `bubblesMade=156 bubblesAtCeiling=61` on `8f6243f` — 39%, which is not the
-   small residue the stacking comment hoped for. The cap is `MaxLift` 1.8m at
-   `LineLift` 0.45, so exactly four lines, and everything past that is put on
-   top of something.
+   `bubblesScreenLifted=0` on `2d5840f` and 2 on the build before, with
+   `bubblesNoBounds=0` — so the stated uncertainty is closed (a TextMesh built
+   this frame DOES have usable bounds) and the pass is simply inert.
 
-   **And it is NOT the mob.** `huddleTalking=0` at a huddle of 41 says the knot
-   is not a conversation, so these are ordinary street confabs clustering
-   inside the 4m stack radius. Fixing the mob will not fix this.
+   **Two reasons, both in `LiftClearOfScreen`.** It runs once, at the bubble's
+   BIRTH, when nothing has drifted into it yet — overlap develops later as
+   speakers and camera move, and a one-shot test at creation cannot see that.
+   And the loop is gated `_lift < MaxLift`, so it is skipped entirely for the
+   bubbles already at the ceiling, which are precisely the ones it was written
+   for. `NameTags.PinAll` is the shape to copy: do it at the shot, against the
+   camera that renders it.
 
-   **The fix is the one the code's own comment names — a screen-space pass —
-   and the machinery already exists.** `SpeechBubble.Rects` projects every live
-   bubble through `NameTags.ScreenRect`, which is exactly the test a stack
-   wants: two bubbles 4m apart overlap at thirty metres and do not at three,
-   and a world radius cannot express that.
-
-   **The uncertainty is worth stating rather than discovering.** A new bubble
-   has no renderer bounds until its TextMesh has been built, so measuring it in
-   the same frame it is created may read stale or empty bounds. That is a
-   build-verification question, not something to write blind — stage it, print
-   how many lifts the screen test actually changed, and only then delete the
-   world-radius path.
-
-1. **READ WHAT THE ID FIX BOUGHT.** *(CI, next dispatch)*
-
-   `witnessOffered`/`witnessDropped` say whether the crowd can hear at all now:
-   a large offered with a zero dropped is the fix landing. Then `homSaw` beside
-   `homNamed` and `homPressure` — if the twenty-nine can now name the player,
-   pressure goes past `ManhuntAt` and `inquiry` jumps from `Procedure` to
-   `Manhunt`. **That is expected and it is safe** (the staging is after
-   `AuditClosed`), but check `actThree` and `ending` did not move anyway.
-
-   Also landing: `armSide`/`armSideWorst` for the lateral splay,
-   `walkersPrimitiveEver`, `bubblesMade`/`bubblesAtCeiling`,
-   `addressesSetBack`/`addressDriftMedian`, `homWouldTalk`.
+   **BUT THE FAULT HAS RECEDED AND THE RATE IS WHY.** `bubblesAtCeiling` fell
+   61/156 → 15/75 → 5/66, which is 39% → 20% → 7.6%, and `collidingBubbles`
+   91 → 10 → 1. None of that is the fix, which never ran: `bubblesMade` fell
+   with it, because bubbles follow confabs and `confabs` swings 29–74 in this
+   regime. **Read the rate, not the count** — and it is a real fall even so.
+   So this drops down the list: a pass that never runs is rule 6, but it is
+   guarding a residue rather than two in five.
 
 2. **CLOSED — NO SCARECROWS, AND THE RING WAS NOT THE MOB'S CAUSE.**
    `armWidest=54.5` against `armCrowdWidest=53.5` says the widest body is a
