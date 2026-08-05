@@ -4462,7 +4462,7 @@ namespace Ledger.Game
                 foreach (var n in _npcs)
                 {
                     if (n == null || n.DisplayName == "Ellis") continue;
-                    var gg = _game.Gossip.Mill.Get(n.DisplayName);
+                    var gg = _game.Gossip.Mill.Get(n.GossipId);
                     if (gg == null) continue;
                     float d = Vector3.Distance(n.transform.position, _player.transform.position);
                     if (d < pickDist) { pickDist = d; pick = n; pickG = gg; }
@@ -4703,7 +4703,7 @@ namespace Ledger.Game
                         float near2 = float.MaxValue;
                         foreach (var n in _npcs)
                         {
-                            if (n == null || n.DisplayName == o.WitnessId
+                            if (n == null || n.GossipId == o.WitnessId
                                 || n.DisplayName == "Ellis") continue;
                             float d2 = Vector3.Distance(n.transform.position, _player.transform.position);
                             if (d2 < near2) { near2 = d2; expected = n.DisplayName; }
@@ -4842,14 +4842,14 @@ namespace Ledger.Game
             foreach (var n in _npcs)
             {
                 if (n == null || n.DisplayName == "Ellis") continue;
-                var g0 = _game.Gossip.Mill.Get(n.DisplayName);
+                var g0 = _game.Gossip.Mill.Get(n.GossipId);
                 if (g0 == null || g0.Leashed) continue;
                 float d = Vector3.Distance(n.transform.position, _player.transform.position);
                 if (d < best) { best = d; nearest = n; }
             }
             if (nearest == null || best > 3.5f) return;
 
-            var g = _game.Gossip.Mill.Get(nearest.DisplayName);
+            var g = _game.Gossip.Mill.Get(nearest.GossipId);
             double need = 0.85 - g.Suspicion.Value;
             if (need > 0)
                 g.Suspicion.Raise(need,

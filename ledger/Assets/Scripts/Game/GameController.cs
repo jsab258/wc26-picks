@@ -894,7 +894,7 @@ namespace Ledger.Game
             {
                 if (npc == null || npc == _osseiWalker) continue;
                 if (npc.DisplayName == "Noor") continue; // she never shares with police — the whole of her ethics
-                var g = _gossip.Mill.Get(npc.DisplayName);
+                var g = _gossip.Mill.Get(npc.GossipId);
                 if (g == null || g.Leashed) continue; // a leashed witness gives her nothing
                 if (Vector3.Distance(npc.transform.position, _osseiWalker.transform.position) > 6f) continue;
                 foreach (var r in g.Rumors)
@@ -1599,7 +1599,7 @@ namespace Ledger.Game
                 // beside a comment about containment having to "genuinely work
                 // or the choice is fake". `ViolenceHost.WalkerNamed` has the
                 // correct form and is the one that gets used.
-                if (n != null && n.DisplayName == victimId)
+                if (n != null && n.GossipId == victimId)
                 { n.gameObject.SetActive(false); break; }
 
             Homicides.FileWith(_gossip.Mill, k, Now, IsAlive);
@@ -1784,7 +1784,7 @@ namespace Ledger.Game
             foreach (var npc in _npcs)
             {
                 if (npc == null || npc.DisplayName == "Ellis") continue;
-                var g = _gossip.Mill.Get(npc.DisplayName);
+                var g = _gossip.Mill.Get(npc.GossipId);
                 if (g == null || g.Leashed) continue;
                 if (g.Suspicion.Level != SuspicionLevel.Confronting) continue;
                 if (_confrontedDay.TryGetValue(npc.DisplayName, out var d) && d == Now.Day) continue;

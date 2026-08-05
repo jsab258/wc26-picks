@@ -124,7 +124,7 @@ namespace Ledger.Game
                 // paths were producing the victim's view, one of them wrong,
                 // and Phase 3 is what made it visible — nothing before this
                 // ever asked whether a specific place had NO witnesses.
-                if (npc.DisplayName == deed.VictimId) continue;
+                if (npc.GossipId == deed.VictimId) continue;
                 float toEvent = Vector3.Distance(npc.transform.position, victimAt);
                 if (toEvent > ConsiderMetres) continue;
                 Considered++;
@@ -132,7 +132,11 @@ namespace Ledger.Game
                 var eye = npc.transform;
                 var v = new Vantage
                 {
-                    WitnessId = npc.DisplayName,
+                    // THE MILL'S ID, NOT THE NAMEPLATE'S. An observation's
+                    // witness is looked up in the gossip mill by whoever
+                    // receives it, and a crowd body's nameplate is not a key
+                    // the mill has ever held. See `NpcWalker.GossipId`.
+                    WitnessId = npc.GossipId,
                     ToActor = SightTo(eye, actorHead),
                     ToVictim = SightTo(eye, victimHead),
                     Familiarity = familiarityOf != null ? familiarityOf(npc) : 0.0,

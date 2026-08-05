@@ -80,6 +80,10 @@ namespace Ledger.Game
                                           inPublic, reputationForViolence);
             Brandishes++;
             LastThreat = threat;
+            // THE NAME HERE, DELIBERATELY. This one is read back into a log
+            // line and a report a person looks at, not into the mill — the
+            // opposite call from `victimId` below, and worth stating so the
+            // next sweep does not "fix" it.
             LastThreatTarget = target != null ? target.DisplayName : null;
 
             // AND IT IS IN YOUR HAND. Nineteen weapons existed as data with no
@@ -230,7 +234,10 @@ namespace Ledger.Game
                                        System.Func<NpcWalker, double> familiarityOf = null)
         {
             if (actor == null || victim == null) return null;
-            string victimId = victim.DisplayName;
+            // THE MILL'S ID for the same reason the witness ids are: this
+            // flows into `Deed.VictimId`, into `Killing.VictimId`, into
+            // `_deadIds` and `Mill.Forget`, and every one of those is id space.
+            string victimId = victim.GossipId;
             Vector3 victimAt = victim.transform.position;
 
             var deed = Observe.DeedFor(w, eventId, "player", victimId, actorFled, hadPrecursor);
@@ -422,7 +429,7 @@ namespace Ledger.Game
         {
             if (_npcs == null || string.IsNullOrEmpty(id)) return null;
             foreach (var n in _npcs)
-                if (n != null && n.DisplayName == id) return n;
+                if (n != null && n.GossipId == id) return n;
             return null;
         }
 

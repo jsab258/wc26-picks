@@ -68,7 +68,7 @@ namespace Ledger.Game
         public bool HasHeardOfPlayer(NpcWalker w)
         {
             if (w == null || _mill == null) return false;
-            var g = _mill.Get(w.DisplayName);
+            var g = _mill.Get(w.GossipId);
             if (g == null) return false;
             foreach (var r in g.Rumors)
                 if (r != null && r.Content.Subject == "player") return true;
@@ -281,7 +281,7 @@ namespace Ledger.Game
         {
             foreach (var kv in _walkers)
             {
-                var g = kv.Value != null ? _mill.Get(kv.Value.DisplayName) : null;
+                var g = kv.Value != null ? _mill.Get(kv.Value.GossipId) : null;
                 if (g != null) yield return (kv.Value, g);
             }
             if (_game.CrowdBodies != null)

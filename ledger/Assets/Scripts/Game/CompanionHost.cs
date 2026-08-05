@@ -197,7 +197,7 @@ namespace Ledger.Game
             foreach (var o in Witnesses.Last)
             {
                 if (o == null || o.Empty) continue;
-                if (o.WitnessId != Walking.DisplayName) continue;
+                if (o.WitnessId != Walking.GossipId) continue;
                 Current.Saw(eventId);
                 Noted++;
                 return;

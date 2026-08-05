@@ -263,7 +263,14 @@ namespace Ledger.Game
                 // confidently answers a question about the crowd wrongly.
                 if (n.GetComponent<MeshRenderer>() != null) WalkersPrimitive++;
 
-                double cap = Harm.Capability(n.DisplayName, Now.Day);
+                // BY ID, NOT BY NAMEPLATE. `ViolenceHost.Commit` writes
+                // `harm.Inflict(victimId, …)` and `victimId` is the mill's id,
+                // so reading it back under a display name would have hurt one
+                // person and limped a different one — the same id-versus-name
+                // split this whole change is about, arriving in a third book.
+                // The cast are unaffected either way, their id being their
+                // name; it is the crowd that would have been silently missed.
+                double cap = Harm.Capability(n.GossipId, Now.Day);
                 n.Capability = cap;
                 if (cap < HurtEnoughToShow)
                 {
@@ -757,6 +764,13 @@ namespace Ledger.Game
             // mannequins means the number of skinned bodies is the cast size
             // rather than whatever the population happened to be that run.
             realBody: false, crowd: true);
+            // AND WHO THEY ARE TO THE MILL. `EnsureInMill` registers this
+            // person under `r.Id` — `r0000`, `r0001` — while the body above is
+            // spawned with `r.Name`. Every `Mill.Get(walker.DisplayName)` in
+            // the Game layer has therefore returned null for the entire crowd,
+            // and `GossipMill.Witness` drops an unknown witness in silence. See
+            // `NpcWalker.GossipId` for what that cost.
+            walker.SetGossipId(r.Id);
             _crowdWalkers[r.Id] = walker;
             _npcs.Add(walker);
         }

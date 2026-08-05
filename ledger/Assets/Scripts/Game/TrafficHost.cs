@@ -232,7 +232,7 @@ namespace Ledger.Game
             if (mill != null)
                 foreach (var w in _npcs)
                 {
-                    if (w == null || w.DisplayName == s.VictimId) continue;
+                    if (w == null || w.GossipId == s.VictimId) continue;
                     if (Vector3.Distance(w.transform.position, p) > 14f) continue;
                     mill.Witness(w.DisplayName,
                         new Fact("player", $"struck_d{Now.Day}", s.VictimId),

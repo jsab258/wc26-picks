@@ -100,6 +100,43 @@ namespace Ledger.Game
 
         public string DisplayName { get; private set; }
 
+        /// WHO THIS BODY IS TO THE GOSSIP MILL, WHICH IS NOT ALWAYS WHAT IS ON
+        /// ITS NAMEPLATE — and the gap has silently emptied the crowd's memory
+        /// since the crowd existed.
+        ///
+        /// `PopulationHost` registers a crowd resident's mill agent under
+        /// `r.Id`, which `Population.Generate` sets to `r0000`, `r0001`, …, and
+        /// spawns their body with `r.Name`, which is a person's name. Every
+        /// lookup in the Game layer then asked `Mill.Get(walker.DisplayName)`
+        /// and got null for all seven hundred of them.
+        ///
+        /// THE CONSEQUENCE IS THE WHOLE MOAT. `GossipMill.Witness` opens with
+        /// `var w = Get(witnessId); if (w == null) return;` — silently — so a
+        /// crowd member could witness anything at all and carry none of it. The
+        /// first body ever filed measured it: `homSaw=29 homPressure=0.40`,
+        /// twenty-nine people watching a killing and a police pressure of
+        /// exactly `PerBody`, because not one of the twenty-nine was somebody
+        /// the mill had ever heard of. `GossipDirector` has the fault in a
+        /// single line — it iterates `CrowdBodies`, whose KEY is the resident
+        /// id, and looks the value up by `DisplayName`.
+        ///
+        /// This is the id-versus-name fault that `RecordKilling` had six hours
+        /// earlier with `n.name` against `DisplayName`, one system over. The
+        /// grep that was supposed to find the twin looked for `.name ==` and
+        /// could not: this one is spelled `r.Id` against `r.Name`, in a
+        /// different file, at a spawn rather than at a comparison.
+        ///
+        /// `DisplayName` stays what a nameplate shows and a bark says. This is
+        /// what the mill, the register and the observation model are asked.
+        public string GossipId { get; private set; }
+
+        /// Set once by the crowd spawner, which is the only caller that has an
+        /// identity different from the name over the head.
+        public void SetGossipId(string id)
+        {
+            if (!string.IsNullOrEmpty(id)) GossipId = id;
+        }
+
         /// One of the seven hundred rather than one of the cast. Decides
         /// whether the wardrobe may lift this person's coat above the crowd's
         /// value ceiling.
@@ -492,6 +529,10 @@ namespace Ledger.Game
             // first LOD pass grants one within a second if it really is close.
             var npc = go.AddComponent<NpcWalker>();
             npc.DisplayName = name;
+            // WHO THIS PERSON IS TO THE MILL, which for the cast is their name
+            // and for the crowd is NOT. See `GossipId`. Defaulted here so no
+            // existing caller changes and the crowd spawn overrides it.
+            npc.GossipId = name;
             npc.IsCrowd = crowd;
             npc._wantsRealBody = realBody;
             npc._skin = skin;
