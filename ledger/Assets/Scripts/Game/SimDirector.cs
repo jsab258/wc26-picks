@@ -9676,6 +9676,10 @@ namespace Ledger.Game
                       $"lean={CharacterRig.LeanMedian:0.0} " +
                       $"leanWorst={CharacterRig.LeanWorst:0.0} " +
                       $"leanBodies={CharacterRig.LeanBodies} " +
+                      $"leanDriven={CharacterRig.LeanDriven:0.0} " +
+                      $"leanRest={CharacterRig.LeanRest:0.0} " +
+                      $"leanDrivenFrames={CharacterRig.LeanDrivenFrames} " +
+                      $"leanRestFrames={CharacterRig.LeanRestFrames} " +
                       $"armSideMannequin={CharacterRig.ArmSideMannequin:0.0} " +
                       $"armSideSkinned={CharacterRig.ArmSideSkinned:0.0} " +
                       $"armSideMannequinFrames={CharacterRig.ArmSideMannequinFrames} " +

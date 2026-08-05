@@ -702,6 +702,18 @@ namespace Ledger.Game
 
         static readonly List<float> _leanThisFrame = new List<float>();
         static readonly List<float> _leanWorst = new List<float>();
+        static readonly List<float> _leanDrivenFrame = new List<float>();
+        static readonly List<float> _leanRestFrame = new List<float>();
+        static readonly List<float> _leanDrivenWorst = new List<float>();
+        static readonly List<float> _leanRestWorst = new List<float>();
+
+        /// The forward pitch split by whether an Animator is driving the pose.
+        /// See where they are filled: the two are composed by different code
+        /// and only one of them is reset to rest each frame.
+        public static double LeanDriven => MedianOf(_leanDrivenWorst);
+        public static double LeanRest => MedianOf(_leanRestWorst);
+        public static int LeanDrivenFrames => _leanDrivenWorst.Count;
+        public static int LeanRestFrames => _leanRestWorst.Count;
 
         /// The lateral arm angle, split by how the body is built. See the note
         /// where they are filled: a mannequin's swing is provably fore-and-aft
@@ -814,7 +826,39 @@ namespace Ledger.Game
                 float side = ArmSideNow();
                 if (side >= 0f) _armSideThisFrame.Add(side);
                 float lean = LeanNow();
-                if (lean > -900f) { _leanThisFrame.Add(lean); LeanBodies++; }
+                if (lean > -900f)
+                {
+                    _leanThisFrame.Add(lean);
+                    LeanBodies++;
+                    // SPLIT BY WHETHER THE POSE IS DRIVEN, because the lean is
+                    // composed differently for the two and one of them looks
+                    // unbounded.
+                    //
+                    // `lean=36.3` median over 74,410 readings on `e7953a7`, and
+                    // it is not a rest-pose artefact: `Mannequin` puts `Chest`
+                    // at `(0, ChestRise, 0)` from `Hips`, directly above, so a
+                    // body at rest reads zero.
+                    //
+                    // The suspect is the write itself. Every other bone in this
+                    // file composes from a STORED rest — `_chest0 * Euler(...)`
+                    // at the look-at, `rest * Euler(...)` in `Swing` — and the
+                    // lean alone does `_chest.localRotation * Euler(pitch,...)`,
+                    // multiplying into whatever is already there. That is only
+                    // safe if something re-establishes the rest first, and the
+                    // line that does is guarded on `!PoseIsDriven`. So a body
+                    // playing a bought clip never gets reset and the pitch
+                    // compounds every frame; a mannequin does and does not.
+                    //
+                    // NOT FIXED HERE, DELIBERATELY. This is the pose code that
+                    // produced the upside-down player, and the fix has to
+                    // preserve the look-at yaw written just before it — so it
+                    // needs the reading that says whether accumulation is the
+                    // whole of it. If driven bodies read far higher than
+                    // mannequins it is the composition; if both read 36 it is
+                    // the pitch value and a different edit entirely.
+                    if (PoseIsDriven) _leanDrivenFrame.Add(lean);
+                    else _leanRestFrame.Add(lean);
+                }
                 // AND THE SAME LATERAL ANGLE SPLIT BY BODY TIER, because the
                 // two tiers swing an arm through completely different maths and
                 // one number over both cannot say which is splayed.
@@ -948,6 +992,16 @@ namespace Ledger.Game
                     _leanThisFrame.Sort();
                     _leanWorst.Add(_leanThisFrame[_leanThisFrame.Count - 1]);
                 }
+                if (_leanDrivenFrame.Count > 0)
+                {
+                    _leanDrivenFrame.Sort();
+                    _leanDrivenWorst.Add(_leanDrivenFrame[_leanDrivenFrame.Count - 1]);
+                }
+                if (_leanRestFrame.Count > 0)
+                {
+                    _leanRestFrame.Sort();
+                    _leanRestWorst.Add(_leanRestFrame[_leanRestFrame.Count - 1]);
+                }
                 if (_armSideMannequinFrame.Count > 0)
                 {
                     _armSideMannequinFrame.Sort();
@@ -965,6 +1019,8 @@ namespace Ledger.Game
             _crowdArmsThisFrame.Clear();
             _armSideThisFrame.Clear();
             _leanThisFrame.Clear();
+            _leanDrivenFrame.Clear();
+            _leanRestFrame.Clear();
             _armSideMannequinFrame.Clear();
             _armSideSkinnedFrame.Clear();
         }
