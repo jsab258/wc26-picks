@@ -345,6 +345,9 @@ EXPLAINED_ZEROS = {
                        "textured; read bodyKeptMats beside it",
     "groundless": "false is the ASSERTED value — nobody with no grounds "
                   "gets to search you, and the gate requires it",
+    "contradiction": "the FIRST denouncement is kept uncontradicted on "
+                     "purpose; the contradicted branch is blowbackContradiction "
+                     "and reads 0.90 in all 46 runs",
     "playerPrimitive": "false is correct — the player is not a capsule",
     "primitive": "false is correct — see playerPrimitive",
 }

@@ -329,11 +329,22 @@ the reading lands, and every guess made without one tonight was wrong.
      sampled — one brandish can only produce one answer, and it has been
      `FleeScreaming` every time. Plant more than one, at people with different
      nerve, or the other three branches stay theoretical for ever.
-   - **`contradiction=0.00`** — a denouncement has never been contradicted, so
-     the whole contradicted half of `Informing` has never run. `denounced=3`
-     every time and `corroboration=1.00`.
-   - **`companion adds=0 departed=0`** — she is recruited and never leaves and
-     never brings anybody. Two branches, no runs.
+   - **CLOSED — `contradiction=0.00` IS BY DESIGN AND THE BRANCH HAS RUN 46
+     TIMES.** This entry said the contradicted half of `Informing` had never
+     executed. `blowbackContradiction=0.90` and `denounceBlewBack=True` in
+     every one of the 46 runs that carry them. The zero belongs to the FIRST
+     denouncement, which is deliberately left uncontradicted so the probe
+     cannot alter the outcome measured beside it — the reasoning is in
+     `SimDirector` at the staging, and the reason is now in `EXPLAINED_ZEROS`
+     so the tool stops offering it as work. **I was about to plant a condition
+     that has been planted since June**, which is rule 3: when your own
+     analysis says something is missing, open the file.
+   - **`departed=0` ONLY — `adds` READS 10.** This entry said "she is
+     recruited and never leaves and never brings anybody. Two branches, no
+     runs." `companion[with=June recruited=1 departed=0 noted=3 exposure=3
+     adds=10 carriedOut=0]`. `--constant` listed `departed` alone and was
+     right; the prose here added `adds=0` on its own and was wrong for four
+     builds. The live zeros are `departed` and `carriedOut`.
    - **`groundless=False`** — a carry has never been groundless.
    - **`summonsTaken=0` WAS NOT FIXED, AND THE ENTRY SAYING SO STOOD FOR FOUR
      BUILDS.** Nineteen runs carry the key and every one reads 0. The callbox
