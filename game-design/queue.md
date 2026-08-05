@@ -28,34 +28,35 @@ CLAUDE.md under AUTO MODE.
 
 ### WHAT THE LAST THREE BUILDS SETTLED
 
-- **The summons is fixed and its zero is now honest.** `summonsMissWhy` went
-  from "no line was live at that hour" to **"a line was live and he was not
-  near it"** — the world offering the choice rather than never having one.
-  `summonsTaken=0` still, but for a reason a player could have changed.
-- **The reliability rule fired for the first time in 132 runs.**
-  `dropsSkipped=2 reliabilityFiled=1 reliabilityRead=[Slipping after 3]` — the
-  street says the publican is slipping, and no bound was touched.
-- **The two-axis name cap is IN and UNDEMONSTRATED.** Pre- and post-cap worst
-  were both 0.171 — no label this run was wide enough to clamp, where the run
-  before had one at 0.431. **Not a confirmation: a quiet run.**
-- **The STREET is not full of scarecrows, and one body might still be one.**
-  `armCrowdWidest=53.5` is a bent elbow at walking pace, printed off the real
-  `ArmSwing`, and every body with an Animator has a clip whose time is moving —
-  so the median retraction stands. But `armCrowdWidestWorst=76.6` is near
-  ninety and `review_day2_night` has a figure with its arms straight out to
-  both sides. The drop angle measures against straight DOWN and cannot tell
-  forward from sideways; a walk is entirely fore-and-aft and a T-pose entirely
-  lateral. `armSide` was committed AFTER `7c87f38` and lands next build.
-- **THE MOB IS THE CAST'S OWN WAYPOINTS, IN THE ROAD, OUTSIDE THE PUB.**
+- **Settled and closed:** the summons zero is honest (`summonsMissWhy` moved to
+  "a line was live and he was not near it"); the reliability rule fired for the
+  first time in 132 runs (`reliabilityRead=[Slipping after 3]`); the two-axis
+  name cap is IN but undemonstrated — both worsts read 0.171, which is a quiet
+  run rather than a confirmation.
+- **THE ARMS CARRY REAL LATERAL SWING.** `armSide=43.8 armSideWorst=68.5` on
+  `8f6243f` — the first reading that can tell fore-and-aft from sideways, and a
+  walk is entirely fore-and-aft. The median retraction (53.5 is a bent elbow at
+  walking pace) stands; the LATERAL component does not obviously belong to a
+  walk and wants the same treatment `ArmSwing` got — print what the model says
+  a correct walk should give, then compare.
+- **THE MOB IS NOT CONVERSATION, AND MY WAYPOINT COUNT WAS WRONG.**
   `0720f52` at the worst huddle of 41: `huddleTalking=0 huddleDetour=0
   huddleWaiting=0 huddleEscorting=1`. Not conversation, not an obstacle, not
-  the companion rule — four candidates, three killed by one line. And
-  `huddleWhere=-1/-3`, which is ON A ROAD: **seven authored cast waypoints sit
-  inside a six-metre disc centred there and six of them are in a carriageway.**
-  `busiestNear=12` missed it because that probe asks about a TWO-metre radius
-  and the cluster is six metres across — a statistic cannot see a shape it was
-  not cut to fit, and "the plan is innocent" was an honest conclusion from a
-  probe that could not have found this.
+  the companion rule — four candidates, three killed by one line, and that part
+  stands. `huddleWhere=-1/-3`, which IS on a road.
+  **CORRECTED, and I caught it myself before it cost a build.** I first
+  reported "seven authored waypoints inside a six-metre disc, six of them in a
+  carriageway". That grep pulled `new Vector3(x, 0, z)` out of
+  `GameController` without noticing that most of them are OFFSETS added to
+  `WorldBuilder.BarDoor` at `(-6,6)` — so six bar-door offsets were measured as
+  world positions, and they happened to land near the origin where the roads
+  are. Resolved properly: **three waypoints within six metres of the huddle,
+  two of them in a carriageway**, and across the whole cast **11 of 34 in a
+  road, not 14**. The bar door itself is clear.
+  **So the cluster round the pub is authored and correct** — "across from the
+  bar, coat still on", "one drink, loudly" — and it is NOT where the huddle is.
+  What puts 41 bodies at `(-1,-3)` is still open, and `huddleCells` next build
+  says whether the rings are undersized or merely overlapping.
 - **THE ADDRESSES ARE FIXED; THE CAST'S WAYPOINTS ARE NOT.**
   `placeStopsInRoad=31` was printed beside `placeFacesInRoad=22` the whole
   time and is the actual fault — no placement rule fixes an address in the
@@ -135,27 +136,16 @@ the reading lands, and every guess made without one tonight was wrong.
 
 2. **CLOSED — NO SCARECROWS, AND THE RING WAS NOT THE MOB'S CAUSE.**
    `armWidest=54.5` against `armCrowdWidest=53.5` says the widest body is a
-   walker, and printed off `Rig.ArmSwing` a normal walk puts the FOREARM at
-   45.4 degrees at 1.2 m/s, 48.3 at 1.4, 55.1 at 2.0. 53.5 is a person walking
-   briskly with a bent elbow; a T-pose is ninety. `animBodies=6 animDriven=6
-   animAdvancing=6` closes the other half — nothing is frozen in a bind pose,
-   and forty-six of the fifty-two solved bodies are mannequins with no Animator
-   to freeze. The `HangArm` search is closed before it started. **The tail is
-   still open** — `armCrowdWidestWorst=76.6`, and `armSide` is what tells
-   fore-and-aft from lateral.
-
-   The ring: `crowdSpread=0.88` with `busiestPlace=12`, the packing rule firing
-   exactly as computed (`0.45*sqrt(12/pi) = 0.879`), and the huddle moved only
-   41 to 36. The change stands on its own merits — twelve people on an 0.8m
-   ring got 0.42m of arc each and now get 0.46m — but it is not this fault.
-
-   **The generated schedules do not cluster**, measured locally off the real
-   generator with the real seed: 700 residents, 688 distinct home points, 687
-   distinct work points, at most six sharing a point within two metres. The
-   AUTHORED cast waypoints do repeat by hand — `(10,0,-14)` is the market
-   corner for three people — which is what `busiestPlace=12` sees. Neither
-   explains thirty-eight, and `busiestNear=12` has now closed the question: it
-   is the walk. See the settled section.
+   walker, and off the real `Rig.ArmSwing` a normal walk puts the FOREARM at
+   45.4 degrees at 1.2 m/s and 55.1 at 2.0 — so 53.5 is somebody walking
+   briskly with a bent elbow, and a T-pose is ninety. `animBodies=6
+   animDriven=6 animAdvancing=6` closes the other half: nothing is frozen in a
+   bind pose, and forty-six of the fifty-two solved bodies are mannequins with
+   no Animator to freeze. The ring: `crowdSpread=0.88` with `busiestPlace=12`,
+   the packing rule firing exactly as computed, and the huddle moved only 41 to
+   36 — the change stands on its own merits and is not this fault. The
+   generated schedules do not cluster either: 700 residents, 688 distinct home
+   points, at most six sharing a point within two metres.
 
 3. **BOTH DWELL NUMBERS HAVE LANDED, AND THE FIX IS NOT OBVIOUSLY WORTH IT.**
    `bodySpell=5.41` median with `bodySpellShortest=1.00` over 1,143 spells, and
