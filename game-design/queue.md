@@ -121,6 +121,30 @@ the reading lands, and every guess made without one tonight was wrong.
    finding — the number that would settle it is the ring radius beside the
    neighbourhood count, and neither is printed yet.
 
+1. **TWO IN FIVE SPEECH BUBBLES LAND ON TOP OF A NEIGHBOUR.** *(on screen)*
+
+   `bubblesMade=156 bubblesAtCeiling=61` on `8f6243f` — 39%, which is not the
+   small residue the stacking comment hoped for. The cap is `MaxLift` 1.8m at
+   `LineLift` 0.45, so exactly four lines, and everything past that is put on
+   top of something.
+
+   **And it is NOT the mob.** `huddleTalking=0` at a huddle of 41 says the knot
+   is not a conversation, so these are ordinary street confabs clustering
+   inside the 4m stack radius. Fixing the mob will not fix this.
+
+   **The fix is the one the code's own comment names — a screen-space pass —
+   and the machinery already exists.** `SpeechBubble.Rects` projects every live
+   bubble through `NameTags.ScreenRect`, which is exactly the test a stack
+   wants: two bubbles 4m apart overlap at thirty metres and do not at three,
+   and a world radius cannot express that.
+
+   **The uncertainty is worth stating rather than discovering.** A new bubble
+   has no renderer bounds until its TextMesh has been built, so measuring it in
+   the same frame it is created may read stale or empty bounds. That is a
+   build-verification question, not something to write blind — stage it, print
+   how many lifts the screen test actually changed, and only then delete the
+   world-radius path.
+
 1. **READ WHAT THE ID FIX BOUGHT.** *(CI, next dispatch)*
 
    `witnessOffered`/`witnessDropped` say whether the crowd can hear at all now:
@@ -147,25 +171,15 @@ the reading lands, and every guess made without one tonight was wrong.
    generated schedules do not cluster either: 700 residents, 688 distinct home
    points, at most six sharing a point within two metres.
 
-3. **BOTH DWELL NUMBERS HAVE LANDED, AND THE FIX IS NOT OBVIOUSLY WORTH IT.**
-   `bodySpell=5.41` median with `bodySpellShortest=1.00` over 1,143 spells, and
-   the perf split says `bodyLod=2.59ms` against `population=1.31ms` — the LOD
-   pass costs twice the reband it was hiding inside, about 9ms per pass at 465
-   passes a run, and 1,157 prefab instantiates is what it is spending it on.
-
-   **A dwell time is now derivable rather than invented.** `Populace.BandSlack`
-   is six metres of hysteresis and `crowdSpeed=1.28` is what the street walks
-   at, so the band's own distance is 4.7 SECONDS — and the measured median
-   spell is 5.41. Two independent routes to the same number, which is the
-   strongest evidence this project ever gets for a constant.
-
-   **AND IT HAS A REAL COST, WHICH IS WHY IT IS NOT DONE.** The budget is
-   twelve bodies and the whole point of spending it by distance is that "the
-   person in front of you is the one wearing a face". A dwell holds a slot for
-   somebody who has walked away while somebody nearer waits — so it trades a
-   visible fault for an invisible saving, on a frame gate whose milliseconds
-   are known to track the runner rather than the game. **Decide it against
-   `gameShare`, which is stable at 2.6-3.4%, not against the ms.**
+3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
+   `bodySpell=5.41` median over 1,143 spells against a derivable 4.7s
+   (`BandSlack`/`crowdSpeed`), and the perf split says `bodyLod=2.59ms` against
+   `population=1.31ms` — the LOD pass costs twice the reband it was hiding
+   inside, spending it on 1,157 prefab instantiates. **Decide against
+   `gameShare`, not against milliseconds:** the frame gate reads
+   `gameShare=3.43%` with `render+rest=458ms` on a software-rendering runner,
+   so a 1ms saving is noise there and would be real on a player's machine.
+   That is the whole difficulty and it is why this has not been done.
 
 4. **`nameShownWidthWorst` DECIDES TWO THINGS, AND THE SECOND IS THE BUBBLE
    BUG'S TWIN.** *(CI)* `nameWidthWorst=0.424` on "Wendell Dujmovic" is PRE-cap;
@@ -188,23 +202,21 @@ the reading lands, and every guess made without one tonight was wrong.
    a twin on the strength of it being a twin — which is right often enough to
    be dangerous.
 
-5. **`placeFacesInRoad` / `placeFacesInLane` DECIDE THE SETBACK FIX.** *(CI)*
-   All eight pieces of clutter in a carriageway belong to registered places,
-   which are set back from an authored map coordinate while block buildings are
-   inset from a kerb. Moving buildings re-baselines `massInRoad`, the places
-   gate and every framing shot, so it happens off the reading and not off a
-   still.
+5. **CLOSED — THE SETBACK FIX WAS THE ADDRESSES, NOT THE BUILDINGS.**
+   `placeStopsInRoad` 31 to 3 and `placeFacesInRoad` 22 to 3 on `8f6243f`, with
+   corners then exempted so the residue is exactly the crossings and gates that
+   belong in a right of way. Nothing about the block-inset rule had to change.
 
 6. **THE FRAME GATE'S BIGGEST ITEM IS NOW TWO NUMBERS.** *(CI)* `population=
    4.08ms` covered a pass that runs every frame and one that runs once a
-   second. Read `population` and `bodyLod` apart before touching either.
+   second; read apart they are 1.31ms and 2.59ms. Neither is worth touching
+   while `render+rest` is 458ms on a software runner — see item 3.
 
-7. **THE SECOND DROP MISS HAS NO EXPLANATION YET.**
-   `d13:MISSED[from=16m nearest=6.9m walked=10.0m held:job=19]` — ten of
-   sixteen metres covered, steered the whole window, stalled seven metres out.
-   The first miss was the waypoint's own collider and is fixed. No obstacle
-   explains this one, and the trace has no reading that can say what does.
-   **A new column is the next move, not a mechanism.**
+7. **CLOSED — THE TWO DROP MISSES ARE TWO FAULTS.** d12 never stopped and lost
+   its target to a waypoint for eight of fifteen ticks; d13 held the target all
+   nineteen, was never hurt, and stood dead still for thirteen of them.
+   `stalledWith` counts who was standing on him at that instant and lands next
+   build: the mob is the suspect, and a zero anywhere else means geometry.
 
 8. **KEEP RETIRING THE REACH LEDGER — 35 entries**, `StreetMap.OnStreet` off it
    tonight because the place-setback question needed exactly the wider
@@ -323,24 +335,7 @@ the reading lands, and every guess made without one tonight was wrong.
 
 ## Done, kept here only until the next tidy
 
-**Trimmed 4 Aug late, because this file crossed its own 400-line bound and the
-history is what pushed it over.** Done work is in the git log; this file records
-what is NEXT. What stays here is only the handful a reader needs so they do not
-re-open a closed question.
-
-- **There are no scarecrows** — 53.5 degrees is a bent elbow at walking pace,
-  measured off `Rig.ArmSwing`, and `animAdvancing` says nothing is frozen.
-- **The night skyline is occupancy**, shopfronts follow opening hours, and the
-  wash is anchored per material — trousers that were bright yellow are olive.
-- **The limp reaches the street**: five named people used it, and the pose limp
-  is the same size as the audio one for the first time.
-- **A public callbox is reachable** — the flag was set on three lines, saved,
-  restored, and read by nothing, which cost the rival's summons entirely.
-- **The drop marker is not solid any more**; it was a box you walked into and
-  stopped against, thirty centimetres outside its own completion radius.
-- Build, cadence, loop phase, head size and breadth all reach the bought
-  bodies; the pub's corner is in Hook Street; the upside-down player, the
-  nameplate algorithm and the rest days are closed and stay closed.
+Cleared 5 August — the git log is the record.
 
 ## How to keep this file honest
 
