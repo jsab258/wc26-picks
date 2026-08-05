@@ -180,26 +180,15 @@ the reading lands, and every guess made without one tonight was wrong.
    so a 1ms saving is noise there and would be real on a player's machine.
    That is the whole difficulty and it is why this has not been done.
 
-4. **`nameShownWidthWorst` DECIDES TWO THINGS, AND THE SECOND IS THE BUBBLE
-   BUG'S TWIN.** *(CI)* `nameWidthWorst=0.424` on "Wendell Dujmovic" is PRE-cap;
-   the post-cap twin was computed and never printed, and it is now. `PinFrac`
-   bounds HEIGHT, and `NameTags`' own comment says a bound on one axis of a
-   two-axis object is not a bound.
-
-   **AND IT ALSO TESTS WHETHER NAMEPLATES ARE STALE AT THE SHOT.** The bubble
-   cap turned out to be applied a frame LATE — `LateUpdate` pins against
-   wherever the camera was last, and `SimDirector.Shot` moves a camera and
-   renders by hand inside `Update`, so `bubbleFracPreCap=0.659` sat beside
-   `worstBubbleFrac=1.245`. `NameTags.Resolve` pins on exactly the same
-   schedule, from `Camera.main`, in the frame before. `Billboard` re-aims at
-   the shot and `SpeechBubble` now re-pins there; names are the third site of
-   that idea and the only one still unfixed.
-
-   **NOT FIXED BLIND, DELIBERATELY.** A post-cap width above what `PinFrac`
-   allows is the staleness proving itself, exactly as it did for bubbles, and
-   that number lands in the next build. Shipping the re-pin now would be fixing
-   a twin on the strength of it being a twin — which is right often enough to
-   be dangerous.
+4. **CLOSED — THE NAMEPLATE CAP WAS APPLIED AGAINST THE WRONG CAMERA.**
+   `nameShownWidthWorst=0.171` is the POST-cap width against a `PinFrac` of
+   0.120 — a label that went through the clamp and came out forty per cent
+   wider than the clamp allows. `Resolve` pins from `Camera.main` on the
+   ordinary schedule while `SimDirector.Shot` moves a camera and renders by
+   hand inside `Update`, so every label in a still was sized against last
+   frame's camera. `NameTags.PinAll` re-pins at the shot, the third site of an
+   idea `Billboard` and `SpeechBubble` already fixed. `namesPinnedAtShot` says
+   whether it ran.
 
 5. **CLOSED — THE SETBACK FIX WAS THE ADDRESSES, NOT THE BUILDINGS.**
    `placeStopsInRoad` 31 to 3 and `placeFacesInRoad` 22 to 3 on `8f6243f`, with
