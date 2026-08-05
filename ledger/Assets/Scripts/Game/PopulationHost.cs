@@ -362,12 +362,37 @@ namespace Ledger.Game
             // O(n squared) over the tick list, once a second, on fifty walkers
             // — two and a half thousand distance tests a second, which is
             // nothing beside the prefab instantiates this same pass makes.
+            // AND HOW MANY OF THOSE TARGETS ARE IN A CARRIAGEWAY, which is the
+            // same fault as the addresses in a dataset the fix cannot reach.
+            //
+            // `StreetMap.SetPlacesBackFromRoads` moved 32 of `HookMap`'s
+            // coordinates onto pavements. The CAST's waypoints are Game-layer
+            // literals in `GameController` and were never in scope: measured
+            // against the road graph, 14 of the 34 distinct ones stand in a
+            // carriageway. So people are walking to the middle of the road and
+            // standing there, and the frames show exactly that.
+            //
+            // COUNTED HERE RATHER THAN OFF THE LITERALS, because this pass sees
+            // the target every walker is ACTUALLY heading for — generated
+            // residents included — and a grep over `new Vector3(...)` sees the
+            // thirty-four somebody typed. The denominator is the walker count
+            // in the same pass, so a zero cannot be a pass that walked nobody.
+            //
+            // SOME OF THEM ARE RIGHT. `crossing` is at (0,-8) and a crossing IS
+            // in the road; the cluster around the origin is the pub door on
+            // Hook Street. This is a reading, not a gate — the fix is a
+            // decision about which of the fourteen are deliberate, and that
+            // wants a person.
+            WalkersHeadingIntoRoad = 0;
+            WalkersHeadingCounted = 0;
             int busiestNear = 0;
             for (int i = 0; i < _npcs.Count; i++)
             {
                 var a = _npcs[i];
                 if (a == null) continue;
                 var pa = a.PlaceFor(Now);
+                WalkersHeadingCounted++;
+                if (Ledger.Core.StreetMap.OnRoad(pa.x, pa.z)) WalkersHeadingIntoRoad++;
                 int alongside = 0;
                 for (int j = 0; j < _npcs.Count; j++)
                 {
@@ -541,6 +566,13 @@ namespace Ledger.Game
         /// metres of another. Read against `busiestPlace`: much larger means
         /// the schedules cluster without sharing a cell.
         public static int BusiestNear;
+
+        /// How many walkers are heading for a point in a CARRIAGEWAY, and how
+        /// many were asked. Last-wins per pass on purpose — it is "where is the
+        /// street sending people right now", and the answer changes with the
+        /// hour, so a peak over fifteen days would describe one moment of one
+        /// day and read like a description of the city.
+        public static int WalkersHeadingIntoRoad, WalkersHeadingCounted;
 
         /// A metre grid, so a centimetre of float drift does not turn one place
         /// into two. Y is dropped: people sharing a spot on a kerb and a step
