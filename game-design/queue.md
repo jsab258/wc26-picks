@@ -224,40 +224,37 @@ the reading lands, and every guess made without one tonight was wrong.
    surface to choose one. **It must not be randomised** — CI determinism
    depends on it — so this is a surface, not a change to the default.
 
-11. **THREE KILLINGS, CERTAINTY 1.00, AND THE LAW NEVER ASKED.**
-   `killings[acts=4 killings=3 confidence=1.00]` with `notoriety=0.868`,
-   `denounced=3` — and `inquiry=None` on the done line. The detective never
-   opened an investigation into the player in fifteen days.
+11. **THE LAW NOW ASKS, AND IT STOPS AT THE FIRST STAGE.**
+   `inquiry` reads **Procedure** in the four newest runs and **None** in the
+   sixty-three before them, changing exactly once, at `0720f52`. That is the
+   `AuditClosed` staging landing and holding — not a lucky run — and it is the
+   first movement in the whole recorded history of the key.
 
-   That explains `pressNamed=0` completely and correctly: `Press.Print` names
-   you only at `law >= Inquiry.Investigation`, and its own comment argues at
-   length for using the STAGE rather than a pressure aggregate, because half a
-   manhunt is not "somebody would say it to a detective". The paper is right.
-   Nothing is broken here.
+   **The old text under this number said the law had NEVER asked, sixty for
+   sixty.** True when written and false the moment the staging landed, which is
+   comment decay in a document rather than in code. It stood for four builds
+   because `gates --series inquiry` answered *"no landed run carries that
+   name"* — the tool matched numbers only, so every categorical value in the
+   verdict was unreadable and its refusal read as a spelling mistake. Fixed
+   5 August; the series is what corrected this entry.
 
-   **What is open is whether the inquiry can rise at all.** Two readings are
-   consistent with `inquiry=None`: the street knowing and the law asking being
-   deliberately different — which is the information pillar and the moat — or
-   nothing driving the stage upward. `redirected=1 pointedAt=kest
-   redirectRelief=0.00` says the redirect ran against a pressure that was
-   already nothing.
+   **What is open now is the SECOND stage, and it is one number.** `homSaw=29
+   homWouldTalk=7 homNamed=0`: twenty-nine people saw a killing, seven would
+   talk to a detective, and not one can put a name to it — so `homPressure`
+   sits at 0.40 and cannot reach `ManhuntAt`. `pressNamed=0` is still correct
+   and still not a fault: `Press.Print` names you at
+   `law >= Inquiry.Investigation` and the stage is one below it.
+   `redirected=1 pointedAt=kest redirectRelief=0.00` is the same story — the
+   redirect relieves a pressure that has not been built.
 
-   **AND SIXTY KEPT RUNS SAY IT NEVER HAS.** Every `inquiry=` in every verdict
-   under `sim-shots/runs/` reads `None` — sixty for sixty, no exceptions. So
-   this is not "the law was quiet this time": no run in the recorded history of
-   this project has ever entered the stage, and everything gated on
-   `Inquiry.Investigation` has therefore never been exercised — the paper
-   naming you, the redirect having something to relieve, and whatever else
-   reads that stage.
+   **`homSawStored`/`homHoldsIt` are in flight and split it three ways:**
+   stored=0 means the register never took the witness list, stored=29 with
+   holds=0 means `FileWith` is not writing, and holds=29 with named=0 means the
+   confidence bar. Different afternoons, one reading.
 
-   **This is rule 5b's corollary aimed at a READING rather than a gate**: a
-   number whose subject never occurs reads zero forever and looks like
-   coverage, and the pattern is only visible ACROSS runs — which is exactly
-   what `tools/gates.py --flaky` was built for and why it corrected me within a
-   minute of being written. Start it at the top of a turn; it means reading
-   `HomicideBook` and `EvidenceHost.InquiryOf` properly, and the answer is
-   either "the stage needs a driver" or "the sim needs to plant the
-   condition", which are different afternoons.
+   **And `pointedAt=kest` in all 67 runs** — the redirect has never once
+   pointed at anybody else. Staged, so probably honest, but it is the shape of
+   a branch nobody has sampled and it belongs in item 12's list.
 
 12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
    Sixty keys have never been anything but zero across 131 runs. Most are fault

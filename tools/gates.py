@@ -144,12 +144,12 @@ def series(key):
     reader looking at the series sees it immediately.
     """
     runs = ordered_runs()
-    pat = re.compile(r"\b" + re.escape(key) + r"=(" + NUMBER + r")\b")
+    pat = re.compile(r"(?<![\w])" + re.escape(key) + r"=([^\s\[\(]+)")
     hits = []
     for sha, path in runs:
         m = pat.search(read(path))
         if m:
-            hits.append((sha, float(m.group(1))))
+            hits.append((sha, m.group(1)))
 
     if not hits:
         print(f"gates --series {key}: no landed run carries that name.")
@@ -157,7 +157,23 @@ def series(key):
         print("  number may never have reached the verdict — see tools/verdict-reach.py.")
         return 1
 
-    xs = [v for _, v in hits]
+    # A VALUE THAT IS A WORD IS STILL A SERIES, and refusing it was the tool
+    # doing the exact thing it exists to prevent. Until 5 August this matched
+    # NUMBER only, so `--series inquiry` — the single most important series in
+    # the project, the law's stage across every run ever kept — answered "no
+    # landed run carries that name". That sentence is false and it is the
+    # expensive kind of false: it reads as a spelling mistake or a number that
+    # never reached the verdict, which is what I went looking for. Rule 3b in
+    # the instrument's own voice — an absence dressed as a finding.
+    #
+    # And the categorical keys are where a series pays best, because the thing
+    # a word series shows is the REGIME CHANGE, which the numeric path's own
+    # closing paragraph says no statistic can see. `inquiry` is None for sixty
+    # runs and then Procedure, and that transition IS the reading.
+    try:
+        xs = [float(v) for _, v in hits]
+    except ValueError:
+        return words(key, hits)
     print(f"{key}: {len(xs)} landed run(s), newest first")
     print()
     print("  " + "  ".join(f"{v:g}" for v in xs))
@@ -189,6 +205,57 @@ def series(key):
     print("  `confabs` is the live example: 1-13 under the old flat-road rule and")
     print("  29-74 under the junction one, for an all-time median belonging to")
     print("  neither. No statistic can see that break. The series makes it obvious.")
+    return 0
+
+
+def words(key, hits):
+    """The series of a verdict value that is a word rather than a number.
+
+    A median of `None, None, Procedure` is not a thing, so the summary here is
+    the one a word series actually supports: how many runs said each value, and
+    WHERE IT CHANGED. The transition is the whole reading — `inquiry` sat on
+    None for sixty runs and the four Procedures are every time the law has ever
+    opened a case, which is a fact about four specific commits and not about a
+    distribution.
+
+    The transitions are printed newest-first like the series, and each one names
+    the run where the NEW value first appears reading backwards, so the sha is
+    the commit to go and read.
+    """
+    vals = [v for _, v in hits]
+    print(f"{key}: {len(vals)} landed run(s), newest first")
+    print()
+    print("  " + "  ".join(vals))
+    print()
+    print(f"  newest {vals[0]}   ({hits[0][0]})")
+
+    tally = {}
+    for v in vals:
+        tally[v] = tally.get(v, 0) + 1
+    order = sorted(tally.items(), key=lambda kv: (-kv[1], kv[0]))
+    print("  seen:  " + "   ".join(f"{v} x{n}" for v, n in order))
+
+    # NEWEST-FIRST, so hits[i] is LATER than hits[i+1] and a difference between
+    # them is a change that happened AT hits[i].
+    changes = [(hits[i][0], hits[i + 1][1], hits[i][1])
+               for i in range(len(hits) - 1) if hits[i][1] != hits[i + 1][1]]
+    print()
+    if not changes:
+        print(f"  NEVER CHANGED across all {len(vals)} runs — every one says {vals[0]}.")
+        print("  A value that has only ever been one thing is rule 5b's corollary")
+        print("  aimed at a reading: whatever is gated on the OTHER values has")
+        print("  never executed. See --constant.")
+    else:
+        print(f"  changed {len(changes)} time(s), newest first:")
+        for sha, was, now in changes[:12]:
+            print(f"    {sha}  {was} -> {now}")
+        if len(changes) > 12:
+            print(f"    (+{len(changes) - 12} older changes not shown)")
+        print()
+        print("  READ THE SERIES, NOT THE TALLY. A count of each value says nothing")
+        print("  about when the test changed underneath it, and for a word that is")
+        print("  usually the only question — a value that appears four times in the")
+        print("  four newest runs is a new capability, not a one-in-thirty event.")
     return 0
 
 
