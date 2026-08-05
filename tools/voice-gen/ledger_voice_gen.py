@@ -49,6 +49,7 @@ so the first thing anybody hears is whether the bands are distinguishable at
 all. That is the measurement, named and deferred rather than skipped.
 """
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -237,8 +238,20 @@ def cmd_plan(args):
             print(f"    {DIRECTION.get(slot['id'], '  ?'):>5}  {slot['id']:<34} {brief}")
         print()
 
-    have = sum(1 for j in jobs if (args.out / j["file"]).exists()) if args.out.exists() else 0
-    print(f"  already rendered     {have} of {len(jobs)}   (a re-run renders {len(jobs) - have})")
+    stamps = load_stamps(args.out)
+    st = {}
+    for j in jobs:
+        k = state_of(j, args.out, stamps)
+        st[k] = st.get(k, 0) + 1
+    print(f"  on disk and correct  {st.get('fresh', 0)}")
+    if st.get("stale"):
+        print(f"  STALE                {st['stale']} — the text, voice or direction "
+              f"changed since these were made; they WILL be re-rendered")
+    if st.get("unknown"):
+        print(f"  unknown provenance   {st['unknown']} — rendered before the ledger "
+              f"existed, so nothing says what they were made from; re-rendered")
+    print(f"  to render            {st.get('missing', 0) + st.get('stale', 0) + st.get('unknown', 0)}"
+          f" of {len(jobs)}")
     return 1 if missing else 0
 
 
@@ -362,6 +375,28 @@ def cmd_selftest(args):
         check(all(len(v) == k for v in per_line.values()),
               f"every line gets {k} DISTINCT voices, never the same one twice")
 
+    # THE FOUR RESUME STATES, on real files in a temp directory, because this
+    # is the check that would have let five corrupted clips ship. Rule 5b: the
+    # accepting case (fresh) is asserted alongside the rejecting ones.
+    import tempfile, shutil
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        j = plan(atomic, pair, 1)[0]
+        check(state_of(j, tmp, {}) == "missing", "a clip that is not there is 'missing'")
+        (tmp / j["file"]).write_bytes(b"x")
+        check(state_of(j, tmp, {}) == "unknown",
+              "a clip with no ledger entry is 'unknown', not assumed good")
+        st = {j["file"]: stamp(j)}
+        check(state_of(j, tmp, st) == "fresh", "a clip matching its ledger is 'fresh'")
+        moved = dict(j); moved["line"] = j["line"] + " and then some"
+        check(state_of(moved, tmp, st) == "stale", "changing the TEXT makes it 'stale'")
+        redir = dict(j); redir["exaggeration"] = 0.99
+        check(state_of(redir, tmp, st) == "stale", "changing the DIRECTION makes it 'stale'")
+        othervoice = dict(j); othervoice["voice"] = "crowd_m3"
+        check(stamp(othervoice) != stamp(j), "the voice is part of what a clip was made from")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
     # THE REFERENCE CLIPS THE RENDER WILL NEED. A denominator, rule 3b: "0
     # missing" and "nothing was checked" must not print the same way.
     want = set(CROWD)
@@ -385,17 +420,68 @@ def cmd_selftest(args):
     return 0 if not fails else 1
 
 
-def render_one(job, out_dir, model):
+def stamp(job):
+    """What this clip was rendered FROM. Text, voice and direction — change any
+    of the three and the wave on disk is wrong."""
+    key = f"{job['line']}\x00{job['voice']}\x00{job['exaggeration']}"
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+def load_stamps(out_dir):
+    f = out_dir / "rendered.json"
+    if not f.exists():
+        return {}
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except ValueError:
+        return {}
+
+
+def save_stamps(out_dir, stamps):
+    (out_dir / "rendered.json").write_text(
+        json.dumps(stamps, indent=1, sort_keys=True), encoding="utf-8")
+
+
+def state_of(job, out_dir, stamps):
+    """fresh / stale / unknown / missing — and the middle two are the point.
+
+    THE FIRST VERSION SKIPPED ON THE FILENAME ALONE, and the filename is
+    `{slot}.{index}.{voice}.wav`, which says nothing about the words. So when
+    the em-dash encoding bug was fixed and the bark text changed, the clips
+    already on disk kept their names, kept being skipped, and would have
+    SHIPPED with `â€"` spoken into them. Jafar's second rate run rendered five
+    lines instead of twenty for exactly this reason and the five it skipped
+    were the corrupted ones.
+
+    That is CLAUDE.md rule 5 in its purest form: a resume that cannot tell
+    "already correct" from "already wrong" is not a resume, it is a way to
+    make a bad artefact permanent. So what a clip was rendered from is written
+    down beside it, and anything that disagrees is re-rendered.
+
+    `unknown` is its own state rather than being folded into `stale`, because
+    a clip with no record is not evidence of anything — it predates the
+    ledger — and saying so is the difference between a fact and a guess.
+    """
+    if not (out_dir / job["file"]).exists():
+        return "missing"
+    had = stamps.get(job["file"])
+    if had is None:
+        return "unknown"
+    return "fresh" if had == stamp(job) else "stale"
+
+
+def render_one(job, out_dir, model, stamps):
     """One line to one file. Returns seconds taken, or None if skipped."""
-    dest = out_dir / job["file"]
-    if dest.exists():
+    if state_of(job, out_dir, stamps) == "fresh":
         return None
+    dest = out_dir / job["file"]
     t0 = time.time()
     wav = model.generate(job["line"],
                          audio_prompt_path=str(job["ref"]),
                          exaggeration=job["exaggeration"])
     import torchaudio  # noqa: F401  — only ever imported on a real render
     torchaudio.save(str(dest), wav, model.sr)
+    stamps[job["file"]] = stamp(job)
     return time.time() - t0
 
 
@@ -472,17 +558,26 @@ def cmd_rate(args):
               f"one per direction band, {sorted(by_dir)}")
         return 2
 
+    stamps = load_stamps(args.out)
     args.out.mkdir(parents=True, exist_ok=True)
     series = []
     for j in sample:
-        took = render_one(j, args.out, model)
+        took = render_one(j, args.out, model, stamps)
         if took is not None:
             series.append(took)
             print(f"  {took:6.2f}s  ex={j['exaggeration']}  {j['slot']}  {j['line'][:52]}")
 
+    save_stamps(args.out, stamps)
     if not series:
-        print("voice-gen --rate: every sampled line already existed. Nothing measured.")
+        print("voice-gen --rate: every sampled line was already correct on disk. "
+              "Nothing measured — delete the folder to force a fresh timing.")
         return 0
+    # HOW MANY IT ACTUALLY DID, because the banner promised twenty and Jafar's
+    # second run rendered five. A sample size is part of the statistic and
+    # nothing in the old output said what it was.
+    if len(series) < len(sample):
+        print(f"\n  NOTE: {len(series)} of {len(sample)} sampled lines were rendered; "
+              f"the rest were already correct on disk.")
 
     ordered = sorted(series)
     med = ordered[len(ordered) // 2]
@@ -544,7 +639,7 @@ def cmd_all(args):
 
     done, series = 0, []
     for n, j in enumerate(jobs, 1):
-        took = render_one(j, args.out, model)
+        took = render_one(j, args.out, model, stamps)
         if took is not None:
             done += 1
             series.append(took)
