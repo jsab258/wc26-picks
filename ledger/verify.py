@@ -527,6 +527,29 @@ def slop():
 SLOP_CEILING = 93
 
 
+def voice_live():
+    """The live-dialogue probe's own checks, run on every commit.
+
+    It cannot answer its question here — that needs a GPU and a stranger's
+    hardware is the whole point — so what gets checked is everything that
+    DECIDES the answer: that every backend is probed and reports why it is
+    missing rather than throwing, that the listening page gives a failed
+    route an honest "nothing rendered" instead of a dead player, and that a
+    real bark is found to compare against.
+
+    Wired in because the last tool whose GPU path went unrun shipped with a
+    NameError on its working line and cost Jafar a two-hour batch he had
+    already started."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "voice-live" / "probe.py"),
+                     "--selftest"])
+    m = re.search(r"(\d+) checks", out)
+    n = m.group(1) if m else "0"
+    if code == 0:
+        return True, "voice-live ok (%s checks)" % n
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "VOICE LIVE: " + (bad[0][:90] if bad else "did not report")
+
+
 def voice_gen():
     """M17.2: the bark renderer's own self-test, run on every commit.
 
@@ -816,7 +839,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, slop,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
