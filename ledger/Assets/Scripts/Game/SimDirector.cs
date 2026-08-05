@@ -1897,6 +1897,7 @@ namespace Ledger.Game
                       // the declutter is fine.
                       + $" namesManagedSeen={_namesManagedSeen}"
                       + $" namesManagedCulled={_namesManagedCulled}"
+                      + $" textPersonLabels={_textPersonLabels}"
                       + $" textNoRect={_textNoRect}");
         }
 
@@ -2822,7 +2823,7 @@ namespace Ledger.Game
             // line that makes it, so the next verdict names the gate rather
             // than leaving it to be deduced.
             int walked = 0, noText = 0, invisible = 0, noRect = 0;
-            int managedSeen = 0, managedCulled = 0;
+            int managedSeen = 0, managedCulled = 0, personLabels = 0;
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 walked++;
@@ -2853,6 +2854,25 @@ namespace Ledger.Game
                 // reading an empty bucket cannot go red however bad the frame.
                 bool managed = NameTags.Manages(t);
                 if (managed) managedSeen++;
+                // AND WHETHER IT IS A PERSON'S LABEL AT ALL.
+                //
+                // `namesManagedSeen=0` across 405 walked meshes, with the cull
+                // innocent at `namesManagedCulled=0` — so `Manages` recognised
+                // nothing. Two readings survive that and they are miles apart:
+                // either the managed set genuinely does not contain these
+                // objects, or NO WALKER LABEL WAS PRESENT when this ran, in
+                // which case the 405 are street plates and bubbles and the
+                // measurement has simply never coincided with the frames that
+                // show names in a heap.
+                //
+                // `FindObjectsByType` skips inactive objects and a walker
+                // deactivates its label out of range, so the second reading is
+                // entirely possible and nothing here could see it. Owned by an
+                // `NpcWalker` is the test — the same discriminator the lean
+                // owner uses — and `textPersonLabels=0` beside `walked=405`
+                // means this loop and the still are looking at different
+                // moments, which is a different fault from a broken set.
+                if (t.GetComponentInParent<NpcWalker>() != null) personLabels++;
                 var r = t.GetComponent<Renderer>();
                 if (r == null || !InView(cam, r)) { invisible++; if (managed) managedCulled++; continue; }
                 // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
@@ -3007,6 +3027,7 @@ namespace Ledger.Game
                 _namesManagedSeen = managedSeen;
                 _namesManagedCulled = managedCulled;
             }
+            if (personLabels > _textPersonLabels) _textPersonLabels = personLabels;
             int projected = boxes.Count + other.Count + bubbles.Count;
             if (projected > _textProjected) _textProjected = projected;
             // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
@@ -3158,6 +3179,11 @@ namespace Ledger.Game
         /// are assigned. `-1` is "the walk never ran", which is a third answer
         /// neither zero can give.
         int _namesManagedSeen = -1, _namesManagedCulled = -1;
+
+        /// Walked TextMeshes owned by a walker — a person's name rather than a
+        /// street plate or a bubble. The denominator `namesManagedSeen` needs
+        /// before a zero there can mean anything.
+        int _textPersonLabels = -1;
         /// The three rejections, so `walked` and `projected` add up. A gap
         /// between two counts with nothing naming it is an invitation to guess,
         /// and the last three readings of this metric were guesses.
