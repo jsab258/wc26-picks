@@ -371,11 +371,24 @@ namespace Ledger.Game
                     foreach (var other in placed)
                         if (mine.Overlaps(other)) { hit = true; break; }
                     if (!hit) { placed.Add(mine); break; }
-                    // PAST `MaxLift` DELIBERATELY. That ceiling exists so a
-                    // bubble does not float away from the person saying it on
-                    // an ordinary frame; here the alternative is two lines of
-                    // dialogue printed through each other, which is worse and
-                    // is what the stills keep showing.
+                    // PAST `MaxLift` DELIBERATELY, BUT BOUNDED — AND IT MUST
+                    // NOT LEAK INTO THE NEXT FRAME.
+                    //
+                    // The ceiling exists so a bubble does not float away from
+                    // the person saying it on an ordinary frame; in a committed
+                    // still the alternative is two lines of dialogue printed
+                    // through each other, which is worse. So the shot is
+                    // allowed twice the ordinary ceiling and no more.
+                    //
+                    // The leak is the part worth writing down, because I wrote
+                    // this an hour ago without it: `_lift` persists after the
+                    // shot, and `StackHeightNear` places every NEW bubble above
+                    // its neighbours' `_lift` — so one shot-raised bubble would
+                    // push the next one higher, and that one the next, until
+                    // they expire. A still is one frame and its lift must not
+                    // outlive it, which `StackHeightNear` now enforces by
+                    // clamping what it reads.
+                    if (b._lift >= MaxLift * 2f) break;
                     b._lift += LineLift;
                     b.transform.position =
                         b._follow.position + Vector3.up * (2.05f + b._lift);
@@ -472,7 +485,14 @@ namespace Ledger.Game
                 // counting heads: two bubbles that already stacked leave a gap
                 // at the bottom, and filling it would put the third one back on
                 // top of the first.
-                if (b._lift + LineLift > lift) lift = b._lift + LineLift;
+                // CLAMPED, SO A SHOT-TIME LIFT CANNOT CASCADE. `LiftAtShot`
+                // may raise a bubble past `MaxLift` for one committed frame;
+                // without this clamp that raised value would be read here as
+                // the height to beat, and every bubble spawned near it
+                // afterwards would start higher again. The still is allowed to
+                // be a special frame; it is not allowed to change the street.
+                float theirs = Mathf.Min(b._lift, MaxLift) + LineLift;
+                if (theirs > lift) lift = theirs;
             }
             return Mathf.Min(lift, MaxLift);
         }
