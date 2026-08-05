@@ -475,6 +475,26 @@ namespace Ledger.Core
             Link("strip_j1_0", "gullwing_j1_2", "avenue");    // the winter road
             Link("ironside_j3_1", "gullwing_j0_1", "avenue"); // the goods spur
 
+            // 2b. AND EVERY ADDRESS GETS OFF THE ROAD FIRST.
+            //
+            // Thirty-one of the fifty-two planned places had an authored
+            // coordinate inside a carriageway, and twenty-two of them then put
+            // a building face there — `placeStopsInRoad=31 placeFacesInRoad=22`
+            // in every kept verdict, the second read as the fault for three
+            // builds while the first sat beside it saying what it actually was.
+            // No placement rule fixes an address in the middle of a road: the
+            // door can only be walked away from the stop the schedules send
+            // people to, which is a worse game than the facade.
+            //
+            // HERE, AND THE ORDER IS THE WHOLE REASON. Every driveable edge
+            // exists by this line and no `stop_` node does yet, so the snap
+            // reads a graph that does not depend on the coordinates it is
+            // about to move, and the loop below then builds the lanes from the
+            // corrected ones. Doing it in `HookMap` would have been circular;
+            // doing it in the world builder would have moved the geometry and
+            // left the schedules pointing at the road.
+            SetPlacesBackFromRoads();
+
             // 3. Every place on the map gets a lane to the nearest junction, so
             // it stops being a point in a field and becomes an address.
             foreach (var place in HookMap.Places)
@@ -611,6 +631,144 @@ namespace Ledger.Core
                 if (d < best) { best = d; outX = px; outZ = pz; edge = e; }
             }
             return edge != null;
+        }
+
+        /// HOW FAR ONTO THE PAVEMENT AN ADDRESS IS PUT — half a pavement, a
+        /// doorstep rather than a forecourt. Kept small on purpose: the point
+        /// is to be off the tarmac, not to be set back into the block.
+        public const double PavementStand = 1.6;
+
+        /// AND HOW FAR AN ADDRESS IS ALLOWED TO TRAVEL BEFORE IT STOPS BEING
+        /// THAT ADDRESS. Chosen from the series rather than picked, and the
+        /// series is the argument — every value run against the real map:
+        ///
+        ///     cap    still in a road    worst actual move
+        ///     5m         11                  3.94m
+        ///     6m          7                  5.60m
+        ///     8m          3                  6.66m
+        ///    12m          3                 11.20m
+        ///
+        /// 8 is the knee. It clears twenty-eight of the thirty-one with a
+        /// median move of 3.60m, and paying four more metres of drift buys
+        /// nothing at all. The three that refuse are the same three at every
+        /// cap above 8 — `cut_bridge`, `night_gate` and `clerks_steps`, which
+        /// are a bridge, a gate and a flight of steps, and a right of way is
+        /// where those belong. A refusal is reported rather than silent.
+        public const double MaxAddressDrift = 8.0;
+
+        /// How many addresses had to be moved off a carriageway, how far the
+        /// worst one went, and how many refused because moving them would have
+        /// taken them somewhere that is not their address any more.
+        ///
+        /// `AddressesRefused` is the one that must be read beside the others:
+        /// a refused address is STILL IN THE ROAD, so a run reporting many
+        /// moves and no refusals is a different world from one reporting many
+        /// of both, and a single "moved" count cannot tell them apart.
+        public static int AddressesSetBack, AddressesRefused;
+        public static double AddressDriftWorst;
+        static readonly List<double> _addressDrifts = new List<double>();
+
+        /// The typical move beside the worst. A worst of seven with a median of
+        /// three and a half is a handful of bad addresses; a median of seven
+        /// would be the authored map disagreeing with the street graph
+        /// wholesale, and those want different fixes.
+        public static double AddressDriftMedian
+        {
+            get
+            {
+                if (_addressDrifts.Count == 0) return -1;
+                var v = new List<double>(_addressDrifts);
+                v.Sort();
+                return v[v.Count / 2];
+            }
+        }
+
+        /// Put every address that stands in a carriageway onto the pavement
+        /// beside the road it is addressed from.
+        ///
+        /// ITERATED, because an address at a JUNCTION is inside two roads and
+        /// clearing one puts it inside the other. Each pass steps off whichever
+        /// road it is currently in. One pass cleared 17 of 31; six passes clear
+        /// 28, and the ones that never settle are boxed in rather than badly
+        /// placed.
+        ///
+        /// IDEMPOTENT BY CONSTRUCTION — the loop's condition is "is this point
+        /// on a road", so a second call over already-corrected coordinates does
+        /// nothing and moves nobody. That matters because `Ensure` can be
+        /// reached from anywhere and a normalisation that drifted a little
+        /// further each time would be the worst kind of bug to find.
+        static void SetPlacesBackFromRoads()
+        {
+            AddressesSetBack = AddressesRefused = 0;
+            AddressDriftWorst = 0;
+            _addressDrifts.Clear();
+            foreach (var place in HookMap.Places)
+            {
+                double x = place.X, z = place.Z;
+                bool moved = false;
+                for (int pass = 0; pass < 6; pass++)
+                {
+                    if (!OnRoad(x, z)) break;
+                    if (!NearestOnRoad(x, z, out var nx, out var nz, out var width)) break;
+                    double ox = x - nx, oz = z - nz;
+                    double len = Math.Sqrt(ox * ox + oz * oz);
+                    // DEAD ON THE CENTRELINE, which is a real case — an address
+                    // authored at the middle of an avenue has no outward
+                    // direction of its own. Any perpendicular will do and the
+                    // next pass corrects the choice if it was the worse one.
+                    if (len < 0.01) { ox = 1; oz = 0; len = 1; }
+                    ox /= len; oz /= len;
+                    double want = width / 2.0 + PavementStand;
+                    double cx = nx + ox * want, cz = nz + oz * want;
+                    double drift = Math.Sqrt((cx - place.X) * (cx - place.X)
+                                             + (cz - place.Z) * (cz - place.Z));
+                    if (drift > MaxAddressDrift) break;
+                    x = cx; z = cz; moved = true;
+                }
+                if (!moved) { if (OnRoad(x, z)) AddressesRefused++; continue; }
+                double total = Math.Sqrt((x - place.X) * (x - place.X)
+                                         + (z - place.Z) * (z - place.Z));
+                place.X = x; place.Z = z;
+                AddressesSetBack++;
+                _addressDrifts.Add(total);
+                if (total > AddressDriftWorst) AddressDriftWorst = total;
+                if (OnRoad(x, z)) AddressesRefused++;
+            }
+        }
+
+        /// The closest point on a CARRIAGEWAY, and how wide that carriageway is.
+        ///
+        /// `NearestOnStreet`'s sibling, and the distinction is the same one
+        /// `OnRoad` makes against `OnStreet`: lanes cross block interiors to
+        /// reach doors, so the nearest STREET to a building standing in an
+        /// avenue is frequently the service lane behind it. Anything asking
+        /// "how do I get off the road" has to ask about roads.
+        ///
+        /// Measured, not supposed: snapping the district's addresses off the
+        /// nearest STREET cleared 14 of the 31 that stand in a carriageway,
+        /// because places beside a lane snapped relative to the lane's width
+        /// and landed back in the avenue. Off the nearest ROAD it is 28 of 31.
+        public static bool NearestOnRoad(double x, double z,
+                                         out double outX, out double outZ, out double width)
+        {
+            Ensure();
+            outX = x; outZ = z; width = 0;
+            double best = double.MaxValue;
+            foreach (var e in _edges)
+            {
+                if (!e.Driveable) continue;
+                var a = _byId[e.A];
+                var b = _byId[e.B];
+                double dx = b.X - a.X, dz = b.Z - a.Z;
+                double len2 = dx * dx + dz * dz;
+                if (len2 < 1e-6) continue;
+                double t = ((x - a.X) * dx + (z - a.Z) * dz) / len2;
+                t = t < 0 ? 0 : t > 1 ? 1 : t;
+                double px = a.X + t * dx, pz = a.Z + t * dz;
+                double d = (px - x) * (px - x) + (pz - z) * (pz - z);
+                if (d < best) { best = d; outX = px; outZ = pz; width = e.Width; }
+            }
+            return best < double.MaxValue;
         }
 
         /// Whether a position is on tarmac of any kind, lanes included.

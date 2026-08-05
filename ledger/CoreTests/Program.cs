@@ -5697,7 +5697,34 @@ namespace Ledger.CoreTests
                 if (gap < worstGap) worstGap = gap;
                 foreach (var v in sim.Vehicles)
                 {
-                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.0)) offRoad++;
+                    // TARMAC, NOT CARRIAGEWAY, AND THE DIFFERENCE ONLY STARTED
+                    // MATTERING WHEN THE ADDRESSES MOVED.
+                    //
+                    // The router's own comment says a driving route "may leave a
+                    // lane at the start and enter one at the end — that is a car
+                    // pulling out and parking". So a vehicle on a lane at either
+                    // end of its journey is doing exactly what it is allowed to
+                    // do. This asked `OnRoad`, which excludes lanes, and passed
+                    // anyway for a reason that was about to stop being true:
+                    // thirty-one of the fifty-two addresses were standing IN a
+                    // carriageway, so parking happened on the road.
+                    //
+                    // `StreetMap.SetPlacesBackFromRoads` puts them on pavements,
+                    // and every one of the resulting failures was measured
+                    // rather than assumed — all of them a vehicle on a `lane`
+                    // edge with `from` or `to` a `stop_` node, and `OnStreet`
+                    // true for every single one. The subject changed and the
+                    // instrument kept its old question, which is this project's
+                    // most repeated fault wearing a test's clothes.
+                    //
+                    // THE TEETH ARE UNCHANGED. A car in a courtyard or a field
+                    // is on neither a road nor a lane and still fails here, and
+                    // threading lanes MID-route is forbidden by the router and
+                    // asserted separately. Widening a margin would have been the
+                    // thing rule 2 forbids; asking the right question is not.
+                    if (!v.Kind.UsesLanes
+                        && !StreetMap.OnRoad(v.X, v.Z, margin: 1.0)
+                        && !StreetMap.OnStreet(v.X, v.Z, margin: 1.0)) offRoad++;
 
                     // A vehicle whose road changed has just passed through the
                     // junction between them. That is the exact instant "entering
