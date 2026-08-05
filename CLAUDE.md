@@ -967,6 +967,24 @@ branch to move, and not for a run named after the sha you dispatched:
       [ $rc = 3 ] && exit 3          # landed with NOTHING — re-dispatch, do not wait
     done; echo "timed out"; python3 tools/landed.py --contains "$SHA"
 
+**`SHA` IS THE COMMIT AT DISPATCH, NOT THE COMMIT WHEN YOU GET ROUND TO ARMING
+— AND THE RECIPE ABOVE DOES NOT SAY SO, WHICH COST 5 AUGUST A DEAD WATCHER.**
+The paragraphs below are all about the ancestry test defeating a forgery. This
+is the other end of the same problem and it survived both rewrites: `git
+rev-parse HEAD` is evaluated when the watcher is ARMED, so dispatching, then
+doing another twenty minutes of work and five commits, then arming, watches for
+a commit the runner could not possibly have checked out. It waits the full
+fifty minutes and reports nothing, and NOTHING ABOUT IT LOOKS BROKEN — the
+output is the same "not yet" line a healthy watcher prints.
+
+Two ways out and the second is better. Capture `SHA=$(git rev-parse HEAD)`
+BEFORE the dispatch and arm from that variable. Or read the run's real
+`head_sha` back from `actions_list` after dispatching and watch THAT — which is
+the only version that cannot be wrong, because it asks the runner what it
+actually took rather than guessing from local state. It also tells you
+immediately when the runner grabbed a commit newer than yours, which is the
+case the whole ancestry test exists for.
+
 **EXIT 3 IS NEW AND IT IS THE ONE THAT WAS COSTING HALF-HOURS.** A build whose
 licence activation fails, or whose Game layer will not compile, still commits a
 verdict — so the ancestry test says LANDED, correctly, and the old recipe
