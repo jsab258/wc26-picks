@@ -977,14 +977,36 @@ namespace Ledger.Game
             // bounds are already met when this starts, and the windows after it
             // are left alone so the DELIVERY-CLEARS-IT path runs too.
             var jobPos = _game.ActiveJobPos;
-            if (jobPos.HasValue && now.Day >= SkipDropsFromDay && _dropsSkipped < SkipDropsCount)
+            // STOP ON THE OUTCOME, NOT ON A COUNT — because two skips are not
+            // two CONSECUTIVE skips, and only consecutive ones count.
+            //
+            // `MissedSinceLastDelivery` walks back from today and BREAKS at the
+            // first completed night. So a skip on day 10 and a skip on day 12
+            // with a delivery on day 11 returns 1, for ever, and the rule at
+            // two never fires. Nothing here required the two days to be
+            // adjacent, and whether they were depended on which days happened
+            // to carry an active drop.
+            //
+            // That is why the series reads 0,1,1,2,1,1,1 and then 0 — measured,
+            // not guessed: `reliabilityRead` says `[Slipping after 2]` for five
+            // runs and `[Fine after 0]` for the newest, so the newest run
+            // genuinely had nothing to file and the plant simply did not land
+            // two in a row. A probe that fires on a lucky run is not a probe.
+            //
+            // Keep skipping until the rule ACTUALLY FIRES, then stop at once so
+            // the delivery-clears-it path still runs afterwards. `SkipDropsMax`
+            // is a backstop against a run where it can never fire, not a target
+            // — and `dropsSkipped` beside `reliabilityFiled` says which
+            // happened.
+            bool stillNeeded = ReliabilityHost.Filed == 0 && _dropsSkipped < SkipDropsMax;
+            if (jobPos.HasValue && now.Day >= SkipDropsFromDay && stillNeeded)
             {
                 if (_skippingDropDay != now.Day)
                 {
                     _skippingDropDay = now.Day;
                     _dropsSkipped++;
                     Debug.Log($"SimDirector: staging a missed drop on day {now.Day} "
-                              + $"({_dropsSkipped} of {SkipDropsCount}) — nothing has ever "
+                              + $"({_dropsSkipped}, up to {SkipDropsMax}) — nothing has ever "
                               + "let the reliability rule fire.");
                 }
                 jobPos = null;
@@ -3509,7 +3531,14 @@ namespace Ledger.Game
         /// these are left alone, so a delivery clears it and that path runs
         /// too. `Reliability.TalkedAboutAt` is 2 and stays 2.
         const int SkipDropsFromDay = 10;
-        const int SkipDropsCount = 2;
+
+        /// A BACKSTOP, NOT A TARGET. The plant stops the moment the reliability
+        /// rule files anything; this only bounds a run where it never can, so
+        /// that a broken rule cannot starve every drop for the rest of the
+        /// fifteen days. It was `SkipDropsCount = 2` and stopping at two was
+        /// the bug — two skips separated by a delivery are not two consecutive
+        /// missed nights, and only consecutive ones reach the bar.
+        const int SkipDropsMax = 5;
         int _dropsSkipped;
         int _skippingDropDay = -1;
 
