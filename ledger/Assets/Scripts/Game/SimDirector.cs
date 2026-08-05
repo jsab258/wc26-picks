@@ -1943,6 +1943,12 @@ namespace Ledger.Game
         /// it means the re-pin is not running; zero with no speech is a quiet
         /// street, and only the count beside `bubblesOnScreen` separates them.
         int _bubblesPinnedAtShot;
+
+        /// Bubbles moved by the shot-time de-overlap. Zero here with a non-zero
+        /// `bubblesAtCeiling` means the pass ran and had nothing to do; zero
+        /// with no denominator is what the birth-time version reported for its
+        /// whole life.
+        int _bubblesShotLifted;
         /// How many nameplates the SHOT re-pinned. Zero on a shot with people
         /// in it means the re-pin is not running; zero with nobody on screen
         /// is an empty street.
@@ -7117,6 +7123,12 @@ namespace Ledger.Game
             // clamp allows, which is what a cap applied against last frame's
             // camera looks like.
             _namesPinnedAtShot = NameTags.PinAll(cam);
+            // AND DE-OVERLAP THE BUBBLES, AFTER the pin — sizing changes the
+            // screen rect, so testing overlap before it would test rectangles
+            // that are about to move. Third site of one idea: anything that has
+            // to be right in the committed frame is redone against the camera
+            // that renders it.
+            _bubblesShotLifted = SpeechBubble.LiftAtShot(cam);
             // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
             // because that is the frame that gets written. It used to run once,
             // at the audit moment, and reported 0 for a run whose committed
@@ -9944,6 +9956,7 @@ namespace Ledger.Game
                       $"bubbleFracPreCap={NameTags.WorstBubbleFracPreCap:0.000} " +
                       $"bubblesPinned={NameTags.BubblesPinned} " +
                       $"bubblesPinnedAtShot={_bubblesPinnedAtShot} " +
+                      $"bubblesShotLifted={_bubblesShotLifted} " +
                       $"namesPinnedAtShot={_namesPinnedAtShot} " +
                       $"bubblePinFloor={NameTags.BubblePinFloor:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +

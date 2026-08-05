@@ -318,6 +318,74 @@ namespace Ledger.Game
             return pinned;
         }
 
+        /// DE-OVERLAP EVERY LIVE BUBBLE AT THE SHOT, AGAINST THE SHOT'S CAMERA.
+        ///
+        /// `LiftClearOfScreen` runs once, when a bubble is BORN, and
+        /// `bubblesScreenLifted` read 2 and then 0 — the pass has effectively
+        /// never executed. Two reasons, and the second is the worse one: at
+        /// birth nothing has drifted into the bubble yet, because overlap
+        /// develops afterwards as speakers and camera move; and its loop is
+        /// gated `_lift < MaxLift`, so it is skipped entirely for the bubbles
+        /// already at the ceiling, which are precisely the ones it was written
+        /// for. A fix that excludes its own target population.
+        ///
+        /// This is `NameTags.PinAll`'s shape, for the same reason and the third
+        /// time: the still is rendered by a camera the ordinary schedule never
+        /// sees, so anything that must be right IN THE FRAME has to be redone
+        /// at the frame. `bubblesShotLifted` says how many it moved.
+        ///
+        /// Ordered by screen height, tallest first, so the biggest bubble keeps
+        /// its place and smaller ones move around it — an arbitrary order lets
+        /// whichever bubble happens to be first in the list shove the one the
+        /// eye is actually on.
+        public static int LiftAtShot(Camera cam)
+        {
+            if (cam == null) return 0;
+            var live = new List<SpeechBubble>();
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var b = _live[i];
+                if (b == null) { _live.RemoveAt(i); continue; }
+                if (b._text != null && b._follow != null) live.Add(b);
+            }
+            live.Sort((x, y) =>
+            {
+                var rx = x._text.GetComponent<Renderer>();
+                var ry = y._text.GetComponent<Renderer>();
+                float hx = rx != null ? rx.bounds.size.y : 0f;
+                float hy = ry != null ? ry.bounds.size.y : 0f;
+                return hy.CompareTo(hx);
+            });
+
+            int moved = 0;
+            var placed = new List<Rect>();
+            foreach (var b in live)
+            {
+                var rend = b._text.GetComponent<Renderer>();
+                if (rend == null || rend.bounds.size.sqrMagnitude < 1e-6f) continue;
+                bool lifted = false;
+                for (int step = 0; step < 8; step++)
+                {
+                    if (!NameTags.ScreenRect(cam, rend.bounds, out var mine)) break;
+                    bool hit = false;
+                    foreach (var other in placed)
+                        if (mine.Overlaps(other)) { hit = true; break; }
+                    if (!hit) { placed.Add(mine); break; }
+                    // PAST `MaxLift` DELIBERATELY. That ceiling exists so a
+                    // bubble does not float away from the person saying it on
+                    // an ordinary frame; here the alternative is two lines of
+                    // dialogue printed through each other, which is worse and
+                    // is what the stills keep showing.
+                    b._lift += LineLift;
+                    b.transform.position =
+                        b._follow.position + Vector3.up * (2.05f + b._lift);
+                    lifted = true;
+                }
+                if (lifted) moved++;
+            }
+            return moved;
+        }
+
         /// The lift this bubble carries above its speaker's head.
         float _lift;
 
