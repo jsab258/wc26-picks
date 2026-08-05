@@ -58,7 +58,31 @@ def ran(sha):
 
 
 def main():
+    # ANY OF THE SIX, BECAUSE THE CHANGE IS NOT ALWAYS IN DAY ONE AT NOON.
+    #
+    # This offered `day1_noon`, or `day1_night` with a flag, and the build
+    # commits six frames. On 5 August the night's most visible change — the
+    # name labels going from seven per cent of screen height to under four —
+    # was only legible in `day5_night`, where a dozen of them are in shot, and
+    # the tool that exists to put a picture in every report could not reach it.
+    #
+    # `--frame day5_night` names one directly. The old flag still works,
+    # because a rule that needs a new incantation to obey is a rule that gets
+    # skipped at the moment it is least convenient.
     frame = "review_day1_night.jpg" if "--night" in sys.argv else "review_day1_noon.jpg"
+    if "--frame" in sys.argv:
+        i = sys.argv.index("--frame")
+        if i + 1 >= len(sys.argv):
+            print("report-frame: --frame needs a name, e.g. --frame day5_night")
+            return 2
+        want = sys.argv[i + 1].replace("review_", "").replace(".jpg", "")
+        frame = f"review_{want}.jpg"
+        if not (ROOT / "game-design" / "sim-shots" / frame).exists():
+            have = sorted(p.name[len("review_"):-len(".jpg")]
+                          for p in (ROOT / "game-design" / "sim-shots").glob("review_*.jpg"))
+            print(f"report-frame: no frame called {want}. This build committed: "
+                  + ", ".join(have))
+            return 2
     rel = f"game-design/sim-shots/{frame}"
 
     # Every commit that CHANGED this frame, newest first. A build that rendered
