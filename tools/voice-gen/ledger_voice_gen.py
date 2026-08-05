@@ -265,6 +265,23 @@ def cmd_plan(args):
               f"existed, so nothing says what they were made from; re-rendered")
     print(f"  to render            {st.get('missing', 0) + st.get('stale', 0) + st.get('unknown', 0)}"
           f" of {len(jobs)}")
+
+    # FILES NOTHING PLANS TO PLAY. Five of these landed in the first batch:
+    # rate-test clips whose names stopped matching when skipping the wordless
+    # line shifted every voice assignment after it. Harmless to the game,
+    # which only ever looks up planned names — and invisible, which is the
+    # problem. An orphan is either dead weight or evidence that the plan
+    # changed under a finished batch, and both are things to be told about.
+    if args.out.exists():
+        planned = {j["file"] for j in jobs}
+        orphans = sorted(q.name for q in args.out.glob("*.wav") if q.name not in planned)
+        if orphans:
+            print(f"  ORPHANS              {len(orphans)} file(s) on disk that nothing "
+                  f"plans to play:")
+            for o in orphans[:6]:
+                print(f"                         {o}")
+            if len(orphans) > 6:
+                print(f"                         (+{len(orphans) - 6} more)")
     return 1 if missing else 0
 
 
@@ -543,7 +560,23 @@ def render_one(job, out_dir, model, stamps):
         dest.write_bytes(b"DRY RUN - not audio")
     else:
         import torchaudio  # noqa: F401  — only ever imported on a real render
-        torchaudio.save(str(dest), wav, model.sr)
+        # 16-BIT PCM, NOT torchaudio's DEFAULT 32-BIT FLOAT. The first batch
+        # shipped as format 3 IEEE float: 87 MB for 335 clips where the same
+        # audio is 43 MB as ordinary PCM, and Python's own `wave` module
+        # cannot even open it ("unknown format: 3"), which is how it was
+        # noticed — a check that opens the artefact found what nothing else
+        # was measuring.
+        #
+        # Nothing audible is lost. These are 24 kHz mono speech clips with a
+        # 2.5-second median; 16-bit is the format every game engine expects
+        # and the one Unity would quantise to on import regardless.
+        #
+        # THE EXISTING 335 ARE DELIBERATELY NOT CONVERTED. They are correct
+        # audio, and git already holds the 87 MB permanently — rewriting them
+        # would add 43 MB MORE to history to save space in the working tree
+        # only. The cost is already paid; this stops it being paid twice.
+        torchaudio.save(str(dest), wav, model.sr,
+                        encoding="PCM_S", bits_per_sample=16)
     stamps[job["file"]] = stamp(job)
     return time.time() - t0
 

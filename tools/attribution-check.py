@@ -28,6 +28,19 @@ WATCHED = {
     "ledger/Assets/Characters": "Mixamo",
     "game-design/picked-clips": "VCTK",
     "voice-candidates": "VCTK",
+    # THE SYNTHESISED BARKS, AND THEY BELONG HERE RATHER THAN IN `OURS`.
+    #
+    # We generated them, which makes "ours" the tempting answer and the wrong
+    # one: every clip is a voice CLONE of a VCTK speaker, so each is a
+    # derivative of a CC BY 4.0 work and carries its parent's obligation.
+    # THIRD-PARTY.md said so in advance — "synthesis does not launder the
+    # obligation" — and this row is that sentence made mechanical.
+    #
+    # The distinction `OURS` draws is authorship, not who ran the command. The
+    # app icons are ours because nothing outside this repo went into them; the
+    # sim stills are ours because the game drew them. A cloned voice fails
+    # that test no matter whose GPU produced it.
+    "ledger/Assets/Resources/voice/barks": "VCTK",
     "ledger/Assets/StreamingAssets/CityPack": "CityPack",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not

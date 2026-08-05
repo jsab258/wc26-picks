@@ -19,7 +19,7 @@ one. **If you add assets, add a row. The build fails otherwise.**
 | **What** | Reference recordings for all 19 cast voices |
 | **Source** | **CVSTR VCTK Corpus** (Centre for Speech Technology Research, University of Edinburgh) |
 | **Licence** | Creative Commons Attribution 4.0 International (CC BY 4.0) |
-| **Where in the repo** | `game-design/picked-clips/`, `voice-candidates/` |
+| **Where in the repo** | `game-design/picked-clips/` (the references), `voice-candidates/` (the listening pass), `ledger/Assets/Resources/voice/barks/` (335 clips synthesised from them, 5 Aug) |
 | **Speakers used** | p227 p228 p231 p238 p241 p244 p245 p249 p256 p263 p265 p266 p272 p273 p276 p282 p287 p288 p292 |
 
 **Required attribution text, to appear in the shipped credits:**
@@ -36,6 +36,20 @@ the reason no commercial voice library was considered.
 **What changes if the voices are synthesised.** M17.2 clones these references
 with chatterbox. A derived voice is still a derivative of a CC BY work, so this
 attribution stays regardless — synthesis does not launder the obligation.
+
+**And on 5 August that stopped being hypothetical.** 335 bark clips were
+rendered from these nineteen references and committed to
+`ledger/Assets/Resources/voice/barks/`. Every one is a derivative of a CC BY
+4.0 work and carries the same obligation as its reference — the credit text
+above covers them, unchanged, because it was written to.
+
+The attribution check is what noticed. It refused the commit with *"no asset
+files live outside a directory this file knows about"*, naming the new folder,
+which is a guard catching a licensing obligation the same hour the assets
+appeared rather than at ship time. The paragraph above had the reasoning right
+in advance and the DIRECTORY LIST was what went stale — a doc can be correct
+about the principle and wrong about the facts, and only one of those is caught
+by reading it.
 
 ## Character models and animation — Adobe Mixamo
 
