@@ -46,14 +46,21 @@ CLAUDE.md under AUTO MODE.
   something after it refuses. That is a different function and a much smaller
   search than the 138 runs of nothing.
 
-- **THE LANES HELPED THE STREET AND NOT THE KNOT.** `crowdGapMedian` 0.26 →
-  **0.45**, the best ever recorded, with `crowdHuddleWorst` 41 → 40 and
-  `huddleStanding=0 huddleMoving=40` unchanged. The branch counts say why:
-  `steerDirect=52193` is 87% of all steering, `steerJunction=1564` is 2.6%,
-  and `steerOrigin=0` — so the origin fallback never fires and that
-  hypothesis is dead. Spreading the 13% who route via a shared point
-  improved typical spacing a lot and cannot touch a knot that forms
-  elsewhere. **The knot is inside the direct branch.**
+- **THE LANES WORKED, AND I HAVE BEEN READING A PEAK AS THE STREET.**
+  `crowdGapMedian` 0.26 → **0.45**, the best ever recorded — and
+  **`crowdHuddle=11`, the MEDIAN huddle, against a recent median of 20**
+  (series 11, 20, 31, 21, 20, 25, 29, 20, …). The typical street is now
+  eleven people within two metres and comfortably spaced.
+  **`crowdHuddleWorst=40` is one instant in fifteen days**, and this file has
+  led with it for four builds as though it described the street. That is the
+  peak-as-description fault, on the metric this project has spent the most
+  time on. Both numbers matter and neither answers the other.
+  The branch counts also refute my own framing: `steerDirect=52193` is 87% of
+  all steering, `steerJunction=1564` is 2.6%, `steerOrigin=0` — so the origin
+  fallback never fires, that hypothesis is dead, and spreading the 13% who
+  route via a shared point is what moved the median. **What is left is a
+  transient crossing at one instant, not a permanent crush**, and it should
+  be judged against a still before any more work goes into it.
 
 - **THE LEAN IS A WALKER, NOT THE PLAYER.** `leanWorstIsWalker=True` with
   `leanTypical=-7.1`. One body in a crowd of fifty, bent over, while the
