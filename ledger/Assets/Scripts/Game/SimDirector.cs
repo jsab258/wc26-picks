@@ -9854,6 +9854,7 @@ namespace Ledger.Game
                       $"walkersPrimitive={GameController.WalkersPrimitive} " +
                       $"walkersPrimitiveEver={GameController.WalkersPrimitiveEver} " +
                       $"walkersPrimitiveOf={GameController.WalkersPrimitiveOf} " +
+                      $"walkersPrimitiveWho=[{string.Join(" ", GameController.WalkersPrimitiveWho)}] " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it

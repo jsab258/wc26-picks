@@ -261,7 +261,41 @@ namespace Ledger.Game
                 // `IsTheBoughtBody`. The shape is worth more attention than any
                 // one of them: an instrument that describes the player
                 // confidently answers a question about the crowd wrongly.
-                if (n.GetComponent<MeshRenderer>() != null) WalkersPrimitive++;
+                // A RENDERER ALONE IS NOT A CAPSULE, AND THE FIRST VERSION
+                // OF THIS LINE COUNTED ONE.
+                //
+                // `walkersPrimitiveEver=12` came back on `8f6243f` against
+                // `walkersPrimitiveOf=54` — and 12 is exactly
+                // `CrowdWalkerCap`, which is not a coincidence worth ignoring.
+                // A walker is built from `CreatePrimitive`, so it arrives WITH
+                // a MeshRenderer, and `Mannequin.Build` removes it with
+                // `Destroy` — which Unity defers to the end of the frame. The
+                // reband spawns up to twelve crowd bodies and this pass runs in
+                // the same frame, so it read twelve pending-destroy renderers
+                // and called them capsules.
+                //
+                // THE QUESTION IS NOT "does it have a renderer", IT IS "is it
+                // drawing a capsule instead of a body" — a renderer with no
+                // assembled mannequin and no bought body under it. Asked that
+                // way the spawn frame answers correctly on its own, because a
+                // body assembled in the same breath as the renderer was
+                // destroyed.
+                //
+                // AND THE NAMES, up to eight, because "twelve" sends you
+                // nowhere and "Vera Lomax, Iris Dunn" sends you to two bodies.
+                // Every count in this file that mattered turned out to need
+                // one — `WalkersHurtEver` has the same argument written beside
+                // it for the same reason.
+                if (n.GetComponent<MeshRenderer>() != null && !n.HasRealBody)
+                {
+                    var man = n.GetComponent<Mannequin>();
+                    if (man == null || !man.Assembled)
+                    {
+                        WalkersPrimitive++;
+                        if (WalkersPrimitiveWho.Count < 8)
+                            WalkersPrimitiveWho.Add(n.DisplayName);
+                    }
+                }
 
                 // BY ID, NOT BY NAMEPLATE. `ViolenceHost.Commit` writes
                 // `harm.Inflict(victimId, …)` and `victimId` is the mill's id,
@@ -552,6 +586,11 @@ namespace Ledger.Game
         /// what tells zero apart from a check that walked nobody.
         public static int WalkersPrimitiveEver;
         public static int WalkersPrimitiveOf;
+        /// WHICH bodies, up to eight. A count sends you nowhere; a name sends
+        /// you to the body. Capped, and the cap is printed, because a cap
+        /// nobody is told about is indistinguishable from a finding.
+        public static readonly SortedSet<string> WalkersPrimitiveWho
+            = new SortedSet<string>();
         public static double WalkerCapabilityWorst = 1.0;
         public static readonly SortedSet<string> WalkersHurtEver = new SortedSet<string>();
 
