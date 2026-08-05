@@ -341,8 +341,11 @@ would notice, whatever state anything else is in.
 
 - **A character mesh.** Only Jafar can buy one, and it is now the single
   largest immersion gap in the project — see roadmap 17.1b.
-- **Any further API spend.** The 3 August authorisation covered two tasks, both
-  done, ~£0.85. Nothing else is approved and nothing else gets spent.
+- **API spend is quoted in FRANCS; the game's money stays £.** Jafar is in
+  Switzerland. The £ in the design doc is a deliberate fiction decision — a
+  British pub — and quoting both in one unit is how "a few pounds" reached him
+  for a bill he pays in CHF. Two tasks authorised 3 Aug, both done; the writing
+  probe re-run authorised 5 Aug. Nothing beyond that.
 
 ## Done, kept here only until the next tidy
 
