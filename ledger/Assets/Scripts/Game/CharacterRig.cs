@@ -766,6 +766,10 @@ namespace Ledger.Game
         public static float LeanWorstSpeed { get; private set; } = -1f;
         public static bool LeanWorstDriven { get; private set; }
 
+        /// Whether a WALKER owned the worst-leaning body. False means the
+        /// player, who is on screen continuously — see where it is set.
+        public static bool LeanWorstIsWalker { get; private set; }
+
         /// The lateral arm angle, split by how the body is built. See the note
         /// where they are filled: a mannequin's swing is provably fore-and-aft
         /// and a bought skeleton's is whatever its rest orientation makes it,
@@ -956,6 +960,26 @@ namespace Ledger.Game
                         LeanWorstEver = lean;
                         LeanWorstSpeed = (float)Speed;
                         LeanWorstDriven = PoseIsDriven;
+                        // AND WHOSE BODY IT IS, WHICH DECIDES WHETHER THIS
+                        // MATTERS AT ALL.
+                        //
+                        // `leanTypical=-5.1` says the middle body stands up
+                        // straight, so the fifty-degree lean is one body per
+                        // frame rather than the street. That is either the
+                        // PLAYER — on screen continuously, at the closest
+                        // distance, and the figure in the foreground of both
+                        // noon stills is visibly pitched — or a walker in a
+                        // crowd of fifty, which nobody would ever notice.
+                        // Those want completely different amounts of work and
+                        // no number in this file could tell them apart.
+                        //
+                        // The walker list is the discriminator the project
+                        // already uses: the player is not in it, which is what
+                        // `NearPhone` was fixed for. Taken inside the peak
+                        // branch so the component lookup runs a handful of
+                        // times a run rather than per body per frame.
+                        LeanWorstIsWalker =
+                            GetComponentInParent<NpcWalker>() != null;
                     }
                 }
                 // AND THE SAME LATERAL ANGLE SPLIT BY BODY TIER, because the

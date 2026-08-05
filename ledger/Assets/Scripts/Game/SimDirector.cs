@@ -10045,6 +10045,11 @@ namespace Ledger.Game
                       // an escort hurrying and the animation is correct.
                       $"leanWorstSpeed={CharacterRig.LeanWorstSpeed:0.00} " +
                       $"leanWorstDriven={CharacterRig.LeanWorstDriven} " +
+                      // FALSE MEANS THE PLAYER, and the player is in shot every
+                      // frame at the closest distance in the game. A walker
+                      // bent double in a crowd of fifty is nearly invisible;
+                      // the player bent double is the whole screen.
+                      $"leanWorstIsWalker={CharacterRig.LeanWorstIsWalker} " +
                       $"armSideMannequin={CharacterRig.ArmSideMannequin:0.0} " +
                       $"armSideSkinned={CharacterRig.ArmSideSkinned:0.0} " +
                       $"armSideMannequinFrames={CharacterRig.ArmSideMannequinFrames} " +
