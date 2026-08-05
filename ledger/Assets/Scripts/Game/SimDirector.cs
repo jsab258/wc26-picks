@@ -5303,6 +5303,33 @@ namespace Ledger.Game
                 // time it is asked, so calling it again for the log line would
                 // be a second anchor on the same wrist.
                 var hand = PlayerHand();
+                // THREE OUTCOMES, NOT ONE, AND THE ORDER IS CHOSEN.
+                //
+                // `complied=0` and `called=0` across 136 kept runs — not
+                // because the verbs are broken but because one staged threat at
+                // one nerve value can only ever reach one branch of a
+                // five-branch rule. Rule 5b's twin: the run has to supply the
+                // condition.
+                //
+                // The inputs are swept off `Arsenal.Brandish` locally rather
+                // than guessed, and every outcome is reachable with a cosh:
+                //
+                //   Comply         nerve 0.1, in private, reputation 0.7
+                //   CallTheBluff   nerve 0.6, in public,  reputation 0.1
+                //   FleeScreaming  nerve 0.2, in public,  reputation 0.7
+                //
+                // THE REAL ONE GOES LAST ON PURPOSE. `Brandish` writes the
+                // target's stance — `Watches` for a complier, `Confronts` for
+                // somebody calling the bluff, `Avoids` for a screamer — and a
+                // confronting NPC blocks the player's path under §6.4. Running
+                // the fiction's threat last leaves exactly the stance today's
+                // runs leave, so two new readings cost nothing downstream.
+                ViolenceHost.Brandish(cosh, nearestForThreat, _player.transform.position,
+                                      inPublic: false, reputationForViolence: 0.7,
+                                      targetNerve: 0.1, hand: hand);
+                ViolenceHost.Brandish(cosh, nearestForThreat, _player.transform.position,
+                                      inPublic: true, reputationForViolence: 0.1,
+                                      targetNerve: 0.6, hand: hand);
                 var t = ViolenceHost.Brandish(cosh, nearestForThreat,
                                               _player.transform.position,
                                               inPublic: true,
