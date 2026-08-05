@@ -331,34 +331,46 @@ namespace Ledger.Game
                 // smaller radius. The angle is unchanged and still comes from
                 // the display name, so a person stands in the same spot every
                 // run and every reload.
-                // SIZED FROM THE NEIGHBOURHOOD, NOT THE CELL, and the run is
-                // what changed the answer. `busiestNear=12` equals
-                // `busiestPlace=12` — so a 2m radius round one target holds no
-                // more people than the target's own metre cell — while
-                // `crowdHuddleWorst=41` and `huddleCells=21` say the forty-one
-                // bodies in the frame come from twenty-one different cells.
-                // Every ring was correctly sized for its own handful and they
-                // were laid on top of each other.
+                // BACK TO THE CELL, BECAUSE THE NEIGHBOURHOOD VERSION DID
+                // NOTHING AND I SHIPPED IT SAYING IT WOULD.
                 //
-                // `CrowdNearPlace` is the same count this walker's neighbours
-                // are already being counted with, once a second, in the pass
-                // that computes `busiestNear` — it was computed and discarded.
-                // Nothing new is measured and nothing new is guessed.
+                // The reasoning was sound and the arithmetic refuted it.
+                // `huddleCells=21` at a huddle of 41 says the bodies come from
+                // twenty-one different cells, so sizing each ring from its own
+                // cell cannot separate them — true. The fix sized it from
+                // `CrowdNearPlace`, the count of targets within TWO metres,
+                // which the `busiestNear` pass was already computing.
                 //
-                // STILL FLOORED at `SpreadMetres` by `SpreadRadius` itself, so
-                // nobody is placed tighter than they are today and an uncrowded
-                // street is byte-identical.
-                if (!_spreadKnown || _spreadFor != CrowdNearPlace)
+                // `c7e841b` says that changed nothing: `crowdSpread=0.88`, the
+                // widest ring ever issued, IDENTICAL to the build before. And
+                // the reason was on the same line the whole time —
+                // `busiestNear=12` equals `busiestPlace=12`, so a two-metre
+                // neighbourhood holds no more people than a one-metre cell, and
+                // `SpreadRadius(12)` is 0.88 either way. I read that pair as
+                // "the plan is innocent" hours earlier and did not read it as
+                // "these two counts are the same number".
+                //
+                // A 19-cell knot needs a radius sized from the KNOT — 19 gives
+                // 1.11m and 41 gives 1.63m — and neither a 1m cell nor a 2m
+                // disc can see one. That is a real fix and it needs a count at
+                // the scale of the thing being separated, not another guess at
+                // which small radius to use.
+                //
+                // Reverted rather than left in: it added a cache key that moves
+                // more often for no behaviour change, and the median huddle
+                // went 11 to 20 in the same build, which I cannot attribute to
+                // it and will not leave a suspect standing in.
+                if (!_spreadKnown || _spreadFor != CrowdAtPlace)
                 {
                     float radius = (float)Ledger.Core.Physique.SpreadRadius(
-                        CrowdNearPlace, SpreadMetres);
+                        CrowdAtPlace, SpreadMetres);
                     float a = (float)(Ledger.Core.Physique.Fraction(DisplayName, 97)
                                       * System.Math.PI * 2.0);
                     float u = (float)Ledger.Core.Physique.Fraction(DisplayName, 61);
                     _spread = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a))
                               * (radius * Mathf.Sqrt(u));
                     _spreadKnown = true;
-                    _spreadFor = CrowdNearPlace;
+                    _spreadFor = CrowdAtPlace;
                     if (radius > WidestSpread) WidestSpread = radius;
                 }
                 return _spread;

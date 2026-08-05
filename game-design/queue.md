@@ -39,21 +39,28 @@ CLAUDE.md under AUTO MODE.
   walking pace) stands; the LATERAL component does not obviously belong to a
   walk and wants the same treatment `ArmSwing` got — print what the model says
   a correct walk should give, then compare.
-- **THE MOB IS SOLVED AND THE FIX IS IN.** `huddleCells=21` at a huddle of 41:
-  the forty-one bodies belong to TWENTY-ONE distinct scheduled cells, so every
-  ring was correctly sized for its own handful and the cells sat on top of each
-  other. `Physique.SpreadRadius` now reads `CrowdNearPlace` — the
-  two-metre neighbourhood count the `busiestNear` pass was already computing
-  and discarding — instead of the one-metre cell. Forty-one people go from a
-  0.8m disc to 1.63m, which is the packing rule's own arithmetic, and
-  `SpreadRadius` still floors at the old value so an uncrowded street is
-  byte-identical. **Watch `crowdHuddleWorst` fall and `crowdGapMedian` rise; if
-  the deed, places or companion gates move, the ring is too wide for a street
-  this size and the answer is fewer people at one address.**
-  Two earlier claims of mine about this were wrong and are corrected in the git
-  log: the huddle is not the cast's pub-door cluster (I resolved `BarDoor +
-  offset` waypoints as world coordinates), and `busiestNear=12` never
-  contradicted anything — a 2m probe cannot see a 21-cell knot.
+- **THE MOB IS NOT SOLVED AND I SAID IT WAS.** `huddleCells=21` at a huddle of
+  41 is real: the bodies come from twenty-one different cells, so sizing each
+  ring from its own cell cannot separate them. The fix sized it from the
+  two-metre neighbourhood instead — and `c7e841b` says that changed NOTHING.
+  `crowdSpread=0.88`, the widest ring ever issued, identical to the build
+  before. **The refutation was on the same line the whole time:**
+  `busiestNear=12` equals `busiestPlace=12`, so a two-metre disc holds no more
+  people than a one-metre cell, and `SpreadRadius(12)` is 0.88 either way. I
+  read that pair as "the plan is innocent" hours earlier and never read it as
+  "these two counts are the same number".
+  Reverted. **A 19-cell knot needs a radius sized from the KNOT** — 19 gives
+  1.11m, 41 gives 1.63m — and no small radius can see one. The next attempt
+  needs a count at the scale of the thing being separated.
+  **AND THE MEDIAN HUDDLE GOT WORSE IN THE SAME BUILD**, 11 to 20, with
+  `crowdGapMedian` 0.42 to 0.37. Not attributable to the ring, which did not
+  move; the other candidates in that batch are the corner exemption putting
+  nine addresses back at junctions and the four routines now following moved
+  places. `headingIntoRoad` went 10 to 16, which is the corner exemption doing
+  exactly what it was asked to.
+  **The day-5 frame looks clear, and that is not evidence.** One instant
+  against a run peak, which is the trap this project has written down six
+  times — read from the other side for once.
 - **THE STREET WALKS BENT DOUBLE.** `lean=36.3 leanWorst=41.7` over 74,410
   readings — a MEDIAN, so it is the whole street. Not a rest-pose artefact:
   `Mannequin` puts `Chest` directly above `Hips`. The suspect is the write —
@@ -62,31 +69,10 @@ CLAUDE.md under AUTO MODE.
   rest is guarded on `!PoseIsDriven`. `leanDriven`/`leanRest` say next build
   whether accumulation is the whole of it. **Not fixed blind: this is the pose
   code that produced the upside-down player.**
-- **THE YELLOW TROUSERS ARE THE MODEL, NOT THE WARDROBE.** Checked the palette,
-  found no band that could make them, wrote "my eyes are the unreliable
-  instrument" into `Wardrobe.cs` — and the next frame said otherwise. Texture
-  extraction switched the paint path off, `bodySkinnedEver=0` because nothing
-  is painted, and the wash maps over a kept Mixamo albedo. **A number that
-  exonerates one system says nothing about a second system in front of it.**
-- **THE ADDRESSES ARE FIXED; THE CAST'S WAYPOINTS ARE NOT.**
-  `placeStopsInRoad=31` was printed beside `placeFacesInRoad=22` the whole
-  time and is the actual fault — no placement rule fixes an address in the
-  middle of a road. `StreetMap.SetPlacesBackFromRoads` now snaps them:
-  **31 stops to 3, 22 faces to 3**, moved 32, worst 6.66m, median 3.60m, and
-  the three refusals are `cut_bridge`, `night_gate` and `clerks_steps`, which
-  belong in a right of way. The 8m drift cap came from the series, not taste.
-  Fourteen of the thirty-four authored CAST waypoints are still in a
-  carriageway; `headingIntoRoad`/`headingCounted` count it from the real
-  targets next build.
-- **THE CROWD HAS NEVER BEEN ABLE TO REMEMBER ANYTHING.** The biggest thing
-  found tonight. A resident's mill agent is registered under `r.Id`
-  (`r0000`, `r0001`…) and their body is spawned with `r.Name`, so every
-  `Mill.Get(walker.DisplayName)` returned null for all seven hundred of them,
-  and `GossipMill.Witness` drops an unknown witness *silently*. Measured by the
-  first filed body: `homSaw=29 homPressure=0.40` — twenty-nine people watched a
-  killing and the pressure is `PerBody` exactly. `NpcWalker.GossipId` separates
-  the nameplate from the identity; `WitnessesOffered`/`WitnessesDropped` make
-  the next one a number instead of a silence.
+- **THE YELLOW TROUSERS ARE THE MODEL, NOT THE WARDROBE.** Texture extraction
+  switched the paint path off, so `bodySkinnedEver=0` and the wash maps over a
+  kept Mixamo albedo. A number that exonerates one system says nothing about a
+  second system standing in front of it.
 - **THE FIRST BODY EVER REACHED THE REGISTER.** `inquiry=Procedure`, off `None`
   for the first time in 132 kept runs, with `actThree=True ending=BurnBoth`
   both unmoved — exactly what gating the staging on `ActThree.AuditClosed`
