@@ -364,16 +364,31 @@ def try_export(model, part, out_dir):
             # happens to do.
             target = sub
             if meth != "forward":
-                class EntryWrapper(torch.nn.Module):
-                    def __init__(self, inner, m, kwargs):
-                        super().__init__()
-                        self.inner = inner
-                        self._meth = m
-                        self._kw = kwargs
+                # THE KWARGS ARE CLOSED OVER, NOT STORED ON THE MODULE, AND
+                # THAT IS A BUG FIX IN MY OWN HARNESS.
+                #
+                # s3gen's dynamo failure named the culprit outright once the
+                # error stopped being truncated: "The tensor attributes
+                # self._kw['ref_dict']['prompt_token'], ... were assigned
+                # during export. Such attributes must be registered as
+                # buffers." `self._kw` is not chatterbox's. It is this
+                # wrapper's, three lines of mine, and it was being reported as
+                # the decoder refusing to convert.
+                #
+                # A closure keeps the same values out of the module's
+                # attribute dict, where the exporter has no reason to look at
+                # them. `target` holds a reference either way, so nothing is
+                # collected early.
+                def make_wrapper(inner, m, kwargs):
+                    class EntryWrapper(torch.nn.Module):
+                        def __init__(self):
+                            super().__init__()
+                            self.inner = inner
 
-                    def forward(self, *a):
-                        return getattr(self.inner, self._meth)(*a, **self._kw)
-                target = EntryWrapper(sub, meth, hook["kwargs"])
+                        def forward(self, *a):
+                            return getattr(inner, m)(*a, **kwargs)
+                    return EntryWrapper()
+                target = make_wrapper(sub, meth, hook["kwargs"])
 
             # `no_grad` around the trace, because s3gen died on "Cannot insert
             # a Tensor that requires grad as a constant" — a parameter
@@ -466,7 +481,115 @@ def try_export(model, part, out_dir):
 
     v["by_provider"] = ran
     v.update(provider_verdict(ran))
+
+    # AND DOES IT PRODUCE THE RIGHT NUMBERS? Everything above this line can
+    # pass on a model that is quietly wrong.
+    #
+    # Demonstrated here, not suspected. A module whose loop stops on a
+    # data-dependent condition — which is what an autoregressive stage IS —
+    # traces without error, exports, loads, runs, and returns the right SHAPE.
+    # On the input it was traced with it agrees to the last decimal. On any
+    # other input it was out by 12.4, because the tracer baked the loop count
+    # in as a constant.
+    #
+    # The probe checked that it exported, that it ran, and that the shape was
+    # right. All three pass. "Exported and runs" would have gone in the report
+    # as a green verdict for a model that produces garbage for every line
+    # except the one test sentence — and the docstring at the top of this file
+    # says an ONNX file that exports and then produces silence is a failure
+    # that looks like a success. I wrote that, then checked the shape and not
+    # the values.
+    #
+    # SO: run the original model on the same input and compare, then do it
+    # again with DIFFERENT input. The second comparison is the one that
+    # matters. The first can only fail if the export is broken outright; the
+    # second is the only thing that catches control flow frozen into the graph,
+    # and it is exactly the failure the risky part of this model is prone to.
+    if "ran_on" in v:
+        try:
+            v["agrees"] = agreement(target, hook["args"], dest, v["ran_on"])
+            if v["agrees"].get("verdict") != "agrees":
+                v["verdict"] = "exported and runs, but the numbers are wrong"
+        except Exception as e:
+            v["agrees"] = {"verdict": "could not check", "error": tidy(e, 300)}
     return v
+
+
+def agreement(model, args, onnx_path, provider, tol=1e-3):
+    """Does the converted model produce the same numbers as the original?
+
+    Twice: once on the input it was traced with, once on different input. See
+    the note at the call site for why the second one is the whole point.
+    """
+    import numpy as np
+    import onnxruntime as ort
+    import torch
+
+    sess = ort.InferenceSession(str(onnx_path), providers=[provider])
+    names = [i.name for i in sess.get_inputs()]
+
+    def compare(sample):
+        with torch.no_grad():
+            want = model(*sample)
+        want = [want] if not isinstance(want, (tuple, list)) else list(want)
+        feeds = {n: (a.cpu().numpy() if hasattr(a, "cpu") else np.asarray(a))
+                 for n, a in zip(names, sample)}
+        got = sess.run(None, feeds)
+        worst = 0.0
+        for w, g in zip(want, got):
+            w = w.cpu().numpy() if hasattr(w, "cpu") else np.asarray(w)
+            g = np.asarray(g)
+            if w.shape != g.shape:
+                return None, f"shape {list(w.shape)} became {list(g.shape)}"
+            worst = max(worst, float(np.abs(w.astype("float64") - g.astype("float64")).max()))
+        return worst, None
+
+    out = {}
+    same, err = compare(args)
+    out["same_input_worst"] = same
+    if err:
+        return dict(out, verdict="shapes differ", detail=err)
+
+    # DIFFERENT INPUT — AND AT SEVERAL SCALES, WHICH IS THE PART I GOT WRONG
+    # FIRST TIME.
+    #
+    # The first version drew one `randn_like`. Run against a stand-in built
+    # deliberately to bake its loop count in, it reported "agrees" — because a
+    # fresh sample from the SAME distribution takes the same branch. Measured:
+    # the traced input ran 1 step, and four fresh `randn` draws ran 1, 1, 1, 1.
+    # Only scaling by 0.1 flipped it, to 20.
+    #
+    # So a check written specifically to catch frozen control flow passed the
+    # one model in the world I had built to have frozen control flow. Same
+    # distribution is not the same as different input. Several magnitudes, and
+    # the WORST disagreement is what counts — a branch that survives one scale
+    # and not another is exactly the fault being looked for.
+    worst, err2 = None, None
+    for scale in (1.0, 0.1, 5.0, 25.0):
+        other = tuple(torch.randn_like(a) * scale
+                      if hasattr(a, "dtype") and getattr(a.dtype, "is_floating_point", False)
+                      else a for a in args)
+        d, e = compare(other)
+        if e:
+            err2 = e
+            break
+        worst = d if worst is None else max(worst, d)
+    diff = worst
+    out["other_input_worst"] = diff
+    out["other_input_scales"] = [1.0, 0.1, 5.0, 25.0]
+    if err2:
+        return dict(out, verdict="shapes differ on other input", detail=err2)
+
+    if same is not None and same > tol:
+        return dict(out, verdict="wrong even on the traced input")
+    if diff is not None and diff > tol:
+        # THE FINDING THIS EXISTS FOR, and it has its own words because it is
+        # the one that looks like success.
+        return dict(out, verdict="only correct for the input it was traced with",
+                    detail="the converted model agrees on the test sentence and "
+                           "disagrees on anything else, which is control flow "
+                           "baked in as a constant during tracing")
+    return dict(out, verdict="agrees")
 
 
 def diagnose_watermarker():
@@ -660,7 +783,7 @@ def cmd_run(args, allow_install=True):
     return 0
 
 
-def cmd_one(key):
+def cmd_one(key, fixture=False):
     """One part, one process, one freshly-loaded model. See `cmd_run`."""
     part = next((p for p in PARTS if p["key"] == key), None)
     if part is None:
@@ -671,14 +794,30 @@ def cmd_one(key):
         print(f"export-probe: no reference clip for '{VOICE}' under {CLIPS}")
         return 1
 
-    try:
+    # THE FIXTURE, and it is how this file stopped costing a round trip per
+    # bug. `--fixture` swaps in tools/voice-live/fixture.py: three tiny modules
+    # wearing chatterbox's shape and failing the same ways, no weights, no GPU,
+    # runs here in seconds. It is NOT an answer about chatterbox and the
+    # verdict says so; it is an answer about whether this probe works, which
+    # is what six round trips were actually spent on.
+    if fixture:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from fixture import load as _load
+
+        class ChatterboxTTS:
+            @staticmethod
+            def from_pretrained(device="cpu"):
+                return _load()
         import torch  # noqa: F401
-        from chatterbox.tts import ChatterboxTTS
-    except Exception as e:
-        print(f"export-probe: chatterbox will not import — {type(e).__name__}: {e}")
-        print("  That is the answer to a different question and it is worth having:")
-        print("  send me this line. It means the environment is wrong, not the model.")
-        return 2
+    else:
+        try:
+            import torch  # noqa: F401
+            from chatterbox.tts import ChatterboxTTS
+        except Exception as e:
+            print(f"export-probe: chatterbox will not import — {type(e).__name__}: {e}")
+            print("  That is the answer to a different question and it is worth having:")
+            print("  send me this line. It means the environment is wrong, not the model.")
+            return 2
 
     # THE WATERMARKER MUST NOT BE ABLE TO STOP THIS.
     #
@@ -967,13 +1106,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--fixture", action="store_true",
+                    help="run against the local stand-in, not chatterbox")
     ap.add_argument("--one", metavar="PART",
                     help="one part, in this process — what --run spawns per part")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
     if a.one:
-        return cmd_one(a.one)
+        return cmd_one(a.one, a.fixture)
     if a.run:
         return cmd_run(a)
     ap.print_help()
