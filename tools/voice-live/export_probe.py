@@ -140,6 +140,48 @@ def try_export(model, part, out_dir):
     return v
 
 
+def diagnose_watermarker():
+    """Why `perth.PerthImplicitWatermarker` is None, said out loud, then
+    replaced so it cannot stop the export.
+
+    Returns a note for the operator, or None when the real one works. The
+    diagnosis comes FIRST because working around a failure you have not
+    identified is how a workaround becomes a second bug."""
+    try:
+        import perth
+    except Exception as e:
+        return f"the perth package will not import at all — {type(e).__name__}: {e}"
+
+    if getattr(perth, "PerthImplicitWatermarker", None) is not None:
+        return None
+
+    # THE REAL ERROR, dug out rather than guessed. The name is None because
+    # something under it failed and the package kept going.
+    why = "no underlying error surfaced"
+    import importlib
+    for mod in ("perth.perth_net.perth_net_implicit.perth_net",
+                "perth.perth_net", "perth.utils"):
+        try:
+            importlib.import_module(mod)
+        except Exception as e:
+            why = f"{mod}: {type(e).__name__}: {str(e)[:180]}"
+            break
+
+    class NoWatermark:
+        """Returns the audio it was given. Chatterbox calls
+        `apply_watermark(wav, sample_rate=...)`; anything else it might call is
+        answered with the same identity so a version difference cannot turn
+        this stub into a new mystery."""
+        def apply_watermark(self, wav, sample_rate=None, **_):
+            return wav
+
+        def __getattr__(self, _name):
+            return lambda *a, **k: (a[0] if a else None)
+
+    perth.PerthImplicitWatermarker = NoWatermark
+    return f"NOT AVAILABLE ({why})"
+
+
 def reference():
     hits = sorted(CLIPS.glob(VOICE + ".*"))
     return hits[0] if hits else None
@@ -159,6 +201,30 @@ def cmd_run(args):
         print("  That is the answer to a different question and it is worth having:")
         print("  send me this line. It means the environment is wrong, not the model.")
         return 2
+
+    # THE WATERMARKER MUST NOT BE ABLE TO STOP THIS.
+    #
+    # First run: `TypeError: 'NoneType' object is not callable` on
+    # `perth.PerthImplicitWatermarker()`. The package imported and the class
+    # inside it was None — a silent failed import, which is the shape this
+    # project distrusts most: `perth/__init__` swallows its own error and
+    # leaves a name bound to nothing, so the failure surfaces hundreds of
+    # lines away as a type error about NoneType.
+    #
+    # It also worked in the bark-render environment, so it is environmental
+    # rather than broken, and it is IRRELEVANT to the question being asked:
+    # the watermarker is post-processing applied to finished audio, not one of
+    # the three pieces being exported. A probe that dies on it answers nothing.
+    #
+    # So: say what actually went wrong, then stand a no-op in its place and
+    # carry on. DECLARED, not hidden — the shipped path has to make its own
+    # decision about Resemble's watermark, and this stub is for the export
+    # question only.
+    watermark_note = diagnose_watermarker()
+    if watermark_note:
+        print(f"  watermarker: {watermark_note}")
+        print("  standing a no-op in its place — it is post-processing, not a")
+        print("  piece being exported, and it must not block the answer.\n")
 
     print("  loading the model on CPU (export does not need a GPU)...")
     t0 = time.time()
