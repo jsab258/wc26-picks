@@ -546,11 +546,19 @@ def try_export(model, part, out_dir):
     return v
 
 
-def agreement(model, args, onnx_path, provider, tol=1e-3):
+def agreement(model, args, onnx_path, provider, tol=1e-2):
     """Does the converted model produce the same numbers as the original?
 
     Twice: once on the input it was traced with, once on different input. See
     the note at the call site for why the second one is the whole point.
+
+    `tol` is RELATIVE — a fraction of the reference output's own magnitude —
+    because an absolute number cannot be judged without knowing the scale of
+    what is being compared, and the first version of this reported one anyway.
+    1% is loose enough that float32-vs-float64 and a different operator order
+    do not trip it, and far tighter than any difference a frozen branch
+    produces: the stand-in built to bake its loop count came in at 4.09
+    against outputs of order 1.
     """
     import numpy as np
     import onnxruntime as ort
@@ -560,24 +568,45 @@ def agreement(model, args, onnx_path, provider, tol=1e-3):
     names = [i.name for i in sess.get_inputs()]
 
     def compare(sample):
+        """Returns (relative worst, absolute worst, reference magnitude, error).
+
+        A DIFFERENCE NEEDS A DENOMINATOR, and the first version had none.
+        The encoder came back with `other_input_worst: 0.0449` and I could
+        not say whether that was four per cent or four thousandths of one,
+        because nothing recorded how big the numbers being compared were.
+        That is rule 3b — a zero needs a denominator — happening to a
+        difference instead of a zero, in the newest check in this file, one
+        commit after writing it.
+
+        The scale is the reference output's own magnitude, so the verdict is
+        about proportion rather than about units nobody chose.
+        """
         with torch.no_grad():
             want = model(*sample)
         want = [want] if not isinstance(want, (tuple, list)) else list(want)
         feeds = {n: (a.cpu().numpy() if hasattr(a, "cpu") else np.asarray(a))
                  for n, a in zip(names, sample)}
         got = sess.run(None, feeds)
-        worst = 0.0
+        worst_abs, worst_rel, mag = 0.0, 0.0, 0.0
         for w, g in zip(want, got):
             w = w.cpu().numpy() if hasattr(w, "cpu") else np.asarray(w)
             g = np.asarray(g)
             if w.shape != g.shape:
-                return None, f"shape {list(w.shape)} became {list(g.shape)}"
-            worst = max(worst, float(np.abs(w.astype("float64") - g.astype("float64")).max()))
-        return worst, None
+                return None, None, None, f"shape {list(w.shape)} became {list(g.shape)}"
+            w = w.astype("float64")
+            g = g.astype("float64")
+            a = float(np.abs(w - g).max())
+            scale = float(np.abs(w).max())
+            worst_abs = max(worst_abs, a)
+            mag = max(mag, scale)
+            worst_rel = max(worst_rel, a / scale if scale > 1e-12 else (0.0 if a == 0 else 1.0))
+        return worst_rel, worst_abs, mag, None
 
     out = {}
-    same, err = compare(args)
-    out["same_input_worst"] = same
+    same, same_abs, same_mag, err = compare(args)
+    out["same_input_worst_relative"] = same
+    out["same_input_worst_absolute"] = same_abs
+    out["output_magnitude"] = same_mag
     if err:
         return dict(out, verdict="shapes differ", detail=err)
 
@@ -595,19 +624,22 @@ def agreement(model, args, onnx_path, provider, tol=1e-3):
     # distribution is not the same as different input. Several magnitudes, and
     # the WORST disagreement is what counts — a branch that survives one scale
     # and not another is exactly the fault being looked for.
-    worst, err2 = None, None
+    worst, worst_abs2, err2 = None, None, None
     for scale in (1.0, 0.1, 5.0, 25.0):
         other = tuple(torch.randn_like(a) * scale
                       if hasattr(a, "dtype") and getattr(a.dtype, "is_floating_point", False)
                       else a for a in args)
-        d, e = compare(other)
+        d, d_abs, _mag, e = compare(other)
         if e:
             err2 = e
             break
         worst = d if worst is None else max(worst, d)
+        worst_abs2 = d_abs if worst_abs2 is None else max(worst_abs2, d_abs)
     diff = worst
-    out["other_input_worst"] = diff
+    out["other_input_worst_relative"] = diff
+    out["other_input_worst_absolute"] = worst_abs2
     out["other_input_scales"] = [1.0, 0.1, 5.0, 25.0]
+    out["tolerance_relative"] = tol
     if err2:
         return dict(out, verdict="shapes differ on other input", detail=err2)
 
