@@ -540,11 +540,17 @@ def voice_live():
     Wired in because the last tool whose GPU path went unrun shipped with a
     NameError on its working line and cost Jafar a two-hour batch he had
     already started."""
-    code, out = run(["python3", str(ROOT.parent / "tools" / "voice-live" / "probe.py"),
-                     "--selftest"])
-    m = re.search(r"(\d+) checks", out)
-    n = m.group(1) if m else "0"
-    if code == 0:
+    tools = ROOT.parent / "tools" / "voice-live"
+    total = 0
+    for script in ("probe.py", "export_probe.py"):
+        code, out = run(["python3", str(tools / script), "--selftest"])
+        m = re.search(r"(\d+) checks", out)
+        if code != 0:
+            bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+            return False, "VOICE LIVE (%s): %s" % (script, bad[0][:70] if bad else "no report")
+        total += int(m.group(1)) if m else 0
+    n = total
+    if True:
         return True, "voice-live ok (%s checks)" % n
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
     return False, "VOICE LIVE: " + (bad[0][:90] if bad else "did not report")
