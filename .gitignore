@@ -38,3 +38,15 @@ ledger-mixamo/
 tools/mixamo-pick/animations/
 characters_available.txt
 ledger/.verify-footer
+
+# The ONNX export probe's output — .onnx files, per-part results and the
+# report itself. It is a MEASUREMENT of one machine's run, so a copy
+# arriving by git is the same hazard the probe was just fixed for: a
+# report that outlives the run that wrote it, landing on somebody else's
+# machine looking like their answer. The selftest writes one as part of
+# proving a stale report cannot survive, which is how one got committed.
+tools/voice-live/export-out/
+# And its sibling: the listening page `probe.py` writes for one
+# machine's backends. Same class, found by grepping for it rather than
+# by waiting for it to be committed too.
+tools/voice-live/out/
