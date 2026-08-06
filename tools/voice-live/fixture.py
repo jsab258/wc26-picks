@@ -99,7 +99,7 @@ class FakeT3(nn.Module):
         # Called by keyword and with a non-tensor flag, exactly as the real
         # transformer is — the flag must stay baked in while the tensor
         # becomes a graph input.
-        h = self.tfmr(inputs_embeds=x, use_cache=True)
+        h, _cache = self.tfmr(inputs_embeds=x, use_cache=True)
         steps = 0
         for _ in range(20):
             h = self.proj(h)
@@ -107,6 +107,15 @@ class FakeT3(nn.Module):
             if bool((h.norm() < 1.0).item()):   # the stop token, in miniature
                 break
         return h * steps
+
+
+class DynamicCacheish:
+    """Stands in for HuggingFace's `DynamicCache`. Deliberately not a tensor
+    and not a tuple — its whole role is to be a type an exporter cannot put
+    in a graph."""
+
+    def __init__(self):
+        self.entries = []
 
 
 class KwargsOnly(nn.Module):
@@ -130,7 +139,16 @@ class KwargsOnly(nn.Module):
     def forward(self, inputs_embeds=None, input_ids=None, use_cache=False):
         if (inputs_embeds is None) == (input_ids is None):
             raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
-        return self.a(inputs_embeds if inputs_embeds is not None else input_ids)
+        h = self.a(inputs_embeds if inputs_embeds is not None else input_ids)
+        if use_cache:
+            # A CACHE OBJECT IN THE OUTPUT, which is what actually stopped the
+            # real transformer once the keyword problem was fixed: "Found
+            # DynamicCache in output, which is not a known type". Neither
+            # exporter can carry an object like this through a graph, and the
+            # standard way past it is to turn the cache off — so the fixture
+            # has to return one, or that retry has no failing case.
+            return h, DynamicCacheish()
+        return h, None      # and a None in a slot, which crashed the comparison
 
 
 class InnerFlow(nn.Module):

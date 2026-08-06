@@ -562,7 +562,8 @@ def try_export(model, part, out_dir):
             tgt = (sub if meth == "forward" and not names
                    else make_kwargs_wrapper(sub, meth, names, const, npos))
             plan.append({"label": meth, "target": tgt, "args": ins,
-                         "method": meth, "inner": None})
+                         "method": meth, "inner": None, "owner": sub,
+                         "kw_names": names, "const": const, "n_positional": npos})
         for key, kid, kname, mname in sorted(
                 [(k, kd, kn, mn) for (k, kd, kn, mn) in kid_order if k in kids],
                 key=lambda t: sum(p.numel() for p in t[1].parameters()), reverse=True):
@@ -571,7 +572,8 @@ def try_export(model, part, out_dir):
             tgt = (kid if mname == "forward" and not names
                    else make_kwargs_wrapper(kid, mname, names, const, npos))
             plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
-                         "method": mname,
+                         "method": mname, "owner": kid,
+                         "kw_names": names, "const": const, "n_positional": npos,
                          "inner": {"child": kname, "method": mname,
                                    "params": sum(p.numel() for p in kid.parameters()),
                                    "called_times": counts.get(key, 0),
@@ -582,6 +584,7 @@ def try_export(model, part, out_dir):
         inner_used = None
         best = None
         stft_used = [False]
+        cache_off = [False]
         for step in plan:
             target, hook = step["target"], {"args": step["args"], "method": step["method"]}
 
@@ -615,8 +618,27 @@ def try_export(model, part, out_dir):
             def do_export(use_dynamo, _t=target, _a=hook["args"], _n=names, _ax=axes):
                 with torch.no_grad():
                     if use_dynamo:
-                        torch.onnx.export(_t, _a, str(dest), opset_version=17,
-                                          do_constant_folding=True, dynamo=True)
+                        # THE NEWER EXPORTER TAKES A DIFFERENT ARGUMENT, and
+                        # the first version of this only fed the older one. The
+                        # encoder converts through dynamo, so it kept its clip
+                        # length baked in and the second-voice comparison kept
+                        # dying with "Got: 685 Expected: 1175" — the fix was
+                        # written and did not reach the one part that needed it.
+                        # `dynamic_shapes` is the same idea under another name;
+                        # if this build of torch will not take it, fall back
+                        # rather than lose the export.
+                        try:
+                            shapes = tuple(
+                                {ax: torch.export.Dim.AUTO for ax in d}
+                                if hasattr(a, "shape") else None
+                                for a, d in zip(_a, [_ax.get(f"in{i}", {})
+                                                     for i in range(len(_a))]))
+                            torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                              do_constant_folding=True, dynamo=True,
+                                              dynamic_shapes=shapes)
+                        except Exception:
+                            torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                              do_constant_folding=True, dynamo=True)
                     else:
                         torch.onnx.export(_t, _a, str(dest), opset_version=17,
                                           do_constant_folding=True, dynamo=False,
@@ -638,6 +660,47 @@ def try_export(model, part, out_dir):
             # the result records that the substitute was used. A conversion
             # obtained with a stand-in for one of its operations is not the
             # same result as one without, and must not read as one.
+            # THE KV CACHE, TURNED OFF AND RETRIED.
+            #
+            # The keyword fix got the transformer past "specify exactly one of
+            # input_ids or inputs_embeds" and straight into the next wall:
+            # "received an input of unsupported type: DynamicCache", and from
+            # the other exporter "Found DynamicCache in output, which is not a
+            # known type". That is HuggingFace's KV cache going in and coming
+            # back out, and neither exporter can carry an object like that
+            # through a graph.
+            #
+            # A cache is an optimisation for generating one token at a time.
+            # It is not part of the answer, and a graph the game drives step
+            # by step can keep its own. `use_cache=False` removes it from both
+            # ends, which is the standard way past this and costs nothing at
+            # conversion time.
+            #
+            # Only when the error names the cache, and recorded when used —
+            # a graph exported without its cache is a different graph, and the
+            # loop around it has to know.
+            if not ok and ("dynamiccache" in str(row).lower()
+                           or "use_cache" in str(row).lower()):
+                nocache = dict(step.get("const", {}))
+                nocache["use_cache"] = False
+                retry = make_kwargs_wrapper(step["owner"], step["method"],
+                                            step["kw_names"], nocache,
+                                            step["n_positional"])
+
+                def do_nocache(use_dynamo, _t=retry, _a=hook["args"]):
+                    with torch.no_grad():
+                        torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                          do_constant_folding=True, dynamo=use_dynamo)
+
+                ok2, errors2 = export_with_fallback(do_nocache, dest)
+                row["with_cache_off"] = {"torchscript": errors2.get("torchscript"),
+                                         "dynamo": errors2.get("dynamo")}
+                if ok2:
+                    ok, errors = ok2, errors2
+                    target = retry
+                    row["cache_disabled"] = True
+                    cache_off[0] = True
+
             if not ok and "stft" in str(row).lower():
                 import stft_patch
                 with stft_patch.patched():
@@ -868,6 +931,13 @@ def try_export(model, part, out_dir):
     # ALREADY MEASURED, in the attempt loop, because a wrong answer had to be
     # able to fall through to the next candidate rather than ending the part.
     # What is left here is only to let it decide the verdict.
+    if cache_off[0]:
+        v["cache_disabled"] = True
+        v["shipping_note_cache"] = (
+            "exported with the key/value cache turned off, because neither "
+            "exporter can carry HuggingFace's cache object through a graph. "
+            "The graph is correct without it and slower per step; the loop "
+            "around it has to keep its own cache or accept the cost")
     if stft_used[0]:
         v["stft_substituted"] = True
         v["shipping_note"] = (
@@ -934,6 +1004,8 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
         got = sess.run(None, feeds)
         worst_abs, worst_rel, mag = 0.0, 0.0, 0.0
         for w, g in zip(want, got):
+            if w is None or g is None:
+                continue
             w = w.cpu().numpy() if hasattr(w, "cpu") else np.asarray(w)
             g = np.asarray(g)
             if w.shape != g.shape:
@@ -967,8 +1039,17 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     r2 = [r2] if not isinstance(r2, (tuple, list)) else list(r2)
     drift = 0.0
     for a1, a2 in zip(r1, r2):
+        # A MODEL MAY RETURN NOTHING IN A SLOT. The decoder's flow network
+        # returns a tuple whose second element is None, and `np.abs(None)`
+        # threw — so the whole determinism check crashed and the part came
+        # back "could not check" on a conversion that had just run on the GPU.
+        # An empty slot is not a disagreement; it is a slot.
+        if a1 is None or a2 is None:
+            continue
         n1 = a1.cpu().numpy() if hasattr(a1, "cpu") else np.asarray(a1)
         n2 = a2.cpu().numpy() if hasattr(a2, "cpu") else np.asarray(a2)
+        if n1.dtype == object or n2.dtype == object:
+            continue
         if n1.shape == n2.shape:
             sc = max(float(np.abs(n1).max()), 1e-12)
             drift = max(drift, float(np.abs(n1.astype("float64")
