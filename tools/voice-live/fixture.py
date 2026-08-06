@@ -79,6 +79,20 @@ class FakeT3(nn.Module):
     def __init__(self, dim=32):
         super().__init__()
         self.proj = nn.Linear(dim, dim)
+        with torch.no_grad():
+            # Contracting, so the norm decays and the stop condition is
+            # reached after a number of steps that DEPENDS ON THE INPUT —
+            # which is the property being reproduced.
+            #
+            # 0.95 RATHER THAN 0.7, and the difference is the whole point.
+            # At 0.7 each step shrinks the norm by a third, so the ~26% gap
+            # between the fixture's two voices was less than one step wide and
+            # both drives ran the same number of times — the loop was
+            # data-dependent and the counter could not see it. Measured across
+            # two contraction rates and four thresholds before choosing: 0.95
+            # with a threshold of 1.0 gives four steps for one voice and three
+            # for the other.
+            self.proj.weight.mul_(0.95)
 
     def inference(self, x):
         h = x
@@ -86,7 +100,7 @@ class FakeT3(nn.Module):
         for _ in range(20):
             h = self.proj(h)
             steps += 1
-            if bool((h.max() > 0.9).item()):   # the stop token, in miniature
+            if bool((h.norm() < 1.0).item()):   # the stop token, in miniature
                 break
         return h * steps
 
@@ -178,14 +192,58 @@ class FakeChatterbox:
     def generate(self, text, audio_prompt_path=None, exaggeration=0.5):
         """Drives all three through `inference`, and NOT through `forward`,
         which is what made the probe's first hook report a decoder that plainly
-        ran as 'never called'."""
-        self.ve.inference(torch.randn(1, 40, 16))
-        self.t3.inference(torch.randn(1, 32))
-        self.s3gen.inference(torch.randn(1, 512), torch.tensor([[3, 4]]))
-        return torch.randn(1, 512)
+        ran as 'never called'.
+
+        THE INPUTS DEPEND ON THE ARGUMENTS. They used to be fresh `randn`
+        every call, which made a second drive with a different voice and a
+        different line produce input statistically identical to the first —
+        so the second-voice comparison would have passed no matter what, and
+        the check would have looked like it worked. A stand-in has to vary
+        where the real thing varies."""
+        # ONE FIXED NOISE PATTERN, SCALED BY `exaggeration`, and nothing
+        # keyed off the file path.
+        #
+        # Two earlier versions were both unreproducible. The first seeded from
+        # `hash()`, which python salts per process. The second seeded from a
+        # crc of the clip PATH — stable within a machine and different on
+        # every machine, so a loop length tuned here would not hold on
+        # Jafar's, and the check would silently stop testing anything.
+        #
+        # `exaggeration` is the honest axis: the probe really does drive the
+        # two takes at 0.45 and 0.7, it is a number rather than a filename,
+        # and it is the same everywhere. Same noise, different scale, so the
+        # loop length tracks it and the two drives differ for a reason that
+        # can be stated in one line.
+        # ONE GENERATOR PER PART, so each part's input depends only on
+        # `exaggeration` and not on how many draws happened before it. With a
+        # shared generator, t3 got the SECOND draw — so a threshold tuned by
+        # measuring a fresh first draw was tuned against a tensor the fixture
+        # never produces, and I read the probe's correct answer as a bug in the
+        # probe for two rounds.
+        def gen(tag):
+            return torch.Generator().manual_seed(20260806 + tag)
+        wob = 0.5 + float(exaggeration)
+        self.ve.inference(torch.randn(1, 40, 16, generator=gen(1)) * wob)
+        self.t3.inference(torch.randn(1, 32, generator=gen(2)) * wob)
+        self.s3gen.inference(torch.randn(1, 512, generator=gen(3)) * wob,
+                             torch.tensor([[3, 4]]))
+        return torch.randn(1, 512, generator=gen(4))
 
 
 def load():
+    """FIXED WEIGHTS, and this took three runs to notice.
+
+    The modules were built with torch's default initialisation and no seed, so
+    every process got a different model — and the loop-count check, which is
+    about how many steps the stop condition takes, read 3-vs-3, then 2-vs-3,
+    then 3-vs-3 across three identical runs. I went looking at the seeding of
+    the INPUTS twice before checking the seeding of the WEIGHTS, because the
+    inputs were the part I had just written.
+
+    A fixture that differs between runs cannot support a claim in either
+    direction: a check that passes is not evidence, and one that fails is not
+    a bug report."""
+    torch.manual_seed(20260806)
     m = FakeChatterbox()
     for sub in (m.t3, m.s3gen, m.ve):
         sub.eval()

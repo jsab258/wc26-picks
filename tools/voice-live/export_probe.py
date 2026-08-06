@@ -49,6 +49,18 @@ REPORT = OUT / "export-report.json"
 LINE = "Seen the van again. Thursday, same as last Thursday."
 VOICE = "rocco"
 
+# A SECOND REAL VOICE AND A SECOND REAL LINE, because "different input" has to
+# mean what the game will actually do.
+#
+# The agreement check compared against synthetic noise, which is not a thing
+# any player produces and is not what a converted model has to be right about.
+# Driving a second real generate costs under a minute per part and gives the
+# only comparison that settles the question: does this file give the same
+# answer for a DIFFERENT CHARACTER SAYING A DIFFERENT SENTENCE. That is the
+# whole job.
+SECOND_VOICE = "ada"
+SECOND_LINE = "He was here before the rain started, and he did not come in."
+
 # The parts, in the order they are worth having. `attr` is where the submodule
 # hangs off `ChatterboxTTS`; several names are tried because the package has
 # renamed them between releases and a probe that dies on an attribute lookup
@@ -359,18 +371,37 @@ def try_export(model, part, out_dir):
         # as "how much of the stage converted", which are the same number only
         # when the wrapper does nothing but call the child. The call count is
         # what tells those apart, and it costs one integer.
+        # COUNTED IN BOTH DRIVES, and the COMPARISON is the real signal.
+        #
+        # A single count is a property of the input, not of the model. The
+        # stand-in text stage is a loop that stops on a condition: it ran once
+        # for the first voice and would run twenty times for another, so
+        # `called_times: 1` was recorded and read as "not a loop" — the exact
+        # wrong conclusion, from a number that was accurate.
+        #
+        # Two counts settle it. If the wrapper called this child a DIFFERENT
+        # number of times for two different voices, the loop is data-dependent
+        # and no single exported graph can contain it. That is proof rather
+        # than inference, and it costs a second integer.
         counts = {}
+        counts_b = {}
+        swap = [False]          # True once the second, different-voice drive starts
+        second = {}             # the same entry points, captured from that drive
+        second_note = [None]
 
         def make(store, key, real):
             def spy(*a, **kw):
-                counts[key] = counts.get(key, 0) + 1
-                if key not in store:
-                    store[key] = {
-                        "args": tuple(x.detach() if hasattr(x, "detach") else x
-                                      for x in a),
-                        "kwargs": dict(kw)}
-                    if store is calls:
-                        order.append(key)
+                grab = tuple(x.detach() if hasattr(x, "detach") else x for x in a)
+                if swap[0]:
+                    counts_b[key] = counts_b.get(key, 0) + 1
+                    if key not in second:
+                        second[key] = {"args": grab, "kwargs": dict(kw)}
+                else:
+                    counts[key] = counts.get(key, 0) + 1
+                    if key not in store:
+                        store[key] = {"args": grab, "kwargs": dict(kw)}
+                        if store is calls:
+                            order.append(key)
                 return real(*a, **kw)
             return spy
 
@@ -422,6 +453,28 @@ def try_export(model, part, out_dir):
 
         try:
             model.generate(LINE, audio_prompt_path=str(reference()), exaggeration=0.45)
+
+            # THE SECOND DRIVE: a different character saying a different
+            # sentence, captured through the same hooks into a separate store.
+            #
+            # This is the input the agreement check actually needs. Comparing
+            # against synthetic noise asks whether the converted model matches
+            # on something no player will ever produce; comparing against a
+            # second real voice asks the only question that matters, which is
+            # whether it still works for the next line of dialogue.
+            #
+            # Wrapped in its own try: a second voice failing to generate must
+            # not cost the first one's answer, and a part with no second
+            # capture simply falls back to the synthetic comparison and says
+            # so rather than reporting nothing.
+            try:
+                second_ref = reference(SECOND_VOICE)
+                if second_ref is not None:
+                    swap[0] = True
+                    model.generate(SECOND_LINE, audio_prompt_path=str(second_ref),
+                                   exaggeration=0.7)
+            except Exception as e:
+                second_note[0] = tidy(e, 200)
         finally:
             for owner, meth in wrapped:
                 try:
@@ -486,7 +539,8 @@ def try_export(model, part, out_dir):
                          "method": mname,
                          "inner": {"child": kname, "method": mname,
                                    "params": sum(p.numel() for p in kid.parameters()),
-                                   "called_times": counts.get(key, 0)}})
+                                   "called_times": counts.get(key, 0),
+                                   "called_times_second_voice": counts_b.get(key, 0)}})
 
         attempts = {}
         exported = False
@@ -517,12 +571,30 @@ def try_export(model, part, out_dir):
             # next candidate — that is the whole point of the restructure.
             agree = None
             try:
-                agree = agreement(target, hook["args"], dest, "CPUExecutionProvider")
+                alt = None
+                key2 = step["label"][6:] if step["label"].startswith("child:") else step["label"]
+                if key2 in second:
+                    a2 = second[key2]["args"]
+                    if len(a2) == len(hook["args"]):
+                        alt = a2
+                agree = agreement(target, hook["args"], dest,
+                                  "CPUExecutionProvider", real_alt=alt)
             except Exception as e:
                 agree = {"verdict": "could not check", "error": tidy(e, 300)}
             row["agrees"] = agree
             attempts[step["label"]] = row
 
+            # A SECOND REAL VOICE IS NOT ENOUGH ON ITS OWN, and the stand-in
+            # proved it: the model built to freeze its loop count agrees with
+            # a second real voice to 1.8e-07 and disagrees with synthetic
+            # input by 105%. Both drives happened to take the same branch,
+            # which is exactly how a frozen branch hides.
+            #
+            # So realistic input cannot replace the synthetic sweep — it
+            # answers a different question. Real voices say "is it right for
+            # the job"; synthetic extremes say "is anything frozen in here".
+            # Only a clean pass on both is accepted; the mixed case keeps
+            # looking and is reported as the ambiguity it is.
             good = agree.get("verdict") in ("agrees", "could not check")
             if best is None or good:
                 best = {"label": step["label"], "target": target, "hook": hook,
@@ -645,7 +717,18 @@ def try_export(model, part, out_dir):
     # for a graph that is the inner network alone.
     if inner_used:
         n = inner_used.get("called_times", 0)
-        if n > 1:
+        n2 = inner_used.get("called_times_second_voice", 0)
+        if n2 and n != n2:
+            # PROOF, not inference. Two real voices drove this child a
+            # different number of times, so the wrapper's loop depends on the
+            # data and no single graph can hold it.
+            v["verdict"] = (f"a data-dependent loop: the wrapper ran this {n} times "
+                            f"for one voice and {n2} for another")
+            v["shipping_work"] = (f"the loop must be rebuilt outside the model and "
+                                  f"driven step by step — it ran {n} and {n2} times "
+                                  f"for two different lines, so its length is not "
+                                  f"fixed and cannot be baked into the graph")
+        elif n > 1:
             # ONE STEP OF A LOOP. Say so in the verdict, because this is the
             # reading that looks like a result and is not one: the wrapper
             # runs this child n times and decides when to stop, and none of
@@ -686,12 +769,21 @@ def try_export(model, part, out_dir):
     # ALREADY MEASURED, in the attempt loop, because a wrong answer had to be
     # able to fall through to the next candidate rather than ending the part.
     # What is left here is only to let it decide the verdict.
-    if v.get("agrees") and v["agrees"].get("verdict") not in ("agrees", "could not check"):
-        v["verdict"] = v["verdict"] + ", but the numbers are wrong"
+    av = (v.get("agrees") or {}).get("verdict")
+    if av and av not in ("agrees", "could not check"):
+        # THE WORDING FOLLOWS THE FINDING. "The numbers are wrong" is right
+        # for a model that fails on a real second voice and overstated for one
+        # that only differs on artificial input — and the first version said
+        # it for both, which is the flat verdict this file keeps having to
+        # take apart.
+        v["verdict"] = v["verdict"] + (
+            ", but only artificial input disagrees — unresolved"
+            if av.startswith("agrees for real voices")
+            else ", but the numbers are wrong")
     return v
 
 
-def agreement(model, args, onnx_path, provider, tol=1e-2):
+def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     """Does the converted model produce the same numbers as the original?
 
     Twice: once on the input it was traced with, once on different input. See
@@ -769,6 +861,22 @@ def agreement(model, args, onnx_path, provider, tol=1e-2):
     # distribution is not the same as different input. Several magnitudes, and
     # the WORST disagreement is what counts — a branch that survives one scale
     # and not another is exactly the fault being looked for.
+    # THE REAL SECOND VOICE FIRST, because it is the only comparison that
+    # answers the shipping question. Synthetic noise is not a thing a player
+    # produces, and a model may legitimately behave oddly far outside the
+    # data it was trained on without that meaning anything for the game.
+    if real_alt is not None:
+        r, r_abs, _m, r_err = compare(real_alt)
+        out["second_voice_worst_relative"] = r
+        out["second_voice_worst_absolute"] = r_abs
+        if r_err:
+            out["second_voice_error"] = r_err
+        elif r is not None and r > tol:
+            return dict(out, verdict="wrong for a different voice",
+                        detail="the converted model gives a different answer for "
+                               "another character saying another line, which is "
+                               "the job it exists to do")
+
     worst, worst_abs2, err2 = None, None, None
     for scale in (1.0, 0.1, 5.0, 25.0):
         other = tuple(torch.randn_like(a) * scale
@@ -791,6 +899,16 @@ def agreement(model, args, onnx_path, provider, tol=1e-2):
     if same is not None and same > tol:
         return dict(out, verdict="wrong even on the traced input")
     if diff is not None and diff > tol:
+        if out.get("second_voice_worst_relative") is not None:
+            # A REAL SECOND VOICE AGREED AND ONLY SYNTHETIC NOISE DID NOT.
+            # Reported, not condemned. It is consistent with a frozen branch
+            # and equally consistent with the model behaving oddly on input
+            # unlike anything it was trained on, and this check cannot tell
+            # those apart — so it says so instead of picking.
+            return dict(out, verdict="agrees for real voices; differs on synthetic input",
+                        detail="a second real voice matched; only artificial noise "
+                               "disagreed, which may be a frozen branch or may be "
+                               "the model being out of its depth on noise")
         # THE FINDING THIS EXISTS FOR, and it has its own words because it is
         # the one that looks like success.
         return dict(out, verdict="only correct for the input it was traced with",
@@ -842,8 +960,8 @@ def diagnose_watermarker():
     return f"NOT AVAILABLE ({why})"
 
 
-def reference():
-    hits = sorted(CLIPS.glob(VOICE + ".*"))
+def reference(voice=None):
+    hits = sorted(CLIPS.glob((voice or VOICE) + ".*"))
     return hits[0] if hits else None
 
 
