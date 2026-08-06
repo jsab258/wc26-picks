@@ -83,6 +83,57 @@ def find_part(model, names):
     return None, None
 
 
+def export_with_fallback(export_fn, dest):
+    """Try both exporters, keep both errors, and never let a stale file lie.
+
+    TWO EXPORTERS, BECAUSE THEY FAIL AT DIFFERENT THINGS. The old TorchScript
+    tracer goes first: when it works its output is the most predictable. It
+    cannot follow an in-place write into a KV cache — t3 died on "We don't
+    have an op for aten::scatter_", which is a limit of that tracer rather
+    than a fault in the model, and retrying it cannot help. `dynamo=True` is
+    PyTorch's newer exporter and handles exactly that class of dynamic
+    control flow, so a TorchScript failure falls through to it rather than
+    ending the part.
+
+    BOTH messages are reported even when the second one saves the export.
+    "It failed" hides WHICH exporter is the blocker, and that is the
+    difference between "restructure the model" and "use the other exporter".
+
+    THE UNLINK IS THE LOAD-BEARING LINE. A failed export can leave a partial
+    `.onnx` behind, and a previous run's good one is worse — both survive to
+    be `stat`-ed, loaded and reported on by the step below, which would read
+    a stale success as this run's. That is rule 3b wearing a filename: a file
+    that is present tells you nothing about whether THIS attempt produced it.
+    Scoped to exactly the path this call writes, which is what rule 5 asks.
+
+    Returns (exported, errors). On success `errors["exporter"]` names the one
+    that worked; a torchscript entry alongside it means the fallback was
+    needed.
+    """
+    errors = {}
+    for label, use_dynamo in (("torchscript", False), ("dynamo", True)):
+        try:
+            if dest.exists():
+                dest.unlink()
+        except OSError:
+            pass
+        try:
+            export_fn(use_dynamo)
+        except Exception as ex:
+            errors[label] = f"{type(ex).__name__}: {str(ex)[:260]}"
+            continue
+        # AND IT HAS TO HAVE WRITTEN SOMETHING. An exporter that returns
+        # without raising and without producing a file would otherwise be
+        # reported as a success, and `dest.stat()` would throw into the outer
+        # handler where it reads as an export error rather than as this.
+        if not dest.exists():
+            errors[label] = "returned without raising but wrote no file"
+            continue
+        errors["exporter"] = label
+        return True, errors
+    return False, errors
+
+
 def try_export(model, part, out_dir):
     """One component. Returns a verdict dict — never raises, because the
     NEXT part's answer is worth having even when this one fails."""
@@ -93,6 +144,12 @@ def try_export(model, part, out_dir):
                 "detail": f"none of {part['names']} is an attribute of the model; "
                           f"the package may have renamed it"}
     n_params = sum(p.numel() for p in sub.parameters()) if hasattr(sub, "parameters") else 0
+    # RE-ASSERTED PER PART. `torch.onnx.export` flips train/eval and does not
+    # reliably put it back, so part three inherited part two's mode. Cheap
+    # insurance against a failure that belongs to a different part.
+    for m in (model, sub):
+        if hasattr(m, "eval"):
+            m.eval()
     dest = out_dir / f"{part['key']}.onnx"
     t0 = time.time()
     try:
@@ -169,11 +226,31 @@ def try_export(model, part, out_dir):
                     return getattr(self.inner, self._meth)(*a, **self._kw)
             target = EntryWrapper(sub, hook["method"], hook["kwargs"])
 
-        torch.onnx.export(target, hook["args"], str(dest), opset_version=17,
-                          do_constant_folding=True, dynamo=False)
+        # `no_grad` around the trace, because s3gen died on "Cannot insert a
+        # Tensor that requires grad as a constant" — a parameter carrying
+        # autograd state into the graph. See `export_with_fallback` for why
+        # there are two attempts.
+        def do_export(use_dynamo):
+            with torch.no_grad():
+                torch.onnx.export(target, hook["args"], str(dest),
+                                  opset_version=17, do_constant_folding=True,
+                                  dynamo=use_dynamo)
+
+        exported, errors = export_with_fallback(do_export, dest)
+        if not exported:
+            return {"part": part["key"], "verdict": "failed",
+                    "entry": hook.get("method"), "params": n_params,
+                    "torchscript_error": errors.get("torchscript"),
+                    "dynamo_error": errors.get("dynamo"),
+                    "seconds": round(time.time() - t0, 1)}
         size = dest.stat().st_size / 1e6
         v = {"part": part["key"], "verdict": "exported",
-             "entry": hook["method"], "megabytes": round(size, 1),
+             "entry": hook["method"], "exporter": errors.get("exporter"),
+             # Present ONLY when the first exporter failed and the second
+             # saved it. Its absence is how the report says "the ordinary
+             # path worked" rather than staying silent about which did.
+             "torchscript_error": errors.get("torchscript"),
+             "megabytes": round(size, 1),
              "params": n_params, "seconds": round(time.time() - t0, 1)}
     except Exception as e:
         return {"part": part["key"], "verdict": "failed",
@@ -292,7 +369,30 @@ def cmd_run(args):
     print("  loading the model on CPU (export does not need a GPU)...")
     t0 = time.time()
     model = ChatterboxTTS.from_pretrained(device="cpu")
-    print(f"  loaded in {time.time() - t0:.0f}s\n")
+
+    # EVAL MODE AND NO GRADIENTS. Two of the first run's three failures were
+    # this line missing, and neither was about the model:
+    #
+    #   ve     "Expected more than 1 value per channel when training,
+    #           got input size torch.Size([1, 192])"
+    #          — BatchNorm in TRAINING mode with a batch of one.
+    #   s3gen  "Cannot insert a Tensor that requires grad as a constant"
+    #          — a parameter still carrying autograd state into the trace.
+    #
+    # `ve` had exported cleanly the run before, which is the tell: nothing
+    # about it changed, so the difference was STATE left behind by the two
+    # parts tried before it. An export toggles train/eval and does not always
+    # put it back, so the second part poisoned the third and the report read
+    # as three independent failures. They were one omission and an ordering.
+    import torch
+    for m in (model, getattr(model, "t3", None), getattr(model, "s3gen", None),
+              getattr(model, "ve", None)):
+        if m is not None and hasattr(m, "eval"):
+            m.eval()
+        if m is not None and hasattr(m, "parameters"):
+            for prm in m.parameters():
+                prm.requires_grad_(False)
+    print(f"  loaded in {time.time() - t0:.0f}s, eval mode, gradients off\n")
 
     rows = []
     for part in PARTS:
@@ -366,6 +466,53 @@ def selftest():
         back = json.loads(f.read_text(encoding="utf-8"))["parts"]
         check(len(back) == 2 and back[1]["verdict"] == "exported and runs",
               "the report round-trips, so a partial result survives to be read")
+
+        # THE FALLBACK, DRIVEN WITH A FAKE EXPORTER. All four paths, none of
+        # which needs torch — and this exists because the last thing shipped
+        # from this folder without being executed was a NameError on a line
+        # only a GPU could reach, and it cost a two-hour batch. A fake
+        # `export_fn` is all it takes to run every branch here.
+        d = tmp / "p.onnx"
+
+        def writes(_use_dynamo):
+            d.write_bytes(b"onnx")
+
+        def raises(_use_dynamo):
+            raise RuntimeError("no op for aten::scatter_")
+
+        seen = []
+
+        def only_dynamo(use_dynamo):
+            seen.append(use_dynamo)
+            if not use_dynamo:
+                raise RuntimeError("no op for aten::scatter_")
+            d.write_bytes(b"onnx")
+
+        def silent(_use_dynamo):
+            pass
+
+        ok, errs = export_with_fallback(writes, d)
+        check(ok and errs.get("exporter") == "torchscript" and "dynamo" not in errs,
+              "the ordinary path exports on the first exporter and never tries the second")
+
+        d.write_bytes(b"stale from an earlier run")
+        ok, errs = export_with_fallback(raises, d)
+        check(not ok and "torchscript" in errs and "dynamo" in errs,
+              "when both exporters fail, both errors are kept")
+        check(not d.exists(),
+              "and a previous run's file is gone, so a stale export cannot be read as this one's")
+
+        d.unlink(missing_ok=True)
+        ok, errs = export_with_fallback(only_dynamo, d)
+        check(ok and errs.get("exporter") == "dynamo" and errs.get("torchscript"),
+              "a torchscript failure falls through to dynamo, and says why it had to")
+        check(seen == [False, True],
+              "in that order — the predictable tracer first, the fallback second")
+
+        d.unlink(missing_ok=True)
+        ok, errs = export_with_fallback(silent, d)
+        check(not ok and "wrote no file" in str(errs.get("dynamo", "")),
+              "an exporter that returns without writing anything is a failure, not a success")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
