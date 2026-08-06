@@ -344,34 +344,70 @@ def try_export(model, part, out_dir):
         # preprocessing already done, which makes it the second thing to try
         # and, when it works, tells us exactly which slice has to be
         # reimplemented outside.
+        def make(store, key, real):
+            def spy(*a, **kw):
+                if key not in store:
+                    store[key] = {
+                        "args": tuple(x.detach() if hasattr(x, "detach") else x
+                                      for x in a),
+                        "kwargs": dict(kw)}
+                    if store is calls:
+                        order.append(key)
+                return real(*a, **kw)
+            return spy
+
         wrapped = []
         for meth in ENTRY_POINTS:
             fn = getattr(sub, meth, None)
             if not callable(fn) or meth in ("parameters", "children"):
                 continue
-
-            def make(m_name, real):
-                def spy(*a, **kw):
-                    if m_name not in calls:
-                        calls[m_name] = {
-                            "args": tuple(x.detach() if hasattr(x, "detach") else x
-                                          for x in a),
-                            "kwargs": dict(kw)}
-                        order.append(m_name)
-                    return real(*a, **kw)
-                return spy
             try:
-                setattr(sub, meth, make(meth, fn))
-                wrapped.append(meth)
+                setattr(sub, meth, make(calls, meth, fn))
+                wrapped.append((sub, meth))
             except Exception:
                 pass  # a read-only attribute is not worth failing the probe over
+
+        # AND THE NETWORKS INSIDE, because the wrapper is what keeps refusing.
+        #
+        # Every remaining blocker in the real model is INPUT VALIDATION rather
+        # than arithmetic — t3 asserts its start token is present, and
+        # `flow.py:164` does `if (token >= self.vocab_size).any()`. An exporter
+        # has to know every branch in advance, so a check on data defeats it,
+        # and the network behind the check never gets looked at.
+        #
+        # A shipped graph does not need those checks. The game decides what
+        # goes in. So the direct children are watched too, with the inputs
+        # they were really handed, and when the wrapper will not convert they
+        # are tried on their own.
+        #
+        # ONE LEVEL, on purpose. Two would hook every linear layer in a
+        # half-billion-parameter stack and turn the choice of what to export
+        # into a search. The children of a part are its named stages, which is
+        # the seam this is looking for.
+        kids = {}
+        kid_order = []
+        try:
+            for kname, kid in list(sub.named_children()):
+                for meth in ENTRY_POINTS:
+                    fn = getattr(kid, meth, None)
+                    if not callable(fn) or meth in ("parameters", "children"):
+                        continue
+                    key = f"{kname}.{meth}"
+                    try:
+                        setattr(kid, meth, make(kids, key, fn))
+                        wrapped.append((kid, meth))
+                        kid_order.append((key, kid, kname, meth))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
         try:
             model.generate(LINE, audio_prompt_path=str(reference()), exaggeration=0.45)
         finally:
-            for meth in wrapped:
+            for owner, meth in wrapped:
                 try:
-                    delattr(sub, meth)   # restore the class's own bound method
+                    delattr(owner, meth)   # restore the class's own bound method
                 except Exception:
                     pass
 
@@ -437,6 +473,48 @@ def try_export(model, part, out_dir):
             if exported:
                 break
 
+        # THE WRAPPER REFUSED. TRY THE NETWORKS INSIDE IT.
+        #
+        # Biggest first — parameter count is a fair proxy for how much of the
+        # stage a child represents, and converting the 200-million-parameter
+        # network while leaving a range check outside is a result. Converting
+        # a bias-add is not.
+        inner_used = None
+        if not exported and kid_order:
+            ranked = sorted(
+                [(k, kid, kn, mn) for (k, kid, kn, mn) in kid_order if k in kids],
+                key=lambda t: sum(p.numel() for p in t[1].parameters()),
+                reverse=True)
+            for key, kid, kname, mname in ranked:
+                hook = dict(kids[key], method=mname)
+                ktarget = kid
+                if mname != "forward":
+                    def make_kw(inner, m, kwargs):
+                        class KidWrapper(torch.nn.Module):
+                            def __init__(self):
+                                super().__init__()
+                                self.inner = inner
+
+                            def forward(self, *a):
+                                return getattr(inner, m)(*a, **kwargs)
+                        return KidWrapper()
+                    ktarget = make_kw(kid, mname, hook["kwargs"])
+
+                def do_kid(use_dynamo, _t=ktarget, _a=hook["args"]):
+                    with torch.no_grad():
+                        torch.onnx.export(_t, _a, str(dest),
+                                          opset_version=17, do_constant_folding=True,
+                                          dynamo=use_dynamo)
+
+                exported, errors = export_with_fallback(do_kid, dest)
+                attempts[f"child:{key}"] = {"torchscript": errors.get("torchscript"),
+                                            "dynamo": errors.get("dynamo")}
+                if exported:
+                    inner_used = {"child": kname, "method": mname,
+                                  "params": sum(p.numel() for p in kid.parameters())}
+                    target = ktarget
+                    break
+
         if not exported:
             first = attempts.get(candidates[0], {})
             return {"part": part["key"], "verdict": "failed",
@@ -445,12 +523,20 @@ def try_export(model, part, out_dir):
                     # and "only the outer method was ever attempted" stop
                     # looking the same.
                     "entries_tried": candidates,
+                    "children_tried": [k for k in attempts if k.startswith("child:")],
                     "torchscript_error": first.get("torchscript"),
                     "dynamo_error": first.get("dynamo"),
                     "by_entry": attempts,
                     "seconds": round(time.time() - t0, 1)}
         size = dest.stat().st_size / 1e6
-        v = {"part": part["key"], "verdict": "exported",
+        v = {"part": part["key"],
+             "verdict": "exported" if not inner_used else "inner network exported",
+             # WHAT ACTUALLY GOT CONVERTED. When only a child converted, the
+             # wrapper around it is work the game has to do itself, and its
+             # parameter count says how much of the stage this really is —
+             # a verdict of "exported" over 3% of the weights would be a lie
+             # of the most expensive kind.
+             "inner_network": inner_used,
              "entry": hook["method"], "exporter": errors.get("exporter"),
              # WHICH DOOR IT CAME THROUGH, and it decides the shipping work.
              # If the observed entry point exported, the whole stage is in the
@@ -512,6 +598,13 @@ def try_export(model, part, out_dir):
 
     v["by_provider"] = ran
     v.update(provider_verdict(ran))
+    # AND THE VERDICT MUST NOT FORGET IT WAS ONLY A CHILD. `provider_verdict`
+    # writes a flat "exported and runs", which is true of the file and false
+    # about the stage — the validating wrapper is still work the game owes.
+    # Caught by running it: the fixture's decoder reported a plain success
+    # for a graph that is the inner network alone.
+    if inner_used:
+        v["verdict"] = "inner network only: " + v["verdict"]
 
     # AND DOES IT PRODUCE THE RIGHT NUMBERS? Everything above this line can
     # pass on a model that is quietly wrong.

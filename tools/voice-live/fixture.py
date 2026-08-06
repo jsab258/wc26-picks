@@ -91,17 +91,50 @@ class FakeT3(nn.Module):
         return h * steps
 
 
-class FakeS3Gen(nn.Module):
-    """The waveform decoder. Fails on the spectrogram, which is signal
-    processing at the edge of the graph rather than anything neural."""
+class InnerFlow(nn.Module):
+    """The decoder's actual network, with nothing awkward in it. This is the
+    thing worth converting, and until now the probe had no way to reach it —
+    it only ever tried the method it saw being called."""
 
-    def __init__(self, n_fft=64):
+    def __init__(self, dim=512):
+        super().__init__()
+        self.a = nn.Linear(dim, dim)
+        self.b = nn.Linear(dim, dim)
+
+    def forward(self, x):
+        return self.b(torch.relu(self.a(x)))
+
+
+class FakeS3Gen(nn.Module):
+    """The waveform decoder, and it wears the shape the real one turned out
+    to have: A CLEAN NETWORK INSIDE A WRAPPER THAT VALIDATES ITS INPUT.
+
+    Both of chatterbox's decoder blockers are here and neither is arithmetic:
+
+        the range check   `if (token >= self.vocab_size).any()` — flow.py:164.
+                          A branch on data, which the newer exporter must
+                          resolve in advance and cannot.
+        the spectrogram   `torch.stft` — hifigan.py:397, at the very end,
+                          turning numbers into a waveform. Signal processing,
+                          and the older exporter refuses it outright.
+
+    `self.flow` is untouched by either and converts on its own. That is the
+    whole hypothesis in miniature: the wrapper is what refuses, the network is
+    fine, and the game does not need the wrapper because it controls what goes
+    in."""
+
+    def __init__(self, n_fft=64, dim=512):
         super().__init__()
         self.n_fft = n_fft
+        self.vocab_size = 100
+        self.flow = InnerFlow(dim)
         self.post = nn.Linear(n_fft // 2 + 1, 8)
 
-    def inference(self, wav):
-        spec = torch.stft(wav, n_fft=self.n_fft, hop_length=self.n_fft // 4,
+    def inference(self, wav, token=None):
+        if token is not None and bool((token >= self.vocab_size).any()):
+            raise ValueError("token out of range")
+        h = self.flow(wav)
+        spec = torch.stft(h, n_fft=self.n_fft, hop_length=self.n_fft // 4,
                           window=torch.hann_window(self.n_fft),
                           return_complex=True)
         mag = spec.abs().transpose(1, 2)
@@ -148,7 +181,7 @@ class FakeChatterbox:
         ran as 'never called'."""
         self.ve.inference(torch.randn(1, 40, 16))
         self.t3.inference(torch.randn(1, 32))
-        self.s3gen.inference(torch.randn(1, 512))
+        self.s3gen.inference(torch.randn(1, 512), torch.tensor([[3, 4]]))
         return torch.randn(1, 512)
 
 
