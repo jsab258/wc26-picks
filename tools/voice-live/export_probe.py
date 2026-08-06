@@ -491,8 +491,36 @@ def try_export(model, part, out_dir):
 
         candidates = export_candidates(order)
 
-        def make_wrapper(inner, m, kwargs):
-            """THE KWARGS ARE CLOSED OVER, NOT STORED ON THE MODULE.
+        def split_inputs(args, kwargs):
+            """Decide what the exported graph's INPUTS are.
+
+            A MODULE CALLED ENTIRELY WITH KEYWORDS HAD NO INPUTS AT ALL, and
+            it cost the most important result of the run. t3's transformer —
+            the Llama stack, the actual heart of the stage — is called as
+            `tfmr(inputs_embeds=...)`, so the captured positional args were
+            empty, `torch.onnx.export` was handed an empty tuple, and the
+            trace had nothing to vary. It came back "You must specify exactly
+            one of input_ids or inputs_embeds", which reads as the model
+            refusing and was this function not existing.
+
+            The probe then fell through to the next child and converted
+            `speech_emb` instead — an embedding table, 8.4M of 532M
+            parameters, 1.6% of the stage — and reported it as a success.
+
+            So: every TENSOR keyword becomes a positional input to the
+            wrapper, in a fixed order, and is passed back by name inside. Non
+            tensor keywords stay baked in, which is right — they are
+            configuration, not data.
+            """
+            names = [k for k, v in kwargs.items() if hasattr(v, "shape")]
+            const = {k: v for k, v in kwargs.items() if not hasattr(v, "shape")}
+            ins = tuple(args) + tuple(kwargs[k] for k in names)
+            return ins, names, const, len(args)
+
+        def make_kwargs_wrapper(inner, m, kw_names, const_kwargs, n_positional):
+            """A module's real call, reshaped so every tensor is a graph input.
+
+            THE KWARGS ARE CLOSED OVER, NOT STORED ON THE MODULE.
 
             s3gen's dynamo failure named the culprit outright once the error
             stopped being truncated: "The tensor attributes
@@ -509,7 +537,10 @@ def try_export(model, part, out_dir):
                     self.inner = inner
 
                 def forward(self, *a):
-                    return getattr(inner, m)(*a, **kwargs)
+                    pos = a[:n_positional]
+                    named = dict(zip(kw_names, a[n_positional:]))
+                    named.update(const_kwargs)
+                    return getattr(inner, m)(*pos, **named)
             return EntryWrapper()
 
         # ONE ORDERED LIST OF THINGS TO TRY: the wrapper's own doors first,
@@ -527,15 +558,19 @@ def try_export(model, part, out_dir):
         plan = []
         for meth in candidates:
             hook = dict(calls[meth], method=meth)
-            tgt = sub if meth == "forward" else make_wrapper(sub, meth, hook["kwargs"])
-            plan.append({"label": meth, "target": tgt, "args": hook["args"],
+            ins, names, const, npos = split_inputs(hook["args"], hook["kwargs"])
+            tgt = (sub if meth == "forward" and not names
+                   else make_kwargs_wrapper(sub, meth, names, const, npos))
+            plan.append({"label": meth, "target": tgt, "args": ins,
                          "method": meth, "inner": None})
         for key, kid, kname, mname in sorted(
                 [(k, kd, kn, mn) for (k, kd, kn, mn) in kid_order if k in kids],
                 key=lambda t: sum(p.numel() for p in t[1].parameters()), reverse=True):
             hook = dict(kids[key], method=mname)
-            tgt = kid if mname == "forward" else make_wrapper(kid, mname, hook["kwargs"])
-            plan.append({"label": f"child:{key}", "target": tgt, "args": hook["args"],
+            ins, names, const, npos = split_inputs(hook["args"], hook["kwargs"])
+            tgt = (kid if mname == "forward" and not names
+                   else make_kwargs_wrapper(kid, mname, names, const, npos))
+            plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
                          "method": mname,
                          "inner": {"child": kname, "method": mname,
                                    "params": sum(p.numel() for p in kid.parameters()),
@@ -580,9 +615,19 @@ def try_export(model, part, out_dir):
                 import stft_patch
                 with stft_patch.patched():
                     ok, errors = export_with_fallback(do_export, dest)
+                # BOTH SETS OF ERRORS, WHICHEVER WAY IT WENT. The first
+                # version stored the retry's outcome and then, when the retry
+                # FAILED, left the original errors in place and copied those
+                # same originals into `with_native_stft` — so the report
+                # printed one error twice and the patched attempt's own
+                # failure was thrown away. Four parts came back saying
+                # `stft_substituted: false` with no way to tell whether the
+                # substitute had helped, hurt, or never run.
                 row["stft_substituted"] = ok
                 row["with_native_stft"] = {"torchscript": row.get("torchscript"),
                                            "dynamo": row.get("dynamo")}
+                row["with_substituted_stft"] = {"torchscript": errors.get("torchscript"),
+                                                "dynamo": errors.get("dynamo")}
                 if ok:
                     row["torchscript"] = errors.get("torchscript")
                     row["dynamo"] = errors.get("dynamo")
@@ -898,6 +943,19 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     # answers the shipping question. Synthetic noise is not a thing a player
     # produces, and a model may legitimately behave oddly far outside the
     # data it was trained on without that meaning anything for the game.
+    # WRONG ON ITS OWN TRACED INPUT IS THE FIRST THING TO SAY, and this check
+    # used to come last. The decoder's flow network came back 39.8% out on the
+    # very input it was traced with and was reported as "wrong for a different
+    # voice" — true, and it buries the finding: a model that cannot reproduce
+    # the input it was built from is not a generalisation problem, it is a
+    # broken export, and the two have nothing to do with each other.
+    if same is not None and same > tol:
+        return dict(out, verdict="wrong even on the input it was traced with",
+                    detail="the converted model does not reproduce the original's "
+                           "answer for the exact input used to convert it, so this "
+                           "is a broken conversion rather than a generalisation "
+                           "problem")
+
     if real_alt is not None:
         r, r_abs, _m, r_err = compare(real_alt)
         out["second_voice_worst_relative"] = r
@@ -929,8 +987,6 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     if err2:
         return dict(out, verdict="shapes differ on other input", detail=err2)
 
-    if same is not None and same > tol:
-        return dict(out, verdict="wrong even on the traced input")
     if diff is not None and diff > tol:
         if out.get("second_voice_worst_relative") is not None:
             # A REAL SECOND VOICE AGREED AND ONLY SYNTHETIC NOISE DID NOT.

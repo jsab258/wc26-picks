@@ -78,6 +78,7 @@ class FakeT3(nn.Module):
 
     def __init__(self, dim=32):
         super().__init__()
+        self.tfmr = KwargsOnly(dim)
         self.proj = nn.Linear(dim, dim)
         with torch.no_grad():
             # Contracting, so the norm decays and the stop condition is
@@ -95,7 +96,10 @@ class FakeT3(nn.Module):
             self.proj.weight.mul_(0.95)
 
     def inference(self, x):
-        h = x
+        # Called by keyword and with a non-tensor flag, exactly as the real
+        # transformer is — the flag must stay baked in while the tensor
+        # becomes a graph input.
+        h = self.tfmr(inputs_embeds=x, use_cache=True)
         steps = 0
         for _ in range(20):
             h = self.proj(h)
@@ -103,6 +107,30 @@ class FakeT3(nn.Module):
             if bool((h.norm() < 1.0).item()):   # the stop token, in miniature
                 break
         return h * steps
+
+
+class KwargsOnly(nn.Module):
+    """A network called ENTIRELY BY KEYWORD, like t3's transformer.
+
+    `tfmr(inputs_embeds=...)` is how chatterbox drives its Llama stack, and it
+    defeated the probe completely: the captured positional args were empty, so
+    the export was handed no inputs, the trace had nothing to vary, and the
+    module raised "You must specify exactly one of input_ids or inputs_embeds".
+    That reads as the model refusing to convert. It was the harness having no
+    way to express a keyword input.
+
+    The cost was not the error. The probe fell through to the next child and
+    converted an 8.4M-parameter embedding table instead — 1.6% of the stage —
+    and reported that as the result."""
+
+    def __init__(self, dim=32):
+        super().__init__()
+        self.a = nn.Linear(dim, dim)
+
+    def forward(self, inputs_embeds=None, input_ids=None, use_cache=False):
+        if (inputs_embeds is None) == (input_ids is None):
+            raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
+        return self.a(inputs_embeds if inputs_embeds is not None else input_ids)
 
 
 class InnerFlow(nn.Module):
