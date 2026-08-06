@@ -2424,7 +2424,9 @@ namespace Ledger.CoreTests
             var jHook = new Secret { Id = "josip_crates", OwnerId = "josip", Kind = SecretKind.Criminal, Summary = "the crates." };
             jHook.Learn("Rocco", now);
             double loyBefore = josip6.Loyalty;
-            Check(e6.RecruitByHook(josip6, jHook, now) && e6.CrewOf("josip").Route == "hook"
+            Check(e6.Negotiate(josip6, EmpireBook.RecruitAsk,
+                      new[] { (Lever.Secret, 1.0, true) }, now).Agreed
+                && e6.CrewOf("josip").Route == "hook"
                 && josip6.Loyalty < loyBefore, "empire: the hook route recruits fast and wounded");
 
             // Rackets: income flows dirty, witnesses enter the real mill, rot skims.
@@ -2455,7 +2457,9 @@ namespace Ledger.CoreTests
             josip7.Loyalty = 0.2;
             var j7Hook = new Secret { Id = "j", OwnerId = "josip", Kind = SecretKind.Criminal, Summary = "x" };
             j7Hook.Learn("Rocco", now);
-            Check(e7.RecruitByHook(josip7, j7Hook, now), "empire: a known strong hook recruits");
+            Check(e7.Negotiate(josip7, EmpireBook.RecruitAsk,
+                      new[] { (Lever.Secret, 1.0, true) }, now).Agreed,
+                "empire: a known strong hook recruits");
             var rk7 = e7.RacketOf("collection");
             e7.Establish(rk7, e7.CrewOf("josip"), now);
             e7.Rival.Attention = 0.8; // set after the moves so the stage lands on poach, not threat
@@ -6823,6 +6827,53 @@ namespace Ledger.CoreTests
                 "the card line yields the name the character goes by");
             Check(!adaNames.Contains("Nothing") && adaNames.Count == 2,
                 "\"call me nothing at all\" in the same sentence yields no name");
+
+            // NEGOTIATION HAS A CALLER AT LAST — M19's verb, written complete
+            // and tested and never once executed. These test the CALL SITE,
+            // not the maths: `Negotiation` already has its own tests and they
+            // all passed while nothing ran.
+            {
+                var eb = new EmpireBook();
+                var gm = new GossipMill(new SocialGraph());
+                var now = new GameTime(3, 12, 0);
+
+                // A MET NEED RECRUITS SOMEBODY WHO HALF-TRUSTS YOU — the
+                // accepting case, per rule 5b, and the one that goes unrun.
+                var willing = new Gossiper("willing", "Willing", new MemoryStore("willing"), new KnowledgeBase(), new SuspicionTracker(), "day", 0.5, 0.5, 0.6);
+                var got = eb.Negotiate(willing, EmpireBook.RecruitAsk,
+                    new[] { (Lever.Need, 1.0, true) }, now, gm);
+                Check(got.Agreed && eb.CrewOf("willing") != null,
+                    "a met need recruits somebody who already half-trusts you");
+
+                // AND THE COST IS PAID EITHER WAY. A threat can win the room
+                // and still take the loyalty with it — the whole design claim,
+                // and the thing two booleans could not express.
+                var scared = new Gossiper("scared", "Scared", new MemoryStore("scared"), new KnowledgeBase(), new SuspicionTracker(), "day", 0.5, 0.1, 0.6);
+                double before = scared.Loyalty;
+                var bullied = eb.Negotiate(scared, EmpireBook.RecruitAsk,
+                    new[] { (Lever.Threat, 1.0, true) }, now, gm);
+                Check(scared.Loyalty < before,
+                    "threatening somebody costs loyalty whether or not it worked");
+                Check(!bullied.Agreed || eb.CrewOf("scared")?.Route == "threat",
+                    "a recruit remembers which lever actually moved them");
+
+                // WALKING OUT IS REAL, and it must not enlist anybody.
+                var proud = new Gossiper("proud", "Proud", new MemoryStore("proud"), new KnowledgeBase(), new SuspicionTracker(), "day", 0.5, 0.9, 0.5);
+                var walked = eb.Negotiate(proud, EmpireBook.RecruitAsk,
+                    new[] { (Lever.Threat, 1.0, true), (Lever.Threat, 1.0, true) }, now, gm);
+                Check(walked.Walked && eb.CrewOf("proud") == null,
+                    "two hard threats end the conversation and recruit nobody");
+                Check(walked.Why != "still talking",
+                    "a settled negotiation says why, in words rather than a number");
+
+                // NOBODY THERE IS NOT A CRASH.
+                var nobodyThere = eb.Negotiate(null, EmpireBook.RecruitAsk, null, now, gm);
+                Check(nobodyThere != null && !nobodyThere.Agreed,
+                    "negotiating with nobody returns a refusal rather than throwing");
+
+                Check(EmpireBook.RecruitAsk > 0 && EmpireBook.RecruitAsk < 1,
+                    "the recruit ask is one number on Negotiation's own scale");
+            }
 
             Check(CityPlan.Balanced,
                 "the city's districts and its home/work shares are the same length and total 100",

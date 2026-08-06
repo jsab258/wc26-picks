@@ -743,18 +743,37 @@ namespace Ledger.Game
                     : $"Back to the standard split with {id}. Fair is fair.");
                 return;
             }
+            // BOTH ROUTES GO THROUGH `Negotiate` NOW, which is what makes M19's
+            // verb run at all. The outcomes are still the two the player knows
+            // — a hook, or a need met — but they are the RESULT of a lever
+            // rather than a boolean, so what it costs afterwards is computed
+            // instead of assumed, and `Why` is a sentence in their terms.
+            //
+            // `RecruitAsk` is one number in one place. The two routes must ask
+            // the same thing or the hook would be cheaper for a reason nobody
+            // chose.
             if (leverage && hook != null && g != null)
             {
-                Narrate(e.RecruitByHook(g, hook, _game.Now, _game.Gossip?.Mill)
-                    ? $"{id} goes quiet, then nods. They work for you now — because they must."
-                    : "That lever doesn't move them.");
+                var pos = e.Negotiate(g, EmpireBook.RecruitAsk,
+                    new[] { (Lever.Secret, hook.Strong ? 1.0 : 0.7, true) },
+                    _game.Now, _game.Gossip?.Mill);
+                Narrate(pos.Agreed
+                    ? $"{id} goes quiet, then nods. They work for you now, because they must."
+                    : $"{pos.Why.Substring(0, 1).ToUpper()}{pos.Why.Substring(1)}.");
                 return;
             }
             if (_game.TryNeedOf(id, out var cost, out var line) && g != null)
             {
-                bool joined = e.RecruitByNeed(g, id, cost, _game.Wallet, _game.Now, _game.Gossip?.Mill);
-                Narrate($"{line} (-£{cost})" + (joined
-                    ? $" {id} is with you now — by choice."
+                // THE MONEY STILL LEAVES THE WALLET FIRST. `Push` takes the
+                // FACT, not the promise — `Negotiation`'s own comment — so the
+                // need is only a lever once it has actually been met, and a
+                // player who cannot afford it never gets to push it.
+                bool paid = _game.Wallet.Spend(cost, dirtyOk: true);
+                if (!paid) { Narrate($"You can't cover it. {id} notices you trying."); return; }
+                var pos = e.Negotiate(g, EmpireBook.RecruitAsk,
+                    new[] { (Lever.Need, 1.0, true) }, _game.Now, _game.Gossip?.Mill);
+                Narrate($"{line} (-£{cost})" + (pos.Agreed
+                    ? $" {id} is with you now, by choice."
                     : $" {id} owes you, and knows it. Not a yes. Yet."));
             }
         }

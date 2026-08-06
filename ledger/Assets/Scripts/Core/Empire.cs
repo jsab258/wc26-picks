@@ -273,6 +273,18 @@ namespace Ledger.Core
         public double RecruitLoyaltyFloor = 0.55;   // the need route ends in a yes only past this
         public double NeedLoyaltyBoost = 0.25;      // supplying someone's need is remembered
         public double SqueezeLoyaltyCost = 0.25;
+        /// How big a request "come and work for me" is, on Negotiation's 0..1
+        /// scale. ONE constant because both recruit routes must ask the SAME
+        /// thing — two numbers would make one route cheaper for a reason
+        /// nobody chose, and the design claim is that the routes differ in
+        /// what they COST, not in how hard they are.
+        ///
+        /// 0.7, with the arithmetic: somebody at loyalty 0.6 opens at 0.49
+        /// resistance, which a met need (0.85) clears and a weak secret
+        /// (0.7 x 0.8 = 0.56) also clears, while a weak secret against a
+        /// stranger at 0.7 does not. That is the intended shape.
+        public const double RecruitAsk = 0.7;
+
         public double RivalPerEvent = 0.15;         // attention per empire move their people can see
         public double RivalPerWitness = 0.08;       // attention per racket witness in the night circle
         public double PoachLoyaltyFloor = 0.4;      // below this, a poached crew member walks
@@ -456,22 +468,6 @@ namespace Ledger.Core
             return true;
         }
 
-        /// The hook route: fast, brittle. They join because they must; loyalty
-        /// starts wounded and the rot is visible early to the attentive.
-        public bool RecruitByHook(Gossiper g, Secret secret, GameTime now, GossipMill mill = null)
-        {
-            if (g == null || CrewOf(g.Id) != null || secret == null
-                || secret.OwnerId != g.Id || !secret.KnownToPlayer) return false;
-            if (!secret.Strong && secret.HookSpent) return false;
-            if (!secret.Strong) secret.SpendWeak();
-            g.Loyalty = Math.Clamp(g.Loyalty - 0.2, 0, 1);
-            Enlist(g, "hook", now);
-            g.Memory.Append(new MemoryEvent(now, "observation", 0.95,
-                "I work for the new owner now. Not because I chose to. I keep a list in my head of every time they remind me why."));
-            NotePoach(g.Id, mill, now);
-            Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
-            return true;
-        }
 
         static double Competence(Gossiper g) =>
             Math.Clamp(0.3 + g.Nerve * 0.4 + g.Loyalty * 0.2, 0.2, 0.9);
@@ -479,6 +475,60 @@ namespace Ledger.Core
         /// Joining (or re-joining: someone who quit can be won back) revives the
         /// departed record instead of duplicating it — one person, one line in
         /// the book, however many times they've walked.
+        /// RECRUITING AS A SCENE — M19's verb, and until now it had no caller.
+        ///
+        /// `Core/Negotiation` shipped complete and tested and `grep` returned
+        /// nothing across the whole Game layer: not one line had ever run. The
+        /// same shape the law layer was in the day before, where Core reads
+        /// perfectly from the inside and the chain behind it is dead.
+        ///
+        /// WHAT IT CHANGES: the old routes were two booleans, so nothing about
+        /// HOW you asked mattered and there was nothing to talk your way
+        /// through. Here the lever decides both whether they agree AND what it
+        /// costs afterwards, so a recruit can be won and still be a mistake.
+        ///
+        /// `ask` is how big the request is, 0..1. Returns the settled position
+        /// so the caller can narrate `Why` in the character's own terms.
+        public Position Negotiate(Gossiper g, double ask,
+                                  IEnumerable<(Lever lever, double weight, bool honest)> pushes,
+                                  GameTime now, GossipMill mill = null)
+        {
+            if (g == null) return Negotiation.Open(null, ask);
+            var p = Negotiation.Open(g, ask);
+            if (pushes != null)
+                foreach (var push in pushes)
+                    p = Negotiation.Push(p, g, push.lever, push.weight, push.honest);
+
+            // PAID EITHER WAY, and here rather than inside `Push`:
+            // `LoyaltyCost`'s own comment says a negotiation the player walks
+            // out of should still have cost them, and a caller that forgets to
+            // settle up gets coercion for free — which would make the fast
+            // levers strictly better and delete the trade entirely.
+            double cost = Negotiation.LoyaltyCost(p);
+            if (cost > 0) g.Loyalty = Math.Clamp(g.Loyalty - cost, 0, 1);
+
+            if (p.Agreed && CrewOf(g.Id) == null)
+            {
+                string route = p.Pushes.ContainsKey(Lever.Threat) ? "threat"
+                             : p.Pushes.ContainsKey(Lever.Secret) ? "hook"
+                             : p.Pushes.ContainsKey(Lever.Need) ? "need"
+                             : p.Pushes.ContainsKey(Lever.Money) ? "money" : "respect";
+                Enlist(g, route, now);
+                g.Memory.Append(new MemoryEvent(now, "conversation", 0.9,
+                    route == "threat" || route == "hook"
+                        ? "I said yes to the new owner. I want it on the record that I was not asked."
+                        : "I said yes to the new owner. Nobody made me."));
+                NotePoach(g.Id, mill, now);
+                Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent * 0.5, 0, 1);
+            }
+            else if (p.Walked)
+            {
+                g.Memory.Append(new MemoryEvent(now, "conversation", 0.85,
+                    "The new owner pushed me further than anybody should. I remember how that felt."));
+            }
+            return p;
+        }
+
         void Enlist(Gossiper g, string route, GameTime now)
         {
             var prior = Crew.FirstOrDefault(c => c.Id == g.Id);

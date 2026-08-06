@@ -524,7 +524,7 @@ def slop():
 # context window. Neither was the instrument. 93 is what the instrument says,
 # and the instrument is what the ceiling tracks — which is the whole argument
 # for having one.
-SLOP_CEILING = 93
+SLOP_CEILING = 91
 
 
 def voice_live():
