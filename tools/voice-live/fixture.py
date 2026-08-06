@@ -135,10 +135,15 @@ class KwargsOnly(nn.Module):
 
 class InnerFlow(nn.Module):
     """The decoder's actual network, with nothing awkward in it. This is the
-    thing worth converting, and until now the probe had no way to reach it —
-    it only ever tried the method it saw being called."""
+    thing worth converting, and until the fall-through existed the probe had
+    no way to reach it — it only ever tried the method it saw being called.
 
-    def __init__(self, dim=512):
+    Acts on the LAST dimension, so the time axis is free to vary. That
+    matters: a second reference clip is a different duration, and an earlier
+    version of this fixture varied the feature dimension instead and broke the
+    original model rather than testing the export."""
+
+    def __init__(self, dim=64):
         super().__init__()
         self.a = nn.Linear(dim, dim)
         self.b = nn.Linear(dim, dim)
@@ -146,10 +151,19 @@ class InnerFlow(nn.Module):
     def forward(self, x):
         return self.b(torch.relu(self.a(x)))
 
+    def inference(self, x):
+        """FLOW-MATCHING STARTS FROM A RANDOM SAMPLE, which is what the name
+        means and what makes the real decoder impossible to compare against
+        itself. Measured on the real thing: 39.8% disagreement on the input it
+        was traced with, which I was one commit away from calling a broken
+        export. Two calls of this, unconverted, disagree by more than 100%."""
+        h = torch.randn_like(x)
+        return self.b(torch.relu(self.a(h + x)))
+
 
 class FakeS3Gen(nn.Module):
-    """The waveform decoder, and it wears the shape the real one turned out
-    to have: A CLEAN NETWORK INSIDE A WRAPPER THAT VALIDATES ITS INPUT.
+    """The waveform decoder, wearing the shape the real one turned out to
+    have: A CLEAN NETWORK INSIDE A WRAPPER THAT VALIDATES ITS INPUT.
 
     Both of chatterbox's decoder blockers are here and neither is arithmetic:
 
@@ -160,27 +174,25 @@ class FakeS3Gen(nn.Module):
                           turning numbers into a waveform. Signal processing,
                           and the older exporter refuses it outright.
 
-    `self.flow` is untouched by either and converts on its own. That is the
-    whole hypothesis in miniature: the wrapper is what refuses, the network is
-    fine, and the game does not need the wrapper because it controls what goes
-    in."""
+    `self.flow` is untouched by either. The time axis varies between the two
+    drives, because reference clips are not all one length."""
 
-    def __init__(self, n_fft=64, dim=512):
+    def __init__(self, n_fft=64, dim=64):
         super().__init__()
         self.n_fft = n_fft
         self.vocab_size = 100
         self.flow = InnerFlow(dim)
         self.post = nn.Linear(n_fft // 2 + 1, 8)
 
-    def inference(self, wav, token=None):
+    def inference(self, feats, token=None):
         if token is not None and bool((token >= self.vocab_size).any()):
             raise ValueError("token out of range")
-        h = self.flow(wav)
-        spec = torch.stft(h, n_fft=self.n_fft, hop_length=self.n_fft // 4,
+        h = self.flow.inference(feats)            # (1, T, dim), and RANDOM
+        wav = h.mean(dim=-1)                      # (1, T)
+        spec = torch.stft(wav, n_fft=self.n_fft, hop_length=self.n_fft // 4,
                           window=torch.hann_window(self.n_fft),
                           return_complex=True)
-        mag = spec.abs().transpose(1, 2)
-        return self.post(mag)
+        return self.post(spec.abs().transpose(1, 2))
 
 
 class FakeVE(nn.Module):
@@ -253,7 +265,17 @@ class FakeChatterbox:
         wob = 0.5 + float(exaggeration)
         self.ve.inference(torch.randn(1, 40, 16, generator=gen(1)) * wob)
         self.t3.inference(torch.randn(1, 32, generator=gen(2)) * wob)
-        self.s3gen.inference(torch.randn(1, 512, generator=gen(3)) * wob,
+        # A SECOND CLIP IS A DIFFERENT LENGTH. Real reference clips are not
+        # all the same duration, and a graph frozen at one length cannot serve
+        # a second line of dialogue — the encoder's check died on exactly that
+        # ("Got: 685 Expected: 1175") and reported "could not check".
+        # A SECOND CLIP IS A DIFFERENT LENGTH. Real reference clips are not
+        # all the same duration, and a graph frozen at one length cannot serve
+        # a second line of dialogue — the encoder's check died on exactly that
+        # ("Got: 685 Expected: 1175") and reported "could not check". T varies;
+        # the feature dimension does not.
+        T = 512 if float(exaggeration) < 0.6 else 640
+        self.s3gen.inference(torch.randn(1, T, 64, generator=gen(3)) * wob,
                              torch.tensor([[3, 4]]))
         return torch.randn(1, 512, generator=gen(4))
 
@@ -299,7 +321,7 @@ def selftest():
 
     tmp = pathlib.Path(tempfile.mkdtemp())
     expected = {
-        "s3gen": (m.s3gen, (torch.randn(1, 512),), "STFT"),
+        "s3gen": (m.s3gen, (torch.randn(1, 512, 64),), "STFT"),
         "ve": (m.ve, (torch.randn(1, 40, 16),), "divmod"),
     }
     for key, (sub, args, want) in expected.items():

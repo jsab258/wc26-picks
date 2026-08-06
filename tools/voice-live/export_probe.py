@@ -589,11 +589,38 @@ def try_export(model, part, out_dir):
             # a Tensor that requires grad as a constant" — a parameter
             # carrying autograd state into the graph. See
             # `export_with_fallback` for why there are two attempts.
-            def do_export(use_dynamo, _t=target, _a=hook["args"]):
+            # EVERY LENGTH AXIS MARKED DYNAMIC, because dialogue is not one
+            # length. The encoder's second-voice comparison died with "Got: 685
+            # Expected: 1175" — the graph had the first clip's length frozen
+            # into it, so it could not have been fed the next line of dialogue
+            # even if it were perfectly correct. That is a finding about the
+            # export rather than a failure of the check, and it was being
+            # reported as "could not check".
+            #
+            # Axis 0 is batch and any axis longer than a plausible feature
+            # dimension is time. Naming them tells the exporter to leave them
+            # open; a graph frozen at one length is not shippable whatever
+            # else is true of it.
+            axes = {}
+            for i, a in enumerate(hook["args"]):
+                if not hasattr(a, "shape"):
+                    continue
+                d = {0: "batch"}
+                for ax, n in enumerate(a.shape):
+                    if ax > 0 and n > 64:
+                        d[ax] = f"len{ax}"
+                axes[f"in{i}"] = d
+            names = [f"in{i}" for i, a in enumerate(hook["args"]) if hasattr(a, "shape")]
+
+            def do_export(use_dynamo, _t=target, _a=hook["args"], _n=names, _ax=axes):
                 with torch.no_grad():
-                    torch.onnx.export(_t, _a, str(dest),
-                                      opset_version=17, do_constant_folding=True,
-                                      dynamo=use_dynamo)
+                    if use_dynamo:
+                        torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                          do_constant_folding=True, dynamo=True)
+                    else:
+                        torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                          do_constant_folding=True, dynamo=False,
+                                          input_names=_n, dynamic_axes=_ax)
 
             ok, errors = export_with_fallback(do_export, dest)
             row = {"torchscript": errors.get("torchscript"),
@@ -666,7 +693,8 @@ def try_export(model, part, out_dir):
             # the job"; synthetic extremes say "is anything frozen in here".
             # Only a clean pass on both is accepted; the mixed case keeps
             # looking and is reported as the ambiguity it is.
-            good = agree.get("verdict") in ("agrees", "could not check")
+            good = agree.get("verdict") in ("agrees", "could not check",
+                                            "the original is not deterministic")
             if best is None or good:
                 best = {"label": step["label"], "target": target, "hook": hook,
                         "inner": step["inner"], "errors": errors, "agree": agree,
@@ -848,7 +876,9 @@ def try_export(model, part, out_dir):
             "torch.stft to about 2e-06, which is a substitution rather than "
             "the same computation")
     av = (v.get("agrees") or {}).get("verdict")
-    if av and av not in ("agrees", "could not check"):
+    if av == "the original is not deterministic":
+        v["verdict"] = v["verdict"] + " (correctness unverifiable — the model is random)"
+    elif av and av not in ("agrees", "could not check"):
         # THE WORDING FOLLOWS THE FINDING. "The numbers are wrong" is right
         # for a model that fails on a real second voice and overstated for one
         # that only differs on artificial input — and the first version said
@@ -917,6 +947,42 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
             worst_rel = max(worst_rel, a / scale if scale > 1e-12 else (0.0 if a == 0 else 1.0))
         return worst_rel, worst_abs, mag, None
 
+    # IS THE ORIGINAL EVEN DETERMINISTIC? Asked first, because if it is not
+    # then nothing below it means anything.
+    #
+    # The decoder's flow network came back 39.8% out on the input it was
+    # traced with, and I was about to call that a broken conversion. A
+    # flow-matching decoder STARTS FROM A RANDOM SAMPLE — that is what
+    # "flow-matching" names — so it disagrees with itself run to run. Measured
+    # on a three-line stand-in of that shape: 134% between two calls of the
+    # same model on the same input, no export involved.
+    #
+    # No conversion can match a model that does not match itself, so a
+    # comparison here is not a weak signal, it is a meaningless one. Say so
+    # rather than reporting a number that would send the next person looking
+    # for a bug in the export.
+    with torch.no_grad():
+        r1, r2 = model(*args), model(*args)
+    r1 = [r1] if not isinstance(r1, (tuple, list)) else list(r1)
+    r2 = [r2] if not isinstance(r2, (tuple, list)) else list(r2)
+    drift = 0.0
+    for a1, a2 in zip(r1, r2):
+        n1 = a1.cpu().numpy() if hasattr(a1, "cpu") else np.asarray(a1)
+        n2 = a2.cpu().numpy() if hasattr(a2, "cpu") else np.asarray(a2)
+        if n1.shape == n2.shape:
+            sc = max(float(np.abs(n1).max()), 1e-12)
+            drift = max(drift, float(np.abs(n1.astype("float64")
+                                            - n2.astype("float64")).max()) / sc)
+    if drift > tol:
+        return {"verdict": "the original is not deterministic",
+                "self_disagreement_relative": drift,
+                "detail": "running the ORIGINAL model twice on the same input gives "
+                          "different answers, so no converted file can be compared "
+                          "against it. A flow-matching decoder does this by design — "
+                          "it starts from a random sample. Comparing outputs cannot "
+                          "settle whether this conversion is correct; seeding or an "
+                          "explicit noise input would be needed first."}
+
     out = {}
     same, same_abs, same_mag, err = compare(args)
     out["same_input_worst_relative"] = same
@@ -962,6 +1028,12 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
         out["second_voice_worst_absolute"] = r_abs
         if r_err:
             out["second_voice_error"] = r_err
+            return dict(out, verdict="the graph is frozen at one input length",
+                        detail="a second real voice could not even be fed to the "
+                               "converted model because its clip is a different "
+                               "length. Dialogue is not one length, so this graph "
+                               "cannot serve the game whatever else is true of it: "
+                               + str(r_err)[:160])
         elif r is not None and r > tol:
             return dict(out, verdict="wrong for a different voice",
                         detail="the converted model gives a different answer for "
