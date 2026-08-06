@@ -542,16 +542,32 @@ def voice_live():
     already started."""
     tools = ROOT.parent / "tools" / "voice-live"
     total = 0
-    for script in ("probe.py", "export_probe.py"):
+    skipped = []
+    # `stft_patch.py` is here because its checks are the ones that can go
+    # quietly wrong: it substitutes a computation, and a substitute that
+    # exports while computing something else is worse than the blocker it
+    # replaces. `fixture.py` is here because a stand-in that stops failing the
+    # way the real thing fails certifies the probe against nothing.
+    for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py"):
+        if not (tools / script).exists():
+            continue
         code, out = run(["python3", str(tools / script), "--selftest"])
         m = re.search(r"(\d+) checks", out)
+        # A SCRIPT NEEDING TORCH CANNOT RUN EVERYWHERE, and a missing import is
+        # not a failing check. Skipped and SAID, rather than counted as a pass
+        # — a gate that goes quiet when its subject is absent reads as green.
+        if code != 0 and "ModuleNotFoundError" in out and "torch" in out:
+            skipped.append(script)
+            continue
         if code != 0:
             bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
             return False, "VOICE LIVE (%s): %s" % (script, bad[0][:70] if bad else "no report")
         total += int(m.group(1)) if m else 0
     n = total
     if True:
-        return True, "voice-live ok (%s checks)" % n
+        note = (", %d skipped without torch: %s" % (len(skipped), " ".join(skipped))
+                if skipped else "")
+        return True, "voice-live ok (%s checks%s)" % (n, note)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
     return False, "VOICE LIVE: " + (bad[0][:90] if bad else "did not report")
 

@@ -546,6 +546,7 @@ def try_export(model, part, out_dir):
         exported = False
         inner_used = None
         best = None
+        stft_used = [False]
         for step in plan:
             target, hook = step["target"], {"args": step["args"], "method": step["method"]}
 
@@ -562,6 +563,31 @@ def try_export(model, part, out_dir):
             ok, errors = export_with_fallback(do_export, dest)
             row = {"torchscript": errors.get("torchscript"),
                    "dynamo": errors.get("dynamo")}
+
+            # THE STFT BLOCKER, RETRIED WITH A CONVERTIBLE SPECTROGRAM.
+            #
+            # `torch.stft` returns a complex tensor and ONNX has no complex
+            # type, so the decoder has died on that one line every run. It is
+            # signal processing at the edge of the graph, not the network, and
+            # an STFT is two real convolutions — measured against torch.stft
+            # itself at 1.9e-06, see tools/voice-live/stft_patch.py.
+            #
+            # Only when the error names STFT, so nothing else pays for it, and
+            # the result records that the substitute was used. A conversion
+            # obtained with a stand-in for one of its operations is not the
+            # same result as one without, and must not read as one.
+            if not ok and "stft" in str(row).lower():
+                import stft_patch
+                with stft_patch.patched():
+                    ok, errors = export_with_fallback(do_export, dest)
+                row["stft_substituted"] = ok
+                row["with_native_stft"] = {"torchscript": row.get("torchscript"),
+                                           "dynamo": row.get("dynamo")}
+                if ok:
+                    row["torchscript"] = errors.get("torchscript")
+                    row["dynamo"] = errors.get("dynamo")
+                    stft_used[0] = True
+
             if not ok:
                 attempts[step["label"]] = row
                 continue
@@ -769,6 +795,13 @@ def try_export(model, part, out_dir):
     # ALREADY MEASURED, in the attempt loop, because a wrong answer had to be
     # able to fall through to the next candidate rather than ending the part.
     # What is left here is only to let it decide the verdict.
+    if stft_used[0]:
+        v["stft_substituted"] = True
+        v["shipping_note"] = (
+            "the spectrogram was replaced with an equivalent built from two "
+            "real convolutions so it could convert at all — it matches "
+            "torch.stft to about 2e-06, which is a substitution rather than "
+            "the same computation")
     av = (v.get("agrees") or {}).get("verdict")
     if av and av not in ("agrees", "could not check"):
         # THE WORDING FOLLOWS THE FINDING. "The numbers are wrong" is right
