@@ -212,47 +212,75 @@ barks. The bench now looks for `lena.wav`, `lena.grave.wav` and
 get, so the headline BORED-vs-GRAVE test becomes a real A/B for cloning
 engines as well.
 
+### 1g-ter. DIRECTML WORKS ON HIS GPU, AND torch-directml IS OUT (5 Aug)
+
+**Measured on Jafar's machine, which is the only place it could be measured:**
+
+    onnxruntime 1.24.4, DirectML AVAILABLE - DmlExecutionProvider, CPUExecutionProvider
+    torch-directml   ImportError: DLL load failed importing torch_directml_native
+    chatterbox       ModuleNotFoundError: Could not import module 'LlamaModel'
+
+**The first line is the one that matters and it is a yes.** ONNX Runtime sees
+and offers his AMD GPU. That is the precondition for the only route that could
+ever ship, confirmed on real hardware rather than assumed in either direction.
+
+**The other two are one fault, and it was the probe's own bat that caused it.**
+`torch-directml` pins `torch==2.4.1`; `chatterbox-tts` requires 2.6.0.
+Installed into one environment, pip uninstalled one torch and installed the
+other, leaving binaries that cannot load — the run died on `torchvision\_C.pyd`,
+"Entry Point Not Found", before rendering anything. The chatterbox failure is
+the same resolver collateral one layer along: a transformers new enough for the
+new torch no longer exports `LlamaModel` under the name chatterbox imports.
+
+So the week-old claim "torch-directml does not carry models of this shape" now
+has an error message under it, and the real reason is duller and more final: a
+**version deadlock**, not a capability gap. Two packages with incompatible pins
+need two environments, or one of them needs not to be there.
+
+**It costs nothing that mattered.** Route B was never shippable — it drags
+Python and a multi-gigabyte checkpoint into the build — and existed only to buy
+a speed number early. **ONNX Runtime on DirectML uses no torch at run time at
+all**: torch is needed once, on our machine, to EXPORT, and a CPU is fine for
+that. `onnxruntime-directml` has no torch dependency in either direction.
+
+**And it fixes the ordering.** Ask whether DirectML can see a GPU and run a
+model BEFORE asking anything about chatterbox — it needs no torch, takes
+seconds, and it is what decides whether the export is worth attempting. The
+probe asked in the wrong order and nearly buried a yes under two unrelated
+noes.
+
 ### 1g-bis. THE BENCHMARK ASKED THE WRONG QUESTION FOR LIVE DIALOGUE (5 Aug)
 
-Jafar, on being asked which AMD card he has: *"does it matter? it should work
-for any gamer with a half-decent AMD or NVIDIA card."*
+Jafar, asked which AMD card he has: *"does it matter? it should work for any
+gamer with a half-decent AMD or NVIDIA card."*
 
-It does not matter, and the question was the wrong one. The benchmark below
-chose an engine by QUALITY ON A DEV BOX. For the offline bark bank that is
-exactly right and the choice stands. For live dialogue it is not a criterion
-at all, because that code runs on a stranger's machine — so the requirement is
-**vendor-neutral, on a mid-range gamer GPU, shipped inside a Unity build**, and
-nothing below was ever measured against it.
+It does not, and the question was wrong. The benchmark below chose an engine by
+QUALITY ON A DEV BOX. For the offline bark bank that is right and the choice
+stands. For live dialogue it is not a criterion at all, because that code runs
+on a stranger's machine — so the requirement is **vendor-neutral, on a
+mid-range gamer GPU, shipped inside a Unity build**, and nothing below was ever
+measured against it.
 
-**What that rules out, and both were on the table an hour ago:**
+**What that rules out:** ROCm under WSL2 (AMD-only, recent cards only, and it
+asks a player to install a Linux subsystem to hear a voice — a dev-machine
+answer, never a ship path). And PyTorch itself, probably: shipping a Python
+runtime plus torch plus a multi-gigabyte checkpoint inside a game is a
+distribution problem larger than the feature.
 
-- **ROCm under WSL2.** AMD-only, recent cards only, and it asks a player to
-  install a Linux subsystem to hear a voice. Viable on a dev machine, never a
-  ship path.
-- **PyTorch at all, probably.** Shipping a Python runtime plus torch plus a
-  multi-gigabyte checkpoint inside a game is a distribution problem far larger
-  than the feature. `torch-directml` solves the vendor question and not this
-  one.
+**What survives:** ONNX Runtime with the DirectML execution provider. DirectX
+12 compute, so AMD, NVIDIA and Intel alike; ships as a DLL; callable from C#,
+so it can live inside Unity with no Python anywhere.
 
-**What it points at:** ONNX Runtime with the DirectML execution provider.
-DirectML is DirectX 12 compute, so it is AMD, NVIDIA and Intel alike; it ships
-as a DLL; and it is callable from C#, which means it can live inside Unity with
-no Python anywhere. That is the only shape on this list that a player could
-actually receive.
-
-**So the open question changed.** It is no longer "does chatterbox run on
-AMD". It is **"can this model be exported to ONNX at all, and how fast is it
-under DirectML on a mid-range card"** — and chatterbox is a hard case for
-that: a Llama-derived backbone, a flow decoder and a watermarker, none of
-which export cleanly by default. That risk is real and is not yet measured.
+**The open question is therefore not "does chatterbox run on AMD".** It is
+whether this model can be exported to ONNX at all, and how fast it is under
+DirectML — and chatterbox is a hard case: a Llama-derived backbone, a flow
+decoder and a watermarker, none of which export cleanly by default.
 
 **And it re-opens the two-engine decision at §1j**, honestly rather than by
-forgetting it. That decision was made about CROWD MURMUR, where one engine
-plainly sufficed. Offline quality and live latency are different constraints
-on different hardware, and an engine that ships to a player may simply not be
-the engine that renders our bank overnight. Chatterbox stays for the bank
-either way; the live channel needs its own benchmark with its own criteria,
-and that benchmark has not been run.
+forgetting it. That was decided about CROWD MURMUR, where one engine plainly
+sufficed. Offline quality and live latency are different constraints on
+different hardware, and the engine that ships to a player may not be the one
+that renders our bank overnight. Chatterbox stays for the bank either way.
 
 ### 1g. THE TEST MACHINE IS AMD, AND THAT SPLITS THE DECISION IN TWO
 

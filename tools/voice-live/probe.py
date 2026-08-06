@@ -29,10 +29,12 @@ FOUR ROUTES, IN THE ORDER THEY PRESERVE QUALITY:
      moot. Highest risk: a Llama-derived backbone, a flow decoder and a
      watermarker, none of which export cleanly by default.
 
-  B  chatterbox under torch-directml
-     Same quality, vendor-neutral, but drags a Python runtime and a
-     multi-gigabyte checkpoint into the build. A dev-machine answer that
-     tells us the SPEED question early even if it never ships.
+  B  chatterbox under torch-directml - RULED OUT 5 Aug, with an error.
+     `torch-directml` pins torch==2.4.1 and `chatterbox-tts` requires 2.6.0.
+     In one environment pip swaps one for the other and leaves binaries that
+     cannot load. A version deadlock, not a capability gap. It cost nothing
+     that mattered: this route was never shippable, and route A uses no torch
+     at run time at all.
 
   C  a small ONNX-native engine with the cast voice BAKED IN at build time
      The insight worth testing: nothing needs to clone at RUNTIME. Rocco's
@@ -130,11 +132,16 @@ def cmd_backends(args):
     # ROUTE READINESS, said plainly, because "onnxruntime is installed" and
     # "route A can be attempted" are different facts and only the second is
     # actionable.
-    ok_a = "DirectML AVAILABLE" in str(f.get("onnxruntime", "")) and \
-           "installed" in str(f.get("chatterbox", ""))
+    # ROUTE A NEEDS DIRECTML AND NOTHING ELSE, which the first version got
+    # wrong by also demanding chatterbox. That turned a YES into "not ready"
+    # and nearly buried the one positive result under two unrelated failures:
+    # onnxruntime-directml has no torch dependency in either direction, and
+    # torch is needed once on OUR machine to export, never at run time.
+    ok_a = "DirectML AVAILABLE" in str(f.get("onnxruntime", ""))
     ok_b = "torch-directml," in str(f.get("torch-directml", "")) and \
            "installed" in str(f.get("chatterbox", ""))
-    print(f"    route A (ONNX + DirectML)  {'ready to attempt' if ok_a else 'not ready'}")
+    print(f"    route A (ONNX + DirectML)  "
+          f"{'GPU CONFIRMED - the export is what remains' if ok_a else 'DirectML not available'}")
     print(f"    route B (torch-directml)   {'ready to attempt' if ok_b else 'not ready'}")
     print("    route C (baked small voice) needs a training run, not just an install")
     print("    route D (no live voice)     always available, and stays on the list")
