@@ -83,6 +83,52 @@ def find_part(model, names):
     return None, None
 
 
+def dynamo_ready():
+    """Is the SECOND exporter actually installed? Returns (ok, reason).
+
+    THE FALLBACK NEVER RAN. Both t3 and s3gen came back with
+    `dynamo_error: ModuleNotFoundError: No module named 'onnxscript'` — so
+    the run reported two model failures when the truth was one missing
+    package and a fallback that never got to try. That is rule 3b's shape:
+    an absence dressed as a finding.
+
+    It is worse than a plain zero, because the message sits in a field named
+    for the model's behaviour. Checked ONCE, up front, and reported as an
+    environment fact — so "the newer exporter cannot handle this" and "the
+    newer exporter was not installed" stop looking identical.
+    """
+    try:
+        import onnxscript  # noqa: F401
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:120]}"
+    return True, ""
+
+
+def merge_part_reports(out_dir, parts):
+    """Collect one JSON per part into the single report.
+
+    A part that left no file at all did not merely fail — its PROCESS died,
+    which is a different fact and the one worth saying out loud. Silence
+    would otherwise read as "not attempted".
+    """
+    rows = []
+    for part in parts:
+        f = out_dir / f"{part['key']}.json"
+        if not f.exists():
+            rows.append({"part": part["key"], "verdict": "died",
+                         "what": part["what"],
+                         "error": "the worker process produced no result at all — "
+                                  "it crashed, ran out of memory, or was killed"})
+            continue
+        try:
+            rows.append(json.loads(f.read_text(encoding="utf-8")))
+        except Exception as e:
+            rows.append({"part": part["key"], "verdict": "died",
+                         "what": part["what"],
+                         "error": f"unreadable result: {type(e).__name__}: {e}"})
+    return rows
+
+
 def export_with_fallback(export_fn, dest):
     """Try both exporters, keep both errors, and never let a stale file lie.
 
@@ -328,6 +374,83 @@ def reference():
 
 
 def cmd_run(args):
+    """Orchestrator. One worker process per part, so the parts are actually
+    independent — which is what this probe has claimed to be since it was
+    written, and was not.
+
+    THE PARTS WERE NEVER ISOLATED. Detecting the entry point means calling
+    `model.generate()`, which runs the WHOLE pipeline, and each part was then
+    exported from one long-lived model in one process. So every part inherited
+    whatever the parts before it left behind.
+
+    That is not a theory, it is the shape of the evidence. `ve` exported
+    cleanly on the one run where t3 and s3gen never reached `torch.onnx.export`
+    at all, and has failed on every run since where they did — the same error,
+    at the same tenth of a second, before any entry point was recorded. I
+    guessed train/eval mode, fixed that, and it changed nothing, so the guess
+    was wrong and the leak is something else.
+
+    Rather than guess again: give each part its own process and its own
+    freshly-loaded model. Nothing can cross. If `ve` now exports, the leak was
+    real and is gone; if it fails identically in a clean process, the cause is
+    `ve` itself and every run up to now has been pointing at the wrong thing.
+    The fix and the experiment are the same change, which is why it is worth
+    the extra model load per part.
+
+    It also means a part that runs out of memory or dies outright takes only
+    itself down. The old loop lost every later answer with it.
+    """
+    import subprocess
+    OUT.mkdir(parents=True, exist_ok=True)
+    if reference() is None:
+        print(f"export-probe: no reference clip for '{VOICE}' under {CLIPS}")
+        return 1
+
+    ok, why = dynamo_ready()
+    if not ok:
+        print(f"  NOTE: the second exporter is not installed — {why}")
+        print("  Only the older tracer will be tried. That is an environment")
+        print("  answer, not a model one, and the last run reported it as if it")
+        print("  were the model refusing.\n")
+
+    # A STALE RESULT MUST NOT SURVIVE INTO THIS RUN'S REPORT. Each worker
+    # writes one file and the merge reads them back, so a leftover from an
+    # earlier run would be indistinguishable from an answer produced now.
+    for part in PARTS:
+        f = OUT / f"{part['key']}.json"
+        if f.exists():
+            f.unlink()
+
+    for i, part in enumerate(PARTS, 1):
+        print(f"  [{i}/{len(PARTS)}] {part['key']:8} {part['what']}")
+        print(f"           risk: {part['risk']}")
+        print("           (its own process, with its own freshly-loaded model)")
+        r = subprocess.run([sys.executable, str(Path(__file__).resolve()),
+                            "--one", part["key"]])
+        if r.returncode == 2:
+            # chatterbox will not import. Every later part would say the same
+            # thing at the same cost, so stop rather than pay three model
+            # loads to print one environment error three times.
+            print("\n  chatterbox will not import, so nothing can be tried.")
+            return 2
+        print()
+
+    rows = merge_part_reports(OUT, PARTS)
+    REPORT.write_text(json.dumps({"parts": rows}, indent=1), encoding="utf-8")
+    good = [r for r in rows if r.get("verdict") == "exported and runs"]
+    print(f"  {len(good)} of {len(rows)} part(s) exported AND ran under onnxruntime.")
+    for r in rows:
+        print(f"    {r['part']:8} {r.get('verdict', '?')}")
+    print(f"  full report: {REPORT}")
+    return 0
+
+
+def cmd_one(key):
+    """One part, one process, one freshly-loaded model. See `cmd_run`."""
+    part = next((p for p in PARTS if p["key"] == key), None)
+    if part is None:
+        print(f"export-probe: no part called '{key}'")
+        return 1
     OUT.mkdir(parents=True, exist_ok=True)
     if reference() is None:
         print(f"export-probe: no reference clip for '{VOICE}' under {CLIPS}")
@@ -370,20 +493,23 @@ def cmd_run(args):
     t0 = time.time()
     model = ChatterboxTTS.from_pretrained(device="cpu")
 
-    # EVAL MODE AND NO GRADIENTS. Two of the first run's three failures were
-    # this line missing, and neither was about the model:
+    # EVAL MODE AND NO GRADIENTS, and the record of what each one was for.
     #
-    #   ve     "Expected more than 1 value per channel when training,
-    #           got input size torch.Size([1, 192])"
-    #          — BatchNorm in TRAINING mode with a batch of one.
-    #   s3gen  "Cannot insert a Tensor that requires grad as a constant"
-    #          — a parameter still carrying autograd state into the trace.
+    # `no_grad` (in `try_export`) FIXED ITS FAULT and the report proves it:
+    # s3gen's "Cannot insert a Tensor that requires grad as a constant" is
+    # gone, replaced by a genuinely different and much later error about STFT.
+    # That one is real.
     #
-    # `ve` had exported cleanly the run before, which is the tell: nothing
-    # about it changed, so the difference was STATE left behind by the two
-    # parts tried before it. An export toggles train/eval and does not always
-    # put it back, so the second part poisoned the third and the report read
-    # as three independent failures. They were one omission and an ordering.
+    # `eval()` DID NOT FIX WHAT I SAID IT WOULD. I read `ve`'s "Expected more
+    # than 1 value per channel when training" as training mode left behind by
+    # an earlier part, wrote that down as the diagnosis, and it came back
+    # identical — same message, same tenth of a second, entry still null.
+    # The reasoning was plausible and the fix was cheap and it was still a
+    # guess, which is the thing this project keeps paying for.
+    #
+    # It stays because it is correct hygiene and costs nothing. It is NOT the
+    # explanation for `ve`, and the isolation in `cmd_run` is what will
+    # actually settle that — see the note there.
     import torch
     for m in (model, getattr(model, "t3", None), getattr(model, "s3gen", None),
               getattr(model, "ve", None)):
@@ -394,30 +520,23 @@ def cmd_run(args):
                 prm.requires_grad_(False)
     print(f"  loaded in {time.time() - t0:.0f}s, eval mode, gradients off\n")
 
-    rows = []
-    for part in PARTS:
-        print(f"  {part['key']:8} {part['what']}")
-        print(f"           risk: {part['risk']}")
-        v = try_export(model, part, OUT)
-        rows.append(dict(v, what=part["what"]))
-        if v["verdict"].startswith("exported"):
-            print(f"           -> {v['verdict'].upper()}"
-                  + (f", {v.get('megabytes')} MB" if v.get("megabytes") else "")
-                  + (f", ran on {v.get('ran_on')}" if v.get("ran_on") else ""))
-            if v.get("run_error"):
-                print(f"              {v['run_error']}")
-        else:
-            print(f"           -> {v['verdict'].upper()}")
-            print(f"              {v.get('error') or v.get('detail')}")
-        print()
+    v = dict(try_export(model, part, OUT), what=part["what"])
+    if v["verdict"].startswith("exported"):
+        print(f"           -> {v['verdict'].upper()}"
+              + (f", {v.get('megabytes')} MB" if v.get("megabytes") else "")
+              + (f", ran on {v.get('ran_on')}" if v.get("ran_on") else ""))
+        if v.get("run_error"):
+            print(f"              {v['run_error']}")
+    else:
+        print(f"           -> {v['verdict'].upper()}")
+        print(f"              {v.get('error') or v.get('detail') or v.get('torchscript_error')}")
 
-    REPORT.write_text(json.dumps({"parts": rows}, indent=1), encoding="utf-8")
-    good = [r for r in rows if r["verdict"] == "exported and runs"]
-    print(f"  {len(good)} of {len(rows)} part(s) exported AND ran under onnxruntime.")
-    print(f"  full report: {REPORT}")
-    # NO SINGLE VERDICT. A partial result is the likely one and it is the
-    # actionable one; collapsing it to pass/fail throws away which day's work
-    # is left.
+    (OUT / f"{part['key']}.json").write_text(json.dumps(v, indent=1), encoding="utf-8")
+    # ALWAYS ZERO. The worker's exit code says whether the PROBE ran, not
+    # whether the part exported — the orchestrator reads the verdict from the
+    # file. Conflating the two is how "the model cannot convert" and "the
+    # script fell over" end up looking the same, which is the fault this
+    # whole probe exists to avoid making.
     return 0
 
 
@@ -513,6 +632,36 @@ def selftest():
         ok, errs = export_with_fallback(silent, d)
         check(not ok and "wrote no file" in str(errs.get("dynamo", "")),
               "an exporter that returns without writing anything is a failure, not a success")
+
+        # THE MERGE, which is what turns three separate processes back into
+        # one report. Its failure mode is silence: a worker that dies leaves
+        # no file, and a missing row reads as "not attempted" rather than as
+        # the crash it was.
+        md = tmp / "merged"
+        md.mkdir()
+        (md / "t3.json").write_text(json.dumps(
+            {"part": "t3", "verdict": "exported and runs"}), encoding="utf-8")
+        (md / "ve.json").write_text("{not json at all", encoding="utf-8")
+        merged = merge_part_reports(md, PARTS)
+        by = {r["part"]: r for r in merged}
+        check(len(merged) == len(PARTS),
+              "every part gets a row even when its process wrote nothing")
+        check(by["t3"]["verdict"] == "exported and runs",
+              "a worker's own verdict survives the merge intact")
+        check(by["s3gen"]["verdict"] == "died" and "crashed" in by["s3gen"]["error"],
+              "a part whose process vanished is reported as died, not as absent")
+        check(by["ve"]["verdict"] == "died" and "unreadable" in by["ve"]["error"],
+              "and a half-written result file is a death too, not a parse crash")
+
+        # A MISSING EXPORTER IS AN ENVIRONMENT FACT. Both real parts came back
+        # blaming the model for a package that was never installed.
+        ready, why = dynamo_ready()
+        check(isinstance(ready, bool) and (ready or why),
+              "the second exporter's absence is detectable, and says which package")
+
+        check(all(p["key"] in {q["key"] for q in PARTS} for p in PARTS)
+              and cmd_one("no-such-part") == 1,
+              "asking for a part that does not exist fails instead of guessing one")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -525,9 +674,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--one", metavar="PART",
+                    help="one part, in this process — what --run spawns per part")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    if a.one:
+        return cmd_one(a.one)
     if a.run:
         return cmd_run(a)
     ap.print_help()

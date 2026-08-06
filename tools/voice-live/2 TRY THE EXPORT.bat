@@ -87,6 +87,24 @@ if errorlevel 1 (
   if errorlevel 1 goto :noinstall
 )
 
+REM ---- THE SECOND EXPORTER, AND IT MUST BE OUTSIDE THE BLOCK ABOVE -------
+REM  Last run reported both big pieces as failing with
+REM  "No module named 'onnxscript'". That is the newer exporter's own
+REM  dependency, so the fallback never actually ran and two environment
+REM  errors were reported as the model refusing to convert.
+REM
+REM  It is checked on its OWN rather than inside the first-time install,
+REM  because your environment already exists - chatterbox imports, so that
+REM  whole block is skipped and a package added inside it would never
+REM  reach you. This is the same shape as the guard that only ever ran its
+REM  failing case: the fix has to run on the machine that has the problem.
+"%PY%" -c "import onnxscript" >nul 2>nul
+if errorlevel 1 (
+  echo  Installing onnxscript, which the newer exporter needs...
+  "%PY%" -m pip install onnxscript
+  if errorlevel 1 goto :noinstall
+)
+
 echo.
 echo  ---- what this environment can do ---------------------------------
 "%PY%" probe.py --backends
