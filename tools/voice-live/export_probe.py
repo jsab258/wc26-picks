@@ -53,6 +53,15 @@ VOICE = "rocco"
 # hangs off `ChatterboxTTS`; several names are tried because the package has
 # renamed them between releases and a probe that dies on an attribute lookup
 # tells you nothing about ONNX.
+# EVERY DOOR A SUBMODULE MIGHT BE CALLED THROUGH. `forward` is the one a
+# torch hook watches and the one `torch.onnx.export` traces; TTS stacks
+# routinely do their real work in `inference` instead, which is exactly how
+# the first run reported a decoder that plainly ran as "never called".
+#
+# Named here rather than inline so the self-test can assert the list, and so
+# adding a door is one edit in one place.
+ENTRY_POINTS = ("forward", "inference", "generate", "infer", "encode", "decode")
+
 PARTS = [
     {"key": "t3", "names": ["t3", "T3", "text_to_token"],
      "what": "the Llama-derived text-to-token stage",
@@ -87,34 +96,88 @@ def try_export(model, part, out_dir):
     dest = out_dir / f"{part['key']}.onnx"
     t0 = time.time()
     try:
-        # A REAL FORWARD FIRST. Exporting needs example inputs, and the honest
-        # way to get them is to watch what the module is actually called with
-        # rather than to invent a shape — an invented shape that happens to
-        # work proves nothing about the real path.
+        # WATCH EVERY DOOR, NOT JUST `forward`.
+        #
+        # The first version registered a forward pre-hook and reported t3 and
+        # s3gen as "never called" — from a `generate()` that plainly produced
+        # audio, so it plainly called them. The tool was honest about what it
+        # SAW and wrong about what that meant: chatterbox drives these stages
+        # through custom `inference()` methods, and a forward hook never fires
+        # for a method that is not `forward`.
+        #
+        # That is a fault in the instrument, not the subject, and it is the
+        # shape CLAUDE.md rule 3 names: when a result is surprising, check the
+        # ruler before the reading. "The model does not call its own decoder"
+        # should have been unbelievable on its face.
+        #
+        # So every plausible entry point is wrapped and the one that actually
+        # fires is RECORDED — which matters twice over, because
+        # `torch.onnx.export` traces `forward`. If the real work lives in
+        # `inference`, exporting the module directly would export the wrong
+        # thing and look like it worked.
         hook = {}
+        wrapped = []
+        for meth in ENTRY_POINTS:
+            fn = getattr(sub, meth, None)
+            if not callable(fn) or meth in ("parameters", "children"):
+                continue
 
-        def grab(_m, args, _kw):
-            if "args" not in hook:
-                hook["args"] = tuple(a.detach() if hasattr(a, "detach") else a for a in args)
-            return None
+            def make(m_name, real):
+                def spy(*a, **kw):
+                    if "args" not in hook:
+                        hook["method"] = m_name
+                        hook["args"] = tuple(x.detach() if hasattr(x, "detach") else x
+                                             for x in a)
+                        hook["kwargs"] = dict(kw)
+                    return real(*a, **kw)
+                return spy
+            try:
+                setattr(sub, meth, make(meth, fn))
+                wrapped.append(meth)
+            except Exception:
+                pass  # a read-only attribute is not worth failing the probe over
 
-        h = sub.register_forward_pre_hook(grab, with_kwargs=True)
         try:
             model.generate(LINE, audio_prompt_path=str(reference()), exaggeration=0.45)
         finally:
-            h.remove()
+            for meth in wrapped:
+                try:
+                    delattr(sub, meth)   # restore the class's own bound method
+                except Exception:
+                    pass
+
         if "args" not in hook:
             return {"part": part["key"], "verdict": "never called",
-                    "detail": "a full generate() did not call this submodule, so there is "
-                              "no real input to export it with"}
-        torch.onnx.export(sub, hook["args"], str(dest), opset_version=17,
+                    "watched": wrapped,
+                    "detail": "a full generate() called none of these entry points, so "
+                              "there is no real input to export with. If the model works, "
+                              "the entry point has another name and this list needs it."}
+
+        # EXPORT WHAT IS ACTUALLY CALLED. When the work is in `inference`, the
+        # module is wrapped in a thin `forward` that calls it, so the trace
+        # follows the real path rather than whatever `forward` happens to do.
+        target = sub
+        if hook["method"] != "forward":
+            class EntryWrapper(torch.nn.Module):
+                def __init__(self, inner, meth, kwargs):
+                    super().__init__()
+                    self.inner = inner
+                    self._meth = meth
+                    self._kw = kwargs
+
+                def forward(self, *a):
+                    return getattr(self.inner, self._meth)(*a, **self._kw)
+            target = EntryWrapper(sub, hook["method"], hook["kwargs"])
+
+        torch.onnx.export(target, hook["args"], str(dest), opset_version=17,
                           do_constant_folding=True, dynamo=False)
         size = dest.stat().st_size / 1e6
         v = {"part": part["key"], "verdict": "exported",
-             "megabytes": round(size, 1), "params": n_params,
-             "seconds": round(time.time() - t0, 1)}
+             "entry": hook["method"], "megabytes": round(size, 1),
+             "params": n_params, "seconds": round(time.time() - t0, 1)}
     except Exception as e:
         return {"part": part["key"], "verdict": "failed",
+                "entry": hook.get("method"),
                 "error": f"{type(e).__name__}: {str(e)[:400]}",
                 "params": n_params, "seconds": round(time.time() - t0, 1)}
 
@@ -282,6 +345,13 @@ def selftest():
     check(n == "s3gen" and sub == "something", "a renamed submodule is found by alias")
     n2, sub2 = find_part(m, ["nope", "also_nope"])
     check(n2 is None and sub2 is None, "an absent submodule reports absent rather than throwing")
+
+    # THE FAULT THE FIRST RUN FOUND, asserted so it cannot come back: hooking
+    # only `forward` reported a decoder that plainly ran as "never called".
+    check("forward" in ENTRY_POINTS and "inference" in ENTRY_POINTS,
+          f"every likely entry point is watched, not just forward ({len(ENTRY_POINTS)})")
+    check(ENTRY_POINTS[0] == "forward",
+          "forward is tried first, because when it IS the entry point no wrapper is needed")
 
     check(reference() is not None, f"the reference clip for '{VOICE}' is on disk")
     check(len(LINE) > 30, "the test line is long enough to drive a real forward pass")
