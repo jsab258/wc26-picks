@@ -174,6 +174,37 @@ def provider_verdict(ran):
             "run_error": gpu.get("error"), "cpu_error": cpu.get("error")}
 
 
+def worth_retrying_without_asserts(row):
+    """Would stripping Python's asserts plausibly change this failure?
+
+    t3's dynamo error names the line: `t3.py:36 _ensure_BOT_EOT`,
+
+        assert (text_tokens == hp.start_text_token).int().sum() >= B
+
+    and the complaint is `GuardOnDataDependentSymNode: Could not guard on
+    data-dependent expression Eq(u0, 1)`. That is a SANITY CHECK on the input,
+    not part of the model's arithmetic — and `python -O` removes every assert
+    at compile time, so the exporter would never see it.
+
+    A HYPOTHESIS, NOT A FIX, and labelled as one everywhere it appears. I
+    could not reproduce this locally: a small module with an assert of the
+    same shape exports fine either way, because the real one involves an
+    unbacked symbol this fixture has no way to produce. So the evidence is
+    the error naming an assert and nothing more. It costs one extra model
+    load on a part that has already failed, which is worth an answer.
+
+    Narrow on purpose. A part that failed on STFT or on a missing operator
+    would gain nothing and would spend the load for it.
+    """
+    if row.get("verdict") != "failed":
+        return False
+    blob = " ".join(str(row.get(k, "")) for k in
+                    ("torchscript_error", "dynamo_error", "error")).lower()
+    return ("assert" in blob
+            or "guardondatadependent" in blob
+            or "could not guard on data-dependent" in blob)
+
+
 def merge_part_reports(out_dir, parts):
     """Collect one JSON per part into the single report.
 
@@ -754,8 +785,37 @@ def cmd_run(args, allow_install=True):
         print(f"  [{i}/{len(PARTS)}] {part['key']:8} {part['what']}")
         print(f"           risk: {part['risk']}")
         print("           (its own process, with its own freshly-loaded model)")
-        r = subprocess.run([sys.executable, str(Path(__file__).resolve()),
-                            "--one", part["key"]])
+        me = str(Path(__file__).resolve())
+        extra = ["--fixture"] if getattr(args, "fixture", False) else []
+        r = subprocess.run([sys.executable, me, "--one", part["key"]] + extra)
+
+        # ONE RETRY WITH ASSERTS STRIPPED, and only where that could matter.
+        # See `worth_retrying_without_asserts` — it is a hypothesis about t3's
+        # data-dependent guard, it costs a model load on a part that already
+        # failed, and the result records which mode produced it so a success
+        # here can never be mistaken for a plain one.
+        f = OUT / f"{part['key']}.json"
+        if r.returncode != 2 and f.exists():
+            try:
+                row = json.loads(f.read_text(encoding="utf-8"))
+            except Exception:
+                row = {}
+            if worth_retrying_without_asserts(row):
+                print("           failed on an assert — retrying with Python's")
+                print("           asserts stripped (-O), which is a guess worth one load")
+                first = dict(row)
+                r2 = subprocess.run([sys.executable, "-O", me,
+                                     "--one", part["key"]] + extra)
+                if r2.returncode != 2 and f.exists():
+                    try:
+                        second = json.loads(f.read_text(encoding="utf-8"))
+                        second["with_asserts_failed"] = {
+                            "verdict": first.get("verdict"),
+                            "dynamo_error": first.get("dynamo_error"),
+                            "torchscript_error": first.get("torchscript_error")}
+                        f.write_text(json.dumps(second, indent=1), encoding="utf-8")
+                    except Exception:
+                        pass
         if r.returncode == 2:
             # chatterbox will not import. Every later part would say the same
             # thing at the same cost, so stop rather than pay three model
@@ -875,6 +935,9 @@ def cmd_one(key, fixture=False):
     print(f"  loaded in {time.time() - t0:.0f}s, eval mode, gradients off\n")
 
     v = dict(try_export(model, part, OUT), what=part["what"])
+    # WHICH MODE PRODUCED THIS. `-O` strips every assert in the process, so a
+    # result obtained that way is not the same result and must not read as one.
+    v["asserts_stripped"] = not __debug__
     if v["verdict"].startswith("exported"):
         print(f"           -> {v['verdict'].upper()}"
               + (f", {v.get('megabytes')} MB" if v.get("megabytes") else "")
@@ -1057,6 +1120,19 @@ def selftest():
         check("THE REAL CAUSE" not in t and "x" * 50 in t,
               "the cut takes the tail, so the boilerplate is what survives — "
               "which is why the limit is large rather than clever")
+
+        # THE ASSERT RETRY IS NARROW ON PURPOSE — it costs a model load, so it
+        # must not fire on failures it cannot possibly help.
+        assert_fail = {"verdict": "failed", "dynamo_error":
+                       "GuardOnDataDependentSymNode: ... assert (text_tokens == ...)"}
+        stft_fail = {"verdict": "failed", "torchscript_error":
+                     "SymbolicValueError: STFT does not currently support complex types"}
+        check(worth_retrying_without_asserts(assert_fail),
+              "a failure naming an assert is retried with asserts stripped")
+        check(not worth_retrying_without_asserts(stft_fail),
+              "an STFT failure is NOT — stripping asserts cannot help it, and a load is a load")
+        check(not worth_retrying_without_asserts({"verdict": "exported and runs"}),
+              "and nothing that already succeeded is retried")
 
         # A MISSING EXPORTER IS AN ENVIRONMENT FACT. Both real parts came back
         # blaming the model for a package that was never installed.
