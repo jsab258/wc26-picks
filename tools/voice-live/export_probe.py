@@ -100,8 +100,30 @@ def dynamo_ready():
     try:
         import onnxscript  # noqa: F401
     except Exception as e:
-        return False, f"{type(e).__name__}: {str(e)[:120]}"
+        return False, tidy(e, 200)
     return True, ""
+
+
+def tidy(ex, limit=1600):
+    """An exception as text: no colour codes, and long enough to be useful.
+
+    THE OLD LIMIT THREW AWAY THE ANSWER. Dynamo's failure was cut at 260
+    characters, and every one of those characters was boilerplate — "Failed to
+    export the model with torch.export. This is step 1/3 ... Refer to
+    https://pytorch.org/docs/..." — with the actual reason after it. Two parts
+    reported a failure whose cause had been truncated off the end, which is
+    rule 3b's cap: a limit nobody is told about is indistinguishable from a
+    finding.
+
+    The colour codes are the same problem one layer down. `\\u001b[96m` in a
+    JSON report is noise in the one field somebody has to read carefully.
+    """
+    import re
+    s = re.sub(r"\x1b\[[0-9;]*m", "", str(ex))
+    s = " ".join(s.split())
+    if len(s) > limit:
+        s = s[:limit] + f" ...[{len(s) - limit} more characters]"
+    return f"{type(ex).__name__}: {s}"
 
 
 def export_candidates(order):
@@ -128,6 +150,28 @@ def export_candidates(order):
             seen.add(m)
             out.append(m)
     return out
+
+
+def provider_verdict(ran):
+    """Turn per-provider results into one verdict. `ran` maps a provider name
+    to either its timings or an `error`.
+
+    THREE OUTCOMES, NOT TWO, and the middle one is the whole reason this is a
+    separate function. "Runs on the GPU" and "will not run at all" were the
+    only two the probe could say, so a model that is perfectly valid and
+    merely unaccelerated was reported the same as a broken graph. Those want
+    opposite next steps: one is an opset or a driver, the other is redoing the
+    export.
+    """
+    gpu = ran.get("DmlExecutionProvider", {})
+    cpu = ran.get("CPUExecutionProvider", {})
+    if "error" not in gpu and gpu:
+        return dict(gpu, verdict="exported and runs")
+    if "error" not in cpu and cpu:
+        return dict(cpu, verdict="exported, runs on CPU, will not run on the GPU",
+                    run_error=gpu.get("error"))
+    return {"verdict": "exported but will not run",
+            "run_error": gpu.get("error"), "cpu_error": cpu.get("error")}
 
 
 def merge_part_reports(out_dir, parts):
@@ -192,7 +236,7 @@ def export_with_fallback(export_fn, dest):
         try:
             export_fn(use_dynamo)
         except Exception as ex:
-            errors[label] = f"{type(ex).__name__}: {str(ex)[:260]}"
+            errors[label] = tidy(ex)
             continue
         # AND IT HAS TO HAVE WRITTEN SOMETHING. An exporter that returns
         # without raising and without producing a file would otherwise be
@@ -379,28 +423,49 @@ def try_export(model, part, out_dir):
     except Exception as e:
         return {"part": part["key"], "verdict": "failed",
                 "entry": (order[0] if order else None),
-                "error": f"{type(e).__name__}: {str(e)[:400]}",
+                "error": tidy(e),
                 "params": n_params, "seconds": round(time.time() - t0, 1)}
 
     # AN ONNX FILE THAT EXPORTS AND THEN DOES NOTHING IS A FAILURE THAT LOOKS
-    # LIKE A SUCCESS. Load it under onnxruntime, on DirectML, and make it run.
-    try:
-        import numpy as np
+    # LIKE A SUCCESS. Load it under onnxruntime and make it run.
+    #
+    # EACH PROVIDER SEPARATELY, AND THIS IS A REPAIR. Passing
+    # ["DmlExecutionProvider", "CPUExecutionProvider"] reads like a fallback
+    # list and is not one: DirectML failed during session INITIALISATION —
+    # `DmlGraphFusionHelper` with 80070057, which is E_INVALIDARG — and the
+    # whole session constructor threw, so CPU was never reached. The verdict
+    # said "exported but will not run" when what it had tested was "will not
+    # run on DirectML".
+    #
+    # Those are completely different findings. If it runs on CPU, the graph is
+    # VALID and the problem belongs to DirectML's graph fusion, which is an
+    # opset or a driver away from working. If it fails on CPU too, the
+    # exported graph is wrong and the export needs redoing. One is a
+    # afternoon, the other is a rethink, and the old code could not tell them
+    # apart — while printing a sentence that implied it had.
+    import numpy as np
+
+    def try_provider(ep):
         import onnxruntime as ort
-        eps = ["DmlExecutionProvider", "CPUExecutionProvider"]
-        sess = ort.InferenceSession(str(dest), providers=eps)
+        sess = ort.InferenceSession(str(dest), providers=[ep])
         feeds = {}
         for inp, arg in zip(sess.get_inputs(), hook["args"]):
             feeds[inp.name] = arg.cpu().numpy() if hasattr(arg, "cpu") else np.asarray(arg)
         t1 = time.time()
         outs = sess.run(None, feeds)
-        v["ran_on"] = sess.get_providers()[0]
-        v["run_seconds"] = round(time.time() - t1, 2)
-        v["output_shapes"] = [list(o.shape) for o in outs[:3]]
-        v["verdict"] = "exported and runs"
-    except Exception as e:
-        v["verdict"] = "exported but will not run"
-        v["run_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+        return {"ran_on": sess.get_providers()[0],
+                "run_seconds": round(time.time() - t1, 2),
+                "output_shapes": [list(o.shape) for o in outs[:3]]}
+
+    ran = {}
+    for ep in ("DmlExecutionProvider", "CPUExecutionProvider"):
+        try:
+            ran[ep] = try_provider(ep)
+        except Exception as e:
+            ran[ep] = {"error": tidy(e)}
+
+    v["by_provider"] = ran
+    v.update(provider_verdict(ran))
     return v
 
 
@@ -428,7 +493,7 @@ def diagnose_watermarker():
         try:
             importlib.import_module(mod)
         except Exception as e:
-            why = f"{mod}: {type(e).__name__}: {str(e)[:180]}"
+            why = f"{mod}: {tidy(e, 300)}"
             break
 
     class NoWatermark:
@@ -818,6 +883,41 @@ def selftest():
               "forward jumps the queue ahead of other doors that also fired")
         check(export_candidates([]) == [],
               "and a part that fired nothing yields nothing to try")
+
+        # "WILL NOT RUN" MUST NOT MEAN "WILL NOT RUN ON THE GPU". The encoder
+        # exported, failed DirectML at session init, and was reported as
+        # broken — with CPU never tried, because both providers went into one
+        # constructor that threw as a unit.
+        ok_gpu = {"ran_on": "DmlExecutionProvider", "run_seconds": 0.03}
+        bad = {"error": "RuntimeException: E_INVALIDARG"}
+        check(provider_verdict({"DmlExecutionProvider": ok_gpu,
+                                "CPUExecutionProvider": bad})["verdict"]
+              == "exported and runs",
+              "a part that runs on the GPU is reported as running, whatever the CPU did")
+        mid = provider_verdict({"DmlExecutionProvider": bad,
+                                "CPUExecutionProvider": {"ran_on": "CPUExecutionProvider",
+                                                         "run_seconds": 0.4}})
+        check(mid["verdict"] == "exported, runs on CPU, will not run on the GPU",
+              "a valid graph the GPU refuses gets its own verdict, not 'will not run'")
+        check(mid.get("run_error") == bad["error"],
+              "and keeps the GPU's reason, because that is the thing to fix")
+        both = provider_verdict({"DmlExecutionProvider": bad, "CPUExecutionProvider": bad})
+        check(both["verdict"] == "exported but will not run"
+              and both.get("cpu_error") and both.get("run_error"),
+              "only when BOTH refuse is the graph itself called broken, with both reasons")
+
+        # AN ERROR CUT SHORT IS AN ANSWER THROWN AWAY. Dynamo's message is
+        # boilerplate for its first 200 characters and the cause comes after.
+        long = RuntimeError("\x1b[96mstep 1/3\x1b[0m " + "x" * 3000 + " THE REAL CAUSE")
+        t = tidy(long)
+        check("\x1b[" not in t, "colour codes are stripped out of the report")
+        check("more characters]" in t and len(t) > 1000,
+              "a long error keeps enough to be useful and SAYS how much it dropped")
+        check(tidy(ValueError("x")).startswith("ValueError:"),
+              "and the exception type survives, which is half the diagnosis")
+        check("THE REAL CAUSE" not in t and "x" * 50 in t,
+              "the cut takes the tail, so the boilerplate is what survives — "
+              "which is why the limit is large rather than clever")
 
         # A MISSING EXPORTER IS AN ENVIRONMENT FACT. Both real parts came back
         # blaming the model for a package that was never installed.
