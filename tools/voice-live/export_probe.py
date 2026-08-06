@@ -344,8 +344,26 @@ def try_export(model, part, out_dir):
         # preprocessing already done, which makes it the second thing to try
         # and, when it works, tells us exactly which slice has to be
         # reimplemented outside.
+        # HOW MANY TIMES, NOT JUST WHETHER. A child called ONCE per wrapper
+        # call is most of the stage. A child called twenty times is one step
+        # of a loop, and converting it converts none of the loop.
+        #
+        # This exists because the fall-through produced a success that meant
+        # nothing: the stand-in text stage is a Linear called twenty times
+        # under a stop condition, the wrapper converted wrong, the probe fell
+        # through to the Linear, and the Linear agreed — reported as "inner
+        # network only, 1056 of 1056 parameters", 100% coverage.
+        #
+        # 100% OF THE WEIGHTS AND NONE OF THE BEHAVIOUR. Parameter count
+        # answers "how much of the model is in this file" and I was reading it
+        # as "how much of the stage converted", which are the same number only
+        # when the wrapper does nothing but call the child. The call count is
+        # what tells those apart, and it costs one integer.
+        counts = {}
+
         def make(store, key, real):
             def spy(*a, **kw):
+                counts[key] = counts.get(key, 0) + 1
                 if key not in store:
                     store[key] = {
                         "args": tuple(x.detach() if hasattr(x, "detach") else x
@@ -420,42 +438,62 @@ def try_export(model, part, out_dir):
 
         candidates = export_candidates(order)
 
-        attempts = {}
-        exported = False
+        def make_wrapper(inner, m, kwargs):
+            """THE KWARGS ARE CLOSED OVER, NOT STORED ON THE MODULE.
+
+            s3gen's dynamo failure named the culprit outright once the error
+            stopped being truncated: "The tensor attributes
+            self._kw['ref_dict']['prompt_token'], ... were assigned during
+            export. Such attributes must be registered as buffers." `self._kw`
+            is not chatterbox's. It is this wrapper's, three lines of mine,
+            and it was being reported as the decoder refusing to convert.
+
+            A closure keeps the same values out of the module's attribute
+            dict, where the exporter has no reason to look at them."""
+            class EntryWrapper(torch.nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.inner = inner
+
+                def forward(self, *a):
+                    return getattr(inner, m)(*a, **kwargs)
+            return EntryWrapper()
+
+        # ONE ORDERED LIST OF THINGS TO TRY: the wrapper's own doors first,
+        # then the networks inside it, biggest first.
+        #
+        # THE CHILDREN USED TO BE REACHED ONLY WHEN THE EXPORT FAILED, and
+        # that missed the encoder entirely. Its wrapper exports perfectly
+        # well and produces WRONG NUMBERS — the window arithmetic frozen at
+        # trace time — so there was no failure to fall through from, and the
+        # one route that could have saved it was never tried.
+        #
+        # "It converted" is not the bar. "It converted and it is right" is,
+        # so an attempt is only accepted when the numbers agree, and anything
+        # short of that keeps looking.
+        plan = []
         for meth in candidates:
             hook = dict(calls[meth], method=meth)
+            tgt = sub if meth == "forward" else make_wrapper(sub, meth, hook["kwargs"])
+            plan.append({"label": meth, "target": tgt, "args": hook["args"],
+                         "method": meth, "inner": None})
+        for key, kid, kname, mname in sorted(
+                [(k, kd, kn, mn) for (k, kd, kn, mn) in kid_order if k in kids],
+                key=lambda t: sum(p.numel() for p in t[1].parameters()), reverse=True):
+            hook = dict(kids[key], method=mname)
+            tgt = kid if mname == "forward" else make_wrapper(kid, mname, hook["kwargs"])
+            plan.append({"label": f"child:{key}", "target": tgt, "args": hook["args"],
+                         "method": mname,
+                         "inner": {"child": kname, "method": mname,
+                                   "params": sum(p.numel() for p in kid.parameters()),
+                                   "called_times": counts.get(key, 0)}})
 
-            # EXPORT WHAT IS ACTUALLY CALLED. When the work is in `inference`,
-            # the module is wrapped in a thin `forward` that calls it, so the
-            # trace follows the real path rather than whatever `forward`
-            # happens to do.
-            target = sub
-            if meth != "forward":
-                # THE KWARGS ARE CLOSED OVER, NOT STORED ON THE MODULE, AND
-                # THAT IS A BUG FIX IN MY OWN HARNESS.
-                #
-                # s3gen's dynamo failure named the culprit outright once the
-                # error stopped being truncated: "The tensor attributes
-                # self._kw['ref_dict']['prompt_token'], ... were assigned
-                # during export. Such attributes must be registered as
-                # buffers." `self._kw` is not chatterbox's. It is this
-                # wrapper's, three lines of mine, and it was being reported as
-                # the decoder refusing to convert.
-                #
-                # A closure keeps the same values out of the module's
-                # attribute dict, where the exporter has no reason to look at
-                # them. `target` holds a reference either way, so nothing is
-                # collected early.
-                def make_wrapper(inner, m, kwargs):
-                    class EntryWrapper(torch.nn.Module):
-                        def __init__(self):
-                            super().__init__()
-                            self.inner = inner
-
-                        def forward(self, *a):
-                            return getattr(inner, m)(*a, **kwargs)
-                    return EntryWrapper()
-                target = make_wrapper(sub, meth, hook["kwargs"])
+        attempts = {}
+        exported = False
+        inner_used = None
+        best = None
+        for step in plan:
+            target, hook = step["target"], {"args": step["args"], "method": step["method"]}
 
             # `no_grad` around the trace, because s3gen died on "Cannot insert
             # a Tensor that requires grad as a constant" — a parameter
@@ -467,53 +505,54 @@ def try_export(model, part, out_dir):
                                       opset_version=17, do_constant_folding=True,
                                       dynamo=use_dynamo)
 
-            exported, errors = export_with_fallback(do_export, dest)
-            attempts[meth] = {"torchscript": errors.get("torchscript"),
-                              "dynamo": errors.get("dynamo")}
-            if exported:
+            ok, errors = export_with_fallback(do_export, dest)
+            row = {"torchscript": errors.get("torchscript"),
+                   "dynamo": errors.get("dynamo")}
+            if not ok:
+                attempts[step["label"]] = row
+                continue
+
+            # EXPORTED. NOW IS IT RIGHT? Checked here rather than at the end,
+            # because a wrong answer has to be able to fall through to the
+            # next candidate — that is the whole point of the restructure.
+            agree = None
+            try:
+                agree = agreement(target, hook["args"], dest, "CPUExecutionProvider")
+            except Exception as e:
+                agree = {"verdict": "could not check", "error": tidy(e, 300)}
+            row["agrees"] = agree
+            attempts[step["label"]] = row
+
+            good = agree.get("verdict") in ("agrees", "could not check")
+            if best is None or good:
+                best = {"label": step["label"], "target": target, "hook": hook,
+                        "inner": step["inner"], "errors": errors, "agree": agree,
+                        "size": dest.stat().st_size / 1e6}
+            if good:
+                exported = True
+                inner_used = step["inner"]
                 break
+            # Wrong numbers. Keep the file only if nothing better turns up;
+            # the next attempt overwrites it, which `export_with_fallback`
+            # handles by unlinking first.
 
-        # THE WRAPPER REFUSED. TRY THE NETWORKS INSIDE IT.
-        #
-        # Biggest first — parameter count is a fair proxy for how much of the
-        # stage a child represents, and converting the 200-million-parameter
-        # network while leaving a range check outside is a result. Converting
-        # a bias-add is not.
-        inner_used = None
-        if not exported and kid_order:
-            ranked = sorted(
-                [(k, kid, kn, mn) for (k, kid, kn, mn) in kid_order if k in kids],
-                key=lambda t: sum(p.numel() for p in t[1].parameters()),
-                reverse=True)
-            for key, kid, kname, mname in ranked:
-                hook = dict(kids[key], method=mname)
-                ktarget = kid
-                if mname != "forward":
-                    def make_kw(inner, m, kwargs):
-                        class KidWrapper(torch.nn.Module):
-                            def __init__(self):
-                                super().__init__()
-                                self.inner = inner
-
-                            def forward(self, *a):
-                                return getattr(inner, m)(*a, **kwargs)
-                        return KidWrapper()
-                    ktarget = make_kw(kid, mname, hook["kwargs"])
-
-                def do_kid(use_dynamo, _t=ktarget, _a=hook["args"]):
-                    with torch.no_grad():
-                        torch.onnx.export(_t, _a, str(dest),
-                                          opset_version=17, do_constant_folding=True,
-                                          dynamo=use_dynamo)
-
-                exported, errors = export_with_fallback(do_kid, dest)
-                attempts[f"child:{key}"] = {"torchscript": errors.get("torchscript"),
-                                            "dynamo": errors.get("dynamo")}
-                if exported:
-                    inner_used = {"child": kname, "method": mname,
-                                  "params": sum(p.numel() for p in kid.parameters())}
-                    target = ktarget
-                    break
+        if not exported and best is not None:
+            # NOTHING WAS RIGHT, BUT SOMETHING CONVERTED. Re-export the best
+            # one so the file on disk matches what the verdict describes —
+            # later attempts will have overwritten it — and report it as the
+            # near-miss it is rather than as a failure. "It converts and the
+            # numbers are wrong" is a different day's work from "it will not
+            # convert", and the report has to keep them apart.
+            def redo(use_dynamo, _t=best["target"], _a=best["hook"]["args"]):
+                with torch.no_grad():
+                    torch.onnx.export(_t, _a, str(dest), opset_version=17,
+                                      do_constant_folding=True, dynamo=use_dynamo)
+            export_with_fallback(redo, dest)
+            exported = True
+            inner_used = best["inner"]
+            hook = best["hook"]
+            target = best["target"]
+            errors = best["errors"]
 
         if not exported:
             first = attempts.get(candidates[0], {})
@@ -550,6 +589,7 @@ def try_export(model, part, out_dir):
              # path worked" rather than staying silent about which did.
              "torchscript_error": errors.get("torchscript"),
              "by_entry": attempts,
+             "agrees": (best or {}).get("agree"),
              "megabytes": round(size, 1),
              "params": n_params, "seconds": round(time.time() - t0, 1)}
     except Exception as e:
@@ -604,7 +644,21 @@ def try_export(model, part, out_dir):
     # Caught by running it: the fixture's decoder reported a plain success
     # for a graph that is the inner network alone.
     if inner_used:
-        v["verdict"] = "inner network only: " + v["verdict"]
+        n = inner_used.get("called_times", 0)
+        if n > 1:
+            # ONE STEP OF A LOOP. Say so in the verdict, because this is the
+            # reading that looks like a result and is not one: the wrapper
+            # runs this child n times and decides when to stop, and none of
+            # that decision is in the file.
+            v["verdict"] = (f"only one step of a loop converted — the wrapper ran "
+                            f"this {n} times and none of that is in the graph")
+            v["shipping_work"] = (f"the loop and its stop condition, which ran {n} "
+                                  f"iterations here, must be rebuilt outside the model")
+        else:
+            v["verdict"] = "inner network only: " + v["verdict"]
+            v["shipping_work"] = ("the wrapper around this child — its input "
+                                  "checks and any signal processing — must be "
+                                  "rebuilt outside the model")
 
     # AND DOES IT PRODUCE THE RIGHT NUMBERS? Everything above this line can
     # pass on a model that is quietly wrong.
@@ -629,13 +683,11 @@ def try_export(model, part, out_dir):
     # matters. The first can only fail if the export is broken outright; the
     # second is the only thing that catches control flow frozen into the graph,
     # and it is exactly the failure the risky part of this model is prone to.
-    if "ran_on" in v:
-        try:
-            v["agrees"] = agreement(target, hook["args"], dest, v["ran_on"])
-            if v["agrees"].get("verdict") != "agrees":
-                v["verdict"] = "exported and runs, but the numbers are wrong"
-        except Exception as e:
-            v["agrees"] = {"verdict": "could not check", "error": tidy(e, 300)}
+    # ALREADY MEASURED, in the attempt loop, because a wrong answer had to be
+    # able to fall through to the next candidate rather than ending the part.
+    # What is left here is only to let it decide the verdict.
+    if v.get("agrees") and v["agrees"].get("verdict") not in ("agrees", "could not check"):
+        v["verdict"] = v["verdict"] + ", but the numbers are wrong"
     return v
 
 
