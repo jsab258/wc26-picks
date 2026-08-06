@@ -104,6 +104,32 @@ def dynamo_ready():
     return True, ""
 
 
+def export_candidates(order):
+    """Which entry points to try exporting, in order. `order` is the methods
+    that actually fired, in the order they fired.
+
+    THE OBSERVED ONE FIRST, because it is what the model really runs and so
+    the most faithful thing to convert — if it exports, the whole stage is in
+    the graph and the game just feeds it.
+
+    `forward` SECOND, because when the outer method fails it is nearly always
+    the preprocessing that failed, not the network. Every failure so far has
+    been of that shape: `divmod(Tensor, int)` in the voice encoder's window
+    arithmetic, an STFT in the decoder. Neither needs to be inside the graph;
+    both are ordinary signal processing the game can do in C#. `forward` is
+    usually the pure network with that work already done.
+
+    Then anything else that fired, so a stack that hides its network behind
+    some third name still gets a try.
+    """
+    seen, out = set(), []
+    for m in list(order[:1]) + ["forward"] + list(order):
+        if m in order and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+
 def merge_part_reports(out_dir, parts):
     """Collect one JSON per part into the single report.
 
@@ -198,6 +224,9 @@ def try_export(model, part, out_dir):
             m.eval()
     dest = out_dir / f"{part['key']}.onnx"
     t0 = time.time()
+    # Bound before the try, so the handler below cannot raise a NameError of
+    # its own and bury the error it was written to report.
+    calls, order, candidates, attempts = {}, [], [], {}
     try:
         # WATCH EVERY DOOR, NOT JUST `forward`.
         #
@@ -218,7 +247,28 @@ def try_export(model, part, out_dir):
         # `torch.onnx.export` traces `forward`. If the real work lives in
         # `inference`, exporting the module directly would export the wrong
         # thing and look like it worked.
-        hook = {}
+        # EVERY DOOR THAT FIRED, NOT JUST THE FIRST — because the first one is
+        # the one most likely to be unexportable.
+        #
+        # All three parts have now failed inside PREPROCESSING rather than
+        # inside the network:
+        #
+        #   ve     divmod(Tensor, int) at voice_encoder.py:62 — the window
+        #          arithmetic that chops the reference clip into frames
+        #   s3gen  "STFT does not currently support complex types" — the
+        #          spectrogram step at the edge of the graph
+        #
+        # Neither is the neural part refusing to convert. Both are ordinary
+        # signal processing that happens to live inside the same method, and
+        # neither needs to be in the exported graph at all: the game can chop
+        # frames and take a spectrogram in C# for nothing.
+        #
+        # So every entry point that fires is recorded with the arguments it
+        # was handed, and a failure on the outer one falls through to the
+        # inner one. `forward` is usually the pure network with the
+        # preprocessing already done, which makes it the second thing to try
+        # and, when it works, tells us exactly which slice has to be
+        # reimplemented outside.
         wrapped = []
         for meth in ENTRY_POINTS:
             fn = getattr(sub, meth, None)
@@ -227,11 +277,12 @@ def try_export(model, part, out_dir):
 
             def make(m_name, real):
                 def spy(*a, **kw):
-                    if "args" not in hook:
-                        hook["method"] = m_name
-                        hook["args"] = tuple(x.detach() if hasattr(x, "detach") else x
-                                             for x in a)
-                        hook["kwargs"] = dict(kw)
+                    if m_name not in calls:
+                        calls[m_name] = {
+                            "args": tuple(x.detach() if hasattr(x, "detach") else x
+                                          for x in a),
+                            "kwargs": dict(kw)}
+                        order.append(m_name)
                     return real(*a, **kw)
                 return spy
             try:
@@ -249,58 +300,85 @@ def try_export(model, part, out_dir):
                 except Exception:
                     pass
 
-        if "args" not in hook:
+        if not order:
             return {"part": part["key"], "verdict": "never called",
                     "watched": wrapped,
                     "detail": "a full generate() called none of these entry points, so "
                               "there is no real input to export with. If the model works, "
                               "the entry point has another name and this list needs it."}
 
-        # EXPORT WHAT IS ACTUALLY CALLED. When the work is in `inference`, the
-        # module is wrapped in a thin `forward` that calls it, so the trace
-        # follows the real path rather than whatever `forward` happens to do.
-        target = sub
-        if hook["method"] != "forward":
-            class EntryWrapper(torch.nn.Module):
-                def __init__(self, inner, meth, kwargs):
-                    super().__init__()
-                    self.inner = inner
-                    self._meth = meth
-                    self._kw = kwargs
+        candidates = export_candidates(order)
 
-                def forward(self, *a):
-                    return getattr(self.inner, self._meth)(*a, **self._kw)
-            target = EntryWrapper(sub, hook["method"], hook["kwargs"])
+        attempts = {}
+        exported = False
+        for meth in candidates:
+            hook = dict(calls[meth], method=meth)
 
-        # `no_grad` around the trace, because s3gen died on "Cannot insert a
-        # Tensor that requires grad as a constant" — a parameter carrying
-        # autograd state into the graph. See `export_with_fallback` for why
-        # there are two attempts.
-        def do_export(use_dynamo):
-            with torch.no_grad():
-                torch.onnx.export(target, hook["args"], str(dest),
-                                  opset_version=17, do_constant_folding=True,
-                                  dynamo=use_dynamo)
+            # EXPORT WHAT IS ACTUALLY CALLED. When the work is in `inference`,
+            # the module is wrapped in a thin `forward` that calls it, so the
+            # trace follows the real path rather than whatever `forward`
+            # happens to do.
+            target = sub
+            if meth != "forward":
+                class EntryWrapper(torch.nn.Module):
+                    def __init__(self, inner, m, kwargs):
+                        super().__init__()
+                        self.inner = inner
+                        self._meth = m
+                        self._kw = kwargs
 
-        exported, errors = export_with_fallback(do_export, dest)
+                    def forward(self, *a):
+                        return getattr(self.inner, self._meth)(*a, **self._kw)
+                target = EntryWrapper(sub, meth, hook["kwargs"])
+
+            # `no_grad` around the trace, because s3gen died on "Cannot insert
+            # a Tensor that requires grad as a constant" — a parameter
+            # carrying autograd state into the graph. See
+            # `export_with_fallback` for why there are two attempts.
+            def do_export(use_dynamo, _t=target, _a=hook["args"]):
+                with torch.no_grad():
+                    torch.onnx.export(_t, _a, str(dest),
+                                      opset_version=17, do_constant_folding=True,
+                                      dynamo=use_dynamo)
+
+            exported, errors = export_with_fallback(do_export, dest)
+            attempts[meth] = {"torchscript": errors.get("torchscript"),
+                              "dynamo": errors.get("dynamo")}
+            if exported:
+                break
+
         if not exported:
+            first = attempts.get(candidates[0], {})
             return {"part": part["key"], "verdict": "failed",
-                    "entry": hook.get("method"), "params": n_params,
-                    "torchscript_error": errors.get("torchscript"),
-                    "dynamo_error": errors.get("dynamo"),
+                    "entry": candidates[0], "params": n_params,
+                    # WHICH DOORS WERE TRIED, so "the network will not convert"
+                    # and "only the outer method was ever attempted" stop
+                    # looking the same.
+                    "entries_tried": candidates,
+                    "torchscript_error": first.get("torchscript"),
+                    "dynamo_error": first.get("dynamo"),
+                    "by_entry": attempts,
                     "seconds": round(time.time() - t0, 1)}
         size = dest.stat().st_size / 1e6
         v = {"part": part["key"], "verdict": "exported",
              "entry": hook["method"], "exporter": errors.get("exporter"),
+             # WHICH DOOR IT CAME THROUGH, and it decides the shipping work.
+             # If the observed entry point exported, the whole stage is in the
+             # graph and C# just feeds it. If `forward` did instead, then the
+             # preprocessing in the outer method — the windowing, the
+             # spectrogram — has to be reimplemented outside the model, and
+             # `skipped_entry` names what that is.
+             "skipped_entry": None if hook["method"] == candidates[0] else candidates[0],
              # Present ONLY when the first exporter failed and the second
              # saved it. Its absence is how the report says "the ordinary
              # path worked" rather than staying silent about which did.
              "torchscript_error": errors.get("torchscript"),
+             "by_entry": attempts,
              "megabytes": round(size, 1),
              "params": n_params, "seconds": round(time.time() - t0, 1)}
     except Exception as e:
         return {"part": part["key"], "verdict": "failed",
-                "entry": hook.get("method"),
+                "entry": (order[0] if order else None),
                 "error": f"{type(e).__name__}: {str(e)[:400]}",
                 "params": n_params, "seconds": round(time.time() - t0, 1)}
 
@@ -373,7 +451,7 @@ def reference():
     return hits[0] if hits else None
 
 
-def cmd_run(args):
+def cmd_run(args, allow_install=True):
     """Orchestrator. One worker process per part, so the parts are actually
     independent — which is what this probe has claimed to be since it was
     written, and was not.
@@ -436,12 +514,45 @@ def cmd_run(args):
         report([], msg)
         return 1
 
+    # THE MISSING EXPORTER IS INSTALLED FROM HERE, NOT FROM THE .BAT, AND THE
+    # REASON IS A TRAP WORTH WRITING DOWN.
+    #
+    # The bat copies itself to %TEMP% and re-launches BEFORE it pulls — it has
+    # to, because a pull rewriting a script that cmd.exe is reading by byte
+    # offset is how a script once printed the tail of a URL from its own
+    # replacement. The consequence nobody had drawn out: the copy that runs is
+    # the one that was on disk BEFORE the pull, so a change to the BAT takes
+    # effect one run later than the change that prompted it.
+    #
+    # Python has no such lag. The bat pulls, then invokes this file, so the
+    # interpreter reads the version that just arrived. Every probe fix has
+    # landed on the next run; the one install line I put in the bat did not,
+    # and the report came back naming the same missing package for a third
+    # time. A whole round trip for a line that was already written.
+    #
+    # So anything that must take effect NOW lives on this side of the line.
+    # The bat keeps its copy, which is correct for what it guards against.
     ok, why = dynamo_ready()
-    if not ok:
-        print(f"  NOTE: the second exporter is not installed — {why}")
-        print("  Only the older tracer will be tried. That is an environment")
-        print("  answer, not a model one, and the last run reported it as if it")
-        print("  were the model refusing.\n")
+    if not ok and not allow_install:
+        # THE SELF-TEST MUST NOT INSTALL ANYTHING. It runs inside verify.py on
+        # every commit, and a check that reaches for the network and mutates
+        # the interpreter it is testing is no longer a check. Caught by
+        # watching it actually do it: the first run of this self-test pulled
+        # onnxscript into this container as a side effect.
+        print("  (self-test: not installing anything)")
+    elif not ok:
+        print(f"  The second exporter is not installed — {why}")
+        print("  Installing onnxscript now (a bat change would not take effect")
+        print("  until the run after this one, which is why it is done here)...")
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "onnxscript"],
+                           check=False)
+        except Exception as e:
+            print(f"  the install could not be started: {type(e).__name__}: {e}")
+        ok, why = dynamo_ready()
+        print("  installed — both exporters will be tried.\n" if ok else
+              f"  STILL not available ({why}). Only the older tracer will be\n"
+              "  tried, and no dynamo line in the report is about the model.\n")
 
     # A STALE RESULT MUST NOT SURVIVE INTO THIS RUN'S REPORT. Each worker
     # writes one file and the merge reads them back, so a leftover from an
@@ -692,6 +803,22 @@ def selftest():
         check(by["ve"]["verdict"] == "died" and "unreadable" in by["ve"]["error"],
               "and a half-written result file is a death too, not a parse crash")
 
+        # WHICH DOORS GET TRIED, AND IN WHAT ORDER. Every failure so far has
+        # been in preprocessing rather than in the network, so falling through
+        # to `forward` is the difference between "this model cannot convert"
+        # and "this model converts, and the windowing moves to C#".
+        check(export_candidates(["inference"]) == ["inference"],
+              "one entry point that fired is the only one tried")
+        check(export_candidates(["inference", "forward"]) == ["inference", "forward"],
+              "the observed entry point is tried before the pure network, not after")
+        check(export_candidates(["forward"]) == ["forward"],
+              "when forward IS the entry point it is not tried twice")
+        check(export_candidates(["inference", "encode", "forward"])
+              == ["inference", "forward", "encode"],
+              "forward jumps the queue ahead of other doors that also fired")
+        check(export_candidates([]) == [],
+              "and a part that fired nothing yields nothing to try")
+
         # A MISSING EXPORTER IS AN ENVIRONMENT FACT. Both real parts came back
         # blaming the model for a package that was never installed.
         ready, why = dynamo_ready()
@@ -721,7 +848,7 @@ def selftest():
         planted = {"parts": [{"part": "t3", "verdict": "exported and runs",
                               "seconds": 106.9}]}
         REPORT.write_text(json.dumps(planted), encoding="utf-8")
-        rc = cmd_run(None)
+        rc = cmd_run(None, allow_install=False)
         after = json.loads(REPORT.read_text(encoding="utf-8"))
         check(rc == 2, "a run with no chatterbox stops at the first part")
         check(after.get("parts") != planted["parts"],
