@@ -1,0 +1,24 @@
+{
+ "run_started": "2026-08-06 12:05:48",
+ "note": "stopped at the first part: chatterbox will not import. That is an environment answer, not a model one.",
+ "parts": [
+  {
+   "part": "t3",
+   "verdict": "died",
+   "what": "the Llama-derived text-to-token stage",
+   "error": "the worker process produced no result at all \u2014 it crashed, ran out of memory, or was killed"
+  },
+  {
+   "part": "s3gen",
+   "verdict": "died",
+   "what": "the flow-matching decoder that makes the waveform",
+   "error": "the worker process produced no result at all \u2014 it crashed, ran out of memory, or was killed"
+  },
+  {
+   "part": "ve",
+   "verdict": "died",
+   "what": "the voice encoder that reads the reference clip",
+   "error": "the worker process produced no result at all \u2014 it crashed, ran out of memory, or was killed"
+  }
+ ]
+}

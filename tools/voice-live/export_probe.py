@@ -402,8 +402,38 @@ def cmd_run(args):
     """
     import subprocess
     OUT.mkdir(parents=True, exist_ok=True)
+
+    # STAMPED AND BLANKED BEFORE ANYTHING ELSE, and this is a repair.
+    #
+    # A run that bails early used to leave the PREVIOUS run's report sitting
+    # in place, complete and plausible and months out of date if you like. It
+    # cost a round trip: an old report was read back to me as a new result,
+    # and the only reason it was caught is that three exports had produced
+    # timings identical to a tenth of a second, which no two real runs do.
+    #
+    # I had already fixed exactly this one level down — the per-part files
+    # below are deleted for the same reason, in the same commit — and did not
+    # look at the file those files are merged INTO. One idea, two
+    # implementations, and the one nobody looked at is the one missing the
+    # line. That is written in CLAUDE.md as the most repeated fault in the
+    # project and I walked into it inside the fix for its sibling.
+    #
+    # So the report is overwritten FIRST, with a marker saying it did not
+    # finish. Every exit after this point replaces it. There is no path that
+    # leaves the old one readable.
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    def report(rows, note=None):
+        REPORT.write_text(json.dumps(
+            {"run_started": stamp, "note": note, "parts": rows},
+            indent=1), encoding="utf-8")
+
+    report([], "this run did not finish — it exited before trying anything")
+
     if reference() is None:
-        print(f"export-probe: no reference clip for '{VOICE}' under {CLIPS}")
+        msg = f"no reference clip for '{VOICE}' under {CLIPS}"
+        print(f"export-probe: {msg}")
+        report([], msg)
         return 1
 
     ok, why = dynamo_ready()
@@ -432,16 +462,25 @@ def cmd_run(args):
             # thing at the same cost, so stop rather than pay three model
             # loads to print one environment error three times.
             print("\n  chatterbox will not import, so nothing can be tried.")
+            report(merge_part_reports(OUT, PARTS),
+                   "stopped at the first part: chatterbox will not import. "
+                   "That is an environment answer, not a model one.")
             return 2
         print()
 
     rows = merge_part_reports(OUT, PARTS)
-    REPORT.write_text(json.dumps({"parts": rows}, indent=1), encoding="utf-8")
+    report(rows, None if ok else
+           f"the second exporter was not installed ({why}), so only the older "
+           f"tracer was tried and no dynamo result here is about the model")
     good = [r for r in rows if r.get("verdict") == "exported and runs"]
     print(f"  {len(good)} of {len(rows)} part(s) exported AND ran under onnxruntime.")
     for r in rows:
         print(f"    {r['part']:8} {r.get('verdict', '?')}")
+    # PRINTED SO THE CONSOLE AND THE FILE CAN BE COMPARED. If they disagree,
+    # the file on screen is not the one this run wrote.
     print(f"  full report: {REPORT}")
+    print(f"  this run is stamped {stamp} — the report says the same, and if it")
+    print("  does not, you are looking at an older file.")
     return 0
 
 
@@ -662,8 +701,35 @@ def selftest():
         check(all(p["key"] in {q["key"] for q in PARTS} for p in PARTS)
               and cmd_one("no-such-part") == 1,
               "asking for a part that does not exist fails instead of guessing one")
+
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+    # A STALE REPORT MUST NOT SURVIVE A RUN THAT BAILED, and this one is run
+    # for real rather than simulated, because the fault it guards against was
+    # an old report being read back to me as a new result.
+    #
+    # Only where chatterbox is absent — on a machine that HAS it this would
+    # load the model and take minutes, and a self-test that expensive stops
+    # being run. That is the honest trade and it is stated rather than hidden:
+    # this container is where `verify.py` runs, and it has no torch.
+    try:
+        import torch  # noqa: F401
+        check(True, "stale-report check skipped: this machine can really run the probe")
+    except Exception:
+        OUT.mkdir(parents=True, exist_ok=True)
+        planted = {"parts": [{"part": "t3", "verdict": "exported and runs",
+                              "seconds": 106.9}]}
+        REPORT.write_text(json.dumps(planted), encoding="utf-8")
+        rc = cmd_run(None)
+        after = json.loads(REPORT.read_text(encoding="utf-8"))
+        check(rc == 2, "a run with no chatterbox stops at the first part")
+        check(after.get("parts") != planted["parts"],
+              "and the previous run's report does NOT survive it")
+        check(bool(after.get("run_started")),
+              "the report it leaves is stamped with when the run started")
+        check("chatterbox" in str(after.get("note", "")),
+              "and says why it stopped, so an empty result is not read as a finding")
 
     print(f"\nexport-probe --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
           f"{len(ran)} checks, none of which need the model")
