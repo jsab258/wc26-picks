@@ -72,16 +72,16 @@ machine, and shipped as data. Therefore:
 
 **NEXT, IN ORDER — what is actually left at runtime:**
 
-1. **THE VOCODER IS THE ONLY REAL CONVERSION BLOCKER LEFT.** `s3gen.flow`
-   converts and gives a mel spectrogram `[1,80,176]` in 1.43s on the GPU —
-   that is a picture of the sound, not the sound. Turning it into a waveform is
-   `hifigan.decode`, and it dies on `torch.stft` / `torch.istft`.
-   **The fix is to substitute at the right level.** `stft_patch` replaces
-   `torch.stft` and then has to fake a complex tensor, which is why it failed
-   with "'RealSpectrogram' object is not subscriptable". But hifigan's own
-   `_stft` already RETURNS TWO REAL TENSORS (`spec[...,0]`, `spec[...,1]`) —
-   so patching `_stft`/`_istft` as methods sidesteps complex numbers entirely.
-   `_istft` needs an overlap-add inverse, which is a transposed convolution.
+1. **CLOSED — THE VOCODER CONVERTS.** Verified against the REAL
+   `HiFTGenerator` built with random weights, no download: unpatched it
+   refuses, patched it exports, runs, and agrees with pytorch to **3.5e-06**
+   at the traced length and 3.3-3.8e-06 at three others (6400 / 15616 / 23040
+   samples). `tools/voice-live/vocoder.py` holds it.
+   **The noise source must be an explicit input**, and that is a shipping
+   decision rather than a test convenience: the source module is random by
+   design (0.66 apart on the same input), so the game hands the noise in and
+   can seed it per line — `VoiceBank`'s determinism rule reaching the last
+   stage.
 2. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment the next
    run lands the file.
 3. **Precompute the conditioning per cast member** — a small offline script

@@ -168,7 +168,14 @@ def conv_istft(real, imag, n_fft, hop_length=None, win_length=None,
     if squeeze:
         real, imag = real.unsqueeze(0), imag.unsqueeze(0)
 
-    bins = real.shape[1]
+    # THE KERNEL GEOMETRY COMES FROM `n_fft`, NEVER FROM THE INPUT'S SHAPE.
+    #
+    # This read `real.shape[1]`, which is the same number and is a TRACED
+    # value, so the convolution weights became input-dependent and the export
+    # died with "ONNX export of convolution for kernel of unknown shape". A
+    # kernel is part of the graph, not part of the data; anything that decides
+    # its size has to be a Python integer at trace time.
+    bins = n_fft // 2 + 1
     k = torch.arange(bins, dtype=real.dtype).unsqueeze(1)
     t = torch.arange(n_fft, dtype=real.dtype).unsqueeze(0)
     ang = 2 * math.pi * k * t / n_fft
@@ -178,10 +185,15 @@ def conv_istft(real, imag, n_fft, hop_length=None, win_length=None,
     # each of them twice — EXCEPT DC and, for an even n_fft, Nyquist, which
     # have no partner. Getting that wrong is a small, plausible-sounding error
     # that would survive every shape check.
-    scale = torch.full((bins, 1), 2.0, dtype=real.dtype)
-    scale[0, 0] = 1.0
-    if n_fft % 2 == 0 and bins == n_fft // 2 + 1:
-        scale[bins - 1, 0] = 1.0
+    #
+    # BUILT FROM A PYTHON LIST rather than by writing into a tensor. The
+    # in-place version traced two `index_put` operations into the graph for
+    # what is a constant.
+    half = [2.0] * bins
+    half[0] = 1.0
+    if n_fft % 2 == 0:
+        half[-1] = 1.0
+    scale = torch.tensor(half, dtype=real.dtype).unsqueeze(1)
 
     cos_k = ((torch.cos(ang) * scale / n_fft) * w).unsqueeze(1)
     sin_k = ((-torch.sin(ang) * scale / n_fft) * w).unsqueeze(1)
@@ -218,8 +230,18 @@ class patched:
     def __enter__(self):
         self._stft, self._istft = torch.stft, torch.istft
         self._complex = torch.complex
+        self._var = torch.view_as_real
         torch.stft = conv_stft
         torch.istft = _istft_shim
+        # AND `view_as_real`, WHICH IS THE THIRD DOOR. `hifigan._stft` does
+        # not read `.real`/`.imag` off the spectrogram — it calls
+        # `torch.view_as_real(spec)` and then subscripts `[..., 0]` and
+        # `[..., 1]`. That is why the earlier attempt died with
+        # "'RealSpectrogram' object is not subscriptable": the proxy answered
+        # the questions I imagined the model asking rather than the ones it
+        # asks. Found by building the real vocoder with random weights and
+        # exporting it, which needs no download and took a minute.
+        torch.view_as_real = _view_as_real_shim
         # `torch.complex` TOO, OR COMPLEX COMES BACK IN BY THE FRONT DOOR.
         # Swapping `torch.istft` alone left the export failing on
         # `aten::complex`, because `hifigan._istft` builds its complex tensor
@@ -238,7 +260,19 @@ class patched:
     def __exit__(self, *exc):
         torch.stft, torch.istft = self._stft, self._istft
         torch.complex = self._complex
+        torch.view_as_real = self._var
         return False
+
+
+def _view_as_real_shim(spec):
+    """`torch.view_as_real`, for the proxy. Real tensors pass through to the
+    original, so a model mixing both is not broken by the patch."""
+    if isinstance(spec, RealSpectrogram):
+        return torch.stack([spec.re, spec.im], dim=-1)
+    return _ORIGINAL_VIEW_AS_REAL(spec)
+
+
+_ORIGINAL_VIEW_AS_REAL = torch.view_as_real
 
 
 def _complex_shim(real, imag, out=None):

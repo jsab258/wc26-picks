@@ -557,7 +557,7 @@ def voice_live():
     # slightly off, with no error anywhere. This runs the model's real
     # HuggingFace processors so the C# side has something to be identical TO.
     for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py",
-                   "kv_cache.py", "sampler-reference.py"):
+                   "kv_cache.py", "sampler-reference.py", "vocoder.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])
@@ -565,6 +565,9 @@ def voice_live():
         # A SCRIPT NEEDING TORCH CANNOT RUN EVERYWHERE, and a missing import is
         # not a failing check. Skipped and SAID, rather than counted as a pass
         # — a gate that goes quiet when its subject is absent reads as green.
+        # A SKIP MUST NOT READ AS A PASS, and `vocoder.py` skips on
+        # chatterbox rather than on torch — it needs the real class, which
+        # only the package has. Named in the footer either way.
         if code != 0 and "ModuleNotFoundError" in out and "torch" in out:
             skipped.append(script)
             continue
