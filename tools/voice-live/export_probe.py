@@ -482,6 +482,7 @@ def try_export(model, part, out_dir):
         # report said "no cache-shaped argument found" and was right about the
         # call it was shown.
         last = {}
+        last_b = {}
         swap = [False]          # True once the second, different-voice drive starts
         second = {}             # the same entry points, captured from that drive
         second_note = [None]
@@ -491,6 +492,15 @@ def try_export(model, part, out_dir):
                 grab = tuple(x.detach() if hasattr(x, "detach") else x for x in a)
                 if swap[0]:
                     counts_b[key] = counts_b.get(key, 0) + 1
+                    # THE SECOND DRIVE'S LAST CALL TOO, for the same reason as
+                    # the first drive's: the comparison that matters is
+                    # against a cache-bearing step, and step one of any
+                    # generation loop has no cache. Without this the
+                    # transformer could never get a realistic second-voice
+                    # check, so its correctness was being decided by synthetic
+                    # input scaled 25x — and a 1.8% disagreement there was
+                    # enough to send the search off to an embedding table.
+                    last_b[key] = {"args": grab, "kwargs": dict(kw)}
                     if key not in second:
                         second[key] = {"args": grab, "kwargs": dict(kw)}
                 else:
@@ -662,6 +672,7 @@ def try_export(model, part, out_dir):
             plan.append({"label": meth, "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
                          "last_call": last.get(meth),
+                         "last_call_second": last_b.get(meth),
                          "method": meth, "inner": None, "owner": sub,
                          "kw_names": names, "const": const, "n_positional": npos})
         for key, kid, kname, mname in sorted(
@@ -674,6 +685,7 @@ def try_export(model, part, out_dir):
             plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
                          "last_call": last.get(key),
+                         "last_call_second": last_b.get(key),
                          "method": mname, "owner": kid,
                          "kw_names": names, "const": const, "n_positional": npos,
                          "inner": {"child": kname, "method": mname,
@@ -687,6 +699,7 @@ def try_export(model, part, out_dir):
         best = None
         stft_used = [False]
         cache_off = [False]
+        cached_alt = [None]
         kv_used = [0]
         dyn_applied = [None]
         for step in plan:
@@ -853,9 +866,35 @@ def try_export(model, part, out_dir):
                             {k: v for k, v in (step.get("const") or {}).items()
                              if k != "use_cache"},
                             step["n_positional"], cname, cobj)
-                        base = tuple(lc.get("args") or hook["args"]) if from_last \
-                            else tuple(hook["args"])
-                        cargs = base + tuple(flat)
+                        # AN EMPTY POSITIONAL TUPLE IS FALSY, and `x or y`
+                        # therefore picked the wrong branch for a module
+                        # called entirely by keyword — which is exactly the
+                        # case this whole path exists for. The two sides then
+                        # built different shapes, 3 against 2, and the
+                        # second-voice comparison was silently skipped for
+                        # length mismatch. Explicit `is None`, and both sides
+                        # built the same way.
+                        def with_cache(call, tensors):
+                            a = call.get("args")
+                            if a is None:
+                                a = hook["args"]
+                            return tuple(a) + tuple(tensors)
+
+                        cargs = with_cache(lc if from_last else {"args": hook["args"]},
+                                           flat)
+
+                        # AND THE SECOND VOICE, WITH ITS OWN CACHE. A cached
+                        # graph takes the cache as inputs, so a comparison
+                        # against another voice has to supply that voice's
+                        # cache — feeding the first voice's would be comparing
+                        # against the wrong memory, and feeding none at all is
+                        # the shape mismatch that made this check unavailable.
+                        lb = step.get("last_call_second") or {}
+                        _, cobj_b = kv_cache.find_cache(lb.get("kwargs") or {})
+                        if cobj_b is not None:
+                            flat_b = kv_cache.cache_to_tensors(cobj_b)
+                            if len(flat_b) == len(flat):
+                                cached_alt[0] = with_cache(lb, flat_b)
 
                         def do_cached(use_dynamo, _t=cw, _a=cargs):
                             with torch.no_grad():
@@ -935,7 +974,9 @@ def try_export(model, part, out_dir):
             try:
                 alt = None
                 key2 = step["label"][6:] if step["label"].startswith("child:") else step["label"]
-                if key2 in second:
+                if cached_alt[0] is not None and len(cached_alt[0]) == len(hook["args"]):
+                    alt = cached_alt[0]
+                elif key2 in second:
                     a2 = second[key2]["args"]
                     if len(a2) == len(hook["args"]):
                         alt = a2
