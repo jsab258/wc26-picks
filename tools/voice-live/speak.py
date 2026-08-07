@@ -124,6 +124,27 @@ def generate_ours(model, text, seed):
     hp = t3.hp
     device = model.device
 
+    # THE WHOLE FUNCTION RUNS IN INFERENCE MODE, NOT JUST THE LOOP.
+    #
+    # `generate()` — which runs first, as the control — does its work under
+    # `torch.inference_mode()`, and tensors produced there are marked: they
+    # cannot be used by anything that might record gradients. The first
+    # version wrapped only the sampling loop, so `prepare_input_embeds` ran
+    # outside and touched the conditioning `generate()` had left behind:
+    #
+    #     RuntimeError: Inference tensors cannot be saved for backward.
+    #
+    # It is not a real autograd need — nothing here trains — it is the setup
+    # step being in ordinary mode. The read is worth keeping: the error names
+    # backward passes and there is no backward pass anywhere in this file.
+    with torch.inference_mode():
+        return _generate_ours(model, t3, hp, device, text, seed, punc_norm, F)
+
+
+def _generate_ours(model, t3, hp, device, text, seed, punc_norm, F):
+    import random
+    import torch
+
     text = punc_norm(text)
     tt = model.tokenizer.text_to_tokens(text).to(device)
     if CFG_WEIGHT > 0.0:
@@ -149,6 +170,8 @@ def generate_ours(model, text, seed):
     seen, tokens = set(), []
     past = None
     stop = "step ceiling"
+    # Already inside inference mode from the caller; nested is a no-op and is
+    # left because it documents where the expensive part is.
     with torch.inference_mode():
         for step in range(MAX_STEPS):
             out = patched(inputs_embeds=inputs_embeds, past_key_values=past,
@@ -260,7 +283,25 @@ def cmd_speak(text, seed, voice):
 
     print("\n  2/2  the same words through MY loop and MY sampler")
     t1 = time.time()
-    tokens, stop, steps = generate_ours(model, text, seed)
+    # CAUGHT, NOT THROWN, AND THE CONTROL SURVIVES EITHER WAY.
+    #
+    # Three runs in a row died in this half and each one ended in a wall of
+    # traceback under a line saying "It ran but produced nothing" — which is
+    # true and unhelpful, because `model.wav` had in fact been written and was
+    # sitting there usable. A half that fails should say which half, say that
+    # the other one landed, and print the cause in one line with the detail
+    # underneath rather than instead.
+    try:
+        tokens, stop, steps = generate_ours(model, text, seed)
+    except Exception as e:
+        import traceback
+        print(f"       MY HALF FAILED: {type(e).__name__}: {e}")
+        print(f"       The control DID land — speak-out/model.wav is {len(wav) / model.sr:.1f}s")
+        print("       of real audio and worth listening to on its own. Send me")
+        print("       the lines below and this is one more thing ruled out.")
+        print("       " + "-" * 60)
+        traceback.print_exc()
+        return 1
     took = time.time() - t1
     print(f"       {steps} steps, stopped: {stop}, {len(tokens)} acoustic tokens")
     if not tokens:
