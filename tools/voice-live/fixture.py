@@ -99,7 +99,7 @@ class FakeT3(nn.Module):
         # Called by keyword and with a non-tensor flag, exactly as the real
         # transformer is — the flag must stay baked in while the tensor
         # becomes a graph input.
-        h, _cache = self.tfmr(inputs_embeds=x, use_cache=True)
+        h = self.tfmr(inputs_embeds=x, use_cache=True).last_hidden_state
         steps = 0
         for _ in range(20):
             h = self.proj(h)
@@ -107,6 +107,38 @@ class FakeT3(nn.Module):
             if bool((h.norm() < 1.0).item()):   # the stop token, in miniature
                 break
         return h * steps
+
+
+class ModelOutputish:
+    """Stands in for `BaseModelOutputWithPast`. A transformers model does not
+    return a tuple, it returns an OBJECT with the tensors as attributes — and
+    `np.asarray` on one of these gives a 0-dimensional object array, which is
+    how the converted transformer got reported as "shapes differ: shape []
+    became [2, 74, 1024]" when the export had in fact worked."""
+
+    def __init__(self, hidden, cache=None):
+        self.last_hidden_state = hidden
+        self.past_key_values = cache
+
+    def to_tuple(self):
+        return (self.last_hidden_state, self.past_key_values)
+
+
+# REGISTERED WITH TORCH, AS TRANSFORMERS DOES. Without this the stand-in is
+# STRICTER than the real thing: the exporter refuses any unknown object, so
+# the cache-off retry had no accepting case here and looked broken while the
+# real model converted fine. A fixture that fails where reality succeeds is as
+# useless as one that succeeds where reality fails — it just fails safe.
+try:
+    from torch.utils import _pytree as _pt
+
+    _pt.register_pytree_node(
+        ModelOutputish,
+        lambda o: ([o.last_hidden_state, o.past_key_values], None),
+        lambda vals, _ctx: ModelOutputish(vals[0], vals[1]),
+    )
+except Exception:
+    pass
 
 
 class DynamicCacheish:
@@ -140,6 +172,9 @@ class KwargsOnly(nn.Module):
         if (inputs_embeds is None) == (input_ids is None):
             raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
         h = self.a(inputs_embeds if inputs_embeds is not None else input_ids)
+        if not use_cache:
+            # The shape that broke the comparison: tensors inside an object.
+            return ModelOutputish(h)
         if use_cache:
             # A CACHE OBJECT IN THE OUTPUT, which is what actually stopped the
             # real transformer once the keyword problem was fixed: "Found
@@ -147,8 +182,8 @@ class KwargsOnly(nn.Module):
             # exporter can carry an object like this through a graph, and the
             # standard way past it is to turn the cache off — so the fixture
             # has to return one, or that retry has no failing case.
-            return h, DynamicCacheish()
-        return h, None      # and a None in a slot, which crashed the comparison
+            return ModelOutputish(h, DynamicCacheish())
+        return ModelOutputish(h)
 
 
 class InnerFlow(nn.Module):

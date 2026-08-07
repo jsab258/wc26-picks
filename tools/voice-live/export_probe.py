@@ -585,6 +585,7 @@ def try_export(model, part, out_dir):
         best = None
         stft_used = [False]
         cache_off = [False]
+        dyn_applied = [None]
         for step in plan:
             target, hook = step["target"], {"args": step["args"], "method": step["method"]}
 
@@ -627,6 +628,7 @@ def try_export(model, part, out_dir):
                         # `dynamic_shapes` is the same idea under another name;
                         # if this build of torch will not take it, fall back
                         # rather than lose the export.
+                        applied = False
                         try:
                             shapes = tuple(
                                 {ax: torch.export.Dim.AUTO for ax in d}
@@ -636,9 +638,16 @@ def try_export(model, part, out_dir):
                             torch.onnx.export(_t, _a, str(dest), opset_version=17,
                                               do_constant_folding=True, dynamo=True,
                                               dynamic_shapes=shapes)
+                            applied = True
                         except Exception:
                             torch.onnx.export(_t, _a, str(dest), opset_version=17,
                                               do_constant_folding=True, dynamo=True)
+                        # SAID, NOT ASSUMED. The fallback is silent by design
+                        # so a torch without `Dim.AUTO` still gets an export —
+                        # but then the graph is frozen at one length and the
+                        # report has to admit it rather than leaving the reader
+                        # to wonder whether the request took.
+                        dyn_applied[0] = applied
                     else:
                         torch.onnx.export(_t, _a, str(dest), opset_version=17,
                                           do_constant_folding=True, dynamo=False,
@@ -679,8 +688,20 @@ def try_export(model, part, out_dir):
             # Only when the error names the cache, and recorded when used —
             # a graph exported without its cache is a different graph, and the
             # loop around it has to know.
-            if not ok and ("dynamiccache" in str(row).lower()
-                           or "use_cache" in str(row).lower()):
+            # TRIGGERED ON WHAT THE MODULE ACCEPTS, NOT ON THE WORDING.
+            # The first version matched the error text for "DynamicCache",
+            # which fired on the real model and not on the stand-in — whose
+            # error names the OUTPUT wrapper instead. Keying on a class name
+            # in a message is keying on a sentence somebody else may reword;
+            # keying on the module taking a `use_cache` argument is keying on
+            # the thing that makes the retry meaningful.
+            blob = str(row).lower()
+            takes_cache = "use_cache" in (step.get("const") or {}) or \
+                          "use_cache" in (step.get("kw_names") or [])
+            type_problem = ("cache" in blob or "not a known type" in blob
+                            or "unsupported type" in blob
+                            or "only tuples, lists and variables" in blob)
+            if not ok and takes_cache and type_problem:
                 nocache = dict(step.get("const", {}))
                 nocache["use_cache"] = False
                 retry = make_kwargs_wrapper(step["owner"], step["method"],
@@ -931,6 +952,12 @@ def try_export(model, part, out_dir):
     # ALREADY MEASURED, in the attempt loop, because a wrong answer had to be
     # able to fall through to the next candidate rather than ending the part.
     # What is left here is only to let it decide the verdict.
+    if dyn_applied[0] is False:
+        v["fixed_length_graph"] = True
+        v["shipping_note_length"] = (
+            "this build of torch would not take the variable-length request, "
+            "so the graph is frozen at the length of the clip it was converted "
+            "from and cannot be fed a different one")
     if cache_off[0]:
         v["cache_disabled"] = True
         v["shipping_note_cache"] = (
@@ -959,6 +986,56 @@ def try_export(model, part, out_dir):
             if av.startswith("agrees for real voices")
             else ", but the numbers are wrong")
     return v
+
+
+def flatten_outputs(obj):
+    """Every tensor a model returned, in order, whatever it wrapped them in.
+
+    A TRANSFORMERS MODEL RETURNS AN OBJECT, NOT A TUPLE, and that cost the
+    biggest result of the run. With the cache off, t3's transformer converted
+    — the export succeeded — and the comparison reported "shapes differ: shape
+    [] became [2, 74, 1024]". `np.asarray` on a `BaseModelOutputWithPast`
+    gives a 0-dimensional object array, so the reference side was an empty
+    shape and the ONNX side was the real answer. The tensors were inside the
+    wrapper and nothing looked in.
+
+    The verdict then said the transformer disagreed, the search moved on, and
+    an 8.4M-parameter embedding table was reported as the result of the stage
+    for the third run running.
+
+    Handles the shapes a model actually returns: a tensor, a tuple or list, a
+    `to_tuple()`-style output object, a mapping, and None in any slot.
+    """
+    out = []
+
+    def walk(x, depth=0):
+        if x is None or depth > 4:
+            return
+        if hasattr(x, "detach") or hasattr(x, "shape") and not hasattr(x, "keys"):
+            out.append(x)
+            return
+        if isinstance(x, (tuple, list)):
+            for y in x:
+                walk(y, depth + 1)
+            return
+        if hasattr(x, "to_tuple"):
+            try:
+                walk(tuple(x.to_tuple()), depth + 1)
+                return
+            except Exception:
+                pass
+        if hasattr(x, "keys"):
+            try:
+                for k in x.keys():
+                    walk(x[k], depth + 1)
+                return
+            except Exception:
+                pass
+        # A cache or config object holding nothing comparable. Skipped rather
+        # than coerced — `np.asarray` on one of these is what caused the fault
+        # this function exists for.
+    walk(obj)
+    return out
 
 
 def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
@@ -998,7 +1075,7 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
         """
         with torch.no_grad():
             want = model(*sample)
-        want = [want] if not isinstance(want, (tuple, list)) else list(want)
+        want = flatten_outputs(want)
         feeds = {n: (a.cpu().numpy() if hasattr(a, "cpu") else np.asarray(a))
                  for n, a in zip(names, sample)}
         got = sess.run(None, feeds)
@@ -1035,8 +1112,7 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     # for a bug in the export.
     with torch.no_grad():
         r1, r2 = model(*args), model(*args)
-    r1 = [r1] if not isinstance(r1, (tuple, list)) else list(r1)
-    r2 = [r2] if not isinstance(r2, (tuple, list)) else list(r2)
+    r1, r2 = flatten_outputs(r1), flatten_outputs(r2)
     drift = 0.0
     for a1, a2 in zip(r1, r2):
         # A MODEL MAY RETURN NOTHING IN A SLOT. The decoder's flow network
