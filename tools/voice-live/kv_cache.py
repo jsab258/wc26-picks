@@ -129,32 +129,52 @@ def cache_to_tensors(cache):
 def tensors_to_cache(flat, like):
     """Rebuild a cache of `like`'s type from [k0, v0, k1, v1, ...].
 
-    Uses the class's own constructor path where it has one, because a cache
-    carries bookkeeping — a sequence-length counter, a layer index — that a
-    hand-built object would not have and whose absence surfaces hundreds of
-    lines later as a wrong answer rather than an error.
+    A COPY OF THE REAL ONE, WITH ITS TENSORS SWAPPED — not a fresh object.
+
+    Constructing one from scratch threw `IndexError: list index out of range`
+    on Jafar's transformers: sixty tensors came OUT of the cache and could not
+    be put back into a new one, so the cached export failed and the run
+    measured the uncached path for the seventh time.
+
+    Guessing at another release's constructor is what got me here. A cache
+    carries bookkeeping this code cannot see — a sequence counter, per-layer
+    objects, whatever the next version adds — and the object in hand already
+    has all of it, correctly, for this exact model. Copying it and replacing
+    the tensors keeps every field right by construction and needs to know
+    nothing about the class.
+
+    Falls back through the older shapes so a cache that IS cheap to rebuild
+    still is, and raises with the layout named rather than an IndexError from
+    somewhere inside a library.
     """
-    pairs = tuple((flat[i], flat[i + 1]) for i in range(0, len(flat), 2))
+    import copy
+
+    pairs = [(flat[i], flat[i + 1]) for i in range(0, len(flat), 2)]
+
+    layout = cache_layout(like)
+    if layout == "layers[].keys/values":
+        fresh = copy.copy(like)
+        fresh.layers = [copy.copy(ly) for ly in like.layers]
+        if len(fresh.layers) != len(pairs):
+            raise ValueError(
+                f"cache has {len(fresh.layers)} layers but {len(pairs)} key/value "
+                f"pairs were handed back — the flatten and the rebuild disagree")
+        for ly, (k, v) in zip(fresh.layers, pairs):
+            ly.keys, ly.values = k, v
+        return fresh
+
+    if layout == "key_cache/value_cache":
+        fresh = copy.copy(like)
+        fresh.key_cache = [k for k, _ in pairs]
+        fresh.value_cache = [v for _, v in pairs]
+        return fresh
+
     cls = type(like)
     if hasattr(cls, "from_legacy_cache"):
-        return cls.from_legacy_cache(pairs)
-    obj = cls()
-    if hasattr(obj, "key_cache"):
-        obj.key_cache = [p[0] for p in pairs]
-        obj.value_cache = [p[1] for p in pairs]
-        return obj
-    if hasattr(like, "layers"):
-        # The newer layout: rebuild by updating each layer in turn, using the
-        # class's own `update` where it has one so the bookkeeping a cache
-        # carries is not lost.
-        fresh = cls()
-        for i, (k, v) in enumerate(pairs):
-            if hasattr(fresh, "update"):
-                fresh.update(k, v, i)
-            else:
-                fresh.layers[i].keys, fresh.layers[i].values = k, v
-        return fresh
-    return obj
+        return cls.from_legacy_cache(tuple(pairs))
+
+    raise ValueError(f"cannot rebuild a cache of type {cls.__name__} — "
+                     f"no recognised layout")
 
 
 def make_cached_wrapper(module, method, tensor_kw_names, const_kwargs,
@@ -318,6 +338,24 @@ def selftest():
     same = all(torch.equal(a, b) for a, b in
                zip(back.key_cache + back.value_cache, seed.key_cache + seed.value_cache))
     check(same, "and rebuilds to exactly the tensors it came from")
+
+    # 2b. THE NEWER LAYOUT ROUND-TRIPS TOO, and by copying rather than
+    # constructing — building a fresh one threw IndexError on the real model.
+    nc2 = tensors_to_cache(cache_to_tensors(nc), nc)
+    check(len(nc2.layers) == L and all(
+        torch.equal(a.keys, b.keys) and torch.equal(a.values, b.values)
+        for a, b in zip(nc2.layers, nc.layers)),
+        "the newer layout rebuilds by copying, keeping every other field")
+    check(nc2 is not nc and nc2.layers[0] is not nc.layers[0],
+          "and it is a copy, so writing to it cannot corrupt the model's own cache")
+    try:
+        tensors_to_cache(cache_to_tensors(nc)[:2], nc)
+        mismatch = False
+    except ValueError:
+        mismatch = True
+    check(mismatch,
+          "a rebuild with the wrong number of pairs raises and says so, rather "
+          "than an IndexError from inside a library")
 
     # 3. THE POINT OF ALL OF IT: does the cached form actually export?
     w = make_cached_wrapper(m, "forward", ["inputs_embeds"], {}, 0,
