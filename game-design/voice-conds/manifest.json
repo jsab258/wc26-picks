@@ -1,0 +1,667 @@
+{
+ "ada": {
+  "clip": "ada.p276.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    410,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    205
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 113.2
+ },
+ "crowd_f1": {
+  "clip": "crowd_f1.p266.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 137.8
+ },
+ "crowd_f2": {
+  "clip": "crowd_f2.p265.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    448,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    224
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 125.5
+ },
+ "crowd_f3": {
+  "clip": "crowd_f3.p288.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 137.6
+ },
+ "crowd_m1": {
+  "clip": "crowd_m1.p287.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.2
+ },
+ "crowd_m2": {
+  "clip": "crowd_m2.p272.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.5
+ },
+ "crowd_m3": {
+  "clip": "crowd_m3.p292.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    470,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    235
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 127.6
+ },
+ "ellis": {
+  "clip": "ellis.p231.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 137.9
+ },
+ "emil": {
+  "clip": "emil.p245.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.1
+ },
+ "hal": {
+  "clip": "hal.p273.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    419,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    209
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 118.0
+ },
+ "joey": {
+  "clip": "joey.p263.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 137.9
+ },
+ "kest": {
+  "clip": "kest.p244.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.3
+ },
+ "lena": {
+  "clip": "lena.p228.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 137.7
+ },
+ "marla": {
+  "clip": "marla.p282.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.2
+ },
+ "reese": {
+  "clip": "reese.p256.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 138.3
+ },
+ "rita": {
+  "clip": "rita.p249.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 135.8
+ },
+ "rocco": {
+  "clip": "rocco.p227.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 139.5
+ },
+ "sam": {
+  "clip": "sam.p241.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    500,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    250
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 139.2
+ },
+ "vesna": {
+  "clip": "vesna.p238.mp3",
+  "tensors": {
+   "gen.embedding": [
+    1,
+    192
+   ],
+   "gen.prompt_feat": [
+    1,
+    416,
+    80
+   ],
+   "gen.prompt_token": [
+    1,
+    208
+   ],
+   "gen.prompt_token_len": [
+    1
+   ],
+   "t3.cond_prompt_speech_tokens": [
+    1,
+    150
+   ],
+   "t3.emotion_adv": [
+    1,
+    1,
+    1
+   ],
+   "t3.speaker_emb": [
+    1,
+    256
+   ]
+  },
+  "kilobytes": 117.4
+ }
+}
