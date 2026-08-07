@@ -188,23 +188,34 @@ namespace Ledger.Core
         /// speaking the result would be worse than staying quiet.
         public int MinSteps = 4;
 
-        /// THE MODEL'S OWN RUNAWAY GUARD, and the only one of its three that
-        /// can be honoured here.
+        /// A RUNAWAY GUARD THE ENGLISH MODEL DOES NOT HAVE. Off by default,
+        /// and that default is a correction.
         ///
-        /// `alignment_stream_analyzer.py` forces an end-of-speech token on
-        /// three conditions: a long tail, an alignment repetition, and a token
-        /// repetition. The first two are read off the transformer's ATTENTION
-        /// WEIGHTS, which the exported graph does not currently produce — see
-        /// the note in `SpeechLoop`. The third is pure token history:
+        /// `alignment_stream_analyzer.py` forces an end-of-speech token when
+        /// the last two tokens are equal. I read it, implemented it, defaulted
+        /// it ON, and wrote a paragraph elsewhere calling the attention-based
+        /// half of the same analyzer a "known gap" in the export.
         ///
-        ///     len(generated_tokens) >= 3 and len(set(generated_tokens[-2:])) == 1
+        /// Then I read the line that CONSTRUCTS it:
         ///
-        /// — the last two tokens being equal, once at least three exist. Note
-        /// that the model's own log line calls this "3x repetition" while the
-        /// code checks two; the code is what runs, so two is what is copied
-        /// here, and the discrepancy is written down rather than quietly
-        /// resolved in either direction.
-        public bool StopOnRepeat = true;
+        ///     if self.hp.is_multilingual:
+        ///         alignment_stream_analyzer = AlignmentStreamAnalyzer(...)
+        ///
+        /// and `is_multilingual` is `text_tokens_dict_size == 2454`. The
+        /// English model is 704 — which is exactly the vocabulary size the
+        /// probe read off Jafar's install. So for the model this game ships,
+        /// the analyzer is None and NONE of it runs.
+        ///
+        /// That makes the "known gap" not a gap, and makes this guard an
+        /// EXTRA one: on by default it would end a line at the first repeated
+        /// token, and two identical tokens in a row at 25 Hz is an ordinary
+        /// thing in held vowels and silence. A voice cut short mid-word, for a
+        /// rule the model does not apply.
+        ///
+        /// Kept rather than deleted, because the multilingual model does use
+        /// it and this is what it does; the code checks the last TWO despite
+        /// its own log line saying "3x", and the code is what runs.
+        public bool StopOnRepeat = false;
 
         /// How long the whole line may take, in seconds. Zero disables it.
         ///
@@ -263,30 +274,27 @@ namespace Ledger.Core
 
     public static class SpeechLoop
     {
-        /// WHAT THIS LOOP DOES NOT YET DO, said here rather than discovered
-        /// later, because a missing guard is invisible in a diff and audible
-        /// in the game.
+        /// A GAP I REPORTED AND THEN DISPROVED, kept because the reasoning
+        /// is the useful part.
         ///
         /// `alignment_stream_analyzer.py` reads the transformer's cross
-        /// attention every step and uses it for three things this cannot do:
+        /// attention every step and uses it to suppress an early stop, to cut
+        /// a hallucinated tail, and to catch a repetition. None of that
+        /// survives the export, because the graph does not carry attention —
+        /// so I wrote it down as a known gap with a known cost.
         ///
-        ///   - SUPPRESSING the stop token while the model still has text left
-        ///     to read (`cur_text_posn < S - 3`), which is what stops a line
-        ///     ending after two words;
-        ///   - forcing a stop on a LONG TAIL, where the final text token holds
-        ///     attention for more than about 200ms;
-        ///   - forcing a stop on ALIGNMENT REPETITION, where attention returns
-        ///     to text already spoken.
+        /// It is not a gap. The analyzer is only constructed
+        /// `if self.hp.is_multilingual`, and that is
+        /// `text_tokens_dict_size == 2454`; the English model is 704, which is
+        /// exactly the vocabulary the probe read off Jafar's install. For the
+        /// model this game ships it is None and never runs, so the exported
+        /// graph is missing nothing the original had.
         ///
-        /// All three need `output_attentions=True` through the graph, and the
-        /// export does not currently carry it. The consequence is specific
-        /// rather than general: without EOS suppression, short lines are the
-        /// ones at risk — the model may stop early on a long sentence — and
-        /// without the tail guards, a hallucinating line runs to the step
-        /// ceiling instead of being cut. `StopOnRepeat` covers the commonest
-        /// of the three. This is a known gap with a known cost, not an
-        /// oversight, and the next measurement to take is how often a live
-        /// line stops before its text is used up.
+        /// The lesson is the one this project keeps paying for: I read the
+        /// class and not the line that decides whether it is built. A
+        /// mechanism that exists in the source is not a mechanism that runs.
+        /// If a multilingual voice is ever used, this becomes a real gap
+        /// again and `StopOnRepeat` covers one third of it.
         public static SpeechRun Run(ISpeechBackend backend, string voiceId, string text,
                                     SpeechPlan plan = null, Func<double> nowSeconds = null)
         {

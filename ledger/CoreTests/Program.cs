@@ -7656,19 +7656,31 @@ namespace Ledger.CoreTests
             Check(SpeechLoop.Run(new ScriptedVoice(1), "rocco", "   ").Stop == SpeechStop.Nothing,
                 "and so is a text that normalises to empty");
 
-            // ---- the model's own runaway guard ----
+            // ---- the runaway guard the ENGLISH model does not have ----
+            //
+            // OFF BY DEFAULT, and that is the point of the first check. The
+            // analyzer this copies is only constructed `if is_multilingual`,
+            // which is `text_tokens_dict_size == 2454`; the English model is
+            // 704 — the exact vocabulary size the probe read off Jafar's
+            // install. So it never runs, and defaulting it ON would end a line
+            // at the first repeated token, which at 25 Hz is an ordinary thing
+            // in a held vowel.
+            Check(!new SpeechPlan().StopOnRepeat,
+                "the repetition guard is OFF by default — the English model has "
+                + "no alignment analyzer, so adding one would cut lines short");
+            var allowed = SpeechLoop.Run(new ScriptedVoice(7, 7, 7, 7), "rocco", "stuck");
+            Check(allowed.Stop == SpeechStop.Finished,
+                "so a repeated token runs on, as it does in the model",
+                allowed.Stop.ToString());
             var stuck = new ScriptedVoice(7, 7, 7, 7, 7, 7);
-            var stuckRun = SpeechLoop.Run(stuck, "rocco", "stuck");
+            var stuckRun = SpeechLoop.Run(stuck, "rocco", "stuck",
+                new SpeechPlan { StopOnRepeat = true });
             Check(stuckRun.Stop == SpeechStop.Repetition,
-                "two identical tokens in a row stop the line, as the model's own "
-                + "analyzer does", stuckRun.Stop.ToString());
+                "and turned on — for a multilingual voice, which does have one — "
+                + "two identical tokens in a row stop the line",
+                stuckRun.Stop.ToString());
             Check(stuckRun.Usable,
                 "and that IS a finished utterance — the model deciding it is done");
-            var allowed = SpeechLoop.Run(new ScriptedVoice(7, 7, 7, 7), "rocco", "stuck",
-                new SpeechPlan { StopOnRepeat = false });
-            Check(allowed.Stop == SpeechStop.Finished,
-                "and turning the guard off lets the same script through — a guard "
-                + "tested on both of its outcomes", allowed.Stop.ToString());
 
             // ---- classifier-free guidance ----
             //

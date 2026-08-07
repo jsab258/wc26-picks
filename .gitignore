@@ -50,3 +50,6 @@ tools/voice-live/export-out/
 # machine's backends. Same class, found by grepping for it rather than
 # by waiting for it to be committed too.
 tools/voice-live/out/
+
+# The two wav files "3 HEAR IT SPEAK.bat" writes — output, not source.
+tools/voice-live/speak-out/

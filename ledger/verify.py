@@ -557,7 +557,8 @@ def voice_live():
     # slightly off, with no error anywhere. This runs the model's real
     # HuggingFace processors so the C# side has something to be identical TO.
     for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py",
-                   "kv_cache.py", "sampler-reference.py", "vocoder.py"):
+                   "kv_cache.py", "sampler-reference.py", "vocoder.py",
+                   "speak.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])

@@ -43,32 +43,19 @@ the wall now:
 - **the text tidy-up** (`Core/SpeechText`) — the model's `punc_norm`, matching
   it on fourteen awkward inputs including two quirks worth keeping.
 
-**THE 7 AUGUST RUN SETTLED THREE THINGS.**
-
-- **The cache bug was real on the real model.** `at_call [2,16,164,64]` against
-  `read_now [2,16,165,64]`, `grew_during_the_call: true`. Every earlier cached
-  export was traced with the current token already in its own history. With the
-  snapshot, correctness went from "could not check" to **agrees at 6.5e-07** —
-  and now agrees on all four synthetic scales too, not just real voices.
-- **Batch is 2, which is the classifier-free guidance** found by reading the
-  model rather than the report. `ISpeechBackend.Rows` already carries it.
-- **The vocabulary is small.** BPE, **704 tokens, 265 merges, 25 KB**,
-  Whitespace pre-tokeniser, no normaliser. The C# tokeniser is an afternoon,
-  not a week. It did not travel on that run — the destination was gitignored,
-  so the fetch worked and the file stayed on Jafar's machine. Fixed; next run
-  brings it.
+**FROM THE 7 AUGUST RUN.** The cache fix was a real fault on the real model
+(`grew_during_the_call: true`), and correctness went from "could not check" to
+**6.5e-07**, now including the synthetic scales. Batch 2 confirms the
+classifier-free guidance. The vocabulary is BPE, **704 tokens, 265 merges,
+25 KB** — an afternoon of C#, not a week.
 
 **AND `ve` NEVER RUNS AT RUNTIME, WHICH KILLS FOUR REPORTED FAILURES.**
 `prepare_conditionals(wav_fpath)` takes the REFERENCE CLIP and produces
-conditioning that `generate()` reuses for every line — read in `tts.py`, not
-assumed. Nothing in it depends on the text. So the voice encoder, the audio
-tokeniser and `embed_ref` are computed ONCE PER CAST MEMBER, offline, on any
-machine, and shipped as data. Therefore:
-
-  `ve` refused by DirectML          — irrelevant, it runs once, offline
-  `ve` frozen at one clip length    — irrelevant, one clip per voice
-  `s3tokenizer` STFT export failure — irrelevant, never runs at runtime
-  `speaker_encoder` fft_rfft        — irrelevant, same
+conditioning `generate()` reuses for every line — read in `tts.py`, not
+assumed. Nothing in it depends on the text, so the voice encoder, the audio
+tokeniser and `embed_ref` are computed once per cast member, offline, and
+shipped as data. The DirectML refusal, the fixed clip length, the s3tokenizer
+STFT failure and `speaker_encoder`'s fft all stop mattering at once.
 
 **NEXT, IN ORDER — what is actually left at runtime:**
 
@@ -82,19 +69,25 @@ machine, and shipped as data. Therefore:
    design (0.66 apart on the same input), so the game hands the noise in and
    can seed it per line — `VoiceBank`'s determinism rule reaching the last
    stage.
-2. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment the next
-   run lands the file.
-3. **Precompute the conditioning per cast member** — a small offline script
+2. **LISTEN TO IT.** `3 HEAR IT SPEAK.bat` writes two wavs from the same
+   voice and words: chatterbox's own `generate()` as the control, and the
+   same line through the loop the game will run. Both, always — one file
+   cannot be judged, because this model has bad days on any line. **This is
+   the first thing in the whole effort that can be heard rather than
+   measured, and it is what to run next.**
+3. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment a run
+   lands the file.
+4. **Precompute the conditioning per cast member** — a small offline script
    that runs `prepare_conditionals` once per voice and writes the tensors.
    Removes `ve` from the shipping path entirely.
-4. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
+5. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
    it is null. Needs onnxruntime with DirectML as a Unity plugin.
-5. **Off the main thread.** One line costs ~9.7s; generating it inside a frame
+6. **Off the main thread.** One line costs ~9.7s; generating it inside a frame
    freezes the game. The loop is deadline-aware and `SpeechDirector` sizes the
    deadline from the machine, but nothing yet runs it on a worker.
-6. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
+7. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
    `SpeechRun.SecondsPerStep`. All three need a line to have actually been
-   generated. They come off the ledger when item 4 lands, not before.
+   generated. They come off the ledger when item 5 lands, not before.
 
 **THE SPEED, MEASURED.** 9.7s per line for ~3.5s of speech — 2.8x slower than
 real time, down from 13x. The transformer is 8.3s of it, at 92 steps x 0.09s
@@ -102,12 +95,16 @@ real time, down from 13x. The transformer is 8.3s of it, at 92 steps x 0.09s
 Worth understanding before optimising: a 2 GB model moving data to the GPU 92
 times may simply lose to keeping it in cache.
 
-**KNOWN GAP, WRITTEN DOWN RATHER THAN DISCOVERED LATER.** chatterbox's
-alignment analyzer reads the transformer's attention every step and uses it to
-suppress an early stop, to cut a hallucinated tail, and to catch a repetition.
-The export does not carry attention, so only the third is honoured (`StopOnRepeat`).
-The measurement to take once live lines exist: how often one stops before its
-text is used up.
+**AND THE "KNOWN GAP" I REPORTED YESTERDAY IS NOT ONE.** I read chatterbox's
+alignment analyzer, saw it needs attention weights the export does not carry,
+and wrote it up as a real loss. Then I read the line that CONSTRUCTS it:
+`if self.hp.is_multilingual`, which is `text_tokens_dict_size == 2454`. The
+English model is **704** — exactly the vocabulary the probe read off Jafar's
+install. It is never built, so the graph is missing nothing.
+Worse, I had defaulted the one guard I could copy to ON, which would have
+ended a line at the first repeated token — ordinary at 25 Hz in a held vowel.
+Now off, and the multilingual case is named. **A mechanism that exists in the
+source is not a mechanism that runs.**
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
