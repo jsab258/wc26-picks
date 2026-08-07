@@ -106,6 +106,17 @@ def cmd_run(only):
     if note:
         print(f"  watermarker: {note} (stubbed — it is not used here at all)")
 
+    # THE VOCABULARY COMES WITH IT, because the bat says it does and a bat
+    # that promises something the script does not do is the same fault as a
+    # stale comment. Both are things that can only be fetched from a machine
+    # with the weights, so one trip should bring both.
+    tok = export_probe.copy_tokenizer()
+    if tok.get("copied"):
+        print(f"  vocabulary: {tok.get('type')}, {tok.get('vocab')} tokens, "
+              f"{tok.get('merges')} merges -> tools/voice-live/tokenizer.json")
+    else:
+        print(f"  vocabulary: NOT copied — {tok.get('why')}")
+
     todo = [(v, p) for v, p in clips() if only is None or v == only]
     if not todo:
         print(f"  nothing to do: no clip for '{only}' under {CLIPS}"
