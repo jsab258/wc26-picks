@@ -9642,6 +9642,7 @@ namespace Ledger.Game
                       // nothing asked" are different problems with different
                       // fixes, and a bare zero cannot tell them apart.
                       $"speechVocab={(Audio.Vocabulary != null ? Audio.Vocabulary.Count.ToString() : "none")} " +
+                      $"{Audio.Pending.Verdict()} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"lumaPairs=[{_lumaSeries}] " +

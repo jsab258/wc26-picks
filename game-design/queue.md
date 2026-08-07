@@ -53,16 +53,12 @@ so a voice is a constant. Computed and committed — see item 4.
 
 **NEXT, IN ORDER — what is actually left at runtime:**
 
-1. **CLOSED — THE VOCODER CONVERTS.** Verified against the REAL
-   `HiFTGenerator` built with random weights, no download: unpatched it
-   refuses, patched it exports, runs, and agrees with pytorch to **3.5e-06**
-   at the traced length and 3.3-3.8e-06 at three others (6400 / 15616 / 23040
-   samples). `tools/voice-live/vocoder.py` holds it.
-   **The noise source must be an explicit input**, and that is a shipping
-   decision rather than a test convenience: the source module is random by
-   design (0.66 apart on the same input), so the game hands the noise in and
-   can seed it per line — `VoiceBank`'s determinism rule reaching the last
-   stage.
+1. **CLOSED — THE VOCODER CONVERTS.** Against the REAL `HiFTGenerator` with
+   random weights, no download: unpatched it refuses, patched it exports,
+   runs, and agrees to **3.5e-06** at four lengths. `tools/voice-live/vocoder.py`.
+   **The noise source must be an explicit input** — a shipping decision, not a
+   test convenience: the source module is random by design, so the game hands
+   the noise in and can seed it per line.
 2. **CLOSED — THE LOOP SOUNDS RIGHT, AND IT IS TWICE AS FAST.** Jafar
    listened to both takes on 7 August: all the words, the same person, no
    damage, and he would let a passer-by say it. The design question is
@@ -90,12 +86,16 @@ so a voice is a constant. Computed and committed — see item 4.
    `game-design/voice-conds/`, 2.5 MB. `ve` is out of the shipping path.
 5. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
    it is null. Needs onnxruntime with DirectML as a Unity plugin.
-6. **Off the main thread.** One line costs ~9.7s; generating it inside a frame
-   freezes the game. The loop is deadline-aware and `SpeechDirector` sizes the
-   deadline from the machine, but nothing yet runs it on a worker.
-7. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
-   `SpeechRun.SecondsPerStep`. All three need a line to have actually been
-   generated. They come off the ledger when item 5 lands, not before.
+6. **CLOSED — OFF THE MAIN THREAD.** `Core/SpeechQueue` holds the policy
+   (one line at a time, shallow queue, duplicates collapsed, a shelf life
+   after which a line stops being worth saying); `Audio` holds the thread and
+   pumps one finished line per frame from the mix. A line generated after its
+   moment is dropped and COUNTED — "can speak but not in time" is a different
+   problem from "cannot speak" and both would otherwise be silence.
+7. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`. The worker
+   paid off the other two. **`Audio.Backend` is the only thing still null**,
+   and it is the whole of what remains: an onnxruntime session behind
+   `ISpeechBackend`, with `Begin`, `Next`, `Release` and `Decode`.
 
 **THE SPEED.** 11.9s measured in pytorch on CPU; the ONNX estimate is 9.7s for
 ~3.5s of speech — 2.8x slower than real time, down from 13x. One thread left:

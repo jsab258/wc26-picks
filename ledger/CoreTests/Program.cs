@@ -99,6 +99,7 @@ namespace Ledger.CoreTests
                 TestSpeechLoop();
                 TestSpeechText();
                 TestSpeechTokenizer();
+                TestSpeechQueue();
                 TestSpeechDirector();
                 TestCaptions();
                 TestCrowdOnTheStreet();
@@ -7558,6 +7559,16 @@ namespace Ledger.CoreTests
             }
 
             public void Release() { Released++; }
+
+            /// One sample per token, which is enough to tell "produced audio"
+            /// from "produced none" — the only distinction the queue makes.
+            public float[] Decode(int[] tokens)
+            {
+                if (tokens == null || tokens.Length == 0) return null;
+                var wav = new float[tokens.Length];
+                for (int i = 0; i < tokens.Length; i++) wav[i] = tokens[i] / 8194f;
+                return wav;
+            }
         }
 
         /// The step loop — the one piece of live speech that cannot be
@@ -7951,6 +7962,113 @@ namespace Ledger.CoreTests
                 "empty text is nothing to say, NOT the model's spoken error message");
             Check(SpeechLoop.Run(new ScriptedVoice(1), "rocco", "  ").Stop == SpeechStop.Nothing,
                 "and the loop refuses it too, so there are two ways this cannot happen");
+        }
+
+        /// A line takes nine seconds and a frame takes sixteen milliseconds.
+        static void TestSpeechQueue()
+        {
+            Console.WriteLine("The speech queue — what gets said, and what stops being worth saying:");
+
+            var q = new SpeechQueue();
+            Check(q.Seen == 0 && q.Spoken == 0,
+                "a fresh queue has seen nothing — a count, not a silence");
+
+            // ---- the accepting case first, per CLAUDE.md rule 5b ----
+            Check(q.Offer("rocco", "the docks, midnight", 0.0), "a line is accepted");
+            Check(q.Waiting == 1 && !q.Busy, "and waits, with nothing in flight");
+            var job = q.TakeNext(0.1);
+            Check(job != null && job.VoiceId == "rocco", "the worker takes it");
+            Check(q.Busy && q.Waiting == 0, "and it is in flight, not waiting");
+            q.Deliver(job, new SpeechRun { Stop = SpeechStop.Finished, Steps = 40,
+                                           Tokens = new int[39] }, new float[8000], 3.0);
+            Check(!q.Busy, "delivering frees the session");
+            var got = q.Collect();
+            Check(got != null && got.Speakable, "and the main thread collects a speakable line");
+            Check(q.Spoken == 1 && q.Collect() == null,
+                "counted once, and there is nothing else waiting to be collected");
+
+            // ---- ONE AT A TIME ----
+            var one = new SpeechQueue();
+            one.Offer("rocco", "first", 0.0);
+            one.Offer("lena", "second", 0.0);
+            var a = one.TakeNext(0.0);
+            Check(a != null && one.TakeNext(0.0) == null,
+                "a second line cannot start while the first is in flight — there is "
+                + "one model and one set of cache tensors");
+
+            // ---- THE QUEUE IS SHALLOW, AND REFUSAL IS COUNTED ----
+            var full = new SpeechQueue { Depth = 2 };
+            Check(full.Offer("a", "one", 0) && full.Offer("b", "two", 0),
+                "two lines fit a depth of two");
+            Check(!full.Offer("c", "three", 0) && full.Refused == 1,
+                "the third is refused and said so — a deeper queue would only buy "
+                + "more discarded speech");
+            Check(full.Seen == 3, "and the denominator counts it: 3 seen, 2 taken",
+                full.Seen.ToString());
+
+            // ---- THE SAME LINE TWICE IS ONE LINE ----
+            var dup = new SpeechQueue();
+            dup.Offer("rocco", "look out", 0);
+            Check(!dup.Offer("rocco", "look out", 0) && dup.Waiting == 1,
+                "two walkers reacting to one event do not generate it twice");
+            Check(dup.Offer("rocco", "look  out", 0) == false,
+                "and whitespace does not make it a different line");
+            Check(dup.Offer("lena", "look out", 0),
+                "but a different voice saying it does");
+
+            // ---- SHELF LIFE: WAITING TOO LONG ----
+            var stale = new SpeechQueue { ShelfSeconds = 5.0 };
+            stale.Offer("rocco", "too late", 0.0);
+            Check(stale.TakeNext(4.9) != null, "a line inside its shelf life is taken");
+            var stale2 = new SpeechQueue { ShelfSeconds = 5.0 };
+            stale2.Offer("rocco", "too late", 0.0);
+            Check(stale2.TakeNext(5.1) == null && stale2.Expired == 1,
+                "and one past it is dropped where it sits rather than generated");
+            Check(stale2.Waiting == 0, "leaving nothing behind");
+
+            // ---- SHELF LIFE: GENERATED, BUT THE MOMENT HAS GONE ----
+            //
+            // THE CASE WORTH COUNTING MOST. It means the machine CAN speak and
+            // cannot speak in TIME, which is a different problem from a machine
+            // that cannot speak at all — and both would otherwise be silence.
+            var late = new SpeechQueue { ShelfSeconds = 5.0 };
+            late.Offer("rocco", "answer", 0.0);
+            var lj = late.TakeNext(0.1);
+            late.Deliver(lj, new SpeechRun { Stop = SpeechStop.Finished, Steps = 40,
+                                             Tokens = new int[39] }, new float[8000], 9.0);
+            var lc = late.Collect();
+            Check(lc != null && !lc.Speakable && lc.Drop == SpeechDrop.TooLate,
+                "a line finished after its moment is NOT played", lc?.Drop.ToString());
+            Check(late.Expired == 1 && late.Spoken == 0,
+                "and is counted as expired rather than spoken");
+
+            // ---- A FAILED RUN IS NOT A SPOKEN ONE ----
+            var bad = new SpeechQueue();
+            bad.Offer("rocco", "broken", 0.0);
+            var bj = bad.TakeNext(0.0);
+            bad.Deliver(bj, new SpeechRun { Stop = SpeechStop.BackendFailed }, null, 0.5);
+            var bc = bad.Collect();
+            Check(bc != null && !bc.Speakable && bad.Failed == 1 && bad.Spoken == 0,
+                "a driver that went away mid-line is counted as failed, not spoken");
+            Check(!bad.Busy, "and it still freed the session, or nothing could ever run again");
+
+            // A run that finished but produced no audio is also a failure, not
+            // a silent success — the two look identical from outside.
+            var empty = new SpeechQueue();
+            empty.Offer("rocco", "silence", 0.0);
+            var ej = empty.TakeNext(0.0);
+            empty.Deliver(ej, new SpeechRun { Stop = SpeechStop.Finished, Tokens = new int[5] },
+                          new float[0], 0.5);
+            Check(empty.Collect()?.Speakable == false && empty.Failed == 1,
+                "and a run that returned no samples at all is a failure too");
+
+            Check(!new SpeechQueue().Offer("", "words", 0)
+                  && !new SpeechQueue().Offer("rocco", "   ", 0),
+                "nothing to say is not queued");
+
+            var line = q.Verdict();
+            Check(line.Split(' ').Length == 8 && !line.Contains("= "),
+                "the verdict line is eight space-separated pairs", line);
         }
 
         /// Who speaks live, and whether this machine can afford it.

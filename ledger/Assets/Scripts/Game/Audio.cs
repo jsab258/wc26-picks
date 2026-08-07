@@ -974,11 +974,128 @@ namespace Ledger.Game
                                       : (text => tok.Encode(text).Length);
         }
 
+        /// The lines waiting to be generated, and the ones that came back.
+        /// See `Core/SpeechQueue` — the policy is there, the thread is here.
+        public static readonly SpeechQueue Pending = new SpeechQueue();
+
+        static System.Threading.Thread _worker;
+        static volatile bool _stopWorker;
+
         /// One line offered. `played` is whether the bank served it.
         public static SpeechRoute NoteLive(string voiceId, string text, bool played)
         {
-            return Live.Route(voiceId, text, played, Backend != null);
+            var route = Live.Route(voiceId, text, played, Backend != null);
+            // ONLY A LINE THE DIRECTOR SAID YES TO. Queueing everything and
+            // deciding later would fill the queue with lines this machine was
+            // never going to manage, and push out the ones it could.
+            if (route == SpeechRoute.Live) Pending.Offer(voiceId, text, Clock());
+            return route;
         }
+
+        static double Clock()
+        {
+            return Time.realtimeSinceStartupAsDouble;
+        }
+
+        /// THE WORKER. One thread, started when a backend appears, generating
+        /// one line at a time for as long as the game runs.
+        ///
+        /// A BACKGROUND THREAD AND NOT A COROUTINE, because `SpeechLoop.Run`
+        /// is a blocking call that holds its thread for the length of a
+        /// sentence — about nine seconds — and a coroutine yields between
+        /// frames without ever letting go of the main one. There is nothing to
+        /// yield at: the time is spent inside a single call into the model.
+        ///
+        /// IT TOUCHES NO UNITY API. Everything it does is `SpeechLoop`,
+        /// `ISpeechBackend` and arrays; the `AudioClip` is built in `PumpSpeech`
+        /// on the main thread, because Unity's object model is not thread-safe
+        /// and a clip created off-thread is a crash rather than an exception.
+        public static void StartWorker()
+        {
+            if (_worker != null || Backend == null) return;
+            _stopWorker = false;
+            _worker = new System.Threading.Thread(WorkerLoop);
+            _worker.IsBackground = true;   // never keeps the process alive
+            _worker.Name = "LedgerSpeech";
+            _worker.Start();
+        }
+
+        public static void StopWorker()
+        {
+            _stopWorker = true;
+            _worker = null;
+        }
+
+        static void WorkerLoop()
+        {
+            while (!_stopWorker)
+            {
+                SpeechJob job = null;
+                try
+                {
+                    job = Pending.TakeNext(Clock());
+                }
+                catch (System.Exception) { }
+                if (job == null)
+                {
+                    // Nothing to do. Sleeping beats spinning: this thread is
+                    // idle for most of a session and a busy-wait would cost a
+                    // core for nothing.
+                    System.Threading.Thread.Sleep(50);
+                    continue;
+                }
+                SpeechRun run = null;
+                float[] samples = null;
+                try
+                {
+                    var plan = new SpeechPlan { DeadlineSeconds = Live.Deadline(job.Text) };
+                    run = SpeechLoop.Run(Backend, job.VoiceId, job.Text, plan, Clock);
+                    if (run.Usable) samples = Backend.Decode(run.Tokens);
+                }
+                catch (System.Exception)
+                {
+                    // NEVER LET IT OUT OF THE THREAD. An exception escaping a
+                    // background thread takes the process down in .NET, and a
+                    // graphics driver resetting mid-sentence is a thing that
+                    // happens on the machines this ships to. It becomes a
+                    // failed line, which is already a counted outcome.
+                    run = null;
+                    samples = null;
+                }
+                try
+                {
+                    Live.Observed(run, job.Text);
+                    Pending.Deliver(job, run, samples, Clock());
+                }
+                catch (System.Exception) { }
+            }
+        }
+
+        /// Called once a frame from the mix. Turns at most ONE finished line
+        /// into an `AudioClip` and plays it.
+        ///
+        /// ONE PER FRAME, DELIBERATELY. Building a clip copies the samples,
+        /// and a burst of four finishing together would do that four times in
+        /// one frame — a stutter caused by the feature that exists to avoid
+        /// stutters.
+        public static void PumpSpeech(float metres = 0f, bool occluded = false)
+        {
+            if (_root == null || _voice == null) return;
+            var job = Pending.Collect();
+            if (job == null || !job.Speakable) return;
+            var clip = AudioClip.Create("live/" + job.VoiceId, job.Samples.Length,
+                                        1, LiveSampleRate, false);
+            clip.SetData(job.Samples, 0);
+            if (_voiceLp != null)
+                _voiceLp.cutoffFrequency = (float)Acoustics.LowPassHz(metres, occluded);
+            _voice.PlayOneShot(clip, Mathf.Clamp01((float)Mixing.Attenuate(Bus.Voice, metres)));
+            SpeechPlayed++;
+        }
+
+        /// The decoder's output rate, from `chatterbox/models/s3gen/const.py`.
+        /// Read rather than assumed, and named because a wrong sample rate is
+        /// a chipmunk rather than an error.
+        public const int LiveSampleRate = 24000;
 
         public static void ResetSpeechCounters()
         {

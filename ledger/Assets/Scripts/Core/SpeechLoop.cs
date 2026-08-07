@@ -145,6 +145,23 @@ namespace Ledger.Core
 
         /// Drop the cache. Always called, including after a failure.
         void Release();
+
+        /// TOKENS INTO SOUND — the second half of the model, and the second
+        /// half of the cost.
+        ///
+        /// The loop above produces speech TOKENS, which are not audio: the
+        /// flow decoder turns them into a spectrogram and the vocoder turns
+        /// that into samples. Measured at 1.43s against the text stage's 8.3s,
+        /// so it is a sixth of a line rather than an afterthought.
+        ///
+        /// Returns null when it fails, like everything else here, because a
+        /// driver resetting between the two halves is the same event as one
+        /// resetting during the first.
+        ///
+        /// Mono, at the model's own rate — 24 kHz for chatterbox, read from
+        /// `s3gen/const.py`. A wrong rate is a chipmunk rather than an error,
+        /// so the caller names it rather than guessing.
+        float[] Decode(int[] tokens);
     }
 
     /// How to run one line.
