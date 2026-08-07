@@ -81,15 +81,41 @@ namespace Ledger.Core
         /// that it could have.
         public double StepsPerSecond { get; private set; }
 
+        /// HOW A LINE'S LENGTH IS COUNTED, and the unit changed once the
+        /// tokeniser existed.
+        ///
+        /// This measured steps per CHARACTER, which was the only thing
+        /// available and was wrong in a way that mattered: the model emits one
+        /// step per TOKEN, and a token is anywhere from one character to a
+        /// whole word. "the" is one token and "ZQXJ" is four, so a
+        /// character count misjudges both, in opposite directions.
+        ///
+        /// `Core/SpeechTokenizer` is the real thing, checked against
+        /// HuggingFace's own answers, so the game hands it in and the estimate
+        /// counts what the model actually charges for. Null falls back to
+        /// characters — a machine with no vocabulary file can still measure
+        /// itself, just less well, and that is better than refusing to.
+        public Func<string, int> Length;
+
+        int Units(string t)
+        {
+            if (Length == null) return t.Length;
+            try { return Math.Max(1, Length(t)); }
+            catch { return t.Length; }
+        }
+
         /// SET FROM EVIDENCE, ON THE FIRST REAL LINE. The step count of a line
-        /// depends on its words, and there is no measurement of how — 97 steps
-        /// was one line, and nobody has counted steps against characters. So
-        /// this starts at a figure taken from that one line (97 steps for 22
-        /// characters, rounded down to 4) and is REPLACED the moment a real
-        /// line reports its own. Named rather than hidden because it is the
-        /// weakest number here.
-        public double StepsPerCharacter { get; private set; } = 4.0;
-        public bool StepsPerCharacterMeasured { get; private set; }
+        /// depends on its words, and there is no measurement of how. So this
+        /// starts at a figure taken from one measured line and is REPLACED the
+        /// moment a real one reports its own. Named rather than hidden because
+        /// it is the weakest number here.
+        ///
+        /// RENAMED WITH THE UNIT, because the question it answers moved. Same
+        /// field, different meaning, and a name that still said "character"
+        /// would be a number quietly answering something it was not asked —
+        /// which CLAUDE.md has a whole paragraph about.
+        public double StepsPerUnit { get; private set; } = 4.0;
+        public bool StepsPerUnitMeasured { get; private set; }
 
         public int Banked { get; private set; }
         public int Live { get; private set; }
@@ -133,7 +159,7 @@ namespace Ledger.Core
         {
             if (StepsPerSecond <= 0) return 0.0;
             var t = VoiceBank.Normalise(text);
-            return (t.Length * StepsPerCharacter) / StepsPerSecond;
+            return (Units(t) * StepsPerUnit) / StepsPerSecond;
         }
 
         /// The deadline to hand `SpeechPlan` for this line.
@@ -179,11 +205,11 @@ namespace Ledger.Core
                 var t = VoiceBank.Normalise(text);
                 if (t.Length > 0)
                 {
-                    double observed = run.Steps / (double)t.Length;
-                    StepsPerCharacter = StepsPerCharacterMeasured
-                        ? StepsPerCharacter * 0.75 + observed * 0.25
+                    double observed = run.Steps / (double)Units(t);
+                    StepsPerUnit = StepsPerUnitMeasured
+                        ? StepsPerUnit * 0.75 + observed * 0.25
                         : observed;
-                    StepsPerCharacterMeasured = true;
+                    StepsPerUnitMeasured = true;
                 }
             }
         }
@@ -205,11 +231,11 @@ namespace Ledger.Core
         {
             return string.Format(
                 "speechAsked={0} speechBanked={1} speechLive={2} speechTooSlow={3} "
-                + "speechNoModel={4} speechStepsPerSec={5} speechStepsPerChar={6}",
+                + "speechNoModel={4} speechStepsPerSec={5} speechStepsPerUnit={6}",
                 Asked, Banked, Live, TooSlow, NoModel,
                 StepsPerSecond > 0 ? StepsPerSecond.ToString("0.00") : "unmeasured",
-                StepsPerCharacterMeasured
-                    ? StepsPerCharacter.ToString("0.00")
+                StepsPerUnitMeasured
+                    ? StepsPerUnit.ToString("0.00")
                     : "unmeasured");
         }
 
@@ -217,8 +243,8 @@ namespace Ledger.Core
         {
             Banked = Live = TooSlow = NoModel = 0;
             StepsPerSecond = 0;
-            StepsPerCharacter = 4.0;
-            StepsPerCharacterMeasured = false;
+            StepsPerUnit = 4.0;
+            StepsPerUnitMeasured = false;
             _rates.Clear();
         }
     }

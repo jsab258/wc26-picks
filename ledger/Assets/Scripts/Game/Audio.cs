@@ -192,6 +192,24 @@ namespace Ledger.Game
             BuildTelephoneFilters();
             ApplyVolumes();
             SetNight(false);
+
+            // THE VOCABULARY, ONCE, AT STARTUP. 25 KB and it decides how the
+            // director measures a line's cost, so it is worth reading before
+            // anybody speaks rather than lazily on the first line — which
+            // would put a file read inside a frame that is already trying to
+            // say something.
+            try
+            {
+                var vpath = System.IO.Path.Combine(Application.streamingAssetsPath,
+                                                   "Voice", "tokenizer.json");
+                LoadVocabulary(System.IO.File.Exists(vpath)
+                    ? System.IO.File.ReadAllText(vpath) : null);
+            }
+            catch (System.Exception e)
+            {
+                LoadVocabulary(null);
+                VocabularyWhy = e.GetType().Name;
+            }
         }
 
         static AudioSource Make(string name, bool loop)
@@ -926,6 +944,35 @@ namespace Ledger.Game
         /// it is built — the same reasoning as counting the missing bank.
         public static readonly SpeechDirector Live = new SpeechDirector();
         public static ISpeechBackend Backend;
+
+        /// The shipped vocabulary, loaded once. Null when it is absent, which
+        /// is survivable: the director falls back to counting characters.
+        public static SpeechTokenizer Vocabulary { get; private set; }
+        public static string VocabularyWhy { get; private set; } = "not loaded yet";
+
+        /// Read `tokenizer.json` and give it to the director.
+        ///
+        /// WHY THE DIRECTOR WANTS IT. It estimates whether a line is affordable
+        /// from the line's LENGTH, and the model charges one step per TOKEN.
+        /// "the" is one token and "ZQXJ" is four, so counting characters
+        /// misjudges short lines and long words in opposite directions. This
+        /// makes the estimate count what is actually charged for.
+        ///
+        /// FAILS SOFT, DELIBERATELY. A missing or damaged vocabulary must not
+        /// take live speech down — the director simply measures in characters,
+        /// which is what it did before this existed. The reason is kept so the
+        /// verdict can say which happened rather than leaving a silent zero.
+        public static void LoadVocabulary(string json)
+        {
+            string why;
+            var tok = SpeechTokenizer.Load(json, out why);
+            Vocabulary = tok;
+            VocabularyWhy = tok != null
+                ? tok.Count + " tokens, " + tok.Merges + " merges"
+                : (why ?? "no reason given");
+            Live.Length = tok == null ? (System.Func<string, int>)null
+                                      : (text => tok.Encode(text).Length);
+        }
 
         /// One line offered. `played` is whether the bank served it.
         public static SpeechRoute NoteLive(string voiceId, string text, bool played)

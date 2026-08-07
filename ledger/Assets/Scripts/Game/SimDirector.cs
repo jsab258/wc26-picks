@@ -9637,6 +9637,11 @@ namespace Ledger.Game
                       // the mistake that cost an afternoon and four published
                       // explanations of a number that was never wrong.
                       $"{Audio.Live.Verdict()} " +
+                      // WHICH IT WAS, not just that live speech did nothing.
+                      // "no vocabulary on disk" and "the vocabulary loaded and
+                      // nothing asked" are different problems with different
+                      // fixes, and a bare zero cannot tell them apart.
+                      $"speechVocab={(Audio.Vocabulary != null ? Audio.Vocabulary.Count.ToString() : "none")} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"lumaPairs=[{_lumaSeries}] " +

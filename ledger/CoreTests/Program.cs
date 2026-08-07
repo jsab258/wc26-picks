@@ -98,6 +98,7 @@ namespace Ledger.CoreTests
                 TestVoiceBank();
                 TestSpeechLoop();
                 TestSpeechText();
+                TestSpeechTokenizer();
                 TestSpeechDirector();
                 TestCaptions();
                 TestCrowdOnTheStreet();
@@ -7812,6 +7813,94 @@ namespace Ledger.CoreTests
                 new[] { 0.399007, 0.399007, 0.140796, 0.06119 });
         }
 
+        /// Words into the numbers the model reads.
+        static void TestSpeechTokenizer()
+        {
+            Console.WriteLine("The speech tokeniser — words into the model's numbers:");
+
+            // THE REAL VOCABULARY, off Jafar's machine on 7 August. Found by
+            // walking up from the test binary, because CoreTests runs from
+            // `bin/Release/netX/` and the repository root is what everything
+            // else here is relative to.
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            string path = null;
+            while (dir != null)
+            {
+                var p = Path.Combine(dir.FullName, "tools", "voice-live", "tokenizer.json");
+                if (File.Exists(p)) { path = p; break; }
+                dir = dir.Parent;
+            }
+            if (path == null)
+            {
+                // A DENOMINATOR ON THE SKIP. "the vocabulary is not fetched
+                // yet" and "the tokeniser is correct" must not read the same.
+                Check(true, "tokeniser SKIPPED — no tools/voice-live/tokenizer.json, "
+                            + "0 of 14 texts checked");
+                return;
+            }
+
+            var tok = SpeechTokenizer.Load(File.ReadAllText(path), out var why);
+            Check(tok != null, "the shipped vocabulary loads", why);
+            if (tok == null) return;
+            Check(tok.Count == 704 && tok.Merges == 265,
+                "and it is the one the probe reported — 704 tokens, 265 merges",
+                $"{tok.Count}/{tok.Merges}");
+
+            // EVERY EXPECTED SEQUENCE CAME OUT OF HUGGINGFACE'S OWN TOKENISER.
+            // `python3 tools/voice-live/tokenizer-reference.py --cs` prints
+            // these lines ready to paste. Do not hand-edit one because it
+            // looks wrong — twice now the thing that looked wrong was right.
+            void Same(string text, params int[] want)
+            {
+                var got = tok.Encode(text);
+                Check(string.Join(",", got) == string.Join(",", want),
+                    $"tokenises [{text}]",
+                    $"got [{string.Join(",", got)}] want [{string.Join(",", want)}]");
+            }
+
+            Same("I was on the docks when it happened.", 285, 2, 81, 2, 47, 2, 42, 2, 134, 197, 32, 2, 199, 2, 60, 2, 102, 246, 50, 49, 9);
+            // A capital and its word: the merge table was learned on lower
+            // case, so "Hello" is four pieces and not one.
+            Same("Hello there.", 284, 18, 84, 28, 2, 172, 9);
+            // punc_norm's double space survives as TWO [SPACE] tokens.
+            Same("Wait,  what.", 299, 14, 60, 7, 2, 2, 193, 9);
+            Same("the", 42);
+            Same("a", 14);
+            // No `aa` merge exists, so eight a's are eight tokens — the case
+            // that would pass if merging were done once instead of to fixpoint.
+            Same("aaaaaaaa", 14, 14, 14, 14, 14, 14, 14, 14);
+            // The pre-tokeniser splits words from punctuation.
+            Same("don't", 17, 47, 4, 33);
+            Same("one-two", 110, 8, 232, 28);
+            Same("ZQXJ", 302, 293, 300, 286);
+            Same("...", 9, 9, 9);
+            Same("he said, go now.", 62, 2, 252, 7, 2, 119, 2, 145, 9);
+            Same("\u00e9clair na\u00efve", 402, 16, 25, 14, 98, 2, 27, 14, 408, 76);
+            // Out of the vocabulary entirely: one UNK EACH, because
+            // `fuse_unk` is false. Fusing them would lose a syllable.
+            Same("\u4e2d\u6587", 1, 1);
+            Same("Ends with a dash -", 281, 27, 17, 32, 2, 103, 2, 14, 2, 17, 55, 21, 2, 8);
+
+            // ---- the refusing cases ----
+            Check(tok.Encode("").Length == 0 && tok.Encode(null).Length == 0,
+                "nothing in, nothing out");
+            Check(SpeechTokenizer.Load("", out var w1) == null && w1 != null,
+                "an empty file is refused WITH a reason", w1);
+            Check(SpeechTokenizer.Load("{\"model\":{}}", out var w2) == null && w2 != null,
+                "and so is json that is not a tokenizer.json", w2);
+            Check(SpeechTokenizer.Load("{not json", out var w3) == null && w3 != null,
+                "and so is a truncated one, rather than throwing into a frame", w3);
+
+            // THE WHOLE FRONT DOOR, END TO END. `SpeechText.Normalise` is what
+            // runs before this in the real path, and its output is what the
+            // literals above were generated from — so this is the join, not a
+            // third thing.
+            Check(string.Join(",", tok.Encode(SpeechText.Normalise("hello there")))
+                  == string.Join(",", tok.Encode("Hello there.")),
+                "and punc_norm feeding the tokeniser gives the same ids as the "
+                + "text it produces — the two halves join");
+        }
+
         /// What the model is actually told to say.
         static void TestSpeechText()
         {
@@ -7904,7 +7993,7 @@ namespace Ledger.CoreTests
             Check(Math.Abs(fast.StepsPerSecond - 100) < 1e-9,
                 "a hundred steps in a second is a hundred steps a second",
                 fast.StepsPerSecond.ToString("0.0"));
-            Check(fast.StepsPerCharacterMeasured,
+            Check(fast.StepsPerUnitMeasured,
                 "and a whole line measures the steps a character costs");
             Check(fast.Route("rocco", "a normal length remark", false, true) == SpeechRoute.Live,
                 "so a normal line is affordable");
@@ -7952,7 +8041,7 @@ namespace Ledger.CoreTests
             Check(Math.Abs(cut.StepsPerSecond - 10.0) < 1e-9,
                 "a line cut by the deadline still measured a rate — the slow machines "
                 + "are exactly the ones whose lines get cut");
-            Check(!cut.StepsPerCharacterMeasured,
+            Check(!cut.StepsPerUnitMeasured,
                 "but NOT how long a line is: it stopped for a reason that has nothing "
                 + "to do with the words, and counting it would measure the deadline");
 
@@ -7964,6 +8053,49 @@ namespace Ledger.CoreTests
             Check(new SpeechDirector().Deadline("anything") == 4.0,
                 "and an unmeasured machine gets the full patience, having nothing to "
                 + "project from");
+
+            // ---- length is counted in TOKENS when a tokeniser is handed in ----
+            //
+            // The model charges one step per TOKEN, not per character, and the
+            // two disagree in both directions: "the" is one token, "ZQXJ" is
+            // four. A director measuring characters was answering a question
+            // the model does not ask.
+            var byChar = new SpeechDirector();
+            var byToken = new SpeechDirector { Length = t => t.Length / 4 };
+            foreach (var dir in new[] { byChar, byToken })
+            {
+                dir.Route("rocco", "priming", false, true);
+                dir.Observed(new SpeechRun { Steps = 100, Seconds = 5.0,
+                                             Stop = SpeechStop.Finished,
+                                             Tokens = new int[99] }, "twenty-five characters!");
+            }
+            Check(byToken.StepsPerUnit > byChar.StepsPerUnit * 3,
+                "a line of few tokens costs MORE steps each than a line of many "
+                + "characters — the unit changes the answer, which is why it moved",
+                $"{byToken.StepsPerUnit:0.0} vs {byChar.StepsPerUnit:0.0}");
+            // AND THEY AGREE ON THE LINE THEY MEASURED ON, which is the only
+            // line they must: there, units x steps-per-unit is the step count
+            // exactly, whatever the unit. On any OTHER line they differ, and
+            // differing is the point — that is the better estimate arriving.
+            // The first version of this check claimed they agree everywhere,
+            // which would have meant the change did nothing.
+            Check(Math.Abs(byToken.Projected("twenty-five characters!")
+                           - byChar.Projected("twenty-five characters!")) < 1e-6,
+                "and both project the line they measured on identically — the "
+                + "unit cancels there, so this is a recalibration and not a jump",
+                $"{byToken.Projected("twenty-five characters!"):0.000} vs "
+                + $"{byChar.Projected("twenty-five characters!"):0.000}");
+            Check(Math.Abs(byToken.Projected("the") - byChar.Projected("the")) > 1e-6,
+                "and they disagree on a SHORT one, which is the whole reason to "
+                + "count tokens: three characters is one token, not three");
+
+            // A TOKENISER THAT THROWS MUST NOT SILENCE THE STREET. The
+            // vocabulary is shipped data; a damaged one degrades to counting
+            // characters rather than taking the feature down.
+            var broken = new SpeechDirector { Length = t => throw new Exception("bad vocab") };
+            Check(broken.Route("rocco", "anything at all", false, true) == SpeechRoute.Live,
+                "and a tokeniser that throws falls back to characters rather than "
+                + "taking live speech down with it");
 
             // ---- the verdict line ----
             var line = slow.Verdict();

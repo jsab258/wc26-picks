@@ -47,11 +47,9 @@ the wall now:
 correctness went from "could not check" to **6.5e-07**. Batch 2 confirms the
 guidance. The vocabulary is BPE, **704 tokens, 265 merges, 25 KB**.
 
-**AND `ve` NEVER RUNS AT RUNTIME**, which kills four reported failures at
-once. `prepare_conditionals(wav_fpath)` takes the REFERENCE CLIP and produces
-conditioning `generate()` reuses for every line — read in `tts.py`. Nothing in
-it depends on the text, so the voice encoder, the audio tokeniser and
-`embed_ref` are computed once per cast member, offline, and shipped as data.
+**AND `ve` NEVER RUNS AT RUNTIME**, which killed four reported failures at
+once: `prepare_conditionals` depends on the reference clip and not the text,
+so a voice is a constant. Computed and committed — see item 4.
 
 **NEXT, IN ORDER — what is actually left at runtime:**
 
@@ -84,11 +82,12 @@ it depends on the text, so the voice encoder, the audio tokeniser and
    (`is_multilingual` is `text_tokens_dict_size == 2454`; ours is 704). They
    are computed and thrown away. Not asking for them halves the time and
    costs nothing.
-3. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment a run
-   lands the file.
-4. **Precompute the conditioning per cast member** — `precompute-voices.py`
-   is written; one `.npz` per voice, one run on a machine with the weights.
-   Removes `ve` from the shipping path entirely.
+3. **CLOSED — THE TOKENISER IS WRITTEN AND CONFORMS.** `Core/SpeechTokenizer`,
+   checked against HuggingFace's own `tokenizers` over the shipped vocabulary
+   on fourteen texts. `[SPACE]` is an added token cut out before
+   pre-tokenising; capitals have no merges; `fuse_unk` is false.
+4. **CLOSED — THE VOICES ARE COMPUTED AND COMMITTED.** 19 `.npz` under
+   `game-design/voice-conds/`, 2.5 MB. `ve` is out of the shipping path.
 5. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
    it is null. Needs onnxruntime with DirectML as a Unity plugin.
 6. **Off the main thread.** One line costs ~9.7s; generating it inside a frame
