@@ -80,10 +80,22 @@ namespace Ledger.Game
                 // is almost always absent — deliberately, and counted, so the
                 // day the bank lands nothing needs wiring and until then the
                 // silence is a measurement rather than an assumption.
-                Audio.Speak(VoiceBank.ClipName(
-                                VoiceBank.VoiceFor(speakerId ?? speaker.name, VoiceBank.Cast),
-                                spoken),
-                            metres, wall, Audio.ChatterLevel);
+                var voice = VoiceBank.VoiceFor(speakerId ?? speaker.name, VoiceBank.Cast);
+                bool played = Audio.Speak(VoiceBank.ClipName(voice, spoken),
+                                          metres, wall, Audio.ChatterLevel);
+
+                // AND WHEN THE BANK CANNOT SERVE IT, ASK WHETHER THIS MACHINE
+                // COULD SAY IT LIVE.
+                //
+                // This is the whole seam for live speech and it is one line,
+                // because the hard part is deciding rather than generating:
+                // `SpeechDirector` knows what this card has managed so far and
+                // whether a line of this length would arrive before the moment
+                // has gone. Today there is no backend behind it, so every
+                // answer is `NoModel` — which is a MEASUREMENT of unserved
+                // demand rather than a placeholder, in exactly the way the
+                // comment above says the missing bank is.
+                Audio.NoteLive(voice, spoken, played);
 
                 // A STABLE SEED, not `string.GetHashCode()`. That is
                 // randomised per process in modern .NET and stable in Unity's

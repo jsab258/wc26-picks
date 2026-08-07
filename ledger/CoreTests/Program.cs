@@ -96,6 +96,8 @@ namespace Ledger.CoreTests
                 TestFeel();
                 TestAcoustics();
                 TestVoiceBank();
+                TestSpeechLoop();
+                TestSpeechDirector();
                 TestCaptions();
                 TestCrowdOnTheStreet();
                 TestCombat();
@@ -7496,6 +7498,415 @@ namespace Ledger.CoreTests
                 foreach (var k in kinds)
                     Check(Acoustics.Bleed(s, k) > 0 && Acoustics.Bleed(s, k) < 1,
                         $"bleed from {s} on a {k} is a real fraction");
+        }
+
+        /// A backend that plays back a script instead of running a model, so
+        /// the loop's decisions can be tested without a GPU, a graph, or a
+        /// 28-minute build.
+        ///
+        /// IT RECORDS WHAT IT WAS ASKED, not just what it returned. Three of
+        /// the checks below are about the loop's side of the conversation —
+        /// that a filtered token is still fed back, that `Release` happens on
+        /// the failure path — and a stub that only answers cannot see those.
+        sealed class ScriptedVoice : ISpeechBackend
+        {
+            readonly int[] _script;         // token to make most likely, per step
+            int _step;
+            public int FailAt = -1;         // step at which Next() returns false
+            public bool FailBegin;
+            public readonly List<int> FedBack = new List<int>();
+            public int Released;
+            /// THE MODEL'S REAL WIDTH, not a convenient small one. The first
+            /// version used 32 and every run died on an IndexOutOfRange,
+            /// because the stop token is 6562 and does not fit in a stub
+            /// somebody sized for readability.
+            public int Vocab = SpeechVocab.Size;
+
+            public ScriptedVoice(params int[] script) { _script = script; }
+
+            public int VocabSize => Vocab;
+            public int StopToken => SpeechVocab.Stop;
+            public int Rows => 1;
+
+            void Fill(float[] logits)
+            {
+                for (int i = 0; i < logits.Length; i++) logits[i] = 0f;
+                // A single dominant logit, so min-p keeps exactly one token
+                // and the draw is forced. The sampler's own behaviour is
+                // tested separately; here the point is the loop around it.
+                int want = _step < _script.Length ? _script[_step] : SpeechVocab.Stop;
+                logits[want] = 40f;
+            }
+
+            public bool Begin(string voiceId, string text, float[] logits)
+            {
+                if (FailBegin) return false;
+                _step = 0;
+                Fill(logits);
+                return true;
+            }
+
+            public bool Next(int token, float[] logits)
+            {
+                FedBack.Add(token);
+                _step++;
+                if (FailAt >= 0 && _step >= FailAt) return false;
+                Fill(logits);
+                return true;
+            }
+
+            public void Release() { Released++; }
+        }
+
+        /// The step loop — the one piece of live speech that cannot be
+        /// converted, because its length depends on the words.
+        static void TestSpeechLoop()
+        {
+            Console.WriteLine("The speech loop — what the graph cannot contain:");
+
+            // THE CONSTANTS ARE THE MODEL'S. Pinned to literals because the
+            // first draft of SpeechLoop invented four of them and every one
+            // looked reasonable. If chatterbox ever changes these, this fails
+            // loudly rather than the voice quietly changing.
+            Check(SpeechVocab.Size == 8194, "the logit width is the model's 8194");
+            Check(SpeechVocab.Stop == 6562, "end-of-speech is 6562");
+            Check(SpeechVocab.IsAcoustic(6560) && !SpeechVocab.IsAcoustic(6561),
+                "6561 and up are not sound — the model's own `< 6561` filter");
+
+            // ---- the accepting case, first, per CLAUDE.md rule 5b ----
+            var good = new ScriptedVoice(11, 12, 13, 14, 15);
+            var run = SpeechLoop.Run(good, "rocco", "the docks, midnight");
+            Check(run.Stop == SpeechStop.Finished, "a scripted line reaches its stop token",
+                run.Stop.ToString());
+            Check(run.Usable, "and is usable");
+            Check(run.Tokens.Length == 5, "with every acoustic token kept",
+                run.Tokens.Length.ToString());
+            Check(run.Steps == 6, "and one more step than tokens — the stop token cost a step",
+                run.Steps.ToString());
+            Check(good.Released == 1, "and the cache was released exactly once",
+                good.Released.ToString());
+
+            // ---- determinism, which is VoiceBank's promise reaching here ----
+            var again = SpeechLoop.Run(new ScriptedVoice(11, 12, 13, 14, 15),
+                                       "rocco", "the docks, midnight");
+            Check(string.Join(",", run.Tokens) == string.Join(",", again.Tokens),
+                "the same voice and the same words give the same take");
+
+            // ---- a filtered token is STILL FED BACK ----
+            //
+            // The easiest thing to get wrong in this file. A start-of-speech
+            // token sampled mid-line is dropped from the AUDIO and must stay
+            // in the model's history; feeding back the filtered stream tells
+            // the model it said something it did not, from that step on.
+            var stray = new ScriptedVoice(11, SpeechVocab.Start, 13);
+            var strayRun = SpeechLoop.Run(stray, "rocco", "a line with a stray token");
+            Check(strayRun.Tokens.Length == 2,
+                "a non-acoustic token mid-line is dropped from the audio",
+                strayRun.Tokens.Length.ToString());
+            Check(stray.FedBack.Contains(SpeechVocab.Start),
+                "but IS fed back to the model, or its history is a lie");
+            Check(strayRun.Steps == 4,
+                "and it still cost a step — Steps is what the latency estimate reads",
+                strayRun.Steps.ToString());
+
+            // ---- every refusing case ----
+            var instant = new ScriptedVoice();     // stops at once
+            var instantRun = SpeechLoop.Run(instant, "rocco", "hm");
+            Check(instantRun.Stop == SpeechStop.StepCeiling && !instantRun.Usable,
+                "a model that stops immediately is not a very short line, it is a failure",
+                instantRun.Stop.ToString());
+
+            var ceiling = new ScriptedVoice(1, 2, 3, 4, 5, 6, 7, 8);
+            var ceilRun = SpeechLoop.Run(ceiling, "rocco", "a long one",
+                new SpeechPlan { StepCeiling = 4 });
+            Check(ceilRun.Stop == SpeechStop.StepCeiling, "the ceiling stops a runaway",
+                ceilRun.Stop.ToString());
+            Check(!ceilRun.Usable, "and a line cut mid-word is never played");
+
+            var dead = new ScriptedVoice(1, 2, 3, 4, 5, 6, 7, 8);
+            double clock = 0;
+            var deadRun = SpeechLoop.Run(dead, "rocco", "a slow one",
+                new SpeechPlan { DeadlineSeconds = 2.5 },
+                () => { clock += 1.0; return clock; });
+            Check(deadRun.Stop == SpeechStop.Deadline, "the deadline stops a slow machine",
+                deadRun.Stop.ToString());
+            Check(!deadRun.Usable, "and that line is dropped rather than played half-said");
+            Check(deadRun.Steps > 0 && deadRun.SecondsPerStep > 0,
+                "and it still reports a rate — the machines that hit this are the ones "
+                + "whose speed we need to know",
+                deadRun.SecondsPerStep.ToString("0.000"));
+
+            var noStart = new ScriptedVoice(1, 2) { FailBegin = true };
+            var noStartRun = SpeechLoop.Run(noStart, "rocco", "anything");
+            Check(noStartRun.Stop == SpeechStop.BackendFailed,
+                "a backend that will not start is reported, not thrown");
+            Check(noStart.Released == 1,
+                "and the cache is released even then — the finally, not the happy path",
+                noStart.Released.ToString());
+
+            var died = new ScriptedVoice(1, 2, 3, 4, 5, 6) { FailAt = 3 };
+            var diedRun = SpeechLoop.Run(died, "rocco", "a driver reset");
+            Check(diedRun.Stop == SpeechStop.BackendFailed && !diedRun.Usable,
+                "a driver that goes away mid-line degrades to silence, not an exception",
+                diedRun.Stop.ToString());
+
+            Check(SpeechLoop.Run(new ScriptedVoice(1), "", "words").Stop == SpeechStop.Nothing,
+                "no voice is nothing to say");
+            Check(SpeechLoop.Run(new ScriptedVoice(1), "rocco", "   ").Stop == SpeechStop.Nothing,
+                "and so is a text that normalises to empty");
+
+            // ---- the model's own runaway guard ----
+            var stuck = new ScriptedVoice(7, 7, 7, 7, 7, 7);
+            var stuckRun = SpeechLoop.Run(stuck, "rocco", "stuck");
+            Check(stuckRun.Stop == SpeechStop.Repetition,
+                "two identical tokens in a row stop the line, as the model's own "
+                + "analyzer does", stuckRun.Stop.ToString());
+            Check(stuckRun.Usable,
+                "and that IS a finished utterance — the model deciding it is done");
+            var allowed = SpeechLoop.Run(new ScriptedVoice(7, 7, 7, 7), "rocco", "stuck",
+                new SpeechPlan { StopOnRepeat = false });
+            Check(allowed.Stop == SpeechStop.Finished,
+                "and turning the guard off lets the same script through — a guard "
+                + "tested on both of its outcomes", allowed.Stop.ToString());
+
+            // ---- classifier-free guidance ----
+            //
+            // Two rows in, one row out: cond + w*(cond - uncond). Checked by
+            // arithmetic rather than by eye, because it is the mechanism the
+            // first draft of the loop did not know existed at all.
+            var two = new float[] { 2f, 0f, 1f, 4f };     // vocab 2, rows 2
+            var into = new double[2];
+            var guided = (double[])SpeechLoop.Guided(two, into, 2, 2, 0.5);
+            Check(Math.Abs(guided[0] - (2 + 0.5 * (2 - 1))) < 1e-9,
+                "guidance steers away from the unconditional row", guided[0].ToString("0.000"));
+            Check(Math.Abs(guided[1] - (0 + 0.5 * (0 - 4))) < 1e-9,
+                "including when that means going down", guided[1].ToString("0.000"));
+            Check(ReferenceEquals(SpeechLoop.Guided(two, into, 2, 1, 0.5), two),
+                "and a single-row backend is passed through untouched, not copied");
+
+            // ---- the sampler, on its own ----
+            var plan = new SpeechPlan();
+            var flat = new float[8];
+            for (int i = 0; i < 8; i++) flat[i] = 1f;
+            var rng = new Random(1);
+            var drawn = new HashSet<int>();
+            for (int i = 0; i < 200; i++) drawn.Add(SpeechLoop.Pick(flat, 8, null, plan, rng));
+            Check(drawn.Count == 8,
+                "on a flat distribution every token is reachable — min-p keeps them all",
+                drawn.Count.ToString());
+
+            var peaked = new float[8];
+            peaked[3] = 20f;                        // everything else is e^-20 away
+            var peakDrawn = new HashSet<int>();
+            for (int i = 0; i < 200; i++) peakDrawn.Add(SpeechLoop.Pick(peaked, 8, null, plan, rng));
+            Check(peakDrawn.Count == 1 && peakDrawn.Contains(3),
+                "and on a confident one min-p cuts the tail away entirely",
+                string.Join(",", peakDrawn));
+
+            // The penalty has to be able to CHANGE THE ANSWER, or it is
+            // decoration. Two close tokens, the leader already spoken.
+            var close = new float[] { 0f, 0f, 2.0f, 1.9f, 0f, 0f, 0f, 0f };
+            Check(SpeechLoop.Pick(close, 8, null, plan, new Random(3)) == 2,
+                "the likeliest token wins when nothing has been said yet");
+            Check(SpeechLoop.Pick(close, 8, new HashSet<int> { 2 }, plan, new Random(3)) == 3,
+                "and loses once it has — the repetition penalty reorders, it does "
+                + "not merely nudge");
+
+            // A negative logit must get LESS likely, not more. Dividing
+            // throughout is the obvious implementation and it is backwards for
+            // the whole negative half of the range.
+            var negative = new float[] { -2.0f, -2.1f, -40f, -40f, -40f, -40f, -40f, -40f };
+            Check(SpeechLoop.Pick(negative, 8, new HashSet<int> { 0 }, plan, new Random(3)) == 1,
+                "penalising a NEGATIVE logit pushes it down, not up");
+
+            var broken = new float[8];
+            for (int i = 0; i < 8; i++) broken[i] = float.NaN;
+            Check(SpeechLoop.Pick(broken, 8, null, plan, new Random(1)) >= 0,
+                "and degenerate logits return a token rather than throwing");
+
+            // ---- CONFORMANCE WITH THE MODEL'S OWN SAMPLER ----
+            //
+            // Everything above checks that this sampler behaves sensibly.
+            // Sensible is not the bar: the bar is IDENTICAL to chatterbox's,
+            // because every way of being wrong here still produces speech —
+            // a voice, saying the words, sounding slightly off, with no error
+            // anywhere and nothing to grep for.
+            //
+            // These numbers are not mine. `tools/voice-live/sampler-reference.py`
+            // runs the actual HuggingFace processors `t3.py` builds —
+            // RepetitionPenalty, MinP, TopP, in that order — over these exact
+            // logits and prints what survives. Re-run it to regenerate them.
+            //
+            // The DRAW is not compared and cannot be: Python and C# have
+            // different random generators, so the same seed picks differently
+            // and always will. The distribution is the part that can be
+            // identical, and it is the whole of the sampler.
+            void Conforms(string name, float[] logits, int[] said,
+                          int[] wantKept, double[] wantWeights)
+            {
+                var seenSet = said == null ? null : new HashSet<int>(said);
+                SpeechLoop.Distribution(logits, logits.Length, seenSet, new SpeechPlan(),
+                                        out var kept, out var weights);
+                Check(string.Join(",", kept) == string.Join(",", wantKept),
+                    $"conforms — {name}: the same tokens survive, in the same order",
+                    $"got [{string.Join(",", kept)}] want [{string.Join(",", wantKept)}]");
+                double worst = 0;
+                for (int i = 0; i < Math.Min(weights.Length, wantWeights.Length); i++)
+                    worst = Math.Max(worst, Math.Abs(weights[i] - wantWeights[i]));
+                Check(weights.Length == wantWeights.Length && worst < 1e-5,
+                    $"conforms — {name}: and with the same weights, to 1e-5",
+                    $"worst {worst:0.0000000}");
+            }
+
+            Conforms("flat", new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, null,
+                new[] { 0, 1, 2, 3, 4, 5, 6, 7 },
+                new[] { 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125 });
+
+            Conforms("confident", new float[] { 0, 0, 0, 20, 0, 0, 0, 0 }, null,
+                new[] { 3 }, new[] { 1.0 });
+
+            Conforms("two close, nothing said",
+                new float[] { 0, 0, 2.0f, 1.9f, 0, 0, 0, 0 }, null,
+                new[] { 2, 3, 0, 1, 4, 5, 6, 7 },
+                new[] { 0.421052, 0.371577, 0.034562, 0.034562,
+                        0.034562, 0.034562, 0.034562, 0.034562 });
+
+            Conforms("two close, leader already said",
+                new float[] { 0, 0, 2.0f, 1.9f, 0, 0, 0, 0 }, new[] { 2 },
+                new[] { 3, 2, 0, 1, 4, 5, 6, 7 },
+                new[] { 0.43382, 0.324071, 0.040352, 0.040352,
+                        0.040352, 0.040352, 0.040352, 0.040352 });
+
+            // THE ONE THAT CATCHES THE OBVIOUS BUG. A penalty written as a
+            // plain divide turns -2.0 into -1.67, which is MORE likely — so
+            // it rewards what it exists to discourage, across the whole
+            // negative half of the range, which is most of it.
+            Conforms("negative logits, leader already said",
+                new float[] { -2.0f, -2.1f, -40, -40, -40, -40, -40, -40 }, new[] { 0 },
+                new[] { 1, 0 }, new[] { 0.592667, 0.407333 });
+
+            // Min-p cutting a real tail: four of eight survive, and which
+            // four is not something you would guess.
+            Conforms("a graded spread",
+                new float[] { 3.0f, 2.5f, 2.0f, 1.0f, 0.0f, -1.0f, -5.0f, -20.0f }, null,
+                new[] { 0, 1, 2, 3 },
+                new[] { 0.525251, 0.281147, 0.150487, 0.043115 });
+
+            Conforms("a graded spread with two said",
+                new float[] { 3.0f, 2.5f, 2.0f, 1.0f, 0.0f, -1.0f, -5.0f, -20.0f },
+                new[] { 0, 2 },
+                new[] { 0, 1, 2, 3 },
+                new[] { 0.399007, 0.399007, 0.140796, 0.06119 });
+        }
+
+        /// Who speaks live, and whether this machine can afford it.
+        static void TestSpeechDirector()
+        {
+            Console.WriteLine("The speech director — what a machine can afford to say:");
+
+            var d = new SpeechDirector();
+
+            // Every zero needs its denominator, and this one has to be right
+            // before any of the rest means anything.
+            Check(d.Asked == 0 && d.Live == 0,
+                "a fresh director has asked nothing — and says so as a count, not a silence");
+
+            Check(d.Route("rocco", "we should talk", banked: true, haveModel: true)
+                  == SpeechRoute.Banked,
+                "an authored line comes from the bank, free and instant");
+            Check(d.Route("rocco", "an improvised remark", banked: false, haveModel: false)
+                  == SpeechRoute.NoModel,
+                "with no model on the machine, that is its own answer");
+            Check(d.Route("", "words", true, true) == SpeechRoute.Nothing
+                  && d.Route("rocco", "  ", true, true) == SpeechRoute.Nothing,
+                "and nothing to say is neither");
+
+            // THE FIRST LINE ALWAYS GOES THROUGH, or the measurement that
+            // would open the gate can never be taken.
+            Check(d.StepsPerSecond == 0, "nothing measured yet");
+            Check(d.Route("rocco", "a first improvised line", false, true) == SpeechRoute.Live,
+                "the first live line is always allowed — a gate that holds itself "
+                + "shut can never learn it could have opened");
+            Check(d.Projected("anything") == 0,
+                "and it projects nothing rather than a guess");
+
+            // ---- a fast machine ----
+            var fast = new SpeechDirector();
+            fast.Route("rocco", "priming", false, true);
+            fast.Observed(new SpeechRun { Steps = 100, Seconds = 1.0,
+                                          Stop = SpeechStop.Finished,
+                                          Tokens = new int[99] }, "twenty-five characters!");
+            Check(Math.Abs(fast.StepsPerSecond - 100) < 1e-9,
+                "a hundred steps in a second is a hundred steps a second",
+                fast.StepsPerSecond.ToString("0.0"));
+            Check(fast.StepsPerCharacterMeasured,
+                "and a whole line measures the steps a character costs");
+            Check(fast.Route("rocco", "a normal length remark", false, true) == SpeechRoute.Live,
+                "so a normal line is affordable");
+
+            // ---- a slow one, same code ----
+            var slow = new SpeechDirector();
+            slow.Route("rocco", "priming", false, true);
+            slow.Observed(new SpeechRun { Steps = 100, Seconds = 5.0,
+                                          Stop = SpeechStop.Finished,
+                                          Tokens = new int[99] }, "twenty-five characters!");
+            Check(Math.Abs(slow.StepsPerSecond - 20.0) < 1e-9,
+                "and a slow card measures twenty steps a second",
+                slow.StepsPerSecond.ToString("0.0"));
+            Check(slow.Route("rocco", "a normal length remark", false, true) == SpeechRoute.TooSlow,
+                "so a full sentence is refused, and the character simply stays quiet");
+            Check(slow.TooSlow == 1 && slow.Asked == 2,   // the priming line, then this one
+                "counted against a denominator, so 'no live speech' can be told apart "
+                + "from 'nobody asked'", $"{slow.TooSlow}/{slow.Asked}");
+
+            // THE REFUSAL IS PER LINE, NOT A SWITCH THAT LATCHES OFF. A card
+            // that cannot afford a sentence can still afford a mutter, and a
+            // director that gave up on the machine would throw that away.
+            Check(slow.Route("rocco", "hm", false, true) == SpeechRoute.Live,
+                "while a two-word mutter still gets through on the same card");
+
+            // ---- and a machine where the honest answer is "none of it" ----
+            //
+            // Integrated graphics, a laptop on battery, a card already busy
+            // with the game. At two steps a second even two characters project
+            // past four seconds, and the director says so rather than
+            // producing lines that arrive after the moment has gone.
+            var crawling = new SpeechDirector();
+            crawling.Route("rocco", "priming", false, true);
+            crawling.Observed(new SpeechRun { Steps = 100, Seconds = 50.0,
+                                              Stop = SpeechStop.Finished,
+                                              Tokens = new int[99] }, "twenty-five characters!");
+            Check(crawling.Route("rocco", "hm", false, true) == SpeechRoute.TooSlow,
+                "on a card doing two steps a second, nothing at all is affordable — "
+                + "and that is a measurement, not a policy");
+
+            // ---- a cut-off line still teaches the rate, but not the length ----
+            var cut = new SpeechDirector();
+            cut.Observed(new SpeechRun { Steps = 40, Seconds = 4.0,
+                                         Stop = SpeechStop.Deadline }, "some text here");
+            Check(Math.Abs(cut.StepsPerSecond - 10.0) < 1e-9,
+                "a line cut by the deadline still measured a rate — the slow machines "
+                + "are exactly the ones whose lines get cut");
+            Check(!cut.StepsPerCharacterMeasured,
+                "but NOT how long a line is: it stopped for a reason that has nothing "
+                + "to do with the words, and counting it would measure the deadline");
+
+            // ---- the deadline handed to SpeechPlan ----
+            Check(fast.Deadline("a normal length remark") < fast.PatienceSeconds,
+                "a fast machine gets a tight deadline, so a runaway line frees the "
+                + "slot instead of spending the whole budget",
+                fast.Deadline("a normal length remark").ToString("0.00"));
+            Check(new SpeechDirector().Deadline("anything") == 4.0,
+                "and an unmeasured machine gets the full patience, having nothing to "
+                + "project from");
+
+            // ---- the verdict line ----
+            var line = slow.Verdict();
+            Check(!line.Contains("= ") && line.Split(' ').Length == 7,
+                "the verdict line is seven space-separated pairs", line);
+            Check(!new SpeechDirector().Verdict().Contains("0.00 "),
+                "and an unmeasured rate says so rather than reporting 0.00, which "
+                + "reads as a measurement");
         }
 
         /// Audit item 5: the same character must sound the same next week.

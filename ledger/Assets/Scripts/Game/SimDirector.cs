@@ -9630,6 +9630,13 @@ namespace Ledger.Game
                       $"speechNoClip={Audio.SpeechNoClip} " +
                       $"speechOutOfRange={Audio.SpeechOutOfRange} " +
                       $"speechNoAudio={Audio.SpeechNoAudio} " +
+                      // LIVE SPEECH, ON THE DONE LINE BECAUSE IT DESCRIBES THE
+                      // WHOLE RUN. Its neighbours here are lifetime counts, so
+                      // it belongs with them rather than on a screenshot line
+                      // where every value is true only of one frame — which is
+                      // the mistake that cost an afternoon and four published
+                      // explanations of a number that was never wrong.
+                      $"{Audio.Live.Verdict()} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
                       $"lumaPairs=[{_lumaSeries}] " +

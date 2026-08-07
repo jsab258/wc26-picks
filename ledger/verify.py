@@ -548,12 +548,20 @@ def voice_live():
     # exports while computing something else is worse than the blocker it
     # replaces. `fixture.py` is here because a stand-in that stops failing the
     # way the real thing fails certifies the probe against nothing.
+    # `sampler-reference.py` is here for the newest and least visible risk in
+    # this whole route. `Core/SpeechLoop` reimplements chatterbox's token
+    # sampler in C#, because the loop it sits in cannot be exported — and
+    # every way of getting a sampler wrong still produces speech. Wrong
+    # temperature, a penalty applied in the wrong direction, a filter the model
+    # does not use: all of them yield a voice saying the words and sounding
+    # slightly off, with no error anywhere. This runs the model's real
+    # HuggingFace processors so the C# side has something to be identical TO.
     for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py",
-                   "kv_cache.py"):
+                   "kv_cache.py", "sampler-reference.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])
-        m = re.search(r"(\d+) checks", out)
+        m = re.search(r"(\d+) (?:checks|cases)", out)
         # A SCRIPT NEEDING TORCH CANNOT RUN EVERYWHERE, and a missing import is
         # not a failing check. Skipped and SAID, rather than counted as a pass
         # — a gate that goes quiet when its subject is absent reads as green.

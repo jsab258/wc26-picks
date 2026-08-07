@@ -912,11 +912,33 @@ namespace Ledger.Game
         public static int DistinctClipsAsked => _asked.Count;
         public static int DistinctVoicesAsked => _askedVoices.Count;
 
+        /// LIVE SPEECH: what this machine could say that the bank cannot.
+        ///
+        /// The decision lives in `Core/SpeechDirector` — which route a line
+        /// takes, and whether this card is quick enough for it — because it is
+        /// arithmetic and Core is where arithmetic can be run and tested. What
+        /// belongs here is the one thing Core cannot know: whether a recording
+        /// actually exists on disk.
+        ///
+        /// `Backend` is null until the ONNX plugin lands, so every answer is
+        /// `NoModel` today. That is the point rather than a gap: it counts the
+        /// demand live speech would have to serve, on real runs, before any of
+        /// it is built — the same reasoning as counting the missing bank.
+        public static readonly SpeechDirector Live = new SpeechDirector();
+        public static ISpeechBackend Backend;
+
+        /// One line offered. `played` is whether the bank served it.
+        public static SpeechRoute NoteLive(string voiceId, string text, bool played)
+        {
+            return Live.Route(voiceId, text, played, Backend != null);
+        }
+
         public static void ResetSpeechCounters()
         {
             SpeechPlayed = 0; SpeechMissing = 0;
             SpeechOutOfRange = 0; SpeechNoClip = 0; SpeechNoAudio = 0;
             _asked.Clear(); _askedVoices.Clear();
+            Live.Reset();
         }
 
         /// Recorded on the way in, before any reason to give up on the clip —
