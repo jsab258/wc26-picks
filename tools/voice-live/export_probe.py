@@ -617,6 +617,7 @@ def try_export(model, part, out_dir):
             tgt = (sub if meth == "forward" and not names
                    else make_kwargs_wrapper(sub, meth, names, const, npos))
             plan.append({"label": meth, "target": tgt, "args": ins,
+                         "all_kwargs": hook["kwargs"],
                          "method": meth, "inner": None, "owner": sub,
                          "kw_names": names, "const": const, "n_positional": npos})
         for key, kid, kname, mname in sorted(
@@ -627,6 +628,7 @@ def try_export(model, part, out_dir):
             tgt = (kid if mname == "forward" and not names
                    else make_kwargs_wrapper(kid, mname, names, const, npos))
             plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
+                         "all_kwargs": hook["kwargs"],
                          "method": mname, "owner": kid,
                          "kw_names": names, "const": const, "n_positional": npos,
                          "inner": {"child": kname, "method": mname,
@@ -640,6 +642,7 @@ def try_export(model, part, out_dir):
         best = None
         stft_used = [False]
         cache_off = [False]
+        kv_used = [0]
         dyn_applied = [None]
         for step in plan:
             target, hook = step["target"], {"args": step["args"], "method": step["method"]}
@@ -753,6 +756,52 @@ def try_export(model, part, out_dir):
             blob = str(row).lower()
             takes_cache = "use_cache" in (step.get("const") or {}) or \
                           "use_cache" in (step.get("kw_names") or [])
+
+            # THE CACHE AS TENSORS, TRIED BEFORE TURNING IT OFF.
+            #
+            # Turning it off is what made the transformer convert, and it
+            # costs 0.46 s per step against 97 steps — 45 seconds for one
+            # line, because every step redoes the whole sentence. The same
+            # information as a flat list of tensors exports fine; the object
+            # was the only problem. See tools/voice-live/kv_cache.py, where
+            # the shape is exported and run before it is believed.
+            #
+            # First, because it is the only one of the two that can ship. A
+            # graph exported without its cache is correct and too slow to use.
+            if not ok and takes_cache:
+                try:
+                    import kv_cache
+                    cname, cobj = kv_cache.find_cache(step.get("all_kwargs") or {})
+                    if cobj is not None:
+                        flat = kv_cache.cache_to_tensors(cobj)
+                        cw = kv_cache.make_cached_wrapper(
+                            step["owner"], step["method"], step["kw_names"],
+                            {k: v for k, v in (step.get("const") or {}).items()
+                             if k != "use_cache"},
+                            step["n_positional"], cname, cobj)
+                        cargs = tuple(hook["args"]) + tuple(flat)
+
+                        def do_cached(use_dynamo, _t=cw, _a=cargs):
+                            with torch.no_grad():
+                                torch.onnx.export(_t, _a, str(dest),
+                                                  opset_version=17,
+                                                  do_constant_folding=True,
+                                                  dynamo=use_dynamo)
+
+                        ok3, errors3 = export_with_fallback(do_cached, dest)
+                        row["with_cache_as_tensors"] = {
+                            "torchscript": errors3.get("torchscript"),
+                            "dynamo": errors3.get("dynamo"),
+                            "cache_tensors": len(flat)}
+                        if ok3:
+                            ok, errors = ok3, errors3
+                            target = cw
+                            hook = dict(hook, args=cargs)
+                            row["cache_as_tensors"] = True
+                            kv_used[0] = len(flat)
+                except Exception as e:
+                    row["with_cache_as_tensors"] = {"error": tidy(e, 300)}
+
             type_problem = ("cache" in blob or "not a known type" in blob
                             or "unsupported type" in blob
                             or "only tuples, lists and variables" in blob)
@@ -1013,7 +1062,14 @@ def try_export(model, part, out_dir):
             "this build of torch would not take the variable-length request, "
             "so the graph is frozen at the length of the clip it was converted "
             "from and cannot be fed a different one")
-    if cache_off[0]:
+    if kv_used[0]:
+        v["cache_as_tensors"] = kv_used[0]
+        v["shipping_note_cache"] = (
+            f"exported with the key/value cache as {kv_used[0]} plain tensors in "
+            f"and out, so each step reuses what the last one computed instead of "
+            f"redoing the sentence. The game drives the loop and carries those "
+            f"tensors between steps")
+    elif cache_off[0]:
         v["cache_disabled"] = True
         v["shipping_note_cache"] = (
             "exported with the key/value cache turned off, because neither "

@@ -99,7 +99,8 @@ class FakeT3(nn.Module):
         # Called by keyword and with a non-tensor flag, exactly as the real
         # transformer is — the flag must stay baked in while the tensor
         # becomes a graph input.
-        h = self.tfmr(inputs_embeds=x, use_cache=True).last_hidden_state
+        h = self.tfmr(inputs_embeds=x, use_cache=True,
+                      past_key_values=DynamicCacheish([x], [x])).last_hidden_state
         steps = 0
         for _ in range(20):
             h = self.proj(h)
@@ -142,12 +143,25 @@ except Exception:
 
 
 class DynamicCacheish:
-    """Stands in for HuggingFace's `DynamicCache`. Deliberately not a tensor
-    and not a tuple — its whole role is to be a type an exporter cannot put
-    in a graph."""
+    """Stands in for HuggingFace's `DynamicCache`: parallel key and value
+    lists, and the legacy constructor the real one has.
 
-    def __init__(self):
-        self.entries = []
+    Deliberately not a tensor and not a tuple — being a type no exporter can
+    put in a graph is its whole role. It now HOLDS the tensors as well, so the
+    cache-as-plain-tensors route has something real to flatten; a stand-in
+    whose cache is empty would let that route report success while carrying
+    nothing."""
+
+    def __init__(self, ks=None, vs=None):
+        self.key_cache = list(ks or [])
+        self.value_cache = list(vs or [])
+
+    @classmethod
+    def from_legacy_cache(cls, pairs):
+        return cls([p[0] for p in pairs], [p[1] for p in pairs])
+
+    def to_legacy_cache(self):
+        return tuple(zip(self.key_cache, self.value_cache))
 
 
 class KwargsOnly(nn.Module):
@@ -168,10 +182,22 @@ class KwargsOnly(nn.Module):
         super().__init__()
         self.a = nn.Linear(dim, dim)
 
-    def forward(self, inputs_embeds=None, input_ids=None, use_cache=False):
+    def forward(self, inputs_embeds=None, input_ids=None, use_cache=False,
+                past_key_values=None):
         if (inputs_embeds is None) == (input_ids is None):
             raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
-        h = self.a(inputs_embeds if inputs_embeds is not None else input_ids)
+        x = inputs_embeds if inputs_embeds is not None else input_ids
+        h = self.a(x)
+        if past_key_values is not None and past_key_values.key_cache:
+            # Reusing what the last step computed, which is the entire point
+            # of a cache and the thing the exported graph has to be able to do.
+            # Shape-agnostic on purpose: the stand-in's stage is 2-D and an
+            # earlier version indexed it as 3-D, which broke the MODEL rather
+            # than testing the export — the same mistake as varying a feature
+            # dimension instead of a time axis, two commits ago.
+            past = past_key_values.key_cache[0]
+            if past.shape == h.shape:
+                h = h + past * 0.1
         if not use_cache:
             # The shape that broke the comparison: tensors inside an object.
             return ModelOutputish(h)
@@ -182,7 +208,7 @@ class KwargsOnly(nn.Module):
             # exporter can carry an object like this through a graph, and the
             # standard way past it is to turn the cache off — so the fixture
             # has to return one, or that retry has no failing case.
-            return ModelOutputish(h, DynamicCacheish())
+            return ModelOutputish(h, DynamicCacheish([h], [h]))
         return ModelOutputish(h)
 
 

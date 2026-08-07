@@ -548,7 +548,8 @@ def voice_live():
     # exports while computing something else is worse than the blocker it
     # replaces. `fixture.py` is here because a stand-in that stops failing the
     # way the real thing fails certifies the probe against nothing.
-    for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py"):
+    for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py",
+                   "kv_cache.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])
