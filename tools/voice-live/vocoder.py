@@ -53,6 +53,7 @@ def selftest():
         import onnxruntime as ort
         from chatterbox.models.s3gen.hifigan import HiFTGenerator
         from chatterbox.models.s3gen.f0_predictor import ConvRNNF0Predictor
+        from chatterbox.models.s3gen.const import S3GEN_SR
     except ImportError as e:
         # A DENOMINATOR ON THE SKIP. "chatterbox is not installed" and "the
         # vocoder converts" must not print the same way.
@@ -67,7 +68,21 @@ def selftest():
 
     tmp = pathlib.Path(tempfile.mkdtemp())
     torch.manual_seed(20260807)
-    gen = HiFTGenerator(f0_predictor=ConvRNNF0Predictor()).eval()
+    # THE SHIPPED CONFIGURATION, NOT THE CLASS DEFAULTS. `S3Token2Wav` builds
+    # this vocoder with explicit arguments and every one of them differs from
+    # the default: the upsample rates are [8,5,3] against [8,8], which changes
+    # the sample rate the source signal runs at and the length of everything
+    # downstream. Built from defaults this file proved a NEIGHBOURING vocoder
+    # converts. Caught by measuring the noise shapes for the decode export and
+    # finding 256 samples per mel frame where the shipped one has 480.
+    gen = HiFTGenerator(
+        sampling_rate=S3GEN_SR,
+        upsample_rates=[8, 5, 3],
+        upsample_kernel_sizes=[16, 11, 7],
+        source_resblock_kernel_sizes=[7, 7, 11],
+        source_resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        f0_predictor=ConvRNNF0Predictor(),
+    ).eval()
     for p in gen.parameters():
         p.requires_grad_(False)
 
