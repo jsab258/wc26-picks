@@ -76,6 +76,51 @@ def reference(logits, said):
     return kept, [round(probs[i].item(), 6) for i in kept]
 
 
+# THE TEXTS ARE AWKWARD ON PURPOSE. Each one exercises a rule that is easy to
+# reimplement almost-right: the order of the replacements, whether the capital
+# happens before or after the whitespace collapse, which characters count as an
+# ending, and what `rstrip(" ")` does that `strip()` would not.
+TEXTS = [
+    "hello there",
+    "  leading space and lower",          # first char is a space, so NO capital
+    "already. Fine.",
+    "wait... what",                       # ellipsis becomes ", "
+    "he said: go now",                    # colon becomes comma
+    "one - two",                          # spaced hyphen becomes ", "
+    "stop; go",                           # semicolon, then the space-comma rule
+    "an em—dash and an en–dash",
+    "“quoted” and ‘single’",
+    "trailing spaces   ",
+    "ends with a dash -",                 # already an ender, no full stop added
+    "lots     of      space",
+    "a , b",                              # the space-comma rule on its own
+    "MiXeD case stays",
+]
+
+
+def cs(s):
+    """A C# string literal. Non-ASCII goes out as \\uXXXX rather than raw, so a
+    file whose encoding somebody 'fixes' cannot silently change what an em dash
+    test is testing."""
+    out = ['"']
+    for ch in s:
+        if ch == '"':
+            out.append('\\"')
+        elif ch == "\\":
+            out.append("\\\\")
+        elif ord(ch) < 32 or ord(ch) > 126:
+            out.append("\\u%04x" % ord(ch))
+        else:
+            out.append(ch)
+    out.append('"')
+    return "".join(out)
+
+
+def norm_rows():
+    from chatterbox.tts import punc_norm
+    return [{"text": t, "norm": punc_norm(t)} for t in TEXTS]
+
+
 def rows():
     out = []
     for name, logits, said in CASES:
@@ -89,7 +134,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--text", action="store_true",
+                    help="print punc_norm's output for the awkward cases, as C# literals")
     a = ap.parse_args()
+
+    if a.text:
+        try:
+            for r in norm_rows():
+                print('            Same(%s, %s);' % (cs(r["text"]), cs(r["norm"])))
+        except ImportError as e:
+            print(f"  skipped: {e} — 0 of {len(TEXTS)} texts checked")
+        return 0
 
     try:
         data = rows()

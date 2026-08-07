@@ -26,66 +26,67 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### WHAT `4e3eef3` SETTLED — THE LAW WORKS NOW
+### LIVE SPEECH — WHERE IT STANDS, 7 AUGUST
 
-- **THE POLICE CAN COME AFTER YOU, FOR THE FIRST TIME EVER.** `homHoldsIt=27`
-  of 27 stored (was 0 of 21), `homNamed=27` (was 0), `homPressure=7.50`
-  (was 0.40), **`homInquiry=Manhunt`** — a stage no run has ever reached.
-  `actThree=True ending=BurnBoth` both unmoved, which is what the staging
-  after `AuditClosed` predicted. The capital-letter fix did all of it.
-  **OPEN, AND IT IS THE NEXT THING:** `inquiry=Procedure` on the done line,
-  which is the stage at the END of the run against `homInquiry` at the
-  killing. So it escalated and settled back, `redirected=0 pointedAt=nobody`
-  so the redirect is not the cause, and I do not yet know what is. Two
+The three networks convert and run under onnxruntime; the transformer agrees
+with the original to 4.9e-07 and DirectML accepts it. What is on this side of
+the wall now:
+
+- **the step loop** (`Core/SpeechLoop`) — sampler, stop conditions, budget,
+  determinism. Conforms to chatterbox's own HuggingFace processors to 1e-5 on
+  seven cases, checked by `tools/voice-live/sampler-reference.py`.
+- **the routing** (`Core/SpeechDirector`) — bank first, measure the machine,
+  count what could not be afforded. Wired into `SpeechBubble`; the done line
+  carries `speechAsked` / `speechBanked` / `speechLive` / `speechTooSlow` /
+  `speechNoModel`.
+- **the text tidy-up** (`Core/SpeechText`) — the model's `punc_norm`, matching
+  it on fourteen awkward inputs including two quirks worth keeping.
+
+**NEXT, IN ORDER:**
+
+1. **The tokeniser.** Text to text-tokens is the last piece that is neither
+   converted nor reimplemented, and it needs `tokenizer.json` — about a
+   megabyte of merges, unreachable from this container (HuggingFace is 403
+   through the proxy). The probe now copies it out of Jafar's install and
+   reports its SHAPE, so the size of the C# job is known before it starts.
+   **Blocked on one probe run, and it is the only thing in this list that is.**
+2. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
+   it is null. Needs onnxruntime with DirectML as a Unity plugin. This is the
+   ~28-minute round trip.
+3. **Off the main thread.** One line costs about 9 seconds; generating it
+   inside a frame freezes the game. The loop is already deadline-aware and
+   `SpeechDirector` sizes the deadline from the machine, but nothing yet runs
+   it on a worker.
+4. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
+   `SpeechRun.SecondsPerStep`. All three need a line to have actually been
+   generated. They come off the ledger when item 2 lands, not before.
+
+**KNOWN GAP, WRITTEN DOWN RATHER THAN DISCOVERED LATER.** chatterbox's
+alignment analyzer reads the transformer's attention every step and uses it to
+suppress an early stop, to cut a hallucinated tail, and to catch a repetition.
+The export does not carry attention, so only the third is honoured (`StopOnRepeat`).
+The measurement to take once live lines exist: how often one stops before its
+text is used up.
+
+### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
+
+- **HEAT FADES AND NOBODY KNOWS WHY.** `homInquiry=Manhunt` at the killing
+  against `inquiry=Procedure` at the end of the run — it escalated and settled
+  back. `redirected=0 pointedAt=nobody`, so the redirect is not the cause. Two
   candidates: rumour confidence ageing below `TestimonyGrade`, or `Pressure`
-  reading a day. **Do not assume heat fading by design — measure it.**
+  reading a day. **Do not assume it fades by design — measure it.**
 
-- **THE SUCCESSION MOVED ONE LINK ON.** `joeyRuns=True`, and `successorWhy`
-  now lists only Sam and Rocco — **Joey has dropped off it, so he passes
-  `CouldHold`.** `handed=False` still, so `ReadySuccessor` returns a man and
-  something after it refuses. That is a different function and a much smaller
-  search than the 138 runs of nothing.
-
-- **THE LANES WORKED, AND I HAVE BEEN READING A PEAK AS THE STREET.**
-  `crowdGapMedian` 0.26 → **0.45**, the best ever recorded — and
-  **`crowdHuddle=11`, the MEDIAN huddle, against a recent median of 20**
-  (series 11, 20, 31, 21, 20, 25, 29, 20, …). The typical street is now
-  eleven people within two metres and comfortably spaced.
-  **`crowdHuddleWorst=40` is one instant in fifteen days**, and this file has
-  led with it for four builds as though it described the street. That is the
-  peak-as-description fault, on the metric this project has spent the most
-  time on. Both numbers matter and neither answers the other.
-  The branch counts also refute my own framing: `steerDirect=52193` is 87% of
-  all steering, `steerJunction=1564` is 2.6%, `steerOrigin=0` — so the origin
-  fallback never fires, that hypothesis is dead, and spreading the 13% who
-  route via a shared point is what moved the median. **What is left is a
-  transient crossing at one instant, not a permanent crush**, and it should
-  be judged against a still before any more work goes into it.
-
-- **THE LEAN IS A WALKER, NOT THE PLAYER.** `leanWorstIsWalker=True` with
-  `leanTypical=-7.1`. One body in a crowd of fifty, bent over, while the
-  street stands upright — nearly invisible. Drops down the list.
-
-- **THE RELIABILITY PLANT WORKS NOW.** `reliabilityFiled=1 dropsSkipped=3
-  reliabilityRead=[Slipping after 2]`. Stopping on the outcome rather than at
-  a fixed count of two is what did it: it needed three skips to land two
-  consecutive ones.
-
-- **THE SUMMONS IS NOW HONESTLY MISSED.** `summonsTaken=0` still, and
-  `summonsMissWhy=[a line was live and he was not near it]` — but that
-  sentence now describes NINE AT NIGHT rather than breakfast, which is the
-  whole point of the same-instant fix. The mechanic is right and the
-  condition is unplanted. **Plant it next: stand the player at a live box at
-  the ring hour.** Held back deliberately so a moving `summonsTaken` could be
-  attributed; it did not move, so the plant is now unambiguous.
+- **THE SUCCESSION STOPS ONE STEP SHORT.** `joeyRuns=True` and Joey has dropped
+  off `successorWhy`, so he passes `CouldHold`. `handed=False` still, so
+  `ReadySuccessor` returns a man and something after it refuses. A much smaller
+  search than the 138 runs of nothing that preceded it.
 
 ### What the earlier builds settled
 
-Two blocks of per-build findings lived here and were cut on 5 August: this
-file is what happens NEXT, and `docs-check` caps a live plan at 400 lines
-for the reason the header already gives — done work is in the git log, and
-the commit messages carry the reasoning in more detail than a summary of a
-summary could. The block above is kept because its readings are still open.
+Cut on 5 and 7 August, and `roadmap-history.md` has the latest block. This
+file is what happens NEXT; `docs-check` caps a live plan at 400 lines for the
+reason the header gives — done work is in the git log, and commit messages
+carry the reasoning better than a summary of a summary. Open readings stay.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 

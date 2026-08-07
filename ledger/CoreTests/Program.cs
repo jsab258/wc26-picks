@@ -97,6 +97,7 @@ namespace Ledger.CoreTests
                 TestAcoustics();
                 TestVoiceBank();
                 TestSpeechLoop();
+                TestSpeechText();
                 TestSpeechDirector();
                 TestCaptions();
                 TestCrowdOnTheStreet();
@@ -7797,6 +7798,58 @@ namespace Ledger.CoreTests
                 new[] { 0, 2 },
                 new[] { 0, 1, 2, 3 },
                 new[] { 0.399007, 0.399007, 0.140796, 0.06119 });
+        }
+
+        /// What the model is actually told to say.
+        static void TestSpeechText()
+        {
+            Console.WriteLine("Speech text — the tidy-up the model runs before it tokenises:");
+
+            // EVERY EXPECTED STRING CAME OUT OF THE REAL FUNCTION.
+            // `python3 tools/voice-live/sampler-reference.py --text` prints
+            // these lines ready to paste. Re-run it to regenerate them; do not
+            // hand-edit one because it looks wrong, because twice now the
+            // thing that looked wrong was the thing that was right.
+            void Same(string given, string want)
+            {
+                var got = SpeechText.Normalise(given);
+                Check(got == want, $"punc_norm — [{given}]",
+                    $"got [{got}] want [{want}]");
+            }
+
+            Same("hello there", "Hello there.");
+            // NOT capitalised: the first character is a space, and the capital
+            // happens BEFORE the whitespace collapse. Swapping those two lines
+            // changes this and nothing else would report it.
+            Same("  leading space and lower", "leading space and lower.");
+            Same("already. Fine.", "Already. Fine.");
+            // A DOUBLE SPACE, and it is correct. "..." becomes ", " — comma
+            // and space — next to the space that was already there, and the
+            // collapse has already run. An implementation that tidied it up
+            // would be feeding the model different text from the one it was
+            // trained against.
+            Same("wait... what", "Wait,  what.");
+            Same("he said: go now", "He said, go now.");
+            Same("one - two", "One, two.");
+            Same("stop; go", "Stop,  go.");
+            Same("an em—dash and an en–dash", "An em-dash and an en-dash.");
+            Same("“quoted” and ‘single’", "\"quoted\" and 'single'.");
+            Same("trailing spaces   ", "Trailing spaces.");
+            // Already ends in an ender, so no full stop is added.
+            Same("ends with a dash -", "Ends with a dash -");
+            Same("lots     of      space", "Lots of space.");
+            Same("a , b", "A, b.");
+            Same("MiXeD case stays", "MiXeD case stays.");
+
+            // THE ONE DELIBERATE DIVERGENCE. chatterbox answers empty text
+            // with the sentence "You need to add some text for me to talk."
+            // In a game that is a cast voice reading an error message aloud.
+            Check(SpeechText.Normalise("") == null
+                  && SpeechText.Normalise(null) == null
+                  && SpeechText.Normalise("   ") == null,
+                "empty text is nothing to say, NOT the model's spoken error message");
+            Check(SpeechLoop.Run(new ScriptedVoice(1), "rocco", "  ").Stop == SpeechStop.Nothing,
+                "and the loop refuses it too, so there are two ways this cannot happen");
         }
 
         /// Who speaks live, and whether this machine can afford it.

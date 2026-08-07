@@ -293,8 +293,21 @@ namespace Ledger.Core
             var run = new SpeechRun();
             if (backend == null) { run.Stop = SpeechStop.BackendFailed; return run; }
 
-            var normalised = VoiceBank.Normalise(text);
-            if (string.IsNullOrEmpty(voiceId) || normalised.Length == 0)
+            // TWO NORMALISATIONS, AND THEY ARE NOT THE SAME ONE.
+            //
+            // `VoiceBank.Normalise` decides the clip NAME and therefore the
+            // seed: collapse whitespace, keep case, because "no" and "NO" are
+            // two performances. `SpeechText.Normalise` is the model's own
+            // `punc_norm` and decides what it is TOLD TO SAY: capitalised,
+            // punctuation swapped for what it was trained on, a full stop
+            // added. Feeding the seed's version to the model would hand it
+            // characters it has barely seen; seeding off the model's version
+            // would give a line a different name depending on whether it
+            // already ended in a full stop.
+            var seedText = VoiceBank.Normalise(text);
+            var spoken = SpeechText.Normalise(text);
+            if (string.IsNullOrEmpty(voiceId) || string.IsNullOrEmpty(seedText)
+                || string.IsNullOrEmpty(spoken))
             {
                 run.Stop = SpeechStop.Nothing;
                 return run;
@@ -310,7 +323,7 @@ namespace Ledger.Core
             // twice", and reaching for a fresh seed here would have given the
             // same character a different delivery every time they repeated
             // themselves — which is the exact fault audit item 5 was about.
-            var rng = new Random(VoiceBank.Seed(voiceId, normalised));
+            var rng = new Random(VoiceBank.Seed(voiceId, seedText));
 
             var raw = new float[vocab * rows];
             var logits = rows > 1 ? new double[vocab] : null;
@@ -322,7 +335,7 @@ namespace Ledger.Core
             double t0 = nowSeconds != null ? nowSeconds() : Clock();
             try
             {
-                if (!backend.Begin(voiceId, normalised, raw))
+                if (!backend.Begin(voiceId, spoken, raw))
                 {
                     run.Stop = SpeechStop.BackendFailed;
                     return run;

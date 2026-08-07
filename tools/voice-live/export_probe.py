@@ -1735,6 +1735,70 @@ def reference(voice=None):
     return hits[0] if hits else None
 
 
+def copy_tokenizer():
+    """Copy the model's `tokenizer.json` next to the exported graphs.
+
+    THE LAST PIECE OF THE PIPELINE THAT IS NOT ON THIS SIDE OF THE WALL.
+    Everything else the game needs is either converted (the three networks) or
+    reimplemented in C# (the step loop, the sampler, `punc_norm`). Turning
+    words into text tokens is neither, and it cannot be: the vocabulary is a
+    file, roughly a megabyte of merges the model was trained with, and there
+    is no deriving it.
+
+    It is also unreachable from this container — HuggingFace is blocked here,
+    which is why every corpus job goes through CI. It IS on Jafar's machine,
+    because chatterbox downloaded it to run at all. So the probe, which
+    already runs there, brings it back.
+
+    RETURNS WHAT IT DID, INCLUDING WHY NOT. A missing tokenizer would
+    otherwise look exactly like a probe that never tried — rule 3b — and the
+    difference decides whether the C# tokeniser is the next task or is blocked.
+    """
+    dest = OUT / "tokenizer.json"
+    try:
+        from chatterbox.tts import REPO_ID
+        from huggingface_hub import hf_hub_download
+        src = hf_hub_download(repo_id=REPO_ID, filename="tokenizer.json")
+    except Exception as e:
+        return {"copied": False, "why": f"{type(e).__name__}: {e}"[:160]}
+    try:
+        import shutil
+        OUT.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dest)
+        return describe_tokenizer(dest)
+    except Exception as e:
+        return {"copied": dest.exists(), "why": f"{type(e).__name__}: {e}"[:160]}
+
+
+def describe_tokenizer(path):
+    """What is actually IN the vocabulary file.
+
+    OPENED, NOT JUST COPIED — rule 4. A file that arrived is not a file that
+    is usable, and the shape is what decides the size of the next task: a BPE
+    with a merge table is a very different afternoon from a word list, and
+    knowing which before starting is worth the six lines.
+
+    Split out from `copy_tokenizer` so it HAS an accepting case here. The
+    download half needs HuggingFace, which is 403 through this container's
+    proxy; this half needs a file, and the self-test hands it one.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+    path = _Path(path)
+    try:
+        v = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"copied": path.exists(), "why": f"{type(e).__name__}: {e}"[:160]}
+    model = v.get("model") or {}
+    return {"copied": True, "bytes": path.stat().st_size,
+            "type": model.get("type"),
+            "vocab": len(model.get("vocab") or {}),
+            "merges": len(model.get("merges") or []),
+            "unk": model.get("unk_token"),
+            "pre_tokenizer": (v.get("pre_tokenizer") or {}).get("type"),
+            "normalizer": (v.get("normalizer") or {}).get("type")}
+
+
 def cmd_run(args, allow_install=True):
     """Orchestrator. One worker process per part, so the parts are actually
     independent — which is what this probe has claimed to be since it was
@@ -1787,12 +1851,23 @@ def cmd_run(args, allow_install=True):
 
     est_holder = {}
 
+    tok_holder = {}
+
     def report(rows, note=None):
         REPORT.write_text(json.dumps(
             {"run_started": stamp, "note": note,
-             "speaking_estimate": est_holder.get("v"), "parts": rows},
+             "speaking_estimate": est_holder.get("v"),
+             "tokenizer": tok_holder.get("v"), "parts": rows},
             indent=1), encoding="utf-8")
 
+    report([], "this run did not finish — it exited before trying anything")
+
+    # BEFORE THE MODEL LOADS, because it needs neither the model nor a GPU and
+    # a run that dies later must still bring this back. Every part of the
+    # pipeline is now either converted or reimplemented except the vocabulary,
+    # and the vocabulary is a file that cannot be reached from the container
+    # this is written in.
+    tok_holder["v"] = copy_tokenizer()
     report([], "this run did not finish — it exited before trying anything")
 
     if reference() is None:
@@ -2328,6 +2403,37 @@ def selftest():
               "the report it leaves is stamped with when the run started")
         check("chatterbox" in str(after.get("note", "")),
               "and says why it stopped, so an empty result is not read as a finding")
+
+    # THE VOCABULARY FILE, BOTH WAYS.
+    #
+    # `copy_tokenizer`'s download half cannot run here — HuggingFace is 403
+    # through this proxy, which is exactly why the probe fetches it on Jafar's
+    # machine instead. That half is unrun and this says so rather than
+    # implying otherwise. The half that READS the file is the half with the
+    # judgement in it, and it gets both of its cases.
+    import tempfile as _tf
+    from pathlib import Path as _P
+    _tmp = _P(_tf.mkdtemp())
+    good = _tmp / "tokenizer.json"
+    good.write_text(json.dumps({
+        "model": {"type": "BPE", "unk_token": "[UNK]",
+                  "vocab": {"[UNK]": 0, "[SPACE]": 1, "a": 2, "b": 3},
+                  "merges": ["a b"]},
+        "pre_tokenizer": {"type": "Whitespace"},
+        "normalizer": {"type": "NFKC"}}), encoding="utf-8")
+    seen = describe_tokenizer(good)
+    check(seen.get("copied") and seen.get("type") == "BPE"
+          and seen.get("vocab") == 4 and seen.get("merges") == 1,
+          "a vocabulary file is read and its SHAPE reported — which decides how "
+          "much C# the tokeniser is: " + json.dumps(seen)[:110])
+    broken = _tmp / "broken.json"
+    broken.write_text("{not json", encoding="utf-8")
+    torn = describe_tokenizer(broken)
+    check(not torn.get("type") and "why" in torn,
+          "and a truncated one says why rather than reporting an empty vocabulary, "
+          "which would read as a tokeniser with no words in it")
+    check("why" in describe_tokenizer(_tmp / "absent.json"),
+          "as does one that is not there at all")
 
     print(f"\nexport-probe --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
           f"{len(ran)} checks, none of which need the model")

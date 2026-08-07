@@ -1898,3 +1898,64 @@ Which means the wash story here is probably right and my eyes are the
 unreliable instrument — the sixth thing condemned off a still and cleared by a
 number. The note is in `Core/Wardrobe.cs` beside the band table, where the next
 person will hit it before re-opening the question.
+
+---
+
+## From the queue, 7 August — what build `4e3eef3` settled
+
+Moved out of `queue.md` to keep it under the 400-line limit for a live
+plan. The open questions stayed behind; this is the settled part.
+
+#### WHAT `4e3eef3` SETTLED — THE LAW WORKS NOW
+
+- **THE POLICE CAN COME AFTER YOU, FOR THE FIRST TIME EVER.** `homHoldsIt=27`
+  of 27 stored (was 0 of 21), `homNamed=27` (was 0), `homPressure=7.50`
+  (was 0.40), **`homInquiry=Manhunt`** — a stage no run has ever reached.
+  `actThree=True ending=BurnBoth` both unmoved, which is what the staging
+  after `AuditClosed` predicted. The capital-letter fix did all of it.
+  **OPEN, AND IT IS THE NEXT THING:** `inquiry=Procedure` on the done line,
+  which is the stage at the END of the run against `homInquiry` at the
+  killing. So it escalated and settled back, `redirected=0 pointedAt=nobody`
+  so the redirect is not the cause, and I do not yet know what is. Two
+  candidates: rumour confidence ageing below `TestimonyGrade`, or `Pressure`
+  reading a day. **Do not assume heat fading by design — measure it.**
+
+- **THE SUCCESSION MOVED ONE LINK ON.** `joeyRuns=True`, and `successorWhy`
+  now lists only Sam and Rocco — **Joey has dropped off it, so he passes
+  `CouldHold`.** `handed=False` still, so `ReadySuccessor` returns a man and
+  something after it refuses. That is a different function and a much smaller
+  search than the 138 runs of nothing.
+
+- **THE LANES WORKED, AND I HAVE BEEN READING A PEAK AS THE STREET.**
+  `crowdGapMedian` 0.26 → **0.45**, the best ever recorded — and
+  **`crowdHuddle=11`, the MEDIAN huddle, against a recent median of 20**
+  (series 11, 20, 31, 21, 20, 25, 29, 20, …). The typical street is now
+  eleven people within two metres and comfortably spaced.
+  **`crowdHuddleWorst=40` is one instant in fifteen days**, and this file has
+  led with it for four builds as though it described the street. That is the
+  peak-as-description fault, on the metric this project has spent the most
+  time on. Both numbers matter and neither answers the other.
+  The branch counts also refute my own framing: `steerDirect=52193` is 87% of
+  all steering, `steerJunction=1564` is 2.6%, `steerOrigin=0` — so the origin
+  fallback never fires, that hypothesis is dead, and spreading the 13% who
+  route via a shared point is what moved the median. **What is left is a
+  transient crossing at one instant, not a permanent crush**, and it should
+  be judged against a still before any more work goes into it.
+
+- **THE LEAN IS A WALKER, NOT THE PLAYER.** `leanWorstIsWalker=True` with
+  `leanTypical=-7.1`. One body in a crowd of fifty, bent over, while the
+  street stands upright — nearly invisible. Drops down the list.
+
+- **THE RELIABILITY PLANT WORKS NOW.** `reliabilityFiled=1 dropsSkipped=3
+  reliabilityRead=[Slipping after 2]`. Stopping on the outcome rather than at
+  a fixed count of two is what did it: it needed three skips to land two
+  consecutive ones.
+
+- **THE SUMMONS IS NOW HONESTLY MISSED.** `summonsTaken=0` still, and
+  `summonsMissWhy=[a line was live and he was not near it]` — but that
+  sentence now describes NINE AT NIGHT rather than breakfast, which is the
+  whole point of the same-instant fix. The mechanic is right and the
+  condition is unplanted. **Plant it next: stand the player at a live box at
+  the ring hour.** Held back deliberately so a moving `summonsTaken` could be
+  attributed; it did not move, so the plant is now unambiguous.
+
