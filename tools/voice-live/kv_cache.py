@@ -399,6 +399,59 @@ def selftest():
           f"and it is faster: {slow * 1000:.0f} ms uncached against {fast * 1000:.0f} ms cached",
           f"{slow * 1000:.0f} vs {fast * 1000:.0f} ms")
 
+    # 6. AGAINST A REAL TRANSFORMER, on the version chatterbox pins.
+    #
+    # Every check above passes on a hand-built stand-in and four runs still
+    # came back "IndexError: list index out of range". The stand-in cannot
+    # catch a fault in how the probe ASSEMBLES the inputs, because the
+    # stand-in is handed them correctly by the test. A real `LlamaModel` is
+    # ~2 MB of randomly initialised weights and needs no download, which
+    # makes this the cheapest thing here and the one that would have caught
+    # it on day one.
+    try:
+        from transformers import LlamaConfig, LlamaModel
+        cfg = LlamaConfig(hidden_size=64, intermediate_size=128,
+                          num_hidden_layers=3, num_attention_heads=4,
+                          num_key_value_heads=4, vocab_size=100)
+        real = LlamaModel(cfg).eval()
+        for prm in real.parameters():
+            prm.requires_grad_(False)
+        step_in = torch.randn(1, 1, 64)
+        with torch.no_grad():
+            a = real(inputs_embeds=torch.randn(1, 5, 64), use_cache=True)
+            b = real(inputs_embeds=step_in, use_cache=True,
+                     past_key_values=a.past_key_values)
+        rc = b.past_key_values
+        rflat = cache_to_tensors(rc)
+        check(cache_layout(rc) is not None and len(rflat) == 2 * 3,
+              f"a real transformers cache is recognised and flattens to {len(rflat)}")
+        rw = make_cached_wrapper(real, "forward", ["inputs_embeds"], {}, 0,
+                                 "past_key_values", rc)
+
+        # THE ASSEMBLY, BOTH WAYS. This is the fault four runs could not name.
+        wrong = tuple(rflat)                       # keywords dropped
+        right = (step_in,) + tuple(rflat)          # keywords carried
+        try:
+            with torch.no_grad():
+                torch.onnx.export(rw, wrong, str(tmp / "wrong.onnx"),
+                                  opset_version=17, dynamo=False)
+            broke = False
+        except Exception:
+            broke = True
+        check(broke,
+              "dropping the tensor keywords from the inputs FAILS, as it did on "
+              "Jafar's machine four times")
+        ok2, why2 = True, ""
+        try:
+            with torch.no_grad():
+                torch.onnx.export(rw, right, str(tmp / "right.onnx"),
+                                  opset_version=17, dynamo=False)
+        except Exception as e:
+            ok2, why2 = False, f"{type(e).__name__}: {e}"
+        check(ok2, "and carrying them EXPORTS a real cached transformer", why2[:110])
+    except ImportError:
+        check(True, "real-transformer check skipped: transformers not installed")
+
     print(f"\nkv-cache --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
           f"{len(ran)} checks")
     return 1 if fails else 0

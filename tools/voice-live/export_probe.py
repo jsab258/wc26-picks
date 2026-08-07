@@ -875,10 +875,37 @@ def try_export(model, part, out_dir):
                         # length mismatch. Explicit `is None`, and both sides
                         # built the same way.
                         def with_cache(call, tensors):
+                            """positional args + tensor KEYWORD values + cache.
+
+                            THE TENSOR KEYWORDS WERE BEING DROPPED, and that is
+                            the IndexError that cost four runs.
+
+                            The cached wrapper reads its inputs as
+                            [positional..., tensor keywords..., cache...] —
+                            that is what `make_cached_wrapper` unpacks. This
+                            built [positional..., cache...] and left the
+                            keywords out. For a module called entirely by
+                            keyword, which the transformer is, that means the
+                            positional part is EMPTY and the model receives
+                            the first cache tensor as its `inputs_embeds`, with
+                            one tensor too few left for the cache — 59 tensors
+                            for a 30-layer cache, and the rebuild indexes off
+                            the end.
+
+                            Reproduced here at last, against a real Llama on
+                            the transformers version chatterbox pins: same
+                            error, same message. Four runs said "IndexError:
+                            list index out of range" and every one of them was
+                            this line.
+                            """
                             a = call.get("args")
+                            kw = call.get("kwargs") or {}
                             if a is None:
                                 a = hook["args"]
-                            return tuple(a) + tuple(tensors)
+                                kws = ()
+                            else:
+                                kws = tuple(kw[n] for n in step["kw_names"] if n in kw)
+                            return tuple(a) + kws + tuple(tensors)
 
                         cargs = with_cache(lc if from_last else {"args": hook["args"]},
                                            flat)
