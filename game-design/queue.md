@@ -43,19 +43,15 @@ the wall now:
 - **the text tidy-up** (`Core/SpeechText`) — the model's `punc_norm`, matching
   it on fourteen awkward inputs including two quirks worth keeping.
 
-**FROM THE 7 AUGUST RUN.** The cache fix was a real fault on the real model
-(`grew_during_the_call: true`), and correctness went from "could not check" to
-**6.5e-07**, now including the synthetic scales. Batch 2 confirms the
-classifier-free guidance. The vocabulary is BPE, **704 tokens, 265 merges,
-25 KB** — an afternoon of C#, not a week.
+**FROM THE 7 AUGUST RUN.** The cache fix was a real fault on the real model;
+correctness went from "could not check" to **6.5e-07**. Batch 2 confirms the
+guidance. The vocabulary is BPE, **704 tokens, 265 merges, 25 KB**.
 
-**AND `ve` NEVER RUNS AT RUNTIME, WHICH KILLS FOUR REPORTED FAILURES.**
-`prepare_conditionals(wav_fpath)` takes the REFERENCE CLIP and produces
-conditioning `generate()` reuses for every line — read in `tts.py`, not
-assumed. Nothing in it depends on the text, so the voice encoder, the audio
-tokeniser and `embed_ref` are computed once per cast member, offline, and
-shipped as data. The DirectML refusal, the fixed clip length, the s3tokenizer
-STFT failure and `speaker_encoder`'s fft all stop mattering at once.
+**AND `ve` NEVER RUNS AT RUNTIME**, which kills four reported failures at
+once. `prepare_conditionals(wav_fpath)` takes the REFERENCE CLIP and produces
+conditioning `generate()` reuses for every line — read in `tts.py`. Nothing in
+it depends on the text, so the voice encoder, the audio tokeniser and
+`embed_ref` are computed once per cast member, offline, and shipped as data.
 
 **NEXT, IN ORDER — what is actually left at runtime:**
 
@@ -69,16 +65,29 @@ STFT failure and `speaker_encoder`'s fft all stop mattering at once.
    design (0.66 apart on the same input), so the game hands the noise in and
    can seed it per line — `VoiceBank`'s determinism rule reaching the last
    stage.
-2. **LISTEN TO IT.** `3 HEAR IT SPEAK.bat` writes two wavs from the same
-   voice and words: chatterbox's own `generate()` as the control, and the
-   same line through the loop the game will run. Both, always — one file
-   cannot be judged, because this model has bad days on any line. **This is
-   the first thing in the whole effort that can be heard rather than
-   measured, and it is what to run next.**
+2. **CLOSED — THE LOOP SOUNDS RIGHT, AND IT IS TWICE AS FAST.** Jafar
+   listened to both takes on 7 August: all the words, the same person, no
+   damage, and he would let a passer-by say it. The design question is
+   settled and everything downstream is plumbing.
+
+   | | control | ours |
+   |---|---|---|
+   | steps | 87 | 85 (stopped: finished) |
+   | audio | 3.5s | 3.4s |
+   | **time** | **23.9s** | **11.9s** |
+
+   **THE 2x IS EXPLAINED AND IT IS FREE.** `t3.py` passes
+   `output_attentions=True` (lines 344 and 403). The run's own warning says
+   it: *"sdpa attention does not support output_attentions=True"* — so the
+   model falls back to eager attention, which is much slower. Those weights
+   feed the alignment analyzer, and the English model **never builds one**
+   (`is_multilingual` is `text_tokens_dict_size == 2454`; ours is 704). They
+   are computed and thrown away. Not asking for them halves the time and
+   costs nothing.
 3. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment a run
    lands the file.
-4. **Precompute the conditioning per cast member** — a small offline script
-   that runs `prepare_conditionals` once per voice and writes the tensors.
+4. **Precompute the conditioning per cast member** — `precompute-voices.py`
+   is written; one `.npz` per voice, one run on a machine with the weights.
    Removes `ve` from the shipping path entirely.
 5. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
    it is null. Needs onnxruntime with DirectML as a Unity plugin.
@@ -89,22 +98,17 @@ STFT failure and `speaker_encoder`'s fft all stop mattering at once.
    `SpeechRun.SecondsPerStep`. All three need a line to have actually been
    generated. They come off the ledger when item 5 lands, not before.
 
-**THE SPEED, MEASURED.** 9.7s per line for ~3.5s of speech — 2.8x slower than
-real time, down from 13x. The transformer is 8.3s of it, at 92 steps x 0.09s
-**on the CPU, which is 4.4x faster than DirectML for this** (0.09 against 0.40).
-Worth understanding before optimising: a 2 GB model moving data to the GPU 92
-times may simply lose to keeping it in cache.
+**THE SPEED.** 11.9s measured in pytorch on CPU; the ONNX estimate is 9.7s for
+~3.5s of speech — 2.8x slower than real time, down from 13x. One thread left:
+the CPU beats DirectML 4.4x per step (0.09 against 0.40), which a 2 GB model
+shuttling to the GPU 92 times may simply explain.
 
-**AND THE "KNOWN GAP" I REPORTED YESTERDAY IS NOT ONE.** I read chatterbox's
-alignment analyzer, saw it needs attention weights the export does not carry,
-and wrote it up as a real loss. Then I read the line that CONSTRUCTS it:
-`if self.hp.is_multilingual`, which is `text_tokens_dict_size == 2454`. The
-English model is **704** — exactly the vocabulary the probe read off Jafar's
-install. It is never built, so the graph is missing nothing.
-Worse, I had defaulted the one guard I could copy to ON, which would have
-ended a line at the first repeated token — ordinary at 25 Hz in a held vowel.
-Now off, and the multilingual case is named. **A mechanism that exists in the
-source is not a mechanism that runs.**
+**AND THE "KNOWN GAP" I REPORTED IS NOT ONE.** The alignment analyzer is only
+built `if self.hp.is_multilingual` — `text_tokens_dict_size == 2454`, and ours
+is 704 — so the export is missing nothing. I had also defaulted the one guard
+I could copy to ON, which would have cut a line at the first repeated token.
+Now off. **A mechanism that exists in the source is not one that runs**, and
+the same fact is what makes the 2x above free.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 

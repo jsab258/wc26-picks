@@ -253,6 +253,19 @@ def cmd_speak(text, seed, voice):
     # working around a failure you have not identified is how a workaround
     # becomes a second bug.
     import export_probe
+
+    # THE VOCABULARY, WHILE WE ARE HERE. `copy_tokenizer` lives in the export
+    # probe and only ran from the export bat, so a run of THIS one — which has
+    # chatterbox loaded and the file on disk — brought nothing back. It is
+    # 25 KB and the last piece of the pipeline that has to TRAVEL rather than
+    # be built, so every path that can fetch it should.
+    tok = export_probe.copy_tokenizer()
+    if tok.get("copied"):
+        print(f"  vocabulary: {tok.get('type')}, {tok.get('vocab')} tokens, "
+              f"{tok.get('merges')} merges -> tools/voice-live/tokenizer.json")
+    else:
+        print(f"  vocabulary: NOT copied — {tok.get('why')}")
+
     note = export_probe.diagnose_watermarker()
     if note:
         print(f"  watermarker: {note}")
