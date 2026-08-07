@@ -185,28 +185,48 @@ def to_wav(model, tokens):
     return wav.squeeze(0).detach().cpu().numpy()
 
 
-def reference():
-    for pat in ("*.wav", "*.mp3", "*.flac"):
-        for d in (CLIPS / "rocco", CLIPS):
-            hits = sorted(d.glob(pat)) if d.exists() else []
-            if hits:
-                return hits[0]
-    return None
+def reference(voice="rocco"):
+    """The reference clip for a named cast member.
+
+    NAMED, NOT WHICHEVER SORTS FIRST. The first version looked in a `rocco/`
+    subdirectory that does not exist and then fell back to the whole folder,
+    taking the alphabetically first file — which is Ada. It would have
+    produced a perfectly good comparison in the wrong person's voice, and the
+    only clue would have been one line of output nobody had reason to doubt.
+    Clips are `<voiceid>.<speaker>.mp3`, so the id is a prefix match.
+
+    Returns None rather than substituting somebody else, because a quiet
+    substitution is exactly the fault above.
+    """
+    if not CLIPS.exists():
+        return None
+    hits = sorted(p for p in CLIPS.iterdir()
+                  if p.is_file() and p.name.split(".")[0] == voice
+                  and p.suffix.lower() in (".wav", ".mp3", ".flac"))
+    return hits[0] if hits else None
 
 
-def cmd_speak(text, seed):
+def voices():
+    """Every cast member with a clip, for the error message."""
+    if not CLIPS.exists():
+        return []
+    return sorted({p.name.split(".")[0] for p in CLIPS.iterdir()
+                   if p.is_file() and p.suffix.lower() in (".wav", ".mp3", ".flac")})
+
+
+def cmd_speak(text, seed, voice):
     import time
-    import numpy as np
     import torch
     import soundfile as sf
     from chatterbox.tts import ChatterboxTTS
     from chatterbox.models.s3gen.const import S3GEN_SR
 
-    ref = reference()
+    ref = reference(voice)
     if ref is None:
-        print(f"  no reference clip under {CLIPS} — nothing to speak with.")
+        print(f"  no clip for '{voice}' under {CLIPS}.")
+        print(f"  cast with clips: {' '.join(voices()) or '(none)'}")
         return 1
-    print(f"  voice: {ref.name}")
+    print(f"  voice: {voice}  ({ref.name})")
     print("  loading the model (a minute or two the first time)...")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = ChatterboxTTS.from_pretrained(device=dev)
@@ -285,9 +305,17 @@ def selftest():
     check(pick(neg, {0}, random.Random(3)) == 1,
           "penalising a NEGATIVE logit pushes it down, not up")
 
-    check(reference() is not None or not CLIPS.exists(),
-          "a reference clip is findable, or there are none to find",
-          str(CLIPS))
+    # THE VOICE IS THE ONE ASKED FOR, which is the check the first version
+    # could not have passed: it looked in a `rocco/` folder that does not
+    # exist, fell back to the whole directory and returned Ada.
+    r = reference("rocco")
+    check(r is None or r.name.split(".")[0] == "rocco",
+          "asking for rocco gets rocco, not whoever sorts first",
+          str(r))
+    check(reference("nobody-by-that-name") is None,
+          "and an uncast name gets nothing rather than a substitute")
+    check(len(voices()) > 1 or not CLIPS.exists(),
+          f"the cast with clips is listed for the error message: {len(voices())}")
 
     print(f"\nspeak --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
           f"{len(ran)} checks (the sampler only; the rest needs the weights)")
@@ -299,12 +327,29 @@ def main():
     ap.add_argument("--text", default="I was on the docks when it happened. "
                                       "Ask anyone who was there.")
     ap.add_argument("--seed", type=int, default=20260807)
+    ap.add_argument("--voice", default="rocco",
+                    help="cast id — the clip is game-design/picked-clips/<id>.*")
     ap.add_argument("--selftest", action="store_true")
+    # `--fromtemp` IS THE BAT'S, NOT A USER'S, AND IT HAS TO BE ACCEPTED HERE.
+    #
+    # `3 HEAR IT SPEAK.bat` copies itself to %TEMP% and relaunches with
+    # `--fromtemp` — it has to, because a `git pull` rewriting a script cmd.exe
+    # is reading by byte offset is how a bat once printed the tail of a URL
+    # from its own replacement. The relaunched copy then forwards `%*` so a
+    # user's `--text` reaches this file, and `%*` in cmd is ALWAYS the original
+    # argument list: `shift` does not change it. So the marker comes along.
+    #
+    # THE FIX IS HERE AND NOT IN THE BAT, deliberately. The bat copies itself
+    # BEFORE it pulls, so a change to it takes effect one run later — the trap
+    # already written down in `export_probe.py`, which cost three runs there.
+    # Python is read after the pull, so this lands on the very next run. The
+    # bat is fixed too, and that fix is the belt to this file's braces.
+    ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
     if a.selftest:
         return selftest()
     try:
-        return cmd_speak(a.text, a.seed)
+        return cmd_speak(a.text, a.seed, a.voice)
     except ImportError as e:
         print(f"  cannot speak: {e}")
         print("  This needs chatterbox and soundfile installed — the bat does it.")

@@ -26,9 +26,19 @@ REM  It uses the same environment the export probe built. Nothing is
 REM  downloaded that is not already there.
 REM ===================================================================
 
-if /i "%~1"=="--fromtemp" goto :begin
+REM  THE RELAUNCH MARKER IS AN ENVIRONMENT VARIABLE, NOT AN ARGUMENT.
+REM
+REM  It was `--fromtemp` as an argument, and this bat forwards %* to
+REM  speak.py so a user's --text reaches it. %* in cmd is ALWAYS the
+REM  original argument list - `shift` does not change it - so the
+REM  marker went to Python too and argparse refused the lot:
+REM  "unrecognized arguments: --fromtemp". A child process inherits
+REM  the environment, so a variable carries the same signal and leaves
+REM  %* holding only what the user typed.
+if defined LEDGER_SPEAK_FROMTEMP goto :begin
+set "LEDGER_SPEAK_FROMTEMP=1"
 copy /y "%~f0" "%TEMP%\ledger-speak.bat" >nul
-"%TEMP%\ledger-speak.bat" --fromtemp
+"%TEMP%\ledger-speak.bat" %*
 exit /b %errorlevel%
 :begin
 
@@ -89,8 +99,9 @@ echo     BOTH are poor       the model is having a bad line - run it
 echo                         again with different words before we
 echo                         conclude anything
 echo.
-echo   To try your own line:
+echo   To try your own line, or another cast member:
 echo     "3 HEAR IT SPEAK.bat" --text "whatever you want him to say"
+echo     "3 HEAR IT SPEAK.bat" --voice lena --text "not tonight"
 echo  ------------------------------------------------------------------
 echo.
 pause
