@@ -772,6 +772,20 @@ def try_export(model, part, out_dir):
                 try:
                     import kv_cache
                     cname, cobj = kv_cache.find_cache(step.get("all_kwargs") or {})
+                    # SAID EITHER WAY. The first version recorded nothing when
+                    # no cache was found, so the whole route left no trace in
+                    # the report — not a success, not a failure, not
+                    # attempted — and there was no way to tell "this model has
+                    # no cache" from "my code never ran". That is the absence
+                    # reading as a finding, in the one field the next decision
+                    # depends on. The description of what WAS in the call goes
+                    # with it, so an unrecognised cache can be identified from
+                    # the report instead of guessed at.
+                    if cobj is None:
+                        row["with_cache_as_tensors"] = {
+                            "skipped": "no cache-shaped argument found in the call",
+                            "non_tensor_arguments":
+                                kv_cache.describe(step.get("all_kwargs") or {})}
                     if cobj is not None:
                         flat = kv_cache.cache_to_tensors(cobj)
                         cw = kv_cache.make_cached_wrapper(

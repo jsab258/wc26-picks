@@ -44,11 +44,50 @@ def find_cache(kwargs):
     for name, v in (kwargs or {}).items():
         if v is None or hasattr(v, "shape"):
             continue
-        if hasattr(v, "key_cache") and hasattr(v, "value_cache"):
-            return name, v
-        if hasattr(v, "to_legacy_cache"):
+        if cache_layout(v):
             return name, v
     return None, None
+
+
+def cache_layout(v):
+    """Which shape of cache this is, or None. Named because there are three
+    and the code has to say which it found.
+
+    TRANSFORMERS MOVED THE TENSORS. Older releases hang parallel `key_cache`
+    and `value_cache` lists off the object; from 4.56 they live in a `layers`
+    list whose entries each carry `keys` and `values`. A detector that knows
+    only the first shape finds nothing on a current install and — before this
+    commit — recorded nothing either, so the whole cache route left no trace
+    in the report at all: not a success, not a failure, not attempted.
+    """
+    if hasattr(v, "key_cache") and hasattr(v, "value_cache"):
+        return "key_cache/value_cache"
+    layers = getattr(v, "layers", None)
+    if layers is not None:
+        try:
+            if len(layers) and hasattr(layers[0], "keys") and hasattr(layers[0], "values"):
+                return "layers[].keys/values"
+        except Exception:
+            pass
+    if hasattr(v, "to_legacy_cache"):
+        return "to_legacy_cache()"
+    return None
+
+
+def describe(kwargs):
+    """What a call's non-tensor arguments actually are — so a cache that is
+    not recognised can be identified from the report instead of by guessing
+    at another release's field names."""
+    out = {}
+    for name, v in (kwargs or {}).items():
+        if v is None or hasattr(v, "shape"):
+            continue
+        out[name] = {"type": type(v).__name__,
+                     "layout": cache_layout(v),
+                     "attrs": [a for a in ("key_cache", "value_cache", "layers",
+                                           "to_legacy_cache", "keys", "values")
+                               if hasattr(v, a)]}
+    return out
 
 
 def cache_to_tensors(cache):
@@ -57,6 +96,14 @@ def cache_to_tensors(cache):
         return []
     ks = getattr(cache, "key_cache", None)
     vs = getattr(cache, "value_cache", None)
+    if ks is None:
+        layers = getattr(cache, "layers", None)
+        if layers is not None:
+            try:
+                ks = [ly.keys for ly in layers]
+                vs = [ly.values for ly in layers]
+            except Exception:
+                ks = vs = None
     if ks is None and hasattr(cache, "to_legacy_cache"):
         legacy = cache.to_legacy_cache()
         ks = [p[0] for p in legacy]
@@ -85,6 +132,18 @@ def tensors_to_cache(flat, like):
     if hasattr(obj, "key_cache"):
         obj.key_cache = [p[0] for p in pairs]
         obj.value_cache = [p[1] for p in pairs]
+        return obj
+    if hasattr(like, "layers"):
+        # The newer layout: rebuild by updating each layer in turn, using the
+        # class's own `update` where it has one so the bookkeeping a cache
+        # carries is not lost.
+        fresh = cls()
+        for i, (k, v) in enumerate(pairs):
+            if hasattr(fresh, "update"):
+                fresh.update(k, v, i)
+            else:
+                fresh.layers[i].keys, fresh.layers[i].values = k, v
+        return fresh
     return obj
 
 
@@ -204,6 +263,32 @@ def selftest():
             return (x, CacheLike(ks, vs)) if use_cache else (x, None)
 
     m = Stack().eval()
+
+    # 0. BOTH LAYOUTS, because transformers moved the tensors at 4.56 and a
+    # detector that knows only one finds nothing on a current install.
+    class NewLayer:
+        def __init__(self, k, v):
+            self.keys, self.values = k, v
+
+    class NewCache:
+        def __init__(self, pairs=()):
+            self.layers = [NewLayer(k, v) for k, v in pairs]
+
+        def update(self, k, v, i):
+            while len(self.layers) <= i:
+                self.layers.append(NewLayer(None, None))
+            self.layers[i].keys, self.layers[i].values = k, v
+
+    nc = NewCache([(torch.randn(1, 3, D), torch.randn(1, 3, D)) for _ in range(L)])
+    check(cache_layout(nc) == "layers[].keys/values",
+          "the newer transformers layout is recognised, not just the older one")
+    check(len(cache_to_tensors(nc)) == 2 * L,
+          "and flattens to the same tensor list")
+    check(cache_layout(object()) is None,
+          "and an object that is not a cache is not mistaken for one")
+    d = describe({"past_key_values": nc, "x": torch.randn(1, 1)})
+    check("past_key_values" in d and d["past_key_values"]["layout"],
+          "an unrecognised call can be identified from what describe() reports")
 
     # 1. THE CACHE IS FOUND BY SHAPE, not by class name.
     seed = CacheLike([torch.randn(1, 3, D) for _ in range(L)],
