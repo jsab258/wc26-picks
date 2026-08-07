@@ -188,22 +188,18 @@ def to_wav(model, tokens):
 def reference(voice="rocco"):
     """The reference clip for a named cast member.
 
-    NAMED, NOT WHICHEVER SORTS FIRST. The first version looked in a `rocco/`
-    subdirectory that does not exist and then fell back to the whole folder,
-    taking the alphabetically first file — which is Ada. It would have
-    produced a perfectly good comparison in the wrong person's voice, and the
-    only clue would have been one line of output nobody had reason to doubt.
-    Clips are `<voiceid>.<speaker>.mp3`, so the id is a prefix match.
+    DELEGATED TO `export_probe.reference`, WHICH ALREADY DID THIS. I wrote a
+    second one here, and it was worse: it looked in a `picked-clips/rocco/`
+    subdirectory that does not exist, fell back to the whole folder, and
+    returned the alphabetically first file — Ada. It would have produced a
+    perfectly good comparison in the wrong person's voice with nothing to
+    show for it but one line of output nobody had reason to doubt.
 
-    Returns None rather than substituting somebody else, because a quiet
-    substitution is exactly the fault above.
+    One idea, two implementations, and the second is the one that is wrong.
+    There is now one.
     """
-    if not CLIPS.exists():
-        return None
-    hits = sorted(p for p in CLIPS.iterdir()
-                  if p.is_file() and p.name.split(".")[0] == voice
-                  and p.suffix.lower() in (".wav", ".mp3", ".flac"))
-    return hits[0] if hits else None
+    import export_probe
+    return export_probe.reference(voice)
 
 
 def voices():
@@ -220,6 +216,25 @@ def cmd_speak(text, seed, voice):
     import soundfile as sf
     from chatterbox.tts import ChatterboxTTS
     from chatterbox.models.s3gen.const import S3GEN_SR
+
+    # THE WATERMARKER MUST NOT BE ABLE TO STOP THIS, AND THAT FIX ALREADY
+    # EXISTED. `chatterbox.tts.__init__` calls
+    # `perth.PerthImplicitWatermarker()` eagerly, the name is None on this
+    # install, and the model cannot even load — `TypeError: 'NoneType' object
+    # is not callable`. `export_probe` diagnosed and stubbed this weeks ago;
+    # `fixture.py`'s own docstring lists "a watermarker that stopped the run"
+    # as one of the six harness faults that cost six round trips. I hit it a
+    # seventh time by not reusing the fix.
+    #
+    # Diagnosed BEFORE being worked around, and the diagnosis is printed:
+    # working around a failure you have not identified is how a workaround
+    # becomes a second bug.
+    import export_probe
+    note = export_probe.diagnose_watermarker()
+    if note:
+        print(f"  watermarker: {note}")
+        print("  (post-processing on finished audio, not part of generation — "
+              "stubbed so the model can load)")
 
     ref = reference(voice)
     if ref is None:
@@ -316,6 +331,30 @@ def selftest():
           "and an uncast name gets nothing rather than a substitute")
     check(len(voices()) > 1 or not CLIPS.exists(),
           f"the cast with clips is listed for the error message: {len(voices())}")
+
+    # THE WATERMARKER STUB, ON THE CASE IT MUST LET THROUGH.
+    #
+    # This is what stopped the first real run: `chatterbox.tts.__init__` calls
+    # `perth.PerthImplicitWatermarker()` eagerly and the name is None, so the
+    # model cannot load at all. The stub existed in `export_probe` and I did
+    # not reuse it. Checked here rather than trusted, and checked in the
+    # direction that matters — that after the fix the thing chatterbox calls
+    # is callable and returns the audio unchanged.
+    import export_probe
+    note = export_probe.diagnose_watermarker()
+    try:
+        import perth
+        maker = perth.PerthImplicitWatermarker
+        check(maker is not None and callable(maker),
+              "after diagnosis the watermarker is callable — which is the whole "
+              f"reason the model can load ({note or 'the real one works'})")
+        same = [0.1, -0.2, 0.3]
+        check(maker().apply_watermark(same, sample_rate=24000) is same,
+              "and it hands the audio straight back, so nothing is altered by "
+              "a stub standing in for post-processing")
+    except ImportError:
+        check(True, "perth is not installed here — nothing to stub, and the "
+                    "diagnosis says so rather than pretending")
 
     print(f"\nspeak --selftest: {'PASS' if not fails else str(len(fails)) + ' FAILED'} — "
           f"{len(ran)} checks (the sampler only; the rest needs the weights)")
