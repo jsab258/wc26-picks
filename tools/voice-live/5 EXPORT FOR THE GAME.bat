@@ -24,6 +24,15 @@ REM  This exports a graph that takes the token directly. The lookup
 REM  happens inside, where the weights already are, and the game hands
 REM  over two numbers and nothing else.
 REM
+REM  AND IT NOW EXPORTS A SECOND GRAPH, because the same gap turned up
+REM  one layer up. The first graph needs the model's working memory of
+REM  the sentence so far. Nothing in the game can make that: it comes
+REM  from running the whole sentence and the speaker's voice through
+REM  the model once, and every part of that is inside the model too.
+REM  So there are two files now - one that reads the sentence, one that
+REM  says it a piece at a time. The game holds text and the voice
+REM  files already in the project, and nothing else.
+REM
 REM  ALREADY CHECKED WITHOUT YOUR HARDWARE, against a real model built
 REM  small - same code, same wiring, 6 million weights instead of 520
 REM  million, because converting does not care how big a number is. It
@@ -78,15 +87,25 @@ if exist "%TOOL%\game-out" start "" "%TOOL%\game-out"
 
 echo.
 echo  ------------------------------------------------------------------
-echo   Send me what it printed. The two numbers that matter are the
-echo   agreement at the traced position and the agreement at the four it
-echo   was NOT traced at - if the second is much worse than the first,
-echo   the position got baked in and I need to know before anything is
-echo   built on top of it.
+echo   Send me what it printed. Four numbers matter and they come in two
+echo   pairs, each one an agreement against something it was NOT set up
+echo   with. If either second number is much worse than its first, the
+echo   thing got frozen into the file and I need to know before anything
+echo   is built on top of it.
 echo.
-echo   The .onnx file itself stays on your disk for now - it is about
-echo   2 GB and does not belong in git. Shipping it with the game is
-echo   settled; how it gets there is a later problem.
+echo    - positions it was not traced at. Frozen means every word after
+echo      the first sits at the wrong place in the sentence.
+echo    - a VOICE it was not traced with, plus how far apart the two
+echo      voices came out. Frozen means all nineteen characters speak
+echo      in whichever voice this run happened to load, and "how far
+echo      apart" is what tells the two cases apart - agreeing perfectly
+echo      is also what one frozen voice compared against itself does.
+echo.
+echo   Both would sound like fluent speech and neither raises an error.
+echo.
+echo   The .onnx files stay on your disk for now - about 2 GB and they
+echo   do not belong in git. Shipping them with the game is settled;
+echo   how they get there is a later problem.
 echo  ------------------------------------------------------------------
 echo.
 pause

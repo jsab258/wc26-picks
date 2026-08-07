@@ -31,6 +31,17 @@ a report that says "exported and runs, agrees to 6.5e-07", and it was.
 So the graph takes a token and a position, does the embedding inside where the
 weights already are, and the game hands over two integers.
 
+AND THEN THE SAME GAP AGAIN, ONE LAYER UP. The step graph takes a CACHE, and
+the game has a SENTENCE. Making one from the other means embedding the text,
+the speaker, the emotion value and the voice prompt and running all of it
+through the transformer once — every part of it a table inside the model. So
+there are two graphs here: a PREFILL that turns the sentence and the voice
+into the cache, and the STEP that walks it. The game holds the text tokens and
+the four arrays already committed per voice, and nothing else.
+
+This one was caught before writing the backend rather than after, which is the
+only difference between it and the last one.
+
 CHECKED HERE, WITHOUT THE WEIGHTS. `--selftest` builds a REAL `T3` with a
 tiny Llama in place of the 520M one: same class, same wiring, same awkward
 operations, 6M parameters instead of 520M. Conversion does not care about the
@@ -44,6 +55,14 @@ in the graph: it exports, it runs, it agrees perfectly at the position it was
 traced with, and every token after the first is embedded at the wrong place in
 the sentence. Passed as a tensor it stays an input — and the only way to know
 which happened is to run it at a position it was not traced at.
+
+THE VOICE HAS THE IDENTICAL FAILURE and a nastier cause. `prepare_conditioning`
+CACHES the embedded prompt back onto the cond object it is handed, so tracing
+with a cond that has already spoken bakes that speaker in: the graph exports,
+runs, and is perfect for the voice it saw, while all nineteen characters speak
+in it. Checked the same way, with a voice it was not traced with — and with a
+denominator on that check, because two voices agreeing to 1e-7 is ALSO what a
+baked voice looks like. The caches have to differ as well as agree.
 """
 import argparse
 import pathlib
@@ -101,6 +120,67 @@ def export_step(torch, kv_cache, model, like, cache0, dest):
         torch.onnx.export(step, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names, output_names=outs, dynamic_axes=axes)
     return step, args, names
+
+
+def make_prefill(torch, kv_cache, model):
+    """THE SENTENCE, AND THE VOICE, TURNED INTO A CACHE.
+
+    The step graph above takes a cache. Nothing in the game can make one: it
+    comes from running the whole sentence and the speaker's conditioning
+    through the transformer once, and every part of that is a lookup table
+    living inside the model. Same gap as the token/embedding one, one layer
+    up, and found the same way — by asking what the C# would have to hold.
+
+    The game hands over the text tokens and the four arrays it already has
+    committed per voice. Nothing else.
+    """
+    from chatterbox.models.t3.modules.cond_enc import T3Cond
+
+    class Prefill(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.m = model
+
+        def forward(self, text_tokens, speaker_emb, cond_speech_tokens, emotion_adv):
+            hp = self.m.hp
+            # THE SENTENCE MARKERS ARE CONSTANTS AND BELONG HERE. They are two
+            # fixed integers, but putting them in C# is one more place for the
+            # game to disagree with the model about what a sentence is.
+            tt = torch.nn.functional.pad(text_tokens, (1, 0), value=hp.start_text_token)
+            tt = torch.nn.functional.pad(tt, (0, 1), value=hp.stop_text_token)
+            tt = torch.cat([tt, tt], dim=0)
+            # A FRESH COND EVERY CALL, WHICH IS NOT A TIDINESS POINT.
+            # `prepare_conditioning` CACHES the embedded prompt back onto the
+            # object it was handed. Trace with one that has already been used
+            # and the voice is baked in as a constant — nineteen characters,
+            # one voice, and no error anywhere.
+            cond = T3Cond(speaker_emb=speaker_emb,
+                          cond_prompt_speech_tokens=cond_speech_tokens,
+                          cond_prompt_speech_emb=None,
+                          emotion_adv=emotion_adv)
+            embeds, _ = self.m.prepare_input_embeds(
+                t3_cond=cond, text_tokens=tt,
+                speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
+                cfg_weight=0.5)
+            out = self.m.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
+            return tuple(kv_cache.cache_to_tensors(out.past_key_values))
+
+    return Prefill()
+
+
+def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache):
+    """Trace it. The sentence length is dynamic; the voice is an input."""
+    pre = make_prefill(torch, kv_cache, model).eval()
+    args = (text_tokens, cond["speaker_emb"], cond["cond_prompt_speech_tokens"],
+            cond["emotion_adv"])
+    names = ["text_tokens", "speaker_emb", "cond_speech_tokens", "emotion_adv"]
+    outs = [f"cache{i}" for i in range(n_cache)]
+    axes = {"text_tokens": {1: "text"}, "cond_speech_tokens": {1: "prompt"}}
+    axes.update({n: {2: "past"} for n in outs})
+    with torch.no_grad():
+        torch.onnx.export(pre, args, str(dest), opset_version=17, dynamo=False,
+                          input_names=names, output_names=outs, dynamic_axes=axes)
+    return pre, args, names
 
 
 def selftest():
@@ -195,6 +275,107 @@ def selftest():
           f"{max(series.values()):.1e} — so the position is an input and not a "
           f"constant", f"{max(series.values()):.2e}")
 
+    # ---- THE PREFILL, WHICH IS THE OTHER HALF THE GAME CANNOT MAKE --------
+    hp = t3.hp
+    # `Perceiver` pins its own width at 1024 rather than reading the config,
+    # so the shrink has to reach in — the same reach the vocoder's harness
+    # makes for the encoder's hardcoded 512. Real class, real wiring, one
+    # number changed; nothing about the graph's shape depends on the width.
+    from chatterbox.models.t3.modules.perceiver import Perceiver
+    if t3.cond_enc.perceiver is not None:
+        t3.cond_enc.perceiver = Perceiver(pre_attention_query_size=64,
+                                          embedding_dim=64, num_attn_heads=2).eval()
+        for p in t3.cond_enc.perceiver.parameters():
+            p.requires_grad_(False)
+
+    def a_voice(seed):
+        g = torch.Generator().manual_seed(seed)
+        return dict(
+            speaker_emb=torch.randn(1, hp.speaker_embed_size, generator=g),
+            cond_prompt_speech_tokens=torch.randint(
+                0, 6561, (1, hp.speech_cond_prompt_len), generator=g),
+            emotion_adv=0.5 * torch.ones(1, 1, 1))
+
+    traced_voice, other_voice = a_voice(11), a_voice(22)
+    text = torch.randint(0, 100, (1, 9))
+    pre, pargs, pnames = export_prefill(torch, kv_cache, t3, traced_voice, text,
+                                        tmp / "t3prefill.onnx", len(cache0))
+    check((tmp / "t3prefill.onnx").exists(), "the prefill graph exports")
+
+    psess = ort.InferenceSession(str(tmp / "t3prefill.onnx"),
+                                 providers=["CPUExecutionProvider"])
+
+    def prefill_gap(voice, txt):
+        with torch.no_grad():
+            want = pre(txt, voice["speaker_emb"], voice["cond_prompt_speech_tokens"],
+                       voice["emotion_adv"])
+        feed = {"text_tokens": txt.numpy(),
+                "speaker_emb": voice["speaker_emb"].numpy(),
+                "cond_speech_tokens": voice["cond_prompt_speech_tokens"].numpy(),
+                "emotion_adv": voice["emotion_adv"].numpy()}
+        out = psess.run(None, feed)
+        return max(float(np.abs(w.numpy() - g).max())
+                   / max(float(np.abs(w.numpy()).max()), 1e-12)
+                   for w, g in zip(want, out)), out
+
+    gap, out0 = prefill_gap(traced_voice, text)
+    check(gap < 1e-4, f"and agrees with pytorch to {gap:.1e}", f"{gap:.2e}")
+    check(len(out0) == len(cache0) and out0[0].shape[0] == 2,
+          f"returning the {len(cache0)}-tensor cache the step graph wants, two "
+          f"rows wide", str((len(out0), out0[0].shape[0])))
+
+    # THE VOICE IS THE POSITION'S TWIN. `prepare_conditioning` writes the
+    # embedded prompt back onto the cond object it is handed, so a cond that
+    # has already spoken traces as a CONSTANT: the graph exports, runs, and is
+    # perfect for the voice it saw, while all nineteen characters speak in it.
+    # Only a voice it was NOT traced with can tell, exactly as with position.
+    vgap, out1 = prefill_gap(other_voice, text)
+    tgap, _ = prefill_gap(traced_voice, torch.randint(0, 100, (1, 14)))
+    moved = max(float(np.abs(a - b).max()) for a, b in zip(out0, out1))
+    print(f"        prefill: traced={gap:.1e}  untraced-voice={vgap:.1e}  "
+          f"longer-sentence={tgap:.1e}  voices-differ-by={moved:.2f}")
+    check(vgap < 1e-4, f"and with a voice it was NOT traced with, to {vgap:.1e} "
+          f"— so the speaker is an input and not a constant", f"{vgap:.2e}")
+    # AND A DENOMINATOR ON THAT PASS. Two voices agreeing to 1e-7 would ALSO
+    # be what a baked voice looks like, because both runs would then be the
+    # same constant. The caches have to actually differ.
+    check(moved > 0.01, f"and the two voices produce different caches, apart "
+          f"by {moved:.2f} — so the agreement above is not two constants "
+          f"matching", f"{moved:.4f}")
+    check(tgap < 1e-4, f"and at a sentence length it was not traced at, "
+          f"{tgap:.1e}", f"{tgap:.2e}")
+
+    # ---- AND THEY HAVE TO CHAIN, WHICH IS A DIFFERENT QUESTION -----------
+    # Both graphs passing on their own says nothing about the join. The step
+    # graph was traced against a cache from a 12-frame seed; this one comes
+    # out of the prefill at whatever length the sentence made it. Two systems
+    # built to one idea, and the join is where this project keeps finding the
+    # missing line — so drive it exactly as the game will: prefill once under
+    # onnxruntime, then step twice on what it returned.
+    tok_t = torch.tensor([[7]], dtype=torch.long)
+    live = list(out0)
+    worst_chain = 0.0
+    with torch.no_grad():
+        pt = [t for t in pre(text, traced_voice["speaker_emb"],
+                             traced_voice["cond_prompt_speech_tokens"],
+                             traced_voice["emotion_adv"])]
+    for s in (1, 2):
+        feed = {f"cache{i}": c for i, c in enumerate(live)}
+        feed["token"] = np.array([[7]], dtype=np.int64)
+        feed["position"] = np.array(s, dtype=np.int64)
+        got = sess.run(None, feed)
+        with torch.no_grad():
+            want = step(tok_t, torch.tensor(s), *pt)
+        worst_chain = max(worst_chain, float(np.abs(want[0].numpy() - got[0]).max())
+                          / max(float(np.abs(want[0].numpy()).max()), 1e-12))
+        live, pt = got[1:], list(want[1:])
+    grew = live[0].shape[2] - out0[0].shape[2]
+    check(worst_chain < 1e-4,
+          f"the prefill's cache drives the step graph, two steps, to "
+          f"{worst_chain:.1e} — the two graphs join", f"{worst_chain:.2e}")
+    check(grew == 2, f"and the cache grew by one per step, {out0[0].shape[2]} "
+          f"-> {live[0].shape[2]}", f"grew by {grew}")
+
     print(f"\nexport-for-game --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks "
           f"against a real T3")
@@ -274,10 +455,72 @@ def cmd_run():
         worst = max(worst, float(np.abs(w2 - sess.run(None, alt)[0]).max())
                     / max(float(np.abs(w2).max()), 1e-12))
     print(f"  and to {worst:.1e} at four positions it was NOT traced at")
+
+    # ---- THE PREFILL. The step graph takes a cache, and the game has a
+    # sentence; this is what turns one into the other. Same gap as the
+    # token/embedding one, one layer up.
+    print("\n  exporting the prefill — the sentence and the voice, into a cache...")
+    t0 = time.time()
+    pdest = OUT / "t3-prefill.onnx"
+    cond = model.conds.t3
+    voice = dict(speaker_emb=cond.speaker_emb,
+                 cond_prompt_speech_tokens=cond.cond_prompt_speech_tokens,
+                 emotion_adv=cond.emotion_adv)
+    raw = model.tokenizer.text_to_tokens(LINE).to(model.device)
+    pre, pargs, _ = export_prefill(torch, kv_cache, model.t3, voice, raw,
+                                   pdest, len(cache0))
+    pmb = sum(f.stat().st_size for f in OUT.glob("t3-prefill*")) / (1024 * 1024)
+    print(f"  exported in {time.time() - t0:.0f}s, {pmb:.0f} MB -> {pdest.name}")
+
+    psess = ort.InferenceSession(str(pdest), providers=["CPUExecutionProvider"])
+
+    def prefill_run(v, txt):
+        with torch.no_grad():
+            want = pre(txt, v["speaker_emb"], v["cond_prompt_speech_tokens"],
+                       v["emotion_adv"])
+        got = psess.run(None, {
+            "text_tokens": txt.cpu().numpy(),
+            "speaker_emb": v["speaker_emb"].cpu().numpy(),
+            "cond_speech_tokens": v["cond_prompt_speech_tokens"].cpu().numpy(),
+            "emotion_adv": v["emotion_adv"].cpu().numpy()})
+        gap = max(float(np.abs(w.cpu().numpy() - g).max())
+                  / max(float(np.abs(w.cpu().numpy()).max()), 1e-12)
+                  for w, g in zip(want, got))
+        return gap, got
+
+    pgap, pout = prefill_run(voice, raw)
+    print(f"  agrees with pytorch to {pgap:.1e} for the voice it was traced with")
+
+    # THE VOICE IS THE POSITION'S TWIN, and this is the run that can check it
+    # against real weights. `prepare_conditioning` writes the embedded prompt
+    # back onto the cond it is handed, so a used cond traces as a CONSTANT and
+    # every character speaks in whichever voice this export happened to load.
+    other = None
+    for f in sorted((ROOT / "game-design" / "voice-conds").glob("*.npz")):
+        if f.stem != VOICE:
+            z = np.load(f)
+            other = (f.stem, dict(
+                speaker_emb=torch.from_numpy(z["t3.speaker_emb"]).to(model.device),
+                cond_prompt_speech_tokens=torch.from_numpy(
+                    z["t3.cond_prompt_speech_tokens"]).to(model.device),
+                emotion_adv=torch.from_numpy(z["t3.emotion_adv"]).to(model.device)))
+            break
+    if other is None:
+        print("  NO SECOND VOICE ON DISK — the speaker was not checked as an input")
+    else:
+        vgap, vout = prefill_run(other[1], raw)
+        moved = max(float(np.abs(a - b).max()) for a, b in zip(pout, vout))
+        print(f"  and to {vgap:.1e} for '{other[0]}', a voice it was NOT traced "
+              f"with,")
+        print(f"  whose cache differs from '{VOICE}' by {moved:.2f} — so that "
+              f"agreement is two")
+        print(f"  different answers matching, not one constant matching itself.")
+
     print()
     print("  ------------------------------------------------------------")
-    print("  This graph takes a TOKEN and a POSITION. The game hands over two")
-    print("  integers and never touches the model's embedding tables.")
+    print("  Two graphs. The prefill takes the sentence and the voice; the")
+    print("  step takes a token and a position. The game hands over integers")
+    print("  and arrays it already has, and never touches the model's tables.")
     print("  ------------------------------------------------------------")
     return 0
 
