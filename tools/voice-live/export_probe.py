@@ -243,9 +243,26 @@ def speaking_estimate(rows):
     per_step = t3.get("run_seconds")
     if steps and per_step is not None:
         cost = steps * per_step
+        # WHAT FRACTION OF THE STAGE WAS ACTUALLY TIMED, and this is a repair.
+        #
+        # The run that first showed 4.5 seconds a line had fallen through to
+        # `speech_emb` — an embedding lookup, 8.4M of 532M parameters, 1.6% of
+        # the stage — because the transformer failed its correctness check by
+        # a hair. So 0.01 s per step was the LOOKUP TABLE's time, reported as
+        # the text stage's, and the headline said the route ships.
+        #
+        # A per-step time is only the stage's cost if the thing timed is the
+        # stage. The share is computed and the total is REFUSED below when it
+        # is small, because a wrong number here is worse than no number: it is
+        # the one line somebody reads to decide whether to build on this.
+        share = None
+        if inner.get("params") and t3.get("params"):
+            share = inner["params"] / t3["params"]
         out["text_stage"] = {"steps": steps, "seconds_per_step": per_step,
                              "seconds": round(cost, 1),
-                             "ran_on": t3.get("ran_on")}
+                             "ran_on": t3.get("ran_on"),
+                             "timed_piece": inner.get("child"),
+                             "share_of_stage": round(share, 3) if share else None}
         total += cost
     for key in ("s3gen", "ve"):
         r = by.get(key) or {}
@@ -262,6 +279,23 @@ def speaking_estimate(rows):
     sh = (by.get("s3gen") or {}).get("output_shapes") or []
     if sh and len(sh[0]) >= 3:
         frames = sh[0][-1]
+    # REFUSED WHEN THE TIMED PIECE IS NOT THE STAGE. Half the parameters is
+    # the bar: below it, the number describes something other than the work
+    # and must not be given a headline. Reported as an unanswered question
+    # rather than a small number, because a small number here reads as a win.
+    ts = out.get("text_stage") or {}
+    sh = ts.get("share_of_stage")
+    if sh is not None and sh < 0.5:
+        return {"text_stage": ts,
+                "seconds_per_line": None,
+                "verdict": (f"NOT MEASURED — the only part of the text stage that "
+                            f"converted correctly was '{ts.get('timed_piece')}', "
+                            f"{sh * 100:.1f}% of it by weight. Timing that and "
+                            f"calling it the stage would be a number about the "
+                            f"wrong thing"),
+                "other_parts": {k: v for k, v in out.items()
+                                if k in ("s3gen", "ve")}}
+
     if frames:
         audio = frames / 50.0          # mel frames at 50/s, chatterbox's rate
         out["seconds_of_speech"] = round(audio, 1)
@@ -925,17 +959,44 @@ def try_export(model, part, out_dir):
             # looking and is reported as the ambiguity it is.
             good = agree.get("verdict") in ("agrees", "could not check",
                                             "the original is not deterministic")
-            if best is None or good:
-                best = {"label": step["label"], "target": target, "hook": hook,
-                        "inner": step["inner"], "errors": errors, "agree": agree,
-                        "size": dest.stat().st_size / 1e6}
-            if good:
+
+            # HOW MUCH OF THE STAGE THIS CANDIDATE IS, because a clean answer
+            # about a fraction is not better than an unresolved answer about
+            # the whole thing.
+            #
+            # The transformer — 94.5% of the text stage — was rejected at
+            # 0.0145 against a 0.01 bound, on SYNTHETIC input scaled by 25x,
+            # with the realistic second-voice comparison unavailable because
+            # the cache tensors change shape between calls. The search then
+            # fell through to an embedding table at 1.6% and called it the
+            # result. A marginal failure on an artificial extreme is not
+            # grounds for preferring something that does almost none of the
+            # work.
+            cand_share = 1.0
+            if step["inner"] and step["inner"].get("params") and n_params:
+                cand_share = step["inner"]["params"] / n_params
+            cand = {"label": step["label"], "target": target, "hook": hook,
+                    "inner": step["inner"], "errors": errors, "agree": agree,
+                    "good": good, "share": cand_share,
+                    "size": dest.stat().st_size / 1e6}
+            # Clean first, then coverage. Never trade 94% of the stage for
+            # 1.6% of it on the strength of an artificial input.
+            if best is None or (good, cand_share) > (best["good"], best["share"]):
+                best = cand
+            if good and cand_share >= 0.5:
                 exported = True
                 inner_used = step["inner"]
                 break
             # Wrong numbers. Keep the file only if nothing better turns up;
             # the next attempt overwrites it, which `export_with_fallback`
             # handles by unlinking first.
+
+        if not exported and best is not None and best.get("good"):
+            # A clean candidate that is only part of the stage: taken, and the
+            # share is already carried into the verdict by `inner_network`.
+            exported = True
+            inner_used = best["inner"]
+            hook, target, errors = best["hook"], best["target"], best["errors"]
 
         if not exported and best is not None:
             # NOTHING WAS RIGHT, BUT SOMETHING CONVERTED. Re-export the best
@@ -1608,7 +1669,11 @@ def cmd_run(args, allow_install=True):
     # PRINTED SO THE CONSOLE AND THE FILE CAN BE COMPARED. If they disagree,
     # the file on screen is not the one this run wrote.
     e = est_holder.get("v") or {}
-    if e.get("seconds_per_line"):
+    if e.get("seconds_per_line") is None and e.get("verdict"):
+        print()
+        print(f"  ONE LINE OF DIALOGUE: {e['verdict']}")
+        print()
+    elif e.get("seconds_per_line"):
         print()
         print(f"  ONE LINE OF DIALOGUE WOULD TAKE ~{e['seconds_per_line']} SECONDS")
         t = e.get("text_stage") or {}
@@ -1933,6 +1998,25 @@ def selftest():
              "output_shapes": [[1, 80, 184]]},
         ]
         e = speaking_estimate(rows)
+        small = speaking_estimate([
+            {"part": "t3", "run_seconds": 0.01, "params": 532405248,
+             "inner_network": {"called_times": 83, "params": 8390656,
+                               "child": "speech_emb"}, "ran_on": "Dml"},
+            {"part": "s3gen", "run_seconds": 3.68, "ran_on": "Dml",
+             "output_shapes": [[1, 80, 192]]}])
+        check(small.get("seconds_per_line") is None and "NOT MEASURED" in small["verdict"],
+              "a stage where only a 1.6% piece converted gets NO per-line number")
+        check("speech_emb" in small["verdict"] and "1.6%" in small["verdict"],
+              "and the refusal names the piece and its share, so it can be checked")
+        big = speaking_estimate([
+            {"part": "t3", "run_seconds": 0.01, "params": 532405248,
+             "inner_network": {"called_times": 83, "params": 503387136,
+                               "child": "tfmr"}, "ran_on": "Dml"},
+            {"part": "s3gen", "run_seconds": 3.68, "ran_on": "Dml",
+             "output_shapes": [[1, 80, 192]]}])
+        check(big.get("seconds_per_line") is not None,
+              "while a stage whose real network converted IS costed")
+
         check(e["text_stage"]["steps"] == 97,
               "the loop is costed at its LONGEST observed length, not its shortest")
         check(abs(e["seconds_per_line"] - (97 * 0.46 + 3.77)) < 0.05,
