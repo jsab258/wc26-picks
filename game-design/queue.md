@@ -60,47 +60,41 @@ so a voice is a constant. Computed and committed — see item 4.
    test convenience: the source module is random by design, so the game hands
    the noise in and can seed it per line.
 2. **CLOSED — THE LOOP SOUNDS RIGHT, AND IT IS TWICE AS FAST.** Jafar
-   listened to both takes on 7 August: all the words, the same person, no
-   damage, and he would let a passer-by say it. The design question is
-   settled and everything downstream is plumbing.
-
-   | | control | ours |
-   |---|---|---|
-   | steps | 87 | 85 (stopped: finished) |
-   | audio | 3.5s | 3.4s |
-   | **time** | **23.9s** | **11.9s** |
-
-   **THE 2x IS EXPLAINED AND IT IS FREE.** `t3.py` passes
-   `output_attentions=True` (lines 344 and 403). The run's own warning says
-   it: *"sdpa attention does not support output_attentions=True"* — so the
-   model falls back to eager attention, which is much slower. Those weights
-   feed the alignment analyzer, and the English model **never builds one**
-   (`is_multilingual` is `text_tokens_dict_size == 2454`; ours is 704). They
-   are computed and thrown away. Not asking for them halves the time and
-   costs nothing.
-3. **CLOSED — THE TOKENISER IS WRITTEN AND CONFORMS.** `Core/SpeechTokenizer`,
-   checked against HuggingFace's own `tokenizers` over the shipped vocabulary
-   on fourteen texts. `[SPACE]` is an added token cut out before
-   pre-tokenising; capitals have no merges; `fuse_unk` is false.
-4. **CLOSED — THE VOICES ARE COMPUTED AND COMMITTED.** 19 `.npz` under
-   `game-design/voice-conds/`, 2.5 MB. `ve` is out of the shipping path.
+   listened on 7 August: all the words, the same person, no damage, and he
+   would let a passer-by say it. 85 steps to the control's 87, 3.4s of audio
+   to 3.5s, **11.9s against 23.9s**.
+   **THE 2x IS FREE.** `t3.py` asks for `output_attentions=True`, which forces
+   eager attention — the run's own warning says so. Those weights feed the
+   alignment analyzer, and the English model never builds one. Computed and
+   thrown away every step.
+3. **CLOSED — THE TOKENISER CONFORMS.** `Core/SpeechTokenizer`, checked
+   against HuggingFace's own over the shipped vocabulary on fourteen texts.
+4. **CLOSED — 19 VOICES COMPUTED AND COMMITTED**, 2.5 MB under
+   `game-design/voice-conds/`. `ve` is out of the shipping path.
 5. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
    it is null. Needs onnxruntime with DirectML as a Unity plugin.
-6. **CLOSED — OFF THE MAIN THREAD.** `Core/SpeechQueue` holds the policy
-   (one line at a time, shallow queue, duplicates collapsed, a shelf life
-   after which a line stops being worth saying); `Audio` holds the thread and
-   pumps one finished line per frame from the mix. A line generated after its
-   moment is dropped and COUNTED — "can speak but not in time" is a different
-   problem from "cannot speak" and both would otherwise be silence.
-7. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`. The worker
-   paid off the other two. **`Audio.Backend` is the only thing still null**,
-   and it is the whole of what remains: an onnxruntime session behind
-   `ISpeechBackend`, with `Begin`, `Next`, `Release` and `Decode`.
+6. **CLOSED — OFF THE MAIN THREAD.** `Core/SpeechQueue` holds the policy —
+   one at a time, shallow queue, duplicates collapsed, a shelf life after
+   which a line stops being worth saying; `Audio` holds the thread and pumps
+   one finished line a frame. A line generated after its moment is dropped and
+   COUNTED: "can speak but not in time" is a different problem from "cannot
+   speak" and both would otherwise be silence.
+7. **THE GRAPH TOOK THE WRONG INPUT, AND ONLY WRITING THE BACKEND FOUND IT.**
+   The probe's t3 graph takes `inputs_embeds`, not a token — turning one into
+   the other needs two lookup tables that are NOT in the graph, so the game
+   would ship ~50 MB and reimplement model internals. That is the class of
+   thing that burned the sampler and the tokeniser.
+   `export-for-game.py` exports a graph that takes a TOKEN and a POSITION,
+   verified against a REAL `T3` built with a tiny Llama (6M instead of 520M,
+   same class and wiring): agrees to 3.5e-07, **and at four positions it was
+   not traced at**, which is what proves the position is an input rather than
+   a constant. **Needs one run on Jafar's machine**, then the backend.
+8. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`. The worker
+   paid off the other two. `Audio.Backend` is still null and is the last thing.
 
-**THE SPEED.** 11.9s measured in pytorch on CPU; the ONNX estimate is 9.7s for
-~3.5s of speech — 2.8x slower than real time, down from 13x. One thread left:
-the CPU beats DirectML 4.4x per step (0.09 against 0.40), which a 2 GB model
-shuttling to the GPU 92 times may simply explain.
+**THE SPEED.** 11.9s in pytorch on CPU; the ONNX estimate is 9.7s for ~3.5s of
+speech, 2.8x slower than real time, down from 13x. The CPU beats DirectML 4.4x
+per step (0.09 against 0.40) and nobody knows why yet.
 
 **AND THE "KNOWN GAP" I REPORTED IS NOT ONE.** The alignment analyzer is only
 built `if self.hp.is_multilingual` — `text_tokens_dict_size == 2454`, and ours

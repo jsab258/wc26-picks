@@ -558,7 +558,8 @@ def voice_live():
     # HuggingFace processors so the C# side has something to be identical TO.
     for script in ("probe.py", "export_probe.py", "stft_patch.py", "fixture.py",
                    "kv_cache.py", "sampler-reference.py", "vocoder.py",
-                   "speak.py", "precompute-voices.py", "tokenizer-reference.py"):
+                   "speak.py", "precompute-voices.py", "tokenizer-reference.py",
+                   "export-for-game.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])
