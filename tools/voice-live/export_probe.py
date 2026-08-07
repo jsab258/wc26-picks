@@ -236,11 +236,30 @@ def speaking_estimate(rows):
     by = {r.get("part"): r for r in rows if isinstance(r, dict)}
     out = {}
     total = 0.0
+    def fastest(row):
+        """The best device for THIS piece, not the accelerated one.
+
+        `provider_verdict` prefers the GPU when it works, which is right for
+        deciding whether the accelerator accepts a graph and wrong for costing
+        a line. The cached transformer ran 0.16 s on DirectML and 0.09 s on
+        CPU — the report took the GPU number and inflated the estimate by 5.9
+        seconds a line, nearly twice the true figure.
+
+        A game will run each piece wherever it is quickest, so that is what
+        the estimate has to assume. Both are kept and the choice is named.
+        """
+        best_t, best_on = row.get("run_seconds"), row.get("ran_on")
+        for name, r in (row.get("by_provider") or {}).items():
+            t = r.get("run_seconds")
+            if t is not None and (best_t is None or t < best_t):
+                best_t, best_on = t, name
+        return best_t, best_on
+
     t3 = by.get("t3") or {}
     inner = t3.get("inner_network") or {}
     steps = max(inner.get("called_times") or 0,
                 inner.get("called_times_second_voice") or 0)
-    per_step = t3.get("run_seconds")
+    per_step, t3_on = fastest(t3)
     if steps and per_step is not None:
         cost = steps * per_step
         # WHAT FRACTION OF THE STAGE WAS ACTUALLY TIMED, and this is a repair.
@@ -260,15 +279,17 @@ def speaking_estimate(rows):
             share = inner["params"] / t3["params"]
         out["text_stage"] = {"steps": steps, "seconds_per_step": per_step,
                              "seconds": round(cost, 1),
-                             "ran_on": t3.get("ran_on"),
+                             "ran_on": t3_on,
+                             "as_reported_on": t3.get("ran_on"),
                              "timed_piece": inner.get("child"),
                              "share_of_stage": round(share, 3) if share else None}
         total += cost
     for key in ("s3gen", "ve"):
         r = by.get(key) or {}
-        if r.get("run_seconds") is not None:
-            out[key] = {"seconds": r["run_seconds"], "ran_on": r.get("ran_on")}
-            total += r["run_seconds"]
+        t, on = fastest(r)
+        if t is not None:
+            out[key] = {"seconds": t, "ran_on": on}
+            total += t
     if not out:
         return None
     out["seconds_per_line"] = round(total, 1)
@@ -2123,6 +2144,25 @@ def selftest():
 
         check(e["text_stage"]["steps"] == 97,
               "the loop is costed at its LONGEST observed length, not its shortest")
+        mixed = speaking_estimate([
+            {"part": "t3", "run_seconds": 0.16, "ran_on": "Dml",
+             "params": 532405248,
+             "by_provider": {"Dml": {"run_seconds": 0.16},
+                             "CPU": {"run_seconds": 0.09}},
+             "inner_network": {"called_times": 83, "params": 503387136,
+                               "child": "tfmr"}},
+            {"part": "s3gen", "run_seconds": 1.55, "ran_on": "Dml",
+             "by_provider": {"Dml": {"run_seconds": 1.55},
+                             "CPU": {"run_seconds": 9.75}},
+             "output_shapes": [[1, 80, 162]]}])
+        check(abs(mixed["text_stage"]["seconds_per_step"] - 0.09) < 1e-9,
+              "each piece is costed on its FASTEST device, not the accelerated one")
+        check(mixed["s3gen"]["seconds"] == 1.55,
+              "and a piece the GPU really is quicker at keeps the GPU number")
+        check(mixed["text_stage"]["as_reported_on"] == "Dml"
+              and mixed["text_stage"]["ran_on"] == "CPU",
+              "with both devices named, so the choice can be checked")
+
         check(abs(e["seconds_per_line"] - (97 * 0.46 + 3.77)) < 0.05,
               f"one line is costed at {e['seconds_per_line']}s from the measured parts")
         check(e["times_real_time"] > 10 and "slower than real time" in e["verdict"],
