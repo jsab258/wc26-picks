@@ -17,7 +17,8 @@ CLAUDE.md under AUTO MODE.
 - **CI-needed items are marked.** They are batched into the next dispatch and
   are never a reason to stop working.
 - **Take from the top. Move finished items out** — this records what is NEXT.
-  Done work is in the git log.
+  Done work is in the git log, and `roadmap-history.md` holds the cut blocks;
+  `docs-check` caps a live plan at 400 lines, which is what forces the tidy.
 - **`## Standing work` never empties.** When `## Now` has nothing startable,
   decompose a standing item into it. Running out of short items is a refill
   signal, not a stop signal.
@@ -42,24 +43,64 @@ the wall now:
 - **the text tidy-up** (`Core/SpeechText`) — the model's `punc_norm`, matching
   it on fourteen awkward inputs including two quirks worth keeping.
 
-**NEXT, IN ORDER:**
+**THE 7 AUGUST RUN SETTLED THREE THINGS.**
 
-1. **The tokeniser.** Text to text-tokens is the last piece that is neither
-   converted nor reimplemented, and it needs `tokenizer.json` — about a
-   megabyte of merges, unreachable from this container (HuggingFace is 403
-   through the proxy). The probe now copies it out of Jafar's install and
-   reports its SHAPE, so the size of the C# job is known before it starts.
-   **Blocked on one probe run, and it is the only thing in this list that is.**
-2. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
-   it is null. Needs onnxruntime with DirectML as a Unity plugin. This is the
-   ~28-minute round trip.
-3. **Off the main thread.** One line costs about 9 seconds; generating it
-   inside a frame freezes the game. The loop is already deadline-aware and
-   `SpeechDirector` sizes the deadline from the machine, but nothing yet runs
-   it on a worker.
-4. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
+- **The cache bug was real on the real model.** `at_call [2,16,164,64]` against
+  `read_now [2,16,165,64]`, `grew_during_the_call: true`. Every earlier cached
+  export was traced with the current token already in its own history. With the
+  snapshot, correctness went from "could not check" to **agrees at 6.5e-07** —
+  and now agrees on all four synthetic scales too, not just real voices.
+- **Batch is 2, which is the classifier-free guidance** found by reading the
+  model rather than the report. `ISpeechBackend.Rows` already carries it.
+- **The vocabulary is small.** BPE, **704 tokens, 265 merges, 25 KB**,
+  Whitespace pre-tokeniser, no normaliser. The C# tokeniser is an afternoon,
+  not a week. It did not travel on that run — the destination was gitignored,
+  so the fetch worked and the file stayed on Jafar's machine. Fixed; next run
+  brings it.
+
+**AND `ve` NEVER RUNS AT RUNTIME, WHICH KILLS FOUR REPORTED FAILURES.**
+`prepare_conditionals(wav_fpath)` takes the REFERENCE CLIP and produces
+conditioning that `generate()` reuses for every line — read in `tts.py`, not
+assumed. Nothing in it depends on the text. So the voice encoder, the audio
+tokeniser and `embed_ref` are computed ONCE PER CAST MEMBER, offline, on any
+machine, and shipped as data. Therefore:
+
+  `ve` refused by DirectML          — irrelevant, it runs once, offline
+  `ve` frozen at one clip length    — irrelevant, one clip per voice
+  `s3tokenizer` STFT export failure — irrelevant, never runs at runtime
+  `speaker_encoder` fft_rfft        — irrelevant, same
+
+**NEXT, IN ORDER — what is actually left at runtime:**
+
+1. **THE VOCODER IS THE ONLY REAL CONVERSION BLOCKER LEFT.** `s3gen.flow`
+   converts and gives a mel spectrogram `[1,80,176]` in 1.43s on the GPU —
+   that is a picture of the sound, not the sound. Turning it into a waveform is
+   `hifigan.decode`, and it dies on `torch.stft` / `torch.istft`.
+   **The fix is to substitute at the right level.** `stft_patch` replaces
+   `torch.stft` and then has to fake a complex tensor, which is why it failed
+   with "'RealSpectrogram' object is not subscriptable". But hifigan's own
+   `_stft` already RETURNS TWO REAL TENSORS (`spec[...,0]`, `spec[...,1]`) —
+   so patching `_stft`/`_istft` as methods sidesteps complex numbers entirely.
+   `_istft` needs an overlap-add inverse, which is a transposed convolution.
+2. **The tokeniser in C#** — BPE, 704 tokens. Unblocked the moment the next
+   run lands the file.
+3. **Precompute the conditioning per cast member** — a small offline script
+   that runs `prepare_conditionals` once per voice and writes the tensors.
+   Removes `ve` from the shipping path entirely.
+4. **The ONNX session in the Game layer** — `Audio.Backend` is the field and
+   it is null. Needs onnxruntime with DirectML as a Unity plugin.
+5. **Off the main thread.** One line costs ~9.7s; generating it inside a frame
+   freezes the game. The loop is deadline-aware and `SpeechDirector` sizes the
+   deadline from the machine, but nothing yet runs it on a worker.
+6. **Three on the reach ledger** — `SpeechDirector.Observed`, `SpeechRun.Usable`,
    `SpeechRun.SecondsPerStep`. All three need a line to have actually been
-   generated. They come off the ledger when item 2 lands, not before.
+   generated. They come off the ledger when item 4 lands, not before.
+
+**THE SPEED, MEASURED.** 9.7s per line for ~3.5s of speech — 2.8x slower than
+real time, down from 13x. The transformer is 8.3s of it, at 92 steps x 0.09s
+**on the CPU, which is 4.4x faster than DirectML for this** (0.09 against 0.40).
+Worth understanding before optimising: a 2 GB model moving data to the GPU 92
+times may simply lose to keeping it in cache.
 
 **KNOWN GAP, WRITTEN DOWN RATHER THAN DISCOVERED LATER.** chatterbox's
 alignment analyzer reads the transformer's attention every step and uses it to
@@ -80,13 +121,6 @@ text is used up.
   off `successorWhy`, so he passes `CouldHold`. `handed=False` still, so
   `ReadySuccessor` returns a man and something after it refuses. A much smaller
   search than the 138 runs of nothing that preceded it.
-
-### What the earlier builds settled
-
-Cut on 5 and 7 August, and `roadmap-history.md` has the latest block. This
-file is what happens NEXT; `docs-check` caps a live plan at 400 lines for the
-reason the header gives — done work is in the git log, and commit messages
-carry the reasoning better than a summary of a summary. Open readings stay.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -128,14 +162,6 @@ would notice, whatever state anything else is in.
    The queue has been dismissing this item as "not worth touching while
    render+rest is 458ms", which confuses the runner's cost with ours.
 
-1. **CLOSED — ALL FOUR OF THOSE FIXES HAVE BEEN READ.** The threats worked
-   (`complied=1 called=1` after 136 zeros). The bubble ceiling fell 39% to 20%
-   and the fix did NOT do it (`bubblesScreenLifted=2`, and `bubblesMade`
-   halved) — though `bubblesNoBounds=0` closes the stated uncertainty: a
-   TextMesh built this frame does have usable bounds. The pavement went the
-   wrong way, `headingIntoRoad` 10 to 16, which is the corner exemption doing
-   what it was told. The mob did not move and the reason is above.
-
 1. **THE BUBBLE STACK'S SCREEN PASS HAS NEVER ONCE RUN.**
 
    `bubblesScreenLifted=0` on `2d5840f` and 2 on the build before, with
@@ -158,12 +184,6 @@ would notice, whatever state anything else is in.
    So this drops down the list: a pass that never runs is rule 6, but it is
    guarding a residue rather than two in five.
 
-2. **CLOSED — NO SCARECROWS.** `armWidest=54.5` against `armCrowdWidest=53.5`,
-   and off the real `Rig.ArmSwing` a normal walk puts the forearm at 45.4
-   degrees at 1.2 m/s — so that is somebody walking briskly with a bent elbow
-   and a T-pose is ninety. `animBodies=6 animDriven=6 animAdvancing=6`: nothing
-   is frozen in a bind pose. What those frames showed was the mob.
-
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
    `bodySpell=5.41` median over 1,143 spells against a derivable 4.7s
    (`BandSlack`/`crowdSpeed`), and the perf split says `bodyLod=2.59ms` against
@@ -174,31 +194,10 @@ would notice, whatever state anything else is in.
    so a 1ms saving is noise there and would be real on a player's machine.
    That is the whole difficulty and it is why this has not been done.
 
-4. **CLOSED — THE NAMEPLATE CAP WAS APPLIED AGAINST THE WRONG CAMERA.**
-   `nameShownWidthWorst=0.171` is the POST-cap width against a `PinFrac` of
-   0.120 — a label that went through the clamp and came out forty per cent
-   wider than the clamp allows. `Resolve` pins from `Camera.main` on the
-   ordinary schedule while `SimDirector.Shot` moves a camera and renders by
-   hand inside `Update`, so every label in a still was sized against last
-   frame's camera. `NameTags.PinAll` re-pins at the shot, the third site of an
-   idea `Billboard` and `SpeechBubble` already fixed. `namesPinnedAtShot` says
-   whether it ran.
-
-5. **CLOSED — THE SETBACK FIX WAS THE ADDRESSES, NOT THE BUILDINGS.**
-   `placeStopsInRoad` 31 to 3 and `placeFacesInRoad` 22 to 3 on `8f6243f`, with
-   corners then exempted so the residue is exactly the crossings and gates that
-   belong in a right of way. Nothing about the block-inset rule had to change.
-
 6. **THE FRAME GATE'S BIGGEST ITEM IS NOW TWO NUMBERS.** *(CI)* `population=
    4.08ms` covered a pass that runs every frame and one that runs once a
    second; read apart they are 1.31ms and 2.59ms. Neither is worth touching
    while `render+rest` is 458ms on a software runner — see item 3.
-
-7. **CLOSED — THE TWO DROP MISSES ARE TWO FAULTS.** d12 never stopped and lost
-   its target to a waypoint for eight of fifteen ticks; d13 held the target all
-   nineteen, was never hurt, and stood dead still for thirteen of them.
-   `stalledWith` counts who was standing on him at that instant and lands next
-   build: the mob is the suspect, and a zero anywhere else means geometry.
 
 8. **KEEP RETIRING THE REACH LEDGER — 35 entries**, `StreetMap.OnStreet` off it
    tonight because the place-setback question needed exactly the wider

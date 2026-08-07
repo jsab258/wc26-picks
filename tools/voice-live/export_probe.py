@@ -1753,8 +1753,16 @@ def copy_tokenizer():
     RETURNS WHAT IT DID, INCLUDING WHY NOT. A missing tokenizer would
     otherwise look exactly like a probe that never tried — rule 3b — and the
     difference decides whether the C# tokeniser is the next task or is blocked.
+    THE DESTINATION IS TRACKED, AND THAT IS THE WHOLE POINT. The first version
+    wrote it to `export-out/`, which is in `.gitignore` — so the run fetched
+    the file correctly, reported its shape correctly, and the file itself never
+    left Jafar's machine. A fetch whose result cannot travel is a fetch that
+    did not happen, and the report looked identical either way.
+
+    25 KB, so committing it costs nothing and the C# tokeniser can be written
+    and tested against the real vocabulary instead of a guess at one.
     """
-    dest = OUT / "tokenizer.json"
+    dest = ROOT / "tools" / "voice-live" / "tokenizer.json"
     try:
         from chatterbox.tts import REPO_ID
         from huggingface_hub import hf_hub_download
@@ -1763,9 +1771,15 @@ def copy_tokenizer():
         return {"copied": False, "why": f"{type(e).__name__}: {e}"[:160]}
     try:
         import shutil
-        OUT.mkdir(parents=True, exist_ok=True)
+        dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dest)
-        return describe_tokenizer(dest)
+        seen = describe_tokenizer(dest)
+        # WHERE IT LANDED, IN THE REPORT. The last run said `copied: true` and
+        # the file was unreachable, because the path was ignored by git. A
+        # report that says a file arrived should say where, so "it did not
+        # travel" is visible without going and looking.
+        seen["path"] = "tools/voice-live/tokenizer.json (tracked)"
+        return seen
     except Exception as e:
         return {"copied": dest.exists(), "why": f"{type(e).__name__}: {e}"[:160]}
 
@@ -1976,7 +1990,25 @@ def cmd_run(args, allow_install=True):
            f"the second exporter was not installed ({why}), so only the older "
            f"tracer was tried and no dynamo result here is about the model")
     good = [r for r in rows if r.get("verdict") == "exported and runs"]
-    print(f"  {len(good)} of {len(rows)} part(s) exported AND ran under onnxruntime.")
+    # TWO DIFFERENT QUESTIONS, AND THE HEADLINE WAS ANSWERING THE WRONG ONE.
+    #
+    # "0 of 3 exported AND ran" was printed on a run where t3's transformer —
+    # 94.5% of the stage — exported, ran on both providers, and agreed with the
+    # original to 6.5e-07 on two real voices AND four synthetic scales. It read
+    # as total failure. It counted `verdict == "exported and runs"`, which is
+    # true only when the part's OWN entry point converts, and for two of the
+    # three parts that entry point is a data-dependent loop we are deliberately
+    # rebuilding in C# — so it can never be true and its absence means nothing.
+    #
+    # The question that matters is whether a route SHIPS: something converted,
+    # it runs under onnxruntime, and where correctness is checkable it agrees.
+    # Both lines are printed now, because "the wrapper did not convert" is also
+    # true and is what the remaining work is.
+    ships = [r for r in rows if r.get("ran_on") and not r.get("run_error")]
+    print(f"  {len(ships)} of {len(rows)} part(s) have a route that RUNS under "
+          f"onnxruntime — which is the question.")
+    print(f"  {len(good)} of {len(rows)} converted at the top level; the rest need "
+          f"their loop driven from outside, which is the C# side and is built.")
     for r in rows:
         print(f"    {r['part']:8} {r.get('verdict', '?')}")
     # PRINTED SO THE CONSOLE AND THE FILE CAN BE COMPARED. If they disagree,

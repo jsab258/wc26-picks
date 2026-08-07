@@ -125,19 +125,145 @@ def conv_stft(x, n_fft, hop_length=None, win_length=None, window=None,
     return torch.stack([re, im], dim=-1)
 
 
+def conv_istft(real, imag, n_fft, hop_length=None, win_length=None,
+               window=None, center=True, length=None):
+    """`torch.istft`, computed with two TRANSPOSED convolutions.
+
+    THE OTHER HALF, AND IT IS THE HALF THAT SHIPS. The forward transform above
+    was written for the audio TOKENISER, which — established on 7 August by
+    reading `tts.py` — runs once per voice, offline, and never needs to be in
+    a graph at all. The transform that actually has to convert is this one:
+    `hifigan.decode` ends with an inverse STFT, and it is the step that turns
+    the decoder's mel spectrogram into a waveform. Without it the converted
+    model produces a picture of the sound.
+
+    Takes real and imaginary parts SEPARATELY rather than a complex tensor,
+    because that is how the model already holds them — `hifigan._istft` builds
+    `real = magnitude*cos(phase)` and `img = magnitude*sin(phase)` and only
+    then calls `torch.complex`. Substituting here means complex numbers never
+    enter the graph, which is the whole problem: ONNX has no complex type, and
+    the previous attempt failed trying to impersonate one
+    ("'RealSpectrogram' object is not subscriptable").
+
+    Overlap-add, in three steps and all three are standard ONNX operators:
+
+      1. the inverse DFT as a fixed matrix, folded into the kernel;
+      2. `conv_transpose1d` at `hop_length`, which IS overlap-add;
+      3. divide by the overlapped window energy, the same normalisation
+         `torch.istft` applies, computed the same way.
+
+    chatterbox's vocoder uses `n_fft=16, hop_len=4` — read from
+    `hifigan.py`'s `istft_params`, not assumed — so these are small kernels
+    and the cost is negligible next to the 112M-parameter decoder in front.
+    """
+    hop_length = hop_length or n_fft // 4
+    win_length = win_length or n_fft
+    w = window if window is not None else torch.ones(win_length, dtype=real.dtype)
+    if w.numel() < n_fft:
+        pad = n_fft - w.numel()
+        w = torch.nn.functional.pad(w, (pad // 2, pad - pad // 2))
+    w = w.to(real.dtype)
+
+    squeeze = real.dim() == 2
+    if squeeze:
+        real, imag = real.unsqueeze(0), imag.unsqueeze(0)
+
+    bins = real.shape[1]
+    k = torch.arange(bins, dtype=real.dtype).unsqueeze(1)
+    t = torch.arange(n_fft, dtype=real.dtype).unsqueeze(0)
+    ang = 2 * math.pi * k * t / n_fft
+
+    # HERMITIAN SYMMETRY, AND THE TWO BINS THAT ARE NOT DOUBLED. A one-sided
+    # spectrum omits the negative frequencies; reconstructing means counting
+    # each of them twice — EXCEPT DC and, for an even n_fft, Nyquist, which
+    # have no partner. Getting that wrong is a small, plausible-sounding error
+    # that would survive every shape check.
+    scale = torch.full((bins, 1), 2.0, dtype=real.dtype)
+    scale[0, 0] = 1.0
+    if n_fft % 2 == 0 and bins == n_fft // 2 + 1:
+        scale[bins - 1, 0] = 1.0
+
+    cos_k = ((torch.cos(ang) * scale / n_fft) * w).unsqueeze(1)
+    sin_k = ((-torch.sin(ang) * scale / n_fft) * w).unsqueeze(1)
+
+    frames = torch.nn.functional.conv_transpose1d(real, cos_k, stride=hop_length) \
+        + torch.nn.functional.conv_transpose1d(imag, sin_k, stride=hop_length)
+
+    # The window energy at every sample, by overlap-adding w^2 with the same
+    # geometry. Ones in, so this depends only on the window and the hop.
+    ones = torch.ones(1, 1, real.shape[2], dtype=real.dtype)
+    norm = torch.nn.functional.conv_transpose1d(
+        ones, (w * w).view(1, 1, n_fft), stride=hop_length)
+    frames = frames / torch.clamp(norm, min=1e-11)
+
+    if center:
+        frames = frames[..., n_fft // 2: frames.shape[-1] - n_fft // 2]
+    if length is not None:
+        frames = frames[..., :length]
+    out = frames.squeeze(1)
+    return out.squeeze(0) if squeeze else out
+
+
 class patched:
-    """`with patched(): torch.onnx.export(...)` — swaps `torch.stft` for the
-    convolution form and puts it back afterwards, so nothing outside the
-    export is affected."""
+    """`with patched(): torch.onnx.export(...)` — swaps `torch.stft` and
+    `torch.istft` for the convolution forms and puts them back afterwards, so
+    nothing outside the export is affected.
+
+    `torch.istft` IS SWAPPED TOO, and it was not before. The forward transform
+    alone got `s3gen` as far as a mel spectrogram and no further; the report
+    read "exported and runs" for the flow and the waveform step was never in
+    it.
+    """
 
     def __enter__(self):
-        self._real = torch.stft
+        self._stft, self._istft = torch.stft, torch.istft
+        self._complex = torch.complex
         torch.stft = conv_stft
+        torch.istft = _istft_shim
+        # `torch.complex` TOO, OR COMPLEX COMES BACK IN BY THE FRONT DOOR.
+        # Swapping `torch.istft` alone left the export failing on
+        # `aten::complex`, because `hifigan._istft` builds its complex tensor
+        # FIRST and only then calls istft:
+        #
+        #     real = magnitude * cos(phase); img = magnitude * sin(phase)
+        #     torch.istft(torch.complex(real, img), ...)
+        #
+        # So the complex value exists as a traced operation before the
+        # substituted function ever sees it. Pairing the two keeps the type out
+        # of the graph entirely, which is the only thing that works — a lesson
+        # this file already recorded once, about `view_as_complex`.
+        torch.complex = _complex_shim
         return self
 
     def __exit__(self, *exc):
-        torch.stft = self._real
+        torch.stft, torch.istft = self._stft, self._istft
+        torch.complex = self._complex
         return False
+
+
+def _complex_shim(real, imag, out=None):
+    """`torch.complex`, kept out of the graph. Returns the same proxy the
+    forward transform produces, so the two shims compose."""
+    return RealSpectrogram(real, imag)
+
+
+def _istft_shim(spec, n_fft, hop_length=None, win_length=None, window=None,
+                center=True, normalized=False, onesided=None, length=None,
+                return_complex=False):
+    """`torch.istft`'s signature, forwarding to the two-real-tensor form.
+
+    Accepts either a real complex tensor or the `RealSpectrogram` the forward
+    shim produces, so a model that round-trips through both is not required to
+    know which it is holding.
+    """
+    if isinstance(spec, RealSpectrogram):
+        re, im = spec.re, spec.im
+    elif spec.is_complex():
+        re, im = spec.real, spec.imag
+    else:
+        re, im = spec[..., 0], spec[..., 1]
+    return conv_istft(re, im, n_fft, hop_length, win_length, window,
+                      center=center, length=length)
 
 
 def selftest():
@@ -219,6 +345,92 @@ def selftest():
         rel = float(np.abs(want - got).max()) / max(float(np.abs(want).max()), 1e-12)
         check(rel < 1e-3,
               f"and the converted file agrees with the original to {rel:.1e}", f"{rel:.2e}")
+
+    # 3b. THE INVERSE, WHICH IS THE HALF THAT SHIPS.
+    #
+    # The forward transform gets the decoder as far as a mel spectrogram — a
+    # picture of the sound. `hifigan.decode` ends with an inverse STFT and that
+    # is the step that makes a waveform, so without this the converted model
+    # produces something nobody can listen to.
+    #
+    # CHATTERBOX'S OWN SETTINGS FIRST. `hifigan.py`'s `istft_params` is
+    # `{"n_fft": 16, "hop_len": 4}` — read, not assumed — and it is far smaller
+    # than the sizes above, so it goes first rather than being represented by a
+    # convenient round number.
+    for n_fft, hop in ((16, 4), (64, 16), (256, 64)):
+        w = torch.hann_window(n_fft)
+        with torch.no_grad():
+            spec = torch.stft(x, n_fft=n_fft, hop_length=hop, win_length=n_fft,
+                              window=w, return_complex=True)
+            want = torch.istft(spec, n_fft, hop, n_fft, window=w)
+            back = conv_istft(spec.real, spec.imag, n_fft, hop, n_fft, window=w)
+        n = min(want.shape[-1], back.shape[-1])
+        check(tuple(want.shape) == tuple(back.shape),
+              f"istft n_fft={n_fft}: the shape matches torch.istft",
+              f"{tuple(want.shape)} vs {tuple(back.shape)}")
+        d = float((want[..., :n] - back[..., :n]).abs().max()) / float(want.abs().max())
+        check(d < 1e-4, f"istft n_fft={n_fft}: the waveform matches to {d:.1e}",
+              f"{d:.2e}")
+
+    # AND THE ROUND TRIP, which is the thing a listener would actually hear.
+    # Agreeing with `torch.istft` on ITS OWN forward transform does not prove
+    # the two halves here compose — they could share a convention that neither
+    # shares with the signal.
+    w16 = torch.hann_window(16)
+    with torch.no_grad():
+        sp = conv_stft(x, n_fft=16, hop_length=4, win_length=16, window=w16)
+        rt = conv_istft(sp.re, sp.im, 16, 4, 16, window=w16)
+    n = min(x.shape[-1], rt.shape[-1])
+    rt_err = float((x[..., :n] - rt[..., :n]).abs().max()) / float(x.abs().max())
+    check(rt_err < 1e-4,
+          f"and forward-then-inverse returns the original signal to {rt_err:.1e}",
+          f"{rt_err:.2e}")
+
+    # 3c. THE INVERSE CONVERTS, WHICH THE ORIGINAL DOES NOT.
+    class Vocoderish2(torch.nn.Module):
+        """magnitude and phase in, waveform out — `hifigan._istft` exactly."""
+        def forward(self, mag, phase):
+            real = mag * torch.cos(phase)
+            img = mag * torch.sin(phase)
+            return torch.istft(torch.complex(real, img), 16, 4, 16,
+                               window=torch.hann_window(16))
+
+    m2 = Vocoderish2().eval()
+    mag = torch.rand(1, 9, 64) + 0.1
+    ph = torch.randn(1, 9, 64)
+    try:
+        with torch.no_grad():
+            torch.onnx.export(m2, (mag, ph), str(tmp / "istft_plain.onnx"),
+                              opset_version=17, dynamo=False)
+        plain2 = "exported"
+    except Exception as e:
+        plain2 = f"{type(e).__name__}"
+    check(plain2 != "exported",
+          "unpatched, the waveform step refuses too — this blocker is real as well",
+          plain2)
+
+    ok2, why2 = True, ""
+    try:
+        with patched(), torch.no_grad():
+            torch.onnx.export(m2, (mag, ph), str(tmp / "istft_patched.onnx"),
+                              opset_version=17, dynamo=False)
+    except Exception as e:
+        ok2, why2 = False, f"{type(e).__name__}: {e}"
+    check(ok2, "patched, the waveform step converts", why2[:120])
+
+    if ok2:
+        import numpy as np
+        import onnxruntime as ort
+        s2 = ort.InferenceSession(str(tmp / "istft_patched.onnx"),
+                                  providers=["CPUExecutionProvider"])
+        names = [i.name for i in s2.get_inputs()]
+        got2 = s2.run(None, {names[0]: mag.numpy(), names[1]: ph.numpy()})[0]
+        with torch.no_grad():
+            want2 = m2(mag, ph).numpy()
+        r2 = float(np.abs(want2 - got2).max()) / max(float(np.abs(want2).max()), 1e-12)
+        check(r2 < 1e-3,
+              f"and the converted waveform agrees with pytorch's to {r2:.1e}",
+              f"{r2:.2e}")
 
     # 4. THE PROXY MUST NOT GUESS. An unimplemented operation has to raise, or
     # a converted model could be quietly wrong in a way nothing would catch.
