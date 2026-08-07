@@ -217,6 +217,61 @@ def worth_retrying_without_asserts(row):
             or "could not guard on data-dependent" in blob)
 
 
+def speaking_estimate(rows):
+    """How long one line of dialogue would take, from what the run measured.
+
+    THE NUMBER THAT DECIDES THE ROUTE, and until now it was not in the report
+    — I worked it out by hand after reading the run, which is exactly the
+    habit of computing a conclusion nobody can check. Every input to it is
+    already measured; only the multiplication was missing.
+
+    The text stage is a LOOP, so its cost is per-step time times the number of
+    steps, and that product is where the whole latency question lives: a step
+    that looks quick at half a second is forty-five seconds when it runs
+    ninety times. The decoder runs once and is added flat.
+
+    Reported with the pieces beside it so a reader can see which term
+    dominates rather than taking the total on trust.
+    """
+    by = {r.get("part"): r for r in rows if isinstance(r, dict)}
+    out = {}
+    total = 0.0
+    t3 = by.get("t3") or {}
+    inner = t3.get("inner_network") or {}
+    steps = max(inner.get("called_times") or 0,
+                inner.get("called_times_second_voice") or 0)
+    per_step = t3.get("run_seconds")
+    if steps and per_step is not None:
+        cost = steps * per_step
+        out["text_stage"] = {"steps": steps, "seconds_per_step": per_step,
+                             "seconds": round(cost, 1),
+                             "ran_on": t3.get("ran_on")}
+        total += cost
+    for key in ("s3gen", "ve"):
+        r = by.get(key) or {}
+        if r.get("run_seconds") is not None:
+            out[key] = {"seconds": r["run_seconds"], "ran_on": r.get("ran_on")}
+            total += r["run_seconds"]
+    if not out:
+        return None
+    out["seconds_per_line"] = round(total, 1)
+
+    # AND AGAINST HOW MUCH SPEECH, because seconds alone cannot say whether
+    # this is shippable. The decoder's frame count is the length of the line.
+    frames = None
+    sh = (by.get("s3gen") or {}).get("output_shapes") or []
+    if sh and len(sh[0]) >= 3:
+        frames = sh[0][-1]
+    if frames:
+        audio = frames / 50.0          # mel frames at 50/s, chatterbox's rate
+        out["seconds_of_speech"] = round(audio, 1)
+        out["times_real_time"] = round(total / audio, 1) if audio else None
+        out["verdict"] = ("faster than real time" if total < audio else
+                          f"{total / audio:.0f}x slower than real time — a "
+                          f"character would pause this long before answering")
+    return out
+
+
 def merge_part_reports(out_dir, parts):
     """Collect one JSON per part into the single report.
 
@@ -1333,9 +1388,12 @@ def cmd_run(args, allow_install=True):
     # leaves the old one readable.
     stamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
+    est_holder = {}
+
     def report(rows, note=None):
         REPORT.write_text(json.dumps(
-            {"run_started": stamp, "note": note, "parts": rows},
+            {"run_started": stamp, "note": note,
+             "speaking_estimate": est_holder.get("v"), "parts": rows},
             indent=1), encoding="utf-8")
 
     report([], "this run did not finish — it exited before trying anything")
@@ -1441,6 +1499,7 @@ def cmd_run(args, allow_install=True):
         print()
 
     rows = merge_part_reports(OUT, PARTS)
+    est_holder["v"] = speaking_estimate(rows)
     report(rows, None if ok else
            f"the second exporter was not installed ({why}), so only the older "
            f"tracer was tried and no dynamo result here is about the model")
@@ -1450,6 +1509,20 @@ def cmd_run(args, allow_install=True):
         print(f"    {r['part']:8} {r.get('verdict', '?')}")
     # PRINTED SO THE CONSOLE AND THE FILE CAN BE COMPARED. If they disagree,
     # the file on screen is not the one this run wrote.
+    e = est_holder.get("v") or {}
+    if e.get("seconds_per_line"):
+        print()
+        print(f"  ONE LINE OF DIALOGUE WOULD TAKE ~{e['seconds_per_line']} SECONDS")
+        t = e.get("text_stage") or {}
+        if t:
+            print(f"    text stage  {t.get('steps')} steps x {t.get('seconds_per_step')}s"
+                  f" = {t.get('seconds')}s on {t.get('ran_on')}")
+        for k in ("s3gen", "ve"):
+            if e.get(k):
+                print(f"    {k:11} {e[k]['seconds']}s on {e[k].get('ran_on')}")
+        if e.get("verdict"):
+            print(f"    for ~{e.get('seconds_of_speech')}s of speech — {e['verdict']}")
+        print()
     print(f"  full report: {REPORT}")
     print(f"  this run is stamped {stamp} — the report says the same, and if it")
     print("  does not, you are looking at an older file.")
@@ -1752,6 +1825,31 @@ def selftest():
         ready, why = dynamo_ready()
         check(isinstance(ready, bool) and (ready or why),
               "the second exporter's absence is detectable, and says which package")
+
+        # THE LATENCY ARITHMETIC, which is the number that decides the route.
+        rows = [
+            {"part": "t3", "run_seconds": 0.46,
+             "inner_network": {"called_times": 88, "called_times_second_voice": 97},
+             "ran_on": "CPUExecutionProvider"},
+            {"part": "s3gen", "run_seconds": 3.77, "ran_on": "DmlExecutionProvider",
+             "output_shapes": [[1, 80, 184]]},
+        ]
+        e = speaking_estimate(rows)
+        check(e["text_stage"]["steps"] == 97,
+              "the loop is costed at its LONGEST observed length, not its shortest")
+        check(abs(e["seconds_per_line"] - (97 * 0.46 + 3.77)) < 0.05,
+              f"one line is costed at {e['seconds_per_line']}s from the measured parts")
+        check(e["times_real_time"] > 10 and "slower than real time" in e["verdict"],
+              "and it is stated against the length of speech, not in seconds alone")
+        fast = speaking_estimate([
+            {"part": "t3", "run_seconds": 0.005,
+             "inner_network": {"called_times": 90}, "ran_on": "Dml"},
+            {"part": "s3gen", "run_seconds": 0.3, "ran_on": "Dml",
+             "output_shapes": [[1, 80, 184]]}])
+        check(fast["verdict"] == "faster than real time",
+              "and a fast enough pipeline is not reported as too slow")
+        check(speaking_estimate([]) is None,
+              "a run that measured nothing produces no estimate rather than a zero")
 
         check(all(p["key"] in {q["key"] for q in PARTS} for p in PARTS)
               and cmd_one("no-such-part") == 1,
