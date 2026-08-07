@@ -991,25 +991,43 @@ def try_export(model, part, out_dir):
             # the next attempt overwrites it, which `export_with_fallback`
             # handles by unlinking first.
 
-        if not exported and best is not None and best.get("good"):
-            # A clean candidate that is only part of the stage: taken, and the
-            # share is already carried into the verdict by `inner_network`.
-            exported = True
-            inner_used = best["inner"]
-            hook, target, errors = best["hook"], best["target"], best["errors"]
-
         if not exported and best is not None:
-            # NOTHING WAS RIGHT, BUT SOMETHING CONVERTED. Re-export the best
-            # one so the file on disk matches what the verdict describes —
-            # later attempts will have overwritten it — and report it as the
-            # near-miss it is rather than as a failure. "It converts and the
-            # numbers are wrong" is a different day's work from "it will not
-            # convert", and the report has to keep them apart.
+            # THE FILE ON DISK MUST BE THE ONE THE VERDICT DESCRIBES, and this
+            # re-export is the only thing that makes that true.
+            #
+            # `export_with_fallback` unlinks the destination before every
+            # attempt, so by the time the loop ends the file is whatever the
+            # LAST candidate left — or nothing, if it failed. Adopting an
+            # earlier candidate's handles without redoing its export produces
+            # a verdict about a file that is not there.
+            #
+            # I added a second route into this state that skipped this step,
+            # and it cost a run: the decoder came back FileNotFoundError and
+            # the text stage came back "Got: 150 Expected: 38" — the graph on
+            # disk wanting one shape while the candidate being reported fed it
+            # another. One cause, two parts, and the same class as the stale
+            # report this file was fixed for earlier: a verdict describing
+            # something the run did not produce.
+            #
+            # Anything not accepted in the loop lands here, clean or not — a
+            # near-miss is reported as a near-miss, because "it converts and
+            # the numbers are wrong" is a different day's work from "it will
+            # not convert".
             def redo(use_dynamo, _t=best["target"], _a=best["hook"]["args"]):
                 with torch.no_grad():
                     torch.onnx.export(_t, _a, str(dest), opset_version=17,
                                       do_constant_folding=True, dynamo=use_dynamo)
-            export_with_fallback(redo, dest)
+            redone, _ = export_with_fallback(redo, dest)
+            # AND IF THE RE-EXPORT ITSELF FAILS, say so rather than reporting
+            # a candidate whose file could not be reproduced.
+            if not redone:
+                return {"part": part["key"], "verdict": "failed",
+                        "entry": candidates[0] if candidates else None,
+                        "params": n_params, "by_entry": attempts,
+                        "error": "a candidate exported during the search and "
+                                 "could not be re-exported afterwards, so no "
+                                 "file matches this verdict",
+                        "seconds": round(time.time() - t0, 1)}
             exported = True
             inner_used = best["inner"]
             hook = best["hook"]
@@ -1108,7 +1126,19 @@ def try_export(model, part, out_dir):
     if inner_used:
         n = inner_used.get("called_times", 0)
         n2 = inner_used.get("called_times_second_voice", 0)
-        if n2 and n != n2:
+        # A FAILURE IS NOT OVERWRITTEN BY A NOTE ABOUT THE LOOP. The run that
+        # exposed the re-export bug came back with `run_error: Got 150
+        # Expected 38` — the graph would not even load with the arguments
+        # being reported — and the verdict said "a data-dependent loop: the
+        # wrapper ran this 83 times". True, and it buried the fact that
+        # nothing ran at all. The loop is a property of the stage; whether the
+        # file works is a property of this run, and the second one wins.
+        broken = ("will not run" in (v.get("verdict") or "")
+                  or "numbers are wrong" in (v.get("verdict") or ""))
+        if broken:
+            v["loop_note"] = (f"the wrapper also runs this {n} and {n2} times for "
+                              f"two different lines, so the loop is data-dependent")
+        elif n2 and n != n2:
             # PROOF, not inference. Two real voices drove this child a
             # different number of times, so the wrapper's loop depends on the
             # data and no single graph can hold it.
@@ -2004,6 +2034,12 @@ def selftest():
                                "child": "speech_emb"}, "ran_on": "Dml"},
             {"part": "s3gen", "run_seconds": 3.68, "ran_on": "Dml",
              "output_shapes": [[1, 80, 192]]}])
+        # A RUN THAT PRODUCED NO WORKING FILE MUST NOT BE COSTED AT ALL.
+        none_ran = speaking_estimate([
+            {"part": "ve", "run_seconds": 0.04, "ran_on": "CPU"}])
+        check(not none_ran.get("seconds_of_speech"),
+              "with no decoder output there is no speech length to cost against")
+
         check(small.get("seconds_per_line") is None and "NOT MEASURED" in small["verdict"],
               "a stage where only a 1.6% piece converted gets NO per-line number")
         check("speech_emb" in small["verdict"] and "1.6%" in small["verdict"],
