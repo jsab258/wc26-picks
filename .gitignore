@@ -53,3 +53,6 @@ tools/voice-live/out/
 
 # The two wav files "3 HEAR IT SPEAK.bat" writes — output, not source.
 tools/voice-live/speak-out/
+
+# The game graphs — about 2 GB, and they ship with the build rather than git.
+tools/voice-live/game-out/
