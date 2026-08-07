@@ -74,11 +74,21 @@ def cache_layout(v):
     return None
 
 
-def describe(kwargs):
+def describe(kwargs, args=()):
     """What a call's non-tensor arguments actually are — so a cache that is
     not recognised can be identified from the report instead of by guessing
     at another release's field names."""
     out = {}
+    for i, v in enumerate(args or ()):
+        # POSITIONAL TOO. A cache handed over unnamed is invisible to a
+        # keyword-only sweep, and would look identical to no cache at all.
+        if v is None or hasattr(v, "shape"):
+            continue
+        out[f"positional[{i}]"] = {"type": type(v).__name__,
+                                   "layout": cache_layout(v),
+                                   "attrs": [a for a in ("key_cache", "value_cache",
+                                                         "layers", "to_legacy_cache")
+                                             if hasattr(v, a)]}
     for name, v in (kwargs or {}).items():
         if v is None or hasattr(v, "shape"):
             continue

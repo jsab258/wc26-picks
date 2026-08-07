@@ -440,6 +440,14 @@ def try_export(model, part, out_dir):
         # than inference, and it costs a second integer.
         counts = {}
         counts_b = {}
+        # THE LAST CALL AS WELL AS THE FIRST, and this is the whole cache
+        # question. A generation loop's FIRST step is the one step that
+        # legitimately has no cache — there is nothing to remember yet — and
+        # first-call-wins meant every cache lookup was aimed at the only call
+        # in the loop where the thing being looked for cannot exist. The
+        # report said "no cache-shaped argument found" and was right about the
+        # call it was shown.
+        last = {}
         swap = [False]          # True once the second, different-voice drive starts
         second = {}             # the same entry points, captured from that drive
         second_note = [None]
@@ -453,6 +461,7 @@ def try_export(model, part, out_dir):
                         second[key] = {"args": grab, "kwargs": dict(kw)}
                 else:
                     counts[key] = counts.get(key, 0) + 1
+                    last[key] = {"args": grab, "kwargs": dict(kw)}
                     if key not in store:
                         store[key] = {"args": grab, "kwargs": dict(kw)}
                         if store is calls:
@@ -618,6 +627,7 @@ def try_export(model, part, out_dir):
                    else make_kwargs_wrapper(sub, meth, names, const, npos))
             plan.append({"label": meth, "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
+                         "last_call": last.get(meth),
                          "method": meth, "inner": None, "owner": sub,
                          "kw_names": names, "const": const, "n_positional": npos})
         for key, kid, kname, mname in sorted(
@@ -629,6 +639,7 @@ def try_export(model, part, out_dir):
                    else make_kwargs_wrapper(kid, mname, names, const, npos))
             plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
+                         "last_call": last.get(key),
                          "method": mname, "owner": kid,
                          "kw_names": names, "const": const, "n_positional": npos,
                          "inner": {"child": kname, "method": mname,
@@ -771,7 +782,14 @@ def try_export(model, part, out_dir):
             if not ok and takes_cache:
                 try:
                     import kv_cache
-                    cname, cobj = kv_cache.find_cache(step.get("all_kwargs") or {})
+                    # THE LAST CALL FIRST, because that is the one carrying a
+                    # populated cache; the first call falls back for a model
+                    # that is handed one up front.
+                    lc = step.get("last_call") or {}
+                    cname, cobj = kv_cache.find_cache(lc.get("kwargs") or {})
+                    from_last = cobj is not None
+                    if cobj is None:
+                        cname, cobj = kv_cache.find_cache(step.get("all_kwargs") or {})
                     # SAID EITHER WAY. The first version recorded nothing when
                     # no cache was found, so the whole route left no trace in
                     # the report — not a success, not a failure, not
@@ -782,10 +800,18 @@ def try_export(model, part, out_dir):
                     # with it, so an unrecognised cache can be identified from
                     # the report instead of guessed at.
                     if cobj is None:
+                        # BOTH CALLS DESCRIBED, and the positional arguments
+                        # too — a cache passed unnamed would otherwise be
+                        # invisible in exactly the same way.
                         row["with_cache_as_tensors"] = {
-                            "skipped": "no cache-shaped argument found in the call",
-                            "non_tensor_arguments":
-                                kv_cache.describe(step.get("all_kwargs") or {})}
+                            "skipped": "no cache-shaped argument in either the "
+                                       "first or the last call",
+                            "first_call": kv_cache.describe(
+                                step.get("all_kwargs") or {},
+                                step.get("args") or ()),
+                            "last_call": kv_cache.describe(
+                                lc.get("kwargs") or {}, lc.get("args") or ()),
+                            "calls_seen": (step.get("inner") or {}).get("called_times")}
                     if cobj is not None:
                         flat = kv_cache.cache_to_tensors(cobj)
                         cw = kv_cache.make_cached_wrapper(
@@ -793,7 +819,9 @@ def try_export(model, part, out_dir):
                             {k: v for k, v in (step.get("const") or {}).items()
                              if k != "use_cache"},
                             step["n_positional"], cname, cobj)
-                        cargs = tuple(hook["args"]) + tuple(flat)
+                        base = tuple(lc.get("args") or hook["args"]) if from_last \
+                            else tuple(hook["args"])
+                        cargs = base + tuple(flat)
 
                         def do_cached(use_dynamo, _t=cw, _a=cargs):
                             with torch.no_grad():

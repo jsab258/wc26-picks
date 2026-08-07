@@ -99,8 +99,18 @@ class FakeT3(nn.Module):
         # Called by keyword and with a non-tensor flag, exactly as the real
         # transformer is — the flag must stay baked in while the tensor
         # becomes a graph input.
-        h = self.tfmr(inputs_embeds=x, use_cache=True,
-                      past_key_values=DynamicCacheish([x], [x])).last_hidden_state
+        # A REAL GENERATION LOOP: the FIRST call has no cache — there is
+        # nothing to remember yet — and every later one carries the cache the
+        # previous step produced. The stand-in used to hand a cache in on the
+        # very first call, which is the one arrangement that hid the fault:
+        # the probe kept the first call, found a cache there, and never
+        # noticed it would find none on the real model.
+        cache = None
+        h = x
+        for _ in range(3):
+            out = self.tfmr(inputs_embeds=h, use_cache=True, past_key_values=cache)
+            h, cache = out.last_hidden_state, out.past_key_values
+        h = h
         steps = 0
         for _ in range(20):
             h = self.proj(h)
