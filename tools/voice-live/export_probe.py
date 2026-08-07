@@ -504,6 +504,19 @@ def try_export(model, part, out_dir):
         # call it was shown.
         last = {}
         last_b = {}
+        # IMPORTED HERE, WHERE THE SPY CAN SEE IT. The only `import kv_cache`
+        # in this file was four hundred lines below, inside the export loop —
+        # so the spy's call to it raised NameError on every single step, the
+        # bare `except` underneath swallowed it, and the snapshot silently
+        # never happened. The report then said "live (no snapshot)", which
+        # reads as "this model has no snapshot to take" rather than "the code
+        # that takes it could not run". Rule 3b with a try/except around it.
+        try:
+            import kv_cache as _kv
+            snap_off = None
+        except Exception as e:
+            _kv, snap_off = None, f"{type(e).__name__}: {e}"
+        snap_fail = [snap_off]
         swap = [False]          # True once the second, different-voice drive starts
         second = {}             # the same entry points, captured from that drive
         second_note = [None]
@@ -511,6 +524,37 @@ def try_export(model, part, out_dir):
         def make(store, key, real):
             def spy(*a, **kw):
                 grab = tuple(x.detach() if hasattr(x, "detach") else x for x in a)
+                # THE CACHE AS IT IS ON THE WAY IN, not as it is afterwards.
+                #
+                # `dict(kw)` copies the dict and keeps the cache OBJECT, and
+                # the call two lines down appends to that object. So every
+                # reader of `last[key]["kwargs"]` was getting a cache one
+                # token longer than this call received — containing the very
+                # token the graph is being built to process.
+                #
+                # Nothing caught it, and nothing could: `agreement()` feeds
+                # the same over-long cache to both torch and ONNX, so they
+                # agree with each other beautifully and the graph is wrong for
+                # the game, which will feed a cache of length n and a token at
+                # position n. A guard agreeing with itself.
+                #
+                # Found in this file's twin, `kv_cache.py`'s own selftest, as
+                # a disagreement decaying like 1/n. Free: the cache grows by
+                # rebinding (`ly.keys = cat(...)`), so holding the tensor list
+                # copies no data — measured, not assumed.
+                #
+                # AND A FAILURE HERE IS RECORDED, NOT SWALLOWED. The first
+                # version wrapped this in a bare `except: pass`, so a
+                # NameError on every call was indistinguishable from a model
+                # that has no cache — and that is exactly what happened.
+                snap = None
+                if _kv is not None:
+                    try:
+                        cn, ct = _kv.snapshot_cache(kw)
+                        if ct:
+                            snap = (cn, ct)
+                    except Exception as e:
+                        snap_fail[0] = f"{type(e).__name__}: {e}"
                 if swap[0]:
                     counts_b[key] = counts_b.get(key, 0) + 1
                     # THE SECOND DRIVE'S LAST CALL TOO, for the same reason as
@@ -521,14 +565,14 @@ def try_export(model, part, out_dir):
                     # check, so its correctness was being decided by synthetic
                     # input scaled 25x — and a 1.8% disagreement there was
                     # enough to send the search off to an embedding table.
-                    last_b[key] = {"args": grab, "kwargs": dict(kw)}
+                    last_b[key] = {"args": grab, "kwargs": dict(kw), "cache": snap}
                     if key not in second:
-                        second[key] = {"args": grab, "kwargs": dict(kw)}
+                        second[key] = {"args": grab, "kwargs": dict(kw), "cache": snap}
                 else:
                     counts[key] = counts.get(key, 0) + 1
-                    last[key] = {"args": grab, "kwargs": dict(kw)}
+                    last[key] = {"args": grab, "kwargs": dict(kw), "cache": snap}
                     if key not in store:
-                        store[key] = {"args": grab, "kwargs": dict(kw)}
+                        store[key] = {"args": grab, "kwargs": dict(kw), "cache": snap}
                         if store is calls:
                             order.append(key)
                 return real(*a, **kw)
@@ -692,6 +736,7 @@ def try_export(model, part, out_dir):
                    else make_kwargs_wrapper(sub, meth, names, const, npos))
             plan.append({"label": meth, "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
+                         "cache": hook.get("cache"),
                          "last_call": last.get(meth),
                          "last_call_second": last_b.get(meth),
                          "method": meth, "inner": None, "owner": sub,
@@ -705,6 +750,7 @@ def try_export(model, part, out_dir):
                    else make_kwargs_wrapper(kid, mname, names, const, npos))
             plan.append({"label": f"child:{key}", "target": tgt, "args": ins,
                          "all_kwargs": hook["kwargs"],
+                         "cache": hook.get("cache"),
                          "last_call": last.get(key),
                          "last_call_second": last_b.get(key),
                          "method": mname, "owner": kid,
@@ -881,7 +927,42 @@ def try_export(model, part, out_dir):
                                 lc.get("kwargs") or {}, lc.get("args") or ()),
                             "calls_seen": (step.get("inner") or {}).get("called_times")}
                     if cobj is not None:
-                        flat = kv_cache.cache_to_tensors(cobj)
+                        # THE SNAPSHOT THE SPY TOOK, not the object read now.
+                        #
+                        # `cobj` is the live cache and the call that received
+                        # it has long since appended to it, so reading it here
+                        # gives a cache one token too long — see the spy. The
+                        # snapshot is what the call was actually handed.
+                        #
+                        # Both lengths go in the report rather than only the
+                        # one used: a silent correction is indistinguishable
+                        # from no fault, and this one was invisible for every
+                        # cached run so far.
+                        snapped = (lc if from_last else step).get("cache")
+                        live = kv_cache.cache_to_tensors(cobj)
+                        flat = list(snapped[1]) if snapped else live
+
+                        # THE WHOLE SHAPE, NOT AXIS 2. The first version read
+                        # `shape[2]`, which is the time axis of a real 4-D
+                        # cache (batch, heads, past, dim) and the FEATURE
+                        # dimension of the fixture's 3-D one. It printed
+                        # "at_call: 32, read_now: 32" for a cache that had in
+                        # fact grown from 2 to 3, so the check that was
+                        # supposed to prove the fix worked reported no
+                        # difference — a number that means a different thing
+                        # per model, which is the trap in CLAUDE.md rule 2
+                        # about a number keeping its name when the question
+                        # moves. A shape cannot be misread that way.
+                        def shp(ts):
+                            return (list(ts[0].shape) if ts
+                                    and hasattr(ts[0], "shape") else None)
+
+                        row.setdefault("cache_snapshot", {}).update({
+                            "at_call": shp(flat),
+                            "read_now": shp(live),
+                            "grew_during_the_call": shp(flat) != shp(live),
+                            "used": "snapshot" if snapped else "live (no snapshot)",
+                            "why_no_snapshot": None if snapped else snap_fail[0]})
                         cw = kv_cache.make_cached_wrapper(
                             step["owner"], step["method"], step["kw_names"],
                             {k: v for k, v in (step.get("const") or {}).items()
@@ -940,16 +1021,54 @@ def try_export(model, part, out_dir):
                         lb = step.get("last_call_second") or {}
                         _, cobj_b = kv_cache.find_cache(lb.get("kwargs") or {})
                         if cobj_b is not None:
-                            flat_b = kv_cache.cache_to_tensors(cobj_b)
+                            # AND THE SECOND VOICE SNAPSHOT TOO. Same idea,
+                            # second implementation, and the second is the one
+                            # that goes unfixed — three times in one night per
+                            # CLAUDE.md rule 1. Grepped for `cache_to_tensors`
+                            # the moment the first site was fixed; this was the
+                            # only other hit.
+                            snap_b = lb.get("cache")
+                            flat_b = (list(snap_b[1]) if snap_b
+                                      else kv_cache.cache_to_tensors(cobj_b))
                             if len(flat_b) == len(flat):
                                 cached_alt[0] = with_cache(lb, flat_b)
 
-                        def do_cached(use_dynamo, _t=cw, _a=cargs):
+                        # THE CACHE'S TIME AXIS MUST BE DYNAMIC, or the graph
+                        # only ever works for a sentence of exactly the length
+                        # it was converted at.
+                        #
+                        # A cache grows by one every step, so a graph frozen at
+                        # one cache length cannot be used twice — which is why
+                        # the correctness check came back "could not check:
+                        # Got 145, Expected 156". It was not a check failing,
+                        # it was the graph being unusable.
+                        #
+                        # Verified against a real Llama on the transformers
+                        # version chatterbox pins: exported with this axis
+                        # open, fed caches of length 5, 9 and 20, correct to
+                        # 1e-07 at every one.
+                        n_in = len(cargs) - len(flat)
+                        cnames = ([f"in{i}" for i in range(n_in)]
+                                  + [f"cache{i}" for i in range(len(flat))])
+                        caxes = {n: {0: "batch"} for n in cnames[:n_in]}
+                        for n in cnames[n_in:]:
+                            caxes[n] = {0: "batch", 2: "past"}
+
+                        def do_cached(use_dynamo, _t=cw, _a=cargs,
+                                      _n=cnames, _ax=caxes):
                             with torch.no_grad():
-                                torch.onnx.export(_t, _a, str(dest),
-                                                  opset_version=17,
-                                                  do_constant_folding=True,
-                                                  dynamo=use_dynamo)
+                                if use_dynamo:
+                                    torch.onnx.export(_t, _a, str(dest),
+                                                      opset_version=17,
+                                                      do_constant_folding=True,
+                                                      dynamo=True)
+                                else:
+                                    torch.onnx.export(_t, _a, str(dest),
+                                                      opset_version=17,
+                                                      do_constant_folding=True,
+                                                      dynamo=False,
+                                                      input_names=_n,
+                                                      dynamic_axes=_ax)
 
                         ok3, errors3 = export_with_fallback(do_cached, dest)
                         row["with_cache_as_tensors"] = {

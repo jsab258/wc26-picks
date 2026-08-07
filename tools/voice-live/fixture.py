@@ -166,6 +166,31 @@ class DynamicCacheish:
         self.key_cache = list(ks or [])
         self.value_cache = list(vs or [])
 
+    def grow(self, h):
+        """Append this step's key/value — IN PLACE, ON THE OBJECT IT WAS
+        HANDED, which is what the real one does and what this used to fake.
+
+        The old version returned a FRESH cache of a fixed size every call, so
+        the object the caller passed in was never touched and its length never
+        changed. That made the fixture blind to the fault that cost this
+        morning: the probe's spy stored the cache OBJECT, the model appended
+        to it during the call, and every later reader got a cache one token
+        too long — containing the token the graph was being built to process.
+
+        A stand-in that cannot express the fault certifies the probe against a
+        world that does not exist. This is the fifth time this fixture has
+        agreed with me rather than with reality, so the shape is now taken
+        from the real thing rather than from what was convenient: grow by
+        REBINDING (`torch.cat`, then assign) rather than writing into the
+        existing tensor, because that is what makes a snapshot free.
+        """
+        step = h.unsqueeze(1) if h.dim() == 2 else h
+        if not self.key_cache:
+            self.key_cache, self.value_cache = [step], [step]
+        else:
+            self.key_cache = [torch.cat([self.key_cache[0], step], dim=1)]
+            self.value_cache = [torch.cat([self.value_cache[0], step], dim=1)]
+
     @classmethod
     def from_legacy_cache(cls, pairs):
         return cls([p[0] for p in pairs], [p[1] for p in pairs])
@@ -205,21 +230,25 @@ class KwargsOnly(nn.Module):
             # earlier version indexed it as 3-D, which broke the MODEL rather
             # than testing the export — the same mistake as varying a feature
             # dimension instead of a time axis, two commits ago.
+            #
+            # AND IT AVERAGES THE WHOLE HISTORY, so the answer DEPENDS ON THE
+            # CACHE LENGTH. Reading one entry cannot tell a cache of 2 from
+            # the same cache with the current token wrongly appended, and that
+            # is precisely the fault this fixture exists to catch now.
             past = past_key_values.key_cache[0]
-            if past.shape == h.shape:
-                h = h + past * 0.1
+            h = h + past.mean(dim=1) * 0.1
         if not use_cache:
             # The shape that broke the comparison: tensors inside an object.
             return ModelOutputish(h)
-        if use_cache:
-            # A CACHE OBJECT IN THE OUTPUT, which is what actually stopped the
-            # real transformer once the keyword problem was fixed: "Found
-            # DynamicCache in output, which is not a known type". Neither
-            # exporter can carry an object like this through a graph, and the
-            # standard way past it is to turn the cache off — so the fixture
-            # has to return one, or that retry has no failing case.
-            return ModelOutputish(h, DynamicCacheish([h], [h]))
-        return ModelOutputish(h)
+        # A CACHE OBJECT IN THE OUTPUT, which is what actually stopped the
+        # real transformer once the keyword problem was fixed: "Found
+        # DynamicCache in output, which is not a known type". Neither exporter
+        # can carry an object like this through a graph, and the standard way
+        # past it is to turn the cache off — so the fixture has to return one,
+        # or that retry has no failing case.
+        kv = past_key_values if past_key_values is not None else DynamicCacheish()
+        kv.grow(h)
+        return ModelOutputish(h, kv)
 
 
 class InnerFlow(nn.Module):
@@ -407,6 +436,35 @@ def selftest():
     check(m.generate("x") is not None, "the fixture generates without a GPU or weights")
     check(not hasattr(m, "eval"),
           "the wrapper has no eval() of its own, like the real ChatterboxTTS")
+
+    # THE CACHE MUST GROW ON THE OBJECT IT WAS HANDED, or this fixture cannot
+    # express the fault that cost 7 August: the probe's spy stored the cache
+    # object, the model appended to it during the call, and every later reader
+    # got a cache one token too long — the token the graph was being built to
+    # process, present in its own history.
+    #
+    # The old fixture returned a fresh fixed-size cache every call, so the
+    # caller's object never changed and the probe run reported no growth. The
+    # end-to-end run now reports at_call [1,2,32] against read_now [1,3,32],
+    # which is the fault visible in the report for the first time.
+    #
+    # Checked as a PROPERTY rather than trusted from that one run, because a
+    # fixture quietly losing its teeth is how the last five of these happened.
+    kv = DynamicCacheish()
+    tf = KwargsOnly(32)
+    with torch.no_grad():
+        out = tf(inputs_embeds=torch.randn(1, 32), use_cache=True, past_key_values=kv)
+        held = list(kv.key_cache)                      # the caller's own handle
+        before = held[0].shape[1]
+        tf(inputs_embeds=torch.randn(1, 32), use_cache=True, past_key_values=out.past_key_values)
+    check(out.past_key_values is kv,
+          "the cache is grown IN PLACE, not replaced with a fresh one")
+    check(kv.key_cache[0].shape[1] == before + 1,
+          f"and the object the caller still holds has grown {before} to "
+          f"{kv.key_cache[0].shape[1]} behind its back")
+    check(held[0].shape[1] == before,
+          "while a snapshot of the TENSORS taken before the call has not — "
+          "which is why snapshotting costs nothing")
 
     tmp = pathlib.Path(tempfile.mkdtemp())
     expected = {

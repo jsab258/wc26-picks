@@ -74,6 +74,37 @@ def cache_layout(v):
     return None
 
 
+def snapshot_cache(kwargs):
+    """(name, tensors) for a call's cache AS IT IS AT THIS INSTANT.
+
+    A CACHE READ AFTER THE CALL IS NOT THE CACHE THE CALL WAS GIVEN, and both
+    places that read one were reading it afterwards.
+
+    The model appends the token it is processing to the cache it was handed.
+    So a spy that stores the cache OBJECT and reads its tensors later gets a
+    cache one token longer than the call received — containing the very token
+    the graph is being converted to process. The graph then bakes in a
+    position one too far, and every check still passes, because the reference
+    run and the ONNX run are both handed the same wrong cache and agree with
+    each other perfectly.
+
+    Measured, not reasoned about: it showed up first in this file's own
+    selftest as a disagreement that fell off as 1/n — 7.3e-03 at cache length
+    5, 3.9e-03 at 9, 2.1e-03 at 20, which is one duplicated token's share of
+    the attention and nothing else. The same line was in `export_probe`'s spy.
+    One idea, two implementations, and the second is the one nobody looked at.
+
+    Costs nothing. Growth REBINDS (`ly.keys = torch.cat(...)`) rather than
+    writing into the existing tensor, so holding the list of tensors is enough
+    and no data is copied — checked, at cache length 5: the snapshot still
+    reads 5 after a call that takes the object to 6.
+    """
+    name, cache = find_cache(kwargs)
+    if cache is None:
+        return None, None
+    return name, cache_to_tensors(cache)
+
+
 def describe(kwargs, args=()):
     """What a call's non-tensor arguments actually are — so a cache that is
     not recognised can be identified from the report instead of by guessing
@@ -449,6 +480,79 @@ def selftest():
         except Exception as e:
             ok2, why2 = False, f"{type(e).__name__}: {e}"
         check(ok2, "and carrying them EXPORTS a real cached transformer", why2[:110])
+
+        # AND IT HAS TO WORK AT A CACHE LENGTH IT WAS NOT CONVERTED AT, or it
+        # can only ever run for one sentence. The cache grows by one every
+        # step, so a fixed length here means the graph is unusable from step
+        # two onward — which is exactly what "could not check: Got 145,
+        # Expected 156" was reporting.
+        import onnxruntime as ort
+        import numpy as np
+        rnames = ["x"] + [f"c{i}" for i in range(len(rflat))]
+        raxes = {"x": {0: "b", 1: "t"}}
+        for n in rnames[1:]:
+            raxes[n] = {0: "b", 2: "past"}
+        with torch.no_grad():
+            torch.onnx.export(rw, right, str(tmp / "dyn.onnx"), opset_version=17,
+                              dynamo=False, input_names=rnames, dynamic_axes=raxes)
+        sess = ort.InferenceSession(str(tmp / "dyn.onnx"),
+                                    providers=["CPUExecutionProvider"])
+        # AND THE CACHE IS SNAPSHOTTED BEFORE THE REFERENCE CALL, NOT AFTER.
+        #
+        # This check failed at 7.3e-03 and I spent a build believing the
+        # dynamic axis was at fault, then a second one on the theory that
+        # rotary position had been baked at trace time — which it had not, and
+        # passing `position_ids` as an explicit input made the traced length
+        # itself WORSE (1.9e-07 to 5.14e-03). Both hypotheses were about the
+        # subject. The fault was the instrument, three lines below this one.
+        #
+        # `real(..., past_key_values=cc)` APPENDS to `cc`. Reading `cc` after
+        # it therefore hands ONNX a cache containing the token it is being
+        # asked to process, so that token is attended to twice and the graph
+        # is blamed for it.
+        #
+        # The tell was in the series and I printed it before I read it: the
+        # error fell off as 1/n — 7.3e-03 at 5, 3.9e-03 at 9, 2.1e-03 at 20,
+        # and 7.3/2.1 = 3.5 is exactly 21/6. One duplicated token's share of
+        # the attention mass, which is not what a broken axis looks like.
+        #
+        # The series is still printed, because the number that mattered here
+        # was never the worst — it was the SHAPE of the three.
+        series = {}
+        for n in (5, 9, 20):
+            with torch.no_grad():
+                seeded = real(inputs_embeds=torch.randn(1, n, 64), use_cache=True)
+                cc = seeded.past_key_values
+                _, ff = snapshot_cache({"past_key_values": cc})   # BEFORE
+                want = real(inputs_embeds=step_in, use_cache=True,
+                            past_key_values=cc)[0].numpy()
+            check(ff[0].shape[2] == n,
+                  f"the cache snapshot at length {n} stays {n} across the call "
+                  f"that grows it to {n + 1}")
+            feeds = {"x": step_in.numpy()}
+            feeds.update({f"c{i}": t.numpy() for i, t in enumerate(ff)})
+            got = sess.run(None, feeds)[0]
+            series[n] = (float(np.abs(want - got).max())
+                         / max(float(np.abs(want).max()), 1e-12))
+        traced_len = rflat[0].shape[2]
+        feeds0 = {"x": step_in.numpy()}
+        feeds0.update({f"c{i}": t.numpy() for i, t in enumerate(rflat)})
+        with torch.no_grad():
+            want0 = real(inputs_embeds=step_in, use_cache=True,
+                         past_key_values=tensors_to_cache(rflat, rc))[0].numpy()
+        got0 = sess.run(None, feeds0)[0]
+        baseline = (float(np.abs(want0 - got0).max())
+                    / max(float(np.abs(want0).max()), 1e-12))
+        worst = max(series.values())
+        print("        series: traced(%d)=%.1e  " % (traced_len, baseline)
+              + "  ".join(f"{n}={v:.1e}" for n, v in series.items()))
+        # An absolute bound is right here after all — but only because the
+        # instrument is. 1e-04 is three orders above what a correct graph
+        # reads and three below the fault it was hiding.
+        check(worst <= 1e-4,
+              f"and a cache length it was NOT converted at is right too — "
+              f"worst {worst:.1e} against {baseline:.1e} at the traced length",
+              f"{worst:.2e} vs {baseline:.2e}")
     except ImportError:
         check(True, "real-transformer check skipped: transformers not installed")
 
