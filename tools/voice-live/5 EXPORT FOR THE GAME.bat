@@ -24,14 +24,17 @@ REM  This exports a graph that takes the token directly. The lookup
 REM  happens inside, where the weights already are, and the game hands
 REM  over two numbers and nothing else.
 REM
-REM  AND IT NOW EXPORTS A SECOND GRAPH, because the same gap turned up
-REM  one layer up. The first graph needs the model's working memory of
-REM  the sentence so far. Nothing in the game can make that: it comes
-REM  from running the whole sentence and the speaker's voice through
-REM  the model once, and every part of that is inside the model too.
-REM  So there are two files now - one that reads the sentence, one that
-REM  says it a piece at a time. The game holds text and the voice
-REM  files already in the project, and nothing else.
+REM  THREE GRAPHS NOW, and the run ends by checking all three and
+REM  sending me the result itself - there is nothing for you to copy.
+REM
+REM    one reads the sentence and the character's voice
+REM    one says it a piece at a time
+REM    one turns those pieces into sound you can hear
+REM
+REM  The second and third were added because writing the game's side
+REM  kept finding another thing the model does that the game cannot.
+REM  Each time the answer is the same: do it inside, where the weights
+REM  already are, and hand the game back something simple.
 REM
 REM  ALREADY CHECKED WITHOUT YOUR HARDWARE, against a real model built
 REM  small - same code, same wiring, 6 million weights instead of 520
@@ -42,6 +45,9 @@ REM  matters: get it wrong and every word after the first is placed
 REM  wrongly, and it still sounds like speech.
 REM
 REM  What this run adds is the real weights.
+REM
+REM  It takes longer than the last one - three exports rather than one,
+REM  and the model loads once for each.
 REM ===================================================================
 
 if defined LEDGER_GAMEEXPORT_FROMTEMP goto :begin
@@ -55,6 +61,7 @@ set "REPO=%USERPROFILE%\wc26-picks"
 set "TOOL=%REPO%\tools\voice-live"
 set "ENVDIR=%TOOL%\env-export"
 set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+set "REPORT=%REPO%\game-design\voice-live\export-report.txt"
 
 if not exist "%REPO%\.git" goto :norepo
 
@@ -66,7 +73,6 @@ echo  Updating...
 pushd "%REPO%"
 git pull origin "%BRANCH%"
 if errorlevel 1 goto :nopull
-popd
 
 if not exist "%ENVDIR%\Scripts\python.exe" goto :noenv
 set "PY=%ENVDIR%\Scripts\python.exe"
@@ -79,15 +85,39 @@ echo   the graph against a real memory cache, and the graph is written and
 echo   immediately checked against the original - including at positions it
 echo   was not traced at, which is the failure worth catching.
 echo.
-"%PY%" export-for-game.py %*
+"%PY%" export-for-game.py
 if errorlevel 2 goto :noimport
 if errorlevel 1 goto :failed
+
+echo.
+echo  ---- and the last piece: sound into a waveform ----------------------
+echo   The graphs above decide WHAT to say, one sound at a time. This one
+echo   turns those sounds into something you can actually hear. It is the
+echo   last part that was still stuck in Python.
+echo.
+"%PY%" export-decode.py
+if errorlevel 2 goto :noimport
+if errorlevel 1 goto :failed
+
+echo.
+echo  ---- checking all three, and sending the answer back ----------------
+"%PY%" check-graphs.py
+set "AUDIT=%errorlevel%"
+
+if exist "%REPORT%" (
+  git add "%REPORT%"
+  git commit -m "Graph audit from Jafar's machine" >nul 2>&1
+  git pull --rebase origin "%BRANCH%" >nul 2>&1
+  git push origin HEAD:"%BRANCH%" && echo   Sent - nothing for you to copy.
+)
+popd
 
 if exist "%TOOL%\game-out" start "" "%TOOL%\game-out"
 
 echo.
 echo  ------------------------------------------------------------------
-echo   Send me what it printed. Four numbers matter and they come in two
+echo   The audit above already sent itself to me. What is worth a look
+echo   from you is the export lines: four numbers matter and they come in two
 echo   pairs, each one an agreement against something it was NOT set up
 echo   with. If either second number is much worse than its first, the
 echo   thing got frozen into the file and I need to know before anything

@@ -44,6 +44,12 @@ REPORT = ROOT / "game-design" / "voice-live" / "export-report.txt"
 # names is a graph the C# cannot drive, and nothing else here would notice.
 PREFILL_IN = ["text_tokens", "speaker_emb", "cond_speech_tokens", "emotion_adv"]
 STEP_IN = ["token", "position"]
+DECODE_IN = ["tokens", "prompt_token", "prompt_feat", "embedding", "z", "sine_noise"]
+
+
+ONNX_NP = {"tensor(int64)": "int64", "tensor(int32)": "int32",
+           "tensor(float)": "float32", "tensor(double)": "float64",
+           "tensor(float16)": "float16", "tensor(bool)": "bool"}
 
 
 def audit(np, ort, step_path, prefill_path, voices, say):
@@ -90,9 +96,6 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     # `torch.randint`, which is int64, and passed happily. Fifth time a
     # stand-in has agreed with me instead of with reality, and the fix is the
     # same every time: read it off the thing rather than assume it.
-    ONNX_NP = {"tensor(int64)": np.int64, "tensor(int32)": np.int32,
-               "tensor(float)": np.float32, "tensor(double)": np.float64,
-               "tensor(float16)": np.float16, "tensor(bool)": np.bool_}
     dt = {i.name: ONNX_NP.get(i.type) for i in list(pre.get_inputs()) + list(stp.get_inputs())}
     unknown = sorted(n for n, t in dt.items() if t is None)
     want(not unknown, "every input has a type this tool knows how to feed",
@@ -101,7 +104,7 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     if bad:
         return bad
     say("        types: " + "  ".join(f"{i.name}={i.type}" for i in pre.get_inputs())
-        + f"  |  token={dt['token'].__name__}, position={dt['position'].__name__}")
+        + f"  |  token={dt['token']}, position={dt['position']}")
 
     def cast(name, v):
         return np.asarray(v).astype(dt[name], copy=False)
@@ -184,6 +187,55 @@ def audit(np, ort, step_path, prefill_path, voices, say):
          f"the prefill's cache drives the step three times, growing by one each",
          f"{c0[0].shape[2]} -> {grew}")
     want(np.isfinite(at[1]).all(), "and the answer it gives is a number")
+
+    # ---- THE DECODE GRAPH, sound tokens into a waveform ------------------
+    dec_path = step_path.parent / "s3gen-decode.onnx"
+    if not dec_path.exists():
+        want(False, f"{dec_path.name} is on disk — the decode graph was not "
+             f"exported, so nothing turns tokens into audio yet")
+        return bad
+    dec = ort.InferenceSession(str(dec_path), providers=["CPUExecutionProvider"])
+    din = [i.name for i in dec.get_inputs()]
+    for n in DECODE_IN:
+        want(n in din, f"the decode graph still takes '{n}'", ", ".join(din))
+    if bad:
+        return bad
+    ddt = {i.name: ONNX_NP.get(i.type) for i in dec.get_inputs()}
+
+    def decode(v, n_tok, seed):
+        p = v["gen_prompt_token"].shape[1]
+        pm = v["gen_prompt_feat"].shape[1]
+        h = 2 * (p + n_tok)
+        r = np.random.default_rng(seed)
+        feed = {"tokens": r.integers(0, 6561, (1, n_tok)).astype(ddt["tokens"]),
+                "prompt_token": v["gen_prompt_token"].astype(ddt["prompt_token"]),
+                "prompt_feat": v["gen_prompt_feat"].astype(ddt["prompt_feat"]),
+                "embedding": v["gen_embedding"].astype(ddt["embedding"]),
+                "z": r.standard_normal((1, 80, h)).astype(ddt["z"]),
+                "sine_noise": r.standard_normal(
+                    (1, 9, (h - pm) * 480)).astype(ddt["sine_noise"])}
+        return dec.run(None, feed)[0], (h - pm) * 480
+
+    # THE LENGTHS ARE THE WHOLE QUESTION HERE. Four separate places in this
+    # path turned the sentence length into a constant, so a decode graph that
+    # runs at one length and refuses another is the expected failure, not an
+    # exotic one. Two token counts and two voices, which vary the prompt too.
+    lens = {}
+    for name, v in voices[:2]:
+        for n_tok in (6, 15):
+            wav, expect = decode(v, n_tok, 4)
+            lens[(name, n_tok)] = (wav.shape[-1], expect)
+    say("        decode: " + "  ".join(
+        f"{n}/{t}tok={got}smp" for (n, t), (got, _) in lens.items()))
+    want(all(got == expect for got, expect in lens.values()),
+         "the decode graph runs at two token counts and two voices, and the "
+         "sample count follows the formula each time",
+         "; ".join(f"{k}: got {g} want {w}" for k, (g, w) in lens.items()
+                   if g != w))
+    first = decode(voices[0][1], 6, 4)[0]
+    want(np.isfinite(first).all() and float(np.abs(first).max()) > 1e-6,
+         "and it produces a waveform rather than silence or NaN",
+         f"peak {float(np.abs(first).max()):.4f}")
     return bad
 
 
@@ -195,7 +247,10 @@ def load_voices(np, folder, limit=3):
             continue
         out.append((f.stem, {"speaker_emb": z["t3.speaker_emb"],
                              "cond_speech_tokens": z["t3.cond_prompt_speech_tokens"],
-                             "emotion_adv": z["t3.emotion_adv"]}))
+                             "emotion_adv": z["t3.emotion_adv"],
+                             "gen_prompt_token": z["gen.prompt_token"],
+                             "gen_prompt_feat": z["gen.prompt_feat"],
+                             "gen_embedding": z["gen.embedding"]}))
         if len(out) == limit:
             break
     return out
@@ -285,10 +340,16 @@ def selftest():
     # name. Loading it by path keeps the exporters in ONE place — a second
     # copy of `export_prefill` here would be the "one idea, two
     # implementations" fault this tool exists to catch.
-    spec = importlib.util.spec_from_file_location(
-        "efg", pathlib.Path(__file__).resolve().parent / "export-for-game.py")
-    efg = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(efg)
+    here = pathlib.Path(__file__).resolve().parent
+
+    def by_path(name, fname):
+        spec = importlib.util.spec_from_file_location(name, here / fname)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    efg = by_path("efg", "export-for-game.py")
+    edc = by_path("edc", "export-decode.py")
 
     fails, ran, out = [], [], []
 
@@ -343,9 +404,33 @@ def selftest():
                        torch.randint(0, 100, (1, 9), dtype=torch.int64),
                        tmp / "wide.onnx", len(cache0))
 
+    # A DECODE GRAPH TOO, from the same exporter the real run uses. Building
+    # a second one here would be the "one idea, two implementations" fault
+    # this file exists to catch, committed by the file itself.
+    from stft_patch import patched
+    flow_s, gen_s = edc.build_small(torch)
+    PT, NT = 5, 7
+    ptok = torch.randint(0, 6561, (1, PT))
+    pfeat = torch.randn(1, edc.MELS_PER_TOKEN * PT, 80)
+    with patched(), edc.dynamic_cfm(torch), edc.dynamic_flow(torch):
+        edc.export_decode(torch, flow_s, gen_s,
+                          (torch.randint(0, 6561, (1, NT)), ptok, pfeat,
+                           torch.randn(1, 192))
+                          + tuple(edc.draw(torch, PT, edc.MELS_PER_TOKEN * PT, NT, 2)),
+                          tmp / "s3gen-decode.onnx")
+
+    def a_gen(i):
+        g = torch.Generator().manual_seed(100 + i)
+        n = PT + i                       # a different prompt length per voice
+        return {"gen_prompt_token": torch.randint(0, 6561, (1, n), generator=g).numpy(),
+                "gen_prompt_feat": torch.randn(1, edc.MELS_PER_TOKEN * n, 80,
+                                               generator=g).numpy(),
+                "gen_embedding": torch.randn(1, 192, generator=g).numpy()}
+
     voices = [(f"v{i}", {"speaker_emb": a_voice(i)["speaker_emb"].numpy(),
                          "cond_speech_tokens": a_voice(i)["cond_prompt_speech_tokens"].numpy(),
-                         "emotion_adv": a_voice(i)["emotion_adv"].numpy()})
+                         "emotion_adv": a_voice(i)["emotion_adv"].numpy(),
+                         **a_gen(i)})
               for i in (1, 2, 3)]
 
     # THE ACCEPTING CASE FIRST, because the expensive failure is a check
