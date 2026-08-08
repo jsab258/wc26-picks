@@ -86,8 +86,7 @@ echo   immediately checked against the original - including at positions it
 echo   was not traced at, which is the failure worth catching.
 echo.
 "%PY%" export-for-game.py
-if errorlevel 2 goto :noimport
-if errorlevel 1 goto :failed
+if errorlevel 1 set "TROUBLE=text export failed"
 
 echo.
 echo  ---- and the last piece: sound into a waveform ----------------------
@@ -96,11 +95,17 @@ echo   turns those sounds into something you can actually hear. It is the
 echo   last part that was still stuck in Python.
 echo.
 "%PY%" export-decode.py
-if errorlevel 2 goto :noimport
-if errorlevel 1 goto :failed
+if errorlevel 1 set "TROUBLE=%TROUBLE% decode export failed"
 
 echo.
-echo  ---- checking all three, and sending the answer back ----------------
+REM  THE AUDIT RUNS EVEN WHEN AN EXPORT FAILED, which is the whole point of
+REM  it. The old order jumped to the error message the moment anything went
+REM  wrong and skipped the audit and the push - so the one run that most
+REM  needed to send something back sent nothing, and the answer came by hand.
+REM  A failed export still leaves two working graphs and a stamp saying which
+REM  step died, and that is a report worth having.
+echo.
+echo  ---- checking what is there, and sending the answer back -------------
 "%PY%" check-graphs.py
 set "AUDIT=%errorlevel%"
 
@@ -111,6 +116,15 @@ if exist "%REPORT%" (
   git push origin HEAD:"%BRANCH%" && echo   Sent - nothing for you to copy.
 )
 popd
+
+if defined TROUBLE (
+  echo.
+  echo  ------------------------------------------------------------------
+  echo   SOMETHING DID NOT FINISH: %TROUBLE%
+  echo   The reason is in the lines above. The audit has been sent either
+  echo   way, so I can see how far it got without you copying anything.
+  echo  ------------------------------------------------------------------
+)
 
 if exist "%TOOL%\game-out" start "" "%TOOL%\game-out"
 
@@ -157,17 +171,4 @@ echo  first - it builds it and downloads the model.
 echo.
 pause & exit /b 1
 
-:noimport
-echo.
-echo  The model would not load, so nothing was exported. That is an
-echo  environment answer rather than a model one - send me the line above.
-echo.
-pause & exit /b 2
 
-:failed
-echo.
-echo  It ran but did not finish - the reason is above. Send me those
-echo  lines. A refusal here is still a result: it says which part of the
-echo  wrapper the exporter will not take, and that is a short list.
-echo.
-pause & exit /b 1

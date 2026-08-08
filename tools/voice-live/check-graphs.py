@@ -66,9 +66,14 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     # ran, or it ran and died — and the file's absence cannot tell them apart.
     for note in ("text", "decode"):
         f = step_path.parent / (note + ".stamp")
-        say(f"        {note} export: "
-            + (f.read_text(encoding="utf-8").strip() if f.exists()
-               else "NO RECORD — this step has never been run here"))
+        line = (f.read_text(encoding="utf-8").strip() if f.exists()
+                else "NO RECORD — this step has never been run here")
+        say(f"        {note} export: {line}")
+        # A RECORDED FAILURE IS A FINDING, not a line of colour. Printing it
+        # and then reporting "all clear" because the older graphs happen to be
+        # on disk is the shape of a green result that means nothing.
+        if "FAILED" in line:
+            want(False, f"the {note} export finished", line)
 
     for p in (step_path, prefill_path):
         mb = p.stat().st_size / (1024 * 1024) if p.exists() else 0

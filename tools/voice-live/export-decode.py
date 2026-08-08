@@ -688,9 +688,16 @@ def main():
         return selftest()
     try:
         return cmd_run(a.force)
-    except ImportError as e:
-        print(f"  cannot run: {e}")
-        return 2
+    except Exception as e:
+        # THE REASON GOES INTO THE STAMP, so the audit that runs afterwards
+        # carries it back without anybody copying a traceback. A stamp saying
+        # "started" and nothing else says the step died and not what killed
+        # it, and those are one message apart.
+        import traceback
+        stamp(f"FAILED — {type(e).__name__}: {str(e)[:200]}")
+        traceback.print_exc()
+        print(f"  cannot run: {type(e).__name__}: {e}")
+        return 2 if isinstance(e, ImportError) else 1
 
 
 if __name__ == "__main__":
