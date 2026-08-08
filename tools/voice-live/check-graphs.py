@@ -1,0 +1,381 @@
+#!/usr/bin/env python3
+"""AUDIT THE EXPORTED GRAPHS FROM THE FILES ALONE, AND WRITE IT DOWN.
+
+    python3 tools/voice-live/check-graphs.py            # needs the .onnx files
+    python3 tools/voice-live/check-graphs.py --selftest  # needs nothing
+
+TWO REASONS THIS EXISTS, AND THE SECOND IS THE REAL ONE.
+
+The first is speed. `export-for-game.py` checks its work against pytorch,
+which means loading 2 GB of weights: minutes, and a download the first time.
+The two faults worth catching need neither. "Is the speaker baked into the
+graph" is answered by running the graph twice with two different voices and
+seeing whether the answers differ — no reference model, no download, seconds.
+Same for the position. A baked input is a CONSTANT, and a constant cannot
+disagree with itself.
+
+The second is that the export's answer reached me by being copied out of a
+console window by hand, and the first time it mattered it did not arrive. That
+is rule 12: a blocked channel is not an inconvenience to work around, it is
+the bug. So this writes `game-design/voice-live/export-report.txt`, which is
+tracked, committed by the bat that runs it, and still there tomorrow.
+
+WHAT IT CANNOT ANSWER. Agreement with the original needs the original, so that
+stays in `export-for-game.py`. This is the cheap half, and the cheap half is
+the one that had no answer at all.
+
+THE REJECTING CASE IS BUILDABLE, WHICH IS RARE AND WORTH IT. A baked voice is
+not hypothetical here: handing `prepare_conditioning` a cond it has already
+seen produces exactly that graph, because it caches the embedded prompt back
+onto the object. `--selftest` exports one deliberately and checks this tool
+calls it — and exports a good one and checks this tool passes it, which is the
+half that usually goes unrun.
+"""
+import argparse
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+OUT = ROOT / "tools" / "voice-live" / "game-out"
+CONDS = ROOT / "game-design" / "voice-conds"
+REPORT = ROOT / "game-design" / "voice-live" / "export-report.txt"
+
+# The names the game asks for. A graph that exports perfectly under different
+# names is a graph the C# cannot drive, and nothing else here would notice.
+PREFILL_IN = ["text_tokens", "speaker_emb", "cond_speech_tokens", "emotion_adv"]
+STEP_IN = ["token", "position"]
+
+
+def audit(np, ort, step_path, prefill_path, voices, say):
+    """Everything answerable from the files. Returns a list of failures."""
+    bad = []
+
+    def want(ok, what, got=""):
+        say(("  ok    " if ok else "  FAIL  ") + what + (f"   [{got}]" if got else ""))
+        if not ok:
+            bad.append(what)
+
+    for p in (step_path, prefill_path):
+        mb = p.stat().st_size / (1024 * 1024) if p.exists() else 0
+        # ONNX splits weights into sidecar files past 2 GB, so the graph on
+        # its own can be small while the export is whole. Count the folder.
+        side = sum(f.stat().st_size for f in p.parent.glob(p.stem + "*")) / (1024 * 1024)
+        want(p.exists(), f"{p.name} is on disk", f"{mb:.0f} MB, {side:.0f} MB with weights")
+    if bad:
+        return bad
+
+    pre = ort.InferenceSession(str(prefill_path), providers=["CPUExecutionProvider"])
+    stp = ort.InferenceSession(str(step_path), providers=["CPUExecutionProvider"])
+    pin = [i.name for i in pre.get_inputs()]
+    sin = [i.name for i in stp.get_inputs()]
+    # A DEAD INPUT IS DELETED, NOT LEFT DANGLING. If part of the conditioning
+    # got baked in as a constant, the tensor that fed it stops being read and
+    # the exporter drops it from the graph entirely — so a MISSING name here
+    # is not a naming slip, it is that part of the voice frozen. Named one by
+    # one because "the four inputs are present" cannot say which is gone.
+    for n in PREFILL_IN:
+        want(n in pin, f"the prefill still takes '{n}' — it was not folded away "
+             f"into a constant", ", ".join(pin))
+    want(sin[:len(STEP_IN)] == STEP_IN,
+         "the step takes a token and a position", ", ".join(sin[:3]))
+    n_cache = len(pre.get_outputs())
+    want(n_cache == len(sin) - 2 and n_cache == len(stp.get_outputs()) - 1,
+         f"and the prefill's {n_cache} outputs are exactly the step's cache inputs",
+         f"prefill out {n_cache}, step in {len(sin) - 2}, step out {len(stp.get_outputs()) - 1}")
+    if bad:
+        return bad
+
+    text = np.array([[10, 20, 30, 40, 50, 60]], dtype=np.int64)
+
+    def prefill(v):
+        return pre.run(None, {"text_tokens": text, "speaker_emb": v["speaker_emb"],
+                              "cond_speech_tokens": v["cond_speech_tokens"],
+                              "emotion_adv": v["emotion_adv"]})
+
+    # A DENOMINATOR ON THE VOICE CHECK. "The voices differ" from one voice is
+    # not a result, it is an empty loop reading as a pass.
+    want(len(voices) >= 2, f"{len(voices)} voices available to compare",
+         ", ".join(n for n, _ in voices[:4]) + ("..." if len(voices) > 4 else ""))
+    if bad:
+        return bad
+
+    (n0, v0), (n1, v1) = voices[0], voices[1]
+    c0 = prefill(v0)
+    repeat = max(float(np.abs(a - b).max()) for a, b in zip(c0, prefill(v0)))
+
+    # ONE FIELD AT A TIME, WHICH IS THE WHOLE POINT. Swapping two voices
+    # wholesale moves three fields together, so the cache moving proves only
+    # that SOMETHING is live. The real fault is narrower than that: a cached
+    # prompt embedding freezes the prompt while the speaker vector stays an
+    # input, and a whole-voice comparison would pass that graph happily. Two
+    # numbers that can only move together are one number twice.
+    # `emotion_adv` is NUDGED rather than swapped, because every shipped voice
+    # carries the same 0.5 — swapping it moves nothing and would read as a
+    # baked input. A test that cannot tell "frozen" from "identical on both
+    # sides" is measuring the fixture, not the graph.
+    alt = {"speaker_emb": v1["speaker_emb"],
+           "cond_speech_tokens": v1["cond_speech_tokens"],
+           "emotion_adv": v0["emotion_adv"] + np.float32(0.25)}
+    moves = {}
+    for field in PREFILL_IN[1:]:
+        if field not in pin:
+            continue                      # already reported above
+        mixed = dict(v0)
+        mixed[field] = alt[field]
+        moves[field] = max(float(np.abs(a - b).max())
+                           for a, b in zip(c0, prefill(mixed)))
+    say(f"        voices: {n0} -> {n1} one field at a time (emotion nudged) — "
+        + "  ".join(f"{k}={v:.3f}" for k, v in moves.items())
+        + f";  {n0} twice differs by {repeat:.1e}")
+    for field, m in moves.items():
+        want(m > 1e-3, f"changing '{field}' alone changes the cache — that part "
+             f"of the voice is an input, not baked in", f"{m:.4f}")
+    want(repeat < 1e-6, "and the same voice twice gives the same cache",
+         f"{repeat:.1e}")
+    want(all(np.isfinite(a).all() for a in c0), "with no infinities or NaNs in it")
+
+    # THE POSITION, THE SAME WAY. Traced as a Python int it becomes a constant
+    # and every word after the first sits at the wrong place in the sentence.
+    tok = np.array([[7]], dtype=np.int64)
+    feed = {f"cache{i}": c for i, c in enumerate(c0)}
+    feed["token"] = tok
+    at = {}
+    for p in (1, 2, 17):
+        feed["position"] = np.array(p, dtype=np.int64)
+        at[p] = stp.run(None, feed)[0]
+    moved = max(float(np.abs(at[1] - at[p]).max()) for p in (2, 17))
+    say(f"        position: 1 vs 2 and 17 move the answer by {moved:.3f}")
+    want(moved > 1e-4, "the position changes the answer — it is an input, not "
+         "baked into the graph", f"{moved:.4f}")
+
+    # AND THEY HAVE TO JOIN. Both graphs can be perfect and still not chain;
+    # that seam is where this project keeps finding the missing line.
+    live, grew = c0, []
+    for p in (1, 2, 3):
+        f2 = {f"cache{i}": c for i, c in enumerate(live)}
+        f2["token"], f2["position"] = tok, np.array(p, dtype=np.int64)
+        got = stp.run(None, f2)
+        live = got[1:]
+        grew.append(live[0].shape[2])
+    want(grew == [c0[0].shape[2] + i + 1 for i in range(3)],
+         f"the prefill's cache drives the step three times, growing by one each",
+         f"{c0[0].shape[2]} -> {grew}")
+    want(np.isfinite(at[1]).all(), "and the answer it gives is a number")
+    return bad
+
+
+def load_voices(np, folder, limit=3):
+    out = []
+    for f in sorted(folder.glob("*.npz")):
+        z = np.load(f)
+        if "t3.speaker_emb" not in z.files:
+            continue
+        out.append((f.stem, {"speaker_emb": z["t3.speaker_emb"],
+                             "cond_speech_tokens": z["t3.cond_prompt_speech_tokens"],
+                             "emotion_adv": z["t3.emotion_adv"]}))
+        if len(out) == limit:
+            break
+    return out
+
+
+def cmd_run():
+    import numpy as np
+    import onnxruntime as ort
+
+    lines = []
+
+    def say(s):
+        print(s)
+        lines.append(s)
+
+    # WHO RAN IT AND WHEN, ON LINE ONE. The exported graphs only exist on
+    # Jafar's machine, so a report written anywhere else is a report about
+    # nothing — and it would land in the same file looking identical. Same
+    # fault as a build committing the stills it checked out rather than the
+    # ones it rendered: the file is only evidence if it says where it came
+    # from.
+    import getpass
+    import platform
+    import socket
+    from datetime import datetime, timezone
+    say("LEDGER — the exported speech graphs, read from the files themselves")
+    say(f"ran on {socket.gethostname()} ({platform.system()}) as "
+        f"{getpass.getuser()}, {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
+    say(f"graphs looked for in {OUT}")
+    say("")
+    voices = load_voices(np, CONDS)
+    bad = audit(np, ort, OUT / "t3-step.onnx", OUT / "t3-prefill.onnx", voices, say)
+    say("")
+    say(f"RESULT: {'all clear' if not bad else str(len(bad)) + ' PROBLEM(S)'}")
+    for b in bad:
+        say(f"  - {b}")
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"\n  written to {REPORT.relative_to(ROOT)}")
+    return 1 if bad else 0
+
+
+def selftest():
+    try:
+        import numpy as np
+        import onnxruntime as ort
+        import torch
+        from chatterbox.models.t3.t3 import T3
+        from chatterbox.models.t3.modules.t3_config import T3Config
+        from chatterbox.models.t3.modules.cond_enc import T3Cond
+        from chatterbox.models.t3.modules.perceiver import Perceiver
+        from chatterbox.models.t3.llama_configs import LLAMA_CONFIGS
+    except ImportError as e:
+        print(f"check-graphs --selftest: SKIPPED — {e}")
+        return 0
+
+    import tempfile
+    import warnings
+    import importlib.util
+    warnings.filterwarnings("ignore")
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import kv_cache
+    # `export-for-game.py` has a hyphen in it, so it cannot be imported by
+    # name. Loading it by path keeps the exporters in ONE place — a second
+    # copy of `export_prefill` here would be the "one idea, two
+    # implementations" fault this tool exists to catch.
+    spec = importlib.util.spec_from_file_location(
+        "efg", pathlib.Path(__file__).resolve().parent / "export-for-game.py")
+    efg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(efg)
+
+    fails, ran, out = [], [], []
+
+    def say(s):
+        out.append(s)
+
+    def check(ok, what, got=""):
+        ran.append(what)
+        print(("  ok    " if ok else "  FAIL  ") + what + (f"   [{got}]" if got else ""))
+        if not ok:
+            fails.append(what)
+
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    LLAMA_CONFIGS["Llama_520M"] = dict(LLAMA_CONFIGS["Llama_520M"])
+    LLAMA_CONFIGS["Llama_520M"].update(hidden_size=64, intermediate_size=128,
+                                       num_hidden_layers=2, num_attention_heads=4,
+                                       num_key_value_heads=4)
+    torch.manual_seed(20260808)
+    t3 = T3(T3Config()).eval()
+    for p in t3.parameters():
+        p.requires_grad_(False)
+    t3.cond_enc.perceiver = Perceiver(pre_attention_query_size=64, embedding_dim=64,
+                                      num_attn_heads=2).eval()
+    for p in t3.cond_enc.perceiver.parameters():
+        p.requires_grad_(False)
+
+    hp = t3.hp
+
+    def a_voice(seed):
+        g = torch.Generator().manual_seed(seed)
+        return dict(speaker_emb=torch.randn(1, hp.speaker_embed_size, generator=g),
+                    cond_prompt_speech_tokens=torch.randint(
+                        0, 6561, (1, hp.speech_cond_prompt_len), generator=g),
+                    emotion_adv=0.5 * torch.ones(1, 1, 1))
+
+    with torch.no_grad():
+        seed = t3.tfmr(inputs_embeds=torch.randn(2, 12, 64), use_cache=True,
+                       return_dict=True)
+    cache0 = kv_cache.cache_to_tensors(seed.past_key_values)
+    efg.export_step(torch, kv_cache, t3, seed.past_key_values, cache0,
+                    tmp / "t3-step.onnx")
+    efg.export_prefill(torch, kv_cache, t3, a_voice(1), torch.randint(0, 100, (1, 9)),
+                       tmp / "t3-prefill.onnx", len(cache0))
+
+    voices = [(f"v{i}", {"speaker_emb": a_voice(i)["speaker_emb"].numpy(),
+                         "cond_speech_tokens": a_voice(i)["cond_prompt_speech_tokens"].numpy(),
+                         "emotion_adv": a_voice(i)["emotion_adv"].numpy()})
+              for i in (1, 2, 3)]
+
+    # THE ACCEPTING CASE FIRST, because the expensive failure is a check
+    # nothing survives — and that half is the one that goes unrun.
+    bad = audit(np, ort, tmp / "t3-step.onnx", tmp / "t3-prefill.onnx", voices, say)
+    for line in out:
+        if line.strip().startswith(("voices:", "position:")):
+            print("      " + line.strip())
+    check(not bad, "a correctly exported pair passes the audit",
+          "; ".join(bad) if bad else "")
+
+    # AND THE REJECTING CASE, WHICH IS BUILDABLE HERE. Handing
+    # `prepare_conditioning` a cond it has already seen leaves the embedded
+    # prompt cached on it, and tracing then bakes that speaker in.
+    used = T3Cond(**a_voice(1), cond_prompt_speech_emb=None)
+    with torch.no_grad():
+        t3.prepare_conditioning(used)          # populates cond_prompt_speech_emb
+    assert used.cond_prompt_speech_emb is not None
+
+    class Baked(torch.nn.Module):
+        def forward(self, text_tokens, speaker_emb, cond_speech_tokens, emotion_adv):
+            tt = torch.nn.functional.pad(text_tokens, (1, 0), value=hp.start_text_token)
+            tt = torch.nn.functional.pad(tt, (0, 1), value=hp.stop_text_token)
+            tt = torch.cat([tt, tt], dim=0)
+            embeds, _ = t3.prepare_input_embeds(
+                t3_cond=used, text_tokens=tt,
+                speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
+                cfg_weight=0.5)
+            o = t3.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
+            return tuple(kv_cache.cache_to_tensors(o.past_key_values))
+
+    names = PREFILL_IN
+    args = (torch.randint(0, 100, (1, 9)), used.speaker_emb,
+            used.cond_prompt_speech_tokens, used.emotion_adv)
+    with torch.no_grad():
+        torch.onnx.export(Baked().eval(), args, str(tmp / "baked.onnx"),
+                          opset_version=17, dynamo=False, input_names=names,
+                          output_names=[f"cache{i}" for i in range(len(cache0))],
+                          dynamic_axes={"text_tokens": {1: "text"},
+                                        "cond_speech_tokens": {1: "prompt"}})
+    out.clear()
+    bad2 = audit(np, ort, tmp / "t3-step.onnx", tmp / "baked.onnx", voices, say)
+    # AND IT IS CAUGHT BY THE MISSING INPUT, which is what a baked prompt
+    # actually looks like: the tensor stops being read and the exporter
+    # deletes it. The whole-voice comparison I wrote first would have PASSED
+    # this graph, because `speaker_emb` is still live and still moves the
+    # cache — three fields confounded into one number, the fault rule 2 is
+    # about, found by running the rejecting case rather than by reasoning.
+    check(any("cond_speech_tokens" in b for b in bad2),
+          "and a graph with the voice prompt baked in is CAUGHT — the check can fail",
+          "; ".join(bad2) if bad2 else "nothing flagged")
+
+    # A ONE-VOICE FOLDER MUST NOT READ AS CLEAN. An empty comparison passes
+    # every test in it, which is rule 3b: a zero needs a denominator.
+    out.clear()
+    bad3 = audit(np, ort, tmp / "t3-step.onnx", tmp / "t3-prefill.onnx", voices[:1], say)
+    check(any("voices available" in b for b in bad3),
+          "and one voice is reported as too few to compare, not as a pass",
+          "; ".join(bad3) if bad3 else "nothing flagged")
+
+    # AND A MISSING FILE IS A NAMED FAILURE, not a traceback.
+    out.clear()
+    bad4 = audit(np, ort, tmp / "t3-step.onnx", tmp / "nope.onnx", voices, say)
+    check(any("nope.onnx" in b for b in bad4),
+          "and a missing graph is named rather than thrown",
+          "; ".join(bad4) if bad4 else "nothing flagged")
+
+    print(f"\ncheck-graphs --selftest: "
+          f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks, "
+          f"both the accepting and the rejecting case")
+    return 1 if fails else 0
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
+    a = ap.parse_args()
+    if a.selftest:
+        return selftest()
+    try:
+        return cmd_run()
+    except ImportError as e:
+        print(f"  cannot run: {e}")
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
