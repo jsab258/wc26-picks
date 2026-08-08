@@ -57,11 +57,30 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "tools" / "voice-live" / "game-out"
 VOICE = "rocco"
+STAMP = "decode"
 
 # Measured, not assumed — see `shapes()` and the selftest that checks it.
 MELS_PER_TOKEN = 2
 SAMPLES_PER_MEL = 480
 HARMONICS = 9
+
+
+def stamp(text):
+    """LEAVE A NOTE SAYING THIS STEP RAN, because "no graph on disk" and "the
+    export died" look identical from the outside and want opposite next moves.
+    The audit read `s3gen-decode.onnx` missing and could not say whether the
+    export had failed or had never been reached — it had never been reached,
+    and finding that out cost a round trip. Written at the START as well as
+    the end, so a run that dies mid-export still leaves evidence it began.
+    """
+    from datetime import datetime, timezone
+    try:
+        OUT.mkdir(parents=True, exist_ok=True)
+        (OUT / (STAMP + ".stamp")).write_text(
+            f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC  {text}\n",
+            encoding="utf-8")
+    except OSError:
+        pass                      # a missing note must never kill the export
 
 
 def shapes(n_prompt_tok, n_prompt_mel, n_tokens):
@@ -562,6 +581,7 @@ def selftest():
 
 
 def cmd_run():
+    stamp("started")
     import time
     import numpy as np
     import torch
@@ -620,6 +640,7 @@ def cmd_run():
                     / max(float(np.abs(w2).max()), 1e-12))
     print(f"  and to {worst:.1e} at two lengths it was NOT traced at")
     print()
+    stamp(f"finished — {rel:.1e} traced, {worst:.1e} untraced, {mb:.0f} MB")
     print("  ------------------------------------------------------------")
     print("  Tokens and a voice in, samples out. The game supplies the noise,")
     print("  which is what makes a line repeatable from a seed.")

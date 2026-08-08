@@ -61,6 +61,15 @@ def audit(np, ort, step_path, prefill_path, voices, say):
         if not ok:
             bad.append(what)
 
+    # WHAT EACH EXPORT STEP ACTUALLY DID, before anything about the files.
+    # A missing graph has two causes with opposite next moves — the step never
+    # ran, or it ran and died — and the file's absence cannot tell them apart.
+    for note in ("text", "decode"):
+        f = step_path.parent / (note + ".stamp")
+        say(f"        {note} export: "
+            + (f.read_text(encoding="utf-8").strip() if f.exists()
+               else "NO RECORD — this step has never been run here"))
+
     for p in (step_path, prefill_path):
         mb = p.stat().st_size / (1024 * 1024) if p.exists() else 0
         # ONNX splits weights into sidecar files past 2 GB, so the graph on

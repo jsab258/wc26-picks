@@ -71,7 +71,26 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "tools" / "voice-live" / "game-out"
 VOICE = "rocco"
+STAMP = "text"
 LINE = "Seen the van again. Thursday, same as last Thursday."
+
+
+def stamp(text):
+    """LEAVE A NOTE SAYING THIS STEP RAN, because "no graph on disk" and "the
+    export died" look identical from the outside and want opposite next moves.
+    The audit read `s3gen-decode.onnx` missing and could not say whether the
+    export had failed or had never been reached — it had never been reached,
+    and finding that out cost a round trip. Written at the START as well as
+    the end, so a run that dies mid-export still leaves evidence it began.
+    """
+    from datetime import datetime, timezone
+    try:
+        OUT.mkdir(parents=True, exist_ok=True)
+        (OUT / (STAMP + ".stamp")).write_text(
+            f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC  {text}\n",
+            encoding="utf-8")
+    except OSError:
+        pass                      # a missing note must never kill the export
 
 
 def make_step(torch, kv_cache, model, like):
@@ -383,6 +402,7 @@ def selftest():
 
 
 def cmd_run():
+    stamp("started")
     import time
     import numpy as np
     import torch
@@ -517,6 +537,7 @@ def cmd_run():
         print(f"  different answers matching, not one constant matching itself.")
 
     print()
+    stamp(f"finished — step {rel:.1e}/{worst:.1e}, prefill {pgap:.1e}")
     print("  ------------------------------------------------------------")
     print("  Two graphs. The prefill takes the sentence and the voice; the")
     print("  step takes a token and a position. The game hands over integers")
