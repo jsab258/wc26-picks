@@ -30,6 +30,8 @@
 # A rule that has to be edited every time a tool is added is a rule that will
 # be forgotten every time a tool is added. This one cannot be.
 /*.csproj
+# Anchored above so it cannot swallow a subdirectory's project; the guard in
+# verify.py checks the OUTCOME rather than trusting this rule.
 /*.sln
 
 # Generated playtest report

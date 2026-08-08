@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- DOES THE SPEECH BACKEND COMPILE, ANSWERED HERE INSTEAD OF IN CI.
+
+       `Game/OnnxSpeech.cs` is the only Game-layer file that touches no Unity
+       type at all — it speaks to onnxruntime and to Core and nothing else. So
+       the one question that used to need a ~28-minute Windows round trip
+       (do my calls match the library's actual API) is answerable in seconds
+       against the library's own 210 KB managed assembly.
+
+       It found two real errors the first time it ran, on code nothing had
+       ever compiled.
+
+       net8.0 rather than netstandard2.0 deliberately: the first attempt used
+       netstandard2.0 and produced a screen of errors about `Math.Clamp` and
+       `ReadOnlySpan` that were entirely about the test project's framework
+       being older than Unity's, not about the code. LangVersion 9 still
+       matches what Unity will accept. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>LEDGER_ONNX</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OnnxManaged Condition="'$(OnnxManaged)'==''">../.onnx-cache/Microsoft.ML.OnnxRuntime.dll</OnnxManaged>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <Compile Include="../Assets/Scripts/Game/OnnxSpeech.cs" />
+    <Reference Include="Microsoft.ML.OnnxRuntime">
+      <HintPath>$(OnnxManaged)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

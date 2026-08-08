@@ -12,12 +12,12 @@ namespace Ledger.Game
     /// budget, routing, what is worth saying — is in Core, and this hands
     /// tensors to onnxruntime and copies numbers back.
     ///
-    /// BEHIND A COMPILE SWITCH, and that is not timidity. The DLLs are ~250 MB
-    /// of native code fetched by CI, and a Game layer that will not compile
-    /// without them is a Game layer nobody can build. `LEDGER_ONNX` is defined
-    /// by the build job once the plugin is in place; without it the field in
-    /// `Audio` stays null and every route falls back to the bank, which is
-    /// exactly what it does today.
+    /// BEHIND A COMPILE SWITCH, and that is not timidity. Three DLLs totalling
+    /// 32 MB are fetched by CI — measured, after I twice wrote ~250 MB from
+    /// memory — and a Game layer that will not compile without them is a Game
+    /// layer nobody can build. `LEDGER_ONNX` is defined by the build job once
+    /// they are verified on disk; without it the field in `Audio` stays null
+    /// and every route falls back to the bank, which is what it does today.
     ///
     /// WHAT EACH GRAPH IS, because the split is not obvious from its name:
     ///

@@ -153,6 +153,36 @@ def tools_tracked():
     return True, "%d tool project(s) tracked" % n
 
 
+def backend_compiles():
+    """Does the speech backend compile against the real onnxruntime assembly.
+
+    `Game/OnnxSpeech.cs` is the only Game-layer file that touches no Unity
+    type — it speaks to onnxruntime and to Core and nothing else. So the one
+    question that used to need a ~28-minute Windows round trip is answerable
+    here in seconds, against the library's own 210 KB managed assembly.
+
+    IT FOUND TWO REAL ERRORS the first time it ran, in code nothing had ever
+    compiled: an `int * uint` that widens to long, and a tensor constructor
+    taking a shape the wrong way round.
+
+    A DENOMINATOR ON THE SKIP. Without the cached assembly this cannot run,
+    and "the backend compiles" must not read the same as "nothing was
+    compiled" — so the skip says so and names the missing file."""
+    dll = ROOT / ".onnx-cache" / "Microsoft.ML.OnnxRuntime.dll"
+    if not dll.exists():
+        code, out = run(["python3", str(ROOT.parent / "tools" / "fetch-onnxruntime.py"),
+                         "--dest", str(ROOT / ".onnx-cache"), "--managed-only"])
+    if not dll.exists():
+        return True, "backend compile SKIPPED (no onnxruntime assembly cached)"
+    code, out = run(["dotnet", "build", "-c", "Release", "-v", "q", "--nologo",
+                     str(ROOT / "BackendCheck")])
+    if "Build succeeded" in out:
+        return True, "speech backend compiles"
+    errs = sorted({l.split("): ")[-1].split(" [")[0]
+                   for l in out.splitlines() if "error CS" in l})
+    return False, "SPEECH BACKEND WILL NOT COMPILE: " + "; ".join(errs[:2])
+
+
 def card_writing():
     """The generator's writing rules, run without spending anything.
 
@@ -902,7 +932,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
-               attribution, game_compiles, nested_types,
+               attribution, game_compiles, backend_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):
