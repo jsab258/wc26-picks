@@ -1,5 +1,5 @@
 LEDGER — the exported speech graphs, read from the files themselves
-ran on Jafar-Desktop (Windows) as Jafar, 2026-08-08 05:30 UTC
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-08 05:49 UTC
 graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
 
   ok    t3-step.onnx is on disk   [2001 MB, 2001 MB with weights]
@@ -23,5 +23,7 @@ graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
   ok    the position changes the answer — it is an input, not baked into the graph   [6.3953]
   ok    the prefill's cache drives the step three times, growing by one each   [43 -> [44, 45, 46]]
   ok    and the answer it gives is a number
+  FAIL  s3gen-decode.onnx is on disk — the decode graph was not exported, so nothing turns tokens into audio yet
 
-RESULT: all clear
+RESULT: 1 PROBLEM(S)
+  - s3gen-decode.onnx is on disk — the decode graph was not exported, so nothing turns tokens into audio yet
