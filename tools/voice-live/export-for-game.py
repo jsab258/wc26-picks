@@ -505,6 +505,16 @@ def cmd_run(force=False):
         worst = max(worst, float(np.abs(w2 - sess.run(None, alt)[0]).max())
                     / max(float(np.abs(w2).max()), 1e-12))
     print(f"  and to {worst:.1e} at four positions it was NOT traced at")
+    # CHECKED, NOT JUST PRINTED — the sibling exporter reported a number above
+    # its own selftest's bound and still called the run finished, because
+    # nothing read it. These are logits rather than samples, so there is no
+    # audible unit to convert to; the bound is the selftest's, which the real
+    # model has met on every run so far at 1.7e-06.
+    if worst > 1e-4:
+        print(f"  REFUSED: {worst:.1e} at an untraced position is too far from "
+              f"the original — the position may be baked in.")
+        stamp(f"FAILED — step disagreement {worst:.1e} above the 1e-4 ceiling")
+        return 1
 
     # ---- THE PREFILL. The step graph takes a cache, and the game has a
     # sentence; this is what turns one into the other. Same gap as the

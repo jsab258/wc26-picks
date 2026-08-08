@@ -677,6 +677,35 @@ def cmd_run(force=False):
         worst = max(worst, float(np.abs(w2 - g2).max())
                     / max(float(np.abs(w2).max()), 1e-12))
     print(f"  and to {worst:.1e} at two lengths it was NOT traced at")
+
+    # THE NUMBER IN UNITS SOMEBODY CAN JUDGE. A relative disagreement means
+    # nothing on its own; the same figure against the waveform's peak is a
+    # count of 16-bit steps, and that is a statement about whether anyone
+    # could hear it. The first real run read 7.0e-05 and 1.5e-04, which is
+    # 2.3 and 4.9 steps — below anything audible in a game mix, and two orders
+    # worse than the small-model check because the real graph is far deeper
+    # and float32 error accumulates through it.
+    import math
+    print(f"  which is {20 * math.log10(max(worst, 1e-12)):.0f} dB below the "
+          f"peak, about {worst * 32768:.1f} steps of 16-bit audio")
+
+    # AND IT IS CHECKED RATHER THAN PRINTED, which it was not. The selftest
+    # has bounded this at 1e-4 since it was written; the real run reported
+    # 1.5e-4 and still said "finished", because nothing here read its own
+    # output. A measurement no one gates on is a number in a log.
+    #
+    # The bound is 1e-3 — about thirty-two steps of 16-bit, still far below
+    # audible — rather than the selftest's 1e-4, because the real graph is
+    # legitimately noisier than the shrunk one and holding it to the smaller
+    # model's figure would be a threshold set from the wrong subject. ONE run
+    # is not a distribution: the value is printed every time so a series
+    # accumulates, and this is a ceiling on "obviously broken" rather than a
+    # claim about what is normal.
+    if worst > 1e-3:
+        print(f"  REFUSED: {worst:.1e} is too far from the original to trust "
+              f"({worst * 32768:.0f} steps of 16-bit audio).")
+        stamp(f"FAILED — disagreement {worst:.1e} above the 1e-3 ceiling")
+        return 1
     print()
     stamp(f"finished  src={src} — {rel:.1e} traced, {worst:.1e} untraced, {mb:.0f} MB")
     print("  ------------------------------------------------------------")
