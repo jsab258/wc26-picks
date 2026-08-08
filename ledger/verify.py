@@ -56,10 +56,17 @@ def shape():
     code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "ShapeCheck"),
                      "--", str(ROOT / "Assets" / "Scripts"),
                      str(ROOT / "Assets" / "Editor")])
-    m = re.search(r"checked (\d+) files, (\d+) shape error", out)
+    m = re.search(r"checked (\d+) files, (\d+) shape error\(s\)"
+                  r"(?: \((\d+) with conditional code)?", out)
     if not m:
         return False, "ShapeCheck did not report (build failure?)"
-    return m.group(2) == "0", "%s shape errors (%s files)" % (m.group(2), m.group(1))
+    # THE CONDITIONAL COUNT TRAVELS INTO THE FOOTER. Code behind `#if` was
+    # not parsed at all until 8 August, so "0 errors in 169 files" was true
+    # and covered 380 lines it had never read. Naming the number here means a
+    # symbol quietly dropping out shows up as a count moving.
+    cond = (", %s with conditional code" % m.group(3)) if m.group(3) else ""
+    return m.group(2) == "0", "%s shape errors (%s files%s)" % (
+        m.group(2), m.group(1), cond)
 
 
 def lint():

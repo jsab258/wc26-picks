@@ -315,7 +315,12 @@ namespace Ledger.Game
                 int wav = (h - promptMels) * SamplesPerMel;
                 if (wav <= 0) { Why = "the prompt is longer than the line"; return null; }
 
-                var seed = new Gauss(unchecked(tokens.Length * 2654435761u
+                // `int * uint` widens to LONG in C#, because uint cannot hold
+                // a negative int — so this needs the cast before the multiply
+                // rather than around it. Caught by ShapeCheck in seconds once
+                // it was told to read conditional code, which is the whole
+                // argument for having done that.
+                var seed = new Gauss(unchecked((uint)tokens.Length * 2654435761u
                                                + (uint)promptTokens));
                 var z = new DenseTensor<float>(new[] { 1, 80, h });
                 for (int i = 0; i < 80 * h; i++) z.SetValue(i, seed.Next());

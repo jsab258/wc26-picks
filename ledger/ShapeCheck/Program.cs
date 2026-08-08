@@ -57,8 +57,26 @@ var interesting = new HashSet<string>
     // produced the false positives are all binary comparisons.
 };
 
+// THE SYMBOLS THE BUILD DEFINES, or the code behind them is never read.
+//
+// `CSharpParseOptions` with no symbols treats every `#if X` region as
+// DISABLED TEXT: it is not parsed, so it cannot produce a syntax error, and
+// the file still counts towards "checked N files". `Game/OnnxSpeech.cs` is
+// 380 lines inside `#if LEDGER_ONNX` and this check had read none of it while
+// reporting it as clean — a zero with no denominator, which is the fault this
+// project keeps finding in its own instruments.
+//
+// Syntax is the cheapest class of error and the one that has cost the most:
+// a missing `+` between two string literals killed four consecutive builds
+// and the question each was dispatched to answer. Reading conditional code
+// here costs milliseconds; not reading it costs a ~28-minute round trip.
+var defines = new[] { "LEDGER_ONNX", "UNITY_EDITOR", "UNITY_STANDALONE_WIN" };
+var parseOpts = new CSharpParseOptions(LanguageVersion.CSharp9)
+    .WithPreprocessorSymbols(defines);
+
 var trees = new List<SyntaxTree>();
 int files = 0;
+int conditional = 0;
 // EVERY ROOT GIVEN, NOT JUST THE FIRST. This read `args[0]` and silently
 // dropped the rest, so `-- Assets/Scripts Assets/Editor` checked Scripts and
 // reported the same 136 files as before — an "extension" that was a no-op and
@@ -69,8 +87,9 @@ foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDire
 {
     if (path.Contains("/obj/") || path.Contains("/bin/")) continue;
     files++;
-    trees.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(path),
-        new CSharpParseOptions(LanguageVersion.CSharp9), path: path));
+    var text = File.ReadAllText(path);
+    if (text.Contains("#if ")) conditional++;
+    trees.Add(CSharpSyntaxTree.ParseText(text, parseOpts, path: path));
 }
 
 // Every type name WE declare, so a CS0246 naming one of them (or a common
@@ -326,5 +345,10 @@ foreach (var d in compilation.GetDiagnostics())
     var span = d.Location.GetLineSpan();
     Console.WriteLine($"{span.Path}:{span.StartLinePosition.Line + 1}: {d.Id}: {d.GetMessage()}");
 }
-Console.WriteLine($"checked {files} files, {bad} shape error(s)");
+// THE DENOMINATOR ON THE CONDITIONAL CODE. "0 errors in 169 files" read the
+// same whether the code behind `#if` was checked or skipped, and it was
+// skipped. Naming the count means a future change to the symbols shows up as
+// a number moving rather than as silence.
+Console.WriteLine($"checked {files} files, {bad} shape error(s)"
+    + $" ({conditional} with conditional code, parsed with {string.Join("/", defines)})");
 return bad == 0 ? 0 : 1;
