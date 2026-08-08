@@ -99,6 +99,7 @@ namespace Ledger.CoreTests
                 TestSpeechLoop();
                 TestSpeechText();
                 TestSpeechTokenizer();
+                TestVoiceConditionals();
                 TestSpeechQueue();
                 TestSpeechDirector();
                 TestCaptions();
@@ -7822,6 +7823,109 @@ namespace Ledger.CoreTests
                 new[] { 0, 2 },
                 new[] { 0, 1, 2, 3 },
                 new[] { 0.399007, 0.399007, 0.140796, 0.06119 });
+        }
+
+
+        /// A character's voice, as the game will read it off disk.
+        static void TestVoiceConditionals()
+        {
+            Console.WriteLine("Voice conditionals — the numbers behind a character's voice:");
+
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            string folder = null;
+            while (dir != null)
+            {
+                var p = Path.Combine(dir.FullName, "game-design", "voice-conds");
+                if (Directory.Exists(p)) { folder = p; break; }
+                dir = dir.Parent;
+            }
+            var files = folder == null ? new string[0] : Directory.GetFiles(folder, "*.bin");
+            Array.Sort(files);
+            if (files.Length == 0)
+            {
+                // A DENOMINATOR ON THE SKIP, same as the tokeniser's. "the
+                // voices are not computed" and "the reader works" must not
+                // print the same way.
+                Check(true, "voice conditionals SKIPPED — no game-design/voice-conds/*.bin, "
+                            + "0 voices read");
+                return;
+            }
+
+            // EVERY VOICE, NOT ONE. The prompt lengths differ between them —
+            // five distinct lengths across the nineteen — so a reader that
+            // works on the first file is a reader that has not been tested.
+            int ok = 0, arrays = 0;
+            string firstWhy = null, firstBad = null;
+            var lengths = new HashSet<int>();
+            foreach (var f in files)
+            {
+                string why;
+                var v = VoiceConditionals.Load(File.ReadAllBytes(f), out why);
+                if (v == null)
+                {
+                    if (firstBad == null) { firstBad = Path.GetFileName(f); firstWhy = why; }
+                    continue;
+                }
+                ok++;
+                arrays += v.Count;
+                var pt = v.Get("gen.prompt_token");
+                if (pt != null) lengths.Add(pt.Rows);
+            }
+            Check(ok == files.Length,
+                $"all {files.Length} committed voices load — {arrays} arrays in total",
+                firstBad + ": " + firstWhy);
+            if (ok == 0) return;
+
+            Check(lengths.Count > 1,
+                $"and they carry {lengths.Count} different prompt lengths, so the reader "
+                + "is taking the shape from the file rather than from a constant",
+                string.Join(", ", lengths));
+
+            var one = VoiceConditionals.Load(File.ReadAllBytes(files[0]), out _);
+            Check(one.Has("t3.speaker_emb") && one.Has("t3.cond_prompt_speech_tokens")
+                  && one.Has("t3.emotion_adv") && one.Has("gen.prompt_token")
+                  && one.Has("gen.prompt_feat") && one.Has("gen.embedding"),
+                "and each has the six arrays the three graphs ask for",
+                string.Join(", ", one.Names));
+
+            var emb = one.Get("gen.embedding");
+            Check(emb != null && emb.Floats != null && emb.Count == 192,
+                "the speaker embedding is 192 floats, which is what s3gen takes",
+                emb == null ? "absent" : emb.Count + (emb.Floats == null ? " ints" : " floats"));
+            var tok = one.Get("gen.prompt_token");
+            Check(tok != null && tok.Longs != null && tok.Longs.Length > 0,
+                "and the prompt tokens came back as integers rather than floats",
+                tok == null ? "absent" : (tok.Longs == null ? "floats" : tok.Longs.Length + " ints"));
+
+            var feat = one.Get("gen.prompt_feat");
+            Check(feat != null && feat.Shape.Length == 3 && feat.Shape[2] == 80,
+                "the prompt spectrogram is 80 bands deep, and its length travels with it",
+                feat == null ? "absent" : string.Join("x", feat.Shape));
+
+            // NOT ALL ZERO. A reader that returns the right shapes full of
+            // nothing passes every check above, and a silent voice is what
+            // that produces — audible only as a character who never speaks.
+            var sp = one.Get("t3.speaker_emb");
+            double peak = 0;
+            for (int i = 0; i < sp.Floats.Length; i++) peak = Math.Max(peak, Math.Abs(sp.Floats[i]));
+            Check(peak > 1e-6, $"and the numbers are numbers — the speaker vector peaks at {peak:0.###}",
+                peak.ToString());
+
+            // THE REJECTING CASES, run rather than reasoned about.
+            string badWhy;
+            Check(VoiceConditionals.Load(System.Text.Encoding.ASCII.GetBytes("NOTAVOICE!!!!!!!"), out badWhy) == null
+                  && badWhy != null && badWhy.Contains("not a voice file"),
+                "a file with the wrong header is refused and says so", badWhy);
+            Check(VoiceConditionals.Load(null, out badWhy) == null && badWhy != null,
+                "so is nothing at all", badWhy);
+
+            var whole = File.ReadAllBytes(files[0]);
+            var half = new byte[whole.Length / 2];
+            Array.Copy(whole, half, half.Length);
+            Check(VoiceConditionals.Load(half, out badWhy) == null
+                  && badWhy != null && badWhy.Contains("truncated"),
+                "and a half-copied file is caught rather than read as a quieter voice",
+                badWhy);
         }
 
         /// Words into the numbers the model reads.

@@ -280,7 +280,7 @@ def cmd_speak(text, seed, voice):
     print(f"  voice: {voice}  ({ref.name})")
     print("  loading the model (a minute or two the first time)...")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ChatterboxTTS.from_pretrained(device=dev)
+    model = export_probe.load_model(dev)
     model.prepare_conditionals(str(ref))
     OUT.mkdir(parents=True, exist_ok=True)
 

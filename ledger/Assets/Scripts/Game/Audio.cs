@@ -210,6 +210,14 @@ namespace Ledger.Game
                 LoadVocabulary(null);
                 VocabularyWhy = e.GetType().Name;
             }
+
+            // AND THE VOICES. Nineteen files, 2.5 MB the whole way, and each
+            // one is a constant: the conditioning depends on the reference
+            // clip and not on the words, which is why the voice encoder never
+            // ships. Read at startup for the same reason as the vocabulary —
+            // a file read inside the frame that is trying to speak is a
+            // stutter caused by the feature meant to prevent one.
+            LoadVoices();
         }
 
         static AudioSource Make(string name, bool loop)
@@ -972,6 +980,97 @@ namespace Ledger.Game
                 : (why ?? "no reason given");
             Live.Length = tok == null ? (System.Func<string, int>)null
                                       : (text => tok.Encode(text).Length);
+        }
+
+        /// Every character's voice, by the id `SpeechDirector` routes on.
+        /// Empty when the folder is absent, which is survivable in exactly one
+        /// direction: the bank still plays, and live speech reports no voice.
+        public static readonly System.Collections.Generic.Dictionary<string, VoiceConditionals>
+            Voices = new System.Collections.Generic.Dictionary<string, VoiceConditionals>();
+
+        /// Why the voices are the way they are, for the done line. A count on
+        /// its own cannot separate "the folder is not there" from "nineteen
+        /// files are there and every one was refused", and those want
+        /// different fixes.
+        public static string VoicesWhy { get; private set; } = "not loaded yet";
+
+        /// What the three exported graphs ask for, by the names the Python
+        /// wrote. Listed here rather than checked at the call site so adding a
+        /// graph input is one edit and not a hunt.
+        static readonly string[] Required =
+        {
+            "t3.speaker_emb", "t3.cond_prompt_speech_tokens", "t3.emotion_adv",
+            "gen.prompt_token", "gen.prompt_feat", "gen.embedding",
+        };
+
+        /// Read every `.bin` under `StreamingAssets/Voice/conds`.
+        ///
+        /// FAILS SOFT AND COUNTS WHAT IT SAW. A voice that will not parse is a
+        /// character who cannot speak live rather than a crash, and the reason
+        /// travels with the count so a zero is never ambiguous — rule 3b, the
+        /// one this project keeps relearning.
+        public static void LoadVoices()
+        {
+            Voices.Clear();
+            int refused = 0;
+            string firstWhy = null;
+            try
+            {
+                var dir = System.IO.Path.Combine(Application.streamingAssetsPath,
+                                                 "Voice", "conds");
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    VoicesWhy = "no folder at StreamingAssets/Voice/conds";
+                    return;
+                }
+                var files = System.IO.Directory.GetFiles(dir, "*.bin");
+                foreach (var f in files)
+                {
+                    string why;
+                    var v = VoiceConditionals.Load(System.IO.File.ReadAllBytes(f), out why);
+                    if (v == null)
+                    {
+                        refused++;
+                        if (firstWhy == null)
+                            firstWhy = System.IO.Path.GetFileName(f) + ": " + why;
+                        continue;
+                    }
+                    // A VOICE THAT PARSES IS NOT A VOICE THAT WORKS. The three
+                    // graphs ask for six arrays by name; one missing shows up
+                    // as an onnxruntime complaint on the first line somebody
+                    // tries to speak, half a minute into a scene, rather than
+                    // here where it is a named refusal. So the reason carries
+                    // what the file DID have, which is the denominator on a
+                    // failure that would otherwise just say "no".
+                    string absent = null;
+                    foreach (var need in Required)
+                        if (!v.Has(need)) { absent = need; break; }
+                    if (absent != null)
+                    {
+                        refused++;
+                        if (firstWhy == null)
+                            firstWhy = System.IO.Path.GetFileName(f) + ": no '" + absent
+                                + "', has " + string.Join(", ", v.Names);
+                        continue;
+                    }
+                    Voices[System.IO.Path.GetFileNameWithoutExtension(f)] = v;
+                }
+                VoicesWhy = Voices.Count + " of " + files.Length + " loaded"
+                    + (refused > 0 ? ", " + refused + " refused (" + firstWhy + ")" : "");
+            }
+            catch (System.Exception e)
+            {
+                VoicesWhy = e.GetType().Name;
+            }
+        }
+
+        /// The conditioning for one character, or null when we have none.
+        /// The backend asks through here rather than reaching into the
+        /// dictionary, so "no voice for this id" is one answer in one place.
+        public static VoiceConditionals VoiceFor(string voiceId)
+        {
+            VoiceConditionals v;
+            return voiceId != null && Voices.TryGetValue(voiceId, out v) ? v : null;
         }
 
         /// The lines waiting to be generated, and the ones that came back.

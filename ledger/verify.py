@@ -543,6 +543,24 @@ def voice_live():
     tools = ROOT.parent / "tools" / "voice-live"
     total = 0
     skipped = []
+
+    # ONE WAY TO LOAD THE MODEL, ENFORCED. `ChatterboxTTS.__init__` builds a
+    # watermarker that is None on a machine without `pkg_resources`, so the
+    # constructor dies before any work starts. `diagnose_watermarker` has
+    # fixed that for a year — for whichever files remembered to call it.
+    # `export-decode.py` was written beside them, did not, and died on Jafar's
+    # machine after two successful exports and several minutes of loading.
+    # Same fault, cure in the same directory, second occurrence. A rule that
+    # depends on remembering is a rule that decays, so this is a check.
+    stray = []
+    for f in sorted(tools.glob("*.py")):
+        if f.name == "export_probe.py":
+            continue                       # where the one loader lives
+        if "ChatterboxTTS.from_pretrained" in f.read_text(encoding="utf-8"):
+            stray.append(f.name)
+    if stray:
+        return False, ("LOADS THE MODEL DIRECTLY, bypassing the watermarker "
+                       "guard: " + ", ".join(stray))
     # `stft_patch.py` is here because its checks are the ones that can go
     # quietly wrong: it substitutes a computation, and a substitute that
     # exports while computing something else is worse than the blocker it

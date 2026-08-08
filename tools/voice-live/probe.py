@@ -268,7 +268,8 @@ def run_torch_dml():
         import torchaudio
         dev = torch_directml.device()
         t0 = time.time()
-        model = ChatterboxTTS.from_pretrained(device=dev)
+        import export_probe
+        model = export_probe.load_model(dev)
         load = time.time() - t0
         t1 = time.time()
         wav = model.generate(TEST_LINE, audio_prompt_path=str(reference_for(TEST_VOICE)),

@@ -75,6 +75,30 @@ STAMP = "text"
 LINE = "Seen the van again. Thursday, same as last Thursday."
 
 
+def already_done(paths):
+    """Skip an export that is already on disk from THIS version of this file.
+
+    Each run costs minutes of model loading, and the decode export died after
+    the text one had succeeded — so repeating it means paying twice for an
+    answer already in hand. Skipping is only safe if "already done" means the
+    same code produced it, so the stamp carries a fingerprint of this file and
+    a skip requires it to match. Edit the exporter and the fingerprint moves,
+    which re-exports without anybody having to remember to.
+
+    A guard that cannot tell a regression from an improvement is a ratchet;
+    this one cannot keep a stale graph, because staleness is exactly what the
+    fingerprint measures.
+    """
+    import hashlib
+    mine = hashlib.sha256(
+        pathlib.Path(__file__).read_bytes()).hexdigest()[:12]
+    note = OUT / (STAMP + ".stamp")
+    if not note.exists() or not all(p.exists() for p in paths):
+        return False, mine
+    text = note.read_text(encoding="utf-8")
+    return ("src=" + mine) in text and "finished" in text, mine
+
+
 def stamp(text):
     """LEAVE A NOTE SAYING THIS STEP RAN, because "no graph on disk" and "the
     export died" look identical from the outside and want opposite next moves.
@@ -401,8 +425,13 @@ def selftest():
     return 1 if fails else 0
 
 
-def cmd_run():
-    stamp("started")
+def cmd_run(force=False):
+    done, src = already_done([OUT / "t3-step.onnx", OUT / "t3-prefill.onnx"])
+    if done and not force:
+        print("  already exported by this same code — skipping.")
+        print("  (delete the .onnx files, or pass --force, to redo it)")
+        return 0
+    stamp(f"started  src={src}")
     import time
     import numpy as np
     import torch
@@ -424,7 +453,7 @@ def cmd_run():
     print(f"  voice: {VOICE} ({ref.name})")
     print("  loading the model...")
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ChatterboxTTS.from_pretrained(device=dev)
+    model = export_probe.load_model(dev)
     model.prepare_conditionals(str(ref))
     OUT.mkdir(parents=True, exist_ok=True)
 
@@ -537,7 +566,7 @@ def cmd_run():
         print(f"  different answers matching, not one constant matching itself.")
 
     print()
-    stamp(f"finished — step {rel:.1e}/{worst:.1e}, prefill {pgap:.1e}")
+    stamp(f"finished  src={src} — step {rel:.1e}/{worst:.1e}, prefill {pgap:.1e}")
     print("  ------------------------------------------------------------")
     print("  Two graphs. The prefill takes the sentence and the voice; the")
     print("  step takes a token and a position. The game hands over integers")
@@ -549,12 +578,14 @@ def cmd_run():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--force", action="store_true",
+                    help="re-export even if it is already done")
     ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
     if a.selftest:
         return selftest()
     try:
-        return cmd_run()
+        return cmd_run(a.force)
     except ImportError as e:
         print(f"  cannot run: {e}")
         return 2

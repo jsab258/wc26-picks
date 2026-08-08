@@ -1688,6 +1688,32 @@ def agreement(model, args, onnx_path, provider, tol=1e-2, real_alt=None):
     return dict(out, verdict="agrees")
 
 
+def load_model(device="cpu", say=print):
+    """THE ONLY WAY THIS PROJECT LOADS THE MODEL, and it is one function for a
+    reason that has now cost two runs.
+
+    `ChatterboxTTS.__init__` constructs `perth.PerthImplicitWatermarker()`
+    unconditionally, and on a machine without `pkg_resources` that name is
+    None — so the constructor dies with `'NoneType' object is not callable`
+    before any of the work starts. `diagnose_watermarker` has fixed that since
+    the first time it happened.
+
+    It fixed it for whichever files remembered to call it. `export-decode.py`
+    was written beside them and did not, and died on Jafar's machine after
+    loading two graphs and several minutes — the identical failure, with the
+    cure already sitting in the same directory. That is this project's most
+    repeated fault: one idea, two implementations, and the second one missing
+    a line.
+
+    So the guard is no longer something to remember. Every site that wants the
+    model asks here."""
+    from chatterbox.tts import ChatterboxTTS
+    note = diagnose_watermarker()
+    if note and say:
+        say(f"  watermarker: {note} (not used here)")
+    return ChatterboxTTS.from_pretrained(device=device)
+
+
 def diagnose_watermarker():
     """Why `perth.PerthImplicitWatermarker` is None, said out loud, then
     replaced so it cannot stop the export.
@@ -2099,7 +2125,7 @@ def cmd_one(key, fixture=False):
 
     print("  loading the model on CPU (export does not need a GPU)...")
     t0 = time.time()
-    model = ChatterboxTTS.from_pretrained(device="cpu")
+    model = load_model("cpu", say=None)     # already diagnosed, just above
 
     # EVAL MODE AND NO GRADIENTS, and the record of what each one was for.
     #
