@@ -85,12 +85,35 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     if bad:
         return bad
 
-    text = np.array([[10, 20, 30, 40, 50, 60]], dtype=np.int64)
+    # ASK THE GRAPH WHAT IT TAKES. `text_to_tokens` returns an `IntTensor`, so
+    # the real prefill declares int32 — while the selftest built its own with
+    # `torch.randint`, which is int64, and passed happily. Fifth time a
+    # stand-in has agreed with me instead of with reality, and the fix is the
+    # same every time: read it off the thing rather than assume it.
+    ONNX_NP = {"tensor(int64)": np.int64, "tensor(int32)": np.int32,
+               "tensor(float)": np.float32, "tensor(double)": np.float64,
+               "tensor(float16)": np.float16, "tensor(bool)": np.bool_}
+    dt = {i.name: ONNX_NP.get(i.type) for i in list(pre.get_inputs()) + list(stp.get_inputs())}
+    unknown = sorted(n for n, t in dt.items() if t is None)
+    want(not unknown, "every input has a type this tool knows how to feed",
+         ", ".join(f"{n}:{i.type}" for i in pre.get_inputs() for n in [i.name]
+                   if n in unknown))
+    if bad:
+        return bad
+    say("        types: " + "  ".join(f"{i.name}={i.type}" for i in pre.get_inputs())
+        + f"  |  token={dt['token'].__name__}, position={dt['position'].__name__}")
+
+    def cast(name, v):
+        return np.asarray(v).astype(dt[name], copy=False)
+
+    text = cast("text_tokens", [[10, 20, 30, 40, 50, 60]])
 
     def prefill(v):
-        return pre.run(None, {"text_tokens": text, "speaker_emb": v["speaker_emb"],
-                              "cond_speech_tokens": v["cond_speech_tokens"],
-                              "emotion_adv": v["emotion_adv"]})
+        return pre.run(None, {"text_tokens": text,
+                              "speaker_emb": cast("speaker_emb", v["speaker_emb"]),
+                              "cond_speech_tokens": cast("cond_speech_tokens",
+                                                         v["cond_speech_tokens"]),
+                              "emotion_adv": cast("emotion_adv", v["emotion_adv"])})
 
     # A DENOMINATOR ON THE VOICE CHECK. "The voices differ" from one voice is
     # not a result, it is an empty loop reading as a pass.
@@ -136,12 +159,12 @@ def audit(np, ort, step_path, prefill_path, voices, say):
 
     # THE POSITION, THE SAME WAY. Traced as a Python int it becomes a constant
     # and every word after the first sits at the wrong place in the sentence.
-    tok = np.array([[7]], dtype=np.int64)
+    tok = cast("token", [[7]])
     feed = {f"cache{i}": c for i, c in enumerate(c0)}
     feed["token"] = tok
     at = {}
     for p in (1, 2, 17):
-        feed["position"] = np.array(p, dtype=np.int64)
+        feed["position"] = cast("position", p)
         at[p] = stp.run(None, feed)[0]
     moved = max(float(np.abs(at[1] - at[p]).max()) for p in (2, 17))
     say(f"        position: 1 vs 2 and 17 move the answer by {moved:.3f}")
@@ -153,7 +176,7 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     live, grew = c0, []
     for p in (1, 2, 3):
         f2 = {f"cache{i}": c for i, c in enumerate(live)}
-        f2["token"], f2["position"] = tok, np.array(p, dtype=np.int64)
+        f2["token"], f2["position"] = tok, cast("position", p)
         got = stp.run(None, f2)
         live = got[1:]
         grew.append(live[0].shape[2])
@@ -203,15 +226,38 @@ def cmd_run():
         f"{getpass.getuser()}, {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say(f"graphs looked for in {OUT}")
     say("")
+    # A CRASH IS A RESULT AND MUST TRAVEL LIKE ONE. The first real run threw
+    # on a dtype and wrote no file at all, so the whole point of this tool —
+    # that its answer comes back without anyone copying it — was defeated by
+    # the one outcome nobody plans for. An unhandled exception is exactly the
+    # case where the report matters most, because it is the case where there
+    # is nothing else to go on.
+    import traceback
     voices = load_voices(np, CONDS)
-    bad = audit(np, ort, OUT / "t3-step.onnx", OUT / "t3-prefill.onnx", voices, say)
+    try:
+        bad = audit(np, ort, OUT / "t3-step.onnx", OUT / "t3-prefill.onnx",
+                    voices, say)
+    except Exception as e:
+        say("")
+        say(f"  CRASHED  {type(e).__name__}: {e}")
+        for line in traceback.format_exc().splitlines():
+            say("    " + line)
+        bad = [f"the check itself crashed: {type(e).__name__}"]
     say("")
     say(f"RESULT: {'all clear' if not bad else str(len(bad)) + ' PROBLEM(S)'}")
     for b in bad:
         say(f"  - {b}")
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"\n  written to {REPORT.relative_to(ROOT)}")
+    # `relative_to` RAISES rather than falling back when the path is outside
+    # the repo, and it sits AFTER the write — so the report landed and the
+    # tool still exited on a traceback. Found by running the crash path, which
+    # is the whole argument for running it.
+    try:
+        where = REPORT.relative_to(ROOT)
+    except ValueError:
+        where = REPORT
+    print(f"\n  written to {where}")
     return 1 if bad else 0
 
 
@@ -284,8 +330,18 @@ def selftest():
     cache0 = kv_cache.cache_to_tensors(seed.past_key_values)
     efg.export_step(torch, kv_cache, t3, seed.past_key_values, cache0,
                     tmp / "t3-step.onnx")
-    efg.export_prefill(torch, kv_cache, t3, a_voice(1), torch.randint(0, 100, (1, 9)),
+    # INT32, BECAUSE THAT IS WHAT THE REAL ONE IS. `text_to_tokens` returns a
+    # `torch.IntTensor`; this fixture used `torch.randint`, which is int64,
+    # and so the graph under test took a type the shipped graph never will.
+    # It passed, and the real run threw on the first line that fed it. A
+    # stand-in that differs from the thing in the one respect being tested is
+    # worse than no stand-in.
+    efg.export_prefill(torch, kv_cache, t3, a_voice(1),
+                       torch.randint(0, 100, (1, 9), dtype=torch.int32),
                        tmp / "t3-prefill.onnx", len(cache0))
+    efg.export_prefill(torch, kv_cache, t3, a_voice(1),
+                       torch.randint(0, 100, (1, 9), dtype=torch.int64),
+                       tmp / "wide.onnx", len(cache0))
 
     voices = [(f"v{i}", {"speaker_emb": a_voice(i)["speaker_emb"].numpy(),
                          "cond_speech_tokens": a_voice(i)["cond_prompt_speech_tokens"].numpy(),
@@ -298,8 +354,14 @@ def selftest():
     for line in out:
         if line.strip().startswith(("voices:", "position:")):
             print("      " + line.strip())
-    check(not bad, "a correctly exported pair passes the audit",
-          "; ".join(bad) if bad else "")
+    check(not bad, "a correctly exported pair passes the audit (int32 text, as "
+          "the real tokeniser emits)", "; ".join(bad) if bad else "")
+
+    out.clear()
+    badw = audit(np, ort, tmp / "t3-step.onnx", tmp / "wide.onnx", voices, say)
+    check(not badw, "and one taking int64 text passes too — the tool reads the "
+          "type off the graph rather than assuming one",
+          "; ".join(badw) if badw else "")
 
     # AND THE REJECTING CASE, WHICH IS BUILDABLE HERE. Handing
     # `prepare_conditioning` a cond it has already seen leaves the embedded
@@ -356,6 +418,24 @@ def selftest():
     check(any("nope.onnx" in b for b in bad4),
           "and a missing graph is named rather than thrown",
           "; ".join(bad4) if bad4 else "nothing flagged")
+
+    # AND THE CRASH PATH, RUN RATHER THAN REASONED ABOUT. The first real run
+    # threw on a dtype and wrote nothing, which defeated the one thing this
+    # tool is for. A handler nobody has watched work is a handler.
+    def boom(*a, **k):
+        raise RuntimeError("deliberate")
+
+    crash = tmp / "crash-report.txt"
+    keep_audit, keep_report = globals()["audit"], globals()["REPORT"]
+    try:
+        globals()["audit"], globals()["REPORT"] = boom, crash
+        rc = cmd_run()
+    finally:
+        globals()["audit"], globals()["REPORT"] = keep_audit, keep_report
+    wrote = crash.read_text(encoding="utf-8") if crash.exists() else ""
+    check(rc != 0 and "deliberate" in wrote and "CRASHED" in wrote,
+          "and when the check itself throws, the report is still written and "
+          "names the throw", f"rc={rc}, {len(wrote)} bytes")
 
     print(f"\ncheck-graphs --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks, "
