@@ -61,3 +61,9 @@ ShapeCheck/obj/
 # demand and must never be committed.
 GameCheck/bin/
 GameCheck/obj/
+
+# STAGED, NOT AUTHORED. `tools/stage-voice-assets.py` copies the vocabulary
+# and the nineteen voices here from their single source before a build. A
+# committed second copy is two copies of one thing, and data drifts the same
+# way code does.
+Assets/StreamingAssets/Voice/

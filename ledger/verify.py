@@ -183,6 +183,25 @@ def backend_compiles():
     return False, "SPEECH BACKEND WILL NOT COMPILE: " + "; ".join(errs[:2])
 
 
+def voice_assets():
+    """The vocabulary and the voices can reach the build.
+
+    `speechVocab=none speechVoices=0` was true for every build until now, and
+    neither reads as a failure — a game that cannot see its own voices looks
+    exactly like a game that prefers the bank. So the staging is checked here
+    rather than discovered in a verdict twenty-eight minutes later."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "stage-voice-assets.py"),
+                     "--selftest"])
+    m = re.search(r"stage-voice-assets --selftest: PASS — (\d+) checks", out)
+    if m:
+        n = re.search(r"(\d+) of (\d+)", out)
+        return True, "voice assets ok (%s checks%s)" % (
+            m.group(1), ", %s voices stageable" % n.group(1) if n else "")
+    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
+               "did not report")
+    return False, "VOICE ASSETS: " + bad[:110]
+
+
 def card_writing():
     """The generator's writing rules, run without spending anything.
 
@@ -930,7 +949,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, slop,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,

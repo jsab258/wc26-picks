@@ -66,6 +66,24 @@ jobs:
         shell: bash
         run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts ledger/Assets/Editor
 
+      # THE VOCABULARY AND THE VOICES, INTO THE BUILD.
+      #
+      # The last build reported `speechVocab=none speechVoices=0` and both
+      # were true: `Audio` reads `StreamingAssets/Voice/` and nothing was
+      # filling it. So the director had been sizing every line in characters
+      # instead of tokens, and every character's voice lookup returned null.
+      # Neither shows as a failure — both just look like a game that prefers
+      # the bank.
+      #
+      # NOT optional, unlike the runtime below: these are 3 MB that already
+      # live in this repository, so a failure here is a bug rather than a
+      # network, and it should stop the build rather than quietly ship a
+      # player that cannot see its own voices.
+      - name: Stage the vocabulary and voices
+        timeout-minutes: 3
+        shell: bash
+        run: python3 tools/stage-voice-assets.py
+
       # THE SPEECH RUNTIME, AND IT IS ALLOWED TO FAIL.
       #
       # `Game/OnnxSpeech.cs` sits inside `#if LEDGER_ONNX` and the fetcher
