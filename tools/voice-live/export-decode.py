@@ -89,6 +89,7 @@ def already_done(paths):
     return ("src=" + mine) in text and "finished" in text, mine
 
 
+
 def stamp(text):
     """LEAVE A NOTE SAYING THIS STEP RAN, because "no graph on disk" and "the
     export died" look identical from the outside and want opposite next moves.
@@ -449,6 +450,7 @@ def selftest():
     warnings.filterwarnings("ignore")
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
     from stft_patch import patched
+    from export_probe import npy
 
     tmp = pathlib.Path(tempfile.mkdtemp())
     torch.manual_seed(20260808)
@@ -457,8 +459,14 @@ def selftest():
     P, T = 6, 9
     tok = torch.randint(0, 6561, (1, T))
     ptok = torch.randint(0, 6561, (1, P))
-    pfeat = torch.randn(1, MELS_PER_TOKEN * P, 80)
-    emb = torch.randn(1, 192)
+    # REQUIRING GRAD, BECAUSE THE REAL ONES DO. `model.conds.gen` holds
+    # tensors that track gradients, and `.numpy()` on one of those raises
+    # rather than returning an array. Built with a plain `torch.randn` this
+    # fixture could not express that, so the export died on Jafar's machine at
+    # the check step with the graph already written. A stand-in that is easier
+    # than the real thing tests the easier thing.
+    pfeat = torch.randn(1, MELS_PER_TOKEN * P, 80).requires_grad_(True)
+    emb = torch.randn(1, 192).requires_grad_(True)
     noise = draw(torch, P, MELS_PER_TOKEN * P, T, 1)
     dec = make_decode(torch, flow, gen).eval()
 
@@ -546,10 +554,10 @@ def selftest():
         want = dec(tok, ptok, pfeat, emb, *noise)
     feed = dict(zip(["tokens", "prompt_token", "prompt_feat", "embedding",
                      "z", "sine_noise"],
-                    [t.numpy() for t in args]))
+                    [npy(t) for t in args]))
     got = sess.run(None, feed)[0]
-    rel = float(np.abs(want.numpy() - got).max()) \
-        / max(float(np.abs(want.numpy()).max()), 1e-12)
+    rel = float(np.abs(npy(want) - got).max()) \
+        / max(float(np.abs(npy(want)).max()), 1e-12)
     check(rel < 1e-4, f"and agrees with pytorch to {rel:.1e}", f"{rel:.2e}")
 
     # 7. AT LENGTHS IT WAS NOT TRACED AT, or it can say exactly one sentence.
@@ -558,10 +566,10 @@ def selftest():
         tk = torch.randint(0, 6561, (1, t))
         nz = draw(torch, P, MELS_PER_TOKEN * P, t, 7)
         with torch.inference_mode(), dynamic_cfm(torch), dynamic_flow(torch):
-            w2 = dec(tk, ptok, pfeat, emb, *nz).numpy()
+            w2 = npy(dec(tk, ptok, pfeat, emb, *nz))
         g2 = sess.run(None, dict(zip(feed.keys(),
-                                     [tk.numpy(), ptok.numpy(), pfeat.numpy(),
-                                      emb.numpy()] + [n.numpy() for n in nz])))[0]
+                                     [npy(tk), npy(ptok), npy(pfeat),
+                                      npy(emb)] + [npy(n) for n in nz])))[0]
         alt[t] = (float(np.abs(w2 - g2).max()) / max(float(np.abs(w2).max()), 1e-12),
                   g2.shape[-1])
     print(f"        series: traced({T})={rel:.1e}  "
@@ -584,10 +592,10 @@ def selftest():
         pf = torch.randn(1, pm, 80)
         nz = draw(torch, p, pm, T, 9)
         with torch.inference_mode(), dynamic_cfm(torch), dynamic_flow(torch):
-            w3 = dec(tok, pt, pf, emb, *nz).numpy()
+            w3 = npy(dec(tok, pt, pf, emb, *nz))
         g3 = sess.run(None, dict(zip(feed.keys(),
-                                     [tok.numpy(), pt.numpy(), pf.numpy(),
-                                      emb.numpy()] + [n.numpy() for n in nz])))[0]
+                                     [npy(tok), npy(pt), npy(pf),
+                                      npy(emb)] + [npy(n) for n in nz])))[0]
         pro[(p, pm)] = (float(np.abs(w3 - g3).max())
                         / max(float(np.abs(w3).max()), 1e-12), g3.shape[-1])
     print(f"        prompts: traced({P},{MELS_PER_TOKEN * P})  "
@@ -618,6 +626,7 @@ def cmd_run(force=False):
 
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
     import export_probe
+    from export_probe import npy
     from stft_patch import patched
 
     ref = export_probe.reference(VOICE)
@@ -651,8 +660,8 @@ def cmd_run(force=False):
     keys = ["tokens", "prompt_token", "prompt_feat", "embedding",
             "z", "sine_noise"]
     with torch.inference_mode(), dynamic_cfm(torch), dynamic_flow(torch):
-        want = dec(*args).numpy()
-    got = sess.run(None, dict(zip(keys, [t.numpy() for t in args])))[0]
+        want = npy(dec(*args))
+    got = sess.run(None, dict(zip(keys, [npy(t) for t in args])))[0]
     rel = float(np.abs(want - got).max()) / max(float(np.abs(want).max()), 1e-12)
     print(f"  agrees with pytorch to {rel:.1e} at the traced length "
           f"({got.shape[-1]} samples, {got.shape[-1] / 24000:.1f}s)")
@@ -662,9 +671,9 @@ def cmd_run(force=False):
         tk = torch.randint(0, 6561, (1, t))
         nz = draw(torch, P, MELS_PER_TOKEN * P, t, 5)
         with torch.inference_mode(), dynamic_cfm(torch), dynamic_flow(torch):
-            w2 = dec(tk, ptok, pfeat, emb, *nz).numpy()
-        g2 = sess.run(None, dict(zip(keys, [tk.numpy(), ptok.numpy(), pfeat.numpy(),
-                                            emb.numpy()] + [n.numpy() for n in nz])))[0]
+            w2 = npy(dec(tk, ptok, pfeat, emb, *nz))
+        g2 = sess.run(None, dict(zip(keys, [npy(tk), npy(ptok), npy(pfeat),
+                                            npy(emb)] + [npy(n) for n in nz])))[0]
         worst = max(worst, float(np.abs(w2 - g2).max())
                     / max(float(np.abs(w2).max()), 1e-12))
     print(f"  and to {worst:.1e} at two lengths it was NOT traced at")

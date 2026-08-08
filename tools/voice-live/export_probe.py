@@ -1714,6 +1714,24 @@ def load_model(device="cpu", say=print):
     return ChatterboxTTS.from_pretrained(device=device)
 
 
+def npy(t):
+    """A tensor as numpy, from a REAL model rather than from a test fixture.
+
+    `model.conds.gen` holds tensors that track gradients, and `.numpy()` on
+    one of those raises rather than returning an array. The first real decode
+    export died on exactly that, AFTER writing the graph, on the line that
+    reads the result back to check it — while the selftest passed, because
+    tensors made with `torch.randn` are leaves that do not track anything.
+
+    It lives here rather than in the file that hit it, because a second copy
+    in the sibling exporter is the fault this project keeps finding: one idea,
+    two implementations, and the one nobody looks at is missing a line. The
+    text exporter had the same bare calls and survived only because ITS
+    tensors happened not to require grad, which is luck rather than design.
+    """
+    return t.detach().cpu().numpy()
+
+
 def diagnose_watermarker():
     """Why `perth.PerthImplicitWatermarker` is None, said out loud, then
     replaced so it cannot stop the export.

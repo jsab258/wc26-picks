@@ -439,6 +439,7 @@ def cmd_run(force=False):
 
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
     import export_probe
+    from export_probe import npy
     import kv_cache
     import speak
 
@@ -489,16 +490,16 @@ def cmd_run(force=False):
     import onnxruntime as ort
     sess = ort.InferenceSession(str(dest), providers=["CPUExecutionProvider"])
     with torch.no_grad():
-        want = step(*args)[0].numpy()
-    feeds = {"token": args[0].numpy(), "position": args[1].numpy()}
-    feeds.update({f"cache{i}": t.numpy() for i, t in enumerate(cache0)})
+        want = npy(step(*args)[0])
+    feeds = {"token": npy(args[0]), "position": npy(args[1])}
+    feeds.update({f"cache{i}": npy(t) for i, t in enumerate(cache0)})
     rel = float(np.abs(want - sess.run(None, feeds)[0]).max()) \
         / max(float(np.abs(want).max()), 1e-12)
     print(f"  agrees with pytorch to {rel:.1e} at the traced position")
     worst = 0.0
     for p in (0, 1, 9, 40):
         with torch.no_grad():
-            w2 = step(args[0], torch.tensor(p), *cache0)[0].numpy()
+            w2 = npy(step(args[0], torch.tensor(p), *cache0)[0])
         alt = dict(feeds)
         alt["position"] = np.array(p, dtype=np.int64)
         worst = max(worst, float(np.abs(w2 - sess.run(None, alt)[0]).max())
@@ -528,12 +529,12 @@ def cmd_run(force=False):
             want = pre(txt, v["speaker_emb"], v["cond_prompt_speech_tokens"],
                        v["emotion_adv"])
         got = psess.run(None, {
-            "text_tokens": txt.cpu().numpy(),
-            "speaker_emb": v["speaker_emb"].cpu().numpy(),
-            "cond_speech_tokens": v["cond_prompt_speech_tokens"].cpu().numpy(),
-            "emotion_adv": v["emotion_adv"].cpu().numpy()})
-        gap = max(float(np.abs(w.cpu().numpy() - g).max())
-                  / max(float(np.abs(w.cpu().numpy()).max()), 1e-12)
+            "text_tokens": npy(txt),
+            "speaker_emb": npy(v["speaker_emb"]),
+            "cond_speech_tokens": npy(v["cond_prompt_speech_tokens"]),
+            "emotion_adv": npy(v["emotion_adv"])})
+        gap = max(float(np.abs(npy(w) - g).max())
+                  / max(float(np.abs(npy(w)).max()), 1e-12)
                   for w, g in zip(want, got))
         return gap, got
 
