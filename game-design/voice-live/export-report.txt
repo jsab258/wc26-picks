@@ -1,0 +1,27 @@
+LEDGER — the exported speech graphs, read from the files themselves
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-08 05:30 UTC
+graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
+
+  ok    t3-step.onnx is on disk   [2001 MB, 2001 MB with weights]
+  ok    t3-prefill.onnx is on disk   [1941 MB, 1941 MB with weights]
+  ok    the prefill still takes 'text_tokens' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+  ok    the prefill still takes 'speaker_emb' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+  ok    the prefill still takes 'cond_speech_tokens' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+  ok    the prefill still takes 'emotion_adv' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+  ok    the step takes a token and a position   [token, position, cache0]
+  ok    and the prefill's 60 outputs are exactly the step's cache inputs   [prefill out 60, step in 60, step out 60]
+  ok    every input has a type this tool knows how to feed
+        types: text_tokens=tensor(int32)  speaker_emb=tensor(float)  cond_speech_tokens=tensor(int64)  emotion_adv=tensor(float)  |  token=int64, position=int64
+  ok    3 voices available to compare   [ada, crowd_f1, crowd_f2]
+        voices: ada -> crowd_f1 one field at a time (emotion nudged) — speaker_emb=2.134  cond_speech_tokens=3.416  emotion_adv=2.191;  ada twice differs by 0.0e+00
+  ok    changing 'speaker_emb' alone changes the cache — that part of the voice is an input, not baked in   [2.1342]
+  ok    changing 'cond_speech_tokens' alone changes the cache — that part of the voice is an input, not baked in   [3.4158]
+  ok    changing 'emotion_adv' alone changes the cache — that part of the voice is an input, not baked in   [2.1909]
+  ok    and the same voice twice gives the same cache   [0.0e+00]
+  ok    with no infinities or NaNs in it
+        position: 1 vs 2 and 17 move the answer by 6.395
+  ok    the position changes the answer — it is an input, not baked into the graph   [6.3953]
+  ok    the prefill's cache drives the step three times, growing by one each   [43 -> [44, 45, 46]]
+  ok    and the answer it gives is a number
+
+RESULT: all clear
