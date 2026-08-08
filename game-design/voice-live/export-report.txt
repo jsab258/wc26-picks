@@ -1,7 +1,9 @@
 LEDGER — the exported speech graphs, read from the files themselves
-ran on Jafar-Desktop (Windows) as Jafar, 2026-08-08 05:49 UTC
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-08 07:31 UTC
 graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
 
+        text export: 2026-08-08 07:25 UTC  finished  src=a4e3db2c5935 — step 9.9e-07/1.7e-06, prefill 1.5e-06
+        decode export: 2026-08-08 07:31 UTC  finished  src=cf43d0f04684 — 7.0e-05 traced, 1.5e-04 untraced, 540 MB
   ok    t3-step.onnx is on disk   [2001 MB, 2001 MB with weights]
   ok    t3-prefill.onnx is on disk   [1941 MB, 1941 MB with weights]
   ok    the prefill still takes 'text_tokens' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
@@ -23,7 +25,14 @@ graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
   ok    the position changes the answer — it is an input, not baked into the graph   [6.3953]
   ok    the prefill's cache drives the step three times, growing by one each   [43 -> [44, 45, 46]]
   ok    and the answer it gives is a number
-  FAIL  s3gen-decode.onnx is on disk — the decode graph was not exported, so nothing turns tokens into audio yet
+  ok    the decode graph still takes 'tokens'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+  ok    the decode graph still takes 'prompt_token'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+  ok    the decode graph still takes 'prompt_feat'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+  ok    the decode graph still takes 'embedding'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+  ok    the decode graph still takes 'z'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+  ok    the decode graph still takes 'sine_noise'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+        decode: ada/6tok=5760smp  ada/15tok=14400smp  crowd_f1/6tok=5760smp  crowd_f1/15tok=14400smp
+  ok    the decode graph runs at two token counts and two voices, and the sample count follows the formula each time
+  ok    and it produces a waveform rather than silence or NaN   [peak 0.0333]
 
-RESULT: 1 PROBLEM(S)
-  - s3gen-decode.onnx is on disk — the decode graph was not exported, so nothing turns tokens into audio yet
+RESULT: all clear
