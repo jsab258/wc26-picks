@@ -66,6 +66,56 @@ jobs:
         shell: bash
         run: dotnet run -c Release --project ledger/ShapeCheck -- ledger/Assets/Scripts ledger/Assets/Editor
 
+      # THE SPEECH RUNTIME, AND IT IS ALLOWED TO FAIL.
+      #
+      # `Game/OnnxSpeech.cs` sits inside `#if LEDGER_ONNX` and the define is
+      # written HERE, only after the DLLs are actually on disk. That ordering
+      # is the point: if the fetch fails, no define is written, the file is
+      # not compiled, `Audio.Backend` stays null and every route falls back to
+      # the bank — which is exactly what the game does today. A missing
+      # download costs live speech and nothing else.
+      #
+      # The alternative — define it always — turns one bad download into a
+      # build that answers NO question at all, and this repository has a
+      # standing rule against blocking itself. Every other reason a build gets
+      # dispatched still gets its answer.
+      #
+      # The step prints what it found either way, because "the runtime is not
+      # there" and "the runtime is there and the backend is off" would
+      # otherwise both read as silence in the verdict.
+      - name: Fetch the speech runtime (optional)
+        timeout-minutes: 6
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $dest = "ledger/Assets/Plugins/onnxruntime"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $pkg = "Microsoft.ML.OnnxRuntime.DirectML"
+          $ver = "1.20.1"
+          $url = "https://www.nuget.org/api/v2/package/$pkg/$ver"
+          try {
+            Invoke-WebRequest -Uri $url -OutFile "ort.zip" -UseBasicParsing
+            Expand-Archive -Path "ort.zip" -DestinationPath "ort" -Force
+            $managed = Get-ChildItem -Path "ort/lib" -Recurse -Filter "*.dll" |
+                       Where-Object { $_.FullName -match "netstandard" }
+            $native  = Get-ChildItem -Path "ort/runtimes" -Recurse -Filter "*.dll" |
+                       Where-Object { $_.FullName -match "win-x64" }
+            foreach ($f in @($managed) + @($native)) {
+              Copy-Item $f.FullName -Destination $dest -Force
+            }
+            $n = (Get-ChildItem -Path $dest -Filter "*.dll").Count
+            if ($n -gt 0) {
+              # THE DEFINE IS THE LAST THING, after the count is known.
+              Set-Content -Path "ledger/Assets/csc.rsp" -Value "-define:LEDGER_ONNX"
+              Write-Host "speech runtime: $n DLL(s) in $dest, LEDGER_ONNX defined"
+            } else {
+              Write-Host "speech runtime: the package extracted but held no DLL for win-x64 — backend stays off"
+            }
+          } catch {
+            Write-Host "speech runtime: NOT FETCHED ($($_.Exception.Message)) — backend stays off, the build carries on"
+          }
+
       - name: Install Unity
         # 30, and this is headroom rather than a measurement.
         #
