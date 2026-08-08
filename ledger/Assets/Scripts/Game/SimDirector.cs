@@ -9643,6 +9643,13 @@ namespace Ledger.Game
                       // fixes, and a bare zero cannot tell them apart.
                       $"speechVocab={(Audio.Vocabulary != null ? Audio.Vocabulary.Count.ToString() : "none")} " +
                       $"speechVoices={Audio.Voices.Count} " +
+                      // A ZERO NEEDS A DENOMINATOR, and this one cost a build.
+                      // `speechVoices=0` was true and unreadable: nothing on
+                      // disk, nothing parsed, or nothing staged all print the
+                      // same. Bracketed because a verdict value may not carry
+                      // a space and the reader takes a bracketed run whole.
+                      $"speechVoicesWhy=[{Audio.VoicesWhy}] " +
+                      $"speechVocabWhy=[{Audio.VocabularyWhy}] " +
                       $"{Audio.Pending.Verdict()} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
