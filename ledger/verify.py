@@ -202,6 +202,25 @@ def voice_assets():
     return False, "VOICE ASSETS: " + bad[:110]
 
 
+def conditional_reach():
+    """A Game type behind `#if` must be named by something other than itself.
+
+    `OnnxSpeech` was written, compiled against the real runtime, and
+    constructed by nothing — `Audio.Backend` was null and always would have
+    been. It survived a Windows build that PASSED, because a null backend and
+    a working backend with no model produce the same verdict.
+
+    Nothing could have caught it: the reach check asks about calls INTO Core,
+    ShapeCheck reports diagnostics and an uncalled class is not one, and every
+    tool that skips disabled regions skipped the file entirely."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-conditional-reach.py")])
+    m = re.search(r"lint-conditional-reach: (\d+) unreachable, (\d+) conditional", out)
+    if not m:
+        return False, "conditional-reach did not report"
+    return m.group(1) == "0", ("%s unreachable behind #if (%s type(s) checked)"
+                               % (m.group(1), m.group(2)))
+
+
 def card_writing():
     """The generator's writing rules, run without spending anything.
 
@@ -951,7 +970,7 @@ def main():
     parts, all_ok = [], True
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
-               attribution, game_compiles, backend_compiles, nested_types,
+               attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, core_tests):
