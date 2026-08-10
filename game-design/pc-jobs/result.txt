@@ -1,0 +1,5 @@
+job: check-graphs
+id: zz
+
+
+RESULT: finished

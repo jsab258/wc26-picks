@@ -36,6 +36,7 @@ Anything that cannot be run here gets written where it can be.
 """
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -130,18 +131,31 @@ def already_done(state_text, rid):
         return False
 
 
-def run_job(job, root, say, timeout=3600):
+def run_job(job, root, say, timeout=3600, beat=print):
+    """Run the steps, saying out loud that they are alive.
+
+    A JOB THAT TAKES TWENTY MINUTES AND A JOB THAT HUNG LOOKED IDENTICAL, from
+    the window and from the branch alike, and half an hour went into telling
+    them apart by guesswork. The step announces itself with a clock so the
+    difference is visible from the first minute.
+    """
     py = interpreter(root)
     ok = True
-    for step in TABLE[job]:
+    for n, step in enumerate(TABLE[job], 1):
         cmd = [py if a == "PY" else a for a in step]
         say(f"  $ {' '.join(cmd[1:])}")
+        beat(f"  step {n} of {len(TABLE[job])}: {pathlib.PurePath(step[1]).name} "
+             f"— started, output comes when it finishes")
+        started = time.time()
         try:
             p = subprocess.run(cmd, cwd=str(root), capture_output=True,
                                text=True, timeout=timeout)
         except subprocess.TimeoutExpired:
             say(f"  TIMED OUT after {timeout}s")
+            beat(f"  step {n} TIMED OUT after {timeout}s")
             return False
+        beat(f"  step {n} finished in {time.time() - started:.0f}s "
+             f"(exit {p.returncode})")
         out = (p.stdout + p.stderr).strip().splitlines()
         # THE TAIL, AND A COUNT OF WHAT WAS DROPPED. A cap nobody is told
         # about is indistinguishable from a finding — the `head -3` that hid
@@ -164,6 +178,19 @@ def one_pass(root, say):
     if rc != 0:
         say(f"  fetch failed: {out[:200]}")
         return "offline"
+    # PULL EVERY PASS, NOT ONLY WHEN A JOB ARRIVES. The first version pulled
+    # inside the run branch, so a watcher left open ran the code it started
+    # with for ever — every fix I pushed today would have needed Jafar to
+    # close the window and reopen it, and nothing would have said so.
+    mine = pathlib.Path(__file__).read_bytes()
+    git("pull", "-q", "--rebase", "origin", BRANCH, cwd=root)
+    if pathlib.Path(__file__).read_bytes() != mine:
+        # RESTART INTO THE NEW CODE. A long-lived process that pulls its own
+        # source and keeps running the old copy is the same fault as a bat
+        # that copies itself to TEMP before pulling — which cost a run today.
+        say("  this watcher was updated; restarting into the new version")
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
     rc, text = git("show", f"FETCH_HEAD:{REQUEST.relative_to(ROOT).as_posix()}",
                    cwd=root)
     if rc != 0:
@@ -190,11 +217,36 @@ def one_pass(root, say):
                                                  encoding="utf-8")
     STATE.write_text(json.dumps({"last": req["id"]}), encoding="utf-8")
 
-    git("add", "-A", cwd=root)
-    git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
+    # THE EFFECT, NOT THE EXIT CODE. The first version printed "pushed" off
+    # `git push` returning 0 — and `push` returns 0 for "Everything
+    # up-to-date". The commit had silently failed, nothing landed, and the
+    # watcher reported success to a window Jafar was watching while I read an
+    # empty branch and could not tell a slow job from a stuck one. Straight
+    # out of this project's own rule: verify a workflow's EFFECTS.
+    before, _ = git("rev-parse", "HEAD", cwd=root)
+    rc, add_out = git("add", "-A", cwd=root)
+    rc, commit_out = git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
+    after, head = git("rev-parse", "HEAD", cwd=root)
+    if rc != 0:
+        # Git's own words, kept. "Nothing to commit" and "who are you" want
+        # completely different fixes and both were invisible before.
+        say(f"  COMMIT FAILED: {commit_out[:300]}")
+        return "failed"
+
     git("pull", "-q", "--rebase", "origin", BRANCH, cwd=root)
-    rc, out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
-    say("  pushed" if rc == 0 else f"  push failed: {out[:200]}")
+    rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
+    if rc != 0:
+        say(f"  PUSH FAILED: {push_out[:300]}")
+        return "failed"
+    # And confirm the remote actually carries it, because a push can succeed
+    # having sent nothing at all.
+    git("fetch", "-q", "origin", BRANCH, cwd=root)
+    rc, _ = git("merge-base", "--is-ancestor", head, "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        say(f"  PUSH SENT NOTHING — {head[:7]} is not on the branch. "
+            f"add: {add_out[:120]}")
+        return "failed"
+    say(f"  pushed {head[:7]} and confirmed on the branch")
     return "ran" if ok else "failed"
 
 
