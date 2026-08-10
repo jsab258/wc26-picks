@@ -1,5 +1,8 @@
-job: check-graphs
-id: zz
+job: time-a-line
+id: time-180453
 
+  $ tools/voice-live/time-a-line.py
+  No pyvenv.cfg file
+  exit 106
 
-RESULT: finished
+RESULT: FAILED
