@@ -1,0 +1,14 @@
+LEDGER — how long one spoken line actually takes
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-10 15:47 UTC
+
+  providers available: DmlExecutionProvider, CPUExecutionProvider
+  using: DmlExecutionProvider
+  three sessions opened in 201.0s
+  the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
+  prefill: 0.38s
+  84 steps in 3.4s — first 134ms, median 35ms, slowest 134ms
+  83 acoustic tokens kept
+  decode: 4.35s for 3.3s of audio
+
+  ONE LINE: 8.1s of work for 3.3s of speech — 2.4x real time
+  split: prefill 0.4s, 84 steps 3.4s, decode 4.3s
