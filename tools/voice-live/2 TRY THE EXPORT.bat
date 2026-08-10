@@ -63,6 +63,18 @@ if exist "%TOOL%\env\Scripts\python.exe" (
   echo.
 )
 
+REM  A VENV IS BROKEN WITHOUT pyvenv.cfg, AND python.exe BEING THERE PROVES
+REM  NOTHING. This guard checked for the interpreter alone, so an environment
+REM  missing its config file - which is exactly what happened today - was
+REM  reported as present and then used, failing with "No pyvenv.cfg file" on
+REM  every run and unable to repair itself. Check the file that makes it a
+REM  venv, not the file that makes it look like one.
+if not exist "%ENVDIR%\pyvenv.cfg" (
+  if exist "%ENVDIR%" (
+    echo   The environment is damaged - rebuilding it from scratch.
+    rmdir /s /q "%ENVDIR%"
+  )
+)
 if not exist "%ENVDIR%\Scripts\python.exe" (
   echo  Building a clean environment. A few GB, once.
   echo.
