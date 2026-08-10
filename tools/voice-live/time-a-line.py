@@ -90,10 +90,16 @@ def run(say):
     say(f"  providers available: {', '.join(have)}")
     say(f"  using: {want[0]}")
 
-    t0 = time.time()
-    sess = {k: ort.InferenceSession(str(v), providers=want)
-            for k, v in paths.items()}
-    say(f"  three sessions opened in {time.time() - t0:.1f}s")
+    # EACH SESSION TIMED SEPARATELY. "Three sessions opened in 201s" says
+    # startup is unacceptable and not which file caused it — and they are
+    # 2001 MB, 1941 MB and 540 MB, so the answer is not obvious from size.
+    sess, opened = {}, {}
+    for k, v in paths.items():
+        t0 = time.time()
+        sess[k] = ort.InferenceSession(str(v), providers=want)
+        opened[k] = time.time() - t0
+        say(f"  opened {k} in {opened[k]:.1f}s")
+    say(f"  three sessions in {sum(opened.values()):.1f}s total")
 
     z = np.load(CONDS / f"{VOICE}.npz")
     dt = {i.name: i.type for i in sess["t3-prefill"].get_inputs()}
@@ -170,15 +176,44 @@ def run(say):
     n_pm = z["gen.prompt_feat"].shape[1]
     h = 2 * (n_p + len(tokens))
     wav_len = (h - n_pm) * 480
-    t2 = time.time()
-    wav = sess["s3gen-decode"].run(None, {
+    # THE SAME INPUT FOR BOTH PROVIDERS. Redrawing the noise would time two
+    # different pieces of work and call the difference a provider.
+    feed_decode = {
         "tokens": np.asarray([tokens], dtype=np.int64),
         "prompt_token": z["gen.prompt_token"].astype(np.int64),
         "prompt_feat": z["gen.prompt_feat"].astype(np.float32),
         "embedding": z["gen.embedding"].astype(np.float32),
         "z": rng.standard_normal((1, 80, h)).astype(np.float32),
-        "sine_noise": rng.standard_normal((1, 9, wav_len)).astype(np.float32)})[0]
+        "sine_noise": rng.standard_normal((1, 9, wav_len)).astype(np.float32)}
+    t2 = time.time()
+    wav = sess["s3gen-decode"].run(None, feed_decode)[0]
     decode = time.time() - t2
+
+    # THE DECODE, ON THE OTHER PROVIDER TOO — the experiment this run exists
+    # for. The talking stage came out 3.5x FASTER than PyTorch and the decode
+    # 3x slower, which is not a conversion cost; it is one stage disagreeing
+    # with one provider. The probe already saw the CPU beat DirectML 4.4x per
+    # step on the text model and nobody explained it, so this asks the same
+    # question of the stage that is now the bottleneck.
+    #
+    # The session is opened and timed separately, because "the CPU decodes
+    # faster" is only useful if opening a second session does not cost more
+    # than it saves at startup.
+    if want[0] != "CPUExecutionProvider":
+        try:
+            t3 = time.time()
+            cpu = ort.InferenceSession(str(paths["s3gen-decode"]),
+                                       providers=["CPUExecutionProvider"])
+            cpu_open = time.time() - t3
+            t4 = time.time()
+            cpu.run(None, feed_decode)
+            cpu_decode = time.time() - t4
+            say(f"  decode on CPU: {cpu_decode:.2f}s "
+                f"(session opened in {cpu_open:.1f}s)")
+            say(f"  -> the CPU is {decode / max(cpu_decode, 1e-6):.1f}x "
+                f"{'faster' if cpu_decode < decode else 'slower'} at this stage")
+        except Exception as e:
+            say(f"  decode on CPU: could not run — {type(e).__name__}: {e}")
 
     seconds = wav.shape[-1] / 24000.0
     total = prefill + loop + decode
