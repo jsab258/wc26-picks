@@ -82,6 +82,13 @@ def interpreter(root):
     has neither and would fail with an import error that reads like a code
     fault rather than a wiring one.
     """
+    # ON WINDOWS ONLY, which it should always have said. The accidental
+    # commit put `env-export/Scripts/python.exe` into the repository, so this
+    # container — Linux — pulled it, found it, and would have tried to run a
+    # Windows binary. The selftest caught it, which is the check doing its job
+    # on a fault nobody was looking for.
+    if os.name != "nt":
+        return sys.executable
     win = root / WIN_PY
     return str(win) if win.exists() else sys.executable
 
@@ -224,7 +231,13 @@ def one_pass(root, say):
     # empty branch and could not tell a slow job from a stuck one. Straight
     # out of this project's own rule: verify a workflow's EFFECTS.
     before, _ = git("rev-parse", "HEAD", cwd=root)
-    rc, add_out = git("add", "-A", cwd=root)
+    # ONLY WHAT THIS JOB PRODUCED. `git add -A` from the repository root
+    # staged Jafar's Python virtual environment — it lives inside the repo at
+    # `tools/voice-live/env-export/` and was never ignored — and the watcher
+    # committed a piece of it. Scope a destructive or wide command to exactly
+    # what the operation made; this repository has that rule from an `rm -rf`
+    # in CI that deleted sixteen characters' voice clips.
+    rc, add_out = git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=root)
     rc, commit_out = git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
     after, head = git("rev-parse", "HEAD", cwd=root)
     if rc != 0:

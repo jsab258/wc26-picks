@@ -60,3 +60,8 @@ ledger/.onnx-cache/
 
 # The watcher remembers the last job id it ran, per machine.
 .pc-watcher-state.json
+
+# JAFAR'S PYTHON ENVIRONMENT, which lives inside the repository. Never
+# ignored until the watcher staged it wholesale and committed part of it.
+tools/voice-live/env-export/
+tools/voice-live/env/
