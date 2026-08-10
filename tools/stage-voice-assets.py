@@ -35,6 +35,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 VOCAB_SRC = ROOT / "tools" / "voice-live" / "tokenizer.json"
 CONDS_SRC = ROOT / "game-design" / "voice-conds"
 DEST = ROOT / "ledger" / "Assets" / "StreamingAssets" / "Voice"
+# THE THREE GRAPHS, WHEN THE MACHINE DOING THE BUILD HAS THEM. They are 4.5 GB
+# and gitignored, so CI never will and a build there simply has no live speech
+# — which the game already reports rather than hides. A build on the machine
+# that exported them picks them up automatically, and that is the only place a
+# character can currently be heard.
+GRAPHS_SRC = ROOT / "tools" / "voice-live" / "game-out"
+GRAPHS = ["t3-prefill.onnx", "t3-step.onnx", "s3gen-decode.onnx"]
 
 
 def check_sources():
@@ -67,6 +74,21 @@ def stage(say=print):
     for f in sorted(CONDS_SRC.glob("*.bin")):
         shutil.copy2(f, DEST / "conds" / f.name)
         n += 1
+    graphs = 0
+    if GRAPHS_SRC.is_dir():
+        (DEST / "models").mkdir(parents=True, exist_ok=True)
+        for name in GRAPHS:
+            src = GRAPHS_SRC / name
+            if not src.exists():
+                continue
+            # Sidecar weight files travel with a graph past 2 GB, so copy
+            # everything sharing the stem rather than the one named file.
+            for part in sorted(GRAPHS_SRC.glob(src.stem + "*")):
+                shutil.copy2(part, DEST / "models" / part.name)
+            graphs += 1
+    say(f"  graphs: {graphs} of {len(GRAPHS)} present"
+        + ("" if graphs == len(GRAPHS)
+           else " — no live speech in this build, which the game reports"))
     kb = sum(p.stat().st_size for p in DEST.rglob("*") if p.is_file()) / 1024
     say(f"  staged: 1 vocabulary + {n} voice(s), {kb:.0f} KB, into "
         f"{DEST.relative_to(ROOT)}")

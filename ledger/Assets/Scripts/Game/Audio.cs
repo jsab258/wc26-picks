@@ -218,6 +218,13 @@ namespace Ledger.Game
             // a file read inside the frame that is trying to speak is a
             // stutter caused by the feature meant to prevent one.
             LoadVoices();
+
+            // AND ACTUALLY BUILD THE BACKEND. It existed, compiled, and
+            // nothing constructed it — `Backend` was null and always would
+            // have been, so every route fell to the bank and the whole live
+            // path was unreachable code that looked finished. That is rule 6
+            // exactly: built, tested, plausible, never once running.
+            OpenBackend();
         }
 
         static AudioSource Make(string name, bool loop)
@@ -1062,6 +1069,46 @@ namespace Ledger.Game
             {
                 VoicesWhy = e.GetType().Name;
             }
+        }
+
+        /// Why there is no live speech, or null when there is. On the done
+        /// line, because "no model on disk" and "the model refused to load"
+        /// want different fixes and both otherwise present as a game that
+        /// never speaks live.
+        public static string BackendWhy { get; private set; } = "not attempted";
+
+        /// Where the three exported graphs live inside a build.
+        public const string ModelFolder = "Voice/models";
+
+        /// Open the speech model, or say why not.
+        ///
+        /// FAILS SOFT BY DESIGN. No model is the normal case today and for
+        /// every player who never installs one: the bank still plays, the
+        /// director counts what it could not afford, and nothing throws. What
+        /// must NOT happen is silence with no reason attached, which is what
+        /// this had before it was called at all.
+        public static void OpenBackend()
+        {
+#if LEDGER_ONNX
+            try
+            {
+                var dir = System.IO.Path.Combine(Application.streamingAssetsPath,
+                                                 "Voice", "models");
+                string why;
+                Backend = OnnxSpeech.Open(dir, VoiceFor,
+                    text => Vocabulary != null ? Vocabulary.Encode(text) : null,
+                    out why);
+                BackendWhy = Backend != null ? "open" : (why ?? "no reason given");
+                if (Backend != null) StartWorker();
+            }
+            catch (System.Exception e)
+            {
+                Backend = null;
+                BackendWhy = e.GetType().Name + ": " + e.Message;
+            }
+#else
+            BackendWhy = "not built with the speech runtime";
+#endif
         }
 
         /// The conditioning for one character, or null when we have none.

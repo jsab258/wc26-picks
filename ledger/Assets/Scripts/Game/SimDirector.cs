@@ -9650,6 +9650,7 @@ namespace Ledger.Game
                       // a space and the reader takes a bracketed run whole.
                       $"speechVoicesWhy=[{Audio.VoicesWhy}] " +
                       $"speechVocabWhy=[{Audio.VocabularyWhy}] " +
+                      $"speechBackendWhy=[{Audio.BackendWhy}] " +
                       $"{Audio.Pending.Verdict()} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
