@@ -57,3 +57,6 @@ tools/voice-live/speak-out/
 # The game graphs — about 2 GB, and they ship with the build rather than git.
 tools/voice-live/game-out/
 ledger/.onnx-cache/
+
+# The watcher remembers the last job id it ran, per machine.
+.pc-watcher-state.json

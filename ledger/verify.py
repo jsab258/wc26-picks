@@ -221,6 +221,24 @@ def conditional_reach():
                                % (m.group(1), m.group(2)))
 
 
+def pc_watcher():
+    """The job runner on Jafar's machine, checked here rather than there.
+
+    It executes named jobs on a desktop I cannot see, so its refusals matter
+    more than its successes: an unknown job, a missing id, a damaged request.
+    All three are checked, and so is the table pointing only at files that
+    exist — an entry naming a script nobody wrote fails minutes away on his
+    machine instead of instantly here."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "pc-watcher.py"),
+                     "--selftest"])
+    m = re.search(r"pc-watcher --selftest: PASS — (\d+) checks", out)
+    if m:
+        return True, "pc-watcher ok (%s checks)" % m.group(1)
+    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
+               "did not report")
+    return False, "PC WATCHER: " + bad[:110]
+
+
 def card_writing():
     """The generator's writing rules, run without spending anything.
 
@@ -968,7 +986,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, slop,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
