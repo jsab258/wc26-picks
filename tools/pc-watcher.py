@@ -125,6 +125,32 @@ def read_request(text):
     return {"job": job, "id": rid}, None
 
 
+def tree_is_safe(root, say):
+    """Refuse to do anything if the working tree carries surprises.
+
+    The environment was destroyed because a wide `add` swept up files nobody
+    meant to touch and a later git operation threw them away. Both halves are
+    gone now — the add is scoped and the merge cannot rewrite — but the
+    durable guard is this one: if anything is here that this watcher did not
+    produce, it stops and says so rather than proceeding over the top of it.
+
+    A machine I cannot see is exactly where "it was probably fine" is worth
+    the least.
+    """
+    rc, out = git("status", "--porcelain", cwd=root)
+    if rc != 0:
+        say(f"  cannot read the working tree: {out[:150]}")
+        return False
+    mine = {RESULT.relative_to(ROOT).as_posix(), REQUEST.relative_to(ROOT).as_posix()}
+    stray = [l[3:].strip().strip('"') for l in out.splitlines()
+             if l[3:].strip().strip('"') not in mine]
+    if stray:
+        say(f"  the working tree has {len(stray)} change(s) this watcher did "
+            f"not make — stopping. First: {stray[0]}")
+        return False
+    return True
+
+
 def already_done(state_text, rid):
     """Has this exact request already run here.
 
@@ -181,6 +207,11 @@ def run_job(job, root, say, timeout=3600, beat=print):
 
 def one_pass(root, say):
     """Fetch, decide, maybe run, push. Returns what happened, as a word."""
+    # ANOTHER GIT IS RUNNING — most likely one of the bats. Two git processes
+    # in one repository collide on the index lock and fail in a way that reads
+    # like anything but a race.
+    if (root / ".git" / "index.lock").exists():
+        return "busy"
     rc, out = git("fetch", "-q", "origin", BRANCH, cwd=root)
     if rc != 0:
         say(f"  fetch failed: {out[:200]}")
@@ -189,8 +220,19 @@ def one_pass(root, say):
     # inside the run branch, so a watcher left open ran the code it started
     # with for ever — every fix I pushed today would have needed Jafar to
     # close the window and reopen it, and nothing would have said so.
+    # FAST-FORWARD OR NOTHING. `pull --rebase` RESETS THE WORKING TREE, and
+    # that is what destroyed Jafar's Python environment: files staged by an
+    # `add -A` and never committed do not survive a reset. A fast-forward
+    # cannot rewrite anything — it either moves the branch pointer or it
+    # refuses, and refusing is a state I can read rather than a folder I
+    # cannot get back.
+    if not tree_is_safe(root, say):
+        return "dirty"
     mine = pathlib.Path(__file__).read_bytes()
-    git("pull", "-q", "--rebase", "origin", BRANCH, cwd=root)
+    rc, out = git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        say(f"  cannot fast-forward — stopping rather than forcing: {out[:200]}")
+        return "diverged"
     if pathlib.Path(__file__).read_bytes() != mine:
         # RESTART INTO THE NEW CODE. A long-lived process that pulls its own
         # source and keeps running the old copy is the same fault as a bat
@@ -213,7 +255,6 @@ def one_pass(root, say):
         return "already-done"
 
     say(f"  running '{req['job']}' (id {req['id']})")
-    git("pull", "-q", "--rebase", "origin", BRANCH, cwd=root)
     lines = [f"job: {req['job']}", f"id: {req['id']}", ""]
     ok = run_job(req["job"], root, lines.append)
     lines.append("")
@@ -246,7 +287,8 @@ def one_pass(root, say):
         say(f"  COMMIT FAILED: {commit_out[:300]}")
         return "failed"
 
-    git("pull", "-q", "--rebase", "origin", BRANCH, cwd=root)
+    git("fetch", "-q", "origin", BRANCH, cwd=root)
+    git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
     rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
     if rc != 0:
         say(f"  PUSH FAILED: {push_out[:300]}")
@@ -343,7 +385,7 @@ def main():
         # SAY IT ONCE. Every state here can persist for hours, and a line
         # per minute is a log nobody reads by the time it matters.
         if what != last and what in ("no-request", "already-done", "idle",
-                                     "offline"):
+                                     "offline", "busy", "dirty", "diverged"):
             print(f"  ({what}; quiet until something changes)")
         last = what
         if a.once:
