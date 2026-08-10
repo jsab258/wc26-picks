@@ -44,6 +44,8 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 JOBS = ROOT / "game-design" / "pc-jobs"
 REQUEST = JOBS / "request.json"
+# The reason string that means "nothing to do", not "something is wrong".
+IDLE = "idle"
 RESULT = JOBS / "result.txt"
 STATE = ROOT / ".pc-watcher-state.json"          # gitignored; local memory
 BRANCH = "claude/game-dev-ai-automation-2h67ix"
@@ -92,7 +94,20 @@ def read_request(text):
     if not isinstance(d, dict):
         return None, "the request is not an object"
     job, rid = d.get("job"), str(d.get("id", ""))
-    if not job:
+    # IDLE IS NOT A REFUSAL. The slot has to hold something between jobs, and
+    # the first placeholder was `"none"` — which the watcher then rejected
+    # once a minute, printing a line that looks exactly like a real refusal.
+    # A warning that repeats while nothing is wrong is how a reader learns to
+    # skip warnings, which is the one habit this whole channel depends on not
+    # forming.
+    # AN EXPLICIT SENTINEL IS IDLE. A MISSING KEY IS A TYPO. Folding the two
+    # together would let `{"jobb": "time-a-line"}` sit there doing nothing for
+    # ever and look exactly like waiting — a silence that reads as fine, which
+    # is the fault this project keeps finding. So only a job that SAYS it is
+    # nothing counts as nothing.
+    if job in ("", "none"):
+        return None, IDLE
+    if job is None:
         return None, "the request names no job"
     if job not in TABLE:
         return None, (f"'{job}' is not a job this watcher knows — "
@@ -155,6 +170,8 @@ def one_pass(root, say):
         return "no-request"
     req, why = read_request(text)
     if req is None:
+        if why == IDLE:
+            return "idle"
         say(f"  ignoring the request: {why}")
         return "bad-request"
     state = STATE.read_text(encoding="utf-8") if STATE.exists() else "{}"
@@ -207,6 +224,14 @@ def selftest():
               f"and a request that {expect.replace('is ', '')} is refused",
               why or "ACCEPTED")
 
+    # IDLE IS ITS OWN ANSWER, distinct from a refusal. The placeholder sat in
+    # the slot printing a refusal once a minute while nothing was wrong.
+    for text in (json.dumps({"job": "none", "id": "none"}),
+                 json.dumps({"job": "", "id": "x"})):
+        got, why = read_request(text)
+        check(got is None and why == IDLE,
+              "an empty slot reads as idle rather than as a bad request", why)
+
     check(already_done(json.dumps({"last": "abc"}), "abc")
           and not already_done(json.dumps({"last": "abc"}), "xyz")
           and not already_done("garbage", "abc"),
@@ -250,8 +275,11 @@ def main():
             # A WATCHER THAT DIES ON ONE BAD PASS IS A WATCHER NOBODY TRUSTS.
             print(f"  pass failed: {type(e).__name__}: {e}")
             what = "error"
-        if what != last and what in ("no-request", "already-done"):
-            print(f"  ({what}; going quiet until something changes)")
+        # SAY IT ONCE. Every state here can persist for hours, and a line
+        # per minute is a log nobody reads by the time it matters.
+        if what != last and what in ("no-request", "already-done", "idle",
+                                     "offline"):
+            print(f"  ({what}; quiet until something changes)")
         last = what
         if a.once:
             return 0
