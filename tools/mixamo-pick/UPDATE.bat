@@ -33,9 +33,23 @@ echo  ===============
 echo.
 if not exist "%REPO%\.git" goto :norepo
 pushd "%REPO%"
-git pull origin "%BRANCH%"
+REM ---- REBASE RATHER THAN A BARE PULL.
+REM
+REM  A bare "git pull" refuses outright when the branch has moved on both
+REM  sides - git will not guess how to reconcile them - so this failed on
+REM  the one day it was most needed, with a message about merge strategies
+REM  that says nothing about what to do. Rebasing puts anything made on
+REM  this machine on top of the branch, which is what "update" means here.
+git pull --rebase origin "%BRANCH%"
 if errorlevel 1 goto :failed
+REM ---- AND SAY IF SOMETHING IS STILL WAITING TO GO BACK. This bat only
+REM ---- pulls, by design, so a commit made here is now up to date and
+REM ---- still not on GitHub - which is exactly the state that leaves the
+REM ---- watcher stuck. Named rather than left to be discovered.
+set "AHEAD="
+for /f "delims=" %%i in ('git log --oneline "FETCH_HEAD..HEAD" 2^>nul') do set "AHEAD=1"
 popd
+if defined AHEAD goto :ahead
 echo.
 echo  ------------------------------------------------------------
 REM  IT PULLS THE WHOLE REPOSITORY, and this line used to say only
@@ -50,6 +64,18 @@ echo     tools\voice-gen      the bark voices  (start with "1 RATE TEST")
 echo     tools\voice-fetch    picking reference voices
 echo     tools\mixamo-pick    bodies and animations
 echo  ------------------------------------------------------------
+pause & exit /b 0
+
+:ahead
+echo.
+echo  ------------------------------------------------------------
+echo   Updated - but this machine has work that is NOT on GitHub yet.
+echo   That is what leaves the watcher stuck saying "cannot
+echo   fast-forward". Run this next:
+echo.
+echo     tools\voice-live\9 UNSTICK THE WATCHER.bat
+echo  ------------------------------------------------------------
+echo.
 pause & exit /b 0
 
 :norepo
