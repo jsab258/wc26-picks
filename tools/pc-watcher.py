@@ -231,6 +231,38 @@ def write_result(root, lines):
     dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def replay(root, say, what):
+    """Get onto the tip of the branch, keeping any local commit.
+
+    Fast-forward if it can. If it cannot, that is because this machine has
+    made a commit of its own, and the answer is to replay it on top rather
+    than to stop — but ONLY when nothing is uncommitted, which every caller
+    checks first. A rebase with a dirty tree is refused by git, and a rebase
+    that goes wrong is aborted here rather than left half-applied.
+    """
+    # FETCHED HERE, not left to whatever the caller last did. `land` runs at
+    # the END of a job that may have taken an hour, and the pass's own fetch
+    # happened before it started — so FETCH_HEAD would name a commit from
+    # before the work, which is exactly the state this function exists to
+    # escape. The first version of this fix inherited that stale reference and
+    # would have replayed onto the wrong tip.
+    rc, out = git("fetch", "-q", "origin", BRANCH, cwd=root)
+    if rc != 0:
+        say(f"  cannot reach the branch to replay onto it: {out[:150]}")
+        return False
+    rc, out = git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
+    if rc == 0:
+        return True
+    rc, out = git("rebase", "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        git("rebase", "--abort", cwd=root)
+        say(f"  could not replay {what} onto the branch, and nothing was "
+            f"forced: {out[:200]}")
+        return False
+    say(f"  the branch had moved; replayed {what} on top of it")
+    return True
+
+
 def land(root, say, message):
     """Stage what this job produced, commit it, push it, and PROVE it landed.
 
@@ -263,15 +295,29 @@ def land(root, say, message):
     here = [f for f in produced if (root / f).exists()]
     rc, add_out = git("add", "--", *here, cwd=root)
     rc, commit_out = git("commit", "-m", message, cwd=root)
-    _, head = git("rev-parse", "HEAD", cwd=root)
     if rc != 0:
         # Git's own words, kept. "Nothing to commit" and "who are you" want
         # completely different fixes and both were invisible before.
         say(f"  COMMIT FAILED: {commit_out[:300]}")
         return False
 
-    git("fetch", "-q", "origin", BRANCH, cwd=root)
-    git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
+    # AND NOW THE BRANCH HAS ALMOST CERTAINLY MOVED. A job runs for twenty
+    # minutes or more, and the other end of this arrangement pushes several
+    # times an hour. So by the time a result exists, the remote is ahead —
+    # which means the local commit is not a fast-forward BY CONSTRUCTION, and
+    # `merge --ff-only` here could never once have succeeded in that case.
+    #
+    # It was called anyway, with its return code ignored, and the push that
+    # followed was rejected. That left a commit stranded locally, and from the
+    # next pass onward the watcher could not fast-forward EITHER, so it printed
+    # "cannot fast-forward" once a minute for an hour with a finished
+    # measurement sitting in it. The rule it was obeying — never rebase, a
+    # rebase resets the working tree — is right at the TOP of a pass, where
+    # there may be uncommitted work to lose. Here there is nothing uncommitted
+    # left: this line is three statements after the commit that took it all.
+    if not replay(root, say, "this job's commit"):
+        return False
+    _, head = git("rev-parse", "HEAD", cwd=root)   # the rebase changed it
     rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
     if rc != 0:
         say(f"  PUSH FAILED: {push_out[:300]}")
@@ -312,10 +358,24 @@ def one_pass(root, say):
     if not tree_is_safe(root, say):
         return "dirty"
     mine = pathlib.Path(__file__).read_bytes()
-    rc, out = git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
-    if rc != 0:
-        say(f"  cannot fast-forward — stopping rather than forcing: {out[:200]}")
+    # A STRANDED COMMIT USED TO END THE WATCHER PERMANENTLY. This said
+    # "cannot fast-forward, stopping rather than forcing" and returned, once a
+    # minute, for ever — and the fix for it could never arrive, because the
+    # self-update check is three lines BELOW here and the update is what this
+    # refused to take. An hour of that, with a finished measurement sitting in
+    # the local commit nobody could see.
+    #
+    # `tree_is_safe` has already run, so there is nothing uncommitted to lose
+    # and replaying is safe. Nothing is forced and nothing is discarded: the
+    # local commit is put on top, and then PUSHED, which is what it was
+    # waiting for.
+    if not replay(root, say, "this machine's own commit"):
         return "diverged"
+    rc, _ = git("merge-base", "--is-ancestor", "HEAD", "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        rc, out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
+        say("  and pushed the commit that had been stranded here"
+            if rc == 0 else f"  the stranded commit still will not push: {out[:150]}")
     if pathlib.Path(__file__).read_bytes() != mine:
         # RESTART INTO THE NEW CODE. A long-lived process that pulls its own
         # source and keeps running the old copy is the same fault as a bat
@@ -437,6 +497,107 @@ def selftest():
     check("STARTED" not in done and "RESULT: finished" in done,
           "and the outcome REPLACES it rather than being appended, so the last "
           "word on the branch is what happened", done.replace("\n", " ")[:70])
+
+    # ---- THE PUSH PATH, ON REAL REPOSITORIES ----------------------------
+    #
+    # THE HALF THAT HAD NEVER BEEN RUN. Everything above tests decisions made
+    # from strings. The part that actually failed was git: a job commits its
+    # result, the branch has moved while it ran, `merge --ff-only` cannot
+    # succeed by construction, its return code was ignored, and the push was
+    # rejected — stranding the commit and bricking every later pass. None of
+    # that needs a GPU or a network. Three local repositories reproduce it in
+    # under a second, and not building them is why an hour went missing.
+    def repos():
+        import tempfile as tf
+        home = pathlib.Path(tf.mkdtemp())
+        far = home / "origin.git"
+        git("init", "-q", "--bare", str(far))
+        for name in ("watcher", "other"):
+            git("clone", "-q", str(far), str(home / name))
+            git("config", "user.email", "t@example.com", cwd=home / name)
+            git("config", "user.name", "T", cwd=home / name)
+        w = home / "watcher"
+        (w / "seed.txt").write_text("seed\n", encoding="utf-8")
+        git("add", "seed.txt", cwd=w)
+        git("commit", "-q", "-m", "seed", cwd=w)
+        git("checkout", "-q", "-b", BRANCH, cwd=w)
+        git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=w)
+        o = home / "other"
+        git("fetch", "-q", "origin", BRANCH, cwd=o)
+        git("checkout", "-q", "-B", BRANCH, "FETCH_HEAD", cwd=o)
+        return w, o
+
+    def result_in(root, text):
+        write_result(root, [text])
+
+    def moved(other, text):
+        """Somebody else pushes while the job is running — the normal case."""
+        (other / "elsewhere.txt").write_text(text, encoding="utf-8")
+        git("add", "elsewhere.txt", cwd=other)
+        git("commit", "-q", "-m", text, cwd=other)
+        git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
+
+    # THE ACCEPTING CASE FIRST: nobody else pushed, so it fast-forwards.
+    watcher, other = repos()
+    result_in(watcher, "quiet run")
+    quiet = []
+    ok_quiet = land(watcher, quiet.append, "pc-watcher: quiet")
+    check(ok_quiet, "a result lands when nothing else has pushed",
+          " ".join(quiet)[:90])
+
+    # AND THE ONE THAT WAS FAILING IN THE FIELD.
+    watcher, other = repos()
+    result_in(watcher, "the measurement")
+    moved(other, "a push that happened while the job ran")
+    said = []
+    ok_race = land(watcher, said.append, "pc-watcher: raced")
+    check(ok_race, "and it STILL lands when the branch moved underneath it — "
+          "which is the normal case, not the rare one, because a job runs for "
+          "half an hour", " ".join(said)[:110])
+    rc, log = git("log", "--oneline", f"origin/{BRANCH}", cwd=other)
+    _ = git("fetch", "-q", "origin", BRANCH, cwd=other)
+    rc, remote = git("show", f"FETCH_HEAD:{RESULT.relative_to(ROOT).as_posix()}",
+                     cwd=other)
+    check(rc == 0 and "the measurement" in remote,
+          "and the result is readable on the branch afterwards, not stranded "
+          "in a local commit", remote[:60])
+    rc, both = git("log", "--format=%s", "FETCH_HEAD", cwd=other)
+    check("raced" in both and "a push that happened while the job ran" in both,
+          "with the other machine's commit kept rather than overwritten",
+          both.replace("\n", " | ")[:90])
+
+    # AND A PASS THAT OPENS ON A STRANDED COMMIT RECOVERS INSTEAD OF PRINTING
+    # THE SAME REFUSAL FOR EVER. This is the state Jafar's machine sat in.
+    watcher, other = repos()
+    result_in(watcher, "stranded")
+    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=watcher)
+    git("commit", "-q", "-m", "pc-watcher: stranded", cwd=watcher)
+    moved(other, "and then the branch moved")
+    stuck = []
+    git("fetch", "-q", "origin", BRANCH, cwd=watcher)
+    check(replay(watcher, stuck.append, "the stranded commit"),
+          "a stranded commit is replayed onto the moved branch rather than "
+          "ending the watcher", " ".join(stuck)[:90])
+
+    # AND WHEN A REPLAY GENUINELY CANNOT HAPPEN, NOTHING IS FORCED. Both sides
+    # change the same line, so the rebase conflicts.
+    watcher, other = repos()
+    result_in(watcher, "mine")
+    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=watcher)
+    git("commit", "-q", "-m", "mine", cwd=watcher)
+    result_in(other, "theirs")
+    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=other)
+    git("commit", "-q", "-m", "theirs", cwd=other)
+    git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
+    refused = []
+    git("fetch", "-q", "origin", BRANCH, cwd=watcher)
+    beaten = replay(watcher, refused.append, "a conflicting commit")
+    rc, state = git("status", "--porcelain", cwd=watcher)
+    check(not beaten and any("nothing was forced" in s for s in refused)
+          and not state.strip(),
+          "and a real conflict is refused, aborted, and leaves a clean tree "
+          "rather than a half-applied rebase",
+          (" ".join(refused)[:70] + " | tree: " + (state or "clean")[:30]))
 
     check(interpreter(ROOT) == sys.executable,
           "and with no Windows environment present it falls back to this "
