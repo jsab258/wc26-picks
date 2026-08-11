@@ -46,7 +46,14 @@ echo  Leave this window open. It checks once a minute and is idle in
 echo  between. Closing it stops everything.
 echo.
 pushd "%REPO%"
-git pull origin claude/game-dev-ai-automation-2h67ix
+REM ---- REBASE, AND SAY SO IF IT FAILS.
+REM
+REM  This was a bare "git pull". On a branch that has moved on both sides
+REM  git refuses to guess, so the pull failed - and nothing here looked at
+REM  the result, so the watcher started anyway on the code it already had.
+REM  That is how an out-of-date watcher can sit there looking healthy.
+git pull --rebase origin claude/game-dev-ai-automation-2h67ix
+if errorlevel 1 goto :nopull
 if not exist "%ENVDIR%\Scripts\python.exe" goto :noenv
 "%ENVDIR%\Scripts\python.exe" tools\pc-watcher.py
 popd
@@ -61,5 +68,15 @@ pause & exit /b 1
 popd
 echo.
 echo  The environment is not there yet. Run "2 TRY THE EXPORT.bat" first.
+echo.
+pause & exit /b 1
+
+:nopull
+popd
+echo.
+echo  The update failed, so the watcher was NOT started - it would have
+echo  been running old code and there would be no way to tell.
+echo.
+echo  Run "9 UNSTICK THE WATCHER.bat", then start this again.
 echo.
 pause & exit /b 1
