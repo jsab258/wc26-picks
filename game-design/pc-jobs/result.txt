@@ -1,27 +1,178 @@
-job: time-a-line
-id: hear-072426
+job: export-and-hear
+id: opening-words-1
 
+  $ tools/voice-live/export-for-game.py
+  watermarker: NOT AVAILABLE (perth.perth_net.perth_net_implicit.perth_net: ModuleNotFoundError: No module named 'pkg_resources') (not used here)
+    voice: rocco (rocco.p227.mp3)
+    loading the model...
+    running one line to shape the graph against a real cache...
+      cache: 60 tensors, (2, 16, 73, 64)
+    exported in 13s, 2001 MB -> t3-step.onnx
+    agrees with pytorch to 9.9e-07 at the traced position
+    and to 1.7e-06 at four positions it was NOT traced at
+  
+    exporting the prefill — the sentence and the voice, into a cache...
+    exported in 14s, 2029 MB -> t3-prefill.onnx
+    agrees with pytorch to 1.6e-06 for the voice it was traced with
+    and to 2.2e-06 for 'ada', a voice it was NOT traced with,
+    whose cache differs from 'rocco' by 5.44 — so that agreement is two
+    different answers matching, not one constant matching itself.
+  
+    ------------------------------------------------------------
+    Two graphs. The prefill takes the sentence and the voice; the
+    step takes a token and a position. The game hands over integers
+    and arrays it already has, and never touches the model's tables.
+    ------------------------------------------------------------
+  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\diffusers\models\lora.py:393: FutureWarning: `LoRACompatibleLinear` is deprecated and will be removed in version 1.0.0. Use of `LoRACompatibleLinear` is deprecated. Please switch to PEFT backend by installing PEFT: `pip install peft`.
+    deprecate("LoRACompatibleLinear", "1.0.0", deprecation_message)
+  C:\Users\Jafar\miniconda3\Lib\contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+    self.gen = func(*args, **kwds)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\transformers\cache_utils.py:133: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if not self.is_initialized or self.keys.numel() == 0:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\transformers\integrations\sdpa_attention.py:77: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    is_causal = query.shape[2] > 1 and attention_mask is None and is_causal
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\transformers\integrations\sdpa_attention.py:82: TracerWarning: Converting a tensor to a Python number might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    is_causal = is_causal.item()
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\t3\t3.py:123: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if cond_emb.size(0) != text_emb.size(0):
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\t3\t3.py:129: TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+    for ce, te, se in zip(cond_emb, text_emb, speech_emb)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\t3\modules\learned_pos_emb.py:29: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    idx = idx.to(device) if torch.is_tensor(idx) else torch.tensor(idx, device=device)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\transformers\cache_utils.py:95: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    self.keys = torch.tensor([], dtype=self.dtype, device=self.device)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\transformers\cache_utils.py:96: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    self.values = torch.tensor([], dtype=self.dtype, device=self.device)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\_internal\jit_utils.py:308: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_node_shape_type_inference(node, params_dict, opset_version)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\utils.py:657: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_graph_shape_type_inference(
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\utils.py:1127: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_graph_shape_type_inference(
+  $ tools/voice-live/export-decode.py
+  voice: rocco (rocco.p227.mp3)
+    loading the model...
+    watermarker: NOT AVAILABLE (perth.perth_net.perth_net_implicit.perth_net: ModuleNotFoundError: No module named 'pkg_resources') (not used here)
+    prompt 250 tokens, tracing on 24 speech tokens
+    exported in 48s, 540 MB -> s3gen-decode.onnx
+    agrees with pytorch to 1.1e-04 at the traced length (23040 samples, 1.0s)
+    and to 8.0e-05 at two lengths it was NOT traced at
+    which is -82 dB below the peak, about 2.6 steps of 16-bit audio
+  
+    ------------------------------------------------------------
+    Tokens and a voice in, samples out. The game supplies the noise,
+    which is what makes a line repeatable from a seed.
+    ------------------------------------------------------------
+  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\diffusers\models\lora.py:393: FutureWarning: `LoRACompatibleLinear` is deprecated and will be removed in version 1.0.0. Use of `LoRACompatibleLinear` is deprecated. Please switch to PEFT backend by installing PEFT: `pip install peft`.
+    deprecate("LoRACompatibleLinear", "1.0.0", deprecation_message)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:352: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    token=tokens, token_len=torch.tensor([n]),
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:354: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    prompt_token_len=torch.tensor([p]),
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:266: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    end = torch.tensor(max_len, device=lengths.device) if max_len > 0 \
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:266: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    end = torch.tensor(max_len, device=lengths.device) if max_len > 0 \
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:266: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+    end = torch.tensor(max_len, device=lengths.device) if max_len > 0 \
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\transformer\embedding.py:229: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if self.pe.size(1) >= x.size(1) * 2 - 1:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\utils\mask.py:161: TracerWarning: Converting a tensor to a Python number might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if (chunk_masks.sum(dim=-1) == 0).sum().item() != 0:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\transformer\attention.py:295: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if cache.size(0) > 0:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\transformer\attention.py:324: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if matrix_ac.shape != matrix_bd.shape:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\transformer\attention.py:108: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if mask.size(2) > 0:  # time2 > 0
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:306: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if m2.shape[0] != B:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\export-decode.py:208: TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+    for t, r in zip(t_span[:-1], t_span[1:]):
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\diffusers\models\attention_processor.py:682: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if current_length != target_length:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\diffusers\models\attention_processor.py:697: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if attention_mask.shape[0] < batch_size * head_size:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\chatterbox\models\s3gen\hifigan.py:471: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if cache_source.shape[2] != 0:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\stft_patch.py:99: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if w.numel() < n_fft:                      # centre a short window
+  C:\Users\Jafar\wc26-picks\tools\voice-live\stft_patch.py:162: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+    if w.numel() < n_fft:
+  C:\Users\Jafar\wc26-picks\tools\voice-live\stft_patch.py:196: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+    scale = torch.tensor(half, dtype=real.dtype).unsqueeze(1)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\_internal\jit_utils.py:308: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_node_shape_type_inference(node, params_dict, opset_version)
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\utils.py:657: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_graph_shape_type_inference(
+  C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Lib\site-packages\torch\onnx\utils.py:1127: UserWarning: Constant folding - Only steps=1 can be constant folded for opset >= 10 onnx::Slice op. Constant folding not applied. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\jit\passes\onnx\constant_fold.cpp:180.)
+    _C._jit_pass_onnx_graph_shape_type_inference(
+  $ tools/voice-live/check-graphs.py
+  LEDGER — the exported speech graphs, read from the files themselves
+  ran on Jafar-Desktop (Windows) as Jafar, 2026-08-11 08:19 UTC
+  graphs looked for in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
+  
+          text export: 2026-08-11 08:14 UTC  finished  src=bfb1238e4718 — step 9.9e-07/1.7e-06, prefill 1.6e-06
+          decode export: 2026-08-11 08:19 UTC  finished  src=f62df6c368bb — 1.1e-04 traced, 8.0e-05 untraced, 540 MB
+    ok    t3-step.onnx is on disk   [2001 MB, 2001 MB with weights]
+    ok    t3-prefill.onnx is on disk   [2029 MB, 2029 MB with weights]
+    ok    the prefill still takes 'text_tokens' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+    ok    the prefill still takes 'speaker_emb' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+    ok    the prefill still takes 'cond_speech_tokens' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+    ok    the prefill still takes 'emotion_adv' — it was not folded away into a constant   [text_tokens, speaker_emb, cond_speech_tokens, emotion_adv]
+    ok    the step takes a token and a position   [token, position, cache0]
+    ok    the prefill returns the first token's odds, not only a cache   [logits, cache0, cache1]
+    ok    and its 60 cache outputs are exactly the step's cache inputs   [prefill out 60, step in 60, step out 60]
+    ok    every input has a type this tool knows how to feed
+          types: text_tokens=tensor(int32)  speaker_emb=tensor(float)  cond_speech_tokens=tensor(int64)  emotion_adv=tensor(float)  |  token=int64, position=int64
+    ok    3 voices available to compare   [ada, crowd_f1, crowd_f2]
+          voices: ada -> crowd_f1 one field at a time (emotion nudged) — speaker_emb=3.825  cond_speech_tokens=3.416  emotion_adv=2.529;  ada twice differs by 0.0e+00
+    ok    changing 'speaker_emb' alone changes the cache — that part of the voice is an input, not baked in   [3.8247]
+    ok    changing 'cond_speech_tokens' alone changes the cache — that part of the voice is an input, not baked in   [3.4158]
+    ok    changing 'emotion_adv' alone changes the cache — that part of the voice is an input, not baked in   [2.5295]
+    ok    and the same voice twice gives the same cache   [0.0e+00]
+    ok    with no infinities or NaNs in it
+          position: 1 vs 2 and 17 move the answer by 7.359
+    ok    the position changes the answer — it is an input, not baked into the graph   [7.3586]
+    ok    and the prefill's odds are the same width as the step's — one array feeds one sampler   [prefill 8194, step 8194]
+    ok    the prefill's cache drives the step three times, growing by one each   [44 -> [45, 46, 47]]
+    ok    and the answer it gives is a number
+    ok    the decode graph still takes 'tokens'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+    ok    the decode graph still takes 'prompt_token'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+    ok    the decode graph still takes 'prompt_feat'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+    ok    the decode graph still takes 'embedding'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+    ok    the decode graph still takes 'z'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+    ok    the decode graph still takes 'sine_noise'   [tokens, prompt_token, prompt_feat, embedding, z, sine_noise]
+          decode: ada/6tok=5760smp  ada/15tok=14400smp  crowd_f1/6tok=5760smp  crowd_f1/15tok=14400smp
+    ok    the decode graph runs at two token counts and two voices, and the sample count follows the formula each time
+    ok    and it produces a waveform rather than silence or NaN   [peak 0.0333]
+  
+  RESULT: all clear
+  
+    written to game-design\voice-live\export-report.txt
   $ tools/voice-live/time-a-line.py
   LEDGER — how long one spoken line actually takes
-  ran on Jafar-Desktop (Windows) as Jafar, 2026-08-11 07:24 UTC
+  ran on Jafar-Desktop (Windows) as Jafar, 2026-08-11 08:23 UTC
   
     providers available: DmlExecutionProvider, CPUExecutionProvider
     using: DmlExecutionProvider
-    opened t3-prefill in 3.0s
-    opened t3-step in 2.7s
-    opened s3gen-decode in 297.6s
-    three sessions in 303.3s total
+    opened t3-prefill in 3.1s
+    opened t3-step in 3.1s
+    opened s3gen-decode in 177.8s
+    three sessions in 184.0s total
     the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
-    prefill: 0.28s
-    84 steps in 3.5s — first 129ms, median 36ms, slowest 129ms
-    83 acoustic tokens kept
-    decode on CPU: 12.43s (session opened in 193.9s)
-    -> the CPU is 3.2x SLOWER at this stage — DirectML is the right place for it
-    wrote spoken.wav — 156 KB, 3.3s, through the SHIPPED graphs
-    decode: 3.84s for 3.3s of audio
+    prefill: 0.30s
+    86 steps in 3.5s — first 139ms, median 35ms, slowest 139ms
+    86 acoustic tokens kept
+    decode on CPU: 12.09s (session opened in 190.6s)
+    -> the CPU is 3.5x SLOWER at this stage — DirectML is the right place for it
+    wrote spoken.wav — 161 KB, 3.4s, through the SHIPPED graphs
+    decode: 3.48s for 3.4s of audio
   
-    ONE LINE: 7.6s of work for 3.3s of speech — 2.3x real time
-    split: prefill 0.3s, 84 steps 3.5s, decode 3.8s
+    ONE LINE: 7.3s of work for 3.4s of speech — 2.1x real time
+    split: prefill 0.3s, 86 steps 3.5s, decode 3.5s
   
     written to speed-report.txt
 
