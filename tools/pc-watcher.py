@@ -50,6 +50,11 @@ IDLE = "idle"
 RESULT = JOBS / "result.txt"
 STATE = ROOT / ".pc-watcher-state.json"          # gitignored; local memory
 BRANCH = "claude/game-dev-ai-automation-2h67ix"
+# WHERE RESULTS GO, AND IT IS NOT THE BRANCH ABOVE. One writer per branch
+# is the whole redesign: this machine only ever READS `BRANCH` and only
+# ever WRITES `RESULTS`, so no push it makes can collide with a push I
+# make, and no state it gets into needs reconciling with mine.
+RESULTS = "pc-results"
 
 # THE ONLY THINGS THIS CAN RUN. Each is a list of arguments, never a string
 # handed to a shell, so nothing in the request can smuggle an argument. `PY`
@@ -135,47 +140,6 @@ def read_request(text):
     return {"job": job, "id": rid}, None
 
 
-def tree_is_safe(root, say):
-    """Refuse to do anything if the working tree carries surprises.
-
-    The environment was destroyed because a wide `add` swept up files nobody
-    meant to touch and a later git operation threw them away. Both halves are
-    gone now — the add is scoped and the merge cannot rewrite — but the
-    durable guard is this one: if anything is here that this watcher did not
-    produce, it stops and says so rather than proceeding over the top of it.
-
-    A machine I cannot see is exactly where "it was probably fine" is worth
-    the least.
-    """
-    # TRACKED FILES ONLY, AND THAT IS A LOOSENING WITH A REASON.
-    #
-    # This counted untracked files, so thirteen files pip wrote into the
-    # Python environment would have stopped every pass — a watcher any
-    # package install can switch off, silently, for a hazard that no longer
-    # exists. The original worry was a wide `git add` sweeping the
-    # environment into a commit; that is fixed in the add, which names its
-    # files. Nothing here stages, moves or deletes an untracked file.
-    #
-    # What is still refused is an edit to a file git is FOLLOWING, because
-    # that is what a replay can trample.
-    rc, out = git("status", "--porcelain", "--untracked-files=no", cwd=root)
-    if rc != 0:
-        say(f"  cannot read the working tree: {out[:150]}")
-        return False
-    mine = {RESULT.relative_to(ROOT).as_posix(), REQUEST.relative_to(ROOT).as_posix(),
-            "game-design/voice-live/speed-report.txt",
-            "game-design/voice-live/spoken.wav",
-            "game-design/voice-live/export-report.txt",
-            "game-design/voice-live/shape-report.txt"}
-    stray = [l[3:].strip().strip('"') for l in out.splitlines()
-             if l[3:].strip().strip('"') not in mine]
-    if stray:
-        say(f"  the working tree has {len(stray)} change(s) this watcher did "
-            f"not make — stopping. First: {stray[0]}")
-        return False
-    return True
-
-
 def already_done(state_text, rid):
     """Has this exact request already run here.
 
@@ -242,181 +206,126 @@ def write_result(root, lines):
     dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def replay(root, say, what):
-    """Get onto the tip of the branch, keeping any local commit.
+def resync(root, say):
+    """Make this checkout EXACTLY the branch. Never merge, never rebase.
 
-    Fast-forward if it can. If it cannot, that is because this machine has
-    made a commit of its own, and the answer is to replay it on top rather
-    than to stop — but ONLY when nothing is uncommitted, which every caller
-    checks first. A rebase with a dirty tree is refused by git, and a rebase
-    that goes wrong is aborted here rather than left half-applied.
+    THE REDESIGN, AND IT IS THE WHOLE POINT. This machine used to be a second
+    author on a shared branch: it committed results where I commit code, so
+    every job risked a divergence, and a divergence needed a rebase, and a
+    rebase needed a clean tree and an unlocked file and a conflict rule. Four
+    days of failures, every one of them downstream of that one decision.
+
+    Nothing in this checkout is worth keeping. Its job outputs are FILES,
+    published separately below, and its source is mine. So the sync is a
+    discard: whatever state this repository is in — half-finished rebase,
+    stranded commit, diverged branch, detached head — it becomes the branch,
+    and none of those states need a rule of their own.
+
+    UNTRACKED FILES ARE NOT TOUCHED, which is what makes the discard safe.
+    The Python environment, the exported graphs and this watcher's own memory
+    are all untracked and all survive a hard reset. That is not luck; it is
+    why those four .gitignore lines had to land first.
     """
-    # FETCHED HERE, not left to whatever the caller last did. `land` runs at
-    # the END of a job that may have taken an hour, and the pass's own fetch
-    # happened before it started — so FETCH_HEAD would name a commit from
-    # before the work, which is exactly the state this function exists to
-    # escape. The first version of this fix inherited that stale reference and
-    # would have replayed onto the wrong tip.
     rc, out = git("fetch", "-q", "origin", BRANCH, cwd=root)
     if rc != 0:
-        say(f"  cannot reach the branch to replay onto it: {out[:150]}")
+        say(f"  cannot reach GitHub: {out[:150]}")
         return False
-    rc, out = git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
-    if rc == 0:
-        return True
-
-    # WHAT DO THE LOCAL COMMITS TOUCH? Asked before the rebase, because it
-    # decides whether a clash has a right answer.
-    #
-    # Everything a job produces lands in two folders and nowhere else. Those
-    # files are pure OUTPUT, and when both sides have written one the branch's
-    # copy is the newer BY CONSTRUCTION — the branch moved on while this
-    # machine was working. So `-X ours` is not "pick a winner and hope": it is
-    # the only ordering that can be true. During a rebase "ours" is the side
-    # already applied, which is the branch.
-    #
-    # A file only this machine has is not a clash and survives untouched, so a
-    # report the branch has never seen is never the thing being dropped.
-    rc, changed = git("diff", "--name-only", "FETCH_HEAD...HEAD", cwd=root)
-    foreign = [f for f in changed.splitlines() if f.strip() and not f.startswith(
-        ("game-design/pc-jobs/", "game-design/voice-live/"))]
-    if foreign:
-        say(f"  a commit here changes {foreign[0]}, which is not a job result — "
-            f"stopping rather than guessing which side wins")
-        return False
-    rc, out = git("rebase", "-X", "ours", "FETCH_HEAD", cwd=root)
+    # ANY HALF-FINISHED OPERATION, ENDED. These fail harmlessly when there is
+    # nothing to end, and one of them left this machine unable to do anything
+    # for an afternoon.
+    for op in ("rebase", "merge", "cherry-pick", "am"):
+        git(op, "--abort", cwd=root)
+    rc, out = git("reset", "--hard", "FETCH_HEAD", cwd=root)
     if rc != 0:
-        git("rebase", "--abort", cwd=root)
-        say(f"  could not replay {what} onto the branch, and nothing was "
-            f"forced: {out[:200]}")
+        say(f"  could not match the branch: {out[:200]}")
         return False
-    say(f"  the branch had moved; replayed {what} on top of it")
     return True
 
 
-def land(root, say, message):
-    """Stage what this job produced, commit it, push it, and PROVE it landed.
+def publish(root, say, message):
+    """Put what this job produced on a branch only this machine writes.
 
-    THE EFFECT, NOT THE EXIT CODE. The first version printed "pushed" off
-    `git push` returning 0 — and `push` returns 0 for "Everything
-    up-to-date". The commit had silently failed, nothing landed, and the
-    watcher reported success to a window Jafar was watching while I read an
-    empty branch and could not tell a slow job from a stuck one. Straight out
-    of this project's own rule: verify a workflow's EFFECTS.
+    FORCE, ONTO A BRANCH NOBODY ELSE TOUCHES. A shared branch is what made
+    every push a negotiation; this one has a single writer, so its history is
+    disposable and a force push can never destroy somebody else's work. Each
+    push carries the newest result, on top of whatever the main branch was at
+    the time, so it is always readable as "this ran against that".
 
-    ONE COPY, CALLED TWICE. This is called once to announce a job has started
-    and once to deliver what it made, and writing the sequence out twice is
-    how the second copy quietly loses the ancestry check.
+    The commit is made on a detached head so the local branch is left exactly
+    matching the main one — the next pass starts from a clean discard rather
+    than from something this function invented.
     """
-    # ONLY WHAT THIS JOB PRODUCED. `git add -A` from the repository root
-    # staged Jafar's Python virtual environment — it lives inside the repo at
-    # `tools/voice-live/env-export/` and was never ignored — and the watcher
-    # committed a piece of it. Scope a destructive or wide command to exactly
-    # what the operation made; this repository has that rule from an `rm -rf`
-    # in CI that deleted sixteen characters' voice clips.
-    # NAMED OUTPUTS, STILL NOT A WILDCARD. A job may leave more than its log —
-    # the timing one now writes the spoken waveform — so the list is explicit
-    # and lives here rather than being inferred from whatever changed. That
-    # inference is what `add -A` was.
     produced = [RESULT.relative_to(ROOT).as_posix(),
                 "game-design/voice-live/speed-report.txt",
                 "game-design/voice-live/spoken.wav",
                 "game-design/voice-live/export-report.txt",
                 "game-design/voice-live/shape-report.txt"]
     here = [f for f in produced if (root / f).exists()]
-    rc, add_out = git("add", "--", *here, cwd=root)
+    if not here:
+        say("  the job produced none of the files it can publish")
+        return False
+    # NAMED FILES, NEVER A WILDCARD. `git add -A` from the root staged Jafar's
+    # Python environment once and the next reset took the folder with it.
+    # `-f` because some of these now sit under an ignored directory and an
+    # ignore rule must not be able to silence a result.
+    rc, add_out = git("add", "-f", "--", *here, cwd=root)
     rc, commit_out = git("commit", "-m", message, cwd=root)
     if rc != 0:
-        # Git's own words, kept. "Nothing to commit" and "who are you" want
-        # completely different fixes and both were invisible before.
-        say(f"  COMMIT FAILED: {commit_out[:300]}")
+        say(f"  COMMIT FAILED: {commit_out[:250]}")
         return False
-
-    # AND NOW THE BRANCH HAS ALMOST CERTAINLY MOVED. A job runs for twenty
-    # minutes or more, and the other end of this arrangement pushes several
-    # times an hour. So by the time a result exists, the remote is ahead —
-    # which means the local commit is not a fast-forward BY CONSTRUCTION, and
-    # `merge --ff-only` here could never once have succeeded in that case.
-    #
-    # It was called anyway, with its return code ignored, and the push that
-    # followed was rejected. That left a commit stranded locally, and from the
-    # next pass onward the watcher could not fast-forward EITHER, so it printed
-    # "cannot fast-forward" once a minute for an hour with a finished
-    # measurement sitting in it. The rule it was obeying — never rebase, a
-    # rebase resets the working tree — is right at the TOP of a pass, where
-    # there may be uncommitted work to lose. Here there is nothing uncommitted
-    # left: this line is three statements after the commit that took it all.
-    if not replay(root, say, "this job's commit"):
-        return False
-    _, head = git("rev-parse", "HEAD", cwd=root)   # the rebase changed it
-    rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
+    _, head = git("rev-parse", "HEAD", cwd=root)
+    rc, push_out = git("push", "--force", "origin", f"HEAD:{RESULTS}", cwd=root)
     if rc != 0:
-        say(f"  PUSH FAILED: {push_out[:300]}")
+        say(f"  PUSH FAILED: {push_out[:250]}")
         return False
-    # And confirm the remote actually carries it, because a push can succeed
-    # having sent nothing at all.
-    git("fetch", "-q", "origin", BRANCH, cwd=root)
-    rc, _ = git("merge-base", "--is-ancestor", head, "FETCH_HEAD", cwd=root)
-    if rc != 0:
-        say(f"  PUSH SENT NOTHING — {head[:7]} is not on the branch. "
-            f"add: {add_out[:120]}")
+    # THE EFFECT, NOT THE EXIT CODE — `push` returns 0 for "everything
+    # up-to-date", and this watcher once reported success having sent nothing.
+    git("fetch", "-q", "origin", RESULTS, cwd=root)
+    rc, remote = git("rev-parse", "FETCH_HEAD", cwd=root)
+    if rc != 0 or remote.strip() != head.strip():
+        say(f"  PUSH SENT NOTHING — {head[:7]} is not what {RESULTS} holds. "
+            f"add: {add_out[:100]}")
         return False
-    say(f"  pushed {head[:7]} and confirmed on the branch")
+    say(f"  published {head[:7]} to {RESULTS}")
     return True
 
 
 def one_pass(root, say):
-    """Fetch, decide, maybe run, push. Returns what happened, as a word."""
+    """Match the branch, run whatever it asks for, publish the answer.
+
+    THREE STEPS AND NO NEGOTIATION. Everything that used to sit between them
+    — the fast-forward test, the divergence rule, the conflict strategy, the
+    stranded-commit recovery — existed because this machine wrote to the same
+    branch it read from. It does not any more, so none of that is needed and
+    none of it can go wrong.
+    """
     # ANOTHER GIT IS RUNNING — most likely one of the bats. Two git processes
     # in one repository collide on the index lock and fail in a way that reads
     # like anything but a race.
     if (root / ".git" / "index.lock").exists():
         return "busy"
-    rc, out = git("fetch", "-q", "origin", BRANCH, cwd=root)
-    if rc != 0:
-        say(f"  fetch failed: {out[:200]}")
-        return "offline"
-    # PULL EVERY PASS, NOT ONLY WHEN A JOB ARRIVES. The first version pulled
-    # inside the run branch, so a watcher left open ran the code it started
-    # with for ever — every fix I pushed today would have needed Jafar to
-    # close the window and reopen it, and nothing would have said so.
-    # FAST-FORWARD OR NOTHING. `pull --rebase` RESETS THE WORKING TREE, and
-    # that is what destroyed Jafar's Python environment: files staged by an
-    # `add -A` and never committed do not survive a reset. A fast-forward
-    # cannot rewrite anything — it either moves the branch pointer or it
-    # refuses, and refusing is a state I can read rather than a folder I
-    # cannot get back.
-    if not tree_is_safe(root, say):
-        return "dirty"
+
     mine = pathlib.Path(__file__).read_bytes()
-    # A STRANDED COMMIT USED TO END THE WATCHER PERMANENTLY. This said
-    # "cannot fast-forward, stopping rather than forcing" and returned, once a
-    # minute, for ever — and the fix for it could never arrive, because the
-    # self-update check is three lines BELOW here and the update is what this
-    # refused to take. An hour of that, with a finished measurement sitting in
-    # the local commit nobody could see.
-    #
-    # `tree_is_safe` has already run, so there is nothing uncommitted to lose
-    # and replaying is safe. Nothing is forced and nothing is discarded: the
-    # local commit is put on top, and then PUSHED, which is what it was
-    # waiting for.
-    if not replay(root, say, "this machine's own commit"):
-        return "diverged"
-    rc, _ = git("merge-base", "--is-ancestor", "HEAD", "FETCH_HEAD", cwd=root)
-    if rc != 0:
-        rc, out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
-        say("  and pushed the commit that had been stranded here"
-            if rc == 0 else f"  the stranded commit still will not push: {out[:150]}")
+    if not resync(root, say):
+        return "offline"
     if pathlib.Path(__file__).read_bytes() != mine:
         # RESTART INTO THE NEW CODE. A long-lived process that pulls its own
         # source and keeps running the old copy is the same fault as a bat
-        # that copies itself to TEMP before pulling — which cost a run today.
+        # that copies itself to TEMP before pulling.
+        #
+        # AND IT IS REACHABLE NOW, WHICH IT WAS NOT. This check used to sit
+        # BELOW a refusal that could latch on for ever, so a stuck watcher
+        # refused the very change that would unstick it. The sync above cannot
+        # refuse, so a fix always arrives.
         say("  this watcher was updated; restarting into the new version")
         os.execv(sys.executable, [sys.executable] + sys.argv)
 
-    rc, text = git("show", f"FETCH_HEAD:{REQUEST.relative_to(ROOT).as_posix()}",
-                   cwd=root)
-    if rc != 0:
+    # READ FROM THE TREE, which the sync has just made identical to the
+    # branch. Reading through `git show FETCH_HEAD:...` was one more way for
+    # the file and the code to disagree about which commit is current.
+    try:
+        text = (root / REQUEST.relative_to(ROOT)).read_text(encoding="utf-8")
+    except OSError:
         return "no-request"
     req, why = read_request(text)
     if req is None:
@@ -429,35 +338,30 @@ def one_pass(root, say):
         return "already-done"
 
     say(f"  running '{req['job']}' (id {req['id']})")
-    # SAY IT HAS STARTED, ON THE BRANCH, BEFORE DOING ANY OF IT.
+    # SAY IT HAS STARTED, BEFORE DOING ANY OF IT. A job's only trace used to
+    # be the result it pushed at the end, so "running for twenty minutes" and
+    # "never picked it up" looked identical from the far end: an unchanged
+    # branch. That cost a wait with nothing to read and nothing to conclude.
     #
-    # A job's only trace was the result it pushed at the end, so from the
-    # other side of the internet "running for twenty minutes" and "never
-    # picked it up" looked exactly the same: an unchanged branch. That cost a
-    # wait for a measurement job with nothing to read and nothing to conclude
-    # from — the same shape as rule 3b, where a zero with no denominator
-    # cannot say whether anything was examined.
-    #
-    # Best effort on purpose. A marker that failed to land must not stop the
-    # work it was announcing; it is a courtesy to the reader, not a step.
+    # Best effort. A marker that failed to publish must not stop the work it
+    # was announcing.
     write_result(root, [f"job: {req['job']}", f"id: {req['id']}", "",
                         f"RESULT: STARTED at {stamp()} — still running here"])
-    if not land(root, say, f"pc-watcher: {req['job']} (started)"):
+    if not publish(root, say, f"pc-watcher: {req['job']} (started)"):
         say("  (could not announce the start; running it anyway)")
 
     lines = [f"job: {req['job']}", f"id: {req['id']}", ""]
     ok = run_job(req["job"], root, lines.append)
     lines.append("")
     lines.append("RESULT: finished" if ok else "RESULT: FAILED")
-
     write_result(root, lines)
     # WRITTEN ONLY NOW. If the machine dies mid-job the id is not recorded, so
-    # the next start runs it again — and the branch still carries the STARTED
-    # marker saying which job never came back. Both halves of that are
-    # deliberate: re-running is the safer direction, and a job that vanished
-    # leaves evidence it existed.
+    # the next start runs it again — and the published STARTED marker still
+    # names the job that never came back. Both halves are deliberate:
+    # re-running is the safer direction, and a job that vanished should leave
+    # evidence it existed.
     STATE.write_text(json.dumps({"last": req["id"]}), encoding="utf-8")
-    if not land(root, say, f"pc-watcher: {req['job']}"):
+    if not publish(root, say, f"pc-watcher: {req['job']}"):
         return "failed"
     return "ran" if ok else "failed"
 
@@ -529,21 +433,18 @@ def selftest():
           "and the outcome REPLACES it rather than being appended, so the last "
           "word on the branch is what happened", done.replace("\n", " ")[:70])
 
-    # ---- THE PUSH PATH, ON REAL REPOSITORIES ----------------------------
+    # ---- THE SYNC AND THE PUBLISH, ON REAL REPOSITORIES ------------------
     #
-    # THE HALF THAT HAD NEVER BEEN RUN. Everything above tests decisions made
-    # from strings. The part that actually failed was git: a job commits its
-    # result, the branch has moved while it ran, `merge --ff-only` cannot
-    # succeed by construction, its return code was ignored, and the push was
-    # rejected — stranding the commit and bricking every later pass. None of
-    # that needs a GPU or a network. Three local repositories reproduce it in
-    # under a second, and not building them is why an hour went missing.
+    # THE HALF THAT HAD NEVER BEEN RUN, and four days of failures lived in it.
+    # Everything above tests decisions made from strings. What actually broke
+    # was git, and it needed no GPU and no network: local repositories
+    # reproduce every one of those states in under a second.
     def repos():
         import tempfile as tf
         home = pathlib.Path(tf.mkdtemp())
         far = home / "origin.git"
         git("init", "-q", "--bare", str(far))
-        for name in ("watcher", "other"):
+        for name in ("watcher", "mine"):
             git("clone", "-q", str(far), str(home / name))
             git("config", "user.email", "t@example.com", cwd=home / name)
             git("config", "user.name", "T", cwd=home / name)
@@ -553,109 +454,98 @@ def selftest():
         git("commit", "-q", "-m", "seed", cwd=w)
         git("checkout", "-q", "-b", BRANCH, cwd=w)
         git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=w)
-        o = home / "other"
-        git("fetch", "-q", "origin", BRANCH, cwd=o)
-        git("checkout", "-q", "-B", BRANCH, "FETCH_HEAD", cwd=o)
-        return w, o
+        m = home / "mine"
+        git("fetch", "-q", "origin", BRANCH, cwd=m)
+        git("checkout", "-q", "-B", BRANCH, "FETCH_HEAD", cwd=m)
+        return w, m
 
-    def result_in(root, text):
-        write_result(root, [text])
+    def i_push(mine, text):
+        (mine / "seed.txt").write_text(text, encoding="utf-8")
+        git("commit", "-qam", text, cwd=mine)
+        git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=mine)
 
-    def moved(other, text):
-        """Somebody else pushes while the job is running — the normal case."""
-        (other / "elsewhere.txt").write_text(text, encoding="utf-8")
-        git("add", "elsewhere.txt", cwd=other)
-        git("commit", "-q", "-m", text, cwd=other)
-        git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
+    def at(root):
+        _, out = git("rev-parse", "HEAD", cwd=root)
+        return out.strip()
 
-    # THE ACCEPTING CASE FIRST: nobody else pushed, so it fast-forwards.
-    watcher, other = repos()
-    result_in(watcher, "quiet run")
-    quiet = []
-    ok_quiet = land(watcher, quiet.append, "pc-watcher: quiet")
-    check(ok_quiet, "a result lands when nothing else has pushed",
-          " ".join(quiet)[:90])
-
-    # AND THE ONE THAT WAS FAILING IN THE FIELD.
-    watcher, other = repos()
-    result_in(watcher, "the measurement")
-    moved(other, "a push that happened while the job ran")
+    # 1. THE ORDINARY CASE.
+    watcher, mine = repos()
+    i_push(mine, "a change of mine\n")
     said = []
-    ok_race = land(watcher, said.append, "pc-watcher: raced")
-    check(ok_race, "and it STILL lands when the branch moved underneath it — "
-          "which is the normal case, not the rare one, because a job runs for "
-          "half an hour", " ".join(said)[:110])
-    rc, log = git("log", "--oneline", f"origin/{BRANCH}", cwd=other)
-    _ = git("fetch", "-q", "origin", BRANCH, cwd=other)
-    rc, remote = git("show", f"FETCH_HEAD:{RESULT.relative_to(ROOT).as_posix()}",
-                     cwd=other)
-    check(rc == 0 and "the measurement" in remote,
-          "and the result is readable on the branch afterwards, not stranded "
-          "in a local commit", remote[:60])
-    rc, both = git("log", "--format=%s", "FETCH_HEAD", cwd=other)
-    check("raced" in both and "a push that happened while the job ran" in both,
-          "with the other machine's commit kept rather than overwritten",
-          both.replace("\n", " | ")[:90])
+    ok1 = resync(watcher, said.append)
+    check(ok1 and at(watcher) == at(mine)
+          and (watcher / "seed.txt").read_text(encoding="utf-8") == "a change of mine\n",
+          "a quiet machine ends the sync holding exactly the branch",
+          " ".join(said)[:70])
 
-    # AND A PASS THAT OPENS ON A STRANDED COMMIT RECOVERS INSTEAD OF PRINTING
-    # THE SAME REFUSAL FOR EVER. This is the state Jafar's machine sat in.
-    watcher, other = repos()
-    result_in(watcher, "stranded")
-    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=watcher)
-    git("commit", "-q", "-m", "pc-watcher: stranded", cwd=watcher)
-    moved(other, "and then the branch moved")
-    stuck = []
-    git("fetch", "-q", "origin", BRANCH, cwd=watcher)
-    check(replay(watcher, stuck.append, "the stranded commit"),
-          "a stranded commit is replayed onto the moved branch rather than "
-          "ending the watcher", " ".join(stuck)[:90])
+    # 2. THE STATE THAT COST FOUR DAYS: this machine has a commit, the branch
+    #    has moved, and the two disagree about the same file. There is nothing
+    #    to reconcile because nothing here is worth keeping.
+    watcher, mine = repos()
+    (watcher / "seed.txt").write_text("what this machine did\n", encoding="utf-8")
+    git("commit", "-qam", "a result nobody wants", cwd=watcher)
+    i_push(mine, "and what the branch did\n")
+    said = []
+    ok2 = resync(watcher, said.append)
+    check(ok2 and at(watcher) == at(mine),
+          "a diverged machine with a conflicting commit syncs anyway — the "
+          "state that used to end the watcher for ever", " ".join(said)[:70])
 
-    # TWO JOB RESULTS CLASHING HAVE A RIGHT ANSWER, AND THIS IS IT. Both sides
-    # wrote result.txt. The branch's copy is newer by construction, because the
-    # branch moved on while this machine was working — so the clash resolves to
-    # the branch rather than stopping the watcher, which is what it did until a
-    # stale `time-a-line` result blocked a whole afternoon.
-    watcher, other = repos()
-    result_in(watcher, "the older run")
-    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=watcher)
-    git("commit", "-q", "-m", "older", cwd=watcher)
-    (watcher / "game-design" / "voice-live").mkdir(parents=True, exist_ok=True)
-    (watcher / "game-design" / "voice-live" / "shape-report.txt").write_text(
-        "a report only this machine has\n", encoding="utf-8")
-    git("add", "--", "game-design/voice-live/shape-report.txt", cwd=watcher)
-    git("commit", "-q", "-m", "a measurement nobody else has", cwd=watcher)
-    result_in(other, "the newer run")
-    git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=other)
-    git("commit", "-q", "-m", "newer", cwd=other)
-    git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
-    settled = []
-    git("fetch", "-q", "origin", BRANCH, cwd=watcher)
-    ok_settle = replay(watcher, settled.append, "two job results")
-    got = (watcher / RESULT.relative_to(ROOT)).read_text(encoding="utf-8")
-    kept = (watcher / "game-design" / "voice-live" / "shape-report.txt")
-    check(ok_settle and "the newer run" in got and kept.exists(),
-          "two job results clashing settle on the branch's copy, and a report "
-          "only this machine has SURVIVES rather than being dropped with it",
-          f"result={got.strip()[:22]} kept={kept.exists()}")
-
-    # AND WHEN THE CLASH IS NOT A JOB RESULT, NOTHING IS FORCED. Taking the
-    # branch's side is only defensible for output whose ordering is known; for
-    # anything else it is picking a winner, which is not this tool's to do.
-    watcher, other = repos()
+    # 3. AND FROM A HALF-FINISHED REBASE, which is where Jafar's machine sat
+    #    while every repair script refused to touch it.
+    watcher, mine = repos()
     (watcher / "seed.txt").write_text("mine\n", encoding="utf-8")
     git("commit", "-qam", "mine", cwd=watcher)
-    (other / "seed.txt").write_text("theirs\n", encoding="utf-8")
-    git("commit", "-qam", "theirs", cwd=other)
-    git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
-    refused = []
+    i_push(mine, "theirs\n")
     git("fetch", "-q", "origin", BRANCH, cwd=watcher)
-    beaten = replay(watcher, refused.append, "a source change")
-    rc, state = git("status", "--porcelain", cwd=watcher)
-    check(not beaten and any("not a job result" in s for s in refused)
-          and not state.strip(),
-          "a commit touching anything else is refused by NAME before a rebase "
-          "starts, and leaves a clean tree",
-          (" ".join(refused)[:70] + " | tree: " + (state or "clean")[:24]))
+    git("rebase", "FETCH_HEAD", cwd=watcher)          # leaves it stuck
+    stuck = ((watcher / ".git" / "rebase-merge").exists()
+             or (watcher / ".git" / "rebase-apply").exists())
+    said = []
+    ok3 = resync(watcher, said.append)
+    check(stuck and ok3 and at(watcher) == at(mine),
+          "and out of a half-finished rebase without a human deciding anything",
+          f"was stuck: {stuck}")
+
+    # 4. AND IT MUST NOT TOUCH WHAT GIT IS NOT TRACKING. The Python
+    #    environment, the 4.5 GB of exported graphs and this watcher's own
+    #    memory all live in the folder untracked, and a sync that swept them
+    #    would be worse than the problem it solves.
+    watcher, mine = repos()
+    (watcher / "env-export").mkdir()
+    (watcher / "env-export" / "python.exe").write_text("not really\n", encoding="utf-8")
+    i_push(mine, "moved on\n")
+    resync(watcher, lambda s: None)
+    check((watcher / "env-export" / "python.exe").exists(),
+          "and an untracked file — the environment, the graphs, its own memory "
+          "— is left alone by the discard")
+
+    # 5. PUBLISHING GOES SOMEWHERE ONLY THIS MACHINE WRITES, so it cannot
+    #    collide with anything and needs no permission.
+    watcher, mine = repos()
+    resync(watcher, lambda s: None)
+    write_result(watcher, ["job: x", "id: y", "", "RESULT: finished"])
+    out5 = []
+    ok5 = publish(watcher, out5.append, "pc-watcher: x")
+    git("fetch", "-q", "origin", RESULTS, cwd=mine)
+    rc, seen = git("show", f"FETCH_HEAD:{RESULT.relative_to(ROOT).as_posix()}", cwd=mine)
+    check(ok5 and rc == 0 and "RESULT: finished" in seen,
+          f"a result is published to '{RESULTS}' and readable from another "
+          f"machine", " ".join(out5)[:70])
+
+    # 6. AND AGAIN, AFTER THE BRANCH MOVED — the case that used to be a
+    #    rejected push and a stranded commit. A branch with one writer has a
+    #    disposable history, so this is a force push that can destroy nothing.
+    i_push(mine, "the branch moved on\n")
+    resync(watcher, lambda s: None)
+    write_result(watcher, ["job: x", "id: z", "", "RESULT: finished later"])
+    out6 = []
+    ok6 = publish(watcher, out6.append, "pc-watcher: x again")
+    git("fetch", "-q", "origin", RESULTS, cwd=mine)
+    rc, seen6 = git("show", f"FETCH_HEAD:{RESULT.relative_to(ROOT).as_posix()}", cwd=mine)
+    check(ok6 and "RESULT: finished later" in seen6,
+          "and it publishes again after the branch moved, which is what a "
+          "rejected push and a stranded commit used to be", " ".join(out6)[:70])
 
     check(interpreter(ROOT) == sys.executable,
           "and with no Windows environment present it falls back to this "
