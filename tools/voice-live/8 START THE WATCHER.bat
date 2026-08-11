@@ -56,13 +56,24 @@ copy /y "game-design\pc-jobs\result.txt" "%RESCUE%\" >nul 2>&1
 copy /y "game-design\voice-live\*.txt" "%RESCUE%\" >nul 2>&1
 copy /y "game-design\voice-live\*.wav" "%RESCUE%\" >nul 2>&1
 
-REM ---- AND THE PYTHON LAUNCHER, because an old commit had it tracked, so
-REM ---- matching the branch would DELETE it - leaving the environment
-REM ---- every job runs in without its python.exe.
-if exist "%ENVDIR%\Scripts" (
-  mkdir "%SAFE%" >nul 2>&1
-  copy /y "%ENVDIR%\Scripts\*.exe" "%SAFE%\" >nul 2>&1
-  copy /y "%ENVDIR%\pyvenv.cfg" "%SAFE%\" >nul 2>&1
+REM ---- MOVE THE WHOLE ENVIRONMENT OUT OF GIT'S WAY IF GIT IS TRACKING IT.
+REM
+REM  An old commit on this machine had the entire virtual environment
+REM  committed by accident, so matching the branch DELETED it - a hundred
+REM  thousand files. The first version of this guarded that by copying the
+REM  launcher and the .exe files aside, which protects the cheap half of a
+REM  folder and reads as a backup. It restored a launcher into a directory
+REM  the reset had just removed, so it did not even do that.
+REM
+REM  A rename is instant, complete, and cannot half-work. Only done when
+REM  git is actually tracking the folder, so the normal case pays nothing.
+if exist "%ENVDIR%" (
+  git --no-pager ls-files --error-unmatch "tools/voice-live/env-export" >nul 2>&1
+  if not errorlevel 1 (
+    echo  The environment is tracked by an old commit - moving it aside first.
+    if exist "%SAFE%" rmdir /s /q "%SAFE%" >nul 2>&1
+    move "%ENVDIR%" "%SAFE%" >nul 2>&1
+  )
 )
 
 echo  Matching the branch...
@@ -81,9 +92,10 @@ REM  environment, the exported graphs - are not touched by this at all.
 git --no-pager reset --hard FETCH_HEAD
 if errorlevel 1 goto :noreset
 
+REM  And put it back, whole. It is untracked from here on - the project
+REM  ignores this path - so no later sync will look at it again.
 if exist "%SAFE%" (
-  for %%F in ("%SAFE%\*.exe") do if not exist "%ENVDIR%\Scripts\%%~nxF" copy /y "%%F" "%ENVDIR%\Scripts\" >nul 2>&1
-  if not exist "%ENVDIR%\pyvenv.cfg" copy /y "%SAFE%\pyvenv.cfg" "%ENVDIR%\" >nul 2>&1
+  if not exist "%ENVDIR%" move "%SAFE%" "%ENVDIR%" >nul 2>&1
 )
 
 if not exist "%ENVDIR%\Scripts\python.exe" goto :noenv
@@ -116,7 +128,9 @@ pause & exit /b 1
 
 :noenv
 echo.
-echo  The Python environment is missing its launcher. Run
-echo  "2 TRY THE EXPORT.bat" to rebuild it, then start this again.
+echo  The Python environment is not there. Run
+echo  "1 RESTORE THE ENVIRONMENT.bat" first - it takes it back out of
+echo  git's history in a few seconds, and tells you if it has to be
+echo  rebuilt instead.
 echo.
 pause & exit /b 1
