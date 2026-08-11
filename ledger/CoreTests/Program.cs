@@ -8276,6 +8276,127 @@ namespace Ledger.CoreTests
                 "and an unmeasured machine gets the full patience, having nothing to "
                 + "project from");
 
+            // ---- THE OTHER HALF OF THE WAIT: the decoder ----
+            //
+            // The step loop chooses sound tokens; a second network turns them
+            // into samples, and on the one machine that has run this it was
+            // 3.5 seconds of a 7.3-second line. `Projected` measured the first
+            // half and was compared against the player's patience, so it was
+            // not slightly optimistic — it was answering a different question
+            // from the one being asked of it, which is this project's oldest
+            // fault wearing a new coat.
+            var quiet = new SpeechDirector();
+            quiet.Route("rocco", "priming", false, true);
+            quiet.Observed(new SpeechRun { Steps = 100, Seconds = 1.0,
+                                           Stop = SpeechStop.Finished,
+                                           Tokens = new int[100] }, "twenty-five characters!");
+            double before = quiet.Projected("a normal length remark");
+            Check(!quiet.DecodeMeasured && quiet.DecodeSeconds(100) == 0.0,
+                "a machine that has never decoded adds nothing for decoding — the "
+                + "honesty arrives with the evidence, not ahead of it");
+            quiet.ObservedDecode(100, 2.0);
+            Check(quiet.DecodeMeasured
+                  && Math.Abs(quiet.DecodeFixedSeconds - 2.0) < 1e-9
+                  && quiet.DecodeSecondsPerToken == 0.0,
+                "ONE line is a flat cost and no slope: two coefficients cannot be "
+                + "separated from one point, and a slope drawn through one looks "
+                + "exactly like a slope drawn through fifty",
+                $"{quiet.DecodeFixedSeconds:0.00}/{quiet.DecodeSecondsPerToken:0.0000}");
+            Check(Math.Abs(quiet.Projected("a normal length remark") - (before + 2.0)) < 1e-9,
+                "and the projection grows by it — the number now reaches the sound "
+                + "rather than stopping at the tokens",
+                $"{before:0.00} -> {quiet.Projected("a normal length remark"):0.00}");
+
+            // TWO LENGTHS SEPARATE THEM, and the fit must recover a straight
+            // line exactly or it is publishing a cost nobody can check.
+            var fitted = new SpeechDirector();
+            fitted.ObservedDecode(50, 2.0);
+            fitted.ObservedDecode(100, 3.0);
+            Check(Math.Abs(fitted.DecodeFixedSeconds - 1.0) < 1e-9
+                  && Math.Abs(fitted.DecodeSecondsPerToken - 0.02) < 1e-9,
+                "two lengths recover the fixed cost and the per-token one exactly",
+                $"{fitted.DecodeFixedSeconds:0.000}+{fitted.DecodeSecondsPerToken:0.0000}/tok");
+            Check(Math.Abs(fitted.DecodeSeconds(75) - 2.5) < 1e-9,
+                "so a length between them is interpolated rather than guessed",
+                fitted.DecodeSeconds(75).ToString("0.000"));
+
+            // A LONGER LINE THAT HAPPENED TO RUN FASTER IS NOISE, NOT A
+            // DISCOUNT. Left alone the fit slopes downward, which says a long
+            // sentence decodes quicker and, extended, that a very long one
+            // costs nothing at all.
+            var noisy = new SpeechDirector();
+            noisy.ObservedDecode(50, 3.0);
+            noisy.ObservedDecode(100, 2.0);
+            Check(noisy.DecodeSecondsPerToken == 0.0 && noisy.DecodeFixedSeconds >= 0.0
+                  && noisy.DecodeSeconds(1000) < 100.0,
+                "a downward slope is clamped to flat rather than promising that a "
+                + "long line is free",
+                $"{noisy.DecodeFixedSeconds:0.00}/{noisy.DecodeSecondsPerToken:0.0000}");
+
+            // A DECODE THAT PRODUCED NOTHING IS NOT A MEASUREMENT. Zero tokens
+            // or zero seconds is the absence of a decode, and folding it in
+            // would drag the fixed cost toward whatever failed.
+            var empty = new SpeechDirector();
+            empty.ObservedDecode(0, 3.0);
+            empty.ObservedDecode(100, 0.0);
+            Check(!empty.DecodeMeasured,
+                "and a decode with no tokens or no time in it is not folded in at all");
+
+            // THE DEADLINE HAS TO LEAVE ROOM FOR IT. This bounds the step loop
+            // only, so handing it the whole of the player's patience spends the
+            // budget before the second half of the work begins.
+            // MEASURED SLOW ENOUGH THAT THE PATIENCE IS WHAT BINDS. On a fast
+            // machine the loop's own estimate is the smaller of the two and
+            // the leftover budget never comes into it, so a test built on one
+            // would pass whatever this code did — which is what the first
+            // version of this check did, reading 1.91 before and after.
+            var roomy = new SpeechDirector();
+            roomy.Route("rocco", "priming", false, true);
+            roomy.Observed(new SpeechRun { Steps = 100, Seconds = 3.0,
+                                           Stop = SpeechStop.Finished,
+                                           Tokens = new int[100] }, "twenty-five characters!");
+            double wideOpen = roomy.Deadline("a normal length remark");
+            roomy.ObservedDecode(100, 2.0);
+            double squeezed = roomy.Deadline("a normal length remark");
+            Check(squeezed < wideOpen && squeezed <= roomy.PatienceSeconds - 2.0 + 1e-9,
+                "once the decoder's cost is known the loop is given what is LEFT of "
+                + "the patience, not all of it",
+                $"{wideOpen:0.00} -> {squeezed:0.00}");
+            Check(roomy.Deadline("a normal length remark") >= 0.5,
+                "and never so little that the loop cannot take a step");
+            // AND A DECODER THAT EATS THE WHOLE BUDGET STILL LEAVES A FLOOR
+            // rather than a deadline of zero, which would cut every line
+            // before its first step and report it as the machine being slow.
+            var swamped = new SpeechDirector();
+            swamped.Route("rocco", "priming", false, true);
+            swamped.Observed(new SpeechRun { Steps = 100, Seconds = 3.0,
+                                             Stop = SpeechStop.Finished,
+                                             Tokens = new int[100] }, "twenty-five characters!");
+            swamped.ObservedDecode(100, 30.0);
+            Check(swamped.Deadline("a normal length remark") == 0.5,
+                "a decoder costing more than the whole patience floors the loop's "
+                + "deadline instead of taking it below zero",
+                swamped.Deadline("a normal length remark").ToString("0.00"));
+
+            // HOW MANY STEPS ARE SOUND, learned rather than assumed to be all
+            // of them. The projection counts steps and the decoder charges for
+            // tokens; a silent 1:1 between them is the kind of quiet
+            // conversion this file exists to stop.
+            var ratio = new SpeechDirector();
+            ratio.Observed(new SpeechRun { Steps = 100, Seconds = 1.0,
+                                           Stop = SpeechStop.Finished,
+                                           Tokens = new int[80] }, "twenty-five characters!");
+            Check(ratio.TokensPerStepMeasured && Math.Abs(ratio.TokensPerStep - 0.8) < 1e-9,
+                "eighty sound tokens from a hundred steps measures the ratio",
+                ratio.TokensPerStep.ToString("0.00"));
+            var cutRatio = new SpeechDirector();
+            cutRatio.Observed(new SpeechRun { Steps = 100, Seconds = 1.0,
+                                              Stop = SpeechStop.Deadline,
+                                              Tokens = new int[10] }, "twenty-five characters!");
+            Check(!cutRatio.TokensPerStepMeasured,
+                "while a line cut off mid-sentence measures where the deadline fell, "
+                + "not what the model does");
+
             // ---- length is counted in TOKENS when a tokeniser is handed in ----
             //
             // The model charges one step per TOKEN, not per character, and the
@@ -8321,11 +8442,24 @@ namespace Ledger.CoreTests
 
             // ---- the verdict line ----
             var line = slow.Verdict();
-            Check(!line.Contains("= ") && line.Split(' ').Length == 7,
-                "the verdict line is seven space-separated pairs", line);
+            Check(!line.Contains("= ") && line.Split(' ').Length == 8,
+                "the verdict line is eight space-separated pairs", line);
             Check(!new SpeechDirector().Verdict().Contains("0.00 "),
                 "and an unmeasured rate says so rather than reporting 0.00, which "
                 + "reads as a measurement");
+            // THE DECODE'S TWO COEFFICIENTS TRAVEL AS ONE VALUE WITH NO SPACE
+            // IN IT. `verdict.txt` is space-separated `key=value`, and a value
+            // containing a space is read as a truncated one by every tool that
+            // has ever looked at that file — silently, which is the part that
+            // cost a morning.
+            Check(new SpeechDirector().Verdict().Contains("speechDecodeSec=unmeasured"),
+                "a machine that has never decoded says so rather than printing a zero "
+                + "cost, which would read as a free decoder");
+            Check(fitted.Verdict().Contains("speechDecodeSec=1.00/0.0200")
+                  && fitted.Verdict().Split(' ').Length == 8,
+                "and once measured both coefficients travel in one value, joined "
+                + "without a space so the verdict reader cannot truncate it",
+                fitted.Verdict());
         }
 
         /// Audit item 5: the same character must sound the same next week.

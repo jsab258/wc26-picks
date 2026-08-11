@@ -117,6 +117,47 @@ namespace Ledger.Core
         public double StepsPerUnit { get; private set; } = 4.0;
         public bool StepsPerUnitMeasured { get; private set; }
 
+        /// WHAT THE SECOND HALF OF THE PIPELINE COSTS, which this file could
+        /// not express at all until now.
+        ///
+        /// `StepsPerSecond` measures the text stage: the model choosing sound
+        /// tokens, one step at a time. Turning those tokens into samples is a
+        /// separate network and a separate wait, and on the one machine that
+        /// has run this it was 3.5 seconds of a 7.3-second line. So a
+        /// projection built only from the step rate was not slightly optimistic
+        /// — it was missing half the answer, and no amount of learning could
+        /// have taught it better, because there was nowhere for the number to
+        /// go.
+        ///
+        /// TWO COEFFICIENTS, BECAUSE ONE CANNOT SAY WHETHER A SHORT LINE IS
+        /// CHEAP. The decoder does a fixed amount of work before it looks at
+        /// the first token; quoting the whole cost as a per-token rate would
+        /// promise that a five-word line costs a fifth of a twenty-word one,
+        /// which is a different claim and probably false. They are fitted
+        /// together by least squares from whole lines this machine has
+        /// actually decoded.
+        ///
+        /// ACCUMULATED RATHER THAN WINDOWED, unlike the step rate. The step
+        /// rate is windowed because a machine under load speeds up and slows
+        /// down; the decoder's cost is a property of the graph and the card,
+        /// and forgetting early lines would buy noise rather than freshness.
+        public double DecodeFixedSeconds { get; private set; }
+        public double DecodeSecondsPerToken { get; private set; }
+        public bool DecodeMeasured { get; private set; }
+
+        /// HOW MANY SOUND TOKENS A STEP YIELDS. Not one: the loop takes a step
+        /// for every token it samples, and throws away the ones that are not
+        /// sound. The projection counts STEPS and the decoder charges for
+        /// TOKENS, so something has to carry between them, and an assumed 1.0
+        /// is exactly the kind of quiet conversion this project keeps being
+        /// bitten by. It starts at 1.0 because on the only line ever measured
+        /// end to end all 86 steps produced a token, and it says out loud that
+        /// this is an assumption until a real line replaces it.
+        public double TokensPerStep { get; private set; } = 1.0;
+        public bool TokensPerStepMeasured { get; private set; }
+
+        double _dn, _dsx, _dsy, _dsxx, _dsxy;
+
         public int Banked { get; private set; }
         public int Live { get; private set; }
         public int TooSlow { get; private set; }
@@ -153,13 +194,70 @@ namespace Ledger.Core
             return SpeechRoute.Live;
         }
 
-        /// How long this text is expected to take on this machine, in seconds.
-        /// Zero when nothing has been measured yet.
+        /// How long this text is expected to take on this machine, in seconds,
+        /// from the ask to the sound. Zero when nothing has been measured yet.
+        ///
+        /// BOTH HALVES, WHICH IT DID NOT USED TO BE. This returned the step
+        /// loop's time and was compared against the player's patience, so on
+        /// the measured machine it answered 3.8 for a line the player waits
+        /// 7.3 seconds for. The name never changed and neither did the
+        /// comparison; the question quietly did, the moment the decoder became
+        /// a thing that runs.
         public double Projected(string text)
         {
             if (StepsPerSecond <= 0) return 0.0;
             var t = VoiceBank.Normalise(text);
-            return (Units(t) * StepsPerUnit) / StepsPerSecond;
+            double steps = Units(t) * StepsPerUnit;
+            return steps / StepsPerSecond + DecodeSeconds(steps);
+        }
+
+        /// The decoder's share, for a line of this many STEPS. Zero until a
+        /// real line has been decoded on this machine — so a machine that has
+        /// never spoken projects exactly what it projected before, and the
+        /// honesty arrives with the evidence rather than ahead of it.
+        public double DecodeSeconds(double steps)
+        {
+            if (!DecodeMeasured) return 0.0;
+            double tokens = Math.Max(0.0, steps * TokensPerStep);
+            return DecodeFixedSeconds + DecodeSecondsPerToken * tokens;
+        }
+
+        /// Fold in one finished decode: how many sound tokens, and how long it
+        /// took. Called by whoever ran the decoder, because only that side
+        /// holds a clock.
+        ///
+        /// ONE LENGTH IS NOT A SLOPE, and saying so is the whole of the care
+        /// here. Until two lines of DIFFERENT length have been decoded there
+        /// is no way to separate the fixed cost from the per-token one, so
+        /// this reports the average as a flat cost and a zero slope rather
+        /// than inventing a division. A slope drawn through one point is a
+        /// number with no evidence in it that looks exactly like one with.
+        public void ObservedDecode(int tokens, double seconds)
+        {
+            if (tokens <= 0 || seconds <= 0) return;
+            _dn += 1.0;
+            _dsx += tokens;
+            _dsy += seconds;
+            _dsxx += (double)tokens * tokens;
+            _dsxy += tokens * seconds;
+            DecodeMeasured = true;
+            double denom = _dn * _dsxx - _dsx * _dsx;
+            if (_dn < 2.0 || Math.Abs(denom) < 1e-9)
+            {
+                DecodeFixedSeconds = _dsy / _dn;
+                DecodeSecondsPerToken = 0.0;
+                return;
+            }
+            double slope = (_dn * _dsxy - _dsx * _dsy) / denom;
+            double flat = (_dsy - slope * _dsx) / _dn;
+            // NEITHER COEFFICIENT MAY GO NEGATIVE. Two lines of similar length
+            // whose times differ by scheduling noise can fit a line sloping
+            // downwards, which would say a longer sentence decodes faster and,
+            // extended far enough, that a long one costs nothing. Clamped
+            // rather than rejected, because the fit is still the best estimate
+            // available and the next line will pull it straight.
+            DecodeSecondsPerToken = slope < 0.0 ? 0.0 : slope;
+            DecodeFixedSeconds = flat < 0.0 ? 0.0 : flat;
         }
 
         /// The deadline to hand `SpeechPlan` for this line.
@@ -172,9 +270,21 @@ namespace Ledger.Core
         /// first lines, when there is nothing to project from.
         public double Deadline(string text)
         {
-            double projected = Projected(text);
-            if (projected <= 0) return PatienceSeconds;
-            return Math.Min(PatienceSeconds, Math.Max(projected * 2.0, 0.5));
+            if (StepsPerSecond <= 0) return PatienceSeconds;
+            var t = VoiceBank.Normalise(text);
+            double steps = Units(t) * StepsPerUnit;
+            double loop = steps / StepsPerSecond;
+            if (loop <= 0) return PatienceSeconds;
+            // AND THE DECODER STILL HAS TO RUN AFTERWARDS. This bounds the
+            // STEP LOOP, so it has to be given what is left of the player's
+            // patience rather than all of it — handing over the whole budget
+            // spends it before the second half of the work starts. It read
+            // `Projected` before, which now includes the decode; leaving it
+            // alone would have doubled a number that already had the decode in
+            // it and called the result a loop deadline.
+            double budget = PatienceSeconds - DecodeSeconds(steps);
+            if (budget < 0.5) budget = 0.5;
+            return Math.Min(budget, Math.Max(loop * 2.0, 0.5));
         }
 
         /// Fold a finished line back in, so the next decision is better than
@@ -202,6 +312,18 @@ namespace Ledger.Core
             // happened to be — the instrument measuring itself.
             if (run.Stop == SpeechStop.Finished || run.Stop == SpeechStop.Repetition)
             {
+                // AND HOW MANY OF THOSE STEPS WERE SOUND, for the same reason
+                // and from the same whole lines. A cut-off run's tokens are a
+                // fraction of a sentence, so the ratio it reports is about
+                // where the deadline fell rather than about the model.
+                if (run.Tokens != null && run.Tokens.Length > 0)
+                {
+                    double got = run.Tokens.Length / (double)run.Steps;
+                    TokensPerStep = TokensPerStepMeasured
+                        ? TokensPerStep * 0.75 + got * 0.25
+                        : got;
+                    TokensPerStepMeasured = true;
+                }
                 var t = VoiceBank.Normalise(text);
                 if (t.Length > 0)
                 {
@@ -231,11 +353,22 @@ namespace Ledger.Core
         {
             return string.Format(
                 "speechAsked={0} speechBanked={1} speechLive={2} speechTooSlow={3} "
-                + "speechNoModel={4} speechStepsPerSec={5} speechStepsPerUnit={6}",
+                + "speechNoModel={4} speechStepsPerSec={5} speechStepsPerUnit={6} "
+                + "speechDecodeSec={7}",
                 Asked, Banked, Live, TooSlow, NoModel,
                 StepsPerSecond > 0 ? StepsPerSecond.ToString("0.00") : "unmeasured",
                 StepsPerUnitMeasured
                     ? StepsPerUnit.ToString("0.00")
+                    : "unmeasured",
+                // BOTH COEFFICIENTS IN ONE VALUE, joined by a slash because a
+                // space would truncate the line for every reader of
+                // `verdict.txt`. Printed together because either alone is a
+                // half-answer: a fixed cost with no slope beside it reads as
+                // "every line costs this", which is the claim the two-term fit
+                // exists to avoid making.
+                DecodeMeasured
+                    ? DecodeFixedSeconds.ToString("0.00") + "/"
+                      + DecodeSecondsPerToken.ToString("0.0000")
                     : "unmeasured");
         }
 
@@ -245,6 +378,11 @@ namespace Ledger.Core
             StepsPerSecond = 0;
             StepsPerUnit = 4.0;
             StepsPerUnitMeasured = false;
+            DecodeFixedSeconds = DecodeSecondsPerToken = 0.0;
+            DecodeMeasured = false;
+            TokensPerStep = 1.0;
+            TokensPerStepMeasured = false;
+            _dn = _dsx = _dsy = _dsxx = _dsxy = 0.0;
             _rates.Clear();
         }
     }

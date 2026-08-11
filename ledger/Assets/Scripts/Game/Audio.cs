@@ -1192,11 +1192,25 @@ namespace Ledger.Game
                 }
                 SpeechRun run = null;
                 float[] samples = null;
+                double decodeSeconds = 0.0;
+                int decodeTokens = 0;
                 try
                 {
                     var plan = new SpeechPlan { DeadlineSeconds = Live.Deadline(job.Text) };
                     run = SpeechLoop.Run(Backend, job.VoiceId, job.Text, plan, Clock);
-                    if (run.Usable) samples = Backend.Decode(run.Tokens);
+                    if (run.Usable)
+                    {
+                        // TIMED HERE BECAUSE THIS IS THE ONLY PLACE THAT CAN.
+                        // `SpeechLoop` stops at the tokens and the director
+                        // only sees what it is told, so the decoder's cost was
+                        // measured by nothing at all — half of every line's
+                        // wait, invisible to the one object whose job is
+                        // deciding whether a line fits in the moment.
+                        double d0 = Clock();
+                        samples = Backend.Decode(run.Tokens);
+                        decodeSeconds = Clock() - d0;
+                        decodeTokens = run.Tokens.Length;
+                    }
                 }
                 catch (System.Exception)
                 {
@@ -1211,6 +1225,12 @@ namespace Ledger.Game
                 try
                 {
                     Live.Observed(run, job.Text);
+                    // ONLY WHEN A WAVEFORM CAME BACK. A decode that threw
+                    // spent real time and produced nothing, and feeding that
+                    // in as a cost per token would teach the machine it is
+                    // slower than it is off the back of a failure.
+                    if (samples != null && samples.Length > 0)
+                        Live.ObservedDecode(decodeTokens, decodeSeconds);
                     Pending.Deliver(job, run, samples, Clock());
                 }
                 catch (System.Exception) { }
