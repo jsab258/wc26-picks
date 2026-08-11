@@ -98,9 +98,22 @@ def audit(np, ort, step_path, prefill_path, voices, say):
              f"into a constant", ", ".join(pin))
     want(sin[:len(STEP_IN)] == STEP_IN,
          "the step takes a token and a position", ", ".join(sin[:3]))
-    n_cache = len(pre.get_outputs())
+    pout = [o.name for o in pre.get_outputs()]
+    # THE PREFILL'S FIRST OUTPUT IS THE FIRST TOKEN'S ODDS, AND ITS ABSENCE IS
+    # WHAT CUT THE OPENING WORDS OFF THE LINE. A prefill that returns only a
+    # cache forces the caller to invent a first step by feeding the start
+    # token a second time, which embeds it twice, shifts every position by one
+    # and loses the token the model would have chosen. Every number this tool
+    # prints agreed to six decimal places while that was happening — a missing
+    # OUTPUT is not a disagreement, so nothing that compares values can see it.
+    want(pout[:1] == ["logits"],
+         "the prefill returns the first token's odds, not only a cache",
+         ", ".join(pout[:3]))
+    if bad:
+        return bad
+    n_cache = len(pout) - 1
     want(n_cache == len(sin) - 2 and n_cache == len(stp.get_outputs()) - 1,
-         f"and the prefill's {n_cache} outputs are exactly the step's cache inputs",
+         f"and its {n_cache} cache outputs are exactly the step's cache inputs",
          f"prefill out {n_cache}, step in {len(sin) - 2}, step out {len(stp.get_outputs()) - 1}")
     if bad:
         return bad
@@ -140,8 +153,9 @@ def audit(np, ort, step_path, prefill_path, voices, say):
         return bad
 
     (n0, v0), (n1, v1) = voices[0], voices[1]
-    c0 = prefill(v0)
-    repeat = max(float(np.abs(a - b).max()) for a, b in zip(c0, prefill(v0)))
+    p0 = prefill(v0)
+    c0 = p0[1:]                       # the cache; p0[0] is the first odds
+    repeat = max(float(np.abs(a - b).max()) for a, b in zip(p0, prefill(v0)))
 
     # ONE FIELD AT A TIME, WHICH IS THE WHOLE POINT. Swapping two voices
     # wholesale moves three fields together, so the cache moving proves only
@@ -163,7 +177,7 @@ def audit(np, ort, step_path, prefill_path, voices, say):
         mixed = dict(v0)
         mixed[field] = alt[field]
         moves[field] = max(float(np.abs(a - b).max())
-                           for a, b in zip(c0, prefill(mixed)))
+                           for a, b in zip(p0, prefill(mixed)))
     say(f"        voices: {n0} -> {n1} one field at a time (emotion nudged) — "
         + "  ".join(f"{k}={v:.3f}" for k, v in moves.items())
         + f";  {n0} twice differs by {repeat:.1e}")
@@ -172,7 +186,7 @@ def audit(np, ort, step_path, prefill_path, voices, say):
              f"of the voice is an input, not baked in", f"{m:.4f}")
     want(repeat < 1e-6, "and the same voice twice gives the same cache",
          f"{repeat:.1e}")
-    want(all(np.isfinite(a).all() for a in c0), "with no infinities or NaNs in it")
+    want(all(np.isfinite(a).all() for a in p0), "with no infinities or NaNs in it")
 
     # THE POSITION, THE SAME WAY. Traced as a Python int it becomes a constant
     # and every word after the first sits at the wrong place in the sentence.
@@ -187,6 +201,13 @@ def audit(np, ort, step_path, prefill_path, voices, say):
     say(f"        position: 1 vs 2 and 17 move the answer by {moved:.3f}")
     want(moved > 1e-4, "the position changes the answer — it is an input, not "
          "baked into the graph", f"{moved:.4f}")
+    # AND THE TWO SETS OF ODDS ARE THE SAME SHAPE. The game samples the first
+    # token from the prefill and every later one from the step, with one array
+    # and one sampler; a prefill whose head is a different width would be a
+    # buffer overrun on the very first word.
+    want(p0[0].shape[-1] == at[1].shape[-1],
+         "and the prefill's odds are the same width as the step's — one array "
+         "feeds one sampler", f"prefill {p0[0].shape[-1]}, step {at[1].shape[-1]}")
 
     # AND THEY HAVE TO JOIN. Both graphs can be perfect and still not chain;
     # that seam is where this project keeps finding the missing line.
@@ -480,7 +501,12 @@ def selftest():
                 speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
                 cfg_weight=0.5)
             o = t3.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
-            return tuple(kv_cache.cache_to_tensors(o.past_key_values))
+            # THE LOGITS ARE HERE ON PURPOSE, in a graph whose fault is the
+            # baked voice. A fixture missing them too would be rejected for
+            # the wrong reason and this check would stop testing what it says
+            # it tests — the rejecting case has to be wrong in exactly one way.
+            head = t3.speech_head(o.last_hidden_state[:, -1:])
+            return (head,) + tuple(kv_cache.cache_to_tensors(o.past_key_values))
 
     names = PREFILL_IN
     args = (torch.randint(0, 100, (1, 9)), used.speaker_emb,
@@ -488,7 +514,8 @@ def selftest():
     with torch.no_grad():
         torch.onnx.export(Baked().eval(), args, str(tmp / "baked.onnx"),
                           opset_version=17, dynamo=False, input_names=names,
-                          output_names=[f"cache{i}" for i in range(len(cache0))],
+                          output_names=["logits"]
+                          + [f"cache{i}" for i in range(len(cache0))],
                           dynamic_axes={"text_tokens": {1: "text"},
                                         "cond_speech_tokens": {1: "prompt"}})
     out.clear()
@@ -502,6 +529,37 @@ def selftest():
     check(any("cond_speech_tokens" in b for b in bad2),
           "and a graph with the voice prompt baked in is CAUGHT — the check can fail",
           "; ".join(bad2) if bad2 else "nothing flagged")
+
+    # AND THE GRAPH THAT ACTUALLY SHIPPED, which is what the odds check was
+    # added for: a prefill returning only its cache. It passed every check in
+    # this file for four days on six decimal places of agreement, and Jafar
+    # heard the fault in two seconds — the line began at "van again" instead
+    # of "Seen the van again". The body comes from the ONE exporter, so this
+    # fixture differs from the good graph in exactly the output that matters.
+    good = efg.make_prefill(torch, kv_cache, t3).eval()
+
+    class CacheOnly(torch.nn.Module):
+        def forward(self, text_tokens, speaker_emb, cond_speech_tokens, emotion_adv):
+            return good(text_tokens, speaker_emb, cond_speech_tokens,
+                        emotion_adv)[1:]
+
+    with torch.no_grad():
+        torch.onnx.export(
+            CacheOnly().eval(),
+            (torch.randint(0, 100, (1, 9), dtype=torch.int32),
+             *[a_voice(1)[k] for k in ("speaker_emb", "cond_prompt_speech_tokens",
+                                       "emotion_adv")]),
+            str(tmp / "cacheonly.onnx"), opset_version=17, dynamo=False,
+            input_names=PREFILL_IN,
+            output_names=[f"cache{i}" for i in range(len(cache0))],
+            dynamic_axes={"text_tokens": {1: "text"},
+                          "cond_speech_tokens": {1: "prompt"}})
+    out.clear()
+    bad5 = audit(np, ort, tmp / "t3-step.onnx", tmp / "cacheonly.onnx", voices, say)
+    check(any("first token's odds" in b for b in bad5),
+          "and a prefill that returns only a cache is CAUGHT — the graph that "
+          "cut the opening words off the line",
+          "; ".join(bad5) if bad5 else "nothing flagged")
 
     # A ONE-VOICE FOLDER MUST NOT READ AS CLEAN. An empty comparison passes
     # every test in it, which is rule 3b: a zero needs a denominator.

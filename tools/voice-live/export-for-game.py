@@ -205,8 +205,41 @@ def make_prefill(torch, kv_cache, model):
                 t3_cond=cond, text_tokens=tt,
                 speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
                 cfg_weight=0.5)
+            # THE START TOKEN GOES IN TWICE, AND THAT IS THE SHIPPED MODEL'S
+            # DOING RATHER THAN A TYPO. `T3.inference` — the path
+            # `ChatterboxTTS.generate` actually calls — hands one start token
+            # to `prepare_input_embeds` AND concatenates a second start
+            # embedding at fixed position 0. The two vectors are identical
+            # (`speech_pos_emb` over a length-1 sequence is index 0, which is
+            # exactly what `get_fixed_embedding(0)` returns), so the model sees
+            # the same vector twice before it chooses a word.
+            #
+            # `inference_turbo`, three hundred lines down the same file, does
+            # it once. I read that one, matched it, and built a prefill a start
+            # token short of the sequence these weights are used with. One
+            # idea, two implementations, and the one I read is not the one that
+            # runs — checked this time by driving the real `inference` and
+            # comparing, not by reading either.
+            bos = self.m.speech_emb(hp.start_speech_token
+                                    * torch.ones_like(tt[:1, :1]))
+            bos = bos + self.m.speech_pos_emb.get_fixed_embedding(0)
+            embeds = torch.cat([embeds, torch.cat([bos, bos])], dim=1)
             out = self.m.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
-            return tuple(kv_cache.cache_to_tensors(out.past_key_values))
+            # AND THE FIRST TOKEN'S ODDS COME FROM HERE, WHERE THEY WERE BEING
+            # THROWN AWAY. The initial forward pass produces them as a
+            # by-product; `inference` samples the first spoken token straight
+            # off it. Returning only the cache lost them, so the game invented
+            # a first step by feeding a start token AGAIN — a third one, at
+            # position 1 — which shifted every later position by one and
+            # dropped the word the model had already chosen.
+            #
+            # Jafar heard it in two seconds: the line began at "van again"
+            # instead of "Seen the van again". Six decimal places of agreement
+            # at lengths, voices and positions it was never traced with, and
+            # the fault was a missing OUTPUT — which no comparison of numbers
+            # can see, because both sides agreed about the numbers present.
+            head = self.m.speech_head(out.last_hidden_state[:, -1:])
+            return (head,) + tuple(kv_cache.cache_to_tensors(out.past_key_values))
 
     return Prefill()
 
@@ -217,9 +250,15 @@ def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache):
     args = (text_tokens, cond["speaker_emb"], cond["cond_prompt_speech_tokens"],
             cond["emotion_adv"])
     names = ["text_tokens", "speaker_emb", "cond_speech_tokens", "emotion_adv"]
-    outs = [f"cache{i}" for i in range(n_cache)]
+    outs = ["logits"] + [f"cache{i}" for i in range(n_cache)]
     axes = {"text_tokens": {1: "text"}, "cond_speech_tokens": {1: "prompt"}}
-    axes.update({n: {2: "past"} for n in outs})
+    # ONLY THE CACHE HAS A TIME AXIS. Axis 2 of a cache tensor is how much
+    # sentence is behind it; axis 2 of `logits` is the SPEECH VOCABULARY, a
+    # fixed 6563. Sweeping both under the symbol "past" would declare the
+    # vocabulary variable and tie it to the sentence length — two unrelated
+    # quantities sharing one name, which is how a shape check stops meaning
+    # anything.
+    axes.update({n: {2: "past"} for n in outs[1:]})
     with torch.no_grad():
         torch.onnx.export(pre, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names, output_names=outs, dynamic_axes=axes)
@@ -363,9 +402,48 @@ def selftest():
 
     gap, out0 = prefill_gap(traced_voice, text)
     check(gap < 1e-4, f"and agrees with pytorch to {gap:.1e}", f"{gap:.2e}")
-    check(len(out0) == len(cache0) and out0[0].shape[0] == 2,
-          f"returning the {len(cache0)}-tensor cache the step graph wants, two "
-          f"rows wide", str((len(out0), out0[0].shape[0])))
+    check(len(out0) == 1 + len(cache0) and out0[1].shape[0] == 2,
+          f"returning the first token's logits AND the {len(cache0)}-tensor "
+          f"cache", str((len(out0), out0[1].shape[0])))
+    # THE OUTPUT THAT WAS MISSING. A prefill that returns no logits forces the
+    # caller to invent a first step, and the sentence loses its opening words.
+    check(out0[0].shape[-1] == t3.hp.speech_tokens_dict_size,
+          f"and the logits are one row per speech token ({out0[0].shape[-1]})",
+          str(out0[0].shape))
+
+    # AND THEY ARE THE ODDS THE SHIPPED FUNCTION WOULD HAVE SAMPLED FROM —
+    # DRIVEN, NOT READ. `ChatterboxTTS.generate` calls `T3.inference`, which
+    # feeds the start token in TWICE; `T3.inference_turbo`, in the same file,
+    # feeds it once. Reading one of them and building to it is exactly how
+    # this graph came to be a start token short of the sequence the weights
+    # are used with. So this check reads neither: it RUNS `inference` for one
+    # token, catches the odds it sampled from with a forward hook on the
+    # speech head, and compares. A stand-in I write cannot disagree with me;
+    # the function that ships can.
+    from chatterbox.models.t3.modules.cond_enc import T3Cond
+    caught = []
+    hook = t3.speech_head.register_forward_hook(
+        lambda m, i, o: caught.append(o.detach().cpu().numpy().copy()))
+    try:
+        ref_text = torch.cat([text, text], dim=0)
+        ref_text = torch.nn.functional.pad(ref_text, (1, 0), value=hp.start_text_token)
+        ref_text = torch.nn.functional.pad(ref_text, (0, 1), value=hp.stop_text_token)
+        t3.inference(t3_cond=T3Cond(cond_prompt_speech_emb=None, **a_voice(11)),
+                     text_tokens=ref_text, max_new_tokens=1, cfg_weight=0.5)
+    except Exception as e:
+        caught = [f"{type(e).__name__}: {e}"]
+    finally:
+        hook.remove()
+    if caught and not isinstance(caught[0], str):
+        theirs = caught[0][:, -1, :]
+        mine = out0[0][:, -1, :]
+        real = float(np.abs(theirs - mine).max()) / max(float(np.abs(theirs).max()), 1e-12)
+    else:
+        real = float("inf")
+    check(real < 1e-4,
+          f"and they match what the real `T3.inference` sampled its first "
+          f"token from, to {real:.1e}",
+          caught[0] if caught and isinstance(caught[0], str) else f"{real:.2e}")
 
     # THE VOICE IS THE POSITION'S TWIN. `prepare_conditioning` writes the
     # embedded prompt back onto the cond object it is handed, so a cond that
@@ -396,12 +474,12 @@ def selftest():
     # missing line — so drive it exactly as the game will: prefill once under
     # onnxruntime, then step twice on what it returned.
     tok_t = torch.tensor([[7]], dtype=torch.long)
-    live = list(out0)
+    live = list(out0)[1:]
     worst_chain = 0.0
     with torch.no_grad():
         pt = [t for t in pre(text, traced_voice["speaker_emb"],
                              traced_voice["cond_prompt_speech_tokens"],
-                             traced_voice["emotion_adv"])]
+                             traced_voice["emotion_adv"])][1:]
     for s in (1, 2):
         feed = {f"cache{i}": c for i, c in enumerate(live)}
         feed["token"] = np.array([[7]], dtype=np.int64)
@@ -412,11 +490,11 @@ def selftest():
         worst_chain = max(worst_chain, float(np.abs(want[0].numpy() - got[0]).max())
                           / max(float(np.abs(want[0].numpy()).max()), 1e-12))
         live, pt = got[1:], list(want[1:])
-    grew = live[0].shape[2] - out0[0].shape[2]
+    grew = live[0].shape[2] - out0[1].shape[2]
     check(worst_chain < 1e-4,
           f"the prefill's cache drives the step graph, two steps, to "
           f"{worst_chain:.1e} — the two graphs join", f"{worst_chain:.2e}")
-    check(grew == 2, f"and the cache grew by one per step, {out0[0].shape[2]} "
+    check(grew == 2, f"and the cache grew by one per step, {out0[1].shape[2]} "
           f"-> {live[0].shape[2]}", f"grew by {grew}")
 
     print(f"\nexport-for-game --selftest: "
@@ -474,6 +552,13 @@ def cmd_run(force=False):
             speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
             cfg_weight=0.5)
         primed = model.t3.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
+    # SHAPE ONLY, AND ONE TOKEN SHORTER THAN THE PREFILL ON PURPOSE. This
+    # context has no second start token because nothing here samples from it —
+    # `cache0` is used for its LAYER COUNT and head widths, and for the number
+    # of cache outputs to name. The time axis is dynamic in both graphs, and
+    # the selftest drives the prefill's real cache into the step graph to
+    # prove they join. Read as "this is what the prefill produces" it would be
+    # wrong by exactly the token this file spent the morning on.
     cache0 = kv_cache.cache_to_tensors(primed.past_key_values)
     print(f"    cache: {len(cache0)} tensors, {tuple(cache0[0].shape)}")
 

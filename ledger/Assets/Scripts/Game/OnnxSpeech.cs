@@ -147,6 +147,14 @@ namespace Ledger.Game
             foreach (var n in new[] { TextTokens, SpeakerEmb, CondTokens, EmotionAdv })
                 if (!_prefill.InputMetadata.ContainsKey(n))
                 { Why = "the prefill graph has no '" + n + "'"; return; }
+            // AN OLD PREFILL IS REFUSED AT LOAD, WITH ITS SYMPTOM NAMED. The
+            // first export returned a cache and no odds, and a line spoken
+            // through it lost its opening words while every gate stayed green.
+            // Failing here says which file is stale; failing at the first
+            // spoken line says only that speech is off.
+            if (!_prefill.OutputMetadata.ContainsKey("logits"))
+            { Why = "the prefill graph has no 'logits': it is an old export, "
+                    + "and lines from it start a word or two in"; return; }
             if (!_step.InputMetadata.ContainsKey("token")
                 || !_step.InputMetadata.ContainsKey("position"))
             { Why = "the step graph does not take a token and a position"; return; }
@@ -172,6 +180,32 @@ namespace Ledger.Game
         }
 
         static int[] Dims(int[] shape) { return (int[])shape.Clone(); }
+
+        /// The odds, out of whichever graph just ran. Both name this output
+        /// `logits` and both give it the same width, so the caller does not
+        /// have to know whether this is the first token of the line or the
+        /// eightieth — which is the whole reason the prefill was given a head.
+        bool Read(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> got,
+                  float[] logits)
+        {
+            foreach (var v in got)
+            {
+                if (v.Name != "logits") continue;
+                var t = v.AsTensor<float>();
+                int n = Math.Min(logits.Length, (int)t.Length);
+                for (int k = 0; k < n; k++) logits[k] = t.GetValue(k);
+                // A SHORT READ IS A FAILURE, NOT A PARTIAL SUCCESS. Half a
+                // row of odds sampled against a stale second half would pick
+                // words rather than throw, and a wrong word is the hardest
+                // fault in this pipeline to trace back to its cause.
+                if (n != logits.Length)
+                    Why = "the graph gave " + n + " odds, the sampler wants "
+                          + logits.Length;
+                return n == logits.Length;
+            }
+            Why = "the graph returned no logits";
+            return false;
+        }
 
         public bool Begin(string voiceId, string text, float[] logits)
         {
@@ -203,11 +237,19 @@ namespace Ledger.Game
                 };
                 _held = _prefill.Run(feed);
 
-                // THE PREFILL GIVES A CACHE AND NOT ODDS. The first token's
-                // odds come from one step at position 1 — position 0 is the
-                // start-of-speech token the prefill already consumed, and
-                // starting the count at 0 would say the first word twice.
-                return Next(SpeechVocab.Start, logits);
+                // THE PREFILL GIVES THE FIRST TOKEN'S ODDS, AND THE VERSION
+                // THAT THREW THEM AWAY IS WHAT JAFAR HEARD. Running the whole
+                // sentence produces the odds for the first spoken token as a
+                // by-product — `T3.inference` samples from exactly this. The
+                // old code here asked for them by taking a step at position 1
+                // with the start token, which embeds that token a SECOND time,
+                // shifts every later position by one, and loses the word the
+                // model had already chosen. The line came out beginning at
+                // "van again" instead of "Seen the van again", and no numeric
+                // comparison anywhere could see it: both sides agreed about
+                // every value that was there, and the fault was a value that
+                // was not.
+                return Read(_held, logits);
             }
             catch (Exception e)
             {
@@ -235,14 +277,26 @@ namespace Ledger.Game
                 int i = 0;
                 foreach (var v in _held)
                 {
-                    // The prefill names its outputs `cacheN` and the step
-                    // names its own `newcacheN`, so the name to feed under is
-                    // this side's, taken by position rather than by the name
-                    // the value happens to carry.
+                    // THE ODDS ARE NOT PART OF THE CACHE, and both graphs put
+                    // them first. Skipping by NAME rather than by index is the
+                    // difference between this working and feeding a 6,563-wide
+                    // logits tensor in as layer zero's keys — which is what a
+                    // positional loop did the day the prefill grew an output.
+                    if (v.Name == "logits") continue;
+                    // The prefill names the rest `cacheN` and the step names
+                    // its own `newcacheN`, so the name to feed under is this
+                    // side's, taken by position rather than by the name the
+                    // value happens to carry.
                     feed.Add(NamedOnnxValue.CreateFromTensor(
                         _cacheIn[i], v.AsTensor<float>()));
                     i++;
                     if (i >= _layers) break;
+                }
+                if (i < _layers)
+                {
+                    Why = "the graph returned " + i + " cache tensors, not " + _layers;
+                    Release();
+                    return false;
                 }
 
                 var got = _step.Run(feed);
@@ -253,16 +307,7 @@ namespace Ledger.Game
                 _held = got;
                 old.Dispose();
 
-                foreach (var v in got)
-                {
-                    if (v.Name != "logits") continue;
-                    var t = v.AsTensor<float>();
-                    int n = Math.Min(logits.Length, (int)t.Length);
-                    for (int k = 0; k < n; k++) logits[k] = t.GetValue(k);
-                    return n == logits.Length;
-                }
-                Why = "the step graph returned no logits";
-                return false;
+                return Read(got, logits);
             }
             catch (Exception e)
             {

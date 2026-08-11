@@ -41,6 +41,13 @@ WATCHED = {
     # sim stills are ours because the game drew them. A cloned voice fails
     # that test no matter whose GPU produced it.
     "ledger/Assets/StreamingAssets/Audio/Voice": "VCTK",
+    # THE LIVE MODEL'S OUTPUT, BY THE SAME REASONING AS THE BARKS ABOVE.
+    # `spoken.wav` is one line spoken by the converted graphs on Jafar's
+    # machine, pushed back by the watcher so it can be heard from here. It is a
+    # clone of a VCTK speaker exactly as the banked barks are; arriving live
+    # instead of in a batch does not change whose voice it is, and "we ran it
+    # a minute ago" is the same argument this file already rejects two rows up.
+    "game-design/voice-live": "VCTK",
     "ledger/Assets/StreamingAssets/CityPack": "CityPack",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not

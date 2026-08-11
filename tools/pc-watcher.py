@@ -62,6 +62,15 @@ TABLE = {
                       ["PY", "tools/voice-live/check-graphs.py"]],
     "prepare-voices": [["PY", "tools/voice-live/precompute-voices.py"]],
     "hear-it-speak": [["PY", "tools/voice-live/speak.py"]],
+    # THE WHOLE ROUND TRIP AS ONE REQUEST, for the reason the Windows build is
+    # batched: the wait costs the same whether it carries one step or four,
+    # and Jafar's machine is the only one with the model on it. A graph fix
+    # that needs HEARING is export, audit and speak — asking for those as
+    # three requests is three waits and two chances to forget the next one.
+    "export-and-hear": [["PY", "tools/voice-live/export-for-game.py"],
+                        ["PY", "tools/voice-live/export-decode.py"],
+                        ["PY", "tools/voice-live/check-graphs.py"],
+                        ["PY", "tools/voice-live/time-a-line.py"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.

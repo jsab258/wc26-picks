@@ -131,7 +131,7 @@ def run(say):
     say(f"  the line is {len(ids)} tokens: \"{LINE}\"")
 
     t0 = time.time()
-    cache = sess["t3-prefill"].run(None, {
+    first = sess["t3-prefill"].run(None, {
         "text_tokens": as_np("text_tokens", [ids]),
         "speaker_emb": as_np("speaker_emb", z["t3.speaker_emb"]),
         "cond_speech_tokens": as_np("cond_speech_tokens",
@@ -141,11 +141,28 @@ def run(say):
     say(f"  prefill: {prefill:.2f}s")
 
     rng = np.random.default_rng(7)
+    # THE FIRST TOKEN COMES OUT OF THE PREFILL, and the version that did not
+    # take it is what Jafar heard: the line started at "van again" instead of
+    # "Seen the van again". Running the whole sentence through the model
+    # produces the odds for the first spoken token as a by-product; a loop
+    # that ignores them has to feed the start token a second time to get
+    # something back, which embeds it twice, shifts every position by one and
+    # drops the token the model had already chosen. Nothing numerical could
+    # see it — both sides agreed about the values that were there.
+    cache = first[1:]
     names = [f"cache{i}" for i in range(len(cache))]
     rows = 2
-    tok, tokens, per_step = START_SPEECH, [], []
+    tok = pick(np, first[0].astype(np.float64), rng, rows)
+    tokens = [] if tok in (START_SPEECH, STOP_SPEECH) else [tok]
+    per_step = []
     t_loop = time.time()
     for step in range(1, CEILING + 1):
+        # THE STOP IS TESTED BEFORE THE TOKEN IS FED, not after it is drawn,
+        # because the first token now arrives from outside this loop and a
+        # test that only ran at the bottom would feed the stop marker back
+        # into the model on a one-token line.
+        if tok == STOP_SPEECH:
+            break
         feed = dict(zip(names, cache))
         feed["token"] = np.array([[tok]], dtype=np.int64)
         feed["position"] = np.array(step, dtype=np.int64)
@@ -154,14 +171,15 @@ def run(say):
         per_step.append(time.time() - t1)
         cache = got[1:]
         tok = pick(np, got[0].astype(np.float64), rng, rows)
-        if tok == STOP_SPEECH:
-            break
         if tok < START_SPEECH:
             tokens.append(tok)
     loop = time.time() - t_loop
 
     # THE SERIES, NOT JUST THE MEAN. A first step that pays for a warm-up and
     # three hundred that do not is two populations, and a mean hides which.
+    if not per_step:
+        say("  the prefill's first token was the stop marker — no steps ran.")
+        return 1
     ps = np.array(per_step)
     say(f"  {len(per_step)} steps in {loop:.1f}s — first {ps[0] * 1000:.0f}ms, "
         f"median {np.median(ps) * 1000:.0f}ms, "
