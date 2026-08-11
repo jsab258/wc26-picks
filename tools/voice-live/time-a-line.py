@@ -225,6 +225,27 @@ def run(say):
         except Exception as e:
             say(f"  decode on CPU: could not run — {type(e).__name__}: {e}")
 
+    # KEEP THE WAVEFORM. The graphs agree with the original to six decimal
+    # places and NOBODY HAS HEARD THEM. Those are different claims: a wrong
+    # position, a frozen voice or a mangled decode can all sit inside a tiny
+    # numerical difference, and the one test that catches all three at once is
+    # a person listening for five seconds. This tool was already producing the
+    # audio and discarding it, which is the same waste as measuring a room and
+    # not looking at it.
+    import struct
+    import wave
+    out = REPORT.parent / "spoken.wav"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    flat = np.clip(np.asarray(wav).reshape(-1), -1.0, 1.0)
+    with wave.open(str(out), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(24000)          # s3gen's own rate; a wrong one is a
+        w.writeframes(struct.pack(     # chipmunk rather than an error
+            "<%dh" % len(flat), *(int(v * 32767) for v in flat)))
+    say(f"  wrote {out.name} — {out.stat().st_size / 1024:.0f} KB, "
+        f"{len(flat) / 24000:.1f}s, through the SHIPPED graphs")
+
     seconds = wav.shape[-1] / 24000.0
     total = prefill + loop + decode
     say(f"  decode: {decode:.2f}s for {seconds:.1f}s of audio")

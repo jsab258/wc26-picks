@@ -141,7 +141,10 @@ def tree_is_safe(root, say):
     if rc != 0:
         say(f"  cannot read the working tree: {out[:150]}")
         return False
-    mine = {RESULT.relative_to(ROOT).as_posix(), REQUEST.relative_to(ROOT).as_posix()}
+    mine = {RESULT.relative_to(ROOT).as_posix(), REQUEST.relative_to(ROOT).as_posix(),
+            "game-design/voice-live/speed-report.txt",
+            "game-design/voice-live/spoken.wav",
+            "game-design/voice-live/export-report.txt"}
     stray = [l[3:].strip().strip('"') for l in out.splitlines()
              if l[3:].strip().strip('"') not in mine]
     if stray:
@@ -278,7 +281,16 @@ def one_pass(root, say):
     # committed a piece of it. Scope a destructive or wide command to exactly
     # what the operation made; this repository has that rule from an `rm -rf`
     # in CI that deleted sixteen characters' voice clips.
-    rc, add_out = git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=root)
+    # NAMED OUTPUTS, STILL NOT A WILDCARD. A job may leave more than its log —
+    # the timing one now writes the spoken waveform — so the list is explicit
+    # and lives here rather than being inferred from whatever changed. That
+    # inference is what `add -A` was.
+    produced = [RESULT.relative_to(ROOT).as_posix(),
+                "game-design/voice-live/speed-report.txt",
+                "game-design/voice-live/spoken.wav",
+                "game-design/voice-live/export-report.txt"]
+    here = [f for f in produced if (root / f).exists()]
+    rc, add_out = git("add", "--", *here, cwd=root)
     rc, commit_out = git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
     after, head = git("rev-parse", "HEAD", cwd=root)
     if rc != 0:
