@@ -219,6 +219,75 @@ def run_job(job, root, say, timeout=3600, beat=print):
     return ok
 
 
+def stamp():
+    """A time a human can read, in UTC so two machines agree."""
+    from datetime import datetime, timezone
+    return f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC"
+
+
+def write_result(root, lines):
+    dest = root / RESULT.relative_to(ROOT)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def land(root, say, message):
+    """Stage what this job produced, commit it, push it, and PROVE it landed.
+
+    THE EFFECT, NOT THE EXIT CODE. The first version printed "pushed" off
+    `git push` returning 0 — and `push` returns 0 for "Everything
+    up-to-date". The commit had silently failed, nothing landed, and the
+    watcher reported success to a window Jafar was watching while I read an
+    empty branch and could not tell a slow job from a stuck one. Straight out
+    of this project's own rule: verify a workflow's EFFECTS.
+
+    ONE COPY, CALLED TWICE. This is called once to announce a job has started
+    and once to deliver what it made, and writing the sequence out twice is
+    how the second copy quietly loses the ancestry check.
+    """
+    # ONLY WHAT THIS JOB PRODUCED. `git add -A` from the repository root
+    # staged Jafar's Python virtual environment — it lives inside the repo at
+    # `tools/voice-live/env-export/` and was never ignored — and the watcher
+    # committed a piece of it. Scope a destructive or wide command to exactly
+    # what the operation made; this repository has that rule from an `rm -rf`
+    # in CI that deleted sixteen characters' voice clips.
+    # NAMED OUTPUTS, STILL NOT A WILDCARD. A job may leave more than its log —
+    # the timing one now writes the spoken waveform — so the list is explicit
+    # and lives here rather than being inferred from whatever changed. That
+    # inference is what `add -A` was.
+    produced = [RESULT.relative_to(ROOT).as_posix(),
+                "game-design/voice-live/speed-report.txt",
+                "game-design/voice-live/spoken.wav",
+                "game-design/voice-live/export-report.txt",
+                "game-design/voice-live/shape-report.txt"]
+    here = [f for f in produced if (root / f).exists()]
+    rc, add_out = git("add", "--", *here, cwd=root)
+    rc, commit_out = git("commit", "-m", message, cwd=root)
+    _, head = git("rev-parse", "HEAD", cwd=root)
+    if rc != 0:
+        # Git's own words, kept. "Nothing to commit" and "who are you" want
+        # completely different fixes and both were invisible before.
+        say(f"  COMMIT FAILED: {commit_out[:300]}")
+        return False
+
+    git("fetch", "-q", "origin", BRANCH, cwd=root)
+    git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
+    rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
+    if rc != 0:
+        say(f"  PUSH FAILED: {push_out[:300]}")
+        return False
+    # And confirm the remote actually carries it, because a push can succeed
+    # having sent nothing at all.
+    git("fetch", "-q", "origin", BRANCH, cwd=root)
+    rc, _ = git("merge-base", "--is-ancestor", head, "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        say(f"  PUSH SENT NOTHING — {head[:7]} is not on the branch. "
+            f"add: {add_out[:120]}")
+        return False
+    say(f"  pushed {head[:7]} and confirmed on the branch")
+    return True
+
+
 def one_pass(root, say):
     """Fetch, decide, maybe run, push. Returns what happened, as a word."""
     # ANOTHER GIT IS RUNNING — most likely one of the bats. Two git processes
@@ -269,63 +338,36 @@ def one_pass(root, say):
         return "already-done"
 
     say(f"  running '{req['job']}' (id {req['id']})")
+    # SAY IT HAS STARTED, ON THE BRANCH, BEFORE DOING ANY OF IT.
+    #
+    # A job's only trace was the result it pushed at the end, so from the
+    # other side of the internet "running for twenty minutes" and "never
+    # picked it up" looked exactly the same: an unchanged branch. That cost a
+    # wait for a measurement job with nothing to read and nothing to conclude
+    # from — the same shape as rule 3b, where a zero with no denominator
+    # cannot say whether anything was examined.
+    #
+    # Best effort on purpose. A marker that failed to land must not stop the
+    # work it was announcing; it is a courtesy to the reader, not a step.
+    write_result(root, [f"job: {req['job']}", f"id: {req['id']}", "",
+                        f"RESULT: STARTED at {stamp()} — still running here"])
+    if not land(root, say, f"pc-watcher: {req['job']} (started)"):
+        say("  (could not announce the start; running it anyway)")
+
     lines = [f"job: {req['job']}", f"id: {req['id']}", ""]
     ok = run_job(req["job"], root, lines.append)
     lines.append("")
     lines.append("RESULT: finished" if ok else "RESULT: FAILED")
 
-    (root / RESULT.relative_to(ROOT)).parent.mkdir(parents=True, exist_ok=True)
-    (root / RESULT.relative_to(ROOT)).write_text("\n".join(lines) + "\n",
-                                                 encoding="utf-8")
+    write_result(root, lines)
+    # WRITTEN ONLY NOW. If the machine dies mid-job the id is not recorded, so
+    # the next start runs it again — and the branch still carries the STARTED
+    # marker saying which job never came back. Both halves of that are
+    # deliberate: re-running is the safer direction, and a job that vanished
+    # leaves evidence it existed.
     STATE.write_text(json.dumps({"last": req["id"]}), encoding="utf-8")
-
-    # THE EFFECT, NOT THE EXIT CODE. The first version printed "pushed" off
-    # `git push` returning 0 — and `push` returns 0 for "Everything
-    # up-to-date". The commit had silently failed, nothing landed, and the
-    # watcher reported success to a window Jafar was watching while I read an
-    # empty branch and could not tell a slow job from a stuck one. Straight
-    # out of this project's own rule: verify a workflow's EFFECTS.
-    before, _ = git("rev-parse", "HEAD", cwd=root)
-    # ONLY WHAT THIS JOB PRODUCED. `git add -A` from the repository root
-    # staged Jafar's Python virtual environment — it lives inside the repo at
-    # `tools/voice-live/env-export/` and was never ignored — and the watcher
-    # committed a piece of it. Scope a destructive or wide command to exactly
-    # what the operation made; this repository has that rule from an `rm -rf`
-    # in CI that deleted sixteen characters' voice clips.
-    # NAMED OUTPUTS, STILL NOT A WILDCARD. A job may leave more than its log —
-    # the timing one now writes the spoken waveform — so the list is explicit
-    # and lives here rather than being inferred from whatever changed. That
-    # inference is what `add -A` was.
-    produced = [RESULT.relative_to(ROOT).as_posix(),
-                "game-design/voice-live/speed-report.txt",
-                "game-design/voice-live/spoken.wav",
-                "game-design/voice-live/export-report.txt",
-                "game-design/voice-live/shape-report.txt"]
-    here = [f for f in produced if (root / f).exists()]
-    rc, add_out = git("add", "--", *here, cwd=root)
-    rc, commit_out = git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
-    after, head = git("rev-parse", "HEAD", cwd=root)
-    if rc != 0:
-        # Git's own words, kept. "Nothing to commit" and "who are you" want
-        # completely different fixes and both were invisible before.
-        say(f"  COMMIT FAILED: {commit_out[:300]}")
+    if not land(root, say, f"pc-watcher: {req['job']}"):
         return "failed"
-
-    git("fetch", "-q", "origin", BRANCH, cwd=root)
-    git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
-    rc, push_out = git("push", "origin", f"HEAD:{BRANCH}", cwd=root)
-    if rc != 0:
-        say(f"  PUSH FAILED: {push_out[:300]}")
-        return "failed"
-    # And confirm the remote actually carries it, because a push can succeed
-    # having sent nothing at all.
-    git("fetch", "-q", "origin", BRANCH, cwd=root)
-    rc, _ = git("merge-base", "--is-ancestor", head, "FETCH_HEAD", cwd=root)
-    if rc != 0:
-        say(f"  PUSH SENT NOTHING — {head[:7]} is not on the branch. "
-            f"add: {add_out[:120]}")
-        return "failed"
-    say(f"  pushed {head[:7]} and confirmed on the branch")
     return "ran" if ok else "failed"
 
 
@@ -376,6 +418,25 @@ def selftest():
                for step in steps if not (ROOT / step[1]).exists()]
     check(not missing, f"all {sum(len(v) for v in TABLE.values())} steps across "
           f"{len(TABLE)} jobs point at files that exist", ", ".join(missing))
+
+    # A STARTED JOB AND A FINISHED ONE MUST NOT READ THE SAME. The whole point
+    # of the marker is that an unchanged branch used to mean either "running
+    # for twenty minutes" or "never picked it up", and those want opposite
+    # next moves. Written to a throwaway root so the check cannot scribble on
+    # a real result.
+    import tempfile
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    write_result(tmp, ["job: x", "id: y", "",
+                       f"RESULT: STARTED at {stamp()} — still running here"])
+    started = (tmp / RESULT.relative_to(ROOT)).read_text(encoding="utf-8")
+    check("RESULT: STARTED" in started and "UTC" in started and "id: y" in started,
+          "a started marker names the job, its id and the time, and does not "
+          "claim an outcome", started.replace("\n", " ")[:70])
+    write_result(tmp, ["job: x", "id: y", "", "RESULT: finished"])
+    done = (tmp / RESULT.relative_to(ROOT)).read_text(encoding="utf-8")
+    check("STARTED" not in done and "RESULT: finished" in done,
+          "and the outcome REPLACES it rather than being appended, so the last "
+          "word on the branch is what happened", done.replace("\n", " ")[:70])
 
     check(interpreter(ROOT) == sys.executable,
           "and with no Windows environment present it falls back to this "
