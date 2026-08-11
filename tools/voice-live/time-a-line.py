@@ -210,8 +210,18 @@ def run(say):
             cpu_decode = time.time() - t4
             say(f"  decode on CPU: {cpu_decode:.2f}s "
                 f"(session opened in {cpu_open:.1f}s)")
-            say(f"  -> the CPU is {decode / max(cpu_decode, 1e-6):.1f}x "
-                f"{'faster' if cpu_decode < decode else 'slower'} at this stage")
+            # THE RATIO THE RIGHT WAY ROUND. The first version printed
+            # "the CPU is 0.3x slower", which is the reciprocal of what it
+            # meant and reads as a mild difference when the truth was 3.2x —
+            # a number that misreports is worse than no number, and this one
+            # was about to settle a design decision.
+            if cpu_decode < decode:
+                say(f"  -> the CPU is {decode / max(cpu_decode, 1e-6):.1f}x "
+                    f"FASTER at this stage")
+            else:
+                say(f"  -> the CPU is {cpu_decode / max(decode, 1e-6):.1f}x "
+                    f"SLOWER at this stage — DirectML is the right place "
+                    f"for it")
         except Exception as e:
             say(f"  decode on CPU: could not run — {type(e).__name__}: {e}")
 
