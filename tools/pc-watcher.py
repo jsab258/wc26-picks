@@ -264,7 +264,27 @@ def replay(root, say, what):
     rc, out = git("merge", "--ff-only", "FETCH_HEAD", cwd=root)
     if rc == 0:
         return True
-    rc, out = git("rebase", "FETCH_HEAD", cwd=root)
+
+    # WHAT DO THE LOCAL COMMITS TOUCH? Asked before the rebase, because it
+    # decides whether a clash has a right answer.
+    #
+    # Everything a job produces lands in two folders and nowhere else. Those
+    # files are pure OUTPUT, and when both sides have written one the branch's
+    # copy is the newer BY CONSTRUCTION — the branch moved on while this
+    # machine was working. So `-X ours` is not "pick a winner and hope": it is
+    # the only ordering that can be true. During a rebase "ours" is the side
+    # already applied, which is the branch.
+    #
+    # A file only this machine has is not a clash and survives untouched, so a
+    # report the branch has never seen is never the thing being dropped.
+    rc, changed = git("diff", "--name-only", "FETCH_HEAD...HEAD", cwd=root)
+    foreign = [f for f in changed.splitlines() if f.strip() and not f.startswith(
+        ("game-design/pc-jobs/", "game-design/voice-live/"))]
+    if foreign:
+        say(f"  a commit here changes {foreign[0]}, which is not a job result — "
+            f"stopping rather than guessing which side wins")
+        return False
+    rc, out = git("rebase", "-X", "ours", "FETCH_HEAD", cwd=root)
     if rc != 0:
         git("rebase", "--abort", cwd=root)
         say(f"  could not replay {what} onto the branch, and nothing was "
@@ -590,25 +610,52 @@ def selftest():
           "a stranded commit is replayed onto the moved branch rather than "
           "ending the watcher", " ".join(stuck)[:90])
 
-    # AND WHEN A REPLAY GENUINELY CANNOT HAPPEN, NOTHING IS FORCED. Both sides
-    # change the same line, so the rebase conflicts.
+    # TWO JOB RESULTS CLASHING HAVE A RIGHT ANSWER, AND THIS IS IT. Both sides
+    # wrote result.txt. The branch's copy is newer by construction, because the
+    # branch moved on while this machine was working — so the clash resolves to
+    # the branch rather than stopping the watcher, which is what it did until a
+    # stale `time-a-line` result blocked a whole afternoon.
     watcher, other = repos()
-    result_in(watcher, "mine")
+    result_in(watcher, "the older run")
     git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=watcher)
-    git("commit", "-q", "-m", "mine", cwd=watcher)
-    result_in(other, "theirs")
+    git("commit", "-q", "-m", "older", cwd=watcher)
+    (watcher / "game-design" / "voice-live").mkdir(parents=True, exist_ok=True)
+    (watcher / "game-design" / "voice-live" / "shape-report.txt").write_text(
+        "a report only this machine has\n", encoding="utf-8")
+    git("add", "--", "game-design/voice-live/shape-report.txt", cwd=watcher)
+    git("commit", "-q", "-m", "a measurement nobody else has", cwd=watcher)
+    result_in(other, "the newer run")
     git("add", "--", RESULT.relative_to(ROOT).as_posix(), cwd=other)
-    git("commit", "-q", "-m", "theirs", cwd=other)
+    git("commit", "-q", "-m", "newer", cwd=other)
+    git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
+    settled = []
+    git("fetch", "-q", "origin", BRANCH, cwd=watcher)
+    ok_settle = replay(watcher, settled.append, "two job results")
+    got = (watcher / RESULT.relative_to(ROOT)).read_text(encoding="utf-8")
+    kept = (watcher / "game-design" / "voice-live" / "shape-report.txt")
+    check(ok_settle and "the newer run" in got and kept.exists(),
+          "two job results clashing settle on the branch's copy, and a report "
+          "only this machine has SURVIVES rather than being dropped with it",
+          f"result={got.strip()[:22]} kept={kept.exists()}")
+
+    # AND WHEN THE CLASH IS NOT A JOB RESULT, NOTHING IS FORCED. Taking the
+    # branch's side is only defensible for output whose ordering is known; for
+    # anything else it is picking a winner, which is not this tool's to do.
+    watcher, other = repos()
+    (watcher / "seed.txt").write_text("mine\n", encoding="utf-8")
+    git("commit", "-qam", "mine", cwd=watcher)
+    (other / "seed.txt").write_text("theirs\n", encoding="utf-8")
+    git("commit", "-qam", "theirs", cwd=other)
     git("push", "-q", "origin", f"HEAD:{BRANCH}", cwd=other)
     refused = []
     git("fetch", "-q", "origin", BRANCH, cwd=watcher)
-    beaten = replay(watcher, refused.append, "a conflicting commit")
+    beaten = replay(watcher, refused.append, "a source change")
     rc, state = git("status", "--porcelain", cwd=watcher)
-    check(not beaten and any("nothing was forced" in s for s in refused)
+    check(not beaten and any("not a job result" in s for s in refused)
           and not state.strip(),
-          "and a real conflict is refused, aborted, and leaves a clean tree "
-          "rather than a half-applied rebase",
-          (" ".join(refused)[:70] + " | tree: " + (state or "clean")[:30]))
+          "a commit touching anything else is refused by NAME before a rebase "
+          "starts, and leaves a clean tree",
+          (" ".join(refused)[:70] + " | tree: " + (state or "clean")[:24]))
 
     check(interpreter(ROOT) == sys.executable,
           "and with no Windows environment present it falls back to this "

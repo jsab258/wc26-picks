@@ -79,8 +79,30 @@ echo  Waiting to be pushed from this machine:
 git log --oneline FETCH_HEAD..HEAD
 echo.
 
+REM ---- WHAT DO THOSE COMMITS TOUCH? This decides how a conflict may be
+REM ---- settled, and it has to be asked before the rebase rather than
+REM ---- after it has stopped halfway.
+REM
+REM  Everything a job produces lands in two folders and nowhere else: the
+REM  request/result pair, and the reports. Those files are pure OUTPUT, and
+REM  when both sides have written one the branch's copy is the newer by
+REM  construction - the branch moved on while this machine was working. So
+REM  a clash there has a correct answer and it is "take the branch".
+REM
+REM  A commit touching anything ELSE is not a job result, and this bat has
+REM  no business guessing about it.
+set "FOREIGN="
+for /f "delims=" %%f in ('git diff --name-only FETCH_HEAD...HEAD') do (
+  echo %%f| findstr /b /c:"game-design/pc-jobs/" /c:"game-design/voice-live/" >nul || set "FOREIGN=%%f"
+)
+if defined FOREIGN goto :foreign
+
 echo  Replaying it on top of the branch...
-git rebase FETCH_HEAD
+REM  -X ours means the BRANCH wins where both sides changed the same file -
+REM  during a rebase "ours" is the side already applied, which is the
+REM  branch, not this machine. A file only this machine has is untouched by
+REM  it, so a report the branch has never seen still survives.
+git rebase -X ours FETCH_HEAD
 if errorlevel 1 goto :conflict
 
 echo.
@@ -126,6 +148,19 @@ git rebase --abort
 if errorlevel 1 goto :stuckabort
 echo.
 echo  Nothing was forced and nothing was lost. Send me this window.
+popd
+echo.
+pause
+exit /b 1
+
+:foreign
+echo  STOPPED - a commit waiting here changes something outside the job
+echo  folders:
+echo.
+echo     %FOREIGN%
+echo.
+echo  A clash between two job results has a right answer; this does not,
+echo  so nothing has been touched. Send me this window.
 popd
 echo.
 pause
