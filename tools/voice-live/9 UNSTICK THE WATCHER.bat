@@ -29,10 +29,29 @@ echo.
 echo  LEDGER - unstick the watcher
 echo  ============================
 echo.
+echo  CLOSE THE WATCHER WINDOW FIRST if it is still open.
+echo.
+echo  It runs python.exe out of the project folder, and Windows will not
+echo  let git move a file a running program is holding. Git stops halfway
+echo  and asks whether to retry, which is a worse place to be than where
+echo  you started.
+echo.
+pause
 
 if not exist "%REPO%\.git" goto :norepo
 pushd "%REPO%"
 
+REM ---- IS A REBASE ALREADY HALF-DONE? Asked BEFORE starting one.
+REM
+REM  git refuses to begin a rebase while another is unfinished, and its
+REM  refusal is about the leftover directory - it says nothing about
+REM  conflicting content. The first version of this bat treated every
+REM  rebase failure as a conflict and told Jafar the two sides had
+REM  changed the same thing. They had not. It had never looked.
+if exist ".git\rebase-merge" goto :halfdone
+if exist ".git\rebase-apply" goto :halfdone
+
+:resume
 REM ---- NOTHING UNCOMMITTED, OR STOP. Replaying a commit with unsaved
 REM ---- work in the folder is how this project once destroyed a Python
 REM ---- environment. If there is anything here, it gets named, not
@@ -92,11 +111,36 @@ exit /b 1
 
 :conflict
 echo.
-echo  STOPPED - this machine's commit and the branch changed the same
-echo  thing, so there is no safe automatic answer. Backing out cleanly.
+echo  STOPPED - the replay did not go through. The reason git gave is
+echo  printed above this line; it is usually the two sides having changed
+echo  the same thing. Backing out cleanly.
 git rebase --abort
+if errorlevel 1 goto :stuckabort
 echo.
 echo  Nothing was forced and nothing was lost. Send me this window.
+popd
+echo.
+pause
+exit /b 1
+
+:halfdone
+echo  A rebase from an earlier attempt was never finished, so git will
+echo  not start another on top of it. Backing that one out first.
+echo.
+echo  This is a RESTORE, not a discard: "rebase --abort" puts the branch
+echo  and the folder back exactly as they were before that attempt began,
+echo  so the commit waiting here is still waiting here afterwards.
+git rebase --abort
+if errorlevel 1 goto :stuckabort
+echo  Cleared. Carrying on.
+echo.
+goto :resume
+
+:stuckabort
+echo.
+echo  STOPPED - even backing out failed, which on Windows means something
+echo  still has a file open. Close every LEDGER window and any Python
+echo  running from the project, then run this bat again.
 popd
 echo.
 pause
