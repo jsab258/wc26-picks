@@ -71,6 +71,7 @@ TABLE = {
                         ["PY", "tools/voice-live/export-decode.py"],
                         ["PY", "tools/voice-live/check-graphs.py"],
                         ["PY", "tools/voice-live/time-a-line.py"]],
+    "time-the-shape": [["PY", "tools/voice-live/time-the-shape.py"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
@@ -153,7 +154,8 @@ def tree_is_safe(root, say):
     mine = {RESULT.relative_to(ROOT).as_posix(), REQUEST.relative_to(ROOT).as_posix(),
             "game-design/voice-live/speed-report.txt",
             "game-design/voice-live/spoken.wav",
-            "game-design/voice-live/export-report.txt"}
+            "game-design/voice-live/export-report.txt",
+            "game-design/voice-live/shape-report.txt"}
     stray = [l[3:].strip().strip('"') for l in out.splitlines()
              if l[3:].strip().strip('"') not in mine]
     if stray:
@@ -297,7 +299,8 @@ def one_pass(root, say):
     produced = [RESULT.relative_to(ROOT).as_posix(),
                 "game-design/voice-live/speed-report.txt",
                 "game-design/voice-live/spoken.wav",
-                "game-design/voice-live/export-report.txt"]
+                "game-design/voice-live/export-report.txt",
+                "game-design/voice-live/shape-report.txt"]
     here = [f for f in produced if (root / f).exists()]
     rc, add_out = git("add", "--", *here, cwd=root)
     rc, commit_out = git("commit", "-m", f"pc-watcher: {req['job']}", cwd=root)
