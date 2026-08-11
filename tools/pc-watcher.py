@@ -147,7 +147,18 @@ def tree_is_safe(root, say):
     A machine I cannot see is exactly where "it was probably fine" is worth
     the least.
     """
-    rc, out = git("status", "--porcelain", cwd=root)
+    # TRACKED FILES ONLY, AND THAT IS A LOOSENING WITH A REASON.
+    #
+    # This counted untracked files, so thirteen files pip wrote into the
+    # Python environment would have stopped every pass — a watcher any
+    # package install can switch off, silently, for a hazard that no longer
+    # exists. The original worry was a wide `git add` sweeping the
+    # environment into a commit; that is fixed in the add, which names its
+    # files. Nothing here stages, moves or deletes an untracked file.
+    #
+    # What is still refused is an edit to a file git is FOLLOWING, because
+    # that is what a replay can trample.
+    rc, out = git("status", "--porcelain", "--untracked-files=no", cwd=root)
     if rc != 0:
         say(f"  cannot read the working tree: {out[:150]}")
         return False

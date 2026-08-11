@@ -52,12 +52,20 @@ if exist ".git\rebase-merge" goto :halfdone
 if exist ".git\rebase-apply" goto :halfdone
 
 :resume
-REM ---- NOTHING UNCOMMITTED, OR STOP. Replaying a commit with unsaved
-REM ---- work in the folder is how this project once destroyed a Python
-REM ---- environment. If there is anything here, it gets named, not
-REM ---- swept aside.
+REM ---- NOTHING UNCOMMITTED, OR STOP - BUT ONLY WHAT GIT IS TRACKING.
+REM
+REM  This counted untracked files too and stopped dead on thirteen files
+REM  pip had written into the Python environment. A rebase cannot lose an
+REM  untracked file: it does not stage them, move them, or delete them.
+REM  What it CAN trample is an edit to a file git is following, and that is
+REM  the question worth asking.
+REM
+REM  The original worry - a wide "git add" sweeping the environment into a
+REM  commit - really did happen once. It is fixed where it belongs, in the
+REM  add naming its files, and refusing on untracked files here only meant
+REM  a repair script that pip could switch off.
 set "DIRTY="
-for /f "delims=" %%i in ('git status --porcelain') do set "DIRTY=1"
+for /f "delims=" %%i in ('git status --porcelain --untracked-files^=no') do set "DIRTY=1"
 if defined DIRTY goto :dirty
 
 echo  Fetching the branch...
@@ -98,9 +106,9 @@ pause
 exit /b 0
 
 :dirty
-echo  STOPPED - there are unsaved changes in the project folder:
+echo  STOPPED - there are edits to files the project is tracking:
 echo.
-git status --short
+git status --short --untracked-files=no
 echo.
 echo  Nothing has been touched. Tell me what is in that list and I will
 echo  say whether it matters.

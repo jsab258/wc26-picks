@@ -65,3 +65,24 @@ ledger/.onnx-cache/
 # ignored until the watcher staged it wholesale and committed part of it.
 tools/voice-live/env-export/
 tools/voice-live/env/
+
+# THE PYTHON ENVIRONMENT AND THE EXPORTED GRAPHS, AND THESE FOUR LINES WENT
+# MISSING ONCE ALREADY. They were written, they were watched working, and
+# they were never committed — they lived in one container's working copy
+# until it was reclaimed, so every machine except that one carried on
+# without them. The symptom surfaced days later as thirteen untracked
+# site-packages files stopping a repair script, and the cause was invisible
+# precisely because the fix HAD been seen to work.
+#
+# `env-export/` is Jafar's virtual environment. A wide `git add` swept part
+# of it once and the next reset took the folder with it. The add is scoped
+# now; this is the second lock on the same door.
+#
+# `game-out/` is ~4.5 GB of exported .onnx graphs, rebuilt on demand from
+# the model. `speak-out/` is audio one machine generated. Both are outputs
+# of a run, and the rule here for those is that they travel as a named
+# report, never as whatever happened to be in the directory.
+tools/voice-live/env-export/
+tools/voice-live/env/
+tools/voice-live/game-out/
+tools/voice-live/speak-out/
