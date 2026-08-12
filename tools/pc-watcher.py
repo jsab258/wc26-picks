@@ -115,7 +115,15 @@ TABLE = {
     # EXPERIMENT 1 OF THE LATENCY PLAN: which card, does the step grow with
     # position, can python bind the cache on-device, and what does decoding
     # beside the loop cost. Reads graphs, changes nothing.
-    "probe-step-costs": [["PY", "tools/voice-live/probe-step-costs.py"]],
+    # SPLIT AFTER THE FIRST RUN HUNG FOR ITS FULL HOUR AND DIED MUTE. The
+    # safe half (card name, position slope) is minutes of plain session runs
+    # and cannot hang; the risky half (io-binding, two sessions on one DML
+    # device) is exactly where an hour can go. One half failing must not
+    # silence the other.
+    "probe-step-costs": [["PY", "tools/voice-live/probe-step-costs.py",
+                          "--sections", "safe"]],
+    "probe-step-risky": [["PY", "tools/voice-live/probe-step-costs.py",
+                          "--sections", "risky"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one

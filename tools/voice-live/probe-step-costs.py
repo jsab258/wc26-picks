@@ -95,7 +95,43 @@ def median(xs):
     return ys[len(ys) // 2]
 
 
-def run(say):
+def _slope(say, np, stp, names, cache, tok):
+    """Sections 1b+2: the position slope. SPLIT OUT so the safe half of the
+    probe can run as its own job — the first combined run hung somewhere for
+    an hour and took these numbers down with it. A probe is split the way a
+    guard is tested: so one half failing cannot silence the other."""
+    times = {}
+    top = max(POSITIONS) + WINDOW // 2 + 1
+    for step in range(1, top):
+        feed = dict(zip(names, cache))
+        feed["token"] = tok
+        feed["position"] = np.array(step, dtype=np.int64)
+        t1 = time.time()
+        got = stp.run(None, feed)
+        times[step] = time.time() - t1
+        cache = got[1:]
+    buckets = []
+    for p in POSITIONS:
+        window = [times[s] for s in times
+                  if abs(s - p) <= WINDOW // 2 and s > 2]
+        buckets.append((p, median(window)))
+    say("  step medians: " + "  ".join(f"pos{p}={v * 1000:.1f}ms"
+                                       for p, v in buckets))
+    c0, slope = fit(buckets)
+    total_at_100 = c0 + slope * 100
+    share = slope * 100 / total_at_100 if total_at_100 > 0 else 0.0
+    say(f"  -> {c0 * 1000:.1f}ms flat + {slope * 1e6:.1f}us per position; at "
+        f"position 100 the position-linear part is {share:.0%} of the step")
+    if slope * 1e6 < 20:
+        say("  -> the slope is nearly FLAT: shipping the cache is not what a "
+            "step costs, and the residency lever dies here")
+    else:
+        say("  -> the step grows with how much sentence is behind it — "
+            "consistent with the cache round-trip; residency is worth building")
+
+
+
+def run(say, sections="all"):
     import numpy as np
     import onnxruntime as ort
 
@@ -142,37 +178,14 @@ def run(say):
     say(f"  cache starts at {base} positions, "
         f"{sum(c.nbytes for c in cache) / 1e6:.0f} MB across {len(cache)} tensors")
 
+    if sections == "risky":
+        say("  (safe sections skipped — this run is the risky half only)")
     # ---- 2. THE SLOPE -----------------------------------------------------
     tok = np.array([[7]], dtype=np.int64)
-    times = {}                          # position -> seconds
-    top = max(POSITIONS) + WINDOW // 2 + 1
-    for step in range(1, top):
-        feed = dict(zip(names, cache))
-        feed["token"] = tok
-        feed["position"] = np.array(step, dtype=np.int64)
-        t1 = time.time()
-        got = stp.run(None, feed)
-        times[step] = time.time() - t1
-        cache = got[1:]
-    buckets = []
-    for p in POSITIONS:
-        window = [times[s] for s in times
-                  if abs(s - p) <= WINDOW // 2 and s > 2]
-        buckets.append((p, median(window)))
-    say("  step medians: " + "  ".join(f"pos{p}={v * 1000:.1f}ms"
-                                       for p, v in buckets))
-    c0, slope = fit(buckets)
-    total_at_100 = c0 + slope * 100
-    share = slope * 100 / total_at_100 if total_at_100 > 0 else 0.0
-    say(f"  -> {c0 * 1000:.1f}ms flat + {slope * 1e6:.1f}us per position; at "
-        f"position 100 the position-linear part is {share:.0%} of the step")
-    if slope * 1e6 < 20:
-        say("  -> the slope is nearly FLAT: shipping the cache is not what a "
-            "step costs, and the residency lever dies here")
-    else:
-        say("  -> the step grows with how much sentence is behind it — "
-            "consistent with the cache round-trip; residency is worth building")
-
+    if sections in ("safe", "all"):
+        _slope(say, np, stp, names, list(first[1:]), tok)
+    if sections == "safe":
+        return 0
     # ---- 3. CAN PYTHON BIND THE CACHE ON-DEVICE ---------------------------
     # Timed against the SAME positions as a plain run, or the comparison
     # means nothing. A refusal is reported by name.
@@ -327,6 +340,10 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    # safe = card + slope (minutes, no threading, no device tricks).
+    # risky = io-binding + two-sessions-one-device, the halves that can hang.
+    ap.add_argument("--sections", choices=("safe", "risky", "all"),
+                    default="all")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
@@ -348,7 +365,7 @@ def main():
     say(f"ran on {platform.node()} ({platform.system()}), "
         f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say("")
-    rc = run(say)
+    rc = run(say, a.sections)
     print(f"\n  written to {REPORT.relative_to(ROOT)}")
     return rc
 
