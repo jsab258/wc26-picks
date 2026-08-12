@@ -169,6 +169,13 @@ namespace Ledger.Bench
                 }
                 backend.Release();
 
+                // SNAPSHOTTED NOW, because the host timing pass below runs
+                // with ForceHost and stamps Residency "host: forced" — the
+                // first full agreement run skipped its entire bound timing
+                // on exactly that, reading the flag after the host pass had
+                // overwritten it, and exited green with half its answer.
+                bool proved = backend.Residency == "device";
+
                 // ---- FASTER, measured in the python probe's own buckets ----
                 int maxPos = positions[positions.Length - 1] + window;
                 var hostMs = TimeSteps(backend, true, voice, text, a, feed, maxPos,
@@ -180,7 +187,7 @@ namespace Ledger.Bench
                 // with ForceHost=false still succeeds after a binding break —
                 // through the host path — and its numbers would wear the
                 // wrong label, which is worse than no numbers.
-                if (backend.Residency == "device")
+                if (proved)
                 {
                     boundMs = TimeSteps(backend, false, voice, text, b, feed, maxPos,
                                         out boundPrefill);
