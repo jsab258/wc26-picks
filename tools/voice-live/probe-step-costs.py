@@ -177,6 +177,7 @@ def run(say):
     # Timed against the SAME positions as a plain run, or the comparison
     # means nothing. A refusal is reported by name.
     say("")
+    say("SECTION: io-binding (if the report ends here, THIS is what hung)")
     try:
         bind_cache = [ort.OrtValue.ortvalue_from_numpy(c, "dml", 0)
                       for c in first[1:]]
@@ -219,6 +220,9 @@ def run(say):
 
     # ---- 4. CONTENTION ----------------------------------------------------
     say("")
+    say("SECTION: contention — two sessions on one DML device (if the report "
+        "ends here, concurrent Run() on this driver is the hang, which is "
+        "itself the answer streaming needed)")
     t0 = time.time()
     dec = ort.InferenceSession(str(paths["s3gen-decode"]), providers=want)
     say(f"  decode session in {time.time() - t0:.1f}s")
@@ -326,19 +330,25 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    lines = []
+    # WRITE-THROUGH, NOT AT THE END. The first run of this probe hung inside
+    # a native call, the watcher killed it at the hour, and every number it
+    # had already measured died with it — the report was only written on
+    # success. A probe whose job is diagnosing hangs must survive one: each
+    # line lands on disk as it is said, flushed, so a killed run leaves the
+    # slope on disk and its last line names the section it died in.
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text("", encoding="utf-8")
 
     def say(s):
-        print(s)
-        lines.append(s)
+        print(s, flush=True)
+        with REPORT.open("a", encoding="utf-8") as f:
+            f.write(s + "\n")
 
     say("LEDGER — where a step goes (latency plan, experiment 1)")
     say(f"ran on {platform.node()} ({platform.system()}), "
         f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say("")
     rc = run(say)
-    REPORT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\n  written to {REPORT.relative_to(ROOT)}")
     return rc
 

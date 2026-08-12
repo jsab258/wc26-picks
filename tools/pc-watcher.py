@@ -221,8 +221,23 @@ def run_job(job, root, say, timeout=3600, beat=print):
         try:
             p = subprocess.run(cmd, cwd=str(root), capture_output=True,
                                text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             say(f"  TIMED OUT after {timeout}s")
+            # THE PARTIAL OUTPUT TRAVELS. "Timed out" alone says only that
+            # time passed; WHICH section hung is in the tail the process had
+            # already printed, and python attaches that to the exception. It
+            # arrives as bytes even in text mode on some versions, so both
+            # are handled rather than assumed.
+            for stream in (e.stdout, e.stderr):
+                if not stream:
+                    continue
+                text = (stream.decode("utf-8", "replace")
+                        if isinstance(stream, bytes) else stream)
+                tail = text.strip().splitlines()[-25:]
+                if tail:
+                    say(f"  last {len(tail)} line(s) before the kill:")
+                    for line in tail:
+                        say("  " + line)
             beat(f"  step {n} TIMED OUT after {timeout}s")
             return False
         beat(f"  step {n} finished in {time.time() - started:.0f}s "
