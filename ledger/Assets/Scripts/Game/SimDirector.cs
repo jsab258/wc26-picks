@@ -1964,6 +1964,44 @@ namespace Ledger.Game
         /// down is the question the still could not answer.
         int _textFlat;
         string _textFlatWorst = "[none]";
+
+        /// Person-sized bare capsules visible in a shot — the white dummies
+        /// review_day2_noon keeps showing while `walkersPrimitive=0` reads
+        /// clean, because that counter's denominator is the CityWalker set
+        /// and these bodies belong to some other population. The ROOT NAMES
+        /// say which one; rule 3b, the denominator, worn by a mesh.
+        int _capsulesLoose;
+        string _capsulesLooseWho = "[none]";
+
+        /// The census behind those two numbers: every visible renderer
+        /// whose mesh is Unity's builtin Capsule, person-sized, standing
+        /// free — not a limb of a rigged body, which parents its capsules
+        /// under an armature with a controller.
+        void MeasureLooseCapsules()
+        {
+            int found = 0;
+            var who = new List<string>();
+            foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            {
+                if (mf == null || mf.sharedMesh == null
+                    || mf.sharedMesh.name != "Capsule") continue;
+                var r = mf.GetComponent<Renderer>();
+                if (r == null || !r.isVisible) continue;
+                var s = mf.transform.lossyScale;
+                float h = mf.sharedMesh.bounds.size.y * s.y;
+                if (h < 1.2f || h > 2.6f) continue;   // not person-sized
+                if (mf.GetComponentInParent<Animator>() != null) continue;
+                found++;
+                if (who.Count < 4 && !who.Contains(mf.transform.root.name))
+                    who.Add(mf.transform.root.name);
+            }
+            if (found > _capsulesLoose)
+            {
+                _capsulesLoose = found;
+                _capsulesLooseWho = who.Count > 0
+                    ? string.Join("/", who.ToArray()) : "[none]";
+            }
+        }
         /// How many bubbles the SHOT re-pinned. Zero on a shot with speech in
         /// it means the re-pin is not running; zero with no speech is a quiet
         /// street, and only the count beside `bubblesOnScreen` separates them.
@@ -7247,6 +7285,7 @@ namespace Ledger.Game
             // either number as the other is how a fix gets declared from the
             // wrong evidence.
             MeasureTextFaults();
+            MeasureLooseCapsules();
             MeasureBodyRead(cam);
 
             RenderTexture rt = null;
@@ -10509,6 +10548,8 @@ namespace Ledger.Game
                       $"bodyLodEligible={GameController.BodyLodEligible} " +
                       $"bodyCrowdEligible={GameController.BodyCrowdEligible} " +
                       $"walkersPrimitive={GameController.WalkersPrimitive} " +
+                      $"capsulesLoose={_capsulesLoose} " +
+                      $"capsulesLooseWho=[{_capsulesLooseWho}] " +
                       $"walkersPrimitiveEver={GameController.WalkersPrimitiveEver} " +
                       $"walkersPrimitiveOf={GameController.WalkersPrimitiveOf} " +
                       $"walkersPrimitiveWho=[{string.Join(" ", GameController.WalkersPrimitiveWho)}] " +
