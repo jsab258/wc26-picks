@@ -70,9 +70,16 @@ Two zero-quality-risk fixes if the hypothesis holds:
   DOUBLING the bandwidth the model was trained to need. Halves both transfer
   and compute on a bandwidth-bound decode.
 
-Cheap falsifier first: step time at positions ~10 / 150 / 400. Transfer grows
-linearly with position; if the slope is flat, the hypothesis is dead and fp16
-is the only bandwidth lever.
+**Measured 12 Aug (experiment 1, safe half): the slope is real.** On the
+RX 6700: pos10 34.5ms, pos100 45.1ms, pos200 59.3ms, pos400 89.5ms —
+**31.8ms flat + 142us per position.** The arithmetic closes: each position
+adds ~2MB of cache round-trip, and 142us/2MB is ~14GB/s, which is PCIe, not
+compute (the attention maths at these lengths is negligible). So at a
+mid-line position roughly a third to a half of every step is shipping the
+cache, rising as the line grows — residency is confirmed worth building, and
+should take a position-100 step from ~45ms to ~21ms before fp16 touches the
+rest. One caveat for every number from this machine: the card also carries a
+Parsec virtual display, so an encoder shares it whenever Jafar is connected.
 
 The dev machine has an **AMD GPU** — Jafar has said so twice and it is
 recorded here so it stops being re-asked — and the game must ship for AMD

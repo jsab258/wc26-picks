@@ -1,0 +1,10 @@
+LEDGER — where a step goes (latency plan, experiment 1)
+ran on Jafar-Desktop (Windows), 2026-08-12 13:33 UTC
+
+  card: Parsec Virtual Display Adapter / AMD Radeon RX 6700
+  provider: DmlExecutionProvider
+  prefill + step sessions in 5.8s
+  cache starts at 68 positions, 33 MB across 60 tensors
+  step medians: pos10=34.5ms  pos100=45.1ms  pos200=59.3ms  pos400=89.5ms
+  -> 31.8ms flat + 142.4us per position; at position 100 the position-linear part is 31% of the step
+  -> the step grows with how much sentence is behind it — consistent with the cache round-trip; residency is worth building
