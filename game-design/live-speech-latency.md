@@ -68,10 +68,13 @@ Two zero-quality-risk fixes if the hypothesis holds:
   precisely for DML LLM decode loops with in-place KV buffers).
 - **fp16 — FIRST NUMBERS (12 Aug): steps 42→31ms, and sustainability is
   CROSSED.** 32.3 tok/s against the 25 playback needs, from the conversion
-  alone, before residency. Session opens halve too (2.5s/1.8s). Two
-  asterisks: the PREFILL regressed 0.30→1.06s — a second-run discriminator
-  is queued to split one-time kernel warm-up (payable at load with a
-  throwaway prefill) from inserted-cast cost (an investigation) — and the
+  alone, before residency. Session opens halve too (2.5s/1.8s). Follow-up
+  run settled steps at **26ms — 38 tok/s, 1.5x margin.** The prefill's
+  apparent 0.30→1.06s regression was ONE-TIME KERNEL WARM-UP: the second run
+  in the same session measures **0.08s, four times faster than fp32** — the
+  game pays the warm-up once at load with a throwaway prefill. A warmed line:
+  0.08 + 74 steps at 26ms + decode = 4.4s of work for 3.0s of speech;
+  time-to-first-sound if streamed today ~1.3–1.7s. Remaining asterisk: the
   fp16 graphs REFUSE to load on the CPU EP (an optimizer-fusion bug on the
   converted graph), so CPU-only machines stay on fp32, which costs nothing:
   at 68-77ms per CPU step they were never speaking live anyway. The wav is
