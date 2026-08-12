@@ -1210,6 +1210,12 @@ namespace Ledger.Game
                         samples = Backend.Decode(run.Tokens);
                         decodeSeconds = Clock() - d0;
                         decodeTokens = run.Tokens.Length;
+                        // ON THE WORKER, BEFORE DELIVERY. Every raw decode
+                        // starts at a non-zero sample; played as-is that is a
+                        // click at the top of every live line — heard by ear
+                        // in the five-line test file before the game ever
+                        // played one.
+                        SpeechSamples.Feather(samples, LiveSampleRate);
                     }
                 }
                 catch (System.Exception)

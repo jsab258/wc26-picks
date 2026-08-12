@@ -40,6 +40,12 @@ START_SPEECH = 6561
 STOP_SPEECH = 6562
 CEILING = 1000
 GAP_SECONDS = 0.5
+# HALF A SECOND OF SILENCE BEFORE THE FIRST LINE. The file used to start at
+# sample zero with speech, and Jafar reported the first line cut off — the
+# classic symptom of a player (Bluetooth, a streamed desktop) swallowing the
+# opening instants of a stream. The lead-in is for the LISTENER'S equipment;
+# the game never needs it because its clips start inside a running mix.
+LEAD_SECONDS = 0.5
 
 LINES = [
     "No.",
@@ -169,6 +175,21 @@ def run(say):
         secs = wav.shape[-1] / 24000.0
         took = time.time() - t_line
         total += took
+        # FEATHER THE EDGES — the same ramps `Core/SpeechSamples` now applies
+        # in the game, mirrored here because Jafar heard the pop in THIS
+        # file: a decode starts at a non-zero sample, and the step from the
+        # gap's zeros to that value is an audible click on every line.
+        up = int(24000 * 0.010)
+        down = int(24000 * 0.020)
+        up = min(up, wav.shape[-1] // 2)
+        down = min(down, wav.shape[-1] // 2)
+        if up > 0:
+            wav[:up] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(up) / up)
+        if down > 0:
+            wav[-down:] *= (0.5 - 0.5 * np.cos(
+                np.pi * np.arange(down) / down))[::-1]
+        if not pieces:
+            pieces.append(np.zeros(int(LEAD_SECONDS * 24000), dtype=wav.dtype))
         pieces.append(wav)
         pieces.append(np.zeros(int(GAP_SECONDS * 24000), dtype=wav.dtype))
         spoken.append(f"  {i + 1}. {voice}: {n} tokens, {secs:.1f}s of speech, "
