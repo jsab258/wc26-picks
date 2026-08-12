@@ -142,12 +142,22 @@ absorbs most of the first second. That is "close to real time" territory —
 not by making the model faster than physics, but by not waiting for work that
 has not happened yet.
 
-**Experiment 1 outcomes so far (12 Aug):** the slope is confirmed (see
-section 4). The python io-binding preview is CLOSED — it dies with 0xC0000005,
-an access violation inside the DML build's device allocation, which also
-explains the first combined run's silent hour. Residency gets proven in C#
-(OrtIoBinding / onnxruntime-genai), not previewed in python. Contention is
-still open and runs as its own job.
+**Experiment 1 outcomes (12 Aug), all four questions answered:** the card is
+an RX 6700 sharing with a Parsec display encoder. The slope is confirmed (see
+section 4): residency is worth ~2x on steps and gets built in C#. The python
+io-binding preview is CLOSED — 0xC0000005 inside the DML build's device
+allocation, which also explains the first combined run's silent hour. And
+CONTENTION IS CLOSED THE HARD WAY: running the step session and the decode
+session concurrently from two threads crashes the process with the same
+access violation, on a stack where running them SEQUENTIALLY in one process
+has worked hundreds of times. So the streaming design is settled by a crash
+rather than a benchmark: **one thread, strictly interleaved — N steps, then a
+chunk decode, never overlapped.** The sustainability arithmetic must carry
+the decode pauses: per 25-token chunk, 25 steps PLUS one chunk decode must
+fit in the second of audio the chunk buys. At today's speeds that is ~1.9s
+per 1.0s — underruns; at residency+fp16 speeds (~15ms steps, ~0.5s chunk)
+it is ~0.9s per 1.0s — sustainable, with the step-rate work carrying
+slightly more of the load than the pre-crash budget assumed.
 
 ## 9. Experiment order (cheapest information first, all via the watcher)
 

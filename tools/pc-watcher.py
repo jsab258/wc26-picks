@@ -122,11 +122,12 @@ TABLE = {
     # silence the other.
     "probe-step-costs": [["PY", "tools/voice-live/probe-step-costs.py",
                           "--sections", "safe"]],
-    # CONTENTION ALONE. The io-binding section died with 0xC0000005 (an
-    # access violation inside python's DML build) and took the contention
-    # answer down with it — so contention runs by itself, and the binding
-    # experiment is CLOSED, answered by the crash: residency gets proven in
-    # C#, not previewed in python.
+    # CLOSED 12 AUG, BOTH OF THEM, BY THE SAME ACCESS VIOLATION. io-binding
+    # crashes allocating device values; contention crashes the moment two
+    # sessions Run() concurrently from two threads — on a stack where running
+    # them sequentially has worked hundreds of times. Neither is scheduled
+    # again; the finding is the streaming design itself: ONE thread, strictly
+    # interleaved, never overlapped. Kept only for future onnxruntime builds.
     "probe-contention": [["PY", "tools/voice-live/probe-step-costs.py",
                           "--sections", "contention"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
