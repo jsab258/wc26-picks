@@ -1,13 +1,13 @@
 LEDGER — a few lines, more than one voice
-ran on Jafar-Desktop (Windows), 2026-08-12 14:44 UTC
+ran on Jafar-Desktop (Windows), 2026-08-12 14:50 UTC
 
   19 voices precomputed, speaking with 2: rocco, ada
   using: DmlExecutionProvider
-  three sessions in 45.4s
-  1. rocco: 46 tokens, 1.8s of speech, 3.1s to make — "No."
-  2. ada: 92 tokens, 3.7s of speech, 4.7s to make — "Seen the van again. Thursday, same as last Thursday."
-  3. rocco: 61 tokens, 2.4s of speech, 3.4s to make — "You want me to say that in front of Rocco?"
-  4. ada: 100 tokens, 4.0s of speech, 4.7s to make — "Forty-two crates, and not one of them opened where I could see it."
-  5. rocco: 110 tokens, 4.4s of speech, 4.9s to make — "I was nowhere near the yard, and you know it, and so does he."
-  5 of 5 lines spoken, 21s of work in 2 voice(s), 1 row(s) of odds — no guidance
-  wrote spoken.wav — 907 KB, 19.4s, 5 lines with 0.5s between them
+  three sessions in 45.0s
+  1. rocco: 19 tokens, 0.8s of speech, 2.4s to make — "No."
+  2. ada: 85 tokens, 3.4s of speech, 5.9s to make — "Seen the van again. Thursday, same as last Thursday."
+  3. rocco: 63 tokens, 2.5s of speech, 4.5s to make — "You want me to say that in front of Rocco?"
+  4. ada: 93 tokens, 3.7s of speech, 6.1s to make — "Forty-two crates, and not one of them opened where I could see it."
+  5. rocco: 82 tokens, 3.3s of speech, 5.3s to make — "I was nowhere near the yard, and you know it, and so does he."
+  5 of 5 lines spoken, 24s of work in 2 voice(s), 2 row(s) of odds — classifier-free guidance
+  wrote spoken.wav — 781 KB, 16.7s, 5 lines with 0.5s between them

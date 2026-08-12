@@ -101,10 +101,22 @@ Runaway generation is the textbook symptom of a missing repetition penalty.
 Upstream ships `inference_turbo` — single-row, no guidance — as a supported
 path, which they would not if the model could not stop without CFG.
 
-So the experiment conflated two variables. Retest with the penalty in the
-test sampler (the shipped C# sampler already has it). If five awkward lines
-in three voices survive, steps drop 42→28ms **and it composes with the fixes
-above** — this is the difference between 1.4x margin and 3x margin.
+So the experiment conflated two variables, and the fair retest (12 Aug)
+confirmed it: with the penalty in the sampler, five of five lines spoke, Ada
+stayed in her normal token range, and the runaway never recurred. The
+confounding is proven.
+
+**And then lever C died anyway, for a better-measured reason.** Per-step cost
+halves without guidance (42→28ms) — but the model generates MORE tokens for
+the same words, and the inflation lands hardest exactly where the game lives:
+the one-word line "No." took 19 tokens guided (0.8s of audio) and 46 tokens
+unguided (1.8s, heard blind by Jafar as "slowed/stretched"). End to end the
+wall-clock win measured 0–20% per line, not 50% — on the shortest line the
+unguided version was SLOWER to make — and the drawn-out delivery is a real
+quality cost on the interjections that dominate street dialogue. Guidance
+STAYS. The streaming margin therefore rests on levers A and B alone: ~20ms
+guided steps → ~50 tok/s against 25 needed, which still clears the
+interleaved budget.
 
 ## 6. The levers, ranked
 
