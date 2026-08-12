@@ -3748,6 +3748,8 @@ namespace Ledger.Game
         bool _handedTried;
         int _handedRetries;
         int _handedTriedDay;
+        int _homWhyDay;
+        readonly List<string> _homWhySeries = new List<string>();
         string _handedReady = "neverTried", _handedWhyAtTry = "neverTried";
         /// The one wound the harm probe treated, held so the gate can ask
         /// about THAT one rather than about Rocco in general.
@@ -5824,6 +5826,19 @@ namespace Ledger.Game
             _homBodies = _game.Homicides.BodyCount;
             _homPressure = _game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, now.Day);
             _homInquiry = _game.PoliceInquiry;
+
+            // THE HEAT'S DECAY, SAMPLED DAILY — the queue's open question.
+            // Manhunt at the killing, Procedure at the end, and no record
+            // of which TERM fell: the witness's confidence ageing, the
+            // live-witness count, or the relief. One token a day answers
+            // it: p=total, w=live witnesses, c=best confidence, r=relief.
+            if (now.Day > _homWhyDay)
+            {
+                _homWhyDay = now.Day;
+                _homWhySeries.Add("d" + now.Day + ":"
+                    + _game.Homicides.PressureWhy(_game.Gossip?.Mill,
+                                                  _game.IsAlive, now.Day));
+            }
 
             // AND WHICH OF THEM WOULD ACTUALLY GO TO THE POLICE, which is the
             // asymmetry the design turns on and a question nothing has ever
@@ -9906,7 +9921,8 @@ namespace Ledger.Game
                       // memory. `witnessOffered` is the denominator.
                       $"witnessOffered={(_game.Gossip?.Mill != null ? _game.Gossip.Mill.WitnessesOffered : -1)} " +
                       $"witnessDropped={(_game.Gossip?.Mill != null ? _game.Gossip.Mill.WitnessesDropped : -1)} " +
-                      $"homPressure={_homPressure:0.00} homInquiry={_homInquiry} " +
+                      $"homPressure={_homPressure:0.00} " +
+                      $"homPressureByDay=[{string.Join(",", _homWhySeries)}] homInquiry={_homInquiry} " +
                       $"marked={(_cutMarkedYou.HasValue ? _cutMarkedYou.Value.ToString() : "nocut")} " +
                       $"saw={(_cutSawSomething.HasValue ? _cutSawSomething.Value.ToString() : "nocut")} " +
                       // THREE NUMBERS, BECAUSE ONE CANNOT ANSWER IT. `notoriety`

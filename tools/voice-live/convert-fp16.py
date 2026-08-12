@@ -329,6 +329,10 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--only", choices=["t3", "s3gen"],
+                    help="convert just one pair — the chunk job wants the "
+                         "sound graphs without re-paying minutes on the 2GB "
+                         "text pair")
     a = ap.parse_args()
     if a.selftest:
         return selftest()

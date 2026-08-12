@@ -325,6 +325,29 @@ namespace Ledger.Core
             return p;
         }
 
+        /// The pressure's parts, one compact token per sample — for the
+        /// daily series the heat-fade question needs. `homInquiry=Manhunt`
+        /// at the killing against `inquiry=Procedure` at the end says heat
+        /// FELL; nothing recorded says WHICH TERM fell — the best witness
+        /// confidence ageing in the mill, the live-witness count, or the
+        /// redirect's relief — and each wants a different fix. No spaces:
+        /// the value rides a bracketed verdict list.
+        public string PressureWhy(GossipMill mill, Func<string, bool> alive = null, int today = -1)
+        {
+            if (_killings.Count == 0) return "none";
+            var live = LiveWitnesses(mill, alive);
+            double best = 0;
+            foreach (var k in _killings)
+                foreach (var id in live)
+                {
+                    var r = mill.Get(id)?.BestOfValue(k.TopicKey, "true");
+                    if (r != null && r.Confidence > best) best = r.Confidence;
+                }
+            return $"p{Pressure(mill, alive, today):0.00}"
+                 + $"/w{live.Count}/c{best:0.00}"
+                 + $"/r{RedirectReliefOn(today):0.00}";
+        }
+
         public Inquiry Stage(GossipMill mill, Func<string, bool> alive = null, int today = -1)
         {
             double p = Pressure(mill, alive, today);
