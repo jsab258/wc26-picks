@@ -178,60 +178,65 @@ def run(say, sections="all"):
     say(f"  cache starts at {base} positions, "
         f"{sum(c.nbytes for c in cache) / 1e6:.0f} MB across {len(cache)} tensors")
 
-    if sections == "risky":
-        say("  (safe sections skipped — this run is the risky half only)")
+    if sections not in ("safe", "all"):
+        say(f"  (this run is the '{sections}' section only)")
     # ---- 2. THE SLOPE -----------------------------------------------------
     tok = np.array([[7]], dtype=np.int64)
     if sections in ("safe", "all"):
         _slope(say, np, stp, names, list(first[1:]), tok)
     if sections == "safe":
         return 0
+    do_binding = sections in ("binding", "all")
+    do_contention = sections in ("contention", "all")
     # ---- 3. CAN PYTHON BIND THE CACHE ON-DEVICE ---------------------------
     # Timed against the SAME positions as a plain run, or the comparison
     # means nothing. A refusal is reported by name.
-    say("")
-    say("SECTION: io-binding (if the report ends here, THIS is what hung)")
-    try:
-        bind_cache = [ort.OrtValue.ortvalue_from_numpy(c, "dml", 0)
-                      for c in first[1:]]
-        binding = stp.io_binding()
-        plain = []
-        cache2 = list(first[1:])
-        for step in range(1, 41):
-            feed = dict(zip(names, cache2))
-            feed["token"] = tok
-            feed["position"] = np.array(step, dtype=np.int64)
-            t1 = time.time()
-            got = stp.run(None, feed)
-            plain.append(time.time() - t1)
-            cache2 = got[1:]
-        bound = []
-        for step in range(1, 41):
-            binding.clear_binding_inputs()
-            binding.clear_binding_outputs()
-            binding.bind_cpu_input("token", tok)
-            binding.bind_cpu_input("position", np.array(step, dtype=np.int64))
-            for n, v in zip(names, bind_cache):
-                binding.bind_ortvalue_input(n, v)
-            binding.bind_output("logits", "cpu")
-            for i in range(len(names)):
-                binding.bind_output(f"newcache{i}", "dml", 0)
-            t1 = time.time()
-            stp.run_with_iobinding(binding)
-            outs = binding.get_outputs()
-            bound.append(time.time() - t1)
-            bind_cache = outs[1:]
-        say(f"  IOBinding on dml WORKS in python: bound median "
-            f"{median(bound) * 1000:.1f}ms vs plain {median(plain) * 1000:.1f}ms "
-            f"over the same 40 positions — "
-            f"{median(plain) / max(median(bound), 1e-9):.2f}x")
-    except Exception as e:
-        say(f"  IOBinding on dml refused in python: {type(e).__name__}: "
-            f"{str(e)[:140]}")
-        say("  -> not a dead end — the game is C#, whose OrtIoBinding is the "
-            "production path; this just says python cannot preview it")
+    if do_binding:
+        say("")
+        say("SECTION: io-binding (if the report ends here, THIS is what hung)")
+        try:
+            bind_cache = [ort.OrtValue.ortvalue_from_numpy(c, "dml", 0)
+                          for c in first[1:]]
+            binding = stp.io_binding()
+            plain = []
+            cache2 = list(first[1:])
+            for step in range(1, 41):
+                feed = dict(zip(names, cache2))
+                feed["token"] = tok
+                feed["position"] = np.array(step, dtype=np.int64)
+                t1 = time.time()
+                got = stp.run(None, feed)
+                plain.append(time.time() - t1)
+                cache2 = got[1:]
+            bound = []
+            for step in range(1, 41):
+                binding.clear_binding_inputs()
+                binding.clear_binding_outputs()
+                binding.bind_cpu_input("token", tok)
+                binding.bind_cpu_input("position", np.array(step, dtype=np.int64))
+                for n, v in zip(names, bind_cache):
+                    binding.bind_ortvalue_input(n, v)
+                binding.bind_output("logits", "cpu")
+                for i in range(len(names)):
+                    binding.bind_output(f"newcache{i}", "dml", 0)
+                t1 = time.time()
+                stp.run_with_iobinding(binding)
+                outs = binding.get_outputs()
+                bound.append(time.time() - t1)
+                bind_cache = outs[1:]
+            say(f"  IOBinding on dml WORKS in python: bound median "
+                f"{median(bound) * 1000:.1f}ms vs plain {median(plain) * 1000:.1f}ms "
+                f"over the same 40 positions — "
+                f"{median(plain) / max(median(bound), 1e-9):.2f}x")
+        except Exception as e:
+            say(f"  IOBinding on dml refused in python: {type(e).__name__}: "
+                f"{str(e)[:140]}")
+            say("  -> not a dead end — the game is C#, whose OrtIoBinding is the "
+                "production path; this just says python cannot preview it")
 
     # ---- 4. CONTENTION ----------------------------------------------------
+    if not do_contention:
+        return 0
     say("")
     say("SECTION: contention — two sessions on one DML device (if the report "
         "ends here, concurrent Run() on this driver is the hang, which is "
@@ -342,7 +347,14 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     # safe = card + slope (minutes, no threading, no device tricks).
     # risky = io-binding + two-sessions-one-device, the halves that can hang.
-    ap.add_argument("--sections", choices=("safe", "risky", "all"),
+    # "binding" is NOT scheduled by any job and stays only for future
+    # onnxruntime versions: on 12 Aug it died with 0xC0000005 — an access
+    # violation inside the DML build's device allocation — taking the
+    # contention question down with it. A crash is a ruder refusal than an
+    # exception, and the same finding: python cannot preview residency, C#'s
+    # OrtIoBinding is where that gets proven.
+    ap.add_argument("--sections",
+                    choices=("safe", "binding", "contention", "all"),
                     default="all")
     a = ap.parse_args()
     if a.selftest:

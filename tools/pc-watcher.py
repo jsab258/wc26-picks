@@ -122,8 +122,13 @@ TABLE = {
     # silence the other.
     "probe-step-costs": [["PY", "tools/voice-live/probe-step-costs.py",
                           "--sections", "safe"]],
-    "probe-step-risky": [["PY", "tools/voice-live/probe-step-costs.py",
-                          "--sections", "risky"]],
+    # CONTENTION ALONE. The io-binding section died with 0xC0000005 (an
+    # access violation inside python's DML build) and took the contention
+    # answer down with it — so contention runs by itself, and the binding
+    # experiment is CLOSED, answered by the crash: residency gets proven in
+    # C#, not previewed in python.
+    "probe-contention": [["PY", "tools/voice-live/probe-step-costs.py",
+                          "--sections", "contention"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one

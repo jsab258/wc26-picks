@@ -142,6 +142,13 @@ absorbs most of the first second. That is "close to real time" territory —
 not by making the model faster than physics, but by not waiting for work that
 has not happened yet.
 
+**Experiment 1 outcomes so far (12 Aug):** the slope is confirmed (see
+section 4). The python io-binding preview is CLOSED — it dies with 0xC0000005,
+an access violation inside the DML build's device allocation, which also
+explains the first combined run's silent hour. Residency gets proven in C#
+(OrtIoBinding / onnxruntime-genai), not previewed in python. Contention is
+still open and runs as its own job.
+
 ## 9. Experiment order (cheapest information first, all via the watcher)
 
 1. **probe-step-costs** — step time vs position, GPU name, step-vs-decode
