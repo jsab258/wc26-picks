@@ -79,7 +79,22 @@ Two zero-quality-risk fixes if the hypothesis holds:
   converted graph), so CPU-only machines stay on fp32, which costs nothing:
   at 68-77ms per CPU step they were never speaking live anyway. The wav is
   with Jafar; ears close the lever.
-- **fp16 rationale**: the shipped weights are bfloat16 upstream — we exported at fp32,
+- **LEVER B CLOSED (12 Aug, by rate): the conversion corrupts the sampling
+  distribution.** Ten seeds of the same twelve-word line: fp32 gives a tight
+  80–110 tokens, zero early stops. fp16 gives **4, 0, 170, 0, 97, 233, 222,
+  214, 0, 18** — four-in-ten die before fifteen tokens, THREE at zero, and
+  the survivors bloat to 2–2.5x length. That is not near-tie noise; the odds
+  landscape itself is distorted. The tiny-model agreement (0.0%) did not
+  transfer to 30 layers of accumulation. The speed was real (26ms steps,
+  0.08s warmed prefill) and is worthless on a distribution that flips a coin
+  between saying nothing and rambling. Salvage would be mixed precision —
+  fp32 layernorms/head via block lists — shelved unscheduled beside the
+  binding probe and the one-row export. **The streaming margin now rests on
+  residency (lever A) over fp32 graphs**, and the worker design gains a
+  no-underrun rule that needs no margin at all: begin playback when
+  remaining-work < remaining-audio (a head-start stream), which puts first
+  sound at (total work − audio length) ≈ 1.0–1.4s once residency lands.
+- **fp16 rationale, kept for the record**: the shipped weights are bfloat16 upstream — we exported at fp32,
   DOUBLING the bandwidth the model was trained to need. Halves both transfer
   and compute on a bandwidth-bound decode.
 
