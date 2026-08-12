@@ -52,6 +52,15 @@ def convert(src, dest, say):
     from onnxruntime.transformers.float16 import convert_float_to_float16
 
     t0 = time.time()
+    # STALE OUTPUT IS DELETED FIRST, because onnx's external-data writer
+    # APPENDS. The first run halved the graphs; the re-run 'converted' them
+    # back to full size, because saving over an existing .data file adds the
+    # new weights after the old ones instead of replacing them. The size
+    # guard caught it — the doubled file read as 'did not shrink' — and this
+    # is the actual repair: a job that can be re-run must own its outputs
+    # from a clean slate every time.
+    for stale in dest.parent.glob(dest.stem + "*"):
+        stale.unlink()
     model = onnx.load(str(src))
     # keep_io_types=False ON PURPOSE — see the header. The cache boundary
     # must be fp16 or every step pays a full-cache cast in each direction.
@@ -145,6 +154,14 @@ def selftest():
                        torch.randint(0, 100, (1, 9), dtype=torch.int32),
                        tmp / "t3-prefill.onnx", len(cache0))
 
+    # A STALE .data FILE FROM AN EARLIER RUN, PLANTED. onnx appends to an
+    # existing external-data file rather than replacing it, which is how the
+    # real re-run doubled a 1GB file back to 2GB. The selftest cannot reach
+    # the external-data path itself — tiny graphs stay inline — so it asserts
+    # the repair directly: stale outputs are gone after a convert.
+    junk = tmp / "t3-prefill-fp16.onnx.data"
+    junk.write_bytes(b"x" * 4096)
+
     said = []
     global OUT
     keep = OUT
@@ -155,6 +172,10 @@ def selftest():
         OUT = keep
     check(rc == 0, "both tiny graphs convert and shrink",
           "; ".join(said)[-90:])
+    check(not junk.exists(),
+          "and a stale external-data file from an earlier run is deleted "
+          "before converting — onnx APPENDS to those, which is how a re-run "
+          "doubled a real graph back to full size")
 
     pre32 = ort.InferenceSession(str(tmp / "t3-prefill.onnx"),
                                  providers=["CPUExecutionProvider"])
