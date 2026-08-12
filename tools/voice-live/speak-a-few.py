@@ -50,18 +50,16 @@ LINES = [
 ]
 
 
-def pick(np, logits, rng, rows):
-    """The same one `time-a-line` uses. See the header for why."""
-    v = logits.reshape(rows, -1)
-    x = v[0] + 0.5 * (v[0] - v[1]) if rows > 1 else v[0]
-    x = x / 0.8
-    x = x - x.max()
-    p = np.exp(x)
-    p[p < 0.05 * p.max()] = 0.0
-    s = p.sum()
-    if s <= 0:
-        return int(np.argmax(x))
-    return int(rng.choice(len(p), p=p / s))
+def _shared_pick():
+    """Shared with `time-a-line` — see `crude_sampler.py` for why the
+    repetition penalty is not optional in a listening tool."""
+    import importlib.util
+    here = pathlib.Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location("crude_sampler",
+                                                  here / "crude_sampler.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def run(say):
@@ -74,6 +72,7 @@ def run(say):
     if missing:
         say(f"  no graphs on this machine: {', '.join(missing)}")
         return 1
+    sampler = _shared_pick()
     voices = sorted(p.stem for p in CONDS.glob("*.npz"))
     if not voices:
         say(f"  no precomputed voices in {CONDS}")
@@ -134,7 +133,9 @@ def run(say):
         # SEEDED PER LINE, so two runs of this file are comparable to each
         # other. `VoiceBank.Seed` is the game's version of the same rule.
         rng = np.random.default_rng(1000 + i)
-        tk = pick(np, first[0].astype(np.float64), rng, rows)
+        said = set()
+        tk = sampler.pick(np, first[0], rng, rows, said)
+        said.add(tk)
         tokens = [] if tk in (START_SPEECH, STOP_SPEECH) else [tk]
         for step in range(1, CEILING + 1):
             if tk == STOP_SPEECH:
@@ -144,7 +145,8 @@ def run(say):
             feed["position"] = np.array(step, dtype=np.int64)
             got = sess["t3-step"].run(None, feed)
             cache = got[1:]
-            tk = pick(np, got[0].astype(np.float64), rng, rows)
+            tk = sampler.pick(np, got[0], rng, rows, said)
+            said.add(tk)
             if tk < START_SPEECH:
                 tokens.append(tk)
         if not tokens:
@@ -219,6 +221,18 @@ def selftest():
     check(any(any(c.isdigit() for c in l) for l in LINES)
           or any("-" in l for l in LINES), "and one carries a number")
     check(any(l.rstrip().endswith("?") for l in LINES), "and one is a question")
+
+    # THE PENALTY, ON BOTH SIGNS OF LOGIT. The HF convention divides a
+    # positive logit and MULTIPLIES a negative one; get the branch wrong and
+    # repetition becomes MORE likely exactly when the model is unsure. This is
+    # the single line whose absence invalidated the first no-guidance test.
+    import numpy as np
+    sampler = _shared_pick()
+    row = np.array([2.0, -2.0, 1.0])
+    out = sampler.penalise(np, row.copy(), {0, 1})
+    check(float(out[0]) < 2.0 and float(out[1]) < -2.0 and float(out[2]) == 1.0,
+          "an already-said token becomes LESS likely on both signs of logit, "
+          "and unsaid ones are untouched", str(out))
 
     said = []
     global OUT

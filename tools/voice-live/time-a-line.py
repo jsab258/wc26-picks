@@ -52,27 +52,21 @@ STOP_SPEECH = 6562
 CEILING = 1000
 
 
-def pick(np, logits, rng, rows):
-    """A token, cheaply. NOT the shipped sampler.
+def _shared_pick():
+    """The sampler lives in `crude_sampler.py`, shared with `speak-a-few`.
 
-    The C# does classifier-free guidance, a repetition penalty, temperature,
-    and min-p, and `sampler-reference.py` proves it matches the model's own to
-    1e-5. None of that changes how long a step TAKES, and reimplementing it
-    here would be a third copy of a thing that has already gone subtly wrong
-    twice. The guidance combination is kept because it decides which token
-    comes out, and therefore how many steps a line runs for — which is half
-    the answer being measured.
+    It was duplicated here without a repetition penalty, and that absence
+    invalidated a whole experiment — see the module's header. The penalty also
+    changes HOW MANY steps a line runs, which is half of what this tool
+    measures, so a timing without it times lines that cannot happen.
     """
-    v = logits.reshape(rows, -1)
-    x = v[0] + 0.5 * (v[0] - v[1]) if rows > 1 else v[0]
-    x = x / 0.8
-    x = x - x.max()
-    p = np.exp(x)
-    p[p < 0.05 * p.max()] = 0.0        # min_p, roughly
-    s = p.sum()
-    if s <= 0:
-        return int(np.argmax(x))
-    return int(rng.choice(len(p), p=p / s))
+    import importlib.util
+    here = pathlib.Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location("crude_sampler",
+                                                  here / "crude_sampler.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.pick
 
 
 def run(say):
@@ -143,6 +137,8 @@ def run(say):
     prefill = time.time() - t0
     say(f"  prefill: {prefill:.2f}s")
 
+    pick = _shared_pick()
+    said = set()
     rng = np.random.default_rng(7)
     # THE FIRST TOKEN COMES OUT OF THE PREFILL, and the version that did not
     # take it is what Jafar heard: the line started at "van again" instead of
@@ -162,7 +158,8 @@ def run(say):
     rows = int(first[0].shape[0])
     say(f"  the graph gives {rows} row(s) of odds"
         + (" — classifier-free guidance" if rows > 1 else " — no guidance"))
-    tok = pick(np, first[0].astype(np.float64), rng, rows)
+    tok = pick(np, first[0], rng, rows, said)
+    said.add(tok)
     tokens = [] if tok in (START_SPEECH, STOP_SPEECH) else [tok]
     per_step = []
     t_loop = time.time()
@@ -180,7 +177,8 @@ def run(say):
         got = sess["t3-step"].run(None, feed)
         per_step.append(time.time() - t1)
         cache = got[1:]
-        tok = pick(np, got[0].astype(np.float64), rng, rows)
+        tok = pick(np, got[0], rng, rows, said)
+        said.add(tok)
         if tok < START_SPEECH:
             tokens.append(tok)
     loop = time.time() - t_loop

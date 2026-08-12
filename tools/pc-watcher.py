@@ -112,6 +112,20 @@ TABLE = {
     # rather than the first. This speaks several, in more than one voice, so
     # the decision rests on a denominator.
     "hear-a-few": [["PY", "tools/voice-live/speak-a-few.py"]],
+    # EXPERIMENT 1 OF THE LATENCY PLAN: which card, does the step grow with
+    # position, can python bind the cache on-device, and what does decoding
+    # beside the loop cost. Reads graphs, changes nothing.
+    "probe-step-costs": [["PY", "tools/voice-live/probe-step-costs.py"]],
+    # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
+    # ran Ada to the ceiling with a sampler that had no repetition penalty —
+    # the crude sampler now shares the penalised one — so this exports one
+    # row, listens across voices, and RESTORES the guided graphs afterwards
+    # whatever happens, so the machine never sits on an unapproved export.
+    "retest-no-guidance": [["PY", "tools/voice-live/export-for-game.py",
+                            "--rows", "1", "--force"],
+                           ["PY", "tools/voice-live/speak-a-few.py"],
+                           ["PY", "tools/voice-live/export-for-game.py",
+                            "--rows", "2", "--force"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
@@ -294,7 +308,8 @@ def publish(root, say, message):
                 "game-design/voice-live/speed-report.txt",
                 "game-design/voice-live/spoken.wav",
                 "game-design/voice-live/export-report.txt",
-                "game-design/voice-live/shape-report.txt"]
+                "game-design/voice-live/shape-report.txt",
+                "game-design/voice-live/step-report.txt"]
     here = [f for f in produced if (root / f).exists()]
     if not here:
         say("  the job produced none of the files it can publish")

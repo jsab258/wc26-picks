@@ -74,9 +74,15 @@ Cheap falsifier first: step time at positions ~10 / 150 / 400. Transfer grows
 linearly with position; if the slope is flat, the hypothesis is dead and fp16
 is the only bandwidth lever.
 
-Also never checked: **which GPU Jafar has.** The report only ever says
-"DmlExecutionProvider". If it is NVIDIA, the CUDA EP may simply beat DML.
-One line in the next probe reports the adapter name.
+The dev machine has an **AMD GPU** — Jafar has said so twice and it is
+recorded here so it stops being re-asked — and the game must ship for AMD
+and NVIDIA both. That settles the provider question rather than opening it:
+DirectML is not a fallback, it is the shipping baseline, the one
+vendor-neutral GPU path on Windows. CUDA is not a lever for this machine and
+at most an optional NVIDIA fast path much later. Everything above — cache
+residency (onnxruntime-genai's DML backend runs on both vendors), fp16 —
+is vendor-neutral. The probe still reports the adapter name, for the record
+of which AMD card these numbers describe.
 
 ## 5. A correction: "guidance is not removable" was concluded from a confounded experiment
 
