@@ -63,12 +63,22 @@ namespace Ledger.Game
         public int VocabSize { get { return SpeechVocab.Size; } }
         public int StopToken { get { return SpeechVocab.Stop; } }
 
-        /// TWO, AND IT IS CLASSIFIER-FREE GUIDANCE RATHER THAN BATCHING. Both
-        /// graphs run the transformer on the sentence and on a copy with the
-        /// conditioning removed; Core steers between them. Combining here
-        /// would hide the one part of the sampler that can be checked without
-        /// a GPU.
-        public int Rows { get { return 2; } }
+        /// HOW MANY ROWS OF ODDS THE GRAPH GIVES, READ OFF THE GRAPH.
+        ///
+        /// Two is classifier-free guidance: the transformer runs on the
+        /// sentence and on a copy with the conditioning removed, and Core
+        /// steers between them. Combining inside here would hide the one part
+        /// of the sampler that can be checked without a GPU.
+        ///
+        /// IT WAS A CONSTANT 2, WHICH WAS TRUE OF EVERY GRAPH THAT HAD EVER
+        /// EXISTED. The exporter can now build a one-row pair — half the work
+        /// per step, and the biggest remaining lever — and a hardcoded 2
+        /// against a one-row graph does not throw. It folds one row of odds
+        /// into two half-rows, samples from the wrong half of a vocabulary,
+        /// and produces a fluent line of the wrong words. Silent and
+        /// plausible is the worst failure this pipeline can have.
+        readonly int _rows;
+        public int Rows { get { return _rows; } }
 
         /// Why the backend is unusable, or null. Kept because "no model on
         /// disk" and "the model refused to load" want different fixes and
@@ -160,6 +170,22 @@ namespace Ledger.Game
             // through it lost its opening words while every gate stayed green.
             // Failing here says which file is stale; failing at the first
             // spoken line says only that speech is off.
+            // AND HOW MANY ROWS IT GIVES, BEFORE ANYTHING SAMPLES FROM IT.
+            // A dynamic or unexpected first dimension is refused rather than
+            // guessed: the wrong row count is not an error at runtime, it is
+            // correct-looking speech saying something else.
+            var oddsDim = _prefill.OutputMetadata.ContainsKey("logits")
+                ? _prefill.OutputMetadata["logits"].Dimensions : null;
+            if (oddsDim == null || oddsDim.Length < 1
+                || (oddsDim[0] != 1 && oddsDim[0] != 2))
+            {
+                Why = "the prefill graph gives "
+                      + (oddsDim == null || oddsDim.Length < 1
+                         ? "no shape for its odds"
+                         : oddsDim[0] + " rows of odds, and this drives 1 or 2");
+                return;
+            }
+            _rows = oddsDim[0];
             if (!_prefill.OutputMetadata.ContainsKey("logits"))
             { Why = "the prefill graph has no 'logits': it is an old export, "
                     + "and lines from it start a word or two in"; return; }

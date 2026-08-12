@@ -105,6 +105,13 @@ TABLE = {
     "back-to-guidance": [["PY", "tools/voice-live/export-for-game.py",
                           "--rows", "2", "--force"],
                          ["PY", "tools/voice-live/time-a-line.py"]],
+    # ONE LINE IN ONE VOICE IS ONE SAMPLE. Jafar approved the no-guidance
+    # graph off a single sentence spoken by Rocco, and the failure it is
+    # supposed to reveal — the model wandering off the words without its
+    # second opinion — is exactly the kind that shows up on the fourth line
+    # rather than the first. This speaks several, in more than one voice, so
+    # the decision rests on a denominator.
+    "hear-a-few": [["PY", "tools/voice-live/speak-a-few.py"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
