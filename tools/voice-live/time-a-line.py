@@ -69,17 +69,25 @@ def _shared_pick():
     return mod.pick
 
 
-def run(say):
+def run(say, fp16=False):
     import numpy as np
     import onnxruntime as ort
 
-    paths = {n: OUT / f"{n}.onnx"
-             for n in ("t3-prefill", "t3-step", "s3gen-decode")}
+    # THE TEXT GRAPHS SWAP FOR THEIR HALVES UNDER --fp16; the decode stays
+    # fp32 — it was never the bandwidth problem and one variable moves at a
+    # time.
+    suf = "-fp16" if fp16 else ""
+    paths = {"t3-prefill": OUT / f"t3-prefill{suf}.onnx",
+             "t3-step": OUT / f"t3-step{suf}.onnx",
+             "s3gen-decode": OUT / "s3gen-decode.onnx"}
     missing = [p.name for p in paths.values() if not p.exists()]
     if missing:
         say(f"  no graphs on this machine: {', '.join(missing)}")
-        say("  run '5 EXPORT FOR THE GAME.bat' first.")
+        say("  run '5 EXPORT FOR THE GAME.bat' first"
+            + (" and then convert-fp16.py" if fp16 else "") + ".")
         return 1
+    if fp16:
+        say("  TEXT GRAPHS: FP16 — this run measures lever B")
 
     have = ort.get_available_providers()
     want = [p for p in ("DmlExecutionProvider", "CUDAExecutionProvider",
@@ -103,7 +111,8 @@ def run(say):
 
     def as_np(name, arr):
         kind = {"tensor(int64)": np.int64, "tensor(int32)": np.int32,
-                "tensor(float)": np.float32}[dt[name]]
+                "tensor(float)": np.float32,
+                "tensor(float16)": np.float16}[dt[name]]
         return np.asarray(arr).astype(kind, copy=False)
 
     # THE SHIPPED VOCABULARY, AND THE MODEL'S OWN TEXT TIDY-UP WHEN IT IS
@@ -353,7 +362,7 @@ def main():
         f"{getpass.getuser()}, {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say("")
     try:
-        rc = run(say)
+        rc = run(say, a.fp16)
     except Exception as e:
         import traceback
         say(f"  CRASHED  {type(e).__name__}: {e}")

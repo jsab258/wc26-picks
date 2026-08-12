@@ -130,6 +130,12 @@ TABLE = {
     # interleaved, never overlapped. Kept only for future onnxruntime builds.
     "probe-contention": [["PY", "tools/voice-live/probe-step-costs.py",
                           "--sections", "contention"]],
+    # LEVER B: halve the text graphs, then time and SPEAK through them in one
+    # job — the sampler reads relative odds, and fp16 noise that looks tiny
+    # in a norm can still reorder near-ties, so the wav travels with the
+    # timing every time.
+    "try-fp16": [["PY", "tools/voice-live/convert-fp16.py"],
+                 ["PY", "tools/voice-live/time-a-line.py", "--fp16"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one
