@@ -179,27 +179,26 @@ def say_lines(say, fp16=False):
     def chunked():
         plan = plan_chunks(len(tokens))
         pieces, times = [], []
-        # ONE ZERO SAMPLE, NOT ZERO SAMPLES. The first real DML run died in
-        # an Expand on the first chunk — the only call carrying a
-        # zero-LENGTH cache, which the CPU provider accepts and DirectML's
-        # kernels refuse ("parameter is incorrect"). A one-sample cache
-        # overwrites one sample of the vocoder's source with silence, under
-        # a head the treatment feathers anyway; a zero-length one never
-        # runs at all on the card this ships to. The C# twin
-        # (`Core/SpeechStream`'s caller) must do the same.
-        # THE UPSTREAM SEAM, DONE PROPERLY THIS TIME. The differential run
-        # convicted the GRAPH: feeding the whole previous source back was
-        # temporally wrong and crashed whenever a chunk was shorter than
-        # its predecessor, which the final one usually is. The design the
-        # graph now traces is CosyVoice2's own: eight cached mels ride in
-        # front of every chunk, only their 3840 samples of source feed
-        # back, and the caller crossfades the re-rendered seam over the
-        # tail it HELD BACK from the previous chunk. The first chunk rides
-        # in on zero mels and drops their render.
+        # THE UPSTREAM SEAM: CosyVoice2's own design, traced. Eight cached
+        # mels ride in front of every chunk after the first, only their
+        # 3840 samples of source feed back, and the caller crossfades the
+        # re-rendered seam over the tail it HELD BACK from the previous
+        # chunk. The first call carries NOTHING — both caches empty, the
+        # whole-line function exactly — because every approximation tried
+        # in its place was measurable: eight zero mels perturbed the f0
+        # RNN past one seam (chunks-5), one zero source sample rippled at
+        # 1.2e-02 across the head (chunks-6). Whether DirectML accepts the
+        # zero-length feeds is this trip's question, and the differential
+        # below names the refuser if not.
         SRC = 8 * SAMPLES_PER_MEL
         window = np.hamming(2 * SRC).astype(np.float32)
         rise, fall = window[:SRC], window[SRC:]
-        src = np.zeros((1, 1, 1), dtype=np.float32)
+        # Zero-LENGTH, matching the export checks: the first call is the
+        # whole-line function with nothing added. Whether DirectML accepts
+        # a zero-length cache here is exactly what the per-chunk
+        # differential below answers — the one-sample version cost 1.2e-02
+        # of head ripple on the real weights (chunks-6).
+        src = np.zeros((1, 1, 0), dtype=np.float32)
         # EMPTY on the first call — the whole-line function exactly. The
         # zeros-seam version perturbed the real model's f0 RNN past one
         # seam (chunks-5) and the export guard refused it. If DirectML

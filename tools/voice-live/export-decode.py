@@ -784,7 +784,12 @@ def selftest():
                         np.array(off, dtype=np.int64),
                         np.array(fin, dtype=np.int64)])))
 
-        one = np.zeros((1, 1, 1), dtype=np.float32)
+        # BOTH caches empty on a first call — the whole-line function
+        # with nothing added. The one-sample source overwrite was tried
+        # instead and its ripple on the REAL weights peaked at 1.2e-02
+        # mid-head (chunks-6); zero-length-on-DML is the open question the
+        # listening harness's differential answers directly.
+        esrc = np.zeros((1, 1, 0), dtype=np.float32)
         emel = np.zeros((1, 80, 0), dtype=np.float32)
 
         # The accepting case: asked the whole-line question — final, from
@@ -795,7 +800,7 @@ def selftest():
         # (The zeros-seam version of this check bounded a decaying residue
         # instead; the REAL model's trained RNN carried it past one seam
         # at 8.2e-03 and the guard refused the graph. Empty is exact.)
-        wc, sc, mt = crun(tok, noise, one, emel, 0, 1)
+        wc, sc, mt = crun(tok, noise, esrc, emel, 0, 1)
         scale = max(float(np.abs(got).max()), 1e-12)
         prof = [float(np.abs(wc[:, i * 480:(i + 1) * 480]
                              - got[:, i * 480:(i + 1) * 480]).max()) / scale
@@ -832,7 +837,7 @@ def selftest():
         nz1 = draw(torch, P, pmel, n1, 11)
         nz1 = (nz1[0][:, :, :pmel + m1],
                nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
-        w1, s1, m1t = crun(tok[:, :n1], nz1, one, emel, 0, 0)
+        w1, s1, m1t = crun(tok[:, :n1], nz1, esrc, emel, 0, 0)
         check(w1.shape[1] == m1 * SAMPLES_PER_MEL,
               f"a first chunk renders exactly its {ahead}-mel-lookahead-"
               f"trimmed fresh, no ride-in",
@@ -844,7 +849,7 @@ def selftest():
         # Same call, same mel seam, DIFFERENT source cache — the pair that
         # proves cache_source is live. (cache_mel proves itself: the
         # render is a ride-in longer whenever it is present.)
-        w2c, _, _ = crun(tok, nz2, one, m1t, m1, 1)
+        w2c, _, _ = crun(tok, nz2, esrc, m1t, m1, 1)
         # Caller algebra: chunk 1 emits its render minus the holdback; the
         # final chunk emits everything, its first SRC_CACHE samples
         # crossfading over the holdback.
@@ -1010,7 +1015,7 @@ def cmd_run(force=False, steps=4):
         return csess.run(None, feed)
 
     SRC_CACHE = MEL_CACHE * SAMPLES_PER_MEL
-    one = np.zeros((1, 1, 1), dtype=np.float32)
+    esrc = np.zeros((1, 1, 0), dtype=np.float32)   # see the selftest's note
     emel = np.zeros((1, 80, 0), dtype=np.float32)
 
     # THE ACCEPTING CASE FIRST: final, from the start, an EMPTY seam — the
@@ -1020,7 +1025,7 @@ def cmd_run(force=False, steps=4):
     # the compare starts there. (The zeros-seam version bounded a decaying
     # residue; the real model's trained RNN carried it past one seam at
     # 8.2e-03 and this check refused the graph — chunks-5, 12 Aug.)
-    wav_c, src_c, mel_t = crun(tok, noise, one, emel, 0, 1)
+    wav_c, src_c, mel_t = crun(tok, noise, esrc, emel, 0, 1)
     scale = max(float(np.abs(got).max()), 1e-12)
     prof = [float(np.abs(wav_c[:, i * 480:(i + 1) * 480]
                          - got[:, i * 480:(i + 1) * 480]).max()) / scale
@@ -1051,7 +1056,7 @@ def cmd_run(force=False, steps=4):
     m1 = MELS_PER_TOKEN * (P + n1) - ahead - pmel
     nz1 = draw(torch, P, pmel, n1, 20260808)
     nz1 = (nz1[0][:, :, :pmel + m1], nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
-    w1, s1, m1t = crun(tk1, nz1, one, emel, 0, 0)
+    w1, s1, m1t = crun(tk1, nz1, esrc, emel, 0, 0)
     ok1 = w1.shape[1] == m1 * SAMPLES_PER_MEL
     full_mels = MELS_PER_TOKEN * (P + T) - pmel
     nz2 = draw(torch, P, pmel, T, 20260808)
@@ -1061,7 +1066,7 @@ def cmd_run(force=False, steps=4):
     w2a, _, _ = crun(tok, nz2, s1, m1t, m1, 1)
     # Different source cache, same mel seam: the liveness pair. cache_mel
     # proves itself by the ride-in lengthening the render.
-    w2c, _, _ = crun(tok, nz2, one, m1t, m1, 1)
+    w2c, _, _ = crun(tok, nz2, esrc, m1t, m1, 1)
     emit1 = w1.shape[1] - SRC_CACHE                 # the holdback
     emit2 = w2a.shape[1]                            # the final brings it home
     ok2 = emit1 + emit2 == full_mels * SAMPLES_PER_MEL

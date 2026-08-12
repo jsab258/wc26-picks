@@ -895,13 +895,14 @@ namespace Ledger.Game
                     // emits nothing and the plan is wrong upstream of here.
                     if (!final && fresh * SamplesPerMel < SeamSamples)
                     { Why = "first chunk too small to emit"; return null; }
-                    // ONE ZERO SAMPLE of source — the zero-length version
-                    // is the feed DirectML refused outright — and an EMPTY
-                    // mel seam, which makes the first call the whole-line
-                    // function exactly. Eight zero mels were tried instead
-                    // and the real model's f0 RNN carried the perturbation
-                    // past one seam (chunks-5); the python caller matches.
-                    _seamSrc = new float[1];
+                    // BOTH seams EMPTY: the first call is the whole-line
+                    // function with nothing added. Eight zero mels cost a
+                    // perturbation past one seam (chunks-5); one zero
+                    // source sample cost 1.2e-02 of head ripple
+                    // (chunks-6). Zero-length-on-DirectML is answered by
+                    // the python harness's differential before any build
+                    // leans on this; the python caller matches.
+                    _seamSrc = new float[0];
                     _seamMel = new float[0];
                     _heldTail = null;
                 }

@@ -1958,6 +1958,12 @@ namespace Ledger.Game
         }
         float _billboardWorstDeg = 0f;
         int _billboardsAimed = 0;
+
+        /// Visible text plates lying face-up — captions painted on the road.
+        /// The worst carries the OBJECT'S NAME, because which system laid it
+        /// down is the question the still could not answer.
+        int _textFlat;
+        string _textFlatWorst = "[none]";
         /// How many bubbles the SHOT re-pinned. Zero on a shot with speech in
         /// it means the re-pin is not running; zero with no speech is a quiet
         /// street, and only the count beside `bubblesOnScreen` separates them.
@@ -1980,7 +1986,9 @@ namespace Ledger.Game
         {
             var cam = Camera.main;
             if (cam == null) return;
-            int mirrored = 0, away = 0, seen = 0;
+            int mirrored = 0, away = 0, seen = 0, flat = 0;
+            float flatWorstDot = 0f;
+            string flatWorstName = null;
             foreach (var tm in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 if (tm == null || string.IsNullOrEmpty(tm.text)) continue;
@@ -2052,6 +2060,30 @@ namespace Ledger.Game
                 }
                 seen++;
 
+                // LYING FLAT: a text plate's forward is its face normal, so
+                // forward pointing at the SKY is a caption painted on the
+                // road — what review_day2_noon at 57f91eb shows in van-sized
+                // letters and nothing counted. Named, not just counted,
+                // because the object's name says which SYSTEM laid it down
+                // (a bubble, a nameplate, a street plate), and that is the
+                // question one still could not answer. Zero degrees is
+                // dead flat; the bound at 45 keeps a legitimately
+                // downhill-tilted billboard out of the count.
+                float skyward = Mathf.Abs(
+                    Vector3.Dot(tm.transform.forward, Vector3.up));
+                if (skyward > 0.707f)
+                {
+                    flat++;
+                    if (skyward > flatWorstDot)
+                    {
+                        flatWorstDot = skyward;
+                        flatWorstName = tm.gameObject.name + "/"
+                            + Mathf.RoundToInt(Mathf.Acos(skyward)
+                                               * Mathf.Rad2Deg)
+                            + "degFromFlat";
+                    }
+                }
+
                 // THE HEIGHT MEASUREMENT MOVED, and the comment that used to sit
                 // here is why. It said "only the NPC nameplates are in question
                 // here — street plates are meant to be large and near — so this
@@ -2076,6 +2108,13 @@ namespace Ledger.Game
             // moment when one was. A single sample cannot answer "does this
             // ever get absurd", which is the question.
             if (mirrored > _textMirrored) _textMirrored = mirrored;
+            // Run-worst, same shape as the rest of the family — and the
+            // NAME rides with the count it belongs to, same instant.
+            if (flat > _textFlat)
+            {
+                _textFlat = flat;
+                _textFlatWorst = flatWorstName ?? "[none]";
+            }
             // PEAKS, like every other reading here, and the pair is the
             // point: `away` with no `seen` beside it cannot be read as a
             // ratio, and the ratio is the whole diagnosis.
@@ -10017,6 +10056,7 @@ namespace Ledger.Game
                       // get"; the median is "how does this street read".
                       $"bubbleOverlapMedian={bubbleMedian:0.00} bubbleSamples={_bubbleOverlap.Count} " +
                       $"textMirrored={_textMirrored} " +
+                      $"textFlat={_textFlat} textFlatWorst=[{_textFlatWorst}] " +
                       $"textFacingAway={_textFacingAway} textVisibleAtAway={_textVisibleAtAway} textVisible={_textVisible} " +
                       $"billboardsStale={_billboardsStale} billboardsAtWorst={_billboardsAtWorst} " +
                       $"billboardStaleMedian={BillboardStaleMedian:0.000} " +
