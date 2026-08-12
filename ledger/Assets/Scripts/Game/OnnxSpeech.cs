@@ -88,17 +88,21 @@ namespace Ledger.Game
         /// catch routes that line — and every later one — through the host
         /// path with the reason kept.
         OrtMemoryInfo _device;
-        OrtIoBinding _bindPrefill, _bindStep;
+        OrtIoBinding _bindStep;
         RunOptions _runOpts;
 
-        /// The PREFILL's outputs: `_vals[0]` is the host logits, `_vals[1..]`
-        /// the device cache in layer order. The ORDER IS ASSERTED, not
-        /// assumed — `MustMatch` reads the bound names back once per binding
-        /// and refuses the path if they differ, because a silent
-        /// transposition here is layer 3's keys fed as layer 7's. Disposed
-        /// after the first step has consumed them.
-        IDisposableReadOnlyCollection<OrtValue> _bound;
-        OrtValue[] _vals;
+        /// THE PREFILL IS NEVER BOUND, AND THAT IS A MEASURED DECISION. A
+        /// device buffer from one session's DirectML allocator is an opaque
+        /// sub-allocation only that session can interpret: bench round four
+        /// fed the prefill session's device outputs straight into the step
+        /// session and got fluent garbage — logits off by ~9 with no error
+        /// anywhere, the exact silent failure this file fears most. So the
+        /// prefill runs the classic path, its cache lands on host, and the
+        /// FIRST step uploads it into this side's own device blocks — one
+        /// cache crossing per LINE, against the per-step crossing the bound
+        /// path exists to kill. The first step's inputs are host wrappers
+        /// over the prefill's tensors, disposed once that step has run.
+        OrtValue[] _heldWraps;
 
         /// THE CACHE'S REAL HOME: two explicitly-owned device buffer sets,
         /// alternated every step, because the allocator's own buffers are
@@ -132,11 +136,6 @@ namespace Ledger.Game
         /// bound once as the output, no per-step collections to dispose.
         float[] _logitsBuf;
         OrtValue _logitsHome;
-
-        /// Per-line input values. They pin the managed arrays they wrap, so
-        /// they live until `Release` — disposing one before `Run` returns
-        /// hands the graph freed memory.
-        readonly List<IDisposable> _lineInputs = new List<IDisposable>();
 
         /// The step inputs, made once and MUTATED in place each step — the
         /// value reads its array at run time, so two writes replace two
@@ -312,6 +311,28 @@ namespace Ledger.Game
 
         static int[] Dims(int[] shape) { return (int[])shape.Clone(); }
 
+        /// The prefill's inputs, shared by both paths so they cannot drift.
+        ///
+        /// THE SENTENCE MARKERS ARE NOT ADDED HERE. The prefill graph pads
+        /// the start and stop text tokens on inside, where the model's own
+        /// constants are — one less thing for this side to agree with the
+        /// model about.
+        List<NamedOnnxValue> PrefillFeed(int[] ids)
+        {
+            var tt = new DenseTensor<int>(new[] { 1, ids.Length });
+            for (int i = 0; i < ids.Length; i++) tt.SetValue(i, ids[i]);
+            return new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor(TextTokens, tt),
+                NamedOnnxValue.CreateFromTensor(SpeakerEmb,
+                    Floats(_current.Get("t3.speaker_emb"))),
+                NamedOnnxValue.CreateFromTensor(CondTokens,
+                    Longs(_current.Get("t3.cond_prompt_speech_tokens"))),
+                NamedOnnxValue.CreateFromTensor(EmotionAdv,
+                    Floats(_current.Get("t3.emotion_adv"))),
+            };
+        }
+
         /// The odds, out of whichever graph just ran. Both name this output
         /// `logits` and both give it the same width, so the caller does not
         /// have to know whether this is the first token of the line or the
@@ -368,24 +389,7 @@ namespace Ledger.Game
 
             try
             {
-                // THE SENTENCE MARKERS ARE NOT ADDED HERE. The prefill graph
-                // pads the start and stop text tokens on inside, where the
-                // model's own constants are — one less thing for this side to
-                // agree with the model about.
-                var tt = new DenseTensor<int>(new[] { 1, ids.Length });
-                for (int i = 0; i < ids.Length; i++) tt.SetValue(i, ids[i]);
-
-                var feed = new List<NamedOnnxValue>
-                {
-                    NamedOnnxValue.CreateFromTensor(TextTokens, tt),
-                    NamedOnnxValue.CreateFromTensor(SpeakerEmb,
-                        Floats(_current.Get("t3.speaker_emb"))),
-                    NamedOnnxValue.CreateFromTensor(CondTokens,
-                        Longs(_current.Get("t3.cond_prompt_speech_tokens"))),
-                    NamedOnnxValue.CreateFromTensor(EmotionAdv,
-                        Floats(_current.Get("t3.emotion_adv"))),
-                };
-                _held = _prefill.Run(feed);
+                _held = _prefill.Run(PrefillFeed(ids));
 
                 // THE PREFILL GIVES THE FIRST TOKEN'S ODDS, AND THE VERSION
                 // THAT THREW THEM AWAY IS WHAT JAFAR HEARD. Running the whole
@@ -496,9 +500,10 @@ namespace Ledger.Game
         /// the cache values and the pinned inputs are this line's only.
         void ReleaseLine()
         {
-            if (_bound != null) { _bound.Dispose(); _bound = null; }
-            foreach (var v in _lineInputs) v.Dispose();
-            _lineInputs.Clear();
+            if (_heldWraps != null)
+                for (int j = 0; j < _heldWraps.Length; j++)
+                    if (_heldWraps[j] != null)
+                    { _heldWraps[j].Dispose(); _heldWraps[j] = null; }
             _lineBound = false;
             _cur = -1;
             // The pool, the bindings and the logits home survive between
@@ -506,28 +511,20 @@ namespace Ledger.Game
             // nothing.
         }
 
-        /// Prime the model with the cache bound to the card.
+        /// Prime the model, with the cache's device home made ready.
         ///
-        /// The prefill's outputs are bound once — logits to host, where the
-        /// sampler is, every cache tensor to the device, where the next step
-        /// is — and the step graph's identically, so from here to the end of
-        /// the line the cache never crosses the bus.
+        /// THE PREFILL ITSELF RUNS THE CLASSIC PATH — see `_heldWraps` for
+        /// the bench round that made this a rule rather than a choice. Its
+        /// cache lands on host exactly as the host path's does; the first
+        /// step uploads it into this side's own device blocks, and from the
+        /// second step to the end of the line nothing crosses the bus but
+        /// one token and one row of odds.
         bool BeginBound(int[] ids, float[] logits)
         {
             if (_device == null)
                 _device = new OrtMemoryInfo("DML", OrtAllocatorType.DeviceAllocator,
                                             0, OrtMemType.Default);
             if (_runOpts == null) _runOpts = new RunOptions();
-            if (_vals == null) _vals = new OrtValue[_layers + 1];
-            if (_bindPrefill == null)
-            {
-                var b = _prefill.CreateIoBinding();
-                b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
-                for (int i = 0; i < _layers; i++)
-                    b.BindOutputToDevice(_cacheIn[i], _device);
-                MustMatch(b, _cacheIn);
-                _bindPrefill = b;
-            }
             if (_tokVal == null)
             {
                 // Made HERE, not at the first step, so a wrap the binding
@@ -542,23 +539,7 @@ namespace Ledger.Game
                     _posArr, new long[0]);
             }
 
-            var tt = OrtValue.CreateTensorValueFromMemory(
-                ids, new long[] { 1, ids.Length });
-            _lineInputs.Add(tt);
-            _bindPrefill.BindInput(TextTokens, tt);
-            BindArray(_bindPrefill, SpeakerEmb, _current.Get("t3.speaker_emb"));
-            BindArray(_bindPrefill, CondTokens,
-                      _current.Get("t3.cond_prompt_speech_tokens"));
-            BindArray(_bindPrefill, EmotionAdv, _current.Get("t3.emotion_adv"));
-
-            _bound = _prefill.RunWithBoundResults(_runOpts, _bindPrefill);
-            // The card may still be writing when Run returns — DirectML
-            // batches GPU work — so wait before anything reads or frees
-            // what it owes. (This alone did NOT fix the step-two fault;
-            // the ping-pong buffers above are what did. Kept because it is
-            // the binding API's stated contract for device outputs.)
-            _bindPrefill.SynchronizeBoundOutputs();
-            Fill(_bound, _vals);
+            _held = _prefill.Run(PrefillFeed(ids));
 
             // Where the pool buffers get their shapes: the position axis
             // from the step graph's metadata (the one dynamic dimension),
@@ -596,7 +577,7 @@ namespace Ledger.Game
             _pos = _prefillPos;
             _lineBound = true;
             Residency = "device";
-            return ReadBound(_vals[0], logits);
+            return Read(_held, logits);
         }
 
         bool NextBound(int token, float[] logits)
@@ -623,17 +604,40 @@ namespace Ledger.Game
             _tokArr[0] = token;
             _posArr[0] = ++_steps;
 
-            // THE CACHE NEVER TOUCHES THE ALLOCATOR'S POOL. Inputs read the
-            // half that holds the current cache — the prefill's own values
-            // on the first step — and outputs write the OTHER half, exact
-            // shape bound over a max-size block. Rebinding every step is
-            // the point: the shapes grow a position each time.
+            // THE CACHE NEVER TOUCHES THE ALLOCATOR'S POOL, AND NEVER
+            // CROSSES A SESSION. Inputs read the half that holds the
+            // current cache; outputs write the OTHER half, exact shape
+            // bound over a max-size block. The first step's inputs are the
+            // one exception: HOST wrappers over the prefill's tensors —
+            // that upload is the once-per-line bridge, because a device
+            // buffer from the prefill session read by this one is fluent
+            // garbage (bench round four, ~9 off with no error). Rebinding
+            // every step is the point: the shapes grow a position each time.
             int outHalf = _cur < 0 ? 0 : 1 - _cur;
+            if (_cur < 0)
+            {
+                if (_heldWraps == null) _heldWraps = new OrtValue[_layers];
+                int j = 0;
+                foreach (var v in _held)
+                {
+                    if (v.Name == "logits") continue;
+                    if (j >= _layers) break;
+                    var t = v.AsTensor<float>() as DenseTensor<float>;
+                    if (t == null)
+                        throw new InvalidOperationException(
+                            "the prefill's '" + v.Name + "' is not dense");
+                    _heldWraps[j] = OrtValue.CreateTensorValueFromMemory(
+                        OrtMemoryInfo.DefaultInstance, t.Buffer, _cacheDims[j]);
+                    _bindStep.BindInput(_cacheIn[j], _heldWraps[j]);
+                    j++;
+                }
+                if (j < _layers)
+                    throw new InvalidOperationException(
+                        "the prefill held " + j + " cache tensors, not " + _layers);
+            }
             for (int i = 0; i < _layers; i++)
             {
-                if (_cur < 0)
-                    _bindStep.BindInput(_cacheIn[i], _vals[i + 1]);
-                else
+                if (_cur >= 0)
                     _bindStep.BindInput(_cacheIn[i], TensorElementType.Float,
                                         DimsAt(i, inPos), _pool[_cur][i]);
                 _bindStep.BindOutput(_cacheOut[i], TensorElementType.Float,
@@ -644,9 +648,9 @@ namespace Ledger.Game
             _step.RunWithBinding(_runOpts, _bindStep);
             _bindStep.SynchronizeBoundOutputs();
 
-            // The prefill's values are consumed exactly once, by the first
+            // The prefill's tensors are consumed exactly once, by the first
             // step; after the synchronize above the card is done with them.
-            if (_cur < 0 && _bound != null) { _bound.Dispose(); _bound = null; }
+            if (_cur < 0) DropHeld();
             _cur = outHalf;
             _pos = outPos;
 
@@ -691,16 +695,37 @@ namespace Ledger.Game
         {
             if (_cacheDims == null) _cacheDims = new long[_layers][];
             _prefillPos = -1;
-            for (int i = 0; i < _layers; i++)
+            int i = 0;
+            foreach (var v in _held)
             {
-                _cacheDims[i] = _vals[i + 1].GetTensorTypeAndShape().Shape;
-                long p = _cacheDims[i][_posAxis];
+                if (v.Name == "logits") continue;
+                if (i >= _layers) break;
+                var t = v.AsTensor<float>();
+                var dims = new long[t.Rank];
+                for (int d = 0; d < dims.Length; d++) dims[d] = t.Dimensions[d];
+                _cacheDims[i] = dims;
+                long p = dims[_posAxis];
                 if (_prefillPos < 0) _prefillPos = p;
                 else if (p != _prefillPos)
                     throw new InvalidOperationException(
                         "layer " + i + " has " + p + " positions, layer 0 has "
                         + _prefillPos);
+                i++;
             }
+            if (i < _layers)
+                throw new InvalidOperationException(
+                    "the prefill held " + i + " cache tensors, not " + _layers);
+        }
+
+        /// The prefill's host tensors and their wrappers, released together
+        /// once the first step has uploaded them.
+        void DropHeld()
+        {
+            if (_heldWraps != null)
+                for (int j = 0; j < _heldWraps.Length; j++)
+                    if (_heldWraps[j] != null)
+                    { _heldWraps[j].Dispose(); _heldWraps[j] = null; }
+            if (_held != null) { _held.Dispose(); _held = null; }
         }
 
         /// Two device blocks per layer, sized for this prefill plus `Room`.
@@ -739,66 +764,6 @@ namespace Ledger.Game
             var dims = (long[])_cacheDims[i].Clone();
             dims[_posAxis] = pos;
             return dims;
-        }
-
-        /// Collection to array, once per run. The interface only promises
-        /// enumeration, and sixty-one values per step is a loop, not a cost.
-        static void Fill(IDisposableReadOnlyCollection<OrtValue> from, OrtValue[] into)
-        {
-            int j = 0;
-            foreach (var v in from)
-            {
-                if (j >= into.Length) break;
-                into[j++] = v;
-            }
-            if (j != into.Length)
-                throw new InvalidOperationException(
-                    "the bound run returned " + j + " values, not " + into.Length);
-        }
-
-        /// The bound outputs come back in BINDING order, and everything above
-        /// indexes on that. Asserted once per binding against the names the
-        /// binding itself reports, because a silent transposition is layer
-        /// 3's keys fed as layer 7's — wrong speech, no error.
-        static void MustMatch(OrtIoBinding b, string[] cache)
-        {
-            var names = b.GetOutputNames();
-            if (names.Length != cache.Length + 1 || names[0] != "logits")
-                throw new InvalidOperationException(
-                    "bound outputs are [" + string.Join(",", names)
-                    + "], wanted logits first then " + cache.Length + " caches");
-            for (int i = 0; i < cache.Length; i++)
-                if (names[i + 1] != cache[i])
-                    throw new InvalidOperationException(
-                        "bound output " + (i + 1) + " is '" + names[i + 1]
-                        + "', wanted '" + cache[i] + "'");
-        }
-
-        void BindArray(OrtIoBinding b, string name, VoiceConditionals.Array3 a)
-        {
-            if (a == null)
-                throw new InvalidOperationException("the voice has no '" + name + "'");
-            var shape = new long[a.Shape.Length];
-            for (int i = 0; i < shape.Length; i++) shape[i] = a.Shape[i];
-            OrtValue v = a.Floats != null
-                ? OrtValue.CreateTensorValueFromMemory(a.Floats, shape)
-                : OrtValue.CreateTensorValueFromMemory(a.Longs, shape);
-            _lineInputs.Add(v);
-            b.BindInput(name, v);
-        }
-
-        /// The bound twin of `Read`: the logits value is host memory by
-        /// construction (bound to the CPU device above), and a short read is
-        /// a failure for the same reason it is one there.
-        bool ReadBound(OrtValue v, float[] logits)
-        {
-            var span = v.GetTensorDataAsSpan<float>();
-            int n = Math.Min(logits.Length, span.Length);
-            for (int k = 0; k < n; k++) logits[k] = span[k];
-            if (n != logits.Length)
-                Why = "the bound graph gave " + n + " odds, the sampler wants "
-                      + logits.Length;
-            return n == logits.Length;
         }
 
         /// TOKENS INTO SAMPLES, and the noise comes from here rather than from
@@ -928,7 +893,6 @@ namespace Ledger.Game
         public void Dispose()
         {
             Release();
-            if (_bindPrefill != null) _bindPrefill.Dispose();
             if (_bindStep != null) _bindStep.Dispose();
             if (_tokVal != null) _tokVal.Dispose();
             if (_posVal != null) _posVal.Dispose();

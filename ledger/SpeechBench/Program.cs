@@ -106,6 +106,28 @@ namespace Ledger.Bench
                 }
                 backend.Release();
 
+                // THE NOISE FLOOR, MEASURED BEFORE THE COMPARISON THAT NEEDS
+                // IT. Two host runs of the same line answer how much two
+                // honest runs differ on this card at all; without it, a
+                // bound-vs-host delta has nothing to be judged against and
+                // "big" is a feeling. Expected 0.0 — the graph is
+                // deterministic — and if it is NOT, that fact rewrites the
+                // reading of every number below.
+                var repeat = new float[width];
+                if (!backend.Begin(voice, text, repeat))
+                { Console.WriteLine("BENCH: host repeat begin: " + backend.Why); return 1; }
+                double floorWorst = MaxDelta(a, repeat);
+                for (int k = 0; k < hostSteps.Count; k++)
+                {
+                    if (!backend.Next(feed, repeat))
+                    { Console.WriteLine("BENCH: host repeat step: " + backend.Why); return 1; }
+                    double d = MaxDelta(hostSteps[k], repeat);
+                    if (d > floorWorst) floorWorst = d;
+                }
+                backend.Release();
+                Console.WriteLine("BENCH: hostRepeatMaxDelta="
+                                  + floorWorst.ToString("0.0e+00"));
+
                 backend.ForceHost = false;
                 bool bound = backend.Begin(voice, text, b);
                 Console.WriteLine("BENCH: residency=" + NoSpace(backend.Residency));
