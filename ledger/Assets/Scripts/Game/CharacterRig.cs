@@ -868,6 +868,28 @@ namespace Ledger.Game
             if (mine >= 0f)
             {
                 _armsThisFrame.Add(mine);
+
+                // THE SCARECROW LATCH, per body, because every arm number
+                // above is a median or a percentile and a MINORITY is
+                // invisible to all of them — the pink figure in
+                // review_day1_night stood with both arms out on a street
+                // whose medians read healthy. "Is anybody..." is never a
+                // median question: a body holding within five degrees of
+                // horizontal for over a second is counted ONCE, by name.
+                // The hold filters the top of a walk swing and the spawn
+                // frames before an animator takes a rig.
+                if (mine < 5f)
+                {
+                    _tposeHeld += Time.deltaTime;
+                    if (_tposeHeld > 1f && !_tposeCounted)
+                    {
+                        _tposeCounted = true;
+                        TposeBodies++;
+                        if (_tposeWho.Count < 4 && !_tposeWho.Contains(name))
+                            _tposeWho.Add(name);
+                    }
+                }
+                else _tposeHeld = 0f;
                 // AND THE SAME SAMPLE WITHOUT THE PLAYER IN IT, which is the one
                 // question `armWidest` came back unable to answer.
                 //
@@ -1020,6 +1042,16 @@ namespace Ledger.Game
         /// run. Cleared by whoever closes a frame — see `CloseArmFrame`.
         static readonly List<float> _armsThisFrame = new List<float>();
         static readonly List<float> _armMedians = new List<float>();
+
+        /// Bodies that HELD a T-pose — arms within five degrees of
+        /// horizontal for over a second — counted once each, first four
+        /// named. A count, because "is anybody" is never a median question.
+        public static int TposeBodies;
+        static readonly List<string> _tposeWho = new List<string>();
+        public static string TposeWho =>
+            _tposeWho.Count == 0 ? "[]" : "[" + string.Join("/", _tposeWho.ToArray()) + "]";
+        float _tposeHeld;
+        bool _tposeCounted;
         public static int ArmFrames => _armMedians.Count;
 
         /// Fold this frame's samples into one median and start the next.

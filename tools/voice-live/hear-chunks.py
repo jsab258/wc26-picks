@@ -74,6 +74,12 @@ def plan_chunks(n_tokens, chunk=CHUNK_TOKENS, lookahead=LOOKAHEAD_TOKENS):
 def say_lines(say, fp16=False):
     import numpy as np
     import onnxruntime as ort
+    # ERRORS ONLY. The fp16 session prints one constant-folding warning per
+    # Reciprocal node — dozens — and chunks-9's result window kept exactly
+    # that flood while the timing lines it exists to carry fell off the top.
+    # A truncation that names its count is honest; a channel full of noise
+    # is still a blocked channel (rule 12).
+    ort.set_default_logger_severity(3)
 
     paths = {"t3-prefill": OUT / "t3-prefill.onnx",
              "t3-step": OUT / "t3-step.onnx",

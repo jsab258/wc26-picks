@@ -10306,6 +10306,8 @@ namespace Ledger.Game
                       // question is what the STREET looks like: the typical
                       // frame, and the frame where it stood widest.
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
+                      $"tposeBodies={CharacterRig.TposeBodies} " +
+                      $"tposeWho={CharacterRig.TposeWho} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
                       // AND THE WIDEST BODY, because both of the above are
                       // medians across bodies and the night frame plainly shows
