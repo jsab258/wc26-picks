@@ -72,6 +72,12 @@ namespace Ledger.Core
         /// The model locked into a repeated token and was stopped. This is the
         /// model's own runaway guard, not ours — see `SpeechPlan.StopOnRepeat`.
         Repetition = 5,
+        /// The model emitted its stop token before the words could plausibly
+        /// have been said, and the line is refused. Not `StepCeiling` — the
+        /// two have OPPOSITE fixes (a runaway wants a lower ceiling, an early
+        /// stop wants a healthier model), and a verdict that cannot tell them
+        /// apart sends the next person at the wrong one.
+        StoppedShort = 6,
     }
 
     /// The numbers that come out of the model rather than out of a decision.
@@ -202,8 +208,35 @@ namespace Ledger.Core
 
         /// Below this, an utterance is a click rather than a word. A model
         /// that emits its stop token immediately has failed at something, and
-        /// speaking the result would be worse than staying quiet.
+        /// speaking the result would be worse than staying quiet. This is the
+        /// ABSOLUTE floor; the per-word one below is the one with teeth.
         public int MinSteps = 4;
+
+        /// THE FLOOR SCALES WITH THE WORDS, and the constant above cannot.
+        ///
+        /// Measured, 12 August: an fp16 conversion of the text stage rendered
+        /// a twelve-word line as 4 tokens — and 4 tokens passed `MinSteps = 4`
+        /// exactly. The line would have PLAYED: a quarter of a second of noise
+        /// presented as a sentence, and then poisoned `SpeechDirector`'s
+        /// steps-per-unit estimate as a "whole" line on top.
+        ///
+        /// The number comes from a ten-seed sweep of that line, not from
+        /// taste. Broken renders came back at 0–18 tokens (at worst 1.5 per
+        /// word); healthy fp32 renders of the same line at 80–110 (6.7 per
+        /// word and up); the shortest healthy line ever measured — "No." — at
+        /// 19 for its one word. Tokens are 25 per second of audio, so 3 per
+        /// word demands 0.12s a word: far below any real delivery, double the
+        /// worst broken render. Anything in the measured gap works; 3 sits
+        /// nearer the broken edge so a genuinely rushed line never trips it.
+        ///
+        /// A stop below the floor REFUSES the line rather than suppressing
+        /// the stop token and generating on. Deliberate: the same sweep shows
+        /// what lies past a premature stop — the fp16 renders that did not
+        /// stop early rambled to 170–233 tokens against fp32's 85–110. A
+        /// distribution that stops early is broken, not shy, and forcing it
+        /// onward trades a silent character for a babbling one. Zero disables
+        /// the scaling and leaves only `MinSteps`.
+        public double MinStepsPerWord = 3.0;
 
         /// A RUNAWAY GUARD THE ENGLISH MODEL DOES NOT HAVE. Off by default,
         /// and that default is a correction.
@@ -349,6 +382,7 @@ namespace Ledger.Core
             // same character a different delivery every time they repeated
             // themselves — which is the exact fault audit item 5 was about.
             var rng = new Random(VoiceBank.Seed(voiceId, seedText));
+            int floor = Floor(plan, spoken);
 
             var raw = new float[vocab * rows];
             var logits = rows > 1 ? new double[vocab] : null;
@@ -382,12 +416,12 @@ namespace Ledger.Core
                     // rest — so not adding it here is the same output.
                     if (token == backend.StopToken)
                     {
-                        // A model that stops immediately has not said
-                        // anything. Treated as a failure to speak rather than
-                        // as a very short line, because the alternative is a
-                        // character emitting a click and looking broken.
-                        run.Stop = run.Steps >= plan.MinSteps
-                            ? SpeechStop.Finished : SpeechStop.StepCeiling;
+                        // A stop before the floor is a failure to speak, not a
+                        // very short line — see `SpeechPlan.MinStepsPerWord`
+                        // for the measurement. Refused, never regenerated:
+                        // the character stays quiet and the caller falls back.
+                        run.Stop = run.Steps >= floor
+                            ? SpeechStop.Finished : SpeechStop.StoppedShort;
                         break;
                     }
 
@@ -437,6 +471,26 @@ namespace Ledger.Core
 
             run.Tokens = tokens.ToArray();
             return run;
+        }
+
+        /// The fewest steps at which this text counts as SAID — the larger of
+        /// the absolute floor and the per-word one. Words are whitespace runs
+        /// of the SPOKEN text, the model-normalised one, because that is the
+        /// text whose length the token count actually answers for.
+        internal static int Floor(SpeechPlan plan, string spoken)
+        {
+            int floor = plan.MinSteps > 0 ? plan.MinSteps : 0;
+            if (plan.MinStepsPerWord <= 0 || string.IsNullOrEmpty(spoken))
+                return floor;
+            int words = 0;
+            bool inWord = false;
+            foreach (char c in spoken)
+            {
+                if (char.IsWhiteSpace(c)) inWord = false;
+                else if (!inWord) { inWord = true; words++; }
+            }
+            int scaled = (int)Math.Ceiling(plan.MinStepsPerWord * words);
+            return scaled > floor ? scaled : floor;
         }
 
         /// Classifier-free guidance: steer the conditional logits away from

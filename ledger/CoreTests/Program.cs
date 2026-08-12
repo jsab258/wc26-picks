@@ -7589,20 +7589,24 @@ namespace Ledger.CoreTests
                 "6561 and up are not sound — the model's own `< 6561` filter");
 
             // ---- the accepting case, first, per CLAUDE.md rule 5b ----
-            var good = new ScriptedVoice(11, 12, 13, 14, 15);
+            //
+            // TEN TOKENS, NOT FIVE, because the default plan now carries a
+            // per-word floor: three words demand nine steps before a stop
+            // counts as finished, and the old five-token script sat under it.
+            var good = new ScriptedVoice(11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
             var run = SpeechLoop.Run(good, "rocco", "the docks, midnight");
             Check(run.Stop == SpeechStop.Finished, "a scripted line reaches its stop token",
                 run.Stop.ToString());
             Check(run.Usable, "and is usable");
-            Check(run.Tokens.Length == 5, "with every acoustic token kept",
+            Check(run.Tokens.Length == 10, "with every acoustic token kept",
                 run.Tokens.Length.ToString());
-            Check(run.Steps == 6, "and one more step than tokens — the stop token cost a step",
+            Check(run.Steps == 11, "and one more step than tokens — the stop token cost a step",
                 run.Steps.ToString());
             Check(good.Released == 1, "and the cache was released exactly once",
                 good.Released.ToString());
 
             // ---- determinism, which is VoiceBank's promise reaching here ----
-            var again = SpeechLoop.Run(new ScriptedVoice(11, 12, 13, 14, 15),
+            var again = SpeechLoop.Run(new ScriptedVoice(11, 12, 13, 14, 15, 16, 17, 18, 19, 20),
                                        "rocco", "the docks, midnight");
             Check(string.Join(",", run.Tokens) == string.Join(",", again.Tokens),
                 "the same voice and the same words give the same take");
@@ -7627,9 +7631,46 @@ namespace Ledger.CoreTests
             // ---- every refusing case ----
             var instant = new ScriptedVoice();     // stops at once
             var instantRun = SpeechLoop.Run(instant, "rocco", "hm");
-            Check(instantRun.Stop == SpeechStop.StepCeiling && !instantRun.Usable,
+            Check(instantRun.Stop == SpeechStop.StoppedShort && !instantRun.Usable,
                 "a model that stops immediately is not a very short line, it is a failure",
                 instantRun.Stop.ToString());
+
+            // ---- THE FLOOR SCALES WITH THE WORDS — the fp16 fault, replayed ----
+            //
+            // Measured 12 August: an fp16 text stage rendered a twelve-word
+            // line as 4 tokens, and 4 passed the old constant `MinSteps = 4`
+            // exactly. It would have PLAYED — a quarter-second of noise sold
+            // as a sentence — and then taught `SpeechDirector` that twelve
+            // words cost five steps. Five acoustic tokens here, so this run
+            // clears the old floor and must still be refused by the new one.
+            var quit = new ScriptedVoice(21, 22, 23, 24, 25);
+            var quitRun = SpeechLoop.Run(quit, "ada",
+                "the crates come in on the last barge before the horn sounds twice");
+            Check(quitRun.Stop == SpeechStop.StoppedShort && !quitRun.Usable,
+                "a twelve-word line ending after five steps is refused, whatever "
+                + "the constant floor says", quitRun.Stop.ToString());
+
+            // And the SAME count of steps with one word to say is a sentence —
+            // the floor scaled down, not the model up. "No." measured 19
+            // tokens on the real model; five is still past its floor of four.
+            var curt = new ScriptedVoice(21, 22, 23, 24, 25);
+            var curtRun = SpeechLoop.Run(curt, "ada", "No.");
+            Check(curtRun.Stop == SpeechStop.Finished && curtRun.Usable,
+                "while a one-word line ending at the same step is finished — "
+                + "the floor is per word, not per line", curtRun.Stop.ToString());
+
+            // The arithmetic, pinned: larger of the absolute and per-word
+            // floors, words counted from the spoken text, zero disables.
+            var floors = new SpeechPlan();
+            Check(SpeechLoop.Floor(floors, "No.") == 4,
+                "one word floors at MinSteps — the absolute floor still owns "
+                + "the shortest lines", SpeechLoop.Floor(floors, "No.").ToString());
+            Check(SpeechLoop.Floor(floors, "one two three four") == 12,
+                "four words floor at twelve — three steps a word",
+                SpeechLoop.Floor(floors, "one two three four").ToString());
+            Check(SpeechLoop.Floor(new SpeechPlan { MinStepsPerWord = 0 },
+                    "one two three four") == 4,
+                "and zero turns the scaling off, leaving only the constant");
 
             var ceiling = new ScriptedVoice(1, 2, 3, 4, 5, 6, 7, 8);
             var ceilRun = SpeechLoop.Run(ceiling, "rocco", "a long one",
@@ -8319,6 +8360,23 @@ namespace Ledger.CoreTests
             Check(!cut.StepsPerUnitMeasured,
                 "but NOT how long a line is: it stopped for a reason that has nothing "
                 + "to do with the words, and counting it would measure the deadline");
+
+            // And a refused EARLY stop is the same shape from the other side.
+            // The fp16 fault this guards against rendered twelve words as four
+            // tokens; folded in as a whole line, it would teach the director
+            // that twelve words cost five steps — an estimator poisoned by the
+            // exact failure the floor refuses to play.
+            var shorted = new SpeechDirector();
+            shorted.Observed(new SpeechRun { Steps = 5, Seconds = 0.2,
+                                             Stop = SpeechStop.StoppedShort,
+                                             Tokens = new int[4] },
+                             "the crates come in on the last barge before the horn");
+            Check(Math.Abs(shorted.StepsPerSecond - 25.0) < 1e-9,
+                "a line the floor refused still measured a rate",
+                shorted.StepsPerSecond.ToString("0.0"));
+            Check(!shorted.StepsPerUnitMeasured && !shorted.TokensPerStepMeasured,
+                "but teaches neither length nor ratio — a broken render is not "
+                + "a measurement of the words");
 
             // ---- the deadline handed to SpeechPlan ----
             Check(fast.Deadline("a normal length remark") < fast.PatienceSeconds,

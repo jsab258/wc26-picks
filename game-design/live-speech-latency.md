@@ -94,6 +94,20 @@ Two zero-quality-risk fixes if the hypothesis holds:
   no-underrun rule that needs no margin at all: begin playback when
   remaining-work < remaining-audio (a head-start stream), which puts first
   sound at (total work − audio length) ≈ 1.0–1.4s once residency lands.
+- **And the sweep bought a guard (12 Aug): the stop-token floor now scales
+  with the words.** The 4-token render of the twelve-word line would have
+  PASSED the game's old constant floor of four steps — played as a
+  quarter-second of noise, then taught the latency estimator that twelve
+  words cost five steps. `Core/SpeechLoop` now refuses a stop under
+  3 steps/word (broken renders measured ≤1.5/word, healthy ≥6.7/word, so it
+  sits in the gap nearer the broken edge; "No." at 19 tokens clears its
+  floor of four untouched). Refused lines get their own verdict reason
+  (`StoppedShort`, not `StepCeiling` — opposite fixes) and are excluded from
+  the whole-line estimator fold. Refusal, not stop-suppression: the same
+  sweep shows what lies past a forced continue — the fp16 seeds that did not
+  stop early rambled to 170–233 tokens. The sweep tool now prints the same
+  per-word floor instead of its old flat <15, which had read the 18-token
+  render as healthy.
 - **fp16 rationale, kept for the record**: the shipped weights are bfloat16 upstream — we exported at fp32,
   DOUBLING the bandwidth the model was trained to need. Halves both transfer
   and compute on a bandwidth-bound decode.

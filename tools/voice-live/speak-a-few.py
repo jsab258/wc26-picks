@@ -180,11 +180,21 @@ def run(say, fp16=False, line=0, seeds=1):
                     n_kept += 1
             counts.append(n_kept)
             say(f"  seed {k}: {n_kept} tokens")
-        early = sum(1 for c in counts if c < 15)
+        # THE SAME FLOOR THE GAME REFUSES AT — Core/SpeechLoop.Floor, three
+        # steps a word with an absolute floor of four. The first sweep used a
+        # flat <15 and read an 18-token render of a twelve-word line as
+        # healthy; the count in the verdict had to be corrected by hand. An
+        # instrument that measures the exact thing the game gates on should
+        # carry the game's own line, or its readings need translating.
+        # (Core floors STEPS, which run one past the kept-token count; applied
+        # to counts this is a hair stricter, on the safe side of the gap.)
+        floor = max(4, 3 * len(text.split()))
+        early = sum(1 for c in counts if c < floor)
         say(f"  SWEEP: line {todo[0][0] + 1} x {seeds} seeds, "
             f"{'fp16' if fp16 else 'fp32'}, {rows} row(s) — counts="
             + ",".join(str(c) for c in counts)
-            + f"  earlyStops={early}/{seeds} (threshold <15 tokens)")
+            + f"  earlyStops={early}/{seeds} (floor <{floor} tokens, "
+            "3/word as the game refuses)")
         return 0
 
     pieces, spoken, total = [], [], 0.0
