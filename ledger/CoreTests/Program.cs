@@ -7637,17 +7637,18 @@ namespace Ledger.CoreTests
 
             // ---- THE FLOOR SCALES WITH THE WORDS — the fp16 fault, replayed ----
             //
-            // Measured 12 August: an fp16 text stage rendered a twelve-word
-            // line as 4 tokens, and 4 passed the old constant `MinSteps = 4`
-            // exactly. It would have PLAYED — a quarter-second of noise sold
-            // as a sentence — and then taught `SpeechDirector` that twelve
-            // words cost five steps. Five acoustic tokens here, so this run
-            // clears the old floor and must still be refused by the new one.
+            // Measured 12 August: an fp16 text stage rendered the sweep's
+            // nine-word line as 4 tokens, and 4 passed the old constant
+            // `MinSteps = 4` exactly. It would have PLAYED — a fifth of a
+            // second of noise sold as a sentence — and then taught
+            // `SpeechDirector` that nine words cost five steps. The text
+            // here is that exact line, and five acoustic tokens clear the
+            // old floor, so only the new one refuses this run.
             var quit = new ScriptedVoice(21, 22, 23, 24, 25);
             var quitRun = SpeechLoop.Run(quit, "ada",
-                "the crates come in on the last barge before the horn sounds twice");
+                "Seen the van again. Thursday, same as last Thursday.");
             Check(quitRun.Stop == SpeechStop.StoppedShort && !quitRun.Usable,
-                "a twelve-word line ending after five steps is refused, whatever "
+                "a nine-word line ending after five steps is refused, whatever "
                 + "the constant floor says", quitRun.Stop.ToString());
 
             // And the SAME count of steps with one word to say is a sentence —
@@ -8362,15 +8363,15 @@ namespace Ledger.CoreTests
                 + "to do with the words, and counting it would measure the deadline");
 
             // And a refused EARLY stop is the same shape from the other side.
-            // The fp16 fault this guards against rendered twelve words as four
+            // The fp16 fault this guards against rendered nine words as four
             // tokens; folded in as a whole line, it would teach the director
-            // that twelve words cost five steps — an estimator poisoned by the
+            // that nine words cost five steps — an estimator poisoned by the
             // exact failure the floor refuses to play.
             var shorted = new SpeechDirector();
             shorted.Observed(new SpeechRun { Steps = 5, Seconds = 0.2,
                                              Stop = SpeechStop.StoppedShort,
                                              Tokens = new int[4] },
-                             "the crates come in on the last barge before the horn");
+                             "Seen the van again. Thursday, same as last Thursday.");
             Check(Math.Abs(shorted.StepsPerSecond - 25.0) < 1e-9,
                 "a line the floor refused still measured a rate",
                 shorted.StepsPerSecond.ToString("0.0"));

@@ -174,13 +174,19 @@ def backend_compiles():
                          "--dest", str(ROOT / ".onnx-cache"), "--managed-only"])
     if not dll.exists():
         return True, "backend compile SKIPPED (no onnxruntime assembly cached)"
-    code, out = run(["dotnet", "build", "-c", "Release", "-v", "q", "--nologo",
-                     str(ROOT / "BackendCheck")])
-    if "Build succeeded" in out:
-        return True, "speech backend compiles"
-    errs = sorted({l.split("): ")[-1].split(" [")[0]
-                   for l in out.splitlines() if "error CS" in l})
-    return False, "SPEECH BACKEND WILL NOT COMPILE: " + "; ".join(errs[:2])
+    # BOTH PROJECTS, because they compile the same backend into different
+    # shells: BackendCheck answers "does the game's code build" and
+    # SpeechBench is the console that PROVES the bound path on the PC — a
+    # bench that stopped compiling is a residency question nobody can ask.
+    for proj, name in (("BackendCheck", "backend"), ("SpeechBench", "bench")):
+        code, out = run(["dotnet", "build", "-c", "Release", "-v", "q",
+                         "--nologo", str(ROOT / proj)])
+        if "Build succeeded" not in out:
+            errs = sorted({l.split("): ")[-1].split(" [")[0]
+                           for l in out.splitlines() if "error CS" in l})
+            return False, ("SPEECH " + name.upper() + " WILL NOT COMPILE: "
+                           + "; ".join(errs[:2]))
+    return True, "speech backend + bench compile"
 
 
 def voice_assets():
@@ -672,7 +678,7 @@ def voice_live():
                    "speak.py", "precompute-voices.py", "tokenizer-reference.py",
                    "export-for-game.py", "export-decode.py", "check-graphs.py",
                    "time-the-shape.py", "speak-a-few.py", "probe-step-costs.py",
-                   "convert-fp16.py"):
+                   "convert-fp16.py", "bench-binding.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])

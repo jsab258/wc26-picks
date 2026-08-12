@@ -133,7 +133,7 @@ def run(say, fp16=False, line=0, seeds=1):
         return np.asarray(arr).astype(kind, copy=False)
 
     # A SEED SWEEP TURNS AN ANECDOTE INTO A RATE. The fp16 five-line run
-    # rendered Ada's twelve-word line as FOUR tokens — the stop token won a
+    # rendered Ada's nine-word van line as FOUR tokens — the stop token won a
     # near-tie at step four. One occurrence cannot say whether that is a rare
     # die-roll or the halved precision's habit, and the two verdicts point
     # opposite ways for lever B. So --line N --seeds K renders one line K
@@ -182,7 +182,7 @@ def run(say, fp16=False, line=0, seeds=1):
             say(f"  seed {k}: {n_kept} tokens")
         # THE SAME FLOOR THE GAME REFUSES AT — Core/SpeechLoop.Floor, three
         # steps a word with an absolute floor of four. The first sweep used a
-        # flat <15 and read an 18-token render of a twelve-word line as
+        # flat <15 and read an 18-token render of a nine-word line as
         # healthy; the count in the verdict had to be corrected by hand. An
         # instrument that measures the exact thing the game gates on should
         # carry the game's own line, or its readings need translating.

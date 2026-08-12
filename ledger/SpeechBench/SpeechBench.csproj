@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- DOES RESIDENCY ACTUALLY PAY, ANSWERED ON THE REAL MACHINE.
+
+       `OnnxSpeech` grew a second path: with DirectML present it binds the
+       KV cache to device memory so it stops crossing PCIe twice a step —
+       measured at 31.8ms flat + 142us/position of pure round-trip on the
+       RX 6700. The python preview of that idea died in the DML provider
+       with an access violation, twice, which no C# try/catch can survive
+       either. So the path must be RUN, on the card it ships to, before any
+       Unity build leans on it — and this console project is how, through
+       the exact production classes (`Core/SpeechLoop`'s backend, the real
+       tokenizer, a shipped voice), no Unity in the loop.
+
+       BackendCheck answers "does it compile" in this container.  This
+       answers "is it correct and faster" on Jafar's PC, via the watcher's
+       `time-the-binding` job. Same framework/langversion reasoning as
+       BackendCheck: net8.0 for the SDK, LangVersion 9 for what Unity will
+       accept when this code goes through it. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>LEDGER_ONNX</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OnnxManaged Condition="'$(OnnxManaged)'==''">../.onnx-cache/Microsoft.ML.OnnxRuntime.dll</OnnxManaged>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <Compile Include="../Assets/Scripts/Game/OnnxSpeech.cs" />
+    <Reference Include="Microsoft.ML.OnnxRuntime">
+      <HintPath>$(OnnxManaged)</HintPath>
+    </Reference>
+    <!-- The native halves ride to the output dir when the cache has them —
+         a full `fetch-onnxruntime.py` run puts them there. Absent (the
+         compile-only container), the build still succeeds and only Run
+         would fail, which is the right division: this container compiles,
+         the PC runs. -->
+    <None Include="../.onnx-cache/onnxruntime.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('../.onnx-cache/onnxruntime.dll')" />
+    <None Include="../.onnx-cache/DirectML.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('../.onnx-cache/DirectML.dll')" />
+  </ItemGroup>
+</Project>

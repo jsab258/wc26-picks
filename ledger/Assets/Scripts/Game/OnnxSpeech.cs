@@ -34,6 +34,22 @@ namespace Ledger.Game
     /// values, and the previous step's are disposed once the next step has
     /// been fed. That ordering is the whole of the memory management here and
     /// getting it backwards frees a tensor while it is being read.
+    ///
+    /// AND ON A CARD, "onnxruntime's own values" IS NOT ENOUGH — the classic
+    /// `Run` still lands every output in HOST memory, so the cache crosses
+    /// PCIe twice a step even though no C# array is ever made. Measured on
+    /// the RX 6700: 31.8ms flat plus 142us per position of pure cache
+    /// round-trip — a third to a half of every mid-line step is shipping
+    /// tensors the next step is about to send straight back. So when
+    /// DirectML is present, this binds the cache outputs to DEVICE memory
+    /// (`OrtIoBinding`) and feeds the resulting values back as inputs
+    /// without a copy; only the logits — 64 KB against the cache's
+    /// megabytes — are bound to host, because the sampler lives in Core.
+    /// The python preview of this path died in the DML provider
+    /// (0xC0000005, both attempts), which is why it is proven through
+    /// `SpeechBench` on the real machine before any build leans on it, and
+    /// why every managed failure here falls back to the host path with the
+    /// reason kept in `Residency`.
     public class OnnxSpeech : ISpeechBackend, IDisposable
     {
         readonly InferenceSession _prefill;
@@ -59,6 +75,53 @@ namespace Ledger.Game
         IDisposableReadOnlyCollection<DisposableNamedOnnxValue> _held;
         VoiceConditionals _current;
         int _steps;
+
+        // ---- the residency path: the cache stays on the card ----
+
+        /// Whether the DirectML provider actually attached. Without it there
+        /// is no device to be resident ON, and the host path is not a
+        /// degradation — it is the same speed it ever was.
+        readonly bool _dmlOk;
+
+        /// Where device tensors live. "DML" is the provider's own allocator
+        /// name; a wrong name here throws at the first bound line and the
+        /// catch routes that line — and every later one — through the host
+        /// path with the reason kept.
+        OrtMemoryInfo _device;
+        OrtIoBinding _bindPrefill, _bindStep;
+        RunOptions _runOpts;
+
+        /// The last bound run's outputs: `_vals[0]` is the host logits,
+        /// `_vals[1..]` the device cache in layer order. The ORDER IS
+        /// ASSERTED, not assumed — `MustMatch` reads the bound names back
+        /// once per binding and refuses the path if they differ, because a
+        /// silent transposition here is layer 3's keys fed as layer 7's.
+        IDisposableReadOnlyCollection<OrtValue> _bound;
+        OrtValue[] _vals;
+
+        /// Per-line input values. They pin the managed arrays they wrap, so
+        /// they live until `Release` — disposing one before `Run` returns
+        /// hands the graph freed memory.
+        readonly List<IDisposable> _lineInputs = new List<IDisposable>();
+
+        /// The step inputs, made once and MUTATED in place each step — the
+        /// value reads its array at run time, so two writes replace two
+        /// allocations and two binds per step.
+        long[] _tokArr, _posArr;
+        OrtValue _tokVal, _posVal;
+
+        bool _lineBound;        // did THIS line begin on the bound path
+        bool _bindingBroken;    // a bound line failed; stay on host from here
+
+        /// The bench flips this to time both paths through one session and
+        /// to check the bound path's numbers against the host path's — same
+        /// graph, same provider, so the logits must agree to float noise.
+        public bool ForceHost;
+
+        /// "device", or "host: " and the reason — read by the bench and by
+        /// the verdict, because a residency path that quietly stopped being
+        /// resident is indistinguishable from a slow card otherwise.
+        public string Residency { get; private set; } = "host: no line yet";
 
         public int VocabSize { get { return SpeechVocab.Size; } }
         public int StopToken { get { return SpeechVocab.Stop; } }
@@ -134,7 +197,7 @@ namespace Ledger.Game
             //
             // So this is not a speed decision. It is that a machine without
             // the runtime must fall back rather than fail to construct.
-            try { opts.AppendExecutionProvider_DML(0); }
+            try { opts.AppendExecutionProvider_DML(0); _dmlOk = true; }
             catch (Exception) { /* CPU it is */ }
 
             _prefill = new InferenceSession(prefill, opts);
@@ -250,6 +313,25 @@ namespace Ledger.Game
             var ids = _tokenize != null ? _tokenize(text) : null;
             if (ids == null || ids.Length == 0) { Why = "nothing to say"; return false; }
 
+            // THE BOUND PATH IS TRIED FIRST AND NEVER TWICE AFTER A FAILURE.
+            // A managed exception here — a wrong allocator name, a scalar the
+            // binding will not wrap, a provider that has it disabled — costs
+            // one attempt and the reason is kept; a NATIVE fault cannot be
+            // caught in-process at all, which is what `SpeechBench` exists to
+            // rule out on the real machine before a build trusts this.
+            if (_dmlOk && !_bindingBroken && !ForceHost)
+            {
+                try { return BeginBound(ids, logits); }
+                catch (Exception e)
+                {
+                    _bindingBroken = true;
+                    Residency = "host: " + e.GetType().Name + ": " + e.Message;
+                    ReleaseLine();
+                }
+            }
+            else if (!_dmlOk) Residency = "host: no DirectML";
+            else if (ForceHost) Residency = "host: forced";
+
             try
             {
                 // THE SENTENCE MARKERS ARE NOT ADDED HERE. The prefill graph
@@ -295,6 +377,24 @@ namespace Ledger.Game
 
         public bool Next(int token, float[] logits)
         {
+            if (_lineBound)
+            {
+                try { return NextBound(token, logits); }
+                catch (Exception e)
+                {
+                    // The line is lost — a cache that lives on the card
+                    // cannot be handed to the host path mid-sentence — but
+                    // the NEXT line is not: it begins on the host path with
+                    // the reason kept.
+                    _bindingBroken = true;
+                    Residency = "host: step " + _steps + ": "
+                        + e.GetType().Name + ": " + e.Message;
+                    Why = "bound step " + _steps + ": " + e.GetType().Name
+                        + ": " + e.Message;
+                    Release();
+                    return false;
+                }
+            }
             if (_held == null) { Why = "no line in progress"; return false; }
             try
             {
@@ -354,6 +454,165 @@ namespace Ledger.Game
         public void Release()
         {
             if (_held != null) { _held.Dispose(); _held = null; }
+            ReleaseLine();
+        }
+
+        /// The bound path's per-line state. The bindings, the device info and
+        /// the step values survive between lines — they are per-session — but
+        /// the cache values and the pinned inputs are this line's only.
+        void ReleaseLine()
+        {
+            if (_bound != null) { _bound.Dispose(); _bound = null; }
+            foreach (var v in _lineInputs) v.Dispose();
+            _lineInputs.Clear();
+            _lineBound = false;
+        }
+
+        /// Prime the model with the cache bound to the card.
+        ///
+        /// The prefill's outputs are bound once — logits to host, where the
+        /// sampler is, every cache tensor to the device, where the next step
+        /// is — and the step graph's identically, so from here to the end of
+        /// the line the cache never crosses the bus.
+        bool BeginBound(int[] ids, float[] logits)
+        {
+            if (_device == null)
+                _device = new OrtMemoryInfo("DML", OrtAllocatorType.DeviceAllocator,
+                                            0, OrtMemType.Default);
+            if (_runOpts == null) _runOpts = new RunOptions();
+            if (_vals == null) _vals = new OrtValue[_layers + 1];
+            if (_bindPrefill == null)
+            {
+                var b = _prefill.CreateIoBinding();
+                b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
+                for (int i = 0; i < _layers; i++)
+                    b.BindOutputToDevice(_cacheIn[i], _device);
+                MustMatch(b, _cacheIn);
+                _bindPrefill = b;
+            }
+            if (_tokVal == null)
+            {
+                // Made HERE, not at the first step, so a wrap the binding
+                // refuses — the scalar is the candidate — fails before the
+                // line begins and falls back whole, instead of losing a
+                // prefill's work at step one.
+                _tokArr = new long[1];
+                _posArr = new long[1];
+                _tokVal = OrtValue.CreateTensorValueFromMemory(
+                    _tokArr, new long[] { 1, 1 });
+                _posVal = OrtValue.CreateTensorValueFromMemory(
+                    _posArr, new long[0]);
+            }
+
+            var tt = OrtValue.CreateTensorValueFromMemory(
+                ids, new long[] { 1, ids.Length });
+            _lineInputs.Add(tt);
+            _bindPrefill.BindInput(TextTokens, tt);
+            BindArray(_bindPrefill, SpeakerEmb, _current.Get("t3.speaker_emb"));
+            BindArray(_bindPrefill, CondTokens,
+                      _current.Get("t3.cond_prompt_speech_tokens"));
+            BindArray(_bindPrefill, EmotionAdv, _current.Get("t3.emotion_adv"));
+
+            _bound = _prefill.RunWithBoundResults(_runOpts, _bindPrefill);
+            Fill(_bound, _vals);
+            _lineBound = true;
+            Residency = "device";
+            return ReadBound(_vals[0], logits);
+        }
+
+        bool NextBound(int token, float[] logits)
+        {
+            if (_bound == null) { Why = "no line in progress"; return false; }
+            if (_bindStep == null)
+            {
+                var b = _step.CreateIoBinding();
+                b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
+                for (int i = 0; i < _layers; i++)
+                    b.BindOutputToDevice(_cacheOut[i], _device);
+                MustMatch(b, _cacheOut);
+                b.BindInput("token", _tokVal);
+                b.BindInput("position", _posVal);
+                _bindStep = b;
+            }
+            _tokArr[0] = token;
+            _posArr[0] = ++_steps;
+            // REBOUND EVERY STEP, because the values are new every step. The
+            // binding keeps its last references between runs, so between the
+            // dispose below and this loop it briefly points at freed values —
+            // harmless while nothing runs, which is why the rebind must stay
+            // FIRST in this method's run path.
+            for (int i = 0; i < _layers; i++)
+                _bindStep.BindInput(_cacheIn[i], _vals[i + 1]);
+
+            var got = _step.RunWithBoundResults(_runOpts, _bindStep);
+            // The same ordering rule as the host path, one layer down: the
+            // old values are the run's INPUTS, so they are disposed only
+            // after it has returned.
+            var old = _bound;
+            _bound = got;
+            Fill(got, _vals);
+            old.Dispose();
+            return ReadBound(_vals[0], logits);
+        }
+
+        /// Collection to array, once per run. The interface only promises
+        /// enumeration, and sixty-one values per step is a loop, not a cost.
+        static void Fill(IDisposableReadOnlyCollection<OrtValue> from, OrtValue[] into)
+        {
+            int j = 0;
+            foreach (var v in from)
+            {
+                if (j >= into.Length) break;
+                into[j++] = v;
+            }
+            if (j != into.Length)
+                throw new InvalidOperationException(
+                    "the bound run returned " + j + " values, not " + into.Length);
+        }
+
+        /// The bound outputs come back in BINDING order, and everything above
+        /// indexes on that. Asserted once per binding against the names the
+        /// binding itself reports, because a silent transposition is layer
+        /// 3's keys fed as layer 7's — wrong speech, no error.
+        static void MustMatch(OrtIoBinding b, string[] cache)
+        {
+            var names = b.GetOutputNames();
+            if (names.Length != cache.Length + 1 || names[0] != "logits")
+                throw new InvalidOperationException(
+                    "bound outputs are [" + string.Join(",", names)
+                    + "], wanted logits first then " + cache.Length + " caches");
+            for (int i = 0; i < cache.Length; i++)
+                if (names[i + 1] != cache[i])
+                    throw new InvalidOperationException(
+                        "bound output " + (i + 1) + " is '" + names[i + 1]
+                        + "', wanted '" + cache[i] + "'");
+        }
+
+        void BindArray(OrtIoBinding b, string name, VoiceConditionals.Array3 a)
+        {
+            if (a == null)
+                throw new InvalidOperationException("the voice has no '" + name + "'");
+            var shape = new long[a.Shape.Length];
+            for (int i = 0; i < shape.Length; i++) shape[i] = a.Shape[i];
+            OrtValue v = a.Floats != null
+                ? OrtValue.CreateTensorValueFromMemory(a.Floats, shape)
+                : OrtValue.CreateTensorValueFromMemory(a.Longs, shape);
+            _lineInputs.Add(v);
+            b.BindInput(name, v);
+        }
+
+        /// The bound twin of `Read`: the logits value is host memory by
+        /// construction (bound to the CPU device above), and a short read is
+        /// a failure for the same reason it is one there.
+        bool ReadBound(OrtValue v, float[] logits)
+        {
+            var span = v.GetTensorDataAsSpan<float>();
+            int n = Math.Min(logits.Length, span.Length);
+            for (int k = 0; k < n; k++) logits[k] = span[k];
+            if (n != logits.Length)
+                Why = "the bound graph gave " + n + " odds, the sampler wants "
+                      + logits.Length;
+            return n == logits.Length;
         }
 
         /// TOKENS INTO SAMPLES, and the noise comes from here rather than from
@@ -483,6 +742,12 @@ namespace Ledger.Game
         public void Dispose()
         {
             Release();
+            if (_bindPrefill != null) _bindPrefill.Dispose();
+            if (_bindStep != null) _bindStep.Dispose();
+            if (_tokVal != null) _tokVal.Dispose();
+            if (_posVal != null) _posVal.Dispose();
+            if (_runOpts != null) _runOpts.Dispose();
+            if (_device != null) _device.Dispose();
             if (_prefill != null) _prefill.Dispose();
             if (_step != null) _step.Dispose();
             if (_decode != null) _decode.Dispose();

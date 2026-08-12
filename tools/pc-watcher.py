@@ -141,7 +141,7 @@ TABLE = {
     # this seed's delivery or the precision's habit.
     "hear-fp16": [["PY", "tools/voice-live/convert-fp16.py"],
                   ["PY", "tools/voice-live/speak-a-few.py", "--fp16"]],
-    # THE EARLY-STOP RATE, PER PRECISION. fp16 rendered a twelve-word line as
+    # THE EARLY-STOP RATE, PER PRECISION. fp16 rendered a nine-word line as
     # four tokens once; ten seeds of the same line in each precision turn
     # that anecdote into two rates, and the difference between the rates is
     # lever B's verdict.
@@ -150,6 +150,14 @@ TABLE = {
                           "--fp16", "--line", "2", "--seeds", "10"],
                          ["PY", "tools/voice-live/speak-a-few.py",
                           "--line", "2", "--seeds", "10"]],
+    # LEVER A: does the cache staying on the card pay, and does the bound
+    # path speak the same numbers. The python preview of residency DIED in
+    # the DML provider (0xC0000005, twice), so the C# path must be run on
+    # this machine before any Unity build trusts it — the bench is the
+    # game's own backend classes in a console shell, logits compared
+    # float-for-float before anything is timed. Needs the .NET SDK; the
+    # driver checks first and says exactly what to install if it is absent.
+    "time-the-binding": [["PY", "tools/voice-live/bench-binding.py"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one

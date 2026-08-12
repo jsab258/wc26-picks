@@ -80,7 +80,7 @@ Two zero-quality-risk fixes if the hypothesis holds:
   at 68-77ms per CPU step they were never speaking live anyway. The wav is
   with Jafar; ears close the lever.
 - **LEVER B CLOSED (12 Aug, by rate): the conversion corrupts the sampling
-  distribution.** Ten seeds of the same twelve-word line: fp32 gives a tight
+  distribution.** Ten seeds of the same nine-word line: fp32 gives a tight
   80–110 tokens, zero early stops. fp16 gives **4, 0, 170, 0, 97, 233, 222,
   214, 0, 18** — four-in-ten die before fifteen tokens, THREE at zero, and
   the survivors bloat to 2–2.5x length. That is not near-tie noise; the odds
@@ -95,13 +95,14 @@ Two zero-quality-risk fixes if the hypothesis holds:
   remaining-work < remaining-audio (a head-start stream), which puts first
   sound at (total work − audio length) ≈ 1.0–1.4s once residency lands.
 - **And the sweep bought a guard (12 Aug): the stop-token floor now scales
-  with the words.** The 4-token render of the twelve-word line would have
-  PASSED the game's old constant floor of four steps — played as a
-  quarter-second of noise, then taught the latency estimator that twelve
-  words cost five steps. `Core/SpeechLoop` now refuses a stop under
-  3 steps/word (broken renders measured ≤1.5/word, healthy ≥6.7/word, so it
-  sits in the gap nearer the broken edge; "No." at 19 tokens clears its
-  floor of four untouched). Refused lines get their own verdict reason
+  with the words.** The 4-token render of the nine-word line (nine COUNTED
+  — it spent a day quoted as "twelve-word" off a comment) would have
+  PASSED the game's old constant floor of four steps — played as a fifth of
+  a second of noise, then taught the latency estimator that nine words cost
+  five steps. `Core/SpeechLoop` now refuses a stop under 3 steps/word
+  (broken renders measured ≤2/word, healthy ≥9/word, so it sits in the gap
+  nearer the broken edge; "No." at 19 tokens clears its floor of four
+  untouched). Refused lines get their own verdict reason
   (`StoppedShort`, not `StepCeiling` — opposite fixes) and are excluded from
   the whole-line estimator fold. Refusal, not stop-suppression: the same
   sweep shows what lies past a forced continue — the fp16 seeds that did not

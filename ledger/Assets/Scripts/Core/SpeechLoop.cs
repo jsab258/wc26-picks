@@ -215,19 +215,22 @@ namespace Ledger.Core
         /// THE FLOOR SCALES WITH THE WORDS, and the constant above cannot.
         ///
         /// Measured, 12 August: an fp16 conversion of the text stage rendered
-        /// a twelve-word line as 4 tokens — and 4 tokens passed `MinSteps = 4`
-        /// exactly. The line would have PLAYED: a quarter of a second of noise
+        /// a nine-word line as 4 tokens — and 4 tokens passed `MinSteps = 4`
+        /// exactly. The line would have PLAYED: a fifth of a second of noise
         /// presented as a sentence, and then poisoned `SpeechDirector`'s
-        /// steps-per-unit estimate as a "whole" line on top.
+        /// steps-per-unit estimate as a "whole" line on top. (Nine words
+        /// COUNTED — that line spent a day being quoted as "twelve-word"
+        /// because a comment said so and nobody split the string.)
         ///
         /// The number comes from a ten-seed sweep of that line, not from
-        /// taste. Broken renders came back at 0–18 tokens (at worst 1.5 per
-        /// word); healthy fp32 renders of the same line at 80–110 (6.7 per
-        /// word and up); the shortest healthy line ever measured — "No." — at
-        /// 19 for its one word. Tokens are 25 per second of audio, so 3 per
-        /// word demands 0.12s a word: far below any real delivery, double the
-        /// worst broken render. Anything in the measured gap works; 3 sits
-        /// nearer the broken edge so a genuinely rushed line never trips it.
+        /// taste. Broken renders came back at 0–18 tokens (at worst 2 per
+        /// word); healthy fp32 renders of the same line at 80–110 (about 9
+        /// per word and up); the shortest healthy line ever measured — "No."
+        /// — at 19 for its one word. Tokens are 25 per second of audio, so 3
+        /// per word demands 0.12s a word: far below any real delivery, half
+        /// again the worst broken render, a third of the healthiest floor.
+        /// Anything in the measured gap works; 3 sits nearer the broken edge
+        /// so a genuinely rushed line never trips it.
         ///
         /// A stop below the floor REFUSES the line rather than suppressing
         /// the stop token and generating on. Deliberate: the same sweep shows
