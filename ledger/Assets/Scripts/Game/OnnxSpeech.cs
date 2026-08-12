@@ -514,6 +514,15 @@ namespace Ledger.Game
             BindArray(_bindPrefill, EmotionAdv, _current.Get("t3.emotion_adv"));
 
             _bound = _prefill.RunWithBoundResults(_runOpts, _bindPrefill);
+            // THE CARD MAY STILL BE WRITING WHEN Run RETURNS. DirectML
+            // batches GPU work and flushes lazily, so a device-bound output
+            // can be in flight at this point — and the first bench run died
+            // on exactly that shape: prefill fine, step one fine, step two's
+            // Concat reading a buffer whose producer had been disposed while
+            // the GPU still owed it a write. The binding API's contract is
+            // these synchronize calls; skipping them worked right up until
+            // it did not.
+            _bindPrefill.SynchronizeBoundOutputs();
             Fill(_bound, _vals);
             _lineBound = true;
             Residency = "device";
@@ -544,10 +553,17 @@ namespace Ledger.Game
             for (int i = 0; i < _layers; i++)
                 _bindStep.BindInput(_cacheIn[i], _vals[i + 1]);
 
+            // Writes feeding this run must have landed, and this run's own
+            // writes must land before its inputs are handed back to the
+            // pool below — see the synchronize note in `BeginBound` for the
+            // bench run that established this the expensive way.
+            _bindStep.SynchronizeBoundInputs();
             var got = _step.RunWithBoundResults(_runOpts, _bindStep);
+            _bindStep.SynchronizeBoundOutputs();
             // The same ordering rule as the host path, one layer down: the
             // old values are the run's INPUTS, so they are disposed only
-            // after it has returned.
+            // after it has returned — and, per the synchronize above, only
+            // after the card has actually finished with them.
             var old = _bound;
             _bound = got;
             Fill(got, _vals);
