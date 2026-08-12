@@ -731,8 +731,20 @@ def main():
     # ~200 seconds a session takes to open, and the seconds a line takes to
     # decode, all at once. Whether four sounds as good as ten is a question
     # for ears, not for me.
-    ap.add_argument("--steps", type=int, default=10,
-                    help="flow solver steps baked into the graph (default 10)")
+    # FOUR IS THE SHIPPED NUMBER NOW, AND THE DEFAULT HAD TO MOVE WITH IT.
+    #
+    # Jafar listened to four against ten and could not tell them apart, so
+    # four is what this game uses: it opens the decode session in 38.7s
+    # against 178-225s, and decodes a line in 1.6s against 3.4s.
+    #
+    # Leaving the default at ten would have been a trap of exactly the kind
+    # this project keeps writing down. The next `export-graphs` run would
+    # quietly rebuild at ten, nothing would fail, no check would go red, and
+    # the three-minute startup would come back — to be rediscovered days
+    # later by somebody wondering why it felt slow again.
+    ap.add_argument("--steps", type=int, default=4,
+                    help="flow solver steps baked into the graph (default 4, "
+                         "was 10 until listening said four is the same)")
     ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
     if a.selftest:

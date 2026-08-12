@@ -186,6 +186,56 @@ def run(say):
         f"slowest {ps.max() * 1000:.0f}ms")
     say(f"  {len(tokens)} acoustic tokens kept")
 
+    # ---- AND THE STEP LOOP IS NOW THE BOTTLENECK, so ask it the same
+    # ---- question the decode was asked.
+    #
+    # With four solver steps the decode is 1.6s of a line and these 86 steps
+    # are 3.5-4.7s. The old probe measured the CPU beating DirectML 4.4x PER
+    # STEP on the text model and nobody ever explained it or re-checked it on
+    # the graphs that actually ship. If it still holds, the text stage belongs
+    # on the CPU and the decode on the card, which is a shipping decision
+    # nobody can make without this number.
+    #
+    # TEN STEPS, ON THE CACHE THE REAL LINE ENDED WITH, so the comparison is
+    # made where the work is heaviest rather than at position one.
+    if want[0] != "CPUExecutionProvider":
+        try:
+            t0 = time.time()
+            cpu_step = ort.InferenceSession(str(paths["t3-step"]),
+                                            providers=["CPUExecutionProvider"])
+            cpu_open = time.time() - t0
+            probe = dict(zip(names, cache))
+            probe["token"] = np.array([[7]], dtype=np.int64)
+            probe["position"] = np.array(len(per_step), dtype=np.int64)
+            here, there = [], []
+            for _ in range(10):
+                t0 = time.time()
+                sess["t3-step"].run(None, probe)
+                here.append(time.time() - t0)
+                t0 = time.time()
+                cpu_step.run(None, probe)
+                there.append(time.time() - t0)
+            # MEDIAN, NOT MEAN. One scheduling hiccup in ten runs moves a mean
+            # and cannot move a median, and this number decides where a stage
+            # runs.
+            a = float(np.median(here)) * 1000
+            b = float(np.median(there)) * 1000
+            say(f"  one step, {want[0].replace('ExecutionProvider','')}: "
+                f"{a:.0f}ms   CPU: {b:.0f}ms   (CPU session opened in "
+                f"{cpu_open:.1f}s)")
+            if b < a * 0.9:
+                say(f"  -> the CPU is {a / max(b, 1e-6):.1f}x FASTER per step "
+                    f"— the text stage belongs there, and a whole line would "
+                    f"take {b * len(per_step) / 1000:.1f}s instead of "
+                    f"{a * len(per_step) / 1000:.1f}s")
+            elif a < b * 0.9:
+                say(f"  -> the card is {b / max(a, 1e-6):.1f}x faster per step; "
+                    f"the old 4.4x CPU reading does not hold on these graphs")
+            else:
+                say("  -> the two are within 10% of each other per step")
+        except Exception as e:
+            say(f"  one step on CPU: could not run — {type(e).__name__}: {e}")
+
     if not tokens:
         say("  nothing to decode — the loop produced no acoustic tokens.")
         return 1
