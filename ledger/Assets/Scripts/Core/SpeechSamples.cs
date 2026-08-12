@@ -40,6 +40,26 @@ namespace Ledger.Core
         {
             if (samples == null || samples.Length == 0 || sampleRate <= 0) return;
             int mute = (int)(sampleRate * muteHeadMs / 1000.0);
+            // ONLY WHEN THE HEAD IS AN ISOLATED CLICK, because the mute ate a
+            // word. The 25ms figure came from five renders whose speech began
+            // 90-380ms in; the very next render started its "S" at zero, the
+            // mute cut into it, and Jafar heard a "tch" where the onset used
+            // to be. The transient this exists to kill is only AUDIBLE
+            // against silence — a render that starts speaking immediately
+            // masks it — so the gate is the fault's own definition: a loud
+            // first ~16ms followed by near-silence is a click; anything
+            // sustained is a voice, and a voice keeps its head.
+            int probe = (int)(sampleRate * 0.016);
+            int tail = (int)(sampleRate * 0.064);
+            if (probe > samples.Length) probe = samples.Length;
+            if (tail > samples.Length) tail = samples.Length;
+            float clickPeak = 0f, afterPeak = 0f;
+            for (int i = 0; i < probe; i++)
+                if (Math.Abs(samples[i]) > clickPeak) clickPeak = Math.Abs(samples[i]);
+            for (int i = probe; i < tail; i++)
+                if (Math.Abs(samples[i]) > afterPeak) afterPeak = Math.Abs(samples[i]);
+            bool isolated = afterPeak < 0.01f && clickPeak > afterPeak * 2f;
+            if (!isolated) mute = 0;
             int up = (int)(sampleRate * fadeInMs / 1000.0);
             int down = (int)(sampleRate * fadeOutMs / 1000.0);
             // A MUTTER MUST SURVIVE ITS OWN REPAIRS. The mute is clamped to a

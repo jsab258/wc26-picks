@@ -74,12 +74,16 @@ def _shared_pick():
     return mod
 
 
-def run(say):
+def run(say, fp16=False):
     import numpy as np
     import onnxruntime as ort
 
-    paths = {n: OUT / f"{n}.onnx"
-             for n in ("t3-prefill", "t3-step", "s3gen-decode")}
+    suf = "-fp16" if fp16 else ""
+    paths = {"t3-prefill": OUT / f"t3-prefill{suf}.onnx",
+             "t3-step": OUT / f"t3-step{suf}.onnx",
+             "s3gen-decode": OUT / "s3gen-decode.onnx"}
+    if fp16:
+        say("  TEXT GRAPHS: FP16")
     missing = [p.name for p in paths.values() if not p.exists()]
     if missing:
         say(f"  no graphs on this machine: {', '.join(missing)}")
@@ -120,7 +124,8 @@ def run(say):
 
     def as_np(name, arr):
         kind = {"tensor(int64)": np.int64, "tensor(int32)": np.int32,
-                "tensor(float)": np.float32}[dt[name]]
+                "tensor(float)": np.float32,
+                "tensor(float16)": np.float16}[dt[name]]
         return np.asarray(arr).astype(kind, copy=False)
 
     pieces, spoken, total = [], [], 0.0
@@ -256,6 +261,21 @@ def selftest():
           "an already-said token becomes LESS likely on both signs of logit, "
           "and unsaid ones are untouched", str(out))
 
+    # THE HEAD GATE, BOTH FATES — the python twin of the CoreTests pair.
+    voice = np.full(24000, 0.8)
+    _la.feather(np, voice)
+    check(float(voice[300]) == 0.8,
+          "a render that speaks from sample zero keeps its onset — the "
+          "unconditional mute turned an S into a tch", f"{voice[300]:.3f}")
+    clicky = np.full(24000, 0.001)
+    clicky[:200] = 0.5
+    clicky[3000:] = 0.8
+    _la.feather(np, clicky)
+    check(float(clicky[100]) == 0.0 and float(clicky[3500]) == 0.8,
+          "an isolated transient against silence is muted, and the speech "
+          "further in is untouched",
+          f"{clicky[100]:.3f}, {clicky[3500]:.3f}")
+
     said = []
     global OUT
     keep = OUT
@@ -278,6 +298,8 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--fp16", action="store_true",
+                    help="speak through the fp16 text graphs")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
@@ -293,7 +315,7 @@ def main():
     say(f"ran on {platform.node()} ({platform.system()}), "
         f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say("")
-    rc = run(say)
+    rc = run(say, a.fp16)
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return rc

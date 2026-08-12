@@ -28,7 +28,17 @@ def feather(np, wav):
     n = wav.shape[-1]
     if n == 0:
         return wav
-    mute = min(int(SAMPLE_RATE * 0.025), n // 4)
+    # GATED, NOT UNCONDITIONAL — mirrors Core/SpeechSamples exactly. A fixed
+    # 25ms mute ate the "S" of a render that started speaking at zero and
+    # turned it into a "tch"; the cold-vocoder click is only audible against
+    # silence, so a loud-then-quiet head is a click and a sustained head is a
+    # voice that keeps its onset.
+    probe = min(int(SAMPLE_RATE * 0.016), n)
+    tail = min(int(SAMPLE_RATE * 0.064), n)
+    click_peak = float(np.abs(wav[:probe]).max()) if probe else 0.0
+    after_peak = float(np.abs(wav[probe:tail]).max()) if tail > probe else 0.0
+    isolated = after_peak < 0.01 and click_peak > after_peak * 2
+    mute = min(int(SAMPLE_RATE * 0.025), n // 4) if isolated else 0
     up = min(int(SAMPLE_RATE * 0.010), max(0, n // 2 - mute))
     down = min(int(SAMPLE_RATE * 0.020), n // 2)
     wav[:mute] = 0.0

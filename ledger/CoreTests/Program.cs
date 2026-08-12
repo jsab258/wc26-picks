@@ -8182,23 +8182,37 @@ namespace Ledger.CoreTests
         static void TestSpeechSamples()
         {
             Console.WriteLine("Feathered line edges — the pop is a step from zero:");
+            // TWO HEADS, TWO FATES — the gate is the test. A fixed 25ms mute
+            // ate the "S" of a render that started speaking at sample zero
+            // and Jafar heard a "tch" where the onset was. The click this
+            // repair exists for is only audible against SILENCE, so:
+            // a sustained head is a voice and keeps its onset...
             var wav = new float[24000];
             for (int i = 0; i < wav.Length; i++) wav[i] = 0.8f;
             SpeechSamples.Feather(wav, 24000);
-            // 25ms at 24kHz = 600 samples of hard zero. Measured off the test
-            // file: the cold vocoder rings for ~16ms at the top of every
-            // decode, and a fade only scales a click — zero removes it.
-            Check(wav[0] == 0f && wav[599] == 0f,
-                "the first 25ms are exactly zero — the cold-vocoder transient "
-                + "lives there, and it read as a pop OR a cut-off word");
+            Check(wav[300] == 0.8f,
+                "a render that starts speaking at sample zero KEEPS its onset — "
+                + "the unconditional mute here is what turned an S into a tch");
+            Check(wav[0] == 0f && wav[100] < wav[200],
+                "while the fade still rises from zero, which no click survives");
             Check(Math.Abs(wav[wav.Length - 1]) < 1e-6f,
                 "and the last sample is zero, for the pop in reverse");
             Check(wav[12000] == 0.8f,
                 "the middle of the line is untouched — this is edge shaping, "
                 + "not a volume change");
-            Check(wav[660] > wav[630] && wav[630] > wav[605],
-                "past the mute the ramp rises monotonically rather than stepping",
-                $"{wav[605]:0.000} < {wav[630]:0.000} < {wav[660]:0.000}");
+            // ...and a loud instant against silence is a click and dies.
+            var clicky = new float[24000];
+            for (int i = 0; i < 200; i++) clicky[i] = 0.5f;
+            for (int i = 200; i < 3000; i++) clicky[i] = 0.001f;
+            for (int i = 3000; i < clicky.Length; i++) clicky[i] = 0.8f;
+            SpeechSamples.Feather(clicky, 24000);
+            Check(clicky[100] == 0f,
+                "an isolated transient against silence is muted — the "
+                + "cold-vocoder click, by its own signature",
+                clicky[100].ToString("0.000"));
+            Check(clicky[3500] == 0.8f,
+                "and the speech further in is untouched by the verdict on "
+                + "the head");
             // A MUTTER SURVIVES ITS OWN FADES. 24000 samples of ramp against
             // a 100-sample clip would silence the whole word.
             var blip = new float[100];

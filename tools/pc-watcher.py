@@ -136,6 +136,11 @@ TABLE = {
     # timing every time.
     "try-fp16": [["PY", "tools/voice-live/convert-fp16.py"],
                  ["PY", "tools/voice-live/time-a-line.py", "--fp16"]],
+    # THE FIVE-LINE EARS TEST THROUGH THE HALVES — fp16's real listen. One
+    # line said "a bit fast"; five lines and two voices say whether that is
+    # this seed's delivery or the precision's habit.
+    "hear-fp16": [["PY", "tools/voice-live/convert-fp16.py"],
+                  ["PY", "tools/voice-live/speak-a-few.py", "--fp16"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one
