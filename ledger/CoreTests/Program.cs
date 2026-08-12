@@ -7574,6 +7574,16 @@ namespace Ledger.CoreTests
             }
         }
 
+        /// A sink that records the token count at every call, so the test
+        /// can assert the stream grew one acoustic token at a time.
+        sealed class CountingSink : ISpeechStreamSink
+        {
+            readonly List<int> _counts;
+            public CountingSink(List<int> counts) { _counts = counts; }
+            public void Tokens(IReadOnlyList<int> tokens)
+            { _counts.Add(tokens.Count); }
+        }
+
         /// The step loop — the one piece of live speech that cannot be
         /// converted, because its length depends on the words.
         static void TestSpeechLoop()
@@ -7738,6 +7748,20 @@ namespace Ledger.CoreTests
                 stuckRun.Stop.ToString());
             Check(stuckRun.Usable,
                 "and that IS a finished utterance — the model deciding it is done");
+
+            // ---- the streaming sink hears the line grow ----
+            var heard = new List<int>();
+            var sink = new CountingSink(heard);
+            var streamed = SpeechLoop.Run(
+                new ScriptedVoice(31, SpeechVocab.Start, 33, 34), "rocco",
+                "hum", null, null, sink);
+            Check(string.Join(",", heard) == "1,2,3",
+                "the sink hears every ACOUSTIC token as it lands — the stray "
+                + "start token cost a step but made no sound and no call",
+                string.Join(",", heard));
+            Check(streamed.Tokens.Length == 3,
+                "and the finished run agrees with what the sink was shown",
+                streamed.Tokens.Length.ToString());
 
             // ---- classifier-free guidance ----
             //

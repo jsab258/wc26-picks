@@ -100,6 +100,22 @@ namespace Ledger.Core
         public static bool IsAcoustic(int token) => token >= 0 && token < FirstNonAcoustic;
     }
 
+    /// A LISTENER FOR TOKENS AS THEY ARE SAMPLED, so speech can stream.
+    ///
+    /// Called on the SAME thread as the step loop, after every kept
+    /// acoustic token — and that is the design, not a limitation: the two
+    /// GPU stages must be strictly interleaved, never overlapped, because
+    /// concurrent sessions on the DirectML provider died with an access
+    /// violation both times it was tried. A sink that wants to decode a
+    /// chunk does it right here, between steps, and the step loop simply
+    /// waits — `SpeechStream.CanStart` is the arithmetic that says the
+    /// pauses still land ahead of playback.
+    public interface ISpeechStreamSink
+    {
+        /// `tokens` is the LIVE list and keeps growing; read, do not hold.
+        void Tokens(IReadOnlyList<int> tokens);
+    }
+
     /// The inference session, from Core's side of the wall.
     ///
     /// EVERY METHOD RETURNS SUCCESS RATHER THAN THROWING. A graphics driver
@@ -349,7 +365,8 @@ namespace Ledger.Core
         /// If a multilingual voice is ever used, this becomes a real gap
         /// again and `StopOnRepeat` covers one third of it.
         public static SpeechRun Run(ISpeechBackend backend, string voiceId, string text,
-                                    SpeechPlan plan = null, Func<double> nowSeconds = null)
+                                    SpeechPlan plan = null, Func<double> nowSeconds = null,
+                                    ISpeechStreamSink sink = null)
         {
             var run = new SpeechRun();
             if (backend == null) { run.Stop = SpeechStop.BackendFailed; return run; }
@@ -434,7 +451,15 @@ namespace Ledger.Core
                     // start-of-speech mid-line; only the AUDIO drops it. Feed
                     // back a filtered stream and the model is being told it
                     // said something it did not, from that step onward.
-                    if (SpeechVocab.IsAcoustic(token)) tokens.Add(token);
+                    if (SpeechVocab.IsAcoustic(token))
+                    {
+                        tokens.Add(token);
+                        // Between steps, same thread — see ISpeechStreamSink
+                        // for why that is the contract and not a shortcut. A
+                        // sink that throws kills the line, not the backend:
+                        // the finally below still releases.
+                        if (sink != null) sink.Tokens(tokens);
+                    }
                     seen.Add(token);
 
                     if (plan.StopOnRepeat && run.Steps >= 3

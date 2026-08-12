@@ -102,6 +102,28 @@ would notice, whatever state anything else is in.
    **And this loop takes `Camera.main` under a doc comment saying it measures
    against the review camera** — the second site of the fault the size cap had.
 
+1. **TWO THINGS THE b01ea7d STILLS SHOW THAT NO NUMBER REPORTS.** *(on screen)*
+
+   `review_day1_night.jpg`: a figure in pink at the market stall with both arms
+   straight out — a T-pose, on a street `armStreet=10.7/armStreetWorst=15.3`
+   calls healthy. That is the median-across-bodies blind spot AGAIN (the worst
+   is a max over medians). A hypothesis, not a conviction — one frame, one
+   body, could be a gesture mid-swing. The number to add: a per-body count of
+   arms within 5 degrees of horizontal held for more than a second, emitted as
+   `tposeBodies` with the body id.
+
+   `review_day2_noon.jpg`: three or four large WHITE CAPSULES standing in the
+   road on Hook Street — primitive bodies with no prefab, the exact fault
+   `playerPrimitive` was built for, on NPCs where nothing measures it. The
+   number: `crowdPrimitives` counting capsule-only walkers, plus which tier
+   spawned them.
+
+1. **`killed_<name>` PUTS THE VICTIM'S NAME IN A VERDICT KEY**, so the keys
+   manifest churns every time someone different dies (`killed_june` went
+   missing the run Tibor died; `trouble` is conditional the same way). Emit a
+   stable `killedName=<victim>` instead, and make conditional keys emit their
+   resting value. One-line fixes at the SimDirector fact site (~line 5846).
+
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
 
    `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the newest.
