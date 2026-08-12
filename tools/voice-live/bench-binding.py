@@ -34,6 +34,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "tools" / "voice-live" / "game-out"
@@ -97,15 +98,37 @@ def sdk_missing(which=None, probe=None):
     return None
 
 
+# How long the job waits for the SDK to be installed before giving up. A
+# refusal CONSUMES the request id — the watcher records every finished run —
+# so "refuse and ask again" costs a round trip through the repository per
+# attempt, and the first two attempts did exactly that. Waiting turns the
+# install into the only manual step: winget drops the SDK into the dotnet
+# root that is already on PATH, so a fresh `--list-sdks` subprocess sees it
+# with no restart, and the job carries on by itself. Thirty minutes against
+# the watcher's 3600s step timeout leaves the bench half an hour to run.
+WAIT_SECONDS = 1800
+
+
 def main():
     why = sdk_missing()
     if why:
-        print(f"bench-binding: NO .NET SDK on this machine ({why}) — the")
-        print("  bench is a C# console app so it can drive the game's real")
-        print("  backend. One-time install:")
+        print(f"bench-binding: no .NET SDK yet ({why}).")
+        print("  One-time install, and this job then continues BY ITSELF:")
         print("      winget install Microsoft.DotNet.SDK.8")
-        print("  then run this job again.")
-        return 1
+        print(f"  waiting up to {WAIT_SECONDS // 60} minutes for it...")
+        sys.stdout.flush()
+        t0 = time.time()
+        while time.time() - t0 < WAIT_SECONDS:
+            time.sleep(15)
+            why = sdk_missing()
+            if why is None:
+                print(f"  the SDK appeared after {int(time.time() - t0)}s "
+                      "— carrying on.")
+                break
+        if why:
+            print("bench-binding: no SDK arrived within the wait — run the "
+                  "install above and ask for this job again.")
+            return 1
 
     gone = missing_files()
     if gone:
