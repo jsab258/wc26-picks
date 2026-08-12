@@ -133,12 +133,6 @@ namespace Ledger.Game
         const long Room = 512;
 
 
-        /// The step inputs, made once and MUTATED in place each step — the
-        /// value reads its array at run time, so two writes replace two
-        /// allocations and two binds per step.
-        long[] _tokArr, _posArr;
-        OrtValue _tokVal, _posVal;
-
         bool _lineBound;        // did THIS line begin on the bound path
         bool _bindingBroken;    // a bound line failed; stay on host from here
 
@@ -521,19 +515,6 @@ namespace Ledger.Game
                 _device = new OrtMemoryInfo("DML", OrtAllocatorType.DeviceAllocator,
                                             0, OrtMemType.Default);
             if (_runOpts == null) _runOpts = new RunOptions();
-            if (_tokVal == null)
-            {
-                // Made HERE, not at the first step, so a wrap the binding
-                // refuses — the scalar is the candidate — fails before the
-                // line begins and falls back whole, instead of losing a
-                // prefill's work at step one.
-                _tokArr = new long[1];
-                _posArr = new long[1];
-                _tokVal = OrtValue.CreateTensorValueFromMemory(
-                    _tokArr, new long[] { 1, 1 });
-                _posVal = OrtValue.CreateTensorValueFromMemory(
-                    _posArr, new long[0]);
-            }
 
             _held = _prefill.Run(PrefillFeed(ids));
 
@@ -566,8 +547,6 @@ namespace Ledger.Game
             if (_bindStep == null)
             {
                 var b = _step.CreateIoBinding();
-                b.BindInput("token", _tokVal);
-                b.BindInput("position", _posVal);
                 // THE LOGITS COME BACK THROUGH ORT'S OWN CPU OUTPUT, not a
                 // pre-pinned buffer of ours. Rounds four and five disagreed
                 // by an identical ~9 whichever way the INPUTS arrived, and
@@ -580,8 +559,23 @@ namespace Ledger.Game
                 b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
                 _bindStep = b;
             }
-            _tokArr[0] = token;
-            _posArr[0] = ++_steps;
+            // FRESH VALUES EVERY STEP, EIGHT BYTES EACH, AND THE ROUND THAT
+            // MADE IT A RULE COST SIX. These were one pinned pair, made
+            // once and mutated in place — and three bench rounds returned
+            // IDENTICAL wrong logits through three different input and
+            // output wirings, both guidance rows, not a swap. The one
+            // constant was this pair: a bound CPU input is not re-read at
+            // every run, so every bound step was answering "token 0 at
+            // position 0" — the arrays' values at bind time — whatever the
+            // sampler had picked. The prefill agreed all along because it
+            // has no such inputs. Rebinding a fresh value each step leaves
+            // nothing for a snapshot or an upload cache to be stale ABOUT.
+            var tokVal = OrtValue.CreateTensorValueFromMemory(
+                new long[] { token }, new long[] { 1, 1 });
+            var posVal = OrtValue.CreateTensorValueFromMemory(
+                new long[] { ++_steps }, new long[0]);
+            _bindStep.BindInput("token", tokVal);
+            _bindStep.BindInput("position", posVal);
 
             // THE CACHE NEVER TOUCHES THE ALLOCATOR'S POOL, AND NEVER
             // CROSSES A SESSION. Inputs read the half that holds the
@@ -625,6 +619,8 @@ namespace Ledger.Game
 
             _bindStep.SynchronizeBoundInputs();
             int n = 0;
+            using (tokVal)
+            using (posVal)
             using (var got = _step.RunWithBoundResults(_runOpts, _bindStep))
             {
                 _bindStep.SynchronizeBoundOutputs();
@@ -884,8 +880,6 @@ namespace Ledger.Game
         {
             Release();
             if (_bindStep != null) _bindStep.Dispose();
-            if (_tokVal != null) _tokVal.Dispose();
-            if (_posVal != null) _posVal.Dispose();
             if (_pool != null)
                 for (int h = 0; h < 2; h++)
                     for (int i = 0; i < _layers; i++)
