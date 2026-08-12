@@ -1077,6 +1077,24 @@ namespace Ledger.Game
         /// never speaks live.
         public static string BackendWhy { get; private set; } = "not attempted";
 
+        /// Where the live cache lives — `OnnxSpeech.Residency` when the
+        /// backend is ours, or the reason there is nothing to be resident.
+        /// "device" is the bound path the bench proved bit-exact at 17ms
+        /// flat; a fallback carries its cause, and a machine where the
+        /// number quietly reads "host" is the difference between a slow
+        /// card and a regression.
+        public static string ResidencyWhy
+        {
+            get
+            {
+#if LEDGER_ONNX
+                var ours = Backend as OnnxSpeech;
+                if (ours != null) return ours.Residency;
+#endif
+                return Backend == null ? "no backend" : "not ours";
+            }
+        }
+
         /// Where the three exported graphs live inside a build.
         public const string ModelFolder = "Voice/models";
 

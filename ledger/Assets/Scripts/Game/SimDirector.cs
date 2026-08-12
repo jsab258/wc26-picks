@@ -9651,6 +9651,13 @@ namespace Ledger.Game
                       $"speechVoicesWhy=[{Audio.VoicesWhy}] " +
                       $"speechVocabWhy=[{Audio.VocabularyWhy}] " +
                       $"speechBackendWhy=[{Audio.BackendWhy}] " +
+                      // WHERE THE CACHE LIVED. "device" is the bound path the
+                      // bench proved bit-exact at 17ms flat; anything else is
+                      // the host path plus the reason it fell back. A
+                      // residency that quietly stopped being resident reads
+                      // as a slow card otherwise, and this is the number
+                      // that tells those apart on a player's machine.
+                      $"speechResidency=[{Audio.ResidencyWhy}] " +
                       $"{Audio.Pending.Verdict()} " +
                       $"slamInvestigations={_slamInvestigations} standoffs={Standoff.Beats} " +
                       $"hushPeak={_hushPeak:0.00} litRange={_litRange:0.0} darkRange={_darkRange:0.0} " +
