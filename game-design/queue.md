@@ -61,24 +61,18 @@ many start markers go in, and I had matched the one that does not ship.
    Ada runaway came from a test sampler with no repetition penalty — the
    conclusion was confounded), then chunked delivery. Six experiments are
    sequenced in the SPEC; each ends in a number or a wav.
-2. **CLOSED — four solver steps, approved by ear.** Startup 184s -> 45s,
-   decode 3.4s -> 1.6s. `back-to-ten-steps` reverses if ever needed.
-3. **CLOSED — the 4.4x CPU-per-step reading is dead.** On the shipped graphs
-   the card wins both stages (1.3-1.8x steps, 3.5x decode). Both stay on it.
-4. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`.
+2. **CLOSED — four solver steps (ear-approved; `back-to-ten-steps`
+   reverses), and the 4.4x CPU-per-step reading is dead: the card wins
+   both stages on the shipped graphs.**
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
-- **HEAT FADES AND NOBODY KNOWS WHY.** `homInquiry=Manhunt` at the killing
-  against `inquiry=Procedure` at the end of the run — it escalated and settled
-  back. `redirected=0 pointedAt=nobody`, so the redirect is not the cause. Two
-  candidates: rumour confidence ageing below `TestimonyGrade`, or `Pressure`
-  reading a day. **Do not assume it fades by design — measure it.**
+- **HEAT FADES AND NOBODY KNOWS WHY.** `homInquiry=Manhunt` at the killing,
+  `inquiry=Procedure` at the end; `redirected=0`, so not the redirect. Rumour
+  ageing or `Pressure` reading a day. **Measure it, do not assume design.**
 
-- **THE SUCCESSION STOPS ONE STEP SHORT.** `joeyRuns=True` and Joey has dropped
-  off `successorWhy`, so he passes `CouldHold`. `handed=False` still, so
-  `ReadySuccessor` returns a man and something after it refuses. A much smaller
-  search than the 138 runs of nothing that preceded it.
+- **THE SUCCESSION STOPS ONE STEP SHORT.** `joeyRuns=True`, `handed=False`:
+  `ReadySuccessor` returns a man and something after it refuses.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -102,6 +96,34 @@ would notice, whatever state anything else is in.
    **And this loop takes `Camera.main` under a doc comment saying it measures
    against the review camera** — the second site of the fault the size cap had.
 
+1. **A CAPTION IS PAINTED ON THE ROAD, METERS TALL, AND DOUBLED.** *(on
+   screen, 57f91eb)* `review_day2_noon.jpg`: an overheard-fragment caption
+   ("… of the … but … it …") lies FLAT on the tarmac in letters the size
+   of a van. `review_day2_night.jpg`: the same system draws "… asking …
+   I … you." TWICE, two sizes, one above the other. The fragment TEXT is
+   the partial-overhear design working; the placement is broken twice
+   over — a world-space transform lying down (like the old billboard
+   maths) and a double render (a bubble and its world-text twin both
+   live?). No number sees either: `textMirrored=0` and the billboard
+   family all read healthy in this run. Find the renderer that draws
+   overhear fragments, read its transform against `SpeechBubble`'s
+   billboard fix, and add `captionsOnGround` + `captionsDoubled` counts.
+
+1. **THE b01ea7d/57f91eb CAPSULES ARE NOT WALKERS, AND THE NEW COUNTER IS
+   BLIND TO THEIR POPULATION.** *(on screen)* `walkersPrimitive=0 ... Who=[]`
+   landed and reads clean while `review_day2_noon.jpg` (both builds) shows
+   3-4 person-sized white capsules in the road. Rule 3b: the denominator
+   is `walkersPrimitiveOf=56` — the CityWalker set — so whatever spawns
+   these bodies (mill agents? the twin? dressing?) is outside it. Name
+   the population before recounting.
+
+1. **THE NIGHT REVIEW CAMERA CAN BE HALF-INSIDE A BUILDING AND THE BLOCKED
+   COUNT SAYS ZERO FOR THAT SHOT.** `review_day1_night.jpg` (57f91eb): the
+   left 40% of frame is one unlit wall at arm's length; the street shows
+   only in the right half. `shotsBlocked=1` names a different shot — the
+   aim RAY was clear, the framing is still bad. The number: fraction of
+   frame within 2m (a near-occluder fraction per shot), worst-shot named.
+
 1. **TWO THINGS THE b01ea7d STILLS SHOW THAT NO NUMBER REPORTS.** *(on screen)*
 
    `review_day1_night.jpg`: a figure in pink at the market stall with both arms
@@ -118,13 +140,10 @@ would notice, whatever state anything else is in.
    number: `crowdPrimitives` counting capsule-only walkers, plus which tier
    spawned them.
 
-1. **CLOSED, AND THE EMITTER WAS INNOCENT — the diagnosis above this line
-   was wrong for a day.** The victim's name reached the keys manifest
-   because `verdict-keys.py` read `key=value` pairs INSIDE bracketed
-   values (`homTopics=[...player.killed_june=true]`), which
-   `verdict-read.py` had always stripped — one idea, two parsers, one
-   missing the loop. Fixed 12 Aug; the relearn dropped 169 ghost keys the
-   misparse had accumulated, every one a latent false GONE.
+1. **CLOSED 12 Aug: the `killed_<name>` churn was the keys manifest's
+   parser reading key=value pairs inside bracketed values — the emitter
+   was innocent and the earlier item here blamed it. The relearn dropped
+   169 ghost keys.**
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
 

@@ -56,13 +56,14 @@ namespace Ledger.Core
         public const int SeamSamples = SeamMels * SamplesPerMel;
 
         /// The samples a chunk actually hands the player, which is NOT its
-        /// fresh mels times 480: the first chunk drops the zero-seam's
-        /// render and holds a seam back for the next crossfade, middles
-        /// emit exactly their fresh samples (the held tail re-emerges
-        /// crossfaded at their head), and the final brings the holdback
-        /// home. Any release arithmetic that banks `fresh * 480` for the
-        /// first chunk overestimates the audio in hand by 160ms and
-        /// underruns exactly once, at the start, on every line.
+        /// fresh mels times 480: the first chunk carries no ride-in (its
+        /// seam is EMPTY — it is the whole-line function exactly) and
+        /// holds a seam back for the next crossfade, middles emit exactly
+        /// their fresh samples (the held tail re-emerges crossfaded at
+        /// their head), and the final brings the holdback home. Any
+        /// release arithmetic that banks `fresh * 480` for the first chunk
+        /// overestimates the audio in hand by 160ms and underruns exactly
+        /// once, at the start, on every line.
         public static int EmittedSamples(int freshMels, bool first,
                                          bool final)
         {
@@ -200,6 +201,15 @@ namespace Ledger.Core
         /// re-speaks a failed line whole, and audio that also started
         /// streaming would say its opening words twice.
         public bool CanStartNow { get { lock (_gate) return _started && !_failed; } }
+
+        /// Whether the start decision had latched BEFORE any failure —
+        /// distinct from `CanStartNow`, which a failure forces false. The
+        /// worker's fallback question is not "may playback start" but "might
+        /// playback have started": a failure after sanction means the pump
+        /// may already be speaking this line, and re-speaking it whole would
+        /// say the opening twice. The pump's own began-flag settles the
+        /// remaining race; this is the cheap first filter.
+        public bool Sanctioned { get { lock (_gate) return _started; } }
 
         /// Samples decoded and not yet taken by playback.
         public int SamplesReady { get { lock (_gate) return _banked; } }

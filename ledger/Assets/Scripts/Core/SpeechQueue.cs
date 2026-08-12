@@ -176,6 +176,27 @@ namespace Ledger.Core
             }
         }
 
+        /// A STREAMED line hands nothing back — its audio already played,
+        /// chunk by chunk, while it was in flight. This closes the job's
+        /// lifecycle without entering `_done`, so `Collect` cannot build a
+        /// second clip and say the line twice; and it never marks TooLate,
+        /// because a line that STARTED inside the shelf and is still
+        /// playing is the feature working, not a miss.
+        public void DeliverStreamed(SpeechJob job, SpeechRun run, double now)
+        {
+            if (job == null) return;
+            lock (_waiting)
+            {
+                job.Run = run;
+                job.Finished = now;
+                Streamed++;
+                if (ReferenceEquals(_inFlight, job)) _inFlight = null;
+            }
+        }
+
+        /// Lines that played progressively rather than through `Collect`.
+        public int Streamed { get; private set; }
+
         /// The main thread collects a finished line, or null. Called every
         /// frame; returns one at a time so a burst cannot stall a frame
         /// building several audio clips at once.

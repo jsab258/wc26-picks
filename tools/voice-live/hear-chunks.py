@@ -200,7 +200,12 @@ def say_lines(say, fp16=False):
         window = np.hamming(2 * SRC).astype(np.float32)
         rise, fall = window[:SRC], window[SRC:]
         src = np.zeros((1, 1, 1), dtype=np.float32)
-        cmel = np.zeros((1, 80, 8), dtype=np.float32)
+        # EMPTY on the first call — the whole-line function exactly. The
+        # zeros-seam version perturbed the real model's f0 RNN past one
+        # seam (chunks-5) and the export guard refused it. If DirectML
+        # refuses the empty CONCAT instead, the differential below names
+        # it, which is this trip's question.
+        cmel = np.zeros((1, 80, 0), dtype=np.float32)
         held = None
         # THE SAME FEED, BOTH PROVIDERS, kept from the differential run: a
         # call DirectML refuses is re-run, feed unchanged, on a CPU session
@@ -220,19 +225,21 @@ def say_lines(say, fp16=False):
         first_fresh = (MELS_PER_TOKEN * (P + plan[0][0])
                        - (0 if plan[0][2] else
                           MELS_PER_TOKEN * LOOKAHEAD_TOKENS)) - pmel
-        assert first_fresh * SAMPLES_PER_MEL >= 2 * SRC or plan[0][2], \
-            "the first chunk must out-render its zero-seam drop plus the " \
-            "holdback — grow the first chunk"
+        assert first_fresh * SAMPLES_PER_MEL >= SRC or plan[0][2], \
+            "the first chunk must out-render the holdback — grow the " \
+            "first chunk"
         for visible, offset, final in plan:
             h = MELS_PER_TOKEN * (P + visible) \
                 - (0 if final else MELS_PER_TOKEN * LOOKAHEAD_TOKENS)
             fresh = (h - pmel) - offset
-            # The seam region's sine noise is zeros in front: every call
-            # after the first overwrites its source with the cache anyway,
-            # and the first drops that region's render.
+            # The ride-in region's sine noise is zeros in front (its source
+            # is overwritten by the cache); an empty first-call seam pads
+            # nothing.
+            ride = cmel.shape[2] * SAMPLES_PER_MEL
             sine = np.concatenate(
-                [np.zeros((1, 9, SRC), dtype=np.float32),
-                 gauss((1, 9, fresh * SAMPLES_PER_MEL))], axis=2)
+                [np.zeros((1, 9, ride), dtype=np.float32),
+                 gauss((1, 9, fresh * SAMPLES_PER_MEL))], axis=2) \
+                if ride else gauss((1, 9, fresh * SAMPLES_PER_MEL))
             feed = {
                 "tokens": np.array([tokens[:visible]], dtype=np.int64),
                 "prompt_token": pt.astype(np.int64),
@@ -265,9 +272,7 @@ def say_lines(say, fp16=False):
                     raise
             times.append(time.time() - t)
             w = w[0]
-            if held is None:
-                w = w[SRC:]                     # the zero seam's render
-            else:
+            if held is not None:
                 w = w.copy()
                 w[:SRC] = w[:SRC] * rise + held * fall
             if final:

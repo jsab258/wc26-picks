@@ -1212,10 +1212,70 @@ namespace Ledger.Game
                 float[] samples = null;
                 double decodeSeconds = 0.0;
                 int decodeTokens = 0;
+                SpeechChunkFollower follower = null;
+                LiveStream stream = null;
                 try
                 {
+                    // THE STREAMING PATH, when the machine has earned it: a
+                    // chunk decoder is present and the measured step rate
+                    // beats playback. The follower rides the loop as its
+                    // sink, decoding between steps on this same thread —
+                    // the interleave the DML crash mandated — and the pump
+                    // starts playing the moment the no-underrun arithmetic
+                    // allows. Everything else about the line (deadline,
+                    // sampling, telemetry) is identical to the banked path.
+                    var chunkDec = Backend as ISpeechChunkDecoder;
+                    if (chunkDec != null
+                        && SpeechStream.Sustainable(Live.StepsPerSecond,
+                                                    Live.TokensPerStep))
+                    {
+                        follower = new SpeechChunkFollower(
+                            chunkDec,
+                            (int)Live.ExpectedTokens(job.Text),
+                            Live.StepsPerSecond, Live.TokensPerStep,
+                            Live.DecodeFixedSeconds,
+                            Live.DecodeSecondsPerToken);
+                        stream = new LiveStream { Job = job, Follower = follower };
+                        lock (_streams) _streams.Add(stream);
+                    }
                     var plan = new SpeechPlan { DeadlineSeconds = Live.Deadline(job.Text) };
-                    run = SpeechLoop.Run(Backend, job.VoiceId, job.Text, plan, Clock);
+                    run = SpeechLoop.Run(Backend, job.VoiceId, job.Text, plan, Clock,
+                                         follower);
+                    if (run.Usable && follower != null)
+                        follower.Finish(run.Tokens);
+                    bool streamed = follower != null && run.Usable
+                        && !follower.Failed;
+                    if (follower != null && !streamed)
+                    {
+                        // The stream died. If playback might already have
+                        // begun — the decision latched and the pump raised
+                        // its flag — the line is truncated rather than
+                        // repeated: re-speaking it whole would say the
+                        // opening words twice. Otherwise fall through to
+                        // the banked path below as if streaming had never
+                        // been tried.
+                        bool spoken = follower.Sanctioned && stream.Began;
+                        lock (_streams) _streams.Remove(stream);
+                        stream = null;
+                        if (spoken)
+                        {
+                            Live.Observed(run, job.Text);
+                            Pending.DeliverStreamed(job, run, Clock());
+                            continue;
+                        }
+                        follower = null;
+                    }
+                    if (streamed)
+                    {
+                        // Chunk decode cost is interleaved into the loop,
+                        // so the whole-line decode rates are deliberately
+                        // NOT fed from here — they would read half a line's
+                        // steps as decode time and poison the projection
+                        // banked lines measure honestly.
+                        Live.Observed(run, job.Text);
+                        Pending.DeliverStreamed(job, run, Clock());
+                        continue;
+                    }
                     if (run.Usable)
                     {
                         // TIMED HERE BECAUSE THIS IS THE ONLY PLACE THAT CAN.
@@ -1245,6 +1305,10 @@ namespace Ledger.Game
                     // failed line, which is already a counted outcome.
                     run = null;
                     samples = null;
+                    // A stream left registered here would wait on the pump
+                    // for ever; what it already played stays played.
+                    if (stream != null)
+                        lock (_streams) _streams.Remove(stream);
                 }
                 try
                 {
@@ -1261,6 +1325,89 @@ namespace Ledger.Game
             }
         }
 
+        /// A line playing WHILE it is still being generated. The worker
+        /// registers one before the loop starts; the pump owns the Unity
+        /// half — clip, source, the began flag — because clips may only be
+        /// touched on the main thread.
+        sealed class LiveStream
+        {
+            public SpeechJob Job;
+            public SpeechChunkFollower Follower;
+            public AudioClip Clip;
+            public int Written;
+            /// Set by the pump, read by the worker: playback actually
+            /// began, so a failure after this is a truncation, never a
+            /// re-speak.
+            public volatile bool Began;
+        }
+
+        static readonly List<LiveStream> _streams = new List<LiveStream>();
+
+        /// The stream clip is sized for the longest legal line — the step
+        /// ceiling's thousand tokens — and stopped when the line's real
+        /// length is known. Unwritten samples are zeros, so even a wrong
+        /// stop is silence rather than garbage.
+        const int StreamClipSamples = 1000 * SpeechStream.MelsPerToken
+                                      * SpeechStream.SamplesPerMel;
+
+        /// Drives every live stream forward one frame: starts playback when
+        /// the no-underrun arithmetic sanctions it, uploads whatever the
+        /// follower has banked, and retires the stream when the line has
+        /// been said. At most one stream exists in practice — the queue
+        /// runs one line in flight — so the loop is bookkeeping, not cost.
+        static void PumpStreams()
+        {
+            lock (_streams)
+            {
+                for (int i = _streams.Count - 1; i >= 0; i--)
+                {
+                    var s = _streams[i];
+                    if (s.Clip == null)
+                    {
+                        if (!s.Follower.CanStartNow) continue;
+                        s.Clip = AudioClip.Create("stream/" + s.Job.VoiceId,
+                                                  StreamClipSamples, 1,
+                                                  LiveSampleRate, false);
+                        s.Began = true;
+                        if (_voiceLp != null)
+                            _voiceLp.cutoffFrequency = 22000f;
+                        _voice.clip = s.Clip;
+                        _voice.volume = Mathf.Clamp01(
+                            (float)Mixing.Attenuate(Bus.Voice, 0f));
+                        _voice.Play();
+                    }
+                    var fresh = s.Follower.TakeReady();
+                    if (fresh != null)
+                    {
+                        if (s.Written == 0)
+                            SpeechSamples.Feather(fresh, LiveSampleRate);
+                        if (s.Written + fresh.Length <= StreamClipSamples)
+                        {
+                            s.Clip.SetData(fresh, s.Written);
+                            s.Written += fresh.Length;
+                        }
+                    }
+                    bool done = s.Follower.Complete || s.Follower.Failed;
+                    if (done && _voice.clip == s.Clip
+                        && _voice.timeSamples >= s.Written)
+                    {
+                        _voice.Stop();
+                        _voice.clip = null;
+                        // The banked path scales PlayOneShot by the SOURCE
+                        // volume too, so a stream that leaves attenuation
+                        // behind would duck every later one-shot twice.
+                        _voice.volume = 1f;
+                        SpeechPlayed++;
+                        _streams.RemoveAt(i);
+                    }
+                    else if (done && _voice.clip != s.Clip)
+                    {
+                        _streams.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
         /// Called once a frame from the mix. Turns at most ONE finished line
         /// into an `AudioClip` and plays it.
         ///
@@ -1271,6 +1418,7 @@ namespace Ledger.Game
         public static void PumpSpeech(float metres = 0f, bool occluded = false)
         {
             if (_root == null || _voice == null) return;
+            PumpStreams();
             var job = Pending.Collect();
             if (job == null || !job.Speakable) return;
             var clip = AudioClip.Create("live/" + job.VoiceId, job.Samples.Length,

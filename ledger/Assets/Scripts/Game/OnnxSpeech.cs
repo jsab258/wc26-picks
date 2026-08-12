@@ -891,17 +891,18 @@ namespace Ledger.Game
                 if (fresh <= 0) { Why = "the chunk adds no mel"; return null; }
                 if (melOffset == 0)
                 {
-                    // A first chunk must out-render the zero-seam drop plus
-                    // the holdback, or it emits nothing and the plan is
-                    // wrong upstream of here.
-                    if (!final && fresh * SamplesPerMel < 2 * SeamSamples)
+                    // A first chunk must out-render the holdback, or it
+                    // emits nothing and the plan is wrong upstream of here.
+                    if (!final && fresh * SamplesPerMel < SeamSamples)
                     { Why = "first chunk too small to emit"; return null; }
-                    // ONE ZERO SAMPLE, NOT ZERO SAMPLES — a zero-length
-                    // cache is the one feed DirectML refused outright. The
-                    // mel seam is zeros at its full fixed size, and the
-                    // 3840 samples those zeros render to are dropped below.
+                    // ONE ZERO SAMPLE of source — the zero-length version
+                    // is the feed DirectML refused outright — and an EMPTY
+                    // mel seam, which makes the first call the whole-line
+                    // function exactly. Eight zero mels were tried instead
+                    // and the real model's f0 RNN carried the perturbation
+                    // past one seam (chunks-5); the python caller matches.
                     _seamSrc = new float[1];
-                    _seamMel = new float[80 * 8];
+                    _seamMel = new float[0];
                     _heldTail = null;
                 }
                 if (_seamSrc == null || _seamMel == null)
@@ -915,17 +916,22 @@ namespace Ledger.Game
                 // The seam region's sine noise is zeros in front: its
                 // source is overwritten by the cache on every call after
                 // the first, and the first drops that region's render.
-                int wav = SeamSamples + fresh * SamplesPerMel;
+                // The ride-in is however many seam mels this call carries —
+                // zero on the first, eight after — and its sine region is
+                // zeros, because its source is overwritten by the cache.
+                int rideMels = _seamMel.Length / 80;
+                int ride = rideMels * SamplesPerMel;
+                int wav = ride + fresh * SamplesPerMel;
                 var sine = new DenseTensor<float>(new[] { 1, Harmonics, wav });
                 for (int b = 0; b < Harmonics; b++)
-                    for (int i = SeamSamples; i < wav; i++)
+                    for (int i = ride; i < wav; i++)
                         sine.SetValue(b * wav + i, seed.Next());
 
                 var tk = new DenseTensor<long>(new[] { 1, tokens.Length });
                 for (int i = 0; i < tokens.Length; i++) tk.SetValue(i, tokens[i]);
                 var cache = new DenseTensor<float>(new[] { 1, 1, _seamSrc.Length });
                 for (int i = 0; i < _seamSrc.Length; i++) cache.SetValue(i, _seamSrc[i]);
-                var cmel = new DenseTensor<float>(new[] { 1, 80, 8 });
+                var cmel = new DenseTensor<float>(new[] { 1, 80, rideMels });
                 for (int i = 0; i < _seamMel.Length; i++) cmel.SetValue(i, _seamMel[i]);
                 var off = new DenseTensor<long>(new int[0]);   // a scalar
                 off.SetValue(0, melOffset);
@@ -962,14 +968,14 @@ namespace Ledger.Game
                     if (render == null)
                     { Why = "the chunk graph returned nothing"; return null; }
 
-                    int start = 0;
-                    if (_heldTail == null) start = SeamSamples;
-                    else
+                    // A first call has no held tail and nothing to drop —
+                    // its render IS line audio from sample 0. Later calls
+                    // crossfade their ride-in region over the held tail:
+                    // np.hamming's formula, both halves of a 2*SeamSamples
+                    // window, the new render rising as the held tail falls.
+                    if (_heldTail != null)
                         for (int i = 0; i < SeamSamples; i++)
                         {
-                            // np.hamming's formula, both halves of a
-                            // 2*SeamSamples window: the new render rises as
-                            // the held tail falls.
                             double a = 2.0 * Math.PI * i
                                        / (2 * SeamSamples - 1);
                             double riseW = 0.54 - 0.46 * Math.Cos(a);
@@ -980,10 +986,10 @@ namespace Ledger.Game
                                                 + _heldTail[i] * fallW);
                         }
 
-                    int emit = render.Length - start - (final ? 0 : SeamSamples);
+                    int emit = render.Length - (final ? 0 : SeamSamples);
                     if (emit <= 0) { Why = "the chunk emitted nothing"; return null; }
                     var outp = new float[emit];
-                    Array.Copy(render, start, outp, 0, emit);
+                    Array.Copy(render, 0, outp, 0, emit);
                     if (!final)
                     {
                         _heldTail = new float[SeamSamples];

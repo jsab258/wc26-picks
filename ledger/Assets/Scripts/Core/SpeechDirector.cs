@@ -268,6 +268,18 @@ namespace Ledger.Core
         /// at 2.4 frees the slot for the next one instead of spending the
         /// whole budget discovering that. Never below `PatienceSeconds` on the
         /// first lines, when there is nothing to project from.
+        /// How many acoustic tokens this line is EXPECTED to produce, for
+        /// the streaming follower's no-underrun projection. The same
+        /// arithmetic `Deadline` uses, stopped one multiply earlier — an
+        /// expectation from measured rates, not a promise; the follower
+        /// clamps its remainder so a line that outruns this still refuses
+        /// to start early.
+        public double ExpectedTokens(string text)
+        {
+            var t = VoiceBank.Normalise(text);
+            return Units(t) * StepsPerUnit * TokensPerStep;
+        }
+
         public double Deadline(string text)
         {
             if (StepsPerSecond <= 0) return PatienceSeconds;
