@@ -1,20 +1,22 @@
 LEDGER — how long one spoken line actually takes
-ran on Jafar-Desktop (Windows) as Jafar, 2026-08-12 07:23 UTC
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-12 07:45 UTC
 
   providers available: DmlExecutionProvider, CPUExecutionProvider
   using: DmlExecutionProvider
-  opened t3-prefill in 3.7s
-  opened t3-step in 3.2s
-  opened s3gen-decode in 38.7s
-  three sessions in 45.6s total
+  opened t3-prefill in 3.1s
+  opened t3-step in 2.7s
+  opened s3gen-decode in 39.3s
+  three sessions in 45.2s total
   the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
-  prefill: 0.29s
-  86 steps in 4.7s — first 152ms, median 50ms, slowest 152ms
+  prefill: 0.32s
+  86 steps in 4.1s — first 143ms, median 42ms, slowest 143ms
   86 acoustic tokens kept
-  decode on CPU: 5.68s (session opened in 41.9s)
-  -> the CPU is 3.6x SLOWER at this stage — DirectML is the right place for it
+  one step, Dml: 57ms   CPU: 77ms   (CPU session opened in 2.6s)
+  -> the card is 1.3x faster per step; the old 4.4x CPU reading does not hold on these graphs
+  decode on CPU: 5.76s (session opened in 41.4s)
+  -> the CPU is 3.5x SLOWER at this stage — DirectML is the right place for it
   wrote spoken.wav — 161 KB, 3.4s, through the SHIPPED graphs
-  decode: 1.59s for 3.4s of audio
+  decode: 1.63s for 3.4s of audio
 
-  ONE LINE: 6.6s of work for 3.4s of speech — 1.9x real time
-  split: prefill 0.3s, 86 steps 4.7s, decode 1.6s
+  ONE LINE: 6.1s of work for 3.4s of speech — 1.8x real time
+  split: prefill 0.3s, 86 steps 4.1s, decode 1.6s

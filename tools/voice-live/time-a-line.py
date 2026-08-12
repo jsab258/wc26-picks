@@ -22,10 +22,13 @@ sampler here is deliberately crude — the timing question does not care which
 token wins, only how many steps happen and how long each takes — and the step
 count is reported beside the time so the two cannot be confused.
 
-IT REPORTS WHICH PROVIDER RAN, which is not a detail. The probe measured the
-CPU beating DirectML 4.4x per step on this model and nobody has explained it;
-a timing with no provider named is a number that cannot be compared to the
-next one.
+IT REPORTS WHICH PROVIDER RAN, which is not a detail — and it now MEASURES
+both rather than reporting one. An early probe read the CPU beating DirectML
+4.4x per step, on a different graph, and that number was quoted for days. On
+the graphs that ship the card is 1.3x faster per step and 3.5x faster at the
+decode, so both stages stay on it. A timing with no provider named is a number
+that cannot be compared to the next one; a provider chosen from a stale reading
+is worse.
 
 AND IT SENDS ITSELF BACK, into `game-design/voice-live/speed-report.txt`, for
 the reason every other measurement here does: an answer that travels by hand
@@ -260,9 +263,9 @@ def run(say):
     # THE DECODE, ON THE OTHER PROVIDER TOO — the experiment this run exists
     # for. The talking stage came out 3.5x FASTER than PyTorch and the decode
     # 3x slower, which is not a conversion cost; it is one stage disagreeing
-    # with one provider. The probe already saw the CPU beat DirectML 4.4x per
-    # step on the text model and nobody explained it, so this asks the same
-    # question of the stage that is now the bottleneck.
+    # with one provider. Asked of both stages now, and both answered the same
+    # way: the card wins. The old probe's 4.4x reading for the CPU was taken
+    # on a different graph and does not survive contact with these.
     #
     # The session is opened and timed separately, because "the CPU decodes
     # faster" is only useful if opening a second session does not cost more

@@ -111,11 +111,19 @@ namespace Ledger.Game
             _voice = voice;
             _tokenize = tokenize;
             var opts = new SessionOptions();
-            // DirectML when the machine has it, CPU when it does not. The probe
-            // measured CPU BEATING DirectML per step 4.4x on this model and
-            // nobody knows why yet, so this is not a speed decision — it is
-            // that a machine without the runtime must still fall back rather
-            // than fail to construct.
+            // DirectML when the machine has it, CPU when it does not, and
+            // BOTH STAGES ON THE SAME ONE — measured on 12 August against the
+            // graphs that ship, which is not where the old number came from.
+            //
+            // An early probe read the CPU beating DirectML 4.4x per step and
+            // that reading was quoted for days as a reason to think about
+            // splitting the stages. On the real graphs the card is 1.3x
+            // FASTER per step (57ms against 77ms) and 3.5x faster at the
+            // decode, so there is nothing to split. The old number was
+            // measured on a different graph and never re-checked.
+            //
+            // So this is not a speed decision. It is that a machine without
+            // the runtime must fall back rather than fail to construct.
             try { opts.AppendExecutionProvider_DML(0); }
             catch (Exception) { /* CPU it is */ }
 
