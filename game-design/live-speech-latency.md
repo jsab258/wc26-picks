@@ -113,6 +113,25 @@ Two zero-quality-risk fixes if the hypothesis holds:
   DOUBLING the bandwidth the model was trained to need. Halves both transfer
   and compute on a bandwidth-bound decode.
 
+**Lever A, first two live rounds (12 Aug): the path ACTIVATES, and the
+allocator is the enemy.** The C# binding ran resident on the RX 6700 —
+prefill and step one — and step two died both times in layer 0's cache
+Concat ({Application Error}), identically with and without the API's
+synchronize calls. The signature: step one consumes the PREFILL session's
+buffers and works; step two consumes the step session's OWN pool-allocated
+outputs and dies. Reading: DirectML's internal allocator recycles a run's
+output buffers as the next run's scratch, live references or not. Two
+findings worth the rounds on their own: the python preview's access
+violation does NOT reproduce through the C# binding — the failure is a
+catchable managed exception, so the in-game fallback works and the attempt
+is safe to ship — and the bench's refuse-then-time design caught it before
+any wrong number existed. Round three in flight: the cache ping-pongs
+between two explicitly-owned max-size device blocks (exact shape bound over
+each per step), so the allocator's pool never touches it — the same shape
+onnxruntime-genai uses. If that still fails, the fallback plan is the
+static-length KV export: scatter instead of concat, shapes that never grow,
+which also makes each step O(1) instead of O(line).
+
 **Measured 12 Aug (experiment 1, safe half): the slope is real.** On the
 RX 6700: pos10 34.5ms, pos100 45.1ms, pos200 59.3ms, pos400 89.5ms —
 **31.8ms flat + 142us per position.** The arithmetic closes: each position

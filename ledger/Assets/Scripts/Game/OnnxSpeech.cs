@@ -91,13 +91,47 @@ namespace Ledger.Game
         OrtIoBinding _bindPrefill, _bindStep;
         RunOptions _runOpts;
 
-        /// The last bound run's outputs: `_vals[0]` is the host logits,
-        /// `_vals[1..]` the device cache in layer order. The ORDER IS
-        /// ASSERTED, not assumed — `MustMatch` reads the bound names back
-        /// once per binding and refuses the path if they differ, because a
-        /// silent transposition here is layer 3's keys fed as layer 7's.
+        /// The PREFILL's outputs: `_vals[0]` is the host logits, `_vals[1..]`
+        /// the device cache in layer order. The ORDER IS ASSERTED, not
+        /// assumed — `MustMatch` reads the bound names back once per binding
+        /// and refuses the path if they differ, because a silent
+        /// transposition here is layer 3's keys fed as layer 7's. Disposed
+        /// after the first step has consumed them.
         IDisposableReadOnlyCollection<OrtValue> _bound;
         OrtValue[] _vals;
+
+        /// THE CACHE'S REAL HOME: two explicitly-owned device buffer sets,
+        /// alternated every step, because the allocator's own buffers are
+        /// not to be trusted across runs. Bench rounds one and two both
+        /// died at step TWO — the first step, consuming the PREFILL
+        /// session's outputs, ran; the second, consuming the step session's
+        /// own pool-allocated outputs, hit an {Application Error} inside
+        /// layer 0's cache Concat, with and without synchronize calls. The
+        /// reading: DirectML's internal allocator treats a run's output
+        /// buffers as recyclable scratch for the next run, live references
+        /// or not. So the step loop binds its cache outputs into buffers
+        /// allocated HERE, exact shape over a max-size block, ping-pong so
+        /// a run never reads the half it is writing. Grown only when a
+        /// longer prefill needs more room; freed with the session.
+        OrtAllocator _dmlAlloc;
+        OrtMemoryAllocation[][] _pool;     // [2][layer]
+        long[] _poolBytes;                 // capacity per layer, both halves
+        long[][] _cacheDims;               // per-layer dims, position axis varies
+        int _posAxis = -1;
+        long _prefillPos, _pos;
+        int _cur = -1;                     // pool half holding the current cache; -1 = prefill values
+
+        /// How many positions past the prefill a bound line may grow. A line
+        /// that outgrows it dies quietly and the NEXT line begins bound
+        /// again — running out of room is not a broken binding. 512 tokens
+        /// is ~20 seconds of speech against a step ceiling of 1000 and
+        /// measured lines of ~100.
+        const long Room = 512;
+
+        /// The step logits land HERE every run — one pinned host buffer
+        /// bound once as the output, no per-step collections to dispose.
+        float[] _logitsBuf;
+        OrtValue _logitsHome;
 
         /// Per-line input values. They pin the managed arrays they wrap, so
         /// they live until `Release` — disposing one before `Run` returns
@@ -466,6 +500,10 @@ namespace Ledger.Game
             foreach (var v in _lineInputs) v.Dispose();
             _lineInputs.Clear();
             _lineBound = false;
+            _cur = -1;
+            // The pool, the bindings and the logits home survive between
+            // lines — they are per-session, and a conversation reallocates
+            // nothing.
         }
 
         /// Prime the model with the cache bound to the card.
@@ -514,16 +552,29 @@ namespace Ledger.Game
             BindArray(_bindPrefill, EmotionAdv, _current.Get("t3.emotion_adv"));
 
             _bound = _prefill.RunWithBoundResults(_runOpts, _bindPrefill);
-            // THE CARD MAY STILL BE WRITING WHEN Run RETURNS. DirectML
-            // batches GPU work and flushes lazily, so a device-bound output
-            // can be in flight at this point — and the first bench run died
-            // on exactly that shape: prefill fine, step one fine, step two's
-            // Concat reading a buffer whose producer had been disposed while
-            // the GPU still owed it a write. The binding API's contract is
-            // these synchronize calls; skipping them worked right up until
-            // it did not.
+            // The card may still be writing when Run returns — DirectML
+            // batches GPU work — so wait before anything reads or frees
+            // what it owes. (This alone did NOT fix the step-two fault;
+            // the ping-pong buffers above are what did. Kept because it is
+            // the binding API's stated contract for device outputs.)
             _bindPrefill.SynchronizeBoundOutputs();
             Fill(_bound, _vals);
+
+            // Where the pool buffers get their shapes: the position axis
+            // from the step graph's metadata (the one dynamic dimension),
+            // the rest from the prefill's actual outputs.
+            if (_posAxis < 0) FindPosAxis();
+            ReadCacheDims();
+            EnsurePool();
+            if (_logitsHome == null)
+            {
+                _logitsBuf = new float[_rows * SpeechVocab.Size];
+                _logitsHome = OrtValue.CreateTensorValueFromMemory(
+                    _logitsBuf, new long[] { _rows, SpeechVocab.Size });
+            }
+
+            _cur = -1;
+            _pos = _prefillPos;
             _lineBound = true;
             Residency = "device";
             return ReadBound(_vals[0], logits);
@@ -531,44 +582,144 @@ namespace Ledger.Game
 
         bool NextBound(int token, float[] logits)
         {
-            if (_bound == null) { Why = "no line in progress"; return false; }
+            if (!_lineBound) { Why = "no line in progress"; return false; }
+            long inPos = _pos, outPos = _pos + 1;
+            if (outPos - _prefillPos > Room)
+            {
+                // NOT a broken binding — a line that outgrew its room. The
+                // line dies, the caller falls back for it, and the next
+                // line begins bound again with the pool it already has.
+                Why = "the line outgrew the resident cache ("
+                      + Room + " steps past the prefill)";
+                return false;
+            }
             if (_bindStep == null)
             {
                 var b = _step.CreateIoBinding();
-                b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
-                for (int i = 0; i < _layers; i++)
-                    b.BindOutputToDevice(_cacheOut[i], _device);
-                MustMatch(b, _cacheOut);
                 b.BindInput("token", _tokVal);
                 b.BindInput("position", _posVal);
+                b.BindOutput("logits", _logitsHome);
                 _bindStep = b;
             }
             _tokArr[0] = token;
             _posArr[0] = ++_steps;
-            // REBOUND EVERY STEP, because the values are new every step. The
-            // binding keeps its last references between runs, so between the
-            // dispose below and this loop it briefly points at freed values —
-            // harmless while nothing runs, which is why the rebind must stay
-            // FIRST in this method's run path.
-            for (int i = 0; i < _layers; i++)
-                _bindStep.BindInput(_cacheIn[i], _vals[i + 1]);
 
-            // Writes feeding this run must have landed, and this run's own
-            // writes must land before its inputs are handed back to the
-            // pool below — see the synchronize note in `BeginBound` for the
-            // bench run that established this the expensive way.
+            // THE CACHE NEVER TOUCHES THE ALLOCATOR'S POOL. Inputs read the
+            // half that holds the current cache — the prefill's own values
+            // on the first step — and outputs write the OTHER half, exact
+            // shape bound over a max-size block. Rebinding every step is
+            // the point: the shapes grow a position each time.
+            int outHalf = _cur < 0 ? 0 : 1 - _cur;
+            for (int i = 0; i < _layers; i++)
+            {
+                if (_cur < 0)
+                    _bindStep.BindInput(_cacheIn[i], _vals[i + 1]);
+                else
+                    _bindStep.BindInput(_cacheIn[i], TensorElementType.Float,
+                                        DimsAt(i, inPos), _pool[_cur][i]);
+                _bindStep.BindOutput(_cacheOut[i], TensorElementType.Float,
+                                     DimsAt(i, outPos), _pool[outHalf][i]);
+            }
+
             _bindStep.SynchronizeBoundInputs();
-            var got = _step.RunWithBoundResults(_runOpts, _bindStep);
+            _step.RunWithBinding(_runOpts, _bindStep);
             _bindStep.SynchronizeBoundOutputs();
-            // The same ordering rule as the host path, one layer down: the
-            // old values are the run's INPUTS, so they are disposed only
-            // after it has returned — and, per the synchronize above, only
-            // after the card has actually finished with them.
-            var old = _bound;
-            _bound = got;
-            Fill(got, _vals);
-            old.Dispose();
-            return ReadBound(_vals[0], logits);
+
+            // The prefill's values are consumed exactly once, by the first
+            // step; after the synchronize above the card is done with them.
+            if (_cur < 0 && _bound != null) { _bound.Dispose(); _bound = null; }
+            _cur = outHalf;
+            _pos = outPos;
+
+            int n = Math.Min(logits.Length, _logitsBuf.Length);
+            Array.Copy(_logitsBuf, logits, n);
+            if (n != logits.Length)
+                Why = "the bound step gave " + n + " odds, the sampler wants "
+                      + logits.Length;
+            return n == logits.Length;
+        }
+
+        /// The one dynamic dimension of the step graph's cache outputs is
+        /// the position axis. Read from metadata rather than assumed, and
+        /// two dynamic axes is a graph this code does not understand —
+        /// refused at the first bound line, not guessed at.
+        void FindPosAxis()
+        {
+            var md = _step.OutputMetadata[_cacheOut[0]];
+            if (md.ElementDataType != TensorElementType.Float)
+                throw new InvalidOperationException(
+                    "the cache is " + md.ElementDataType + ", not float");
+            var dims = md.Dimensions;
+            int ax = -1;
+            for (int i = 0; i < dims.Length; i++)
+            {
+                if (dims[i] >= 0) continue;
+                if (ax >= 0)
+                    throw new InvalidOperationException(
+                        "the cache has two dynamic axes; which is the position?");
+                ax = i;
+            }
+            if (ax < 0)
+                throw new InvalidOperationException(
+                    "the cache has no dynamic axis, so no room to grow");
+            _posAxis = ax;
+        }
+
+        /// Every layer's dims, read off the prefill's actual outputs, and
+        /// every layer must agree on the position count — a disagreement is
+        /// an export this code does not understand.
+        void ReadCacheDims()
+        {
+            if (_cacheDims == null) _cacheDims = new long[_layers][];
+            _prefillPos = -1;
+            for (int i = 0; i < _layers; i++)
+            {
+                _cacheDims[i] = _vals[i + 1].GetTensorTypeAndShape().Shape;
+                long p = _cacheDims[i][_posAxis];
+                if (_prefillPos < 0) _prefillPos = p;
+                else if (p != _prefillPos)
+                    throw new InvalidOperationException(
+                        "layer " + i + " has " + p + " positions, layer 0 has "
+                        + _prefillPos);
+            }
+        }
+
+        /// Two device blocks per layer, sized for this prefill plus `Room`.
+        /// GROW-ONLY: a longer prefill replaces the blocks, a shorter one
+        /// reuses them, so steady conversation allocates nothing per line.
+        void EnsurePool()
+        {
+            if (_dmlAlloc == null) _dmlAlloc = new OrtAllocator(_step, _device);
+            if (_pool == null)
+            {
+                _pool = new OrtMemoryAllocation[2][];
+                _pool[0] = new OrtMemoryAllocation[_layers];
+                _pool[1] = new OrtMemoryAllocation[_layers];
+                _poolBytes = new long[_layers];
+            }
+            for (int i = 0; i < _layers; i++)
+            {
+                long elems = 1;
+                for (int d = 0; d < _cacheDims[i].Length; d++)
+                    elems *= d == _posAxis ? _prefillPos + Room : _cacheDims[i][d];
+                long bytes = elems * sizeof(float);
+                if (bytes <= _poolBytes[i]) continue;
+                for (int h = 0; h < 2; h++)
+                {
+                    if (_pool[h][i] != null) _pool[h][i].Dispose();
+                    _pool[h][i] = _dmlAlloc.Allocate((uint)bytes);
+                }
+                _poolBytes[i] = bytes;
+            }
+        }
+
+        /// Layer `i`'s dims with the position axis at `pos` — a fresh array,
+        /// because the binding may hold the one it was given.
+        long[] DimsAt(int i, long pos)
+        {
+            var dims = (long[])_cacheDims[i].Clone();
+            dims[_posAxis] = pos;
+            return dims;
         }
 
         /// Collection to array, once per run. The interface only promises
@@ -762,6 +913,12 @@ namespace Ledger.Game
             if (_bindStep != null) _bindStep.Dispose();
             if (_tokVal != null) _tokVal.Dispose();
             if (_posVal != null) _posVal.Dispose();
+            if (_logitsHome != null) _logitsHome.Dispose();
+            if (_pool != null)
+                for (int h = 0; h < 2; h++)
+                    for (int i = 0; i < _layers; i++)
+                        if (_pool[h][i] != null) _pool[h][i].Dispose();
+            if (_dmlAlloc != null) _dmlAlloc.Dispose();
             if (_runOpts != null) _runOpts.Dispose();
             if (_device != null) _device.Dispose();
             if (_prefill != null) _prefill.Dispose();

@@ -113,8 +113,14 @@ namespace Ledger.Bench
                 { Console.WriteLine("BENCH: bound begin: " + backend.Why); return 1; }
                 if (backend.Residency == "device")
                 {
+                    // ONE LINE PER STEP, PRINTED AS IT HAPPENS. The first
+                    // bench round died at step two and took step one's
+                    // verdict with it — nothing had printed yet, so "did
+                    // the resident prefill even agree" went unanswered for
+                    // a whole round trip.
                     double worst = MaxDelta(a, b);
-                    var line = "BENCH: logitsMaxDelta prefill=" + worst.ToString("0.0e+00");
+                    Console.WriteLine("BENCH: logitsMaxDelta prefill="
+                                      + worst.ToString("0.0e+00"));
                     for (int k = 0; k < hostSteps.Count; k++)
                     {
                         var h2 = new float[width];
@@ -122,9 +128,9 @@ namespace Ledger.Bench
                         { Console.WriteLine("BENCH: bound step: " + backend.Why); return 1; }
                         double d = MaxDelta(hostSteps[k], h2);
                         if (d > worst) worst = d;
-                        line += " step" + (k + 1) + "=" + d.ToString("0.0e+00");
+                        Console.WriteLine("BENCH: logitsMaxDelta step" + (k + 1)
+                                          + "=" + d.ToString("0.0e+00"));
                     }
-                    Console.WriteLine(line);
                     // A REAL disagreement is a wrong tensor, and timing a
                     // wrong tensor flatters it. 1e-3 on logits spanning ~40
                     // is float-accumulation territory; past that, stop.
