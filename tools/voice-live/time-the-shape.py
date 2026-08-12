@@ -201,6 +201,59 @@ def run(say):
         # it. `Projected` currently answers "how long will the TEXT take".
         say(f"     `SpeechDirector.Projected` has no term for any of this; on "
             f"the measured line it was missing about half the wait.")
+
+    # ---- WHERE THE FIXED COST ACTUALLY GOES -----------------------------
+    #
+    # THE SUSPICION, WRITTEN DOWN BEFORE THE NUMBERS SO IT CAN BE WRONG. The
+    # decoder is handed the voice's reference clip along with the line, and it
+    # decodes BOTH: the mel sequence is `2 * (prompt_tokens + line_tokens)`
+    # frames long, and this voice's prompt is 250 tokens. So a ten-token
+    # mutter asks the network to work through 500 frames of somebody else's
+    # sentence before it reaches the first word of its own.
+    #
+    # If that is where the 2.7 seconds live, they are not a fixed cost at all
+    # — they are a per-prompt cost, and the prompt is a number we choose. If
+    # it is not, the fixed cost is real and this rules the cheap fix out,
+    # which is worth two minutes either way.
+    say("")
+    say("  THE SAME LINE, WITH SHORTER VOICE PROMPTS:")
+    line_n = 50
+    prompts, pseries = [], []
+    for p in (n_p, 150, 100, 50, 25):
+        if p > n_p:
+            continue
+        h = 2 * (p + line_n)
+        wav_len = (h - 2 * p) * 480
+        feed = {
+            "tokens": rng.integers(0, 6561, (1, line_n)).astype(np.int64),
+            "prompt_token": z["gen.prompt_token"][:, :p].astype(np.int64),
+            "prompt_feat": z["gen.prompt_feat"][:, :2 * p, :].astype(np.float32),
+            "embedding": z["gen.embedding"].astype(np.float32),
+            "z": rng.standard_normal((1, 80, h)).astype(np.float32),
+            "sine_noise": rng.standard_normal((1, 9, wav_len)).astype(np.float32)}
+        got = []
+        try:
+            for _ in range(2):
+                t0 = time.time()
+                sess.run(None, feed)
+                got.append(time.time() - t0)
+        except Exception as e:
+            pseries.append(f"{p}prompt=refused({type(e).__name__})")
+            continue
+        prompts.append((p, min(got)))
+        pseries.append(f"{p}prompt={got[0]:.2f}/{got[1]:.2f}s")
+    say("  " + "  ".join(pseries))
+    # A DENOMINATOR ON A REFUSAL. A graph that will not take a shorter prompt
+    # is a finding — it means the length was baked in at trace time — and it
+    # must not read as "the shorter prompt was no faster".
+    say(f"  {len(prompts)} of {len(pseries)} prompt lengths ran, on a "
+        f"{line_n}-token line")
+    pc, pp = fit(prompts)
+    if pc is not None:
+        say(f"  -> about {pc:.2f}s regardless, plus {pp * 1000:.1f}ms per "
+            f"prompt token")
+        say(f"     the shipped {n_p}-token prompt therefore costs "
+            f"{pp * n_p:.1f}s of every line spoken in this voice")
     return 0
 
 
