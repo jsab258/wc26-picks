@@ -188,12 +188,30 @@ def say_lines(say, fp16=False):
         # runs at all on the card this ships to. The C# twin
         # (`Core/SpeechStream`'s caller) must do the same.
         src = np.zeros((1, 1, 1), dtype=np.float32)
+        # THE SAME FEED, BOTH PROVIDERS. The one-sample cache above did not
+        # cure the first-chunk Expand refusal, so stop treating organs and
+        # take the differential: a call DirectML refuses is re-run, feed
+        # unchanged, on a CPU session of the SAME graph. CPU accepting
+        # convicts the provider; both refusing convicts the graph. The run
+        # then carries on hybrid — audible answer and timings still land
+        # this trip, with each piece's provider named in the printout.
+        cpu = [None]
+
+        def on_cpu(feed):
+            if cpu[0] is None:
+                say("    opening a CPU session of the chunk graph for the "
+                    "differential...")
+                cpu[0] = ort.InferenceSession(
+                    str(paths["s3gen-chunk"]),
+                    providers=["CPUExecutionProvider"])
+            return cpu[0].run(None, feed)
+
+        wore = []
         for visible, offset, final in plan:
             h = MELS_PER_TOKEN * (P + visible) \
                 - (0 if final else MELS_PER_TOKEN * LOOKAHEAD_TOKENS)
             fresh = (h - pmel) - offset
-            t = time.time()
-            w, src = sess["s3gen-chunk"].run(None, {
+            feed = {
                 "tokens": np.array([tokens[:visible]], dtype=np.int64),
                 "prompt_token": pt.astype(np.int64),
                 "prompt_feat": pf.astype(np.float32),
@@ -202,9 +220,30 @@ def say_lines(say, fp16=False):
                 "sine_noise": gauss((1, 9, fresh * SAMPLES_PER_MEL)),
                 "cache_source": src,
                 "mel_offset": np.array(offset, dtype=np.int64),
-                "final": np.array(1 if final else 0, dtype=np.int64)})
+                "final": np.array(1 if final else 0, dtype=np.int64)}
+            say(f"    chunk visible={visible} offset={offset} final={final} "
+                f"cache={src.shape} z={feed['z'].shape} "
+                f"noise={feed['sine_noise'].shape}")
+            t = time.time()
+            try:
+                w, src = sess["s3gen-chunk"].run(None, feed)
+                wore.append("dml")
+            except Exception as e:
+                say(f"    DML REFUSED: {str(e).splitlines()[0][:180]}")
+                try:
+                    w, src = on_cpu(feed)
+                    wore.append("cpu")
+                    say("    and the CPU session ACCEPTED the identical "
+                        "feed — the provider is the refuser, not the graph")
+                except Exception as e2:
+                    say(f"    CPU ALSO REFUSED: "
+                        f"{str(e2).splitlines()[0][:180]}")
+                    say("    both providers refuse this feed — the GRAPH "
+                        "is wrong, and the shapes above are the case")
+                    raise
             times.append(time.time() - t)
             pieces.append(w[0])
+        say("    providers used per chunk: " + "/".join(wore))
         return np.concatenate(pieces), times, plan
 
     w_whole, t_whole = whole()
