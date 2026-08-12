@@ -92,6 +92,19 @@ TABLE = {
     "back-to-ten-steps": [["PY", "tools/voice-live/export-decode.py",
                            "--steps", "10", "--force"],
                           ["PY", "tools/voice-live/time-a-line.py"]],
+    # ONE ROW INSTEAD OF TWO — the last big lever in the text stage, which is
+    # two thirds of a line. Every step currently runs the model twice, once on
+    # the sentence and once on the sentence with its conditioning stripped
+    # out, and subtracts the second from the first to steer it. Dropping that
+    # halves the work and removes what the model leans on to say the right
+    # words rather than mumble in the right voice. Ends in audio because
+    # nothing else can answer it.
+    "try-no-guidance": [["PY", "tools/voice-live/export-for-game.py",
+                         "--rows", "1", "--force"],
+                        ["PY", "tools/voice-live/time-a-line.py"]],
+    "back-to-guidance": [["PY", "tools/voice-live/export-for-game.py",
+                          "--rows", "2", "--force"],
+                         ["PY", "tools/voice-live/time-a-line.py"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.

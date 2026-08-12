@@ -117,7 +117,7 @@ def stamp(text):
         pass                      # a missing note must never kill the export
 
 
-def make_step(torch, kv_cache, model, like):
+def make_step(torch, kv_cache, model, like, rows=2):
     """One step of the text stage, as the game will drive it.
 
     `like` is a real cache to rebuild against — the layer count, head count
@@ -138,7 +138,16 @@ def make_step(torch, kv_cache, model, like):
             # TWO ROWS, WHICH IS THE GUIDANCE. `SpeechLoop.Guided` combines
             # them on the C# side, out in the open where it is testable
             # without a GPU.
-            e = torch.cat([e, e])
+            #
+            # ONE ROW IS THE EXPERIMENT. Every step runs the model twice —
+            # once on the sentence and once on the sentence with its
+            # conditioning removed — and the second exists only to be
+            # subtracted from the first. Dropping it halves the work of the
+            # stage that is now two thirds of a line. It also removes the
+            # thing the model relies on to say the right words, so whether it
+            # survives is a question for ears.
+            if rows > 1:
+                e = torch.cat([e, e])
             past = kv_cache.tensors_to_cache(list(cache), self._like)
             out = self.m.tfmr(inputs_embeds=e, past_key_values=past,
                               use_cache=True, return_dict=True)
@@ -148,9 +157,9 @@ def make_step(torch, kv_cache, model, like):
     return Step()
 
 
-def export_step(torch, kv_cache, model, like, cache0, dest):
+def export_step(torch, kv_cache, model, like, cache0, dest, rows=2):
     """Trace it, and name every input so the C# can ask for them by name."""
-    step = make_step(torch, kv_cache, model, like).eval()
+    step = make_step(torch, kv_cache, model, like, rows).eval()
     tok = torch.tensor([[7]], dtype=torch.long)
     pos = torch.tensor(3)
     args = (tok, pos) + tuple(cache0)
@@ -165,7 +174,7 @@ def export_step(torch, kv_cache, model, like, cache0, dest):
     return step, args, names
 
 
-def make_prefill(torch, kv_cache, model):
+def make_prefill(torch, kv_cache, model, rows=2):
     """THE SENTENCE, AND THE VOICE, TURNED INTO A CACHE.
 
     The step graph above takes a cache. Nothing in the game can make one: it
@@ -191,7 +200,8 @@ def make_prefill(torch, kv_cache, model):
             # game to disagree with the model about what a sentence is.
             tt = torch.nn.functional.pad(text_tokens, (1, 0), value=hp.start_text_token)
             tt = torch.nn.functional.pad(tt, (0, 1), value=hp.stop_text_token)
-            tt = torch.cat([tt, tt], dim=0)
+            if rows > 1:
+                tt = torch.cat([tt, tt], dim=0)
             # A FRESH COND EVERY CALL, WHICH IS NOT A TIDINESS POINT.
             # `prepare_conditioning` CACHES the embedded prompt back onto the
             # object it was handed. Trace with one that has already been used
@@ -204,7 +214,12 @@ def make_prefill(torch, kv_cache, model):
             embeds, _ = self.m.prepare_input_embeds(
                 t3_cond=cond, text_tokens=tt,
                 speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
-                cfg_weight=0.5)
+                # THE WEIGHT IS WHAT DECIDES WHETHER THE SECOND ROW IS BUILT
+                # AT ALL. `prepare_input_embeds` zeroes the unconditional
+                # row's text only when this is above zero, and with one row
+                # there is no second row to zero — passing 0.5 there would
+                # blank the ONLY row and the model would have no sentence.
+                cfg_weight=0.5 if rows > 1 else 0.0)
             # THE START TOKEN GOES IN TWICE, AND THAT IS THE SHIPPED MODEL'S
             # DOING RATHER THAN A TYPO. `T3.inference` — the path
             # `ChatterboxTTS.generate` actually calls — hands one start token
@@ -223,7 +238,8 @@ def make_prefill(torch, kv_cache, model):
             bos = self.m.speech_emb(hp.start_speech_token
                                     * torch.ones_like(tt[:1, :1]))
             bos = bos + self.m.speech_pos_emb.get_fixed_embedding(0)
-            embeds = torch.cat([embeds, torch.cat([bos, bos])], dim=1)
+            embeds = torch.cat(
+                [embeds, torch.cat([bos, bos]) if rows > 1 else bos], dim=1)
             out = self.m.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
             # AND THE FIRST TOKEN'S ODDS COME FROM HERE, WHERE THEY WERE BEING
             # THROWN AWAY. The initial forward pass produces them as a
@@ -244,9 +260,10 @@ def make_prefill(torch, kv_cache, model):
     return Prefill()
 
 
-def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache):
+def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache,
+                   rows=2):
     """Trace it. The sentence length is dynamic; the voice is an input."""
-    pre = make_prefill(torch, kv_cache, model).eval()
+    pre = make_prefill(torch, kv_cache, model, rows).eval()
     args = (text_tokens, cond["speaker_emb"], cond["cond_prompt_speech_tokens"],
             cond["emotion_adv"])
     names = ["text_tokens", "speaker_emb", "cond_speech_tokens", "emotion_adv"]
@@ -497,19 +514,89 @@ def selftest():
     check(grew == 2, f"and the cache grew by one per step, {out0[1].shape[2]} "
           f"-> {live[0].shape[2]}", f"grew by {grew}")
 
+    # ---- AND THE SAME PAIR WITHOUT GUIDANCE, which is a new code path and
+    # ---- therefore an unrun one until this exists.
+    #
+    # Four things move together for one row: the text is not duplicated, the
+    # weight passed to `prepare_input_embeds` becomes 0 (at 0.5 it would blank
+    # the ONLY row and the model would have no sentence at all), the second
+    # start embedding is not doubled, and the step does not stack its token.
+    # Miss any one and the graph still exports — it just says the wrong thing,
+    # or dies on a shape at the first token on somebody else's machine.
+    one_cache = [c[:1] for c in cache0]
+    ostep = export_step(torch, kv_cache, t3, seed.past_key_values, one_cache,
+                        tmp / "step1.onnx", rows=1)[0]
+    opre = export_prefill(torch, kv_cache, t3, traced_voice, text,
+                          tmp / "pre1.onnx", len(cache0), rows=1)[0]
+    osess = ort.InferenceSession(str(tmp / "pre1.onnx"),
+                                 providers=["CPUExecutionProvider"])
+    ofeed = {"text_tokens": text.numpy(),
+             "speaker_emb": traced_voice["speaker_emb"].numpy(),
+             "cond_speech_tokens": traced_voice["cond_prompt_speech_tokens"].numpy(),
+             "emotion_adv": traced_voice["emotion_adv"].numpy()}
+    oout = osess.run(None, ofeed)
+    check(oout[0].shape[0] == 1 and oout[1].shape[0] == 1,
+          "without guidance the prefill gives ONE row of odds and a one-row "
+          "cache", str((oout[0].shape[0], oout[1].shape[0])))
+    # AND THE TWO JOIN, which is where a half-converted row count actually
+    # bites: the prefill hands over a cache the step has to rebuild.
+    ssess = ort.InferenceSession(str(tmp / "step1.onnx"),
+                                 providers=["CPUExecutionProvider"])
+    sfeed = {f"cache{i}": c for i, c in enumerate(oout[1:])}
+    sfeed["token"] = np.array([[7]], dtype=np.int64)
+    sfeed["position"] = np.array(1, dtype=np.int64)
+    ok_join, why_join = True, ""
+    try:
+        got1 = ssess.run(None, sfeed)
+    except Exception as e:
+        ok_join, why_join = False, f"{type(e).__name__}: {str(e)[:80]}"
+    check(ok_join and got1[0].shape[0] == 1,
+          "and its cache drives a one-row step graph — the seam a half-changed "
+          "row count breaks", why_join or str(got1[0].shape))
+    # AND WHERE THE GUIDANCE ACTUALLY LIVES, which this check got wrong the
+    # first time and was corrected by running.
+    #
+    # I asserted the one-row odds would DIFFER from the guided pair's, and
+    # they are identical to the last bit. That is right and it is the point:
+    # `prepare_input_embeds` zeroes the text of the SECOND row only, so row
+    # zero is the same sentence either way. The steering is not in the graph
+    # at all — the C# does `cond + 0.5 * (cond - uncond)` after both rows come
+    # back. Dropping guidance does not change what the model computes about
+    # the sentence; it removes the second opinion the sampler subtracts.
+    #
+    # So the invariant worth asserting is the identity, and beside it that the
+    # two rows of the guided pair are DIFFERENT — because if they matched,
+    # the steering term would be zero and guidance would be doing nothing at
+    # all while costing half the run.
+    if ok_join:
+        same = float(np.abs(oout[0][0] - out0[0][0]).max())
+        check(same < 1e-5,
+              f"the conditional row is bit-identical with and without guidance "
+              f"({same:.1e}) — the steering is in the sampler, not the graph",
+              f"{same:.2e}")
+        apart = float(np.abs(out0[0][0] - out0[0][1]).max())
+        check(apart > 1e-3,
+              f"and the guided pair's two rows differ by {apart:.2f}, so the "
+              f"term the sampler subtracts is not zero — dropping it is a real "
+              f"change to what gets said", f"{apart:.4f}")
+
     print(f"\nexport-for-game --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks "
           f"against a real T3")
     return 1 if fails else 0
 
 
-def cmd_run(force=False):
+def cmd_run(force=False, rows=2):
+    # THE ROW COUNT IS PART OF WHAT "ALREADY DONE" MEANS. The skip compares
+    # this exporter's source against the last run's, and a graph built with
+    # guidance is a different graph from identical code — skipping would hand
+    # back the two-row one looking current. The same trap the step count had.
     done, src = already_done([OUT / "t3-step.onnx", OUT / "t3-prefill.onnx"])
-    if done and not force:
+    if done and rows == 2 and not force:
         print("  already exported by this same code — skipping.")
         print("  (delete the .onnx files, or pass --force, to redo it)")
         return 0
-    stamp(f"started  src={src}")
+    stamp(f"started  src={src}  rows={rows}")
     import time
     import numpy as np
     import torch
@@ -547,10 +634,17 @@ def cmd_run(force=False):
         hp = model.t3.hp
         tt = F.pad(tt, (1, 0), value=hp.start_text_token)
         tt = F.pad(tt, (0, 1), value=hp.stop_text_token)
+        # AND THE SHAPING RUN CARRIES THE ROW COUNT TOO. `cache0` is what the
+        # step graph rebuilds its cache against, so a two-row cache traced
+        # into a one-row graph would be a shape error at the first token —
+        # found in seconds by the selftest, and only because this line moved
+        # with the rest of it.
+        if rows < 2:
+            tt = tt[:1]
         embeds, _ = model.t3.prepare_input_embeds(
             t3_cond=model.conds.t3, text_tokens=tt,
             speech_tokens=hp.start_speech_token * torch.ones_like(tt[:, :1]),
-            cfg_weight=0.5)
+            cfg_weight=0.5 if rows > 1 else 0.0)
         primed = model.t3.tfmr(inputs_embeds=embeds, use_cache=True, return_dict=True)
     # SHAPE ONLY, AND ONE TOKEN SHORTER THAN THE PREFILL ON PURPOSE. This
     # context has no second start token because nothing here samples from it —
@@ -565,7 +659,7 @@ def cmd_run(force=False):
     t0 = time.time()
     dest = OUT / "t3-step.onnx"
     step, args, names = export_step(torch, kv_cache, model.t3,
-                                    primed.past_key_values, cache0, dest)
+                                    primed.past_key_values, cache0, dest, rows)
     mb = sum(f.stat().st_size for f in OUT.glob("t3-step*")) / (1024 * 1024)
     print(f"  exported in {time.time() - t0:.0f}s, {mb:.0f} MB -> {dest.name}")
 
@@ -613,7 +707,7 @@ def cmd_run(force=False):
                  emotion_adv=cond.emotion_adv)
     raw = model.tokenizer.text_to_tokens(LINE).to(model.device)
     pre, pargs, _ = export_prefill(torch, kv_cache, model.t3, voice, raw,
-                                   pdest, len(cache0))
+                                   pdest, len(cache0), rows)
     pmb = sum(f.stat().st_size for f in OUT.glob("t3-prefill*")) / (1024 * 1024)
     print(f"  exported in {time.time() - t0:.0f}s, {pmb:.0f} MB -> {pdest.name}")
 
@@ -676,12 +770,21 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="re-export even if it is already done")
+    # HOW MANY ROWS EVERY STEP RUNS, and it is the last big lever in the
+    # text stage. Two is classifier-free guidance: the model is run on the
+    # sentence AND on the sentence with its conditioning stripped out, and the
+    # second is subtracted from the first to steer it. One drops that, halves
+    # the work of the stage that is two thirds of a line — and removes what
+    # the model leans on to say the right words rather than mumble in the
+    # right voice. A listening question, not a numbers one.
+    ap.add_argument("--rows", type=int, default=2, choices=(1, 2),
+                    help="2 = classifier-free guidance (default), 1 = without")
     ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
     if a.selftest:
         return selftest()
     try:
-        return cmd_run(a.force)
+        return cmd_run(a.force, a.rows)
     except Exception as e:
         # THE REASON GOES INTO THE STAMP, so the audit that runs afterwards
         # carries it back without anybody copying a traceback. A stamp saying

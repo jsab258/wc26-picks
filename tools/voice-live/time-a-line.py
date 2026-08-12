@@ -154,7 +154,14 @@ def run(say):
     # see it — both sides agreed about the values that were there.
     cache = first[1:]
     names = [f"cache{i}" for i in range(len(cache))]
-    rows = 2
+    # READ OFF THE GRAPH, NOT ASSUMED. This was 2, which was true of every
+    # graph that had ever existed — and the moment a one-row export was
+    # possible an assumed 2 would have reshaped the odds into two half-rows
+    # and sampled from nonsense, quietly, with a plausible-sounding line
+    # coming out the other end.
+    rows = int(first[0].shape[0])
+    say(f"  the graph gives {rows} row(s) of odds"
+        + (" — classifier-free guidance" if rows > 1 else " — no guidance"))
     tok = pick(np, first[0].astype(np.float64), rng, rows)
     tokens = [] if tok in (START_SPEECH, STOP_SPEECH) else [tok]
     per_step = []
