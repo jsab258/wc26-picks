@@ -37,7 +37,12 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "tools" / "voice-live" / "game-out"
-GRAPHS = ("t3-prefill", "t3-step")
+"""AND NOW THE SOUND GRAPHS TOO — the streaming wall is the flow's re-render
+(~1.5s a chunk against the 1.72s whole line, chunks-7), and fp16 on the
+decode half is the queued lever. The fp16 copies land BESIDE the fp32 ones:
+the A/B stays explicit, and `hear-chunks.py` writes both renders into one
+wav so the ear and the clock judge the same trip."""
+GRAPHS = ("t3-prefill", "t3-step", "s3gen-decode", "s3gen-chunk")
 
 
 def convert(src, dest, say):
@@ -64,8 +69,21 @@ def convert(src, dest, say):
     model = onnx.load(str(src))
     # keep_io_types=False ON PURPOSE — see the header. The cache boundary
     # must be fp16 or every step pays a full-cache cast in each direction.
+    # SHAPE INFERENCE ON for the sound graphs, OFF for the text pair: the
+    # 2GB T3 protos choke onnx's inferencer (why the flag exists), but
+    # without it the converter left `/m_source/l_sin_gen/Mul_37` bound to
+    # float on one side and float16 on the other — the exact one-node-mixed
+    # fault the header pins on onnxconverter-common, now in onnxruntime's
+    # own pass when it walks blind. The s3gen graphs fit; let it see.
     fp16 = convert_float_to_float16(
-        model, keep_io_types=False, disable_shape_infer=True)
+        model, keep_io_types=False,
+        disable_shape_infer=src.stat().st_size > 1_500_000_000)
+    # RESIZE'S SCALES ARE SPEC-BOUND TO FLOAT32 and the pass casts them
+    # with everything else — an invalid graph onnxruntime refuses to LOAD,
+    # caught by the tiny-model selftest in seconds. `op_block_list` cannot
+    # reach a Constant NODE feeding the scales, so the repair is surgical:
+    # the data stays fp16 (Resize allows that) and only roi/scales go back.
+    _restore_resize_floats(onnx, fp16)
     onnx.save(fp16, str(dest),
               save_as_external_data=src.stat().st_size > 1_500_000_000,
               location=dest.name + ".data" if src.stat().st_size > 1_500_000_000 else None)
@@ -75,14 +93,38 @@ def convert(src, dest, say):
     return b < a * 0.75
 
 
-def run(say):
-    missing = [n for n in GRAPHS if not (OUT / f"{n}.onnx").exists()]
+def _restore_resize_floats(onnx, model):
+    import numpy as np
+    from onnx import numpy_helper
+    consts = {n.output[0]: n for n in model.graph.node
+              if n.op_type == "Constant"}
+    inits = {i.name: i for i in model.graph.initializer}
+    for n in model.graph.node:
+        if n.op_type != "Resize":
+            continue
+        for idx in (1, 2):                      # roi, scales
+            if idx >= len(n.input) or not n.input[idx]:
+                continue
+            name = n.input[idx]
+            if name in consts:
+                for a in consts[name].attribute:
+                    if a.name == "value" and                             a.t.data_type == onnx.TensorProto.FLOAT16:
+                        arr = numpy_helper.to_array(a.t).astype(np.float32)
+                        a.t.CopyFrom(numpy_helper.from_array(arr))
+            elif name in inits and                     inits[name].data_type == onnx.TensorProto.FLOAT16:
+                arr = numpy_helper.to_array(inits[name]).astype(np.float32)
+                inits[name].CopyFrom(numpy_helper.from_array(arr, name))
+
+
+def run(say, graphs=None):
+    graphs = graphs or GRAPHS
+    missing = [n for n in graphs if not (OUT / f"{n}.onnx").exists()]
     if missing:
         say(f"  no fp32 graphs to convert: {', '.join(missing)} — run "
             f"'5 EXPORT FOR THE GAME.bat' first")
         return 1
     ok = True
-    for n in GRAPHS:
+    for n in graphs:
         shrunk = convert(OUT / f"{n}.onnx", OUT / f"{n}-fp16.onnx", say)
         # A CONVERSION THAT DID NOT SHRINK DID NOT CONVERT. The weights are
         # ~99% of these files; a size that barely moved means the pass left
@@ -169,7 +211,10 @@ def selftest():
     keep = OUT
     OUT = tmp
     try:
-        rc = run(said.append)
+        # The tiny half exports only the text pair, so the run is told
+        # so — extending GRAPHS with the sound pair broke this accepting
+        # case within a minute of the edit, which is rule 5b earning rent.
+        rc = run(said.append, graphs=("t3-prefill", "t3-step"))
     finally:
         OUT = keep
     check(rc == 0, "both tiny graphs convert and shrink",
@@ -223,6 +268,59 @@ def selftest():
           "per step, with finite odds throughout",
           f"grew {out16[1].shape[2]} -> {got16[1].shape[2]}")
 
+    # ---- AND THE SOUND HALF, on export-decode's own small real model ----
+    # The number printed here is the record; the bound only refuses an
+    # explosion. Audio fp16 noise lands as a fraction of full scale, and
+    # whether that fraction is audible is the PC wav's question, not a
+    # tiny random model's.
+    spec_d = importlib.util.spec_from_file_location(
+        "exd", here / "export-decode.py")
+    exd = importlib.util.module_from_spec(spec_d)
+    spec_d.loader.exec_module(exd)
+    flow, gen = exd.build_small(torch)
+    P, T = 6, 9
+    torch.manual_seed(20260813)
+    dtok = torch.randint(0, 6561, (1, T))
+    dptok = torch.randint(0, 6561, (1, P))
+    dpfeat = torch.randn(1, exd.MELS_PER_TOKEN * P, 80)
+    demb = torch.randn(1, 192)
+    h = exd.MELS_PER_TOKEN * (P + T)
+    wav_n = (h - dpfeat.shape[1]) * exd.SAMPLES_PER_MEL
+    dz = torch.randn(1, 80, h)
+    dsine = torch.randn(1, 9, wav_n)
+    from stft_patch import patched as _patched
+    with _patched(), exd.dynamic_cfm(torch), exd.dynamic_flow(torch):
+        exd.export_decode(torch, flow, gen,
+                          (dtok, dptok, dpfeat, demb, dz, dsine),
+                          tmp / "d32.onnx")
+    conv_ok = convert(tmp / "d32.onnx", tmp / "d16.onnx",
+                      lambda s: None)
+    check(conv_ok, "the small decode graph halves on disk")
+    d32 = ort.InferenceSession(str(tmp / "d32.onnx"),
+                               providers=["CPUExecutionProvider"])
+    d16 = ort.InferenceSession(str(tmp / "d16.onnx"),
+                               providers=["CPUExecutionProvider"])
+    dfeed32 = {"tokens": dtok.numpy().astype(np.int64),
+               "prompt_token": dptok.numpy().astype(np.int64),
+               "prompt_feat": dpfeat.numpy().astype(np.float32),
+               "embedding": demb.numpy().astype(np.float32),
+               "z": dz.numpy().astype(np.float32),
+               "sine_noise": dsine.numpy().astype(np.float32)}
+    w32 = d32.run(None, dfeed32)[0]
+    dfeed16 = {k: (v.astype(np.float16) if v.dtype == np.float32 else v)
+               for k, v in dfeed32.items()}
+    w16 = d16.run(None, dfeed16)[0]
+    drel = float(np.abs(w16.astype(np.float32) - w32).max()) \
+        / max(float(np.abs(w32).max()), 1e-9)
+    check(w16.dtype == np.float16 and np.isfinite(
+              w16.astype(np.float32)).all(),
+          "the fp16 decode takes fp16 noise and gives finite fp16 samples",
+          str(w16.dtype))
+    check(drel < 0.25,
+          f"and its waveform stays within fp16 noise of fp32 — {drel:.1%} "
+          f"of full scale, the ear on the real weights is the judge",
+          f"{drel:.3f}")
+
     print(f"\nconvert-fp16 --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks")
     return 1 if fails else 0
@@ -238,8 +336,14 @@ def main():
     def say(s):
         print(s, flush=True)
 
-    say("LEDGER — halving the text graphs (latency plan, lever B)")
-    return run(say)
+    picked = None
+    if a.only == "t3":
+        picked = ("t3-prefill", "t3-step")
+    elif a.only == "s3gen":
+        picked = ("s3gen-decode", "s3gen-chunk")
+    say("LEDGER — halving the graphs (latency plan, lever B)"
+        + (f" — {a.only} pair only" if a.only else ""))
+    return run(say, graphs=picked)
 
 
 if __name__ == "__main__":

@@ -176,7 +176,18 @@ def say_lines(say, fp16=False):
             "sine_noise": gauss((1, 9, wav))})[0][0]
         return w, time.time() - t
 
-    def chunked():
+    def fit(cs, feed):
+        """Cast the float feeds to whatever this session's inputs want.
+        The fp16 graphs take float16 everywhere a float crosses; the seam
+        tensors a session returns already carry its own dtype and pass
+        back through untouched."""
+        kinds = {i.name: i.type for i in cs.get_inputs()}
+        return {k: (v.astype(np.float16)
+                    if kinds.get(k) == "tensor(float16)"
+                    and getattr(v, "dtype", None) == np.float32 else v)
+                for k, v in feed.items()}
+
+    def chunked(cs, graph_path, label):
         plan = plan_chunks(len(tokens))
         pieces, times = [], []
         # THE UPSTREAM SEAM: CosyVoice2's own design, traced. Eight cached
@@ -213,12 +224,11 @@ def say_lines(say, fp16=False):
 
         def on_cpu(feed):
             if cpu[0] is None:
-                say("    opening a CPU session of the chunk graph for the "
-                    "differential...")
+                say(f"    opening a CPU session of the {label} chunk graph "
+                    "for the differential...")
                 cpu[0] = ort.InferenceSession(
-                    str(paths["s3gen-chunk"]),
-                    providers=["CPUExecutionProvider"])
-            return cpu[0].run(None, feed)
+                    str(graph_path), providers=["CPUExecutionProvider"])
+            return cpu[0].run(None, fit(cpu[0], feed))
 
         wore = []
         first_fresh = (MELS_PER_TOKEN * (P + plan[0][0])
@@ -254,7 +264,7 @@ def say_lines(say, fp16=False):
                 f"cache={src.shape} z={feed['z'].shape} noise={sine.shape}")
             t = time.time()
             try:
-                w, src, cmel = sess["s3gen-chunk"].run(None, feed)
+                w, src, cmel = cs.run(None, fit(cs, feed))
                 wore.append("dml")
             except Exception as e:
                 say(f"    DML REFUSED: {str(e).splitlines()[0][:180]}")
@@ -280,10 +290,11 @@ def say_lines(say, fp16=False):
                 pieces.append(w[:-SRC])
                 held = w[-SRC:]
         say("    providers used per chunk: " + "/".join(wore))
-        return np.concatenate(pieces), times, plan
+        return np.concatenate(pieces).astype(np.float32), times, plan
 
     w_whole, t_whole = whole()
-    w_chunk, times, plan = chunked()
+    w_chunk, times, plan = chunked(sess["s3gen-chunk"],
+                                   paths["s3gen-chunk"], "fp32")
     say(f"  whole: {t_whole:.2f}s for {len(w_whole) / 24000:.1f}s of speech")
     say(f"  chunks: {len(plan)} pieces "
         + "/".join(f"{t:.2f}" for t in times)
@@ -296,10 +307,37 @@ def say_lines(say, fp16=False):
             f"{len(w_whole)} samples — the plan is wrong, do not listen yet")
         return 1
 
+    # THE FP16 LEVER, A/B'd IN THE SAME TRIP when the halved graph is on
+    # disk (convert-fp16 --only s3gen). Same tokens, same noise seeds,
+    # same plan — the only variable is the arithmetic's width, so the
+    # timing gap is the lever's worth and the third wav segment is its
+    # price in sound.
+    w_16 = None
+    fp16_path = OUT / "s3gen-chunk-fp16.onnx"
+    if fp16_path.exists():
+        t0 = time.time()
+        cs16 = ort.InferenceSession(str(fp16_path), providers=want)
+        say(f"  fp16 chunk session in {time.time() - t0:.1f}s")
+        w_16, t16, _ = chunked(cs16, fp16_path, "fp16")
+        say(f"  fp16 chunks: " + "/".join(f"{t:.2f}" for t in t16)
+            + f"s — total {sum(t16):.2f}s vs fp32's {sum(times):.2f}s")
+        drel = float(np.abs(w_16 - w_chunk).max())             / max(float(np.abs(w_chunk).max()), 1e-9)
+        say(f"  fp16 waveform sits {drel:.1%} of full scale from fp32 — "
+            f"the third segment is the ear's judge")
+        if len(w_16) != len(w_chunk):
+            say(f"  FP16 LENGTHS DIFFER: {len(w_16)} vs {len(w_chunk)} — "
+                f"not writing its segment")
+            w_16 = None
+    else:
+        say("  (no s3gen-chunk-fp16.onnx — run convert-fp16 --only s3gen "
+            "for the A/B)")
+
     gap = np.zeros(12000, dtype=np.float32)
     both = np.concatenate([la.lead(np, np.float32),
                            la.feather(np, w_whole.copy()), gap,
-                           la.feather(np, w_chunk.copy())])
+                           la.feather(np, w_chunk.copy())]
+                          + ([gap, la.feather(np, w_16.copy())]
+                             if w_16 is not None else []))
     peak = float(np.abs(both).max())
     if peak > 0:
         both = both * (0.85 / peak)
@@ -312,9 +350,12 @@ def say_lines(say, fp16=False):
         f.setframerate(24000)
         f.writeframes(struct.pack(f"<{len(both)}h",
                                   *(both * 32767).astype(np.int16)))
-    say(f"  wrote chunked.wav — the line WHOLE, a breath, then the same "
-        f"line in {len(plan)} chunks. If the second copy ticks at the "
-        f"seams, say so; if you cannot tell them apart, streaming is free.")
+    say(f"  wrote chunked.wav — the line WHOLE, a breath, the same line "
+        f"in {len(plan)} chunks"
+        + (", a breath, and the chunks again in fp16"
+           if w_16 is not None else "")
+        + ". If a later copy ticks or hisses where the first is clean, "
+          "say which; if you cannot tell them apart, the lever is free.")
     return 0
 
 

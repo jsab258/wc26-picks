@@ -156,6 +156,8 @@ TABLE = {
     # cache is proven consumed by selftest, but "consumed" and "inaudible"
     # are different claims and only the second one matters.
     "export-and-hear-chunks": [["PY", "tools/voice-live/export-decode.py"],
+                               ["PY", "tools/voice-live/convert-fp16.py",
+                                "--only", "s3gen"],
                                ["PY", "tools/voice-live/hear-chunks.py"]],
     # LEVER A: does the cache staying on the card pay, and does the bound
     # path speak the same numbers. The python preview of residency DIED in
