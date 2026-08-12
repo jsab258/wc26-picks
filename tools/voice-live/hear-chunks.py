@@ -179,7 +179,15 @@ def say_lines(say, fp16=False):
     def chunked():
         plan = plan_chunks(len(tokens))
         pieces, times = [], []
-        src = np.zeros((1, 1, 0), dtype=np.float32)
+        # ONE ZERO SAMPLE, NOT ZERO SAMPLES. The first real DML run died in
+        # an Expand on the first chunk — the only call carrying a
+        # zero-LENGTH cache, which the CPU provider accepts and DirectML's
+        # kernels refuse ("parameter is incorrect"). A one-sample cache
+        # overwrites one sample of the vocoder's source with silence, under
+        # a head the treatment feathers anyway; a zero-length one never
+        # runs at all on the card this ships to. The C# twin
+        # (`Core/SpeechStream`'s caller) must do the same.
+        src = np.zeros((1, 1, 1), dtype=np.float32)
         for visible, offset, final in plan:
             h = MELS_PER_TOKEN * (P + visible) \
                 - (0 if final else MELS_PER_TOKEN * LOOKAHEAD_TOKENS)

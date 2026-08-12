@@ -103,6 +103,7 @@ namespace Ledger.CoreTests
                 TestSpeechQueue();
                 TestSpeechDirector();
                 TestSpeechSamples();
+                TestSpeechStream();
                 TestCaptions();
                 TestCrowdOnTheStreet();
                 TestCombat();
@@ -8221,6 +8222,71 @@ namespace Ledger.CoreTests
         /// Who speaks live, and whether this machine can afford it.
         /// The pop Jafar heard at the top of every line in the five-line
         /// test file, and the game's own playback path had it waiting.
+        /// The streaming plan — the C# half of an arithmetic that exists
+        /// twice on purpose. `hear-chunks.py plan_chunks` is the python
+        /// twin; these cases are ITS cases, so a drift between them fails a
+        /// test rather than clicking at a seam on Jafar's machine.
+        static void TestSpeechStream()
+        {
+            Console.WriteLine("The streaming plan — chunks, seams, and when to start:");
+
+            var p = SpeechStream.Plan(86);
+            Check(p.Count == 4 && p[p.Count - 1].Final
+                  && p[p.Count - 1].VisibleTokens == 86,
+                "an 86-token line plans four chunks and the final one sees "
+                + "every token", p.Count.ToString());
+            bool onlyLast = true;
+            for (int i = 0; i < p.Count - 1; i++) onlyLast &= !p[i].Final;
+            Check(onlyLast, "and only the final chunk is final");
+            int mels = 0;
+            bool covered = true;
+            foreach (var c in p)
+            {
+                if (c.MelOffset != mels) covered = false;
+                mels = SpeechStream.MelsPerToken * c.VisibleTokens
+                    - (c.Final ? 0 : SpeechStream.MelsPerToken
+                                     * SpeechStream.LookaheadTokens);
+            }
+            Check(covered && mels == SpeechStream.MelsPerToken * 86,
+                "every mel is rendered exactly once across the plan — a gap "
+                + "is silence and an overlap is a stutter",
+                mels.ToString());
+
+            Check(SpeechStream.Plan(5).Count == 1 && SpeechStream.Plan(5)[0].Final
+                  && SpeechStream.Plan(5)[0].MelOffset == 0,
+                "a line shorter than one chunk is a single final call");
+            Check(SpeechStream.Plan(24).Count == 1,
+                "and a line of exactly one chunk is too");
+            Check(SpeechStream.Plan(0).Count == 0, "an empty line plans nothing");
+            var tail = SpeechStream.Plan(25);
+            Check(tail.Count == 2 && !tail[0].Final && tail[0].VisibleTokens == 24
+                  && tail[1].Final && tail[1].MelOffset == 42,
+                "a one-token tail still gets a final call that releases the "
+                + "held-back lookahead",
+                tail.Count + " chunks, offset " + (tail.Count > 1
+                    ? tail[1].MelOffset.ToString() : "-"));
+
+            // The no-underrun rule is arithmetic, and both fates of it.
+            Check(SpeechStream.CanStart(1.0, 2.0, 2.5),
+                "playback starts when the work owed is under the audio in "
+                + "hand plus the audio that work yields");
+            Check(!SpeechStream.CanStart(1.0, 4.0, 2.5),
+                "and waits when the work owed exceeds it — starting there "
+                + "underruns mid-line by construction");
+            Check(!SpeechStream.CanStart(0.0, 0.5, 3.0),
+                "and never starts with nothing banked, whatever the rates say");
+
+            // Sustainability: the resident path streams, the CPU path does
+            // not, and an unmeasured machine does not guess.
+            Check(SpeechStream.Sustainable(58.0, 0.98),
+                "58 steps a second at the measured token ratio streams");
+            Check(!SpeechStream.Sustainable(14.0, 0.98),
+                "a CPU-rate machine does not — a stutter reads worse than a "
+                + "pause before a whole line");
+            Check(!SpeechStream.Sustainable(0.0, 0.0),
+                "and an unmeasured machine does not stream on hope");
+        }
+
         static void TestSpeechSamples()
         {
             Console.WriteLine("Feathered line edges — the pop is a step from zero:");
