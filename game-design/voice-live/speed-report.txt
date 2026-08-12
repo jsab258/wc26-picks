@@ -1,24 +1,24 @@
 LEDGER — how long one spoken line actually takes
-ran on Jafar-Desktop (Windows) as Jafar, 2026-08-12 15:13 UTC
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-12 15:26 UTC
 
   TEXT GRAPHS: FP16 — this run measures lever B
   providers available: DmlExecutionProvider, CPUExecutionProvider
   using: DmlExecutionProvider
   opened t3-prefill in 2.5s
-  opened t3-step in 1.8s
-  opened s3gen-decode in 38.1s
-  three sessions in 42.4s total
+  opened t3-step in 1.7s
+  opened s3gen-decode in 39.2s
+  three sessions in 43.3s total
   the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
-  prefill: 1.06s
+  prefill: 0.31s (second run 0.07s — the gap between them is one-time warm-up, the second is the real cost)
   the graph gives 2 row(s) of odds — classifier-free guidance
-  74 steps in 2.7s — first 163ms, median 31ms, slowest 163ms
+  74 steps in 2.3s — first 118ms, median 26ms, slowest 118ms
   74 acoustic tokens kept
   one step on CPU: could not run — Fail: [ONNXRuntimeError] : 1 : FAIL : Exception during initialization: E:\_work\1\s\onnxruntime\core\graph\graph_utils.cc:30 onnxruntime::graph_utils::GetIndexFromName itr != node_args.end() was false. Attempting to get index by a name which does not exist:InsertedPrecisionFreeCast_/tfmr/layers.10/input_layernorm/Constant_output_0for node: /tfmr/layers.0/input_layernorm/Mul_1/SimplifiedLayerNormFusion/
 
-  decode on CPU: 5.20s (session opened in 39.8s)
-  -> the CPU is 2.9x SLOWER at this stage — DirectML is the right place for it
-  wrote spoken.wav — 139 KB, 3.0s, through the SHIPPED graphs
-  decode: 1.81s for 3.0s of audio
+  decode on CPU: 5.49s (session opened in 41.0s)
+  -> the CPU is 3.2x SLOWER at this stage — DirectML is the right place for it
+  wrote spoken.wav — 162 KB, 3.5s, through the SHIPPED graphs
+  decode: 1.73s for 3.0s of audio
 
-  ONE LINE: 5.5s of work for 3.0s of speech — 1.9x real time
-  split: prefill 1.1s, 74 steps 2.7s, decode 1.8s
+  ONE LINE: 4.4s of work for 3.0s of speech — 1.5x real time
+  split: prefill 0.3s, 74 steps 2.3s, decode 1.7s
