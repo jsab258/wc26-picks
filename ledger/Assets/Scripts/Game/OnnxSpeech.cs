@@ -568,9 +568,28 @@ namespace Ledger.Game
             EnsurePool();
             if (_logitsHome == null)
             {
-                _logitsBuf = new float[_rows * SpeechVocab.Size];
-                _logitsHome = OrtValue.CreateTensorValueFromMemory(
-                    _logitsBuf, new long[] { _rows, SpeechVocab.Size });
+                // THE SHAPE IS THE STEP GRAPH'S, NOT AN ASSUMPTION. The
+                // prefill emits [rows, vocab] and the step [rows, 1, vocab]
+                // — round three bound a rank-2 home for a rank-3 output and
+                // was refused by name. Dynamic axes are one token wide at a
+                // step; the element count is checked against what the
+                // sampler expects, because a home of the right rank and the
+                // wrong size would truncate the odds silently.
+                var md = _step.OutputMetadata["logits"];
+                var dims = new long[md.Dimensions.Length];
+                long elems = 1;
+                for (int d = 0; d < dims.Length; d++)
+                {
+                    dims[d] = md.Dimensions[d] < 0 ? 1 : md.Dimensions[d];
+                    elems *= dims[d];
+                }
+                if (elems != (long)_rows * SpeechVocab.Size)
+                    throw new InvalidOperationException(
+                        "the step graph's logits hold " + elems
+                        + " values, the sampler wants "
+                        + (long)_rows * SpeechVocab.Size);
+                _logitsBuf = new float[elems];
+                _logitsHome = OrtValue.CreateTensorValueFromMemory(_logitsBuf, dims);
             }
 
             _cur = -1;
