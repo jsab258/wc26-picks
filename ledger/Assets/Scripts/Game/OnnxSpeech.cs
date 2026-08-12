@@ -50,11 +50,28 @@ namespace Ledger.Game
     /// `SpeechBench` on the real machine before any build leans on it, and
     /// why every managed failure here falls back to the host path with the
     /// reason kept in `Residency`.
-    public class OnnxSpeech : ISpeechBackend, IDisposable
+    public class OnnxSpeech : ISpeechBackend, ISpeechChunkDecoder, IDisposable
     {
         readonly InferenceSession _prefill;
         readonly InferenceSession _step;
         readonly InferenceSession _decode;
+
+        /// The optional streaming vocoder — null on a machine that shipped
+        /// only the three whole-line graphs.
+        readonly InferenceSession _chunk;
+
+        /// The streaming seam, which is upstream's design and three numbers
+        /// of state: the last 8 mels the vocoder saw, their 3840 samples of
+        /// harmonic source, and the 3840 rendered samples HELD BACK from
+        /// the previous chunk for the next one to crossfade over. Held here
+        /// so the caller never sees a tensor — the same rule as the token
+        /// cache — and dropped by Release with everything else.
+        float[] _seamSrc;
+        float[] _seamMel;
+        float[] _heldTail;
+
+        /// One seam, in samples: 8 mels at 480.
+        const int SeamSamples = 8 * SamplesPerMel;
         readonly Func<string, VoiceConditionals> _voice;
         readonly Func<string, int[]> _tokenize;
 
@@ -190,7 +207,12 @@ namespace Ledger.Game
                         return null;
                     }
                 }
-                var me = new OnnxSpeech(p, s, d, voice, tokenize);
+                // The FOURTH graph is optional: without it the machine
+                // speaks whole lines and cannot start early. Null says so.
+                var c = System.IO.Path.Combine(folder, "s3gen-chunk.onnx");
+                if (!System.IO.File.Exists(c)) c = null;
+
+                var me = new OnnxSpeech(p, s, d, c, voice, tokenize);
                 why = me.Why;
                 return me.Why == null ? me : null;
             }
@@ -201,7 +223,7 @@ namespace Ledger.Game
             }
         }
 
-        OnnxSpeech(string prefill, string step, string decode,
+        OnnxSpeech(string prefill, string step, string decode, string chunk,
                    Func<string, VoiceConditionals> voice, Func<string, int[]> tokenize)
         {
             _voice = voice;
@@ -226,6 +248,7 @@ namespace Ledger.Game
             _prefill = new InferenceSession(prefill, opts);
             _step = new InferenceSession(step, opts);
             _decode = new InferenceSession(decode, opts);
+            if (chunk != null) _chunk = new InferenceSession(chunk, opts);
 
             var stepIn = new List<string>();
             foreach (var i in _step.InputMetadata.Keys) stepIn.Add(i);
@@ -482,6 +505,7 @@ namespace Ledger.Game
         public void Release()
         {
             if (_held != null) { _held.Dispose(); _held = null; }
+            _seamSrc = null; _seamMel = null; _heldTail = null;
             ReleaseLine();
         }
 
@@ -833,6 +857,150 @@ namespace Ledger.Game
             }
         }
 
+        /// The streaming half of the vocoder. Mirrors the python caller in
+        /// `tools/voice-live/hear-chunks.py` feed for feed and fade for
+        /// fade — that file is the reference the PC actually runs, so a
+        /// disagreement between them is a bug HERE. The machine is
+        /// CosyVoice2's own: eight cached mels ride in front of the fresh
+        /// ones, their 3840 samples of source feed back, and the head of
+        /// each render crossfades over the tail HELD BACK from the last —
+        /// so what this returns is exactly the samples the line gains, ready
+        /// to play. The first chunk rides in on zero mels and drops their
+        /// render; a failure resets the seam so the next line starts clean.
+        public float[] DecodeChunk(int[] tokens, int melOffset, bool final)
+        {
+            if (_chunk == null) { Why = "no chunk graph on this machine"; return null; }
+            if (tokens == null || tokens.Length == 0) return null;
+            if (_current == null) { Why = "no voice to decode with"; return null; }
+            try
+            {
+                var pt = _current.Get("gen.prompt_token");
+                var pf = _current.Get("gen.prompt_feat");
+                var em = _current.Get("gen.embedding");
+                if (pt == null || pf == null || em == null)
+                { Why = "the voice has no s3gen half"; return null; }
+
+                int promptTokens = pt.Rows;
+                int promptMels = pf.Rows;
+                // A non-final chunk's tail is lookahead: mel the vocoder
+                // reads for context and does not render.
+                int h = SpeechStream.MelsPerToken * (promptTokens + tokens.Length)
+                    - (final ? 0 : SpeechStream.MelsPerToken
+                                   * SpeechStream.LookaheadTokens);
+                int fresh = (h - promptMels) - melOffset;
+                if (fresh <= 0) { Why = "the chunk adds no mel"; return null; }
+                if (melOffset == 0)
+                {
+                    // A first chunk must out-render the zero-seam drop plus
+                    // the holdback, or it emits nothing and the plan is
+                    // wrong upstream of here.
+                    if (!final && fresh * SamplesPerMel < 2 * SeamSamples)
+                    { Why = "first chunk too small to emit"; return null; }
+                    // ONE ZERO SAMPLE, NOT ZERO SAMPLES — a zero-length
+                    // cache is the one feed DirectML refused outright. The
+                    // mel seam is zeros at its full fixed size, and the
+                    // 3840 samples those zeros render to are dropped below.
+                    _seamSrc = new float[1];
+                    _seamMel = new float[80 * 8];
+                    _heldTail = null;
+                }
+                if (_seamSrc == null || _seamMel == null)
+                { Why = "chunk out of order: no seam at offset " + melOffset; return null; }
+
+                var seed = new Gauss(unchecked((uint)tokens.Length * 2654435761u
+                                               + (uint)melOffset * 40503u
+                                               + (uint)promptTokens));
+                var z = new DenseTensor<float>(new[] { 1, 80, h });
+                for (int i = 0; i < 80 * h; i++) z.SetValue(i, seed.Next());
+                // The seam region's sine noise is zeros in front: its
+                // source is overwritten by the cache on every call after
+                // the first, and the first drops that region's render.
+                int wav = SeamSamples + fresh * SamplesPerMel;
+                var sine = new DenseTensor<float>(new[] { 1, Harmonics, wav });
+                for (int b = 0; b < Harmonics; b++)
+                    for (int i = SeamSamples; i < wav; i++)
+                        sine.SetValue(b * wav + i, seed.Next());
+
+                var tk = new DenseTensor<long>(new[] { 1, tokens.Length });
+                for (int i = 0; i < tokens.Length; i++) tk.SetValue(i, tokens[i]);
+                var cache = new DenseTensor<float>(new[] { 1, 1, _seamSrc.Length });
+                for (int i = 0; i < _seamSrc.Length; i++) cache.SetValue(i, _seamSrc[i]);
+                var cmel = new DenseTensor<float>(new[] { 1, 80, 8 });
+                for (int i = 0; i < _seamMel.Length; i++) cmel.SetValue(i, _seamMel[i]);
+                var off = new DenseTensor<long>(new int[0]);   // a scalar
+                off.SetValue(0, melOffset);
+                var fin = new DenseTensor<long>(new int[0]);
+                fin.SetValue(0, final ? 1 : 0);
+
+                using (var got = _chunk.Run(new List<NamedOnnxValue>
+                {
+                    NamedOnnxValue.CreateFromTensor("tokens", tk),
+                    NamedOnnxValue.CreateFromTensor("prompt_token", Longs(pt)),
+                    NamedOnnxValue.CreateFromTensor("prompt_feat", Floats(pf)),
+                    NamedOnnxValue.CreateFromTensor("embedding", Floats(em)),
+                    NamedOnnxValue.CreateFromTensor("z", z),
+                    NamedOnnxValue.CreateFromTensor("sine_noise", sine),
+                    NamedOnnxValue.CreateFromTensor("cache_source", cache),
+                    NamedOnnxValue.CreateFromTensor("cache_mel", cmel),
+                    NamedOnnxValue.CreateFromTensor("mel_offset", off),
+                    NamedOnnxValue.CreateFromTensor("final", fin),
+                }))
+                {
+                    // Three outputs, in the graph's order: the render, the
+                    // source tail, the mel tail.
+                    float[] render = null; int which = 0;
+                    foreach (var v in got)
+                    {
+                        var t = v.AsTensor<float>();
+                        var arr = new float[t.Length];
+                        for (int i = 0; i < arr.Length; i++) arr[i] = t.GetValue(i);
+                        if (which == 0) render = arr;
+                        else if (which == 1) _seamSrc = arr;
+                        else _seamMel = arr;
+                        which++;
+                    }
+                    if (render == null)
+                    { Why = "the chunk graph returned nothing"; return null; }
+
+                    int start = 0;
+                    if (_heldTail == null) start = SeamSamples;
+                    else
+                        for (int i = 0; i < SeamSamples; i++)
+                        {
+                            // np.hamming's formula, both halves of a
+                            // 2*SeamSamples window: the new render rises as
+                            // the held tail falls.
+                            double a = 2.0 * Math.PI * i
+                                       / (2 * SeamSamples - 1);
+                            double riseW = 0.54 - 0.46 * Math.Cos(a);
+                            double b = 2.0 * Math.PI * (i + SeamSamples)
+                                       / (2 * SeamSamples - 1);
+                            double fallW = 0.54 - 0.46 * Math.Cos(b);
+                            render[i] = (float)(render[i] * riseW
+                                                + _heldTail[i] * fallW);
+                        }
+
+                    int emit = render.Length - start - (final ? 0 : SeamSamples);
+                    if (emit <= 0) { Why = "the chunk emitted nothing"; return null; }
+                    var outp = new float[emit];
+                    Array.Copy(render, start, outp, 0, emit);
+                    if (!final)
+                    {
+                        _heldTail = new float[SeamSamples];
+                        Array.Copy(render, render.Length - SeamSamples,
+                                   _heldTail, 0, SeamSamples);
+                    }
+                    return outp;
+                }
+            }
+            catch (Exception e)
+            {
+                Why = "chunk: " + e.GetType().Name + ": " + e.Message;
+                _seamSrc = null; _seamMel = null; _heldTail = null;
+                return null;
+            }
+        }
+
         /// 480 samples of audio per mel frame, from the shipped vocoder's
         /// upsample rates [8,5,3] times its tiny inverse STFT hop of 4. The
         /// class default is [8,8], which gives 256 — measured rather than
@@ -890,6 +1058,7 @@ namespace Ledger.Game
             if (_prefill != null) _prefill.Dispose();
             if (_step != null) _step.Dispose();
             if (_decode != null) _decode.Dispose();
+            if (_chunk != null) _chunk.Dispose();
         }
     }
 }

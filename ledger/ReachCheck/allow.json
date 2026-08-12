@@ -93,6 +93,7 @@
     "SpeechStream.Sustainable": "WIRE: the same streaming worker — the go/no-go it asks before attempting a stream at all, from SpeechDirector's measured rates. A CPU-rate machine must fall back to whole-line delivery rather than stutter, and only the worker can ask that question at the right moment.",
     "SpeechRun.SecondsPerStep": "WIRE: the ONNX speech backend. `Audio.Backend` is the field and nothing sets it until the onnxruntime plugin lands. The per-step rate a run measured — the worker already folds a finished run back into the director via Observed(), which reads Steps and Seconds directly; this is the derived per-step figure, and nothing needs it until there are enough real runs to compare.",
     "StreetMap.FullyConnected": "BY DESIGN: a map invariant the tests and the sim assert after generation. The game never re-checks connectivity at runtime.",
-    "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way."
+    "SyntheticCorpus.Query": "BY DESIGN: the stand-in corpus the motion tests run against, so MotionMatch can be tested with no clips on disk. Replaced by the real database at M17.1, not called by the game either way.",
+    "SpeechStream.EmittedSamples": "WIRE: the same streaming worker as CanStart above — the seam accounting it banks audio with. A worker that banks fresh*480 for the first chunk overestimates the audio in hand by one seam (160ms) and underruns at the start of every line; the CoreTests prove the arithmetic closes to the whole line, and the entry dies when the worker lands (12 Aug)."
   }
 }

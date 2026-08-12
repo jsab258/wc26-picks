@@ -45,6 +45,33 @@ namespace Ledger.Core
         /// audio it yields.
         public const int ChunkTokens = 24;
 
+        /// The vocoder's seam, upstream's `mel_cache_len`: eight cached
+        /// mels ride in front of every chunk's fresh ones, and their
+        /// samples of source and render carry the waveform across the
+        /// boundary. The decode side lives in `OnnxSpeech.DecodeChunk`;
+        /// these constants exist so the AUDIO ACCOUNTING below and the
+        /// plan's floor agree with it by construction.
+        public const int SeamMels = 8;
+        public const int SeamSamples = SeamMels * SamplesPerMel;
+
+        /// The samples a chunk actually hands the player, which is NOT its
+        /// fresh mels times 480: the first chunk drops the zero-seam's
+        /// render and holds a seam back for the next crossfade, middles
+        /// emit exactly their fresh samples (the held tail re-emerges
+        /// crossfaded at their head), and the final brings the holdback
+        /// home. Any release arithmetic that banks `fresh * 480` for the
+        /// first chunk overestimates the audio in hand by 160ms and
+        /// underruns exactly once, at the start, on every line.
+        public static int EmittedSamples(int freshMels, bool first,
+                                         bool final)
+        {
+            // The render always carries the seam ride-in in front.
+            int rendered = (SeamMels + freshMels) * SamplesPerMel;
+            if (first) rendered -= SeamSamples;    // the zero-seam's render
+            if (!final) rendered -= SeamSamples;   // the holdback
+            return rendered > 0 ? rendered : 0;
+        }
+
         /// Which decode calls a line of `tokens` becomes. Empty for an
         /// empty line; a line at or under one chunk is a single final call.
         public static List<SpeechChunk> Plan(int tokens,

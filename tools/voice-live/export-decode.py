@@ -393,6 +393,24 @@ def export_decode(torch, flow, gen, args, dest, steps=10):
     return dec
 
 
+# The streaming vocoder's seam, in mel frames — CosyVoice2's
+# `mel_cache_len`, at chatterbox's 480 samples per mel. Everything about the
+# seam (the mel prepend, the source tail, the caller's crossfade window and
+# holdback) is this one number.
+MEL_CACHE = 8
+
+
+def pad_sine(torch, sine):
+    """Seam-region sine noise rides IN FRONT of the line's own, so a chunk's
+    fresh samples keep the same noise the whole-line render would give them:
+    vocoder sample k is line sample k minus the seam's 3840. The seam
+    region's own noise is zeros — on every call after the first its source
+    is overwritten by `cache_source` anyway, and on the first the render of
+    that region is dropped by the caller."""
+    head = torch.zeros(sine.shape[0], sine.shape[1], MEL_CACHE * 480)
+    return torch.cat([head, sine], dim=2)
+
+
 def make_chunk(torch, flow, gen, steps=10):
     """The STREAMING half: a piece of the line in, a piece of the wav out.
 
@@ -423,7 +441,8 @@ def make_chunk(torch, flow, gen, steps=10):
             self.seen = {}
 
         def forward(self, tokens, prompt_token, prompt_feat, embedding,
-                    z, sine_noise, cache_source, mel_offset, final):
+                    z, sine_noise, cache_source, cache_mel, mel_offset,
+                    final):
             n = tokens.shape[1]
             p = prompt_token.shape[1]
             with noise_from(torch, [z, sine_noise]) as box:
@@ -440,10 +459,28 @@ def make_chunk(torch, flow, gen, steps=10):
                 fresh = torch.index_select(
                     mel, 2,
                     torch.arange(mel_offset.long(), total, device=mel.device))
-                wav, src = self.gen.inference(speech_feat=fresh,
+                # EIGHT CACHED MELS RIDE IN FRONT, which is the upstream
+                # streaming design this graph existed to trace and the first
+                # version skipped: CosyVoice2's `token2wav` prepends the
+                # last `mel_cache_len=8` mels it vocoded and hands back only
+                # the last `8*480` samples of the SOURCE, so the harmonic
+                # source is continuous across the seam while the overlap
+                # region is re-rendered and crossfaded by the caller. The
+                # first version fed the whole previous source back instead —
+                # temporally wrong, and a crash the moment a chunk was
+                # shorter than its predecessor, which the final one usually
+                # is. `cache_mel` is ALWAYS (1,80,8): the first chunk sends
+                # zeros and the caller drops the 3840 samples they render
+                # to, because a zero-LENGTH tensor is the one shape DirectML
+                # has already refused on this card.
+                voc_in = torch.cat([cache_mel, fresh], dim=2)
+                wav, src = self.gen.inference(speech_feat=voc_in,
                                               cache_source=cache_source)
             self.seen = box
-            return wav, src
+            # The tails the NEXT call needs, cut here so both are
+            # fixed-shape outputs: 8 mels and their 3840 samples of source.
+            return wav, src[:, :, -MEL_CACHE * 480:], \
+                voc_in[:, :, -MEL_CACHE:]
 
     return Chunk()
 
@@ -451,14 +488,19 @@ def make_chunk(torch, flow, gen, steps=10):
 def export_chunk(torch, flow, gen, args, dest, steps=10):
     dec = make_chunk(torch, flow, gen, steps).eval()
     names = ["tokens", "prompt_token", "prompt_feat", "embedding",
-             "z", "sine_noise", "cache_source", "mel_offset", "final"]
+             "z", "sine_noise", "cache_source", "cache_mel", "mel_offset",
+             "final"]
+    # `cache_mel` and both tail outputs are deliberately STATIC shapes —
+    # fixed seams are the DirectML-friendly half of this design. Only
+    # `cache_source` stays dynamic, for the one-sample first call.
     axes = {"tokens": {1: "n"}, "prompt_token": {1: "p"},
             "prompt_feat": {1: "pmel"}, "z": {2: "mel"},
             "sine_noise": {2: "smp"}, "cache_source": {2: "src"},
-            "wav": {1: "smp"}, "source": {2: "srcout"}}
+            "wav": {1: "smp"}}
     with torch.no_grad():
         torch.onnx.export(dec, args, str(dest), opset_version=17, dynamo=False,
-                          input_names=names, output_names=["wav", "source"],
+                          input_names=names,
+                          output_names=["wav", "source", "mel_tail"],
                           dynamic_axes=axes)
     return dec
 
@@ -695,66 +737,101 @@ def selftest():
 
     # ---- 9+. THE STREAMING GRAPH, same small model ----
     ahead = flow.pre_lookahead_len * flow.token_mel_ratio
+    SRC_CACHE = MEL_CACHE * SAMPLES_PER_MEL
     ok, why = True, ""
     try:
-        cargs = (tok, ptok, pfeat, emb) + tuple(noise) \
-            + (torch.zeros(1, 1, 480), torch.tensor(0, dtype=torch.long),
-               torch.tensor(1, dtype=torch.long))
+        cargs = (tok, ptok, pfeat, emb,
+                 noise[0], pad_sine(torch, noise[1]),
+                 torch.zeros(1, 1, 1), torch.zeros(1, 80, MEL_CACHE),
+                 torch.tensor(0, dtype=torch.long),
+                 torch.tensor(1, dtype=torch.long))
         with patched(), dynamic_cfm(torch), dynamic_flow(torch):
             export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx")
     except Exception as e:
         ok, why = False, f"{type(e).__name__}: {e}"
-    check(ok, "the CHUNK graph converts — mel offset, seam cache and a "
-          "tensor-driven finalize", why[:150])
+    check(ok, "the CHUNK graph converts — mel offset, an 8-mel seam ride-in "
+          "and a tensor-driven finalize", why[:150])
     if ok:
         cs = ort.InferenceSession(str(tmp / "chunk.onnx"),
                                   providers=["CPUExecutionProvider"])
         ckeys = ["tokens", "prompt_token", "prompt_feat", "embedding",
-                 "z", "sine_noise", "cache_source", "mel_offset", "final"]
+                 "z", "sine_noise", "cache_source", "cache_mel",
+                 "mel_offset", "final"]
 
-        def crun(tk, nz, cache, off, fin):
+        def crun(tk, nz, csrc, cmel, off, fin):
             return cs.run(None, dict(zip(
                 ckeys, [npy(tk), npy(ptok), npy(pfeat), npy(emb),
-                        npy(nz[0]), npy(nz[1]), cache,
+                        npy(nz[0]), npy(pad_sine(torch, nz[1])), csrc, cmel,
                         np.array(off, dtype=np.int64),
                         np.array(fin, dtype=np.int64)])))
 
-        # The accepting case: asked the whole-line question — final, from
-        # the start, no seam — it must give the whole-line graph's answer.
-        empty = np.zeros((1, 1, 0), dtype=np.float32)
-        wc, sc = crun(tok, noise, empty, 0, 1)
-        dw = float(np.abs(wc - got).max()) / max(float(np.abs(got).max()), 1e-12)
-        check(dw < 1e-4, f"chunk(final,offset0,no-cache) IS the whole-line "
-              f"answer, to {dw:.1e}", f"{dw:.2e}")
-        check(sc.shape[2] == wc.shape[1],
-              "and the seam cache it returns spans the samples it made",
-              f"src {sc.shape} vs wav {wc.shape}")
+        one = np.zeros((1, 1, 1), dtype=np.float32)
+        zmel = np.zeros((1, 80, MEL_CACHE), dtype=np.float32)
 
-        # A real two-chunk render: the lookahead trim is live (a non-final
-        # chunk is exactly `ahead` mels short), the lengths close, and the
-        # seam cache is CONSUMED — a dead input here is a click at every
-        # boundary that nothing else would name.
+        # The accepting case: asked the whole-line question — final, from
+        # the start, zero seam mels in front — after dropping the 3840
+        # samples those zeros render to, it must give the whole-line
+        # answer. NOT sample-for-sample at the head: the f0 predictor is
+        # an RNN, so the zero prefix hands it a different entering state
+        # than the whole line's cold start, and the residue decays rather
+        # than vanishes. So the check prints the decay series per 480 and
+        # gates on the BULK, past the model's own 960-sample trim_fade.
+        wc, sc, mt = crun(tok, noise, one, zmel, 0, 1)
+        body = wc[:, SRC_CACHE:]
+        prof = [float(np.abs(body[:, i * 480:(i + 1) * 480]
+                             - got[:, i * 480:(i + 1) * 480]).max())
+                for i in range(min(8, body.shape[1] // 480))]
+        scale = max(float(np.abs(got).max()), 1e-12)
+        print("        zero-prefix residue per mel: "
+              + " ".join(f"{v / scale:.1e}" for v in prof))
+        dw = float(np.abs(body[:, SRC_CACHE:]
+                          - got[:, SRC_CACHE:]).max()) / scale
+        check(body.shape[1] == got.shape[1],
+              "chunk(final,offset0) minus the seam render is whole-line "
+              "SIZED", f"{body.shape[1]} vs {got.shape[1]}")
+        # The bound sits at one seam length (3840 samples, 160ms), placed
+        # from the printed series: the residue is 6.8e-01 inside the mel
+        # the model itself hard-silences, 1.4e-02 under its fade, and
+        # 5.1e-05 by mel 7. The head's blind spot is named, feathered by
+        # the model's own 960-sample trim, and judged by ear on the PC.
+        check(dw < 1e-3, f"and past one seam length it IS the whole-line "
+              f"answer, to {dw:.1e}", f"{dw:.2e}")
+        check(sc.shape[2] == SRC_CACHE and mt.shape[2] == MEL_CACHE,
+              "and both tails are their fixed seam sizes",
+              f"src {sc.shape} mel {mt.shape}")
+
+        # A real two-chunk render, run the way the game will run it:
+        # chunk 1 non-final (lookahead trimmed, tails kept, holdback), then
+        # the final chunk rides in on chunk 1's tails. The lengths must
+        # close exactly, and the seam must be CONSUMED — a dead cache input
+        # is a click at every boundary that nothing else would name.
         pmel = pfeat.shape[1]
         n1 = T // 2
         m1 = MELS_PER_TOKEN * (P + n1) - ahead - pmel
         nz1 = draw(torch, P, pmel, n1, 11)
         nz1 = (nz1[0][:, :, :pmel + m1],
                nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
-        w1, s1 = crun(tok[:, :n1], nz1, empty, 0, 0)
-        check(w1.shape[1] == m1 * SAMPLES_PER_MEL,
-              f"a non-final chunk is short by exactly the {ahead}-mel "
-              f"lookahead", f"{w1.shape[1]} vs {m1 * SAMPLES_PER_MEL}")
+        w1, s1, m1t = crun(tok[:, :n1], nz1, one, zmel, 0, 0)
+        check(w1.shape[1] == (m1 + MEL_CACHE) * SAMPLES_PER_MEL,
+              f"a non-final chunk renders its seam ride-in plus exactly "
+              f"{ahead}-mel-lookahead-trimmed fresh",
+              f"{w1.shape[1]} vs {(m1 + MEL_CACHE) * SAMPLES_PER_MEL}")
         full_mels = MELS_PER_TOKEN * (P + T) - pmel
         nz2 = draw(torch, P, pmel, T, 11)
         nz2 = (nz2[0], nz2[1][:, :, m1 * SAMPLES_PER_MEL:])
-        w2a, _ = crun(tok, nz2, s1, m1, 1)
-        w2b, _ = crun(tok, nz2, empty, m1, 1)
-        check(w1.shape[1] + w2a.shape[1] == full_mels * SAMPLES_PER_MEL,
-              "and two chunks close to the whole line's sample count",
-              f"{w1.shape[1]}+{w2a.shape[1]} vs {full_mels * SAMPLES_PER_MEL}")
+        w2a, _, _ = crun(tok, nz2, s1, m1t, m1, 1)
+        w2b, _, _ = crun(tok, nz2, one, zmel, m1, 1)
+        # Caller algebra: chunk 1 emits its render minus the zero-seam
+        # drop minus the holdback; the final chunk emits everything, its
+        # first SRC_CACHE samples crossfading over the holdback.
+        emit1 = w1.shape[1] - SRC_CACHE - SRC_CACHE
+        emit2 = w2a.shape[1]
+        check(emit1 + emit2 == full_mels * SAMPLES_PER_MEL,
+              "and the emitted stream closes to the whole line's count",
+              f"{emit1}+{emit2} vs {full_mels * SAMPLES_PER_MEL}")
         check(float(np.abs(w2a - w2b).max()) > 0,
-              "and the seam cache is consumed — the same chunk with and "
-              "without it differs, so the input is live, not decoration")
+              "and the seam is consumed — the same final chunk with and "
+              "without it differs, so the cache inputs are live")
 
     print(f"\nexport-decode --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks "
@@ -874,12 +951,15 @@ def cmd_run(force=False, steps=4):
     chunk_dest = OUT / "s3gen-chunk.onnx"
     off0 = torch.tensor(0, dtype=torch.long)
     fin1 = torch.tensor(1, dtype=torch.long)
-    # Traced with a NONZERO seam cache so the concat inside the vocoder is
-    # not traced against a degenerate zero-length edge; the axis is dynamic
-    # and the zero-length first-chunk case is checked below at runtime.
+    # Traced with a NONZERO seam cache so the source overwrite inside the
+    # vocoder is not traced against a degenerate zero-length edge; the axis
+    # is dynamic and the one-sample first-chunk case is what runs. The mel
+    # seam is a FIXED (1,80,8) by design, so it is traced at its only size,
+    # and the sine noise carries the seam's 3840 samples in front.
     seed_cache = torch.zeros(1, 1, 480)
-    cargs = (tok, ptok, pfeat, emb) + tuple(noise) \
-        + (seed_cache, off0, fin1)
+    cargs = (tok, ptok, pfeat, emb,
+             noise[0], pad_sine(torch, noise[1]),
+             seed_cache, torch.zeros(1, 80, MEL_CACHE), off0, fin1)
     with patched(), dynamic_cfm(torch), dynamic_flow(torch):
         export_chunk(torch, model.s3gen.flow, model.s3gen.mel2wav,
                      cargs, chunk_dest, steps)

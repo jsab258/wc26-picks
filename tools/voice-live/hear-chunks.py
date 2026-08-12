@@ -187,14 +187,24 @@ def say_lines(say, fp16=False):
         # a head the treatment feathers anyway; a zero-length one never
         # runs at all on the card this ships to. The C# twin
         # (`Core/SpeechStream`'s caller) must do the same.
+        # THE UPSTREAM SEAM, DONE PROPERLY THIS TIME. The differential run
+        # convicted the GRAPH: feeding the whole previous source back was
+        # temporally wrong and crashed whenever a chunk was shorter than
+        # its predecessor, which the final one usually is. The design the
+        # graph now traces is CosyVoice2's own: eight cached mels ride in
+        # front of every chunk, only their 3840 samples of source feed
+        # back, and the caller crossfades the re-rendered seam over the
+        # tail it HELD BACK from the previous chunk. The first chunk rides
+        # in on zero mels and drops their render.
+        SRC = 8 * SAMPLES_PER_MEL
+        window = np.hamming(2 * SRC).astype(np.float32)
+        rise, fall = window[:SRC], window[SRC:]
         src = np.zeros((1, 1, 1), dtype=np.float32)
-        # THE SAME FEED, BOTH PROVIDERS. The one-sample cache above did not
-        # cure the first-chunk Expand refusal, so stop treating organs and
-        # take the differential: a call DirectML refuses is re-run, feed
-        # unchanged, on a CPU session of the SAME graph. CPU accepting
-        # convicts the provider; both refusing convicts the graph. The run
-        # then carries on hybrid — audible answer and timings still land
-        # this trip, with each piece's provider named in the printout.
+        cmel = np.zeros((1, 80, 8), dtype=np.float32)
+        held = None
+        # THE SAME FEED, BOTH PROVIDERS, kept from the differential run: a
+        # call DirectML refuses is re-run, feed unchanged, on a CPU session
+        # of the SAME graph, and the printout names who refused what.
         cpu = [None]
 
         def on_cpu(feed):
@@ -207,31 +217,43 @@ def say_lines(say, fp16=False):
             return cpu[0].run(None, feed)
 
         wore = []
+        first_fresh = (MELS_PER_TOKEN * (P + plan[0][0])
+                       - (0 if plan[0][2] else
+                          MELS_PER_TOKEN * LOOKAHEAD_TOKENS)) - pmel
+        assert first_fresh * SAMPLES_PER_MEL >= 2 * SRC or plan[0][2], \
+            "the first chunk must out-render its zero-seam drop plus the " \
+            "holdback — grow the first chunk"
         for visible, offset, final in plan:
             h = MELS_PER_TOKEN * (P + visible) \
                 - (0 if final else MELS_PER_TOKEN * LOOKAHEAD_TOKENS)
             fresh = (h - pmel) - offset
+            # The seam region's sine noise is zeros in front: every call
+            # after the first overwrites its source with the cache anyway,
+            # and the first drops that region's render.
+            sine = np.concatenate(
+                [np.zeros((1, 9, SRC), dtype=np.float32),
+                 gauss((1, 9, fresh * SAMPLES_PER_MEL))], axis=2)
             feed = {
                 "tokens": np.array([tokens[:visible]], dtype=np.int64),
                 "prompt_token": pt.astype(np.int64),
                 "prompt_feat": pf.astype(np.float32),
                 "embedding": z["gen.embedding"].astype(np.float32),
                 "z": gauss((1, 80, h)),
-                "sine_noise": gauss((1, 9, fresh * SAMPLES_PER_MEL)),
+                "sine_noise": sine,
                 "cache_source": src,
+                "cache_mel": cmel,
                 "mel_offset": np.array(offset, dtype=np.int64),
                 "final": np.array(1 if final else 0, dtype=np.int64)}
             say(f"    chunk visible={visible} offset={offset} final={final} "
-                f"cache={src.shape} z={feed['z'].shape} "
-                f"noise={feed['sine_noise'].shape}")
+                f"cache={src.shape} z={feed['z'].shape} noise={sine.shape}")
             t = time.time()
             try:
-                w, src = sess["s3gen-chunk"].run(None, feed)
+                w, src, cmel = sess["s3gen-chunk"].run(None, feed)
                 wore.append("dml")
             except Exception as e:
                 say(f"    DML REFUSED: {str(e).splitlines()[0][:180]}")
                 try:
-                    w, src = on_cpu(feed)
+                    w, src, cmel = on_cpu(feed)
                     wore.append("cpu")
                     say("    and the CPU session ACCEPTED the identical "
                         "feed — the provider is the refuser, not the graph")
@@ -242,7 +264,17 @@ def say_lines(say, fp16=False):
                         "is wrong, and the shapes above are the case")
                     raise
             times.append(time.time() - t)
-            pieces.append(w[0])
+            w = w[0]
+            if held is None:
+                w = w[SRC:]                     # the zero seam's render
+            else:
+                w = w.copy()
+                w[:SRC] = w[:SRC] * rise + held * fall
+            if final:
+                pieces.append(w)
+            else:
+                pieces.append(w[:-SRC])
+                held = w[-SRC:]
         say("    providers used per chunk: " + "/".join(wore))
         return np.concatenate(pieces), times, plan
 

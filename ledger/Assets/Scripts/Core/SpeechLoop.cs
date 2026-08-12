@@ -186,6 +186,32 @@ namespace Ledger.Core
         float[] Decode(int[] tokens);
     }
 
+    /// TOKENS INTO SOUND A PIECE AT A TIME — the streaming half of a
+    /// backend, and a SEPARATE interface because it is optional: it needs a
+    /// fourth graph, and a machine that only has the three whole-line ones
+    /// still speaks — it just cannot start early. The worker asks with `as`
+    /// and takes null as "whole lines only".
+    public interface ISpeechChunkDecoder
+    {
+        /// Decode the audio the tokens seen so far add beyond `melOffset`
+        /// mel frames, and return only those FRESH samples.
+        ///
+        /// `tokens` is every sampled token visible to this chunk — the
+        /// python caller's `tokens[:visible]`, sliced by the caller. On a
+        /// non-final chunk the tail of that slice is lookahead: context the
+        /// vocoder reads and does not render, `SpeechStream.LookaheadTokens`
+        /// of it. `melOffset` is where this chunk's sound begins, in mel
+        /// frames past the voice prompt — 0 for the first chunk, and the
+        /// caller advances it by what each chunk rendered.
+        ///
+        /// The decoder keeps the vocoder's seam between calls — the caller
+        /// never sees a tensor, same rule as the token cache — and
+        /// `ISpeechBackend.Release` drops it with everything else. Calls
+        /// must come in offset order within a line. Null on failure, and
+        /// the failure leaves the line speakable by the whole-line path.
+        float[] DecodeChunk(int[] tokens, int melOffset, bool final);
+    }
+
     /// How to run one line.
     ///
     /// THE SAMPLING NUMBERS ARE THE MODEL'S, NOT MINE. Each carries where it

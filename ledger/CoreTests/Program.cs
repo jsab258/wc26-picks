@@ -8290,6 +8290,41 @@ namespace Ledger.CoreTests
                 tail.Count + " chunks, offset " + (tail.Count > 1
                     ? tail[1].MelOffset.ToString() : "-"));
 
+            // The seam accounting: what the chunks EMIT must close to the
+            // whole line, and the first chunk must out-render its zero-seam
+            // drop plus the holdback — both facts the export selftest
+            // proved on the real (small) model, kept here as arithmetic so
+            // a plan change cannot silently break them.
+            foreach (var n in new[] { 86, 24, 25, 5, 100 })
+            {
+                var q = SpeechStream.Plan(n);
+                int emitted = 0, off = 0;
+                for (int i = 0; i < q.Count; i++)
+                {
+                    int avail = SpeechStream.MelsPerToken * q[i].VisibleTokens
+                        - (q[i].Final ? 0 : SpeechStream.MelsPerToken
+                                            * SpeechStream.LookaheadTokens);
+                    emitted += SpeechStream.EmittedSamples(
+                        avail - off, i == 0, q[i].Final);
+                    off = avail;
+                }
+                Check(emitted == SpeechStream.MelsPerToken * n
+                                 * SpeechStream.SamplesPerMel,
+                    "the emitted stream closes to the whole line for "
+                    + n + " tokens", emitted.ToString());
+            }
+            {
+                var q = SpeechStream.Plan(100);
+                int firstFresh = SpeechStream.MelsPerToken * q[0].VisibleTokens
+                    - (q[0].Final ? 0 : SpeechStream.MelsPerToken
+                                        * SpeechStream.LookaheadTokens);
+                Check(q[0].Final || firstFresh * SpeechStream.SamplesPerMel
+                      >= 2 * SpeechStream.SeamSamples,
+                    "and a first chunk out-renders its zero-seam drop plus "
+                    + "the holdback, so it always emits",
+                    (firstFresh * SpeechStream.SamplesPerMel).ToString());
+            }
+
             // The no-underrun rule is arithmetic, and both fates of it.
             Check(SpeechStream.CanStart(1.0, 2.0, 2.5),
                 "playback starts when the work owed is under the audio in "
