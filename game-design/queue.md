@@ -50,39 +50,33 @@ many start markers go in, and I had matched the one that does not ship.
 
 **NEXT, IN ORDER:**
 
-1. **STARTUP: THE CACHE DOES NOT WORK, AND THE HYPOTHESIS WAS WRONG.**
-   Measured four ways on Jafar's card. Optimisation OFF is *slower* — 385s
-   against 225s as shipped — so graph optimisation is helping rather than
-   costing, which is the opposite of what the CPU/DirectML comparison
-   suggested. Writing an optimised copy takes 187s and produces a 516 MB file
-   that **cannot be reopened**: `RUNTIME_EXCEPTION: invalid unordered_map key`.
-   Three of four ways ran and none beat the shipped path.
-   Note the reading is noisy: the same file measured 178s an hour earlier.
-   **Next lever is the operator count, not the loader.** The flow solver's ten
-   euler steps are unrolled into the traced graph, so `s3gen-decode` holds ten
-   copies of the estimator. Exporting one step and calling it ten times from
-   C# is the change that would actually shrink it.
-   **And the cheap mitigation is a design one:** open the sessions on a
-   background thread and let the bank cover the first few minutes. The
-   routing already counts `speechNoModel`, so this costs nothing new.
-2. **THE PROMPT COSTS A SECOND, AND SOMETHING ELSE COSTS TWO.**
-   The decoder re-decodes the voice's reference clip with every line. Measured
-   by slicing the prompt: 250 tokens 3.25s, 150 2.81s, 100 2.55s, 50 2.51s,
-   25 2.43s. About **4.0ms per prompt token**, so the shipped 250-token prompt
-   costs **1.0s of every line**. Trimming to 50 saves 0.8s and needs a listen
-   — the prompt is what makes the voice sound like that person.
-   **But 2.2s is left that neither the prompt nor the line length explains.**
-   That is the number to kill, and it is not made of sentence.
-   **The hypothesis, written down so it can be wrong:** it is per-operator
-   dispatch overhead, which scales with the graph's OPERATOR COUNT — the ten
-   unrolled solver steps. If that is right, four steps cuts it to about 0.9s
-   AND cuts the 200-second startup, with one change. `try-fewer-steps` tests
-   it and ends in audio.
+1. **FOUR SOLVER STEPS INSTEAD OF TEN — MEASURED, AND WAITING ON EARS.**
+   The hypothesis held. The 2.2s that moved with neither prompt nor sentence
+   was operator count, and the solver's loop is unrolled into the graph.
+   **Opening the decode session: 178-225s -> 38.7s.** All three sessions:
+   184s -> 45.6s. **Decoding an 86-token line: 3.4s -> 1.6s.**
+   Two things NOT to read into it. The step loop measured 4.7s against 3.5s
+   before, on graphs that did not change — machine noise, so the whole-line
+   total is not comparable across those two runs. And the file got BIGGER,
+   540 MB to 1050 MB, which contradicts the operator-count story on size while
+   the timings support it strongly. Unexplained.
+   The 4.7e-05 agreement is against a FOUR-step PyTorch reference: it proves
+   the export is faithful, not that four steps sound like ten. Only Jafar
+   decides that, and he has the wav.
+   `back-to-ten-steps` reverses it in one job.
+   **The startup cache remains a dead end** — the optimised copy takes 190-250s
+   to write and cannot be reopened at all, and optimisation OFF is slower
+   (368-385s against 219-225s).
+2. **THE PROMPT COSTS A SECOND OF EVERY LINE.** The decoder re-decodes the
+   voice's reference clip each time: 4.0ms per prompt token, so the shipped
+   250-token prompt costs 1.0s. Trimming to 50 saves 0.8s and needs a listen
+   for the same reason as above — the prompt is what makes the voice that
+   person. Not yet done; it is the next cheap win after the step count lands.
    **AND ONE ODDITY, REPRODUCIBLE ACROSS TWO RUNS:** a 10-token line decodes
-   in 1.09s while 25 and 50 sit at 3.25s for almost identical work. Not noise
-   — it repeated exactly. No explanation yet, and a 3x cliff between two
-   neighbouring sizes is worth understanding before trusting any model of
-   this cost.
+   in 1.09s while 25 and 50 sit at 3.25s for almost identical work. It
+   repeated exactly, so it is not noise, and a 3x cliff between neighbouring
+   sizes contradicts every model of this cost — including the one that just
+   turned out to be right about the big number.
 3. **THE PATIENCE NUMBER IS NOW A REAL DECISION AND IT IS JAFAR'S.**
    At `PatienceSeconds = 4.0` only a few words ever speak live; a sentence
    needs about 8. The hoped-for middle answer — "short lines yes, long lines
