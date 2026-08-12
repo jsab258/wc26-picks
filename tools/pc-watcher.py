@@ -150,6 +150,13 @@ TABLE = {
                           "--fp16", "--line", "2", "--seeds", "10"],
                          ["PY", "tools/voice-live/speak-a-few.py",
                           "--line", "2", "--seeds", "10"]],
+    # STREAMING'S DECODE HALF: re-export the decode pair (the chunk graph
+    # rides beside the whole-line one now), then render the sweep's line
+    # whole and in chunks into ONE wav so ears judge the seams — the seam
+    # cache is proven consumed by selftest, but "consumed" and "inaudible"
+    # are different claims and only the second one matters.
+    "export-and-hear-chunks": [["PY", "tools/voice-live/export-decode.py"],
+                               ["PY", "tools/voice-live/hear-chunks.py"]],
     # LEVER A: does the cache staying on the card pay, and does the bound
     # path speak the same numbers. The python preview of residency DIED in
     # the DML provider (0xC0000005, twice), so the C# path must be run on

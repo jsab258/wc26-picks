@@ -283,9 +283,26 @@ def dynamic_flow(torch):
         emb = self.input_embedding(full.long()) * mask
 
         h, h_masks = self.encoder(emb, full_len)
-        if finalize is False:
-            h = h[:, :-self.pre_lookahead_len * self.token_mel_ratio]
-        h_lengths = h_masks.sum(dim=-1).squeeze(dim=-1)
+        if torch.is_tensor(finalize):
+            # ONE GRAPH FOR BOTH FATES. A python bool freezes whichever
+            # branch the trace walked, so the chunk graph takes `final` as a
+            # 0/1 tensor and expresses the lookahead trim as arithmetic:
+            # keep everything when final, drop the last lookahead frames
+            # when not. And the mask length comes from the TRIMMED h — the
+            # original computes it from the pre-trim masks, which hands the
+            # decoder a mask longer than its input whenever finalize is
+            # False; single-sequence inference has no padding, so the
+            # trimmed length IS the mask.
+            ahead = self.pre_lookahead_len * self.token_mel_ratio
+            n_full = torch.ones_like(h[0, :, 0], dtype=torch.long).sum()
+            keep_n = n_full - (1 - finalize.long()) * ahead
+            h = torch.index_select(h, 1,
+                                   torch.arange(0, keep_n, device=h.device))
+            h_lengths = keep_n.unsqueeze(0)
+        else:
+            if finalize is False:
+                h = h[:, :-self.pre_lookahead_len * self.token_mel_ratio]
+            h_lengths = h_masks.sum(dim=-1).squeeze(dim=-1)
         h = self.encoder_proj(h)
 
         # THE CONDITIONING BLOCK: the prompt's mels, then zeros for the part
@@ -372,6 +389,76 @@ def export_decode(torch, flow, gen, args, dest, steps=10):
     with torch.no_grad():
         torch.onnx.export(dec, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names, output_names=["wav"],
+                          dynamic_axes=axes)
+    return dec
+
+
+def make_chunk(torch, flow, gen, steps=10):
+    """The STREAMING half: a piece of the line in, a piece of the wav out.
+
+    The whole-line graph exists and is ear-approved; this one is what turns
+    the 17ms resident step rate into a character who starts TALKING before
+    the sentence is finished computing. It is the upstream package's own
+    streaming design, traced: the flow re-renders every token so far (with
+    the lookahead trimmed unless `final`), `mel_offset` cuts off the mels
+    already spoken, and the vocoder renders only the fresh ones with
+    `cache_source` carrying its source signal across the seam — the
+    mechanism upstream added "to avoid glitch", and the reason a chunked
+    line does not click at every boundary.
+
+    WHY THE FLOW RE-RENDERS RATHER THAN CACHES: that is upstream's design,
+    not a shortcut — each chunk's mels are drawn in the context of
+    everything said so far, so per-chunk cost grows along the line. At four
+    solver steps and game-length lines the cost stays under the audio it
+    yields, and the alternative — exporting the flow's internal streaming
+    cache — is a different, riskier surgery for a cost that is not the
+    problem yet.
+    """
+
+    class Chunk(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.flow = flow
+            self.gen = gen
+            self.seen = {}
+
+        def forward(self, tokens, prompt_token, prompt_feat, embedding,
+                    z, sine_noise, cache_source, mel_offset, final):
+            n = tokens.shape[1]
+            p = prompt_token.shape[1]
+            with noise_from(torch, [z, sine_noise]) as box:
+                mel, _ = self.flow.inference(
+                    token=tokens, token_len=torch.tensor([n]),
+                    prompt_token=prompt_token,
+                    prompt_token_len=torch.tensor([p]),
+                    prompt_feat=prompt_feat, prompt_feat_len=None,
+                    embedding=embedding, finalize=final, n_timesteps=steps)
+                # Only the mels nobody has heard yet reach the vocoder; the
+                # cut point is computed, not stored, for the same reason as
+                # every other length in this file.
+                total = torch.ones_like(mel[0, 0, :], dtype=torch.long).sum()
+                fresh = torch.index_select(
+                    mel, 2,
+                    torch.arange(mel_offset.long(), total, device=mel.device))
+                wav, src = self.gen.inference(speech_feat=fresh,
+                                              cache_source=cache_source)
+            self.seen = box
+            return wav, src
+
+    return Chunk()
+
+
+def export_chunk(torch, flow, gen, args, dest, steps=10):
+    dec = make_chunk(torch, flow, gen, steps).eval()
+    names = ["tokens", "prompt_token", "prompt_feat", "embedding",
+             "z", "sine_noise", "cache_source", "mel_offset", "final"]
+    axes = {"tokens": {1: "n"}, "prompt_token": {1: "p"},
+            "prompt_feat": {1: "pmel"}, "z": {2: "mel"},
+            "sine_noise": {2: "smp"}, "cache_source": {2: "src"},
+            "wav": {1: "smp"}, "source": {2: "srcout"}}
+    with torch.no_grad():
+        torch.onnx.export(dec, args, str(dest), opset_version=17, dynamo=False,
+                          input_names=names, output_names=["wav", "source"],
                           dynamic_axes=axes)
     return dec
 
@@ -606,20 +693,90 @@ def selftest():
           f"whose mels exceed twice its tokens, worst {pworst:.1e}",
           f"{pworst:.2e}")
 
+    # ---- 9+. THE STREAMING GRAPH, same small model ----
+    ahead = flow.pre_lookahead_len * flow.token_mel_ratio
+    ok, why = True, ""
+    try:
+        cargs = (tok, ptok, pfeat, emb) + tuple(noise) \
+            + (torch.zeros(1, 1, 480), torch.tensor(0, dtype=torch.long),
+               torch.tensor(1, dtype=torch.long))
+        with patched(), dynamic_cfm(torch), dynamic_flow(torch):
+            export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx")
+    except Exception as e:
+        ok, why = False, f"{type(e).__name__}: {e}"
+    check(ok, "the CHUNK graph converts — mel offset, seam cache and a "
+          "tensor-driven finalize", why[:150])
+    if ok:
+        cs = ort.InferenceSession(str(tmp / "chunk.onnx"),
+                                  providers=["CPUExecutionProvider"])
+        ckeys = ["tokens", "prompt_token", "prompt_feat", "embedding",
+                 "z", "sine_noise", "cache_source", "mel_offset", "final"]
+
+        def crun(tk, nz, cache, off, fin):
+            return cs.run(None, dict(zip(
+                ckeys, [npy(tk), npy(ptok), npy(pfeat), npy(emb),
+                        npy(nz[0]), npy(nz[1]), cache,
+                        np.array(off, dtype=np.int64),
+                        np.array(fin, dtype=np.int64)])))
+
+        # The accepting case: asked the whole-line question — final, from
+        # the start, no seam — it must give the whole-line graph's answer.
+        empty = np.zeros((1, 1, 0), dtype=np.float32)
+        wc, sc = crun(tok, noise, empty, 0, 1)
+        dw = float(np.abs(wc - got).max()) / max(float(np.abs(got).max()), 1e-12)
+        check(dw < 1e-4, f"chunk(final,offset0,no-cache) IS the whole-line "
+              f"answer, to {dw:.1e}", f"{dw:.2e}")
+        check(sc.shape[2] == wc.shape[1],
+              "and the seam cache it returns spans the samples it made",
+              f"src {sc.shape} vs wav {wc.shape}")
+
+        # A real two-chunk render: the lookahead trim is live (a non-final
+        # chunk is exactly `ahead` mels short), the lengths close, and the
+        # seam cache is CONSUMED — a dead input here is a click at every
+        # boundary that nothing else would name.
+        pmel = pfeat.shape[1]
+        n1 = T // 2
+        m1 = MELS_PER_TOKEN * (P + n1) - ahead - pmel
+        nz1 = draw(torch, P, pmel, n1, 11)
+        nz1 = (nz1[0][:, :, :pmel + m1],
+               nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
+        w1, s1 = crun(tok[:, :n1], nz1, empty, 0, 0)
+        check(w1.shape[1] == m1 * SAMPLES_PER_MEL,
+              f"a non-final chunk is short by exactly the {ahead}-mel "
+              f"lookahead", f"{w1.shape[1]} vs {m1 * SAMPLES_PER_MEL}")
+        full_mels = MELS_PER_TOKEN * (P + T) - pmel
+        nz2 = draw(torch, P, pmel, T, 11)
+        nz2 = (nz2[0], nz2[1][:, :, m1 * SAMPLES_PER_MEL:])
+        w2a, _ = crun(tok, nz2, s1, m1, 1)
+        w2b, _ = crun(tok, nz2, empty, m1, 1)
+        check(w1.shape[1] + w2a.shape[1] == full_mels * SAMPLES_PER_MEL,
+              "and two chunks close to the whole line's sample count",
+              f"{w1.shape[1]}+{w2a.shape[1]} vs {full_mels * SAMPLES_PER_MEL}")
+        check(float(np.abs(w2a - w2b).max()) > 0,
+              "and the seam cache is consumed — the same chunk with and "
+              "without it differs, so the input is live, not decoration")
+
     print(f"\nexport-decode --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks "
           f"against a real flow decoder and the shipped vocoder")
     return 1 if fails else 0
 
 
-def cmd_run(force=False, steps=10):
+def cmd_run(force=False, steps=4):
     # THE STEP COUNT IS PART OF WHAT "ALREADY DONE" MEANS. The skip compares
     # the exporter's own source against the last run's; a graph built with a
     # different number of solver steps is a different graph from identical
     # code, and skipping it would hand back the old one looking current.
-    done, src = already_done([OUT / "s3gen-decode.onnx"])
-    if done and steps == 10 and not force:
-        print("  already exported by this same code — skipping.")
+    # The count is recorded in a sidecar and COMPARED — this line used to
+    # read `steps == 10`, which was the default's value baked in prose, so
+    # the day the default moved to four the skip quietly stopped firing and
+    # every job re-paid minutes of export for graphs already on disk.
+    done, src = already_done([OUT / "s3gen-decode.onnx",
+                              OUT / "s3gen-chunk.onnx"])
+    steps_file = OUT / "decode.steps"
+    same_steps = steps_file.exists() and steps_file.read_text().strip() == str(steps)
+    if done and same_steps and not force:
+        print("  already exported by this same code at these steps — skipping.")
         print("  (delete the .onnx files, or pass --force, to redo it)")
         return 0
     stamp(f"started  src={src}  steps={steps}")
@@ -711,11 +868,89 @@ def cmd_run(force=False, steps=10):
               f"({worst * 32768:.0f} steps of 16-bit audio).")
         stamp(f"FAILED — disagreement {worst:.1e} above the 1e-3 ceiling")
         return 1
+
+    # ---- THE STREAMING GRAPH, beside the whole-line one ----
+    t0 = time.time()
+    chunk_dest = OUT / "s3gen-chunk.onnx"
+    off0 = torch.tensor(0, dtype=torch.long)
+    fin1 = torch.tensor(1, dtype=torch.long)
+    # Traced with a NONZERO seam cache so the concat inside the vocoder is
+    # not traced against a degenerate zero-length edge; the axis is dynamic
+    # and the zero-length first-chunk case is checked below at runtime.
+    seed_cache = torch.zeros(1, 1, 480)
+    cargs = (tok, ptok, pfeat, emb) + tuple(noise) \
+        + (seed_cache, off0, fin1)
+    with patched(), dynamic_cfm(torch), dynamic_flow(torch):
+        export_chunk(torch, model.s3gen.flow, model.s3gen.mel2wav,
+                     cargs, chunk_dest, steps)
+    cmb = sum(f.stat().st_size for f in OUT.glob("s3gen-chunk*")) / (1024 * 1024)
+    print(f"  chunk graph exported in {time.time() - t0:.0f}s, {cmb:.0f} MB")
+
+    csess = ort.InferenceSession(str(chunk_dest),
+                                 providers=["CPUExecutionProvider"])
+    ckeys = ["tokens", "prompt_token", "prompt_feat", "embedding",
+             "z", "sine_noise", "cache_source", "mel_offset", "final"]
+
+    def crun(tk, nz, cache, off, fin):
+        feed = dict(zip(ckeys, [npy(tk), npy(ptok), npy(pfeat), npy(emb),
+                                npy(nz[0]), npy(nz[1]), cache,
+                                np.array(off, dtype=np.int64),
+                                np.array(fin, dtype=np.int64)]))
+        return csess.run(None, feed)
+
+    # THE ACCEPTING CASE FIRST: final, from the start, with no seam — the
+    # chunk graph asked the whole-line question must give the whole-line
+    # answer. This is the check that catches a wrong slice or a wrong trim
+    # wired into the new inputs.
+    empty = np.zeros((1, 1, 0), dtype=np.float32)
+    wav_c, src_c = crun(tok, noise, empty, 0, 1)
+    dwhole = float(np.abs(wav_c - got).max()) \
+        / max(float(np.abs(got).max()), 1e-12)
+    print(f"  chunk(final,offset0,no-cache) matches the whole graph to "
+          f"{dwhole:.1e}")
+    if dwhole > 1e-3:
+        print("  REFUSED: the chunk graph disagrees with the whole-line one "
+              "on the identical question.")
+        stamp(f"FAILED — chunk-vs-whole {dwhole:.1e} above 1e-3")
+        return 1
+
+    # AND A REAL TWO-CHUNK RENDER: lengths that close arithmetically, and a
+    # seam cache that is demonstrably CONSUMED — a dead input here would
+    # ship a click at every boundary and nothing else would say so.
+    ahead = model.s3gen.flow.pre_lookahead_len * model.s3gen.flow.token_mel_ratio
+    n1 = T // 2
+    tk1 = tok[:, :n1]
+    pmel = pfeat.shape[1]
+    m1 = MELS_PER_TOKEN * (P + n1) - ahead - pmel
+    nz1 = draw(torch, P, pmel, n1, 20260808)
+    nz1 = (nz1[0][:, :, :pmel + m1], nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
+    w1, s1 = crun(tk1, nz1, empty, 0, 0)
+    ok1 = w1.shape[1] == m1 * SAMPLES_PER_MEL
+    full_mels = MELS_PER_TOKEN * (P + T) - pmel
+    nz2 = draw(torch, P, pmel, T, 20260808)
+    # The sine noise covers only the FRESH samples — the vocoder never sees
+    # the mels already spoken, so a full-length sine would arrive at ops
+    # sized for the chunk and be refused by shape.
+    nz2 = (nz2[0], nz2[1][:, :, m1 * SAMPLES_PER_MEL:])
+    w2a, _ = crun(tok, nz2, s1, m1, 1)
+    w2b, _ = crun(tok, nz2, empty, m1, 1)
+    ok2 = w1.shape[1] + w2a.shape[1] == full_mels * SAMPLES_PER_MEL
+    seam_live = float(np.abs(w2a - w2b).max()) > 0
+    print(f"  two chunks: {w1.shape[1]} + {w2a.shape[1]} samples "
+          f"(lengths {'close' if ok1 and ok2 else 'DO NOT CLOSE'}), "
+          f"seam cache {'consumed' if seam_live else 'DEAD'}")
+    if not (ok1 and ok2 and seam_live):
+        stamp("FAILED — chunk lengths or seam cache wrong; see output")
+        return 1
+
+    steps_file.write_text(str(steps), encoding="utf-8")
     print()
-    stamp(f"finished  src={src} — {rel:.1e} traced, {worst:.1e} untraced, {mb:.0f} MB")
+    stamp(f"finished  src={src} — {rel:.1e} traced, {worst:.1e} untraced, "
+          f"{mb:.0f}+{cmb:.0f} MB, chunk {dwhole:.1e}")
     print("  ------------------------------------------------------------")
-    print("  Tokens and a voice in, samples out. The game supplies the noise,")
-    print("  which is what makes a line repeatable from a seed.")
+    print("  Tokens and a voice in, samples out — whole, or now in pieces:")
+    print("  the chunk graph is what lets a character start talking before")
+    print("  the sentence is finished computing.")
     print("  ------------------------------------------------------------")
     return 0
 

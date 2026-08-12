@@ -678,7 +678,7 @@ def voice_live():
                    "speak.py", "precompute-voices.py", "tokenizer-reference.py",
                    "export-for-game.py", "export-decode.py", "check-graphs.py",
                    "time-the-shape.py", "speak-a-few.py", "probe-step-costs.py",
-                   "convert-fp16.py", "bench-binding.py"):
+                   "convert-fp16.py", "bench-binding.py", "hear-chunks.py"):
         if not (tools / script).exists():
             continue
         code, out = run(["python3", str(tools / script), "--selftest"])
