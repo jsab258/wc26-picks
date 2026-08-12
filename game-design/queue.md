@@ -50,21 +50,34 @@ many start markers go in, and I had matched the one that does not ship.
 
 **NEXT, IN ORDER:**
 
-1. **STARTUP IS THE WORST NUMBER A PLAYER WOULD MEET.** Three minutes to open
-   the sound decoder. The clue is that the CPU provider took 190s on the same
-   file, so it is not DirectML compiling kernels — it happens before any
-   provider sees the graph. `tools/voice-live/time-the-shape.py` times it four
-   ways on his machine; run it, then act on the series rather than on that
-   reasoning.
-2. **PATIENCE IS 4.0 SECONDS AND A LINE COSTS 7.3.** `SpeechDirector` can now
-   see the decoder's cost — two coefficients, fitted from real lines, zero
-   until measured — so the projection reaches the sound instead of stopping at
-   the tokens. What it cannot do is decide how long a player waits for an
-   answer. **That is Jafar's, and it wants the decode's shape first**: if short
-   lines are much cheaper the question changes from "live speech or not" to
-   "which lines".
-3. **`SpeechQueue.ShelfSeconds` is 8.0 against the same 7.3.** Not margin,
-   luck. Settle it with the patience number, not before.
+1. **STARTUP: THE CACHE DOES NOT WORK, AND THE HYPOTHESIS WAS WRONG.**
+   Measured four ways on Jafar's card. Optimisation OFF is *slower* — 385s
+   against 225s as shipped — so graph optimisation is helping rather than
+   costing, which is the opposite of what the CPU/DirectML comparison
+   suggested. Writing an optimised copy takes 187s and produces a 516 MB file
+   that **cannot be reopened**: `RUNTIME_EXCEPTION: invalid unordered_map key`.
+   Three of four ways ran and none beat the shipped path.
+   Note the reading is noisy: the same file measured 178s an hour earlier.
+   **Next lever is the operator count, not the loader.** The flow solver's ten
+   euler steps are unrolled into the traced graph, so `s3gen-decode` holds ten
+   copies of the estimator. Exporting one step and calling it ten times from
+   C# is the change that would actually shrink it.
+   **And the cheap mitigation is a design one:** open the sessions on a
+   background thread and let the bank cover the first few minutes. The
+   routing already counts `speechNoModel`, so this costs nothing new.
+2. **THE DECODE HAS A BIG FIXED COST, SO SHORT LINES ARE NOT CHEAP.**
+   Six lengths, twice each: about **2.7 seconds before a single token, plus
+   10ms per token**. A two-word mutter costs 2.8s of decoding; a full
+   sentence costs 3.6s. Read the SERIES and not the fit — the 10-token point
+   came in at 1.09s against 3.20s on its first run and drags the intercept
+   down by half a second, which is exactly why the tool prints the series
+   above the summary.
+   Whole-line totals: **10 tokens 3.5s, 25 tokens 4.3s, 86 tokens 7.4s.**
+3. **THE PATIENCE NUMBER IS NOW A REAL DECISION AND IT IS JAFAR'S.**
+   At `PatienceSeconds = 4.0` only a few words ever speak live; a sentence
+   needs about 8. The hoped-for middle answer — "short lines yes, long lines
+   no" — is dead, because the decode's fixed cost dominates a short line.
+   `SpeechQueue.ShelfSeconds = 8.0` moves with whatever he picks.
 4. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history

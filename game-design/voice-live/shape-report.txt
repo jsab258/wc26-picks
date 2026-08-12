@@ -1,0 +1,21 @@
+LEDGER — what the speech cost is made of
+ran on Jafar-Desktop (Windows) , 2026-08-12 06:22 UTC
+graphs in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
+
+  providers available: DmlExecutionProvider, CPUExecutionProvider
+  using: DmlExecutionProvider
+
+  STARTUP — the same file opened four ways:
+  as shipped: 224.6s
+  with graph optimisation off: 384.8s
+  writing an optimised copy (one time, at build): 186.6s
+  the optimised copy is 516 MB
+  opening the optimised copy: could not run — RuntimeException: [ONNXRuntimeError] : 6 : RUNTIME_EXCEPTION : Exception during initialization: invalid unordered_map<K, T> key
+  3 of 4 ways ran
+  -> nothing beat the shipped path (224.6s); the cost is not graph optimisation
+
+  THE DECODE, at six line lengths:
+  10tok=3.20/1.09s(0.4s audio)  25tok=3.32/3.29s(1.0s audio)  50tok=3.32/3.34s(2.0s audio)  86tok=3.42/3.37s(3.4s audio)  170tok=4.10/4.10s(6.8s audio)  340tok=6.36/6.77s(13.6s audio)
+  -> about 2.18s before a single token, plus 12.4ms per token
+     so an 86-token line is 3.2s of decoding, and a 20-token one is 2.4s
+     `SpeechDirector.Projected` has no term for any of this; on the measured line it was missing about half the wait.
