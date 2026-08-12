@@ -334,9 +334,21 @@ def run(say, fp16=False):
     # not looking at it.
     import struct
     import wave
+    # THE SHARED TREATMENT, not a fourth copy. The cold-vocoder click was
+    # fixed in Core and in speak-a-few, and the next file Jafar heard came
+    # from HERE, raw — the grep-for-the-twin rule, missed again and paid for
+    # again. `line_audio.feather` is the one implementation now.
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location(
+        "line_audio", pathlib.Path(__file__).resolve().parent / "line_audio.py")
+    _la = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_la)
     out = REPORT.parent / "spoken.wav"
     out.parent.mkdir(parents=True, exist_ok=True)
-    flat = np.clip(np.asarray(wav).reshape(-1), -1.0, 1.0)
+    flat = np.asarray(wav).reshape(-1).astype(np.float64).copy()
+    flat = _la.feather(np, flat)
+    flat = np.concatenate([_la.lead(np, flat.dtype), flat])
+    flat = np.clip(flat, -1.0, 1.0)
     with wave.open(str(out), "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)

@@ -40,12 +40,6 @@ START_SPEECH = 6561
 STOP_SPEECH = 6562
 CEILING = 1000
 GAP_SECONDS = 0.5
-# HALF A SECOND OF SILENCE BEFORE THE FIRST LINE. The file used to start at
-# sample zero with speech, and Jafar reported the first line cut off — the
-# classic symptom of a player (Bluetooth, a streamed desktop) swallowing the
-# opening instants of a stream. The lead-in is for the LISTENER'S equipment;
-# the game never needs it because its clips start inside a running mix.
-LEAD_SECONDS = 0.5
 
 LINES = [
     "No.",
@@ -54,6 +48,18 @@ LINES = [
     "Forty-two crates, and not one of them opened where I could see it.",
     "I was nowhere near the yard, and you know it, and so does he.",
 ]
+
+
+def _by_path(name):
+    import importlib.util
+    here = pathlib.Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location(name, here / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_la = _by_path("line_audio")
 
 
 def _shared_pick():
@@ -179,25 +185,12 @@ def run(say):
         # in the game, mirrored here because Jafar heard the pop in THIS
         # file: a decode starts at a non-zero sample, and the step from the
         # gap's zeros to that value is an audible click on every line.
-        # MUTE THE FIRST 25ms, THEN FADE — mirroring Core/SpeechSamples.
-        # Measured in this very file's previous version: every decode opens
-        # with a ~16ms cold-vocoder transient (~0.02 peak) that a 10ms fade
-        # only scaled. In silence it was the pop; before a quick word it read
-        # as the word being cut off. Word onsets sit past 90ms, so 25ms of
-        # hard zero is safe by a factor of three.
-        mute = min(int(24000 * 0.025), wav.shape[-1] // 4)
-        wav[:mute] = 0.0
-        up = int(24000 * 0.010)
-        down = int(24000 * 0.020)
-        up = min(up, wav.shape[-1] // 2 - mute)
-        down = min(down, wav.shape[-1] // 2)
-        if up > 0:
-            wav[mute:mute + up] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(up) / up)
-        if down > 0:
-            wav[-down:] *= (0.5 - 0.5 * np.cos(
-                np.pi * np.arange(down) / down))[::-1]
+        # THE SHARED TREATMENT — see line_audio.py for why it is one
+        # function: the inline copy here was the second implementation and a
+        # third, unfixed one in time-a-line was the file that popped next.
+        wav = _la.feather(np, wav)
         if not pieces:
-            pieces.append(np.zeros(int(LEAD_SECONDS * 24000), dtype=wav.dtype))
+            pieces.append(_la.lead(np, wav.dtype))
         pieces.append(wav)
         pieces.append(np.zeros(int(GAP_SECONDS * 24000), dtype=wav.dtype))
         spoken.append(f"  {i + 1}. {voice}: {n} tokens, {secs:.1f}s of speech, "
