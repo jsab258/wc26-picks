@@ -50,6 +50,10 @@ LINES = [
 ]
 
 
+def todo_lines(todo):
+    return [text for _, text in todo]
+
+
 def _by_path(name):
     import importlib.util
     here = pathlib.Path(__file__).resolve().parent
@@ -74,7 +78,7 @@ def _shared_pick():
     return mod
 
 
-def run(say, fp16=False):
+def run(say, fp16=False, line=0, seeds=1):
     import numpy as np
     import onnxruntime as ort
 
@@ -128,8 +132,63 @@ def run(say, fp16=False):
                 "tensor(float16)": np.float16}[dt[name]]
         return np.asarray(arr).astype(kind, copy=False)
 
+    # A SEED SWEEP TURNS AN ANECDOTE INTO A RATE. The fp16 five-line run
+    # rendered Ada's twelve-word line as FOUR tokens — the stop token won a
+    # near-tie at step four. One occurrence cannot say whether that is a rare
+    # die-roll or the halved precision's habit, and the two verdicts point
+    # opposite ways for lever B. So --line N --seeds K renders one line K
+    # times with distinct seeds and reports every token count; the early-stop
+    # RATE per precision is the decision, and it is a number.
+    if line:
+        todo = [(line - 1, LINES[line - 1])]
+    else:
+        todo = list(enumerate(LINES))
+    if seeds > 1:
+        counts = []
+        for k in range(seeds):
+            i, text_line = todo[0]
+            voice = chosen[i % len(chosen)]
+            z = np.load(CONDS / f"{voice}.npz")
+            text = norm(text_line) if norm else text_line
+            ids = tok.encode(text.replace(" ", "[SPACE]"),
+                             add_special_tokens=False).ids
+            first = sess["t3-prefill"].run(None, {
+                "text_tokens": as_np("text_tokens", [ids]),
+                "speaker_emb": as_np("speaker_emb", z["t3.speaker_emb"]),
+                "cond_speech_tokens": as_np("cond_speech_tokens",
+                                            z["t3.cond_prompt_speech_tokens"]),
+                "emotion_adv": as_np("emotion_adv", z["t3.emotion_adv"])})
+            rows = int(first[0].shape[0])
+            cache = first[1:]
+            names = [f"cache{j}" for j in range(len(cache))]
+            rng = np.random.default_rng(1000 + i + 7919 * k)
+            said = set()
+            tk = sampler.pick(np, first[0], rng, rows, said)
+            said.add(tk)
+            n_kept = 0 if tk in (START_SPEECH, STOP_SPEECH) else 1
+            for step in range(1, CEILING + 1):
+                if tk == STOP_SPEECH:
+                    break
+                feed = dict(zip(names, cache))
+                feed["token"] = np.array([[tk]], dtype=np.int64)
+                feed["position"] = np.array(step, dtype=np.int64)
+                got = sess["t3-step"].run(None, feed)
+                cache = got[1:]
+                tk = sampler.pick(np, got[0], rng, rows, said)
+                said.add(tk)
+                if tk < START_SPEECH:
+                    n_kept += 1
+            counts.append(n_kept)
+            say(f"  seed {k}: {n_kept} tokens")
+        early = sum(1 for c in counts if c < 15)
+        say(f"  SWEEP: line {todo[0][0] + 1} x {seeds} seeds, "
+            f"{'fp16' if fp16 else 'fp32'}, {rows} row(s) — counts="
+            + ",".join(str(c) for c in counts)
+            + f"  earlyStops={early}/{seeds} (threshold <15 tokens)")
+        return 0
+
     pieces, spoken, total = [], [], 0.0
-    for i, line in enumerate(LINES):
+    for i, line in enumerate(todo_lines(todo)):
         voice = chosen[i % len(chosen)]
         z = np.load(CONDS / f"{voice}.npz")
         text = norm(line) if norm else line
@@ -300,6 +359,11 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--fp16", action="store_true",
                     help="speak through the fp16 text graphs")
+    ap.add_argument("--line", type=int, default=0,
+                    help="render only this 1-based line")
+    ap.add_argument("--seeds", type=int, default=1,
+                    help="render the chosen line this many times and report "
+                         "token counts instead of writing audio")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
@@ -315,7 +379,7 @@ def main():
     say(f"ran on {platform.node()} ({platform.system()}), "
         f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
     say("")
-    rc = run(say, a.fp16)
+    rc = run(say, a.fp16, a.line, a.seeds)
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return rc
