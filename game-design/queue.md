@@ -65,14 +65,24 @@ many start markers go in, and I had matched the one that does not ship.
    **And the cheap mitigation is a design one:** open the sessions on a
    background thread and let the bank cover the first few minutes. The
    routing already counts `speechNoModel`, so this costs nothing new.
-2. **THE DECODE HAS A BIG FIXED COST, SO SHORT LINES ARE NOT CHEAP.**
-   Six lengths, twice each: about **2.7 seconds before a single token, plus
-   10ms per token**. A two-word mutter costs 2.8s of decoding; a full
-   sentence costs 3.6s. Read the SERIES and not the fit — the 10-token point
-   came in at 1.09s against 3.20s on its first run and drags the intercept
-   down by half a second, which is exactly why the tool prints the series
-   above the summary.
-   Whole-line totals: **10 tokens 3.5s, 25 tokens 4.3s, 86 tokens 7.4s.**
+2. **THE PROMPT COSTS A SECOND, AND SOMETHING ELSE COSTS TWO.**
+   The decoder re-decodes the voice's reference clip with every line. Measured
+   by slicing the prompt: 250 tokens 3.25s, 150 2.81s, 100 2.55s, 50 2.51s,
+   25 2.43s. About **4.0ms per prompt token**, so the shipped 250-token prompt
+   costs **1.0s of every line**. Trimming to 50 saves 0.8s and needs a listen
+   — the prompt is what makes the voice sound like that person.
+   **But 2.2s is left that neither the prompt nor the line length explains.**
+   That is the number to kill, and it is not made of sentence.
+   **The hypothesis, written down so it can be wrong:** it is per-operator
+   dispatch overhead, which scales with the graph's OPERATOR COUNT — the ten
+   unrolled solver steps. If that is right, four steps cuts it to about 0.9s
+   AND cuts the 200-second startup, with one change. `try-fewer-steps` tests
+   it and ends in audio.
+   **AND ONE ODDITY, REPRODUCIBLE ACROSS TWO RUNS:** a 10-token line decodes
+   in 1.09s while 25 and 50 sit at 3.25s for almost identical work. Not noise
+   — it repeated exactly. No explanation yet, and a 3x cliff between two
+   neighbouring sizes is worth understanding before trusting any model of
+   this cost.
 3. **THE PATIENCE NUMBER IS NOW A REAL DECISION AND IT IS JAFAR'S.**
    At `PatienceSeconds = 4.0` only a few words ever speak live; a sentence
    needs about 8. The hoped-for middle answer — "short lines yes, long lines

@@ -1,21 +1,27 @@
 LEDGER — what the speech cost is made of
-ran on Jafar-Desktop (Windows) , 2026-08-12 06:22 UTC
+ran on Jafar-Desktop (Windows) , 2026-08-12 06:57 UTC
 graphs in C:\Users\Jafar\wc26-picks\tools\voice-live\game-out
 
   providers available: DmlExecutionProvider, CPUExecutionProvider
   using: DmlExecutionProvider
 
   STARTUP — the same file opened four ways:
-  as shipped: 224.6s
-  with graph optimisation off: 384.8s
-  writing an optimised copy (one time, at build): 186.6s
+  as shipped: 219.2s
+  with graph optimisation off: 368.3s
+  writing an optimised copy (one time, at build): 249.8s
   the optimised copy is 516 MB
   opening the optimised copy: could not run — RuntimeException: [ONNXRuntimeError] : 6 : RUNTIME_EXCEPTION : Exception during initialization: invalid unordered_map<K, T> key
   3 of 4 ways ran
-  -> nothing beat the shipped path (224.6s); the cost is not graph optimisation
+  -> nothing beat the shipped path (219.2s); the cost is not graph optimisation
 
   THE DECODE, at six line lengths:
-  10tok=3.20/1.09s(0.4s audio)  25tok=3.32/3.29s(1.0s audio)  50tok=3.32/3.34s(2.0s audio)  86tok=3.42/3.37s(3.4s audio)  170tok=4.10/4.10s(6.8s audio)  340tok=6.36/6.77s(13.6s audio)
-  -> about 2.18s before a single token, plus 12.4ms per token
+  10tok=3.16/1.09s(0.4s audio)  25tok=3.27/3.24s(1.0s audio)  50tok=3.25/3.30s(2.0s audio)  86tok=3.37/3.33s(3.4s audio)  170tok=4.06/3.99s(6.8s audio)  340tok=6.05/5.99s(13.6s audio)
+  -> about 2.19s before a single token, plus 11.4ms per token
      so an 86-token line is 3.2s of decoding, and a 20-token one is 2.4s
      `SpeechDirector.Projected` has no term for any of this; on the measured line it was missing about half the wait.
+
+  THE SAME LINE, WITH SHORTER VOICE PROMPTS:
+  250prompt=3.25/3.27s  150prompt=2.81/2.81s  100prompt=2.55/2.59s  50prompt=2.51/2.40s  25prompt=2.43/2.38s
+  5 of 5 prompt lengths ran, on a 50-token line
+  -> about 2.21s regardless, plus 4.0ms per prompt token
+     the shipped 250-token prompt therefore costs 1.0s of every line spoken in this voice
