@@ -125,12 +125,37 @@ findings worth the rounds on their own: the python preview's access
 violation does NOT reproduce through the C# binding — the failure is a
 catchable managed exception, so the in-game fallback works and the attempt
 is safe to ship — and the bench's refuse-then-time design caught it before
-any wrong number existed. Round three in flight: the cache ping-pongs
-between two explicitly-owned max-size device blocks (exact shape bound over
-each per step), so the allocator's pool never touches it — the same shape
-onnxruntime-genai uses. If that still fails, the fallback plan is the
-static-length KV export: scatter instead of concat, shapes that never grow,
-which also makes each step O(1) instead of O(line).
+any wrong number existed.
+
+**LEVER A LANDED (12 Aug, round seven of seven): 17.2ms flat, ZERO slope,
+bit-exact.** The step loop holds its cache in two explicitly-owned device
+block sets, ping-ponged per step; the prefill stays classic and bridges
+through host once per line (+10ms on the prefill, 0.083s vs 0.073s); token
+and position are fresh values every step. Verdict on the RX 6700, same
+line, same session, logits 0.0e+00 at prefill and every checked step
+against a 0.0e+00 host-repeat floor:
+
+    host   37.4 / 50.8 / 67.1 / 99.9 ms at pos 10/100/200/400 (35.2ms + 161us/pos)
+    bound  17.2 / 17.3 / 17.2 / 17.4 ms  (17.2ms + 0us/pos)
+
+2.9x at position 100, 5.7x at 400, and the couplings the plan feared are
+gone: cost no longer grows along the line at all. 58 tok/s sustained
+against playback's 25 — sustainability crossed at 2.3x margin, in fp32,
+with guidance, on the vendor-neutral path. A whole ~86-token line is now
+~1.5s of steps + 0.08s prefill + decode: the line computes faster than it
+plays even unstreamed. The head-start streaming rule on top of this puts
+first sound at prefill + first chunk decode — well under a second.
+
+The seven-round fault ledger, for the next person who binds DML: (1-2) the
+EP's pool recycles a run's output buffers as the next run's scratch, live
+references or not — own the cache buffers; (4) a device buffer cannot
+cross sessions — it is an opaque sub-allocation, and reading it from
+another session is silent garbage, so bridge the prefill seam through
+host; (3) bind outputs with the graph's own rank; (6) a bound CPU input is
+read ONCE, not per run — never mutate a pinned array behind a binding,
+bind fresh values each step; (7) and a bench flag stamped by the host pass
+must be snapshotted before it. Every one was found by a printed number,
+none by a debugger.
 
 **Measured 12 Aug (experiment 1, safe half): the slope is real.** On the
 RX 6700: pos10 34.5ms, pos100 45.1ms, pos200 59.3ms, pos400 89.5ms —
