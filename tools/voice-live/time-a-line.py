@@ -345,7 +345,14 @@ def run(say, fp16=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
-    ap.parse_args()
+    # THE FLAG THE FIRST WIRING SILENTLY LOST. The edit script anchored on a
+    # --selftest block this file does not have, str.replace no-ops on a
+    # missing needle, and the harness printed "wired" unconditionally — so
+    # the job crossed to the other machine to fail on argparse. An edit is
+    # verified by GREPPING THE RESULT, not by the editor saying it ran.
+    ap.add_argument("--fp16", action="store_true",
+                    help="time the fp16 text graphs (lever B)")
+    a = ap.parse_args()
 
     import getpass
     import platform
