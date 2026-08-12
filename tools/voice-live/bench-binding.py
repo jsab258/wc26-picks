@@ -70,11 +70,40 @@ def missing_files():
     return gone
 
 
+def sdk_missing(which=None, probe=None):
+    """Why there is no usable .NET SDK, or None when there is one.
+
+    `which("dotnet")` IS NOT THE CHECK, and the first run on the PC proved
+    it: the bare dotnet HOST ships with all sorts of applications, so the
+    executable was on PATH, my guard passed, and `dotnet run` answered with
+    Microsoft's page of resolution advice instead of this file's one-line
+    install. The question is whether an SDK is INSTALLED, and the host
+    itself answers it: `--list-sdks`, empty meaning no.
+    """
+    which = which or shutil.which
+    if which("dotnet") is None:
+        return "no dotnet on PATH at all"
+
+    def real_probe():
+        p = subprocess.run(["dotnet", "--list-sdks"], capture_output=True,
+                           text=True, timeout=60)
+        return p.returncode, p.stdout
+    try:
+        rc, out = (probe or real_probe)()
+    except Exception as e:
+        return f"dotnet --list-sdks died: {type(e).__name__}"
+    if rc != 0 or not out.strip():
+        return "dotnet is on PATH but it is the bare host — no SDK installed"
+    return None
+
+
 def main():
-    if shutil.which("dotnet") is None:
-        print("bench-binding: NO .NET SDK on this machine — the bench is a")
-        print("  C# console app so it can drive the game's real backend.")
-        print("  One-time install:  winget install Microsoft.DotNet.SDK.8")
+    why = sdk_missing()
+    if why:
+        print(f"bench-binding: NO .NET SDK on this machine ({why}) — the")
+        print("  bench is a C# console app so it can drive the game's real")
+        print("  backend. One-time install:")
+        print("      winget install Microsoft.DotNet.SDK.8")
         print("  then run this job again.")
         return 1
 
@@ -126,6 +155,24 @@ def selftest():
     check("10,100,200,400" in cmd,
           "and the positions are the python probe's buckets, so the "
           "histories line up")
+
+    # THE SDK CHECK, BOTH FATES AND THE ONE THAT BIT. The first PC run had
+    # dotnet on PATH — the bare host, no SDK — and a `which`-based guard
+    # waved it through to Microsoft's error page. Planted probes cover the
+    # exact transcript that came back.
+    check(sdk_missing(which=lambda n: None) is not None,
+          "no dotnet at all is refused")
+    check(sdk_missing(which=lambda n: "dotnet",
+                      probe=lambda: (0, "")) is not None,
+          "and the bare host with an empty SDK list is refused too — the "
+          "fate the first PC run proved")
+    check(sdk_missing(which=lambda n: "dotnet",
+                      probe=lambda: (1, "No .NET SDKs were found.")) is not None,
+          "and a host that errors on --list-sdks is refused")
+    check(sdk_missing(which=lambda n: "dotnet",
+                      probe=lambda: (0, "8.0.404 [C:\\Program Files\\dotnet\\sdk]\n"))
+          is None,
+          "while an installed SDK passes — the accepting half")
 
     # THE REFUSALS NAME WHAT IS ABSENT. On this container the graphs are
     # genuinely absent, so the real function is its own rejecting fixture.
