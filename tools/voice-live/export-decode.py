@@ -328,7 +328,7 @@ def dynamic_flow(torch):
          CausalMaskedDiffWithXvec.inference) = saved
 
 
-def make_decode(torch, flow, gen):
+def make_decode(torch, flow, gen, steps=10):
     """Tokens and a voice in, samples out. The noise arrives as inputs."""
 
     class Decode(torch.nn.Module):
@@ -353,7 +353,7 @@ def make_decode(torch, flow, gen):
                     prompt_token=prompt_token,
                     prompt_token_len=torch.tensor([p]),
                     prompt_feat=prompt_feat, prompt_feat_len=None,
-                    embedding=embedding, finalize=True, n_timesteps=10)
+                    embedding=embedding, finalize=True, n_timesteps=steps)
                 wav, _ = self.gen.inference(
                     speech_feat=mel, cache_source=torch.zeros(1, 1, 0))
             self.seen = box
@@ -362,8 +362,8 @@ def make_decode(torch, flow, gen):
     return Decode()
 
 
-def export_decode(torch, flow, gen, args, dest):
-    dec = make_decode(torch, flow, gen).eval()
+def export_decode(torch, flow, gen, args, dest, steps=10):
+    dec = make_decode(torch, flow, gen, steps).eval()
     names = ["tokens", "prompt_token", "prompt_feat", "embedding",
              "z", "sine_noise"]
     axes = {"tokens": {1: "n"}, "prompt_token": {1: "p"},
@@ -612,13 +612,17 @@ def selftest():
     return 1 if fails else 0
 
 
-def cmd_run(force=False):
+def cmd_run(force=False, steps=10):
+    # THE STEP COUNT IS PART OF WHAT "ALREADY DONE" MEANS. The skip compares
+    # the exporter's own source against the last run's; a graph built with a
+    # different number of solver steps is a different graph from identical
+    # code, and skipping it would hand back the old one looking current.
     done, src = already_done([OUT / "s3gen-decode.onnx"])
-    if done and not force:
+    if done and steps == 10 and not force:
         print("  already exported by this same code — skipping.")
         print("  (delete the .onnx files, or pass --force, to redo it)")
         return 0
-    stamp(f"started  src={src}")
+    stamp(f"started  src={src}  steps={steps}")
     import time
     import numpy as np
     import torch
@@ -651,7 +655,8 @@ def cmd_run(force=False):
     dest = OUT / "s3gen-decode.onnx"
     args = (tok, ptok, pfeat, emb) + tuple(noise)
     with patched(), dynamic_cfm(torch), dynamic_flow(torch):
-        dec = export_decode(torch, model.s3gen.flow, model.s3gen.mel2wav, args, dest)
+        dec = export_decode(torch, model.s3gen.flow, model.s3gen.mel2wav,
+                            args, dest, steps)
     mb = sum(f.stat().st_size for f in OUT.glob("s3gen-decode*")) / (1024 * 1024)
     print(f"  exported in {time.time() - t0:.0f}s, {mb:.0f} MB -> {dest.name}")
 
@@ -720,12 +725,20 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="re-export even if it is already done")
+    # HOW MANY STEPS THE FLOW SOLVER TAKES, and it is the biggest number in
+    # this file. The solver's loop is UNROLLED into the traced graph, so ten
+    # steps means ten copies of the estimator: it sets the file's size, the
+    # ~200 seconds a session takes to open, and the seconds a line takes to
+    # decode, all at once. Whether four sounds as good as ten is a question
+    # for ears, not for me.
+    ap.add_argument("--steps", type=int, default=10,
+                    help="flow solver steps baked into the graph (default 10)")
     ap.add_argument("--fromtemp", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
     if a.selftest:
         return selftest()
     try:
-        return cmd_run(a.force)
+        return cmd_run(a.force, a.steps)
     except Exception as e:
         # THE REASON GOES INTO THE STAMP, so the audit that runs afterwards
         # carries it back without anybody copying a traceback. A stamp saying

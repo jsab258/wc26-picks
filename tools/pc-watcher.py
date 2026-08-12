@@ -77,6 +77,21 @@ TABLE = {
                         ["PY", "tools/voice-live/check-graphs.py"],
                         ["PY", "tools/voice-live/time-a-line.py"]],
     "time-the-shape": [["PY", "tools/voice-live/time-the-shape.py"]],
+    # FOUR SOLVER STEPS INSTEAD OF TEN, AND THEN LISTEN TO IT.
+    #
+    # The flow solver's loop is unrolled into the traced graph, so ten steps
+    # is ten copies of the estimator — it sets the file size, the ~200 seconds
+    # a session takes to open, and the seconds a line takes to decode, all at
+    # once. Nothing measures whether the tenth step is audible. This exports
+    # at four, times a line, and speaks one, so the question goes to ears.
+    "try-fewer-steps": [["PY", "tools/voice-live/export-decode.py",
+                         "--steps", "4", "--force"],
+                        ["PY", "tools/voice-live/time-a-line.py"]],
+    # AND BACK, because a faster graph that sounds worse has to be one job
+    # away from being undone rather than a thing to remember how to reverse.
+    "back-to-ten-steps": [["PY", "tools/voice-live/export-decode.py",
+                           "--steps", "10", "--force"],
+                          ["PY", "tools/voice-live/time-a-line.py"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
