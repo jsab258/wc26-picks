@@ -64,6 +64,14 @@ drives the real `T3.inference` and compares.**
    arithmetic already pays IF the seams pass the ear and fp16 pulls the
    per-chunk cost under the audio it yields.
 
+   **THE FP16 JOB, CONCRETELY:** extend `convert-fp16.py`'s tuple with the
+   two s3gen graphs writing `-fp16.onnx` BESIDE the fp32 (the A/B must
+   stay explicit), teach `hear-chunks.py` to read each session's input
+   dtype and cast its feeds (z, sine, caches go float16), and write a
+   THIRD segment into the wav — whole fp32, chunks fp32, chunks fp16 —
+   with per-chunk times for all three. One trip answers speed AND ear.
+   The converter's own selftest pattern covers the tiny-real-model half.
+
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
 - **HEAT FADES AND NOBODY KNOWS WHY.** `homInquiry=Manhunt` at the killing,
@@ -123,21 +131,14 @@ would notice, whatever state anything else is in.
    aim RAY was clear, the framing is still bad. The number: fraction of
    frame within 2m (a near-occluder fraction per shot), worst-shot named.
 
-1. **TWO THINGS THE b01ea7d STILLS SHOW THAT NO NUMBER REPORTS.** *(on screen)*
-
-   `review_day1_night.jpg`: a figure in pink at the market stall with both arms
-   straight out — a T-pose, on a street `armStreet=10.7/armStreetWorst=15.3`
-   calls healthy. That is the median-across-bodies blind spot AGAIN (the worst
-   is a max over medians). A hypothesis, not a conviction — one frame, one
-   body, could be a gesture mid-swing. The number to add: a per-body count of
-   arms within 5 degrees of horizontal held for more than a second, emitted as
-   `tposeBodies` with the body id.
-
-   `review_day2_noon.jpg`: three or four large WHITE CAPSULES standing in the
-   road on Hook Street — primitive bodies with no prefab, the exact fault
-   `playerPrimitive` was built for, on NPCs where nothing measures it. The
-   number: `crowdPrimitives` counting capsule-only walkers, plus which tier
-   spawned them.
+1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
+   `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
+   out, on a street `armStreet=10.7/armStreetWorst=15.3` calls healthy —
+   the median-across-bodies blind spot again (the worst is a max over
+   medians). One frame, one body: a hypothesis. The number: per-body count
+   of arms within 5 degrees of horizontal held over a second, emitted as
+   `tposeBodies` with the body id. (The capsule half of this item closed
+   into the census item above.)
 
 1. **CLOSED 12 Aug: the `killed_<name>` churn was the keys manifest's
    parser reading key=value pairs inside bracketed values — the emitter
