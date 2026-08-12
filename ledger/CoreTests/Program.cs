@@ -8185,25 +8185,28 @@ namespace Ledger.CoreTests
             var wav = new float[24000];
             for (int i = 0; i < wav.Length; i++) wav[i] = 0.8f;
             SpeechSamples.Feather(wav, 24000);
-            Check(wav[0] == 0f,
-                "the first sample is exactly zero — a raw decode starts wherever "
-                + "the model left it, and the jump from silence is the click");
+            // 25ms at 24kHz = 600 samples of hard zero. Measured off the test
+            // file: the cold vocoder rings for ~16ms at the top of every
+            // decode, and a fade only scales a click — zero removes it.
+            Check(wav[0] == 0f && wav[599] == 0f,
+                "the first 25ms are exactly zero — the cold-vocoder transient "
+                + "lives there, and it read as a pop OR a cut-off word");
             Check(Math.Abs(wav[wav.Length - 1]) < 1e-6f,
-                "and so is the last, for the same reason in reverse");
+                "and the last sample is zero, for the pop in reverse");
             Check(wav[12000] == 0.8f,
                 "the middle of the line is untouched — this is edge shaping, "
                 + "not a volume change");
-            Check(wav[60] > wav[30] && wav[30] > wav[5],
-                "the ramp rises monotonically rather than stepping",
-                $"{wav[5]:0.000} < {wav[30]:0.000} < {wav[60]:0.000}");
+            Check(wav[660] > wav[630] && wav[630] > wav[605],
+                "past the mute the ramp rises monotonically rather than stepping",
+                $"{wav[605]:0.000} < {wav[630]:0.000} < {wav[660]:0.000}");
             // A MUTTER SURVIVES ITS OWN FADES. 24000 samples of ramp against
             // a 100-sample clip would silence the whole word.
             var blip = new float[100];
             for (int i = 0; i < blip.Length; i++) blip[i] = 0.5f;
             SpeechSamples.Feather(blip, 24000);
             Check(blip[50] != 0f,
-                "a clip shorter than the ramps keeps its middle — the fades "
-                + "clamp to half the clip instead of eating it");
+                "a clip shorter than mute+ramps keeps its middle — each repair "
+                + "clamps instead of eating the word");
             // AND THE DEGENERATE INPUTS ARE A NO-OP, NOT A THROW. This runs
             // on the audio worker, where an exception takes the process down.
             SpeechSamples.Feather(null, 24000);

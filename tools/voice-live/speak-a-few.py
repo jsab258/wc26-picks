@@ -179,12 +179,20 @@ def run(say):
         # in the game, mirrored here because Jafar heard the pop in THIS
         # file: a decode starts at a non-zero sample, and the step from the
         # gap's zeros to that value is an audible click on every line.
+        # MUTE THE FIRST 25ms, THEN FADE — mirroring Core/SpeechSamples.
+        # Measured in this very file's previous version: every decode opens
+        # with a ~16ms cold-vocoder transient (~0.02 peak) that a 10ms fade
+        # only scaled. In silence it was the pop; before a quick word it read
+        # as the word being cut off. Word onsets sit past 90ms, so 25ms of
+        # hard zero is safe by a factor of three.
+        mute = min(int(24000 * 0.025), wav.shape[-1] // 4)
+        wav[:mute] = 0.0
         up = int(24000 * 0.010)
         down = int(24000 * 0.020)
-        up = min(up, wav.shape[-1] // 2)
+        up = min(up, wav.shape[-1] // 2 - mute)
         down = min(down, wav.shape[-1] // 2)
         if up > 0:
-            wav[:up] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(up) / up)
+            wav[mute:mute + up] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(up) / up)
         if down > 0:
             wav[-down:] *= (0.5 - 0.5 * np.cos(
                 np.pi * np.arange(down) / down))[::-1]
