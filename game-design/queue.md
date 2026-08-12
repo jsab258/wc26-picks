@@ -50,38 +50,21 @@ many start markers go in, and I had matched the one that does not ship.
 
 **NEXT, IN ORDER:**
 
-1. **FOUR SOLVER STEPS INSTEAD OF TEN — MEASURED, AND WAITING ON EARS.**
-   The hypothesis held. The 2.2s that moved with neither prompt nor sentence
-   was operator count, and the solver's loop is unrolled into the graph.
-   **Opening the decode session: 178-225s -> 38.7s.** All three sessions:
-   184s -> 45.6s. **Decoding an 86-token line: 3.4s -> 1.6s.**
-   Two things NOT to read into it. The step loop measured 4.7s against 3.5s
-   before, on graphs that did not change — machine noise, so the whole-line
-   total is not comparable across those two runs. And the file got BIGGER,
-   540 MB to 1050 MB, which contradicts the operator-count story on size while
-   the timings support it strongly. Unexplained.
-   The 4.7e-05 agreement is against a FOUR-step PyTorch reference: it proves
-   the export is faithful, not that four steps sound like ten. Only Jafar
-   decides that, and he has the wav.
-   `back-to-ten-steps` reverses it in one job.
-   **The startup cache remains a dead end** — the optimised copy takes 190-250s
-   to write and cannot be reopened at all, and optimisation OFF is slower
-   (368-385s against 219-225s).
-2. **THE PROMPT COSTS A SECOND OF EVERY LINE.** The decoder re-decodes the
-   voice's reference clip each time: 4.0ms per prompt token, so the shipped
-   250-token prompt costs 1.0s. Trimming to 50 saves 0.8s and needs a listen
-   for the same reason as above — the prompt is what makes the voice that
-   person. Not yet done; it is the next cheap win after the step count lands.
-   **AND ONE ODDITY, REPRODUCIBLE ACROSS TWO RUNS:** a 10-token line decodes
-   in 1.09s while 25 and 50 sit at 3.25s for almost identical work. It
-   repeated exactly, so it is not noise, and a 3x cliff between neighbouring
-   sizes contradicts every model of this cost — including the one that just
-   turned out to be right about the big number.
-3. **THE PATIENCE NUMBER IS NOW A REAL DECISION AND IT IS JAFAR'S.**
-   At `PatienceSeconds = 4.0` only a few words ever speak live; a sentence
-   needs about 8. The hoped-for middle answer — "short lines yes, long lines
-   no" — is dead, because the decode's fixed cost dominates a short line.
-   `SpeechQueue.ShelfSeconds = 8.0` moves with whatever he picks.
+1. **THE LATENCY PLAN IS `live-speech-latency.md` AND IT WINS THIS SECTION.**
+   Jafar: 2.5-6s to voice is not good enough; as close to real time as
+   possible or the feature is useless. The answer is streaming — the model's
+   own package is built for it (chunked flow with 3-token lookahead, vocoder
+   seam cache) — but streaming today would UNDERRUN: we generate 23.8 tok/s
+   and playback eats 25. So the step rate rises first. Levers, in order:
+   position-slope probe (is half the step PCIe traffic for the 74MB cache?),
+   fp16 (we ship fp32 of a bf16-native model), the no-guidance RETEST (the
+   Ada runaway came from a test sampler with no repetition penalty — the
+   conclusion was confounded), then chunked delivery. Six experiments are
+   sequenced in the SPEC; each ends in a number or a wav.
+2. **CLOSED — four solver steps, approved by ear.** Startup 184s -> 45s,
+   decode 3.4s -> 1.6s. `back-to-ten-steps` reverses if ever needed.
+3. **CLOSED — the 4.4x CPU-per-step reading is dead.** On the shipped graphs
+   the card wins both stages (1.3-1.8x steps, 3.5x decode). Both stay on it.
 4. **ONE left on the reach ledger** — `SpeechRun.SecondsPerStep`.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
