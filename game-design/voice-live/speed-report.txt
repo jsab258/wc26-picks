@@ -1,13 +1,24 @@
-LEDGER — a few lines, more than one voice
-ran on Jafar-Desktop (Windows), 2026-08-12 14:50 UTC
+LEDGER — how long one spoken line actually takes
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-12 15:13 UTC
 
-  19 voices precomputed, speaking with 2: rocco, ada
+  TEXT GRAPHS: FP16 — this run measures lever B
+  providers available: DmlExecutionProvider, CPUExecutionProvider
   using: DmlExecutionProvider
-  three sessions in 45.0s
-  1. rocco: 19 tokens, 0.8s of speech, 2.4s to make — "No."
-  2. ada: 85 tokens, 3.4s of speech, 5.9s to make — "Seen the van again. Thursday, same as last Thursday."
-  3. rocco: 63 tokens, 2.5s of speech, 4.5s to make — "You want me to say that in front of Rocco?"
-  4. ada: 93 tokens, 3.7s of speech, 6.1s to make — "Forty-two crates, and not one of them opened where I could see it."
-  5. rocco: 82 tokens, 3.3s of speech, 5.3s to make — "I was nowhere near the yard, and you know it, and so does he."
-  5 of 5 lines spoken, 24s of work in 2 voice(s), 2 row(s) of odds — classifier-free guidance
-  wrote spoken.wav — 781 KB, 16.7s, 5 lines with 0.5s between them
+  opened t3-prefill in 2.5s
+  opened t3-step in 1.8s
+  opened s3gen-decode in 38.1s
+  three sessions in 42.4s total
+  the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
+  prefill: 1.06s
+  the graph gives 2 row(s) of odds — classifier-free guidance
+  74 steps in 2.7s — first 163ms, median 31ms, slowest 163ms
+  74 acoustic tokens kept
+  one step on CPU: could not run — Fail: [ONNXRuntimeError] : 1 : FAIL : Exception during initialization: E:\_work\1\s\onnxruntime\core\graph\graph_utils.cc:30 onnxruntime::graph_utils::GetIndexFromName itr != node_args.end() was false. Attempting to get index by a name which does not exist:InsertedPrecisionFreeCast_/tfmr/layers.10/input_layernorm/Constant_output_0for node: /tfmr/layers.0/input_layernorm/Mul_1/SimplifiedLayerNormFusion/
+
+  decode on CPU: 5.20s (session opened in 39.8s)
+  -> the CPU is 2.9x SLOWER at this stage — DirectML is the right place for it
+  wrote spoken.wav — 139 KB, 3.0s, through the SHIPPED graphs
+  decode: 1.81s for 3.0s of audio
+
+  ONE LINE: 5.5s of work for 3.0s of speech — 1.9x real time
+  split: prefill 1.1s, 74 steps 2.7s, decode 1.8s

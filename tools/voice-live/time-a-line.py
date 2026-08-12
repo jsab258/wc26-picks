@@ -144,7 +144,22 @@ def run(say, fp16=False):
                                     z["t3.cond_prompt_speech_tokens"]),
         "emotion_adv": as_np("emotion_adv", z["t3.emotion_adv"])})
     prefill = time.time() - t0
-    say(f"  prefill: {prefill:.2f}s")
+    # TWICE, because the fp16 run measured 1.06s against fp32's 0.30s and one
+    # run cannot say whether that is the graph or one-time kernel warm-up.
+    # The second run is the discriminator: if it comes back near fp32's
+    # number, the cost is warm-up and the game can pay it once at load with a
+    # throwaway prefill; if it stays high, the converter's inserted casts are
+    # in the conditioning path and lever B owes an investigation.
+    t0b = time.time()
+    sess["t3-prefill"].run(None, {
+        "text_tokens": as_np("text_tokens", [ids]),
+        "speaker_emb": as_np("speaker_emb", z["t3.speaker_emb"]),
+        "cond_speech_tokens": as_np("cond_speech_tokens",
+                                    z["t3.cond_prompt_speech_tokens"]),
+        "emotion_adv": as_np("emotion_adv", z["t3.emotion_adv"])})
+    prefill2 = time.time() - t0b
+    say(f"  prefill: {prefill:.2f}s (second run {prefill2:.2f}s — the gap "
+        f"between them is one-time warm-up, the second is the real cost)")
 
     pick = _shared_pick()
     said = set()
