@@ -41,29 +41,28 @@ speech, 2.1x real time — prefill 0.3s, 86 sampling steps 3.5s, decode 3.5s. An
 184 seconds to open the three sessions at startup, of which the sound decoder
 alone is 178.
 
-**THE FIRST TWO WORDS WERE MISSING AND SIX DECIMAL PLACES COULD NOT SEE IT.**
-The prefill graph returned its cache and threw away the first token's odds, so
-the caller fed the start marker a second time and lost the opening word. Fixed,
-and the check now DRIVES the real `T3.inference` and compares rather than
-reading it — because the reference has two functions that disagree about how
-many start markers go in, and I had matched the one that does not ship.
+**CLOSED — the missing first two words: the prefill discarded the first
+token's odds, the caller double-fed the start marker. Fixed; the check now
+drives the real `T3.inference` and compares.**
 
 **NEXT, IN ORDER:**
 
-1. **THE LATENCY PLAN IS `live-speech-latency.md` AND IT WINS THIS SECTION.**
-   Jafar: 2.5-6s to voice is not good enough; as close to real time as
-   possible or the feature is useless. The answer is streaming — the model's
-   own package is built for it (chunked flow with 3-token lookahead, vocoder
-   seam cache) — but streaming today would UNDERRUN: we generate 23.8 tok/s
-   and playback eats 25. So the step rate rises first. Levers, in order:
-   position-slope probe (is half the step PCIe traffic for the 74MB cache?),
-   fp16 (we ship fp32 of a bf16-native model), the no-guidance RETEST (the
-   Ada runaway came from a test sampler with no repetition penalty — the
-   conclusion was confounded), then chunked delivery. Six experiments are
-   sequenced in the SPEC; each ends in a number or a wav.
-2. **CLOSED — four solver steps (ear-approved; `back-to-ten-steps`
-   reverses), and the 4.4x CPU-per-step reading is dead: the card wins
-   both stages on the shipped graphs.**
+1. **STREAMING IS BUILT AND PROVEN EXACT — the ear and the flow's cost
+   are what remain (13 Aug, chunks-7).** The chunk graph now IS the
+   whole-line function to 0.0e+00 (first call carries nothing; 8-mel seam
+   rides in after; caller crossfades over the holdback), all four chunks
+   ran on DirectML — the zero-length fear from chunks-2 was never true —
+   and `chunked.wav` awaits Jafar's ear: whole line, a breath, the same
+   line in four pieces. The game side is wired end to end (follower,
+   worker, pump, fallback). THE WALL: each chunk re-renders the whole
+   flow, ~1.5s a call, so four chunks cost 5.97s against the whole
+   line's 1.72s — at today's rates `Sustainable` will correctly refuse
+   to stream and fall back whole. The lever is fp16 on the flow half
+   (`convert-fp16.py` exists; the step graph took it), then chunk-size
+   tuning on the measured curve. TTFS today ≈ prefill 0.3 + 24 tokens'
+   steps 0.6 + first chunk 1.39 ≈ 2.3s, against ~5.3s whole — the
+   arithmetic already pays IF the seams pass the ear and fp16 pulls the
+   per-chunk cost under the audio it yields.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 

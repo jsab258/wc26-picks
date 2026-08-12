@@ -783,30 +783,38 @@ namespace Ledger.Game
             // hand it over, and bring the named day forward to today so the
             // close runs in-engine instead of six days after the sim ends.
             if (_actThreeStaged && _game.ActThree.Opened && !_game.ActThree.AuditClosed
-                && _game.ActThree.Pp1Fired && now.Hour >= 14)
+                && _game.ActThree.Pp1Fired && now.Hour >= 14
+                && now.Day > _handedTriedDay)
             {
+                // Once per afternoon, not once per tick — the retry loop
+                // this block became would otherwise ask hundreds of times
+                // a day and count each one.
+                _handedTriedDay = now.Day;
                 var ready = _game.ReadySuccessor();
-                // WHO WAS ELIGIBLE AT THIS INSTANT, WHICH IS THE ONLY INSTANT
-                // THAT COUNTS — and the line below is why.
+                // THE AUDIT STAYS OPEN UNTIL SOMEBODY QUALIFIES. The first
+                // version closed it on this same pass — one attempt, one
+                // chance, "the letter's date" — and the measured result was
+                // a succession that has never completed in any recorded run:
+                // `handedTried=True handedReady=[nobody]`, with Joey passing
+                // `CouldHold` by the END of the run but not at the one hour
+                // anybody asked, so `Ending.Quiet` was structurally
+                // unreachable — the `inquiry=None` class of dead branch,
+                // found by reading rather than by the constant-key tool.
+                // Now each afternoon re-asks until someone is ready, and the
+                // hard close at day 15 keeps every run ending SOME way:
+                // nobody by then is the NoSuccessor ending honestly earned.
                 //
-                // `AuditClosesDay = now.Day` closes the audit on this same
-                // pass, so `!AuditClosed` is false ever after and this block
-                // never runs twice. One attempt, one chance.
-                //
-                // `4e3eef3` reads `joeyRuns=True` with `successorWhy` listing
-                // only Sam and Rocco — so Joey passes `CouldHold` BY THE END OF
-                // THE RUN. That says nothing about whether he passed HERE, and
-                // if the racket is established after this pass then `ready` was
-                // null at the only moment anybody asked. A reading taken at the
-                // end of a run cannot answer a question about hour fourteen,
-                // which is the fault this project has now found in the summons,
-                // the huddle and the killing register.
+                // The try fields are LAST-Wins across retries — says so
+                // here, so nobody reads the retry count out of them — and
+                // `handedRetries` carries how many afternoons asked.
                 _handedTried = true;
+                _handedRetries++;
                 _handedReady = ready != null ? ready.Id : "nobody";
                 _handedWhyAtTry = GameController.SuccessorWhy;
                 if (ready != null && _game.ActThree.SuccessorId == null)
                     _actThreeHandedOver = _game.HandOver(ready.Id);
-                _game.ActThree.AuditClosesDay = now.Day;   // the letter's date, brought forward
+                if (ready != null || now.Day >= 15)
+                    _game.ActThree.AuditClosesDay = now.Day;
             }
 
             if (_game.ActThree.AuditClosed) _actThreeEnding = _game.ActThree.Result;
@@ -3738,6 +3746,8 @@ namespace Ledger.Game
         /// closes on that same pass, so there is no second try and an
         /// end-of-run reading describes a world that no longer matters.
         bool _handedTried;
+        int _handedRetries;
+        int _handedTriedDay;
         string _handedReady = "neverTried", _handedWhyAtTry = "neverTried";
         /// The one wound the harm probe treated, held so the gate can ask
         /// about THAT one rather than about Rocco in general.
@@ -9604,7 +9614,8 @@ namespace Ledger.Game
                       // `successorWhy` names the next one.
                       $"joeyRuns={_joeyRuns} " +
                       // AT THE ATTEMPT, not at the end of the run.
-                      $"handedTried={_handedTried} handedReady=[{_handedReady}] " +
+                      $"handedTried={_handedTried} handedRetries={_handedRetries} " +
+                      $"handedReady=[{_handedReady}] " +
                       $"handedWhyAtTry={_handedWhyAtTry} " +
                       $"successorWhy={GameController.SuccessorWhy} " +
                       $"actThreeOk={actThreeOk} " +
