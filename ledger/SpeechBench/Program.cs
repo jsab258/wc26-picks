@@ -152,6 +152,10 @@ namespace Ledger.Bench
                         if (d > worst) worst = d;
                         Console.WriteLine("BENCH: logitsMaxDelta step" + (k + 1)
                                           + "=" + d.ToString("0.0e+00"));
+                        // A disagreement's SHAPE names its cause faster than
+                        // its size: how many values, which guidance row, and
+                        // whether the rows merely swapped.
+                        if (d > 1e-3) Anatomy("step" + (k + 1), hostSteps[k], h2);
                     }
                     // A REAL disagreement is a wrong tensor, and timing a
                     // wrong tensor flatters it. 1e-3 on logits spanning ~40
@@ -269,6 +273,36 @@ namespace Ledger.Bench
             Console.WriteLine("BENCH: fit " + name + "="
                 + flat.ToString("0.0") + "ms+"
                 + (slope * 1000).ToString("0") + "us/pos");
+        }
+
+        /// The anatomy of a disagreement: count and rows, then the swap test
+        /// — host row 0 against bound row 1 and vice versa — because two
+        /// guidance rows in the wrong order produce exactly a large,
+        /// deterministic, input-independent delta and nothing else does.
+        static void Anatomy(string name, float[] host, float[] bound)
+        {
+            int half = host.Length / 2;
+            int diff = 0, row0 = 0;
+            int firstAt = -1;
+            for (int i = 0; i < host.Length; i++)
+            {
+                if (Math.Abs((double)host[i] - bound[i]) <= 1e-3) continue;
+                diff++;
+                if (i < half) row0++;
+                if (firstAt < 0) firstAt = i;
+            }
+            double sw01 = 0, sw10 = 0;
+            for (int i = 0; i < half; i++)
+            {
+                double d1 = Math.Abs((double)host[i] - bound[half + i]);
+                double d2 = Math.Abs((double)host[half + i] - bound[i]);
+                if (d1 > sw01) sw01 = d1;
+                if (d2 > sw10) sw10 = d2;
+            }
+            Console.WriteLine("BENCH: anatomy " + name
+                + " differing=" + diff + "/" + host.Length
+                + " inRow0=" + row0 + " firstAt=" + firstAt
+                + " swappedRows=" + Math.Max(sw01, sw10).ToString("0.0e+00"));
         }
 
         static double MaxDelta(float[] x, float[] y)

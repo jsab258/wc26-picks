@@ -132,10 +132,6 @@ namespace Ledger.Game
         /// measured lines of ~100.
         const long Room = 512;
 
-        /// The step logits land HERE every run — one pinned host buffer
-        /// bound once as the output, no per-step collections to dispose.
-        float[] _logitsBuf;
-        OrtValue _logitsHome;
 
         /// The step inputs, made once and MUTATED in place each step — the
         /// value reads its array at run time, so two writes replace two
@@ -547,32 +543,6 @@ namespace Ledger.Game
             if (_posAxis < 0) FindPosAxis();
             ReadCacheDims();
             EnsurePool();
-            if (_logitsHome == null)
-            {
-                // THE SHAPE IS THE STEP GRAPH'S, NOT AN ASSUMPTION. The
-                // prefill emits [rows, vocab] and the step [rows, 1, vocab]
-                // — round three bound a rank-2 home for a rank-3 output and
-                // was refused by name. Dynamic axes are one token wide at a
-                // step; the element count is checked against what the
-                // sampler expects, because a home of the right rank and the
-                // wrong size would truncate the odds silently.
-                var md = _step.OutputMetadata["logits"];
-                var dims = new long[md.Dimensions.Length];
-                long elems = 1;
-                for (int d = 0; d < dims.Length; d++)
-                {
-                    dims[d] = md.Dimensions[d] < 0 ? 1 : md.Dimensions[d];
-                    elems *= dims[d];
-                }
-                if (elems != (long)_rows * SpeechVocab.Size)
-                    throw new InvalidOperationException(
-                        "the step graph's logits hold " + elems
-                        + " values, the sampler wants "
-                        + (long)_rows * SpeechVocab.Size);
-                _logitsBuf = new float[elems];
-                _logitsHome = OrtValue.CreateTensorValueFromMemory(_logitsBuf, dims);
-            }
-
             _cur = -1;
             _pos = _prefillPos;
             _lineBound = true;
@@ -598,7 +568,16 @@ namespace Ledger.Game
                 var b = _step.CreateIoBinding();
                 b.BindInput("token", _tokVal);
                 b.BindInput("position", _posVal);
-                b.BindOutput("logits", _logitsHome);
+                // THE LOGITS COME BACK THROUGH ORT'S OWN CPU OUTPUT, not a
+                // pre-pinned buffer of ours. Rounds four and five disagreed
+                // by an identical ~9 whichever way the INPUTS arrived, and
+                // the one part every failing configuration shared was the
+                // pinned-array home bound as the output — while the round
+                // four prefill, read from an ORT-allocated CPU output,
+                // agreed to the bit. So the step reads its odds the way the
+                // prefill proved: bound to the CPU device, collected per
+                // run, 64 KB copied and the wrappers dropped.
+                b.BindOutputToDevice("logits", OrtMemoryInfo.DefaultInstance);
                 _bindStep = b;
             }
             _tokArr[0] = token;
@@ -645,8 +624,21 @@ namespace Ledger.Game
             }
 
             _bindStep.SynchronizeBoundInputs();
-            _step.RunWithBinding(_runOpts, _bindStep);
-            _bindStep.SynchronizeBoundOutputs();
+            int n = 0;
+            using (var got = _step.RunWithBoundResults(_runOpts, _bindStep))
+            {
+                _bindStep.SynchronizeBoundOutputs();
+                // The logits were bound FIRST, so they are the collection's
+                // first value; the rest wrap this side's own pool blocks and
+                // disposing the wrappers does not touch the blocks.
+                foreach (var v in got)
+                {
+                    var span = v.GetTensorDataAsSpan<float>();
+                    n = Math.Min(logits.Length, span.Length);
+                    for (int k = 0; k < n; k++) logits[k] = span[k];
+                    break;
+                }
+            }
 
             // The prefill's tensors are consumed exactly once, by the first
             // step; after the synchronize above the card is done with them.
@@ -654,8 +646,6 @@ namespace Ledger.Game
             _cur = outHalf;
             _pos = outPos;
 
-            int n = Math.Min(logits.Length, _logitsBuf.Length);
-            Array.Copy(_logitsBuf, logits, n);
             if (n != logits.Length)
                 Why = "the bound step gave " + n + " odds, the sampler wants "
                       + logits.Length;
@@ -896,7 +886,6 @@ namespace Ledger.Game
             if (_bindStep != null) _bindStep.Dispose();
             if (_tokVal != null) _tokVal.Dispose();
             if (_posVal != null) _posVal.Dispose();
-            if (_logitsHome != null) _logitsHome.Dispose();
             if (_pool != null)
                 for (int h = 0; h < 2; h++)
                     for (int i = 0; i < _layers; i++)
