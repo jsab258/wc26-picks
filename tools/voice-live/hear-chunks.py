@@ -330,6 +330,13 @@ def say_lines(say, fp16=False):
         drel = float(np.abs(w_16 - w_chunk).max())             / max(float(np.abs(w_chunk).max()), 1e-9)
         say(f"  fp16 waveform sits {drel:.1%} of full scale from fp32 — "
             f"the third segment is the ear's judge")
+        # The overflow autopsy: chunks-10 read 141% and a difference that
+        # size is a different waveform, not noise. fp16 tops out at 65504
+        # and the trained vocoder's activations can pass it where the
+        # random small model's never did — the peaks say so directly.
+        say(f"  peaks: fp32 {float(np.abs(w_chunk).max()):.2f}, "
+            f"fp16 {float(np.abs(w_16).max()):.2f}, "
+            f"finite={bool(np.isfinite(w_16).all())}")
         if len(w_16) != len(w_chunk):
             say(f"  FP16 LENGTHS DIFFER: {len(w_16)} vs {len(w_chunk)} — "
                 f"not writing its segment")

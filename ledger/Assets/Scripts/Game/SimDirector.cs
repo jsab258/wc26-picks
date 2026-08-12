@@ -1971,7 +1971,7 @@ namespace Ledger.Game
         /// The worst carries the OBJECT'S NAME, because which system laid it
         /// down is the question the still could not answer.
         int _textFlat;
-        string _textFlatWorst = "[none]";
+        string _textFlatWorst = "none";
 
         /// Person-sized bare capsules visible in a shot — the white dummies
         /// review_day2_noon keeps showing while `walkersPrimitive=0` reads
@@ -1979,7 +1979,9 @@ namespace Ledger.Game
         /// and these bodies belong to some other population. The ROOT NAMES
         /// say which one; rule 3b, the denominator, worn by a mesh.
         int _capsulesLoose;
-        string _capsulesLooseWho = "[none]";
+        string _capsulesLooseWho = "none";
+        int _capsulesSeen, _capsulesAnim, _capsulesSized;
+        string _capsulesAnimWho = "none";
 
         /// The census behind those two numbers: every visible renderer
         /// whose mesh is Unity's builtin Capsule, person-sized, standing
@@ -1987,27 +1989,50 @@ namespace Ledger.Game
         /// under an armature with a controller.
         void MeasureLooseCapsules()
         {
-            int found = 0;
+            // FIRST OUTING: read 0 with a white capsule in the middle of
+            // day1_noon at db605a4 — its own rule-3b fault. Every filter
+            // below now counts what it discards, and the excluded sets
+            // carry names too, because the leak is almost certainly one of
+            // these buckets: a walker whose body swap failed still has an
+            // Animator, and the old version silently excused it for that.
+            int found = 0, seen = 0, animOut = 0, sizeOut = 0;
             var who = new List<string>();
+            var animWho = new List<string>();
             foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
             {
                 if (mf == null || mf.sharedMesh == null
                     || mf.sharedMesh.name != "Capsule") continue;
                 var r = mf.GetComponent<Renderer>();
                 if (r == null || !r.isVisible) continue;
+                seen++;
                 var s = mf.transform.lossyScale;
                 float h = mf.sharedMesh.bounds.size.y * s.y;
-                if (h < 1.2f || h > 2.6f) continue;   // not person-sized
-                if (mf.GetComponentInParent<Animator>() != null) continue;
+                if (h < 1.2f || h > 2.6f) { sizeOut++; continue; }
+                if (mf.GetComponentInParent<Animator>() != null)
+                {
+                    animOut++;
+                    if (animWho.Count < 4
+                        && !animWho.Contains(mf.transform.root.name))
+                        animWho.Add(mf.transform.root.name);
+                    continue;
+                }
                 found++;
                 if (who.Count < 4 && !who.Contains(mf.transform.root.name))
                     who.Add(mf.transform.root.name);
             }
+            if (seen > _capsulesSeen) _capsulesSeen = seen;
+            if (animOut > _capsulesAnim)
+            {
+                _capsulesAnim = animOut;
+                _capsulesAnimWho = animWho.Count > 0
+                    ? string.Join("/", animWho.ToArray()) : "none";
+            }
+            if (sizeOut > _capsulesSized) _capsulesSized = sizeOut;
             if (found > _capsulesLoose)
             {
                 _capsulesLoose = found;
                 _capsulesLooseWho = who.Count > 0
-                    ? string.Join("/", who.ToArray()) : "[none]";
+                    ? string.Join("/", who.ToArray()) : "none";
             }
         }
         /// How many bubbles the SHOT re-pinned. Zero on a shot with speech in
@@ -2159,7 +2184,7 @@ namespace Ledger.Game
             if (flat > _textFlat)
             {
                 _textFlat = flat;
-                _textFlatWorst = flatWorstName ?? "[none]";
+                _textFlatWorst = flatWorstName ?? "none";
             }
             // PEAKS, like every other reading here, and the pair is the
             // point: `away` with no `seen` beside it cannot be read as a
@@ -7106,6 +7131,10 @@ namespace Ledger.Game
         float _shotBlockNearest = float.MaxValue;
         string _shotBlockWhat = "none";
         int _shotsBlocked, _shotsAimed;
+        /// The worst fraction of a committed frame filled by geometry
+        /// within two metres of the lens, and which shot it was.
+        float _shotNearFracWorst;
+        string _shotNearFracWhere = "none";
         int _restFrameSum, _restFrames, _workFrameSum, _workFrames;
 
         /// The frame the last shot-time probe read. Several probes run inside
@@ -7173,6 +7202,34 @@ namespace Ledger.Game
                 }
                 if (nearest < float.MaxValue) _shotsBlocked++;
                 _shotsAimed++;
+
+                // AND HOW MUCH OF THE FRAME IS WALL AT ARM'S LENGTH, which
+                // the sight-line test above cannot see: day1_night at
+                // 57f91eb has its left 40% filled by one unlit corner the
+                // camera stands against, the aim ray to the player was
+                // CLEAR, and the framing is still bad. An 84-ray grid
+                // across the frustum, counting hits within two metres —
+                // the fraction is the number, the worst shot is named.
+                int nearHits = 0, rays = 0;
+                for (int gx = 0; gx < 12; gx++)
+                    for (int gy = 0; gy < 7; gy++)
+                    {
+                        var vp = new Vector3((gx + 0.5f) / 12f,
+                                             (gy + 0.5f) / 7f, 0f);
+                        var ray = blockCam.ViewportPointToRay(vp);
+                        rays++;
+                        if (Physics.Raycast(ray, out var nh, 2f,
+                                            ~0, QueryTriggerInteraction.Ignore)
+                            && !nh.collider.transform.IsChildOf(
+                                    _game.Player.transform))
+                            nearHits++;
+                    }
+                float nearFrac = rays > 0 ? (float)nearHits / rays : 0f;
+                if (nearFrac > _shotNearFracWorst)
+                {
+                    _shotNearFracWorst = nearFrac;
+                    _shotNearFracWhere = name;
+                }
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -10098,7 +10155,9 @@ namespace Ledger.Game
                       // a camera in an empty world. The bound, if there is one,
                       // comes off this series (rule 2).
                       $"shotsAimed={_shotsAimed} shotsBlocked={_shotsBlocked} " +
-                      $"shotBlocker=[{_shotBlockWhat}] uiOk={uiOk} " +
+                      $"shotBlocker=[{_shotBlockWhat}] " +
+                      $"shotNearFracWorst={_shotNearFracWorst:0.00} " +
+                      $"shotNearFracWhere=[{_shotNearFracWhere}] uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
@@ -10579,6 +10638,10 @@ namespace Ledger.Game
                       $"walkersPrimitive={GameController.WalkersPrimitive} " +
                       $"capsulesLoose={_capsulesLoose} " +
                       $"capsulesLooseWho=[{_capsulesLooseWho}] " +
+                      $"capsulesSeen={_capsulesSeen} " +
+                      $"capsulesAnimOut={_capsulesAnim} " +
+                      $"capsulesAnimWho=[{_capsulesAnimWho}] " +
+                      $"capsulesSizeOut={_capsulesSized} " +
                       $"walkersPrimitiveEver={GameController.WalkersPrimitiveEver} " +
                       $"walkersPrimitiveOf={GameController.WalkersPrimitiveOf} " +
                       $"walkersPrimitiveWho=[{string.Join(" ", GameController.WalkersPrimitiveWho)}] " +
