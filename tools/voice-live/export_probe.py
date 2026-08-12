@@ -2232,6 +2232,8 @@ def selftest():
 
     import tempfile, shutil
     tmp = Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     try:
         rows = [{"part": "t3", "verdict": "failed", "error": "x"},
                 {"part": "s3gen", "verdict": "exported and runs", "megabytes": 240.0}]
@@ -2490,6 +2492,8 @@ def selftest():
     import tempfile as _tf
     from pathlib import Path as _P
     _tmp = _P(_tf.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, _tmp, True)
     good = _tmp / "tokenizer.json"
     good.write_text(json.dumps({
         "model": {"type": "BPE", "unk_token": "[UNK]",

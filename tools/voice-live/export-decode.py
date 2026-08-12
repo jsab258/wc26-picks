@@ -581,7 +581,13 @@ def selftest():
     from stft_patch import patched
     from export_probe import npy
 
+    # CLEANED ON EXIT, HOWEVER THE SELFTEST ENDS. Each run writes ~350MB of
+    # graphs here, and the version without this line leaked 19.8GB of them
+    # in one evening — verify runs this, so every commit paid the toll, and
+    # the disk hit the wall mid-verify twice before the leak was found.
     tmp = pathlib.Path(tempfile.mkdtemp())
+    import atexit, shutil
+    atexit.register(shutil.rmtree, tmp, True)
     torch.manual_seed(20260808)
     flow, gen = build_small(torch)
 
@@ -968,35 +974,58 @@ def cmd_run(force=False, steps=4):
 
     csess = ort.InferenceSession(str(chunk_dest),
                                  providers=["CPUExecutionProvider"])
+    # THE SELFTEST'S TWIN, and the twin is named: `cmd_selftest` has this
+    # same driver against the small model, and the chunks-4 round trip died
+    # on exactly this pair drifting — the signature grew `cache_mel` there
+    # and not here. A feed change edits BOTH or fails on the PC.
     ckeys = ["tokens", "prompt_token", "prompt_feat", "embedding",
-             "z", "sine_noise", "cache_source", "mel_offset", "final"]
+             "z", "sine_noise", "cache_source", "cache_mel",
+             "mel_offset", "final"]
 
-    def crun(tk, nz, cache, off, fin):
+    def crun(tk, nz, csrc, cmel, off, fin):
         feed = dict(zip(ckeys, [npy(tk), npy(ptok), npy(pfeat), npy(emb),
-                                npy(nz[0]), npy(nz[1]), cache,
+                                npy(nz[0]), npy(pad_sine(torch, nz[1])),
+                                csrc, cmel,
                                 np.array(off, dtype=np.int64),
                                 np.array(fin, dtype=np.int64)]))
         return csess.run(None, feed)
 
-    # THE ACCEPTING CASE FIRST: final, from the start, with no seam — the
-    # chunk graph asked the whole-line question must give the whole-line
-    # answer. This is the check that catches a wrong slice or a wrong trim
-    # wired into the new inputs.
-    empty = np.zeros((1, 1, 0), dtype=np.float32)
-    wav_c, src_c = crun(tok, noise, empty, 0, 1)
-    dwhole = float(np.abs(wav_c - got).max()) \
-        / max(float(np.abs(got).max()), 1e-12)
-    print(f"  chunk(final,offset0,no-cache) matches the whole graph to "
-          f"{dwhole:.1e}")
-    if dwhole > 1e-3:
+    SRC_CACHE = MEL_CACHE * SAMPLES_PER_MEL
+    one = np.zeros((1, 1, 1), dtype=np.float32)
+    zmel = np.zeros((1, 80, MEL_CACHE), dtype=np.float32)
+
+    # THE ACCEPTING CASE FIRST: final, from the start, zero seam mels in
+    # front — after dropping the 3840 samples those zeros render to, it
+    # must give the whole-line answer PAST ONE SEAM LENGTH. Not at the
+    # head: the f0 predictor is an RNN, the zero prefix hands it a
+    # different entering state than the cold start, and the residue decays
+    # (measured 6.8e-01 -> 5.1e-05 across eight mels on the small model).
+    # The head sits under the model's own 960-sample trim and the ear
+    # test below is what judges it.
+    wav_c, src_c, mel_t = crun(tok, noise, one, zmel, 0, 1)
+    body = wav_c[:, SRC_CACHE:]
+    scale = max(float(np.abs(got).max()), 1e-12)
+    prof = [float(np.abs(body[:, i * 480:(i + 1) * 480]
+                         - got[:, i * 480:(i + 1) * 480]).max()) / scale
+            for i in range(min(8, body.shape[1] // 480))]
+    print("  zero-prefix residue per mel: "
+          + " ".join(f"{v:.1e}" for v in prof))
+    dwhole = float(np.abs(body[:, SRC_CACHE:]
+                          - got[:, SRC_CACHE:]).max()) / scale
+    print(f"  chunk(final,offset0) matches the whole graph past one seam "
+          f"to {dwhole:.1e}")
+    if body.shape[1] != got.shape[1] or dwhole > 1e-3:
         print("  REFUSED: the chunk graph disagrees with the whole-line one "
               "on the identical question.")
-        stamp(f"FAILED — chunk-vs-whole {dwhole:.1e} above 1e-3")
+        stamp(f"FAILED — chunk-vs-whole {dwhole:.1e} above 1e-3, "
+              f"{body.shape[1]} vs {got.shape[1]} samples")
         return 1
 
-    # AND A REAL TWO-CHUNK RENDER: lengths that close arithmetically, and a
-    # seam cache that is demonstrably CONSUMED — a dead input here would
-    # ship a click at every boundary and nothing else would say so.
+    # AND A REAL TWO-CHUNK RENDER, run the way the game will run it: a
+    # non-final chunk on the zero seam, then the final riding its tails.
+    # The emitted algebra must close and the seam must be demonstrably
+    # CONSUMED — a dead cache input would ship a click at every boundary
+    # and nothing else would say so.
     ahead = model.s3gen.flow.pre_lookahead_len * model.s3gen.flow.token_mel_ratio
     n1 = T // 2
     tk1 = tok[:, :n1]
@@ -1004,21 +1033,22 @@ def cmd_run(force=False, steps=4):
     m1 = MELS_PER_TOKEN * (P + n1) - ahead - pmel
     nz1 = draw(torch, P, pmel, n1, 20260808)
     nz1 = (nz1[0][:, :, :pmel + m1], nz1[1][:, :, :m1 * SAMPLES_PER_MEL])
-    w1, s1 = crun(tk1, nz1, empty, 0, 0)
-    ok1 = w1.shape[1] == m1 * SAMPLES_PER_MEL
+    w1, s1, m1t = crun(tk1, nz1, one, zmel, 0, 0)
+    ok1 = w1.shape[1] == (m1 + MEL_CACHE) * SAMPLES_PER_MEL
     full_mels = MELS_PER_TOKEN * (P + T) - pmel
     nz2 = draw(torch, P, pmel, T, 20260808)
-    # The sine noise covers only the FRESH samples — the vocoder never sees
-    # the mels already spoken, so a full-length sine would arrive at ops
-    # sized for the chunk and be refused by shape.
+    # The sine noise covers the seam ride-in plus the FRESH samples — the
+    # vocoder never re-sees the mels already emitted beyond its seam.
     nz2 = (nz2[0], nz2[1][:, :, m1 * SAMPLES_PER_MEL:])
-    w2a, _ = crun(tok, nz2, s1, m1, 1)
-    w2b, _ = crun(tok, nz2, empty, m1, 1)
-    ok2 = w1.shape[1] + w2a.shape[1] == full_mels * SAMPLES_PER_MEL
+    w2a, _, _ = crun(tok, nz2, s1, m1t, m1, 1)
+    w2b, _, _ = crun(tok, nz2, one, zmel, m1, 1)
+    emit1 = w1.shape[1] - SRC_CACHE - SRC_CACHE     # zero-seam drop + holdback
+    emit2 = w2a.shape[1]                            # the final brings it home
+    ok2 = emit1 + emit2 == full_mels * SAMPLES_PER_MEL
     seam_live = float(np.abs(w2a - w2b).max()) > 0
-    print(f"  two chunks: {w1.shape[1]} + {w2a.shape[1]} samples "
-          f"(lengths {'close' if ok1 and ok2 else 'DO NOT CLOSE'}), "
-          f"seam cache {'consumed' if seam_live else 'DEAD'}")
+    print(f"  two chunks emit {emit1} + {emit2} samples "
+          f"(algebra {'closes' if ok1 and ok2 else 'DOES NOT CLOSE'}), "
+          f"seam {'consumed' if seam_live else 'DEAD'}")
     if not (ok1 and ok2 and seam_live):
         stamp("FAILED — chunk lengths or seam cache wrong; see output")
         return 1

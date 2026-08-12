@@ -58,7 +58,20 @@ def keys_in(text):
     the measurements live. The prefixes cover the lines that carry no `=` of
     their own and would otherwise vanish without trace.
     """
-    found = set(re.findall(r"([A-Za-z][A-Za-z0-9_]*)=", text))
+    # BRACKETED RUNS ARE VALUES, NOT KEY SPACE. `homTopics=[the_hook.trouble
+    # =yes,player.killed_june=true]` carries fact keys with the VICTIM'S NAME
+    # in them, and this findall used to read those as verdict keys — so the
+    # manifest churned every run somebody different died, and two rebaselines
+    # were done believing the emitter was at fault. Innermost first,
+    # repeatedly, replaced with a space — the same loop `verdict-read.py`
+    # already had, and the drift between the two parsers was this bug.
+    flat = text
+    while True:
+        stripped = re.sub(r"\[[^\[\]]*\]", " ", flat)
+        if stripped == flat:
+            break
+        flat = stripped
+    found = set(re.findall(r"([A-Za-z][A-Za-z0-9_]*)=", flat))
     for prefix in ("SimDirector: done.", "SimDirector: sky ", "SimDirector: glyphs ",
                    "SimDirector: windowGlow", "SceneAudit:", "Traffic: wheels ",
                    "CharacterAudit:", "CharacterPrefab:", "FrameDrift:",

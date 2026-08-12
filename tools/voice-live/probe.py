@@ -314,6 +314,8 @@ def selftest():
 
     import tempfile
     tmp = Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     try:
         rows = [{"route": "x", "note": "y", "file": "a.wav", "seconds": 1.2},
                 {"route": "z", "note": "w", "file": None}]

@@ -311,6 +311,8 @@ def selftest():
     import kv_cache
 
     tmp = _p.Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
 
     # A REAL T3 WITH A TINY LLAMA. Same class, same wiring, same operations;
     # 6M parameters instead of 520M, and conversion does not care about the

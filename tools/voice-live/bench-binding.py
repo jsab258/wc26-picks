@@ -208,6 +208,8 @@ def selftest():
     # present means NO refusal, which is the case that usually goes unrun.
     import tempfile
     tmp = pathlib.Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     keep = OUT, CONDS, TOKENIZER
     try:
         OUT = tmp / "game-out"

@@ -7584,6 +7584,29 @@ namespace Ledger.CoreTests
             { _counts.Add(tokens.Count); }
         }
 
+        /// A decoder that emits exactly what the seam arithmetic promises,
+        /// records which token counts it was asked at, and can be told to
+        /// refuse a specific call — both fates of the follower in one fake.
+        sealed class SeamFake : ISpeechChunkDecoder
+        {
+            public readonly List<int> Calls = new List<int>();
+            public int FailAt = -1;
+            bool _first = true;
+
+            public float[] DecodeChunk(int[] tokens, int melOffset, bool final)
+            {
+                Calls.Add(tokens.Length);
+                if (tokens.Length == FailAt) return null;
+                int avail = SpeechStream.MelsPerToken * tokens.Length
+                    - (final ? 0 : SpeechStream.MelsPerToken
+                                   * SpeechStream.LookaheadTokens);
+                int emitted = SpeechStream.EmittedSamples(
+                    avail - melOffset, _first, final);
+                _first = false;
+                return new float[emitted];
+            }
+        }
+
         /// The step loop — the one piece of live speech that cannot be
         /// converted, because its length depends on the words.
         static void TestSpeechLoop()
@@ -8323,6 +8346,73 @@ namespace Ledger.CoreTests
                     "and a first chunk out-renders its zero-seam drop plus "
                     + "the holdback, so it always emits",
                     (firstFresh * SpeechStream.SamplesPerMel).ToString());
+            }
+
+            // THE FOLLOWER: the live driver over a fake decoder that emits
+            // exactly what the seam arithmetic promises — which doubles as
+            // a parity check between EmittedSamples and any decoder that
+            // disagrees with it.
+            {
+                var fake = new SeamFake();
+                var follower = new SpeechChunkFollower(
+                    fake, 60, 40.0, 1.0, 0.1, 0.005);
+                var live = new List<int>();
+                for (int t = 1; t <= 60; t++)
+                {
+                    live.Add(t);
+                    follower.Tokens(live);
+                }
+                Check(fake.Calls.Count == 2 && fake.Calls[0] == 24
+                      && fake.Calls[1] == 48,
+                    "sixty tokens cross two boundaries mid-line, at 24 and "
+                    + "48", string.Join(",", fake.Calls));
+                Check(!follower.Complete,
+                    "and the line is not complete until Finish");
+                follower.Finish(live.ToArray());
+                Check(follower.Complete && !follower.Failed,
+                    "Finish decodes the final chunk and completes the line");
+                var all = follower.TakeReady();
+                Check(all != null && all.Length == 60
+                      * SpeechStream.MelsPerToken * SpeechStream.SamplesPerMel,
+                    "and the banked stream IS the whole line, sample for "
+                    + "sample of length", (all == null ? 0 : all.Length).ToString());
+                Check(follower.CanStartNow,
+                    "a finished line may always start");
+                Check(follower.SamplesReady == 0 && follower.TakeReady() == null,
+                    "and the bank drains exactly once");
+            }
+            {
+                // The failure fate: the decoder says no mid-line, the
+                // follower flips Failed, stops asking, and the caller
+                // falls back to the whole-line path.
+                var fake = new SeamFake { FailAt = 48 };
+                var follower = new SpeechChunkFollower(
+                    fake, 90, 40.0, 1.0, 0.1, 0.005);
+                var live = new List<int>();
+                for (int t = 1; t <= 90; t++) { live.Add(t); follower.Tokens(live); }
+                Check(follower.Failed && fake.Calls.Count == 2,
+                    "a decoder refusal flips Failed and no further chunk is "
+                    + "asked for", fake.Calls.Count.ToString());
+                follower.Finish(live.ToArray());
+                Check(!follower.Complete && !follower.CanStartNow,
+                    "a failed line never completes and never starts");
+            }
+            {
+                // A line under one chunk: no mid-line call, one final one.
+                var fake = new SeamFake();
+                var follower = new SpeechChunkFollower(
+                    fake, 10, 40.0, 1.0, 0.1, 0.005);
+                var live = new List<int>();
+                for (int t = 1; t <= 10; t++) { live.Add(t); follower.Tokens(live); }
+                follower.Finish(live.ToArray());
+                Check(fake.Calls.Count == 1 && follower.Complete,
+                    "a short line is one final chunk",
+                    fake.Calls.Count.ToString());
+                var all = follower.TakeReady();
+                Check(all != null && all.Length == 10
+                      * SpeechStream.MelsPerToken * SpeechStream.SamplesPerMel,
+                    "and it banks the whole short line",
+                    (all == null ? 0 : all.Length).ToString());
             }
 
             // The no-underrun rule is arithmetic, and both fates of it.

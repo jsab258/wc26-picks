@@ -118,11 +118,13 @@ would notice, whatever state anything else is in.
    number: `crowdPrimitives` counting capsule-only walkers, plus which tier
    spawned them.
 
-1. **`killed_<name>` PUTS THE VICTIM'S NAME IN A VERDICT KEY**, so the keys
-   manifest churns every time someone different dies (`killed_june` went
-   missing the run Tibor died; `trouble` is conditional the same way). Emit a
-   stable `killedName=<victim>` instead, and make conditional keys emit their
-   resting value. One-line fixes at the SimDirector fact site (~line 5846).
+1. **CLOSED, AND THE EMITTER WAS INNOCENT — the diagnosis above this line
+   was wrong for a day.** The victim's name reached the keys manifest
+   because `verdict-keys.py` read `key=value` pairs INSIDE bracketed
+   values (`homTopics=[...player.killed_june=true]`), which
+   `verdict-read.py` had always stripped — one idea, two parsers, one
+   missing the loop. Fixed 12 Aug; the relearn dropped 169 ghost keys the
+   misparse had accumulated, every one a latent false GONE.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
 

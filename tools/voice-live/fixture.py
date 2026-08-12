@@ -467,6 +467,8 @@ def selftest():
           "which is why snapshotting costs nothing")
 
     tmp = pathlib.Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     expected = {
         "s3gen": (m.s3gen, (torch.randn(1, 512, 64),), "STFT"),
         "ve": (m.ve, (torch.randn(1, 40, 16),), "divmod"),

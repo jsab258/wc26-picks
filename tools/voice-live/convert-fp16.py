@@ -127,6 +127,8 @@ def selftest():
     spec.loader.exec_module(efg)
 
     tmp = pathlib.Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     LLAMA_CONFIGS["Llama_520M"] = dict(LLAMA_CONFIGS["Llama_520M"])
     LLAMA_CONFIGS["Llama_520M"].update(hidden_size=64, intermediate_size=128,
                                        num_hidden_layers=2, num_attention_heads=4,

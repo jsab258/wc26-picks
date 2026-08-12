@@ -312,6 +312,8 @@ def selftest():
     import tempfile
     import pathlib
     tmp = pathlib.Path(tempfile.mkdtemp())
+    import atexit as _ax, shutil as _sh   # same leak as export-decode's: 19.8GB of these in one evening
+    _ax.register(_sh.rmtree, tmp, True)
     torch.manual_seed(20260806)
     x = torch.randn(1, 2048)
 

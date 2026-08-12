@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Ledger.Core
@@ -115,6 +116,10 @@ namespace Ledger.Core
                 && remainingWorkSeconds < bankedSeconds + remainingAudioSeconds;
         }
 
+        /// See `SpeechChunkFollower` below for the live driver of all of
+        /// this; these statics stay separate so the arithmetic is testable
+        /// without a decoder in the room.
+        ///
         /// Whether streaming is worth attempting AT ALL on this machine —
         /// the generation rate must beat playback's 25 tokens a second, or
         /// the stream underruns mid-line and a character stutters, which
@@ -129,6 +134,164 @@ namespace Ledger.Core
             // rate), with a sixth of headroom so scheduling noise on a
             // borderline machine does not turn into a mid-word stutter.
             return tokensPerSecond > 25.0 * 1.15;
+        }
+    }
+
+    /// THE LIVE DRIVER: rides `SpeechLoop` as its sink, decodes a chunk
+    /// whenever enough tokens have landed, banks the audio, and answers the
+    /// one question playback cares about — may it start yet.
+    ///
+    /// Decoding happens INSIDE `Tokens`, on the step thread, between steps —
+    /// which is the whole design: the two GPU stages must interleave, never
+    /// overlap (see `ISpeechStreamSink`). The banked pieces are read from
+    /// another thread, so the little state here is under one lock; the
+    /// decode call itself is not, because nothing else may touch the
+    /// backend while a line is running anyway.
+    ///
+    /// A DECODER FAILURE IS A ROUTE, NOT AN ERROR: `Failed` flips, no
+    /// further chunks are attempted, and the caller finishes the line
+    /// through the whole-line decoder it already has. The listener hears
+    /// the line a little later rather than not at all.
+    public sealed class SpeechChunkFollower : ISpeechStreamSink
+    {
+        readonly ISpeechChunkDecoder _decoder;
+        readonly object _gate = new object();
+        readonly List<float[]> _ready = new List<float[]>();
+        int _banked;                 // samples decoded and not yet taken
+        int _taken;                  // samples handed to playback
+        int _nextBoundary = SpeechStream.ChunkTokens;
+        int _melOffset;
+        bool _first = true;
+        bool _started, _failed, _complete;
+
+        // The projection's inputs, all measured by `SpeechDirector` before
+        // a stream is attempted — this class does no measuring of its own.
+        readonly double _stepsPerSecond, _tokensPerStep;
+        readonly double _decodeFixed, _decodePerToken;
+        readonly int _expectedTokens;
+
+        public SpeechChunkFollower(ISpeechChunkDecoder decoder,
+                                   int expectedTokens,
+                                   double stepsPerSecond,
+                                   double tokensPerStep,
+                                   double decodeFixedSeconds,
+                                   double decodeSecondsPerToken)
+        {
+            _decoder = decoder;
+            _expectedTokens = expectedTokens > 0 ? expectedTokens : 1;
+            _stepsPerSecond = stepsPerSecond;
+            _tokensPerStep = tokensPerStep;
+            _decodeFixed = decodeFixedSeconds;
+            _decodePerToken = decodeSecondsPerToken;
+        }
+
+        /// The decoder said no at some point; the line belongs to the
+        /// whole-line path now.
+        public bool Failed { get { lock (_gate) return _failed; } }
+
+        /// The final chunk has been decoded; what is banked is the line.
+        public bool Complete { get { lock (_gate) return _complete; } }
+
+        /// THE NO-UNDERRUN DECISION, latched: once true it stays true, so
+        /// playback cannot flap. True the moment `SpeechStream.CanStart`
+        /// says the work still owed fits inside the audio in hand plus the
+        /// audio that work yields — EXCEPT on a failed line, which never
+        /// offers to start however much it had banked first: the worker
+        /// re-speaks a failed line whole, and audio that also started
+        /// streaming would say its opening words twice.
+        public bool CanStartNow { get { lock (_gate) return _started && !_failed; } }
+
+        /// Samples decoded and not yet taken by playback.
+        public int SamplesReady { get { lock (_gate) return _banked; } }
+
+        /// Drain everything banked, in order, as one array — called from
+        /// the playback side. Null when nothing is waiting.
+        public float[] TakeReady()
+        {
+            lock (_gate)
+            {
+                if (_banked == 0) return null;
+                var all = new float[_banked];
+                int at = 0;
+                foreach (var p in _ready)
+                { Array.Copy(p, 0, all, at, p.Length); at += p.Length; }
+                _ready.Clear();
+                _taken += _banked;
+                _banked = 0;
+                return all;
+            }
+        }
+
+        /// The sink: called after every kept acoustic token, on the step
+        /// thread. Decodes whenever the plan's next boundary has landed.
+        public void Tokens(IReadOnlyList<int> tokens)
+        {
+            if (Failed) return;
+            while (tokens.Count >= _nextBoundary)
+            {
+                Decode(tokens, _nextBoundary, false);
+                _nextBoundary += SpeechStream.ChunkTokens;
+                if (Failed) return;
+            }
+        }
+
+        /// The final chunk, after the loop has finished — every token is
+        /// visible and the lookahead holds nothing back.
+        public void Finish(int[] tokens)
+        {
+            if (tokens == null || tokens.Length == 0)
+            { lock (_gate) _complete = true; return; }
+            if (!Failed) Decode(tokens, tokens.Length, true);
+            lock (_gate) { _complete = !_failed; _started |= _complete && !_failed; }
+        }
+
+        void Decode(IReadOnlyList<int> tokens, int visible, bool final)
+        {
+            int avail = SpeechStream.MelsPerToken * visible
+                - (final ? 0 : SpeechStream.MelsPerToken
+                               * SpeechStream.LookaheadTokens);
+            if (!final && avail <= _melOffset) return;
+            var slice = new int[visible];
+            for (int i = 0; i < visible; i++) slice[i] = tokens[i];
+            var emitted = _decoder.DecodeChunk(slice, _melOffset, final);
+            if (emitted == null) { lock (_gate) _failed = true; return; }
+            lock (_gate)
+            {
+                _ready.Add(emitted);
+                _banked += emitted.Length;
+                _first = false;
+                _melOffset = avail;
+                if (!_started)
+                {
+                    // All three quantities in seconds of audio at the
+                    // model's 24kHz. Remaining tokens come from the
+                    // caller's expectation and never go below one chunk —
+                    // a line that outruns its estimate must still not
+                    // start on arithmetic that says it is nearly done.
+                    int seen = visible;
+                    int remain = _expectedTokens - seen;
+                    if (remain < SpeechStream.ChunkTokens && !final)
+                        remain = SpeechStream.ChunkTokens;
+                    if (remain < 0) remain = 0;
+                    double stepSec = _stepsPerSecond > 0
+                        ? (remain / (_tokensPerStep > 0 ? _tokensPerStep : 1))
+                          / _stepsPerSecond : 0;
+                    int chunksLeft = (remain + SpeechStream.ChunkTokens - 1)
+                                     / SpeechStream.ChunkTokens;
+                    // Each chunk re-renders the whole line so far, so its
+                    // cost is charged as a whole-line decode — conservative
+                    // on purpose; an early start is the one mistake the
+                    // listener can hear.
+                    double decSec = chunksLeft
+                        * (_decodeFixed + _decodePerToken * _expectedTokens);
+                    double banked = (_banked + _taken) / 24000.0;
+                    double yield = remain * SpeechStream.MelsPerToken
+                        * SpeechStream.SamplesPerMel / 24000.0;
+                    if (SpeechStream.CanStart(banked, stepSec + decSec,
+                                              yield))
+                        _started = true;
+                }
+            }
         }
     }
 }
