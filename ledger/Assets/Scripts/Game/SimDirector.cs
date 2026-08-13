@@ -10805,6 +10805,7 @@ namespace Ledger.Game
                       // near-core test rejected everything, which is a finding
                       // about the density ramp rather than about fire escapes.
                       $"fireEscapes={WorldBuilder.FireEscapes} " +
+                      $"leanTos={WorldBuilder.LeanTos} " +
                       $"mullions={WorldBuilder.Mullions} " +
                       // THE SKYLINE, AND ITS CAUSE ON THE SAME LINE. A third of
                       // the windows lit is right at nine in the evening and a

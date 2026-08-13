@@ -622,6 +622,7 @@ namespace Ledger.Game
                 DressFacade($"B{i}", pos, size, outward, hasDoor: true, prosperity: StreetFrontProsperity);
                 DressFacade($"B{i}b", pos, size, -outward, hasDoor: false, prosperity: BackAlleyProsperity);
                 FireEscape($"B{i}", pos, size, -outward);
+                RearExtension($"B{i}", pos, size, -outward, facade);
                 i++;
             }
         }
@@ -656,6 +657,53 @@ namespace Ledger.Game
         /// the near-core test rejected every shopfront, which is a finding
         /// about the density ramp rather than about mullions.
         public static int Mullions { get; private set; }
+
+        /// Rear lean-to extensions actually built. The roadmap's last open
+        /// line for 17.7 — "the back of a block gets bins and drainpipes
+        /// but no geometry of its own" — is about building MASS: a back
+        /// wall is still one flat rectangle. A lean-to is the cheapest
+        /// honest answer: two boxes (body and a pitched-reading roof slab),
+        /// deterministic per building, on roughly two of five near-core
+        /// backs so alleys stop being corridors of flat brick.
+        public static int LeanTos { get; private set; }
+
+        static void RearExtension(string tag, Vector3 pos, Vector3 size,
+                                  Vector3 back, string facade)
+        {
+            if (Ledger.Core.Dressing.NearestCore(pos.x, pos.z, DenseCores)
+                > NearCoreMetres) return;
+            // Two in five, deterministic from the tag like the escape's
+            // shift, so the same buildings carry them every run and stills
+            // stay comparable.
+            if (Ledger.Core.Physique.Fraction(tag, 91) > 0.4) return;
+
+            float faceOut = (Mathf.Abs(back.x) > 0.5f ? size.x : size.z) * 0.5f;
+            var along = new Vector3(-back.z, 0, back.x);
+            float wallLen = Mathf.Abs(along.x) > 0.5f ? size.x : size.z;
+            // 40-70% of the wall, off centre — a full-width extension reads
+            // as a second building, and centred reads as designed rather
+            // than accreted, which the back of a block never is.
+            float w = wallLen * (0.4f + 0.3f
+                * (float)Ledger.Core.Physique.Fraction(tag, 92));
+            float shift = (float)(Ledger.Core.Physique.Fraction(tag, 93) - 0.5)
+                          * (wallLen - w) * 0.8f;
+            const float depth = 2.0f, h = 2.6f;
+            var at = pos + back * (faceOut + depth * 0.5f) + along * shift;
+            MakeBox($"Lean_{tag}", at + new Vector3(0, h / 2f, 0),
+                new Vector3(Mathf.Abs(along.x) > 0.5f ? w : depth, h,
+                            Mathf.Abs(along.x) > 0.5f ? depth : w),
+                facade);
+            // The roof slab overhangs a touch and sits on the wall side
+            // higher than the outer edge would — a flat box cannot pitch,
+            // but an overhang plus the roof material reads as one from
+            // street height, which is the only place anybody stands.
+            MakeBox($"Lean_{tag}_roof", at + new Vector3(0, h + 0.08f, 0),
+                new Vector3((Mathf.Abs(along.x) > 0.5f ? w : depth) + 0.3f,
+                            0.16f,
+                            (Mathf.Abs(along.x) > 0.5f ? depth : w) + 0.3f),
+                AssetLibrary.Roof);
+            LeanTos++;
+        }
 
         static void FireEscape(string tag, Vector3 pos, Vector3 size, Vector3 back)
         {
