@@ -91,9 +91,6 @@ drives the real `T3.inference` and compares.**
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
-- **CLOSED 13 Aug — THE SUCCESSION COMPLETED, Ending.Quiet reached for
-  the first time; confirmed across three consecutive builds.**
-
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 0. **CLOSED 13 Aug — the rain scratched the sky at eye level because
@@ -116,22 +113,14 @@ drives the real `T3.inference` and compares.**
    name the magenta body's material (the census's who-fields will carry
    it once its material check looks for magenta too).
 
-0. **CLOSED 13 Aug — `law`'s rare red: the unplanted SEER. Planted from
-   the mill; confirmed green next build. First diagnosis was wrong.**
-
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **RETRACTION, 13 Aug: every tpose number so far was INVERTED — the
-   latch read `< 5` from straight DOWN, counting hanging arms held
-   still. Both bucket stories void. Corrected to hold above 75; the
-   pink still is the only real evidence until the recount lands.**
+1. **RETRACTION 13 Aug: all tpose numbers were INVERTED (measured from
+   straight down); corrected to hold above 75. Recount pending.**
 
-1. **CLOSED AND PROVEN 13 Aug — the heat fade was the Fall's own wipe.
-   Proof run: 33 witnesses at full confidence straight through the
-   skip, zero drops in every bucket, and Manhunt persisting to the end
-   of the run — the first in recorded history where a murder's
-   consequences survive doing time. No gate shifted red.**
+1. **CLOSED AND PROVEN 13 Aug — the heat fade was the Fall's own wipe;
+   witnesses now persist and Manhunt survives doing time.**
 
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
