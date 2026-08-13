@@ -311,7 +311,23 @@ namespace Ledger.Game
             // resolved the first time the graph actually produces odds —
             // `Read` learns it from the array it was handed and validates it
             // there. Until then `Rows` reports 0, which is not a guess.
-            if (oddsDim[0] == 1 || oddsDim[0] == 2) _rows = oddsDim[0];
+            // THE GRAPH'S OWN ANSWER FIRST. The exporter stamps
+            // `ledger.rows` into the file at the moment it shapes it, from
+            // the same variable — so it cannot drift, and it travels inside
+            // the .onnx to whatever machine runs it. Everything below is
+            // fallback for graphs exported before that existed.
+            try
+            {
+                var meta = _prefill.ModelMetadata.CustomMetadataMap;
+                string stamped;
+                if (meta != null && meta.TryGetValue("ledger.rows", out stamped)
+                    && int.TryParse(stamped, out int r) && (r == 1 || r == 2))
+                    _rows = r;
+            }
+            catch (Exception) { /* old runtime without the map: fall through */ }
+
+            if (_rows != 0) { }
+            else if (oddsDim[0] == 1 || oddsDim[0] == 2) _rows = oddsDim[0];
             else if (oddsDim[0] < 0) _rows = 0;         // dynamic: learn it later
             else
             {

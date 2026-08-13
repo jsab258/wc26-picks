@@ -166,7 +166,14 @@ TABLE = {
     # game's own backend classes in a console shell, logits compared
     # float-for-float before anything is timed. Needs the .NET SDK; the
     # driver checks first and says exactly what to install if it is absent.
-    "time-the-binding": [["PY", "tools/voice-live/bench-binding.py"]],
+    # RE-EXPORT FIRST, THEN SPEAK. The prefill graph now carries its own
+    # row count (`ledger.rows`), and the graphs on this machine predate
+    # that stamp — so the bench would keep guessing at a number the file
+    # is now able to state. The export is ~30s for the text pair and its
+    # fingerprint changes with the exporter, so this re-runs exactly when
+    # it should and skips when nothing moved.
+    "time-the-binding": [["PY", "tools/voice-live/export-for-game.py"],
+                         ["PY", "tools/voice-live/bench-binding.py"]],
     # EXPERIMENT 2: the no-guidance retest, FAIRLY this time. The first one
     # ran Ada to the ceiling with a sampler that had no repetition penalty —
     # the crude sampler now shares the penalised one — so this exports one

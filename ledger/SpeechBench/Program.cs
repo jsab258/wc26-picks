@@ -91,7 +91,14 @@ namespace Ledger.Bench
                 // prefill silently under-fills. One row is the floor: the
                 // guided export drives two and writes into the same buffer
                 // sized by VocabSize, so asking for two is safe either way.
-                int rows = backend.Rows > 0 ? backend.Rows : 2;
+                // SIZED FROM THE GRAPH, AND CORRECTED BY IT IF THE GRAPH
+                // IS OLD. `Rows` is authoritative once the export stamps
+                // `ledger.rows`; a graph exported before that leaves it 0,
+                // and the honest move is to try, read the refusal, and use
+                // the number the graph itself named — the refusal message
+                // carries it because a short read was made a failure rather
+                // than a partial success.
+                int rows = backend.Rows > 0 ? backend.Rows : 1;
                 int width = rows * backend.VocabSize;
                 var a = new float[width];
                 var b = new float[width];

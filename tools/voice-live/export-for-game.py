@@ -260,6 +260,33 @@ def make_prefill(torch, kv_cache, model, rows=2):
     return Prefill()
 
 
+def stamp_rows(dest, rows):
+    """WRITE THE ROW COUNT INTO THE GRAPH, because nothing else states it.
+
+    The game sizes its odds buffer as rows x vocabulary, and it has no way
+    to know `rows` before running: one row with guidance dropped, two with
+    it on, and onnx marks that dimension DYNAMIC rather than concrete — so
+    the declared shape reads -1 and every consumer is guessing. That guess
+    cost two round trips today: the backend refused to open at all, and
+    then asked for 16388 odds from a graph that gives 8194.
+
+    A metadata entry cannot drift from the graph, because it is written
+    here from the same variable that shaped it, at the moment it was
+    shaped. `metadata_props` travels inside the .onnx file, so a graph
+    copied to another machine carries its own answer.
+    """
+    import onnx
+    m = onnx.load(str(dest), load_external_data=False)
+    # Replace rather than append: re-exporting must not leave two entries
+    # disagreeing, which is the drift this exists to prevent.
+    keep = [p for p in m.metadata_props if p.key != "ledger.rows"]
+    del m.metadata_props[:]
+    m.metadata_props.extend(keep)
+    e = m.metadata_props.add()
+    e.key, e.value = "ledger.rows", str(int(rows))
+    onnx.save(m, str(dest), save_as_external_data=False)
+
+
 def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache,
                    rows=2):
     """Trace it. The sentence length is dynamic; the voice is an input."""
@@ -279,6 +306,7 @@ def export_prefill(torch, kv_cache, model, cond, text_tokens, dest, n_cache,
     with torch.no_grad():
         torch.onnx.export(pre, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names, output_names=outs, dynamic_axes=axes)
+    stamp_rows(dest, rows)
     return pre, args, names
 
 
