@@ -1953,6 +1953,7 @@ namespace Ledger.Game
                       + $" textWalkKinds=[{TextWalkKindsTop()}]"
                       + $" labelsOrphan={_labelsOrphan}"
                       + $" labelsManagedAtOrphan={_labelsManagedAtOrphan}"
+                      + $" labelsManagedPeak={_labelsManagedPeak}"
                       + $" labelOrphanText=[{_labelOrphanText}]"
                       + $" textNoRect={_textNoRect}");
         }
@@ -3273,6 +3274,12 @@ namespace Ledger.Game
                 _labelsOrphan = labelsOrphan;
                 _labelsManagedAtOrphan = labelsManaged;
             }
+            // The denominator on its own peak: orphan=0 alone cannot tell
+            // "every walked label was managed" from "no label was walked",
+            // and the first reading of this counter was ambiguous exactly
+            // that way (459b940).
+            if (labelsManaged > _labelsManagedPeak)
+                _labelsManagedPeak = labelsManaged;
             int projected = boxes.Count + other.Count + bubbles.Count;
             if (projected > _textProjected) _textProjected = projected;
             // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
@@ -3431,6 +3438,7 @@ namespace Ledger.Game
         int _textPersonLabels = -1;
         int _labelsOrphan;
         int _labelsManagedAtOrphan;
+        int _labelsManagedPeak;
         string _labelOrphanText = "none";
         /// What the text walk's meshes ARE, by object name, accumulated
         /// over every walk — the census that says whether a walker label

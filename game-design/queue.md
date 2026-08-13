@@ -104,14 +104,12 @@ would notice, whatever state anything else is in.
    still. Both bucket stories void. Corrected to hold above 75; the
    pink still is the only real evidence until the recount lands.**
 
-1. **CLOSED 13 Aug — THE HEAT FADE WAS THE FALL'S OWN WIPE.** The
-   diary's fork read N19: agents intact, no rumour at all — and the one
-   mechanism without an alibi was ApplyTheFall's reset of every
-   player-subject rumour, which took the indelible killing memories
-   with the street talk. The wipe now respects Indelible: doing time
-   resets what the street SAYS, never what a witness SAW. The next
-   run's day-17 line is the proof (witnesses held, Manhunt persisting
-   through the Fall).**
+1. **CLOSED AND PROVEN 13 Aug — the heat fade was the Fall's own wipe.
+   Proof run: 33 witnesses at full confidence straight through the
+   skip, zero drops in every bucket, and Manhunt persisting to the end
+   of the run — the first in recorded history where a murder's
+   consequences survive doing time. No gate shifted red.**
+**
 
 1. **THE NAMEPLATE DECLUTTER MAY BE VINDICATED.** The walk's kind
    census: speech bubbles and uniquely-named STREET-SIGN plates —
