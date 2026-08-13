@@ -208,6 +208,26 @@ def voice_assets():
     return False, "VOICE ASSETS: " + bad[:110]
 
 
+def voices_into_build():
+    """The step that puts the graphs into a build a person can run.
+
+    Every other piece of live speech has been proven for days — the graphs
+    convert, the card runs them, the ear approved the voice — while every
+    build ever downloaded reported `no t3-prefill.onnx` and fell back to the
+    bank, because the 4.5 GB of graphs cannot travel through CI and nothing
+    copied them in afterwards. The tool that closes that gap is checked here
+    for the reason its neighbour above is: a delivery step that silently does
+    nothing looks exactly like a game that prefers the bank."""
+    code, out = run(["python3", str(ROOT.parent / "tools" / "put-voices-in-build.py"),
+                     "--selftest"])
+    m = re.search(r"put-voices-in-build --selftest: PASS — (\d+) checks", out)
+    if m:
+        return True, "voices-into-build ok (%s checks)" % m.group(1)
+    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
+               "did not report")
+    return False, "VOICES INTO BUILD: " + bad[:110]
+
+
 def conditional_reach():
     """A Game type behind `#if` must be named by something other than itself.
 
@@ -994,7 +1014,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, pc_watcher, slop,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
