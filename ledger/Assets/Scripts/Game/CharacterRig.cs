@@ -886,7 +886,14 @@ namespace Ledger.Game
                     || Time.time - _tposeLastStamp > 1f)
                     _tposeEnabledAt = Time.time;
                 _tposeLastStamp = Time.time;
-                if (mine < 5f)
+                // INVERTED FOR THREE BUILDS: `ArmDropNow` is the angle
+                // from straight DOWN (its own doc says "fine for 'are
+                // the arms hanging'"), and `< 5` therefore counted every
+                // body standing with HANGING arms held still — seventy
+                // of them — and two bucket stories were built on it
+                // before the definition was read. Horizontal is ~90
+                // from down; a scarecrow holds above 75.
+                if (mine > 75f)
                 {
                     _tposeHeld += Time.deltaTime;
                     if (_tposeHeld > 1f && !_tposeCounted)

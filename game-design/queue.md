@@ -86,16 +86,25 @@ drives the real `T3.inference` and compares.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-0. **CLOSED 13 Aug — `law`'s rare red was the unplanted SEER (a mark
-   files only when seen by a MILL agent; the nearest body often has
-   none). Seer planted from the mill; confirmed green with three marks
-   filed on the next build. First diagnosis here was wrong and said so.**
+0. **CLOSED 13 Aug — `law`'s rare red: the unplanted SEER. Planted from
+   the mill; confirmed green next build. First diagnosis was wrong.**
 
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **THE NAMEPLATE HEAP: likely STREET-SIGN text, not person labels —
-   the prefix census rides the next build and settles it.**
+1. **THE NAMEPLATE HEAP: the prefix census (8869d28) read 388 street
+   plates and 15 walker Labels walked — labels ARE walked and Manages
+   matched none, so the reference mismatch is real after all. Next:
+   count walked Labels in/out of the managed set with one orphan named.**
+
+1. **RETRACTION, 13 Aug: EVERY TPOSE NUMBER SO FAR WAS INVERTED.** The
+   latch read `ArmDropNow < 5` as near-horizontal; the function measures
+   from straight DOWN, so three builds counted bodies with HANGING arms
+   held still — the healthy street. The grant-bucket and settled-
+   scarecrow stories built on those counts are void. The latch now
+   holds above 75 (true horizontal), the drive-state token stays, and
+   the pink still remains the only real evidence until the corrected
+   count lands.
 
 1. **THE HEAT FADE IS SOLVED AND IT IS A PERSISTENCE BUG.** The daily
    diary (8520994): pressure 4.0, thirteen live witnesses at confidence
@@ -105,12 +114,6 @@ would notice, whatever state anything else is in.
    not relief — the skip wipes them, in a game scoring itself 95 on
    persistence. Find what the skip does to the mill (agents pruned?
    `alive` filter?) and make surviving witnesses keep what they know.
-
-1. **THIRTY-ONE SETTLED SCARECROWS.** The grant-age split (8520994):
-   43 T-poses in the grant bucket (LOD hiccup — fix known: hide or
-   drive a fresh body until one pose stamps), and 31 bodies held
-   horizontal arms long AFTER settling, cast names attached. A second
-   real fault — where does a settled animator stop driving arms?
 
 1. **THE NAMEPLATE DECLUTTER MAY BE VINDICATED.** The walk's kind
    census: speech bubbles and uniquely-named STREET-SIGN plates —
@@ -129,10 +132,8 @@ would notice, whatever state anything else is in.
    `tposeBodies` with the body id. (The capsule half of this item closed
    into the census item above.)
 
-1. **CLOSED 12 Aug: the `killed_<name>` churn was the keys manifest's
-   parser reading key=value pairs inside bracketed values — the emitter
-   was innocent and the earlier item here blamed it. The relearn dropped
-   169 ghost keys.**
+1. **CLOSED 12 Aug: the `killed_<name>` churn was the keys parser
+   reading inside brackets; 169 ghost keys dropped.**
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    Latest split: game 16.7ms against its 12ms budget — bodyLod 3.8,
