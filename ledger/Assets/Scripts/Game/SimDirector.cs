@@ -1998,6 +1998,35 @@ namespace Ledger.Game
         int _capsulesSeen, _capsulesAnim, _capsulesSized;
         string _capsulesAnimWho = "none";
 
+        /// Visible bought bodies that were never tinted — `Tint` always
+        /// leaves a property block behind, so a skinned renderer WITHOUT
+        /// one has never met the wardrobe and draws in material white:
+        /// the smooth pale figures the capsule census proved are not
+        /// capsules. Named by root, counted once per shot sweep, run-worst.
+        int _bodiesUndressed;
+        string _bodiesUndressedWho = "none";
+
+        void MeasureUndressedBodies()
+        {
+            int found = 0;
+            var who = new List<string>();
+            foreach (var smr in FindObjectsByType<SkinnedMeshRenderer>(
+                         FindObjectsSortMode.None))
+            {
+                if (smr == null || !smr.isVisible) continue;
+                if (smr.HasPropertyBlock()) continue;
+                found++;
+                if (who.Count < 4 && !who.Contains(smr.transform.root.name))
+                    who.Add(smr.transform.root.name);
+            }
+            if (found > _bodiesUndressed)
+            {
+                _bodiesUndressed = found;
+                _bodiesUndressedWho = who.Count > 0
+                    ? string.Join("/", who.ToArray()) : "none";
+            }
+        }
+
         /// The census behind those two numbers: every visible renderer
         /// whose mesh is Unity's builtin Capsule, person-sized, standing
         /// free — not a limb of a rigged body, which parents its capsules
@@ -7397,6 +7426,7 @@ namespace Ledger.Game
             // wrong evidence.
             MeasureTextFaults();
             MeasureLooseCapsules();
+            MeasureUndressedBodies();
             MeasureBodyRead(cam);
 
             RenderTexture rt = null;
@@ -10672,6 +10702,8 @@ namespace Ledger.Game
                       $"capsulesAnimOut={_capsulesAnim} " +
                       $"capsulesAnimWho=[{_capsulesAnimWho}] " +
                       $"capsulesSizeOut={_capsulesSized} " +
+                      $"bodiesUndressed={_bodiesUndressed} " +
+                      $"bodiesUndressedWho=[{_bodiesUndressedWho}] " +
                       $"walkersPrimitiveEver={GameController.WalkersPrimitiveEver} " +
                       $"walkersPrimitiveOf={GameController.WalkersPrimitiveOf} " +
                       $"walkersPrimitiveWho=[{string.Join(" ", GameController.WalkersPrimitiveWho)}] " +
