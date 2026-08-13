@@ -151,7 +151,21 @@ def main():
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
-    r = subprocess.run(command())
+    r = subprocess.run(command(), cwd=str(ROOT))
+    # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
+    # game's own `SpeechLoop.Run` and writes it beside itself; a sound
+    # nobody can hear proves as little as the numbers did. Copied to the
+    # published folder rather than left in a working directory, because the
+    # publisher moves NAMED files and a result it cannot see did not happen.
+    spoke = ROOT / "bench-spoke.wav"
+    if spoke.exists():
+        dest = ROOT / "game-design" / "voice-live" / "bench-spoke.wav"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(spoke, dest)
+        print(f"  the game's own code spoke: {dest.name} "
+              f"({spoke.stat().st_size // 1024} KB)")
+    else:
+        print("  no bench-spoke.wav — the C# path did not produce audio")
     return r.returncode
 
 

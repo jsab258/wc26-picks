@@ -216,6 +216,62 @@ namespace Ledger.Bench
                     Fit("host", hostMs, positions, window);
                     Fit("bound", boundMs, positions, window);
                 }
+
+                // ---- AND THEN SPEAK A WHOLE LINE, WHICH NOTHING HAS EVER
+                // ---- ASKED THIS CODE TO DO.
+                //
+                // Everything above times the loop and compares logits. It
+                // proves the graphs run under C# and never once produces a
+                // SOUND — and `speechStarted=0 speechSpoken=0` in every
+                // recorded run says the game has not either. So live speech
+                // has been "finished" for days on the strength of python
+                // making audio and C# making numbers, with nobody joining
+                // the two.
+                //
+                // This is the join, and it is deliberately the GAME'S OWN
+                // CALL: `SpeechLoop.Run` is what `Audio`'s worker invokes,
+                // with the same backend object, the same plan, the same
+                // decode. If this writes a wav somebody can play, the C#
+                // path works end to end on this card. If it throws, the
+                // failure belongs to the game rather than to a build nobody
+                // has managed to assemble yet.
+                Console.WriteLine("BENCH: speaking a whole line through "
+                                  + "SpeechLoop.Run ...");
+                var t0 = DateTime.UtcNow;
+                var plan = new SpeechPlan { DeadlineSeconds = 60.0 };
+                var run = SpeechLoop.Run(backend, voice, text, plan,
+                                         () => (DateTime.UtcNow - t0).TotalSeconds);
+                Console.WriteLine("BENCH: loop stop=" + run.Stop
+                    + " tokens=" + run.Tokens.Length
+                    + " steps=" + run.Steps
+                    + " seconds=" + run.Seconds.ToString("0.00")
+                    + " usable=" + run.Usable);
+                if (!run.Usable)
+                {
+                    Console.WriteLine("BENCH: SPOKE NOTHING — the loop "
+                        + "refused before any audio: " + run.Stop);
+                    return 1;
+                }
+                var dt = DateTime.UtcNow;
+                var samples = backend.Decode(run.Tokens);
+                double decodeSec = (DateTime.UtcNow - dt).TotalSeconds;
+                if (samples == null || samples.Length == 0)
+                {
+                    Console.WriteLine("BENCH: DECODED NOTHING: "
+                                      + backend.Why);
+                    return 1;
+                }
+                double secs = samples.Length / 24000.0;
+                Console.WriteLine("BENCH: decoded " + samples.Length
+                    + " samples = " + secs.ToString("0.00") + "s of speech in "
+                    + decodeSec.ToString("0.00") + "s");
+                var wav = System.IO.Path.Combine(
+                    System.IO.Directory.GetCurrentDirectory(), "bench-spoke.wav");
+                WriteWav(wav, samples, 24000);
+                var info = new System.IO.FileInfo(wav);
+                Console.WriteLine("BENCH: wrote " + wav + " ("
+                    + (info.Length / 1024) + " KB)");
+                Console.WriteLine("BENCH: THE GAME'S OWN CODE SPOKE A LINE.");
             }
             return 0;
         }
@@ -310,6 +366,37 @@ namespace Ledger.Bench
                 + " differing=" + diff + "/" + host.Length
                 + " inRow0=" + row0 + " firstAt=" + firstAt
                 + " swappedRows=" + Math.Max(sw01, sw10).ToString("0.0e+00"));
+        }
+
+        /// A 16-bit mono wav, written by hand because this project ships no
+        /// audio library outside Unity and a bench that cannot be LISTENED to
+        /// is the reason live speech went days without anybody hearing the
+        /// game make a sound.
+        static void WriteWav(string path, float[] samples, int rate)
+        {
+            using (var f = new System.IO.FileStream(path, System.IO.FileMode.Create))
+            using (var w = new System.IO.BinaryWriter(f))
+            {
+                int bytes = samples.Length * 2;
+                w.Write(new char[] { 'R', 'I', 'F', 'F' });
+                w.Write(36 + bytes);
+                w.Write(new char[] { 'W', 'A', 'V', 'E' });
+                w.Write(new char[] { 'f', 'm', 't', ' ' });
+                w.Write(16);                 // PCM header size
+                w.Write((short)1);           // PCM
+                w.Write((short)1);           // mono
+                w.Write(rate);
+                w.Write(rate * 2);           // byte rate
+                w.Write((short)2);           // block align
+                w.Write((short)16);          // bits
+                w.Write(new char[] { 'd', 'a', 't', 'a' });
+                w.Write(bytes);
+                foreach (var v in samples)
+                {
+                    float c = v > 1f ? 1f : (v < -1f ? -1f : v);
+                    w.Write((short)(c * 32767));
+                }
+            }
         }
 
         static double MaxDelta(float[] x, float[] y)
