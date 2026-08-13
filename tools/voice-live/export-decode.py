@@ -502,8 +502,8 @@ def export_chunk(torch, flow, gen, args, dest, steps=10):
              "z", "sine_noise", "cache_source", "cache_mel", "mel_offset",
              "final"]
     # Both tail OUTPUTS are static shapes — every call returns full seams.
-    # The two cache INPUTS are dynamic for the first call: an EMPTY mel
-    # seam (the whole-line function exactly) and a one-sample source.
+    # The two cache INPUTS are dynamic for the first call: both EMPTY,
+    # the whole-line function exactly.
     axes = {"tokens": {1: "n"}, "prompt_token": {1: "p"},
             "prompt_feat": {1: "pmel"}, "z": {2: "mel"},
             "sine_noise": {2: "smp"}, "cache_source": {2: "src"},
@@ -1018,11 +1018,10 @@ def cmd_run(force=False, steps=4):
     esrc = np.zeros((1, 1, 0), dtype=np.float32)   # see the selftest's note
     emel = np.zeros((1, 80, 0), dtype=np.float32)
 
-    # THE ACCEPTING CASE FIRST: final, from the start, an EMPTY seam — the
-    # identical computation to the whole-line graph, so the answer must
-    # MATCH it, not resemble it. The one-sample source cache silences
-    # sample 0 and the model's own trim silences the first 480 anyway, so
-    # the compare starts there. (The zeros-seam version bounded a decaying
+    # THE ACCEPTING CASE FIRST: final, from the start, both caches EMPTY —
+    # the identical computation to the whole-line graph, so the answer must
+    # MATCH it, not resemble it. The model's own trim silences the first
+    # 480 samples anyway, so the compare starts there. (The zeros-seam version bounded a decaying
     # residue; the real model's trained RNN carried it past one seam at
     # 8.2e-03 and this check refused the graph — chunks-5, 12 Aug.)
     wav_c, src_c, mel_t = crun(tok, noise, esrc, emel, 0, 1)

@@ -69,7 +69,7 @@ namespace Ledger.Core
         {
             // The render always carries the seam ride-in in front.
             int rendered = (SeamMels + freshMels) * SamplesPerMel;
-            if (first) rendered -= SeamSamples;    // the zero-seam's render
+            if (first) rendered -= SeamSamples;    // no ride-in rendered
             if (!final) rendered -= SeamSamples;   // the holdback
             return rendered > 0 ? rendered : 0;
         }

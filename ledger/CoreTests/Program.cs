@@ -8314,10 +8314,11 @@ namespace Ledger.CoreTests
                     ? tail[1].MelOffset.ToString() : "-"));
 
             // The seam accounting: what the chunks EMIT must close to the
-            // whole line, and the first chunk must out-render its zero-seam
-            // drop plus the holdback — both facts the export selftest
-            // proved on the real (small) model, kept here as arithmetic so
-            // a plan change cannot silently break them.
+            // whole line, and the first chunk must out-render the holdback
+            // it keeps back — its seam is EMPTY, the whole-line function
+            // exactly — both facts the export selftest proved on the real
+            // (small) model, kept here as arithmetic so a plan change
+            // cannot silently break them.
             foreach (var n in new[] { 86, 24, 25, 5, 100 })
             {
                 var q = SpeechStream.Plan(n);
@@ -8342,9 +8343,9 @@ namespace Ledger.CoreTests
                     - (q[0].Final ? 0 : SpeechStream.MelsPerToken
                                         * SpeechStream.LookaheadTokens);
                 Check(q[0].Final || firstFresh * SpeechStream.SamplesPerMel
-                      >= 2 * SpeechStream.SeamSamples,
-                    "and a first chunk out-renders its zero-seam drop plus "
-                    + "the holdback, so it always emits",
+                      > SpeechStream.SeamSamples,
+                    "and a first chunk out-renders the holdback it keeps "
+                    + "back, so it always emits",
                     (firstFresh * SpeechStream.SamplesPerMel).ToString());
             }
 

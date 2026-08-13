@@ -865,8 +865,9 @@ namespace Ledger.Game
         /// ones, their 3840 samples of source feed back, and the head of
         /// each render crossfades over the tail HELD BACK from the last —
         /// so what this returns is exactly the samples the line gains, ready
-        /// to play. The first chunk rides in on zero mels and drops their
-        /// render; a failure resets the seam so the next line starts clean.
+        /// to play. The first chunk carries an EMPTY seam — the whole-line
+        /// function exactly; a failure resets the seam so the next line
+        /// starts clean.
         public float[] DecodeChunk(int[] tokens, int melOffset, bool final)
         {
             if (_chunk == null) { Why = "no chunk graph on this machine"; return null; }
