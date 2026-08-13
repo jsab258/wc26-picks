@@ -62,6 +62,7 @@ namespace Ledger.Game
         /// the first two days the sim shoots. See `Shot`.
         const int MaxReviewStills = 4;
         int _reviewStills;
+        int _streetStills;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
         /// conditions as a Tuesday to be comparable with one.
@@ -7580,6 +7581,36 @@ namespace Ledger.Game
                     if (restStill) _restStills++; else _reviewStills++;
                     System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
                                                  tex.EncodeToJPG(60));
+                }
+
+                // AND ONE FRAME FROM WHERE A PLAYER ACTUALLY STANDS. Every
+                // committed still is the review camera's elevated vantage,
+                // and at least one finding (the nameplate heap) may exist
+                // ONLY from up there — plates from several junctions stack
+                // in 2D at height and rarely can at eye level. One frame
+                // per run, player eyes, player facing, through the same
+                // aim-and-pin pipeline so text is honest in it.
+                if (name == "day3_noon" && _streetStills < 1
+                    && _game != null && _game.Player != null)
+                {
+                    _streetStills++;
+                    var keepPos = cam.transform.position;
+                    var keepRot = cam.transform.rotation;
+                    cam.transform.position =
+                        _game.Player.transform.position + Vector3.up * 1.65f;
+                    cam.transform.rotation = Quaternion.LookRotation(
+                        _game.Player.transform.forward, Vector3.up);
+                    Billboard.AimAll(cam);
+                    SpeechBubble.PinAll(cam);
+                    NameTags.PinAll(cam);
+                    cam.Render();
+                    RenderTexture.active = rt;
+                    tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                    tex.Apply();
+                    System.IO.File.WriteAllBytes("sim-out/review_street.jpg",
+                                                 tex.EncodeToJPG(60));
+                    cam.transform.position = keepPos;
+                    cam.transform.rotation = keepRot;
                 }
 
                 // Emit a coarse ASCII luminance thumbnail + mean colour to the log.
