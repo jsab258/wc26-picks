@@ -114,6 +114,48 @@ CAST = [
          brief="Rival head. Controlled, harder than Lena, younger than Mara. "
                "WHAT MUST COME THROUGH: someone used to being agreed with."),
 
+    # THE FOUR WHO WERE AUTHORED AND NEVER CAST, added 13 Aug.
+    #
+    # `voice-cast-check` has reported these as unvoiced for weeks and the
+    # reason was one layer further back than anybody looked: they had no
+    # entry HERE, so no clip could ever be fetched for them, so no voice
+    # could ever be picked. Each currently draws from the crowd pool —
+    # four named people, two of them central to an act, sounding like
+    # passers-by, and nothing in the game says so out loud.
+    #
+    # Briefs are compressed from `game-design/cast-tier1-batch2.md` rather
+    # than invented here: one source for who these people are.
+    dict(id="aldous", name="ALDOUS VANE", tier="principal", accent="english",
+         gender="male_masculine", age=("sixties", "seventies"),
+         brief="Third-generation head of the Vane interests: property, law, "
+               "and influence that never appears in a ledger. Sixty-one, "
+               "silver, unhurried. Old money's grammar; apologises before "
+               "ruining you. WHAT MUST COME THROUGH: he has never raised "
+               "his voice because he has never needed to. If it sounds like "
+               "it wants something from you, it is the wrong voice."),
+    dict(id="danny", name="DANNY RO", tier="principal", accent="english",
+         gender="male_masculine", age=("twenties", "thirties"),
+         brief="Twenty-six, runs the New crew out of two clubs on the Strip. "
+               "Loud on purpose, underestimated on purpose. Fast modern "
+               "slang worn like a borrowed jacket, laughs at his own "
+               "threats. WHAT MUST COME THROUGH: the quickness UNDER the "
+               "recklessness — the costume is the loudness, not the man. "
+               "Avoid anything genuinely stupid-sounding."),
+    dict(id="june", name="JUNE", tier="principal", accent="english",
+         gender="female_feminine", age=("thirties", "fourties"),
+         brief="Mickey\'s estranged daughter, thirty-four, a nurse across "
+               "town. Flat, clinical understatement; questions that are "
+               "really diagnoses. WHAT MUST COME THROUGH: not hostility — "
+               "hope, which is worse. She has already watched this business "
+               "eat one man. Avoid warm, avoid bitter."),
+    dict(id="zlata", name="ZLATA", tier="street", accent="english",
+         gender="female_feminine", age=("fourties", "fifties"),
+         brief="Runs dispatch at the port-side parcel office. Forty-three, "
+               "loud laugh, rapid and teasing, nicknames within the hour, "
+               "swears affectionately in three languages. WHAT MUST COME "
+               "THROUGH: warmth that includes you before you agree to it — "
+               "she is the first friend the honest life hands you free."),
+
     dict(id="sam", name="SAM", tier="street", accent="scottish", gender="male_masculine",
          age=("twenties", "thirties"),
          brief="Walks the block at all hours, trades in being useful. Mid-high, "
