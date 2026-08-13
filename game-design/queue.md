@@ -39,18 +39,38 @@ DirectML (CPU opens the same file in 39.5s) nor graph optimisation
 (disabling it costs 59s); it is 1.3GB of weights, and it no longer
 blocks anything because opening moved off the main thread.
 
-**NEVER PROVEN, ONCE: the C# side making a single sound.**
-`speechStarted=0 speechSpoken=0` in every recorded run, `speechNoModel`
-in the dozens — the game has asked for live speech and been refused for
-want of a model every time, because no build has ever had one. Python
-driving the graphs is not the game driving them. TWO THINGS NOW CLOSE
-THAT, both landed 13 Aug and both awaiting a run:
-  - `SpeechBench` speaks a whole line through `SpeechLoop.Run` — the
-    game's own call, its own backend object — and writes a wav. Queued
-    as `time-the-binding`. No Unity, no build download.
-  - `put-voices-in-build.py` drops the graphs into a downloaded build,
-    which is the step nobody had written and the reason every build so
-    far fell back to the bank.
+**THE C# SIDE HAS NOW MADE A SOUND — 13 Aug, `csharp-speaks-3`.** For
+the whole project until this run, `speechStarted=0 speechSpoken=0` in
+every recorded verdict and `speechNoModel` in the dozens: the game had
+asked for live speech and been refused for want of a model every time,
+because no build ever had one, and Python driving the graphs is not the
+game driving them. `SpeechBench` now opens `OnnxSpeech` — the game's own
+backend class — and runs `SpeechLoop.Run`, the game's own decision loop,
+against the real graphs on the RX 6700:
+
+    loop stop=Finished tokens=80 steps=81 seconds=1.57 usable=True
+    decoded 76800 samples = 3.20s of speech in 2.80s
+
+3.2s of audio for 4.37s of work, and it is a real waveform: peak 27857,
+rms 2702, 43% near-silence, which is what speech with pauses looks like.
+Awaiting Jafar's ears — it speaks Rocco's Thursday line, the same one he
+approved whole and rejected streamed, so the doubling fault has a direct
+comparison.
+
+**TWO NUMBERS FROM THAT RUN WANT READING.** The bound step is FLAT —
+`pos10=17.2 pos100=17.4 pos200=17.3 pos400=17.2`, fit `17.3ms+-0us/pos`
+— against the host path's `35.1ms+157us/pos`. Long lines therefore cost
+no more per step than short ones, which is the thing device-resident KV
+was for. And decode came in at 2.80s where the Python whole-line path
+measures 1.6s; the obvious suspect is first-call warmup on the decode
+graph in a fresh process, and it is a suspicion, not a measurement —
+the bench decodes exactly once so it cannot tell warmup from cost.
+
+**WHAT IS STILL UNPROVEN: any of this inside Unity.** No build has ever
+carried the graphs. `put-voices-in-build.py` (landed 13 Aug, selftested
+both ways) drops them into a downloaded build — the step nobody had
+written and the reason every build so far fell back to the bank. It has
+not been run against a real build yet.
 
 **STREAMING IS CLOSED.** Block attention makes a chunk's audio final on
 the small model exactly, but on the shipped weights the render moved
