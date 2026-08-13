@@ -71,8 +71,11 @@ drives the real `T3.inference` and compares.**
    activations, not noise (the random small model read 0.1%; wrong
    distribution again). The three-segment wav is on the PC; segment
    three will sound broken and is labeled. The streaming wall now
-   waits on the STEP-RATE levers (position-slope probe, no-guidance
-   retest) and on the morning's ear verdict for the fp32 seams.
+   waits on the STEP-RATE levers and the morning seam verdict.
+   **NO-GUIDANCE APPROVED BY EAR, 13 Aug** — Jafar heard the five-line
+   two-voice file and passed it, so the single-row graphs ship: every
+   line ~40% faster (29ms/step against 41 guided). back-to-guidance
+   stays one job away if a longer session ever shows drift.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
