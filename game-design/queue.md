@@ -81,28 +81,21 @@ drives the real `T3.inference` and compares.**
   confidence, relief); Manhunt-to-Procedure names its falling term next
   run that files a body.
 
-- **CLOSED 13 Aug — THE SUCCESSION COMPLETED AND Ending.Quiet WAS REACHED,
-  first time in recorded history.** The audit was one-shot at an hour Joey
-  never qualified by; it now re-asks each afternoon (hard close day 15),
-  and the first build with the retry handed over on afternoon two.
+- **CLOSED 13 Aug — THE SUCCESSION COMPLETED, Ending.Quiet reached for
+  the first time; confirmed across three consecutive builds.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-0. **CLOSED 13 Aug — `law`'s rare red (1 in 150) was the unplanted
-   SEER: a mark files only when the station visit is seen by a MILL
-   agent, and the staging passed the nearest body, only ~180 of 700 of
-   whom carry one. One run drew three blanks. The seer is now planted
-   from the mill when the nearest lacks an agent; the gate unchanged.
-   (First diagnosis here blamed street contradiction — wrong: that run
-   read stuck=True, the charge landed.)**
+0. **CLOSED 13 Aug — `law`'s rare red was the unplanted SEER (a mark
+   files only when seen by a MILL agent; the nearest body often has
+   none). Seer planted from the mill; confirmed green with three marks
+   filed on the next build. First diagnosis here was wrong and said so.**
 
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **THE NAMEPLATE HEAP: see the vindication item below — the walked
-   census suggests the heaps are STREET-SIGN text, not person labels,
-   and the declutter's empty bucket has been honest. The prefix
-   re-aggregation rides the next build and settles it.**
+1. **THE NAMEPLATE HEAP: likely STREET-SIGN text, not person labels —
+   the prefix census rides the next build and settles it.**
 
 1. **THE HEAT FADE IS SOLVED AND IT IS A PERSISTENCE BUG.** The daily
    diary (8520994): pressure 4.0, thirteen live witnesses at confidence
@@ -142,6 +135,16 @@ would notice, whatever state anything else is in.
    169 ghost keys.**
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
+   Latest split: game 16.7ms against its 12ms budget — bodyLod 3.8,
+   traffic 3.6, npcs 3.0, mix 2.3, rigs 2.0. bodyLod is a once-a-second
+   FULL pass (spike, not steady cost) — spreading it round-robin is the
+   obvious move BUT its verdict counters assume one atomic pass
+   (duplication, injury, primitive counts per sweep); split the
+   measurement from the sweep before splitting the sweep, or every
+   count becomes a peak over partial passes. CI timings are the wrong
+   machine for tuning; treat this as spike-shape work, verified on the
+   PC.
+
 
    `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the newest.
    Everything else is quiet — `perf` last failed a run ago, nothing else in
