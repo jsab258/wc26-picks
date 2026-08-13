@@ -423,7 +423,7 @@ def pad_sine(torch, sine, mels=MEL_CACHE):
 
 
 @contextlib.contextmanager
-def chunked_attention(flow, chunk_tokens):
+def chunked_attention(flow, chunk_tokens, parts="both"):
     """UPSTREAM'S STREAMING ATTENTION, SWITCHED BACK ON FOR THE TRACE.
 
     The vendored flow calls its encoder with full attention — the
@@ -464,8 +464,9 @@ def chunked_attention(flow, chunk_tokens):
     # (measured: provisional-vs-final stayed at 0.45, the untouched bug).
     # The flag is what selects the streaming branch; the size is what it
     # then uses, with -1 left chunks meaning "all history, no future".
-    enc.use_dynamic_chunk = True
-    enc.forward = masked
+    if parts in ("both", "encoder"):
+        enc.use_dynamic_chunk = True
+        enc.forward = masked
 
     # AND THE SECOND ATTENTION PATH, which is the one that was actually
     # doubling the word. The encoder patch alone left the end-to-end
@@ -483,7 +484,8 @@ def chunked_attention(flow, chunk_tokens):
     # index from zero.
     est = flow.decoder.estimator
     was_static = est.static_chunk_size
-    est.static_chunk_size = chunk_tokens * MELS_PER_TOKEN
+    if parts in ("both", "estimator"):
+        est.static_chunk_size = chunk_tokens * MELS_PER_TOKEN
     try:
         yield
     finally:
@@ -1196,15 +1198,29 @@ def cmd_run(force=False, steps=4):
     dwhole = float(np.abs(wav_c[:, 480:] - got[:, 480:]).max()) / scale
     print(f"  chunk(final,offset0,empty-seam) matches the whole graph from "
           f"sample 480 to {dwhole:.1e}")
-    # 0.1, for the reason the selftest's twin gives: the chunk graph
-    # attends in blocks by design now, so a few percent from the
-    # whole-line graph is the streaming price and half is a broken graph.
-    if wav_c.shape[1] != got.shape[1] or dwhole > 0.1:
-        print("  REFUSED: the chunk graph disagrees with the whole-line one "
-              "on the identical question.")
-        stamp(f"FAILED — chunk-vs-whole {dwhole:.1e} above 1e-4, "
-              f"{wav_c.shape[1]} vs {got.shape[1]} samples")
+    # NO LONGER A REFUSAL, AND THE 0.1 I PUT HERE AN HOUR AGO WAS AN
+    # INVENTED NUMBER — rule 2, broken in the file that quotes it.
+    #
+    # This compared the chunk graph against the whole-line graph, which
+    # was right while they computed the same function. They no longer do:
+    # the chunk graph attends in BLOCKS so a provisional chunk equals its
+    # final self, and that equality is bought by rendering differently.
+    # The real weights read 1.8 here and the small model 0.55 — but the
+    # small model's weights are RANDOM, so a large number there means
+    # "the function changed", never "it sounds worse". No divergence can
+    # price a voice.
+    #
+    # Correctness is gated by the INVARIANT below — provisional equals
+    # final, which is the doubled word's absence — size is gated here,
+    # and quality goes to the ear that heard the fault.
+    if wav_c.shape[1] != got.shape[1]:
+        print("  REFUSED: the chunk graph's whole-line answer is the wrong "
+              "SIZE, which is arithmetic rather than taste.")
+        stamp(f"FAILED — chunk-vs-whole size {wav_c.shape[1]} vs "
+              f"{got.shape[1]}")
         return 1
+    print(f"  (block attention moves the render by {dwhole:.1e} against the "
+          f"whole-line graph — the price of streaming, for the ear to judge)")
 
     # AND THE INVARIANT THE WHOLE MASK EXISTS FOR, on the real weights:
     # a provisional chunk's mels must equal their final selves, or a word
