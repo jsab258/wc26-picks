@@ -4371,9 +4371,27 @@ namespace Ledger.Game
             {
                 _denounceStaged = true;
 
+                // THE SEER MUST LIVE IN THE MILL, planted rather than hoped
+                // for. A mark files only when the visit was SEEN — `saw`
+                // requires `mill.Get(seenById)` — and `nearest` is whatever
+                // body happens to stand closest, only ~180 of 700 of whom
+                // carry gossip agents. One run in 150 drew three blanks and
+                // the gate went red with every mechanic working (b052e3e).
+                // Same family as disposal's crowded-spot-with-nobody-in-it:
+                // the condition gets planted, the gate stays where it is.
+                var seerMill = _game.Gossip != null ? _game.Gossip.Mill : null;
+                string seer = nearest.DisplayName;
+                if (seerMill != null && seerMill.Get(seer) == null)
+                    foreach (var g in seerMill.Agents)
+                    {
+                        if (g == null || !Watched.WouldTalkToPolice(g)) continue;
+                        seer = g.Id;
+                        break;
+                    }
+
                 // THE ACCUSATION NOBODY WILL BACK, FIRST. This is the state the
                 // street is in by default and it must be Ignored.
-                var quiet = LawHost.Denounce(_game, nearest.DisplayName, "kest",
+                var quiet = LawHost.Denounce(_game, seer, "kest",
                                              "handled", "the_warehouse_job");
                 _denounceIgnored = quiet != null && quiet.Outcome == Accusation.Ignored;
 
@@ -4404,7 +4422,7 @@ namespace Ledger.Game
                     }
                     _denounceWitnesses = planted;
                 }
-                var d = LawHost.Denounce(_game, nearest.DisplayName, "kest",
+                var d = LawHost.Denounce(_game, seer, "kest",
                                          "ran", "the_dockside_racket");
                 _denounceStuck = d != null && d.Outcome == Accusation.Charged;
 
@@ -4443,7 +4461,7 @@ namespace Ledger.Game
                         break;
                     }
                 }
-                var back = LawHost.Denounce(_game, nearest.DisplayName, "ferko",
+                var back = LawHost.Denounce(_game, seer, "ferko",
                                             "ran", "the_dockside_racket");
                 _denounceBlewBack = back != null && back.Outcome == Accusation.BlewBack;
                 _blowbackContradiction = back != null ? back.Contradiction : -1;
