@@ -65,8 +65,24 @@ def voicebank():
     return cast, alias
 
 
+def fetcher_ids():
+    """The ids the voice fetcher can actually go and get clips for.
+
+    Read from its SOURCE rather than imported: the fetcher pulls in a
+    corpus library this environment cannot reach, and a check that cannot
+    run where it is written is a check that decays.
+    """
+    import re as _re
+    p = ROOT / "tools" / "voice-fetch" / "ledger_voice_fetch.py"
+    if not p.exists():
+        return set()
+    return set(_re.findall(r'dict\(id="([a-z0-9_]+)"',
+                           p.read_text(encoding="utf-8")))
+
+
 def main():
     problems, unvoiced = [], []
+    fetch_ids = fetcher_ids()
 
     cards = tier1_ids()
     cast, alias = voicebank()
@@ -97,8 +113,16 @@ def main():
             # was deliberately left reporting rather than gating, because "a
             # check that is red for a known reason is a check people learn to
             # skip". Loud, counted, and not fatal.
-            unvoiced.append(f"{name} (id '{ident}')")
-            print(f"  TODO {name:<14} id '{ident}' draws a crowd voice — not cast yet")
+            # AND WHICH STAGE IT IS STUCK AT, because "not cast yet" is
+            # several different jobs wearing one label and only one of
+            # them is anybody's next action. On 13 Aug all four of these
+            # had no entry in the FETCHER — so no clip could be fetched,
+            # no voice could be picked, and the TODO read like a queue
+            # item somebody was ignoring rather than an unreachable one.
+            stage = ("awaiting a fetch and a pick" if ident in fetch_ids
+                     else "NOT FETCHABLE — no entry in the voice fetcher")
+            unvoiced.append(f"{name} (id '{ident}') — {stage}")
+            print(f"  TODO {name:<14} id '{ident}' draws a crowd voice — {stage}")
 
     # A CAST VOICE NOBODY CAN REACH is the other half of the same fault, and it
     # is the half that found `hal` and `kest`. A clip was fetched, a speaker was
