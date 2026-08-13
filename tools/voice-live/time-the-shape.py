@@ -110,7 +110,17 @@ def open_ways(ort, path, want, say):
     def reopen():
         ort.InferenceSession(str(saved), providers=want)
 
+    def on_cpu():
+        ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+
     timed("as shipped", plain)
+    # WHICH LAYER OWNS THE THREE MINUTES. Optimisation was ruled out by
+    # the two ways below (turning it OFF made it worse), which leaves
+    # weight loading and DirectML's own kernel work — and those two are
+    # separated by asking the CPU provider to open the identical file.
+    # A fast CPU open convicts DML; a slow one convicts the 1.3GB of
+    # weights, and only the first of those has a fix worth chasing.
+    timed("on the CPU provider (no DirectML)", on_cpu)
     timed("with graph optimisation off", bare)
     timed("writing an optimised copy (one time, at build)", write_opt)
     if saved.exists():

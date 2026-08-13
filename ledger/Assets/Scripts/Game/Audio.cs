@@ -1108,26 +1108,73 @@ namespace Ledger.Game
         public static void OpenBackend()
         {
 #if LEDGER_ONNX
-            try
-            {
-                var dir = System.IO.Path.Combine(Application.streamingAssetsPath,
-                                                 "Voice", "models");
-                string why;
-                Backend = OnnxSpeech.Open(dir, VoiceFor,
-                    text => Vocabulary != null ? Vocabulary.Encode(text) : null,
-                    out why);
-                BackendWhy = Backend != null ? "open" : (why ?? "no reason given");
-                if (Backend != null) StartWorker();
-            }
-            catch (System.Exception e)
-            {
-                Backend = null;
-                BackendWhy = e.GetType().Name + ": " + e.Message;
-            }
+            // ON A THREAD, BECAUSE THIS TAKES THREE MINUTES AND WAS BLOCKING
+            // THE GAME FOR ALL OF THEM.
+            //
+            // Opening the three sessions is 219 SECONDS on Jafar's card, of
+            // which the sound decoder alone is nearly all — measured four
+            // ways (`time-the-shape`), and graph optimisation is not the
+            // cause: turning it off made it WORSE, at 368s. That number was
+            // known and read as a loading cost. It is not. This is called
+            // from `Audio.Ensure` on the main thread, so every one of those
+            // seconds was the game frozen at startup with no window
+            // responding — the feature meant to give characters voices
+            // making the game look hung before anybody hears one.
+            //
+            // Nothing here needs the main thread: the paths are computed
+            // before the thread starts, the sessions touch no Unity API, and
+            // the whole system is already designed to run without a backend
+            // — `Backend == null` is the shipping normal, routes fall to the
+            // bank, and `BackendWhy` says why. So the game starts instantly
+            // and gains live speech partway through, which is a state it
+            // already models.
+            //
+            // THE WORKER IS NOT STARTED FROM THE THREAD. `StartWorker` is
+            // cheap but it is the main thread's business to own the loop's
+            // lifetime; `PumpSpeech` starts it on the first frame after the
+            // backend appears, which is at most 16ms later and needs no lock.
+            if (_opening) return;
+            _opening = true;
+            BackendWhy = "opening";
+            var dir = System.IO.Path.Combine(Application.streamingAssetsPath,
+                                             "Voice", "models");
+            var th = new System.Threading.Thread(() => OpenBackendOnThread(dir));
+            th.IsBackground = true;      // never keeps the process alive
+            th.Name = "LedgerSpeechOpen";
+            th.Start();
 #else
             BackendWhy = "not built with the speech runtime";
 #endif
         }
+
+#if LEDGER_ONNX
+        static volatile bool _opening;
+
+        static void OpenBackendOnThread(string dir)
+        {
+            try
+            {
+                string why;
+                var built = OnnxSpeech.Open(dir, VoiceFor,
+                    text => Vocabulary != null ? Vocabulary.Encode(text) : null,
+                    out why);
+                // The REASON first, then the backend: a frame that sees a
+                // non-null `Backend` must never read a stale "opening"
+                // beside it, and this order is the whole of that guarantee.
+                BackendWhy = built != null ? "open" : (why ?? "no reason given");
+                Backend = built;
+            }
+            catch (System.Exception e)
+            {
+                BackendWhy = e.GetType().Name + ": " + e.Message;
+                Backend = null;
+            }
+            finally
+            {
+                _opening = false;
+            }
+        }
+#endif
 
         /// The conditioning for one character, or null when we have none.
         /// The backend asks through here rather than reaching into the
@@ -1418,6 +1465,12 @@ namespace Ledger.Game
         public static void PumpSpeech(float metres = 0f, bool occluded = false)
         {
             if (_root == null || _voice == null) return;
+#if LEDGER_ONNX
+            // The backend now arrives on a thread, minutes after startup, so
+            // the worker cannot be started where it is built. One reference
+            // comparison a frame, and the loop begins the frame it can.
+            if (Backend != null && _worker == null) StartWorker();
+#endif
             PumpStreams();
             var job = Pending.Collect();
             if (job == null || !job.Speakable) return;
