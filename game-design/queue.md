@@ -51,30 +51,39 @@ leaves 1.3GB of weights being parsed, which has no cheap lever — and
 needs none, because opening moved off the main thread: the game starts
 instantly and gains speech partway through.
 
-**CLOSED — the missing first two words: the prefill discarded the first
-token's odds, the caller double-fed the start marker. Fixed; the check now
-drives the real `T3.inference` and compares.**
+**WHAT HAS AND HAS NOT BEEN PROVEN — written down because it was
+overclaimed to Jafar on 13 Aug and he caught it.**
+
+PROVEN: the three whole-line graphs run on his card and produce a voice
+he approved by ear, twice (one line, then five lines in two voices).
+The C# backend compiles, is constructed at startup, and correctly
+reports a missing model.
+
+NEVER PROVEN, ONCE: **the C# side generating a single sound.**
+`speechStarted=0 speechSpoken=0` in every run ever recorded, with
+`speechNoModel=53` — the game has asked for live speech fifty-three
+times and been refused for want of a model every time, because no build
+has ever had one. Python driving the graphs is not the game driving
+them: different runtime, different threading, different tensor
+plumbing.
+
+So `put-voices-in-build.py` makes the FIRST ATTEMPT possible. It is not
+evidence that the attempt succeeds. The likely failure modes, in order:
+the DirectML session dying under Unity's process (the python preview
+of residency crashed twice with an access violation), the vocabulary or
+voice files not being found at the runtime path, and a line taking long
+enough that the director refuses it. All three are reported by the game
+rather than silent — `speechBackendWhy`, `speechNoModel`,
+`speechTooSlow` — which is what makes the first attempt worth making.
 
 **NEXT, IN ORDER:**
 
-1. **STREAMING IS CLOSED AS UNREACHABLE ON THESE WEIGHTS — 13 Aug,
-   two ear verdicts and a measurement.** Jafar heard "Thursday" spoken
-   twice AT THE SAME TIME (overlapped, not repeated) at a seam. The
-   diagnosis was full attention: a chunk's mels keep changing as later
-   tokens arrive, so the crossfade blends two takes of one word. The
-   vendored package still carries upstream's streaming attention, and
-   on the small model switching it on works EXACTLY — a provisional
-   chunk's mels become bit-identical to their final selves (0.0e+00
-   against 0.27). On the shipped weights it failed both ways at once:
+1. **STREAMING IS CLOSED — 13 Aug.** Block attention makes a chunk's
+   audio final on the small model (exactly), but on the shipped weights
    the render moved 1.8 of full scale, the doubling SURVIVED, and the
-   voice went robotic. So these weights are offline-trained whatever
-   the code retains, AND the doubling has a second cause the mask
-   never touched. The mask is unapplied; the finding is in
-   `chunked_attention`'s docstring so nobody spends a day rediscovering
-   it. **Streaming needs a model trained for it. It also buys nothing
-   today** — five chunks cost 7.9s against the whole line's 1.7s, so
-   `Sustainable` refuses it on this card regardless. Lines play whole,
-   which is what a player already hears.
+   voice went robotic. These weights are offline-trained whatever the
+   code retains. Full account in `chunked_attention`'s docstring. It
+   also buys nothing today: five chunks cost 7.9s against 1.7s whole.
 
 1. **The streaming machinery itself stays built and correct** — plan,
    seam algebra, follower, worker, pump, fallback, all tested — banked
