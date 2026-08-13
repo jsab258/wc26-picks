@@ -184,6 +184,21 @@ TABLE = {
                            ["PY", "tools/voice-live/speak-a-few.py"],
                            ["PY", "tools/voice-live/export-for-game.py",
                             "--rows", "2", "--force"]],
+    # THE FOUR PRINCIPALS NOBODY COULD CAST, because until 13 August they had
+    # no entry in the fetcher at all and each drew a crowd voice in silence.
+    # The corpus is unreachable from the container (403 through the proxy), so
+    # the fetch has to happen here — and it is the half that does not need
+    # Jafar. It leaves him the half that does: opening the page and listening.
+    #
+    # `--no-open` because a job that steals focus on somebody's desktop is a
+    # job they learn to dread, and the page is a file he opens when he wants
+    # it. `--yes` because the fetcher builds its OWN `.venv-voices` beside
+    # itself rather than installing into `env-export`, so approving that is
+    # approving a directory this job created and nothing the live-speech work
+    # depends on.
+    "fetch-four-voices": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
+                           "--who", "aldous,danny,june,zlata",
+                           "--yes", "--no-open"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.

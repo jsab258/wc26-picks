@@ -1918,9 +1918,21 @@ def selftest():
     check(len({c["accent"] for c in CAST}) >= 3,
           "and the edges are not all the same either")
     check(all(brief_of(c) for c in CAST), "and every brief has text to judge against")
-    check(len(CAST) == 19,
-          "nineteen clips, not thirty-seven — moods are an exaggeration "
-          "parameter now, not a second recording", f"{len(CAST)}")
+    # ONE ENTRY PER CHARACTER, WHICH IS THE INVARIANT — the count was not.
+    #
+    # This read `len(CAST) == 19` and meant "moods are an exaggeration
+    # parameter now, not a second recording": the old cast carried the same
+    # character twice, once grave and once bored, and thirty-seven clips came
+    # back where nineteen were wanted. What actually forbids that is DISTINCT
+    # IDS, and the count was standing in for it. So the check went red on 13
+    # August for casting four principals who had never been castable, which is
+    # the queue's work arriving rather than a regression — and a check that
+    # fails when the project succeeds gets read as noise the second time.
+    _ids = [c["id"] for c in CAST]
+    check(len(set(_ids)) == len(_ids),
+          "one clip per character — moods are an exaggeration parameter now, "
+          "not a second recording",
+          "%d characters, %d distinct ids" % (len(_ids), len(set(_ids))))
     check(set(EXAGGERATION) >= {"neutral", "grave", "bored"},
           "and the directions the benchmark proved are all mapped")
     check(EXAGGERATION["bored"] < EXAGGERATION["neutral"] < EXAGGERATION["grave"],

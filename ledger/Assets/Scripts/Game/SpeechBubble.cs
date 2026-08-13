@@ -49,17 +49,19 @@ namespace Ledger.Game
         /// a pavement is exactly the difference the masking model exists to
         /// express: at 3am both carry, at noon only the second does.
         public static SpeechBubble Say(Transform speaker, string line, float seconds,
-                                       Color colour, double loudness, string speakerId = null)
+                                       Color colour, double loudness, string speakerId = null,
+                                       bool composed = false)
         {
             if (speaker != null)
                 Perceivers.Emit(speaker.position, loudness, "speech");
-            return SayQuietly(speaker, line, seconds, colour, speakerId);
+            return SayQuietly(speaker, line, seconds, colour, speakerId, composed);
         }
 
         /// The bubble with no sound — for anything that is written rather than
         /// said. Named so that using it is a decision.
         public static SpeechBubble SayQuietly(Transform speaker, string line, float seconds,
-                                              Color colour, string speakerId = null)
+                                              Color colour, string speakerId = null,
+                                              bool composed = false)
         {
             if (speaker == null || string.IsNullOrEmpty(line)) return null;
             string spoken = line;
@@ -81,8 +83,14 @@ namespace Ledger.Game
                 // day the bank lands nothing needs wiring and until then the
                 // silence is a measurement rather than an assumption.
                 var voice = VoiceBank.VoiceFor(speakerId ?? speaker.name, VoiceBank.Cast);
+                // `composed` TRAVELS WITH THE LINE, because only the caller
+                // knows where the words came from. A telling assembled from a
+                // rumour summary can never have a recording; an ambient bark
+                // can, and the day a bark goes missing that is a hole worth
+                // rendering. One counter could not tell those apart and the
+                // queue read it as a backlog for months.
                 bool played = Audio.Speak(VoiceBank.ClipName(voice, spoken),
-                                          metres, wall, Audio.ChatterLevel);
+                                          metres, wall, Audio.ChatterLevel, composed);
 
                 // AND WHEN THE BANK CANNOT SERVE IT, ASK WHETHER THIS MACHINE
                 // COULD SAY IT LIVE.

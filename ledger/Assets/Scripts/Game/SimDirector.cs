@@ -9964,6 +9964,7 @@ namespace Ledger.Game
                       $"{(_game != null ? _game.Household.Report() : "household[absent]")} " +
                       $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
                       $"speechNoClip={Audio.SpeechNoClip} " +
+                      $"speechNoClipComposed={Audio.SpeechNoClipComposed} " +
                       $"speechOutOfRange={Audio.SpeechOutOfRange} " +
                       $"speechNoAudio={Audio.SpeechNoAudio} " +
                       // LIVE SPEECH, ON THE DONE LINE BECAUSE IT DESCRIBES THE

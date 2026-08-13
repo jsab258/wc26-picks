@@ -1241,6 +1241,27 @@ namespace Ledger.CoreTests
             var weak = StreetVoice.Exchange(doubt, teller, hearer, seed: 0);
             Check(weak[0].Text != said[0].Text, "certainty changes how a thing is said", weak[0].Text);
 
+            // WHICH HALF OF A MISSING CLIP IS A BACKLOG AND WHICH IS PHYSICS.
+            //
+            // Both outcomes, because a flag only ever set one way is a
+            // constant with a longer name — and the ACCEPTING case here is
+            // the one that matters, since marking everything composed would
+            // make the renderable holes vanish into a bucket labelled
+            // impossible. `Composed` is the telling and only the telling: it
+            // splices the summary, so its exact words are new every time and
+            // `VoiceBank.ClipName` keys on exact words.
+            Check(said[0].Composed, "a telling is assembled at run time and can never be banked");
+            Check(!said[1].Composed,
+                "the answer is a literal pick and IS in the bank — it plays as written");
+            var seenLine = StreetVoice.Recognition(teller, rumor, StanceKind.Comments, seed: 0);
+            Check(seenLine != null && !seenLine.Composed,
+                "a recognition is literal throughout, so a missing one is a real hole");
+            var chat = StreetVoice.Ambient(teller, hearer, now, 0.5, 1.0, false, false, seed: 0);
+            int composedChat = 0;
+            foreach (var l in chat) if (l.Composed) composedChat++;
+            Check(composedChat == 0,
+                "ambient life is literal throughout — " + chat.Count + " lines, none composed");
+
             // EVERY SENTENCE STARTS WITH A CAPITAL, AND HALF OF THEM DID NOT.
             //
             // A `Rumor.Summary` is a lowercase clause because most templates

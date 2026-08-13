@@ -1920,8 +1920,14 @@ namespace Ledger.Game
             // at it. No wall: you are looking at them.
             var clip = VoiceBank.ClipName(
                 VoiceBank.VoiceFor(host.Card.Id, VoiceBank.Cast), reply);
-            if (host.OnTheLine) Audio.SpeakOnTheLine(clip, Acoustics.LineKind.Handset);
-            else Audio.Speak(clip, 1.5f, false, Audio.ChatterLevel);
+            // COMPOSED, ALWAYS. `reply` came back from `SayAsync` — a
+            // sentence written for this moment and never seen before — so its
+            // clip name is new every time and no bank can hold it. This was
+            // already understood ("LLM-generated conversation is novel every
+            // time" in `Audio`), and it was understood about ONE source while
+            // the same fault sat unnoticed in the authored gossip templates.
+            if (host.OnTheLine) Audio.SpeakOnTheLine(clip, Acoustics.LineKind.Handset, true);
+            else Audio.Speak(clip, 1.5f, false, Audio.ChatterLevel, true);
             RenderHistory();
         }
 

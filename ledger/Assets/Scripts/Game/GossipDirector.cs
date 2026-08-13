@@ -257,14 +257,15 @@ namespace Ledger.Game
         }
 
         System.Collections.IEnumerator SayAfter(NpcWalker who, string line, float delay,
-                                                Color colour, float hold, string speakerId = null)
+                                                Color colour, float hold, string speakerId = null,
+                                                bool composed = false)
         {
             if (delay > 0) yield return new WaitForSeconds(delay);
             // Conversational: two people at arm's length. Inaudible across a
             // daytime street, and carrying at three in the morning.
             if (who != null)
                 SpeechBubble.Say(who.transform, line, hold, colour,
-                                 Perception.LoudConversation, speakerId);
+                                 Perception.LoudConversation, speakerId, composed);
         }
 
         /// M15.2 — WHO IS PERCEIVING YOU, and how. Recomputed on a slow
@@ -333,7 +334,7 @@ namespace Ledger.Game
                     // has to be overhearable by a third party.
                     SpeechBubble.Say(w.transform, line.Text, 5f,
                         stance >= StanceKind.Refuses ? UiTheme.Debit : UiTheme.AmberSoft,
-                        Perception.LoudRemark, g.Id);
+                        Perception.LoudRemark, g.Id, line.Composed);
             }
         }
 
@@ -380,7 +381,7 @@ namespace Ledger.Game
                 _game.Economy.Prosperity, _game.Economy.PriceLevel, hurt, feud, seed);
             for (int i = 0; i < lines.Count; i++)
                 StartCoroutine(SayAfter(i == 0 ? a : b, lines[i].Text, i * 2.4f, UiTheme.Dim, 5.5f,
-                                        lines[i].SpeakerId));
+                                        lines[i].SpeakerId, lines[i].Composed));
         }
 
         /// Why pairs did not stop to talk. See the note at the rejection site:
@@ -590,7 +591,7 @@ namespace Ledger.Game
                     // The reply lands a beat after the telling, the way a
                     // conversation does.
                     StartCoroutine(SayAfter(w, spoken[i].Text, i * 2.1f, UiTheme.AmberSoft, 6.5f,
-                                            spoken[i].SpeakerId));
+                                            spoken[i].SpeakerId, spoken[i].Composed));
                 }
                 Audio.Ui("page");   // the sound of the street noticing you
                 // AND THE STREET GETS OUT OF THE WAY. This is the one moment

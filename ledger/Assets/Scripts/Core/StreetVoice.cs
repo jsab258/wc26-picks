@@ -49,6 +49,26 @@ namespace Ledger.Core
         /// The rumour behind it, when there is one. The player who overhears
         /// this learns exactly this, which is why hearing is knowing.
         public Rumor Source;
+        /// TRUE WHEN THE WORDS WERE ASSEMBLED AT RUN TIME, so no recording of
+        /// them can exist and none ever will.
+        ///
+        /// `VoiceBank.ClipName` keys a clip by (voice, EXACT text). A line
+        /// built as template-plus-`{what}` is therefore a different clip for
+        /// every rumour the street has ever carried, and the summaries are
+        /// themselves composed — "someone in a runner's coat — maybe Sam —
+        /// was handling a package past midnight, on Copper Row". That space
+        /// is unbounded, so it is not a bank that is behind: it is a bank
+        /// that cannot be written.
+        ///
+        /// It matters because `speechNoClip` was being read as a rendering
+        /// backlog. Measured on the bank as shipped: the 42 `exchange.tell.*`
+        /// lines of 336 atomic ones are all instantiated with ONE specimen
+        /// rumour ("the new owner was at the warehouse on Tuesday"), which is
+        /// one point in that space, so their 252 rendered clips can only ever
+        /// play for a rumour that says exactly that sentence. Only `Exchange`
+        /// composes; `Recognition` and `Ambient` are literal throughout —
+        /// checked, zero interpolations between them — and are bankable.
+        public bool Composed;
     }
 
     public static class StreetVoice
@@ -262,7 +282,14 @@ namespace Ledger.Core
                     "There's always something.",
                 });
 
-            lines.Add(new SpokenLine { SpeakerId = from.Id, Text = tell, AboutPlayer = true, Source = r });
+            // THE TELLING ONLY. It carries `what` inside it and is therefore
+            // a new sentence every time; the answer is a literal pick from a
+            // band and is in the bank as written, which the pair-halves check
+            // confirms for all 2,268 pairs. Marking both would be tidier and
+            // would put a real, renderable hole in the structural bucket the
+            // first time a reply went missing — which is the misreading this
+            // field exists to stop.
+            lines.Add(new SpokenLine { SpeakerId = from.Id, Text = tell, AboutPlayer = true, Source = r, Composed = true });
             lines.Add(new SpokenLine { SpeakerId = to.Id, Text = answer, AboutPlayer = true, Source = r });
             return lines;
         }

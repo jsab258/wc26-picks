@@ -30,14 +30,13 @@ CLAUDE.md under AUTO MODE.
 ### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST
 
 **PROVEN.** The three whole-line graphs run on Jafar's card and produce a
-voice he approved by ear twice — one line, then five lines in two voices
-on the no-guidance graphs, which ship: 29ms a step against 41 guided.
-A line costs ~5.2s for 4.1s of speech (prefill 0.3, 102 steps 3.3,
-decode 1.6). Startup is 38s, not the 178 this file claimed for a day —
-the four-step solver cut it and nobody re-measured. It is neither
-DirectML (CPU opens the same file in 39.5s) nor graph optimisation
-(disabling it costs 59s); it is 1.3GB of weights, and it no longer
-blocks anything because opening moved off the main thread.
+voice he approved by ear twice — one line, then five in two voices on
+the no-guidance graphs, which ship: 29ms a step against 41 guided, a
+line ~5.2s for 4.1s of speech. Startup is 38s, not the 178 this file
+claimed for a day (the four-step solver cut it and nobody re-measured),
+and the cause is 1.3GB of weights rather than DirectML (CPU opens it in
+39.5s) or graph optimisation (disabling costs 59s). It blocks nothing
+now: opening moved off the main thread.
 
 **THE C# SIDE HAS NOW MADE A SOUND — 13 Aug, `csharp-speaks-3`.** For
 the whole project until this run, `speechStarted=0 speechSpoken=0` in
@@ -83,12 +82,44 @@ dead too — no faster, and overflowing.
 **THE CAST IS FOUR SHORT and the reason was a layer back**: Aldous,
 Danny, June and Zlata had no entry in the voice FETCHER, so no clip
 could be fetched and no voice picked; each drew a crowd voice silently.
-Entries added 13 Aug. They now need a fetch and a pick on the machine
-with the corpus — the check says which stage each is at.
+Entries added 13 Aug, and the fetch is queued as `fetch-four-voices` —
+the corpus is 403 from this container, so it runs on Jafar's machine,
+which is also the half that does not need him. **What is left for him
+is the half that does**: open `tools/voice-fetch/ledger-voices-out/`'s
+page, listen, type four numbers into `picks.txt`, run `--install`.
 
-**THE BANK HAS HOLES**: 53 of 381 asked lines had no clip in the last
-run, so characters are mute at those moments. Generation work, not yet
-costed.
+**THE BANK'S "HOLES" ARE MOSTLY NOT HOLES — 13 Aug, measured.** This
+item stood for days as "53 of 381 asked lines had no clip, generation
+work, not yet costed", and the premise was wrong. Most of those misses
+cannot be rendered by anybody.
+
+`VoiceBank.ClipName` keys a clip by (voice, EXACT text). A gossip
+TELLING is built by `StreetVoice.Exchange` as a template plus
+`{what} = Trim(r.Summary)`, and the summary is itself assembled at run
+time — `"someone in a runner's coat — maybe Sam — was handling a package
+past midnight"`, plus the address, plus the vehicle. So every telling of
+a real rumour is a sentence nobody has ever rendered, and the space is
+unbounded rather than merely large.
+
+What the bank actually holds, counted: 336 atomic lines × 6 street
+voices = 2,010 clips, all on disk and correct. **42 of those 336 are the
+`exchange.tell.*` family and every one is instantiated with a single
+specimen rumour** — "the new owner was at the warehouse on Tuesday" —
+so their 252 clips can only play for a rumour that says exactly that.
+`Recognition` and `Ambient` are literal throughout (zero interpolations
+between them, checked) and are genuinely banked. The pair slots' halves
+are all present as atomic lines: 2,268 pairs checked, 0 missing.
+
+So the rumour half of the street — the part that says out loud what the
+social memory remembers, which is the moat — **can only ever be voiced
+live.** That is not a scope decision to take; it is what the pipeline
+is, and it is why live speech is load-bearing rather than a garnish.
+
+**THE NUMBER NOW SAYS WHICH KIND OF MISS IT IS.** `speechNoClip` kept
+its meaning and its landed series; `speechNoClipComposed` is the share
+that could never have been rendered, carried on `SpokenLine.Composed`
+from the one site that composes. What is left is the real backlog, and
+until a run lands nobody knows how big it is — it may well be zero.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -104,26 +135,19 @@ costed.
    name the magenta body's material (the census's who-fields will carry
    it once its material check looks for magenta too).
 
-1. **THE NAMEPLATE HEAP: 388 street plates and 15 walker labels walked,
-   Manages matched none — the orphan counter (in flight) names one.
-   SEVERITY NOTE: the heaps appear from the REVIEW camera's high
-   vantage, where plates from several junctions stack in 2D; from
-   player height they rarely can. Confirm from a player-height shot
-   before spending on a declutter for a camera no player holds.**
-
-1. **RETRACTION, 13 Aug: every tpose number so far was INVERTED — the
-   latch read `< 5` from straight DOWN, counting hanging arms held
-   still. Both bucket stories void. Corrected to hold above 75; the
-   pink still is the only real evidence until the recount lands.**
-
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
    out, on a street `armStreet=10.7/armStreetWorst=15.3` calls healthy —
    the median-across-bodies blind spot again (the worst is a max over
    medians). One frame, one body: a hypothesis. The number: per-body count
    of arms within 5 degrees of horizontal held over a second, emitted as
-   `tposeBodies` with the body id. (The capsule half of this item closed
-   into the census item above.)
+   `tposeBodies` with the body id. **RETRACTION, 13 Aug: every tpose
+   number so far was INVERTED** — the latch read `< 5` from straight
+   DOWN, counting hanging arms held still. Both bucket stories void,
+   corrected to hold above 75, and the pink still is the only real
+   evidence until the recount lands. (The capsule half closed into the
+   census item above; the nameplate-heap half closed into item 1, which
+   shows plates do not stack from player height.)
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    Latest split: game 16.7ms against its 12ms budget — bodyLod 3.8,
@@ -249,16 +273,10 @@ costed.
      sampled — one brandish can only produce one answer, and it has been
      `FleeScreaming` every time. Plant more than one, at people with different
      nerve, or the other three branches stay theoretical for ever.
-   - **CLOSED — `contradiction=0.00` IS BY DESIGN AND THE BRANCH HAS RUN 46
-     TIMES.** This entry said the contradicted half of `Informing` had never
-     executed. `blowbackContradiction=0.90` and `denounceBlewBack=True` in
-     every one of the 46 runs that carry them. The zero belongs to the FIRST
-     denouncement, which is deliberately left uncontradicted so the probe
-     cannot alter the outcome measured beside it — the reasoning is in
-     `SimDirector` at the staging, and the reason is now in `EXPLAINED_ZEROS`
-     so the tool stops offering it as work. **I was about to plant a condition
-     that has been planted since June**, which is rule 3: when your own
-     analysis says something is missing, open the file.
+   - **CLOSED — `contradiction=0.00` is by design; the branch has run 46
+     times.** The zero is the FIRST denouncement, left uncontradicted on
+     purpose so the probe cannot alter the outcome beside it. It is in
+     `EXPLAINED_ZEROS` now so the tool stops offering it as work.
    - **`departed=0` ONLY — `adds` READS 10.** This entry said "she is
      recruited and never leaves and never brings anybody. Two branches, no
      runs." `companion[with=June recruited=1 departed=0 noted=3 exposure=3
@@ -266,32 +284,17 @@ costed.
      right; the prose here added `adds=0` on its own and was wrong for four
      builds. The live zeros are `departed` and `carriedOut`.
    - **`groundless=False`** — a carry has never been groundless.
-   - **`summonsTaken=0` WAS NOT FIXED, AND THE ENTRY SAYING SO STOOD FOR FOUR
-     BUILDS.** Nineteen runs carry the key and every one reads 0. The callbox
-     flag was a real fix and it was not the last one: `SummonsHost.Nightly`
-     runs at the day close — eight in the morning — and tested the player's
-     LIVE position against lines live at hour 21, so the hour came from the
-     ring and the position came from breakfast. `summonsMissWhy=[a line was
-     live and he was not near it]` is a true sentence about the wrong moment
-     and read twice as the mechanic working. Fixed 5 August by sampling
-     `PlayerAtRing` in the once-per-game-hour branch. A third miss reason —
-     "the ring hour never came round" — keeps the new case from reading as the
-     old one. **The plant is deliberately NOT in the same build**, so a moving
+   - **`summonsTaken=0` — fixed 5 August, awaiting its own build.**
+     `SummonsHost.Nightly` runs at the day close and tested the player's LIVE
+     position against lines live at hour 21, so the hour came from the ring
+     and the position came from breakfast; now sampled at the ring hour, with
+     a third miss reason so the new case cannot read as the old one. **The
+     plant is deliberately NOT in the same build**, so a moving
      `summonsTaken` is attributable to this and nothing else.
-   - **`reliabilityFiled` MOVED AND THEN CAME BACK, AND THAT IS HONEST.**
-     The series is 0,1,1,2,1,1,1 then 0 newest — and `reliabilityRead` says
-     why: `[Slipping after 2]` for five runs, `[Fine after 0]` in the newest.
-     Zero drops were skipped in that run, so zero filed is correct. The plant
-     works when the condition occurs and the condition is not guaranteed —
-     rule 5b's corollary, and the fix is to make the skip deterministic rather
-     than to read the zero as a regression.
-     **`gates --series` could not read either of these until 5 August.** It
-     matched numbers only, so `inquiry`, `ending`, `handed` and `pointedAt`
-     all answered "no landed run carries that name"; the categorical fix then
-     still could not read `[Fine after 0]`, because it excluded the bracket
-     that CLAUDE.md names as the sanctioned form for a value with spaces. Two
-     implementations of one idea, an hour apart, the second written without
-     reading the first. It now uses `verdict-read.py`'s grammar verbatim.
+   - **`reliabilityFiled` moved and came back, and that is honest.** Series
+     0,1,1,2,1,1,1 then 0 newest, and `reliabilityRead` says why: zero drops
+     were skipped in that run, so zero filed is correct. Rule 5b's corollary
+     — make the skip deterministic rather than read the zero as a regression.
 
    **The rule for every one of these is the same and it is rule 5b's
    corollary: PLANT the condition, never loosen the bound.** And do them one

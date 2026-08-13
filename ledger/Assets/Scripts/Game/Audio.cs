@@ -918,6 +918,25 @@ namespace Ledger.Game
         public static int SpeechNoClip { get; private set; }
         public static int SpeechNoAudio { get; private set; }
 
+        /// AND `speechNoClip` ITSELF ANSWERS TWO QUESTIONS, which is the same
+        /// fault one level down from the comment above.
+        ///
+        /// It was being read as a rendering backlog — "53 of 381 lines have
+        /// no clip, generate them" sat on the queue for days. Most of those
+        /// misses cannot be generated at all. A gossip TELLING is built as a
+        /// template plus the rumour's summary, and the summary is itself
+        /// assembled from names, addresses and vehicles at run time, so its
+        /// clip name is new every time and no renderer can get ahead of it.
+        /// The bank has the family rendered against ONE specimen sentence,
+        /// 252 clips that play only if a rumour happens to say exactly that.
+        ///
+        /// So the split: this counts the misses that COULD have been
+        /// rendered and were not, which is the only half a generation run can
+        /// close. `speechNoClipComposed` is the rest, and its right response
+        /// is live speech rather than more clips. Read them together — the
+        /// total is still `speechNoClip`, which keeps its landed series.
+        public static int SpeechNoClipComposed { get; private set; }
+
         /// WHAT THE BANK WOULD ACTUALLY HAVE TO CONTAIN — the number that
         /// decides M17.2's scope, and it is not the one I was about to ask
         /// Jafar to rule on.
@@ -1492,6 +1511,7 @@ namespace Ledger.Game
         {
             SpeechPlayed = 0; SpeechMissing = 0;
             SpeechOutOfRange = 0; SpeechNoClip = 0; SpeechNoAudio = 0;
+            SpeechNoClipComposed = 0;
             _asked.Clear(); _askedVoices.Clear();
             Live.Reset();
         }
@@ -1542,7 +1562,8 @@ namespace Ledger.Game
         /// whether or not the recording exists, or the day the bank lands the
         /// whole street will change balance for reasons nobody can trace.
         public static bool Speak(string clipName, float metres = 0f,
-                                 bool occluded = false, float streetNoise = 0f)
+                                 bool occluded = false, float streetNoise = 0f,
+                                 bool composed = false)
         {
             NoteAsked(clipName);
             // COUNTED, NOT SILENTLY DROPPED. This returned false without
@@ -1559,7 +1580,12 @@ namespace Ledger.Game
                 _voiceLp.cutoffFrequency = (float)Acoustics.LowPassHz(metres, occluded);
 
             var clip = VoiceClip(clipName);
-            if (clip == null) { SpeechMissing++; SpeechNoClip++; return false; }
+            if (clip == null)
+            {
+                SpeechMissing++; SpeechNoClip++;
+                if (composed) SpeechNoClipComposed++;
+                return false;
+            }
 
             float gain = (float)Mixing.Attenuate(Bus.Voice, metres);
             gain *= 1f - 0.35f * Mathf.Clamp01(streetNoise);
@@ -1570,7 +1596,8 @@ namespace Ledger.Game
 
         /// Speech that arrives down a wire. Same bank, different treatment,
         /// and the treatment is the mechanic.
-        public static bool SpeakOnTheLine(string clipName, Acoustics.LineKind kind)
+        public static bool SpeakOnTheLine(string clipName, Acoustics.LineKind kind,
+                                          bool composed = false)
         {
             // THE PHONE DRAWS FROM THE SAME BANK, so its requests are part of
             // the same demand. Counting only the in-room path would understate
@@ -1579,7 +1606,12 @@ namespace Ledger.Game
             NoteAsked(clipName);
             if (_root == null || _phone == null) { SpeechNoAudio++; return false; }
             var clip = VoiceClip(clipName);
-            if (clip == null) { SpeechMissing++; SpeechNoClip++; return false; }
+            if (clip == null)
+            {
+                SpeechMissing++; SpeechNoClip++;
+                if (composed) SpeechNoClipComposed++;
+                return false;
+            }
             // DISTANCE DOES NOT APPLY. A caller two hundred miles away and a
             // caller in the next street arrive at the same level; that is
             // what a telephone is, and it is stated in `Acoustics` so nobody
