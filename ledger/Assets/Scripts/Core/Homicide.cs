@@ -246,7 +246,14 @@ namespace Ledger.Core
         /// count — but the mill cannot forget an indelible rumour, so in
         /// practice only death removes one, which is exactly the pressure the
         /// design wants on the player.
-        public List<string> LiveWitnesses(GossipMill mill, Func<string, bool> alive = null)
+        /// `drops`, when supplied, receives WHY witnesses were excluded:
+        /// [0] dead by the alive filter, [1] gone from the mill, [2] held
+        /// the rumour below testimony grade or not at all. The heat diary
+        /// read thirteen-to-zero across the Fall's time skip and this is
+        /// the split that says which of three completely different bugs
+        /// that was — same fork discipline as homHoldsIt, learned there.
+        public List<string> LiveWitnesses(GossipMill mill, Func<string, bool> alive = null,
+                                          int[] drops = null)
         {
             var live = new List<string>();
             if (mill == null) return live;
@@ -254,11 +261,14 @@ namespace Ledger.Core
                 foreach (var id in k.SawYouDoIt)
                 {
                     if (live.Contains(id)) continue;
-                    if (alive != null && !alive(id)) continue;
+                    if (alive != null && !alive(id))
+                    { if (drops != null && drops.Length > 0) drops[0]++; continue; }
                     var g = mill.Get(id);
-                    if (g == null) continue;
+                    if (g == null)
+                    { if (drops != null && drops.Length > 1) drops[1]++; continue; }
                     var r = g.BestOfValue(k.TopicKey, "true");
                     if (r != null && r.Confidence >= TestimonyGrade) live.Add(id);
+                    else if (drops != null && drops.Length > 2) drops[2]++;
                 }
             return live;
         }
@@ -335,7 +345,8 @@ namespace Ledger.Core
         public string PressureWhy(GossipMill mill, Func<string, bool> alive = null, int today = -1)
         {
             if (_killings.Count == 0) return "none";
-            var live = LiveWitnesses(mill, alive);
+            var drops = new int[3];
+            var live = LiveWitnesses(mill, alive, drops);
             double best = 0;
             foreach (var k in _killings)
                 foreach (var id in live)
@@ -345,7 +356,8 @@ namespace Ledger.Core
                 }
             return $"p{Pressure(mill, alive, today):0.00}"
                  + $"/w{live.Count}/c{best:0.00}"
-                 + $"/r{RedirectReliefOn(today):0.00}";
+                 + $"/r{RedirectReliefOn(today):0.00}"
+                 + $"/xD{drops[0]}G{drops[1]}F{drops[2]}";
         }
 
         public Inquiry Stage(GossipMill mill, Func<string, bool> alive = null, int today = -1)
