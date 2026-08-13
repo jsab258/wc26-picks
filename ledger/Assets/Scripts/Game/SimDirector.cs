@@ -3069,7 +3069,13 @@ namespace Ledger.Game
                 // appears among the walked names, the walk really does run
                 // in moments where every walker label is switched off, and
                 // the heap in the stills belongs to some other object.
+                // BY PREFIX, not full name — street plates are uniquely
+                // named (NamePlate_j4_0_ew_text_180) and a per-name dict
+                // put count 1 beside count 1 for four hundred of them,
+                // which made the first census's top-4 nearly useless.
                 var kind = t.gameObject.name;
+                int cut = kind.IndexOf('_');
+                if (cut > 0) kind = kind.Substring(0, cut);
                 int have;
                 _textWalkKinds.TryGetValue(kind, out have);
                 _textWalkKinds[kind] = have + 1;

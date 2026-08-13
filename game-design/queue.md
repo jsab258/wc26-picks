@@ -99,37 +99,33 @@ drives the real `T3.inference` and compares.**
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **THE NAMEPLATE GATE STILL CANNOT SEE THE HEAP.** *(on screen)*
+1. **THE NAMEPLATE HEAP: see the vindication item below — the walked
+   census suggests the heaps are STREET-SIGN text, not person labels,
+   and the declutter's empty bucket has been honest. The prefix
+   re-aggregation rides the next build and settles it.**
 
-   `review_day5_night.jpg` has six people's names drawn on top of each other.
-   `collidingNames=0` and `worstNamePair=[none]` are trivially true because
-   `namesTracked=0` — the managed bucket is empty — while `worldTextTracked`
-   is around a hundred. The size half of this is closed; the blindness is not.
+1. **THE HEAT FADE IS SOLVED AND IT IS A PERSISTENCE BUG.** The daily
+   diary (8520994): pressure 4.0, thirteen live witnesses at confidence
+   1.00 through day 14 — then day 17 reads ZERO witnesses, zero
+   confidence, pressure 0.40 (bodies only). Days 15-16 are missing:
+   the FALL'S TIME SKIP is where the witness pool dies. Not ageing,
+   not relief — the skip wipes them, in a game scoring itself 95 on
+   persistence. Find what the skip does to the mill (agents pruned?
+   `alive` filter?) and make surviving witnesses keep what they know.
 
-   `namesManagedSeen=0 namesManagedCulled=0` says the cull is innocent, which
-   by the fork means an id-space mismatch in `Manages`. **Do not conclude that
-   yet:** `FindObjectsByType` skips inactive objects and a walker deactivates
-   its label out of range, so "no walker label was present when the loop ran"
-   is a third reading the fork did not have. `textPersonLabels` lands next
-   build and separates them — zero means the loop and the still are looking at
-   different moments, non-zero means the set is genuinely broken.
-   **And this loop takes `Camera.main` under a doc comment saying it measures
-   against the review camera** — the second site of the fault the size cap had.
+1. **THIRTY-ONE SETTLED SCARECROWS.** The grant-age split (8520994):
+   43 T-poses in the grant bucket (LOD hiccup — fix known: hide or
+   drive a fresh body until one pose stamps), and 31 bodies held
+   horizontal arms long AFTER settling, cast names attached. A second
+   real fault — where does a settled animator stop driving arms?
 
-1. **THE 963248f INSTRUMENT PAYOFF, and the follow-ups it names:**
-   - `tposeBodies=70` with cast names — far too many for a standing
-     scarecrow; with 1089 body grants that run, the shape is the LOD
-     grant leaving a fresh rig in bind pose over a second. The latch now
-     splits by grant age (tposeAtGrant vs settled); if the next build
-     puts the 70 in the grant bucket, THE FIX is driving or hiding a
-     just-granted body until its animator has stamped one pose.
-   - `capsulesSeen=0` across all shots: the white dummies are NOT
-     builtin-Capsule meshes. Prime suspect: bought bodies visible while
-     UNDRESSED (white material) — next instrument counts visible
-     skinned bodies wearing the default material, named.
-   - The heat diary held one day (its block ran once); the sampler now
-     runs daily from the first body. The road caption and near-occluder
-     instruments are live and quiet this run; they wait for recurrence.
+1. **THE NAMEPLATE DECLUTTER MAY BE VINDICATED.** The walk's kind
+   census: speech bubbles and uniquely-named STREET-SIGN plates —
+   essentially no walker "Label" ever walked. The stills' name heaps
+   are then SIGN text (venue boards carry person names), and the fix
+   belongs to sign density/placement, not NameTags. Firm it first:
+   re-aggregate the census by name PREFIX (NamePlate_* summed) — the
+   per-unique-name dict made the top-4 nearly useless this run.
 
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
