@@ -80,8 +80,16 @@ namespace Ledger.Game
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
             renderer.velocityScale = 0.06f;
             renderer.lengthScale = 3.5f;
-            renderer.material = AssetLibrary.Material(AssetLibrary.Glass) ??
-                                new Material(Shader.Find("Sprites/Default"));
+            // SPRITES/DEFAULT, NOT THE GLASS SHEET. Glass is a lit opaque
+            // surface material for WINDOWS; on stretched particles it
+            // ignores the translucent startColor above and renders every
+            // drop as a dark streak — the first player-height still
+            // (review_street, dfefd62) has a sky full of black scratches
+            // that no elevated frame ever showed, because from above the
+            // drops sat against dark ground. The unlit sprite shader reads
+            // the vertex colour and its alpha, which is what the pale
+            // 0.45-alpha streak was always meant to be.
+            renderer.material = new Material(Shader.Find("Sprites/Default"));
             _rainFx.Play();
         }
 

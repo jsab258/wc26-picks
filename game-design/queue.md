@@ -76,28 +76,36 @@ drives the real `T3.inference` and compares.**
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
-- **HEAT FADES AND NOBODY KNOWS WHY — instrumented, awaiting the build.**
-  A daily series now samples pressure with its parts (live witnesses, best
-  confidence, relief); Manhunt-to-Procedure names its falling term next
-  run that files a body.
-
 - **CLOSED 13 Aug — THE SUCCESSION COMPLETED, Ending.Quiet reached for
   the first time; confirmed across three consecutive builds.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
+
+0. **CLOSED 13 Aug — the rain scratched the sky at eye level because
+   its particles wore the WINDOW GLASS material (lit, opaque, colour
+   ignored); the unlit sprite shader now takes the pale translucent
+   streak. Found by the FIRST player-height frame, invisible from
+   every elevated one. Re-judge on the next street frame. Same frame:
+   no nameplate stacking at eye level — the heap stays review-camera
+   -only.**
+
+1. **THE FIRST PLAYER-HEIGHT FRAME (dfefd62) FINDS THREE THINGS NO
+   ELEVATED STILL COULD:** the RAIN fills the sky as dense dark
+   scribble at eye level — far too many streaks, far too long, a
+   player-facing weather fault the top-down view flattered; the street
+   plates do NOT stack from player height, so the nameplate-heap item
+   collapses to a review-camera artifact and the declutter is vindicated
+   (managed-labels peak 6, orphans 0); and the pink figure reads as
+   ERROR-SHADER MAGENTA on one body variant — a missing material, not a
+   pose. Next: thin/shorten rain streaks judged against this frame, and
+   name the magenta body's material (the census's who-fields will carry
+   it once its material check looks for magenta too).
 
 0. **CLOSED 13 Aug — `law`'s rare red: the unplanted SEER. Planted from
    the mill; confirmed green next build. First diagnosis was wrong.**
 
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
-
-1. **THE NAMEPLATE HEAP: 388 street plates and 15 walker labels walked,
-   Manages matched none — the orphan counter (in flight) names one.
-   SEVERITY NOTE: the heaps appear from the REVIEW camera's high
-   vantage, where plates from several junctions stack in 2D; from
-   player height they rarely can. Confirm from a player-height shot
-   before spending on a declutter for a camera no player holds.**
 
 1. **RETRACTION, 13 Aug: every tpose number so far was INVERTED — the
    latch read `< 5` from straight DOWN, counting hanging arms held
@@ -109,15 +117,6 @@ would notice, whatever state anything else is in.
    skip, zero drops in every bucket, and Manhunt persisting to the end
    of the run — the first in recorded history where a murder's
    consequences survive doing time. No gate shifted red.**
-**
-
-1. **THE NAMEPLATE DECLUTTER MAY BE VINDICATED.** The walk's kind
-   census: speech bubbles and uniquely-named STREET-SIGN plates —
-   essentially no walker "Label" ever walked. The stills' name heaps
-   are then SIGN text (venue boards carry person names), and the fix
-   belongs to sign density/placement, not NameTags. Firm it first:
-   re-aggregate the census by name PREFIX (NamePlate_* summed) — the
-   per-unique-name dict made the top-4 nearly useless this run.
 
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
