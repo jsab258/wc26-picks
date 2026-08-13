@@ -30,9 +30,15 @@ CLAUDE.md under AUTO MODE.
 ### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST
 
 **PROVEN.** The three whole-line graphs run on Jafar's card and produce a
-voice he approved by ear twice — one line, then five in two voices on
-the no-guidance graphs, which ship: 29ms a step against 41 guided, a
-line ~5.2s for 4.1s of speech. Startup is 38s, not the 178 this file
+voice he approved by ear twice — one line, then five in two voices, a
+line ~5.2s for 4.1s of speech. **GUIDANCE STAYS AND SHIPS** (`--rows 2`,
+the exporter's default): no-guidance is 1.5× faster per STEP and loses
+it per LINE, because the model without its second opinion generates more
+tokens for the same words — "No." came out 19 tokens guided and 46
+unguided, which Jafar heard blind as "slowed, stretched". This file said
+the opposite for a day and I quoted it forward on 13 Aug before checking
+`1c2afb2`, which is rule 1 exactly: my own doc is not evidence.
+Startup is 38s, not the 178 this file
 claimed for a day (the four-step solver cut it and nobody re-measured),
 and the cause is 1.3GB of weights rather than DirectML (CPU opens it in
 39.5s) or graph optimisation (disabling costs 59s). It blocks nothing

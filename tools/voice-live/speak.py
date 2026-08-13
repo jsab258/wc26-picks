@@ -39,12 +39,34 @@ pytorch to six decimal places. Swapping the transformer for the ONNX session
 is the next step and it changes nothing here.
 """
 import argparse
+import shutil
 import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CLIPS = ROOT / "game-design" / "picked-clips"
 OUT = ROOT / "tools" / "voice-live" / "speak-out"
+# WHERE A FILE HAS TO SIT TO REACH ME. `speak-out/` is local to Jafar's
+# machine and nothing publishes it, so both halves of this comparison have
+# been invisible from the container since the day it was written — the one
+# question it exists to answer could only ever be answered by him listening
+# and describing. Copies under `game-design/voice-live/` are on the watcher's
+# publish list and travel back on the results branch.
+TRAVELS = ROOT / "game-design" / "voice-live"
+
+
+def travel(src, name):
+    """Copy a rendered wav somewhere the watcher will publish it.
+
+    Best effort by design: a failure to copy must not lose the render that
+    has already been written and is sitting on disk, which is the same
+    argument the caught-exception block below makes about the control.
+    """
+    try:
+        TRAVELS.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(src), str(TRAVELS / name))
+    except OSError as e:
+        print(f"       (could not copy {name} for publishing: {e})")
 
 # `tts.py generate(...)` defaults, read from the installed package rather than
 # recalled. The same numbers `Core/SpeechPlan` carries, and the reason they are
@@ -291,6 +313,7 @@ def cmd_speak(text, seed, voice):
     with torch.inference_mode():
         wav = model.generate(text).squeeze(0).cpu().numpy()
     sf.write(str(OUT / "model.wav"), wav, model.sr)
+    travel(OUT / "model.wav", "control-model.wav")
     print(f"       {len(wav) / model.sr:.1f}s of audio in {time.time() - t0:.1f}s"
           f"  ->  speak-out/model.wav")
 
@@ -322,6 +345,7 @@ def cmd_speak(text, seed, voice):
         return 1
     ours = to_wav(model, tokens)
     sf.write(str(OUT / "ours.wav"), ours, S3GEN_SR)
+    travel(OUT / "ours.wav", "control-ours.wav")
     print(f"       {len(ours) / S3GEN_SR:.1f}s of audio in {took:.1f}s"
           f"  ->  speak-out/ours.wav")
 

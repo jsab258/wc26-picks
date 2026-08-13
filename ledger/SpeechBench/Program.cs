@@ -250,43 +250,108 @@ namespace Ledger.Bench
                 // path works end to end on this card. If it throws, the
                 // failure belongs to the game rather than to a build nobody
                 // has managed to assemble yet.
-                Console.WriteLine("BENCH: speaking a whole line through "
-                                  + "SpeechLoop.Run ...");
-                var t0 = DateTime.UtcNow;
-                var plan = new SpeechPlan { DeadlineSeconds = 60.0 };
-                var run = SpeechLoop.Run(backend, voice, text, plan,
-                                         () => (DateTime.UtcNow - t0).TotalSeconds);
-                Console.WriteLine("BENCH: loop stop=" + run.Stop
-                    + " tokens=" + run.Tokens.Length
-                    + " steps=" + run.Steps
-                    + " seconds=" + run.Seconds.ToString("0.00")
-                    + " usable=" + run.Usable);
-                if (!run.Usable)
+                // FIVE LINES, NOT ONE, AND THE SAME FIVE `speak-a-few` USES.
+                //
+                // The first version of this spoke a single sentence, Jafar
+                // judged it "slightly robotic", and there was no way to tell
+                // whether that was the C# path, this voice, or the take —
+                // `speak.py` says in its own words that the model "has bad
+                // days on any given line". One take is one sample, and the
+                // python side learned that lesson weeks ago: `speak-a-few`
+                // exists because a no-guidance graph was approved off one
+                // sentence and the fault it hides shows up on the fourth.
+                //
+                // Same lines, deliberately: a bare refusal, a repetition that
+                // catches a doubled word, a question, a number, and a long
+                // one that runs out of breath. Chosen to be awkward, because
+                // a test made of comfortable declaratives proves only that
+                // comfortable declaratives work. Same voices too, so the C#
+                // takes and the python ones can be played against each other
+                // rather than against a memory.
+                var lines = new[]
                 {
-                    Console.WriteLine("BENCH: SPOKE NOTHING — the loop "
-                        + "refused before any audio: " + run.Stop);
+                    "No.",
+                    "Seen the van again. Thursday, same as last Thursday.",
+                    "You want me to say that in front of Rocco?",
+                    "Forty-two crates, and not one of them opened where I could see it.",
+                    "I was nowhere near the yard, and you know it, and so does he.",
+                };
+                // WHATEVER OF THESE THIS MACHINE HAS. A voice with no
+                // precomputed conditioning cannot speak, and refusing the
+                // whole stage for a missing third voice would throw away the
+                // two takes that were available — rule 5's ratchet.
+                var cast = new[] { "rocco", "ada", "michelle" };
+                Console.WriteLine("BENCH: speaking " + lines.Length
+                    + " lines through SpeechLoop.Run ...");
+
+                var all = new System.Collections.Generic.List<float>();
+                int spoke = 0, refused = 0;
+                double totalSpeech = 0, totalWork = 0;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    // The voice rotates so the set covers more than one
+                    // person without costing more lines.
+                    string who = cast[i % cast.Length];
+                    var t0 = DateTime.UtcNow;
+                    var plan = new SpeechPlan { DeadlineSeconds = 60.0 };
+                    var run = SpeechLoop.Run(backend, who, lines[i], plan,
+                                             () => (DateTime.UtcNow - t0).TotalSeconds);
+                    if (run == null || !run.Usable)
+                    {
+                        refused++;
+                        Console.WriteLine("BENCH: line " + (i + 1) + " (" + who
+                            + ") SPOKE NOTHING: "
+                            + (run == null ? backend.Why : run.Stop.ToString()));
+                        continue;
+                    }
+                    var dt = DateTime.UtcNow;
+                    var samples = backend.Decode(run.Tokens);
+                    double decodeSec = (DateTime.UtcNow - dt).TotalSeconds;
+                    if (samples == null || samples.Length == 0)
+                    {
+                        refused++;
+                        Console.WriteLine("BENCH: line " + (i + 1) + " (" + who
+                            + ") DECODED NOTHING: " + backend.Why);
+                        continue;
+                    }
+                    double secs = samples.Length / 24000.0;
+                    spoke++;
+                    totalSpeech += secs;
+                    totalWork += run.Seconds + decodeSec;
+                    Console.WriteLine("BENCH: line " + (i + 1) + " " + who
+                        + " stop=" + run.Stop
+                        + " tokens=" + run.Tokens.Length
+                        + " steps=" + run.Steps
+                        + " loop=" + run.Seconds.ToString("0.00")
+                        + " decode=" + decodeSec.ToString("0.00")
+                        + " speech=" + secs.ToString("0.00"));
+                    all.AddRange(samples);
+                    // Half a second between takes, so they are separable by
+                    // ear on one playthrough rather than running together.
+                    if (i < lines.Length - 1)
+                        all.AddRange(new float[12000]);
+                }
+
+                // THE DENOMINATOR, because a count of takes with no total is
+                // rule 3b and this file has been bitten by it before.
+                Console.WriteLine("BENCH: spoke " + spoke + " of " + lines.Length
+                    + " lines, " + refused + " refused");
+                if (spoke == 0)
+                {
+                    Console.WriteLine("BENCH: SPOKE NOTHING at all: " + backend.Why);
                     return 1;
                 }
-                var dt = DateTime.UtcNow;
-                var samples = backend.Decode(run.Tokens);
-                double decodeSec = (DateTime.UtcNow - dt).TotalSeconds;
-                if (samples == null || samples.Length == 0)
-                {
-                    Console.WriteLine("BENCH: DECODED NOTHING: "
-                                      + backend.Why);
-                    return 1;
-                }
-                double secs = samples.Length / 24000.0;
-                Console.WriteLine("BENCH: decoded " + samples.Length
-                    + " samples = " + secs.ToString("0.00") + "s of speech in "
-                    + decodeSec.ToString("0.00") + "s");
+                Console.WriteLine("BENCH: " + totalSpeech.ToString("0.00")
+                    + "s of speech in " + totalWork.ToString("0.00") + "s of work"
+                    + " (x" + (totalWork / Math.Max(totalSpeech, 0.001)).ToString("0.00")
+                    + " realtime)");
                 var wav = System.IO.Path.Combine(
                     System.IO.Directory.GetCurrentDirectory(), "bench-spoke.wav");
-                WriteWav(wav, samples, 24000);
+                WriteWav(wav, all.ToArray(), 24000);
                 var info = new System.IO.FileInfo(wav);
                 Console.WriteLine("BENCH: wrote " + wav + " ("
                     + (info.Length / 1024) + " KB)");
-                Console.WriteLine("BENCH: THE GAME'S OWN CODE SPOKE A LINE.");
+                Console.WriteLine("BENCH: THE GAME'S OWN CODE SPOKE.");
             }
             return 0;
         }

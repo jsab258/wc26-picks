@@ -32,10 +32,23 @@ sourceable at all.
 THE CONSENT RULE, held unprompted
 
 Clips come only from corpora whose contributors donated their voices TO
-BUILD SPEECH TECHNOLOGY. Common Voice (CC0) first, LibriTTS as fallback.
-Not merely "free to copy" — public domain settles copyright and does not
-settle consent, and a volunteer who read a novel aloud did not agree to
-become a character in a crime game. No identifiable public figures, ever.
+BUILD SPEECH TECHNOLOGY. Not merely "free to copy" — public domain settles
+copyright and does not settle consent, and a volunteer who read a novel
+aloud did not agree to become a character in a crime game. No identifiable
+public figures, ever.
+
+WHICH CORPUS, AND THIS PARAGRAPH WAS STALE UNTIL 13 AUGUST. It said
+"Common Voice (CC0) first, LibriTTS as fallback" and did not mention VCTK
+at all — while every voice in the shipped game is VCTK, which the picked
+clips say plainly in their own filenames (`ada.p276`, `crowd_m1.p287`;
+`pNNN` is VCTK's speaker id). `--source` still defaults to commonvoice, so
+a fetch for four new principals went at a corpus none of their nineteen
+colleagues came from, failed to open it, and refused to substitute. The
+refusal was right. The default sending it there was not, and a doc that
+did not name the corpus actually in use is why nobody noticed. Pass
+`--source vctk` to cast alongside the existing street; consent is the same
+standard either way, since VCTK speakers were recruited and recorded for
+speech-technology research at CSTR Edinburgh.
 
 ABOUT MOODS — this changed, and it makes your job shorter
 

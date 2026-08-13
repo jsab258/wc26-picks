@@ -196,9 +196,37 @@ TABLE = {
     # itself rather than installing into `env-export`, so approving that is
     # approving a directory this job created and nothing the live-speech work
     # depends on.
+    # `--source vctk` IS THE CONSISTENCY REQUIREMENT, NOT A FALLBACK. Every
+    # voice already in this game is VCTK — the picked clips are named
+    # `ada.p276`, `crowd_m1.p287`, and `pNNN` is VCTK's speaker id. The
+    # fetcher's default is `commonvoice`, so the first attempt at these four
+    # asked for a corpus none of their nineteen colleagues came from, could
+    # not open it, and refused to substitute — correctly, because a shortlist
+    # from the wrong corpus costs a listening pass to discover. Casting four
+    # principals out of a different recording chain from the rest of the
+    # street would have been audible. Consent is unchanged either way: VCTK
+    # speakers were recruited and recorded for speech-technology research,
+    # which is the standard that put Common Voice first rather than a
+    # relaxation of it.
     "fetch-four-voices": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
                            "--who", "aldous,danny,june,zlata",
+                           "--source", "vctk",
                            "--yes", "--no-open"]],
+    # THE SAME SENTENCE, THREE WAYS, so "slightly robotic" stops being a
+    # matter of memory. Jafar judged `bench-spoke.wav` — the C# path — against
+    # a recollection of a DIFFERENT line rendered days earlier, which is not a
+    # comparison anybody can make fairly. `speak.py` renders one line twice:
+    # chatterbox's own `generate()` as the control, and our Python loop and
+    # sampler. Give it the bench's exact text and voice and there are three
+    # takes of one sentence, which localises the fault instead of describing
+    # it: control clean and both ours poor is our sampler, all three alike is
+    # the model's ceiling for this voice, and only the C# one poor is the C#
+    # path. Nothing here re-exports, so the graphs it judges are the ones the
+    # bench used.
+    "ab-the-same-line": [["PY", "tools/voice-live/speak.py",
+                          "--voice", "rocco",
+                          "--text",
+                          "Seen the van again. Thursday, same as last Thursday."]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
@@ -396,6 +424,8 @@ def publish(root, say, message):
                 "game-design/voice-live/speed-report.txt",
                 "game-design/voice-live/spoken.wav",
                 "game-design/voice-live/bench-spoke.wav",
+                "game-design/voice-live/control-model.wav",
+                "game-design/voice-live/control-ours.wav",
                 "game-design/voice-live/chunked.wav",
                 "game-design/voice-live/chunk-report.txt",
                 "game-design/voice-live/export-report.txt",
