@@ -834,6 +834,20 @@ namespace Ledger.Game
             // has not jumped and day 9 arrives normally. If one HAS happened
             // this block is not wanted anyway. Do not "fix" it to day 8 — that
             // would stage a fall before the open city has had a day to be one.
+            // THE HEAT'S DECAY, SAMPLED DAILY — 963248f's series held ONE
+            // day because the first sampler lived inside the homicide
+            // AUDIT, which runs once. This site runs every pass; the
+            // day-latch keeps it to one token per day from the first
+            // filed body onward, which is the whole span the fade crosses.
+            if (_game != null && _game.Homicides != null
+                && _game.Homicides.BodyCount > 0 && now.Day > _homWhyDay)
+            {
+                _homWhyDay = now.Day;
+                _homWhySeries.Add("d" + now.Day + ":"
+                    + _game.Homicides.PressureWhy(_game.Gossip?.Mill,
+                                                  _game.IsAlive, now.Day));
+            }
+
             if (!_forcedFall && now.Day >= 9 && now.Hour >= 10 && _game.Campaign.OpenMode
                 && _game.Campaign.Falls == 0 && !_game.Campaign.FallPending)
             {
@@ -5879,18 +5893,6 @@ namespace Ledger.Game
             _homPressure = _game.Homicides.Pressure(_game.Gossip?.Mill, _game.IsAlive, now.Day);
             _homInquiry = _game.PoliceInquiry;
 
-            // THE HEAT'S DECAY, SAMPLED DAILY — the queue's open question.
-            // Manhunt at the killing, Procedure at the end, and no record
-            // of which TERM fell: the witness's confidence ageing, the
-            // live-witness count, or the relief. One token a day answers
-            // it: p=total, w=live witnesses, c=best confidence, r=relief.
-            if (now.Day > _homWhyDay)
-            {
-                _homWhyDay = now.Day;
-                _homWhySeries.Add("d" + now.Day + ":"
-                    + _game.Homicides.PressureWhy(_game.Gossip?.Mill,
-                                                  _game.IsAlive, now.Day));
-            }
 
             // AND WHICH OF THEM WOULD ACTUALLY GO TO THE POLICE, which is the
             // asymmetry the design turns on and a question nothing has ever
@@ -10393,6 +10395,7 @@ namespace Ledger.Game
                       // frame, and the frame where it stood widest.
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
                       $"tposeBodies={CharacterRig.TposeBodies} " +
+                      $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
                       $"tposeWho={CharacterRig.TposeWho} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
                       // AND THE WIDEST BODY, because both of the above are

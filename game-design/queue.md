@@ -108,13 +108,20 @@ would notice, whatever state anything else is in.
    **And this loop takes `Camera.main` under a doc comment saying it measures
    against the review camera** — the second site of the fault the size cap had.
 
-1. **THREE STILL-FAULTS, ALL INSTRUMENTED 13 Aug, awaiting the build:**
-   the road-painted doubled caption (`textFlat` + worst NAME), the loose
-   white capsules (census v2 counts what each filter discards, with the
-   Animator-excluded roots named — v1 read zero with its quarry in frame),
-   and the half-inside-a-building night camera (near-occluder fraction
-   per shot, worst shot named). Each becomes a one-build question when
-   it next appears.
+1. **THE 963248f INSTRUMENT PAYOFF, and the follow-ups it names:**
+   - `tposeBodies=70` with cast names — far too many for a standing
+     scarecrow; with 1089 body grants that run, the shape is the LOD
+     grant leaving a fresh rig in bind pose over a second. The latch now
+     splits by grant age (tposeAtGrant vs settled); if the next build
+     puts the 70 in the grant bucket, THE FIX is driving or hiding a
+     just-granted body until its animator has stamped one pose.
+   - `capsulesSeen=0` across all shots: the white dummies are NOT
+     builtin-Capsule meshes. Prime suspect: bought bodies visible while
+     UNDRESSED (white material) — next instrument counts visible
+     skinned bodies wearing the default material, named.
+   - The heat diary held one day (its block ran once); the sampler now
+     runs daily from the first body. The road caption and near-occluder
+     instruments are live and quiet this run; they wait for recurrence.
 
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight

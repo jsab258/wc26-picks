@@ -878,15 +878,31 @@ namespace Ledger.Game
                 // horizontal for over a second is counted ONCE, by name.
                 // The hold filters the top of a walk swing and the spawn
                 // frames before an animator takes a rig.
+                // Re-anchor after any gap in sampling: a revoked body's rig
+                // stops stamping, so a gap IS a re-grant, and the age must
+                // restart or every re-grant hiccup reads as a settled
+                // scarecrow.
+                if (_tposeEnabledAt < 0f
+                    || Time.time - _tposeLastStamp > 1f)
+                    _tposeEnabledAt = Time.time;
+                _tposeLastStamp = Time.time;
                 if (mine < 5f)
                 {
                     _tposeHeld += Time.deltaTime;
                     if (_tposeHeld > 1f && !_tposeCounted)
                     {
                         _tposeCounted = true;
-                        TposeBodies++;
-                        if (_tposeWho.Count < 4 && !_tposeWho.Contains(name))
-                            _tposeWho.Add(name);
+                        if (Time.time - _tposeEnabledAt < 3f)
+                        {
+                            TposeAtGrant++;
+                        }
+                        else
+                        {
+                            TposeBodies++;
+                            if (_tposeWho.Count < 4
+                                && !_tposeWho.Contains(name))
+                                _tposeWho.Add(name);
+                        }
                     }
                 }
                 else _tposeHeld = 0f;
@@ -1052,6 +1068,15 @@ namespace Ledger.Game
             _tposeWho.Count == 0 ? "[]" : "[" + string.Join("/", _tposeWho.ToArray()) + "]";
         float _tposeHeld;
         bool _tposeCounted;
+        float _tposeEnabledAt = -1f;
+        float _tposeLastStamp;
+
+        /// The 963248f build read tposeBodies=70 — too many for a standing
+        /// scarecrow and exactly the shape of the LOD body-grant leaving a
+        /// fresh rig in bind pose (1089 grants that run). Split by age:
+        /// a hold that starts within three seconds of this rig enabling is
+        /// the grant hiccup; later is somebody genuinely standing wrong.
+        public static int TposeAtGrant;
         public static int ArmFrames => _armMedians.Count;
 
         /// Fold this frame's samples into one median and start the next.
