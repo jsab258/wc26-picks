@@ -846,6 +846,16 @@ namespace Ledger.Game
                 _homWhySeries.Add("d" + now.Day + ":"
                     + _game.Homicides.PressureWhy(_game.Gossip?.Mill,
                                                   _game.IsAlive, now.Day));
+                // AND WHETHER ELLIS IS ASKING, latched daily — the
+                // provenance probe asks this ONCE, days before any body
+                // can file, which is why ellisAsking has read False in
+                // all 150 recorded runs: a moment probe on a condition
+                // that starts later. This one answers "was she ever" and
+                // says so in its name.
+                _ellisEverAsked |= EvidenceHost.EllisIsAskingAboutYou(
+                    _game.Homicides,
+                    _game.Gossip != null ? _game.Gossip.Mill : null,
+                    now.Day);
             }
 
             if (!_forcedFall && now.Day >= 9 && now.Hour >= 10 && _game.Campaign.OpenMode
@@ -4133,6 +4143,7 @@ namespace Ledger.Game
         string _provThread = "none";
         double _provThreadRisk;
         bool _provEllisAsking;
+        bool _ellisEverAsked;
         /// How empty the emptiest place the run could find actually was. Zero
         /// is what the accident and disposal claims need; anything else is a
         /// fact about the world rather than about the code.
@@ -9589,7 +9600,8 @@ namespace Ledger.Game
                 ($"disposal[seen={_provDisposalSeen} risk={_provRiskSeen:0.00} "
                  + $"unseen={_provDisposalUnseen} risk={_provRiskUnseen:0.00} "
                  + $"disposals={EvidenceHost.Disposed} watched={EvidenceHost.DisposalsSeen} "
-                 + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking} "
+                 + $"thread={_provThread}@{_provThreadRisk:0.00} ellisAsking={_provEllisAsking} " +
+                 $"ellisEverAsked={_ellisEverAsked} "
                  + $"quietSpotWatchers={_emptyWatchers} crowdedWatchers={_crowdedWatchers} crowdedIsWatched={_crowdedIsWatched}]",
                  _provenanceStaged && EvidenceHost.Disposed >= 2
                  && !_provDisposalUnseen && _provRiskSeen > _provRiskUnseen),
