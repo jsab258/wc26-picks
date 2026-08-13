@@ -84,7 +84,15 @@ namespace Ledger.Bench
 
             using (backend)
             {
-                int width = backend.Rows * backend.VocabSize;
+                // ROWS MAY BE UNKNOWN UNTIL THE GRAPH SPEAKS. A dynamic
+                // export declares no row count, so the backend learns it
+                // from the first real odds — until then `Rows` is 0 and a
+                // width computed from it would be an empty array the
+                // prefill silently under-fills. One row is the floor: the
+                // guided export drives two and writes into the same buffer
+                // sized by VocabSize, so asking for two is safe either way.
+                int rows = backend.Rows > 0 ? backend.Rows : 2;
+                int width = rows * backend.VocabSize;
                 var a = new float[width];
                 var b = new float[width];
                 const int feed = 1234;      // any acoustic token; cost is value-blind

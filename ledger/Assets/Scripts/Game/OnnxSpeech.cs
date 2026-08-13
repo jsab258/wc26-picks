@@ -180,7 +180,11 @@ namespace Ledger.Game
         /// into two half-rows, samples from the wrong half of a vocabulary,
         /// and produces a fluent line of the wrong words. Silent and
         /// plausible is the worst failure this pipeline can have.
-        readonly int _rows;
+        /// NOT READONLY SINCE 13 AUG: a dynamic export declares no row
+        /// count, so this is learned from the first odds the graph
+        /// actually produces rather than from its metadata. Written once,
+        /// on the worker thread that owns every call into this object.
+        int _rows;
         public int Rows { get { return _rows; } }
 
         /// Why the backend is unusable, or null. Kept because "no model on
@@ -285,16 +289,35 @@ namespace Ledger.Game
             // correct-looking speech saying something else.
             var oddsDim = _prefill.OutputMetadata.ContainsKey("logits")
                 ? _prefill.OutputMetadata["logits"].Dimensions : null;
-            if (oddsDim == null || oddsDim.Length < 1
-                || (oddsDim[0] != 1 && oddsDim[0] != 2))
+            if (oddsDim == null || oddsDim.Length < 1)
             {
-                Why = "the prefill graph gives "
-                      + (oddsDim == null || oddsDim.Length < 1
-                         ? "no shape for its odds"
-                         : oddsDim[0] + " rows of odds, and this drives 1 or 2");
+                Why = "the prefill graph gives no shape for its odds";
                 return;
             }
-            _rows = oddsDim[0];
+            // A DYNAMIC ROW COUNT IS NOT A BROKEN ONE, and refusing it kept
+            // the game from opening the very graphs whose voice Jafar
+            // approved twice.
+            //
+            // The no-guidance export drives ONE row where the guided one
+            // drove two, and onnx marks that dimension dynamic rather than
+            // concrete — so the declared shape reads -1, this refused, and
+            // `SpeechBench` could not even open the backend. The refusal was
+            // right in spirit (a wrong row count is correct-sounding speech
+            // saying something else) and wrong in method: it trusted
+            // METADATA, which is a claim, over the tensor, which is the fact.
+            //
+            // So a concrete 1 or 2 is still taken at its word, a concrete
+            // anything-else is still refused, and an UNKNOWN count is
+            // resolved the first time the graph actually produces odds —
+            // `Read` learns it from the array it was handed and validates it
+            // there. Until then `Rows` reports 0, which is not a guess.
+            if (oddsDim[0] == 1 || oddsDim[0] == 2) _rows = oddsDim[0];
+            else if (oddsDim[0] < 0) _rows = 0;         // dynamic: learn it later
+            else
+            {
+                Why = oddsDim[0] + " rows of odds, and this drives 1 or 2";
+                return;
+            }
             if (!_prefill.OutputMetadata.ContainsKey("logits"))
             { Why = "the prefill graph has no 'logits': it is an old export, "
                     + "and lines from it start a word or two in"; return; }
@@ -357,6 +380,23 @@ namespace Ledger.Game
             {
                 if (v.Name != "logits") continue;
                 var t = v.AsTensor<float>();
+                // THE ROW COUNT, LEARNED FROM THE TENSOR when the graph
+                // would not declare it. `_rows == 0` means the export left
+                // the dimension dynamic; the produced odds are the fact,
+                // and a count that is neither 1 nor 2 is refused HERE with
+                // the same reasoning `Open` used to apply — a wrong row
+                // count is correct-sounding speech saying something else.
+                if (_rows == 0 && t.Dimensions.Length > 0)
+                {
+                    int seen = t.Dimensions[0];
+                    if (seen != 1 && seen != 2)
+                    {
+                        Why = "the graph produced " + seen
+                              + " rows of odds, and this drives 1 or 2";
+                        return false;
+                    }
+                    _rows = seen;
+                }
                 int n = Math.Min(logits.Length, (int)t.Length);
                 for (int k = 0; k < n; k++) logits[k] = t.GetValue(k);
                 // A SHORT READ IS A FAILURE, NOT A PARTIAL SUCCESS. Half a
