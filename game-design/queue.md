@@ -47,8 +47,20 @@ drives the real `T3.inference` and compares.**
 
 **NEXT, IN ORDER:**
 
-1. **STREAMING IS BUILT AND PROVEN EXACT — the ear and the flow's cost
-   are what remain (13 Aug, chunks-7).** The chunk graph now IS the
+1. **THE SEAMS FAIL THE EAR — Jafar, 13 Aug: "Thursday" doubles at a
+   stitch. Measured in the delivered wav: divergence clusters at the
+   three seams and the stitched copy carries ~1.5x the energy there —
+   a word overlapped with its shifted twin.** Structural, not a caller
+   bug: the flow graph is FULL ATTENTION, so a chunk's mels genuinely
+   change when more tokens arrive, and no crossfade blends two
+   different takes into one word. The exactness proof covered the
+   final call only. THE PREREQUISITE for streaming is a flow export
+   with upstream's CHUNKED attention mask (provisional == final by
+   construction). Streaming stays banked; lines play whole, which
+   Sustainable already enforces on this card.
+
+1. **STREAMING'S MACHINERY IS BUILT AND PROVEN EXACT (13 Aug,
+   chunks-7).** The chunk graph now IS the
    whole-line function to 0.0e+00 (first call carries nothing; 8-mel seam
    rides in after; caller crossfades over the holdback), all four chunks
    ran on DirectML — the zero-length fear from chunks-2 was never true —
@@ -71,23 +83,14 @@ drives the real `T3.inference` and compares.**
    activations, not noise (the random small model read 0.1%; wrong
    distribution again). The three-segment wav is on the PC; segment
    three will sound broken and is labeled. The streaming wall now
-   waits on the STEP-RATE levers (position-slope probe, no-guidance
-   retest) and on the morning's ear verdict for the fp32 seams.
+   waits on the STEP-RATE levers.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
-
-- **HEAT FADES AND NOBODY KNOWS WHY — instrumented, awaiting the build.**
-  A daily series now samples pressure with its parts (live witnesses, best
-  confidence, relief); Manhunt-to-Procedure names its falling term next
-  run that files a body.
 
 - **CLOSED 13 Aug — THE SUCCESSION COMPLETED, Ending.Quiet reached for
   the first time; confirmed across three consecutive builds.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
-
-0. **CLOSED 13 Aug — `law`'s rare red: the unplanted SEER. Planted from
-   the mill; confirmed green next build. First diagnosis was wrong.**
 
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
