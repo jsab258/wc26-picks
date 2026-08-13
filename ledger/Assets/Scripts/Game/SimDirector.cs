@@ -10462,6 +10462,7 @@ namespace Ledger.Game
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
                       $"tposeBodies={CharacterRig.TposeBodies} " +
                       $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
+                      $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
                       // AND THE WIDEST BODY, because both of the above are

@@ -902,6 +902,18 @@ namespace Ledger.Game
                             if (_tposeWho.Count < 4
                                 && !_tposeWho.Contains(name))
                                 _tposeWho.Add(name);
+                            // The drive-state AT COUNT TIME, first body
+                            // only — driven?, speed, seeded?, bought? is
+                            // the fork between "no idle clip", "never
+                            // seeded", and "procedural rest pose", and
+                            // one token converts the hunt into a read.
+                            if (TposeWhy == "none")
+                                TposeWhy = name
+                                    + ":driven" + (PoseIsDriven ? 1 : 0)
+                                    + "/spd" + Speed.ToString("0.0")
+                                    + "/seed" + (_phaseSeeded ? 1 : 0)
+                                    + "/bought" + (IsTheBoughtBody ? 1 : 0)
+                                    + "/drop" + mine.ToString("0.0");
                         }
                     }
                 }
@@ -1077,6 +1089,7 @@ namespace Ledger.Game
         /// a hold that starts within three seconds of this rig enabling is
         /// the grant hiccup; later is somebody genuinely standing wrong.
         public static int TposeAtGrant;
+        public static string TposeWhy = "none";
         public static int ArmFrames => _armMedians.Count;
 
         /// Fold this frame's samples into one median and start the next.
