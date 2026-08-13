@@ -104,14 +104,14 @@ would notice, whatever state anything else is in.
    still. Both bucket stories void. Corrected to hold above 75; the
    pink still is the only real evidence until the recount lands.**
 
-1. **THE HEAT FADE IS SOLVED AND IT IS A PERSISTENCE BUG.** The daily
-   diary (8520994): pressure 4.0, thirteen live witnesses at confidence
-   1.00 through day 14 — then day 17 reads ZERO witnesses, zero
-   confidence, pressure 0.40 (bodies only). Days 15-16 are missing:
-   the FALL'S TIME SKIP is where the witness pool dies. Not ageing,
-   not relief — the skip wipes them, in a game scoring itself 95 on
-   persistence. Find what the skip does to the mill (agents pruned?
-   `alive` filter?) and make surviving witnesses keep what they know.
+1. **CLOSED 13 Aug — THE HEAT FADE WAS THE FALL'S OWN WIPE.** The
+   diary's fork read N19: agents intact, no rumour at all — and the one
+   mechanism without an alibi was ApplyTheFall's reset of every
+   player-subject rumour, which took the indelible killing memories
+   with the street talk. The wipe now respects Indelible: doing time
+   resets what the street SAYS, never what a witness SAW. The next
+   run's day-17 line is the proof (witnesses held, Manhunt persisting
+   through the Fall).**
 
 1. **THE NAMEPLATE DECLUTTER MAY BE VINDICATED.** The walk's kind
    census: speech bubbles and uniquely-named STREET-SIGN plates —

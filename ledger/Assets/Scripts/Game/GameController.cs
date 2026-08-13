@@ -1555,7 +1555,17 @@ namespace Ledger.Game
             foreach (var h in _hosts) if (h != null && h.Card != null) principals.Add(h.Card.Name);
             foreach (var a in _gossip.Mill.Agents)
             {
-                a.Rumors.RemoveAll(r => r.Content.Subject == "player");
+                // EXCEPT THE INDELIBLE ONES. This wipe is the Fall's design
+                // — you did time, the street's TALK about you resets — and
+                // for five days it also erased every eyewitness's memory of
+                // a KILLING, because those facts are filed under "player"
+                // too. Found by the heat diary: nineteen witnesses at full
+                // confidence on day 14, agents intact on day 17 with no
+                // rumour at all, and the one mechanism with no alibi was
+                // this line. The homicide design's own words say a body
+                // cannot be denied; it cannot be sat out either.
+                a.Rumors.RemoveAll(r => r.Content.Subject == "player"
+                                        && !r.Indelible);
                 a.Knowledge.Learn(didTime);
                 a.Loyalty = System.Math.Clamp(a.Loyalty - 0.15, 0, 1);
                 a.Suspicion.Restore(0.2); // nothing left to suspect — they know
