@@ -424,7 +424,29 @@ def pad_sine(torch, sine, mels=MEL_CACHE):
 
 @contextlib.contextmanager
 def chunked_attention(flow, chunk_tokens, parts="both"):
-    """UPSTREAM'S STREAMING ATTENTION, SWITCHED BACK ON FOR THE TRACE.
+    """UPSTREAM'S STREAMING ATTENTION — TRIED, MEASURED, REJECTED BY EAR.
+
+    KEPT SO NOBODY REPEATS IT. Jafar heard "Thursday" spoken twice AT
+    THE SAME TIME — overlapped, not repeated — at a seam. The diagnosis
+    was full attention: a chunk's mels keep changing as later tokens
+    arrive, so the crossfade blends two different takes of one word.
+    This switches on the streaming attention the vendored package still
+    carries, and on the small model it works exactly: a provisional
+    chunk's mels become bit-identical to their final selves (0.0e+00
+    against 0.27 unmasked), which is the doubling made impossible.
+
+    ON THE SHIPPED WEIGHTS IT FAILED BOTH WAYS. The rendered line moved
+    1.8 of full scale from the whole-line graph, and the ear's verdict
+    on that render was: the doubling is STILL THERE, and the voice is
+    now slightly robotic and distorted. So the weights do not support
+    block attention — they were trained offline-only, whatever
+    machinery the code retains — and the doubling has a second cause
+    this never touched. Streaming needs a model trained for it, not
+    more surgery on this one.
+
+    Left applied nowhere. The next person to think "the library has a
+    streaming mode, just turn it on" gets this paragraph instead of a
+    day.
 
     The vendored flow calls its encoder with full attention — the
     `streaming=` argument is literally commented out in flow.py — and that
@@ -590,11 +612,11 @@ def export_chunk(torch, flow, gen, args, dest, steps=10,
             "prompt_feat": {1: "pmel"}, "z": {2: "mel"},
             "sine_noise": {2: "smp"}, "cache_source": {2: "src"},
             "cache_mel": {2: "cmel"}, "wav": {1: "smp"}}
-    # THE TRACE CARRIES THE CHUNKED MASK, which is the whole fix for the
-    # doubled word: inside this block the encoder attends within
-    # 24-token blocks, so a provisional chunk's mels ARE their final
-    # ones and the crossfade joins two takes of the same performance.
-    with chunked_attention(flow, chunk_tokens), torch.no_grad():
+    # THE MASK IS NOT APPLIED — see `chunked_attention`'s verdict. It was
+    # tried, exported, and judged by the ear that found the fault:
+    # the doubling SURVIVED and the voice went robotic. Both halves of
+    # that answer matter and neither is visible in any number here.
+    with torch.no_grad():
         torch.onnx.export(dec, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names,
                           output_names=["wav", "source", "mel_tail"],
@@ -854,8 +876,7 @@ def selftest():
             # check below would pass against a graph with NO chunking in
             # it — a guard exercising nothing while reporting green,
             # which is the failure this file's rules name twice.
-            export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx",
-                         chunk_tokens=SELFTEST_CHUNK)
+            export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx")
     except Exception as e:
         ok, why = False, f"{type(e).__name__}: {e}"
     check(ok, "the CHUNK graph converts — mel offset, an 8-mel seam ride-in "
@@ -912,9 +933,11 @@ def selftest():
         # tolerance here. What must still hold is that the two are the
         # same SIZE and the same performance rather than two takes: a
         # few percent is block attention, half is a different rendering.
-        check(dw < 0.1, f"and stays a block-attention variation of the "
-              f"whole-line answer, not a different take ({dw:.1e})",
-              f"{dw:.2e}")
+        # BACK TO 1e-3 with the mask unapplied: the chunk graph computes
+        # the whole-line function again, so exactness is the right claim
+        # and a loose bound would hide a real regression.
+        check(dw < 1e-3, f"and IS the whole-line answer from sample 480, "
+              f"to {dw:.1e}", f"{dw:.2e}")
         check(sc.shape[2] == SRC_CACHE and mt.shape[2] == MEL_CACHE,
               "and both tails are their fixed seam sizes",
               f"src {sc.shape} mel {mt.shape}")
@@ -1221,63 +1244,6 @@ def cmd_run(force=False, steps=4):
         return 1
     print(f"  (block attention moves the render by {dwhole:.1e} against the "
           f"whole-line graph — the price of streaming, for the ear to judge)")
-
-    # AND THE INVARIANT THE WHOLE MASK EXISTS FOR, on the real weights:
-    # a provisional chunk's mels must equal their final selves, or a word
-    # gets said twice at the seam. The small model proves the mechanism;
-    # this proves the shipped one, and prints the unmasked control beside
-    # it so a pass cannot be a trivially stable geometry.
-    try:
-        # `ahead` IS DEFINED BELOW THIS BLOCK, and the first version read
-        # it here — an UnboundLocalError that the surrounding try turned
-        # into one printed line nobody's eye caught, so the check this
-        # whole change exists to run did not run at all and the export
-        # still said finished. A guard that cannot fail loudly is the
-        # fault this project keeps paying for; it is computed here now.
-        aheadm = (model.s3gen.flow.pre_lookahead_len
-                  * model.s3gen.flow.token_mel_ratio)
-        zr, sr = draw(torch, P, pfeat.shape[1], T, 31)
-        pvr = CHUNK_TOKENS * 2
-
-        def rmels(n_vis, blk):
-            hl = MELS_PER_TOKEN * (P + n_vis)
-            with torch.no_grad(), chunked_attention(model.s3gen.flow, blk), \
-                    dynamic_flow(torch), dynamic_cfm(torch), \
-                    noise_from(torch, [zr[:, :, :hl]]):
-                m, _ = model.s3gen.flow.inference(
-                    token=tok[:, :n_vis], token_len=torch.tensor([n_vis]),
-                    prompt_token=ptok, prompt_token_len=torch.tensor([P]),
-                    prompt_feat=pfeat, prompt_feat_len=None,
-                    embedding=emb, finalize=True, n_timesteps=steps)
-            return m
-
-        kr = MELS_PER_TOKEN * (P + pvr) - aheadm - pfeat.shape[1]
-        if kr > 0 and T > pvr:
-            a1 = rmels(pvr, CHUNK_TOKENS)[:, :, :kr]
-            b1 = rmels(T, CHUNK_TOKENS)[:, :, :kr]
-            a0 = rmels(pvr, 10 ** 6)[:, :, :kr]
-            b0 = rmels(T, 10 ** 6)[:, :, :kr]
-            sc1 = max(float(np.abs(b1.numpy()).max()), 1e-12)
-            dm = float(np.abs((a1 - b1).numpy()).max()) / sc1
-            d0 = float(np.abs((a0 - b0).numpy()).max()) \
-                / max(float(np.abs(b0.numpy()).max()), 1e-12)
-            print(f"  provisional-vs-final mels on the REAL model over "
-                  f"{kr}: chunked {dm:.1e} vs unmasked {d0:.1e}")
-            if dm > 1e-4:
-                print("  REFUSED: a provisional chunk still differs from "
-                      "its final self — the doubled word would return.")
-                stamp(f"FAILED — provisional-vs-final {dm:.1e}")
-                return 1
-        else:
-            print(f"  (line too short to test the invariant: {T} tokens)")
-    except Exception as e:
-        # AND IT REFUSES RATHER THAN SHRUGGING. The whole point of this
-        # export is the invariant; an export that ships without having
-        # checked it is the doubled word coming back silently.
-        print(f"  REFUSED: the invariant check could not run — "
-              f"{type(e).__name__}: {e}")
-        stamp(f"FAILED — invariant unrun: {type(e).__name__}")
-        return 1
 
     # AND A REAL TWO-CHUNK RENDER, run the way the game will run it: a
     # first chunk on the empty seam, then the final riding its tails.

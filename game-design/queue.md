@@ -47,47 +47,29 @@ drives the real `T3.inference` and compares.**
 
 **NEXT, IN ORDER:**
 
-1. **THE SEAMS FAIL THE EAR — Jafar, 13 Aug: "Thursday" doubles at a
-   stitch. Measured in the delivered wav: divergence clusters at the
-   three seams and the stitched copy carries ~1.5x the energy there —
-   a word overlapped with its shifted twin.** Structural, not a caller
-   bug: the flow graph is FULL ATTENTION, so a chunk's mels genuinely
-   change when more tokens arrive, and no crossfade blends two
-   different takes into one word. The exactness proof covered the
-   final call only. THE PREREQUISITE for streaming is a flow export
-   with upstream's CHUNKED attention mask (provisional == final by
-   construction). Streaming stays banked; lines play whole, which
-   Sustainable already enforces on this card.
+1. **STREAMING IS CLOSED AS UNREACHABLE ON THESE WEIGHTS — 13 Aug,
+   two ear verdicts and a measurement.** Jafar heard "Thursday" spoken
+   twice AT THE SAME TIME (overlapped, not repeated) at a seam. The
+   diagnosis was full attention: a chunk's mels keep changing as later
+   tokens arrive, so the crossfade blends two takes of one word. The
+   vendored package still carries upstream's streaming attention, and
+   on the small model switching it on works EXACTLY — a provisional
+   chunk's mels become bit-identical to their final selves (0.0e+00
+   against 0.27). On the shipped weights it failed both ways at once:
+   the render moved 1.8 of full scale, the doubling SURVIVED, and the
+   voice went robotic. So these weights are offline-trained whatever
+   the code retains, AND the doubling has a second cause the mask
+   never touched. The mask is unapplied; the finding is in
+   `chunked_attention`'s docstring so nobody spends a day rediscovering
+   it. **Streaming needs a model trained for it. It also buys nothing
+   today** — five chunks cost 7.9s against the whole line's 1.7s, so
+   `Sustainable` refuses it on this card regardless. Lines play whole,
+   which is what a player already hears.
 
-1. **STREAMING'S MACHINERY IS BUILT AND PROVEN EXACT (13 Aug,
-   chunks-7).** The chunk graph now IS the
-   whole-line function to 0.0e+00 (first call carries nothing; 8-mel seam
-   rides in after; caller crossfades over the holdback), all four chunks
-   ran on DirectML — the zero-length fear from chunks-2 was never true —
-   and `chunked.wav` awaits Jafar's ear: whole line, a breath, the same
-   line in four pieces. The game side is wired end to end (follower,
-   worker, pump, fallback). THE WALL: each chunk re-renders the whole
-   flow, ~1.5s a call, so four chunks cost 5.97s against the whole
-   line's 1.72s — at today's rates `Sustainable` will correctly refuse
-   to stream and fall back whole. The lever is fp16 on the flow half
-   (`convert-fp16.py` exists; the step graph took it), then chunk-size
-   tuning on the measured curve. TTFS today ≈ prefill 0.3 + 24 tokens'
-   steps 0.6 + first chunk 1.39 ≈ 2.3s, against ~5.3s whole — the
-   arithmetic already pays IF the seams pass the ear and fp16 pulls the
-   per-chunk cost under the audio it yields.
-
-   **THE FP16 LEVER IS DEAD, measured (chunks-10, 13 Aug):** 5.78s
-   against 5.97s on the identical plan — the flow is not width-bound
-   under DirectML on this card — and the fp16 waveform sits 141% of
-   full scale from fp32, which is overflow in the trained vocoder's
-   activations, not noise (the random small model read 0.1%; wrong
-   distribution again). The three-segment wav is on the PC; segment
-   three will sound broken and is labeled. The streaming wall now
-   waits on the STEP-RATE levers and the morning seam verdict.
-   **NO-GUIDANCE APPROVED BY EAR, 13 Aug** — Jafar heard the five-line
-   two-voice file and passed it, so the single-row graphs ship: every
-   line ~40% faster (29ms/step against 41 guided). back-to-guidance
-   stays one job away if a longer session ever shows drift.
+1. **The streaming machinery itself stays built and correct** — plan,
+   seam algebra, follower, worker, pump, fallback, all tested — banked
+   against the day a streaming-trained model or a faster card makes it
+   worth switching on.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
