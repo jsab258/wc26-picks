@@ -1925,6 +1925,7 @@ namespace Ledger.Game
                       + $" namesManagedSeen={_namesManagedSeen}"
                       + $" namesManagedCulled={_namesManagedCulled}"
                       + $" textPersonLabels={_textPersonLabels}"
+                      + $" textWalkKinds=[{TextWalkKindsTop()}]"
                       + $" textNoRect={_textNoRect}");
         }
 
@@ -3008,6 +3009,17 @@ namespace Ledger.Game
                 // means this loop and the still are looking at different
                 // moments, which is a different fault from a broken set.
                 if (t.GetComponentInParent<NpcWalker>() != null) personLabels++;
+                // AND WHAT THE WALKED MESHES ARE, BY NAME — because
+                // `textPersonLabels=0` beside `nameTagsActive=43` in one
+                // verdict means one of two moments is lying, and a census
+                // of object names settles it in one build: if no "Label"
+                // appears among the walked names, the walk really does run
+                // in moments where every walker label is switched off, and
+                // the heap in the stills belongs to some other object.
+                var kind = t.gameObject.name;
+                int have;
+                _textWalkKinds.TryGetValue(kind, out have);
+                _textWalkKinds[kind] = have + 1;
                 var r = t.GetComponent<Renderer>();
                 if (r == null || !InView(cam, r)) { invisible++; if (managed) managedCulled++; continue; }
                 // THE SAME PROJECTION THE DECLUTTER USES. A gate and the thing
@@ -3319,6 +3331,21 @@ namespace Ledger.Game
         /// street plate or a bubble. The denominator `namesManagedSeen` needs
         /// before a zero there can mean anything.
         int _textPersonLabels = -1;
+        /// What the text walk's meshes ARE, by object name, accumulated
+        /// over every walk — the census that says whether a walker label
+        /// has EVER been walked, which two peak counters from different
+        /// moments could not.
+        readonly Dictionary<string, int> _textWalkKinds =
+            new Dictionary<string, int>();
+        string TextWalkKindsTop()
+        {
+            var pairs = new List<KeyValuePair<string, int>>(_textWalkKinds);
+            pairs.Sort((x, y) => y.Value.CompareTo(x.Value));
+            var top = new List<string>();
+            for (int i = 0; i < pairs.Count && i < 4; i++)
+                top.Add(pairs[i].Key + ":" + pairs[i].Value);
+            return top.Count > 0 ? string.Join("/", top.ToArray()) : "none";
+        }
         /// The three rejections, so `walked` and `projected` add up. A gap
         /// between two counts with nothing naming it is an invitation to guess,
         /// and the last three readings of this metric were guesses.
