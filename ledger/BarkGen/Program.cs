@@ -212,16 +212,30 @@ static class Program
     }
 
     /// game-design/barks.json, found by walking up from wherever we are.
-    static string DefaultManifestPath()
+    static string DefaultManifestPath() { return InGameDesign("barks.json"); }
+
+    /// game-design/&lt;name&gt;, found by walking up from wherever we are.
+    ///
+    /// SHARED BECAUSE THE SPLIT VERSION SHIPPED THE BUG TWICE. The comment on
+    /// `--names` below used to be this function's whole story: a bare
+    /// "barks.json" landed wherever the shell was standing, the tracked copy
+    /// went stale, and CLAUDE.md rule 3 has it as a named incident. That got
+    /// fixed for the manifest and NOT for `--names`, which kept the bare
+    /// default for weeks — one idea, two implementations, and the one nobody
+    /// looked at is the one missing the line. Found 13 August when a
+    /// regenerated `bark-names.json` appeared at the repository root,
+    /// untracked, while the tracked one still held the old text and the
+    /// render plan therefore reported nothing to do.
+    static string InGameDesign(string name)
     {
         var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (dir != null)
         {
             var candidate = Path.Combine(dir.FullName, "game-design");
-            if (Directory.Exists(candidate)) return Path.Combine(candidate, "barks.json");
+            if (Directory.Exists(candidate)) return Path.Combine(candidate, name);
             dir = dir.Parent;
         }
-        return "barks.json";   // not in the repo — behave as before
+        return name;   // not in the repo — behave as before
     }
 
     // -----------------------------------------------------------------
@@ -506,7 +520,7 @@ static class Program
     {
         int at = Array.IndexOf(args, "--names");
         string outPath = at + 1 < args.Length && !args[at + 1].StartsWith("-")
-            ? args[at + 1] : "bark-names.json";
+            ? args[at + 1] : InGameDesign("bark-names.json");
 
         var barks = Path.Combine("..", "..", "game-design", "barks.json");
         if (!File.Exists(barks)) barks = Path.Combine("game-design", "barks.json");

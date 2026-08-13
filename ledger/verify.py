@@ -643,7 +643,16 @@ def slop():
 # context window. Neither was the instrument. 93 is what the instrument says,
 # and the instrument is what the ceiling tracks — which is the whole argument
 # for having one.
-SLOP_CEILING = 91
+# 91 -> 88 ON 13 AUGUST, AND THE THREE CAME OFF THE BARK BANK RATHER THAN
+# THE BACKLOG. Four bark lines had been edited to carry em dashes; the bank
+# they are enumerated into was stale, so `strings_from_barks` read the OLD
+# punctuation and scored the bank at zero while the code sat at four. A stale
+# artefact hid a violation from the guard that owns it, and the same staleness
+# orphaned four recordings — one cause, two guards blind, neither able to see
+# the other. Regenerating showed the bank at 4, and taking the dashes back out
+# of `StreetVoice` fixed both at once: the bank returns to zero, the 2,010
+# clips are correct again, and nothing needs re-rendering.
+SLOP_CEILING = 88
 
 
 def voice_live():
@@ -749,6 +758,63 @@ def voice_gen():
         return True, "voice-gen ok (%s checks, %s-line batch)" % (n, renders)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
     return False, "VOICE GEN: " + (bad[0][:90] if bad else "did not report")
+
+
+def barks_current():
+    """The bark bank must still be the lines the code actually speaks.
+
+    THREE RECORDINGS WERE DELETED BY A PUNCTUATION PASS AND NOTHING SAID SO.
+    `barks.json` is not authored — its own header says "enumerated from
+    Core/StreetVoice.cs" — and `VoiceBank.ClipName` keys a clip by (voice,
+    EXACT text). So changing "Sorry, in a hurry." to "Sorry — in a hurry."
+    does not edit a recording, it orphans one and asks for a clip that was
+    never rendered. Found 13 August from the other end: a build reported
+    seven misses that were not composed lines, and all of them were this.
+
+    The cause is worth naming because it will recur. `slop()` above exists to
+    drive em dashes OUT of player-facing text, and it worked — somebody
+    edited four bark lines to satisfy it. Two guards, pulling on the same
+    strings, and the one that owns the audio had no idea the other existed.
+
+    So: run the enumerator into a temporary file and compare. Naming the
+    drifted lines matters more than the count, because the fix differs — a
+    reworded line needs rendering, a line deleted from the code needs its
+    clips retiring, and a count of four cannot tell you which you have.
+    """
+    import json
+    import tempfile
+    barks = ROOT.parent / "game-design" / "barks.json"
+    if not barks.exists():
+        return False, "BARKS: game-design/barks.json is missing"
+    with tempfile.TemporaryDirectory() as tmp:
+        fresh = pathlib.Path(tmp) / "barks.json"
+        code, out = run(["dotnet", "run", "-c", "Release",
+                         "--project", str(ROOT / "BarkGen"), "--", str(fresh)])
+        if code != 0 or not fresh.exists():
+            return False, "BARKS: the enumerator did not run — " + out[-90:].strip()
+        try:
+            was = json.loads(barks.read_text(encoding="utf-8"))
+            now = json.loads(fresh.read_text(encoding="utf-8"))
+        except ValueError as e:
+            return False, "BARKS: unreadable — %s" % e
+
+    def lines_of(doc):
+        out = set()
+        for slot in doc.get("slots", []):
+            for line in slot.get("lines", []):
+                out.add(" ".join(line.split()))
+        return out
+
+    committed, current = lines_of(was), lines_of(now)
+    added, dropped = current - committed, committed - current
+    if added or dropped:
+        first = sorted(added)[0] if added else sorted(dropped)[0]
+        return False, ("BARKS: %d line(s) in the code are not in the bank and "
+                       "%d in the bank are no longer spoken — their clips are "
+                       "orphaned and the new ones have none. Re-run "
+                       "`dotnet run --project ledger/BarkGen` and render. "
+                       "First: %s" % (len(added), len(dropped), first[:60]))
+    return True, "barks current (%d lines enumerated, 0 drifted)" % len(current)
 
 
 def voice_cast():
@@ -1014,7 +1080,7 @@ def main():
     args = ap.parse_args()
 
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
+    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,

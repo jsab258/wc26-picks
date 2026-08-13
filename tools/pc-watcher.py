@@ -223,10 +223,38 @@ TABLE = {
     # the model's ceiling for this voice, and only the C# one poor is the C#
     # path. Nothing here re-exports, so the graphs it judges are the ones the
     # bench used.
+    # WHATEVER THE BANK IS SHORT, WHICH TODAY IS NOTHING. Written when four
+    # bark lines had drifted and 24 clips were missing; the fix turned out to
+    # be removing the em dashes from `StreetVoice` rather than rendering text
+    # that breaks the house style, so the shortfall closed without this
+    # running. Kept because `barks_current` can go red again for a legitimate
+    # reason — a line genuinely reworded — and then this is the recovery.
+    # `--all` SKIPS what is already on disk, so it renders the gap and
+    # nothing else and cannot touch what Jafar has already heard.
+    "render-the-drift": [["PY", "tools/voice-gen/ledger_voice_gen.py", "--all"]],
     "ab-the-same-line": [["PY", "tools/voice-live/speak.py",
                           "--voice", "rocco",
                           "--text",
                           "Seen the van again. Thursday, same as last Thursday."]],
+    # EVERYTHING JAFAR NEEDS TO SETTLE "SLIGHTLY ROBOTIC", IN ONE ROUND TRIP.
+    #
+    # The batching rule: a wait costs the same whether it carries one step or
+    # three, and asking for these separately is three waits and two chances to
+    # forget the next one. The bench speaks five awkward lines across three
+    # voices, then `speak.py` renders one of those same lines twice more —
+    # chatterbox's own generate() as the control, and our python loop. Seven
+    # takes, one listen, and the comparison is against files rather than
+    # against a memory of a different sentence from days ago.
+    #
+    # NO EXPORT STEP, deliberately. The graphs on that machine are the ones
+    # the last bench used and the ones `ledger.rows` is stamped into;
+    # re-exporting would change the thing being judged in the same run that
+    # judges it.
+    "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
+                        ["PY", "tools/voice-live/speak.py",
+                         "--voice", "rocco",
+                         "--text",
+                         "Seen the van again. Thursday, same as last Thursday."]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
@@ -430,7 +458,16 @@ def publish(root, say, message):
                 "game-design/voice-live/chunk-report.txt",
                 "game-design/voice-live/export-report.txt",
                 "game-design/voice-live/shape-report.txt",
-                "game-design/voice-live/step-report.txt"]
+                "game-design/voice-live/step-report.txt",
+                # THE BANK ITSELF, and it is a directory rather than a file
+                # because a render produces clips whose NAMES are hashes of
+                # the words — so nobody can list them in advance, which is the
+                # whole point of naming a clip after what it says. It is
+                # tracked, it holds nothing but bank output, and `git add` on
+                # a path is not the wildcard the comment below forbids: that
+                # incident was `git add -A` from the repository ROOT, which
+                # swept up an untracked Python environment.
+                "ledger/Assets/StreamingAssets/Audio/Voice"]
     here = [f for f in produced if (root / f).exists()]
     if not here:
         say("  the job produced none of the files it can publish")

@@ -46,18 +46,13 @@ now: opening moved off the main thread.
 
 **THE C# SIDE HAS NOW MADE A SOUND — 13 Aug, `csharp-speaks-3`.** For
 the whole project until this run, `speechStarted=0 speechSpoken=0` in
-every recorded verdict and `speechNoModel` in the dozens: the game had
-asked for live speech and been refused for want of a model every time,
-because no build ever had one, and Python driving the graphs is not the
-game driving them. `SpeechBench` now opens `OnnxSpeech` — the game's own
-backend class — and runs `SpeechLoop.Run`, the game's own decision loop,
-against the real graphs on the RX 6700:
-
-    loop stop=Finished tokens=80 steps=81 seconds=1.57 usable=True
-    decoded 76800 samples = 3.20s of speech in 2.80s
-
-3.2s of audio for 4.37s of work, and it is a real waveform: peak 27857,
-rms 2702, 43% near-silence, which is what speech with pauses looks like.
+every recorded verdict: the game had asked for live speech and been
+refused for want of a model every time, and Python driving the graphs is
+not the game driving them. `SpeechBench` opens `OnnxSpeech` and runs
+`SpeechLoop.Run` — the game's own class, the game's own loop — against
+the real graphs on the RX 6700: `stop=Finished tokens=80 steps=81`,
+76800 samples, 3.2s of audio for 4.37s of work, and a real waveform
+(peak 27857, rms 2702, 43% near-silence).
 Awaiting Jafar's ears — it speaks Rocco's Thursday line, the same one he
 approved whole and rejected streamed, so the doubling fault has a direct
 comparison.
@@ -121,11 +116,24 @@ social memory remembers, which is the moat — **can only ever be voiced
 live.** That is not a scope decision to take; it is what the pipeline
 is, and it is why live speech is load-bearing rather than a garnish.
 
-**THE NUMBER NOW SAYS WHICH KIND OF MISS IT IS.** `speechNoClip` kept
-its meaning and its landed series; `speechNoClipComposed` is the share
-that could never have been rendered, carried on `SpokenLine.Composed`
-from the one site that composes. What is left is the real backlog, and
-until a run lands nobody knows how big it is — it may well be zero.
+**THE NUMBER NOW SAYS WHICH KIND OF MISS IT IS, AND THE REAL BACKLOG IS
+FOUR LINES.** `56610d6` landed it: `speechNoClip=38` of which
+`speechNoClipComposed=31`, so 82% of the misses can never be recorded
+and **seven were real**. All seven are one fault. `barks.json` is
+enumerated from `StreetVoice.cs` and `ClipName` keys on EXACT text, so
+when four bark lines were edited to satisfy the slop check — three
+commas and full stops becoming em dashes — each edit orphaned six
+recordings and asked for six that were never made. Two guards pulling on
+the same strings, and the one that owns the audio did not know the other
+existed.
+
+Fixed and guarded: `barks.json` and `bark-names.json` regenerated,
+`barks_current()` in `verify.py` runs the enumerator and fails the commit
+naming any drifted line (tested both ways), and `render-the-drift` makes
+the 24 clips on Jafar's machine — `--all` skips the 1,986 already there.
+**And `--names` had been writing to whatever directory the shell stood
+in**, the exact fault fixed for the manifest weeks ago and never applied
+to its sibling, which is why the render plan said nothing to do.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -156,24 +164,16 @@ until a run lands nobody knows how big it is — it may well be zero.
    shows plates do not stack from player height.)
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
-   Latest split: game 16.7ms against its 12ms budget — bodyLod 3.8,
-   traffic 3.6, npcs 3.0, mix 2.3, rigs 2.0. bodyLod is a once-a-second
-   FULL pass (spike, not steady cost) — spreading it round-robin is the
-   obvious move BUT its verdict counters assume one atomic pass
-   (duplication, injury, primitive counts per sweep); split the
-   measurement from the sweep before splitting the sweep, or every
-   count becomes a peak over partial passes. CI timings are the wrong
-   machine for tuning; treat this as spike-shape work, verified on the
-   PC.
-
-   `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the newest.
-   Everything else is quiet — `perf` last failed a run ago, nothing else in
-   sixteen.
-
    **Read the breakdown, not the mean.** `mean=483.7ms` is a software
    rasteriser and says nothing; `game=17.55ms` against `gameBudget=12ms` is a
-   46% overrun in OUR code and it is a real number on a real machine.
+   46% overrun in OUR code and a real number on a real machine.
    `bodyLod=4.39 traffic=3.72 sun=3.15 npcs=2.77 rigs=2.06 population=1.32`.
+   `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the
+   newest; everything else is quiet. bodyLod is a once-a-second FULL pass
+   (spike, not steady cost) — spreading it round-robin is the obvious move
+   BUT its verdict counters assume one atomic pass, so split the measurement
+   from the sweep first or every count becomes a peak over partial passes.
+   CI timings are the wrong machine for tuning: verify on the PC.
 
    **`sun=3.15ms` is the odd one and is not an obvious loop** — `UpdateSun`
    has none, so it is Unity-side light or shadow work being triggered every
