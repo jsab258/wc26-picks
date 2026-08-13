@@ -64,22 +64,27 @@ drives the real `T3.inference` and compares.**
    arithmetic already pays IF the seams pass the ear and fp16 pulls the
    per-chunk cost under the audio it yields.
 
-   **THE FP16 JOB, CONCRETELY:** extend `convert-fp16.py`'s tuple with the
-   two s3gen graphs writing `-fp16.onnx` BESIDE the fp32 (the A/B must
-   stay explicit), teach `hear-chunks.py` to read each session's input
-   dtype and cast its feeds (z, sine, caches go float16), and write a
-   THIRD segment into the wav — whole fp32, chunks fp32, chunks fp16 —
-   with per-chunk times for all three. One trip answers speed AND ear.
-   The converter's own selftest pattern covers the tiny-real-model half.
+   **THE FP16 LEVER IS DEAD, measured (chunks-10, 13 Aug):** 5.78s
+   against 5.97s on the identical plan — the flow is not width-bound
+   under DirectML on this card — and the fp16 waveform sits 141% of
+   full scale from fp32, which is overflow in the trained vocoder's
+   activations, not noise (the random small model read 0.1%; wrong
+   distribution again). The three-segment wav is on the PC; segment
+   three will sound broken and is labeled. The streaming wall now
+   waits on the STEP-RATE levers (position-slope probe, no-guidance
+   retest) and on the morning's ear verdict for the fp32 seams.
 
 ### STILL OPEN FROM `4e3eef3`, and the rest of that build is in roadmap-history
 
-- **HEAT FADES AND NOBODY KNOWS WHY.** `homInquiry=Manhunt` at the killing,
-  `inquiry=Procedure` at the end; `redirected=0`, so not the redirect. Rumour
-  ageing or `Pressure` reading a day. **Measure it, do not assume design.**
+- **HEAT FADES AND NOBODY KNOWS WHY — instrumented, awaiting the build.**
+  A daily series now samples pressure with its parts (live witnesses, best
+  confidence, relief); Manhunt-to-Procedure names its falling term next
+  run that files a body.
 
-- **THE SUCCESSION STOPS ONE STEP SHORT.** `joeyRuns=True`, `handed=False`:
-  `ReadySuccessor` returns a man and something after it refuses.
+- **CLOSED 13 Aug — THE SUCCESSION COMPLETED AND Ending.Quiet WAS REACHED,
+  first time in recorded history.** The audit was one-shot at an hour Joey
+  never qualified by; it now re-asks each afternoon (hard close day 15),
+  and the first build with the retry handed over on afternoon two.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -103,33 +108,13 @@ would notice, whatever state anything else is in.
    **And this loop takes `Camera.main` under a doc comment saying it measures
    against the review camera** — the second site of the fault the size cap had.
 
-1. **A CAPTION IS PAINTED ON THE ROAD, METERS TALL, AND DOUBLED.** *(on
-   screen, 57f91eb)* `review_day2_noon.jpg`: an overheard-fragment caption
-   ("… of the … but … it …") lies FLAT on the tarmac in letters the size
-   of a van. `review_day2_night.jpg`: the same system draws "… asking …
-   I … you." TWICE, two sizes, one above the other. The fragment TEXT is
-   the partial-overhear design working; the placement is broken twice
-   over — a world-space transform lying down (like the old billboard
-   maths) and a double render (a bubble and its world-text twin both
-   live?). No number sees either: `textMirrored=0` and the billboard
-   family all read healthy in this run. Find the renderer that draws
-   overhear fragments, read its transform against `SpeechBubble`'s
-   billboard fix, and add `captionsOnGround` + `captionsDoubled` counts.
-
-1. **THE b01ea7d/57f91eb CAPSULES ARE NOT WALKERS, AND THE NEW COUNTER IS
-   BLIND TO THEIR POPULATION.** *(on screen)* `walkersPrimitive=0 ... Who=[]`
-   landed and reads clean while `review_day2_noon.jpg` (both builds) shows
-   3-4 person-sized white capsules in the road. Rule 3b: the denominator
-   is `walkersPrimitiveOf=56` — the CityWalker set — so whatever spawns
-   these bodies (mill agents? the twin? dressing?) is outside it. Name
-   the population before recounting.
-
-1. **THE NIGHT REVIEW CAMERA CAN BE HALF-INSIDE A BUILDING AND THE BLOCKED
-   COUNT SAYS ZERO FOR THAT SHOT.** `review_day1_night.jpg` (57f91eb): the
-   left 40% of frame is one unlit wall at arm's length; the street shows
-   only in the right half. `shotsBlocked=1` names a different shot — the
-   aim RAY was clear, the framing is still bad. The number: fraction of
-   frame within 2m (a near-occluder fraction per shot), worst-shot named.
+1. **THREE STILL-FAULTS, ALL INSTRUMENTED 13 Aug, awaiting the build:**
+   the road-painted doubled caption (`textFlat` + worst NAME), the loose
+   white capsules (census v2 counts what each filter discards, with the
+   Animator-excluded roots named — v1 read zero with its quarry in frame),
+   and the half-inside-a-building night camera (near-occluder fraction
+   per shot, worst shot named). Each becomes a one-build question when
+   it next appears.
 
 1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
    `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
