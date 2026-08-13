@@ -88,6 +88,14 @@ drives the real `T3.inference` and compares.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
+0. **`law` IS THE NEW RARE RED (1 in 150, two runs ago), AND IT IS THE
+   UNPLANTED-CONDITION KIND.** That run's three staged denunciations all
+   landed on claims the street contradicted at 0.90 — every mark blew
+   back, correctly, and the gate read "nothing filed" as failure. The
+   staging never guarantees a credible denunciation exists that run.
+   Rule 5b's twin: stage one denounce the mill corroborates — pick from
+   the run's own eyewitnessed deeds — never loosen the gate.
+
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
