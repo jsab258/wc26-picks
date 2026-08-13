@@ -36,10 +36,20 @@ of: the vocoder converts, the loop conforms, the tokeniser conforms, 19 voices
 are precomputed and committed, the backend compiles and is constructed, and the
 graphs are audited from the files on the machine that made them.
 
-**WHAT IT COSTS, MEASURED ON HIS CARD.** 7.3 seconds of work for 3.4 seconds of
-speech, 2.1x real time — prefill 0.3s, 86 sampling steps 3.5s, decode 3.5s. And
-184 seconds to open the three sessions at startup, of which the sound decoder
-alone is 178.
+**WHAT IT COSTS, RE-MEASURED 13 AUG — and both of the numbers this
+paragraph used to carry were stale.** A line is now ~5.2s of work for 4.1s
+of speech: prefill 0.3s, 102 steps 3.3s (29ms each, the no-guidance graph
+Jafar approved), decode 1.6s. Decode halved when the four-step solver
+landed — 0.94s fixed plus 5.0ms a token, against 2.19s plus 11.4ms.
+
+**AND STARTUP IS 38s, NOT 178.** The decode session opens in 38.0s today;
+the 178 was measured before the four-step solver. What the same probe
+also settles: it is NOT DirectML (the CPU provider opens the identical
+file in 39.5s, a dead heat) and NOT graph optimisation (disabling it
+costs 59s, and a pre-optimised copy cannot be reopened at all). That
+leaves 1.3GB of weights being parsed, which has no cheap lever — and
+needs none, because opening moved off the main thread: the game starts
+instantly and gains speech partway through.
 
 **CLOSED — the missing first two words: the prefill discarded the first
 token's odds, the caller double-fed the start marker. Fixed; the check now
