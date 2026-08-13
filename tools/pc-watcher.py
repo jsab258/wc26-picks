@@ -373,6 +373,8 @@ def publish(root, say, message):
     produced = [RESULT.relative_to(ROOT).as_posix(),
                 "game-design/voice-live/speed-report.txt",
                 "game-design/voice-live/spoken.wav",
+                "game-design/voice-live/chunked.wav",
+                "game-design/voice-live/chunk-report.txt",
                 "game-design/voice-live/export-report.txt",
                 "game-design/voice-live/shape-report.txt",
                 "game-design/voice-live/step-report.txt"]
