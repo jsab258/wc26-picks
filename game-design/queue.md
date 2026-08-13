@@ -92,19 +92,17 @@ drives the real `T3.inference` and compares.**
 **The order is Jafar's, 4 August**: the top of this list is whatever a player
 would notice, whatever state anything else is in.
 
-1. **THE NAMEPLATE HEAP: the prefix census (8869d28) read 388 street
-   plates and 15 walker Labels walked — labels ARE walked and Manages
-   matched none, so the reference mismatch is real after all. Next:
-   count walked Labels in/out of the managed set with one orphan named.**
+1. **THE NAMEPLATE HEAP: 388 street plates and 15 walker labels walked,
+   Manages matched none — the orphan counter (in flight) names one.
+   SEVERITY NOTE: the heaps appear from the REVIEW camera's high
+   vantage, where plates from several junctions stack in 2D; from
+   player height they rarely can. Confirm from a player-height shot
+   before spending on a declutter for a camera no player holds.**
 
-1. **RETRACTION, 13 Aug: EVERY TPOSE NUMBER SO FAR WAS INVERTED.** The
-   latch read `ArmDropNow < 5` as near-horizontal; the function measures
-   from straight DOWN, so three builds counted bodies with HANGING arms
-   held still — the healthy street. The grant-bucket and settled-
-   scarecrow stories built on those counts are void. The latch now
-   holds above 75 (true horizontal), the drive-state token stays, and
-   the pink still remains the only real evidence until the corrected
-   count lands.
+1. **RETRACTION, 13 Aug: every tpose number so far was INVERTED — the
+   latch read `< 5` from straight DOWN, counting hanging arms held
+   still. Both bucket stories void. Corrected to hold above 75; the
+   pink still is the only real evidence until the recount lands.**
 
 1. **THE HEAT FADE IS SOLVED AND IT IS A PERSISTENCE BUG.** The daily
    diary (8520994): pressure 4.0, thirteen live witnesses at confidence

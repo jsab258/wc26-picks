@@ -7,12 +7,11 @@
 The chunk graph's selftest proves the arithmetic: lengths close, the
 lookahead trims, the seam cache is consumed. None of that says a boundary is
 INAUDIBLE, and the whole reason the seam cache exists upstream is that a
-boundary without it clicks. So this renders the sweep's nine-word line twice
-— once through the whole-line graph, once through chunks the size the game
-will stream — and writes both into one file with a gap between them. If the
-second half has ticks the first half lacks, the seams are audible and the
-chunk size or the cache handling is wrong; if the two halves sound alike,
-streaming costs nothing the ear can hear.
+boundary without it clicks. So this renders the sweep's nine-word line —
+whole, then in chunks, then (when the halved graph is on disk) in fp16
+chunks — into one file with breaths between them. If a later copy ticks or
+hisses where the first is clean, that copy's path is wrong; if they sound
+alike, the path is free.
 
 AND IT TIMES WHAT LATENCY ACTUALLY BUYS. The per-chunk seconds are printed
 as a series — first chunk first, because that number IS time-to-first-sound
