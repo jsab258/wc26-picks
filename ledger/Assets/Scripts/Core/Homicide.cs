@@ -268,7 +268,13 @@ namespace Ledger.Core
                     { if (drops != null && drops.Length > 1) drops[1]++; continue; }
                     var r = g.BestOfValue(k.TopicKey, "true");
                     if (r != null && r.Confidence >= TestimonyGrade) live.Add(id);
-                    else if (drops != null && drops.Length > 2) drops[2]++;
+                    // NO RUMOUR AT ALL and HELD-BELOW-GRADE are different
+                    // bugs wearing one count: an agent rebuilt without its
+                    // indelible memory against one whose memory genuinely
+                    // faded. xF18 could not say which; xN/xF can.
+                    else if (r == null)
+                    { if (drops != null && drops.Length > 2) drops[2]++; }
+                    else if (drops != null && drops.Length > 3) drops[3]++;
                 }
             return live;
         }
@@ -345,7 +351,7 @@ namespace Ledger.Core
         public string PressureWhy(GossipMill mill, Func<string, bool> alive = null, int today = -1)
         {
             if (_killings.Count == 0) return "none";
-            var drops = new int[3];
+            var drops = new int[4];
             var live = LiveWitnesses(mill, alive, drops);
             double best = 0;
             foreach (var k in _killings)
@@ -357,7 +363,22 @@ namespace Ledger.Core
             return $"p{Pressure(mill, alive, today):0.00}"
                  + $"/w{live.Count}/c{best:0.00}"
                  + $"/r{RedirectReliefOn(today):0.00}"
-                 + $"/xD{drops[0]}G{drops[1]}F{drops[2]}";
+                 + $"/xD{drops[0]}G{drops[1]}N{drops[2]}F{drops[3]}"
+                 + $"/mA{(mill != null ? CountAgents(mill) : 0)}"
+                 + $"/mR{(mill != null ? CountRumors(mill) : 0)}";
+        }
+
+        static int CountAgents(GossipMill mill)
+        {
+            int n = 0; foreach (var a in mill.Agents) if (a != null) n++;
+            return n;
+        }
+
+        static int CountRumors(GossipMill mill)
+        {
+            int n = 0;
+            foreach (var a in mill.Agents) if (a != null) n += a.Rumors.Count;
+            return n;
         }
 
         public Inquiry Stage(GossipMill mill, Func<string, bool> alive = null, int today = -1)
