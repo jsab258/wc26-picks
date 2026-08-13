@@ -1228,6 +1228,14 @@ def cmd_run(force=False, steps=4):
     # this proves the shipped one, and prints the unmasked control beside
     # it so a pass cannot be a trivially stable geometry.
     try:
+        # `ahead` IS DEFINED BELOW THIS BLOCK, and the first version read
+        # it here — an UnboundLocalError that the surrounding try turned
+        # into one printed line nobody's eye caught, so the check this
+        # whole change exists to run did not run at all and the export
+        # still said finished. A guard that cannot fail loudly is the
+        # fault this project keeps paying for; it is computed here now.
+        aheadm = (model.s3gen.flow.pre_lookahead_len
+                  * model.s3gen.flow.token_mel_ratio)
         zr, sr = draw(torch, P, pfeat.shape[1], T, 31)
         pvr = CHUNK_TOKENS * 2
 
@@ -1243,7 +1251,7 @@ def cmd_run(force=False, steps=4):
                     embedding=emb, finalize=True, n_timesteps=steps)
             return m
 
-        kr = MELS_PER_TOKEN * (P + pvr) - ahead - pfeat.shape[1]
+        kr = MELS_PER_TOKEN * (P + pvr) - aheadm - pfeat.shape[1]
         if kr > 0 and T > pvr:
             a1 = rmels(pvr, CHUNK_TOKENS)[:, :, :kr]
             b1 = rmels(T, CHUNK_TOKENS)[:, :, :kr]
@@ -1263,7 +1271,13 @@ def cmd_run(force=False, steps=4):
         else:
             print(f"  (line too short to test the invariant: {T} tokens)")
     except Exception as e:
-        print(f"  invariant check could not run: {type(e).__name__}: {e}")
+        # AND IT REFUSES RATHER THAN SHRUGGING. The whole point of this
+        # export is the invariant; an export that ships without having
+        # checked it is the doubled word coming back silently.
+        print(f"  REFUSED: the invariant check could not run — "
+              f"{type(e).__name__}: {e}")
+        stamp(f"FAILED — invariant unrun: {type(e).__name__}")
+        return 1
 
     # AND A REAL TWO-CHUNK RENDER, run the way the game will run it: a
     # first chunk on the empty seam, then the final riding its tails.
