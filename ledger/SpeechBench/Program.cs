@@ -78,7 +78,55 @@ namespace Ledger.Bench
                 System.IO.File.ReadAllBytes(condFile), out why);
             if (cond == null) { Console.WriteLine("BENCH: voice: " + why); return 1; }
 
-            var backend = OnnxSpeech.Open(models, id => cond, s => tok.Encode(s),
+            // THE RESOLVER READ THE ID. IT USED TO IGNORE IT, AND THAT IS THE
+            // BUG JAFAR'S EARS FOUND WHEN EVERY NUMBER SAID OTHERWISE.
+            //
+            // This was `id => cond` — a lambda that took the voice id and
+            // returned the ONE conditioning loaded at startup, whatever was
+            // asked for. So the five-line take spoke every line as Rocco
+            // while the log printed "line 2 ada" and "line 3 michelle" beside
+            // them, because those strings were the voice REQUESTED and
+            // nothing checked that anything used them. He said "all lines are
+            // by the same voice" and he was right against three log lines
+            // asserting otherwise.
+            //
+            // It is the project's oldest shape — a label describing an
+            // intention rather than a measurement — and the cheap repair is
+            // the same every time: make the thing report what it DID. The
+            // per-line output now prints the id the resolver actually served.
+            var loaded = new System.Collections.Generic.Dictionary<string, VoiceConditionals>();
+            var missing = new System.Collections.Generic.HashSet<string>();
+            loaded[voice] = cond;
+            Func<string, VoiceConditionals> resolve = id =>
+            {
+                if (string.IsNullOrEmpty(id)) return null;
+                VoiceConditionals have;
+                if (loaded.TryGetValue(id, out have)) return have;
+                // A voice asked for once and absent is absent for good; the
+                // set stops a missing file being re-read and re-reported on
+                // every line of a long take.
+                if (missing.Contains(id)) return null;
+                var path = System.IO.Path.Combine(conds, id + ".bin");
+                if (!System.IO.File.Exists(path))
+                {
+                    missing.Add(id);
+                    Console.WriteLine("BENCH: no conditioning for '" + id
+                                      + "' at " + path);
+                    return null;
+                }
+                string w;
+                var got = VoiceConditionals.Load(System.IO.File.ReadAllBytes(path), out w);
+                if (got == null)
+                {
+                    missing.Add(id);
+                    Console.WriteLine("BENCH: voice '" + id + "' unreadable: " + w);
+                    return null;
+                }
+                loaded[id] = got;
+                return got;
+            };
+
+            var backend = OnnxSpeech.Open(models, resolve, s => tok.Encode(s),
                                           out why);
             if (backend == null) { Console.WriteLine("BENCH: open: " + why); return 1; }
 
@@ -291,7 +339,14 @@ namespace Ledger.Bench
                 {
                     // The voice rotates so the set covers more than one
                     // person without costing more lines.
-                    string who = cast[i % cast.Length];
+                    string asked = cast[i % cast.Length];
+                    // WHICH VOICE ACTUALLY SPOKE, resolved BEFORE the line so
+                    // the label cannot outrun the fact. A machine that has
+                    // only some of the cast precomputed still gets five takes
+                    // — refusing the line would throw away the coverage — but
+                    // the substitution is named on the line it happened to,
+                    // never inferred from the request.
+                    string who = resolve(asked) != null ? asked : voice;
                     var t0 = DateTime.UtcNow;
                     var plan = new SpeechPlan { DeadlineSeconds = 60.0 };
                     var run = SpeechLoop.Run(backend, who, lines[i], plan,
@@ -314,17 +369,43 @@ namespace Ledger.Bench
                             + ") DECODED NOTHING: " + backend.Why);
                         continue;
                     }
+                    // FEATHER, BECAUSE THE GAME DOES — AND THE BENCH DID NOT.
+                    //
+                    // `SpeechSamples.Feather` has existed since the pop was
+                    // first heard, and `Audio.PumpSpeech` calls it on every
+                    // live line before the clip is built. This bench decoded
+                    // and wrote the raw buffer, so the wav Jafar judged was
+                    // NOT what the game plays: measured in that file, every
+                    // take opened on a step from digital silence to a real
+                    // sample — take 2 began at -3108 of 32767 — which is the
+                    // pop he heard at the top of each line, five times.
+                    //
+                    // The bench's whole claim is that it exercises the game's
+                    // own path. Skipping a step the game performs makes it a
+                    // different path wearing the same name, and the resulting
+                    // wav sent him hunting a fault the game does not have.
+                    // Anything added to playback belongs here too.
+                    SpeechSamples.Feather(samples, 24000);
                     double secs = samples.Length / 24000.0;
                     spoke++;
                     totalSpeech += secs;
                     totalWork += run.Seconds + decodeSec;
                     Console.WriteLine("BENCH: line " + (i + 1) + " " + who
+                        + (who == asked ? "" : " (asked " + asked + ", absent)")
                         + " stop=" + run.Stop
                         + " tokens=" + run.Tokens.Length
                         + " steps=" + run.Steps
                         + " loop=" + run.Seconds.ToString("0.00")
                         + " decode=" + decodeSec.ToString("0.00")
-                        + " speech=" + secs.ToString("0.00"));
+                        + " speech=" + secs.ToString("0.00")
+                        // THE NUMBER THAT WOULD HAVE CAUGHT THE POP. A line
+                        // played from silence begins with a step equal to its
+                        // first sample, and nothing printed that, so five
+                        // audible clicks travelled under a log that looked
+                        // healthy. Printed rather than gated: a threshold
+                        // here would be invented, and the value is its own
+                        // evidence — feathered it is 0, raw it was 0.09.
+                        + " head=" + Math.Abs(samples[0]).ToString("0.000"));
                     all.AddRange(samples);
                     // Half a second between takes, so they are separable by
                     // ear on one playthrough rather than running together.
