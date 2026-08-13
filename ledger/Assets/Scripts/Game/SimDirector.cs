@@ -2025,6 +2025,18 @@ namespace Ledger.Game
             {
                 if (smr == null || !smr.isVisible) continue;
                 if (smr.HasPropertyBlock()) continue;
+                // The PAINT path colours a material INSTANCE rather than a
+                // block, so no-block alone would count a painted body as
+                // bare — the first sixteen may be exactly that. A body is
+                // undressed only if its material is also still white (or
+                // missing): both escape hatches closed, not one.
+                var mat = smr.sharedMaterial;
+                if (mat != null && mat.HasProperty("_Color"))
+                {
+                    var c = mat.color;
+                    bool whiteish = c.r > 0.92f && c.g > 0.92f && c.b > 0.92f;
+                    if (!whiteish) continue;
+                }
                 found++;
                 if (who.Count < 4 && !who.Contains(smr.transform.root.name))
                     who.Add(smr.transform.root.name);
