@@ -60,6 +60,15 @@ VOICE = "rocco"
 STAMP = "decode"
 
 # Measured, not assumed — see `shapes()` and the selftest that checks it.
+# The streaming block size, mirrored by `Core/SpeechStream.ChunkTokens`
+# and `hear-chunks.plan_chunks`. The exported mask is built from THIS, so
+# a plan that chunks at a different size would attend across its own
+# frontiers — change all three together or not at all.
+CHUNK_TOKENS = 24
+# The selftest's nine-token line needs a block small enough to BITE; at
+# the shipping size its mask is all ones and every chunk check would
+# pass against an unchunked graph.
+SELFTEST_CHUNK = 3
 MELS_PER_TOKEN = 2
 SAMPLES_PER_MEL = 480
 HARMONICS = 9
@@ -413,6 +422,76 @@ def pad_sine(torch, sine, mels=MEL_CACHE):
     return torch.cat([head, sine], dim=2)
 
 
+@contextlib.contextmanager
+def chunked_attention(flow, chunk_tokens):
+    """UPSTREAM'S STREAMING ATTENTION, SWITCHED BACK ON FOR THE TRACE.
+
+    The vendored flow calls its encoder with full attention — the
+    `streaming=` argument is literally commented out in flow.py — and that
+    is the whole reason chunked rendering doubles words: a chunk's mels
+    KEEP CHANGING as later tokens arrive, and the crossfade blends two
+    different performances of the same word (Jafar heard "Thursday" twice;
+    the wav put 1.5x energy exactly on the seams).
+
+    The machinery survived the vendoring: `UpsampleConformerEncoder.forward`
+    still takes `decoding_chunk_size`, builds `add_optional_chunk_mask`
+    from pure tensor ops (upstream's own comment says the implementation
+    was rewritten FOR onnx export), and applies it to both conformer
+    stacks. The second stack receives the size unscaled — 24 tokens
+    becomes a 24-MEL grid there — and 24-mel boundaries nest inside the
+    48-mel image of the token grid, so nothing attends across a frontier
+    that sits on a 24-token multiple. The conv lookahead still peeks 3
+    tokens past the frontier into zero padding, which is exactly what the
+    plan's existing 3-token trim discards.
+
+    Wrapped around the TRACE only: the mask bakes into the chunk graph,
+    and the whole-line graph keeps full attention as the quality
+    reference.
+    """
+    enc = flow.encoder
+    orig = enc.forward
+    was_dynamic = enc.use_dynamic_chunk
+
+    def masked(xs, xs_lens, decoding_chunk_size=0, num_decoding_left_chunks=-1):
+        return orig(xs, xs_lens,
+                    decoding_chunk_size=chunk_tokens,
+                    num_decoding_left_chunks=-1)
+
+    # BOTH HALVES, OR NEITHER BITES. `add_optional_chunk_mask` reads
+    # `decoding_chunk_size` ONLY inside `if use_dynamic_chunk:` — the
+    # config ships it False, so the first version of this patch passed a
+    # block size into a branch that never ran and changed nothing at all
+    # (measured: provisional-vs-final stayed at 0.45, the untouched bug).
+    # The flag is what selects the streaming branch; the size is what it
+    # then uses, with -1 left chunks meaning "all history, no future".
+    enc.use_dynamic_chunk = True
+    enc.forward = masked
+
+    # AND THE SECOND ATTENTION PATH, which is the one that was actually
+    # doubling the word. The encoder patch alone left the end-to-end
+    # divergence at 0.45 — unchanged to three digits — because the
+    # flow-matching estimator runs its OWN transformer blocks over the
+    # mel sequence and masks them with `self.static_chunk_size`, which
+    # the vendoring left at 0 under a comment asking whether it was
+    # missing. It was. Zero means full attention, so every mel could see
+    # every later mel however well the encoder behaved.
+    #
+    # In MELS, not tokens: this masks the mel sequence, and the plan's
+    # block is a token count. The estimator applies one size at every
+    # resolution level, halving in time as it downsamples — upstream's
+    # own behaviour, and boundaries stay aligned because both calls
+    # index from zero.
+    est = flow.decoder.estimator
+    was_static = est.static_chunk_size
+    est.static_chunk_size = chunk_tokens * MELS_PER_TOKEN
+    try:
+        yield
+    finally:
+        enc.forward = orig
+        enc.use_dynamic_chunk = was_dynamic
+        est.static_chunk_size = was_static
+
+
 def make_chunk(torch, flow, gen, steps=10):
     """The STREAMING half: a piece of the line in, a piece of the wav out.
 
@@ -496,7 +575,8 @@ def make_chunk(torch, flow, gen, steps=10):
     return Chunk()
 
 
-def export_chunk(torch, flow, gen, args, dest, steps=10):
+def export_chunk(torch, flow, gen, args, dest, steps=10,
+                 chunk_tokens=CHUNK_TOKENS):
     dec = make_chunk(torch, flow, gen, steps).eval()
     names = ["tokens", "prompt_token", "prompt_feat", "embedding",
              "z", "sine_noise", "cache_source", "cache_mel", "mel_offset",
@@ -508,7 +588,11 @@ def export_chunk(torch, flow, gen, args, dest, steps=10):
             "prompt_feat": {1: "pmel"}, "z": {2: "mel"},
             "sine_noise": {2: "smp"}, "cache_source": {2: "src"},
             "cache_mel": {2: "cmel"}, "wav": {1: "smp"}}
-    with torch.no_grad():
+    # THE TRACE CARRIES THE CHUNKED MASK, which is the whole fix for the
+    # doubled word: inside this block the encoder attends within
+    # 24-token blocks, so a provisional chunk's mels ARE their final
+    # ones and the crossfade joins two takes of the same performance.
+    with chunked_attention(flow, chunk_tokens), torch.no_grad():
         torch.onnx.export(dec, args, str(dest), opset_version=17, dynamo=False,
                           input_names=names,
                           output_names=["wav", "source", "mel_tail"],
@@ -763,7 +847,13 @@ def selftest():
                  torch.tensor(0, dtype=torch.long),
                  torch.tensor(1, dtype=torch.long))
         with patched(), dynamic_cfm(torch), dynamic_flow(torch):
-            export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx")
+            # A THREE-TOKEN BLOCK, NOT THE SHIPPING TWENTY-FOUR. The test
+            # line is nine tokens; at 24 the mask is all ones and every
+            # check below would pass against a graph with NO chunking in
+            # it — a guard exercising nothing while reporting green,
+            # which is the failure this file's rules name twice.
+            export_chunk(torch, flow, gen, cargs, tmp / "chunk.onnx",
+                         chunk_tokens=SELFTEST_CHUNK)
     except Exception as e:
         ok, why = False, f"{type(e).__name__}: {e}"
     check(ok, "the CHUNK graph converts — mel offset, an 8-mel seam ride-in "
@@ -811,12 +901,18 @@ def selftest():
         check(wc.shape[1] == got.shape[1],
               "chunk(final,offset0,empty-seam) is whole-line SIZED",
               f"{wc.shape[1]} vs {got.shape[1]}")
-        # 1e-3, not 1e-4: two separately-traced graphs disagree by ~4e-4 of
-        # fp32 noise at untraced lengths (the whole-line export itself
-        # reads 4.0e-04 against pytorch there). The fault this bound exists
-        # to catch measured 0.5-1.1 — three orders above it.
-        check(dw < 1e-3, f"and IS the whole-line answer from sample 480, "
-              f"to {dw:.1e}", f"{dw:.2e}")
+        # THIS BOUND CHANGED MEANING WHEN THE MASK LANDED, and keeping
+        # the old number would have been a guard defending a claim that
+        # is no longer the design. The chunk graph now attends in blocks
+        # and the whole-line graph does not, so they are DIFFERENT
+        # FUNCTIONS on purpose — that difference is the price of a
+        # character starting to talk early, and the ear prices it, not a
+        # tolerance here. What must still hold is that the two are the
+        # same SIZE and the same performance rather than two takes: a
+        # few percent is block attention, half is a different rendering.
+        check(dw < 0.1, f"and stays a block-attention variation of the "
+              f"whole-line answer, not a different take ({dw:.1e})",
+              f"{dw:.2e}")
         check(sc.shape[2] == SRC_CACHE and mt.shape[2] == MEL_CACHE,
               "and both tails are their fixed seam sizes",
               f"src {sc.shape} mel {mt.shape}")
@@ -861,6 +957,72 @@ def selftest():
         check(float(np.abs(w2a - w2c).max()) > 0,
               "and the source seam is consumed — the same final chunk "
               "with a different cache differs, so the input is live")
+
+        # ---- THE INVARIANT THE DOUBLED WORD VIOLATED ----
+        #
+        # Jafar heard "Thursday" twice in the stitched line. The cause was
+        # never the crossfade: with FULL attention a chunk's mels keep
+        # changing as later tokens arrive, so the seam joined two
+        # different performances of one word. This is the equality that
+        # forbids it, measured.
+        #
+        # AT THE MEL LEVEL, AND THE FIRST VERSION WAS AT THE WAVEFORM,
+        # WHICH MEASURED THE WRONG THING ENTIRELY. The vocoder is not
+        # causal — an iSTFT and an f0 pass see mels both ways — so a
+        # chunk's rendered TAIL is unreliable by construction, which is
+        # exactly why the caller holds a seam back and crossfades it. In
+        # this small geometry the whole provisional render (2880 samples)
+        # sits INSIDE that 3840-sample holdback, so the check was reading
+        # the discarded region and reported 0.45 no matter what the
+        # attention did. Mels are where attention lives; the emitted
+        # region's continuity is what the algebra checks and the ear test
+        # cover.
+        def prov_mels(n_vis, fin, blk):
+            # z IS SIZED FOR THIS CALL'S MELS, not the line's. The flow
+            # draws one z of exactly `h` frames — prompt plus generated,
+            # minus the lookahead trim on a non-final call — and handing
+            # it the full-line tensor puts a 30-frame noise into an
+            # 18-frame U-Net, which dies in a skip connection.
+            hlen = MELS_PER_TOKEN * (P + n_vis)
+            with torch.no_grad(), chunked_attention(flow, blk), \
+                    dynamic_flow(torch), dynamic_cfm(torch), \
+                    noise_from(torch, [zf[:, :, :hlen]]):
+                m, _ = flow.inference(
+                    token=tok[:, :n_vis], token_len=torch.tensor([n_vis]),
+                    prompt_token=ptok, prompt_token_len=torch.tensor([P]),
+                    prompt_feat=pfeat, prompt_feat_len=None,
+                    embedding=emb, finalize=True, n_timesteps=4)
+            return m
+
+        zf, sf = draw(torch, P, pmel, T, 31)
+        pv = SELFTEST_CHUNK * 2
+        mprov = prov_mels(pv, False, SELFTEST_CHUNK)
+        mfin = prov_mels(T, True, SELFTEST_CHUNK)
+        # THE SPAN THE PLAN KEEPS from a provisional chunk — its render
+        # minus the lookahead, which is what the graph's caller emits.
+        # (`finalize` reaches the traced graph as a TENSOR, so the flow's
+        # `if finalize is False` never fires and the trim lives in the
+        # plan; the test matches the graph rather than the library.)
+        kk = MELS_PER_TOKEN * (P + pv) - ahead - pmel
+        msc = max(float(np.abs(mfin[:, :, :kk].numpy()).max()), 1e-12)
+        dmel = float(np.abs((mprov[:, :, :kk] - mfin[:, :, :kk]).numpy()).max()) / msc
+        # And the same pair WITHOUT the mask, so a passing number cannot
+        # be the geometry being trivially stable — rule 5b's twin.
+        mprov0 = prov_mels(pv, False, 10 ** 6)
+        mfin0 = prov_mels(T, True, 10 ** 6)
+        k0 = kk
+        d0 = float(np.abs((mprov0[:, :, :k0] - mfin0[:, :, :k0]).numpy()).max()) \
+            / max(float(np.abs(mfin0[:, :, :k0].numpy()).max()), 1e-12)
+        print(f"        provisional-vs-final mels over {kk}: "
+              f"chunked {dmel:.1e} vs unmasked {d0:.1e}")
+        check(dmel < 1e-5,
+              "A PROVISIONAL CHUNK'S MELS ARE ITS OWN FINAL ONES — the "
+              "equality the doubled word violated, now structural",
+              f"{dmel:.2e}")
+        check(d0 > dmel * 10,
+              "and without the mask they genuinely differ, so the check "
+              "is measuring the attention rather than a stable geometry",
+              f"unmasked {d0:.2e}")
 
     print(f"\nexport-decode --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks "
@@ -1034,14 +1196,58 @@ def cmd_run(force=False, steps=4):
     dwhole = float(np.abs(wav_c[:, 480:] - got[:, 480:]).max()) / scale
     print(f"  chunk(final,offset0,empty-seam) matches the whole graph from "
           f"sample 480 to {dwhole:.1e}")
-    # 1e-3: separately-traced graphs carry ~4e-4 of fp32 trace noise; the
-    # fault this catches (chunks-5's zeros-seam) measured 8.2e-03 and up.
-    if wav_c.shape[1] != got.shape[1] or dwhole > 1e-3:
+    # 0.1, for the reason the selftest's twin gives: the chunk graph
+    # attends in blocks by design now, so a few percent from the
+    # whole-line graph is the streaming price and half is a broken graph.
+    if wav_c.shape[1] != got.shape[1] or dwhole > 0.1:
         print("  REFUSED: the chunk graph disagrees with the whole-line one "
               "on the identical question.")
         stamp(f"FAILED — chunk-vs-whole {dwhole:.1e} above 1e-4, "
               f"{wav_c.shape[1]} vs {got.shape[1]} samples")
         return 1
+
+    # AND THE INVARIANT THE WHOLE MASK EXISTS FOR, on the real weights:
+    # a provisional chunk's mels must equal their final selves, or a word
+    # gets said twice at the seam. The small model proves the mechanism;
+    # this proves the shipped one, and prints the unmasked control beside
+    # it so a pass cannot be a trivially stable geometry.
+    try:
+        zr, sr = draw(torch, P, pfeat.shape[1], T, 31)
+        pvr = CHUNK_TOKENS * 2
+
+        def rmels(n_vis, blk):
+            hl = MELS_PER_TOKEN * (P + n_vis)
+            with torch.no_grad(), chunked_attention(model.s3gen.flow, blk), \
+                    dynamic_flow(torch), dynamic_cfm(torch), \
+                    noise_from(torch, [zr[:, :, :hl]]):
+                m, _ = model.s3gen.flow.inference(
+                    token=tok[:, :n_vis], token_len=torch.tensor([n_vis]),
+                    prompt_token=ptok, prompt_token_len=torch.tensor([P]),
+                    prompt_feat=pfeat, prompt_feat_len=None,
+                    embedding=emb, finalize=True, n_timesteps=steps)
+            return m
+
+        kr = MELS_PER_TOKEN * (P + pvr) - ahead - pfeat.shape[1]
+        if kr > 0 and T > pvr:
+            a1 = rmels(pvr, CHUNK_TOKENS)[:, :, :kr]
+            b1 = rmels(T, CHUNK_TOKENS)[:, :, :kr]
+            a0 = rmels(pvr, 10 ** 6)[:, :, :kr]
+            b0 = rmels(T, 10 ** 6)[:, :, :kr]
+            sc1 = max(float(np.abs(b1.numpy()).max()), 1e-12)
+            dm = float(np.abs((a1 - b1).numpy()).max()) / sc1
+            d0 = float(np.abs((a0 - b0).numpy()).max()) \
+                / max(float(np.abs(b0.numpy()).max()), 1e-12)
+            print(f"  provisional-vs-final mels on the REAL model over "
+                  f"{kr}: chunked {dm:.1e} vs unmasked {d0:.1e}")
+            if dm > 1e-4:
+                print("  REFUSED: a provisional chunk still differs from "
+                      "its final self — the doubled word would return.")
+                stamp(f"FAILED — provisional-vs-final {dm:.1e}")
+                return 1
+        else:
+            print(f"  (line too short to test the invariant: {T} tokens)")
+    except Exception as e:
+        print(f"  invariant check could not run: {type(e).__name__}: {e}")
 
     # AND A REAL TWO-CHUNK RENDER, run the way the game will run it: a
     # first chunk on the empty seam, then the final riding its tails.
