@@ -1950,6 +1950,9 @@ namespace Ledger.Game
                       + $" namesManagedCulled={_namesManagedCulled}"
                       + $" textPersonLabels={_textPersonLabels}"
                       + $" textWalkKinds=[{TextWalkKindsTop()}]"
+                      + $" labelsOrphan={_labelsOrphan}"
+                      + $" labelsManagedAtOrphan={_labelsManagedAtOrphan}"
+                      + $" labelOrphanText=[{_labelOrphanText}]"
                       + $" textNoRect={_textNoRect}");
         }
 
@@ -3025,6 +3028,7 @@ namespace Ledger.Game
             // than leaving it to be deduced.
             int walked = 0, noText = 0, invisible = 0, noRect = 0;
             int managedSeen = 0, managedCulled = 0, personLabels = 0;
+            int labelsManaged = 0, labelsOrphan = 0;
             foreach (var t in FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
             {
                 walked++;
@@ -3073,7 +3077,24 @@ namespace Ledger.Game
                 // owner uses — and `textPersonLabels=0` beside `walked=405`
                 // means this loop and the still are looking at different
                 // moments, which is a different fault from a broken set.
-                if (t.GetComponentInParent<NpcWalker>() != null) personLabels++;
+                if (t.GetComponentInParent<NpcWalker>() != null)
+                {
+                    personLabels++;
+                    // THE REFERENCE-MISMATCH COUNTER: 8869d28 walked 15
+                    // labels and `managedSeen` stayed 0, so either these
+                    // exact TextMeshes were never Offered or the managed
+                    // set holds different objects for the same people —
+                    // recreation, the fork the heap item has carried for
+                    // days. In/out counts plus one orphan's TEXT (a name
+                    // a human can find in the cast list) settle it.
+                    if (NameTags.Manages(t)) labelsManaged++;
+                    else
+                    {
+                        labelsOrphan++;
+                        if (_labelOrphanText == "none")
+                            _labelOrphanText = t.text;
+                    }
+                }
                 // AND WHAT THE WALKED MESHES ARE, BY NAME — because
                 // `textPersonLabels=0` beside `nameTagsActive=43` in one
                 // verdict means one of two moments is lying, and a census
@@ -3246,6 +3267,11 @@ namespace Ledger.Game
                 _namesManagedCulled = managedCulled;
             }
             if (personLabels > _textPersonLabels) _textPersonLabels = personLabels;
+            if (labelsOrphan > _labelsOrphan)
+            {
+                _labelsOrphan = labelsOrphan;
+                _labelsManagedAtOrphan = labelsManaged;
+            }
             int projected = boxes.Count + other.Count + bubbles.Count;
             if (projected > _textProjected) _textProjected = projected;
             // NOT CAPTURED HERE ANY MORE — see the done-line. This ran inside
@@ -3402,6 +3428,9 @@ namespace Ledger.Game
         /// street plate or a bubble. The denominator `namesManagedSeen` needs
         /// before a zero there can mean anything.
         int _textPersonLabels = -1;
+        int _labelsOrphan;
+        int _labelsManagedAtOrphan;
+        string _labelOrphanText = "none";
         /// What the text walk's meshes ARE, by object name, accumulated
         /// over every walk — the census that says whether a walker label
         /// has EVER been walked, which two peak counters from different
