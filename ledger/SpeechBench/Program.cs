@@ -33,6 +33,7 @@ namespace Ledger.Bench
         {
             string models = null, conds = null, tokenizer = null;
             string voice = "rocco";
+            bool shortSet = false;
             // The sweep's nine-word line, so these numbers read against the
             // sweep's and the probe's. The driver passes it explicitly; this
             // default only covers running the bench by hand.
@@ -47,6 +48,7 @@ namespace Ledger.Bench
                     case "--conds": conds = args[i + 1]; break;
                     case "--tokenizer": tokenizer = args[i + 1]; break;
                     case "--voice": voice = args[i + 1]; break;
+                    case "--short": shortSet = args[i + 1] != "0"; break;
                     case "--text": text = args[i + 1]; break;
                     case "--window": window = int.Parse(args[i + 1]); break;
                     case "--positions":
@@ -316,7 +318,22 @@ namespace Ledger.Bench
                 // comfortable declaratives work. Same voices too, so the C#
                 // takes and the python ones can be played against each other
                 // rather than against a memory.
-                var lines = new[]
+                // SHORT LINES ARE THE HYPOTHESIS AND ONE OF THEM IS ONE
+                // SAMPLE. The filler appeared on "No." and on nothing else,
+                // which is 1 of 5 — and the other four were all long. That
+                // is not evidence about short lines, it is evidence about
+                // one line. `--short` speaks five of them so the next
+                // reading has a denominator, and the street is mostly
+                // interjections, so if this is a short-line habit it is a
+                // habit that affects most of what the game says.
+                var lines = shortSet ? new[]
+                {
+                    "No.",
+                    "Yes.",
+                    "Who?",
+                    "Not here.",
+                    "Stop.",
+                } : new[]
                 {
                     "No.",
                     "Seen the van again. Thursday, same as last Thursday.",
@@ -399,6 +416,13 @@ namespace Ledger.Bench
                     // TRIM BEFORE THE FADE. The fade shapes whatever edge
                     // it is given; trimming afterwards would remove the ramp
                     // it had just built and put the step back.
+                    // MEASURE BEFORE CUTTING, and report both. A head can be
+                    // present and correctly left alone — the "ah" before
+                    // "No." runs 440ms and is LOUDER than the word, so the
+                    // trim refuses it and a report of what was cut would
+                    // call that line clean. `headMs` is the fault; the trim
+                    // is only the part of it that can be removed safely.
+                    int headMs = SpeechSamples.DetachedHeadMs(samples, 24000);
                     int trimmed = SpeechSamples.TrimDetachedHead(samples, 24000);
                     SpeechSamples.Feather(samples, 24000);
                     double secs = samples.Length / 24000.0;
@@ -425,6 +449,7 @@ namespace Ledger.Bench
                         // detached head is a short-line habit or was one
                         // render is a question only more runs can answer,
                         // and only if each one says what it did.
+                        + " headMs=" + headMs
                         + " trimmedMs=" + (trimmed / 24.0).ToString("0"));
                     all.AddRange(samples);
                     // Half a second between takes, so they are separable by

@@ -267,6 +267,14 @@ TABLE = {
     "cast-and-prepare": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
                           "--install", "--yes"],
                          ["PY", "tools/voice-live/precompute-voices.py"]],
+    # IS THE FILLER A SHORT-LINE HABIT, OR WAS IT ONE LINE? Jafar heard an
+    # "ah" before "No." and nowhere else — 1 of 5, and the other four were
+    # all long, so that is evidence about one line rather than about short
+    # ones. This speaks five short lines and prints `headMs` for each. The
+    # street is mostly interjections, so if the habit is real it affects
+    # most of what the game will ever say, and if it is not, the fix is
+    # aimed somewhere else entirely.
+    "short-lines": [["PY", "tools/voice-live/bench-binding.py", "--short"]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",

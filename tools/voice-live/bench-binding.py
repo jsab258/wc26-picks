@@ -52,13 +52,16 @@ NATIVE = ["onnxruntime.dll", "DirectML.dll", "Microsoft.ML.OnnxRuntime.dll"]
 LINE = "Seen the van again. Thursday, same as last Thursday."
 
 
-def command(voice="rocco"):
+def command(voice="rocco", short=False):
     """The argv this hands to dotnet — one place, so the selftest and the
     run cannot drift apart."""
-    return ["dotnet", "run", "-c", "Release", "--project", str(BENCH), "--",
+    argv = ["dotnet", "run", "-c", "Release", "--project", str(BENCH), "--",
             "--models", str(OUT), "--conds", str(CONDS),
             "--tokenizer", str(TOKENIZER), "--voice", voice,
             "--text", LINE, "--positions", "10,100,200,400", "--window", "12"]
+    if short:
+        argv += ["--short", "1"]
+    return argv
 
 
 def missing_files():
@@ -109,6 +112,17 @@ def sdk_missing(which=None, probe=None):
 WAIT_SECONDS = 1800
 
 
+def _short_asked():
+    """Whether the caller asked for the short-line set.
+
+    Read here rather than threaded through, because the watcher
+    passes job arguments straight through and a flag this file
+    did not understand would be silently ignored — which is the
+    fault that let a phantom voice ride for weeks.
+    """
+    return "--short" in sys.argv
+
+
 def main():
     why = sdk_missing()
     if why:
@@ -151,7 +165,7 @@ def main():
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
-    r = subprocess.run(command(), cwd=str(ROOT))
+    r = subprocess.run(command(short=_short_asked()), cwd=str(ROOT))
     # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
     # game's own `SpeechLoop.Run` and writes it beside itself; a sound
     # nobody can hear proves as little as the numbers did. Copied to the
@@ -180,6 +194,14 @@ def selftest():
             fails.append(what)
 
     cmd = command()
+    # BOTH SHAPES, because a flag that is only ever built one way is a flag
+    # nobody has run. The short set has to reach the bench as an argument
+    # the bench understands, and `--short 1` is that argument.
+    short_cmd = command(short=True)
+    check("--short" in short_cmd and short_cmd[short_cmd.index("--short") + 1] == "1",
+          "the short-line set reaches the bench as a flag it parses")
+    check("--short" not in cmd,
+          "and the ordinary run does not carry it")
     check(cmd[0] == "dotnet" and "--project" in cmd,
           "the bench runs through dotnet with an explicit project",
           " ".join(cmd[:6]))

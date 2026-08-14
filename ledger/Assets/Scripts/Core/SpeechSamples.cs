@@ -64,6 +64,47 @@ namespace Ledger.Core
         /// is a denominator of five and it is written down as such: the
         /// bench reports what it trimmed, so the next runs say whether short
         /// lines are the pattern or that was one render.
+        /// How long a detached head is in milliseconds, 0 for none — the
+        /// MEASUREMENT, separated from the decision to cut.
+        ///
+        /// Written twice before this: once inside `TrimDetachedHead` and
+        /// once in the test that checks it, which is one idea with two
+        /// implementations and the fault this project records more than any
+        /// other. It is also the number the bench needs, because a head can
+        /// be present and correctly NOT cut — the "ah" before "No." is 440ms
+        /// and louder than the word, so the trim refuses it, and a report
+        /// that only said what was cut would call that line clean.
+        public static int DetachedHeadMs(float[] samples, int sampleRate,
+                                         double windowMs = 10.0,
+                                         double minGapMs = 30.0,
+                                         double lookMs = 800.0)
+        {
+            if (samples == null || samples.Length == 0 || sampleRate <= 0) return 0;
+            int w = (int)(sampleRate * windowMs / 1000.0);
+            if (w <= 0) return 0;
+            int look = (int)(sampleRate * lookMs / 1000.0);
+            if (look > samples.Length) look = samples.Length;
+            int wins = look / w;
+            if (wins < 4) return 0;
+            double loud = 0;
+            var rms = new double[wins];
+            for (int i = 0; i < wins; i++)
+            {
+                double sum = 0;
+                for (int j = i * w; j < (i + 1) * w; j++) sum += (double)samples[j] * samples[j];
+                rms[i] = Math.Sqrt(sum / w);
+                if (rms[i] > loud) loud = rms[i];
+            }
+            double quiet = loud * 0.06;
+            int head = 0;
+            while (head < wins && rms[head] > quiet) head++;
+            if (head == 0) return 0;
+            int gap = head;
+            while (gap < wins && rms[gap] <= quiet) gap++;
+            if (gap >= wins || (gap - head) * windowMs < minGapMs) return 0;
+            return (int)(head * windowMs);
+        }
+
         public static int TrimDetachedHead(float[] samples, int sampleRate,
                                            double windowMs = 10.0,
                                            double minGapMs = 30.0,
@@ -98,13 +139,17 @@ namespace Ledger.Core
             if (body <= 0) return 0;
             double quiet = loudest * 0.06;
 
+            // THE MEASUREMENT COMES FROM ONE PLACE. The window here is
+            // narrower than the reporting one on purpose: cutting is a
+            // decision and a short look keeps it conservative, while the
+            // report wants to SEE a 440ms filler even though nothing will
+            // remove it.
+            if (DetachedHeadMs(samples, sampleRate, windowMs, minGapMs, lookMs) == 0) return 0;
             int head = 0;
             while (head < wins && rms[head] > quiet) head++;
-            if (head == 0) return 0;              // starts in silence: nothing detached
             int gap = head;
             while (gap < wins && rms[gap] <= quiet) gap++;
-            if (gap >= wins) return 0;            // never resumes: not a head, just a short clip
-            if ((gap - head) * windowMs < minGapMs) return 0;
+            if (gap >= wins) return 0;
 
             double headPeak = 0;
             for (int i = 0; i < head * w; i++)

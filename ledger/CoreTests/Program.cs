@@ -8562,13 +8562,13 @@ namespace Ledger.CoreTests
             var real = ReadWavMono(Root("game-design/voice-live/fixture-detached-head.wav"));
             if (real != null && real.Length > 24000)
             {
-                Check(DetachedHeadMs(real, 24000) > 0,
+                Check(SpeechSamples.DetachedHeadMs(real, 24000) > 0,
                       "THE KEPT RECORDING STILL HAS THE FAULT — a fixture that "
                       + "quietly stopped failing would prove nothing",
-                      DetachedHeadMs(real, 24000) + "ms");
+                      SpeechSamples.DetachedHeadMs(real, 24000) + "ms");
                 int cutReal = SpeechSamples.TrimDetachedHead(real, 24000);
                 Check(cutReal > 0, "and the trim fires on it", cutReal + " samples");
-                Check(DetachedHeadMs(real, 24000) == 0,
+                Check(SpeechSamples.DetachedHeadMs(real, 24000) == 0,
                       "AND THE 'AH' JAFAR HEARD IS MEASURABLY GONE from the "
                       + "real audio, not from a signal I invented");
                 double peak = 0;
@@ -16087,37 +16087,6 @@ namespace Ledger.CoreTests
             return null;
         }
 
-        /// How long a DETACHED head is, in milliseconds, or 0 for none.
-        ///
-        /// THE DETECTOR THAT FOUND THE FAULT, not a second opinion written
-        /// afterwards. Sound at the very top, then a real gap, then the
-        /// utterance — measured in 10ms windows against 6% of the loudest
-        /// window, which is how the `#######.....####` picture that
-        /// identified line one was drawn.
-        static int DetachedHeadMs(float[] samples, int rate)
-        {
-            if (samples == null || samples.Length == 0 || rate <= 0) return 0;
-            int w = rate / 100;
-            int wins = Math.Min(samples.Length / w, 50);
-            if (wins < 4) return 0;
-            var rms = new double[wins];
-            double loud = 0;
-            for (int i = 0; i < wins; i++)
-            {
-                double sum = 0;
-                for (int j = i * w; j < (i + 1) * w; j++) sum += (double)samples[j] * samples[j];
-                rms[i] = Math.Sqrt(sum / w);
-                if (rms[i] > loud) loud = rms[i];
-            }
-            double quiet = loud * 0.06;
-            int head = 0;
-            while (head < wins && rms[head] > quiet) head++;
-            if (head == 0) return 0;
-            int gap = head;
-            while (gap < wins && rms[gap] <= quiet) gap++;
-            if (gap >= wins || (gap - head) * 10 < 30) return 0;
-            return head * 10;
-        }
 
     }
 }
