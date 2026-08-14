@@ -415,8 +415,24 @@ def run_job(job, root, say, timeout=3600, beat=print):
              f"— started, output comes when it finishes")
         started = time.time()
         try:
+            # NO PROGRESS BARS. `audition-rocco` ran correctly, produced
+            # its wav, and its FINDINGS never reached me: chatterbox's
+            # sampler prints a tqdm line per step, a thousand of them per
+            # render, and the result file's cap evicted every line the tool
+            # actually wrote. "(741 earlier lines not shown)" was honest and
+            # useless — the truncation reported itself and the answer was
+            # gone anyway.
+            #
+            # Killed at the source rather than filtered afterwards, because a
+            # filter is a guess about what a progress bar looks like and
+            # every library draws its own. These two variables are the
+            # library-sanctioned way to ask, so a future dependency that
+            # honours them is covered without anybody editing a regex.
+            env = dict(os.environ,
+                       TQDM_DISABLE="1",
+                       HF_HUB_DISABLE_PROGRESS_BARS="1")
             p = subprocess.run(cmd, cwd=str(root), capture_output=True,
-                               text=True, timeout=timeout)
+                               text=True, timeout=timeout, env=env)
         except subprocess.TimeoutExpired as e:
             say(f"  TIMED OUT after {timeout}s")
             # THE PARTIAL OUTPUT TRAVELS. "Timed out" alone says only that
@@ -527,6 +543,7 @@ def publish(root, say, message):
                 "game-design/voice-live/shape-report.txt",
                 "game-design/voice-live/step-report.txt",
                 "game-design/voice-live/audition-rocco.wav",
+                "game-design/voice-live/audition-rocco.txt",
                 # THE BANK ITSELF, and it is a directory rather than a file
                 # because a render produces clips whose NAMES are hashes of
                 # the words — so nobody can list them in advance, which is the

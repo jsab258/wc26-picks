@@ -164,8 +164,32 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     dest = OUT / f"audition-{a.who}.wav"
     sf.write(str(dest), np.concatenate(pieces), S3GEN_SR)
+    # THE ORDER GOES IN A FILE, NOT ONLY IN THE LOG.
+    #
+    # The first run of this worked, wrote its wav, and its findings never
+    # arrived: the sampler prints a progress line per step and the result
+    # file's cap evicted every line the tool had written. A 28-second
+    # audition with no list of which candidate is which is unusable — Jafar
+    # cannot say "number 4" about audio he cannot index.
+    #
+    # A log is a channel with a length limit somebody else controls; a file
+    # in the repository is the one this project can always read. So the
+    # answer is written where it cannot be crowded out, and the log keeps a
+    # copy for whoever is watching the window.
+    note = OUT / f"audition-{a.who}.txt"
+    lines = [f"audition for {a.who} — \"{a.word}\" timed, then \"{a.line}\"",
+             f"median {median:.2f}s, padding above {median * 1.5:.2f}s", ""]
+    for n, secs, _ in rows:
+        mark = "  " if not pads(secs, median) else "  PADS"
+        lines.append(f"  candidate {n:2d}: {secs:.2f}s{mark}")
+    lines.append("")
+    lines.append("in the wav, in this order, " + str(GAP_SECONDS)
+                 + "s apart: " + ", ".join(str(o) for o in order))
+    note.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
     print(f"\n  wrote {dest.name} — candidates in this order: "
           + ", ".join(str(o) for o in order))
+    print(f"  and {note.name}, which a log cap cannot evict")
     print(f"  {GAP_SECONDS}s between each. Pick by sound; they all behave.")
     return 0
 
