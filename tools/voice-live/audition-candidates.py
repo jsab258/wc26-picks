@@ -129,7 +129,43 @@ def main():
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = export_probe.load_model(dev)
 
+    # THE CLIP THAT IS ACTUALLY CAST, MEASURED IN THE SAME BREATH.
+    #
+    # The first audition said none of Rocco's six candidates pad: 0.44 to
+    # 0.82s, median 0.68. The 23-voice sweep said Rocco takes 1.40s over the
+    # same word. Same character, same text, twice the duration — so one of
+    # the two runs is not measuring what it claims.
+    #
+    # TWO THINGS DIFFER AND ONLY ONE CAN BE THE CAUSE. The sweep goes through
+    # the exported graphs and our own sampler with precomputed conditioning;
+    # this goes through chatterbox's `generate()` with the candidate file. It
+    # also reads a different FILE — the installed clip is
+    # `picked-clips/rocco.p227.mp3` and the shortlist holds
+    # `candidate-01.wav`. Measuring the installed clip HERE holds the code
+    # path fixed and moves only the file, which is the whole experiment.
+    #
+    # If it lands near the candidates, the clip is innocent and the padding
+    # belongs to our pipeline. If it lands near 1.40s, the installed file is
+    # not what the shortlist offered and the fix is a re-install.
+    installed = None
+    clips_dir = ROOT / "game-design" / "picked-clips"
+    if clips_dir.is_dir():
+        hits = sorted(q for q in clips_dir.iterdir()
+                      if q.is_file() and q.name.split(".")[0] == a.who)
+        installed = hits[0] if hits else None
+
     rows = []
+    if installed is not None:
+        model.prepare_conditionals(str(installed))
+        with torch.inference_mode():
+            wav = model.generate(a.word).squeeze(0).cpu().numpy()
+        secs = len(wav) / model.sr
+        print(f"    INSTALLED {installed.name}: \"{a.word}\" in {secs:.2f}s")
+        rows_installed = secs
+    else:
+        rows_installed = None
+        print(f"    (no installed clip for {a.who} to compare against)")
+
     for n, clip in found:
         model.prepare_conditionals(str(clip))
         with torch.inference_mode():
@@ -179,6 +215,10 @@ def main():
     note = OUT / f"audition-{a.who}.txt"
     lines = [f"audition for {a.who} — \"{a.word}\" timed, then \"{a.line}\"",
              f"median {median:.2f}s, padding above {median * 1.5:.2f}s", ""]
+    if rows_installed is not None:
+        lines.append(f"  INSTALLED {installed.name}: {rows_installed:.2f}s"
+                     + ("  PADS" if pads(rows_installed, median) else ""))
+        lines.append("")
     for n, secs, _ in rows:
         mark = "  " if not pads(secs, median) else "  PADS"
         lines.append(f"  candidate {n:2d}: {secs:.2f}s{mark}")
