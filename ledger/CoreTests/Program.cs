@@ -8544,6 +8544,45 @@ namespace Ledger.CoreTests
                   "and a full-level first word followed by a pause is speech, "
                   + "not a head — loudness is what tells them apart");
 
+            // ---- AND NOW THE REAL RECORDING, BECAUSE THE FIXTURES ABOVE
+            // ---- WERE BUILT TO MY OWN DIAGNOSIS.
+            //
+            // Jafar asked how we can be sure the "ah" is gone, and the
+            // honest answer was that we could not: every check above uses a
+            // signal I synthesised to the shape I had decided the fault was.
+            // That is a test of the code against my belief, and it is fooled
+            // by exactly the case where the belief is wrong.
+            //
+            // `fixture-detached-head.wav` is the first 1.4s of the take he
+            // judged — the actual "No." with the actual "ah" in front of it,
+            // kept because a real rejecting case cannot be argued with. The
+            // detector below is the one that FOUND the fault (10ms windows,
+            // leading sound then a real gap), so the assertion is measured
+            // the same way the complaint was.
+            var real = ReadWavMono(Root("game-design/voice-live/fixture-detached-head.wav"));
+            if (real != null && real.Length > 24000)
+            {
+                Check(DetachedHeadMs(real, 24000) > 0,
+                      "THE KEPT RECORDING STILL HAS THE FAULT — a fixture that "
+                      + "quietly stopped failing would prove nothing",
+                      DetachedHeadMs(real, 24000) + "ms");
+                int cutReal = SpeechSamples.TrimDetachedHead(real, 24000);
+                Check(cutReal > 0, "and the trim fires on it", cutReal + " samples");
+                Check(DetachedHeadMs(real, 24000) == 0,
+                      "AND THE 'AH' JAFAR HEARD IS MEASURABLY GONE from the "
+                      + "real audio, not from a signal I invented");
+                double peak = 0;
+                foreach (var x in real) if (Math.Abs(x) > peak) peak = Math.Abs(x);
+                Check(peak > 0.3, "and the word itself survived the cut",
+                      peak.ToString("0.00"));
+            }
+            else
+            {
+                Check(false, "the kept recording is readable",
+                      "no fixture-detached-head.wav — the real-audio check "
+                      + "cannot run and this must not read as a pass");
+            }
+
             SpeechSamples.TrimDetachedHead(null, 24000);
             SpeechSamples.TrimDetachedHead(new float[0], 24000);
             SpeechSamples.TrimDetachedHead(new float[10], 0);
@@ -16006,5 +16045,79 @@ namespace Ledger.CoreTests
             Check(nothing.Kind == IntentKind.Narrative && llm.LastRequest == null,
                 "with nothing to route to, no call is made");
         }
+        /// Walk up from the test binary to a file in the repository. Same
+        /// shape as the voice-conditionals check above, which is the only
+        /// reason it can be trusted to find the same tree.
+        static string Root(string relative)
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var p = Path.Combine(dir.FullName, relative.Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(p)) return p;
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        /// A 16-bit mono wav as floats. Deliberately minimal: it reads the
+        /// files this project writes and nothing else, and it returns null
+        /// rather than guessing when the header is not what it expects.
+        static float[] ReadWavMono(string path)
+        {
+            if (path == null || !File.Exists(path)) return null;
+            var bytes = File.ReadAllBytes(path);
+            if (bytes.Length < 44) return null;
+            // The data chunk is not always at 36; walk the chunks.
+            int at = 12;
+            while (at + 8 <= bytes.Length)
+            {
+                string id = System.Text.Encoding.ASCII.GetString(bytes, at, 4);
+                int size = BitConverter.ToInt32(bytes, at + 4);
+                if (id == "data")
+                {
+                    int n = Math.Min(size, bytes.Length - (at + 8)) / 2;
+                    var outp = new float[n];
+                    for (int i = 0; i < n; i++)
+                        outp[i] = BitConverter.ToInt16(bytes, at + 8 + i * 2) / 32768f;
+                    return outp;
+                }
+                at += 8 + size + (size & 1);
+            }
+            return null;
+        }
+
+        /// How long a DETACHED head is, in milliseconds, or 0 for none.
+        ///
+        /// THE DETECTOR THAT FOUND THE FAULT, not a second opinion written
+        /// afterwards. Sound at the very top, then a real gap, then the
+        /// utterance — measured in 10ms windows against 6% of the loudest
+        /// window, which is how the `#######.....####` picture that
+        /// identified line one was drawn.
+        static int DetachedHeadMs(float[] samples, int rate)
+        {
+            if (samples == null || samples.Length == 0 || rate <= 0) return 0;
+            int w = rate / 100;
+            int wins = Math.Min(samples.Length / w, 50);
+            if (wins < 4) return 0;
+            var rms = new double[wins];
+            double loud = 0;
+            for (int i = 0; i < wins; i++)
+            {
+                double sum = 0;
+                for (int j = i * w; j < (i + 1) * w; j++) sum += (double)samples[j] * samples[j];
+                rms[i] = Math.Sqrt(sum / w);
+                if (rms[i] > loud) loud = rms[i];
+            }
+            double quiet = loud * 0.06;
+            int head = 0;
+            while (head < wins && rms[head] > quiet) head++;
+            if (head == 0) return 0;
+            int gap = head;
+            while (gap < wins && rms[gap] <= quiet) gap++;
+            if (gap >= wins || (gap - head) * 10 < 30) return 0;
+            return head * 10;
+        }
+
     }
 }
