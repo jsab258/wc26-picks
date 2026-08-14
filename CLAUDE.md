@@ -6,6 +6,39 @@ believable rather than decorative.**
 
 ---
 
+## 0. WHAT LEDGER IS, because this file never said and I invented an answer
+
+**A British port town, LATE-ANALOG — the eighties and nineties.** Landlines,
+payphones, answering machines, cash, paper. No mobiles, no internet.
+
+On 14 August I called it "a 1950s port town" four times in one conversation,
+in a planning discussion, while telling Jafar which character models suited
+it. He had corrected this "like ten times" before. The setting is stated
+plainly in `design-doc.md` line 8 and DECIDED in `agency-model.md`; I had
+also read the phrase "the setting is LATE-ANALOG, the eighties and nineties"
+in the voice fetcher THAT MORNING and quoted it back in my own commit.
+
+So this was not a stale document or a forgotten decision. Every source was
+correct and I asserted over all of them — rule 1, applied to the premise
+rather than to a fact, which is worse: a wrong number gets caught by the next
+measurement, and a wrong PREMISE quietly re-frames every judgement made on
+top of it. I was about to plan an art pass around the wrong decade.
+
+It is at the top of this file because the fix for "remember it finally" is
+not remembering. Everything below is a rule about process; nothing said what
+the game was, so nothing I read every session could contradict me.
+
+Two more that belong with it, for the same reason:
+
+- **Nothing is purchased.** Characters and animations come from Mixamo with
+  Jafar's account and a token he supplies. When something is missing the
+  answer is to fetch it, never to price it.
+- **The moat is social memory, consequence persistence, and information** —
+  unmistakably deeper than KCD2 while looking unmistakably worse, and at
+  peace with that trade.
+
+---
+
 ## 1. Never assert what you have not just checked
 
 The single most expensive habit. Four separate incidents in one day.
