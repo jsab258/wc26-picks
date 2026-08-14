@@ -250,6 +250,14 @@ TABLE = {
     # the last bench used and the ones `ledger.rows` is stamped into;
     # re-exporting would change the thing being judged in the same run that
     # judges it.
+    # RE-RENDER THE PAGE, NOTHING ELSE. The listening page is a file that
+    # was generated once; fixing the renderer here changed nothing on the
+    # machine holding it, and Jafar refreshed and saw the same 23. A fetch
+    # would rebuild it and cost 29 minutes of corpus scanning for candidates
+    # already on his disk, so this reads them back out of the page and
+    # renders again. Seconds, no network.
+    "rebuild-the-page": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
+                          "--rebuild-page"]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",

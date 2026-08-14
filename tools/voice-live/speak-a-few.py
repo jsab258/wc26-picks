@@ -99,7 +99,18 @@ def run(say, fp16=False, line=0, seeds=1):
         return 1
     # A DENOMINATOR ON THE CAST. "It sounded fine" from one voice is the
     # finding this file exists to stop being made again.
-    chosen = [v for v in ("rocco", "ada", "michelle") if v in voices][:3]
+    # MICHELLE IS A BODY, NOT A VOICE — one of the four Mixamo meshes, and
+    # she has been in this list since it was written. The filter dropped her
+    # in silence, so a test whose whole point is "more than one voice" has
+    # been running on two while reporting nothing, and the name got copied
+    # into the C# bench from here. A cap nobody is told about is
+    # indistinguishable from a finding; this one says when it bites.
+    want = ("rocco", "lena", "ellis")
+    chosen = [v for v in want if v in voices][:3]
+    absent = [v for v in want if v not in voices]
+    if absent:
+        print(f"  ! no conditioning for {', '.join(absent)} — speaking with "
+              f"{len(chosen)} voice(s) instead of {len(want)}")
     if len(chosen) < 2:
         chosen = voices[:3]
     say(f"  {len(voices)} voices precomputed, speaking with {len(chosen)}: "

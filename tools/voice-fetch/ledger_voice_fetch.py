@@ -2227,6 +2227,9 @@ def main():
     # and prints what the filter actually sees. See `diagnose` for why.
     ap.add_argument("--diagnose", action="store_true",
                     help="open the corpus, read a few rows, report what the filter sees")
+    ap.add_argument("--rebuild-page", action="store_true",
+                    help="re-render listen.html from the candidates already "
+                         "on disk — no corpus, no network, seconds")
     ap.add_argument("--install", action="store_true")
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--no-open", action="store_true")
@@ -2245,6 +2248,29 @@ def main():
             print(f"  ! no such character: {', '.join(sorted(unknown))}")
         if not cast:
             return 1
+
+    if args.rebuild_page:
+        # THE PAGE IS AN ARTEFACT, NOT THE CODE THAT MAKES IT. Fixing the
+        # renderer changed nothing on the machine holding the page Jafar was
+        # looking at, and the only way to re-render it was a fetch — which
+        # took 29 minutes of corpus scanning to produce candidates that were
+        # already sitting on disk. `_rows_from_existing_page` reads them back
+        # (it is what `--who` already uses to avoid dropping everybody else's
+        # shortlist), so this is a render and nothing else.
+        rows = _rows_from_existing_page(OUT)
+        if not rows:
+            print(f"  no page to rebuild at {OUT / 'listen.html'} — run a "
+                  f"fetch first")
+            return 1
+        done = cast_already_done(HERE.parent.parent)
+        build_page(CAST, rows, OUT, "vctk", keep_existing=True,
+                   cast_already=done)
+        left = [c["id"] for c in CAST
+                if c["id"] in rows and c["id"] not in done]
+        print(f"  rebuilt {OUT / 'listen.html'}")
+        print(f"  {len(done)} already cast, {len(left)} still to pick"
+              + (": " + ", ".join(left) if left else ""))
+        return 0
 
     if args.install:
         return install(CAST, HERE.parent.parent, force=args.force)

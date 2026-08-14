@@ -328,7 +328,18 @@ namespace Ledger.Bench
                 // precomputed conditioning cannot speak, and refusing the
                 // whole stage for a missing third voice would throw away the
                 // two takes that were available — rule 5's ratchet.
-                var cast = new[] { "rocco", "ada", "michelle" };
+                // REAL CAST IDS. This read `{"rocco", "ada", "michelle"}`,
+                // copied from `speak-a-few`, and MICHELLE IS NOT A VOICE —
+                // she is a Mixamo BODY, one of the four character meshes
+                // bought for the street. There is no Michelle in the cast,
+                // there never has been, and the name had been sitting in the
+                // python list long enough to be copied into C#. It surfaced
+                // only because the new reporting named the substitution;
+                // before that it was invisible on both sides.
+                //
+                // Rocco, Lena and Ellis: one male and two women who sound
+                // nothing like each other, all with conditioning on disk.
+                var cast = new[] { "rocco", "lena", "ellis" };
                 Console.WriteLine("BENCH: speaking " + lines.Length
                     + " lines through SpeechLoop.Run ...");
 
