@@ -1359,6 +1359,16 @@ namespace Ledger.Game
                         // click at the top of every live line — heard by ear
                         // in the five-line test file before the game ever
                         // played one.
+                        // AND THE "AH" BEFORE THE WORD, WHICH IS NOT A
+                        // CLICK AND SURVIVED THE FADE. Jafar heard it on a
+                        // one-word line: 70ms of quiet sound, 50ms of real
+                        // silence, then "No." at eight times the level. The
+                        // feather cannot help — there is nothing wrong with
+                        // the edge — so the head is cut at the silence that
+                        // proves it was never part of the line. Trim first:
+                        // the fade shapes whatever edge it is handed, and
+                        // trimming after would remove the ramp it just made.
+                        SpeechSamples.TrimDetachedHead(samples, LiveSampleRate);
                         SpeechSamples.Feather(samples, LiveSampleRate);
                     }
                 }
@@ -1445,8 +1455,14 @@ namespace Ledger.Game
                     var fresh = s.Follower.TakeReady();
                     if (fresh != null)
                     {
+                        // ONLY THE FIRST BUFFER OF A STREAM HAS A HEAD;
+                        // a later one is the middle of a word and cutting
+                        // into it would be the bug this prevents elsewhere.
                         if (s.Written == 0)
+                        {
+                            SpeechSamples.TrimDetachedHead(fresh, LiveSampleRate);
                             SpeechSamples.Feather(fresh, LiveSampleRate);
+                        }
                         if (s.Written + fresh.Length <= StreamClipSamples)
                         {
                             s.Clip.SetData(fresh, s.Written);

@@ -396,6 +396,10 @@ namespace Ledger.Bench
                     // different path wearing the same name, and the resulting
                     // wav sent him hunting a fault the game does not have.
                     // Anything added to playback belongs here too.
+                    // TRIM BEFORE THE FADE. The fade shapes whatever edge
+                    // it is given; trimming afterwards would remove the ramp
+                    // it had just built and put the step back.
+                    int trimmed = SpeechSamples.TrimDetachedHead(samples, 24000);
                     SpeechSamples.Feather(samples, 24000);
                     double secs = samples.Length / 24000.0;
                     spoke++;
@@ -416,7 +420,12 @@ namespace Ledger.Bench
                         // healthy. Printed rather than gated: a threshold
                         // here would be invented, and the value is its own
                         // evidence — feathered it is 0, raw it was 0.09.
-                        + " head=" + Math.Abs(samples[0]).ToString("0.000"));
+                        + " head=" + Math.Abs(samples[0]).ToString("0.000")
+                        // THE DENOMINATOR FOR "one line in five". Whether a
+                        // detached head is a short-line habit or was one
+                        // render is a question only more runs can answer,
+                        // and only if each one says what it did.
+                        + " trimmedMs=" + (trimmed / 24.0).ToString("0"));
                     all.AddRange(samples);
                     // Half a second between takes, so they are separable by
                     // ear on one playthrough rather than running together.

@@ -8502,6 +8502,53 @@ namespace Ledger.CoreTests
                 + "clamps instead of eating the word");
             // AND THE DEGENERATE INPUTS ARE A NO-OP, NOT A THROW. This runs
             // on the audio worker, where an exception takes the process down.
+            // ---- THE "AH" BEFORE THE "No.", and the "S" that must survive it.
+            //
+            // Built to the shape measured in the take Jafar judged: 70ms of
+            // quiet sound, 50ms of silence, then the word eight times louder.
+            var ah = new float[24000];
+            for (int i = 0; i < 1680; i++)            // 70ms head at 0.08
+                ah[i] = (float)(0.08 * Math.Sin(i * 0.30));
+            for (int i = 2880; i < 24000; i++)        // word from 120ms at 0.62
+                ah[i] = (float)(0.62 * Math.Sin(i * 0.21));
+            int cutAh = SpeechSamples.TrimDetachedHead(ah, 24000);
+            Check(cutAh > 0, "A DETACHED HEAD IS CUT — the 'ah' before the word",
+                  "cut " + cutAh + " samples");
+            Check(Math.Abs(ah[0]) > 0.3f,
+                  "and the line now STARTS on the word rather than on the noise",
+                  ah[0].ToString("0.000"));
+
+            // The accepting case, and it is the one that matters: a soft
+            // consonant running straight into a vowel has no gap, and the
+            // mute that ignored that ate an S the day after it shipped.
+            var ess = new float[24000];
+            for (int i = 0; i < 2400; i++)            // quiet "S" 0-100ms
+                ess[i] = (float)(0.05 * Math.Sin(i * 0.9));
+            for (int i = 2400; i < 24000; i++)        // straight into the vowel
+                ess[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            Check(SpeechSamples.TrimDetachedHead(ess, 24000) == 0,
+                  "AND A SOFT ONSET WITH NO GAP IS LEFT ALONE — no silence "
+                  + "inside it means it is a word, however quiet");
+
+            // A line that simply begins in silence has no head at all.
+            var late = new float[24000];
+            for (int i = 4800; i < 24000; i++) late[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            Check(SpeechSamples.TrimDetachedHead(late, 24000) == 0,
+                  "and a line that starts in silence is not a detached head");
+
+            // A short loud clip must not be eaten for having a pause in it.
+            var pause = new float[24000];
+            for (int i = 0; i < 3000; i++) pause[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            for (int i = 6000; i < 24000; i++) pause[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            Check(SpeechSamples.TrimDetachedHead(pause, 24000) == 0,
+                  "and a full-level first word followed by a pause is speech, "
+                  + "not a head — loudness is what tells them apart");
+
+            SpeechSamples.TrimDetachedHead(null, 24000);
+            SpeechSamples.TrimDetachedHead(new float[0], 24000);
+            SpeechSamples.TrimDetachedHead(new float[10], 0);
+            Check(true, "and the trim survives null, empty and a zero rate");
+
             SpeechSamples.Feather(null, 24000);
             SpeechSamples.Feather(new float[0], 24000);
             SpeechSamples.Feather(new float[10], 0);
