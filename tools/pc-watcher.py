@@ -275,6 +275,13 @@ TABLE = {
     # most of what the game will ever say, and if it is not, the fix is
     # aimed somewhere else entirely.
     "short-lines": [["PY", "tools/voice-live/bench-binding.py", "--short"]],
+    # THE SAME WORD IN EVERY VOICE. If all 23 put a vowel in front of "No."
+    # it is the model on short text and casting cannot help; if a handful do,
+    # it is what their reference clip taught it, and a reference clip is a
+    # file we own. Those are different pieces of work and nothing else
+    # separates them.
+    "one-word-every-voice": [["PY", "tools/voice-live/bench-binding.py",
+                              "--sweep", "--text", "No."]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",

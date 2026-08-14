@@ -52,15 +52,18 @@ NATIVE = ["onnxruntime.dll", "DirectML.dll", "Microsoft.ML.OnnxRuntime.dll"]
 LINE = "Seen the van again. Thursday, same as last Thursday."
 
 
-def command(voice="rocco", short=False):
+def command(voice="rocco", short=False, sweep=False, text=None):
     """The argv this hands to dotnet — one place, so the selftest and the
     run cannot drift apart."""
     argv = ["dotnet", "run", "-c", "Release", "--project", str(BENCH), "--",
             "--models", str(OUT), "--conds", str(CONDS),
             "--tokenizer", str(TOKENIZER), "--voice", voice,
-            "--text", LINE, "--positions", "10,100,200,400", "--window", "12"]
+            "--text", text or LINE,
+            "--positions", "10,100,200,400", "--window", "12"]
     if short:
         argv += ["--short", "1"]
+    if sweep:
+        argv += ["--sweep", "1"]
     return argv
 
 
@@ -112,7 +115,7 @@ def sdk_missing(which=None, probe=None):
 WAIT_SECONDS = 1800
 
 
-def main(short=False):
+def main(short=False, sweep=False, text=None):
     why = sdk_missing()
     if why:
         print(f"bench-binding: no .NET SDK yet ({why}).")
@@ -154,7 +157,8 @@ def main(short=False):
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
-    r = subprocess.run(command(short=short), cwd=str(ROOT))
+    r = subprocess.run(command(short=short, sweep=sweep, text=text),
+                       cwd=str(ROOT))
     # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
     # game's own `SpeechLoop.Run` and writes it beside itself; a sound
     # nobody can hear proves as little as the numbers did. Copied to the
@@ -203,6 +207,13 @@ def selftest():
               "argparse exited instead of parsing it")
     check(parser().parse_args([]).short is False,
           "and defaults to the ordinary set when nothing is passed")
+    sw = command(sweep=True, text="No.")
+    check("--sweep" in sw and sw[sw.index("--text") + 1] == "No.",
+          "and a sweep carries BOTH the flag and the line, since one word in "
+          "every voice is the whole experiment")
+    check(parser().parse_args(["--sweep", "--text", "No."]).text == "No.",
+          "and the script accepts them, which is the check that was missing "
+          "when --short exited 2 in zero seconds")
     check(cmd[0] == "dotnet" and "--project" in cmd,
           "the bench runs through dotnet with an explicit project",
           " ".join(cmd[:6]))
@@ -287,9 +298,14 @@ def parser():
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--short", action="store_true",
                     help="speak the five short lines instead of the usual set")
+    ap.add_argument("--sweep", action="store_true",
+                    help="speak ONE line in every voice that has conditioning")
+    ap.add_argument("--text", default=None,
+                    help="the line to speak (used with --sweep)")
     return ap
 
 
 if __name__ == "__main__":
     a = parser().parse_args()
-    sys.exit(selftest() if a.selftest else main(short=a.short))
+    sys.exit(selftest() if a.selftest
+              else main(short=a.short, sweep=a.sweep, text=a.text))

@@ -34,6 +34,7 @@ namespace Ledger.Bench
             string models = null, conds = null, tokenizer = null;
             string voice = "rocco";
             bool shortSet = false;
+            bool sweep = false;
             // The sweep's nine-word line, so these numbers read against the
             // sweep's and the probe's. The driver passes it explicitly; this
             // default only covers running the bench by hand.
@@ -49,6 +50,7 @@ namespace Ledger.Bench
                     case "--tokenizer": tokenizer = args[i + 1]; break;
                     case "--voice": voice = args[i + 1]; break;
                     case "--short": shortSet = args[i + 1] != "0"; break;
+                    case "--sweep": sweep = args[i + 1] != "0"; break;
                     case "--text": text = args[i + 1]; break;
                     case "--window": window = int.Parse(args[i + 1]); break;
                     case "--positions":
@@ -326,7 +328,7 @@ namespace Ledger.Bench
                 // reading has a denominator, and the street is mostly
                 // interjections, so if this is a short-line habit it is a
                 // habit that affects most of what the game says.
-                var lines = shortSet ? new[]
+                string[] lines = shortSet ? new[]
                 {
                     "No.",
                     "Yes.",
@@ -357,6 +359,34 @@ namespace Ledger.Bench
                 // Rocco, Lena and Ellis: one male and two women who sound
                 // nothing like each other, all with conditioning on disk.
                 var cast = new[] { "rocco", "lena", "ellis" };
+                // ONE WORD, EVERY VOICE — the experiment that separates the
+                // model from the reference clip.
+                //
+                // `parts` was useless on ordinary lines because the silence
+                // between words is real speech structure; it cannot tell a
+                // filler from a comma. On a SINGLE WORD it has no such
+                // problem: "No." is one utterance, so two means the model
+                // added one. Restricting the metric to the case it can
+                // answer is the difference between an instrument and a
+                // number.
+                //
+                // If every voice does it, it is the model on short text and
+                // the fix is upstream of casting. If only some do, it is
+                // what their reference clip taught it, and a reference clip
+                // is a file we control. Nothing else distinguishes those,
+                // and they want completely different work.
+                if (sweep)
+                {
+                    var found = new System.Collections.Generic.List<string>();
+                    foreach (var f in System.IO.Directory.GetFiles(conds, "*.bin"))
+                        found.Add(System.IO.Path.GetFileNameWithoutExtension(f));
+                    found.Sort();
+                    cast = found.ToArray();
+                    lines = new string[cast.Length];
+                    for (int i = 0; i < lines.Length; i++) lines[i] = text;
+                    Console.WriteLine("BENCH: sweeping \"" + text + "\" across "
+                                      + cast.Length + " voice(s)");
+                }
                 Console.WriteLine("BENCH: speaking " + lines.Length
                     + " lines through SpeechLoop.Run ...");
 
@@ -367,7 +397,9 @@ namespace Ledger.Bench
                 {
                     // The voice rotates so the set covers more than one
                     // person without costing more lines.
-                    string asked = cast[i % cast.Length];
+                    // ONE VOICE PER LINE IN A SWEEP, not a rotation: the
+                    // whole point is that every voice says the SAME words.
+                    string asked = sweep ? cast[i] : cast[i % cast.Length];
                     // WHICH VOICE ACTUALLY SPOKE, resolved BEFORE the line so
                     // the label cannot outrun the fact. A machine that has
                     // only some of the cast precomputed still gets five takes
