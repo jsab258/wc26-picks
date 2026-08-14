@@ -101,10 +101,17 @@ def main():
     ap.add_argument("--who", default="rocco")
     ap.add_argument("--word", default=WORD)
     ap.add_argument("--line", default=LINE)
+    ap.add_argument("--repeat", type=int, default=0,
+                    help="render the word N times with the INSTALLED clip and "
+                         "print the series — the distribution of one voice, "
+                         "which is what a single render cannot show")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+
+    if a.repeat:
+        return repeat(a)
 
     found = candidates(a.who)
     if not found:
@@ -231,6 +238,67 @@ def main():
           + ", ".join(str(o) for o in order))
     print(f"  and {note.name}, which a log cap cannot evict")
     print(f"  {GAP_SECONDS}s between each. Pick by sound; they all behave.")
+    return 0
+
+
+def repeat(a):
+    """One voice, one word, N times — the series a single render cannot show.
+
+    THIS IS THE MEASUREMENT THE WHOLE EPISODE WAS MISSING. Rendering "No."
+    once in each of 23 voices found four "bad" ones; rendering the same six
+    files an hour later moved them by up to 4x, one from 0.80s to 3.20s.
+    Sampling is stochastic — temperature 0.8, no fixed seed — so a single
+    render measures the DRAW rather than the voice, and every conclusion
+    built on those numbers was about luck.
+
+    So: one voice, held fixed, many draws. That gives the two numbers the
+    retry fix actually needs — how often a line comes out badly out of
+    proportion, and how far out the bad ones go. A retry bound set without
+    them would be the third invented threshold in this investigation.
+
+    The SERIES prints above the summaries, deliberately. A median hides the
+    tail and the tail is the entire subject here; a human reading twenty
+    numbers in a row sees the shape in a second.
+    """
+    import numpy as np
+    import torch
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import export_probe
+
+    clips_dir = ROOT / "game-design" / "picked-clips"
+    hits = sorted(q for q in clips_dir.iterdir()
+                  if q.is_file() and q.name.split(".")[0] == a.who) \
+        if clips_dir.is_dir() else []
+    if not hits:
+        print(f"  no installed clip for '{a.who}' in picked-clips")
+        return 1
+    clip = hits[0]
+    print(f"  {a.repeat} renders of \"{a.word}\" with {clip.name}")
+
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    model = export_probe.load_model(dev)
+    model.prepare_conditionals(str(clip))
+
+    secs = []
+    for i in range(a.repeat):
+        with torch.inference_mode():
+            wav = model.generate(a.word).squeeze(0).cpu().numpy()
+        secs.append(len(wav) / model.sr)
+    OUT.mkdir(parents=True, exist_ok=True)
+    note = OUT / f"repeat-{a.who}.txt"
+    srt = sorted(secs)
+    med = srt[len(srt) // 2]
+    lines = [f"{a.repeat} renders of \"{a.word}\" with {clip.name}", "",
+             "  series (in the order rendered):",
+             "    " + " ".join(f"{v:.2f}" for v in secs), "",
+             "  sorted:",
+             "    " + " ".join(f"{v:.2f}" for v in srt), "",
+             f"  shortest {srt[0]:.2f}  median {med:.2f}  longest {srt[-1]:.2f}",
+             f"  over 2x the median: {sum(1 for v in secs if v > med * 2)} of {len(secs)}",
+             f"  over 3x the median: {sum(1 for v in secs if v > med * 3)} of {len(secs)}"]
+    note.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    for l in lines:
+        print("  " + l)
     return 0
 
 

@@ -290,6 +290,11 @@ TABLE = {
     # work.
     "audition-rocco": [["PY", "tools/voice-live/audition-candidates.py",
                         "--who", "rocco"]],
+    # THE SERIES, which is the measurement this whole investigation lacked.
+    # One voice held fixed, twenty draws, so the retry bound comes from a
+    # distribution rather than from a fourth guess.
+    "repeat-one-voice": [["PY", "tools/voice-live/audition-candidates.py",
+                          "--who", "rocco", "--repeat", "20"]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",
@@ -544,6 +549,7 @@ def publish(root, say, message):
                 "game-design/voice-live/step-report.txt",
                 "game-design/voice-live/audition-rocco.wav",
                 "game-design/voice-live/audition-rocco.txt",
+                "game-design/voice-live/repeat-rocco.txt",
                 # THE BANK ITSELF, and it is a directory rather than a file
                 # because a render produces clips whose NAMES are hashes of
                 # the words — so nobody can list them in advance, which is the
