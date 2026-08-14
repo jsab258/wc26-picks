@@ -86,7 +86,15 @@ def main():
 
     cards = tier1_ids()
     cast, alias = voicebank()
-    clips = {p.name.split(".")[0] for p in CLIPS.glob("*.mp3")} if CLIPS.exists() else set()
+    # ANY AUDIO EXTENSION. The THIRD place today that hardcoded `.mp3`
+    # while the fetcher installs wav — after `shape-check`'s two. The
+    # nineteen cast in July are mp3 and every reader was written against
+    # them, so each one silently reports a wav-cast character as having no
+    # clip at all. `export_probe.reference` globs `<id>.*` and is the only
+    # one that was right, which is also the only one the GAME depends on.
+    clips = ({q.name.split(".")[0] for q in CLIPS.iterdir()
+              if q.is_file() and q.suffix.lower() in (".mp3", ".wav", ".flac")}
+             if CLIPS.exists() else set())
 
     print(f"voice-cast — {len(cards)} tier-1 principals, {len(cast)} cast voices, "
           f"{len(alias)} alias(es), {len(clips)} clip(s)\n")

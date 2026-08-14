@@ -60,6 +60,15 @@ namespace Ledger.Core
         {
             "lena", "rocco", "ellis", "reese", "kest",
             "sam", "ada", "vesna", "marla", "joey", "rita", "hal", "emil",
+            // CAST 14 AUGUST, and this list is the last wire. A clip in
+            // `picked-clips` and conditioning in `voice-conds` are not a
+            // voice on their own: `VoiceFor` treats an id as cast only if it
+            // is IN HERE, and everybody else draws from the crowd pool
+            // silently — which is what these four had been doing since they
+            // were written. The assets landing without this line would have
+            // been a whole day's work reaching the repository and changing
+            // nothing anybody could hear.
+            "aldous", "danny", "june", "zlata",
         };
 
         /// THE SAME PERSON UNDER TWO NAMES, and until now that cost them their

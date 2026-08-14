@@ -2,7 +2,7 @@
   "made": "2026-07-31",
   "by": "Jafar",
   "corpus": "vctk",
-  "complete": false,
+  "complete": true,
   "picks": {
     "ada": {
       "candidate": 2,
@@ -135,7 +135,7 @@
     "june": {
       "candidate": 4,
       "picked": "2026-08-14",
-      "speaker": null,
+      "speaker": "p225",
       "age": null,
       "accent": null
     },
