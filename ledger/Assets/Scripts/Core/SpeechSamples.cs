@@ -64,6 +64,54 @@ namespace Ledger.Core
         /// is a denominator of five and it is written down as such: the
         /// bench reports what it trimmed, so the next runs say whether short
         /// lines are the pattern or that was one render.
+        /// How many separate utterances the render contains — runs of sound
+        /// with real silence between them.
+        ///
+        /// `DetachedHeadMs` ANSWERS A DIFFERENT QUESTION THAN THE ONE THE
+        /// FILLER ASKS, and the short-line run proved it: it reported 70ms
+        /// for the "No." whose filler is 440ms long, because it stops at the
+        /// FIRST gap and the file has two — a 70ms blip, a gap, the 440ms
+        /// "ah", a gap, then the word. It is not wrong; it measures the head
+        /// and there is a head. It simply cannot see that a second thing was
+        /// said, and "did the model say something extra" is a COUNT.
+        ///
+        /// That is the question with teeth, because the answer is checkable
+        /// against the text: "No." is one utterance, and anything above one
+        /// is the model adding something nobody asked for.
+        public static int Utterances(float[] samples, int sampleRate,
+                                     double windowMs = 10.0,
+                                     double minGapMs = 30.0)
+        {
+            if (samples == null || samples.Length == 0 || sampleRate <= 0) return 0;
+            int w = (int)(sampleRate * windowMs / 1000.0);
+            if (w <= 0) return 0;
+            int wins = samples.Length / w;
+            if (wins < 4) return 0;
+            double loud = 0;
+            var rms = new double[wins];
+            for (int i = 0; i < wins; i++)
+            {
+                double sum = 0;
+                for (int j = i * w; j < (i + 1) * w; j++) sum += (double)samples[j] * samples[j];
+                rms[i] = Math.Sqrt(sum / w);
+                if (rms[i] > loud) loud = rms[i];
+            }
+            if (loud <= 0) return 0;
+            double quiet = loud * 0.06;
+            int gapWins = (int)(minGapMs / windowMs);
+            int parts = 0, run = 0, silence = gapWins;   // start "in silence"
+            for (int i = 0; i < wins; i++)
+            {
+                if (rms[i] > quiet)
+                {
+                    if (silence >= gapWins) parts++;
+                    silence = 0; run++;
+                }
+                else silence++;
+            }
+            return parts;
+        }
+
         /// How long a detached head is in milliseconds, 0 for none — the
         /// MEASUREMENT, separated from the decision to cut.
         ///

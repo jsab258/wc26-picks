@@ -937,6 +937,23 @@ namespace Ledger.Game
         /// total is still `speechNoClip`, which keeps its landed series.
         public static int SpeechNoClipComposed { get; private set; }
 
+        /// DID A LIVE LINE SAY MORE THAN IT WAS ASKED TO — the worst case,
+        /// with the count of lines it was taken over.
+        ///
+        /// The model rendered "No." as "ah ... No.": a 440ms filler, real
+        /// silence, then the word. Nobody would ever have known from a
+        /// number, because every counter here asks whether a line PLAYED.
+        /// A line is one sentence, so more than one utterance is the model
+        /// adding something, and that is checkable without knowing what was
+        /// said.
+        ///
+        /// A MAX, and named so, because the question is "did it ever" — and
+        /// `speechLinesMeasured` sits beside it because a worst-of-nothing
+        /// reads exactly like a worst-of-clean, which is the fault this file
+        /// has been bitten by more than once.
+        public static int SpeechPartsWorst { get; private set; }
+        public static int SpeechLinesMeasured { get; private set; }
+
         /// WHAT THE BANK WOULD ACTUALLY HAVE TO CONTAIN — the number that
         /// decides M17.2's scope, and it is not the one I was about to ask
         /// Jafar to rule on.
@@ -1368,6 +1385,12 @@ namespace Ledger.Game
                         // proves it was never part of the line. Trim first:
                         // the fade shapes whatever edge it is handed, and
                         // trimming after would remove the ramp it just made.
+                        // COUNTED BEFORE ANYTHING IS REMOVED, so the number
+                        // describes what the model produced rather than what
+                        // survived the repairs.
+                        int parts = SpeechSamples.Utterances(samples, LiveSampleRate);
+                        if (parts > SpeechPartsWorst) SpeechPartsWorst = parts;
+                        SpeechLinesMeasured++;
                         SpeechSamples.TrimDetachedHead(samples, LiveSampleRate);
                         SpeechSamples.Feather(samples, LiveSampleRate);
                     }
@@ -1528,6 +1551,7 @@ namespace Ledger.Game
             SpeechPlayed = 0; SpeechMissing = 0;
             SpeechOutOfRange = 0; SpeechNoClip = 0; SpeechNoAudio = 0;
             SpeechNoClipComposed = 0;
+            SpeechPartsWorst = 0; SpeechLinesMeasured = 0;
             _asked.Clear(); _askedVoices.Clear();
             Live.Reset();
         }

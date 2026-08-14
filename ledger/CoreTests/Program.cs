@@ -8583,6 +8583,27 @@ namespace Ledger.CoreTests
                       + "cannot run and this must not read as a pass");
             }
 
+            // ---- COUNTING WHAT WAS SAID, on the recording that has two.
+            var two = ReadWavMono(Root("game-design/voice-live/fixture-detached-head.wav"));
+            if (two != null && two.Length > 24000)
+            {
+                Check(SpeechSamples.Utterances(two, 24000) >= 2,
+                      "THE 'ah ... No.' RENDER COUNTS AS MORE THAN ONE "
+                      + "UTTERANCE, which is the fault stated as a number",
+                      SpeechSamples.Utterances(two, 24000) + " parts");
+            }
+            var one = new float[24000];
+            for (int i = 2400; i < 14400; i++) one[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            Check(SpeechSamples.Utterances(one, 24000) == 1,
+                  "AND A SINGLE CLEAN LINE COUNTS AS ONE — the accepting case, "
+                  + "without which every render looks broken");
+            var gapless = new float[24000];
+            for (int i = 0; i < 24000; i++) gapless[i] = (float)(0.6 * Math.Sin(i * 0.21));
+            Check(SpeechSamples.Utterances(gapless, 24000) == 1,
+                  "and continuous speech with no silence at all is still one");
+            Check(SpeechSamples.Utterances(new float[24000], 24000) == 0,
+                  "and pure silence is nothing said, not one thing said");
+
             SpeechSamples.TrimDetachedHead(null, 24000);
             SpeechSamples.TrimDetachedHead(new float[0], 24000);
             SpeechSamples.TrimDetachedHead(new float[10], 0);

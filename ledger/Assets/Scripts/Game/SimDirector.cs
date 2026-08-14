@@ -9965,6 +9965,8 @@ namespace Ledger.Game
                       $"speechPlayed={Audio.SpeechPlayed} speechMissing={Audio.SpeechMissing} " +
                       $"speechNoClip={Audio.SpeechNoClip} " +
                       $"speechNoClipComposed={Audio.SpeechNoClipComposed} " +
+                      $"speechPartsWorst={Audio.SpeechPartsWorst} " +
+                      $"speechLinesMeasured={Audio.SpeechLinesMeasured} " +
                       $"speechOutOfRange={Audio.SpeechOutOfRange} " +
                       $"speechNoAudio={Audio.SpeechNoAudio} " +
                       // LIVE SPEECH, ON THE DONE LINE BECAUSE IT DESCRIBES THE

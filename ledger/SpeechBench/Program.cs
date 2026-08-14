@@ -422,6 +422,12 @@ namespace Ledger.Bench
                     // trim refuses it and a report of what was cut would
                     // call that line clean. `headMs` is the fault; the trim
                     // is only the part of it that can be removed safely.
+                    // HOW MANY THINGS IT SAID. The line is one sentence;
+                    // more than one utterance means the model added
+                    // something. `headMs` cannot see this — it stops at the
+                    // first gap, and the "No." with a 440ms filler in it
+                    // reported 70ms because a 70ms blip came first.
+                    int parts = SpeechSamples.Utterances(samples, 24000);
                     int headMs = SpeechSamples.DetachedHeadMs(samples, 24000);
                     int trimmed = SpeechSamples.TrimDetachedHead(samples, 24000);
                     SpeechSamples.Feather(samples, 24000);
@@ -449,6 +455,7 @@ namespace Ledger.Bench
                         // detached head is a short-line habit or was one
                         // render is a question only more runs can answer,
                         // and only if each one says what it did.
+                        + " parts=" + parts
                         + " headMs=" + headMs
                         + " trimmedMs=" + (trimmed / 24.0).ToString("0"));
                     all.AddRange(samples);
