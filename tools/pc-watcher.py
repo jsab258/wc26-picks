@@ -784,6 +784,38 @@ def selftest():
           "and with no Windows environment present it falls back to this "
           "interpreter rather than a path that does not exist")
 
+    # ---- EVERY FLAG A JOB PASSES MUST BE A FLAG THAT SCRIPT TAKES.
+    #
+    # `short-lines` sent `--short` to a script whose argparse knew only
+    # `--selftest`. argparse saw an unrecognised argument and exited 2 before
+    # a line of that file ran, so the job died on Jafar's machine in zero
+    # seconds and the watcher recorded it as finished. Nothing here could
+    # have known — but everything needed to know it was in this repository,
+    # which is the definition of a check that belongs on this side.
+    #
+    # Name-matching rather than importing: these scripts pull in torch and
+    # onnxruntime at module scope and cannot be imported in this container.
+    # The live table is the accepting case and it is the best one available —
+    # every job in it is one somebody expects to work, so a hit on today's
+    # table is a false positive by definition.
+    bad = []
+    for job, steps in TABLE.items():
+        for step in steps:
+            if len(step) < 2 or step[0] != "PY":
+                continue
+            script = ROOT / step[1]
+            if not script.exists():
+                bad.append(f"{job}: no {step[1]}")
+                continue
+            body = script.read_text(encoding="utf-8", errors="replace")
+            for tok in step[2:]:
+                if not tok.startswith("--"):
+                    continue
+                if f'"{tok}"' not in body and f"'{tok}'" not in body:
+                    bad.append(f"{job}: {step[1]} does not take {tok}")
+    check(not bad, "every flag a job passes is one that script accepts",
+          "; ".join(bad[:3]))
+
     print(f"\npc-watcher --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks")
     return 1 if fails else 0

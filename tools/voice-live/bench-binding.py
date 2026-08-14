@@ -112,18 +112,7 @@ def sdk_missing(which=None, probe=None):
 WAIT_SECONDS = 1800
 
 
-def _short_asked():
-    """Whether the caller asked for the short-line set.
-
-    Read here rather than threaded through, because the watcher
-    passes job arguments straight through and a flag this file
-    did not understand would be silently ignored — which is the
-    fault that let a phantom voice ride for weeks.
-    """
-    return "--short" in sys.argv
-
-
-def main():
+def main(short=False):
     why = sdk_missing()
     if why:
         print(f"bench-binding: no .NET SDK yet ({why}).")
@@ -165,7 +154,7 @@ def main():
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
-    r = subprocess.run(command(short=_short_asked()), cwd=str(ROOT))
+    r = subprocess.run(command(short=short), cwd=str(ROOT))
     # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
     # game's own `SpeechLoop.Run` and writes it beside itself; a sound
     # nobody can hear proves as little as the numbers did. Copied to the
@@ -202,6 +191,18 @@ def selftest():
           "the short-line set reaches the bench as a flag it parses")
     check("--short" not in cmd,
           "and the ordinary run does not carry it")
+    # AND THE ENTRY POINT ACCEPTS WHAT THE WATCHER SENDS. This is the check
+    # that was missing when `short-lines` exited 2 in zero seconds.
+    try:
+        parsed = parser().parse_args(["--short"])
+        check(parsed.short is True,
+              "THE SCRIPT ITSELF ACCEPTS --short, which is what the watcher "
+              "passes and what argparse rejected")
+    except SystemExit:
+        check(False, "THE SCRIPT ITSELF ACCEPTS --short",
+              "argparse exited instead of parsing it")
+    check(parser().parse_args([]).short is False,
+          "and defaults to the ordinary set when nothing is passed")
     check(cmd[0] == "dotnet" and "--project" in cmd,
           "the bench runs through dotnet with an explicit project",
           " ".join(cmd[:6]))
@@ -268,8 +269,27 @@ def selftest():
     return 0 if not fails else 1
 
 
-if __name__ == "__main__":
+def parser():
+    """The parser, NAMED so the selftest can run the real one.
+
+    `--short` was read straight off `sys.argv` by a helper, which looked
+    fine and could never work: `argparse` sees the flag first, does not
+    recognise it, and exits 2 before any of this file's code runs. The job
+    died in zero seconds on Jafar's machine.
+
+    The selftest was no help because it checked the argv this file BUILDS
+    for the bench and never that this file ACCEPTS the flag the watcher
+    passes it — the half I wrote, not the entry point. Both are checked now,
+    and the parser is here rather than inline so the check can use the real
+    one instead of a copy that agrees with itself.
+    """
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
-    a = ap.parse_args()
-    sys.exit(selftest() if a.selftest else main())
+    ap.add_argument("--short", action="store_true",
+                    help="speak the five short lines instead of the usual set")
+    return ap
+
+
+if __name__ == "__main__":
+    a = parser().parse_args()
+    sys.exit(selftest() if a.selftest else main(short=a.short))
