@@ -133,12 +133,11 @@
       "accent": null
     },
     "june": {
-      "candidate": null,
-      "picked": null,
+      "candidate": 4,
+      "picked": "2026-08-14",
       "speaker": null,
       "age": null,
-      "accent": null,
-      "note": "candidate 2 was p228, already Lena's voice \u2014 needs a re-pick"
+      "accent": null
     },
     "zlata": {
       "candidate": 3,

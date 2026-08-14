@@ -1855,7 +1855,7 @@ def install(cast, repo_root, force=False):
     known = {c["id"] for c in cast}
     page_rows = _rows_from_existing_page(OUT)
     record = {}
-    installed, missing, unknown, kept = [], [], [], []
+    installed, missing, unknown, kept, clashes = [], [], [], [], []
     for cid, n in sorted(picks.items()):
         if cid not in known:
             unknown.append(cid)
@@ -1875,6 +1875,28 @@ def install(cast, repo_root, force=False):
         row = next((r for r in page_rows.get(cid, []) if r.get("n") == n), None)
         speaker = (row or {}).get("speaker")
         stem = f"{cid}.{speaker}" if speaker else cid
+        # AND NOBODY ELSE'S VOICE, CHECKED WHERE THE SPEAKER IS KNOWN.
+        #
+        # June was offered p228 and p228 is Lena. The fetcher has an
+        # exclusivity rule meant to keep a cast voice out of somebody else's
+        # shortlist, and it has a selftest asserting exactly that — it did
+        # not hold, and the collision reached the repository, where
+        # `shape-check` caught it only after being taught to read wav.
+        #
+        # A shortlist is a guess about what is free; INSTALL is the moment
+        # the speaker id is a fact, so the rule belongs here too. Refusing
+        # one pick and installing the rest is deliberate: holding four
+        # characters back for one is the ratchet rule 5 warns about.
+        taken = {}
+        for q in dest.iterdir():
+            if not q.is_file():
+                continue
+            bits = q.name.split(".")
+            if len(bits) >= 3:
+                taken[bits[1]] = bits[0]
+        if speaker and taken.get(speaker, cid) != cid:
+            clashes.append(f"{cid} #{n} is {speaker}, already {taken[speaker]}'s voice")
+            continue
         already = sorted(dest.glob(cid + ".*"))
         if already and not force:
             kept.append(f"{cid} (already cast as {already[0].name})")
@@ -1911,6 +1933,11 @@ def install(cast, repo_root, force=False):
         TRACKED_PICKS.write_text(json.dumps(d, indent=2) + "\n",
                                  encoding="utf-8")
         print(f"  recorded {len(record)} pick(s) in voice-picks.json")
+    if clashes:
+        print("  ! REFUSED — that voice is already somebody else's:")
+        for c in clashes:
+            print("    " + c)
+        print("    pick a different candidate for them and run this again.")
     if kept:
         print("  left alone, already cast (pass --force to re-cast):")
         for k in kept:
@@ -2248,6 +2275,28 @@ def selftest():
     check(set(_back) >= {"lena", "aldous"},
           "and the id parser still round-trips a tag that grew a class",
           str(sorted(_back)))
+
+    # ---- ONE VOICE, ONE CHARACTER, CHECKED AT INSTALL.
+    # The rule the shortlist was supposed to enforce and did not: June was
+    # offered p228 and p228 is Lena. This is the same rule where the speaker
+    # id is a FACT rather than a guess.
+    _c = _t / "clips"
+    _c.mkdir(exist_ok=True)
+    (_c / "lena.p228.mp3").write_bytes(b"x")
+    _taken = {}
+    for q in _c.iterdir():
+        bits = q.name.split(".")
+        if len(bits) >= 3:
+            _taken[bits[1]] = bits[0]
+    check(_taken.get("p228") == "lena",
+          "THE FOLDER SAYS WHO HOLDS A SPEAKER, read off the filename that "
+          "carries it")
+    check(_taken.get("p228", "june") != "june",
+          "so a pick of p228 for June is refused — the collision that "
+          "reached the repository")
+    check(_taken.get("p999", "june") == "june",
+          "AND A SPEAKER NOBODY HOLDS IS FREE — the accepting case, without "
+          "which nothing could ever be cast again")
 
     print(f"\n{ok} passed, {fail} failed")
     return 1 if fail else 0
