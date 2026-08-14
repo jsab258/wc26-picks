@@ -159,6 +159,9 @@ def main(short=False, sweep=False, text=None, repeat=0):
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
+    stale = ROOT / "bench-spoke.wav"
+    if stale.exists():
+        stale.unlink()
     r = subprocess.run(command(short=short, sweep=sweep, text=text,
                                repeat=repeat), cwd=str(ROOT))
     # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
@@ -166,6 +169,16 @@ def main(short=False, sweep=False, text=None, repeat=0):
     # nobody can hear proves as little as the numbers did. Copied to the
     # published folder rather than left in a working directory, because the
     # publisher moves NAMED files and a result it cannot see did not happen.
+    # DELETED BEFORE THE RUN, so a stale one cannot be reported as this
+    # run's. `series-ours-1` failed to BUILD and this still printed "the
+    # game's own code spoke: bench-spoke.wav (1521 KB)" — the file from the
+    # previous run, sitting where the bench leaves it. A failed build that
+    # announces audio is the same fault as a sim that commits the stills it
+    # checked out: the artefact is real and belongs to a different run.
+    #
+    # Removed up at the top rather than checked by timestamp, because
+    # "newer than when I started" is a comparison somebody has to get right
+    # and "not there unless this run made it" is not.
     spoke = ROOT / "bench-spoke.wav"
     if spoke.exists():
         dest = ROOT / "game-design" / "voice-live" / "bench-spoke.wav"
