@@ -1,4 +1,54 @@
 job: repeat-ours
 id: series-ours-2
 
-RESULT: STARTED at 2026-08-14 18:00 UTC — still running here
+  $ tools/voice-live/bench-binding.py --repeat 20 --text No.
+  bench-binding: building and running the bench (first build takes a minute)...
+  C:\Users\Jafar\wc26-picks\ledger\Assets\Scripts\Core\SpeechStream.cs(165,14): warning CS0414: The field 'SpeechChunkFollower._first' is assigned but its value is never used [C:\Users\Jafar\wc26-picks\ledger\SpeechBench\SpeechBench.csproj]
+  BENCH: hostRepeatMaxDelta=0.0e+00
+  BENCH: residency=device
+  BENCH: logitsMaxDelta prefill=0.0e+00
+  BENCH: logitsMaxDelta step1=0.0e+00
+  BENCH: logitsMaxDelta step2=0.0e+00
+  BENCH: logitsMaxDelta step3=0.0e+00
+  BENCH: prefillWarmed host=0.056s bound=0.067s
+  BENCH: host pos10=30.7 pos100=46.0 pos200=61.7 pos400=93.7 (medianMsOver12)
+  BENCH: bound pos10=17.0 pos100=16.7 pos200=17.1 pos400=17.4 (medianMsOver12)
+  BENCH: fit host=29.4ms+161us/pos
+  BENCH: fit bound=16.8ms+2us/pos
+  BENCH: 20 draws of "No." as rocco
+  BENCH: speaking 20 lines through SpeechLoop.Run ...
+  BENCH: line 1 rocco stop=Finished tokens=35 steps=36 loop=0.73 decode=1.54 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 2 rocco stop=Finished tokens=35 steps=36 loop=0.71 decode=0.61 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 3 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.60 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 4 rocco stop=Finished tokens=35 steps=36 loop=0.67 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 5 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.61 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 6 rocco stop=Finished tokens=35 steps=36 loop=0.70 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 7 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.60 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 8 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 9 rocco stop=Finished tokens=35 steps=36 loop=0.67 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 10 rocco stop=Finished tokens=35 steps=36 loop=0.67 decode=0.62 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 11 rocco stop=Finished tokens=35 steps=36 loop=0.70 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 12 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 13 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 14 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 15 rocco stop=Finished tokens=35 steps=36 loop=0.67 decode=0.62 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 16 rocco stop=Finished tokens=35 steps=36 loop=0.70 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 17 rocco stop=Finished tokens=35 steps=36 loop=0.70 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 18 rocco stop=Finished tokens=35 steps=36 loop=0.69 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 19 rocco stop=Finished tokens=35 steps=36 loop=0.67 decode=0.59 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: line 20 rocco stop=Finished tokens=35 steps=36 loop=0.68 decode=0.62 speech=1.40 head=0.000 parts=3 headMs=70 trimmedMs=0
+  BENCH: spoke 20 of 20 lines, 0 refused
+  BENCH: 28.00s of speech in 26.70s of work (x0.95 realtime)
+  BENCH: wrote C:\Users\Jafar\wc26-picks\bench-spoke.wav (1757 KB)
+  BENCH: THE GAME'S OWN CODE SPOKE.
+    the game's own code spoke: bench-spoke.wav (1757 KB)
+  [0;93m2026-08-14 20:00:36.6387391 [W:onnxruntime:, session_state.cc:1168 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.[m
+  [0;93m2026-08-14 20:00:36.6392182 [W:onnxruntime:, session_state.cc:1170 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.[m
+  [0;93m2026-08-14 20:00:40.4733335 [W:onnxruntime:, session_state.cc:1168 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.[m
+  [0;93m2026-08-14 20:00:40.4737918 [W:onnxruntime:, session_state.cc:1170 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.[m
+  [0;93m2026-08-14 20:00:46.7267935 [W:onnxruntime:, session_state.cc:1168 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.[m
+  [0;93m2026-08-14 20:00:46.7273089 [W:onnxruntime:, session_state.cc:1170 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.[m
+  [0;93m2026-08-14 20:00:59.3963829 [W:onnxruntime:, session_state.cc:1168 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.[m
+  [0;93m2026-08-14 20:00:59.3969088 [W:onnxruntime:, session_state.cc:1170 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.[m
+
+RESULT: finished
