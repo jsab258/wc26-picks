@@ -2,7 +2,7 @@
   "made": "2026-07-31",
   "by": "Jafar",
   "corpus": "vctk",
-  "complete": true,
+  "complete": false,
   "picks": {
     "ada": {
       "candidate": 2,
@@ -117,6 +117,34 @@
       "speaker": "p238",
       "age": "22",
       "accent": "NorthernIrish"
+    },
+    "aldous": {
+      "candidate": 3,
+      "picked": "2026-08-14",
+      "speaker": null,
+      "age": null,
+      "accent": null
+    },
+    "danny": {
+      "candidate": 1,
+      "picked": "2026-08-14",
+      "speaker": null,
+      "age": null,
+      "accent": null
+    },
+    "june": {
+      "candidate": 2,
+      "picked": "2026-08-14",
+      "speaker": null,
+      "age": null,
+      "accent": null
+    },
+    "zlata": {
+      "candidate": 3,
+      "picked": "2026-08-14",
+      "speaker": null,
+      "age": null,
+      "accent": null
     }
   }
 }

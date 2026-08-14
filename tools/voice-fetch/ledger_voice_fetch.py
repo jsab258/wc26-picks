@@ -1777,10 +1777,39 @@ __ROWS__
         PICKS.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def read_picks():
-    if not PICKS.exists():
+TRACKED_PICKS = HERE.parent.parent / "game-design" / "voice-picks.json"
+
+
+def tracked_picks():
+    """The picks that live in the repository, as {id: candidate number}.
+
+    `picks.txt` is a scratch file on one machine and is gitignored, so a
+    decision typed into it exists nowhere else — and casting decisions are
+    exactly what rule 5 says to keep where the pipeline cannot lose them.
+    `voice-picks.json` already held the nineteen made in July; it is the
+    record, and it is now also an INPUT, so a pick can travel by commit
+    rather than by somebody retyping it into a local file.
+    """
+    if not TRACKED_PICKS.exists():
         return {}
-    picks = {}
+    try:
+        d = json.loads(TRACKED_PICKS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for cid, rec in (d.get("picks") or {}).items():
+        n = rec.get("candidate") if isinstance(rec, dict) else rec
+        if isinstance(n, int):
+            out[cid] = n
+    return out
+
+
+def read_picks():
+    # THE LOCAL FILE WINS, because somebody sitting at the machine having
+    # just listened is more current than a file committed yesterday.
+    picks = tracked_picks()
+    if not PICKS.exists():
+        return picks
     for line in PICKS.read_text(encoding="utf-8").splitlines():
         line = line.split("#")[0].strip()
         if not line:
@@ -1824,6 +1853,8 @@ def install(cast, repo_root, force=False):
     dest = repo_root / "game-design" / "picked-clips"
     dest.mkdir(parents=True, exist_ok=True)
     known = {c["id"] for c in cast}
+    page_rows = _rows_from_existing_page(OUT)
+    record = {}
     installed, missing, unknown, kept = [], [], [], []
     for cid, n in sorted(picks.items()):
         if cid not in known:
@@ -1833,6 +1864,17 @@ def install(cast, repo_root, force=False):
         if not src.exists():
             missing.append(f"{cid} #{n}")
             continue
+        # THE SPEAKER ID GOES IN THE FILENAME, which is the convention the
+        # nineteen already follow and `shape-check` depends on: it rebuilds
+        # `<id>.<speaker>` from the manifest and asserts the file is there,
+        # and that check is the only thing making "these are four different
+        # people" a fact rather than a hope. My first version wrote plain
+        # `<id>.wav` — the cloner would have found it, because it globs
+        # `<id>.*`, and the check that proves the cast is not one voice five
+        # times would have gone red on four characters at once.
+        row = next((r for r in page_rows.get(cid, []) if r.get("n") == n), None)
+        speaker = (row or {}).get("speaker")
+        stem = f"{cid}.{speaker}" if speaker else cid
         already = sorted(dest.glob(cid + ".*"))
         if already and not force:
             kept.append(f"{cid} (already cast as {already[0].name})")
@@ -1841,8 +1883,15 @@ def install(cast, repo_root, force=False):
             print(f"  replacing {already[0].name} for {cid}")
             for old_clip in already:
                 old_clip.unlink()
-        shutil.copyfile(src, dest / f"{cid}.wav")
-        installed.append(f"{cid} <- candidate-{n:02d} ({seconds_of(src):.1f}s)")
+        shutil.copyfile(src, dest / f"{stem}.wav")
+        if row:
+            # AND THE RECORD LEARNS WHAT THE PICK WAS. `voice-picks.json` is
+            # what `shape-check` reads; a clip on disk with no entry beside
+            # it is a voice nothing can verify.
+            record[cid] = dict(candidate=n, speaker=speaker,
+                               age=row.get("age"), accent=row.get("accent"))
+        installed.append(f"{cid} <- candidate-{n:02d} as {stem}.wav "
+                         f"({seconds_of(src):.1f}s)")
 
     (OUT / "casting.json").write_text(json.dumps(
         dict(version=VERSION, exaggeration=EXAGGERATION,
@@ -1855,6 +1904,13 @@ def install(cast, repo_root, force=False):
         print(f"  ! not in the cast, ignored: {', '.join(unknown)}")
     if missing:
         print(f"  ! picked but no such candidate on disk: {', '.join(missing)}")
+    if record and TRACKED_PICKS.exists():
+        d = json.loads(TRACKED_PICKS.read_text(encoding="utf-8"))
+        d.setdefault("picks", {}).update(record)
+        d["made"] = _time.strftime("%Y-%m-%d")
+        TRACKED_PICKS.write_text(json.dumps(d, indent=2) + "\n",
+                                 encoding="utf-8")
+        print(f"  recorded {len(record)} pick(s) in voice-picks.json")
     if kept:
         print("  left alone, already cast (pass --force to re-cast):")
         for k in kept:

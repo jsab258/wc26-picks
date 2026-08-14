@@ -53,19 +53,39 @@ def clips():
     picks_path = ROOT / "game-design" / "voice-picks.json"
     picks = json.loads(picks_path.read_text(encoding="utf-8"))["picks"]
     clip_dir = ROOT / "game-design" / "picked-clips"
-    print(f"voice clips — {len(picks)} cast, {len(list(clip_dir.glob('*.mp3')))} on disk")
+    on_disk = [q for q in clip_dir.iterdir() if q.is_file()]
+    print(f"voice clips — {len(picks)} cast, {len(on_disk)} on disk")
 
-    rows, by_speaker = [], {}
+    rows, by_speaker, pending = [], {}, []
     for name in sorted(picks):
         pick = picks[name]
-        speaker = pick["speaker"]
+        speaker = pick.get("speaker")
+        # PICKED BUT NOT YET INSTALLED IS A STATE, NOT A FAULT. A pick is
+        # made on the machine with the shortlists and travels here as a
+        # candidate NUMBER; the speaker id only exists once `--install` has
+        # run and can name the file. Failing on that gap would make the
+        # commit that records four decisions red for recording them, which
+        # is a guard blocking the good case. A pick that HAS a speaker and
+        # no clip is still a fault — the clip went missing — so the two are
+        # told apart rather than merged into one red line.
+        if not speaker:
+            pending.append(name)
+            continue
         # THE FILENAME CARRIES THE SPEAKER ID ON PURPOSE. It is the only thing
         # that survives the pipeline being re-run, and checking it against the
         # manifest is what makes "these are four different people" a fact.
-        path = clip_dir / f"{name}.{speaker}.mp3"
-        if not path.exists():
-            check(False, f"{name} has its picked clip on disk", f"no {path.name}")
+        # ANY EXTENSION, BECAUSE THE FETCHER NOW INSTALLS WAV. The nineteen
+        # cast in July are mp3 and this hardcoded that, so the four cast in
+        # August would each have reported "no clip on disk" while the file
+        # sat right there under a different suffix — a guard failing on the
+        # good case, which is the shape rule 5b exists about. The SPEAKER in
+        # the name is the part that matters and it is still required.
+        hits = sorted(clip_dir.glob(f"{name}.{speaker}.*"))
+        if not hits:
+            check(False, f"{name} has its picked clip on disk",
+                  f"no {name}.{speaker}.* in {clip_dir.name}")
             continue
+        path = hits[0]
         try:
             dur, rate, chans, frames, quiet, mean = probe(path)
         except Exception as e:                                  # noqa: BLE001
@@ -98,8 +118,15 @@ def clips():
     check(not shared, "no two characters share a voice",
           "; ".join(f"{sp}: {', '.join(w)}" for sp, w in shared.items()))
 
-    stray = sorted(p.name for p in (ROOT / "game-design" / "picked-clips").glob("*.mp3")
-                   if p.name.rsplit(".", 2)[0] not in picks)
+    # SAID OUT LOUD, WITH ITS DENOMINATOR. A pending pick that printed
+    # nothing would make "23 cast, 19 on disk" read as a bug rather than as
+    # four decisions waiting for one command to run.
+    if pending:
+        print(f"  {len(pending)} picked, awaiting --install on the machine "
+              f"with the shortlists: {', '.join(sorted(pending))}")
+
+    stray = sorted(q.name for q in (ROOT / "game-design" / "picked-clips").iterdir()
+                   if q.is_file() and q.name.rsplit(".", 2)[0] not in picks)
     check(not stray, "no picked clip belongs to a character nobody cast",
           ", ".join(stray[:4]))
     return rows

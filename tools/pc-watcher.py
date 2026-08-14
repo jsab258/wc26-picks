@@ -258,6 +258,15 @@ TABLE = {
     # renders again. Seconds, no network.
     "rebuild-the-page": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
                           "--rebuild-page"]],
+    # CAST THE FOUR AND THEN MAKE THEM VOICES, in one request, because a
+    # clip in `picked-clips` is not yet a voice — `precompute-voices` turns
+    # it into the conditioning the build is handed, and a casting pass that
+    # stops after the copy looks finished and changes nothing audible. The
+    # picks travel in `voice-picks.json`, so this needs no local file and
+    # nothing typed twice.
+    "cast-and-prepare": [["PY", "tools/voice-fetch/ledger_voice_fetch.py",
+                          "--install", "--yes"],
+                         ["PY", "tools/voice-live/precompute-voices.py"]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",
